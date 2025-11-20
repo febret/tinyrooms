@@ -121,3 +121,35 @@ float:
   action_text: [You float, USER floats]
   target_text: [above REF1, near REF1]
   end_text: [🎈, wheee!, ☁️, up up and away!, ✨, I'm flying!]
+
+tornado:
+  group: actions
+  label: 🌪️
+  description: Create a mini tornado
+  action_text: [You create a tornado, USER creates a tornado]
+  target_text: near REF1, near REF1 and REF2
+  end_text: [🌪️, whoosh!, debris flying!, hold on tight!, dizzy!, ohno!!!!]
+
+play_tabletennis:
+  group: actions
+  label: 🎾
+  description: Play a game of table tennis
+  action_text: [You serve the ball, USER serves the ball]
+  target_text: to REF1
+  end_text: [🏓, smash!, score!, nice shot!, rally!, game point!,i will win😈🤑🎾🥍🏸🏓, "NOOOO I LOST😭😡🤬😟😳:("]
+
+draw:
+  group: actions
+  label: 🎨
+  description: Create a piece of art
+  action_text: [You start drawing, USER starts drawing]
+  target_text: on REF1
+  end_text: [🖼️, masterpiece!, colorful!, beautiful!, wow!,cool,no way,that will make alot of muny🤑🤑🤑]
+
+sing:
+  group: actions
+  label: 🎤
+  description: Sing a song
+  action_text: [You start singing, USER starts singing]
+  target_text: for REF1
+  end_text: [🎵, la la la!, beautiful voice!, encore!,woooooooooooo!!!!!!! 🎶]
