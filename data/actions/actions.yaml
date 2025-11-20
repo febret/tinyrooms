@@ -17,6 +17,7 @@ pinch:
   label: 🤏
   description: Pinch something small
   action_text: [You pinch, USER pinches]
+  target_text: REF1
   end_text: [ouch!, 😈, HA!]
 
 wave:
@@ -40,3 +41,83 @@ dice:
   description: Roll some dice
   action_text: [You roll a dice..., USER rolls a 🎲 and gets...]
   end_text: [1, 2, 3, 4, 5, 6, so lucky!, 💣BOMB!, 🐼A panda...]
+
+dance:
+  group: emotes
+  label: 💃
+  description: Bust a move
+  action_text: [You dance, USER dances]
+  target_text: [with REF1, near REF1]
+  end_text: [🎵, ✨, like nobody's watching!, 🕺]
+
+giggle:
+  group: emotes
+  label: 🤭
+  description: Laugh softly
+  action_text: [You giggle, USER giggles]
+  target_text: at REF1
+  end_text: [hehe, tee-hee!, 😂]
+
+poke:
+  group: actions
+  label: 👉
+  description: Poke someone
+  action_text: [You poke, USER pokes]
+  target_text: REF1
+  end_text: [boop!, hey!, 👀, stop that!]
+
+spin:
+  group: actions
+  label: 🌀
+  description: Spin around
+  action_text: [You spin, USER spins]
+  target_text: [around REF1, with REF1]
+  end_text: [wheeee!, 😵‍💫, I'm dizzy!, ✨, 🌪️]
+
+hug:
+  group: emotes
+  label: 🤗
+  description: Give a warm hug
+  action_text: [You hug, USER hugs]
+  target_text: REF1
+  end_text: [💕, warmly, ☺️, squeeze!]
+
+wink:
+  group: emotes
+  label: 😉
+  description: Give a cheeky wink
+  action_text: [You wink, USER winks]
+  target_text: at REF1
+  end_text: [😏, sneakily, 👁️]
+
+explode:
+  group: actions
+  label: 💥
+  description: Spontaneously combust
+  action_text: [You explode, USER explodes]
+  target_text: [near REF1, in front of REF1]
+  end_text: [💥, BOOM!, 🔥, kaboom!, ashes everywhere, 💣, oops]
+
+teleport:
+  group: actions
+  label: ✨
+  description: Vanish and reappear
+  action_text: [You teleport, USER teleports]
+  target_text: [to REF1, near REF1, behind REF1]
+  end_text: [poof!!, ✨, 🌟, whoosh!, "where'd they go?", magic!]
+
+shrink:
+  group: actions
+  label: 🔬
+  description: Become tiny
+  action_text: [You shrink, USER shrinks]
+  target_text: [near REF1, in front of REF1]
+  end_text: [so smol!, 🐜, tiny!, eep!, help!]
+
+float:
+  group: actions
+  label: 🎈
+  description: Defy gravity
+  action_text: [You float, USER floats]
+  target_text: [above REF1, near REF1]
+  end_text: [🎈, wheee!, ☁️, up up and away!, ✨, I'm flying!]

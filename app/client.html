@@ -26,7 +26,10 @@
   </div>
 
   <div id="chatBox" style="display:none; margin-top:1rem;">
-    <h3>Chat</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <h3 style="margin: 0;">Chat</h3>
+      <button id="btnLogout" style="margin: 0; padding: 0.4rem 0.8rem; background: #dc3545;">Logout</button>
+    </div>
     <div id="messages"></div>
     <div class="message-input-container">
       <input id="msgInput" type="text" placeholder="Type a message" />

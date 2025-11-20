@@ -1,7 +1,13 @@
 import threading
 import code
+import readline
+import rlcompleter
 
 def start_console(locals=None):
+    # Enable tab completion
+    readline.set_completer(rlcompleter.Completer(locals).complete)
+    readline.parse_and_bind("tab: complete")
+    
     banner = """
     =================================================
     TinyRooms Server Console 🛖

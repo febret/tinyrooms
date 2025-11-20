@@ -6,7 +6,7 @@ from flask_socketio import emit
 import yaml
 
 from . import message
-from .user import User
+from .user import User, connected_users
 from .room import Room
 
 action_defs = dict()
@@ -21,7 +21,8 @@ def load_actions(yaml_path=None):
     with open(yaml_path, 'r', encoding='utf-8') as f:
         action_defs = yaml.safe_load(f)
 
-    emit("actions_def", {"actions": action_defs})
+    for u in connected_users.values():
+        u.actions_stale = True
 
     return action_defs
 
@@ -60,19 +61,8 @@ def do_action(action: str, msg: message.ParsedMessage, user: User, room: Room):
     out_text1 = f"{action_text[0]} {out_text}"
     emit("message", {"text": out_text1}, to=user.sid)
         
-    # Send second-person text if there is a target and it is a user
-    tgt_sid = None
-    if len(msg.refs) > 0 and isinstance(msg.refs[0], User):
-        out_text2 = f"{action_text[1]} to you: {out_text}"
-        out_text2 = out_text2.replace("USER", user.label)
-        tgt_sid = msg.refs[0].sid
-        emit("message", {"text": out_text2}, to=msg.refs[0].sid)
-    
     # Send third-person text to the room
     out_text3 = f"{action_text[1]}:  {out_text}"
     out_text3 = out_text3.replace("USER", user.label)
-    print(room.users)
-    for u in room.users:
-        if u.sid != user.sid and u != tgt_sid:
-            emit("message", {"text": out_text3}, to=u.sid)
+    emit("message", {"text": out_text3}, room=user.room.room_id, skip_sid=user.sid)  # type: ignore
 

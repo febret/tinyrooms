@@ -5,7 +5,8 @@ class User:
         self.username = username
         self.sid = sid
         self.label = f"[[@{username}[[#d33 {username}]]]]"
-        self.room = None 
+        self.room = None
+        self.actions_stale = True
     
     def __repr__(self):
         return f"User(username={self.username!r}, sid={self.sid!r})"

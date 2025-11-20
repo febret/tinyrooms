@@ -9,9 +9,64 @@ const chatBox = document.getElementById("chatBox");
 const messagesDiv = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
+const btnLogout = document.getElementById("btnLogout");
 
 let myUsername = null;
 let lastPassword = null; // Store password for auto-reconnect
+
+
+// Cookie utilities
+function setCookie(name, value, days) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + expires.toUTCString() + ";path=/";
+}
+
+
+function getCookie(name) {
+  const nameEQ = name + "=";
+  const cookies = document.cookie.split(';');
+  for (let i = 0; i < cookies.length; i++) {
+    let c = cookies[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+  }
+  return null;
+}
+
+
+function deleteCookie(name) {
+  document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/";
+}
+
+
+function saveCredentials(username, password) {
+  setCookie("tr_username", username, 30);
+  setCookie("tr_password", password, 30);
+}
+
+
+function loadCredentials() {
+  return {
+    username: getCookie("tr_username"),
+    password: getCookie("tr_password")
+  };
+}
+
+
+function clearCredentials() {
+  deleteCookie("tr_username");
+  deleteCookie("tr_password");
+}
+
+
+function reloadStyle() {
+  links = document.getElementsByTagName("link");
+  for (i = 0; i < links.length;i++) { 
+    link = links[i]; if (link.rel === "stylesheet") {link.href += "?"; }
+  }
+}
+
 
 function formatText(text) {
   // Replace [[ and ]] with <span> tags
@@ -28,7 +83,10 @@ function formatText(text) {
     } else if (modifier.startsWith('@')) {
       // [[@id format - create span with id and class 'ref'
       const id = modifier.substring(1); // Remove @ prefix
-      return `<span id="${id}" class="ref">`;
+      // Check if this ID matches the current user's username
+      const isSelf = myUsername && id === myUsername;
+      const classes = isSelf ? 'ref self' : 'ref';
+      return `<span id="${id}" class="${classes}">`;
     } else if (modifier.startsWith('#')) {
       // Hex color format - set font color
       let color = modifier.substring(1); // Remove # prefix
@@ -41,16 +99,22 @@ function formatText(text) {
   });
   
   // Replace ]] with closing span
-  result = result.replace(/\]\]/g, '</span>');
-  
+  result = result.replace(/\]\]/g, '</span>');  
   return result;
 }
+
 
 function addMessage(text, cls) {
   const div = document.createElement("div");
   div.className = "msg " + (cls || "");
   div.innerHTML = text;
   messagesDiv.appendChild(div);
+  
+  // Replace content of 'self' spans with 'YOU'
+  const selfSpans = div.querySelectorAll('span.self');
+  selfSpans.forEach(span => {
+    span.textContent = 'you';
+  });
   
   // Add click/touch event handlers to all spans with IDs
   const refSpans = div.querySelectorAll('span.ref[id]');
@@ -61,36 +125,42 @@ function addMessage(text, cls) {
     span.addEventListener('click', (e) => {
       e.preventDefault();
       msgInput.value += '@' + spanId + ' ';
-      msgInput.focus();
     });
     
     // Touch handler for mobile devices
     span.addEventListener('touchend', (e) => {
       e.preventDefault();
       msgInput.value += '@' + spanId + ' ';
-      msgInput.focus();
     });
   });
   
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+
 socket.on("connect", () => {
   addMessage("<span class='system'>Connected to server</span>");
   
-  // Auto-login if we have stored credentials
+  // Auto-login if we have stored credentials (from cookie or reconnect)
   const u = usernameInput.value.trim();
   const p = lastPassword || passwordInput.value;
   if (myUsername && u && p) {
     console.log("Reconnected - attempting auto-login");
     socket.emit("login", { username: u, password: p });
   }
+  
+  // Send heartbeat every second
+  setInterval(() => {
+    socket.emit("heartbeat", { timestamp: Date.now() });
+  }, 1000);
 });
+
 
 socket.on("connected", data => {
   // server greeting
   console.log("server:", data);
 });
+
 
 socket.on("actions_def", data => {
   // data: {actions: {...}}
@@ -98,21 +168,64 @@ socket.on("actions_def", data => {
   const actionsContainer = document.getElementById("actionButtons");
   actionsContainer.innerHTML = ""; // Clear existing buttons
   
-  // Create a button for each action
+  // Group actions by their group property
+  const groups = {};
   for (const [actionKey, actionDef] of Object.entries(data.actions || {})) {
-    const btn = document.createElement("button");
-    btn.className = "action-btn";
-    btn.textContent = actionDef.label + " " + actionDef.description;
-    btn.title = actionDef.description;
-    btn.dataset.action = actionKey;
-    
-    btn.addEventListener("click", () => {
-      msgInput.value = "." + actionKey + " ";
-    });
-    
-    actionsContainer.appendChild(btn);
+    const groupName = actionDef.group || "other";
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push({ key: actionKey, def: actionDef });
   }
+  
+  // Create group buttons view
+  function showGroups() {
+    actionsContainer.innerHTML = "";
+    
+    for (const [groupName, actions] of Object.entries(groups)) {
+      const groupBtn = document.createElement("button");
+      groupBtn.className = "action-btn group-btn";
+      groupBtn.textContent = groupName.charAt(0).toUpperCase() + groupName.slice(1);
+      groupBtn.title = "Click to expand " + groupName + " actions";
+      
+      groupBtn.addEventListener("click", () => {
+        showGroupActions(groupName, actions);
+      });
+      
+      actionsContainer.appendChild(groupBtn);
+    }
+  }
+  
+  // Show individual actions for a group
+  function showGroupActions(groupName, actions) {
+    actionsContainer.innerHTML = "";
+    
+    // Back button
+    const backBtn = document.createElement("button");
+    backBtn.className = "action-btn back-btn";
+    backBtn.textContent = "◀";
+    backBtn.style.background = "#6c757d";
+    backBtn.addEventListener("click", showGroups);
+    actionsContainer.appendChild(backBtn);
+    
+    // Individual action buttons
+    for (const { key: actionKey, def: actionDef } of actions) {
+      const btn = document.createElement("button");
+      btn.className = "action-btn";
+      btn.textContent = actionDef.label;
+      btn.title = actionDef.label + " - " + actionDef.description;
+      btn.dataset.action = actionKey;
+      
+      btn.addEventListener("click", () => {
+        msgInput.value = "." + actionKey + " ";
+      });
+      
+      actionsContainer.appendChild(btn);
+    }
+  }
+  showGroups();
 });
+
 
 socket.on("login_success", data => {
   myUsername = data.username;
@@ -120,20 +233,27 @@ socket.on("login_success", data => {
   loginStatus.textContent = "Login successful — welcome " + myUsername;
   document.getElementById("loginBox").style.display = "none";
   chatBox.style.display = "block";
+  
+  // Save credentials to cookie
+  saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
 });
+
 
 socket.on("login_failed", data => {
   loginStatus.style.color = "red";
   loginStatus.textContent = "Login failed: " + (data.error || "unknown");
 });
 
+
 socket.on("user_joined", data => {
   addMessage("<span class='system'>" + data.username + " joined</span>");
 });
 
+
 socket.on("user_left", data => {
   addMessage("<span class='system'>" + data.username + " left</span>");
 });
+
 
 socket.on("message", data => {
   const safeText = escapeHtml(data.text || "");
@@ -141,9 +261,11 @@ socket.on("message", data => {
   addMessage(formattedText);
 });
 
+
 socket.on("error", data => {
   addMessage("<span style='color:red'>Error: " + escapeHtml(data.error || "") + "</span>");
 });
+
 
 btnLogin.addEventListener("click", () => {
   const u = usernameInput.value.trim();
@@ -157,6 +279,25 @@ btnLogin.addEventListener("click", () => {
   lastPassword = p;
   socket.emit("login", { username: u, password: p });
 });
+
+
+btnLogout.addEventListener("click", () => {
+  // Clear credentials and reset UI
+  clearCredentials();
+  myUsername = null;
+  lastPassword = null;
+  usernameInput.value = "";
+  passwordInput.value = "";
+  chatBox.style.display = "none";
+  document.getElementById("loginBox").style.display = "block";
+  messagesDiv.innerHTML = "";
+  loginStatus.textContent = "";
+  
+  // Disconnect and reconnect to clear server state
+  socket.disconnect();
+  setTimeout(() => socket.connect(), 100);
+});
+
 
 // Simple local registration using /register HTTP endpoint
 btnRegister.addEventListener("click", async () => {
@@ -187,6 +328,7 @@ btnRegister.addEventListener("click", async () => {
   }
 });
 
+
 sendBtn.addEventListener("click", () => {
   const t = msgInput.value.trim();
   if (!t) return;
@@ -194,12 +336,30 @@ sendBtn.addEventListener("click", () => {
   msgInput.value = "";
 });
 
+
 msgInput.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") {
     sendBtn.click();
   }
 });
 
+
 function escapeHtml(s){
   return s.replace(/[&<>"'\/]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;'})[c]; });
 }
+
+
+// Auto-login on page load if credentials are saved
+window.addEventListener("DOMContentLoaded", () => {
+  const creds = loadCredentials();
+  if (creds.username && creds.password) {
+    usernameInput.value = creds.username;
+    passwordInput.value = creds.password;
+    lastPassword = creds.password;
+    
+    // Trigger login automatically
+    setTimeout(() => {
+      btnLogin.click();
+    }, 500);
+  }
+});

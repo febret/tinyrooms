@@ -2,7 +2,7 @@ import os
 import signal
 import sys
 
-from tinyrooms import server, console, db, user, connection
+from tinyrooms import server, console, db, user, connection, actions
 
 
 # Add kill function to quickly terminate the server
@@ -38,8 +38,9 @@ if __name__ == "__main__":
     # Start the interactive console in a separate thread
     print("Starting interactive console...")
     console_vars = {
-        "k": kill,
-        "r": reboot
+        "kill": kill,
+        "reboot": reboot,
+        "reload_actions": actions.load_actions
     }
     console.start_console_thread(locals=console_vars)
     

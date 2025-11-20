@@ -64,7 +64,7 @@ def handle_login(data):
         emit("login_success", {"username": username})
         
         # Broadcast that a user joined to the room
-        room.default_room.send_text(f"{username} has joined the room", sender_id="system")
+        room.default_room.send_text(f"{user_obj.label} has joined the room", sender_id="system")
         print(f"login success: {username} (sid={sid}) - added to default room")
     else:
         emit("login_failed", {"error": "invalid credentials"})
@@ -92,6 +92,11 @@ def handle_message(data):
 
 
 # Optional: simple ping from client
-@server.socketio.on("ping_server")
-def handle_ping(data):
-    emit("pong", {"server_time": server.socketio.server.eio.time()})
+@server.socketio.on("heartbeat")
+def handle_heartbeat(data):
+    sid = request.sid
+    user_obj = user.connected_users.get(sid)
+    if user_obj and user_obj.actions_stale:
+        emit("actions_def", {"actions": actions.action_defs}, to=sid)
+        user_obj.actions_stale = False
+        
