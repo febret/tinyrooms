@@ -187,6 +187,39 @@ button:active {
   background: #545b62;
 }
 
+#actionsChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  min-height: 2rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  background: #f0f0f0;
+}
+
+.action-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  background: #007bff;
+  color: white;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.action-chip:hover {
+  background: #dc3545;
+  transform: scale(1.05);
+}
+
+.action-chip:active {
+  transform: scale(0.95);
+}
+
 /* Phone layout (up to 600px) */
 @media (max-width: 600px) {
   body {

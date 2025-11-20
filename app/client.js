@@ -10,9 +10,11 @@ const messagesDiv = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const btnLogout = document.getElementById("btnLogout");
+const actionsChipsContainer = document.getElementById("actionsChips");
 
 let myUsername = null;
 let lastPassword = null; // Store password for auto-reconnect
+let selectedActions = []; // Array of {key, label} for selected actions
 
 
 // Cookie utilities
@@ -57,6 +59,42 @@ function loadCredentials() {
 function clearCredentials() {
   deleteCookie("tr_username");
   deleteCookie("tr_password");
+}
+
+// Action chips management
+function addActionChip(actionKey, actionLabel) {
+  // Check if already added
+  if (selectedActions.some(a => a.key === actionKey)) {
+    return;
+  }
+  
+  selectedActions.push({ key: actionKey, label: actionLabel });
+  renderActionChips();
+}
+
+function removeActionChip(actionKey) {
+  selectedActions = selectedActions.filter(a => a.key !== actionKey);
+  renderActionChips();
+}
+
+function renderActionChips() {
+  actionsChipsContainer.innerHTML = "";
+  
+  selectedActions.forEach(action => {
+    const chip = document.createElement("div");
+    chip.className = "action-chip";
+    chip.textContent = action.label;
+    chip.title = "Click to remove";
+    chip.addEventListener("click", () => {
+      removeActionChip(action.key);
+    });
+    actionsChipsContainer.appendChild(chip);
+  });
+}
+
+function clearActionChips() {
+  selectedActions = [];
+  renderActionChips();
 }
 
 
@@ -124,13 +162,13 @@ function addMessage(text, cls) {
     // Click handler
     span.addEventListener('click', (e) => {
       e.preventDefault();
-      msgInput.value += '@' + spanId + ' ';
+      addActionChip('@' + spanId, '@' + spanId);
     });
     
     // Touch handler for mobile devices
     span.addEventListener('touchend', (e) => {
       e.preventDefault();
-      msgInput.value += '@' + spanId + ' ';
+      addActionChip('@' + spanId, '@' + spanId);
     });
   });
   
@@ -217,7 +255,7 @@ socket.on("actions_def", data => {
       btn.dataset.action = actionKey;
       
       btn.addEventListener("click", () => {
-        msgInput.value = "." + actionKey + " ";
+        addActionChip('.' + actionKey, actionDef.label);
       });
       
       actionsContainer.appendChild(btn);
@@ -331,9 +369,21 @@ btnRegister.addEventListener("click", async () => {
 
 sendBtn.addEventListener("click", () => {
   const t = msgInput.value.trim();
-  if (!t) return;
-  socket.emit("message", { text: t });
+  
+  // Build message with action prefixes
+  let fullMessage = "";
+  if (selectedActions.length > 0) {
+    const actionTexts = selectedActions.map(a => a.key).join(" ");
+    fullMessage = actionTexts + " " + t;
+  } else {
+    fullMessage = t;
+  }
+  
+  if (!fullMessage.trim()) return;
+  
+  socket.emit("message", { text: fullMessage });
   msgInput.value = "";
+  clearActionChips();
 });
 
 

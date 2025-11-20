@@ -1,13 +1,7 @@
 from typing import NamedTuple
 
-from tinyrooms import user
-
-
-class ParsedMessage(NamedTuple):
-    in_text: str
-    out_text: list[str]
-    action: str
-    refs: list[any]
+from tinyrooms import user, actions
+from tinyrooms.types import ParsedMessage
     
     
 def parse_message(text: str) -> ParsedMessage:
@@ -28,6 +22,10 @@ def parse_message(text: str) -> ParsedMessage:
     for word in words:
         if first and word.startswith('.'):
             action = word[1:]
+        elif word.startswith('.'):
+            actid = word[1:]
+            if actid in actions.action_defs:
+                chunk.append(actions.action_defs[actid].get("description"))
         elif word.startswith('@') and len(word) > 1:
             if chunk:
                 out_text.append(' '.join(chunk))

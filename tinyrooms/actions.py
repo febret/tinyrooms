@@ -5,7 +5,7 @@ import random
 from flask_socketio import emit
 import yaml
 
-from . import message
+from .types import ParsedMessage
 from .user import User, connected_users
 from .room import Room
 
@@ -27,7 +27,7 @@ def load_actions(yaml_path=None):
     return action_defs
 
 
-def do_action(action: str, msg: message.ParsedMessage, user: User, room: Room):
+def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
     global action_defs
     if len(action_defs) == 0:
         print("Actions not loaded yet, loading now...")
