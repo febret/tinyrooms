@@ -13,11 +13,65 @@ const sendBtn = document.getElementById("sendBtn");
 let myUsername = null;
 let lastPassword = null; // Store password for auto-reconnect
 
+function formatText(text) {
+  // Replace [[ and ]] with <span> tags
+  // Support [[<@id>text]] or [[<color>text]] formats
+  
+  let result = text;
+  
+  // Pattern to match [[@id or [[color or [[ followed by content and closing ]]
+  // This regex captures: [[(@id or color)? ... ]]
+  result = result.replace(/\[\[(@\w+|#\w+)?\s*/g, (match, modifier) => {
+    if (!modifier) {
+      // Plain [[ - just opening span
+      return '<span>';
+    } else if (modifier.startsWith('@')) {
+      // [[@id format - create span with id and class 'ref'
+      const id = modifier.substring(1); // Remove @ prefix
+      return `<span id="${id}" class="ref">`;
+    } else if (modifier.startsWith('#')) {
+      // Hex color format - set font color
+      let color = modifier.substring(1); // Remove # prefix
+      // If 3-digit hex, expand it to 6-digit
+      if (color.length === 3) {
+        color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+      }
+      return `<span style="color: #${color}">`;
+    }
+  });
+  
+  // Replace ]] with closing span
+  result = result.replace(/\]\]/g, '</span>');
+  
+  return result;
+}
+
 function addMessage(text, cls) {
   const div = document.createElement("div");
   div.className = "msg " + (cls || "");
   div.innerHTML = text;
   messagesDiv.appendChild(div);
+  
+  // Add click/touch event handlers to all spans with IDs
+  const refSpans = div.querySelectorAll('span.ref[id]');
+  refSpans.forEach(span => {
+    const spanId = span.id;
+    
+    // Click handler
+    span.addEventListener('click', (e) => {
+      e.preventDefault();
+      msgInput.value += '@' + spanId + ' ';
+      msgInput.focus();
+    });
+    
+    // Touch handler for mobile devices
+    span.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      msgInput.value += '@' + spanId + ' ';
+      msgInput.focus();
+    });
+  });
+  
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
@@ -83,7 +137,8 @@ socket.on("user_left", data => {
 
 socket.on("message", data => {
   const safeText = escapeHtml(data.text || "");
-  addMessage(safeText);
+  const formattedText = formatText(safeText);
+  addMessage(formattedText);
 });
 
 socket.on("error", data => {

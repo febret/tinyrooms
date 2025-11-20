@@ -1,4 +1,2 @@
-tinyrooms/__pycache__/actions.cpython-311.pyc
-tinyrooms/__pycache__/connection.cpython-311.pyc
-tinyrooms/__pycache__/room.cpython-311.pyc
-tinyrooms/__pycache__/user.cpython-311.pyc
+*.pyc
+tinyrooms/__pycache__/*

@@ -71,7 +71,8 @@ def do_action(action: str, msg: message.ParsedMessage, user: User, room: Room):
     # Send third-person text to the room
     out_text3 = f"{action_text[1]}:  {out_text}"
     out_text3 = out_text3.replace("USER", user.label)
+    print(room.users)
     for u in room.users:
-        if u != user.sid and u != tgt_sid:
-            emit("message", {"text": out_text3}, to=u)
+        if u.sid != user.sid and u != tgt_sid:
+            emit("message", {"text": out_text3}, to=u.sid)
 

@@ -59,13 +59,12 @@ def handle_login(data):
         user.connected_users[sid] = user_obj
         
         # Add user to default room
-        user.default_room.add_user(username)
-        user_obj.room = user.default_room
+        room.default_room.add_user(user_obj)
         
         emit("login_success", {"username": username})
         
         # Broadcast that a user joined to the room
-        user.default_room.send_text(f"{username} has joined the room", sender_id="system")
+        room.default_room.send_text(f"{username} has joined the room", sender_id="system")
         print(f"login success: {username} (sid={sid}) - added to default room")
     else:
         emit("login_failed", {"error": "invalid credentials"})
@@ -89,7 +88,7 @@ def handle_message(data):
         return
     parsed = message.parse_message(text)
     act = parsed.action or "say"
-    actions.do_action(act, parsed, user = user_obj, room = user.default_room)
+    actions.do_action(act, parsed, user = user_obj, room = user_obj.room)
 
 
 # Optional: simple ping from client
