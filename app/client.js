@@ -133,6 +133,32 @@ function clearMessagesFromStorage() {
 }
 
 
+// Save/restore input state for reload
+function saveInputState() {
+  localStorage.setItem('tr_input', msgInput.value);
+  localStorage.setItem('tr_actions', JSON.stringify(selectedActions));
+}
+
+function loadInputState() {
+  const savedInput = localStorage.getItem('tr_input');
+  const savedActions = localStorage.getItem('tr_actions');
+  
+  if (savedInput) {
+    msgInput.value = savedInput;
+    localStorage.removeItem('tr_input');
+  }
+  
+  if (savedActions) {
+    try {
+      selectedActions = JSON.parse(savedActions);
+      renderActionChips();
+      localStorage.removeItem('tr_actions');
+    } catch (err) {
+      console.error('Error loading actions:', err);
+    }
+  }
+}
+
 function reloadStyle() {
   links = document.getElementsByTagName("link");
   for (i = 0; i < links.length;i++) { 
@@ -317,6 +343,7 @@ socket.on("login_success", data => {
   
   // Load saved messages from localStorage
   loadMessagesFromStorage();
+  loadInputState();
 });
 
 
@@ -342,6 +369,15 @@ socket.on("message", data => {
   addMessage(formattedText);
 });
 
+
+socket.on("reload_styles", data => {
+  reloadStyle();
+});
+
+socket.on("reload_client", data => {
+  saveInputState();
+  window.location.reload();
+});
 
 socket.on("error", data => {
   addMessage("<span style='color:red'>Error: " + escapeHtml(data.error || "") + "</span>");

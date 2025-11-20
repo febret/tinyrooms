@@ -6,7 +6,18 @@ import queue
 import eventlet
 
 # Queue for sending command lines from input thread to eventlet console thread
-command_queue = queue.Queue()
+command_queue = []
+
+def run_admin_cmd(cmd, locals_dict):
+    if cmd == 'r':
+        locals_dict["reboot"]()
+    elif cmd == 'k':
+        locals_dict["kill"]()
+    elif cmd == 'rc':
+        locals_dict["user"].reload_clients()
+    elif cmd == 'rs':
+        locals_dict["user"].reload_styles()
+
 
 def input_thread_func(locals_dict):
     # Enable tab completion
@@ -18,7 +29,6 @@ def input_thread_func(locals_dict):
     TinyRooms Server Console 🛖
     =================================================
     Tab completion enabled. Type help() for Python help.
-    Special commands: /k to kill, /r to reboot
     =================================================
     """
     print(banner)
@@ -26,13 +36,17 @@ def input_thread_func(locals_dict):
     while True:
         try:
             line = input(">>> ")
-            command_queue.put(line)
+            if line.startswith('/'):
+                cmd = line[1:].strip()
+                run_admin_cmd(cmd, locals_dict)
+            else:
+                command_queue.append(line)
         except EOFError:
             locals_dict["reboot"]()
             break
         except KeyboardInterrupt:
             print("\nKeyboardInterrupt")
-            command_queue.put("")  # Send empty line to reset
+            command_queue.append("")  # Send empty line to reset
 
 
 def console_eventlet_thread(locals_dict):
@@ -40,16 +54,20 @@ def console_eventlet_thread(locals_dict):
     console = code.InteractiveConsole(locals=locals_dict)
     
     while True:
-        eventlet.sleep(0)  # Yield to other greenthreads
-        if command_queue.empty():
-            continue        
+        eventlet.sleep(0.1)
+        if not command_queue:
+            continue
         with locals_dict["server"].app.app_context():
-            for line in iter(command_queue.get, None):
-                console.push(line)
+            for line in command_queue:
+                try:
+                    console.push(line)
+                    print(">>> ")
+                except:
+                    continue
+            command_queue.clear()
 
 
 def start_console(locals_dict=None):
-    """Start the console with input thread and eventlet execution thread."""
     if locals_dict is None:
         locals_dict = {}
     

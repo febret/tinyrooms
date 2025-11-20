@@ -40,12 +40,10 @@ if __name__ == "__main__":
     console_vars = {
         "kill": kill,
         "reboot": reboot,
-        "socketio": server.socketio,
-        "reload_actions": actions.load_actions,
+        "actions": actions,
         "server": server,
         "user": user,
-        "default_room": room.default_room,
-        "connected_users": user.connected_users
+        "room": room,
     }
     console.start_console(console_vars)
     

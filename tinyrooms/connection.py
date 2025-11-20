@@ -20,10 +20,7 @@ def handle_disconnect():
     user_obj = user.connected_users.pop(sid, None)
     print(f"disconnect: sid={sid} username={user_obj.username if user_obj else None}")
     if user_obj:
-        # Remove user from default room
         user_obj.room.remove_user(user_obj)
-        # broadcast user-left to the room
-        user_obj.room.send_text(f"{user_obj.username} has left the room")
 
 
 @server.socketio.on("login")
@@ -63,8 +60,6 @@ def handle_login(data):
         
         emit("login_success", {"username": username})
         
-        # Broadcast that a user joined to the room
-        room.default_room.send_text(f"{user_obj.label} has joined the room")
         print(f"login success: {username} (sid={sid}) - added to default room")
     else:
         emit("login_failed", {"error": "invalid credentials"})
@@ -97,7 +92,15 @@ def handle_message(data):
 def handle_heartbeat(data):
     sid = getattr(request, 'sid', None)
     user_obj = user.connected_users.get(sid)
-    if user_obj and user_obj.actions_stale:
+    if user_obj is None:
+        return
+    if user_obj.actions_stale:
         emit("actions_def", {"actions": actions.action_defs}, to=sid)
         user_obj.actions_stale = False
-        
+    if user_obj.client_stale:
+        print("Reloading client for user:", user_obj.username)
+        emit("reload_client", {}, to=sid)
+        user_obj.client_stale = False
+    if user_obj.styles_stale:
+        emit("reload_styles", {}, to=sid)
+        user_obj.styles_stale = False
