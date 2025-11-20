@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tinyrooms Client</title>
+  <link rel="stylesheet" href="/app/base.css">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <div id="loginBox">
+    <h3>Login</h3>
+    <div class="input-group">
+      <label for="username">Username</label>
+      <input id="username" type="text" autocomplete="username" />
+    </div>
+    <div class="input-group">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" />
+    </div>
+    <div>
+      <button id="btnLogin">Login</button>
+      <button id="btnRegister">Register (local)</button>
+    </div>
+    <div id="loginStatus"></div>
+  </div>
+
+  <div id="chatBox" style="display:none; margin-top:1rem;">
+    <h3>Chat</h3>
+    <div id="messages"></div>
+    <div class="message-input-container">
+      <input id="msgInput" type="text" placeholder="Type a message" />
+      <button id="sendBtn">Send</button>
+    </div>
+    <div id="actionsContainer">
+      <h4>Actions</h4>
+      <div id="actionButtons"></div>
+    </div>
+  </div>
+
+<script src="/app/client.js"></script>
+</html>

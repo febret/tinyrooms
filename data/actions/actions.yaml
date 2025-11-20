@@ -1,0 +1,42 @@
+say:
+  group: basic
+  label: 💬
+  description: Say something
+  action_text: [You say, USER says]
+  target_text: to REF1
+
+smile:
+  group: emotes
+  label: 😊
+  description: Smile
+  action_text: [You smile, USER smiles]
+  target_text: [at REF1, at REF1 and REF2]
+
+pinch:
+  group: actions
+  label: 🤏
+  description: Pinch something small
+  action_text: [You pinch, USER pinches]
+  end_text: [ouch!, 😈, HA!]
+
+wave:
+  group: actions
+  label: 👋
+  description: Wave at someone
+  action_text: [You wave, USER waves]
+  target_text: at REF1
+
+fart:
+  group: actions
+  label: 💨
+  description: Make a stinky
+  action_text: [You fart, USER farts]
+  target_text: at REF1
+  end_text: [💨, 😵, Phew!]
+
+dice:
+  group: actions
+  label: 🎲
+  description: Roll some dice
+  action_text: [You roll a dice..., USER rolls a 🎲 and gets...]
+  end_text: [1, 2, 3, 4, 5, 6, so lucky!, 💣BOMB!, 🐼A panda...]

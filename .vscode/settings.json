@@ -1,0 +1,12 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "DuckDB",
+            "name": "tinyrooms",
+            "database": "data/users.duckdb"
+        }
+    ],
+    "sqltools.useNodeRuntime": true,
+    "python.analysis.typeCheckingMode": "standard"
+}
