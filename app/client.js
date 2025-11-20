@@ -97,6 +97,41 @@ function clearActionChips() {
   renderActionChips();
 }
 
+// localStorage for messages
+function saveMessagesToStorage() {
+  const messages = [];
+  const msgDivs = messagesDiv.querySelectorAll('.msg');
+  msgDivs.forEach(div => {
+    messages.push({
+      html: div.innerHTML,
+      className: div.className
+    });
+  });
+  localStorage.setItem('tr_messages', JSON.stringify(messages));
+}
+
+function loadMessagesFromStorage() {
+  const saved = localStorage.getItem('tr_messages');
+  if (saved) {
+    try {
+      const messages = JSON.parse(saved);
+      messages.forEach(msg => {
+        const div = document.createElement("div");
+        div.className = msg.className;
+        div.innerHTML = msg.html;
+        messagesDiv.appendChild(div);
+      });
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } catch (err) {
+      console.error('Error loading messages from storage:', err);
+    }
+  }
+}
+
+function clearMessagesFromStorage() {
+  localStorage.removeItem('tr_messages');
+}
+
 
 function reloadStyle() {
   links = document.getElementsByTagName("link");
@@ -191,6 +226,11 @@ socket.on("connect", () => {
   setInterval(() => {
     socket.emit("heartbeat", { timestamp: Date.now() });
   }, 1000);
+  
+  // Save messages to localStorage every second
+  setInterval(() => {
+    saveMessagesToStorage();
+  }, 1000);
 });
 
 
@@ -274,6 +314,9 @@ socket.on("login_success", data => {
   
   // Save credentials to cookie
   saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
+  
+  // Load saved messages from localStorage
+  loadMessagesFromStorage();
 });
 
 
@@ -322,6 +365,7 @@ btnLogin.addEventListener("click", () => {
 btnLogout.addEventListener("click", () => {
   // Clear credentials and reset UI
   clearCredentials();
+  clearMessagesFromStorage();
   myUsername = null;
   lastPassword = null;
   usernameInput.value = "";

@@ -20,10 +20,10 @@ class Room:
             user.room = None
             leave_room(self.room_id, sid=user.sid)
     
-    def send_text(self, message, sender_id=None):
+    def send_text(self, message):
         """Send a text message to all users in the room"""
         data = { 'text': message }
-        emit('message', data, room=self.room_id) # type: ignore
+        emit('message', data, room=self.room_id, namespace='/') # type: ignore
     
     def get_user_count(self):
         """Get the number of users in the room"""

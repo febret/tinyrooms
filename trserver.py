@@ -2,7 +2,7 @@ import os
 import signal
 import sys
 
-from tinyrooms import server, console, db, user, connection, actions
+from tinyrooms import server, console, db, user, connection, actions, room
 
 
 # Add kill function to quickly terminate the server
@@ -40,9 +40,14 @@ if __name__ == "__main__":
     console_vars = {
         "kill": kill,
         "reboot": reboot,
-        "reload_actions": actions.load_actions
+        "socketio": server.socketio,
+        "reload_actions": actions.load_actions,
+        "server": server,
+        "user": user,
+        "default_room": room.default_room,
+        "connected_users": user.connected_users
     }
-    console.start_console_thread(locals=console_vars)
+    console.start_console(console_vars)
     
     # Start the Flask-SocketIO server
     print("Starting Flask-SocketIO server on http://0.0.0.0:5000")

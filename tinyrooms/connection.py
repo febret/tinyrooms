@@ -6,24 +6,24 @@ from tinyrooms import message, user, server, db, room, actions
 # Socket.IO events
 @server.socketio.on("connect")
 def handle_connect():
-    print(f"connect: sid={request.sid}")
+    print(f"connect: sid={getattr(request, 'sid', None)}")
     emit("connected", {"message": "connected to server"})
     if len(actions.action_defs) == 0:
         actions.load_actions()
-    emit("actions_def", {"actions": actions.action_defs}, to=request.sid)
+    emit("actions_def", {"actions": actions.action_defs}, to=getattr(request, 'sid', None))
 
 
 
 @server.socketio.on("disconnect")
 def handle_disconnect():
-    sid = request.sid
+    sid = getattr(request, 'sid', None)
     user_obj = user.connected_users.pop(sid, None)
     print(f"disconnect: sid={sid} username={user_obj.username if user_obj else None}")
     if user_obj:
         # Remove user from default room
-        user.default_room.remove_user(user_obj.username)
+        user_obj.room.remove_user(user_obj)
         # broadcast user-left to the room
-        user.default_room.send_text(f"{user_obj.username} has left the room", sender_id="system")
+        user_obj.room.send_text(f"{user_obj.username} has left the room")
 
 
 @server.socketio.on("login")
@@ -34,7 +34,7 @@ def handle_login(data):
       - "login_success" with {"username":...}
       - "login_failed" with {"error": "..."}
     """
-    sid = request.sid
+    sid = getattr(request, 'sid', None)
     username = (data or {}).get("username")
     password = (data or {}).get("password")
     if not username or not password:
@@ -64,7 +64,7 @@ def handle_login(data):
         emit("login_success", {"username": username})
         
         # Broadcast that a user joined to the room
-        room.default_room.send_text(f"{user_obj.label} has joined the room", sender_id="system")
+        room.default_room.send_text(f"{user_obj.label} has joined the room")
         print(f"login success: {username} (sid={sid}) - added to default room")
     else:
         emit("login_failed", {"error": "invalid credentials"})
@@ -77,6 +77,7 @@ def handle_message(data):
     Only accepts messages if client is authenticated.
     Sends message to the user's current room (default room for now)
     """
+    print(request.namespace)
     sid = request.sid # type: ignore
     user_obj = user.connected_users.get(sid)
     if not user_obj:
@@ -94,7 +95,7 @@ def handle_message(data):
 # Optional: simple ping from client
 @server.socketio.on("heartbeat")
 def handle_heartbeat(data):
-    sid = request.sid
+    sid = getattr(request, 'sid', None)
     user_obj = user.connected_users.get(sid)
     if user_obj and user_obj.actions_stale:
         emit("actions_def", {"actions": actions.action_defs}, to=sid)
