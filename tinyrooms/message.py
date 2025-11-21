@@ -11,13 +11,10 @@ def parse_message(text: str) -> ParsedMessage:
     action = ""
     refs = []
     
-    if in_text.startswith('.'):
-        parts = in_text.split(' ')
-        action = parts[0][1:]  # Remove leading dot
-    
     # Simple reference parsing: look for @username patterns
     words = in_text.split(' ')
     first = True
+    text_ref = False
     chunk = []
     for word in words:
         if first and word.startswith('.'):
@@ -26,6 +23,16 @@ def parse_message(text: str) -> ParsedMessage:
             actid = word[1:]
             if actid in actions.action_defs:
                 chunk.append(actions.action_defs[actid].get("description"))
+        elif word == '[[@':
+            if chunk:
+                out_text.append(' '.join(chunk))
+                chunk = []
+            text_ref = True
+        elif word == ']]':
+            if text_ref:
+                refs.append( ' '.join(chunk))
+                chunk = []
+            text_ref = False    
         elif word.startswith('@') and len(word) > 1:
             if chunk:
                 out_text.append(' '.join(chunk))

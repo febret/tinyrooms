@@ -11,11 +11,13 @@ const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const btnLogout = document.getElementById("btnLogout");
 const actionsChipsContainer = document.getElementById("actionsChips");
+const connectionIndicator = document.getElementById("connectionIndicator");
 
 let myUsername = null;
 let lastPassword = null; // Store password for auto-reconnect
 let selectedActions = []; // Array of {key, label} for selected actions
-
+let connectionState = "connecting"; // connecting, connected, disconnected
+let connectionTime = null;
 
 // Cookie utilities
 function setCookie(name, value, days) {
@@ -97,11 +99,43 @@ function clearActionChips() {
   renderActionChips();
 }
 
+// Connection state management
+function setConnectionState(state) {
+  connectionState = state;
+  connectionIndicator.className = `connection-indicator ${state}`;
+  
+  if (state === "connected") {
+    connectionTime = new Date();
+  }
+}
+
+function showConnectionInfo() {
+  let info = `<span class='system'>Connection Status: ${connectionState}</span>`;
+  
+  if (connectionState === "connected" && connectionTime) {
+    const duration = Math.floor((new Date() - connectionTime) / 1000);
+    info += `<br><span class='system'>Connected for ${duration} seconds</span>`;
+  }
+  
+  if (socket.id) {
+    info += `<br><span class='system'>Socket ID: ${socket.id}</span>`;
+  }
+  
+  addMessage(info);
+}
+
+connectionIndicator.addEventListener("click", showConnectionInfo);
+
 // localStorage for messages
 function saveMessagesToStorage() {
   const messages = [];
   const msgDivs = messagesDiv.querySelectorAll('.msg');
-  msgDivs.forEach(div => {
+  
+  // Get only the last 50 messages
+  const divsArray = Array.from(msgDivs);
+  const lastMessages = divsArray.slice(-50);
+  
+  lastMessages.forEach(div => {
     messages.push({
       html: div.innerHTML,
       className: div.className
@@ -122,6 +156,8 @@ function loadMessagesFromStorage() {
         messagesDiv.appendChild(div);
       });
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      refSpans = messagesDiv.querySelectorAll('span.ref');
+      attachRefEventHandlers(refSpans);
     } catch (err) {
       console.error('Error loading messages from storage:', err);
     }
@@ -175,7 +211,7 @@ function formatText(text) {
   
   // Pattern to match [[@id or [[color or [[ followed by content and closing ]]
   // This regex captures: [[(@id or color)? ... ]]
-  result = result.replace(/\[\[(@\w+|#\w+)?\s*/g, (match, modifier) => {
+  result = result.replace(/\[\[(@\w*|#\w+)?\s*/g, (match, modifier) => {
     if (!modifier) {
       // Plain [[ - just opening span
       return '<span>';
@@ -185,7 +221,11 @@ function formatText(text) {
       // Check if this ID matches the current user's username
       const isSelf = myUsername && id === myUsername;
       const classes = isSelf ? 'ref self' : 'ref';
-      return `<span id="${id}" class="${classes}">`;
+      if (id.length === 0) {
+        return `<span class="${classes}">`;
+      } else {
+        return `<span id="${id}" class="${classes}">`;
+      }
     } else if (modifier.startsWith('#')) {
       // Hex color format - set font color
       let color = modifier.substring(1); // Remove # prefix
@@ -203,11 +243,41 @@ function formatText(text) {
 }
 
 
+function attachRefEventHandlers(spans) {
+  touchHandler = (e) => {
+    e.preventDefault();
+    src = e.currentTarget;
+    if (src.id.length === 0) {
+      actionCmd = '[[@ ' + src.textContent + ']]';
+      actionLabel = src.innerHTML;
+    } else {
+      actionCmd = '@' + src.id;
+      actionLabel = '@' + src.id;
+    }
+    addActionChip(actionCmd, actionLabel);
+  };
+
+  spans.forEach(span => {
+    span.addEventListener('click', touchHandler);
+    span.addEventListener('touchend', touchHandler);
+  });
+}
+
+
 function addMessage(text, cls) {
   const div = document.createElement("div");
   div.className = "msg " + (cls || "");
   div.innerHTML = text;
   messagesDiv.appendChild(div);
+  
+  // Remove old messages if count exceeds 50
+  const allMessages = messagesDiv.querySelectorAll('.msg');
+  if (allMessages.length > 50) {
+    const removeCount = allMessages.length - 50;
+    for (let i = 0; i < removeCount; i++) {
+      allMessages[i].remove();
+    }
+  }
   
   // Replace content of 'self' spans with 'YOU'
   const selfSpans = div.querySelectorAll('span.self');
@@ -216,30 +286,13 @@ function addMessage(text, cls) {
   });
   
   // Add click/touch event handlers to all spans with IDs
-  const refSpans = div.querySelectorAll('span.ref[id]');
-  refSpans.forEach(span => {
-    const spanId = span.id;
-    
-    // Click handler
-    span.addEventListener('click', (e) => {
-      e.preventDefault();
-      addActionChip('@' + spanId, '@' + spanId);
-    });
-    
-    // Touch handler for mobile devices
-    span.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      addActionChip('@' + spanId, '@' + spanId);
-    });
-  });
-  
+  const refSpans = div.querySelectorAll('span.ref');
+  attachRefEventHandlers(refSpans);  
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 
 socket.on("connect", () => {
-  addMessage("<span class='system'>Connected to server</span>");
-  
   // Auto-login if we have stored credentials (from cookie or reconnect)
   const u = usernameInput.value.trim();
   const p = lastPassword || passwordInput.value;
@@ -259,9 +312,16 @@ socket.on("connect", () => {
   }, 1000);
 });
 
+socket.on("disconnect", () => {
+  setConnectionState("disconnected");
+});
+
+socket.on("connect_error", () => {
+  setConnectionState("disconnected");
+});
 
 socket.on("connected", data => {
-  // server greeting
+  setConnectionState("connected");
   console.log("server:", data);
 });
 

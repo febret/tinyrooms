@@ -52,10 +52,29 @@ def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
         out_text += f" {random.choice(end_text)}"
     # Replace all REF placeholders with names of refs in msg, then find any left over
     for i, ref in enumerate(msg.refs):
-        out_text = out_text.replace(f"REF{i+1}", ref.label)
+        ref_text = ref if isinstance(ref, str) else ref.label
+        out_text = out_text.replace(f"REF{i+1}", ref_text)
     nothing_txt = ['nothing', 'no one', 'nobody', 'void', 'the ether']
     for n in range(len(msg.refs)+1, 10):
         out_text = out_text.replace(f"REF{n}", random.choice(nothing_txt))
+    
+    # Replace $* with random tokens from all refs
+    if "$*" in out_text:
+        # Collect all tokens from all refs
+        all_tokens = []
+        for ref in msg.refs:
+            ref_text = ref if isinstance(ref, str) else ref.label
+            all_tokens.extend(ref_text.split())
+        
+        # If we have tokens, build a random string by picking tokens for each position
+        if all_tokens:
+            # Count how many words we need (assuming $* represents some number of words)
+            # Let's use the total number of tokens as the length
+            random_string = ' '.join(random.choice(all_tokens) for _ in range(len(all_tokens)))
+            out_text = out_text.replace("$*", random_string)
+        else:
+            out_text = out_text.replace("$*", "")
+    
 
     # Send first-person text to the user
     out_text1 = f"{action_text[0]} {out_text}"

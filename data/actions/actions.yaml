@@ -143,7 +143,7 @@ draw:
   label: 🎨
   description: Create a piece of art
   action_text: [You start drawing, USER starts drawing]
-  target_text: on REF1
+  target_text: on $1
   end_text: [🖼️, masterpiece!, colorful!, beautiful!, wow!,cool,no way,that will make alot of muny🤑🤑🤑]
 
 sing:
@@ -153,3 +153,19 @@ sing:
   action_text: [You start singing, USER starts singing]
   target_text: for REF1
   end_text: [🎵, la la la!, beautiful voice!, encore!,woooooooooooo!!!!!!! 🎶]
+
+color:
+  group: imagine
+  label: 🌈
+  description: Change color of something
+  action_text: [You change the color of, USER repaints]
+  target_text: REF1 and make
+  end_text: ["[[@ [[#f00 red REF1 ]] ]]", "[[@  [[#00f blue REF1 ]]", "[[@ [[#0f0 green REF1 ]]", "[[@ [[#800 purple REF1 ]]", "[[@ [[#f0f pink REF1 ]]" ]
+
+melt:
+  group: imagine
+  label: 🧊
+  description: Melt two things together
+  action_text: [You melt, $0 melts]
+  target_text: [$1, $1 and $2 into]
+  end_text: "[[@ $* ]]"

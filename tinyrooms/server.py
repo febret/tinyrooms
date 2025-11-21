@@ -16,13 +16,11 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 
-# Route to serve the client HTML at the default route and /client
 @app.route("/")
 def client():
     return send_from_directory(str(STATIC_FOLDER), CLIENT_FILENAME)
 
 
-# Simple registration endpoint (for local testing)
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json or {}
@@ -36,7 +34,6 @@ def register():
     return jsonify({"ok": True, "message": "user created"}), 201
 
 
-# Basic API to list connected users (for debug)
 @app.route("/connected")
 def list_connected():
     # Extract usernames from User instances
