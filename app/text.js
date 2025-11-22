@@ -11,7 +11,7 @@ function formatText(text) {
   
   // Pattern to match [[@id or [[color or [[ followed by content and closing ]]
   // This regex captures: [[(@id or color)? ... ]]
-  result = result.replace(/\[\[(\.\w+@?[\w|\:]*|@\w*|#\w+)?\s*/g, (match, modifier) => {
+  result = result.replace(/\[\[(\.\w+@?[\w|:|-]*|@[\w|:|-]*|#\w+)?\s*/g, (match, modifier) => {
     if (!modifier) {
       // Plain [[ - just opening span
       return '<span>';
@@ -50,4 +50,20 @@ function formatText(text) {
   // Replace ]] with closing span
   result = result.replace(/\]\]/g, '</span>');  
   return result;
+}
+
+
+function makeActionLabel(text) {
+  // Find the first emoji from the right side of text and return it as label
+  const emojiRegex = /(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu;
+  let match;
+  let lastEmoji = null;
+  while ((match = emojiRegex.exec(text)) !== null) {
+    lastEmoji = match[0];
+  }
+  // If you did not find any emoji, use a default label
+  if (!lastEmoji) {
+    lastEmoji = "...";
+  }
+  return lastEmoji;
 }

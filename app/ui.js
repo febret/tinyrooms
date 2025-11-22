@@ -89,12 +89,11 @@ function attachRefEventHandlers(tgt) {
       }
       socket.emit("message", { text: actionCmd });
     } else {
+      actionLabel = makeActionLabel(src.textContent);
       if (src.id.length === 0) {
         actionCmd = `[[@ ${src.textContent} ]]`;
-        actionLabel = src.textContent;
       } else {
         actionCmd = `@${src.id}`;
-        actionLabel = `@${src.id}`;
       }
       addActionChip(actionCmd, actionLabel);
     }
@@ -133,7 +132,6 @@ function addMessage(text, cls) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-
 sendBtn.addEventListener("click", () => {
   const t = msgInput.value.trim();
   
@@ -147,6 +145,9 @@ sendBtn.addEventListener("click", () => {
   }
   
   if (!fullMessage.trim()) return;
+  
+  // Play bop sound
+  playBopSound();
   
   socket.emit("message", { text: fullMessage });
   msgInput.value = "";

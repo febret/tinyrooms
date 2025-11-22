@@ -40,12 +40,42 @@ h1 {
   font-family: monospace;
   font-size: 0.9rem;
   word-wrap: break-word;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.view-container.slide-out {
+  opacity: 0;
+  transform: translateX(-20px);
 }
 
 .view-container::after {
   content: "";
   display: table;
   clear: both;
+}
+
+.view-container.collapsed .view-image {
+  max-height: 40px;
+  width: auto;
+}
+
+.view-description {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-family: inherit;
+  white-space: normal;
+  display: block;
+  transition: opacity 0.3s ease, max-height 0.3s ease;
+  max-height: 1000px;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.view-container.collapsed .view-description {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .view-image {
@@ -55,6 +85,7 @@ h1 {
   border-radius: 4px;
   margin-right: 0.75rem;
   margin-bottom: 0.5rem;
+  transition: max-height 0.3s ease, max-width 0.3s ease;
 }
 
 .view-label {
@@ -64,14 +95,7 @@ h1 {
   font-family: inherit;
   display: block;
   clear: none;
-}
-
-.view-description {
-  font-size: 0.95rem;
-  line-height: 1.4;
-  font-family: inherit;
-  white-space: normal;
-  display: block;
+  transition: font-size 0.3s ease;
 }
 
 .drop-cap {

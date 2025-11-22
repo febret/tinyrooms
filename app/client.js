@@ -19,6 +19,7 @@ let lastPassword = null; // Store password for auto-reconnect
 let selectedActions = []; // Array of {key, label} for selected actions
 let connectionState = "connecting"; // connecting, connected, disconnected
 let connectionTime = null;
+let lastViewLabel = null; // Track the last view label for page flip sound
 
 
 socket.on("connect", () => {
@@ -210,6 +211,13 @@ socket.on("update_view", data => {
     return;
   }
   
+  // Play page flip sound if label changed
+  const currentLabel = data.label || "";
+  if (lastViewLabel !== null && lastViewLabel !== currentLabel) {
+    playPageFlipSound();
+  }
+  lastViewLabel = currentLabel;
+  
   // Find or create the view div
   const viewId = "view_" + viewName;
   let viewDiv = document.getElementById(viewId);
@@ -226,8 +234,23 @@ socket.on("update_view", data => {
     chatBoxEl.insertBefore(viewDiv, messagesEl);
   }
   
-  // Clear existing content
-  viewDiv.innerHTML = "";
+  // Add slide-out animation before updating content
+  const isExistingContent = viewDiv.innerHTML.trim().length > 0;
+  if (isExistingContent) {
+    viewDiv.classList.add("slide-out");
+    
+    // Wait for slide-out animation to complete
+    setTimeout(() => {
+      updateViewContent();
+    }, 300);
+  } else {
+    updateViewContent();
+  }
+  
+  function updateViewContent() {
+    // Clear existing content
+    viewDiv.innerHTML = "";
+    viewDiv.classList.remove("collapsed", "slide-out");
   
   // Create sub-sections for image, label, and description
   if (image) {
@@ -235,6 +258,14 @@ socket.on("update_view", data => {
     img.src = "/world/images/" + image;
     img.alt = label || "Room image";
     img.className = "view-image";
+    img.style.cursor = "pointer";
+    img.title = "Click to collapse/expand";
+    
+    // Add click handler to toggle collapse
+    img.addEventListener("click", () => {
+      viewDiv.classList.toggle("collapsed");
+    });
+    
     viewDiv.appendChild(img);
   }
   
@@ -272,8 +303,9 @@ socket.on("update_view", data => {
     viewDiv.appendChild(descDiv);
   }
   
-  // viewDiv.appendChild(textContainer);
-  attachRefEventHandlers(viewDiv); 
+  // Attach ref event handlers
+  attachRefEventHandlers(viewDiv);
+  }
 });
 
 socket.on("error", data => {
