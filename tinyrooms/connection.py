@@ -99,8 +99,8 @@ def handle_message(data):
     text = (data or {}).get("text", "").strip()
     if not text:
         return
-    parsed = message.parse_message(text)
-    act = parsed.action or "say"
+    parsed = message.parse_message(text, user_obj, user_obj.room)
+    act = parsed.action or "basic.say"
     actions.do_action(act, parsed, user = user_obj, room = user_obj.room)
 
 

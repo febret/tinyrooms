@@ -67,6 +67,13 @@ def make_action_text(action_def: dict, user_label, refs, extra_text):
 
 def make_room_description_text(room, user):
     description = room.info.get('description', '')
+    if room.objs:
+        description += "\nYou see "
+        obj_texts = []
+        for o, od in room.objs.items():
+            ol = od.info.get('label', '')
+            obj_texts.append(f"[[@obj:{o} {ol} ]]")
+        description += ', '.join(obj_texts)
     if room.ways:
         description += "\nYou can go "
     for w, wd in room.ways.items():

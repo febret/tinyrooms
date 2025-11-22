@@ -160,3 +160,55 @@ msgInput.addEventListener("keydown", (ev) => {
     sendBtn.click();
   }
 });
+
+
+// Talk button toggle
+btnTalk.addEventListener("click", () => {
+  talkEnabled = !talkEnabled;
+  
+  if (talkEnabled) {
+    btnTalk.style.background = "#28a745";
+    btnTalk.textContent = "🔊 Talk";
+  } else {
+    btnTalk.style.background = "#6c757d";
+    btnTalk.textContent = "🔇 Talk";
+    
+    // Stop any ongoing speech
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+      isSpeaking = false;
+    }
+  }
+});
+
+
+// Text-to-speech function
+function stripFormattedText(html) {
+  // Create a temporary element to parse HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  text = temp.textContent || temp.innerText || '';
+  // Remove emojis and repeated punctuation characters
+  text = text.replace(/[\p{Emoji_Presentation}|\p{Emoji}\uFE0F]/gu, ''); // Remove emojis
+  text = text.replace(/([!?.,])\1{2,}/g, '$1'); // Replace repeated punctuation with single
+  return text;
+}
+
+
+function speakText(text) {
+  // Skip if already speaking
+  if (isSpeaking) {
+    return;
+  }
+  const plainText = stripFormattedText(text);
+  if (!plainText.trim()) {
+    return;
+  }
+  
+  // Create speech synthesis utterance
+  const utterance = new SpeechSynthesisUtterance(plainText);
+  utterance.onstart = () => { isSpeaking = true; };  
+  utterance.onend = () => { isSpeaking = false; };
+  utterance.onerror = () => { isSpeaking = false; };  
+  speechSynthesis.speak(utterance);
+}

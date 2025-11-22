@@ -10,21 +10,23 @@ class Room:
     def __init__(self, room_id, info):
         self.room_id = room_id
         self.info = info
-        self.users = set()
+        self.users = {}
         self.ways = {}
+        self.objs = {}
+        self.peeps = {}
         self.label = info.get('label', '')
     
     def add_user(self, user: User):
         """Add a user to the room"""
-        self.users.add(user)
+        self.users[user.username] = user
         user.room = self # type: ignore
         join_room(self.room_id, sid=user.sid)        
         self.send_view(user)
     
     def remove_user(self, user: User):
         """Remove a user from the room"""
-        if user in self.users:
-            self.users.remove(user)
+        if user.username in self.users:
+            del self.users[user.username]
             user.room = None
             leave_room(self.room_id, sid=user.sid)
     

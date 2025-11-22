@@ -20,7 +20,10 @@ def load_actions(yaml_path=None):
     if yaml_path is None:
         yaml_path = Path(__file__).parent.parent / "data" / "actions"
     # Reload action definitions and refresh connected users
-    action_defs = load_defs(yaml_path)
+    action_defs = load_defs(
+        yaml_path,
+        id_key_func=lambda key, value: f"{value['group']}.{key}" if 'group' in value else key
+    )
     for u in connected_users.values():
         u.actions_stale = True
 

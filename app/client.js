@@ -11,6 +11,7 @@ const messagesDiv = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const btnLogout = document.getElementById("btnLogout");
+const btnTalk = document.getElementById("btnTalk");
 const actionsChipsContainer = document.getElementById("actionsChips");
 const connectionIndicator = document.getElementById("connectionIndicator");
 
@@ -20,6 +21,9 @@ let selectedActions = []; // Array of {key, label} for selected actions
 let connectionState = "connecting"; // connecting, connected, disconnected
 let connectionTime = null;
 let lastViewLabel = null; // Track the last view label for page flip sound
+let talkEnabled = false; // Talk mode toggle
+let isSpeaking = false; // Track if TTS is currently speaking
+let speechSynthesis = window.speechSynthesis;
 
 
 socket.on("connect", () => {
@@ -157,6 +161,11 @@ socket.on("message", data => {
   const safeText = escapeHtml(data.text || "");
   const formattedText = formatText(safeText);
   addMessage(formattedText);
+  
+  // Speak message if talk mode is enabled
+  if (talkEnabled) {
+    speakText(data.text || "");
+  }
 });
 
 

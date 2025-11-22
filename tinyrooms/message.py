@@ -1,11 +1,13 @@
 from typing import NamedTuple
 
-from . import user, actions, room
+from . import actions, room
+from .user import connected_users, User
+from .room import Room
 from .types import ParsedMessage
 from .world import active_world
-    
-    
-def parse_message(text: str) -> ParsedMessage:
+
+
+def parse_message(text: str, user: User, room: Room) -> ParsedMessage:
     """Parse a message text into its components."""
     in_text = text.strip()
     out_text = []
@@ -38,7 +40,6 @@ def parse_message(text: str) -> ParsedMessage:
             if chunk:
                 out_text.append(' '.join(chunk))
                 chunk = []
-            # TODO: modify to use room context, for now just search in connected users
             search = word[1:]
             if search.startswith('way:'):
                 rid = search[4:]
@@ -47,10 +48,17 @@ def parse_message(text: str) -> ParsedMessage:
                     refs.append(w)
                 else:
                     print(f"parse_message: Unknown way reference '{rid}'")
-            if search in user.connected_users:
-                refs.append(user.connected_users[search])
+            elif search.startswith('obj:'):
+                oid = search[4:]
+                o = room.objs.get(oid, None)
+                if o:
+                    refs.append(o)
+                else:
+                    print(f"parse_message: Unknown object reference '{oid}'")
+            if search in room.users:
+                refs.append(room.users[search])
             else:
-                for u in user.connected_users.values():
+                for u in connected_users.values():
                     if u.username.startswith(search):
                         refs.append(u)
                         break

@@ -1,7 +1,9 @@
 from pathlib import Path
 import yaml
+import random
 
 from .room import Room, Way
+from .object import Object
 
 class World:
     def __init__(self, info, root_path: Path):
@@ -19,7 +21,10 @@ class World:
     def create_rooms(self):
         self.room_defs = load_defs(
             self.root_path / "rooms",
-            id_key_func=lambda key, value: f"{value.get('place', '')}.{key}" if value.get('place', '') else key
+            id_key_func=lambda key, value: f"{value['place']}.{key}" if 'place' in value else key
+        )
+        self.thing_defs = load_defs(
+            self.root_path / "things",
         )
         for rid, rdata in self.room_defs.items():
             rtype = rdata.get('type', 'room')
@@ -37,8 +42,26 @@ class World:
                 wd = self.ways.get(w, None)
                 if wd:
                     room.ways[w] = wd
+            
+            # Create initial objects from init_things
+            init_things = room.info.get('init_things', [])
+            if isinstance(init_things, str):
+                init_things = [t.strip() for t in init_things.split(',')]
+            for thing_id in init_things:
+                thing_id = thing_id.strip()
+                if thing_id in self.thing_defs:
+                    thing_def = self.thing_defs[thing_id]
+                    random_hex = ''.join(random.choices('0123456789abcdef', k=5))
+                    obj_id = f"{thing_id}-{random_hex}"
+                    obj = Object(obj_id, thing_def)
+                    obj.room = room
+                    room.objs[obj_id] = obj
+                    self.objs[obj_id] = obj
+                else:
+                    print(f"Warning: Thing '{thing_id}' referenced in room '{rid}' not found in thing_defs.")
+        
         self.default_room = self.rooms.get("DEFAULT_ROOM", self.default_room)
-        print(f"Created {len(self.rooms)} rooms and {len(self.ways)} ways.")
+        print(f"Created {len(self.rooms)} rooms, {len(self.ways)} ways, and {len(self.objs)} objects.")
 
 
 def load_world(yaml_path=None) -> World:
