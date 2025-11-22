@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from tinyrooms import user, actions
+from tinyrooms import user, actions, room
 from tinyrooms.types import ParsedMessage
     
     
@@ -39,6 +39,13 @@ def parse_message(text: str) -> ParsedMessage:
                 chunk = []
             # TODO: modify to use room context, for now just search in connected users
             search = word[1:]
+            if search.startswith('way:'):
+                rid = search[4:]
+                w = room.way_table.get(rid, None)
+                if w:
+                    refs.append(w)
+                else:
+                    print(f"parse_message: Unknown way reference '{rid}'")
             if search in user.connected_users:
                 refs.append(user.connected_users[search])
             else:

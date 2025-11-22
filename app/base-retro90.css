@@ -90,6 +90,18 @@ h3 {
   background: #00ff88;
 }
 
+.ref.cmd {
+  background: #ff00ff;
+  border: 2px solid #000;
+  color: #ffff00;
+  font-weight: bold;
+}
+
+.ref.cmd:hover {
+  background: #ff00cc;
+  text-decoration: underline;
+}
+
 input[type="text"],
 input[type="password"] {
   border: 2px inset #808080;

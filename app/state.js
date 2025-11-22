@@ -74,8 +74,7 @@ function loadMessagesFromStorage() {
         messagesDiv.appendChild(div);
       });
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      refSpans = messagesDiv.querySelectorAll('span.ref');
-      attachRefEventHandlers(refSpans);
+      attachRefEventHandlers(messagesDiv);
     } catch (err) {
       console.error('Error loading messages from storage:', err);
     }

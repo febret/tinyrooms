@@ -5,11 +5,14 @@ from flask_socketio import emit, join_room, leave_room
 from .user import User
 from . import text
 
+
 class Room:
     def __init__(self, room_id, info):
         self.room_id = room_id
         self.info = info
         self.users = set()
+        self.ways = {}
+        self.label = info.get('label', '')
     
     def add_user(self, user: User):
         """Add a user to the room"""
@@ -44,6 +47,13 @@ class Room:
         }, to=user.sid, namespace='/')
 
 
+class Way:
+    def __init__(self, way_id, info):
+        self.way_id = way_id
+        self.info = info
+        self.label = info.get('label', '')
+        
+
 def load_room_defs(yaml_path=None):
     """Load room definitions from YAML file or directory."""
     if yaml_path is None:
@@ -77,16 +87,31 @@ def load_room_defs(yaml_path=None):
 
 def create_rooms(yaml_path=None):
     global room_defs
-    global rooms 
+    global room_table 
+    global way_table
     global default_room
     room_defs = load_room_defs(yaml_path)
-    rooms = {}
     for rid, rdata in room_defs.items():
-        rooms[rid] = Room(rid, rdata)
-
-    default_room = rooms.get("DEFAULT_ROOM", None)
+        rtype = rdata.get('type', 'room')
+        if rtype == 'room':
+            room_table[rid] = Room(rid, rdata)
+        elif rtype == 'way':
+            way_table[rid] = Way(rid, rdata)
+        else:
+            print(f"Error: Unknown room type '{rtype}' for room '{rid}'. Skipping.")
+    for rid, room in room_table.items():
+        ways = room.info.get('ways', [])
+        if isinstance(ways, str):
+            ways = [ways]
+        for w in ways:
+            wd = way_table.get(w, None)
+            if wd:
+                room.ways[w] =wd
+    default_room = room_table.get("DEFAULT_ROOM", None)
+    print(room_table)
 
 # Default room that all users join upon login
 room_defs = None
 default_room = None
-rooms = None
+room_table = {}
+way_table = {}

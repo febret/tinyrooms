@@ -81,14 +81,23 @@ function attachRefEventHandlers(tgt) {
   touchHandler = (e) => {
     e.preventDefault();
     src = e.currentTarget;
-    if (src.id.length === 0) {
-      actionCmd = '[[@ ' + src.textContent + ']]';
-      actionLabel = src.textContent;
+    // If span has data-cmd attribute, use that as action command
+    if (src.dataset.cmd) {
+      actionCmd = `.${src.dataset.cmd}`;
+      if (src.dataset.target) {
+        actionCmd += ` @${src.dataset.target}`;
+      }
+      socket.emit("message", { text: actionCmd });
     } else {
-      actionCmd = '@' + src.id;
-      actionLabel = '@' + src.id;
+      if (src.id.length === 0) {
+        actionCmd = `[[@ ${src.textContent} ]]`;
+        actionLabel = src.textContent;
+      } else {
+        actionCmd = `@${src.id}`;
+        actionLabel = `@${src.id}`;
+      }
+      addActionChip(actionCmd, actionLabel);
     }
-    addActionChip(actionCmd, actionLabel);
   };
 
   spans.forEach(span => {

@@ -134,6 +134,19 @@ h3 {
   box-shadow: 0 0 10px rgba(255, 140, 0, 0.6);
 }
 
+.ref.cmd {
+  background: rgba(138, 43, 226, 0.3);
+  border: 1px solid #8a2be2;
+  color: #da70d6;
+  text-shadow: 0 0 5px rgba(218, 112, 214, 0.5);
+}
+
+.ref.cmd:hover {
+  background: rgba(138, 43, 226, 0.5);
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);
+  transform: translateY(-2px);
+}
+
 input[type="text"],
 input[type="password"] {
   padding: 0.6rem;

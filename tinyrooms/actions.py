@@ -7,7 +7,7 @@ import yaml
 
 from .types import ParsedMessage
 from .user import User, connected_users
-from .room import Room
+from .room import Room, room_table
 from . import text
 
 action_defs = dict()
@@ -53,10 +53,31 @@ def load_actions(yaml_path=None):
 
 def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
     global action_defs
+    global room_table
     if len(action_defs) == 0:
         print("Actions not loaded yet, loading now...")
-        load_actions()        
+        load_actions()
+    
+    if action == "go":
+        way = msg.refs[0]
+        to = way.info.get('to')
+        if to is None:
+            emit("message", {"text": "You can't go that way."}, to=user.sid)
+            return None
+        if to in room_table:
+            next_room = room_table[to]
+            user.room.remove_user(user)
+            next_room.add_user(user)
+            emit("message", {"text": f"You go {way.label}."}, to=user.sid)
+            emit("message", {"text": f"{user.label} leaves {way.label}."}, room=room.room_id, skip_sid=user.sid)  # type: ignore
+            emit("message", {"text": f"{user.label} arrives from {room.label}."}, room=next_room.room_id, skip_sid=user.sid)  # type: ignore
+            return next_room
+        else:
+            emit("message", {"text": "You can't go that way."}, to=user.sid)
+            return None    
+    
     if action not in action_defs:
+        print(f"do_action: Unknown action '{action}' from user '{user.username}'")
         return None
        
     act = action_defs[action]

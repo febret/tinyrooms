@@ -1,5 +1,7 @@
 import random
 
+from . import world
+
 def get_ref_label(ref, strip_article = False) -> str:
     """Get the label text for a reference, optionally stripping leading articles."""
     label = ref if isinstance(ref, str) else ref.label
@@ -65,6 +67,12 @@ def make_action_text(action_def: dict, user_label, refs, extra_text):
 
 def make_room_description_text(room, user):
     description = room.info.get('description', '')
+    if room.ways:
+        description += "\nYou can go "
+    for w, wd in room.ways.items():
+        wl = wd.info.get('label', '')
+        description += f"[[.go@way:{w} {wl} ]]"        
+        
     # Replace YAML-compatible << >> constructs with ref creation texts
     out_text = description
     out_text = out_text.replace("<<", "[[@ ")

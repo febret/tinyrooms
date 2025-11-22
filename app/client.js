@@ -231,34 +231,48 @@ socket.on("update_view", data => {
   
   // Create sub-sections for image, label, and description
   if (image) {
-    const imageDiv = document.createElement("div");
-    imageDiv.className = "view-image";
     const img = document.createElement("img");
     img.src = "/world/images/" + image;
     img.alt = label || "Room image";
-    imageDiv.appendChild(img);
-    viewDiv.appendChild(imageDiv);
+    img.className = "view-image";
+    viewDiv.appendChild(img);
   }
-  
-  // Create a text container for label and description
-  const textContainer = document.createElement("div");
-  textContainer.className = "view-text";
   
   if (label) {
     const labelDiv = document.createElement("div");
     labelDiv.className = "view-label";
-    labelDiv.innerHTML = label;
-    textContainer.appendChild(labelDiv);
+    
+    // Format label with first character uppercase
+    const labelText = label.trim();
+    if (labelText.length > 0) {
+      const firstChar = labelText.charAt(0).toUpperCase();
+      const restOfText = labelText.substring(1);
+      labelDiv.innerHTML = firstChar + restOfText;
+    } else {
+      labelDiv.innerHTML = label;
+    }
+    
+    viewDiv.appendChild(labelDiv);
   }
   
   if (description) {
     const descDiv = document.createElement("div");
     descDiv.className = "view-description";
-    descDiv.innerHTML = description;
-    textContainer.appendChild(descDiv);
+    
+    // Format description with drop cap (first character larger)
+    const descText = description.trim();
+    if (descText.length > 0) {
+      const firstChar = descText.charAt(0).toUpperCase();
+      const restOfText = descText.substring(1);
+      descDiv.innerHTML = '<span class="drop-cap">' + firstChar + '</span>' + restOfText;
+    } else {
+      descDiv.innerHTML = description;
+    }
+    
+    viewDiv.appendChild(descDiv);
   }
   
-  viewDiv.appendChild(textContainer);
+  // viewDiv.appendChild(textContainer);
   attachRefEventHandlers(viewDiv); 
 });
 

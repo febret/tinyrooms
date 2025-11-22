@@ -1,6 +1,6 @@
 DEFAULT_ROOM:
   type: room
-  label: The Void
+  label: the Void
   description: You find yourself in an endless void. There is <<nothing>> here.
   image: void.png
   ways: gateway
@@ -12,12 +12,12 @@ gateway:
 
 playroom:
   type: room
-  label: Playroom
-  description: You are in a cozy playroom filled with colorful toys. A strange blue light comes out from behind a dressing stand.
+  label: the Playroom
+  description: You are in a cozy playroom filled with colorful toys. <<A strange blue light>> comes out from behind a dressing stand.
   image: playroom.png
   ways: dressing_stand
 
 dressing_stand:
   type: way
   label: behind the dressing stand 🪞
-  to: DEFAULT
+  to: DEFAULT_ROOM

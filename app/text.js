@@ -11,10 +11,20 @@ function formatText(text) {
   
   // Pattern to match [[@id or [[color or [[ followed by content and closing ]]
   // This regex captures: [[(@id or color)? ... ]]
-  result = result.replace(/\[\[(@\w*|#\w+)?\s*/g, (match, modifier) => {
+  result = result.replace(/\[\[(\.\w+@?[\w|\:]*|@\w*|#\w+)?\s*/g, (match, modifier) => {
     if (!modifier) {
       // Plain [[ - just opening span
       return '<span>';
+    } else if (modifier.startsWith('.')) {
+        cmd = modifier.substring(1); // Remove . prefix
+        // Extract target if cmd is in cmd@target form
+        target = null;
+        const atIndex = cmd.indexOf('@');
+        if (atIndex !== -1) {
+            target = cmd.substring(atIndex + 1);
+            cmd = cmd.substring(0, atIndex);
+        }
+        return `<span class="ref cmd" data-cmd="${cmd}"` + (target ? ` data-target="${target}"` : '') + '>';
     } else if (modifier.startsWith('@')) {
       // [[@id format - create span with id and class 'ref'
       const id = modifier.substring(1); // Remove @ prefix
