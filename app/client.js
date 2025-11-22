@@ -20,278 +20,6 @@ let selectedActions = []; // Array of {key, label} for selected actions
 let connectionState = "connecting"; // connecting, connected, disconnected
 let connectionTime = null;
 
-// Cookie utilities
-function setCookie(name, value, days) {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + expires.toUTCString() + ";path=/";
-}
-
-
-function getCookie(name) {
-  const nameEQ = name + "=";
-  const cookies = document.cookie.split(';');
-  for (let i = 0; i < cookies.length; i++) {
-    let c = cookies[i];
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
-  }
-  return null;
-}
-
-
-function deleteCookie(name) {
-  document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/";
-}
-
-
-function saveCredentials(username, password) {
-  setCookie("tr_username", username, 30);
-  setCookie("tr_password", password, 30);
-}
-
-
-function loadCredentials() {
-  return {
-    username: getCookie("tr_username"),
-    password: getCookie("tr_password")
-  };
-}
-
-
-function clearCredentials() {
-  deleteCookie("tr_username");
-  deleteCookie("tr_password");
-}
-
-// Action chips management
-function addActionChip(actionKey, actionLabel) {
-  // Check if already added
-  if (selectedActions.some(a => a.key === actionKey)) {
-    return;
-  }
-  
-  selectedActions.push({ key: actionKey, label: actionLabel });
-  renderActionChips();
-}
-
-function removeActionChip(actionKey) {
-  selectedActions = selectedActions.filter(a => a.key !== actionKey);
-  renderActionChips();
-}
-
-function renderActionChips() {
-  actionsChipsContainer.innerHTML = "";
-  
-  selectedActions.forEach(action => {
-    const chip = document.createElement("div");
-    chip.className = "action-chip";
-    chip.textContent = action.label;
-    chip.title = "Click to remove";
-    chip.addEventListener("click", () => {
-      removeActionChip(action.key);
-    });
-    actionsChipsContainer.appendChild(chip);
-  });
-}
-
-function clearActionChips() {
-  selectedActions = [];
-  renderActionChips();
-}
-
-// Connection state management
-function setConnectionState(state) {
-  connectionState = state;
-  connectionIndicator.className = `connection-indicator ${state}`;
-  
-  if (state === "connected") {
-    connectionTime = new Date();
-  }
-}
-
-function showConnectionInfo() {
-  let info = `<span class='system'>Connection Status: ${connectionState}</span>`;
-  
-  if (connectionState === "connected" && connectionTime) {
-    const duration = Math.floor((new Date() - connectionTime) / 1000);
-    info += `<br><span class='system'>Connected for ${duration} seconds</span>`;
-  }
-  
-  if (socket.id) {
-    info += `<br><span class='system'>Socket ID: ${socket.id}</span>`;
-  }
-  
-  addMessage(info);
-}
-
-connectionIndicator.addEventListener("click", showConnectionInfo);
-
-// localStorage for messages
-function saveMessagesToStorage() {
-  const messages = [];
-  const msgDivs = messagesDiv.querySelectorAll('.msg');
-  
-  // Get only the last 50 messages
-  const divsArray = Array.from(msgDivs);
-  const lastMessages = divsArray.slice(-50);
-  
-  lastMessages.forEach(div => {
-    messages.push({
-      html: div.innerHTML,
-      className: div.className
-    });
-  });
-  localStorage.setItem('tr_messages', JSON.stringify(messages));
-}
-
-function loadMessagesFromStorage() {
-  const saved = localStorage.getItem('tr_messages');
-  if (saved) {
-    try {
-      const messages = JSON.parse(saved);
-      messages.forEach(msg => {
-        const div = document.createElement("div");
-        div.className = msg.className;
-        div.innerHTML = msg.html;
-        messagesDiv.appendChild(div);
-      });
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      refSpans = messagesDiv.querySelectorAll('span.ref');
-      attachRefEventHandlers(refSpans);
-    } catch (err) {
-      console.error('Error loading messages from storage:', err);
-    }
-  }
-}
-
-function clearMessagesFromStorage() {
-  localStorage.removeItem('tr_messages');
-}
-
-
-// Save/restore input state for reload
-function saveInputState() {
-  localStorage.setItem('tr_input', msgInput.value);
-  localStorage.setItem('tr_actions', JSON.stringify(selectedActions));
-}
-
-function loadInputState() {
-  const savedInput = localStorage.getItem('tr_input');
-  const savedActions = localStorage.getItem('tr_actions');
-  
-  if (savedInput) {
-    msgInput.value = savedInput;
-    localStorage.removeItem('tr_input');
-  }
-  
-  if (savedActions) {
-    try {
-      selectedActions = JSON.parse(savedActions);
-      renderActionChips();
-      localStorage.removeItem('tr_actions');
-    } catch (err) {
-      console.error('Error loading actions:', err);
-    }
-  }
-}
-
-function reloadStyle() {
-  links = document.getElementsByTagName("link");
-  for (i = 0; i < links.length;i++) { 
-    link = links[i]; if (link.rel === "stylesheet") {link.href += "?"; }
-  }
-}
-
-
-function formatText(text) {
-  // Replace [[ and ]] with <span> tags
-  // Support [[<@id>text]] or [[<color>text]] formats
-  
-  let result = text;
-  
-  // Pattern to match [[@id or [[color or [[ followed by content and closing ]]
-  // This regex captures: [[(@id or color)? ... ]]
-  result = result.replace(/\[\[(@\w*|#\w+)?\s*/g, (match, modifier) => {
-    if (!modifier) {
-      // Plain [[ - just opening span
-      return '<span>';
-    } else if (modifier.startsWith('@')) {
-      // [[@id format - create span with id and class 'ref'
-      const id = modifier.substring(1); // Remove @ prefix
-      // Check if this ID matches the current user's username
-      const isSelf = myUsername && id === myUsername;
-      const classes = isSelf ? 'ref self' : 'ref';
-      if (id.length === 0) {
-        return `<span class="${classes}">`;
-      } else {
-        return `<span id="${id}" class="${classes}">`;
-      }
-    } else if (modifier.startsWith('#')) {
-      // Hex color format - set font color
-      let color = modifier.substring(1); // Remove # prefix
-      // If 3-digit hex, expand it to 6-digit
-      if (color.length === 3) {
-        color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
-      }
-      return `<span style="color: #${color}">`;
-    }
-  });
-  
-  // Replace ]] with closing span
-  result = result.replace(/\]\]/g, '</span>');  
-  return result;
-}
-
-
-function attachRefEventHandlers(spans) {
-  touchHandler = (e) => {
-    e.preventDefault();
-    src = e.currentTarget;
-    if (src.id.length === 0) {
-      actionCmd = '[[@ ' + src.textContent + ']]';
-      actionLabel = src.textContent;
-    } else {
-      actionCmd = '@' + src.id;
-      actionLabel = '@' + src.id;
-    }
-    addActionChip(actionCmd, actionLabel);
-  };
-
-  spans.forEach(span => {
-    span.addEventListener('click', touchHandler);
-    span.addEventListener('touchend', touchHandler);
-  });
-}
-
-
-function addMessage(text, cls) {
-  const div = document.createElement("div");
-  div.className = "msg " + (cls || "");
-  div.innerHTML = text;
-  messagesDiv.appendChild(div);
-  
-  // Remove old messages if count exceeds 50
-  const allMessages = messagesDiv.querySelectorAll('.msg');
-  if (allMessages.length > 50) {
-    const removeCount = allMessages.length - 50;
-    for (let i = 0; i < removeCount; i++) {
-      allMessages[i].remove();
-    }
-  }
-  
-  // Replace content of 'self' spans with 'YOU'
-  const selfSpans = div.querySelectorAll('span.self');
-  selfSpans.forEach(span => {
-    span.textContent = 'you';
-  });
-  
-  // Add click/touch event handlers to all spans with IDs
-  const refSpans = div.querySelectorAll('span.ref');
-  attachRefEventHandlers(refSpans);  
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
 
 socket.on("connect", () => {
   // Auto-login if we have stored credentials (from cookie or reconnect)
@@ -448,7 +176,7 @@ socket.on("set_skin", data => {
   const links = document.getElementsByTagName("link");
   for (let i = 0; i < links.length; i++) {
     const link = links[i];
-    if (link.rel === "stylesheet") {
+    if (link.rel === "stylesheet" && link.id === "skin-style") {
       // Update the href to the new skin CSS file
       link.href = "/app/" + skinName + ".css?" + Date.now();
       console.log("Skin changed to:", skinName);
@@ -470,10 +198,12 @@ socket.on("update_status", data => {
 });
 
 socket.on("update_view", data => {
-  // data: {view: "viewName", format: "text", value: "content"}
+  // data: {view: "viewName", format: "text", label: "", description: "", image: ""}
   const viewName = data.view;
   const format = data.format || "text";
-  const value = data.value || "";
+  const label = formatText(data.label || "");
+  const description = formatText(data.description || "");
+  const image = data.image || "";
   
   if (!viewName) {
     console.error("update_view: missing view name");
@@ -496,126 +226,43 @@ socket.on("update_view", data => {
     chatBoxEl.insertBefore(viewDiv, messagesEl);
   }
   
-  // Render content based on format
-  if (format === "text") {
-    viewDiv.textContent = value;
-  } else {
-    // For future formats (html, markdown, etc.)
-    viewDiv.textContent = value;
+  // Clear existing content
+  viewDiv.innerHTML = "";
+  
+  // Create sub-sections for image, label, and description
+  if (image) {
+    const imageDiv = document.createElement("div");
+    imageDiv.className = "view-image";
+    const img = document.createElement("img");
+    img.src = "/world/images/" + image;
+    img.alt = label || "Room image";
+    imageDiv.appendChild(img);
+    viewDiv.appendChild(imageDiv);
   }
+  
+  // Create a text container for label and description
+  const textContainer = document.createElement("div");
+  textContainer.className = "view-text";
+  
+  if (label) {
+    const labelDiv = document.createElement("div");
+    labelDiv.className = "view-label";
+    labelDiv.innerHTML = label;
+    textContainer.appendChild(labelDiv);
+  }
+  
+  if (description) {
+    const descDiv = document.createElement("div");
+    descDiv.className = "view-description";
+    descDiv.innerHTML = description;
+    textContainer.appendChild(descDiv);
+  }
+  
+  viewDiv.appendChild(textContainer);
+  attachRefEventHandlers(viewDiv); 
 });
 
 socket.on("error", data => {
   addMessage("<span style='color:red'>Error: " + escapeHtml(data.error || "") + "</span>");
 });
 
-
-btnLogin.addEventListener("click", () => {
-  const u = usernameInput.value.trim();
-  const p = passwordInput.value;
-  if (!u || !p) {
-    loginStatus.style.color = "red";
-    loginStatus.textContent = "username and password required";
-    return;
-  }
-  // Store password for auto-reconnect
-  lastPassword = p;
-  socket.emit("login", { username: u, password: p });
-});
-
-
-btnLogout.addEventListener("click", () => {
-  // Clear credentials and reset UI
-  clearCredentials();
-  clearMessagesFromStorage();
-  myUsername = null;
-  lastPassword = null;
-  usernameInput.value = "";
-  passwordInput.value = "";
-  chatBox.style.display = "none";
-  document.getElementById("loginBox").style.display = "block";
-  messagesDiv.innerHTML = "";
-  loginStatus.textContent = "";
-  
-  // Disconnect and reconnect to clear server state
-  socket.disconnect();
-  setTimeout(() => socket.connect(), 100);
-});
-
-
-// Simple local registration using /register HTTP endpoint
-btnRegister.addEventListener("click", async () => {
-  const u = usernameInput.value.trim();
-  const p = passwordInput.value;
-  if (!u || !p) {
-    loginStatus.style.color = "red";
-    loginStatus.textContent = "username and password required for register";
-    return;
-  }
-  try {
-    const resp = await fetch("/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: u, password: p })
-    });
-    const j = await resp.json();
-    if (resp.ok) {
-      loginStatus.style.color = "green";
-      loginStatus.textContent = "Registered — now click Login";
-    } else {
-      loginStatus.style.color = "red";
-      loginStatus.textContent = j.error || "register failed";
-    }
-  } catch (err) {
-    loginStatus.style.color = "red";
-    loginStatus.textContent = "register error: " + err.message;
-  }
-});
-
-
-sendBtn.addEventListener("click", () => {
-  const t = msgInput.value.trim();
-  
-  // Build message with action prefixes
-  let fullMessage = "";
-  if (selectedActions.length > 0) {
-    const actionTexts = selectedActions.map(a => a.key).join(" ");
-    fullMessage = actionTexts + " " + t;
-  } else {
-    fullMessage = t;
-  }
-  
-  if (!fullMessage.trim()) return;
-  
-  socket.emit("message", { text: fullMessage });
-  msgInput.value = "";
-  clearActionChips();
-});
-
-
-msgInput.addEventListener("keydown", (ev) => {
-  if (ev.key === "Enter") {
-    sendBtn.click();
-  }
-});
-
-
-function escapeHtml(s){
-  return s.replace(/[&<>"'\/]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;'})[c]; });
-}
-
-
-// Auto-login on page load if credentials are saved
-window.addEventListener("DOMContentLoaded", () => {
-  const creds = loadCredentials();
-  if (creds.username && creds.password) {
-    usernameInput.value = creds.username;
-    passwordInput.value = creds.password;
-    lastPassword = creds.password;
-    
-    // Trigger login automatically
-    setTimeout(() => {
-      btnLogin.click();
-    }, 500);
-  }
-});

@@ -1,14 +1,9 @@
-* {
-  box-sizing: border-box;
-}
+/* Fantasy theme - dark medieval aesthetic */
 
 body { 
   font-family: 'Georgia', 'Times New Roman', serif;
-  margin: 0;
-  padding: 1rem;
   background: linear-gradient(180deg, #1a1a2e 0%, #0f3460 50%, #16213e 100%);
   background-attachment: fixed;
-  position: relative;
   color: #e8d5b7;
 }
 
@@ -32,9 +27,6 @@ body::before {
 }
 
 h1 {
-  font-size: 2rem;
-  margin: 0 0 1rem 0;
-  text-align: center;
   color: #d4af37;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.5);
   font-family: 'Georgia', serif;
@@ -54,8 +46,6 @@ h3 {
   border-image: linear-gradient(135deg, #d4af37, #8b7355, #d4af37) 1;
   padding: 1.5rem;
   background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%);
-  max-width: 900px;
-  margin: 0 auto;
   box-shadow: 
     0 0 30px rgba(212, 175, 55, 0.3),
     inset 0 0 50px rgba(0, 0, 0, 0.5);
@@ -77,11 +67,8 @@ h3 {
 }
 
 #messages { 
-  height: 300px; 
-  overflow: auto; 
   border: 2px solid #8b7355;
-  padding: 0.75rem; 
-  margin-bottom: 0.5rem; 
+  padding: 0.75rem;
   background: #1a1410;
   background-image: 
     linear-gradient(rgba(139, 115, 85, 0.05) 1px, transparent 1px),
@@ -107,8 +94,6 @@ h3 {
 }
 
 .msg { 
-  margin-bottom: 0.6rem;
-  word-wrap: break-word;
   padding: 0.4rem;
   border-left: 3px solid #8b7355;
   background: rgba(26, 20, 16, 0.5);
@@ -116,7 +101,6 @@ h3 {
 
 .meta { 
   color: #a08060;
-  font-size: 0.85rem;
   font-style: italic;
 }
 
@@ -128,24 +112,19 @@ h3 {
 
 .ref {
   background: rgba(212, 175, 55, 0.2);
-  padding: 0.2rem 0.5rem;
   border: 1px solid #d4af37;
-  display: inline-block;
   color: #ffd700;
   text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-  transition: all 0.3s ease;
 }
 
 .ref:hover {
   background: rgba(212, 175, 55, 0.4);
-  cursor: pointer;
   box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
   transform: translateY(-2px);
 }
 
 .ref.self {
   background: rgba(139, 69, 19, 0.3);
-  font-weight: bold;
   border: 1px solid #8b4513;
   color: #ff8c00;
 }
@@ -157,13 +136,10 @@ h3 {
 
 input[type="text"],
 input[type="password"] {
-  width: 100%;
   padding: 0.6rem;
-  margin: 0.25rem 0;
   border: 2px solid #8b7355;
   background: #1a1410;
   color: #e8d5b7;
-  font-size: 1rem;
   font-family: 'Georgia', serif;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
 }
@@ -182,9 +158,6 @@ button {
   background: linear-gradient(135deg, #8b7355, #5a4a3a);
   color: #e8d5b7;
   border: 2px solid #d4af37;
-  cursor: pointer;
-  font-size: 1rem;
-  margin: 0.25rem 0.25rem 0.25rem 0;
   font-family: 'Georgia', serif;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -211,42 +184,19 @@ button:active {
     inset 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.input-group {
-  margin-bottom: 0.75rem;
-}
-
 .input-group label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: bold;
-  font-size: 0.95rem;
   color: #d4af37;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   letter-spacing: 1px;
 }
 
 #loginStatus {
-  margin-top: 0.5rem;
   color: #ff6b6b;
-  font-size: 0.9rem;
   text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
   font-weight: bold;
 }
 
-.message-input-container {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-#msgInput {
-  flex: 1;
-  margin: 0;
-}
-
 #sendBtn {
-  flex-shrink: 0;
-  margin: 0;
   background: linear-gradient(135deg, #8b4513, #654321);
   border-color: #d4af37;
 }
@@ -256,7 +206,6 @@ button:active {
 }
 
 #actionsContainer {
-  margin-top: 0.75rem;
   padding: 0.75rem;
   border: 2px solid #8b7355;
   background: rgba(26, 15, 10, 0.6);
@@ -264,8 +213,6 @@ button:active {
 }
 
 #actionsContainer h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
   color: #d4af37;
   font-family: 'Georgia', serif;
   letter-spacing: 2px;
@@ -273,11 +220,9 @@ button:active {
 }
 
 .action-btn {
+  padding: 0.5rem 1rem;
   background: linear-gradient(135deg, #2f5233, #1a3020);
   border: 2px solid #4a7c4e;
-  margin: 0.25rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
   color: #b8e6b8;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   box-shadow: 0 3px 5px rgba(0, 0, 0, 0.5);
@@ -319,11 +264,6 @@ button:active {
 }
 
 #actionsChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-bottom: 0.5rem;
-  min-height: 2rem;
   padding: 0.4rem;
   border: 2px solid #8b7355;
   background: rgba(26, 20, 16, 0.7);
@@ -331,19 +271,12 @@ button:active {
 }
 
 .action-chip {
-  display: inline-flex;
-  align-items: center;
   padding: 0.35rem 0.7rem;
   background: linear-gradient(135deg, #8b7355, #6a5a45);
   color: #ffd700;
   border: 1px solid #d4af37;
-  font-size: 0.85rem;
-  cursor: pointer;
-  user-select: none;
-  font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease;
 }
 
 .action-chip:hover {
@@ -362,19 +295,12 @@ button:active {
 }
 
 .connection-indicator {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 1000;
   border: 2px solid #d4af37;
   box-shadow: 
     0 0 10px rgba(212, 175, 55, 0.5),
     inset 0 0 5px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s ease;
 }
 
 .connection-indicator.connected {
@@ -419,73 +345,14 @@ button:active {
     inset 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-/* Phone layout (up to 600px) */
+/* Responsive padding overrides for fantasy theme */
 @media (max-width: 600px) {
-  body {
-    padding: 0.5rem;
-  }
-  
-  h1 {
-    font-size: 1.5rem;
-    margin-bottom: 0.75rem;
-  }
-  
   #loginBox, #chatBox {
     padding: 1rem;
   }
-  
-  #messages {
-    height: calc(100vh - 280px);
-    min-height: 200px;
-  }
-  
-  button {
-    width: 100%;
-    margin: 0.25rem 0;
-  }
-  
-  .message-input-container {
-    flex-direction: column;
-  }
-  
-  #sendBtn {
-    width: 100%;
-  }
 }
 
-/* Tablet layout (601px to 900px) */
-@media (min-width: 601px) and (max-width: 900px) {
-  body {
-    padding: 1rem;
-  }
-  
-  h1 {
-    font-size: 1.75rem;
-  }
-  
-  #messages {
-    height: 350px;
-  }
-  
-  button {
-    min-width: 100px;
-  }
-}
-
-/* Desktop layout (901px and above) */
 @media (min-width: 901px) {
-  body {
-    padding: 2rem;
-  }
-  
-  h1 {
-    font-size: 2rem;
-  }
-  
-  #messages {
-    height: 400px;
-  }
-  
   #loginBox, #chatBox {
     padding: 1.5rem;
   }

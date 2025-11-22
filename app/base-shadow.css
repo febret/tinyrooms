@@ -1,0 +1,316 @@
+/* Shadow theme - dark blue with shadows and compact text */
+
+body { 
+  font-family: Arial, sans-serif; 
+  background: linear-gradient(180deg, #0a1929 0%, #1a2332 100%);
+  background-attachment: fixed;
+  color: #b8c5d6;
+  font-size: 0.85rem;
+}
+
+h1 {
+  color: #5b9bd5;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+}
+
+h3 {
+  color: #5b9bd5;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+#loginBox, #chatBox { 
+  border: 1px solid #2d3e50; 
+  border-radius: 8px;
+  background: #15202b;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#statusDisplay {
+  border: 1px solid #2d3e50;
+  border-radius: 4px;
+  background: rgba(91, 155, 213, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.status-item {
+  background: rgba(21, 32, 43, 0.8);
+  border-left: 3px solid #5b9bd5;
+  border-radius: 2px;
+  color: #b8c5d6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  font-size: 0.8rem;
+}
+
+.view-container {
+  border: 1px solid #2d3e50;
+  border-radius: 4px;
+  background: rgba(21, 32, 43, 0.6);
+  color: #b8c5d6;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  font-size: 0.8rem;
+}
+
+#messages { 
+  border: 1px solid #2d3e50; 
+  background: #0d1520;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 8px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #b8c5d6;
+  font-size: 0.85rem;
+}
+
+.msg {
+  margin-bottom: 0.3rem;
+}
+
+.meta { 
+  color: #6b7d8f; 
+  font-size: 0.75rem;
+}
+
+.system { 
+  color: #5b9bd5; 
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+input[type="text"],
+input[type="password"] {
+  border: 1px solid #2d3e50;
+  border-radius: 4px;
+  background: #0d1520;
+  color: #b8c5d6;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 0.9rem;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: #5b9bd5;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(91, 155, 213, 0.4);
+}
+
+button {
+  background: linear-gradient(135deg, #2d4a6e, #1f3550);
+  color: #b8c5d6;
+  border: 1px solid #3d5a7e;
+  border-radius: 4px;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 0.9rem;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #3d5a7e, #2d4a6e);
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.6),
+    0 0 10px rgba(91, 155, 213, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+button:active {
+  background: linear-gradient(135deg, #1f3550, #15283f);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.input-group label {
+  color: #5b9bd5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 0.85rem;
+}
+
+#loginStatus {
+  color: #e85d75;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  font-size: 0.8rem;
+}
+
+#actionsContainer {
+  border: 1px solid #2d3e50;
+  border-radius: 4px;
+  background: rgba(21, 32, 43, 0.6);
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#actionsContainer h4 {
+  color: #5b9bd5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 0.85rem;
+}
+
+.action-btn {
+  background: linear-gradient(135deg, #2d5a4e, #1f4038);
+  border: 1px solid #3d6a5e;
+  color: #a8d5ba;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 0.85rem;
+}
+
+.action-btn:hover {
+  background: linear-gradient(135deg, #3d6a5e, #2d5a4e);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(168, 213, 186, 0.3);
+}
+
+.action-btn:active {
+  background: linear-gradient(135deg, #1f4038, #153028);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.group-btn {
+  background: linear-gradient(135deg, #3d5a7e, #2d4a6e);
+  border: 1px solid #4d6a8e;
+  color: #5b9bd5;
+  font-weight: bold;
+}
+
+.group-btn:hover {
+  background: linear-gradient(135deg, #4d6a8e, #3d5a7e);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(91, 155, 213, 0.4);
+}
+
+.group-btn:active {
+  background: linear-gradient(135deg, #2d4a6e, #1f3550);
+}
+
+.back-btn {
+  background: linear-gradient(135deg, #4a3d5a, #3a2d4a);
+  border: 1px solid #5a4d6a;
+}
+
+.back-btn:hover {
+  background: linear-gradient(135deg, #5a4d6a, #4a3d5a);
+}
+
+.back-btn:active {
+  background: linear-gradient(135deg, #3a2d4a, #2a1d3a);
+}
+
+.ref {
+  background: rgba(91, 155, 213, 0.2);
+  border-radius: 4px;
+  color: #7db3e8;
+  text-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(91, 155, 213, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.ref:hover {
+  background: rgba(91, 155, 213, 0.35);
+  transform: scale(1.05);
+  text-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.6),
+    0 0 12px rgba(91, 155, 213, 0.5);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 0 12px rgba(91, 155, 213, 0.4);
+}
+
+.ref.self {
+  background: rgba(168, 213, 186, 0.2);
+  color: #a8d5ba;
+  text-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(168, 213, 186, 0.3);
+}
+
+.ref.self:hover {
+  background: rgba(168, 213, 186, 0.35);
+  text-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.6),
+    0 0 12px rgba(168, 213, 186, 0.5);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 0 12px rgba(168, 213, 186, 0.4);
+}
+
+#actionsChips {
+  border-radius: 4px;
+  background: rgba(13, 21, 32, 0.6);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.action-chip {
+  background: linear-gradient(135deg, #2d4a6e, #1f3550);
+  color: #7db3e8;
+  border: 1px solid #3d5a7e;
+  border-radius: 12px;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 0.8rem;
+}
+
+.action-chip:hover {
+  background: linear-gradient(135deg, #5a3d4e, #4a2d3e);
+  color: #e8a5b5;
+  border-color: #6a4d5e;
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.6),
+    0 0 10px rgba(232, 165, 181, 0.3);
+  transform: scale(1.05);
+}
+
+.action-chip:active {
+  transform: scale(0.95);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.connection-indicator.connected {
+  background: radial-gradient(circle, #2d5a4e, #1f4038);
+  box-shadow: 
+    0 0 12px rgba(168, 213, 186, 0.8),
+    inset 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.connection-indicator.disconnected {
+  background: radial-gradient(circle, #5a2d3e, #4a1d2e);
+  box-shadow: 
+    0 0 12px rgba(232, 93, 117, 0.8),
+    inset 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.connection-indicator.connecting {
+  background: radial-gradient(circle, #3d4a5a, #2d3a4a);
+  box-shadow: 
+    0 0 8px rgba(91, 155, 213, 0.6),
+    inset 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive overrides for shadow theme */
+@media (max-width: 600px) {
+  body {
+    font-size: 0.8rem;
+  }
+  
+  #loginBox, #chatBox {
+    padding: 0.75rem;
+  }
+  
+  #messages {
+    font-size: 0.8rem;
+  }
+  
+  button, input[type="text"], input[type="password"] {
+    font-size: 0.85rem;
+  }
+}
