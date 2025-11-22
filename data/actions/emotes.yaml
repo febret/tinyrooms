@@ -1,0 +1,37 @@
+smile:
+  group: emotes
+  label: 😊
+  description: Smile
+  action_text: [You smile, $0 smiles]
+  target_text: [at $1, at $1 and $2]
+  
+hug:
+  group: emotes
+  label: 🤗
+  description: Give a warm hug
+  action_text: [You hug, $0 hugs]
+  target_text: $1
+  end_text: [💕, warmly, ☺️, squeeze!]
+
+wink:
+  group: emotes
+  label: 😉
+  description: Give a cheeky wink
+  action_text: [You wink, $0 winks]
+  target_text: [at $1, at $1 about $2]
+  end_text: [😏, sneakily, 👁️]
+
+giggle:
+  group: emotes
+  label: 🤭
+  description: Laugh softly
+  action_text: [You giggle, $0 giggles]
+  target_text: [at $1, with $1 and $2, with $2 and $3 about $1...]
+  end_text: [hehe, tee-hee!, 😂]
+
+wave:
+  group: emotes
+  label: 👋
+  description: Wave at someone
+  action_text: [You wave, $0 waves]
+  target_text: at $1, at $1 with $2

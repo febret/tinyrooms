@@ -1,0 +1,154 @@
+make_thing:
+  group: imagine
+  label: 🛠️
+  description: Create a new random thing
+  action_text: [You create, $0 creates]
+  end_text: 
+    - <<a Spaceship 🚀>>
+    - <<a Castle 🏰>>
+    - <<a Robot 🤖>>
+    - <<a Car 🚗>>
+    - <<a Telescope 🔭>>
+    - <<a Time Machine ⏰>>
+    - <<a Portal 🌀>>
+    - <<a Submarine 🌊>>
+    - <<a Hot Air Balloon 🎈>>
+    - <<a Treehouse 🌳>>
+    - <<a Lighthouse 🗼>>
+    - <<a Bridge 🌉>>
+    - <<a Fountain ⛲>>
+    - <<a Carousel 🎠>>
+
+make_animal:
+  group: imagine
+  label: 🐾
+  description: Create a new random animal
+  action_text: [You create, $0 creates]
+  end_text: 
+    - <<a Dragon 🐉>>
+    - <<a Unicorn 🦄>>
+    - <<a Phoenix 🔥>>
+    - <<a Griffin 🦅>>
+    - <<a Cat 🐱>>
+    - <<a Doggo 🐶>>
+    - <<a Bunny 🐰>>
+    - <<a Fox 🦊>>
+    - <<a Owl 🦉>>
+    - <<a Penguin 🐧>>
+    - <<a Dolphin 🐬>>
+    - <<a Butterfly 🦋>>
+    - <<a Turtle 🐢>>
+    - <<a Panda 🐼>>
+    - <<a Bear 🐻>>
+    - <<a Wolf 🐺>>
+
+make_people:
+  group: imagine
+  label: 🧑
+  description: Create a new random person
+  action_text: [You create, $0 creates]
+  end_text: 
+    - <<Mamma>>
+    - <<BABBONE>>
+    - <<a Pirate 🏴‍☠️>>
+    - <<the Goddess of Nature 🔬>>
+    - <<a Chef 👩‍🍳>>
+    - <<Taylor Swift 🎸>>
+    - <<a Knight ⚔️>>
+    - <<a Wizard 🧙>>
+    - <<a Ninja 🥷>>
+    - <<an Astronaut 👨‍🚀>>
+    - <<a Detective 🕵️>>
+    - <<a Scientist 🧪>>
+    - <<a Firefighter 🚒>>
+    - <<a Artist 🎨>>
+    - <<a Dancer 💃>>
+    - <<a Superhero 🦸>>
+
+color:
+  group: imagine
+  label: 🌈
+  description: Change color of something
+  action_text: [You change the color of, $0 repaints]
+  target_text: $1 to make
+  end_text: [<<a red $-1 🟥>>, <<a blue $-1 🟦>>, <<a green $-1 🟩>>, <<a yellow $-1 🟨>>, <<a purple $-1 🟪>>]
+
+melt:
+  group: imagine
+  label: 🧊
+  description: Melt two things together
+  action_text: [You melt, $0 melts]
+  target_text: [$1, $1 and $2 into, $1 with $2 and $3 into, $1 and a bunch of other stuff into]
+  end_text: [<<a $*>>, <<a strange $*>>, <<an unusual $*>>, <<a broken $*>>]
+
+give:
+  group: imagine
+  label: 🎁
+  description: This thing is someone else's now
+  action_text: [You give, $0 gives]
+  target_text: [$1 to someone, $1 to $2]
+  end_text: it's <<$2's $-1>> now.
+
+beautify:
+  group: imagine
+  label: 🌸
+  description: Make something more beautiful
+  action_text: [You beautify, $0 beautifies]
+  target_text: [$1, $1 with $2, $1 with $2 and $3, $1 with many things]
+  end_text: [<<a beautiful $* 🌸>>, <<a colorful $* 🌈>>, <<a shiny $* ✨>>, <<a magnificent $* 🏵️>>, <<a dazzling $* 💎>>, <<a radiant $* ⭐>>, <<an elegant $* 👑>>, <<a sparkling $* ✨>>, <<a gorgeous $* 🌺>>, <<a splendid $* 🎭>>]
+
+uglify:
+  group: imagine
+  label: 🧟
+  description: Make something uglier
+  action_text: [You uglify, $0 uglifies]
+  target_text: [$1, $1 with $2, $1 with $2 and $3, $1 with many things]
+  end_text: [<<an ugly $* 🧟>>, <<a hideous $* 👹>>, <<a grotesque $* 🦠>>, <<a dreadful $* 💀>>, <<a ghastly $* 👻>>, <<a repulsive $* 🤮>>, <<a horrid $* 😱>>, <<an abominable $* 🧌>>, <<a frightful $* 🕷️>>, <<a revolting $* 🐛>>]
+
+smellify:
+  group: imagine
+  label: 🧀
+  description: Make something smelly
+  action_text: [You smellify, $0 smellifies]
+  target_text: [$1, $1 with $2, $1 with $2 and $3, $1 with many things]
+  end_text: [<<a smelly $* 🧀>>, <<a stinky $* 🦨>>, <<a rancid $* 🤢>>, <<a putrid $* 🗑️>>, <<a musty $* 🍄>>, <<a funky $* 🧦>>, <<a pungent $* 🥴>>, <<a reeking $* 🦨>>, <<a fetid $* 🤧>>, <<an odorous $* 💨>>]
+
+stretch:
+  group: imagine
+  label: 🪗
+  description: Stretch something to make it looooong
+  action_text: [You stretch, $0 stretches]
+  target_text: [$1, $1 with $2, $1 and $2, $1 and a bunch of stuff]
+  end_text: [<<a looooong $* 🪗>>, <<an elongated $* 📏>>, <<a stretched $* 🎋>>, <<an extended $* 🌉>>, <<a lanky $* 🦒>>, <<a towering $* 🗼>>, <<a noodle-like $* 🍜>>]
+
+zombiefy:
+  group: imagine
+  label: 🧟‍♂️
+  description: Turn something into a zombie
+  action_text: [You zombiefy, $0 zombiefies]
+  target_text: [$1, $1 and $2, $1 with $2 and $3, a bunch of things including $1]
+  end_text: [<<a zombie $* 🧟‍♂️>>, <<an undead $* ⚰️>>, <<a shambling $* 🧟>>, <<a brain-hungry $* 🧠>>, <<a groaning $* 😵>>, <<a lurching $* 🚶‍♂️💀>>, <<a decaying $* 🦴>>]
+
+magin:
+  group: imagine
+  label: ✨
+  description: Use magic to transform something
+  action_text: [You cast a spell on, $0 magically transforms]
+  target_text: [$1, $1 and $2, $1 with $2 and $3, several things]
+  end_text: [<<an enchanted $* ✨>>, <<a magical $* 🪄>>, <<a mystical $* 🔮>>, <<a bewitched $* 🌙>>, <<a spellbound $* ⚡>>, <<a wizardly $* 🧙‍♂️>>, <<a charmed $* 💫>>, <<an arcane $* 📿>>]
+
+random:
+  group: imagine
+  label: 🎲
+  description: Randomize something completely
+  action_text: [You randomize, $0 randomizes]
+  target_text: [$1, $1 and $2, $1 with $2 and $3, everything including $1]
+  end_text: [<<a chaotic $* 🎲>>, <<a wild $* 🌪️>>, <<an unpredictable $* 🎰>>, <<a scrambled $* 🔀>>, <<a bizarre $* 🎪>>, <<a wonky $* 🤪>>, <<a topsy-turvy $* 🙃>>, <<an absurd $* 🎭>>, <<a peculiar $* 🎨>>]
+
+shrink:
+  group: imagine
+  label: 🔬
+  description: Become tiny
+  action_text: [You shrink, $0 shrinks]
+  target_text: [$1, $1 in front of $2!]
+  end_text: [it's <<a tiny $-1>> now, what <<a smol $-1>>!, 🐜, tiny!]

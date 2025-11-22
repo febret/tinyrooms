@@ -4,9 +4,15 @@ import readline
 import rlcompleter
 import queue
 import eventlet
+import os
+import atexit
 
 # Queue for sending command lines from input thread to eventlet console thread
 command_queue = []
+
+# History file configuration
+HISTORY_FILE = os.path.expanduser("~/.tinyrooms_history")
+HISTORY_SIZE = 1000
 
 def run_admin_cmd(cmd, locals_dict):
     if cmd == 'r':
@@ -17,12 +23,25 @@ def run_admin_cmd(cmd, locals_dict):
         locals_dict["user"].reload_clients()
     elif cmd == 'rs':
         locals_dict["user"].reload_styles()
+    elif cmd == 'ra':
+         locals_dict["actions"].load_actions()
 
 
 def input_thread_func(locals_dict):
     # Enable tab completion
-    readline.set_completer(rlcompleter.Completer(locals_dict).complete)
-    readline.parse_and_bind("tab: complete")
+    readline.set_completer(rlcompleter.Completer(locals_dict).complete)  # type: ignore
+    readline.parse_and_bind("tab: complete")  # type: ignore
+    
+    # Configure history
+    readline.set_history_length(HISTORY_SIZE)  # type: ignore
+    if os.path.exists(HISTORY_FILE):
+        readline.read_history_file(HISTORY_FILE)  # type: ignore
+    
+    # Save history on exit
+    def save_history():
+        readline.write_history_file(HISTORY_FILE)  # type: ignore
+    
+    atexit.register(save_history)
     
     banner = """
     =================================================

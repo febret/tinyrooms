@@ -3,6 +3,17 @@ from flask_socketio import emit
 from werkzeug.security import check_password_hash
 from tinyrooms import message, user, server, db, room, actions
 
+# To send status updates to a client:
+# emit("update_status", {"key1": {"label": "Status 1"}, "key2": {"label": "Status 2"}}, to=sid)
+#
+# To send view updates to a client:
+# emit("update_view", {"view": "inventory", "format": "text", "value": "Gold: 100\nItems: 5"}, to=sid)
+#
+# To change a client's skin:
+# user_obj.skin = "base-fantasy"
+# user_obj.skin_stale = True
+# Or use: user.reload_skins() to reload all users' skins
+
 # Socket.IO events
 @server.socketio.on("connect")
 def handle_connect():
@@ -20,6 +31,8 @@ def handle_disconnect():
     user_obj = user.connected_users.pop(sid, None)
     print(f"disconnect: sid={sid} username={user_obj.username if user_obj else None}")
     if user_obj:
+        # Save user's state before removing from room
+        db.save_user_state(user_obj)
         user_obj.room.remove_user(user_obj)
 
 
@@ -43,7 +56,7 @@ def handle_login(data):
         emit("login_failed", {"error": "invalid credentials"})
         return
 
-    _, password_hash = user_row
+    _, password_hash, saved_skin = user_row
     if check_password_hash(password_hash, password):
         # Check if user is already logged in
         if any(u.username == username for u in user.connected_users.values()):
@@ -53,6 +66,9 @@ def handle_login(data):
         
         # Create User instance and store it
         user_obj = user.User(username, sid)
+        # Load saved skin from database
+        user_obj.skin = saved_skin or 'base'
+        user_obj.skin_stale = True
         user.connected_users[sid] = user_obj
         
         # Add user to default room
@@ -104,3 +120,6 @@ def handle_heartbeat(data):
     if user_obj.styles_stale:
         emit("reload_styles", {}, to=sid)
         user_obj.styles_stale = False
+    if user_obj.skin_stale:
+        emit("set_skin", {"skin": user_obj.skin}, to=sid)
+        user_obj.skin_stale = False

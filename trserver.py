@@ -2,6 +2,7 @@ import os
 import signal
 import sys
 
+from flask_socketio import emit
 from tinyrooms import server, console, db, user, connection, actions, room
 
 
@@ -9,12 +10,14 @@ from tinyrooms import server, console, db, user, connection, actions, room
 def kill():
     """Immediately terminate the server process."""
     print("\n💀 Killing server immediately...")
+    db.save_state()
     os._exit(0)
 
 
 def reboot():
     """Reboot the server process."""
     print("\n🔄 Rebooting server...")
+    db.save_state()
     os._exit(42)
 
 
@@ -40,10 +43,12 @@ if __name__ == "__main__":
     console_vars = {
         "kill": kill,
         "reboot": reboot,
+        "emit": emit,
         "actions": actions,
         "server": server,
         "user": user,
         "room": room,
+        "db": db,
     }
     console.start_console(console_vars)
     
@@ -59,3 +64,5 @@ if __name__ == "__main__":
         print(f"\nServer error: {e}")
     finally:
         print("Shutting down...")
+        # Save state of all connected users before shutdown
+        db.save_state()
