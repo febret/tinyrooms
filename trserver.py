@@ -3,7 +3,7 @@ import signal
 import sys
 
 from flask_socketio import emit
-from tinyrooms import server, console, db, user, connection, actions, room
+from tinyrooms import server, console, db, user, connection, actions, room, world
 
 
 # Add kill function to quickly terminate the server
@@ -38,6 +38,9 @@ if __name__ == "__main__":
     # Initialize database
     db.init_db()
     
+    # Initialize world
+    world.load_world()
+    
     # Start the interactive console in a separate thread
     print("Starting interactive console...")
     console_vars = {
@@ -48,6 +51,7 @@ if __name__ == "__main__":
         "server": server,
         "user": user,
         "room": room,
+        "world": world,
         "db": db,
     }
     console.start_console(console_vars)

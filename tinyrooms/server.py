@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, request, jsonify
 from pathlib import Path
 
-from tinyrooms import db, user
+from tinyrooms import db, user, world
 
 
 STATIC_FOLDER = Path(__file__).parent.parent / "app"
@@ -19,6 +19,13 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 @app.route("/")
 def client():
     return send_from_directory(str(STATIC_FOLDER), CLIENT_FILENAME)
+
+@app.route("/world/<path:filename>")
+def world_data(filename):
+    """Serve static files from the world's root path"""
+    if world.root_path is None:
+        return jsonify({"error": "World not loaded"}), 404
+    return send_from_directory(str(world.root_path), filename)
 
 
 @app.route("/register", methods=["POST"])

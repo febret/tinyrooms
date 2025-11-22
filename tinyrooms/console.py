@@ -24,7 +24,10 @@ def run_admin_cmd(cmd, locals_dict):
     elif cmd == 'rs':
         locals_dict["user"].reload_styles()
     elif cmd == 'ra':
-         locals_dict["actions"].load_actions()
+        locals_dict["actions"].load_actions()
+    elif cmd.startswith('rw'):
+        w = locals_dict["world"]
+        w.load_world(w.root_path / "world.yaml")  
 
 
 def input_thread_func(locals_dict):

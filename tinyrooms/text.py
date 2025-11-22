@@ -61,3 +61,12 @@ def make_action_text(action_def: dict, user_label, refs, extra_text):
     out_text3 = f"{action_text[1]}:  {out_text}"
     out_text3 = out_text3.replace("$0", user_label)
     return out_text1, out_text3
+
+
+def make_room_description_text(room, user):
+    description = room.info.get('description', '')
+    # Replace YAML-compatible << >> constructs with ref creation texts
+    out_text = description
+    out_text = out_text.replace("<<", "[[@ ")
+    out_text = out_text.replace(">>", " ]]")
+    return out_text
