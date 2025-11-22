@@ -167,6 +167,7 @@ button {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  align-items: center;
 }
 
 #msgInput {
@@ -177,11 +178,25 @@ button {
 #sendBtn {
   flex-shrink: 0;
   margin: 0;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 #actionsContainer {
-  margin-top: 0.75rem;
+  flex: 0 1 75%;
   padding: 0.5rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 #actionsContainer h4 {
@@ -226,6 +241,7 @@ button {
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+  min-height: 20px;
 }
 
 .connection-indicator {
@@ -345,8 +361,14 @@ button {
   }
   
   #actionsContainer {
-    margin-top: 0.5rem;
     padding: 0.25rem;
+  }
+  
+  #sendBtn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    font-size: 1rem;
   }
   
   #actionsContainer h4 {
