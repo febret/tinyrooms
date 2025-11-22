@@ -7,7 +7,8 @@ import yaml
 
 from .types import ParsedMessage
 from .user import User, connected_users
-from .room import Room, room_table
+from .room import Room
+from .world import active_world
 from . import text
 
 action_defs = dict()
@@ -64,9 +65,9 @@ def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
         if to is None:
             emit("message", {"text": "You can't go that way."}, to=user.sid)
             return None
-        if to in room_table:
-            next_room = room_table[to]
-            user.room.remove_user(user)
+        if to in active_world().rooms:
+            next_room = active_world().rooms[to]
+            user.room.remove_user(user) # type: ignore
             next_room.add_user(user)
             emit("message", {"text": f"You go {way.label}."}, to=user.sid)
             emit("message", {"text": f"{user.label} leaves {way.label}."}, room=room.room_id, skip_sid=user.sid)  # type: ignore

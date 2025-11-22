@@ -1,7 +1,8 @@
 from typing import NamedTuple
 
-from tinyrooms import user, actions, room
-from tinyrooms.types import ParsedMessage
+from . import user, actions, room
+from .types import ParsedMessage
+from .world import active_world
     
     
 def parse_message(text: str) -> ParsedMessage:
@@ -41,7 +42,7 @@ def parse_message(text: str) -> ParsedMessage:
             search = word[1:]
             if search.startswith('way:'):
                 rid = search[4:]
-                w = room.way_table.get(rid, None)
+                w = active_world().ways.get(rid, None)
                 if w:
                     refs.append(w)
                 else:

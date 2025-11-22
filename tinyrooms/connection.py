@@ -1,7 +1,9 @@
 from flask import request
 from flask_socketio import emit
 from werkzeug.security import check_password_hash
-from tinyrooms import message, user, server, db, room, actions
+
+from . import message, user, server, db, actions
+from .world import active_world
 
 # To send status updates to a client:
 # emit("update_status", {"key1": {"label": "Status 1"}, "key2": {"label": "Status 2"}}, to=sid)
@@ -72,7 +74,7 @@ def handle_login(data):
         user.connected_users[sid] = user_obj
         
         # Add user to default room
-        room.default_room.add_user(user_obj)
+        active_world().default_room.add_user(user_obj)
         
         emit("login_success", {"username": username})
         
@@ -88,7 +90,6 @@ def handle_message(data):
     Only accepts messages if client is authenticated.
     Sends message to the user's current room (default room for now)
     """
-    print(request.namespace)
     sid = request.sid # type: ignore
     user_obj = user.connected_users.get(sid)
     if not user_obj:
