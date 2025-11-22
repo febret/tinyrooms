@@ -8,7 +8,7 @@ import yaml
 from .types import ParsedMessage
 from .user import User, connected_users
 from .room import Room
-from .world import active_world
+from .world import active_world, load_defs
 from . import text
 
 action_defs = dict()
@@ -19,33 +19,8 @@ def load_actions(yaml_path=None):
     global action_defs
     if yaml_path is None:
         yaml_path = Path(__file__).parent.parent / "data" / "actions"
-    
-    yaml_path = Path(yaml_path)
-    action_defs = {}
-    
-    if yaml_path.is_dir():
-        for yaml_file in yaml_path.glob("*.yaml"):
-            with open(yaml_file, 'r', encoding='utf-8') as f:
-                loaded_actions = yaml.safe_load(f)
-                if loaded_actions:
-                    for action_key, action_value in loaded_actions.items():
-                        if action_key in action_defs:
-                            # Clash detected - prepend group name
-                            new_key = f"{action_value.get('group', 'default')}.{action_key}"
-                            print(f"Warning: Action '{action_key}' from '{yaml_file.name}' clashes with existing action. Renaming to '{new_key}'")
-                            action_defs[new_key] = action_value
-                        else:
-                            action_defs[action_key] = action_value
-    elif yaml_path.is_file():
-        with open(yaml_path, 'r', encoding='utf-8') as f:
-            loaded_actions = yaml.safe_load(f)
-            if loaded_actions:
-                action_defs.update(loaded_actions)
-    else:
-        raise FileNotFoundError(f"Path not found: {yaml_path}")
-    
-    print(f"Loaded {len(action_defs)} actions from {yaml_path}")
-
+    # Reload action definitions and refresh connected users
+    action_defs = load_defs(yaml_path)
     for u in connected_users.values():
         u.actions_stale = True
 
