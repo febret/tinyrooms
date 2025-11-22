@@ -6,6 +6,7 @@ const btnLogin = document.getElementById("btnLogin");
 const btnRegister = document.getElementById("btnRegister");
 const loginStatus = document.getElementById("loginStatus");
 const chatBox = document.getElementById("chatBox");
+const statusDisplay = document.getElementById("statusDisplay");
 const messagesDiv = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -249,7 +250,7 @@ function attachRefEventHandlers(spans) {
     src = e.currentTarget;
     if (src.id.length === 0) {
       actionCmd = '[[@ ' + src.textContent + ']]';
-      actionLabel = src.innerHTML;
+      actionLabel = src.textContent;
     } else {
       actionCmd = '@' + src.id;
       actionLabel = '@' + src.id;
@@ -437,6 +438,71 @@ socket.on("reload_styles", data => {
 socket.on("reload_client", data => {
   saveInputState();
   window.location.reload();
+});
+
+socket.on("set_skin", data => {
+  // data: {skin: "skinname"}
+  const skinName = data.skin || "base";
+  
+  // Find the main stylesheet link element
+  const links = document.getElementsByTagName("link");
+  for (let i = 0; i < links.length; i++) {
+    const link = links[i];
+    if (link.rel === "stylesheet") {
+      // Update the href to the new skin CSS file
+      link.href = "/app/" + skinName + ".css?" + Date.now();
+      console.log("Skin changed to:", skinName);
+      break;
+    }
+  }
+});
+
+socket.on("update_status", data => {
+  // data is a dict/object of items, each with at least a 'label' field
+  statusDisplay.innerHTML = "";
+  
+  for (const [key, item] of Object.entries(data || {})) {
+    const div = document.createElement("div");
+    div.className = "status-item";
+    div.textContent = item.label || "";
+    statusDisplay.appendChild(div);
+  }
+});
+
+socket.on("update_view", data => {
+  // data: {view: "viewName", format: "text", value: "content"}
+  const viewName = data.view;
+  const format = data.format || "text";
+  const value = data.value || "";
+  
+  if (!viewName) {
+    console.error("update_view: missing view name");
+    return;
+  }
+  
+  // Find or create the view div
+  const viewId = "view_" + viewName;
+  let viewDiv = document.getElementById(viewId);
+  
+  if (!viewDiv) {
+    // Create the view div if it doesn't exist
+    viewDiv = document.createElement("div");
+    viewDiv.id = viewId;
+    viewDiv.className = "view-container";
+    
+    // Insert it in the chatBox, after statusDisplay but before messages
+    const chatBoxEl = document.getElementById("chatBox");
+    const messagesEl = document.getElementById("messages");
+    chatBoxEl.insertBefore(viewDiv, messagesEl);
+  }
+  
+  // Render content based on format
+  if (format === "text") {
+    viewDiv.textContent = value;
+  } else {
+    // For future formats (html, markdown, etc.)
+    viewDiv.textContent = value;
+  }
 });
 
 socket.on("error", data => {
