@@ -3,9 +3,9 @@ DEFAULT_ROOM:
   label: the Void
   description: You find yourself in an endless void. There is <<nothing>> here.
   image: void.png
-  ways: gateway
+  ways: to_gateway
 
-gateway:
+to_gateway:
   type: way
   label: through a shimmering portal 🌌
   to: playroom
@@ -15,9 +15,56 @@ playroom:
   label: the Playroom
   description: You are in a cozy playroom filled with colorful toys. <<A strange blue light>> comes out from behind a dressing stand.
   image: playroom.png
-  ways: dressing_stand
+  ways: [to_dressing_stand, to_upstairs_bathroom, to_upstairs_bedroom]
+  init_things: [lucille, bookshelf_white]
 
-dressing_stand:
+to_dressing_stand:
   type: way
   label: behind the dressing stand 🪞
   to: DEFAULT_ROOM
+
+to_upstairs_bedroom:
+  type: way
+  label: to the bedroom
+  to: upstairs_bedroom
+
+to_upstairs_bathroom:
+  type: way
+  label: to the bathroom
+  to: upstairs_bathroom
+
+upstairs_bedroom:
+  type: room
+  label: the Upstairs Bedroom
+  description: You are in a cozy bedroom with a large bed, a nightstand, and a window with a view of the garden.
+  image: bedroom1.jpg
+  ways: [to_upstairs_bathroom, to_playroom, to_downstairs]
+
+upstairs_bathroom:
+  type: room
+  label: the Upstairs Bathroom
+  description: You are in a small bathroom with a sink, toilet, and bathtub. The walls are tiled in light blue, and there is a fluffy bath mat on the floor.
+  image: bathroom1.png
+  ways: [to_downstairs, to_playroom, to_upstairs_bedroom]
+
+to_downstairs:
+  type: way
+  label: down the stairs 🪜
+  to: backroom
+
+to_playroom:
+  type: way
+  label: to the playroom
+  to: playroom
+
+backroom:
+  type: room
+  label: the Backroom
+  description: You are in a dimly lit backroom with old furniture and boxes stacked against the walls. There is a musty smell in the air.
+  image: backroom.png
+  ways: [to_upstairs]
+
+to_upstairs:
+  type: way
+  label: up the stairs 🪜
+  to: upstairs_bathroom

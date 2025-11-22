@@ -1,0 +1,14 @@
+lucille:
+  type: object
+  label: Luseal 🦭
+  description: a small and stinky seal plushie
+  image: seal.png
+  tags: [item]
+
+
+bookshelf_white:
+  type: object
+  label: a white bookshelf 🔲
+  description: a tall white bookshelf
+  image: cabinet_white.png
+  tags: [container]
