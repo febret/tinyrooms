@@ -67,3 +67,15 @@ function makeActionLabel(text) {
   }
   return lastEmoji;
 }
+
+// Text-to-speech function
+function stripFormattedText(html) {
+  // Create a temporary element to parse HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  text = temp.textContent || temp.innerText || '';
+  // Remove emojis and repeated punctuation characters
+  text = text.replace(/[\p{Emoji_Presentation}|\p{Emoji}\uFE0F]/gu, ''); // Remove emojis
+  //text = text.replace(/([!?.,])\1{2,}/g, '$1'); // Replace repeated punctuation with single
+  return text;
+}

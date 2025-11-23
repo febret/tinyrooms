@@ -273,6 +273,59 @@ button {
   transform: scale(1.3);
 }
 
+.voice-popup {
+  position: fixed;
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 0.5rem;
+}
+
+.voice-popup h4 {
+  margin: 0 0 0.5rem 0;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-bottom: 1px solid #ccc;
+}
+
+.voice-option {
+  padding: 0.6rem;
+  margin: 0.2rem 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.voice-option:hover {
+  background: #e9ecef;
+}
+
+.voice-option.selected {
+  background: #28a745;
+  color: white;
+  font-weight: bold;
+}
+
+.voice-option-name {
+  font-weight: 500;
+}
+
+.voice-option-lang {
+  font-size: 0.8rem;
+  color: #666;
+  margin-left: 0.5rem;
+}
+
+.voice-option.selected .voice-option-lang {
+  color: #e0e0e0;
+}
+
 /* Phone layout (up to 600px) */
 @media (max-width: 600px) {
   body {

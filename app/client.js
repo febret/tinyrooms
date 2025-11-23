@@ -164,7 +164,7 @@ socket.on("message", data => {
   
   // Speak message if talk mode is enabled
   if (talkEnabled) {
-    speakText(data.text || "");
+    speakText(formattedText || "");
   }
 });
 
