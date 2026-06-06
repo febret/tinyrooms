@@ -8,7 +8,20 @@ from .world import active_world
 
 
 def parse_message(text: str, user: User, room: Room) -> ParsedMessage:
-    """Parse a message text into its components."""
+    """Parse a message into plain text, an action, and object references.
+
+    Supported syntax:
+    - A leading ``.action`` token sets ``action`` to that action id.
+    - Later ``.action`` tokens are replaced in the output text with the
+      matching action description when the action id exists.
+    - ``@name`` resolves to a room user first, then the first connected user
+      whose username starts with ``name``.
+    - ``@way:<id>`` resolves to a world way reference.
+    - ``@obj:<id>`` resolves to an object in the current room.
+    - ``[[@ ... ]]`` captures the enclosed text as a literal reference string.
+
+    Text that is not part of a reference is returned in ``out_text`` chunks.
+    """
     in_text = text.strip()
     out_text = []
     action = ""
