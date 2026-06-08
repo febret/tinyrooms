@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""
+make-icon: Generate a 64x64 PNG icon using Stable Diffusion 1.5.
+
+Usage:
+    make-icon <path.png> <description> [--style <style description>]
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate a 64x64 PNG icon using a local text-to-image model."
+    )
+    parser.add_argument("path", type=Path, help="Output PNG file path")
+    parser.add_argument("description", help="Content description for the icon")
+    parser.add_argument("--style", default="", help="Optional style description")
+    return parser.parse_args()
+
+
+def build_prompt(description: str, style: str) -> str:
+    base = (
+        f"icon, {description}, flat design, clean, simple, "
+        "high quality, detailed, transparent background"
+    )
+    if style:
+        base += f", {style}"
+    return base
+
+
+def generate_icon(output_path: Path, description: str, style: str):
+    print("Loading model (this may take a minute on first run)...")
+
+    import torch
+    from diffusers import StableDiffusionPipeline
+    from PIL import Image
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.float16 if device == "cuda" else torch.float32
+
+    if device == "cpu":
+        print("WARNING: No CUDA GPU detected, running on CPU (will be very slow).")
+
+    model_id = "runwayml/stable-diffusion-v1-5"
+    pipe = StableDiffusionPipeline.from_pretrained(
+        model_id,
+        torch_dtype=dtype,
+        safety_checker=None,
+        requires_safety_checker=False,
+    )
+    pipe = pipe.to(device)
+
+    if device == "cuda":
+        pipe.enable_attention_slicing()
+
+    prompt = build_prompt(description, style)
+    negative_prompt = (
+        "blurry, low quality, text, watermark, border, frame, "
+        "photorealistic, photo, 3d render, complex background"
+    )
+
+    print(f"Generating icon: {prompt!r}")
+    result = pipe(
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        width=512,
+        height=512,
+        num_inference_steps=30,
+        guidance_scale=7.5,
+    )
+
+    image: Image.Image = result.images[0]
+    icon = image.resize((64, 64), Image.LANCZOS)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    icon.save(output_path, "PNG")
+    print(f"Icon saved to: {output_path}")
+
+
+def main():
+    args = parse_args()
+
+    if not args.path.suffix.lower() == ".png":
+        print(f"Error: output path must end with .png, got: {args.path}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        generate_icon(args.path, args.description, args.style)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
