@@ -4,7 +4,11 @@ from . import world
 
 def get_ref_label(ref, strip_article = False) -> str:
     """Get the label text for a reference, optionally stripping leading articles."""
-    label = ref if isinstance(ref, str) else ref.label
+    if isinstance(ref, str):
+        label = ref
+    else:
+        raw = ref.label
+        label = raw() if callable(raw) else raw
     if strip_article:
         articles = ["a ", "an ", "the "]
         for art in articles:
@@ -68,12 +72,15 @@ def make_action_text(action_def: dict, user_label, refs, extra_text):
 def make_room_description_text(room, user):
     description = room.info.get('description', '')
     if room.objs:
-        description += "\nYou see "
-        obj_texts = []
-        for o, od in room.objs.items():
-            ol = od.info.get('label', '')
-            obj_texts.append(f"[[@obj:{o} {ol} ]]")
-        description += ', '.join(obj_texts)
+        # Objects with icons are shown in the icon strip, not in the text description
+        text_objs = [(o, od) for o, od in room.objs.items() if not getattr(od, '_icon_def', None)]
+        if text_objs:
+            description += "\nYou see "
+            obj_texts = []
+            for o, od in text_objs:
+                ol = od.info.get('label', '')
+                obj_texts.append(f"[[@obj:{o} {ol} ]]")
+            description += ', '.join(obj_texts)
     if room.ways:
         description += "\nYou can go "
     for w, wd in room.ways.items():

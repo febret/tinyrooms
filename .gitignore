@@ -1,2 +1,4 @@
 *.pyc
-tinyrooms/__pycache__/*
+__pycache__/
+*.duckdb
+doc/~$*

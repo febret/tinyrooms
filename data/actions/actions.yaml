@@ -5,3 +5,9 @@ say:
   action_text: [You say, $0 says]
   target_text: to $1
 
+pick:
+  group: basic
+  label: 🖐️
+  description: Pick up an object
+  action_text: [You pick up $1, $0 picks up $1]
+  run: action_pickup

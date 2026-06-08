@@ -67,14 +67,11 @@ def handle_login(data):
             return
         
         # Create User instance and store it
-        user_obj = user.User(username, sid)
+        user_obj = user.User(username, sid, active_world())
         # Load saved skin from database
         user_obj.skin = saved_skin or 'base'
         user_obj.skin_stale = True
         user.connected_users[sid] = user_obj
-        
-        # Add user to default room
-        active_world().default_room.add_user(user_obj)
         
         emit("login_success", {"username": username})
         
@@ -100,7 +97,9 @@ def handle_message(data):
     if not text:
         return
     parsed = message.parse_message(text, user_obj, user_obj.room)
-    act = parsed.action or "basic.say"
+    act = parsed.action
+    if parsed.out_text and len(act) == 0:
+        act = "basic.say"
     actions.do_action(act, parsed, user = user_obj, room = user_obj.room)
 
 

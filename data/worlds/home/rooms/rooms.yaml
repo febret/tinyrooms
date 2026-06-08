@@ -16,7 +16,7 @@ playroom:
   description: You are in a cozy playroom filled with colorful toys. <<A strange blue light>> comes out from behind a dressing stand.
   image: playroom.png
   ways: [to_dressing_stand, to_upstairs_bathroom, to_upstairs_bedroom]
-  init_things: [lucille, bookshelf_white]
+  init_things: [lucille, bookshelf_white, magic_orb]
 
 to_dressing_stand:
   type: way

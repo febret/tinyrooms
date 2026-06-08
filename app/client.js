@@ -14,6 +14,7 @@ const btnLogout = document.getElementById("btnLogout");
 const btnTalk = document.getElementById("btnTalk");
 const actionsChipsContainer = document.getElementById("actionsChips");
 const connectionIndicator = document.getElementById("connectionIndicator");
+const descriptionPanel = document.getElementById("descriptionPanel");
 
 let myUsername = null;
 let lastPassword = null; // Store password for auto-reconnect
@@ -208,12 +209,13 @@ socket.on("update_status", data => {
 });
 
 socket.on("update_view", data => {
-  // data: {view: "viewName", format: "text", label: "", description: "", image: ""}
+  // data: {view: "viewName", format: "text", label: "", description: "", image: "", icons: [...]}
   const viewName = data.view;
   const format = data.format || "text";
   const label = formatText(data.label || "");
   const description = formatText(data.description || "");
   const image = data.image || "";
+  const icons = data.icons || [];
   
   if (!viewName) {
     console.error("update_view: missing view name");
@@ -222,7 +224,8 @@ socket.on("update_view", data => {
   
   // Play page flip sound if label changed
   const currentLabel = data.label || "";
-  if (lastViewLabel !== null && lastViewLabel !== currentLabel) {
+  const labelChanged = lastViewLabel !== null && lastViewLabel !== currentLabel;
+  if (labelChanged) {
     playPageFlipSound();
   }
   lastViewLabel = currentLabel;
@@ -232,23 +235,28 @@ socket.on("update_view", data => {
   let viewDiv = document.getElementById(viewId);
   
   if (!viewDiv) {
-    // Create the view div if it doesn't exist
     viewDiv = document.createElement("div");
     viewDiv.id = viewId;
     viewDiv.className = "view-container";
-    
-    // Insert it in the chatBox, after statusDisplay but before messages
     const chatBoxEl = document.getElementById("chatBox");
     const messagesEl = document.getElementById("messages");
     chatBoxEl.insertBefore(viewDiv, messagesEl);
   }
-  
-  // Add slide-out animation before updating content
+
+  // If only the icon list changed (same room label/image), update the strip in-place
+  // without triggering the slide-out animation on the whole view.
+  const existingStrip = viewDiv.querySelector('.icon-strip');
+  const isIconOnlyUpdate = !labelChanged && existingStrip !== null;
+
+  if (isIconOnlyUpdate) {
+    updateIconStrip(existingStrip);
+    return;
+  }
+
+  // Full view update with slide-out animation when content already exists
   const isExistingContent = viewDiv.innerHTML.trim().length > 0;
   if (isExistingContent) {
     viewDiv.classList.add("slide-out");
-    
-    // Wait for slide-out animation to complete
     setTimeout(() => {
       updateViewContent();
     }, 300);
@@ -257,63 +265,94 @@ socket.on("update_view", data => {
   }
   
   function updateViewContent() {
-    // Clear existing content
     viewDiv.innerHTML = "";
     viewDiv.classList.remove("collapsed", "slide-out");
+    clearDescriptionPanel();
   
-  // Create sub-sections for image, label, and description
-  if (image) {
-    const img = document.createElement("img");
-    img.src = "/world/images/" + image;
-    img.alt = label || "Room image";
-    img.className = "view-image";
-    img.style.cursor = "pointer";
-    img.title = "Click to collapse/expand";
-    
-    // Add click handler to toggle collapse
-    img.addEventListener("click", () => {
-      viewDiv.classList.toggle("collapsed");
+    if (image) {
+      const img = document.createElement("img");
+      img.src = "/world/images/" + image;
+      img.alt = label || "Room image";
+      img.className = "view-image";
+      img.style.cursor = "pointer";
+      img.title = "Click to collapse/expand";
+      img.addEventListener("click", () => {
+        viewDiv.classList.toggle("collapsed");
+      });
+      viewDiv.appendChild(img);
+    }
+  
+    if (label) {
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "view-label";
+      const labelText = label.trim();
+      if (labelText.length > 0) {
+        const firstChar = labelText.charAt(0).toUpperCase();
+        const restOfText = labelText.substring(1);
+        labelDiv.innerHTML = firstChar + restOfText;
+      } else {
+        labelDiv.innerHTML = label;
+      }
+      viewDiv.appendChild(labelDiv);
+    }
+  
+    if (description) {
+      const descDiv = document.createElement("div");
+      descDiv.className = "view-description";
+      const descText = description.trim();
+      if (descText.length > 0) {
+        const firstChar = descText.charAt(0).toUpperCase();
+        const restOfText = descText.substring(1);
+        descDiv.innerHTML = '<span class="drop-cap">' + firstChar + '</span>' + restOfText;
+      } else {
+        descDiv.innerHTML = description;
+      }
+      viewDiv.appendChild(descDiv);
+    }
+  
+    // Render icon strip
+    const strip = document.createElement("div");
+    strip.className = "icon-strip";
+    buildIconStrip(strip, icons);
+    if (icons.length > 0) {
+      viewDiv.appendChild(strip);
+    }
+  
+    attachRefEventHandlers(viewDiv);
+    attachIconEventHandlers(strip);
+  }
+
+  // Update only the icon strip in-place (no animation)
+  function updateIconStrip(strip) {
+    // Preserve selected ref_id so we can restore selection after rebuild
+    const selectedRefId = strip.querySelector('.room-icon.selected')?.dataset.refId || null;
+    strip.innerHTML = "";
+    buildIconStrip(strip, icons);
+    if (selectedRefId) {
+      const restored = strip.querySelector(`.room-icon[data-ref-id="${selectedRefId}"]`);
+      if (restored) restored.classList.add('selected');
+    }
+    attachIconEventHandlers(strip);
+  }
+
+  function buildIconStrip(strip, iconList) {
+    iconList.forEach(iconData => {
+      const img = document.createElement("img");
+      img.src = "/world/" + iconData.icon.img;
+      img.alt = iconData.label || "";
+      img.title = iconData.label || "";
+      img.className = "room-icon" + (iconData.is_user ? " user-icon" : "");
+      img.dataset.refId = iconData.ref_id;
+      img.dataset.label = iconData.label || "";
+      img.dataset.description = iconData.description || "";
+      img.dataset.isUser = iconData.is_user ? "1" : "0";
+      Object.keys(iconData.icon).forEach(key => {
+        if (key !== 'img') {
+          img.dataset['iconEffect_' + key] = iconData.icon[key];
+        }
+      });
+      strip.appendChild(img);
     });
-    
-    viewDiv.appendChild(img);
-  }
-  
-  if (label) {
-    const labelDiv = document.createElement("div");
-    labelDiv.className = "view-label";
-    
-    // Format label with first character uppercase
-    const labelText = label.trim();
-    if (labelText.length > 0) {
-      const firstChar = labelText.charAt(0).toUpperCase();
-      const restOfText = labelText.substring(1);
-      labelDiv.innerHTML = firstChar + restOfText;
-    } else {
-      labelDiv.innerHTML = label;
-    }
-    
-    viewDiv.appendChild(labelDiv);
-  }
-  
-  if (description) {
-    const descDiv = document.createElement("div");
-    descDiv.className = "view-description";
-    
-    // Format description with drop cap (first character larger)
-    const descText = description.trim();
-    if (descText.length > 0) {
-      const firstChar = descText.charAt(0).toUpperCase();
-      const restOfText = descText.substring(1);
-      descDiv.innerHTML = '<span class="drop-cap">' + firstChar + '</span>' + restOfText;
-    } else {
-      descDiv.innerHTML = description;
-    }
-    
-    viewDiv.appendChild(descDiv);
-  }
-  
-  // Attach ref event handlers
-  attachRefEventHandlers(viewDiv);
   }
 });
 

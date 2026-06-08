@@ -4,67 +4,30 @@ import random
 
 from .room import Room, Way
 from .object import Object
+from .utils import load_defs
+from . import db, icons as icon_module
+
 
 class World:
-    def __init__(self, info, root_path: Path):
+    def __init__(self, info, root_path: Path, room_defs: dict, thing_defs: dict, rooms: dict, ways: dict, objs: dict, peeps: dict):
         self.info = info
         self.root_path = root_path
-        self.room_defs = {}
-        self.thing_defs = {}
-        self.rooms = {}
+        self.room_defs = room_defs
+        self.thing_defs = thing_defs
+        self.rooms = rooms
         self.default_room = Room("", {})
-        self.ways = {}
-        self.objs = {}
-        self.peeps = {}
-        self.create_rooms()
-
-    def create_rooms(self):
-        self.room_defs = load_defs(
-            self.root_path / "rooms",
-            id_key_func=lambda key, value: f"{value['place']}.{key}" if 'place' in value else key
-        )
-        self.thing_defs = load_defs(
-            self.root_path / "things",
-        )
-        for rid, rdata in self.room_defs.items():
-            rtype = rdata.get('type', 'room')
-            if rtype == 'room':
-                self.rooms[rid] = Room(rid, rdata)
-            elif rtype == 'way':
-                self.ways[rid] = Way(rid, rdata)
-            else:
-                print(f"Error: Unknown room type '{rtype}' for room '{rid}'. Skipping.")
-        for rid, room in self.rooms.items():
-            ways = room.info.get('ways', [])
-            if isinstance(ways, str):
-                ways = [ways]
-            for w in ways:
-                wd = self.ways.get(w, None)
-                if wd:
-                    room.ways[w] = wd
-            
-            # Create initial objects from init_things
-            init_things = room.info.get('init_things', [])
-            if isinstance(init_things, str):
-                init_things = [t.strip() for t in init_things.split(',')]
-            for thing_id in init_things:
-                thing_id = thing_id.strip()
-                if thing_id in self.thing_defs:
-                    thing_def = self.thing_defs[thing_id]
-                    random_hex = ''.join(random.choices('0123456789abcdef', k=5))
-                    obj_id = f"{thing_id}-{random_hex}"
-                    obj = Object(obj_id, thing_def)
-                    obj.room = room
-                    room.objs[obj_id] = obj
-                    self.objs[obj_id] = obj
-                else:
-                    print(f"Warning: Thing '{thing_id}' referenced in room '{rid}' not found in thing_defs.")
-        
+        self.ways = ways
+        self.objs = objs
+        self.peeps = peeps
         self.default_room = self.rooms.get("DEFAULT_ROOM", self.default_room)
-        print(f"Created {len(self.rooms)} rooms, {len(self.ways)} ways, and {len(self.objs)} objects.")
+        
+    def save_state(self, ws_id:str = 'home'):
+        with db.get_worldstate_connection(ws_id) as wsdb:
+            db.write_room_data(wsdb, self.rooms)
+            db.write_object_data(wsdb, self.objs)
 
 
-def load_world(yaml_path=None) -> World:
+def load_world(yaml_path=None, ws_id='home') -> World:
     """Load world definitions from YAML file or directory."""
     if yaml_path is None:
         yaml_path = Path(__file__).parent.parent / "data" / "worlds" / "home" / "world.yaml"    
@@ -76,50 +39,112 @@ def load_world(yaml_path=None) -> World:
         root_path = yaml_path.parent
         world_info = yaml.safe_load(f)
     print(f"Loaded world definition from {yaml_path}")
-    global _active_world
-    _active_world = World(world_info, root_path)
-    return _active_world
-
-
-def load_defs(yaml_path, id_key_func=None):
-    """
-    Load definitions from YAML file or directory.
-    Args:
-        yaml_path: Path to YAML file or directory containing YAML files
-        id_key_func: Optional function to generate ID from key and value dict.
-                     If None, uses the key as-is.
-    """
-    yaml_path = Path(yaml_path)
-    defs = {}
-    if yaml_path.is_dir():
-        for yaml_file in yaml_path.glob("*.yaml"):
-            with open(yaml_file, 'r', encoding='utf-8') as f:
-                loaded_defs = yaml.safe_load(f)
-                if loaded_defs:
-                    for key, value in loaded_defs.items():
-                        if id_key_func:
-                            def_id = id_key_func(key, value)
-                        else:
-                            def_id = key
-                        
-                        if def_id in defs:
-                            print(f"Error: Definition '{def_id}' from '{yaml_file.name}' clashes with existing definition. Skipping.")
-                        else:
-                            defs[def_id] = value
-    elif yaml_path.is_file():
-        with open(yaml_path, 'r', encoding='utf-8') as f:
-            loaded_defs = yaml.safe_load(f)
-            if loaded_defs:
-                if id_key_func:
-                    for key, value in loaded_defs.items():
-                        def_id = id_key_func(key, value)
-                        defs[def_id] = value
+    
+    # Initialize the worldstate DB
+    wsdb = db.get_worldstate_connection(ws_id)
+    db.init_workstate_schema(wsdb)
+    
+    # Load rooms and thing definitions
+    room_defs = load_defs(
+        root_path / "rooms",
+        id_key_func=lambda key, value: f"{value['place']}.{key}" if 'place' in value else key
+    )
+    thing_defs = load_defs(root_path / "things")
+    
+    rooms = {}
+    ways = {}
+    for rid, rdata in room_defs.items():
+        rtype = rdata.get('type', 'room')
+        if rtype == 'room':
+            rooms[rid] = Room(rid, rdata, rdata.get('owner_id'))
+        elif rtype == 'way':
+            ways[rid] = Way(rid, rdata)
+        else:
+            print(f"Error: Unknown room type '{rtype}' for room '{rid}'. Skipping.")
+    for rid, room in rooms.items():
+        rw = room.info.get('ways', [])
+        if isinstance(rw, str):
+            rw = [rw]
+        for w in rw:
+            wd = ways.get(w, None)
+            if wd:
+                room.ways[w] = wd
+                
+    # Load room data from worldstate DB
+    room_data = db.read_room_data(wsdb)
+    for rid, rdata in room_data.items():
+        if rid in rooms:
+            room = rooms[rid]
+            if rdata.get('label_override'):
+                room.label_override = rdata['label_override']
+            if rdata.get('description_override'):
+                room.description_override = rdata['description_override']
+            room.initialized = True
+        else:
+            print(f"Warning: Room '{rid}' found in worldstate DB but not in room definitions.")
+            
+    # For any non-initialized room, created objects from room info init_things
+    objs = {}
+    for rid, room in rooms.items():
+        if not room.initialized:
+            init_things = room.info.get('init_things', [])
+            if isinstance(init_things, str):
+                init_things = [t.strip() for t in init_things.split(',')]
+            for thing_id in init_things:
+                thing_id = thing_id.strip()
+                if thing_id in thing_defs:
+                    thing_def = thing_defs[thing_id]
+                    random_hex = ''.join(random.choices('0123456789abcdef', k=5))
+                    obj_id = f"{thing_id}-{random_hex}"
+                    obj = Object(obj_id, thing_id, thing_def, room.id(), room.owner_id)
+                    room.objs[obj_id] = obj
+                    objs[obj_id] = obj
                 else:
-                    defs.update(loaded_defs)
-    else:
-        raise FileNotFoundError(f"Path not found: {yaml_path}")
-    print(f"Loaded {len(defs)} definitions from {yaml_path}")
-    return defs
+                    print(f"Warning: Thing '{thing_id}' referenced in room '{rid}' not found in thing_defs.")
+    
+    print(f"Loaded {len(rooms)} rooms and {len(ways)} ways.")
+
+    # Build a reverse-lookup so we can find rooms by their @room:<id> identity string
+    room_by_full_id = {r.id(): r for r in rooms.values()}
+    # Also allow bare room_id as a fallback for forward-compatibility
+    room_by_full_id.update(rooms)
+            
+    # Load object data from worldstate DB
+    object_data = db.read_object_data(wsdb)
+    for oid, odata in object_data.items():
+        thing_id = odata['thing_id']
+        location_id = odata['location_id']
+        if thing_id in thing_defs:
+            thing_def = thing_defs[thing_id]
+            obj = Object(oid, thing_id, thing_def, location_id, odata.get('owner_id'))
+            if odata.get('label_override'):
+                obj.label_override = odata['label_override']
+            if odata.get('description_override'):
+                obj.description_override = odata['description_override']
+            objs[oid] = obj
+            # Place object in the corresponding room
+            target_room = room_by_full_id.get(location_id)
+            if target_room:
+                target_room.objs[oid] = obj
+            # TODO: support placing inside container objects and in peep / user inventories.
+            else:
+                print(f"Warning: Location '{location_id}' for object '{oid}' not found in rooms.")
+        else:
+            print(f"Warning: Thing '{thing_id}' for object '{oid}' not found in thing definitions.")
+    
+    print(f"Loaded {len(objs)} objects.")
+    
+    db.write_object_data(wsdb, objs)
+    db.write_room_data(wsdb, rooms)
+
+    # TODO: load peep data from worldstate DB    
+    global _active_world
+    _active_world = World(world_info, root_path, room_defs, thing_defs, rooms, ways, objs, {})
+    
+    # Preprocess icons for all loaded objects and peeps
+    icon_module.preprocess_world_icons(_active_world)
+    
+    return _active_world
 
 
 _active_world = None

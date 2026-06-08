@@ -10,14 +10,16 @@ from tinyrooms import server, console, db, user, connection, actions, room, worl
 def kill():
     """Immediately terminate the server process."""
     print("\n💀 Killing server immediately...")
-    db.save_state()
+    db.save_userdb_state()
+    world.active_world().save_state()
     os._exit(0)
 
 
 def reboot():
     """Reboot the server process."""
     print("\n🔄 Rebooting server...")
-    db.save_state()
+    db.save_userdb_state()
+    world.active_world().save_state()
     os._exit(42)
 
 
@@ -69,4 +71,5 @@ if __name__ == "__main__":
     finally:
         print("Shutting down...")
         # Save state of all connected users before shutdown
-        db.save_state()
+        db.save_userdb_state()
+        world.active_world().save_state()

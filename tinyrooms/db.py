@@ -6,20 +6,104 @@ import duckdb
 DB_PATH = Path(__file__).parent.parent / "data/users.duckdb"
 
 # Persistent database connection
-_db_connection = None
+_user_db_connection = None
 
 
-def get_connection():
+def get_user_connection():
     """Get or create a persistent database connection."""
-    global _db_connection
-    if _db_connection is None:
-        _db_connection = duckdb.connect(str(DB_PATH))
-    return _db_connection
+    global _user_db_connection
+    if _user_db_connection is None:
+        _user_db_connection = duckdb.connect(str(DB_PATH))
+    return _user_db_connection
 
+
+def get_worldstate_connection(ws_id: str):
+    """Get a database connection context for a specific world."""
+    world_db_path = Path(__file__).parent.parent / "data" / f"worldstate_{ws_id}.duckdb"
+    return duckdb.connect(str(world_db_path))
+
+
+def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
+    """Initialize the worldstate schema if it doesn't exist."""
+    dbconn.execute("""
+        CREATE TABLE IF NOT EXISTS rooms (
+            id TEXT PRIMARY KEY,
+            owner_id TEXT,
+            label_override TEXT,
+            description_override TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS peeps (
+            id TEXT PRIMARY KEY,
+            location_id TEXT,
+            type TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS objects (
+            id TEXT PRIMARY KEY,
+            thing_id TEXT,
+            location_id TEXT,
+            owner_id TEXT,
+            label_override TEXT,
+            description_override TEXT
+        );
+    """)
+    
+
+def read_room_data(dbcomm: duckdb.DuckDBPyConnection):
+    """Retrieve room data from the worldstate database."""
+    res = dbcomm.execute("SELECT id, owner_id, label_override, description_override FROM rooms").fetchall()
+    room_data = {}
+    for row in res:
+        room_id, owner_id, label_override, description_override = row
+        room_data[room_id] = {
+            'id': room_id,
+            'owner_id': owner_id,
+            'label_override': label_override,
+            'description_override': description_override
+        }
+    return room_data
+
+
+def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
+    """Write room data to the worldstate database."""
+    print(f"Committing room data for {len(rooms)} rooms to worldstate DB...")
+    for room_id, room in rooms.items():
+        dbconn.execute(
+            "INSERT OR REPLACE INTO rooms (id, owner_id, label_override, description_override) VALUES (?, ?, ?, ?)",
+            (room_id, room.owner_id, room.label_override, room.description_override)
+        )
+
+
+def read_object_data(dbcomm: duckdb.DuckDBPyConnection):
+    """Retrieve object data from the worldstate database."""
+    res = dbcomm.execute("SELECT id, thing_id, location_id, owner_id, label_override, description_override FROM objects").fetchall()
+    object_data = {}
+    for row in res:
+        obj_id, thing_id, location_id, owner_id, label_override, description_override = row
+        object_data[obj_id] = {
+            'id': obj_id,
+            'thing_id': thing_id,
+            'location_id': location_id,
+            'owner_id': owner_id,
+            'label_override': label_override,
+            'description_override': description_override
+        }
+    return object_data
+
+
+def write_object_data(dbconn: duckdb.DuckDBPyConnection, objects: dict):
+    """Write object data to the worldstate database."""
+    print(f"Committing object data for {len(objects)} objects to worldstate DB...")
+    for obj_id, obj in objects.items():
+        dbconn.execute(
+            "INSERT OR REPLACE INTO objects (id, thing_id, location_id, owner_id, label_override, description_override) VALUES (?, ?, ?, ?, ?, ?)",
+            (obj_id, obj.thing_id, obj.location_id, obj.owner_id, obj.label_override, obj.description_override)
+        )
 
 # Initialize duckdb and users table
-def init_db():
-    con = get_connection()
+def init_db(ws_id = 'home'):
+    con = get_user_connection()
     con.execute("""
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -44,7 +128,7 @@ def init_db():
 
 
 def get_user(username):
-    con = get_connection()
+    con = get_user_connection()
     res = con.execute("SELECT username, password_hash, skin FROM users WHERE username = ?", [username]).fetchall()
     return res[0] if res else None
 
@@ -54,27 +138,29 @@ def create_user(username, password_plain):
     if get_user(username):
         return False
     password_hash = generate_password_hash(password_plain)
-    con = get_connection()
+    con = get_user_connection()
     con.execute("INSERT INTO users (username, password_hash, skin) VALUES (?, ?, ?)", [username, password_hash, 'base'])
     return True
 
 
 def save_user_state(user_obj):
     """Save user's state to database."""
-    con = get_connection()
+    con = get_user_connection()
     con.execute("UPDATE users SET skin = ? WHERE username = ?", [user_obj.skin, user_obj.username])
+
 
 def set_user_value(username, field, value):
     """Set a specific field for a user in the database."""
-    con = get_connection()
+    con = get_user_connection()
     con.execute(f"UPDATE users SET {field} = ? WHERE username = ?", [value, username])
 
-def save_state():
+
+def save_userdb_state():
     """Save state of all connected users to database."""
     from tinyrooms.user import connected_users
     if not connected_users:
         return
-    con = get_connection()
+    con = get_user_connection()
     for user_obj in connected_users.values():
         save_user_state(user_obj)
     print(f"Saved state for {len(connected_users)} connected users")
