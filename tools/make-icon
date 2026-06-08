@@ -23,7 +23,7 @@ def parse_args():
 
 def build_prompt(description: str, style: str) -> str:
     base = (
-        f"icon, {description}, flat design, clean, simple, "
+        f"illustration, {description}"
         "high quality, detailed, transparent background"
     )
     if style:
@@ -58,8 +58,7 @@ def generate_icon(output_path: Path, description: str, style: str):
 
     prompt = build_prompt(description, style)
     negative_prompt = (
-        "blurry, low quality, text, watermark, border, frame, "
-        "photorealistic, photo, 3d render, complex background"
+        "blurry, low quality, text, watermark"
     )
 
     print(f"Generating icon: {prompt!r}")
@@ -68,7 +67,7 @@ def generate_icon(output_path: Path, description: str, style: str):
         negative_prompt=negative_prompt,
         width=512,
         height=512,
-        num_inference_steps=30,
+        num_inference_steps=20,
         guidance_scale=7.5,
     )
 
