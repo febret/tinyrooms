@@ -5,6 +5,74 @@ function reloadStyle() {
   }
 }
 
+
+// Description panel management
+function showDescriptionPanel(label, description) {
+  descriptionPanel.innerHTML = "";
+  
+  if (label || description) {
+    if (label) {
+      const labelEl = document.createElement("span");
+      labelEl.className = "desc-panel-label";
+      labelEl.textContent = label;
+      descriptionPanel.appendChild(labelEl);
+    }
+    if (description) {
+      if (label) {
+        descriptionPanel.appendChild(document.createTextNode(" — "));
+      }
+      const descEl = document.createElement("span");
+      descEl.className = "desc-panel-text";
+      descEl.textContent = description;
+      descriptionPanel.appendChild(descEl);
+    }
+    descriptionPanel.style.display = "block";
+  } else {
+    descriptionPanel.style.display = "none";
+  }
+}
+
+
+function clearDescriptionPanel() {
+  descriptionPanel.innerHTML = "";
+  descriptionPanel.style.display = "none";
+  // Remove selected state from all icons
+  document.querySelectorAll('.room-icon.selected').forEach(i => i.classList.remove('selected'));
+}
+
+
+// Icon event handlers for the room icon strip
+function attachIconEventHandlers(container) {
+  const icons = container.querySelectorAll('.room-icon');
+  
+  icons.forEach(icon => {
+    const handler = (e) => {
+      e.preventDefault();
+      
+      const refId = icon.dataset.refId || "";
+      const label = icon.dataset.label || "";
+      const description = icon.dataset.description || "";
+      
+      // Show entity description in the panel
+      showDescriptionPanel(label, description);
+      
+      // Add as an action target chip (same behaviour as clicking a ref span)
+      if (refId) {
+        const actionLabel = makeActionLabel(label) || "…";
+        addActionChip('@' + refId, actionLabel);
+      }
+      
+      // Highlight selected icon, deselect others in the same strip
+      container.querySelectorAll('.room-icon').forEach(i => i.classList.remove('selected'));
+      icon.classList.add('selected');
+    };
+    
+    icon.addEventListener('click', handler);
+    icon.addEventListener('touchend', handler);
+  });
+}
+
+
 // Action chips management
 function addActionChip(actionKey, actionLabel) {
   // Check if already added

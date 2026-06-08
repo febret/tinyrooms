@@ -198,3 +198,33 @@ button:active {
     padding: 0.75rem;
   }
 }
+
+.room-icon {
+  border-color: #ddd;
+  background: #f0f0f0;
+}
+
+.room-icon:hover {
+  border-color: #007bff;
+}
+
+.room-icon.selected {
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.5);
+}
+
+.room-icon.user-icon {
+  box-shadow: 0 0 10px 4px rgba(30, 120, 255, 0.7);
+  border-color: rgba(30, 120, 255, 0.55);
+}
+
+.room-icon.user-icon.selected {
+  box-shadow: 0 0 14px 6px rgba(30, 120, 255, 1);
+  border-color: #1e78ff;
+}
+
+#descriptionPanel {
+  background: #e7f3ff;
+  border: 1px solid #c4dcf5;
+  color: #1a4a7a;
+}
