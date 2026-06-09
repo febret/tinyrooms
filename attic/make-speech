@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""
+make-speech: Generate a text-to-speech audio file using Parler-TTS.
+
+The --description argument accepts natural language prompts that control
+emotion, speaking style, pace, pitch, and voice character — for example:
+  "A cheerful woman speaks with high energy and an upbeat tone."
+  "A calm, deep male voice speaks slowly and clearly in a quiet room."
+  "A sad, quiet whisper delivered at a slow pace with a somber mood."
+
+Usage:
+    make-speech <path.wav> <text> [--description <style/emotion description>]
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+DEFAULT_DESCRIPTION = (
+    "A neutral, clear voice speaks at a natural pace in a quiet room."
+)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate a speech audio file using a local text-to-speech model."
+    )
+    parser.add_argument("path", type=Path, help="Output WAV file path")
+    parser.add_argument("text", help="Text to speak")
+    parser.add_argument(
+        "--description",
+        default=DEFAULT_DESCRIPTION,
+        help=(
+            "Natural language description of voice style and emotion, e.g. "
+            "'A cheerful woman speaks with high energy and an upbeat tone.'"
+        ),
+    )
+    return parser.parse_args()
+
+
+def _generate_tokens(model, encoder_outputs, attention_mask, prompt_hidden, prompt_attn_mask, device, max_new_tokens):
+    """
+    Custom token generation loop that calls model.forward() directly,
+    bypassing transformers 5.x generate()/sample() machinery which is
+    incompatible with parler-tts 0.2.3.
+    """
+    import torch
+    import torch.nn.functional as F
+    from transformers.cache_utils import DynamicCache, EncoderDecoderCache
+    from transformers.modeling_outputs import BaseModelOutput
+    from parler_tts.modeling_parler_tts import apply_delay_pattern_mask, build_delay_pattern_mask
+    from parler_tts.logits_processors import ParlerTTSLogitsProcessor
+
+    num_codebooks = model.decoder.num_codebooks
+    bsz = 1  # single sample
+    gc = model.generation_config
+
+    # Normalise eos_token_id to a plain int for comparison
+    eos_id_raw = gc.eos_token_id
+    if isinstance(eos_id_raw, (list, tuple)):
+        eos_id_raw = eos_id_raw[0]
+    elif hasattr(eos_id_raw, 'item'):
+        eos_id_raw = eos_id_raw.item()
+    eos_id = int(eos_id_raw)
+    bos_id = int(gc.bos_token_id if not hasattr(gc.bos_token_id, 'item') else gc.bos_token_id.item())
+    pad_id = int(gc.pad_token_id if not hasattr(gc.pad_token_id, 'item') else gc.pad_token_id.item())
+
+    max_length = max_new_tokens + num_codebooks + 1
+
+    # The ParlerTTSLogitsProcessor coordinates EOS across codebooks:
+    # codebook k can only generate EOS once codebook k-1 has already done so.
+    logits_proc = ParlerTTSLogitsProcessor(eos_id, num_codebooks, bsz, device)
+
+    # Build initial decoder input (one BOS per codebook) and delay pattern mask.
+    decoder_start = torch.ones((bsz * num_codebooks, 1), dtype=torch.long, device=device) * bos_id
+    delayed, delay_mask = build_delay_pattern_mask(decoder_start, bos_id, pad_id, max_length, num_codebooks)
+
+    past_kv = EncoderDecoderCache(DynamicCache(), DynamicCache())
+    generated = delayed  # shape [bsz*num_codebooks, 1]
+
+    for _ in range(max_length - 1):
+        masked = apply_delay_pattern_mask(generated, delay_mask)
+        is_first = past_kv.get_seq_length() == 0
+
+        decoder_in = masked if is_first else masked[:, -1:]
+
+        out = model(
+            input_ids=None,
+            encoder_outputs=encoder_outputs,
+            attention_mask=attention_mask,
+            decoder_input_ids=decoder_in,
+            # Prompt conditioning is only used on the first step; after that
+            # the prompt's contribution lives entirely in the KV cache.
+            prompt_hidden_states=prompt_hidden if is_first else None,
+            prompt_attention_mask=prompt_attn_mask if is_first else None,
+            past_key_values=past_kv,
+            use_cache=True,
+            return_dict=True,
+        )
+
+        past_kv = out.past_key_values
+        logits = out.logits[:, -1, :]  # [bsz*num_codebooks, vocab_size]
+
+        # Apply logits processor to enforce delay-pattern EOS ordering
+        logits = logits_proc(generated, logits)
+
+        probs = F.softmax(logits, dim=-1)
+        next_toks = torch.multinomial(probs, num_samples=1).squeeze(1)
+        generated = torch.cat([generated, next_toks.unsqueeze(-1)], dim=-1)
+
+        # Stop when ALL codebooks have generated EOS (the processor ensures
+        # they do so in order: codebook 0 first, then 1, …, then num_codebooks-1).
+        if next_toks.eq(eos_id).all():
+            break
+
+    return generated, delay_mask, decoder_start
+
+
+def _decode_audio(model, generated, delay_mask, decoder_start, bsz, device):
+    """Convert generated token IDs to a waveform via the audio encoder."""
+    import torch
+    from parler_tts.modeling_parler_tts import apply_delay_pattern_mask, build_delay_pattern_mask
+
+    num_codebooks = model.decoder.num_codebooks
+    gc = model.generation_config
+
+    output_ids = apply_delay_pattern_mask(generated, delay_mask)
+
+    # Build a mask that marks only the generated audio positions
+    # (not the BOS lead-in or PAD tail added by the delay pattern).
+    _, filter_mask = build_delay_pattern_mask(
+        decoder_start,
+        gc.bos_token_id,
+        gc.pad_token_id,
+        output_ids.shape[1],
+        num_codebooks,
+    )
+    keep = (filter_mask != gc.bos_token_id) & (filter_mask != gc.pad_token_id)
+    output_ids = output_ids[keep].reshape(bsz, num_codebooks, -1)
+    output_ids = output_ids[None, ...]  # add frames dim → [1, bsz, codebooks, seq]
+
+    # Decode with audio encoder; filter positions that contain special tokens
+    # (EOS / BOS / PAD) so the codec only processes valid audio codes.
+    codebook_size = model.audio_encoder.config.codebook_size
+    audio_values = []
+    for i in range(bsz):
+        sample = output_ids[0, i]  # [num_codebooks, seq_len]
+        valid = (sample < codebook_size).all(dim=0)
+        if valid.sum() > 0:
+            codes = sample[:, valid][None, None, ...]  # [1, 1, codebooks, valid_len]
+            wav = model.audio_encoder.decode(audio_codes=codes, audio_scales=[None]).audio_values
+            audio_values.append(wav.squeeze())
+        else:
+            audio_values.append(torch.zeros(1, device=device))
+
+    if len(audio_values) == 1:
+        return audio_values[0]
+    return torch.stack(audio_values)
+
+
+def generate_speech(output_path: Path, text: str, description: str):
+    print("Loading model (this may take a minute on first run)...")
+
+    import torch
+    import soundfile as sf
+    from parler_tts import ParlerTTSForConditionalGeneration
+    from transformers import AutoTokenizer
+    from transformers.modeling_outputs import BaseModelOutput
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # Load in float32: T5 text encoder keeps some layers in float32 regardless,
+    # causing dtype mismatches in float16 mode. float32 avoids this while still
+    # fitting comfortably within 8 GB VRAM (~1.8 GB for the mini model).
+    dtype = torch.float32
+
+    if device == "cpu":
+        print("WARNING: No CUDA GPU detected, running on CPU (will be very slow).")
+
+    model_id = "parler-tts/parler-tts-mini-v1"
+    model = ParlerTTSForConditionalGeneration.from_pretrained(
+        model_id, torch_dtype=dtype, device_map={"": device}
+    )
+    # The text encoder embed_tokens weight is missing from the checkpoint (it's
+    # supposed to be tied to text_encoder.shared) but transformers 5.x loads it
+    # as a meta tensor instead. Tie it to the shared embedding with real weights.
+    embed = model.text_encoder.encoder.embed_tokens
+    if embed.weight.device.type == "meta":
+        model.text_encoder.encoder.embed_tokens = model.text_encoder.shared
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+    print(f"Generating speech...")
+    print(f"  Text       : {text!r}")
+    print(f"  Description: {description!r}")
+
+    description_tok = tokenizer(description, return_tensors="pt").to(device)
+    input_ids = description_tok.input_ids
+    attention_mask = description_tok.attention_mask
+
+    text_tok = tokenizer(text, return_tensors="pt").to(device)
+    prompt_ids = text_tok.input_ids
+
+    with torch.no_grad():
+        # Run text encoder (style/emotion description → cross-attention conditioning).
+        enc_out = model.text_encoder(
+            input_ids=input_ids, attention_mask=attention_mask, return_dict=True
+        )
+        enc_hidden = enc_out.last_hidden_state
+        # Apply enc→dec projection if the two hidden sizes differ and no
+        # cross_attention_hidden_size is configured in the decoder.
+        if (
+            model.text_encoder.config.hidden_size != model.decoder.config.hidden_size
+            and model.decoder.config.cross_attention_hidden_size is None
+        ):
+            enc_hidden = model.enc_to_dec_proj(enc_hidden)
+        # Zero out padding positions so they don't contaminate cross-attention.
+        enc_hidden = enc_hidden * attention_mask[..., None]
+        encoder_outputs = BaseModelOutput(last_hidden_state=enc_hidden)
+
+        # Embed the text-to-speak tokens into the prompt conditioning vectors
+        # that get prepended to the decoder sequence on the first step.
+        prompt_hidden = model.embed_prompts(prompt_ids)
+        prompt_attn_mask = torch.ones(prompt_ids.shape, dtype=torch.long, device=device)
+
+        generated, delay_mask, decoder_start = _generate_tokens(
+            model, encoder_outputs, attention_mask,
+            prompt_hidden, prompt_attn_mask,
+            device, max_new_tokens=500,
+        )
+        audio = _decode_audio(model, generated, delay_mask, decoder_start, bsz=1, device=device)
+
+    audio_np = audio.cpu().float().numpy()
+    if audio_np.ndim > 1:
+        audio_np = audio_np.squeeze()
+    sample_rate = model.config.sampling_rate
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    sf.write(str(output_path), audio_np, sample_rate)
+    print(f"Speech saved to: {output_path}")
+
+
+def main():
+    args = parse_args()
+
+    if not args.path.suffix.lower() == ".wav":
+        print(
+            f"Error: output path must end with .wav, got: {args.path}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        generate_speech(args.path, args.text, args.description)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
