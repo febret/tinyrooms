@@ -1,6 +1,13 @@
 #!/bin/bash
 
 EXIT_CODE=42
+
+# Activate environment in .venv using python -m venv .venv
+if [ ! -d ".venv" ]; then
+    echo "No virtual environment found. Please create one using 'python -m venv .venv' and install dependencies."
+    exit 1
+fi
+source .venv/Scripts/activate
 while [ $EXIT_CODE -eq 42 ]; do
     echo "Starting tinyrooms server..."
     python trserver.py
