@@ -51,7 +51,6 @@ This project appears to rely on:
 - Python 3
 - Flask
 - Flask-SocketIO
-- eventlet
 - DuckDB
 - PyYAML
 - Werkzeug
@@ -84,7 +83,7 @@ python -m venv .venv
 ### 3. Install dependencies
 
 ```bash
-pip install flask flask-socketio eventlet duckdb pyyaml werkzeug
+pip install flask flask-socketio duckdb pyyaml werkzeug
 ```
 
 ### 4. Start the server
