@@ -228,3 +228,47 @@ button:active {
   border: 1px solid #c4dcf5;
   color: #1a4a7a;
 }
+
+#statusPanel, #roomPanel, #actionsPanel, #activityPanel, #logPanel {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f9f9f9;
+}
+
+#roomHeader {
+  color: #333;
+}
+
+#roomCanvas {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+}
+
+#lookBox {
+  border: 1px solid #c4dcf5;
+  background: #e7f3ff;
+  color: #1a4a7a;
+  border-radius: 4px;
+}
+
+#activityPanel {
+  background: #fff7e6;
+  border-color: #ffd591;
+}
+
+.palette-btn {
+  background: #28a745;
+}
+
+.palette-btn:hover {
+  background: #218838;
+}
+
+.room-exit-btn {
+  background: #007bff;
+}
+
+.room-exit-btn:hover {
+  background: #0056b3;
+}

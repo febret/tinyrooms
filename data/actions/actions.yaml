@@ -1,3 +1,35 @@
+look:
+  group: basic
+  label: 👀
+  description: Look closely at a selected target
+  action_text: [You inspect, $0 inspects]
+  target_text: [$1, $1 and surroundings]
+
+use:
+  group: basic
+  label: ✋
+  description: Interact with a selected target
+  action_text: [You interact with, $0 interacts with]
+  target_text: [$1]
+
+equip:
+  group: basic
+  label: 🎒
+  description: Open equipment panel
+  action_text: [You check your gear, $0 checks their gear]
+
+self:
+  group: basic
+  label: 🙋
+  description: Open self panel
+  action_text: [You reflect on yourself, $0 reflects on themselves]
+
+extras:
+  group: basic
+  label: ➕
+  description: Open extras panel
+  action_text: [You browse extra actions, $0 browses extra actions]
+
 say:
   group: basic
   label: 💬

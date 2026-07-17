@@ -47,7 +47,39 @@ def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
             label_override TEXT,
             description_override TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS room_props (
+            id TEXT PRIMARY KEY,
+            room_id TEXT,
+            prop_id TEXT,
+            img TEXT,
+            sprite TEXT,
+            icon TEXT,
+            x INTEGER,
+            y INTEGER,
+            orientation TEXT,
+            layer INTEGER,
+            z_order INTEGER,
+            metadata_json TEXT
+        );
     """)
+    _ensure_column(dbconn, "objects", "x", "INTEGER DEFAULT 16")
+    _ensure_column(dbconn, "objects", "y", "INTEGER DEFAULT 16")
+    _ensure_column(dbconn, "objects", "orientation", "TEXT DEFAULT 'front'")
+    _ensure_column(dbconn, "objects", "layer", "INTEGER DEFAULT 0")
+    _ensure_column(dbconn, "objects", "z_order", "INTEGER DEFAULT 0")
+    _ensure_column(dbconn, "peeps", "x", "INTEGER DEFAULT 32")
+    _ensure_column(dbconn, "peeps", "y", "INTEGER DEFAULT 32")
+    _ensure_column(dbconn, "peeps", "orientation", "TEXT DEFAULT 'front'")
+    _ensure_column(dbconn, "peeps", "layer", "INTEGER DEFAULT 1")
+    _ensure_column(dbconn, "peeps", "z_order", "INTEGER DEFAULT 1")
+
+
+def _ensure_column(dbconn: duckdb.DuckDBPyConnection, table_name: str, column_name: str, column_def: str):
+    columns = dbconn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    existing = {col[1] for col in columns}
+    if column_name not in existing:
+        dbconn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
     
 
 def read_room_data(dbcomm: duckdb.DuckDBPyConnection):
@@ -77,17 +109,24 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
 
 def read_object_data(dbcomm: duckdb.DuckDBPyConnection):
     """Retrieve object data from the worldstate database."""
-    res = dbcomm.execute("SELECT id, thing_id, location_id, owner_id, label_override, description_override FROM objects").fetchall()
+    res = dbcomm.execute(
+        "SELECT id, thing_id, location_id, owner_id, label_override, description_override, x, y, orientation, layer, z_order FROM objects"
+    ).fetchall()
     object_data = {}
     for row in res:
-        obj_id, thing_id, location_id, owner_id, label_override, description_override = row
+        obj_id, thing_id, location_id, owner_id, label_override, description_override, x, y, orientation, layer, z_order = row
         object_data[obj_id] = {
             'id': obj_id,
             'thing_id': thing_id,
             'location_id': location_id,
             'owner_id': owner_id,
             'label_override': label_override,
-            'description_override': description_override
+            'description_override': description_override,
+            'x': x,
+            'y': y,
+            'orientation': orientation,
+            'layer': layer,
+            'z_order': z_order,
         }
     return object_data
 
@@ -97,8 +136,70 @@ def write_object_data(dbconn: duckdb.DuckDBPyConnection, objects: dict):
     print(f"Committing object data for {len(objects)} objects to worldstate DB...")
     for obj_id, obj in objects.items():
         dbconn.execute(
-            "INSERT OR REPLACE INTO objects (id, thing_id, location_id, owner_id, label_override, description_override) VALUES (?, ?, ?, ?, ?, ?)",
-            (obj_id, obj.thing_id, obj.location_id, obj.owner_id, obj.label_override, obj.description_override)
+            "INSERT OR REPLACE INTO objects (id, thing_id, location_id, owner_id, label_override, description_override, x, y, orientation, layer, z_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                obj_id,
+                obj.thing_id,
+                obj.location_id,
+                obj.owner_id,
+                obj.label_override,
+                obj.description_override,
+                int(getattr(obj, 'x', 0)),
+                int(getattr(obj, 'y', 0)),
+                getattr(obj, 'orientation', 'front'),
+                int(getattr(obj, 'layer', 0)),
+                int(getattr(obj, 'z_order', 0)),
+            )
+        )
+
+
+def read_room_prop_data(dbconn: duckdb.DuckDBPyConnection):
+    res = dbconn.execute(
+        "SELECT id, room_id, prop_id, img, sprite, icon, x, y, orientation, layer, z_order, metadata_json FROM room_props"
+    ).fetchall()
+    out = []
+    for row in res:
+        out.append({
+            'id': row[0],
+            'room_id': row[1],
+            'prop_id': row[2],
+            'img': row[3],
+            'sprite': row[4],
+            'icon': row[5],
+            'x': row[6],
+            'y': row[7],
+            'orientation': row[8],
+            'layer': row[9],
+            'z_order': row[10],
+            'metadata_json': row[11],
+        })
+    return out
+
+
+def write_room_prop_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
+    prop_rows = []
+    for room in rooms.values():
+        for prop in room.props.values():
+            display = getattr(prop, '_display_assets', {}) or {}
+            prop_rows.append((
+                prop.prop_instance_id,
+                room.room_id,
+                prop.prop_id,
+                display.get('img') or prop.info.get('img'),
+                display.get('sprite') or prop.info.get('sprite'),
+                display.get('icon') or prop.info.get('icon'),
+                int(prop.x),
+                int(prop.y),
+                prop.orientation,
+                int(prop.layer),
+                int(prop.z_order),
+                '',
+            ))
+    dbconn.execute("DELETE FROM room_props")
+    for row in prop_rows:
+        dbconn.execute(
+            "INSERT INTO room_props (id, room_id, prop_id, img, sprite, icon, x, y, orientation, layer, z_order, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            row,
         )
 
 # Initialize duckdb and users table

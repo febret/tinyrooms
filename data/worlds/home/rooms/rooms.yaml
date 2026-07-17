@@ -12,9 +12,21 @@ to_gateway:
 
 playroom:
   type: room
+  owner_id: febre
   label: the Playroom
   description: You are in a cozy playroom filled with colorful toys. <<A strange blue light>> comes out from behind a dressing stand.
   image: playroom.png
+  stage:
+    width: 256
+    height: 512
+    theme: home
+  props:
+    - prop: floor_rug
+      x: 40
+      y: 350
+    - prop: standing_lamp
+      x: 180
+      y: 120
   ways: [to_dressing_stand, to_upstairs_bathroom, to_upstairs_bedroom]
   init_things: [lucille, bookshelf_white, magic_orb]
 
@@ -38,6 +50,13 @@ upstairs_bedroom:
   label: the Upstairs Bedroom
   description: You are in a cozy bedroom with a large bed, a nightstand, and a window with a view of the garden.
   image: bedroom1.jpg
+  stage:
+    width: 256
+    height: 512
+  props:
+    - prop: wall_clock
+      x: 150
+      y: 60
   ways: [to_upstairs_bathroom, to_playroom, to_downstairs]
 
 upstairs_bathroom:
@@ -45,6 +64,9 @@ upstairs_bathroom:
   label: the Upstairs Bathroom
   description: You are in a small bathroom with a sink, toilet, and bathtub. The walls are tiled in light blue, and there is a fluffy bath mat on the floor.
   image: bathroom1.png
+  stage:
+    width: 256
+    height: 512
   ways: [to_downstairs, to_playroom, to_upstairs_bedroom]
 
 to_downstairs:
@@ -62,6 +84,9 @@ backroom:
   label: the Backroom
   description: You are in a dimly lit backroom with old furniture and boxes stacked against the walls. There is a musty smell in the air.
   image: backroom.png
+  stage:
+    width: 256
+    height: 512
   ways: [to_upstairs]
 
 to_upstairs:

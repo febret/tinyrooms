@@ -72,8 +72,8 @@ def make_action_text(action_def: dict, user_label, refs, extra_text):
 def make_room_description_text(room, user):
     description = room.info.get('description', '')
     if room.objs:
-        # Objects with icons are shown in the icon strip, not in the text description
-        text_objs = [(o, od) for o, od in room.objs.items() if not getattr(od, '_icon_def', None)]
+        # Objects with dedicated room sprites are shown on stage, not duplicated in text.
+        text_objs = [(o, od) for o, od in room.objs.items() if not getattr(od, '_display_assets', None)]
         if text_objs:
             description += "\nYou see "
             obj_texts = []

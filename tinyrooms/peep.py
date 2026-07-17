@@ -5,8 +5,19 @@ class Peep:
         self.info = info
         self.location_id = location_id
         self.inventory = {}
-        # Populated by icons.preprocess_world_icons() at world-load time
-        self._icon_def = None
+        self.x = int(info.get('x', 32))
+        self.y = int(info.get('y', 32))
+        self.orientation = info.get('orientation', 'front')
+        self.layer = int(info.get('layer', 1))
+        self.z_order = int(info.get('z_order', 1))
+        # Populated by icons.preprocess_world_assets() at world-load time
+        self._display_assets = None
 
     def id(self):
         return f"@peep:{self.peep_id}"
+
+    def label(self):
+        return self.info.get('label', self.peep_id)
+
+    def description(self):
+        return self.info.get('description', '')

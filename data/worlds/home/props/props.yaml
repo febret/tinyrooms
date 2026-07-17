@@ -1,0 +1,26 @@
+floor_rug:
+  label: a soft rug
+  description: a soft play rug with stars
+  img: images/bookshelf_icon.png
+  sprite: images/bookshelf_icon.png
+  icon: "img:images/bookshelf_icon.png"
+  metadata:
+    TODO: "Replace placeholder rug art with dedicated asset."
+
+standing_lamp:
+  label: a standing lamp
+  description: a tall lamp that casts warm light
+  img: images/cabinet_white.png
+  sprite: images/bookshelf_icon.png
+  icon: "img:images/bookshelf_icon.png"
+  metadata:
+    TODO: "Prop lighting effects are not specified."
+
+wall_clock:
+  label: a wall clock
+  description: a quiet clock ticking on the wall
+  img: images/cabinet_white.png
+  sprite: images/bookshelf_icon.png
+  icon: "img:images/bookshelf_icon.png"
+  metadata:
+    TODO: "Animated prop support is unspecified."

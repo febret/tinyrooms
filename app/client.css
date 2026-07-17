@@ -574,3 +574,124 @@ button {
     padding: 1.5rem;
   }
 }
+
+/* Spec-aligned panel and room-stage overrides */
+#mainPage {
+  display: grid;
+  gap: 0.5rem;
+}
+
+#statusPanel, #roomPanel, #actionsPanel, #activityPanel, #logPanel {
+  padding: 0.5rem;
+}
+
+.status-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+#roomHeader {
+  min-height: 2.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.room-header-title {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+#roomCanvas {
+  position: relative;
+  width: 256px;
+  height: 512px;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.room-layer {
+  position: absolute;
+  inset: 0;
+}
+
+#roomCanvas .room-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-prop,
+.room-entity {
+  position: absolute;
+  user-select: none;
+}
+
+.room-prop img,
+.room-entity img {
+  display: block;
+  max-width: 64px;
+  max-height: 64px;
+}
+
+.room-entity {
+  transition: left 180ms linear, top 180ms linear;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.room-entity.self {
+  z-index: 9999 !important;
+}
+
+.room-selectable {
+  cursor: pointer;
+}
+
+.room-selected {
+  outline: 2px solid #3c8cff;
+}
+
+#roomExits {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.room-exit-btn {
+  padding: 0.4rem 0.6rem;
+}
+
+#lookBox {
+  min-height: 1.8rem;
+  margin-bottom: 0.4rem;
+  padding: 0.3rem 0.5rem;
+}
+
+#actionPalette {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.palette-btn {
+  min-height: 2.2rem;
+}
+
+#messages {
+  height: 220px;
+}
+
+@media (max-width: 600px) {
+  #roomCanvas {
+    width: 192px;
+    height: 384px;
+  }
+
+  #actionPalette {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

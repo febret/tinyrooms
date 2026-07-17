@@ -1,5 +1,5 @@
 from . import db, peep
-from .icons import DEFAULT_USER_ICON_DEF
+from .icons import DEFAULT_USER_ASSETS
 
 class User:
     """Represents a connected user."""
@@ -9,8 +9,8 @@ class User:
         self.label = f"[[@{username}[[#d33 {username}]]]]"
         self.room = None
         # TODO: load user description etc. from db
-        self.peep = peep.Peep(username, "user", {})
-        self.peep._icon_def = DEFAULT_USER_ICON_DEF
+        self.peep = peep.Peep(username, "user", {"img": DEFAULT_USER_ASSETS["img"]})
+        self.peep._display_assets = dict(DEFAULT_USER_ASSETS)
         self.actions_stale = True
         self.client_stale = False
         self.styles_stale = False
@@ -30,6 +30,7 @@ class User:
         """Join the given world, placing the user in the default room."""
         self.world = world
         self.room = world.default_room
+        self.world.peeps[self.peep.peep_id] = self.peep
         self.peep.inventory = {}
         if self.room:
             self.room.add_user(self)

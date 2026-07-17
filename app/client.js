@@ -11,120 +11,57 @@ const messagesDiv = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const btnLogout = document.getElementById("btnLogout");
-const btnTalk = document.getElementById("btnTalk");
-const actionsChipsContainer = document.getElementById("actionsChips");
 const connectionIndicator = document.getElementById("connectionIndicator");
-const descriptionPanel = document.getElementById("descriptionPanel");
+const roomHeader = document.getElementById("roomHeader");
+const roomCanvas = document.getElementById("roomCanvas");
+const roomExits = document.getElementById("roomExits");
+const lookBox = document.getElementById("lookBox");
+const actionPalette = document.getElementById("actionPalette");
+const activityPanel = document.getElementById("activityPanel");
 
 let myUsername = null;
-let lastPassword = null; // Store password for auto-reconnect
-let selectedActions = []; // Array of {key, label} for selected actions
-let connectionState = "connecting"; // connecting, connected, disconnected
+let lastPassword = null;
+let selectedActions = [];
+let connectionState = "connecting";
 let connectionTime = null;
-let lastViewLabel = null; // Track the last view label for page flip sound
-let talkEnabled = false; // Talk mode toggle
-let isSpeaking = false; // Track if TTS is currently speaking
-let speechSynthesis = window.speechSynthesis;
+let paletteMode = "main";
+let knownActions = {};
+let selectedTarget = null;
+let roomState = {
+  roomId: null,
+  canEditProps: false,
+  stage: { width: 256, height: 512 },
+  entities: new Map(),
+  props: new Map(),
+};
 
+let heartbeatStarted = false;
+let saveLoopStarted = false;
 
 socket.on("connect", () => {
-  // Auto-login if we have stored credentials (from cookie or reconnect)
   const u = usernameInput.value.trim();
   const p = lastPassword || passwordInput.value;
   if (myUsername && u && p) {
-    console.log("Reconnected - attempting auto-login");
     socket.emit("login", { username: u, password: p });
   }
-  
-  // Send heartbeat every second
-  setInterval(() => {
-    socket.emit("heartbeat", { timestamp: Date.now() });
-  }, 1000);
-  
-  // Save messages to localStorage every second
-  setInterval(() => {
-    saveMessagesToStorage();
-  }, 1000);
+  if (!heartbeatStarted) {
+    heartbeatStarted = true;
+    setInterval(() => socket.emit("heartbeat", { timestamp: Date.now() }), 1000);
+  }
+  if (!saveLoopStarted) {
+    saveLoopStarted = true;
+    setInterval(() => saveMessagesToStorage(), 1000);
+  }
 });
 
-socket.on("disconnect", () => {
-  setConnectionState("disconnected");
-});
-
-socket.on("connect_error", () => {
-  setConnectionState("disconnected");
-});
-
-socket.on("connected", data => {
-  setConnectionState("connected");
-  console.log("server:", data);
-});
-
+socket.on("disconnect", () => setConnectionState("disconnected"));
+socket.on("connect_error", () => setConnectionState("disconnected"));
+socket.on("connected", () => setConnectionState("connected"));
 
 socket.on("actions_def", data => {
-  // data: {actions: {...}}
-  console.log("Received actions:", data.actions);
-  const actionsContainer = document.getElementById("actionButtons");
-  actionsContainer.innerHTML = ""; // Clear existing buttons
-  
-  // Group actions by their group property
-  const groups = {};
-  for (const [actionKey, actionDef] of Object.entries(data.actions || {})) {
-    const groupName = actionDef.group || "other";
-    if (!groups[groupName]) {
-      groups[groupName] = [];
-    }
-    groups[groupName].push({ key: actionKey, def: actionDef });
-  }
-  
-  // Create group buttons view
-  function showGroups() {
-    actionsContainer.innerHTML = "";
-    
-    for (const [groupName, actions] of Object.entries(groups)) {
-      const groupBtn = document.createElement("button");
-      groupBtn.className = "action-btn group-btn";
-      groupBtn.textContent = groupName.charAt(0).toUpperCase() + groupName.slice(1);
-      groupBtn.title = "Click to expand " + groupName + " actions";
-      
-      groupBtn.addEventListener("click", () => {
-        showGroupActions(groupName, actions);
-      });
-      
-      actionsContainer.appendChild(groupBtn);
-    }
-  }
-  
-  // Show individual actions for a group
-  function showGroupActions(groupName, actions) {
-    actionsContainer.innerHTML = "";
-    
-    // Back button
-    const backBtn = document.createElement("button");
-    backBtn.className = "action-btn back-btn";
-    backBtn.textContent = "◀";
-    backBtn.style.background = "#6c757d";
-    backBtn.addEventListener("click", showGroups);
-    actionsContainer.appendChild(backBtn);
-    
-    // Individual action buttons
-    for (const { key: actionKey, def: actionDef } of actions) {
-      const btn = document.createElement("button");
-      btn.className = "action-btn";
-      btn.textContent = actionDef.label;
-      btn.title = actionDef.label + " - " + actionDef.description;
-      btn.dataset.action = actionKey;
-      
-      btn.addEventListener("click", () => {
-        addActionChip('.' + actionKey, actionDef.label);
-      });
-      
-      actionsContainer.appendChild(btn);
-    }
-  }
-  showGroups();
+  knownActions = data.actions || {};
+  renderActionPalette();
 });
-
 
 socket.on("login_success", data => {
   myUsername = data.username;
@@ -132,75 +69,49 @@ socket.on("login_success", data => {
   loginStatus.textContent = "Login successful — welcome " + myUsername;
   document.getElementById("loginPage").style.display = "none";
   mainPage.style.display = "block";
-  
-  // Save credentials to cookie
   saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
-  
-  // Load saved messages from localStorage
   loadMessagesFromStorage();
   loadInputState();
 });
-
 
 socket.on("login_failed", data => {
   loginStatus.style.color = "red";
   loginStatus.textContent = "Login failed: " + (data.error || "unknown");
 });
 
-
-socket.on("user_joined", data => {
-  addMessage("<span class='system'>" + data.username + " joined</span>");
-});
-
-
-socket.on("user_left", data => {
-  addMessage("<span class='system'>" + data.username + " left</span>");
-});
-
-
 socket.on("message", data => {
   const safeText = escapeHtml(data.text || "");
-  const formattedText = formatText(safeText);
-  addMessage(formattedText);
-  
-  // Speak message if talk mode is enabled
-  if (talkEnabled) {
-    speakText(formattedText || "");
-  }
+  addMessage(formatText(safeText));
 });
 
-
-socket.on("reload_styles", data => {
-  reloadStyle();
+socket.on("activity_panel", data => {
+  const title = escapeHtml(data.title || "");
+  const content = formatText(escapeHtml(data.content || ""));
+  activityPanel.style.display = "block";
+  activityPanel.innerHTML = `<div class="room-header-title">${title}</div><div>${content}</div>`;
 });
 
-socket.on("reload_client", data => {
+socket.on("reload_styles", () => reloadStyle());
+socket.on("reload_client", () => {
   saveInputState();
   window.location.reload();
 });
 
 socket.on("set_skin", data => {
-  // data: {skin: "skinname"}
   const skinName = data.skin || "base";
-  
-  // Find the main stylesheet link element
   const links = document.getElementsByTagName("link");
   for (let i = 0; i < links.length; i++) {
     const link = links[i];
     if (link.rel === "stylesheet" && link.id === "skin-style") {
-      // Update the href to the new skin CSS file
       link.href = "/app/" + skinName + ".css?" + Date.now();
-      console.log("Skin changed to:", skinName);
       break;
     }
   }
 });
 
 socket.on("update_status", data => {
-  // data is a dict/object of items, each with at least a 'label' field
   statusDisplay.innerHTML = "";
-  
-  for (const [key, item] of Object.entries(data || {})) {
+  for (const item of Object.values(data || {})) {
     const div = document.createElement("div");
     div.className = "status-item";
     div.textContent = item.label || "";
@@ -209,150 +120,24 @@ socket.on("update_status", data => {
 });
 
 socket.on("update_view", data => {
-  // data: {view: "viewName", format: "text", label: "", description: "", image: "", icons: [...]}
   const viewName = data.view;
-  const format = data.format || "text";
-  const label = formatText(data.label || "");
-  const description = formatText(data.description || "");
-  const image = data.image || "";
-  const icons = data.icons || [];
-  
   if (!viewName) {
-    console.error("update_view: missing view name");
     return;
   }
-  
-  // Play page flip sound if label changed
-  const currentLabel = data.label || "";
-  const labelChanged = lastViewLabel !== null && lastViewLabel !== currentLabel;
-  if (labelChanged) {
-    playPageFlipSound();
-  }
-  lastViewLabel = currentLabel;
-  
-  // Find or create the view div
-  const viewId = "view_" + viewName;
-  let viewDiv = document.getElementById(viewId);
-  
-  if (!viewDiv) {
-    viewDiv = document.createElement("div");
-    viewDiv.id = viewId;
-    viewDiv.className = "view-container";
-    const mainPageEl = document.getElementById("mainPage");
-    const messagesEl = document.getElementById("messages");
-    mainPageEl.insertBefore(viewDiv, messagesEl);
-  }
-
-  // If only the icon list changed (same room label/image), update the strip in-place
-  // without triggering the slide-out animation on the whole view.
-  const existingStrip = viewDiv.querySelector('.icon-strip');
-  const isIconOnlyUpdate = !labelChanged && existingStrip !== null;
-
-  if (isIconOnlyUpdate) {
-    updateIconStrip(existingStrip);
+  if (viewName === "header") {
+    handleHeaderUpdate(data);
     return;
   }
-
-  // Full view update with slide-out animation when content already exists
-  const isExistingContent = viewDiv.innerHTML.trim().length > 0;
-  if (isExistingContent) {
-    viewDiv.classList.add("slide-out");
-    setTimeout(() => {
-      updateViewContent();
-    }, 300);
-  } else {
-    updateViewContent();
+  if (viewName === "room-stage") {
+    handleRoomStageUpdate(data);
+    return;
   }
-  
-  function updateViewContent() {
-    viewDiv.innerHTML = "";
-    viewDiv.classList.remove("collapsed", "slide-out");
-    clearDescriptionPanel();
-  
-    if (image) {
-      const img = document.createElement("img");
-      img.src = "/world/images/" + image;
-      img.alt = label || "Room image";
-      img.className = "view-image";
-      img.style.cursor = "pointer";
-      img.title = "Click to collapse/expand";
-      img.addEventListener("click", () => {
-        viewDiv.classList.toggle("collapsed");
-      });
-      viewDiv.appendChild(img);
-    }
-  
-    if (label) {
-      const labelDiv = document.createElement("div");
-      labelDiv.className = "view-label";
-      const labelText = label.trim();
-      if (labelText.length > 0) {
-        const firstChar = labelText.charAt(0).toUpperCase();
-        const restOfText = labelText.substring(1);
-        labelDiv.innerHTML = firstChar + restOfText;
-      } else {
-        labelDiv.innerHTML = label;
-      }
-      viewDiv.appendChild(labelDiv);
-    }
-  
-    if (description) {
-      const descDiv = document.createElement("div");
-      descDiv.className = "view-description";
-      const descText = description.trim();
-      if (descText.length > 0) {
-        const firstChar = descText.charAt(0).toUpperCase();
-        const restOfText = descText.substring(1);
-        descDiv.innerHTML = '<span class="drop-cap">' + firstChar + '</span>' + restOfText;
-      } else {
-        descDiv.innerHTML = description;
-      }
-      viewDiv.appendChild(descDiv);
-    }
-  
-    // Render icon strip
-    const strip = document.createElement("div");
-    strip.className = "icon-strip";
-    buildIconStrip(strip, icons);
-    if (icons.length > 0) {
-      viewDiv.appendChild(strip);
-    }
-  
-    attachRefEventHandlers(viewDiv);
-    attachIconEventHandlers(strip);
+  if (viewName === "room-object") {
+    handleRoomObjectUpdate(data);
+    return;
   }
-
-  // Update only the icon strip in-place (no animation)
-  function updateIconStrip(strip) {
-    // Preserve selected ref_id so we can restore selection after rebuild
-    const selectedRefId = strip.querySelector('.room-icon.selected')?.dataset.refId || null;
-    strip.innerHTML = "";
-    buildIconStrip(strip, icons);
-    if (selectedRefId) {
-      const restored = strip.querySelector(`.room-icon[data-ref-id="${selectedRefId}"]`);
-      if (restored) restored.classList.add('selected');
-    }
-    attachIconEventHandlers(strip);
-  }
-
-  function buildIconStrip(strip, iconList) {
-    iconList.forEach(iconData => {
-      const img = document.createElement("img");
-      img.src = "/world/" + iconData.icon.img;
-      img.alt = iconData.label || "";
-      img.title = iconData.label || "";
-      img.className = "room-icon" + (iconData.is_user ? " user-icon" : "");
-      img.dataset.refId = iconData.ref_id;
-      img.dataset.label = iconData.label || "";
-      img.dataset.description = iconData.description || "";
-      img.dataset.isUser = iconData.is_user ? "1" : "0";
-      Object.keys(iconData.icon).forEach(key => {
-        if (key !== 'img') {
-          img.dataset['iconEffect_' + key] = iconData.icon[key];
-        }
-      });
-      strip.appendChild(img);
-    });
+  if (viewName === "room-exits") {
+    handleRoomExitsUpdate(data);
   }
 });
 
@@ -360,3 +145,302 @@ socket.on("error", data => {
   addMessage("<span style='color:red'>Error: " + escapeHtml(data.error || "") + "</span>");
 });
 
+function handleHeaderUpdate(data) {
+  roomState.roomId = data.room_id || null;
+  roomState.canEditProps = !!data.can_edit_props;
+  const label = formatText(escapeHtml(data.label || ""));
+  const description = formatText(escapeHtml(data.short_description || ""));
+  roomHeader.innerHTML = `<div class="room-header-title">${label}</div><div>${description}</div>`;
+}
+
+function handleRoomStageUpdate(data) {
+  roomState.stage = data.stage || { width: 256, height: 512 };
+  roomState.canEditProps = !!data.can_edit_props;
+  roomCanvas.style.width = `${roomState.stage.width}px`;
+  roomCanvas.style.height = `${roomState.stage.height}px`;
+  roomState.props.clear();
+  for (const prop of (data.props || [])) {
+    roomState.props.set(prop.prop_instance_id, prop);
+  }
+  renderRoomStage(data.background || "");
+}
+
+function handleRoomObjectUpdate(data) {
+  const entity = data.entity || {};
+  const key = `${entity.entity_type}:${entity.entity_id}`;
+  if (data.change === "remove") {
+    roomState.entities.delete(key);
+    const node = document.getElementById(`room-${key.replace(":", "-")}`);
+    if (node) node.remove();
+    return;
+  }
+  roomState.entities.set(key, entity);
+  renderForegroundEntity(entity);
+}
+
+function handleRoomExitsUpdate(data) {
+  roomExits.innerHTML = "";
+  for (const exitDef of (data.exits || [])) {
+    const btn = document.createElement("button");
+    btn.className = "room-exit-btn";
+    btn.textContent = exitDef.label || exitDef.id;
+    btn.addEventListener("click", () => socket.emit("message", { text: `.go @way:${exitDef.id}` }));
+    roomExits.appendChild(btn);
+  }
+}
+
+function renderRoomStage(backgroundPath) {
+  roomCanvas.innerHTML = "";
+  const stageLayer = document.createElement("div");
+  stageLayer.className = "room-layer";
+  if (backgroundPath) {
+    const bg = document.createElement("img");
+    bg.className = "room-background";
+    bg.src = "/world/images/" + backgroundPath;
+    stageLayer.appendChild(bg);
+  }
+  for (const prop of roomState.props.values()) {
+    stageLayer.appendChild(makePropNode(prop));
+  }
+  const fgLayer = document.createElement("div");
+  fgLayer.className = "room-layer";
+  fgLayer.id = "foregroundLayer";
+  roomCanvas.appendChild(stageLayer);
+  roomCanvas.appendChild(fgLayer);
+  roomCanvas.ondragover = e => e.preventDefault();
+  roomCanvas.ondrop = handleRoomDrop;
+  for (const entity of roomState.entities.values()) {
+    renderForegroundEntity(entity);
+  }
+}
+
+function makePropNode(prop) {
+  const node = document.createElement("div");
+  node.className = "room-prop room-selectable";
+  node.id = `prop-${prop.prop_instance_id}`;
+  node.style.left = `${prop.position?.x || 0}px`;
+  node.style.top = `${prop.position?.y || 0}px`;
+  node.style.zIndex = `${prop.position?.z_order || 0}`;
+  const img = document.createElement("img");
+  img.src = "/world/" + (prop.display?.sprite || prop.display?.img || "");
+  img.alt = prop.label || "";
+  node.appendChild(img);
+  node.addEventListener("click", () => selectTarget({
+    type: "prop",
+    id: prop.prop_instance_id,
+    label: prop.label || "prop",
+    description: prop.description || "",
+  }, node));
+  if (roomState.canEditProps) {
+    node.draggable = true;
+    node.addEventListener("dragstart", ev => beginDrag(ev, "prop", prop.prop_instance_id));
+  }
+  return node;
+}
+
+function renderForegroundEntity(entity) {
+  const layer = document.getElementById("foregroundLayer");
+  if (!layer) return;
+  const key = `${entity.entity_type}:${entity.entity_id}`;
+  const domId = `room-${key.replace(":", "-")}`;
+  let node = document.getElementById(domId);
+  if (!node) {
+    node = document.createElement("div");
+    node.id = domId;
+    node.className = "room-entity room-selectable";
+    const img = document.createElement("img");
+    node.appendChild(img);
+    layer.appendChild(node);
+  }
+
+  node.className = "room-entity room-selectable" + (entity.is_self ? " self" : "");
+  node.style.left = `${entity.position?.x || 0}px`;
+  node.style.top = `${entity.position?.y || 0}px`;
+  node.style.zIndex = `${entity.position?.z_order || 0}`;
+  const img = node.querySelector("img");
+  img.src = "/world/" + (entity.display?.sprite || entity.display?.img || "");
+  img.alt = entity.label || "";
+  node.onclick = () => selectTarget({
+    type: entity.entity_type,
+    id: entity.entity_id,
+    label: entity.label || entity.entity_id,
+    description: entity.description || "",
+  }, node);
+
+  node.draggable = canDragEntity(entity);
+  if (node.draggable) {
+    node.ondragstart = ev => beginDrag(ev, entity.entity_type, entity.entity_id);
+  }
+}
+
+function canDragEntity(entity) {
+  if (entity.entity_type === "object") {
+    return true;
+  }
+  if (entity.entity_type === "peep") {
+    return entity.owner_username === myUsername || roomState.canEditProps;
+  }
+  return false;
+}
+
+function beginDrag(ev, entityType, entityId) {
+  const ghost = ev.target.cloneNode(true);
+  ghost.style.opacity = "0.45";
+  ghost.style.position = "absolute";
+  ghost.style.top = "-1000px";
+  document.body.appendChild(ghost);
+  ev.dataTransfer.setDragImage(ghost, ghost.clientWidth / 2, ghost.clientHeight / 2);
+  setTimeout(() => ghost.remove(), 0);
+  ev.dataTransfer.setData("text/plain", JSON.stringify({ entityType, entityId }));
+}
+
+function handleRoomDrop(ev) {
+  ev.preventDefault();
+  const raw = ev.dataTransfer.getData("text/plain");
+  if (!raw) return;
+  const payload = JSON.parse(raw);
+  const rect = roomCanvas.getBoundingClientRect();
+  const x = Math.max(0, Math.round((ev.clientX - rect.left) * (roomState.stage.width / rect.width)));
+  const y = Math.max(0, Math.round((ev.clientY - rect.top) * (roomState.stage.height / rect.height)));
+
+  if (payload.entityType === "prop") {
+    socket.emit("room_edit_prop", { prop_instance_id: payload.entityId, x, y });
+    return;
+  }
+  socket.emit("room_move_entity", {
+    entity_type: payload.entityType,
+    entity_id: payload.entityId,
+    x,
+    y,
+  });
+}
+
+function selectTarget(target, node) {
+  selectedTarget = target;
+  document.querySelectorAll(".room-selected").forEach(el => el.classList.remove("room-selected"));
+  if (node) node.classList.add("room-selected");
+  lookBox.innerHTML = `<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`;
+}
+
+function renderActionPalette() {
+  actionPalette.innerHTML = "";
+  const entries = getPaletteEntries();
+  for (const item of entries) {
+    const btn = document.createElement("button");
+    btn.className = "palette-btn";
+    btn.textContent = item.label;
+    btn.onclick = item.onClick;
+    actionPalette.appendChild(btn);
+  }
+}
+
+function getPaletteEntries() {
+  if (paletteMode === "emote") {
+    const emotes = Object.entries(knownActions).filter(([id]) => id.startsWith("emotes.")).slice(0, 5);
+    const buttons = emotes.map(([id, def]) => ({
+      label: def.label || id,
+      onClick: () => sendAction(id),
+    }));
+    buttons.push({ label: "Back", onClick: () => { paletteMode = "main"; renderActionPalette(); } });
+    return buttons;
+  }
+  if (paletteMode === "extras") {
+    return [
+      { label: "Placeholder", onClick: () => showLocalActivity("extras", "TODO: extras set customization is unspecified.") },
+      { label: "Back", onClick: () => { paletteMode = "main"; renderActionPalette(); } },
+    ];
+  }
+  return [
+    { label: "Look", onClick: () => sendAction("basic.look") },
+    { label: "Use", onClick: () => sendAction("basic.use") },
+    { label: "Emote", onClick: () => { paletteMode = "emote"; renderActionPalette(); } },
+    { label: "Equip", onClick: () => requestActivity("equip") },
+    { label: "Self", onClick: () => requestActivity("self") },
+    { label: "Extras", onClick: () => { paletteMode = "extras"; renderActionPalette(); } },
+  ];
+}
+
+function sendAction(actionId) {
+  let cmd = `.${actionId}`;
+  if (selectedTarget) {
+    if (selectedTarget.type === "object") cmd += ` @obj:${selectedTarget.id}`;
+    else if (selectedTarget.type === "peep") cmd += ` @${selectedTarget.id}`;
+    else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
+  }
+  socket.emit("message", { text: cmd });
+}
+
+function requestActivity(mode) {
+  socket.emit("request_activity_panel", { mode });
+}
+
+function showLocalActivity(mode, text) {
+  activityPanel.style.display = "block";
+  activityPanel.innerHTML = `<div class="room-header-title">${escapeHtml(mode)}</div><div>${escapeHtml(text)}</div>`;
+}
+
+function reloadStyle() {
+  const links = document.getElementsByTagName("link");
+  for (let i = 0; i < links.length; i++) {
+    const link = links[i];
+    if (link.rel === "stylesheet") {
+      link.href += "?";
+    }
+  }
+}
+
+function addMessage(text, cls) {
+  const div = document.createElement("div");
+  div.className = "msg " + (cls || "");
+  div.innerHTML = text;
+  messagesDiv.appendChild(div);
+  const allMessages = messagesDiv.querySelectorAll(".msg");
+  if (allMessages.length > 50) {
+    const removeCount = allMessages.length - 50;
+    for (let i = 0; i < removeCount; i++) {
+      allMessages[i].remove();
+    }
+  }
+  const selfSpans = div.querySelectorAll("span.self");
+  selfSpans.forEach(span => {
+    span.textContent = "you";
+  });
+  attachRefEventHandlers(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function setConnectionState(state) {
+  connectionState = state;
+  connectionIndicator.className = `connection-indicator ${state}`;
+  if (state === "connected") {
+    connectionTime = new Date();
+  }
+}
+
+function showConnectionInfo() {
+  let info = `<span class='system'>Connection Status: ${connectionState}</span>`;
+  if (connectionState === "connected" && connectionTime) {
+    const duration = Math.floor((new Date() - connectionTime) / 1000);
+    info += `<br><span class='system'>Connected for ${duration} seconds</span>`;
+  }
+  if (socket.id) {
+    info += `<br><span class='system'>Socket ID: ${socket.id}</span>`;
+  }
+  addMessage(info);
+}
+
+connectionIndicator.addEventListener("click", showConnectionInfo);
+
+sendBtn.addEventListener("click", () => {
+  const text = msgInput.value.trim();
+  if (!text) return;
+  playBopSound();
+  socket.emit("message", { text });
+  msgInput.value = "";
+});
+
+msgInput.addEventListener("keydown", ev => {
+  if (ev.key === "Enter") {
+    sendBtn.click();
+  }
+});

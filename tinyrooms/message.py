@@ -68,6 +68,13 @@ def parse_message(text: str, user: User, room: Room) -> ParsedMessage:
                     refs.append(o)
                 else:
                     print(f"parse_message: Unknown object reference '{oid}'")
+            elif search.startswith('prop:'):
+                pid = search[5:]
+                p = room.props.get(pid, None)
+                if p:
+                    refs.append(p)
+                else:
+                    print(f"parse_message: Unknown prop reference '{pid}'")
             if search in room.users:
                 refs.append(room.users[search])
             else:

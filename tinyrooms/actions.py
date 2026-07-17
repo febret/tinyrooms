@@ -37,10 +37,34 @@ def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
     if len(action_defs) == 0:
         print("Actions not loaded yet, loading now...")
         load_actions()
+    if action in ("basic.look", "look"):
+        if len(msg.refs) > 0:
+            ref = msg.refs[0]
+            desc = ref.info.get('description', "You see nothing special.") if hasattr(ref, 'info') else "You see nothing special."
+            emit("message", {"text": f"You look at {text.get_ref_label(ref)}: {desc}"}, to=user.sid)
+            emit("activity_panel", {
+                "mode": "look",
+                "title": f"Looking at {text.get_ref_label(ref)}",
+                "content": desc,
+            }, to=user.sid)
+        else:
+            emit("activity_panel", {
+                "mode": "look",
+                "title": "Look",
+                "content": "Select a room entity to inspect.",
+            }, to=user.sid)
+        return None
+    if action in ("basic.equip", "basic.self", "basic.extras"):
+        emit("activity_panel", {
+            "mode": action.split('.')[-1],
+            "title": action.split('.')[-1].title(),
+            "content": f"TODO: {action} panel payload is not specified yet.",
+        }, to=user.sid)
+        return None
     if action is None or len(action) == 0:
         if len(msg.refs) > 0:
             ref = msg.refs[0]
-            desc = ref.info.get('description', "You see nothing special.")
+            desc = ref.info.get('description', "You see nothing special.") if hasattr(ref, 'info') else "You see nothing special."
             emit("message", {"text": f"You look at {text.get_ref_label(ref)}: {desc}"}, to=user.sid) 
     elif action == "go":
         way = msg.refs[0]
@@ -84,4 +108,3 @@ def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
         print(f"do_action: Unknown action '{action}' from user '{user.username}'")
         return None
    
-

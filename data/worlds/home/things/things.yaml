@@ -2,7 +2,8 @@ lucille:
   type: object
   label: Luseal 🦭
   description: a small and stinky seal plushie
-  image: seal.png
+  img: images/seal.png
+  sprite: images/seal.png
   icon: "img:images/seal.png"
   tags: [item]
 
@@ -11,7 +12,8 @@ bookshelf_white:
   type: object
   label: a white bookshelf 🔲
   description: a tall white bookshelf with many colourful books
-  image: cabinet_white.png
+  img: images/cabinet_white.png
+  sprite: images/bookshelf_icon.png
   icon: "img:images/bookshelf_icon.png"
   tags: [container]
 
@@ -20,5 +22,7 @@ magic_orb:
   type: object
   label: a magic orb ✨
   description: a glowing orb that pulses with mysterious energy
+  img: images/magic_orb.gif
+  sprite: images/magic_orb.gif
   icon: "img:images/magic_orb.gif"
   tags: [item]

@@ -1,193 +1,125 @@
-"""Icon parsing, preprocessing, and room icon data for tinyrooms.
-
-Icon definition format: comma-separated key:value pairs.
-Currently supported keys:
-  img  - path to image file (relative to world root), e.g. 'img:images/seal.png'
-
-Additional effect keys (reserved for future use):
-  blur, color_filter, text, status_bar, overlay, etc.
-"""
+"""Asset normalization helpers for icon/img/sprite room rendering."""
 
 from pathlib import Path
 
-# Default icon assigned to every user peep (already 64×64, no preprocessing needed)
-DEFAULT_USER_ICON_DEF = {'img': 'images/default_user.png'}
+DEFAULT_USER_ASSETS = {
+    'img': 'images/default_user.png',
+    'sprite': 'images/default_user.png',
+    'icon': 'images/default_user.png',
+}
 
 
-def parse_icon_def(icon_str: str) -> dict:
-    """Parse an icon definition string into a dict.
-
-    Example: 'img:images/seal.png,blur:2' -> {'img': 'images/seal.png', 'blur': '2'}
-    """
-    if not icon_str:
+def parse_asset_def(asset_value) -> dict:
+    if isinstance(asset_value, dict):
+        return dict(asset_value)
+    if not asset_value:
         return {}
-    result = {}
-    for part in str(icon_str).split(','):
-        part = part.strip()
-        if ':' in part:
-            key, _, value = part.partition(':')
-            result[key.strip()] = value.strip()
-    return result
+    if isinstance(asset_value, str):
+        if ':' in asset_value:
+            out = {}
+            for part in asset_value.split(','):
+                part = part.strip()
+                if ':' not in part:
+                    continue
+                key, _, value = part.partition(':')
+                out[key.strip()] = value.strip()
+            return out
+        return {'img': str(asset_value)}
+    return {}
 
 
-def icon_def_to_str(icon_def: dict) -> str:
-    """Serialize an icon def dict back to the definition string format."""
-    return ','.join(f'{k}:{v}' for k, v in icon_def.items())
+def resolve_display_assets(info: dict) -> dict:
+    img = info.get('img') or info.get('image')
+    icon_def = parse_asset_def(info.get('icon'))
+    sprite_def = parse_asset_def(info.get('sprite'))
+    img_def = parse_asset_def(info.get('img'))
+    if 'img' not in img_def and img:
+        img_def['img'] = img
+    if 'img' not in img_def:
+        raise ValueError("Display assets require at least an 'img' field")
+    base_img = img_def['img']
+    icon_img = icon_def.get('img') or sprite_def.get('img') or base_img
+    sprite_img = sprite_def.get('img') or img_def.get('img') or icon_img
+    return {'img': base_img, 'icon': icon_img, 'sprite': sprite_img}
 
 
-def preprocess_icon(icon_def: dict, world_root_path) -> dict:
-    """Ensure the icon image is 64x64, creating an adjusted copy when needed.
-
-    Compares modification times so that regeneration only happens when the
-    original image is newer than the previously adjusted copy.
-
-    Returns an updated copy of icon_def with the img path pointing to the
-    64x64-ready file.
-    """
-    img_path = icon_def.get('img')
-    if not img_path:
-        return icon_def
-
-    world_root_path = Path(world_root_path)
-    full_path = world_root_path / img_path
-    if not full_path.exists():
-        print(f"icons: Image not found: {full_path}")
-        return icon_def
-
-    adjusted_path = full_path.parent / f"{full_path.stem}_icon64{full_path.suffix}"
-
-    try:
-        from PIL import Image as _Image
-
-        # Check whether the existing adjusted file is still up to date
-        if adjusted_path.exists():
-            src_mtime = full_path.stat().st_mtime
-            adj_mtime = adjusted_path.stat().st_mtime
-            if adj_mtime >= src_mtime:
-                with _Image.open(adjusted_path) as probe:
-                    is_anim = hasattr(probe, 'n_frames') and probe.n_frames > 1
-                    if is_anim or probe.size == (64, 64):
-                        rel = adjusted_path.relative_to(world_root_path)
-                        return {**icon_def, 'img': str(rel).replace('\\', '/')}
-
-        # If the original is already 64x64 and not animated, no adjustment needed
-        with _Image.open(full_path) as probe:
-            is_anim = hasattr(probe, 'n_frames') and probe.n_frames > 1
-            if not is_anim and probe.size == (64, 64):
-                return icon_def
-
-    except Exception as e:
-        print(f"icons: Error probing {full_path}: {e}")
-        return icon_def
-
-    _make_icon64(full_path, adjusted_path)
-    rel = adjusted_path.relative_to(world_root_path)
-    return {**icon_def, 'img': str(rel).replace('\\', '/')}
-
-
-def _make_icon64(src_path: Path, dst_path: Path):
-    """Resize/crop an image to 64x64 and save it to dst_path.
-
-    For animated GIFs every frame is processed individually.
-    The strategy is: scale so the shortest dimension equals 64, then
-    center-crop the result to 64x64.
-    """
-    from PIL import Image
-
-    def _resize_frame(frame):
-        frame = frame.convert('RGBA')
-        w, h = frame.size
-        scale = 64 / min(w, h)
-        new_w = max(64, int(round(w * scale)))
-        new_h = max(64, int(round(h * scale)))
-        frame = frame.resize((new_w, new_h), Image.LANCZOS)
-        left = (new_w - 64) // 2
-        top = (new_h - 64) // 2
-        return frame.crop((left, top, left + 64, top + 64))
-
-    try:
-        with Image.open(src_path) as img:
-            is_anim = hasattr(img, 'n_frames') and img.n_frames > 1
-
-            if is_anim:
-                frames, durations = [], []
-                for i in range(img.n_frames):
-                    img.seek(i)
-                    frames.append(_resize_frame(img.copy()))
-                    durations.append(img.info.get('duration', 100))
-                frames[0].save(
-                    dst_path,
-                    save_all=True,
-                    append_images=frames[1:],
-                    loop=0,
-                    duration=durations,
-                    disposal=2,
-                )
-            else:
-                _resize_frame(img.copy()).save(dst_path)
-
-        print(f"icons: Created {dst_path.name}")
-    except Exception as e:
-        print(f"icons: Failed to create icon64 for {src_path}: {e}")
-
-
-def preprocess_world_icons(world):
-    """Preprocess all icons in *world*, storing the adjusted icon_def on each entity.
-
-    Iterates over objects and peeps, parses their 'icon' field, ensures the
-    image is 64x64 (creating an adjusted copy when necessary), and stores the
-    resolved icon_def as ``_icon_def`` on the entity.
-    """
+def preprocess_world_assets(world):
     count = 0
     for obj in world.objs.values():
-        icon_str = obj.info.get('icon')
-        if icon_str:
-            icon_def = parse_icon_def(icon_str)
-            obj._icon_def = preprocess_icon(icon_def, world.root_path)
+        assets = resolve_display_assets(obj.info)
+        obj._display_assets = {
+            'icon': _normalize_image(assets['icon'], world.root_path, mode='icon'),
+            'img': _normalize_image(assets['img'], world.root_path, mode='img'),
+            'sprite': _normalize_image(assets['sprite'], world.root_path, mode='sprite'),
+        }
+        count += 1
+
+    for room in world.rooms.values():
+        for prop in room.props.values():
+            assets = resolve_display_assets(prop.info)
+            prop._display_assets = {
+                'icon': _normalize_image(assets['icon'], world.root_path, mode='icon'),
+                'img': _normalize_image(assets['img'], world.root_path, mode='img'),
+                'sprite': _normalize_image(assets['sprite'], world.root_path, mode='sprite'),
+            }
             count += 1
 
     for peep in world.peeps.values():
-        icon_str = peep.info.get('icon')
-        if icon_str:
-            icon_def = parse_icon_def(icon_str)
-            peep._icon_def = preprocess_icon(icon_def, world.root_path)
-            count += 1
+        assets = resolve_display_assets(peep.info)
+        peep._display_assets = {
+            'icon': _normalize_image(assets['icon'], world.root_path, mode='icon'),
+            'img': _normalize_image(assets['img'], world.root_path, mode='img'),
+            'sprite': _normalize_image(assets['sprite'], world.root_path, mode='sprite'),
+        }
+        count += 1
+    print(f"assets: preprocessed {count} entity/prop asset sets.")
 
-    print(f"icons: Preprocessed {count} icon(s).")
+
+def _normalize_image(image_path: str, world_root_path, mode: str) -> str:
+    world_root_path = Path(world_root_path)
+    src_path = world_root_path / image_path
+    if not src_path.exists():
+        print(f"assets: image not found: {src_path}")
+        return image_path
+
+    suffix = {'icon': '_icon32', 'sprite': '_sprite64', 'img': '_img128'}[mode]
+    dst_path = src_path.parent / f"{src_path.stem}{suffix}{src_path.suffix}"
+
+    if dst_path.exists() and dst_path.stat().st_mtime >= src_path.stat().st_mtime:
+        return str(dst_path.relative_to(world_root_path)).replace('\\', '/')
+
+    try:
+        from PIL import Image
+        with Image.open(src_path) as img:
+            normalized = _resize_for_mode(img, mode)
+            normalized.save(dst_path)
+    except Exception as err:
+        print(f"assets: failed normalizing {src_path}: {err}")
+        return image_path
+    return str(dst_path.relative_to(world_root_path)).replace('\\', '/')
 
 
-def make_room_icons_data(room) -> list:
-    """Return a list of icon data dicts for all icon-bearing entities in *room*.
+def _resize_for_mode(img, mode: str):
+    from PIL import Image
 
-    Each entry has:
-      ref_id      - reference ID string (without leading @) used in action commands
-      label       - display label for the entity
-      description - entity description text
-      icon        - dict of icon key:value pairs (img path, future effects, …)
-      is_user     - True when the entity is a connected user (for client-side styling)
-    """
-    icons = []
+    if mode == 'icon':
+        return img.convert('RGBA').resize((32, 32), Image.LANCZOS)
 
-    for obj_id, obj in room.objs.items():
-        icon_def = getattr(obj, '_icon_def', None)
-        if icon_def:
-            icons.append({
-                'ref_id': f'obj:{obj_id}',
-                'label': obj.label(),
-                'description': obj.info.get('description', ''),
-                'icon': icon_def,
-                'is_user': False,
-            })
+    if mode == 'img':
+        max_size = 128
+        canvas = img.convert('RGBA')
+        canvas.thumbnail((max_size, max_size), Image.LANCZOS)
+        return canvas
 
-    for uname, user_obj in room.users.items():
-        icon_def = getattr(user_obj.peep, '_icon_def', None)
-        if icon_def:
-            icons.append({
-                'ref_id': uname,
-                'label': uname,
-                'description': '',
-                'icon': icon_def,
-                'is_user': True,
-            })
-
-    return icons
+    max_side = 64
+    min_side = 32
+    sprite = img.convert('RGBA')
+    w, h = sprite.size
+    if max(w, h) > max_side:
+        scale = max_side / max(w, h)
+        sprite = sprite.resize((max(min_side, int(w * scale)), max(min_side, int(h * scale))), Image.LANCZOS)
+    w, h = sprite.size
+    if min(w, h) < min_side:
+        scale = min_side / min(w, h)
+        sprite = sprite.resize((min(max_side, int(w * scale)), min(max_side, int(h * scale))), Image.LANCZOS)
+    return sprite
