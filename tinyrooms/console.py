@@ -3,12 +3,11 @@ import code
 import readline
 import rlcompleter
 import queue
-import eventlet
 import os
 import atexit
 
-# Queue for sending command lines from input thread to eventlet console thread
-command_queue = []
+# Queue for sending command lines from input thread to console worker thread
+command_queue: queue.Queue[str] = queue.Queue()
 
 # History file configuration
 HISTORY_FILE = os.path.expanduser("~/.tinyrooms_history")
@@ -62,31 +61,27 @@ def input_thread_func(locals_dict):
                 cmd = line[1:].strip()
                 run_admin_cmd(cmd, locals_dict)
             else:
-                command_queue.append(line)
+                command_queue.put(line)
         except EOFError:
             locals_dict["reboot"]()
             break
         except KeyboardInterrupt:
             print("\nKeyboardInterrupt")
-            command_queue.append("")  # Send empty line to reset
+            command_queue.put("")  # Send empty line to reset
 
 
-def console_eventlet_thread(locals_dict):
-    """Runs in an eventlet greenthread to execute commands."""
+def console_worker_thread(locals_dict):
+    """Runs in a background thread to execute commands."""
     console = code.InteractiveConsole(locals=locals_dict)
     
     while True:
-        eventlet.sleep(0.1)
-        if not command_queue:
-            continue
+        line = command_queue.get()
         with locals_dict["server"].app.app_context():
-            for line in command_queue:
-                try:
-                    console.push(line)
-                    print(">>> ")
-                except:
-                    continue
-            command_queue.clear()
+            try:
+                console.push(line)
+                print(">>> ")
+            except Exception as exc:
+                print(f"Console command error: {exc}")
 
 
 def start_console(locals_dict=None):
@@ -97,8 +92,10 @@ def start_console(locals_dict=None):
     input_thread = threading.Thread(target=input_thread_func, args=(locals_dict,), daemon=True)
     input_thread.start()
     
-    # Start the eventlet console thread (runs in eventlet greenthread)
-    eventlet.spawn(console_eventlet_thread, locals_dict)
+    # Start the console command execution thread
+    console_thread = threading.Thread(
+        target=console_worker_thread, args=(locals_dict,), daemon=True
+    )
+    console_thread.start()
     
     return input_thread
-

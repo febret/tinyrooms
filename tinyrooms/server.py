@@ -14,7 +14,7 @@ CLIENT_FILENAME = "client.html"
 # Create app and SocketIO
 app = Flask(__name__, static_folder=str(STATIC_FOLDER), static_url_path="/app")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 
 @app.route("/")
