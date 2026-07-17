@@ -5,7 +5,7 @@ const passwordInput = document.getElementById("password");
 const btnLogin = document.getElementById("btnLogin");
 const btnRegister = document.getElementById("btnRegister");
 const loginStatus = document.getElementById("loginStatus");
-const chatBox = document.getElementById("chatBox");
+const mainPage = document.getElementById("mainPage");
 const statusDisplay = document.getElementById("statusDisplay");
 const messagesDiv = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
@@ -130,8 +130,8 @@ socket.on("login_success", data => {
   myUsername = data.username;
   loginStatus.style.color = "green";
   loginStatus.textContent = "Login successful — welcome " + myUsername;
-  document.getElementById("loginBox").style.display = "none";
-  chatBox.style.display = "block";
+  document.getElementById("loginPage").style.display = "none";
+  mainPage.style.display = "block";
   
   // Save credentials to cookie
   saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
@@ -238,9 +238,9 @@ socket.on("update_view", data => {
     viewDiv = document.createElement("div");
     viewDiv.id = viewId;
     viewDiv.className = "view-container";
-    const chatBoxEl = document.getElementById("chatBox");
+    const mainPageEl = document.getElementById("mainPage");
     const messagesEl = document.getElementById("messages");
-    chatBoxEl.insertBefore(viewDiv, messagesEl);
+    mainPageEl.insertBefore(viewDiv, messagesEl);
   }
 
   // If only the icon list changed (same room label/image), update the strip in-place

@@ -37,8 +37,8 @@ btnLogout.addEventListener("click", () => {
   lastPassword = null;
   usernameInput.value = "";
   passwordInput.value = "";
-  chatBox.style.display = "none";
-  document.getElementById("loginBox").style.display = "block";
+  mainPage.style.display = "none";
+  document.getElementById("loginPage").style.display = "block";
   messagesDiv.innerHTML = "";
   loginStatus.textContent = "";
   

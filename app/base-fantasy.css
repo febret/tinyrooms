@@ -41,7 +41,7 @@ h3 {
   letter-spacing: 2px;
 }
 
-#loginBox, #chatBox { 
+#loginPage, #mainPage { 
   border: 3px solid #8b7355;
   border-image: linear-gradient(135deg, #d4af37, #8b7355, #d4af37) 1;
   padding: 1.5rem;
@@ -53,7 +53,7 @@ h3 {
   z-index: 2;
 }
 
-#loginBox::before, #chatBox::before {
+#loginPage::before, #mainPage::before {
   content: '';
   position: absolute;
   top: -3px;
@@ -360,13 +360,13 @@ button:active {
 
 /* Responsive padding overrides for fantasy theme */
 @media (max-width: 600px) {
-  #loginBox, #chatBox {
+  #loginPage, #mainPage {
     padding: 1rem;
   }
 }
 
 @media (min-width: 901px) {
-  #loginBox, #chatBox {
+  #loginPage, #mainPage {
     padding: 1.5rem;
   }
 }

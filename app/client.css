@@ -16,7 +16,7 @@ h1 {
   text-align: center;
 }
 
-#loginBox, #chatBox { 
+#loginPage, #mainPage { 
   padding: 1rem; 
   max-width: 900px;
   margin: 0 auto;
@@ -399,7 +399,7 @@ button {
     margin-bottom: 0.5rem;
   }
   
-  #loginBox, #chatBox {
+  #loginPage, #mainPage {
     padding: 0.5rem;
   }
   
@@ -570,7 +570,7 @@ button {
     height: 400px;
   }
   
-  #loginBox, #chatBox {
+  #loginPage, #mainPage {
     padding: 1.5rem;
   }
 }

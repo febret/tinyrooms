@@ -18,7 +18,7 @@ h3 {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-#loginBox, #chatBox { 
+#loginPage, #mainPage { 
   border: 1px solid #2d3e50; 
   border-radius: 8px;
   background: #15202b;
@@ -322,7 +322,7 @@ button:active {
     font-size: 0.8rem;
   }
   
-  #loginBox, #chatBox {
+  #loginPage, #mainPage {
     padding: 0.75rem;
   }
   

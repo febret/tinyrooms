@@ -44,7 +44,7 @@ h3 {
   text-shadow: 1px 1px #00ffff;
 }
 
-#loginBox, #chatBox { 
+#loginPage, #mainPage { 
   border: 4px ridge #808080;
   background: #c0c0c0;
   box-shadow: 5px 5px 0 rgba(0,0,0,0.5);

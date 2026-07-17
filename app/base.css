@@ -5,7 +5,7 @@ body {
   background: #f5f5f5;
 }
 
-#loginBox, #chatBox { 
+#loginPage, #mainPage { 
   border: 1px solid #ddd; 
   border-radius: 8px;
   background: white;
@@ -194,7 +194,7 @@ button:active {
 
 /* Responsive padding overrides for base theme */
 @media (max-width: 600px) {
-  #loginBox, #chatBox {
+  #loginPage, #mainPage {
     padding: 0.75rem;
   }
 }
