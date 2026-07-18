@@ -307,7 +307,7 @@ async function pollCharacterRequest() {
       const req = payload.request;
       renderCharacterEditor(req.queue || null);
       if (req.status === "queued" || req.status === "running") {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
         continue;
       }
       if (req.status === "done") {
