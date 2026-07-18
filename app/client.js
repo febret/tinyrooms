@@ -1,33 +1,36 @@
-const socket = io();
+var socket = io();
 
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const btnLogin = document.getElementById("btnLogin");
-const btnRegister = document.getElementById("btnRegister");
-const loginStatus = document.getElementById("loginStatus");
-const mainPage = document.getElementById("mainPage");
-const statusDisplay = document.getElementById("statusDisplay");
-const messagesDiv = document.getElementById("messages");
-const msgInput = document.getElementById("msgInput");
-const sendBtn = document.getElementById("sendBtn");
-const btnLogout = document.getElementById("btnLogout");
-const connectionIndicator = document.getElementById("connectionIndicator");
-const roomHeader = document.getElementById("roomHeader");
-const roomCanvas = document.getElementById("roomCanvas");
-const roomExits = document.getElementById("roomExits");
-const lookBox = document.getElementById("lookBox");
-const actionPalette = document.getElementById("actionPalette");
-const activityPanel = document.getElementById("activityPanel");
+var usernameInput = document.getElementById("username");
+var passwordInput = document.getElementById("password");
+var btnLogin = document.getElementById("btnLogin");
+var btnRegister = document.getElementById("btnRegister");
+var loginStatus = document.getElementById("loginStatus");
+var mainPage = document.getElementById("mainPage");
+var statusDisplay = document.getElementById("statusDisplay");
+var messagesDiv = document.getElementById("messages");
+var msgInput = document.getElementById("msgInput");
+var sendBtn = document.getElementById("sendBtn");
+var btnLogout = document.getElementById("btnLogout");
+var connectionIndicator = document.getElementById("connectionIndicator");
+var roomHeader = document.getElementById("roomHeader");
+var roomCanvas = document.getElementById("roomCanvas");
+var roomExits = document.getElementById("roomExits");
+var lookBox = document.getElementById("lookBox");
+var actionPalette = document.getElementById("actionPalette");
+var activityPanel = document.getElementById("activityPanel");
 
-let myUsername = null;
-let lastPassword = null;
-let selectedActions = [];
-let connectionState = "connecting";
-let connectionTime = null;
-let paletteMode = "main";
-let knownActions = {};
-let selectedTarget = null;
-let roomState = {
+
+var myUsername = null;
+var lastPassword = null;
+var selectedActions = [];
+var connectionState = "connecting";
+var connectionTime = null;
+var paletteMode = "main";
+var knownActions = {};
+var selectedTarget = null;
+var TOUCH_DRAG_THRESHOLD_PX = 8;
+var activeTouchDrag = null;
+var roomState = {
   roomId: null,
   canEditProps: false,
   stage: { width: 256, height: 512 },
@@ -35,8 +38,9 @@ let roomState = {
   props: new Map(),
 };
 
-let heartbeatStarted = false;
-let saveLoopStarted = false;
+var heartbeatStarted = false;
+var saveLoopStarted = false;
+var restAuthToken = null;
 
 socket.on("connect", () => {
   const u = usernameInput.value.trim();
@@ -65,6 +69,7 @@ socket.on("actions_def", data => {
 
 socket.on("login_success", data => {
   myUsername = data.username;
+  restAuthToken = data.rest_token || null;
   loginStatus.style.color = "green";
   loginStatus.textContent = "Login successful — welcome " + myUsername;
   document.getElementById("loginPage").style.display = "none";
@@ -72,6 +77,8 @@ socket.on("login_success", data => {
   saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
   loadMessagesFromStorage();
   loadInputState();
+  initCharacterEditor(socket, restAuthToken);
+  resetCharacterEditorState();
 });
 
 socket.on("login_failed", data => {
@@ -146,7 +153,11 @@ socket.on("error", data => {
 });
 
 function handleHeaderUpdate(data) {
-  roomState.roomId = data.room_id || null;
+  const nextRoomId = data.room_id || null;
+  if (roomState.roomId !== nextRoomId) {
+    resetRoomEntityState();
+  }
+  roomState.roomId = nextRoomId;
   roomState.canEditProps = !!data.can_edit_props;
   const label = formatText(escapeHtml(data.label || ""));
   const description = formatText(escapeHtml(data.short_description || ""));
@@ -189,6 +200,22 @@ function handleRoomExitsUpdate(data) {
   }
 }
 
+function resolveBackgroundUrl(backgroundPath) {
+  if (!backgroundPath) return "";
+  if (backgroundPath.startsWith("/") || backgroundPath.startsWith("http://") || backgroundPath.startsWith("https://")) {
+    return backgroundPath;
+  }
+  return "/world/images/" + backgroundPath;
+}
+
+function resolveAssetUrl(assetPath) {
+  if (!assetPath) return "";
+  if (assetPath.startsWith("/") || assetPath.startsWith("http://") || assetPath.startsWith("https://")) {
+    return assetPath;
+  }
+  return "/world/" + assetPath;
+}
+
 function renderRoomStage(backgroundPath) {
   roomCanvas.innerHTML = "";
   const stageLayer = document.createElement("div");
@@ -196,7 +223,7 @@ function renderRoomStage(backgroundPath) {
   if (backgroundPath) {
     const bg = document.createElement("img");
     bg.className = "room-background";
-    bg.src = "/world/images/" + backgroundPath;
+    bg.src = resolveBackgroundUrl(backgroundPath);
     stageLayer.appendChild(bg);
   }
   for (const prop of roomState.props.values()) {
@@ -222,7 +249,7 @@ function makePropNode(prop) {
   node.style.top = `${prop.position?.y || 0}px`;
   node.style.zIndex = `${prop.position?.z_order || 0}`;
   const img = document.createElement("img");
-  img.src = "/world/" + (prop.display?.sprite || prop.display?.img || "");
+  img.src = resolveAssetUrl(prop.display?.sprite || prop.display?.img || "");
   img.alt = prop.label || "";
   node.appendChild(img);
   node.addEventListener("click", () => selectTarget({
@@ -231,10 +258,7 @@ function makePropNode(prop) {
     label: prop.label || "prop",
     description: prop.description || "",
   }, node));
-  if (roomState.canEditProps) {
-    node.draggable = true;
-    node.addEventListener("dragstart", ev => beginDrag(ev, "prop", prop.prop_instance_id));
-  }
+  configureDragHandlers(node, "prop", prop.prop_instance_id, roomState.canEditProps);
   return node;
 }
 
@@ -258,7 +282,7 @@ function renderForegroundEntity(entity) {
   node.style.top = `${entity.position?.y || 0}px`;
   node.style.zIndex = `${entity.position?.z_order || 0}`;
   const img = node.querySelector("img");
-  img.src = "/world/" + (entity.display?.sprite || entity.display?.img || "");
+  img.src = resolveAssetUrl(entity.display?.sprite || entity.display?.img || "");
   img.alt = entity.label || "";
   node.onclick = () => selectTarget({
     type: entity.entity_type,
@@ -267,10 +291,7 @@ function renderForegroundEntity(entity) {
     description: entity.description || "",
   }, node);
 
-  node.draggable = canDragEntity(entity);
-  if (node.draggable) {
-    node.ondragstart = ev => beginDrag(ev, entity.entity_type, entity.entity_id);
-  }
+  configureDragHandlers(node, entity.entity_type, entity.entity_id, canDragEntity(entity));
 }
 
 function canDragEntity(entity) {
@@ -284,7 +305,8 @@ function canDragEntity(entity) {
 }
 
 function beginDrag(ev, entityType, entityId) {
-  const ghost = ev.target.cloneNode(true);
+  const dragSource = ev.currentTarget instanceof HTMLElement ? ev.currentTarget : ev.target;
+  const ghost = dragSource.cloneNode(true);
   ghost.style.opacity = "0.45";
   ghost.style.position = "absolute";
   ghost.style.top = "-1000px";
@@ -299,20 +321,141 @@ function handleRoomDrop(ev) {
   const raw = ev.dataTransfer.getData("text/plain");
   if (!raw) return;
   const payload = JSON.parse(raw);
-  const rect = roomCanvas.getBoundingClientRect();
-  const x = Math.max(0, Math.round((ev.clientX - rect.left) * (roomState.stage.width / rect.width)));
-  const y = Math.max(0, Math.round((ev.clientY - rect.top) * (roomState.stage.height / rect.height)));
+  submitMovePayload(payload, ev.clientX, ev.clientY, false);
+}
 
+function resetRoomEntityState() {
+  roomState.entities.clear();
+  selectedTarget = null;
+  lookBox.textContent = "";
+  document.querySelectorAll(".room-selected").forEach(el => el.classList.remove("room-selected"));
+  const layer = document.getElementById("foregroundLayer");
+  if (layer) {
+    layer.innerHTML = "";
+  }
+}
+
+function getStagePoint(clientX, clientY, requireInside) {
+  const rect = roomCanvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) {
+    return null;
+  }
+  const isInside = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+  if (requireInside && !isInside) {
+    return null;
+  }
+  const x = Math.round((clientX - rect.left) * (roomState.stage.width / rect.width));
+  const y = Math.round((clientY - rect.top) * (roomState.stage.height / rect.height));
+  return {
+    x: Math.min(roomState.stage.width, Math.max(0, x)),
+    y: Math.min(roomState.stage.height, Math.max(0, y)),
+  };
+}
+
+function submitMovePayload(payload, clientX, clientY, requireInside) {
+  const point = getStagePoint(clientX, clientY, requireInside);
+  if (!point) return;
   if (payload.entityType === "prop") {
-    socket.emit("room_edit_prop", { prop_instance_id: payload.entityId, x, y });
+    socket.emit("room_edit_prop", { prop_instance_id: payload.entityId, x: point.x, y: point.y });
     return;
   }
   socket.emit("room_move_entity", {
     entity_type: payload.entityType,
     entity_id: payload.entityId,
-    x,
-    y,
+    x: point.x,
+    y: point.y,
   });
+}
+
+function configureDragHandlers(node, entityType, entityId, isEnabled) {
+  node.draggable = !!isEnabled;
+  node.ondragstart = null;
+  node.onpointerdown = null;
+  node.style.touchAction = isEnabled ? "none" : "";
+  if (!isEnabled) {
+    return;
+  }
+  node.ondragstart = ev => beginDrag(ev, entityType, entityId);
+  node.onpointerdown = ev => beginTouchDrag(ev, entityType, entityId);
+}
+
+function beginTouchDrag(ev, entityType, entityId) {
+  if (ev.pointerType !== "touch") return;
+  ev.preventDefault();
+  if (activeTouchDrag) {
+    cleanupTouchDrag();
+  }
+  const node = ev.currentTarget;
+  activeTouchDrag = {
+    pointerId: ev.pointerId,
+    startX: ev.clientX,
+    startY: ev.clientY,
+    entityType,
+    entityId,
+    node,
+    moved: false,
+    ghost: null,
+  };
+  if (node.setPointerCapture) {
+    node.setPointerCapture(ev.pointerId);
+  }
+  document.addEventListener("pointermove", handleTouchDragMove, { passive: false });
+  document.addEventListener("pointerup", handleTouchDragEnd, { passive: false });
+  document.addEventListener("pointercancel", handleTouchDragCancel, { passive: false });
+}
+
+function ensureTouchDragGhost() {
+  if (!activeTouchDrag || activeTouchDrag.ghost) return;
+  const ghost = activeTouchDrag.node.cloneNode(true);
+  ghost.style.position = "fixed";
+  ghost.style.pointerEvents = "none";
+  ghost.style.zIndex = "5000";
+  ghost.style.opacity = "0.75";
+  ghost.style.transform = "translate(-50%, -50%)";
+  document.body.appendChild(ghost);
+  activeTouchDrag.ghost = ghost;
+}
+
+function handleTouchDragMove(ev) {
+  if (!activeTouchDrag || ev.pointerId !== activeTouchDrag.pointerId) return;
+  ev.preventDefault();
+  const movedDistance = Math.hypot(ev.clientX - activeTouchDrag.startX, ev.clientY - activeTouchDrag.startY);
+  if (movedDistance >= TOUCH_DRAG_THRESHOLD_PX) {
+    activeTouchDrag.moved = true;
+    ensureTouchDragGhost();
+  }
+  if (activeTouchDrag.ghost) {
+    activeTouchDrag.ghost.style.left = `${ev.clientX}px`;
+    activeTouchDrag.ghost.style.top = `${ev.clientY}px`;
+  }
+}
+
+function handleTouchDragEnd(ev) {
+  if (!activeTouchDrag || ev.pointerId !== activeTouchDrag.pointerId) return;
+  ev.preventDefault();
+  const drag = activeTouchDrag;
+  cleanupTouchDrag();
+  if (drag.moved) {
+    submitMovePayload({ entityType: drag.entityType, entityId: drag.entityId }, ev.clientX, ev.clientY, true);
+    return;
+  }
+  drag.node.click();
+}
+
+function handleTouchDragCancel(ev) {
+  if (!activeTouchDrag || ev.pointerId !== activeTouchDrag.pointerId) return;
+  ev.preventDefault();
+  cleanupTouchDrag();
+}
+
+function cleanupTouchDrag() {
+  document.removeEventListener("pointermove", handleTouchDragMove);
+  document.removeEventListener("pointerup", handleTouchDragEnd);
+  document.removeEventListener("pointercancel", handleTouchDragCancel);
+  if (activeTouchDrag?.ghost) {
+    activeTouchDrag.ghost.remove();
+  }
+  activeTouchDrag = null;
 }
 
 function selectTarget(target, node) {

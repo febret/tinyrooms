@@ -13,6 +13,14 @@ class Peep:
         # Populated by icons.preprocess_world_assets() at world-load time
         self._display_assets = None
 
+    @property
+    def display_assets(self):
+        return self._display_assets
+
+    @display_assets.setter
+    def display_assets(self, assets):
+        self._display_assets = assets
+
     def id(self):
         return f"@peep:{self.peep_id}"
 

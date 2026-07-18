@@ -1,6 +1,7 @@
 import os
 import signal
 import sys
+import argparse
 
 from flask_socketio import emit
 from tinyrooms import server, console, db, user, connection, actions, room, world
@@ -10,6 +11,7 @@ from tinyrooms import server, console, db, user, connection, actions, room, worl
 def kill():
     """Immediately terminate the server process."""
     print("\n💀 Killing server immediately...")
+    server.shutdown_char_editor()
     db.save_userdb_state()
     world.active_world().save_state()
     os._exit(0)
@@ -18,6 +20,7 @@ def kill():
 def reboot():
     """Reboot the server process."""
     print("\n🔄 Rebooting server...")
+    server.shutdown_char_editor()
     db.save_userdb_state()
     world.active_world().save_state()
     os._exit(42)
@@ -32,10 +35,20 @@ def signal_handler_reboot(sig, frame):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run tinyrooms server")
+    parser.add_argument(
+        "--sprite-temp-dir",
+        default="",
+        help="Temporary directory for character sprite generation jobs",
+    )
+    args = parser.parse_args()
+
     # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler_kill)  # Ctrl-C
     signal.signal(signal.SIGBREAK, signal_handler_reboot)  # Ctrl-\
     print("Signal handlers: Ctrl-C = kill, Ctrl-\\ = reload")
+
+    server.configure_char_editor(args.sprite_temp_dir or None)
     
     # Initialize database
     db.init_db()
@@ -70,6 +83,7 @@ if __name__ == "__main__":
         print(f"\nServer error: {e}")
     finally:
         print("Shutting down...")
+        server.shutdown_char_editor()
         # Save state of all connected users before shutdown
         db.save_userdb_state()
         world.active_world().save_state()

@@ -32,8 +32,6 @@ The current `app/client.js` runtime is event-driven around Socket.IO and uses th
 - `activity_panel`: displays server-provided activity content in `activityPanel`.
 - `message`, `error`: append text to `logPanel > messages`.
 
-Legacy `update_view` rendering for `view: "main"` is no longer part of the client architecture.
-
 ## The Action Palette
 The current palette is a fixed six-slot UI in `actionsPanel > actionPalette`.
 

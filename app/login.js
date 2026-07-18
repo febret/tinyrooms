@@ -30,11 +30,14 @@ btnLogin.addEventListener("click", () => {
 
 
 btnLogout.addEventListener("click", () => {
+  closeCharacterEditor();
+  resetCharacterEditorState();
   // Clear credentials and reset UI
   clearCredentials();
   clearMessagesFromStorage();
   myUsername = null;
   lastPassword = null;
+  restAuthToken = null;
   usernameInput.value = "";
   passwordInput.value = "";
   mainPage.style.display = "none";
@@ -43,6 +46,7 @@ btnLogout.addEventListener("click", () => {
   loginStatus.textContent = "";
   
   // Disconnect and reconnect to clear server state
+  fetch("/logout", { method: "POST" }).catch(() => {});
   socket.disconnect();
   setTimeout(() => socket.connect(), 100);
 });

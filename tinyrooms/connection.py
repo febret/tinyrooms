@@ -1,6 +1,7 @@
-from flask import request
+from flask import request, session
 from flask_socketio import emit
 from werkzeug.security import check_password_hash
+import secrets
 
 from . import message, user, server, db, actions
 from .world import active_world
@@ -71,12 +72,14 @@ def handle_login(data):
         
         # Create User instance and store it
         user_obj = user.User(username, sid, active_world())
+        user_obj.rest_token = secrets.token_urlsafe(24)
         # Load saved skin from database
         user_obj.skin = saved_skin or 'base'
         user_obj.skin_stale = True
         user.connected_users[sid] = user_obj
+        session["username"] = username
         
-        emit("login_success", {"username": username})
+        emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
         
         print(f"login success: {username} (sid={sid}) - added to default room")
     else:

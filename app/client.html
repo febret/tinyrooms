@@ -30,6 +30,7 @@
     <div id="statusPanel">
       <div id="statusDisplay"></div>
       <div class="status-controls">
+        <button id="btnCharacterEditor" style="margin: 0; padding: 0.4rem 0.8rem;">Modify Character</button>
         <div id="connectionIndicator" class="connection-indicator connecting" title="Click for connection info"></div>
         <button id="btnLogout" style="margin: 0; padding: 0.4rem 0.8rem; background: #dc3545;">Exit</button>
       </div>
@@ -57,6 +58,28 @@
     </div>
   </div>
 
+  <div id="characterEditorPage" style="display:none;">
+    <div class="character-editor-card">
+      <div class="character-editor-header">
+        <h3>Character Editor</h3>
+        <button id="btnCharacterEditorClose">✕</button>
+      </div>
+      <div id="characterEditorError" class="character-editor-error"></div>
+      <div id="characterEditorDescriptors"></div>
+      <div class="character-editor-actions">
+        <button id="btnCharacterRoll">Roll (4)</button>
+        <button id="btnCharacterCancelRoll">Cancel Active</button>
+        <button id="btnCharacterSave">Save Selection</button>
+      </div>
+      <div id="characterEditorQueue" class="character-editor-queue"></div>
+      <div id="characterEditorSlots" class="character-editor-slots"></div>
+      <div class="character-editor-footer">
+        <button id="btnCharacterEditorDone">Done</button>
+      </div>
+    </div>
+  </div>
+
+<script src="/app/charEditor.js"></script>
 <script src="/app/client.js"></script>
 <script src="/app/sound.js"></script>
 <script src="/app/text.js"></script>

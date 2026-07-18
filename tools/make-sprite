@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""
+make-sprite: Generate a 64x128 PNG character sprite with transparent background.
+
+Usage:
+    make-sprite <path.png> [--description TEXT | --descriptors-json JSON]
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate a 64x128 PNG sprite.")
+    parser.add_argument("path", type=Path, help="Output PNG path")
+    parser.add_argument("--description", default="", help="Prebuilt prompt description")
+    parser.add_argument("--descriptors-json", default="", help="Descriptor dictionary as JSON")
+    parser.add_argument("--border-color", default="#6aa5ff", help="Outline color")
+    parser.add_argument("--glow-color", default="#7cb1ff", help="Glow color")
+    return parser.parse_args()
+
+
+def build_prompt(description: str, descriptors: dict[str, str]) -> str:
+    if description:
+        base = description
+    else:
+        base = (
+            "full body character sticker, simple clean line art, transparent background, "
+            f"hair color {descriptors.get('hair_color', 'black')}, "
+            f"skin color {descriptors.get('skin_color', 'olive')}, "
+            f"{descriptors.get('body_adjective', 'athletic')} build, "
+            f"wearing {descriptors.get('clothing_material_or_color', 'dark linen')} "
+            f"{descriptors.get('clothing', 'cloak')}"
+        )
+    return f"illustration, {base}, centered, game sprite, high contrast silhouette"
+
+
+def _hex_to_rgba(value: str, alpha: int = 255):
+    value = value.strip().lstrip("#")
+    if len(value) == 3:
+        value = "".join([c * 2 for c in value])
+    if len(value) != 6:
+        raise ValueError(f"invalid hex color: {value}")
+    return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16), alpha)
+
+
+def remove_background(image):
+    from PIL import Image
+
+    rgba = image.convert("RGBA")
+    pixels = rgba.load()
+    width, height = rgba.size
+    corners = [
+        pixels[0, 0],
+        pixels[width - 1, 0],
+        pixels[0, height - 1],
+        pixels[width - 1, height - 1],
+    ]
+    avg = tuple(int(sum(px[idx] for px in corners) / len(corners)) for idx in range(3))
+    threshold = 30
+    cleaned = Image.new("RGBA", rgba.size)
+    out_pixels = cleaned.load()
+    for y in range(height):
+        for x in range(width):
+            r, g, b, a = pixels[x, y]
+            if abs(r - avg[0]) <= threshold and abs(g - avg[1]) <= threshold and abs(b - avg[2]) <= threshold:
+                out_pixels[x, y] = (r, g, b, 0)
+            else:
+                out_pixels[x, y] = (r, g, b, a)
+    return cleaned
+
+
+def resize_to_sprite_canvas(image):
+    from PIL import Image
+
+    sprite = image.convert("RGBA")
+    bbox = sprite.getbbox()
+    if bbox:
+        sprite = sprite.crop(bbox)
+
+    target_w, target_h = 64, 128
+    scale = min(target_w / max(1, sprite.width), target_h / max(1, sprite.height))
+    new_size = (max(1, int(sprite.width * scale)), max(1, int(sprite.height * scale)))
+    sprite = sprite.resize(new_size, Image.LANCZOS)
+
+    canvas = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    x = (target_w - sprite.width) // 2
+    y = target_h - sprite.height
+    canvas.alpha_composite(sprite, (x, y))
+    return canvas
+
+
+def apply_effects(image, border_color: str, glow_color: str):
+    from PIL import Image, ImageFilter
+
+    base = image.convert("RGBA")
+    alpha = base.split()[3]
+    outline_mask = alpha.filter(ImageFilter.MaxFilter(size=5))
+    outline = Image.new("RGBA", base.size, _hex_to_rgba(border_color, 210))
+    outline.putalpha(outline_mask)
+
+    glow_mask = alpha.filter(ImageFilter.GaussianBlur(radius=3))
+    glow = Image.new("RGBA", base.size, _hex_to_rgba(glow_color, 150))
+    glow.putalpha(glow_mask)
+
+    combined = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    combined.alpha_composite(glow)
+    combined.alpha_composite(outline)
+    combined.alpha_composite(base)
+    return combined
+
+
+def generate_sprite(output_path: Path, description: str, descriptors: dict[str, str], border_color: str, glow_color: str):
+    import torch
+    from diffusers import StableDiffusionPipeline
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.float16 if device == "cuda" else torch.float32
+    if device == "cpu":
+        print("WARNING: No CUDA GPU detected, running on CPU (slow).", file=sys.stderr)
+
+    model_id = "runwayml/stable-diffusion-v1-5"
+    pipe = StableDiffusionPipeline.from_pretrained(
+        model_id,
+        torch_dtype=dtype,
+        safety_checker=None,
+        requires_safety_checker=False,
+    ).to(device)
+    if device == "cuda":
+        pipe.enable_attention_slicing()
+
+    prompt = build_prompt(description, descriptors)
+    negative_prompt = "blurry, low quality, text, watermark, background, scenery, logo"
+    result = pipe(
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        width=512,
+        height=1024,
+        num_inference_steps=26,
+        guidance_scale=8.0,
+    )
+    image = result.images[0]
+    image = remove_background(image)
+    image = resize_to_sprite_canvas(image)
+    image = apply_effects(image, border_color, glow_color)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output_path, "PNG")
+
+
+def main():
+    args = parse_args()
+    if args.path.suffix.lower() != ".png":
+        print(f"Error: output path must end with .png: {args.path}", file=sys.stderr)
+        sys.exit(1)
+    descriptors = {}
+    if args.descriptors_json:
+        try:
+            loaded = json.loads(args.descriptors_json)
+        except json.JSONDecodeError as err:
+            print(f"Error: descriptors-json is invalid JSON: {err}", file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(loaded, dict):
+            print("Error: descriptors-json must be a JSON object", file=sys.stderr)
+            sys.exit(1)
+        descriptors = {str(k): str(v) for k, v in loaded.items()}
+    if not args.description and not descriptors:
+        print("Error: provide --description or --descriptors-json", file=sys.stderr)
+        sys.exit(1)
+    try:
+        generate_sprite(args.path, args.description, descriptors, args.border_color, args.glow_color)
+    except Exception as err:
+        print(f"Error: {err}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

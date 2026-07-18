@@ -1,0 +1,65 @@
+descriptor_classes:
+  hair_color:
+    label: Hair color
+    type: color
+    options:
+      - { id: black, label: Black, swatch: "#1e1e1e" }
+      - { id: brown, label: Brown, swatch: "#5b3a29" }
+      - { id: blonde, label: Blonde, swatch: "#f0cd75" }
+      - { id: auburn, label: Auburn, swatch: "#8e3a2e" }
+      - { id: silver, label: Silver, swatch: "#b8bcc7" }
+      - { id: pink, label: Pink, swatch: "#f08ccf" }
+  skin_color:
+    label: Skin color
+    type: color
+    options:
+      - { id: porcelain, label: Porcelain, swatch: "#f5d8c1" }
+      - { id: olive, label: Olive, swatch: "#c49a6c" }
+      - { id: umber, label: Umber, swatch: "#7d5232" }
+      - { id: cocoa, label: Cocoa, swatch: "#5b3a29" }
+      - { id: moonlight_blue, label: Moonlight Blue, swatch: "#92a9ff" }
+      - { id: moss_green, label: Moss Green, swatch: "#89ad74" }
+  body_adjective:
+    label: Body adjective
+    type: text
+    options:
+      - athletic
+      - sturdy
+      - lithe
+      - compact
+      - lanky
+      - graceful
+      - energetic
+      - imposing
+      - nimble
+      - broad-shouldered
+  clothing:
+    label: Clothing
+    type: text
+    options:
+      - cloak
+      - jacket
+      - robe
+      - tunic
+      - overalls
+      - coat
+      - hoodie
+      - armor vest
+  clothing_material_or_color:
+    label: Clothing color / material
+    type: text
+    options:
+      - dark linen
+      - weathered leather
+      - charcoal wool
+      - bright cotton
+      - navy canvas
+      - silk brocade
+      - patched denim
+      - matte rubber
+
+server_style_presets:
+  border_color: "#6aa5ff"
+  glow_color: "#7cb1ff"
+  # Placeholder: if additional server-side-only style controls are specified,
+  # add them here and keep them hidden from the client UI.
