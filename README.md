@@ -1,17 +1,6 @@
 # tinyrooms
 
-A simple Python MUD-like environment with a browser-based client.
-
-## Overview
-
 `tinyrooms` is a small multiplayer text-world project built with Python, Flask, and Socket.IO. It combines a lightweight real-time server with a web client, persistent local user storage, and a YAML-driven world/action system.
-
-Players can:
-- register and log in from the browser
-- move between rooms in a small world
-- send chat and action messages in real time
-- interact through grouped action buttons
-- keep some user state persisted locally between sessions
 
 ## Features
 
@@ -45,18 +34,6 @@ Notable modules:
 - `tinyrooms/actions.py` — loads and executes YAML-defined actions
 - `tinyrooms/db.py` — DuckDB-backed user persistence
 
-## Requirements
-
-This project appears to rely on:
-- Python 3
-- Flask
-- Flask-SocketIO
-- DuckDB
-- PyYAML
-- Werkzeug
-
-If you do not already have a dependency file, install the required packages manually.
-
 ## Getting started
 
 ### 1. Clone the repository
@@ -69,32 +46,16 @@ cd tinyrooms
 ### 2. Create and activate a virtual environment
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-On Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+source ./.venv/Scripts/activate
 ```
 
 ### 3. Install dependencies
 
 ```bash
-pip install flask flask-socketio duckdb pyyaml werkzeug
+pip install -r requirements.txt
 ```
 
 ### 4. Start the server
-
-Run the server directly:
-
-```bash
-python trserver.py
-```
-
-Or use the helper script, which restarts the server when it exits with code `42`:
 
 ```bash
 bash start.sh
@@ -132,10 +93,6 @@ Related room and thing definitions are loaded from the world directory, includin
 - `data/worlds/home/rooms/rooms.yaml`
 - `data/worlds/home/things/things.yaml`
 
-### Actions
-
-Actions are defined in YAML under `data/actions/`. For example, the base `say` action is defined in `data/actions/actions.yaml`, while additional emotes and themed actions live in other YAML files.
-
 ## Development notes
 
 - `Ctrl-C` stops the server and saves connected user state.
@@ -169,15 +126,3 @@ The repository currently includes:
 - a default `home` world under `data/worlds/`
 - action packs in `data/actions/`
 
-## Suggested next improvements
-
-You may want to add:
-- a `requirements.txt` or `pyproject.toml`
-- screenshots or GIFs of the client
-- example world authoring documentation
-- deployment instructions
-- automated tests
-
-## License
-
-No license file is currently present in the repository. If you plan to share or reuse this project publicly, consider adding one.
