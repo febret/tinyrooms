@@ -143,6 +143,23 @@ Actions are defined in YAML under `data/actions/`. For example, the base `say` a
 - The app serves static client files from `app/`.
 - World assets can be served through `/world/<path>`.
 - Connected usernames can be listed with the `/connected` route.
+- Server bind host/port are configurable: `python trserver.py --host 127.0.0.1 --port 5000`.
+
+## Testing
+
+The repository includes integration tests under `tests/integration` that run against a live server process.
+
+```powershell
+python -m pytest
+```
+
+For character-editor-only contract coverage:
+
+```powershell
+python -m pytest -m char_editor
+```
+
+See `doc/testing.md` for details about isolation and runtime behavior.
 
 ## Current repository contents
 

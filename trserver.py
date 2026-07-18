@@ -37,9 +37,25 @@ def signal_handler_reboot(sig, frame):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tinyrooms server")
     parser.add_argument(
-        "--sprite-temp-dir",
+        "--char-temp-dir",
         default="",
         help="Temporary directory for character sprite generation jobs",
+    )
+    parser.add_argument(
+        "--sprite-temp-dir",
+        default="",
+        help="Deprecated alias for --char-temp-dir",
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host interface to bind (default: 0.0.0.0)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help="Port to bind (default: 5000)",
     )
     args = parser.parse_args()
 
@@ -48,7 +64,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGBREAK, signal_handler_reboot)  # Ctrl-\
     print("Signal handlers: Ctrl-C = kill, Ctrl-\\ = reload")
 
-    server.configure_char_editor(args.sprite_temp_dir or None)
+    temp_dir = args.char_temp_dir or args.sprite_temp_dir or None
+    server.configure_char_editor(temp_dir)
     
     # Initialize database
     db.init_db()
@@ -72,11 +89,11 @@ if __name__ == "__main__":
     console.start_console(console_vars)
     
     # Start the Flask-SocketIO server
-    print("Starting Flask-SocketIO server on http://0.0.0.0:5000")
+    print(f"Starting Flask-SocketIO server on http://{args.host}:{args.port}")
     print("Accepting connections on localhost and all network interfaces")
     
     try:
-        server.socketio.run(server.app, port=5000, host="0.0.0.0")
+        server.socketio.run(server.app, port=args.port, host=args.host)
     except KeyboardInterrupt:
         print("\n\nServer stopped by user")
     except Exception as e:
