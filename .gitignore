@@ -2,3 +2,4 @@
 __pycache__/
 *.duckdb
 doc/~$*
+data/users/***
