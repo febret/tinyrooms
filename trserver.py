@@ -2,6 +2,7 @@ import os
 import signal
 import sys
 import argparse
+import logging
 
 from flask_socketio import emit
 from tinyrooms import server, console, db, user, connection, actions, room, world
@@ -57,6 +58,11 @@ if __name__ == "__main__":
         default=5000,
         help="Port to bind (default: 5000)",
     )
+    parser.add_argument(
+        "--log-api",
+        action="store_true",
+        help="Log REST API requests to stderr",
+    )
     args = parser.parse_args()
 
     # Set up signal handlers
@@ -91,6 +97,10 @@ if __name__ == "__main__":
     # Start the Flask-SocketIO server
     print(f"Starting Flask-SocketIO server on http://{args.host}:{args.port}")
     print("Accepting connections on localhost and all network interfaces")
+
+    logging.getLogger("werkzeug").setLevel(
+        logging.INFO if args.log_api else logging.ERROR
+    )
     
     try:
         server.socketio.run(server.app, port=args.port, host=args.host)
