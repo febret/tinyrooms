@@ -105,7 +105,6 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
             prop_rows.append({
                 'prop_instance_id': prop.prop_instance_id,
                 'prop_id': prop.prop_id,
-                'info': dict(getattr(prop, 'info', {}) or {}),
                 'position': {
                     'x': int(getattr(prop, 'x', 0)),
                     'y': int(getattr(prop, 'y', 0)),
@@ -113,8 +112,6 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
                     'layer': int(getattr(prop, 'layer', 0)),
                     'z_order': int(getattr(prop, 'z_order', 0)),
                 },
-                'metadata': dict(getattr(prop, 'metadata', {}) or {}),
-                'display': dict(getattr(prop, '_display_assets', {}) or {}),
             })
         dbconn.execute(
             "INSERT OR REPLACE INTO rooms (id, owner_id, label_override, description_override, props) VALUES (?, ?, ?, ?, ?)",

@@ -53,6 +53,7 @@ The current palette is a fixed six-slot UI in `actionsPanel > actionPalette`.
 - Selecting `Create Thing` in the popup sends the selected icon + description to the server to create a new room object in the user's current room.
 - Created objects copy their sprite into persistent world-scoped object assets (`/object-assets/<world_id>/...`), and their generated thing definitions are persisted in `data/things/generated.yaml` so they can be restored by `thing_id` on later server sessions.
 - `Edit Room` enters room-edit mode (room owner only): foreground objects/characters are hidden locally, room props are outlined with inline rotate/delete controls, and a prop library is shown for adding new props.
+- Prop library definitions (including prop images) are loaded through REST (`GET /api/props/library`) and kept separate from `room-stage` room layout payloads.
 - `Save Room` from the editor writes the full room prop layout to world state storage and all users in the room receive an updated room stage.
 - Includes a `Back` button to return to main set.
 

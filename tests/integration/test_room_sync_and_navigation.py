@@ -14,7 +14,7 @@ def _go_to_playroom(client):
     assert header["room_id"] == "playroom"
 
 
-def test_initial_room_sync_contract(auth_socket_user):
+def test_initial_room_sync_contract(auth_socket_user, http_client):
     user = auth_socket_user(prefix="it_sync")
     client = user["client"]
 
@@ -28,13 +28,19 @@ def test_initial_room_sync_contract(auth_socket_user):
 
     assert stage["view"] == "room-stage"
     assert "stage" in stage and "props" in stage and "can_edit_props" in stage
-    assert "prop_library" in stage and isinstance(stage["prop_library"], list)
 
     assert obj["entity"]["entity_type"] in {"object", "peep"}
     assert "position" in obj["entity"]
 
     assert exits["view"] == "room-exits"
     assert isinstance(exits["exits"], list)
+
+    prop_library = http_client.get("/api/props/library", headers=user["headers"])
+    assert prop_library.status_code == 200, prop_library.text
+    payload = prop_library.json()
+    assert payload["ok"] is True
+    assert isinstance(payload["props"], list)
+    assert any(item.get("prop_id") == "floor_rug" for item in payload["props"])
 
 
 def test_navigation_chat_and_look_activity(auth_socket_user):

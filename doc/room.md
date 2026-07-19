@@ -59,15 +59,24 @@ Fields:
 - `room_id`
 - `stage`: `{ width, height, bounds, theme }`
 - `background`: room background image path
-- `props`: full prop list
+- `props`: full prop placement list
 - `can_edit_props`
 
 Each prop entry includes:
 - identifiers: `prop_instance_id`, `prop_id`
-- text: `label`, `description`
-- `display`: normalized `{ icon, img, sprite }`
 - `position`: `{ x, y, orientation, layer, z_order }`
-- `metadata` (currently passthrough from YAML)
+
+### `GET /api/props/library`
+Returns prop definitions and images separately from room-stage.
+
+Response fields:
+- `ok`
+- `world_id`
+- `props`: list of prop definitions where each entry includes:
+  - `prop_id`
+  - `label`, `description`
+  - `display`: normalized `{ icon, img, sprite }`
+  - `metadata`
 
 ### `update_view: room-object`
 Fields:
@@ -107,22 +116,17 @@ Room interactions use explicit socket events in `tinyrooms/connection.py`:
   - behavior: replaces the room prop set with the submitted list (supports add/remove/rotate/move in one save operation).
   - on success: persists props to world state DB and re-emits full `room-stage` to all room users.
 
-## Asset and Size Policy (implemented)
-Entity/prop display assets are normalized by `tinyrooms/icons.py`:
-- `icon` normalized to 32x32 (`_icon32`)
-- `sprite` normalized into 32..64 range (`_sprite64`)
-- `img` normalized to max 128 (`_img128`)
 
 Fallback resolution:
 - `img` is required canonical source.
 - `icon` falls back to `sprite`, then `img`.
 - `sprite` falls back to `img`, then `icon`.
 
-## Persistence Model (implemented)
+## Persistence Model
 World state persistence is additive and migration-safe in `tinyrooms/db.py`:
 - objects table includes transform fields: `x`, `y`, `orientation`, `layer`, `z_order`
-- room props persisted in `room_props` table with display refs and transform fields
-- props are defined from YAML (`data/worlds/home/props/props.yaml`) and runtime positions are restored from DB when available
+- room `props` column stores prop identity + placement only (`prop_instance_id`, `prop_id`, `position`)
+- props are defined from YAML (`data/worlds/home/props/props.yaml` and `data/props/*.yaml`) and runtime positions are restored from DB when available
 
 User spawn persistence is handled in `data/users.duckdb`:
 - users table stores `last_world_id`, `last_room_id`, `last_x`, `last_y`

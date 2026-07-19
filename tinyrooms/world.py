@@ -69,6 +69,34 @@ class World:
             db.write_object_data(wsdb, self.objs)
 
 
+def serialize_prop_library(world: World) -> list[dict]:
+    serialized = []
+    for prop_id, prop_info in sorted(world.prop_defs.items()):
+        info = dict(prop_info or {})
+        serialized.append({
+            'prop_id': prop_id,
+            'label': info.get('label', prop_id),
+            'description': info.get('description', ''),
+            'display': icon_module.build_display_assets(info, world.root_path),
+            'metadata': dict(info.get('metadata', {}) or {}),
+        })
+    return serialized
+
+
+def _apply_saved_prop_position(merged_info: dict, prop_state: dict) -> None:
+    assigned: set[str] = set()
+    position = prop_state.get('position')
+    if isinstance(position, dict):
+        for key in ("x", "y", "orientation", "layer", "z_order"):
+            if key in position:
+                merged_info[key] = position[key]
+                assigned.add(key)
+
+    for key in ("x", "y", "orientation", "layer", "z_order"):
+        if key in prop_state:
+            merged_info[key] = prop_state[key]
+            assigned.add(key)
+
 def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> World:
     """Load world definitions from YAML file or directory."""
     if yaml_path is None:
@@ -98,7 +126,12 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
             print(f"Warning: generated thing id '{generated_id}' overrides world thing definition.")
         thing_defs[generated_id] = generated_info
     props_dir = root_path / "props"
-    prop_defs = load_defs(props_dir) if props_dir.exists() else {}
+    shared_props_dir = Path(__file__).parent.parent / "data" / "props"
+    prop_defs = {}
+    if shared_props_dir.exists():
+        prop_defs.update(load_defs(shared_props_dir))
+    if props_dir.exists():
+        prop_defs.update(load_defs(props_dir))
     
     rooms = {}
     ways = {}
@@ -154,22 +187,8 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
                             continue
                         prop_instance_id = prop_state.get('prop_instance_id') or f"{rid}-{prop_id}-{idx}"
                         base_info = prop_defs.get(prop_id, {})
-                        saved_info = prop_state.get('info')
-                        merged = {**base_info, **(saved_info if isinstance(saved_info, dict) else {})}
-                        saved_display = prop_state.get('display')
-                        if isinstance(saved_display, dict):
-                            for key in ("img", "sprite", "icon"):
-                                value = saved_display.get(key)
-                                if value:
-                                    merged[key] = value
-                        saved_metadata = prop_state.get('metadata')
-                        if isinstance(saved_metadata, dict):
-                            merged['metadata'] = saved_metadata
-                        saved_position = prop_state.get('position')
-                        if isinstance(saved_position, dict):
-                            for key in ("x", "y", "orientation", "layer", "z_order"):
-                                if key in saved_position:
-                                    merged[key] = saved_position[key]
+                        merged = dict(base_info)
+                        _apply_saved_prop_position(merged, prop_state)
                         prop = Prop(prop_instance_id, prop_id, merged, rid)
                         room.props[prop.prop_instance_id] = prop
                 room.initialized = True

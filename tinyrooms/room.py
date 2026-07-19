@@ -6,7 +6,7 @@ from .user import User
 class Room:
     # update_view payload contract:
     # - header: room metadata and owner capabilities
-    # - room-stage: stage metadata, background, and full prop list
+    # - room-stage: stage metadata, background, and full prop transform list
     # - room-object: per-entity upsert/remove deltas for peeps/objects
     # - room-exits: normalized room exit button definitions
     def __init__(self, room_id, info, owner_id: str = ''):
@@ -103,9 +103,6 @@ class Room:
 
     def send_room_stage_view(self, user: User):
         stage_meta = self.info.get('stage', {})
-        from .world import active_world
-
-        world = active_world()
         emit('update_view', {
             'view': 'room-stage',
             'room_id': self.room_id,
@@ -117,7 +114,6 @@ class Room:
             },
             'background': self.info.get('image') or self.info.get('img', ''),
             'props': [self._serialize_prop(prop) for prop in self.props.values()],
-            'prop_library': [self._serialize_prop_def(prop_id, prop_info, world.root_path) for prop_id, prop_info in sorted(world.prop_defs.items())],
             'can_edit_props': self.can_user_edit_props(user),
         }, to=user.sid, namespace='/')
 
@@ -152,9 +148,6 @@ class Room:
         return {
             'prop_instance_id': prop.prop_instance_id,
             'prop_id': prop.prop_id,
-            'label': prop.label(),
-            'description': prop.description(),
-            'display': dict(getattr(prop, '_display_assets', {}) or {}),
             'position': {
                 'x': prop.x,
                 'y': prop.y,
@@ -162,7 +155,6 @@ class Room:
                 'layer': prop.layer,
                 'z_order': prop.z_order,
             },
-            'metadata': dict(prop.metadata),
         }
 
     def _serialize_foreground_entity(self, entity, entity_type='object', owner_username='', is_self=False):
@@ -185,20 +177,6 @@ class Room:
             },
             'is_self': bool(is_self),
         }
-
-    def _serialize_prop_def(self, prop_id: str, prop_info: dict, world_root_path):
-        from .icons import build_display_assets
-
-        info = dict(prop_info or {})
-        display = build_display_assets(info, world_root_path)
-        return {
-            'prop_id': prop_id,
-            'label': info.get('label', prop_id),
-            'description': info.get('description', ''),
-            'display': display,
-            'metadata': dict(info.get('metadata', {}) or {}),
-        }
-
 
 class Way:
     def __init__(self, way_id, info):

@@ -11,7 +11,7 @@ from flask_socketio import SocketIO
 from . import char_data, char_editor, db, object_editor, user
 from .icons import DEFAULT_USER_ASSETS
 from .object import Object
-from .world import active_world, save_generated_thing_def
+from .world import active_world, save_generated_thing_def, serialize_prop_library
 
 
 STATIC_FOLDER = Path(__file__).parent.parent / "app"
@@ -289,6 +289,16 @@ def list_connected():
     # Extract usernames from User instances
     usernames = [u.username for u in user.connected_users.values()]
     return jsonify({"connected": usernames})
+
+
+@app.route("/api/props/library")
+def props_library():
+    try:
+        _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    world = active_world()
+    return jsonify({"ok": True, "world_id": world.ws_id, "props": serialize_prop_library(world)})
 
 
 @app.route("/api/char-editor/profile")
