@@ -63,3 +63,6 @@ server_style_presets:
   glow_color: "#7cb1ff"
   # Placeholder: if additional server-side-only style controls are specified,
   # add them here and keep them hidden from the client UI.
+
+# Supported values: png, svg
+sprite_output_format: png
