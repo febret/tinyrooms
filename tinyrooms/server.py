@@ -46,12 +46,12 @@ def configure_char_editor(temp_root: Path | None = None):
     if _char_editor_service is not None:
         _char_editor_service.stop()
     config_path = Path(__file__).parent.parent / "data" / "ui" / "char-editor.yaml"
-    make_sprite_script = Path(__file__).parent.parent / "tools" / "make-sprite"
+    make_image_script = Path(__file__).parent.parent / "tools" / "make-image"
     temp_dir = Path(temp_root) if temp_root else _default_temp_root()
     temp_dir.mkdir(parents=True, exist_ok=True)
     _char_editor_service = char_editor.CharacterEditorService(
         config_path=config_path,
-        make_sprite_script=make_sprite_script,
+        make_image_script=make_image_script,
         temp_root=temp_dir,
     )
     print(f"char-editor: service ready (temp_root={temp_dir})")
@@ -62,12 +62,12 @@ def configure_object_editor(temp_root: Path | None = None):
     if _object_editor_service is not None:
         _object_editor_service.stop()
     config_path = Path(__file__).parent.parent / "data" / "ui" / "object-editor.yaml"
-    make_icon_script = Path(__file__).parent.parent / "tools" / "make-icon"
+    make_image_script = Path(__file__).parent.parent / "tools" / "make-image"
     temp_dir = Path(temp_root) if temp_root else _default_object_temp_root()
     temp_dir.mkdir(parents=True, exist_ok=True)
     _object_editor_service = object_editor.ObjectEditorService(
         config_path=config_path,
-        make_icon_script=make_icon_script,
+        make_image_script=make_image_script,
         temp_root=temp_dir,
     )
     print(f"object-editor: service ready (temp_root={temp_dir})")
@@ -203,7 +203,7 @@ def _create_object_in_user_room(username: str, info: dict) -> tuple[Object, dict
     obj.layer = 0
     obj.z_order = room.next_z()
     display_img = info.get("sprite") or info.get("img") or info.get("icon")
-    obj._display_assets = {
+    obj._display_assets = { # type: ignore
         "icon": display_img,
         "img": display_img,
         "sprite": display_img,

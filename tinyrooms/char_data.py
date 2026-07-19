@@ -9,7 +9,7 @@ import yaml
 
 DATA_ROOT = Path(__file__).parent.parent / "data"
 USERS_ROOT = DATA_ROOT / "users"
-SUPPORTED_SPRITE_EXTENSIONS = (".png", ".gif", ".svg")
+SUPPORTED_SPRITE_EXTENSIONS = (".png", ".gif")
 
 
 def _now_iso() -> str:

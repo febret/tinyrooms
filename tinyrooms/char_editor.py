@@ -23,7 +23,7 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _worker_main(task_queue, result_queue, stop_event, make_sprite_script: str):
+def _worker_main(task_queue, result_queue, stop_event, make_image_script: str):
     while not stop_event.is_set():
         try:
             task = task_queue.get(timeout=0.25)
@@ -35,8 +35,10 @@ def _worker_main(task_queue, result_queue, stop_event, make_sprite_script: str):
         output_path = task["temp_output"]
         cmd = [
             sys.executable,
-            make_sprite_script,
+            make_image_script,
             output_path,
+            "--size",
+            "64x128",
             "--descriptors-json",
             json.dumps(task["descriptors"]),
             "--border-color",
@@ -44,8 +46,6 @@ def _worker_main(task_queue, result_queue, stop_event, make_sprite_script: str):
             "--glow-color",
             task["glow_color"],
         ]
-        if task.get("output_format") == "svg":
-            cmd.append("--svg")
         captured_lines: list[str] = []
         try:
             proc = subprocess.Popen(
@@ -62,19 +62,19 @@ def _worker_main(task_queue, result_queue, stop_event, make_sprite_script: str):
             for raw_line in proc.stdout:
                 line = raw_line.rstrip("\n")
                 captured_lines.append(line)
-                print(f"[make-sprite:{request_id}] {line}", flush=True)
+                print(f"[make-image:sprite:{request_id}] {line}", flush=True)
         return_code = proc.wait()
         if return_code != 0:
-            err = "\n".join(captured_lines).strip() or "make-sprite failed"
+            err = "\n".join(captured_lines).strip() or "make-image sprite failed"
             result_queue.put({"request_id": request_id, "ok": False, "error": err})
             continue
         result_queue.put({"request_id": request_id, "ok": True, "temp_output": output_path})
 
 
 class CharacterEditorService:
-    def __init__(self, config_path: Path, make_sprite_script: Path, temp_root: Path):
+    def __init__(self, config_path: Path, make_image_script: Path, temp_root: Path):
         self._config_path = Path(config_path)
-        self._make_sprite_script = Path(make_sprite_script)
+        self._make_image_script = Path(make_image_script)
         self._temp_root = Path(temp_root)
         self._config = self._load_config()
         self._appearance_defaults = self._build_appearance_defaults()
@@ -90,7 +90,7 @@ class CharacterEditorService:
         self._stop_event = multiprocessing.Event()
         self._worker = multiprocessing.Process(
             target=_worker_main,
-            args=(self._task_queue, self._result_queue, self._stop_event, str(self._make_sprite_script)),
+            args=(self._task_queue, self._result_queue, self._stop_event, str(self._make_image_script)),
             daemon=True,
             name="tinyrooms-char-editor-worker",
         )
@@ -305,10 +305,6 @@ class CharacterEditorService:
         req["queue"] = self.queue_summary(username)
         return req
 
-    def _sprite_output_format(self) -> str:
-        configured = str(self._config.get("sprite_output_format", "png")).strip().lower()
-        return "svg" if configured == "svg" else "png"
-
     def _items_ahead_locked(self, request_id: str) -> int:
         req = self._requests.get(request_id)
         if req is None:
@@ -359,8 +355,7 @@ class CharacterEditorService:
             req["status"] = "running"
             req["updated_at"] = _utc_now()
             req["started_at"] = _utc_now()
-            output_format = self._sprite_output_format()
-            temp_path = self._temp_root / f"{req_id}.{output_format}"
+            temp_path = self._temp_root / f"{req_id}.png"
             temp_path.parent.mkdir(parents=True, exist_ok=True)
             req["temp_output"] = str(temp_path)
             style = self._config.get("server_style_presets", {})
@@ -371,7 +366,6 @@ class CharacterEditorService:
                     "temp_output": str(temp_path),
                     "border_color": str(style.get("border_color", "#6aa5ff")),
                     "glow_color": str(style.get("glow_color", "#5a94ff")),
-                    "output_format": output_format,
                 }
             )
             self._running_request_id = req_id
@@ -418,11 +412,11 @@ class CharacterEditorService:
 
             _, sprites_dir, _ = char_data.ensure_user_paths(username)
             ext = temp_output.suffix.lower()
-            if ext not in {".png", ".svg"}:
+            if ext != ".png":
                 req["status"] = "failed"
                 req["updated_at"] = _utc_now()
                 req["finished_at"] = _utc_now()
-                req["error"] = f"unsupported sprite output format: {ext}"
+                req["error"] = "sprite output must be png"
                 self._active_by_user.pop(username, None)
                 self._dispatch_next_locked()
                 return

@@ -34,7 +34,7 @@ tests/
 The test harness copies the repository into a temporary workspace per session and starts `trserver.py` from that copied root.
 
 - This keeps local `data/*.duckdb` and `data/users/*` state untouched.
-- A lightweight test stub replaces `tools/make-sprite` inside the copied workspace so char-editor contract tests run quickly without ML runtime dependencies.
+- A lightweight test stub replaces `tools/make-image` inside the copied workspace so char-editor and object-editor contract tests run quickly without ML runtime dependencies.
 - The copied world config sets the `playroom` owner to a dedicated integration owner account for deterministic permission tests.
 
 ## Running Tests

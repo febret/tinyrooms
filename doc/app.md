@@ -51,7 +51,7 @@ The current palette is a fixed six-slot UI in `actionsPanel > actionPalette`.
 - `Create Thing` opens a popup that lets the user describe an object and generate up to 4 icon candidates.
 - Icon generation is queued on the server (same queue/polling style as Character Editor) and each finished icon can be selected or discarded.
 - Selecting `Create Thing` in the popup sends the selected icon + description to the server to create a new room object in the user's current room.
-- Created objects copy their sprite into persistent world-scoped object assets (`/object-assets/<world_id>/...`) and are restored on later server sessions.
+- Created objects copy their sprite into persistent world-scoped object assets (`/object-assets/<world_id>/...`), and their generated thing definitions are persisted in `data/things/generated.yaml` so they can be restored by `thing_id` on later server sessions.
 - `Edit Room` enters room-edit mode (room owner only): foreground objects/characters are hidden locally, room props are outlined with inline rotate/delete controls, and a prop library is shown for adding new props.
 - `Save Room` from the editor writes the full room prop layout to world state storage and all users in the room receive an updated room stage.
 - Includes a `Back` button to return to main set.

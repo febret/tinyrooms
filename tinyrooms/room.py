@@ -43,8 +43,8 @@ class Room:
         return self.is_owner(actor)
 
     def can_user_edit_props(self, actor: User):
-        return True
-        #return self.is_owner(actor)
+        # return True
+        return self.is_owner(actor)
 
     def next_z(self):
         self._z_counter += 1

@@ -74,7 +74,7 @@ def list_user_icons(username: str) -> list[dict[str, str]]:
     return out
 
 
-def _worker_main(task_queue, result_queue, stop_event, make_icon_script: str):
+def _worker_main(task_queue, result_queue, stop_event, make_image_script: str):
     while not stop_event.is_set():
         try:
             task = task_queue.get(timeout=0.25)
@@ -86,8 +86,11 @@ def _worker_main(task_queue, result_queue, stop_event, make_icon_script: str):
         output_path = task["temp_output"]
         cmd = [
             sys.executable,
-            make_icon_script,
+            make_image_script,
             output_path,
+            "--size",
+            "64x64",
+            "--description",
             task["description"],
         ]
         style = str(task.get("style", "")).strip()
@@ -109,19 +112,19 @@ def _worker_main(task_queue, result_queue, stop_event, make_icon_script: str):
             for raw_line in proc.stdout:
                 line = raw_line.rstrip("\n")
                 captured_lines.append(line)
-                print(f"[make-icon:{request_id}] {line}", flush=True)
+                print(f"[make-image:icon:{request_id}] {line}", flush=True)
         return_code = proc.wait()
         if return_code != 0:
-            err = "\n".join(captured_lines).strip() or "make-icon failed"
+            err = "\n".join(captured_lines).strip() or "make-image icon failed"
             result_queue.put({"request_id": request_id, "ok": False, "error": err})
             continue
         result_queue.put({"request_id": request_id, "ok": True, "temp_output": output_path})
 
 
 class ObjectEditorService:
-    def __init__(self, config_path: Path, make_icon_script: Path, temp_root: Path):
+    def __init__(self, config_path: Path, make_image_script: Path, temp_root: Path):
         self._config_path = Path(config_path)
-        self._make_icon_script = Path(make_icon_script)
+        self._make_image_script = Path(make_image_script)
         self._temp_root = Path(temp_root)
         self._config = self._load_config()
 
@@ -136,7 +139,7 @@ class ObjectEditorService:
         self._stop_event = multiprocessing.Event()
         self._worker = multiprocessing.Process(
             target=_worker_main,
-            args=(self._task_queue, self._result_queue, self._stop_event, str(self._make_icon_script)),
+            args=(self._task_queue, self._result_queue, self._stop_event, str(self._make_image_script)),
             daemon=True,
             name="tinyrooms-object-editor-worker",
         )

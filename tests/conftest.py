@@ -101,8 +101,8 @@ class SocketCaptureClient:
             return out
 
 
-def _write_stub_make_sprite(workspace: Path):
-    script_path = workspace / "tools" / "make-sprite"
+def _write_stub_make_image(workspace: Path):
+    script_path = workspace / "tools" / "make-image"
     script = """#!/usr/bin/env python3
 import argparse
 import base64
@@ -114,52 +114,28 @@ PNG_1X1 = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lE
 
 parser = argparse.ArgumentParser()
 parser.add_argument("output_path")
-parser.add_argument("--descriptors-json", default="{}")
-parser.add_argument("--border-color", default="#6aa5ff")
-parser.add_argument("--glow-color", default="#7cb1ff")
-parser.add_argument("--svg", action="store_true")
-args = parser.parse_args()
-
-descriptors = json.loads(args.descriptors_json or "{}")
-if not isinstance(descriptors, dict):
-    raise SystemExit("descriptors must be an object")
-
-time.sleep(0.75)
-out = pathlib.Path(args.output_path)
-out.parent.mkdir(parents=True, exist_ok=True)
-if args.svg:
-    out.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1" fill="#88aaff"/></svg>', encoding="utf-8")
-else:
-    out.write_bytes(PNG_1X1)
-print(f"stub make-sprite wrote {out}")
-"""
-    script_path.write_text(script, encoding="utf-8")
-
-
-def _write_stub_make_icon(workspace: Path):
-    script_path = workspace / "tools" / "make-icon"
-    script = """#!/usr/bin/env python3
-import argparse
-import base64
-import pathlib
-import time
-
-PNG_1X1 = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7g2k0AAAAASUVORK5CYII=")
-
-parser = argparse.ArgumentParser()
-parser.add_argument("output_path")
-parser.add_argument("description")
+parser.add_argument("--size", default="64x64")
+parser.add_argument("--description", default="")
+parser.add_argument("--descriptors-json", default="")
 parser.add_argument("--style", default="")
+parser.add_argument("--border-color", default="")
+parser.add_argument("--glow-color", default="")
+
 args = parser.parse_args()
-
-if not str(args.description).strip():
-    raise SystemExit("description is required")
-
-time.sleep(0.5)
 out = pathlib.Path(args.output_path)
 out.parent.mkdir(parents=True, exist_ok=True)
+
+descriptors = {}
+if args.descriptors_json:
+    descriptors = json.loads(args.descriptors_json)
+    if not isinstance(descriptors, dict):
+        raise SystemExit("descriptors must be an object")
+if not str(args.description).strip() and not descriptors:
+    raise SystemExit("description or descriptors are required")
+
+time.sleep(0.6)
 out.write_bytes(PNG_1X1)
-print(f"stub make-icon wrote {out}")
+print(f"stub make-image wrote {out} ({args.size})")
 """
     script_path.write_text(script, encoding="utf-8")
 
@@ -173,8 +149,7 @@ def _prepare_isolated_workspace(workspace: Path):
         playroom["owner_id"] = TEST_OWNER_USERNAME
     with rooms_path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(rooms, handle, sort_keys=False)
-    _write_stub_make_sprite(workspace)
-    _write_stub_make_icon(workspace)
+    _write_stub_make_image(workspace)
 
 
 def _wait_for_server(base_url: str, timeout_seconds: float = 20.0):
