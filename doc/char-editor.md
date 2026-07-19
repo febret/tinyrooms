@@ -35,7 +35,7 @@ Server-side style presets (hidden from user UI) are also defined in this YAML.
 Per-user character data is stored in filesystem paths:
 
 - `data/users/<username>/char.yaml`
-- `data/users/<username>/sprites/*.png`
+- `data/users/<username>/sprites/*.(png|gif|svg)`
 - `data/users/<username>/tmp/` (reserved temp folder)
 
 `char.yaml` is treated as source of truth for appearance + selected sprite and is regenerated when character properties change.
@@ -66,7 +66,8 @@ Features:
 - generate at high resolution and fit to **64x128**
 - background-removal post-process step
 - optional border/glow post-effects
-- PNG with alpha output
+- PNG output by default, optional SVG output (`sprite_output_format: png|svg` in `data/ui/char-editor.yaml`)
+- SVG generation uses a text-to-SVG model and enforces pure vector markup (no embedded raster images)
 - explicit non-zero exit on failure
 
 ## Queue and Worker Architecture
@@ -157,3 +158,9 @@ The following remain intentionally minimal/placeholder pending further spec deta
 - advanced style controls beyond hidden border/glow presets
 - persistence of generation request state across full server restarts
 - richer queue UX metrics beyond current queue/running/items-ahead fields
+
+## Integration Test Coverage
+
+Character-editor API contracts are exercised in `tests/integration/test_char_editor_api.py` against a real running tinyrooms server.
+
+To keep these tests fast and deterministic, the integration harness runs the server in an isolated copied workspace and swaps `tools/make-sprite` with a lightweight test stub in that copied workspace only.
