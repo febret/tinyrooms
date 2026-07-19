@@ -1,9 +1,17 @@
 from . import char_data, db, peep
 from .icons import DEFAULT_USER_ASSETS
 
+
+def _coerce_int(value, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 class User:
     """Represents a connected user."""
-    def __init__(self, username, sid, world):
+    def __init__(self, username, sid, world, persisted_state=None):
         self.username = username
         self.sid = sid
         self.label = f"[[@{username}[[#d33 {username}]]]]"
@@ -17,7 +25,7 @@ class User:
         self.styles_stale = False
         self.skin_stale = True
         self.skin = "base"
-        self.join_world(world)
+        self.join_world(world, persisted_state=persisted_state)
     
     def __repr__(self):
         return f"User(username={self.username!r}, sid={self.sid!r})"
@@ -38,14 +46,31 @@ class User:
         }
     
     def load(self):
-        user_data = db.get_user(self.username)
-        if user_data:
-            _, _, self.skin = user_data
+        user_state = db.user_row_to_state(db.get_user(self.username))
+        if user_state:
+            self.skin = user_state["skin"]
     
-    def join_world(self, world):
-        """Join the given world, placing the user in the default room."""
+    def join_world(self, world, persisted_state=None):
+        """Join the given world, restoring room/position when available."""
         self.world = world
         self.room = world.default_room
+        persisted_world_id = ""
+        persisted_room_id = ""
+        persisted_x = self.peep.x
+        persisted_y = self.peep.y
+        if isinstance(persisted_state, dict):
+            persisted_world_id = str(persisted_state.get("last_world_id") or "")
+            persisted_room_id = str(persisted_state.get("last_room_id") or "")
+            persisted_x = _coerce_int(persisted_state.get("last_x"), self.peep.x)
+            persisted_y = _coerce_int(persisted_state.get("last_y"), self.peep.y)
+
+        target_room = world.default_room
+        if persisted_world_id == getattr(world, "ws_id", "") and persisted_room_id in world.rooms:
+            target_room = world.rooms[persisted_room_id]
+
+        self.peep.x = persisted_x
+        self.peep.y = persisted_y
+        self.room = target_room
         self.world.peeps[self.peep.peep_id] = self.peep
         self.peep.inventory = {}
         if self.room:

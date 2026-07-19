@@ -62,7 +62,13 @@ def handle_login(data):
         emit("login_failed", {"error": "invalid credentials"})
         return
 
-    _, password_hash, saved_skin = user_row
+    user_state = db.user_row_to_state(user_row)
+    if user_state is None:
+        emit("login_failed", {"error": "invalid credentials"})
+        return
+
+    password_hash = user_state["password_hash"]
+    saved_skin = user_state["skin"]
     if check_password_hash(password_hash, password):
         # Check if user is already logged in
         if any(u.username == username for u in user.connected_users.values()):
@@ -71,17 +77,18 @@ def handle_login(data):
             return
         
         # Create User instance and store it
-        user_obj = user.User(username, sid, active_world())
+        user_obj = user.User(username, sid, active_world(), persisted_state=user_state)
         user_obj.rest_token = secrets.token_urlsafe(24)
         # Load saved skin from database
         user_obj.skin = saved_skin or 'base'
         user_obj.skin_stale = True
         user.connected_users[sid] = user_obj
         session["username"] = username
+        db.save_user_state(user_obj)
         
         emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
         
-        print(f"login success: {username} (sid={sid}) - added to default room")
+        print(f"login success: {username} (sid={sid}) - added to room {user_obj.room.room_id if user_obj.room else None}")
     else:
         emit("login_failed", {"error": "invalid credentials"})
 

@@ -10,7 +10,7 @@ from .user import User, connected_users
 from .room import Room
 from .world import active_world
 from .utils import load_defs
-from . import text
+from . import text, db
 
 action_defs = dict()
 
@@ -76,6 +76,7 @@ def do_action(action: str, msg: ParsedMessage, user: User, room: Room):
             next_room = active_world().rooms[to]
             user.room.remove_user(user) # type: ignore
             next_room.add_user(user)
+            db.save_user_state(user)
             emit("message", {"text": f"You go {way.label}."}, to=user.sid)
             emit("message", {"text": f"{user.label} leaves {way.label}."}, room=room.room_id, skip_sid=user.sid)  # type: ignore
             emit("message", {"text": f"{user.label} arrives from {room.label()}."}, room=next_room.room_id, skip_sid=user.sid)  # type: ignore
