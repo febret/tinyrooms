@@ -10,6 +10,32 @@ from .utils import load_defs
 from . import db, icons as icon_module
 
 
+def generated_things_dir() -> Path:
+    return Path(__file__).parent.parent / "data" / "things"
+
+
+def load_generated_thing_defs() -> dict:
+    gdir = generated_things_dir()
+    if not gdir.exists():
+        return {}
+    return load_defs(gdir)
+
+
+def save_generated_thing_def(thing_id: str, thing_info: dict) -> None:
+    target_dir = generated_things_dir()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_file = target_dir / "generated.yaml"
+    current_defs = {}
+    if target_file.exists():
+        with open(target_file, 'r', encoding='utf-8') as handle:
+            loaded = yaml.safe_load(handle)
+        if isinstance(loaded, dict):
+            current_defs = loaded
+    current_defs[thing_id] = dict(thing_info or {})
+    with open(target_file, 'w', encoding='utf-8') as handle:
+        yaml.safe_dump(current_defs, handle, sort_keys=False, allow_unicode=True)
+
+
 class World:
     def __init__(
         self,
@@ -66,6 +92,11 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
         id_key_func=lambda key, value: f"{value['place']}.{key}" if 'place' in value else key
     )
     thing_defs = load_defs(root_path / "things")
+    generated_thing_defs = load_generated_thing_defs()
+    for generated_id, generated_info in generated_thing_defs.items():
+        if generated_id in thing_defs:
+            print(f"Warning: generated thing id '{generated_id}' overrides world thing definition.")
+        thing_defs[generated_id] = generated_info
     props_dir = root_path / "props"
     prop_defs = load_defs(props_dir) if props_dir.exists() else {}
     
@@ -180,9 +211,9 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
         for oid, odata in object_data.items():
             thing_id = odata['thing_id']
             location_id = odata['location_id']
-            if thing_id in thing_defs:
-                thing_def = thing_defs[thing_id]
-                obj = Object(oid, thing_id, thing_def, location_id, odata.get('owner_id'))
+            base_thing_def = thing_defs.get(thing_id)
+            if base_thing_def is not None:
+                obj = Object(oid, thing_id, dict(base_thing_def), location_id, odata.get('owner_id'))
                 if odata.get('label_override'):
                     obj.label_override = odata['label_override']
                 if odata.get('description_override'):

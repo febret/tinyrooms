@@ -79,7 +79,32 @@
     </div>
   </div>
 
+  <div id="objectCreatorPage" style="display:none;">
+    <div class="character-editor-card">
+      <div class="character-editor-header">
+        <h3>Create Thing</h3>
+        <button id="btnObjectCreatorClose">✕</button>
+      </div>
+      <div id="objectCreatorError" class="character-editor-error"></div>
+      <div class="character-descriptor">
+        <div class="character-descriptor-label">Object description</div>
+        <textarea id="objectCreatorDescription" rows="3" maxlength="280" placeholder="Describe the object you want to create..."></textarea>
+      </div>
+      <div class="character-editor-actions">
+        <button id="btnObjectCreatorRoll">Generate (up to 4)</button>
+        <button id="btnObjectCreatorCancelRoll">Cancel Active</button>
+        <button id="btnObjectCreatorCreate">Create Thing</button>
+      </div>
+      <div id="objectCreatorQueue" class="character-editor-queue"></div>
+      <div id="objectCreatorSlots" class="character-editor-slots object-creator-slots"></div>
+      <div class="character-editor-footer">
+        <button id="btnObjectCreatorDone">Done</button>
+      </div>
+    </div>
+  </div>
+
 <script src="/app/charEditor.js"></script>
+<script src="/app/objectEditor.js"></script>
 <script src="/app/client.js"></script>
 <script src="/app/sound.js"></script>
 <script src="/app/text.js"></script>

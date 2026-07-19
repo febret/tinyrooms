@@ -1,4 +1,8 @@
 import pytest
+import json
+from pathlib import Path
+
+import duckdb
 
 
 pytestmark = pytest.mark.integration
@@ -15,7 +19,8 @@ def _go_to_playroom(client):
 
 def test_room_interaction_permissions_and_broadcasts(
     owner_account,
-    register_user,
+    http_client,
+    server_runtime,
     socket_client_factory,
     login_socket_user,
     unique_username,
@@ -26,9 +31,15 @@ def test_room_interaction_permissions_and_broadcasts(
     login_socket_user(owner_client, owner_username, owner_password)
     _go_to_playroom(owner_client)
 
-    user_name = unique_username("it_guest")
     user_password = "guest_password"
-    register_user(user_name, user_password)
+    user_name = ""
+    for _ in range(6):
+        candidate = unique_username("it_guest")
+        response = http_client.post("/register", json={"username": candidate, "password": user_password})
+        if response.status_code == 201:
+            user_name = candidate
+            break
+    assert user_name
     guest_client = socket_client_factory()
     login_socket_user(guest_client, user_name, user_password)
     _go_to_playroom(guest_client)
@@ -132,3 +143,51 @@ def test_room_interaction_permissions_and_broadcasts(
         timeout=8.0,
     )
     assert "only room owner" in permission_err["error"]
+
+    owner_client.emit(
+        "room_save_props",
+        {
+            "props": [
+                {
+                    "prop_instance_id": "playroom-standing_lamp-1",
+                    "prop_id": "standing_lamp",
+                    "x": 201,
+                    "y": 222,
+                    "orientation": "right",
+                },
+                {
+                    "prop_id": "wall_clock",
+                    "x": 55,
+                    "y": 66,
+                    "orientation": "back",
+                },
+            ]
+        },
+    )
+    owner_saved_stage = owner_client.wait_for(
+        "update_view",
+        predicate=lambda p: p.get("view") == "room-stage"
+        and any(prop.get("prop_id") == "wall_clock" for prop in p.get("props", [])),
+        timeout=8.0,
+    )
+    guest_saved_stage = guest_client.wait_for(
+        "update_view",
+        predicate=lambda p: p.get("view") == "room-stage"
+        and any(prop.get("prop_id") == "wall_clock" for prop in p.get("props", [])),
+        timeout=8.0,
+    )
+    owner_prop_ids = {prop["prop_id"] for prop in owner_saved_stage["props"]}
+    guest_prop_ids = {prop["prop_id"] for prop in guest_saved_stage["props"]}
+    assert "wall_clock" in owner_prop_ids
+    assert "wall_clock" in guest_prop_ids
+    assert "floor_rug" not in owner_prop_ids
+    assert "floor_rug" not in guest_prop_ids
+
+    worldstate_path = Path(server_runtime.workspace) / "data" / "worldstate_home.duckdb"
+    with duckdb.connect(str(worldstate_path), read_only=True) as wsdb:
+        row = wsdb.execute("SELECT props FROM rooms WHERE id = ?", ("playroom",)).fetchone()
+    assert row is not None
+    persisted_props = json.loads(row[0])
+    persisted_prop_ids = {entry["prop_id"] for entry in persisted_props}
+    assert "wall_clock" in persisted_prop_ids
+    assert "floor_rug" not in persisted_prop_ids

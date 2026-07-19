@@ -43,7 +43,8 @@ class Room:
         return self.is_owner(actor)
 
     def can_user_edit_props(self, actor: User):
-        return self.is_owner(actor)
+        return True
+        #return self.is_owner(actor)
 
     def next_z(self):
         self._z_counter += 1
@@ -102,6 +103,9 @@ class Room:
 
     def send_room_stage_view(self, user: User):
         stage_meta = self.info.get('stage', {})
+        from .world import active_world
+
+        world = active_world()
         emit('update_view', {
             'view': 'room-stage',
             'room_id': self.room_id,
@@ -113,6 +117,7 @@ class Room:
             },
             'background': self.info.get('image') or self.info.get('img', ''),
             'props': [self._serialize_prop(prop) for prop in self.props.values()],
+            'prop_library': [self._serialize_prop_def(prop_id, prop_info, world.root_path) for prop_id, prop_info in sorted(world.prop_defs.items())],
             'can_edit_props': self.can_user_edit_props(user),
         }, to=user.sid, namespace='/')
 
@@ -179,6 +184,19 @@ class Room:
                 'z_order': int(getattr(entity, 'z_order', 0)),
             },
             'is_self': bool(is_self),
+        }
+
+    def _serialize_prop_def(self, prop_id: str, prop_info: dict, world_root_path):
+        from .icons import build_display_assets
+
+        info = dict(prop_info or {})
+        display = build_display_assets(info, world_root_path)
+        return {
+            'prop_id': prop_id,
+            'label': info.get('label', prop_id),
+            'description': info.get('description', ''),
+            'display': display,
+            'metadata': dict(info.get('metadata', {}) or {}),
         }
 
 

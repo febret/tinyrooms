@@ -28,6 +28,7 @@ def test_initial_room_sync_contract(auth_socket_user):
 
     assert stage["view"] == "room-stage"
     assert "stage" in stage and "props" in stage and "can_edit_props" in stage
+    assert "prop_library" in stage and isinstance(stage["prop_library"], list)
 
     assert obj["entity"]["entity_type"] in {"object", "peep"}
     assert "position" in obj["entity"]

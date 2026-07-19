@@ -43,39 +43,35 @@ def resolve_display_assets(info: dict) -> dict:
     return {'img': base_img, 'icon': icon_img, 'sprite': sprite_img}
 
 
+def build_display_assets(info: dict, world_root_path) -> dict:
+    assets = resolve_display_assets(info)
+    return {
+        'icon': _normalize_image(assets['icon'], world_root_path, mode='icon'),
+        'img': _normalize_image(assets['img'], world_root_path, mode='img'),
+        'sprite': _normalize_image(assets['sprite'], world_root_path, mode='sprite'),
+    }
+
+
 def preprocess_world_assets(world):
     count = 0
     for obj in world.objs.values():
-        assets = resolve_display_assets(obj.info)
-        obj._display_assets = {
-            'icon': _normalize_image(assets['icon'], world.root_path, mode='icon'),
-            'img': _normalize_image(assets['img'], world.root_path, mode='img'),
-            'sprite': _normalize_image(assets['sprite'], world.root_path, mode='sprite'),
-        }
+        obj._display_assets = build_display_assets(obj.info, world.root_path)
         count += 1
 
     for room in world.rooms.values():
         for prop in room.props.values():
-            assets = resolve_display_assets(prop.info)
-            prop._display_assets = {
-                'icon': _normalize_image(assets['icon'], world.root_path, mode='icon'),
-                'img': _normalize_image(assets['img'], world.root_path, mode='img'),
-                'sprite': _normalize_image(assets['sprite'], world.root_path, mode='sprite'),
-            }
+            prop._display_assets = build_display_assets(prop.info, world.root_path)
             count += 1
 
     for peep in world.peeps.values():
-        assets = resolve_display_assets(peep.info)
-        peep._display_assets = {
-            'icon': _normalize_image(assets['icon'], world.root_path, mode='icon'),
-            'img': _normalize_image(assets['img'], world.root_path, mode='img'),
-            'sprite': _normalize_image(assets['sprite'], world.root_path, mode='sprite'),
-        }
+        peep._display_assets = build_display_assets(peep.info, world.root_path)
         count += 1
     print(f"assets: preprocessed {count} entity/prop asset sets.")
 
 
 def _normalize_image(image_path: str, world_root_path, mode: str) -> str:
+    if image_path.startswith("/") or image_path.startswith("http://") or image_path.startswith("https://"):
+        return image_path
     world_root_path = Path(world_root_path)
     src_path = world_root_path / image_path
     if not src_path.exists():

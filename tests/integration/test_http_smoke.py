@@ -51,6 +51,13 @@ def test_char_editor_endpoints_require_auth(http_client):
         ("GET", "/api/char-editor/queue"),
         ("POST", "/api/char-editor/sprites/sprite_missing/select"),
         ("DELETE", "/api/char-editor/sprites/sprite_missing"),
+        ("GET", "/api/object-editor/profile"),
+        ("POST", "/api/object-editor/requests"),
+        ("GET", "/api/object-editor/requests/obj_req_missing"),
+        ("DELETE", "/api/object-editor/requests/obj_req_missing"),
+        ("GET", "/api/object-editor/queue"),
+        ("DELETE", "/api/object-editor/icons/icon_missing.png"),
+        ("POST", "/api/object-editor/icons/icon_missing.png/create"),
     ]
     for method, path in requests_no_auth:
         response = http_client.request(method, path, json={"descriptors": {}})

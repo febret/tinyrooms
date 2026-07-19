@@ -1,13 +1,17 @@
 import os
+import random
+import shutil
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO
 
-from . import char_data, char_editor, db, user
+from . import char_data, char_editor, db, object_editor, user
 from .icons import DEFAULT_USER_ASSETS
-from .world import active_world
+from .object import Object
+from .world import active_world, save_generated_thing_def
 
 
 STATIC_FOLDER = Path(__file__).parent.parent / "app"
@@ -20,10 +24,21 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 _char_editor_service = None
+_object_editor_service = None
 
 
 def _default_temp_root() -> Path:
     return Path(tempfile.gettempdir()) / "tinyrooms-char-editor"
+
+
+def _default_object_temp_root() -> Path:
+    return Path(tempfile.gettempdir()) / "tinyrooms-object-editor"
+
+
+def _object_assets_root(world_id: str) -> Path:
+    if not world_id or "/" in world_id or "\\" in world_id or ".." in world_id:
+        raise ValueError("invalid world id")
+    return Path(__file__).parent.parent / "data" / "object_assets" / world_id
 
 
 def configure_char_editor(temp_root: Path | None = None):
@@ -42,6 +57,22 @@ def configure_char_editor(temp_root: Path | None = None):
     print(f"char-editor: service ready (temp_root={temp_dir})")
 
 
+def configure_object_editor(temp_root: Path | None = None):
+    global _object_editor_service
+    if _object_editor_service is not None:
+        _object_editor_service.stop()
+    config_path = Path(__file__).parent.parent / "data" / "ui" / "object-editor.yaml"
+    make_icon_script = Path(__file__).parent.parent / "tools" / "make-icon"
+    temp_dir = Path(temp_root) if temp_root else _default_object_temp_root()
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    _object_editor_service = object_editor.ObjectEditorService(
+        config_path=config_path,
+        make_icon_script=make_icon_script,
+        temp_root=temp_dir,
+    )
+    print(f"object-editor: service ready (temp_root={temp_dir})")
+
+
 def shutdown_char_editor():
     global _char_editor_service
     if _char_editor_service is not None:
@@ -49,11 +80,25 @@ def shutdown_char_editor():
         _char_editor_service = None
 
 
+def shutdown_object_editor():
+    global _object_editor_service
+    if _object_editor_service is not None:
+        _object_editor_service.stop()
+        _object_editor_service = None
+
+
 def char_editor_service() -> char_editor.CharacterEditorService:
     global _char_editor_service
     if _char_editor_service is None:
         configure_char_editor()
     return _char_editor_service # type: ignore
+
+
+def object_editor_service() -> object_editor.ObjectEditorService:
+    global _object_editor_service
+    if _object_editor_service is None:
+        configure_object_editor()
+    return _object_editor_service  # type: ignore
 
 
 def _require_rest_user() -> str:
@@ -137,6 +182,54 @@ def _apply_selected_sprite_to_peep(username: str, sprite_rel: str) -> None:
         _update_peep_display_and_broadcast(username, display_assets)
 
 
+def _random_suffix(length: int = 6) -> str:
+    return "".join(random.choices("0123456789abcdef", k=length))
+
+
+def _create_object_in_user_room(username: str, info: dict) -> tuple[Object, dict]:
+    online = user.find_online(username)
+    if online is None or online.room is None:
+        raise ValueError("user is not in a room")
+    room = online.room
+    room_id = room.id()
+    thing_id = f"generated_thing_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{_random_suffix(4)}"
+    obj_id = f"{thing_id}-{_random_suffix(5)}"
+    normalized_info = dict(info)
+    save_generated_thing_def(thing_id, normalized_info)
+    obj = Object(obj_id, thing_id, normalized_info, room_id, owner_id=username)
+    obj.x = int(getattr(online.peep, "x", 32))
+    obj.y = int(getattr(online.peep, "y", 32))
+    obj.orientation = "front"
+    obj.layer = 0
+    obj.z_order = room.next_z()
+    display_img = info.get("sprite") or info.get("img") or info.get("icon")
+    obj._display_assets = {
+        "icon": display_img,
+        "img": display_img,
+        "sprite": display_img,
+    }
+
+    world = active_world()
+    world.thing_defs[thing_id] = normalized_info
+    world.objs[obj_id] = obj
+    room.objs[obj_id] = obj
+    room.broadcast_room_object_update(obj, change_type="upsert", entity_type="object")
+    world.save_state(world.ws_id)
+    return obj, room._serialize_foreground_entity(obj, entity_type="object")
+
+
+def _persist_generated_object_icon(icon_source_path: Path, world_id: str) -> str:
+    root = _object_assets_root(world_id)
+    root.mkdir(parents=True, exist_ok=True)
+    icon_name = f"obj_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{_random_suffix(8)}.png"
+    final_path = root / icon_name
+    try:
+        shutil.copy2(icon_source_path, final_path)
+    except OSError as err:
+        raise ValueError(f"failed to persist object icon: {err}") from err
+    return f"/object-assets/{world_id}/{icon_name}"
+
+
 @app.route("/")
 def client():
     return send_from_directory(str(STATIC_FOLDER), CLIENT_FILENAME)
@@ -155,6 +248,18 @@ def user_asset_data(username, filename):
         root = char_data.user_root(username)
     except ValueError:
         return jsonify({"error": "invalid username"}), 400
+    asset_path = root / filename
+    if not asset_path.exists():
+        return jsonify({"error": "asset not found"}), 404
+    return send_from_directory(str(root), filename)
+
+
+@app.route("/object-assets/<world_id>/<path:filename>")
+def object_asset_data(world_id, filename):
+    try:
+        root = _object_assets_root(world_id)
+    except ValueError:
+        return jsonify({"error": "invalid world id"}), 400
     asset_path = root / filename
     if not asset_path.exists():
         return jsonify({"error": "asset not found"}), 404
@@ -283,3 +388,105 @@ def char_editor_select_sprite(sprite_id):
     _apply_selected_sprite_to_peep(username, sprite_rel) # type: ignore
 
     return jsonify({"ok": True, "char": char_state})
+
+
+@app.route("/api/object-editor/profile")
+def object_editor_profile():
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    profile = object_editor_service().profile(username)
+    return jsonify({"ok": True, **profile})
+
+
+@app.route("/api/object-editor/requests", methods=["POST"])
+def object_editor_submit_request():
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    payload = request.json or {}
+    description = payload.get("description", "")
+    try:
+        req = object_editor_service().submit_request(username, description)
+    except ValueError as err:
+        return _handle_value_error(err, code_for={"active request": 409})
+    return jsonify({"ok": True, "request": req}), 201
+
+
+@app.route("/api/object-editor/requests/<request_id>")
+def object_editor_get_request(request_id):
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    try:
+        req = object_editor_service().get_request(username, request_id)
+    except KeyError:
+        return _error_response("request not found", 404)
+    return jsonify({"ok": True, "request": req})
+
+
+@app.route("/api/object-editor/requests/<request_id>", methods=["DELETE"])
+def object_editor_cancel_request(request_id):
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    try:
+        req = object_editor_service().cancel_request(username, request_id)
+    except KeyError:
+        return _error_response("request not found", 404)
+    return jsonify({"ok": True, "request": req})
+
+
+@app.route("/api/object-editor/queue")
+def object_editor_queue():
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    summary = object_editor_service().queue_summary(username)
+    return jsonify({"ok": True, "queue": summary})
+
+
+@app.route("/api/object-editor/icons/<icon_id>", methods=["DELETE"])
+def object_editor_discard_icon(icon_id):
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    try:
+        object_editor_service().discard_icon(username, icon_id)
+    except FileNotFoundError:
+        return _error_response("icon not found", 404)
+    except ValueError as err:
+        return _error_response(str(err), 400)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/object-editor/icons/<icon_id>/create", methods=["POST"])
+def object_editor_create_thing(icon_id):
+    try:
+        username = _get_authenticated_username()
+    except PermissionError:
+        return _handle_auth_error()
+    payload = request.json or {}
+    description = payload.get("description", "")
+    try:
+        world_id = active_world().ws_id
+        icon_path = object_editor.icon_file_path(username, icon_id)
+        persistent_icon_url = _persist_generated_object_icon(icon_path, world_id)
+        info = object_editor_service().build_object_info(
+            username=username,
+            icon_id=icon_id,
+            description=description,
+            icon_asset_url=persistent_icon_url,
+        )
+        created_obj, serialized = _create_object_in_user_room(username, info)
+    except FileNotFoundError:
+        return _error_response("icon not found", 404)
+    except ValueError as err:
+        return _error_response(str(err), 400)
+    return jsonify({"ok": True, "object_id": created_obj.obj_id, "entity": serialized}), 201

@@ -136,6 +136,34 @@ print(f"stub make-sprite wrote {out}")
     script_path.write_text(script, encoding="utf-8")
 
 
+def _write_stub_make_icon(workspace: Path):
+    script_path = workspace / "tools" / "make-icon"
+    script = """#!/usr/bin/env python3
+import argparse
+import base64
+import pathlib
+import time
+
+PNG_1X1 = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7g2k0AAAAASUVORK5CYII=")
+
+parser = argparse.ArgumentParser()
+parser.add_argument("output_path")
+parser.add_argument("description")
+parser.add_argument("--style", default="")
+args = parser.parse_args()
+
+if not str(args.description).strip():
+    raise SystemExit("description is required")
+
+time.sleep(0.5)
+out = pathlib.Path(args.output_path)
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_bytes(PNG_1X1)
+print(f"stub make-icon wrote {out}")
+"""
+    script_path.write_text(script, encoding="utf-8")
+
+
 def _prepare_isolated_workspace(workspace: Path):
     rooms_path = workspace / "data" / "worlds" / "home" / "rooms" / "rooms.yaml"
     with rooms_path.open("r", encoding="utf-8") as handle:
@@ -146,6 +174,7 @@ def _prepare_isolated_workspace(workspace: Path):
     with rooms_path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(rooms, handle, sort_keys=False)
     _write_stub_make_sprite(workspace)
+    _write_stub_make_icon(workspace)
 
 
 def _wait_for_server(base_url: str, timeout_seconds: float = 20.0):

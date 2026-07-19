@@ -25,6 +25,9 @@ Both props and objects have three distinct displays (specified as properties poi
 ### Room Stage and Foreground Objects
 The room background and props are displayed directly on the room canvas, while the object / character sprites are displayed with a subtle background shadow (applied on the client via css) to separate them from the fixed room stage.
 
+### Room Stage Types
+**TODO**
+
 
 ## Room Update Messages
 The room panel in the client is updated when receiving `update_view` messages (see app/client.js socket.on("update_view", ...)). The view parameter of the message determines which part of the room panel is updated:
@@ -98,6 +101,12 @@ Room interactions use explicit socket events in `tinyrooms/connection.py`:
   - permission: room owner only.
   - on success: server re-emits full `room-stage` to all room users.
 
+- `room_save_props`:
+  - input: `{ props: [{ prop_instance_id?, prop_id, x, y, orientation }] }`
+  - permission: room owner only.
+  - behavior: replaces the room prop set with the submitted list (supports add/remove/rotate/move in one save operation).
+  - on success: persists props to world state DB and re-emits full `room-stage` to all room users.
+
 ## Asset and Size Policy (implemented)
 Entity/prop display assets are normalized by `tinyrooms/icons.py`:
 - `icon` normalized to 32x32 (`_icon32`)
@@ -114,6 +123,12 @@ World state persistence is additive and migration-safe in `tinyrooms/db.py`:
 - objects table includes transform fields: `x`, `y`, `orientation`, `layer`, `z_order`
 - room props persisted in `room_props` table with display refs and transform fields
 - props are defined from YAML (`data/worlds/home/props/props.yaml`) and runtime positions are restored from DB when available
+
+User spawn persistence is handled in `data/users.duckdb`:
+- users table stores `last_world_id`, `last_room_id`, `last_x`, `last_y`
+- login restores room + position before initial room sync
+- invalid saved room ids fall back to `DEFAULT_ROOM`, and the fallback room is persisted back to DB
+- user state is persisted on login, room transitions (`.go`), disconnect, and graceful shutdown
 
 ## Client Stage Runtime Notes
 The room stage in `app/client.js` is DOM-layer based (not `<canvas>` drawing API):

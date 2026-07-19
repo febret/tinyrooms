@@ -655,6 +655,29 @@ button {
   outline: 2px solid #3c8cff;
 }
 
+.room-prop-outline {
+  outline: 2px dashed #ffce6a;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.room-prop-controls {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  gap: 0.2rem;
+}
+
+.room-prop-control-btn {
+  min-width: 1.4rem;
+  min-height: 1.4rem;
+  line-height: 1;
+  padding: 0.1rem;
+  margin: 0;
+  border-radius: 50%;
+}
+
 #roomExits {
   margin-top: 0.4rem;
   display: flex;
@@ -697,7 +720,8 @@ button {
   }
 }
 
-#characterEditorPage {
+#characterEditorPage,
+#objectCreatorPage {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -871,6 +895,23 @@ button {
   justify-content: flex-end;
   padding-top: 0.4rem;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+#objectCreatorDescription {
+  width: 100%;
+  resize: vertical;
+  min-height: 4rem;
+  font: inherit;
+}
+
+.object-creator-slots .character-slot {
+  min-height: 120px;
+}
+
+.object-creator-slots .character-slot img,
+.object-creator-slots .character-slot-empty {
+  width: 64px;
+  height: 64px;
 }
 
 @keyframes char-editor-spin {

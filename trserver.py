@@ -13,6 +13,7 @@ def kill():
     """Immediately terminate the server process."""
     print("\n💀 Killing server immediately...")
     server.shutdown_char_editor()
+    server.shutdown_object_editor()
     db.save_userdb_state()
     world.active_world().save_state()
     os._exit(0)
@@ -22,6 +23,7 @@ def reboot():
     """Reboot the server process."""
     print("\n🔄 Rebooting server...")
     server.shutdown_char_editor()
+    server.shutdown_object_editor()
     db.save_userdb_state()
     world.active_world().save_state()
     os._exit(42)
@@ -48,6 +50,11 @@ if __name__ == "__main__":
         help="Deprecated alias for --char-temp-dir",
     )
     parser.add_argument(
+        "--object-temp-dir",
+        default="",
+        help="Temporary directory for object icon generation jobs",
+    )
+    parser.add_argument(
         "--host",
         default="0.0.0.0",
         help="Host interface to bind (default: 0.0.0.0)",
@@ -72,6 +79,7 @@ if __name__ == "__main__":
 
     temp_dir = args.char_temp_dir or args.sprite_temp_dir or None
     server.configure_char_editor(temp_dir)
+    server.configure_object_editor(args.object_temp_dir or None)
     
     # Initialize database
     db.init_db()
@@ -111,6 +119,7 @@ if __name__ == "__main__":
     finally:
         print("Shutting down...")
         server.shutdown_char_editor()
+        server.shutdown_object_editor()
         # Save state of all connected users before shutdown
         db.save_userdb_state()
         world.active_world().save_state()

@@ -2,8 +2,10 @@ from flask import request, session
 from flask_socketio import emit
 from werkzeug.security import check_password_hash
 import secrets
+from uuid import uuid4
 
-from . import message, user, server, db, actions
+from . import message, user, server, db, actions, icons
+from .prop import Prop
 from .world import active_world
 
 # To send status updates to a client:
@@ -210,6 +212,82 @@ def handle_room_edit_prop(data):
     prop.y = int((data or {}).get("y", prop.y))
     prop.orientation = (data or {}).get("orientation", prop.orientation)
     prop.z_order = room.next_z()
+
+    for room_user in room.users.values():
+        room.send_room_stage_view(room_user)
+
+
+@server.socketio.on("room_save_props")
+def handle_room_save_props(data):
+    sid = getattr(request, 'sid', None)
+    user_obj = user.connected_users.get(sid)
+    if not user_obj:
+        emit("error", {"error": "not authenticated"})
+        return
+    room = user_obj.room
+    if room is None:
+        emit("error", {"error": "not in room"})
+        return
+    if not room.can_user_edit_props(user_obj):
+        emit("error", {"error": "only room owner can edit props"})
+        return
+
+    raw_props = (data or {}).get("props")
+    if not isinstance(raw_props, list):
+        emit("error", {"error": "props must be a list"})
+        return
+
+    world = active_world()
+    next_props: dict[str, Prop] = {}
+    seen_ids: set[str] = set()
+    orientation_values = {"front", "back", "left", "right"}
+    z_counter = max(10, room._z_counter)
+    for raw_prop in raw_props:
+        if not isinstance(raw_prop, dict):
+            emit("error", {"error": "invalid prop entry"})
+            return
+        prop_id = str(raw_prop.get("prop_id", "")).strip()
+        if not prop_id:
+            emit("error", {"error": "prop_id is required"})
+            return
+        if prop_id not in world.prop_defs:
+            emit("error", {"error": f"unknown prop_id '{prop_id}'"})
+            return
+        prop_instance_id = str(raw_prop.get("prop_instance_id", "")).strip()
+        if not prop_instance_id:
+            prop_instance_id = f"{room.room_id}-{prop_id}-{uuid4().hex[:8]}"
+        if prop_instance_id in seen_ids:
+            emit("error", {"error": "duplicate prop_instance_id in payload"})
+            return
+        seen_ids.add(prop_instance_id)
+
+        try:
+            x = int(raw_prop.get("x", 0))
+            y = int(raw_prop.get("y", 0))
+        except (TypeError, ValueError):
+            emit("error", {"error": "x and y must be integers"})
+            return
+        orientation = str(raw_prop.get("orientation", "front"))
+        if orientation not in orientation_values:
+            emit("error", {"error": f"invalid orientation '{orientation}'"})
+            return
+
+        merged_info = dict(world.prop_defs.get(prop_id, {}))
+        merged_info.update({
+            "x": x,
+            "y": y,
+            "orientation": orientation,
+            "layer": 0,
+            "z_order": z_counter + 1,
+        })
+        z_counter += 1
+        prop = Prop(prop_instance_id, prop_id, merged_info, room.room_id)
+        prop._display_assets = icons.build_display_assets(prop.info, world.root_path)
+        next_props[prop_instance_id] = prop
+
+    room.props = next_props
+    room._z_counter = z_counter
+    world.save_state(world.ws_id)
 
     for room_user in room.users.values():
         room.send_room_stage_view(room_user)

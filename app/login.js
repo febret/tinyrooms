@@ -32,6 +32,8 @@ btnLogin.addEventListener("click", () => {
 btnLogout.addEventListener("click", () => {
   closeCharacterEditor();
   resetCharacterEditorState();
+  closeObjectCreator();
+  resetObjectEditorState();
   // Clear credentials and reset UI
   clearCredentials();
   clearMessagesFromStorage();
