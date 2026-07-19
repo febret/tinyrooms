@@ -1,6 +1,7 @@
-from pathlib import Path
-import yaml
 import random
+from pathlib import Path
+
+import yaml
 
 from .room import Room, Way
 from .object import Object
@@ -10,12 +11,25 @@ from . import db, icons as icon_module
 
 
 class World:
-    def __init__(self, info, root_path: Path, room_defs: dict, thing_defs: dict, prop_defs: dict, rooms: dict, ways: dict, objs: dict, peeps: dict):
+    def __init__(
+        self,
+        info,
+        root_path: Path,
+        room_defs: dict,
+        thing_defs: dict,
+        prop_defs: dict,
+        rooms: dict,
+        ways: dict,
+        objs: dict,
+        peeps: dict,
+        ws_id: str = 'home',
+    ):
         self.info = info
         self.root_path = root_path
         self.room_defs = room_defs
         self.thing_defs = thing_defs
         self.prop_defs = prop_defs
+        self.ws_id = ws_id
         self.rooms = rooms
         self.default_room = Room("", {})
         self.ways = ways
@@ -27,10 +41,9 @@ class World:
         with db.get_worldstate_connection(ws_id) as wsdb:
             db.write_room_data(wsdb, self.rooms)
             db.write_object_data(wsdb, self.objs)
-            db.write_room_prop_data(wsdb, self.rooms)
 
 
-def load_world(yaml_path=None, ws_id='home') -> World:
+def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> World:
     """Load world definitions from YAML file or directory."""
     if yaml_path is None:
         yaml_path = Path(__file__).parent.parent / "data" / "worlds" / "home" / "world.yaml"    
@@ -90,17 +103,47 @@ def load_world(yaml_path=None, ws_id='home') -> World:
             room.props[prop_instance_id] = Prop(prop_instance_id, prop_id, merged, rid)
                 
     # Load room data from worldstate DB
-    room_data = db.read_room_data(wsdb)
-    for rid, rdata in room_data.items():
-        if rid in rooms:
-            room = rooms[rid]
-            if rdata.get('label_override'):
-                room.label_override = rdata['label_override']
-            if rdata.get('description_override'):
-                room.description_override = rdata['description_override']
-            room.initialized = True
-        else:
-            print(f"Warning: Room '{rid}' found in worldstate DB but not in room definitions.")
+    if use_saved_state:
+        room_data = db.read_room_data(wsdb)
+        for rid, rdata in room_data.items():
+            if rid in rooms:
+                room = rooms[rid]
+                if rdata.get('label_override'):
+                    room.label_override = rdata['label_override']
+                if rdata.get('description_override'):
+                    room.description_override = rdata['description_override']
+                saved_props = rdata.get('props', [])
+                if saved_props:
+                    room.props = {}
+                    for idx, prop_state in enumerate(saved_props):
+                        if not isinstance(prop_state, dict):
+                            continue
+                        prop_id = prop_state.get('prop_id')
+                        if not prop_id:
+                            continue
+                        prop_instance_id = prop_state.get('prop_instance_id') or f"{rid}-{prop_id}-{idx}"
+                        base_info = prop_defs.get(prop_id, {})
+                        saved_info = prop_state.get('info')
+                        merged = {**base_info, **(saved_info if isinstance(saved_info, dict) else {})}
+                        saved_display = prop_state.get('display')
+                        if isinstance(saved_display, dict):
+                            for key in ("img", "sprite", "icon"):
+                                value = saved_display.get(key)
+                                if value:
+                                    merged[key] = value
+                        saved_metadata = prop_state.get('metadata')
+                        if isinstance(saved_metadata, dict):
+                            merged['metadata'] = saved_metadata
+                        saved_position = prop_state.get('position')
+                        if isinstance(saved_position, dict):
+                            for key in ("x", "y", "orientation", "layer", "z_order"):
+                                if key in saved_position:
+                                    merged[key] = saved_position[key]
+                        prop = Prop(prop_instance_id, prop_id, merged, rid)
+                        room.props[prop.prop_instance_id] = prop
+                room.initialized = True
+            else:
+                print(f"Warning: Room '{rid}' found in worldstate DB but not in room definitions.")
             
     # For any non-initialized room, created objects from room info init_things
     objs = {}
@@ -132,66 +175,43 @@ def load_world(yaml_path=None, ws_id='home') -> World:
     room_by_full_id.update(rooms)
             
     # Load object data from worldstate DB
-    object_data = db.read_object_data(wsdb)
-    for oid, odata in object_data.items():
-        thing_id = odata['thing_id']
-        location_id = odata['location_id']
-        if thing_id in thing_defs:
-            thing_def = thing_defs[thing_id]
-            obj = Object(oid, thing_id, thing_def, location_id, odata.get('owner_id'))
-            if odata.get('label_override'):
-                obj.label_override = odata['label_override']
-            if odata.get('description_override'):
-                obj.description_override = odata['description_override']
-            obj.x = int(odata.get('x') or obj.x)
-            obj.y = int(odata.get('y') or obj.y)
-            obj.orientation = odata.get('orientation') or obj.orientation
-            obj.layer = int(odata.get('layer') or obj.layer)
-            obj.z_order = int(odata.get('z_order') or obj.z_order)
-            objs[oid] = obj
-            # Place object in the corresponding room
-            target_room = room_by_full_id.get(location_id)
-            if target_room:
-                target_room.objs[oid] = obj
-                target_room._z_counter = max(target_room._z_counter, obj.z_order)
-            # TODO: support placing inside container objects and in peep / user inventories.
+    if use_saved_state:
+        object_data = db.read_object_data(wsdb)
+        for oid, odata in object_data.items():
+            thing_id = odata['thing_id']
+            location_id = odata['location_id']
+            if thing_id in thing_defs:
+                thing_def = thing_defs[thing_id]
+                obj = Object(oid, thing_id, thing_def, location_id, odata.get('owner_id'))
+                if odata.get('label_override'):
+                    obj.label_override = odata['label_override']
+                if odata.get('description_override'):
+                    obj.description_override = odata['description_override']
+                obj.x = int(odata.get('x') or obj.x)
+                obj.y = int(odata.get('y') or obj.y)
+                obj.orientation = odata.get('orientation') or obj.orientation
+                obj.layer = int(odata.get('layer') or obj.layer)
+                obj.z_order = int(odata.get('z_order') or obj.z_order)
+                objs[oid] = obj
+                # Place object in the corresponding room
+                target_room = room_by_full_id.get(location_id)
+                if target_room:
+                    target_room.objs[oid] = obj
+                    target_room._z_counter = max(target_room._z_counter, obj.z_order)
+                # TODO: support placing inside container objects and in peep / user inventories.
+                else:
+                    print(f"Warning: Location '{location_id}' for object '{oid}' not found in rooms.")
             else:
-                print(f"Warning: Location '{location_id}' for object '{oid}' not found in rooms.")
-        else:
-            print(f"Warning: Thing '{thing_id}' for object '{oid}' not found in thing definitions.")
+                print(f"Warning: Thing '{thing_id}' for object '{oid}' not found in thing definitions.")
     
     print(f"Loaded {len(objs)} objects.")
     
-    prop_state_data = db.read_room_prop_data(wsdb)
-    for row in prop_state_data:
-        room = rooms.get(row['room_id'])
-        if room is None:
-            continue
-        prop = room.props.get(row['id'])
-        if prop is None:
-            base_info = prop_defs.get(row['prop_id'], {})
-            merged = {**base_info}
-            if row.get('img'):
-                merged['img'] = row.get('img')
-            if row.get('sprite'):
-                merged['sprite'] = row.get('sprite')
-            if row.get('icon'):
-                merged['icon'] = row.get('icon')
-            prop = Prop(row['id'], row['prop_id'], merged, row['room_id'])
-            room.props[prop.prop_instance_id] = prop
-        prop.x = int(row.get('x') or prop.x)
-        prop.y = int(row.get('y') or prop.y)
-        prop.orientation = row.get('orientation') or prop.orientation
-        prop.layer = int(row.get('layer') or prop.layer)
-        prop.z_order = int(row.get('z_order') or prop.z_order)
-
     db.write_object_data(wsdb, objs)
     db.write_room_data(wsdb, rooms)
-    db.write_room_prop_data(wsdb, rooms)
 
     # TODO: load peep data from worldstate DB    
     global _active_world
-    _active_world = World(world_info, root_path, room_defs, thing_defs, prop_defs, rooms, ways, objs, {})
+    _active_world = World(world_info, root_path, room_defs, thing_defs, prop_defs, rooms, ways, objs, {}, ws_id=ws_id)
     
     # Preprocess display assets for loaded entities and props
     icon_module.preprocess_world_assets(_active_world)
@@ -200,6 +220,38 @@ def load_world(yaml_path=None, ws_id='home') -> World:
 
 
 _active_world = None
+
+
+def reset_rooms(ws_id: str | None = None) -> World:
+    previous_world = active_world()
+    target_ws_id = ws_id or previous_world.ws_id
+    world_yaml_path = previous_world.root_path / "world.yaml"
+    refreshed_world = load_world(yaml_path=world_yaml_path, ws_id=target_ws_id, use_saved_state=False)
+
+    from . import user
+
+    for connected in list(user.connected_users.values()):
+        previous_room = connected.room
+        previous_room_id = previous_room.room_id if previous_room is not None else ""
+        if previous_room is not None:
+            previous_room.remove_user(connected)
+        previous_world.peeps.pop(connected.peep.peep_id, None)
+        connected.world = refreshed_world
+        connected.peep.inventory = {}
+        refreshed_world.peeps[connected.peep.peep_id] = connected.peep
+
+        target_room = refreshed_world.rooms.get(previous_room_id, refreshed_world.default_room)
+        target_room.add_user(connected)
+
+        user_inventory_id = f"@{connected.username}"
+        for obj in refreshed_world.objs.values():
+            if obj.location_id == user_inventory_id:
+                connected.peep.inventory[obj.obj_id] = obj
+        db.save_user_state(connected)
+
+    return refreshed_world
+
+
 def active_world() -> World:
     global _active_world
     if _active_world is None:

@@ -1,9 +1,13 @@
 from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
 import duckdb
+import json
 
 # Configuration
 DB_PATH = Path(__file__).parent.parent / "data/users.duckdb"
+DEFAULT_WORLD_ID = "home"
+DEFAULT_SPAWN_X = 32
+DEFAULT_SPAWN_Y = 32
 
 # Persistent database connection
 _user_db_connection = None
@@ -30,7 +34,8 @@ def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
             id TEXT PRIMARY KEY,
             owner_id TEXT,
             label_override TEXT,
-            description_override TEXT
+            description_override TEXT,
+            props TEXT DEFAULT '[]'
         );
         
         CREATE TABLE IF NOT EXISTS peeps (
@@ -48,21 +53,8 @@ def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
             description_override TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS room_props (
-            id TEXT PRIMARY KEY,
-            room_id TEXT,
-            prop_id TEXT,
-            img TEXT,
-            sprite TEXT,
-            icon TEXT,
-            x INTEGER,
-            y INTEGER,
-            orientation TEXT,
-            layer INTEGER,
-            z_order INTEGER,
-            metadata_json TEXT
-        );
     """)
+    _ensure_column(dbconn, "rooms", "props", "TEXT DEFAULT '[]'")
     _ensure_column(dbconn, "objects", "x", "INTEGER DEFAULT 16")
     _ensure_column(dbconn, "objects", "y", "INTEGER DEFAULT 16")
     _ensure_column(dbconn, "objects", "orientation", "TEXT DEFAULT 'front'")
@@ -74,25 +66,32 @@ def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
     _ensure_column(dbconn, "peeps", "layer", "INTEGER DEFAULT 1")
     _ensure_column(dbconn, "peeps", "z_order", "INTEGER DEFAULT 1")
 
-
 def _ensure_column(dbconn: duckdb.DuckDBPyConnection, table_name: str, column_name: str, column_def: str):
     columns = dbconn.execute(f"PRAGMA table_info({table_name})").fetchall()
     existing = {col[1] for col in columns}
     if column_name not in existing:
         dbconn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
-    
 
 def read_room_data(dbcomm: duckdb.DuckDBPyConnection):
     """Retrieve room data from the worldstate database."""
-    res = dbcomm.execute("SELECT id, owner_id, label_override, description_override FROM rooms").fetchall()
+    res = dbcomm.execute("SELECT id, owner_id, label_override, description_override, props FROM rooms").fetchall()
     room_data = {}
     for row in res:
-        room_id, owner_id, label_override, description_override = row
+        room_id, owner_id, label_override, description_override, props_raw = row
+        props = []
+        if props_raw:
+            try:
+                parsed_props = json.loads(props_raw)
+                if isinstance(parsed_props, list):
+                    props = parsed_props
+            except json.JSONDecodeError:
+                print(f"Warning: invalid props JSON for room '{room_id}', ignoring saved props.")
         room_data[room_id] = {
             'id': room_id,
             'owner_id': owner_id,
             'label_override': label_override,
-            'description_override': description_override
+            'description_override': description_override,
+            'props': props,
         }
     return room_data
 
@@ -101,9 +100,25 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
     """Write room data to the worldstate database."""
     print(f"Committing room data for {len(rooms)} rooms to worldstate DB...")
     for room_id, room in rooms.items():
+        prop_rows = []
+        for prop in room.props.values():
+            prop_rows.append({
+                'prop_instance_id': prop.prop_instance_id,
+                'prop_id': prop.prop_id,
+                'info': dict(getattr(prop, 'info', {}) or {}),
+                'position': {
+                    'x': int(getattr(prop, 'x', 0)),
+                    'y': int(getattr(prop, 'y', 0)),
+                    'orientation': getattr(prop, 'orientation', 'front'),
+                    'layer': int(getattr(prop, 'layer', 0)),
+                    'z_order': int(getattr(prop, 'z_order', 0)),
+                },
+                'metadata': dict(getattr(prop, 'metadata', {}) or {}),
+                'display': dict(getattr(prop, '_display_assets', {}) or {}),
+            })
         dbconn.execute(
-            "INSERT OR REPLACE INTO rooms (id, owner_id, label_override, description_override) VALUES (?, ?, ?, ?)",
-            (room_id, room.owner_id, room.label_override, room.description_override)
+            "INSERT OR REPLACE INTO rooms (id, owner_id, label_override, description_override, props) VALUES (?, ?, ?, ?, ?)",
+            (room_id, room.owner_id, room.label_override, room.description_override, json.dumps(prop_rows))
         )
 
 
@@ -153,55 +168,6 @@ def write_object_data(dbconn: duckdb.DuckDBPyConnection, objects: dict):
         )
 
 
-def read_room_prop_data(dbconn: duckdb.DuckDBPyConnection):
-    res = dbconn.execute(
-        "SELECT id, room_id, prop_id, img, sprite, icon, x, y, orientation, layer, z_order, metadata_json FROM room_props"
-    ).fetchall()
-    out = []
-    for row in res:
-        out.append({
-            'id': row[0],
-            'room_id': row[1],
-            'prop_id': row[2],
-            'img': row[3],
-            'sprite': row[4],
-            'icon': row[5],
-            'x': row[6],
-            'y': row[7],
-            'orientation': row[8],
-            'layer': row[9],
-            'z_order': row[10],
-            'metadata_json': row[11],
-        })
-    return out
-
-
-def write_room_prop_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
-    prop_rows = []
-    for room in rooms.values():
-        for prop in room.props.values():
-            display = getattr(prop, '_display_assets', {}) or {}
-            prop_rows.append((
-                prop.prop_instance_id,
-                room.room_id,
-                prop.prop_id,
-                display.get('img') or prop.info.get('img'),
-                display.get('sprite') or prop.info.get('sprite'),
-                display.get('icon') or prop.info.get('icon'),
-                int(prop.x),
-                int(prop.y),
-                prop.orientation,
-                int(prop.layer),
-                int(prop.z_order),
-                '',
-            ))
-    dbconn.execute("DELETE FROM room_props")
-    for row in prop_rows:
-        dbconn.execute(
-            "INSERT INTO room_props (id, room_id, prop_id, img, sprite, icon, x, y, orientation, layer, z_order, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            row,
-        )
-
 # Initialize duckdb and users table
 def init_db(ws_id = 'home'):
     con = get_user_connection()
@@ -219,7 +185,11 @@ def init_db(ws_id = 'home'):
     
     # Define expected columns with their types and defaults
     expected_columns = {
-        'skin': ('TEXT', "'base'")
+        'skin': ('TEXT', "'base'"),
+        'last_world_id': ('TEXT', f"'{DEFAULT_WORLD_ID}'"),
+        'last_room_id': ('TEXT', "''"),
+        'last_x': ('INTEGER', str(DEFAULT_SPAWN_X)),
+        'last_y': ('INTEGER', str(DEFAULT_SPAWN_Y)),
     }
     
     for col_name, (col_type, col_default) in expected_columns.items():
@@ -230,8 +200,33 @@ def init_db(ws_id = 'home'):
 
 def get_user(username):
     con = get_user_connection()
-    res = con.execute("SELECT username, password_hash, skin FROM users WHERE username = ?", [username]).fetchall()
+    res = con.execute(
+        "SELECT username, password_hash, skin, last_world_id, last_room_id, last_x, last_y FROM users WHERE username = ?",
+        [username],
+    ).fetchall()
     return res[0] if res else None
+
+
+def _coerce_int(value, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def user_row_to_state(user_row):
+    if user_row is None:
+        return None
+    username, password_hash, skin, last_world_id, last_room_id, last_x, last_y = user_row
+    return {
+        "username": username,
+        "password_hash": password_hash,
+        "skin": skin or "base",
+        "last_world_id": last_world_id or DEFAULT_WORLD_ID,
+        "last_room_id": last_room_id or "",
+        "last_x": _coerce_int(last_x, DEFAULT_SPAWN_X),
+        "last_y": _coerce_int(last_y, DEFAULT_SPAWN_Y),
+    }
 
 
 def create_user(username, password_plain):
@@ -246,8 +241,18 @@ def create_user(username, password_plain):
 
 def save_user_state(user_obj):
     """Save user's state to database."""
+    room = getattr(user_obj, "room", None)
+    peep = getattr(user_obj, "peep", None)
+    world = getattr(user_obj, "world", None)
+    world_id = getattr(world, "ws_id", DEFAULT_WORLD_ID)
+    room_id = room.room_id if room is not None else ""
+    x = _coerce_int(getattr(peep, "x", DEFAULT_SPAWN_X), DEFAULT_SPAWN_X)
+    y = _coerce_int(getattr(peep, "y", DEFAULT_SPAWN_Y), DEFAULT_SPAWN_Y)
     con = get_user_connection()
-    con.execute("UPDATE users SET skin = ? WHERE username = ?", [user_obj.skin, user_obj.username])
+    con.execute(
+        "UPDATE users SET skin = ?, last_world_id = ?, last_room_id = ?, last_x = ?, last_y = ? WHERE username = ?",
+        [user_obj.skin, world_id, room_id, x, y, user_obj.username],
+    )
 
 
 def set_user_value(username, field, value):

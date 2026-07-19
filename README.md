@@ -8,6 +8,7 @@
 - **Browser client** served from the app itself
 - **Local registration and login**
 - **Persistent user data** stored in DuckDB
+- **Persistent user spawn state** (world/room/x/y) restored on reconnect/login
 - **YAML-defined worlds** for rooms, ways, and things
 - **YAML-defined actions** for chat, emotes, and interactions
 - **Live-reload style workflow** via the restart loop in `start.sh`
@@ -76,6 +77,7 @@ The server binds to `0.0.0.0:5000`, so it can also accept connections from other
 ### Authentication
 
 The client provides a login form plus local registration. The server exposes a `POST /register` route and stores users in a local DuckDB database under `data/users.duckdb`.
+On login, the server restores each user's last persisted world/room/position and falls back to the default room when saved room data is invalid.
 
 ### Realtime messaging
 
@@ -125,4 +127,3 @@ The repository currently includes:
 - a Python backend in `tinyrooms/`
 - a default `home` world under `data/worlds/`
 - action packs in `data/actions/`
-
