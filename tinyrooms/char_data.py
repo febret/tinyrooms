@@ -9,6 +9,7 @@ import yaml
 
 DATA_ROOT = Path(__file__).parent.parent / "data"
 USERS_ROOT = DATA_ROOT / "users"
+SUPPORTED_SPRITE_EXTENSIONS = (".png", ".gif", ".svg")
 
 
 def _now_iso() -> str:
@@ -120,8 +121,17 @@ def list_user_sprites(username: str) -> list[dict[str, str]]:
     if not sprites_dir.exists():
         return []
     out: list[dict[str, str]] = []
-    for png_path in sorted(sprites_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True):
-        sprite_id = png_path.name
+    sprite_paths = sorted(
+        (
+            p
+            for p in sprites_dir.iterdir()
+            if p.is_file() and p.suffix.lower() in SUPPORTED_SPRITE_EXTENSIONS
+        ),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    for sprite_path in sprite_paths:
+        sprite_id = sprite_path.name
         rel = sprite_rel_path(sprite_id)
         out.append(
             {

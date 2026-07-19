@@ -44,6 +44,8 @@ def _worker_main(task_queue, result_queue, stop_event, make_sprite_script: str):
             "--glow-color",
             task["glow_color"],
         ]
+        if task.get("output_format") == "svg":
+            cmd.append("--svg")
         captured_lines: list[str] = []
         try:
             proc = subprocess.Popen(
@@ -303,6 +305,10 @@ class CharacterEditorService:
         req["queue"] = self.queue_summary(username)
         return req
 
+    def _sprite_output_format(self) -> str:
+        configured = str(self._config.get("sprite_output_format", "png")).strip().lower()
+        return "svg" if configured == "svg" else "png"
+
     def _items_ahead_locked(self, request_id: str) -> int:
         req = self._requests.get(request_id)
         if req is None:
@@ -353,7 +359,8 @@ class CharacterEditorService:
             req["status"] = "running"
             req["updated_at"] = _utc_now()
             req["started_at"] = _utc_now()
-            temp_path = self._temp_root / f"{req_id}.png"
+            output_format = self._sprite_output_format()
+            temp_path = self._temp_root / f"{req_id}.{output_format}"
             temp_path.parent.mkdir(parents=True, exist_ok=True)
             req["temp_output"] = str(temp_path)
             style = self._config.get("server_style_presets", {})
@@ -364,6 +371,7 @@ class CharacterEditorService:
                     "temp_output": str(temp_path),
                     "border_color": str(style.get("border_color", "#6aa5ff")),
                     "glow_color": str(style.get("glow_color", "#5a94ff")),
+                    "output_format": output_format,
                 }
             )
             self._running_request_id = req_id
@@ -409,7 +417,16 @@ class CharacterEditorService:
                 return
 
             _, sprites_dir, _ = char_data.ensure_user_paths(username)
-            sprite_id = f"sprite_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{request_id[-6:]}.png"
+            ext = temp_output.suffix.lower()
+            if ext not in {".png", ".svg"}:
+                req["status"] = "failed"
+                req["updated_at"] = _utc_now()
+                req["finished_at"] = _utc_now()
+                req["error"] = f"unsupported sprite output format: {ext}"
+                self._active_by_user.pop(username, None)
+                self._dispatch_next_locked()
+                return
+            sprite_id = f"sprite_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{request_id[-6:]}{ext}"
             final_path = sprites_dir / sprite_id
             try:
                 shutil.move(str(temp_output), str(final_path))

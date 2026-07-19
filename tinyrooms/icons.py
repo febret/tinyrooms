@@ -3,9 +3,9 @@
 from pathlib import Path
 
 DEFAULT_USER_ASSETS = {
-    'img': 'images/default_user.png',
-    'sprite': 'images/default_user.png',
-    'icon': 'images/default_user.png',
+    'img': 'images/default_user.svg',
+    'sprite': 'images/default_user.svg',
+    'icon': 'images/default_user.svg',
 }
 
 
@@ -81,6 +81,8 @@ def _normalize_image(image_path: str, world_root_path, mode: str) -> str:
     if not src_path.exists():
         print(f"assets: image not found: {src_path}")
         return image_path
+    if src_path.suffix.lower() == ".svg":
+        return str(src_path.relative_to(world_root_path)).replace('\\', '/')
 
     suffix = {'icon': '_icon32', 'sprite': '_sprite64', 'img': '_img128'}[mode]
     dst_path = src_path.parent / f"{src_path.stem}{suffix}{src_path.suffix}"
