@@ -12,6 +12,7 @@ var chatLogList = document.getElementById("chatLogList");
 var msgInput = document.getElementById("msgInput");
 var sendBtn = document.getElementById("sendBtn");
 var btnLogout = document.getElementById("btnLogout");
+var btnWorldEditor = document.getElementById("btnWorldEditor");
 var connectionIndicator = document.getElementById("connectionIndicator");
 var roomTitleOverlay = document.getElementById("roomTitleOverlay");
 var roomCanvas = document.getElementById("roomCanvas");
@@ -19,6 +20,10 @@ var roomExits = document.getElementById("roomExits");
 var lookBox = document.getElementById("lookBox");
 var actionPalette = document.getElementById("actionPalette");
 var activityPanel = document.getElementById("activityPanel");
+
+if (btnWorldEditor) {
+  btnWorldEditor.addEventListener("click", () => window.open("/world-editor", "_blank"));
+}
 
 
 var myUsername = null;
@@ -93,6 +98,9 @@ socket.on("actions_def", data => {
 socket.on("login_success", data => {
   myUsername = data.username;
   restAuthToken = data.rest_token || null;
+  if (restAuthToken) {
+    localStorage.setItem("tr_rest_auth_token", restAuthToken);
+  }
   loginStatus.style.color = "green";
   loginStatus.textContent = "Login successful — welcome " + myUsername;
   document.getElementById("loginPage").style.display = "none";
@@ -105,6 +113,10 @@ socket.on("login_success", data => {
   initObjectEditor(socket, restAuthToken);
   resetObjectEditorState();
   ensurePropLibraryLoaded(true);
+  // Show World Editor button if the feature is available
+  fetch("/world-editor", { method: "HEAD" }).then(r => {
+    if (r.ok) document.getElementById("btnWorldEditor").style.display = "";
+  }).catch(() => {});
 });
 
 socket.on("login_failed", data => {

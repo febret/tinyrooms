@@ -1,0 +1,10 @@
+label: ''
+description: ''
+image: chipset2.png
+props:
+  prop_1:
+    width: 29
+    height: 28
+    frames:
+    - - 323
+      - 141

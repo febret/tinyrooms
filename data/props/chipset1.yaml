@@ -4,7 +4,13 @@ image: chipset1.png
 props:
   prop2:
     width: 32
-    height: 32
+    height: 48
     frames:
-    - - 0
-      - 0
+    - - 339
+      - 208
+  tree:
+    width: 49
+    height: 80
+    frames:
+    - - 384
+      - 176

@@ -40,6 +40,7 @@ btnLogout.addEventListener("click", () => {
   myUsername = null;
   lastPassword = null;
   restAuthToken = null;
+  localStorage.removeItem("tr_rest_auth_token");
   usernameInput.value = "";
   passwordInput.value = "";
   mainPage.style.display = "none";

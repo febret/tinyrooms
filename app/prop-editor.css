@@ -27,6 +27,7 @@ body {
 .panel-canvas {
   grid-row: 1;
   grid-column: 2;
+  overflow: auto;
 }
 
 .panel-side {
@@ -62,17 +63,38 @@ button {
   cursor: pointer;
 }
 
-.set-list button,
-#propList button {
+.set-list button {
   width: 100%;
   text-align: left;
   margin-bottom: 0.2rem;
 }
 
+#propList .prop-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.2rem;
+  padding: 3px 6px;
+}
+
+#propList .prop-btn.selected {
+  border-color: #ff69b4;
+  background: #1a0d12;
+}
+
+.prop-btn-thumb {
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  background: #000;
+  border: 1px solid #333;
+}
+
 #imageContainer {
   position: relative;
   display: inline-block;
-  overflow: hidden;
+  overflow: visible;
 }
 
 #propCanvas {
@@ -95,8 +117,61 @@ button {
 .image-hint {
   font-size: 0.75rem;
   color: #ff69b4;
-  margin: 0.2rem 0 0.4rem;
   min-height: 1rem;
+}
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.zoom-controls label {
+  color: #999;
+}
+
+.zoom-controls button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  text-align: center;
+}
+
+#zoomSlider {
+  width: 80px;
+  cursor: pointer;
+  accent-color: #ff69b4;
+}
+
+#zoomLabel {
+  width: 2.5em;
+  text-align: right;
+  color: #ccc;
+  font-family: monospace;
+}
+
+.bg-color-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  vertical-align: middle;
+  background: transparent;
+  border: 1px dashed #555;
 }
 
 pre#statusBox {
@@ -130,7 +205,13 @@ pre#statusBox {
 }
 
 .detail-row input {
-  width: 80px;
+  width: 90px;
+}
+
+/* Ensure number spinners are always visible */
+.detail-row input[type="number"] {
+  -moz-appearance: number-input;
+  appearance: auto;
 }
 
 /* Frame sequence editor */
@@ -174,7 +255,13 @@ pre#statusBox {
   font-family: monospace;
 }
 
-.frames-actions {
+.detail-row-separator {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2d2d2d;
+}
+
+
   display: flex;
   gap: 0.3rem;
   margin-bottom: 0.4rem;

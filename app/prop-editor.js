@@ -11,7 +11,9 @@ const state = {
   selectedPropId: null,
   selectedFrameIdx: null,
   canvasClickAddsFrame: false,
+  canvasClickPicksBg: false,
   image: null,            // HTMLImageElement
+  zoom: 1,
 };
 
 // ---------------------------------------------------------------------------
@@ -21,13 +23,19 @@ const state = {
 const setList = document.getElementById("setList");
 const setTitle = document.getElementById("setTitle");
 const imageHint = document.getElementById("imageHint");
+const zoomSlider = document.getElementById("zoomSlider");
+const zoomLabel = document.getElementById("zoomLabel");
 const propCanvas = document.getElementById("propCanvas");
 const overlayCanvas = document.getElementById("overlayCanvas");
 const propList = document.getElementById("propList");
 const newPropId = document.getElementById("newPropId");
 const propWidth = document.getElementById("propWidth");
 const propHeight = document.getElementById("propHeight");
+const frameX = document.getElementById("frameX");
+const frameY = document.getElementById("frameY");
 const propAnimSpeed = document.getElementById("propAnimSpeed");
+const bgColorText = document.getElementById("bgColorText");
+const bgColorSwatch = document.getElementById("bgColorSwatch");
 const framesStrip = document.getElementById("framesStrip");
 const statusBox = document.getElementById("statusBox");
 
@@ -98,9 +106,20 @@ function drawCanvas() {
   propCanvas.height = state.image.naturalHeight;
   overlayCanvas.width = propCanvas.width;
   overlayCanvas.height = propCanvas.height;
+  applyZoom();
   ctx.clearRect(0, 0, propCanvas.width, propCanvas.height);
   ctx.drawImage(state.image, 0, 0);
   drawOverlay();
+}
+
+function applyZoom() {
+  const z = state.zoom;
+  const w = propCanvas.width * z;
+  const h = propCanvas.height * z;
+  propCanvas.style.width = w + "px";
+  propCanvas.style.height = h + "px";
+  overlayCanvas.style.width = w + "px";
+  overlayCanvas.style.height = h + "px";
 }
 
 function drawOverlay() {
@@ -113,8 +132,9 @@ function drawOverlay() {
   const [fx, fy] = frames[state.selectedFrameIdx];
   const w = prop.width || 32;
   const h = prop.height || 32;
+  // Scale line width inversely so it appears ~2px on screen regardless of zoom
   octx.strokeStyle = "#ff69b4";
-  octx.lineWidth = 2;
+  octx.lineWidth = Math.max(0.5, 2 / state.zoom);
   octx.strokeRect(fx + 0.5, fy + 0.5, w - 1, h - 1);
   octx.fillStyle = "rgba(255,105,180,0.15)";
   octx.fillRect(fx, fy, w, h);
@@ -123,6 +143,72 @@ function drawOverlay() {
 function selectedProp() {
   if (!state.definition || !state.selectedPropId) return null;
   return (state.definition.props || {})[state.selectedPropId] || null;
+}
+
+// ---------------------------------------------------------------------------
+// Background color helpers
+// ---------------------------------------------------------------------------
+
+function parseBgColor(hexStr) {
+  if (!hexStr) return null;
+  const s = hexStr.trim();
+  const m = s.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (!m) return null;
+  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+}
+
+function currentBgRgb() {
+  return parseBgColor(state.definition?.background_color || "");
+}
+
+function updateBgSwatch() {
+  const v = bgColorText.value.trim();
+  const rgb = parseBgColor(v);
+  bgColorSwatch.style.background = rgb ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : "transparent";
+  bgColorSwatch.style.border = rgb ? "1px solid #555" : "1px dashed #555";
+}
+
+// Draw prop image onto a canvas, removing background color pixels.
+// srcImg: HTMLImageElement, sx/sy: source top-left in image, sw/sh: source size,
+// canvas: target canvas (already sized), tolerance: 0-255 per channel
+function drawPropThumb(canvas, srcImg, sx, sy, sw, sh, tolerance = 10) {
+  const tc = canvas.getContext("2d");
+  const dw = canvas.width;
+  const dh = canvas.height;
+  tc.clearRect(0, 0, dw, dh);
+  if (!srcImg) return;
+
+  // Draw source frame into a temp canvas at native size
+  const tmp = document.createElement("canvas");
+  tmp.width = sw;
+  tmp.height = sh;
+  const tmpc = tmp.getContext("2d");
+  tmpc.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
+
+  const rgb = currentBgRgb();
+  if (rgb) {
+    const id = tmpc.getImageData(0, 0, sw, sh);
+    const d = id.data;
+    const [tr, tg, tb] = rgb;
+    for (let i = 0; i < d.length; i += 4) {
+      if (
+        Math.abs(d[i] - tr) <= tolerance &&
+        Math.abs(d[i + 1] - tg) <= tolerance &&
+        Math.abs(d[i + 2] - tb) <= tolerance
+      ) {
+        d[i + 3] = 0;
+      }
+    }
+    tmpc.putImageData(id, 0, 0);
+  }
+
+  // Scale into target canvas preserving aspect ratio, centered
+  const scale = Math.min(dw / sw, dh / sh, 1);
+  const scaledW = Math.round(sw * scale);
+  const scaledH = Math.round(sh * scale);
+  const dx = Math.floor((dw - scaledW) / 2);
+  const dy = Math.floor((dh - scaledH) / 2);
+  tc.drawImage(tmp, 0, 0, sw, sh, dx, dy, scaledW, scaledH);
 }
 
 // ---------------------------------------------------------------------------
@@ -168,9 +254,28 @@ function renderPropList() {
   if (!state.definition) return;
   const props = state.definition.props || {};
   for (const pid of Object.keys(props)) {
+    const prop = props[pid];
     const btn = document.createElement("button");
-    btn.textContent = pid;
-    if (pid === state.selectedPropId) btn.style.borderColor = "#ff69b4";
+    btn.className = "prop-btn" + (pid === state.selectedPropId ? " selected" : "");
+
+    // Thumbnail canvas
+    const THUMB = 32;
+    const thumb = document.createElement("canvas");
+    thumb.width = THUMB;
+    thumb.height = THUMB;
+    thumb.className = "prop-btn-thumb";
+    if (state.image && prop.frames && prop.frames.length > 0) {
+      const [fx, fy] = prop.frames[0];
+      const pw = prop.width || 32;
+      const ph = prop.height || 32;
+      drawPropThumb(thumb, state.image, fx, fy, pw, ph);
+    }
+
+    const label = document.createElement("span");
+    label.textContent = pid;
+
+    btn.appendChild(thumb);
+    btn.appendChild(label);
     btn.addEventListener("click", () => selectPropEntry(pid));
     propList.appendChild(btn);
   }
@@ -185,12 +290,23 @@ function renderPropDetails() {
   if (!prop) {
     propWidth.value = "";
     propHeight.value = "";
+    frameX.value = "";
+    frameY.value = "";
     propAnimSpeed.value = "";
     return;
   }
   propWidth.value = prop.width ?? "";
   propHeight.value = prop.height ?? "";
   propAnimSpeed.value = (prop.anim_speed != null && prop.anim_speed !== undefined) ? prop.anim_speed : "";
+  const frames = prop.frames || [];
+  if (state.selectedFrameIdx !== null && state.selectedFrameIdx < frames.length) {
+    const [fx, fy] = frames[state.selectedFrameIdx];
+    frameX.value = fx;
+    frameY.value = fy;
+  } else {
+    frameX.value = "";
+    frameY.value = "";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -202,11 +318,12 @@ function renderFrames() {
   const prop = selectedProp();
   if (!prop) return;
   const frames = prop.frames || [];
-  const w = Math.min(prop.width || 32, 64);
-  const h = Math.min(prop.height || 32, 64);
-  const scale = Math.min(w / (prop.width || 32), h / (prop.height || 32), 1);
-  const thumbW = Math.round((prop.width || 32) * scale);
-  const thumbH = Math.round((prop.height || 32) * scale);
+  const pw = prop.width || 32;
+  const ph = prop.height || 32;
+  const maxDim = 64;
+  const scale = Math.min(maxDim / pw, maxDim / ph, 1);
+  const thumbW = Math.round(pw * scale);
+  const thumbH = Math.round(ph * scale);
 
   frames.forEach(([fx, fy], idx) => {
     const cell = document.createElement("div");
@@ -217,8 +334,7 @@ function renderFrames() {
     thumb.width = thumbW;
     thumb.height = thumbH;
     if (state.image) {
-      const tc = thumb.getContext("2d");
-      tc.drawImage(state.image, fx, fy, prop.width || 32, prop.height || 32, 0, 0, thumbW, thumbH);
+      drawPropThumb(thumb, state.image, fx, fy, pw, ph);
     }
 
     const coord = document.createElement("div");
@@ -230,6 +346,7 @@ function renderFrames() {
     cell.addEventListener("click", () => {
       state.selectedFrameIdx = idx;
       renderFrames();
+      renderPropDetails();
       drawOverlay();
     });
     framesStrip.appendChild(cell);
@@ -259,6 +376,8 @@ async function selectSet(rec) {
     state.selectedPropId = null;
     state.selectedFrameIdx = null;
     setTitle.textContent = `${rec.scope}/${rec.filename}`;
+    bgColorText.value = state.definition?.background_color || "";
+    updateBgSwatch();
     renderSetList();
     renderPropList();
     renderPropDetails();
@@ -336,8 +455,37 @@ async function deleteProp() {
   }
 }
 
+function renameProp() {
+  if (!state.selectedPropId || !state.definition) {
+    setStatus("Select a prop to rename.", true);
+    return;
+  }
+  const oldId = state.selectedPropId;
+  const newId = prompt(`Rename prop '${oldId}' to:`, oldId);
+  if (!newId || newId === oldId) return;
+  const newIdTrimmed = newId.trim();
+  if (!newIdTrimmed) return;
+  const props = state.definition.props;
+  if (newIdTrimmed in props) {
+    setStatus(`A prop named '${newIdTrimmed}' already exists.`, true);
+    return;
+  }
+  // Insert under new key preserving order
+  const reordered = {};
+  for (const [k, v] of Object.entries(props)) {
+    reordered[k === oldId ? newIdTrimmed : k] = v;
+  }
+  state.definition.props = reordered;
+  state.selectedPropId = newIdTrimmed;
+  renderPropList();
+  setStatus(`Prop renamed to '${newIdTrimmed}'. Don't forget to save.`);
+}
+
 async function saveSet() {
   if (!state.selectedSet || !state.definition) return;
+  // Commit background color
+  const bg = bgColorText.value.trim();
+  state.definition.background_color = bg.length ? bg : null;
   // Commit edited prop details back into definition
   const prop = selectedProp();
   if (prop) {
@@ -377,24 +525,53 @@ async function reloadCurrentSet() {
 }
 
 // ---------------------------------------------------------------------------
-// Canvas click — add frame
+// Canvas click — move selected frame or add new frame
 // ---------------------------------------------------------------------------
 
 propCanvas.addEventListener("click", (ev) => {
-  if (!state.canvasClickAddsFrame) return;
   const rect = propCanvas.getBoundingClientRect();
   const scaleX = propCanvas.width / rect.width;
   const scaleY = propCanvas.height / rect.height;
   const cx = Math.floor((ev.clientX - rect.left) * scaleX);
   const cy = Math.floor((ev.clientY - rect.top) * scaleY);
+
+  if (state.canvasClickPicksBg) {
+    const pixel = ctx.getImageData(cx, cy, 1, 1).data;
+    const hex = "#" + [pixel[0], pixel[1], pixel[2]]
+      .map(v => v.toString(16).padStart(2, "0")).join("");
+    bgColorText.value = hex;
+    updateBgSwatch();
+    // Exit pick mode
+    state.canvasClickPicksBg = false;
+    document.getElementById("btnPickBgColor").style.borderColor = "";
+    imageHint.textContent = "";
+    renderPropList();
+    renderFrames();
+    setStatus(`Background color set to ${hex}. Don't forget to save.`);
+    return;
+  }
+
   const prop = selectedProp();
   if (!prop) return;
-  if (!prop.frames) prop.frames = [];
-  prop.frames.push([cx, cy]);
-  state.selectedFrameIdx = prop.frames.length - 1;
-  renderFrames();
-  drawOverlay();
-  setStatus(`Added frame at [${cx}, ${cy}]. Don't forget to save.`);
+
+  if (state.canvasClickAddsFrame) {
+    if (!prop.frames) prop.frames = [];
+    prop.frames.push([cx, cy]);
+    state.selectedFrameIdx = prop.frames.length - 1;
+    renderFrames();
+    renderPropDetails();
+    drawOverlay();
+    setStatus(`Added frame at [${cx}, ${cy}]. Don't forget to save.`);
+  } else if (state.selectedFrameIdx !== null) {
+    const frames = prop.frames || [];
+    if (state.selectedFrameIdx < frames.length) {
+      frames[state.selectedFrameIdx] = [cx, cy];
+      renderFrames();
+      renderPropDetails();
+      drawOverlay();
+      setStatus(`Moved frame to [${cx}, ${cy}]. Don't forget to save.`);
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -445,6 +622,11 @@ function moveFrameRight() {
 const btnAddFrameFromCanvas = document.getElementById("btnAddFrameFromCanvas");
 
 btnAddFrameFromCanvas.addEventListener("click", () => {
+  // Cancel bg pick mode if active
+  if (state.canvasClickPicksBg) {
+    state.canvasClickPicksBg = false;
+    document.getElementById("btnPickBgColor").style.borderColor = "";
+  }
   state.canvasClickAddsFrame = !state.canvasClickAddsFrame;
   btnAddFrameFromCanvas.style.borderColor = state.canvasClickAddsFrame ? "#ff69b4" : "";
   imageHint.textContent = state.canvasClickAddsFrame
@@ -453,12 +635,117 @@ btnAddFrameFromCanvas.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Live overlay updates from detail inputs
+// ---------------------------------------------------------------------------
+
+propWidth.addEventListener("input", () => {
+  const prop = selectedProp();
+  if (!prop) return;
+  const w = parseInt(propWidth.value, 10);
+  if (!isNaN(w) && w > 0) {
+    prop.width = w;
+    renderFrames();
+    drawOverlay();
+  }
+});
+
+propHeight.addEventListener("input", () => {
+  const prop = selectedProp();
+  if (!prop) return;
+  const h = parseInt(propHeight.value, 10);
+  if (!isNaN(h) && h > 0) {
+    prop.height = h;
+    renderFrames();
+    drawOverlay();
+  }
+});
+
+frameX.addEventListener("input", () => {
+  const prop = selectedProp();
+  if (!prop || state.selectedFrameIdx === null) return;
+  const frames = prop.frames || [];
+  if (state.selectedFrameIdx >= frames.length) return;
+  const x = parseInt(frameX.value, 10);
+  if (!isNaN(x) && x >= 0) {
+    frames[state.selectedFrameIdx] = [x, frames[state.selectedFrameIdx][1]];
+    renderFrames();
+    drawOverlay();
+  }
+});
+
+frameY.addEventListener("input", () => {
+  const prop = selectedProp();
+  if (!prop || state.selectedFrameIdx === null) return;
+  const frames = prop.frames || [];
+  if (state.selectedFrameIdx >= frames.length) return;
+  const y = parseInt(frameY.value, 10);
+  if (!isNaN(y) && y >= 0) {
+    frames[state.selectedFrameIdx] = [frames[state.selectedFrameIdx][0], y];
+    renderFrames();
+    drawOverlay();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Background color controls
+// ---------------------------------------------------------------------------
+
+bgColorText.addEventListener("input", () => {
+  updateBgSwatch();
+  if (state.definition) {
+    const bg = bgColorText.value.trim();
+    state.definition.background_color = bg.length ? bg : null;
+    renderPropList();
+    renderFrames();
+  }
+});
+
+document.getElementById("btnPickBgColor").addEventListener("click", () => {
+  // Toggle off add-frame mode to avoid conflicts
+  if (state.canvasClickAddsFrame) {
+    state.canvasClickAddsFrame = false;
+    document.getElementById("btnAddFrameFromCanvas").style.borderColor = "";
+  }
+  state.canvasClickPicksBg = !state.canvasClickPicksBg;
+  document.getElementById("btnPickBgColor").style.borderColor = state.canvasClickPicksBg ? "#ff69b4" : "";
+  imageHint.textContent = state.canvasClickPicksBg
+    ? "Click a pixel on the image to set the background color."
+    : "";
+});
+
+document.getElementById("btnClearBgColor").addEventListener("click", () => {
+  bgColorText.value = "";
+  updateBgSwatch();
+  if (state.definition) state.definition.background_color = null;
+  renderPropList();
+  renderFrames();
+  setStatus("Background color cleared. Don't forget to save.");
+});
+
+// ---------------------------------------------------------------------------
+// Zoom controls
+// ---------------------------------------------------------------------------
+
+function setZoom(z) {
+  state.zoom = Math.max(1, Math.min(8, z));
+  zoomSlider.value = state.zoom;
+  zoomLabel.textContent = state.zoom + "×";
+  applyZoom();
+  drawOverlay();
+}
+
+zoomSlider.addEventListener("input", () => setZoom(parseInt(zoomSlider.value, 10)));
+document.getElementById("btnZoomIn").addEventListener("click", () => setZoom(state.zoom + 1));
+document.getElementById("btnZoomOut").addEventListener("click", () => setZoom(state.zoom - 1));
+
+// ---------------------------------------------------------------------------
 // Wire up buttons
 // ---------------------------------------------------------------------------
 
 document.getElementById("btnLoadSets").addEventListener("click", loadSets);
 document.getElementById("btnAddProp").addEventListener("click", addProp);
 document.getElementById("btnDeleteProp").addEventListener("click", deleteProp);
+document.getElementById("btnRenameProp").addEventListener("click", renameProp);
 document.getElementById("btnSaveSet").addEventListener("click", saveSet);
 document.getElementById("btnRemoveFrame").addEventListener("click", removeSelectedFrame);
 document.getElementById("btnMoveFrameLeft").addEventListener("click", moveFrameLeft);
