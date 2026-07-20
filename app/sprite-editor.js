@@ -26,24 +26,9 @@
 
   const THUMB_SIZE = 40;  // thumbnail cell size in px
 
-  function setStatus(text) {
+  function setStatus(text, isError) {
     statusBox.textContent = text || "";
-  }
-
-  async function api(path, options) {
-    const response = await fetch(path, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options?.headers || {}),
-      },
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = payload?.details ? `\n${payload.details.join("\n")}` : "";
-      throw new Error((payload?.error || `HTTP ${response.status}`) + detail);
-    }
-    return payload;
+    statusBox.style.color = isError ? "#f44" : "#4f4";
   }
 
   // -------------------------------------------------------------------------
@@ -74,19 +59,13 @@
     ctx.stroke();
   }
 
-  // Draw a single frame thumbnail onto an offscreen canvas, return it.
+  // Draw a single frame thumbnail onto an offscreen canvas and return it.
   function makeThumb(col, row) {
     const offscreen = document.createElement("canvas");
     offscreen.width = THUMB_SIZE;
     offscreen.height = THUMB_SIZE;
-    const octx = offscreen.getContext("2d");
-    if (loadedImage) {
-      octx.drawImage(
-        loadedImage,
-        col * fw(), row * fh(), fw(), fh(),
-        0, 0, THUMB_SIZE, THUMB_SIZE
-      );
-    }
+    const bgRgb = parseBgColor(backgroundColor.value);
+    drawSpriteThumb(offscreen, loadedImage, col * fw(), row * fh(), fw(), fh(), bgRgb);
     return offscreen;
   }
 
@@ -197,7 +176,7 @@
   // -------------------------------------------------------------------------
 
   async function loadSets() {
-    const payload = await api("/api/sprite-editor/sets");
+    const payload = await editorApi("/api/sprite-editor/sets");
     setList.innerHTML = "";
     for (const item of payload.sets || []) {
       const btn = document.createElement("button");
@@ -214,7 +193,7 @@
     selectedAnimId = null;
     selectedFrameIndex = -1;
     animFrames = [];
-    const payload = await api(`/api/sprite-editor/sets/${setDef.scope}/${setDef.filename}`);
+    const payload = await editorApi(`/api/sprite-editor/sets/${setDef.scope}/${setDef.filename}`);
     currentDefinition = payload.definition;
     setTitle.textContent = `${setDef.scope}:${setDef.filename}`;
     setMeta.textContent = payload.set.yaml_error || "";
@@ -224,20 +203,8 @@
     spriteCanvas.height = 0;
     imageHint.textContent = "";
 
-    const imageUrl = payload.set.image_url || "";
-    if (imageUrl) {
-      const img = new Image();
-      img.onload = () => {
-        loadedImage = img;
-        drawCanvas();
-        imageHint.textContent = "Click on image to pick background color, or select an animation to insert frames.";
-      };
-      img.onerror = () => setStatus("Failed to load sprite image.");
-      img.src = imageUrl;
-    }
-
     if (!currentDefinition) {
-      await api(`/api/sprite-editor/sets/${setDef.scope}/${setDef.filename}/create-definition`, {
+      await editorApi(`/api/sprite-editor/sets/${setDef.scope}/${setDef.filename}/create-definition`, {
         method: "POST",
         body: JSON.stringify({ frame_width: 32, frame_height: 32 }),
       });
@@ -246,6 +213,18 @@
     frameWidth.value = currentDefinition.frame_width || 32;
     frameHeight.value = currentDefinition.frame_height || 32;
     backgroundColor.value = currentDefinition.background_color || "";
+
+    const imageUrl = payload.set.image_url || "";
+    if (imageUrl) {
+      try {
+        loadedImage = await loadImage(imageUrl);
+        drawCanvas();
+        imageHint.textContent = "Click on image to pick background color, or select an animation to insert frames.";
+      } catch {
+        setStatus("Failed to load sprite image.", true);
+      }
+    }
+
     renderSprites();
     renderFrameStrip();
   }
@@ -312,7 +291,7 @@
     currentDefinition.frame_height = Number(frameHeight.value || 32);
     const bg = String(backgroundColor.value || "").trim();
     currentDefinition.background_color = bg.length ? bg : null;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
       method: "PUT",
       body: JSON.stringify({ definition: currentDefinition }),
     });
@@ -328,7 +307,7 @@
     if (!selectedSet) return;
     const spriteId = document.getElementById("newSpriteId").value.trim();
     if (!spriteId) return;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites`, {
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites`, {
       method: "POST",
       body: JSON.stringify({ sprite_id: spriteId, default_frame: "0x0" }),
     });
@@ -337,7 +316,7 @@
 
   async function deleteSprite() {
     if (!selectedSet || !selectedSpriteId) return;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}`, {
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}`, {
       method: "DELETE",
     });
     await selectSet(selectedSet);
@@ -350,13 +329,8 @@
     if (newId === selectedSpriteId) return;
     const sprites = currentDefinition.sprites || {};
     if (newId in sprites) return setStatus(`Sprite "${newId}" already exists.`);
-    // Reorder-preserving rename: rebuild the sprites object with newId in the same position
-    const reordered = {};
-    for (const [k, v] of Object.entries(sprites)) {
-      reordered[k === selectedSpriteId ? newId : k] = v;
-    }
-    currentDefinition.sprites = reordered;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
+    currentDefinition.sprites = renameKeyInObject(sprites, selectedSpriteId, newId);
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
       method: "PUT",
       body: JSON.stringify({ definition: currentDefinition }),
     });
@@ -376,7 +350,7 @@
     if (!selectedSet || !selectedSpriteId) return;
     const animId = document.getElementById("newAnimId").value.trim();
     if (!animId) return;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims`, {
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims`, {
       method: "POST",
       body: JSON.stringify({ anim_id: animId, speed: 0.5, type: "loop", frames: ["0x0"] }),
     });
@@ -385,7 +359,7 @@
 
   async function deleteAnim() {
     if (!selectedSet || !selectedSpriteId || !selectedAnimId) return;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims/${selectedAnimId}`, {
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims/${selectedAnimId}`, {
       method: "DELETE",
     });
     selectedAnimId = null;
@@ -401,12 +375,8 @@
     if (newId === selectedAnimId) return;
     const anims = currentDefinition.sprites?.[selectedSpriteId]?.anims || {};
     if (newId in anims) return setStatus(`Animation "${newId}" already exists.`);
-    const reordered = {};
-    for (const [k, v] of Object.entries(anims)) {
-      reordered[k === selectedAnimId ? newId : k] = v;
-    }
-    currentDefinition.sprites[selectedSpriteId].anims = reordered;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
+    currentDefinition.sprites[selectedSpriteId].anims = renameKeyInObject(anims, selectedAnimId, newId);
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
       method: "PUT",
       body: JSON.stringify({ definition: currentDefinition }),
     });
@@ -433,7 +403,7 @@
     const savedSpriteId = selectedSpriteId;
     const savedAnimId = selectedAnimId;
     const savedFrameIndex = selectedFrameIndex;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${savedSpriteId}/anims/${savedAnimId}`, {
+    await editorApi(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${savedSpriteId}/anims/${savedAnimId}`, {
       method: "PUT",
       body: JSON.stringify({
         speed: Number(animSpeed.value || 0.5),

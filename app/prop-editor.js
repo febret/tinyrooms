@@ -43,42 +43,6 @@ const ctx = propCanvas.getContext("2d");
 const octx = overlayCanvas.getContext("2d");
 
 // ---------------------------------------------------------------------------
-// API helpers
-// ---------------------------------------------------------------------------
-
-async function apiGet(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
-}
-
-async function apiPost(url, body) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
-}
-
-async function apiPut(url, body) {
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
-}
-
-async function apiDelete(url) {
-  const res = await fetch(url, { method: "DELETE" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
-}
-
-// ---------------------------------------------------------------------------
 // Status / feedback
 // ---------------------------------------------------------------------------
 
@@ -90,15 +54,6 @@ function setStatus(msg, isError) {
 // ---------------------------------------------------------------------------
 // Rendering helpers
 // ---------------------------------------------------------------------------
-
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
-  });
-}
 
 function drawCanvas() {
   if (!state.image) return;
@@ -149,66 +104,14 @@ function selectedProp() {
 // Background color helpers
 // ---------------------------------------------------------------------------
 
-function parseBgColor(hexStr) {
-  if (!hexStr) return null;
-  const s = hexStr.trim();
-  const m = s.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if (!m) return null;
-  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
-}
-
 function currentBgRgb() {
   return parseBgColor(state.definition?.background_color || "");
 }
 
 function updateBgSwatch() {
-  const v = bgColorText.value.trim();
-  const rgb = parseBgColor(v);
+  const rgb = parseBgColor(bgColorText.value.trim());
   bgColorSwatch.style.background = rgb ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : "transparent";
   bgColorSwatch.style.border = rgb ? "1px solid #555" : "1px dashed #555";
-}
-
-// Draw prop image onto a canvas, removing background color pixels.
-// srcImg: HTMLImageElement, sx/sy: source top-left in image, sw/sh: source size,
-// canvas: target canvas (already sized), tolerance: 0-255 per channel
-function drawPropThumb(canvas, srcImg, sx, sy, sw, sh, tolerance = 10) {
-  const tc = canvas.getContext("2d");
-  const dw = canvas.width;
-  const dh = canvas.height;
-  tc.clearRect(0, 0, dw, dh);
-  if (!srcImg) return;
-
-  // Draw source frame into a temp canvas at native size
-  const tmp = document.createElement("canvas");
-  tmp.width = sw;
-  tmp.height = sh;
-  const tmpc = tmp.getContext("2d");
-  tmpc.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
-
-  const rgb = currentBgRgb();
-  if (rgb) {
-    const id = tmpc.getImageData(0, 0, sw, sh);
-    const d = id.data;
-    const [tr, tg, tb] = rgb;
-    for (let i = 0; i < d.length; i += 4) {
-      if (
-        Math.abs(d[i] - tr) <= tolerance &&
-        Math.abs(d[i + 1] - tg) <= tolerance &&
-        Math.abs(d[i + 2] - tb) <= tolerance
-      ) {
-        d[i + 3] = 0;
-      }
-    }
-    tmpc.putImageData(id, 0, 0);
-  }
-
-  // Scale into target canvas preserving aspect ratio, centered
-  const scale = Math.min(dw / sw, dh / sh, 1);
-  const scaledW = Math.round(sw * scale);
-  const scaledH = Math.round(sh * scale);
-  const dx = Math.floor((dw - scaledW) / 2);
-  const dy = Math.floor((dh - scaledH) / 2);
-  tc.drawImage(tmp, 0, 0, sw, sh, dx, dy, scaledW, scaledH);
 }
 
 // ---------------------------------------------------------------------------
@@ -268,7 +171,7 @@ function renderPropList() {
       const [fx, fy] = prop.frames[0];
       const pw = prop.width || 32;
       const ph = prop.height || 32;
-      drawPropThumb(thumb, state.image, fx, fy, pw, ph);
+      drawSpriteThumb(thumb, state.image, fx, fy, pw, ph, currentBgRgb());
     }
 
     const label = document.createElement("span");
@@ -334,7 +237,7 @@ function renderFrames() {
     thumb.width = thumbW;
     thumb.height = thumbH;
     if (state.image) {
-      drawPropThumb(thumb, state.image, fx, fy, pw, ph);
+      drawSpriteThumb(thumb, state.image, fx, fy, pw, ph, currentBgRgb());
     }
 
     const coord = document.createElement("div");
@@ -359,7 +262,7 @@ function renderFrames() {
 
 async function loadSets() {
   try {
-    const data = await apiGet("/api/prop-editor/sets");
+    const data = await editorApi("/api/prop-editor/sets");
     state.sets = data.sets || [];
     renderSetList();
     setStatus(`Loaded ${state.sets.length} prop set(s).`);
@@ -370,7 +273,7 @@ async function loadSets() {
 
 async function selectSet(rec) {
   try {
-    const data = await apiGet(`/api/prop-editor/sets/${rec.scope}/${rec.filename}`);
+    const data = await editorApi(`/api/prop-editor/sets/${rec.scope}/${rec.filename}`);
     state.selectedSet = data.set;
     state.definition = data.definition || null;
     state.selectedPropId = null;
@@ -406,7 +309,10 @@ async function createDefinition(rec) {
   const propId = prompt("Prop ID for new definition:", "prop_1");
   if (!propId) return;
   try {
-    await apiPost(`/api/prop-editor/sets/${rec.scope}/${rec.filename}/create-definition`, { prop_id: propId });
+    await editorApi(`/api/prop-editor/sets/${rec.scope}/${rec.filename}/create-definition`, {
+      method: "POST",
+      body: JSON.stringify({ prop_id: propId }),
+    });
     setStatus("Definition created.");
     await loadSets();
     const updated = state.sets.find(s => s.scope === rec.scope && s.filename === rec.filename);
@@ -429,8 +335,9 @@ async function addProp() {
   const pid = newPropId.value.trim();
   if (!pid || !state.selectedSet) return;
   try {
-    await apiPost(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}/props`, {
-      prop_id: pid, width: 32, height: 32, frames: [[0, 0]],
+    await editorApi(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}/props`, {
+      method: "POST",
+      body: JSON.stringify({ prop_id: pid, width: 32, height: 32, frames: [[0, 0]] }),
     });
     setStatus(`Prop '${pid}' added.`);
     newPropId.value = "";
@@ -445,7 +352,9 @@ async function deleteProp() {
   if (!state.selectedPropId || !state.selectedSet) return;
   if (!confirm(`Delete prop '${state.selectedPropId}'?`)) return;
   try {
-    await apiDelete(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}/props/${state.selectedPropId}`);
+    await editorApi(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}/props/${state.selectedPropId}`, {
+      method: "DELETE",
+    });
     state.selectedPropId = null;
     state.selectedFrameIdx = null;
     setStatus("Prop deleted.");
@@ -470,12 +379,7 @@ function renameProp() {
     setStatus(`A prop named '${newIdTrimmed}' already exists.`, true);
     return;
   }
-  // Insert under new key preserving order
-  const reordered = {};
-  for (const [k, v] of Object.entries(props)) {
-    reordered[k === oldId ? newIdTrimmed : k] = v;
-  }
-  state.definition.props = reordered;
+  state.definition.props = renameKeyInObject(props, oldId, newIdTrimmed);
   state.selectedPropId = newIdTrimmed;
   renderPropList();
   setStatus(`Prop renamed to '${newIdTrimmed}'. Don't forget to save.`);
@@ -502,8 +406,9 @@ async function saveSet() {
     }
   }
   try {
-    await apiPut(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}`, {
-      definition: state.definition,
+    await editorApi(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}`, {
+      method: "PUT",
+      body: JSON.stringify({ definition: state.definition }),
     });
     setStatus("Saved successfully.");
     await reloadCurrentSet();
@@ -514,7 +419,7 @@ async function saveSet() {
 
 async function reloadCurrentSet() {
   if (!state.selectedSet) return;
-  const data = await apiGet(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}`);
+  const data = await editorApi(`/api/prop-editor/sets/${state.selectedSet.scope}/${state.selectedSet.filename}`);
   state.selectedSet = data.set;
   state.definition = data.definition || null;
   renderSetList();
