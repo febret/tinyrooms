@@ -13,6 +13,8 @@ The suite covers:
 - room interaction permissions (`room_move_entity`, `room_edit_prop`)
 - disconnect and logout behavior
 - character editor REST queue/request/sprite contract
+- sprite schema/resolver unit tests
+- sprite-editor REST API lifecycle contract
 
 ## Test Layout
 
@@ -27,6 +29,8 @@ tests/
     test_multi_client_realtime.py
     test_activity_panel_and_actions.py
     test_char_editor_api.py
+    test_sprite_editor_api.py
+  test_sprites.py
 ```
 
 ## Isolation Strategy

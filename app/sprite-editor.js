@@ -343,6 +343,31 @@
     await selectSet(selectedSet);
   }
 
+  async function renameSprite() {
+    if (!selectedSet || !selectedSpriteId || !currentDefinition) return;
+    const newId = document.getElementById("renameSpriteId").value.trim();
+    if (!newId) return setStatus("Enter a new sprite id to rename to.");
+    if (newId === selectedSpriteId) return;
+    const sprites = currentDefinition.sprites || {};
+    if (newId in sprites) return setStatus(`Sprite "${newId}" already exists.`);
+    // Reorder-preserving rename: rebuild the sprites object with newId in the same position
+    const reordered = {};
+    for (const [k, v] of Object.entries(sprites)) {
+      reordered[k === selectedSpriteId ? newId : k] = v;
+    }
+    currentDefinition.sprites = reordered;
+    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
+      method: "PUT",
+      body: JSON.stringify({ definition: currentDefinition }),
+    });
+    selectedSpriteId = newId;
+    document.getElementById("renameSpriteId").value = "";
+    await selectSet(selectedSet);
+    selectedSpriteId = newId;
+    renderSprites();
+    setStatus(`Renamed sprite to "${newId}".`);
+  }
+
   // -------------------------------------------------------------------------
   // Animation CRUD
   // -------------------------------------------------------------------------
@@ -369,9 +394,46 @@
     await selectSet(selectedSet);
   }
 
+  async function renameAnim() {
+    if (!selectedSet || !selectedSpriteId || !selectedAnimId || !currentDefinition) return;
+    const newId = document.getElementById("renameAnimId").value.trim();
+    if (!newId) return setStatus("Enter a new animation id to rename to.");
+    if (newId === selectedAnimId) return;
+    const anims = currentDefinition.sprites?.[selectedSpriteId]?.anims || {};
+    if (newId in anims) return setStatus(`Animation "${newId}" already exists.`);
+    const reordered = {};
+    for (const [k, v] of Object.entries(anims)) {
+      reordered[k === selectedAnimId ? newId : k] = v;
+    }
+    currentDefinition.sprites[selectedSpriteId].anims = reordered;
+    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}`, {
+      method: "PUT",
+      body: JSON.stringify({ definition: currentDefinition }),
+    });
+    const savedSpriteId = selectedSpriteId;
+    selectedAnimId = newId;
+    document.getElementById("renameAnimId").value = "";
+    await selectSet(selectedSet);
+    selectedSpriteId = savedSpriteId;
+    selectedAnimId = newId;
+    const anim = currentDefinition?.sprites?.[savedSpriteId]?.anims?.[newId];
+    if (anim) {
+      animSpeed.value = Number(anim.speed || 0.5);
+      animType.value = anim.type || "loop";
+      animFrames = [...(anim.frames || [])];
+      selectedFrameIndex = animFrames.length > 0 ? animFrames.length - 1 : -1;
+    }
+    renderSprites();
+    renderFrameStrip();
+    setStatus(`Renamed animation to "${newId}".`);
+  }
+
   async function saveAnim() {
     if (!selectedSet || !selectedSpriteId || !selectedAnimId) return;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims/${selectedAnimId}`, {
+    const savedSpriteId = selectedSpriteId;
+    const savedAnimId = selectedAnimId;
+    const savedFrameIndex = selectedFrameIndex;
+    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${savedSpriteId}/anims/${savedAnimId}`, {
       method: "PUT",
       body: JSON.stringify({
         speed: Number(animSpeed.value || 0.5),
@@ -380,13 +442,19 @@
       }),
     });
     await selectSet(selectedSet);
-    // Restore selected animation after reload
-    const anim = currentDefinition?.sprites?.[selectedSpriteId]?.anims?.[selectedAnimId];
+    // Restore sprite + animation selection after reload
+    selectedSpriteId = savedSpriteId;
+    selectedAnimId = savedAnimId;
+    const anim = currentDefinition?.sprites?.[savedSpriteId]?.anims?.[savedAnimId];
     if (anim) {
+      animSpeed.value = Number(anim.speed || 0.5);
+      animType.value = anim.type || "loop";
       animFrames = [...(anim.frames || [])];
-      renderFrameStrip();
+      selectedFrameIndex = Math.min(savedFrameIndex, animFrames.length - 1);
     }
-    setStatus(`Saved animation "${selectedAnimId}".`);
+    renderSprites();
+    renderFrameStrip();
+    setStatus(`Saved animation "${savedAnimId}".`);
   }
 
   // -------------------------------------------------------------------------
@@ -428,7 +496,9 @@
   document.getElementById("btnClearBackground").onclick = () => { backgroundColor.value = ""; };
   document.getElementById("btnSaveSet").onclick = () => saveSet().catch((err) => setStatus(err.message));
   document.getElementById("btnAddSprite").onclick = () => addSprite().catch((err) => setStatus(err.message));
+  document.getElementById("btnRenameSprite").onclick = () => renameSprite().catch((err) => setStatus(err.message));
   document.getElementById("btnAddAnim").onclick = () => addAnim().catch((err) => setStatus(err.message));
+  document.getElementById("btnRenameAnim").onclick = () => renameAnim().catch((err) => setStatus(err.message));
   document.getElementById("btnDeleteSprite").onclick = () => deleteSprite().catch((err) => setStatus(err.message));
   document.getElementById("btnDeleteAnim").onclick = () => deleteAnim().catch((err) => setStatus(err.message));
   document.getElementById("btnSaveAnim").onclick = () => saveAnim().catch((err) => setStatus(err.message));
