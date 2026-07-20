@@ -41,9 +41,7 @@ sprites:
 Frames are represented in the definition as the x,y GRID index of the frame image in the sprite set image. So for instance, `0x0` is the frame at the top left corner of the sprite set (with pixel size determined by the frame with and height)
 
 ## Sprite Editor
-The sprite editor is a web-based sprite creation utility available in the tinyrooms client and server. It is enabled if the server is launched with argument `--feature sprite-editor`. It is accessible at <server url>/sprite-editor.
-
-The sprite editor lets the user create new sprite definitions for images in the server/world sprites directories, or modify existing sprite definitions.
+The sprite editor is a web-based sprite creation utility available at `/sprite-editor` when the server is started with `--feature sprite-editor`. It lets users create new sprite definitions or modify existing ones for images in the server/world sprites directories.
 
 The sprite editor looks like this:
 +---------------------------------------------+--------------+
