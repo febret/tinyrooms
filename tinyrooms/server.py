@@ -4,11 +4,12 @@ import shutil
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO
 
-from . import char_data, char_editor, db, object_editor, user
+from . import char_data, char_editor, db, icons, object_editor, sprite_editor_api, sprites, user
 from .icons import DEFAULT_USER_ASSETS
 from .object import Object
 from .world import active_world, save_generated_thing_def, serialize_prop_library
@@ -22,9 +23,12 @@ CLIENT_FILENAME = "client.html"
 app = Flask(__name__, static_folder=str(STATIC_FOLDER), static_url_path="/app")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+app.register_blueprint(sprite_editor_api.blueprint)
 
 _char_editor_service = None
 _object_editor_service = None
+_enabled_features: set[str] = set()
+_sprite_repository: sprites.SpriteRepository | None = None
 
 
 def _default_temp_root() -> Path:
@@ -101,6 +105,36 @@ def object_editor_service() -> object_editor.ObjectEditorService:
     return _object_editor_service  # type: ignore
 
 
+def configure_features(features: set[str] | list[str] | tuple[str, ...]):
+    global _enabled_features
+    normalized = {str(feature).strip() for feature in features if str(feature).strip()}
+    _enabled_features = normalized
+
+
+def feature_enabled(feature_name: str) -> bool:
+    return feature_name in _enabled_features
+
+
+def _require_feature(feature_name: str):
+    if not feature_enabled(feature_name):
+        raise PermissionError(f"feature '{feature_name}' is disabled")
+
+
+def _sprite_repo(force_reindex: bool = False) -> sprites.SpriteRepository:
+    global _sprite_repository
+    world_root = Path(active_world().root_path)
+    if (
+        _sprite_repository is None
+        or _sprite_repository.world_root_path != world_root
+    ):
+        _sprite_repository = sprites.SpriteRepository(world_root)
+        _sprite_repository.reindex()
+        return _sprite_repository
+    if force_reindex:
+        _sprite_repository.reindex()
+    return _sprite_repository
+
+
 def _require_rest_user() -> str:
     token = request.headers.get("X-TR-Auth", "").strip()
     if token:
@@ -117,37 +151,6 @@ def _require_rest_user() -> str:
 
 def _error_response(message: str, code: int):
     return jsonify({"ok": False, "error": message}), code
-
-
-def _get_authenticated_username() -> str:
-    """Get authenticated username from request, raising PermissionError if not authenticated."""
-    return _require_rest_user()
-
-
-def _handle_auth_error():
-    """Create an authentication error response."""
-    return _error_response("not authenticated", 401)
-
-
-def _handle_value_error(err: ValueError, default_code: int = 400, code_for: dict | None = None):
-    """Handle ValueError with optional custom status codes for specific error messages.
-    
-    Args:
-        err: The ValueError to handle
-        default_code: Default HTTP status code (default 400)
-        code_for: Dict mapping error message substrings to HTTP codes
-    
-    Returns:
-        Flask response tuple
-    """
-    if code_for is None:
-        code_for = {}
-    text = str(err)
-    for substring, code in code_for.items():
-        if substring in text:
-            return _error_response(text, code)
-    return _error_response(text, default_code)
-
 
 def _update_peep_display_and_broadcast(username: str, display_assets: dict) -> None:
     """Update an online user's peep display assets and broadcast the room update.
@@ -202,12 +205,7 @@ def _create_object_in_user_room(username: str, info: dict) -> tuple[Object, dict
     obj.orientation = "front"
     obj.layer = 0
     obj.z_order = room.next_z()
-    display_img = info.get("sprite") or info.get("img") or info.get("icon")
-    obj._display_assets = { # type: ignore
-        "icon": display_img,
-        "img": display_img,
-        "sprite": display_img,
-    }
+    obj._display_assets = icons.build_display_assets(info, active_world().root_path)  # type: ignore
 
     world = active_world()
     world.thing_defs[thing_id] = normalized_info
@@ -233,6 +231,7 @@ def _persist_generated_object_icon(icon_source_path: Path, world_id: str) -> str
 @app.route("/")
 def client():
     return send_from_directory(str(STATIC_FOLDER), CLIENT_FILENAME)
+
 
 @app.route("/world/<path:filename>")
 def world_data(filename):
@@ -265,6 +264,19 @@ def object_asset_data(world_id, filename):
         return jsonify({"error": "asset not found"}), 404
     return send_from_directory(str(root), filename)
 
+
+@app.route("/sprites/<scope>/<path:filename>")
+def sprite_asset_data(scope, filename):
+    if scope not in {"server", "world"}:
+        return jsonify({"error": "invalid sprite scope"}), 404
+    repo = _sprite_repo(force_reindex=False)
+    stem = Path(filename).stem
+    record = repo.get(scope, stem)
+    if record is None or not record.has_image or record.image_path is None:
+        return jsonify({"error": "sprite image not found"}), 404
+    return send_from_directory(str(record.image_path.parent), record.image_path.name)
+
+
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json or {}
@@ -286,7 +298,6 @@ def logout():
 
 @app.route("/connected")
 def list_connected():
-    # Extract usernames from User instances
     usernames = [u.username for u in user.connected_users.values()]
     return jsonify({"connected": usernames})
 
@@ -294,9 +305,9 @@ def list_connected():
 @app.route("/api/props/library")
 def props_library():
     try:
-        _get_authenticated_username()
+        _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     world = active_world()
     return jsonify({"ok": True, "world_id": world.ws_id, "props": serialize_prop_library(world)})
 
@@ -304,9 +315,9 @@ def props_library():
 @app.route("/api/char-editor/profile")
 def char_editor_profile():
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     profile = char_editor_service().profile(username)
     return jsonify({"ok": True, **profile})
 
@@ -314,24 +325,25 @@ def char_editor_profile():
 @app.route("/api/char-editor/requests", methods=["POST"])
 def char_editor_submit_request():
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     payload = request.json or {}
     descriptors = payload.get("descriptors", {})
     try:
         req = char_editor_service().submit_request(username, descriptors)
     except ValueError as err:
-        return _handle_value_error(err, code_for={"active request": 409})
+        code = 409 if "active request" in str(err) else 400
+        return _error_response(str(err), code)
     return jsonify({"ok": True, "request": req}), 201
 
 
 @app.route("/api/char-editor/requests/<request_id>")
 def char_editor_get_request(request_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         req = char_editor_service().get_request(username, request_id)
     except KeyError:
@@ -342,9 +354,9 @@ def char_editor_get_request(request_id):
 @app.route("/api/char-editor/requests/<request_id>", methods=["DELETE"])
 def char_editor_cancel_request(request_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         req = char_editor_service().cancel_request(username, request_id)
     except KeyError:
@@ -355,9 +367,9 @@ def char_editor_cancel_request(request_id):
 @app.route("/api/char-editor/queue")
 def char_editor_queue():
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     summary = char_editor_service().queue_summary(username)
     return jsonify({"ok": True, "queue": summary})
 
@@ -365,9 +377,9 @@ def char_editor_queue():
 @app.route("/api/char-editor/sprites/<sprite_id>", methods=["DELETE"])
 def char_editor_discard_sprite(sprite_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         cleared_current = char_editor_service().discard_sprite(username, sprite_id)
     except FileNotFoundError:
@@ -382,9 +394,9 @@ def char_editor_discard_sprite(sprite_id):
 @app.route("/api/char-editor/sprites/<sprite_id>/select", methods=["POST"])
 def char_editor_select_sprite(sprite_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         payload = request.json or {}
         descriptors = payload.get("descriptors")
@@ -393,19 +405,16 @@ def char_editor_select_sprite(sprite_id):
         return _error_response("sprite not found", 404)
     except ValueError as err:
         return _error_response(str(err), 400)
-
-    sprite_rel = char_state.get("current_sprite")
-    _apply_selected_sprite_to_peep(username, sprite_rel) # type: ignore
-
+    _apply_selected_sprite_to_peep(username, char_state.get("current_sprite"))  # type: ignore
     return jsonify({"ok": True, "char": char_state})
 
 
 @app.route("/api/object-editor/profile")
 def object_editor_profile():
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     profile = object_editor_service().profile(username)
     return jsonify({"ok": True, **profile})
 
@@ -413,24 +422,25 @@ def object_editor_profile():
 @app.route("/api/object-editor/requests", methods=["POST"])
 def object_editor_submit_request():
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     payload = request.json or {}
     description = payload.get("description", "")
     try:
         req = object_editor_service().submit_request(username, description)
     except ValueError as err:
-        return _handle_value_error(err, code_for={"active request": 409})
+        code = 409 if "active request" in str(err) else 400
+        return _error_response(str(err), code)
     return jsonify({"ok": True, "request": req}), 201
 
 
 @app.route("/api/object-editor/requests/<request_id>")
 def object_editor_get_request(request_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         req = object_editor_service().get_request(username, request_id)
     except KeyError:
@@ -441,9 +451,9 @@ def object_editor_get_request(request_id):
 @app.route("/api/object-editor/requests/<request_id>", methods=["DELETE"])
 def object_editor_cancel_request(request_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         req = object_editor_service().cancel_request(username, request_id)
     except KeyError:
@@ -454,9 +464,9 @@ def object_editor_cancel_request(request_id):
 @app.route("/api/object-editor/queue")
 def object_editor_queue():
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     summary = object_editor_service().queue_summary(username)
     return jsonify({"ok": True, "queue": summary})
 
@@ -464,9 +474,9 @@ def object_editor_queue():
 @app.route("/api/object-editor/icons/<icon_id>", methods=["DELETE"])
 def object_editor_discard_icon(icon_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     try:
         object_editor_service().discard_icon(username, icon_id)
     except FileNotFoundError:
@@ -479,9 +489,9 @@ def object_editor_discard_icon(icon_id):
 @app.route("/api/object-editor/icons/<icon_id>/create", methods=["POST"])
 def object_editor_create_thing(icon_id):
     try:
-        username = _get_authenticated_username()
+        username = _require_rest_user()
     except PermissionError:
-        return _handle_auth_error()
+        return _error_response("not authenticated", 401)
     payload = request.json or {}
     description = payload.get("description", "")
     try:
@@ -500,3 +510,4 @@ def object_editor_create_thing(icon_id):
     except ValueError as err:
         return _error_response(str(err), 400)
     return jsonify({"ok": True, "object_id": created_obj.obj_id, "entity": serialized}), 201
+
