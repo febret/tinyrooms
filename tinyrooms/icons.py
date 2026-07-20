@@ -1,4 +1,4 @@
-"""Asset normalization helpers for icon/img/sprite room rendering."""
+"""Asset path resolution helpers for icon/img/sprite room rendering."""
 
 from pathlib import Path
 
@@ -46,9 +46,9 @@ def resolve_display_assets(info: dict) -> dict:
 def build_display_assets(info: dict, world_root_path) -> dict:
     assets = resolve_display_assets(info)
     return {
-        'icon': _normalize_image(assets['icon'], world_root_path, mode='icon'),
-        'img': _normalize_image(assets['img'], world_root_path, mode='img'),
-        'sprite': _normalize_image(assets['sprite'], world_root_path, mode='sprite'),
+        'icon': _resolve_image_path(assets['icon'], world_root_path),
+        'img': _resolve_image_path(assets['img'], world_root_path),
+        'sprite': _resolve_image_path(assets['sprite'], world_root_path),
     }
 
 
@@ -69,7 +69,7 @@ def preprocess_world_assets(world):
     print(f"assets: preprocessed {count} entity/prop asset sets.")
 
 
-def _normalize_image(image_path: str, world_root_path, mode: str) -> str:
+def _resolve_image_path(image_path: str, world_root_path) -> str:
     if image_path.startswith("/") or image_path.startswith("http://") or image_path.startswith("https://"):
         return image_path
     world_root_path = Path(world_root_path)
@@ -77,47 +77,4 @@ def _normalize_image(image_path: str, world_root_path, mode: str) -> str:
     if not src_path.exists():
         print(f"assets: image not found: {src_path}")
         return image_path
-    if src_path.suffix.lower() == ".svg":
-        return str(src_path.relative_to(world_root_path)).replace('\\', '/')
-
-    suffix = {'icon': '_icon32', 'sprite': '_sprite64', 'img': '_img128'}[mode]
-    dst_path = src_path.parent / f"{src_path.stem}{suffix}{src_path.suffix}"
-
-    if dst_path.exists() and dst_path.stat().st_mtime >= src_path.stat().st_mtime:
-        return str(dst_path.relative_to(world_root_path)).replace('\\', '/')
-
-    try:
-        from PIL import Image
-        with Image.open(src_path) as img:
-            normalized = _resize_for_mode(img, mode)
-            normalized.save(dst_path)
-    except Exception as err:
-        print(f"assets: failed normalizing {src_path}: {err}")
-        return image_path
-    return str(dst_path.relative_to(world_root_path)).replace('\\', '/')
-
-
-def _resize_for_mode(img, mode: str):
-    from PIL import Image
-
-    if mode == 'icon':
-        return img.convert('RGBA').resize((32, 32), Image.LANCZOS)
-
-    if mode == 'img':
-        max_size = 128
-        canvas = img.convert('RGBA')
-        canvas.thumbnail((max_size, max_size), Image.LANCZOS)
-        return canvas
-
-    max_side = 64
-    min_side = 32
-    sprite = img.convert('RGBA')
-    w, h = sprite.size
-    if max(w, h) > max_side:
-        scale = max_side / max(w, h)
-        sprite = sprite.resize((max(min_side, int(w * scale)), max(min_side, int(h * scale))), Image.LANCZOS)
-    w, h = sprite.size
-    if min(w, h) < min_side:
-        scale = min_side / min(w, h)
-        sprite = sprite.resize((min(max_side, int(w * scale)), min(max_side, int(h * scale))), Image.LANCZOS)
-    return sprite
+    return str(src_path.relative_to(world_root_path)).replace('\\', '/')

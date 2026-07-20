@@ -17,10 +17,12 @@ In the app, users are allowed to move the sprite for their own peep, plus any ob
 Props are defined similarly to things (see `data/worlds/home/things.yaml`): they have image/description/label metadata. They are defined and handled separately because they can only be edited by a room owner and may carry room-specific gameplay metadata.
 
 ## Prop and Object Display
-Both props and objects have three distinct displays (specified as properties pointing to image or svg files in their yaml definition)
-- 'icon' (a fixed 32x32 icon, used to display this entity in menus and inventories)
-- 'img' (a custom size - max 128-x128 image used to display this entity in longer description views)
-- 'sprite' (a 32x32 min, 64x64 max illustration used to show this object or prop in the room view)
+Both props and objects have three display slots (specified as properties pointing to image or svg files in their yaml definition):
+- `icon` (used in menus and inventories)
+- `img` (used in longer description views)
+- `sprite` (used for room-stage rendering)
+
+The server now resolves and serves the configured source paths directly; it does not generate resized derivative image files for these slots.
 
 ### Room Stage and Foreground Objects
 The room background and props are displayed directly on the room canvas, while the object / character sprites are displayed with a subtle background shadow (applied on the client via css) to separate them from the fixed room stage.
@@ -75,7 +77,7 @@ Response fields:
 - `props`: list of prop definitions where each entry includes:
   - `prop_id`
   - `label`, `description`
-  - `display`: normalized `{ icon, img, sprite }`
+  - `display`: `{ icon, img, sprite }`
   - `metadata`
 
 ### `update_view: room-object`
@@ -87,7 +89,7 @@ Fields:
 Entity payload fields:
 - identifiers: `entity_type` (`object` or `peep`), `entity_id`, `owner_username` (peeps)
 - text: `label`, `description`
-- `display`: normalized `{ icon, img, sprite }`
+- `display`: `{ icon, img, sprite }`
 - `position`: `{ x, y, orientation, layer, z_order }`
 - `is_self`
 
