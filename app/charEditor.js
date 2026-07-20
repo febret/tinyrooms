@@ -1,55 +1,50 @@
 // Character Editor Module
-// Manages the character creation/editing interface
 
 let characterEditorState = {
   mode: "closed",
-  descriptorClasses: {},
-  appearance: {},
-  slots: [null, null, null, null],
-  selectedSlot: -1,
-  activeRequestId: null,
-  batchRolling: false,
+  description: "",
+  availableSprites: [],
+  currentSprite: null,
+  currentSpritePreview: null,
+  mainImageUrl: null,
+  saving: false,
+  generatingMainImage: false,
 };
 
-// DOM elements
 let btnCharacterEditor;
 let characterEditorPage;
-let characterEditorDescriptors;
-let characterEditorQueue;
-let characterEditorSlots;
+let characterEditorDescription;
+let characterEditorSpriteList;
+let characterEditorMainImagePreview;
 let characterEditorError;
-let btnCharacterRoll;
-let btnCharacterCancelRoll;
+let btnCharacterGenerateMainImage;
 let btnCharacterSave;
 let btnCharacterEditorClose;
 let btnCharacterEditorDone;
 let characterEditorInitialized = false;
 
-// References to client globals (injected by initCharacterEditor)
 let characterEditorSocket;
 let characterEditorRestAuthToken;
 
 function bindCharacterEditorDomElements() {
   btnCharacterEditor = document.getElementById("btnCharacterEditor");
   characterEditorPage = document.getElementById("characterEditorPage");
-  characterEditorDescriptors = document.getElementById("characterEditorDescriptors");
-  characterEditorQueue = document.getElementById("characterEditorQueue");
-  characterEditorSlots = document.getElementById("characterEditorSlots");
+  characterEditorDescription = document.getElementById("characterEditorDescription");
+  characterEditorSpriteList = document.getElementById("characterEditorSpriteList");
+  characterEditorMainImagePreview = document.getElementById("characterEditorMainImagePreview");
   characterEditorError = document.getElementById("characterEditorError");
-  btnCharacterRoll = document.getElementById("btnCharacterRoll");
-  btnCharacterCancelRoll = document.getElementById("btnCharacterCancelRoll");
+  btnCharacterGenerateMainImage = document.getElementById("btnCharacterGenerateMainImage");
   btnCharacterSave = document.getElementById("btnCharacterSave");
   btnCharacterEditorClose = document.getElementById("btnCharacterEditorClose");
   btnCharacterEditorDone = document.getElementById("btnCharacterEditorDone");
   return !!(
     btnCharacterEditor &&
     characterEditorPage &&
-    characterEditorDescriptors &&
-    characterEditorQueue &&
-    characterEditorSlots &&
+    characterEditorDescription &&
+    characterEditorSpriteList &&
+    characterEditorMainImagePreview &&
     characterEditorError &&
-    btnCharacterRoll &&
-    btnCharacterCancelRoll &&
+    btnCharacterGenerateMainImage &&
     btnCharacterSave &&
     btnCharacterEditorClose &&
     btnCharacterEditorDone
@@ -63,25 +58,27 @@ function initCharacterEditor(clientSocket, clientRestAuthToken) {
     return;
   }
 
-  // Attach event listeners
   btnCharacterEditor.addEventListener("click", openCharacterEditor);
   btnCharacterEditorClose.addEventListener("click", closeCharacterEditor);
   btnCharacterEditorDone.addEventListener("click", closeCharacterEditor);
-  btnCharacterRoll.addEventListener("click", startRollBatch);
-  btnCharacterCancelRoll.addEventListener("click", cancelActiveRoll);
-  btnCharacterSave.addEventListener("click", saveSelectedCharacterSprite);
+  btnCharacterGenerateMainImage.addEventListener("click", generateCharacterMainImage);
+  btnCharacterSave.addEventListener("click", saveCharacterProfile);
+  characterEditorDescription.addEventListener("input", event => {
+    characterEditorState.description = event.target.value;
+  });
   characterEditorInitialized = true;
 }
 
 function resetCharacterEditorState() {
   characterEditorState = {
     mode: "closed",
-    descriptorClasses: {},
-    appearance: {},
-    slots: [null, null, null, null],
-    selectedSlot: -1,
-    activeRequestId: null,
-    batchRolling: false,
+    description: "",
+    availableSprites: [],
+    currentSprite: null,
+    currentSpritePreview: null,
+    mainImageUrl: null,
+    saving: false,
+    generatingMainImage: false,
   };
   if (!bindCharacterEditorDomElements()) {
     return;
@@ -102,37 +99,305 @@ async function fetchJsonOrThrow(path, options = {}) {
   return payload;
 }
 
+function applyCharacterProfile(profile) {
+  const char = profile.char || {};
+  characterEditorState.availableSprites = profile.available_sprites || [];
+  characterEditorState.description = char.description || "";
+  characterEditorState.currentSprite = char.current_sprite || null;
+  characterEditorState.currentSpritePreview = char.current_sprite_preview || null;
+  characterEditorState.mainImageUrl = char.main_image_url || null;
+}
+
 async function openCharacterEditor() {
   characterEditorState.mode = "editing";
-  characterEditorState.batchRolling = false;
   characterEditorError.textContent = "";
   characterEditorPage.style.display = "flex";
   renderCharacterEditor();
   try {
     const profile = await fetchJsonOrThrow("/api/char-editor/profile");
-    characterEditorState.descriptorClasses = profile.descriptor_classes || {};
-    characterEditorState.appearance = { ...(profile.char?.appearance || {}) };
-    characterEditorState.slots = [null, null, null, null];
-    const sprites = profile.sprites || [];
-    for (let i = 0; i < 4 && i < sprites.length; i++) {
-      characterEditorState.slots[i] = sprites[i];
-    }
-    characterEditorState.selectedSlot = -1;
-    characterEditorState.activeRequestId = profile.queue?.active_request_id || null;
-    if (characterEditorState.activeRequestId) {
-      characterEditorState.mode = "rolling";
-      pollCharacterRequest();
-    }
-    renderCharacterEditor(profile.queue || null);
+    applyCharacterProfile(profile);
+    renderCharacterEditor();
   } catch (err) {
     characterEditorError.textContent = err.message;
-    characterEditorState.mode = "editing";
     renderCharacterEditor();
   }
 }
 
 function closeCharacterEditor() {
-  characterEditorState.batchRolling = false;
+  characterEditorPage.style.display = "none";
+  characterEditorState.mode = "closed";
+}
+
+function createSpritePreview(option) {
+  const preview = document.createElement("div");
+  preview.className = "character-sprite-preview";
+  if (option.frame) {
+    preview.classList.add("character-sprite-preview-frame");
+    preview.style.width = `${option.frame.width || 32}px`;
+    preview.style.height = `${option.frame.height || 32}px`;
+    preview.style.backgroundImage = `url("${resolveAssetUrl(option.image_url || "")}")`;
+    preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
+    if (option.background_color) {
+      preview.style.backgroundColor = option.background_color;
+    }
+    return preview;
+  }
+  const img = document.createElement("img");
+  img.src = resolveAssetUrl(option.image_url || "");
+  img.alt = option.label || option.sprite_id || "sprite";
+  preview.appendChild(img);
+  return preview;
+}
+
+function renderCharacterEditor() {
+  if (
+    !characterEditorDescription ||
+    !characterEditorSpriteList ||
+    !characterEditorMainImagePreview
+  ) {
+    return;
+  }
+
+  const busy = characterEditorState.saving || characterEditorState.generatingMainImage;
+  characterEditorDescription.value = characterEditorState.description;
+  characterEditorDescription.disabled = busy;
+  btnCharacterSave.disabled = busy;
+  btnCharacterGenerateMainImage.disabled = busy;
+
+  characterEditorSpriteList.innerHTML = "";
+
+  const defaultCard = document.createElement("button");
+  defaultCard.type = "button";
+  defaultCard.className = "character-sprite-card character-sprite-card-default";
+  if (!characterEditorState.currentSprite) {
+    defaultCard.classList.add("selected");
+  }
+  defaultCard.disabled = busy;
+  defaultCard.addEventListener("click", () => {
+    characterEditorState.currentSprite = null;
+    characterEditorState.currentSpritePreview = null;
+    renderCharacterEditor();
+  });
+  const defaultLabel = document.createElement("div");
+  defaultLabel.className = "character-sprite-label";
+  defaultLabel.textContent = "Use main image";
+  defaultCard.appendChild(defaultLabel);
+  const defaultMeta = document.createElement("div");
+  defaultMeta.className = "character-sprite-meta";
+  defaultMeta.textContent = "No sprite sheet";
+  defaultCard.appendChild(defaultMeta);
+  characterEditorSpriteList.appendChild(defaultCard);
+
+  for (const option of characterEditorState.availableSprites) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "character-sprite-card";
+    if (characterEditorState.currentSprite === option.sprite_ref) {
+      button.classList.add("selected");
+    }
+    button.disabled = busy;
+    button.addEventListener("click", () => {
+      characterEditorState.currentSprite = option.sprite_ref;
+      characterEditorState.currentSpritePreview = option;
+      renderCharacterEditor();
+    });
+    button.appendChild(createSpritePreview(option));
+
+    const label = document.createElement("div");
+    label.className = "character-sprite-label";
+    label.textContent = option.label || option.sprite_id || option.filename || "sprite";
+    button.appendChild(label);
+
+    const meta = document.createElement("div");
+    meta.className = "character-sprite-meta";
+    meta.textContent = `${option.scope}:${option.filename}/${option.sprite_id}`;
+    button.appendChild(meta);
+    characterEditorSpriteList.appendChild(button);
+  }
+
+  characterEditorMainImagePreview.innerHTML = "";
+  characterEditorMainImagePreview.classList.toggle("is-busy", characterEditorState.generatingMainImage);
+  if (characterEditorState.mainImageUrl) {
+    const img = document.createElement("img");
+    img.src = resolveAssetUrl(characterEditorState.mainImageUrl);
+    img.alt = "Character main image";
+    characterEditorMainImagePreview.appendChild(img);
+  } else {
+    const empty = document.createElement("div");
+    empty.className = "character-main-image-empty";
+    empty.textContent = "No main image yet.";
+    characterEditorMainImagePreview.appendChild(empty);
+  }
+}
+
+function characterEditorPayload() {
+  return {
+    description: characterEditorState.description,
+    current_sprite: characterEditorState.currentSprite,
+  };
+}
+
+async function saveCharacterProfile() {
+  characterEditorError.textContent = "";
+  characterEditorState.saving = true;
+  renderCharacterEditor();
+  try {
+    const payload = await fetchJsonOrThrow("/api/char-editor/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(characterEditorPayload()),
+    });
+    applyCharacterProfile({ available_sprites: characterEditorState.availableSprites, char: payload.char });
+    characterEditorError.textContent = "";
+  } catch (err) {
+    characterEditorError.textContent = err.message;
+  } finally {
+    characterEditorState.saving = false;
+    renderCharacterEditor();
+  }
+}
+
+async function generateCharacterMainImage() {
+  characterEditorError.textContent = "";
+  characterEditorState.generatingMainImage = true;
+  renderCharacterEditor();
+  try {
+    const payload = await fetchJsonOrThrow("/api/char-editor/main-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(characterEditorPayload()),
+    });
+    applyCharacterProfile({ available_sprites: characterEditorState.availableSprites, char: payload.char });
+    characterEditorError.textContent = "";
+  } catch (err) {
+    characterEditorError.textContent = err.message;
+  } finally {
+    characterEditorState.generatingMainImage = false;
+    renderCharacterEditor();
+  }
+}
+
+
+let btnCharacterEditor;
+let characterEditorPage;
+let characterEditorDescriptors;
+let characterEditorDescription;
+let characterEditorSpriteList;
+let characterEditorMainImagePreview;
+let characterEditorError;
+let btnCharacterGenerateMainImage;
+let btnCharacterSave;
+let btnCharacterEditorClose;
+let btnCharacterEditorDone;
+let characterEditorInitialized = false;
+
+let characterEditorSocket;
+let characterEditorRestAuthToken;
+
+function bindCharacterEditorDomElements() {
+  btnCharacterEditor = document.getElementById("btnCharacterEditor");
+  characterEditorPage = document.getElementById("characterEditorPage");
+  characterEditorDescriptors = document.getElementById("characterEditorDescriptors");
+  characterEditorDescription = document.getElementById("characterEditorDescription");
+  characterEditorSpriteList = document.getElementById("characterEditorSpriteList");
+  characterEditorMainImagePreview = document.getElementById("characterEditorMainImagePreview");
+  characterEditorError = document.getElementById("characterEditorError");
+  btnCharacterGenerateMainImage = document.getElementById("btnCharacterGenerateMainImage");
+  btnCharacterSave = document.getElementById("btnCharacterSave");
+  btnCharacterEditorClose = document.getElementById("btnCharacterEditorClose");
+  btnCharacterEditorDone = document.getElementById("btnCharacterEditorDone");
+  return !!(
+    btnCharacterEditor &&
+    characterEditorPage &&
+    characterEditorDescriptors &&
+    characterEditorDescription &&
+    characterEditorSpriteList &&
+    characterEditorMainImagePreview &&
+    characterEditorError &&
+    btnCharacterGenerateMainImage &&
+    btnCharacterSave &&
+    btnCharacterEditorClose &&
+    btnCharacterEditorDone
+  );
+}
+
+function initCharacterEditor(clientSocket, clientRestAuthToken) {
+  characterEditorSocket = clientSocket;
+  characterEditorRestAuthToken = clientRestAuthToken;
+  if (!bindCharacterEditorDomElements() || characterEditorInitialized) {
+    return;
+  }
+
+  btnCharacterEditor.addEventListener("click", openCharacterEditor);
+  btnCharacterEditorClose.addEventListener("click", closeCharacterEditor);
+  btnCharacterEditorDone.addEventListener("click", closeCharacterEditor);
+  btnCharacterGenerateMainImage.addEventListener("click", generateCharacterMainImage);
+  btnCharacterSave.addEventListener("click", saveCharacterProfile);
+  characterEditorDescription.addEventListener("input", event => {
+    characterEditorState.description = event.target.value;
+  });
+  characterEditorInitialized = true;
+}
+
+function resetCharacterEditorState() {
+  characterEditorState = {
+    mode: "closed",
+    descriptorClasses: {},
+    appearance: {},
+    description: "",
+    availableSprites: [],
+    currentSprite: null,
+    currentSpritePreview: null,
+    mainImageUrl: null,
+    saving: false,
+    generatingMainImage: false,
+  };
+  if (!bindCharacterEditorDomElements()) {
+    return;
+  }
+  renderCharacterEditor();
+}
+
+async function fetchJsonOrThrow(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (characterEditorRestAuthToken) {
+    headers["X-TR-Auth"] = characterEditorRestAuthToken;
+  }
+  const response = await fetch(path, { ...options, headers });
+  const payload = await response.json();
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || `request failed: ${response.status}`);
+  }
+  return payload;
+}
+
+function applyCharacterProfile(profile) {
+  const char = profile.char || {};
+  characterEditorState.descriptorClasses = profile.descriptor_classes || {};
+  characterEditorState.availableSprites = profile.available_sprites || [];
+  characterEditorState.appearance = { ...(char.appearance || {}) };
+  characterEditorState.description = char.description || "";
+  characterEditorState.currentSprite = char.current_sprite || null;
+  characterEditorState.currentSpritePreview = char.current_sprite_preview || null;
+  characterEditorState.mainImageUrl = char.main_image_url || null;
+}
+
+async function openCharacterEditor() {
+  characterEditorState.mode = "editing";
+  characterEditorError.textContent = "";
+  characterEditorPage.style.display = "flex";
+  renderCharacterEditor();
+  try {
+    const profile = await fetchJsonOrThrow("/api/char-editor/profile");
+    applyCharacterProfile(profile);
+    renderCharacterEditor();
+  } catch (err) {
+    characterEditorError.textContent = err.message;
+    renderCharacterEditor();
+  }
+}
+
+function closeCharacterEditor() {
   characterEditorPage.style.display = "none";
   characterEditorState.mode = "closed";
 }
@@ -147,11 +412,42 @@ function getDescriptorOptionLabel(option) {
   return option.label || option.id || "";
 }
 
-function renderCharacterEditor(queueInfo = null) {
-  if (!characterEditorDescriptors || !characterEditorQueue || !characterEditorSlots) {
+function createSpritePreview(option) {
+  const preview = document.createElement("div");
+  preview.className = "character-sprite-preview";
+  if (option.frame) {
+    preview.classList.add("character-sprite-preview-frame");
+    preview.style.width = `${option.frame.width || 32}px`;
+    preview.style.height = `${option.frame.height || 32}px`;
+    preview.style.backgroundImage = `url("${resolveAssetUrl(option.image_url || "")}")`;
+    preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
+    if (option.background_color) {
+      preview.style.backgroundColor = option.background_color;
+    }
+    return preview;
+  }
+  const img = document.createElement("img");
+  img.src = resolveAssetUrl(option.image_url || "");
+  img.alt = option.label || option.sprite_id || "sprite";
+  preview.appendChild(img);
+  return preview;
+}
+
+function renderCharacterEditor() {
+  if (
+    !characterEditorDescriptors ||
+    !characterEditorDescription ||
+    !characterEditorSpriteList ||
+    !characterEditorMainImagePreview
+  ) {
     return;
   }
-  const isGenerating = characterEditorState.mode === "rolling" || !!characterEditorState.activeRequestId;
+
+  characterEditorDescription.value = characterEditorState.description;
+  characterEditorDescription.disabled = characterEditorState.saving || characterEditorState.generatingMainImage;
+  btnCharacterSave.disabled = characterEditorState.saving || characterEditorState.generatingMainImage;
+  btnCharacterGenerateMainImage.disabled = characterEditorState.saving || characterEditorState.generatingMainImage;
+
   characterEditorDescriptors.innerHTML = "";
   for (const [descriptorKey, descriptorMeta] of Object.entries(characterEditorState.descriptorClasses)) {
     const section = document.createElement("div");
@@ -169,6 +465,7 @@ function renderCharacterEditor(queueInfo = null) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "character-option";
+      button.disabled = characterEditorState.saving || characterEditorState.generatingMainImage;
       if (descriptorMeta.type === "color") {
         button.classList.add("color-option");
         const swatch = document.createElement("span");
@@ -186,7 +483,7 @@ function renderCharacterEditor(queueInfo = null) {
       }
       button.addEventListener("click", () => {
         characterEditorState.appearance[descriptorKey] = optionId;
-        renderCharacterEditor(queueInfo);
+        renderCharacterEditor();
       });
       optionsWrap.appendChild(button);
     }
@@ -194,215 +491,116 @@ function renderCharacterEditor(queueInfo = null) {
     characterEditorDescriptors.appendChild(section);
   }
 
-  characterEditorQueue.classList.toggle("generating", isGenerating);
-  characterEditorQueue.textContent = "";
-  if (queueInfo) {
-    const ahead = queueInfo.items_ahead ?? 0;
-    const queued = queueInfo.queued ?? 0;
-    const running = queueInfo.running ?? 0;
-    characterEditorQueue.textContent = `Queue: ${queued} queued, ${running} running. Items ahead of your request: ${ahead}`;
-  }
-  if (!queueInfo && characterEditorState.mode === "rolling") {
-    characterEditorQueue.textContent = "Queue: preparing request status...";
-  }
+  characterEditorSpriteList.innerHTML = "";
 
-  characterEditorSlots.innerHTML = "";
-  for (let i = 0; i < 4; i++) {
-    const slot = document.createElement("div");
-    slot.className = "character-slot";
-    if (isGenerating && !characterEditorState.slots[i]) {
-      slot.classList.add("generating");
-    }
-    if (i === characterEditorState.selectedSlot) {
-      slot.classList.add("selected");
-    }
-    const sprite = characterEditorState.slots[i];
-    if (sprite) {
-      const img = document.createElement("img");
-      img.src = sprite.sprite_url;
-      img.alt = sprite.sprite_id || `sprite-${i + 1}`;
-      slot.appendChild(img);
-      const controls = document.createElement("div");
-      const pick = document.createElement("button");
-      pick.type = "button";
-      pick.textContent = "Select";
-      pick.addEventListener("click", async () => {
-        await applyCharacterSpriteSelection(i, false);
-      });
-      controls.appendChild(pick);
-      const discard = document.createElement("button");
-      discard.type = "button";
-      discard.textContent = "Discard";
-      discard.addEventListener("click", async () => {
-        await discardCharacterSlot(i);
-      });
-      controls.appendChild(discard);
-      slot.appendChild(controls);
-    } else {
-      const empty = document.createElement("div");
-      empty.className = "character-slot-empty";
-      empty.textContent = "Empty";
-      slot.appendChild(empty);
-    }
-    characterEditorSlots.appendChild(slot);
+  const defaultCard = document.createElement("button");
+  defaultCard.type = "button";
+  defaultCard.className = "character-sprite-card character-sprite-card-default";
+  if (!characterEditorState.currentSprite) {
+    defaultCard.classList.add("selected");
   }
-}
-
-function countFilledSlots() {
-  return characterEditorState.slots.filter(slot => !!slot).length;
-}
-
-function firstEmptySlotIndex() {
-  return characterEditorState.slots.findIndex(slot => !slot);
-}
-
-async function startRollBatch() {
-  if (characterEditorState.activeRequestId) {
-    return;
-  }
-  characterEditorError.textContent = "";
-  characterEditorState.batchRolling = true;
-  await submitNextRollIfNeeded();
-}
-
-async function submitNextRollIfNeeded() {
-  if (!characterEditorState.batchRolling) {
-    return;
-  }
-  if (characterEditorState.activeRequestId) {
-    return;
-  }
-  if (countFilledSlots() >= 4) {
-    characterEditorState.batchRolling = false;
-    characterEditorState.mode = "slots_ready";
+  defaultCard.disabled = characterEditorState.saving || characterEditorState.generatingMainImage;
+  defaultCard.addEventListener("click", () => {
+    characterEditorState.currentSprite = null;
+    characterEditorState.currentSpritePreview = null;
     renderCharacterEditor();
-    return;
-  }
-  try {
-    const payload = await fetchJsonOrThrow("/api/char-editor/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ descriptors: characterEditorState.appearance }),
+  });
+  const defaultLabel = document.createElement("div");
+  defaultLabel.className = "character-sprite-label";
+  defaultLabel.textContent = "Use main image";
+  defaultCard.appendChild(defaultLabel);
+  const defaultMeta = document.createElement("div");
+  defaultMeta.className = "character-sprite-meta";
+  defaultMeta.textContent = "No sprite sheet";
+  defaultCard.appendChild(defaultMeta);
+  characterEditorSpriteList.appendChild(defaultCard);
+
+  for (const option of characterEditorState.availableSprites) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "character-sprite-card";
+    if (characterEditorState.currentSprite === option.sprite_ref) {
+      button.classList.add("selected");
+    }
+    button.disabled = characterEditorState.saving || characterEditorState.generatingMainImage;
+    button.addEventListener("click", () => {
+      characterEditorState.currentSprite = option.sprite_ref;
+      characterEditorState.currentSpritePreview = option;
+      renderCharacterEditor();
     });
-    characterEditorState.activeRequestId = payload.request.request_id;
-    characterEditorState.mode = "rolling";
-    renderCharacterEditor(payload.request.queue || null);
-    pollCharacterRequest();
-  } catch (err) {
-    characterEditorState.batchRolling = false;
-    characterEditorState.mode = "editing";
-    characterEditorError.textContent = err.message;
-    renderCharacterEditor();
-  }
-}
+    button.appendChild(createSpritePreview(option));
 
-async function pollCharacterRequest() {
-  if (!characterEditorState.activeRequestId) {
-    return;
-  }
-  let keepPolling = true;
-  while (keepPolling && characterEditorState.activeRequestId) {
-    try {
-      const payload = await fetchJsonOrThrow(`/api/char-editor/requests/${characterEditorState.activeRequestId}`);
-      const req = payload.request;
-      renderCharacterEditor(req.queue || null);
-      if (req.status === "queued" || req.status === "running") {
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        continue;
-      }
-      if (req.status === "done") {
-        const idx = firstEmptySlotIndex();
-        if (idx >= 0) {
-          characterEditorState.slots[idx] = {
-            sprite_id: req.sprite_id,
-            sprite_path: req.sprite_path,
-            sprite_url: req.sprite_url,
-          };
-        }
-      } else if (req.status === "failed") {
-        characterEditorError.textContent = req.error || "sprite generation failed";
-      } else if (req.status === "cancelled") {
-        characterEditorError.textContent = "Active generation request was cancelled.";
-      }
-      characterEditorState.activeRequestId = null;
-      keepPolling = false;
-    } catch (err) {
-      characterEditorError.textContent = err.message;
-      characterEditorState.activeRequestId = null;
-      characterEditorState.batchRolling = false;
-      keepPolling = false;
-    }
+    const label = document.createElement("div");
+    label.className = "character-sprite-label";
+    label.textContent = option.label || option.sprite_id || option.filename || "sprite";
+    button.appendChild(label);
+
+    const meta = document.createElement("div");
+    meta.className = "character-sprite-meta";
+    meta.textContent = `${option.scope}:${option.filename}/${option.sprite_id}`;
+    button.appendChild(meta);
+    characterEditorSpriteList.appendChild(button);
   }
 
-  if (characterEditorState.batchRolling) {
-    await submitNextRollIfNeeded();
+  characterEditorMainImagePreview.innerHTML = "";
+  characterEditorMainImagePreview.classList.toggle("is-busy", characterEditorState.generatingMainImage);
+  if (characterEditorState.mainImageUrl) {
+    const img = document.createElement("img");
+    img.src = resolveAssetUrl(characterEditorState.mainImageUrl);
+    img.alt = "Character main image";
+    characterEditorMainImagePreview.appendChild(img);
   } else {
-    characterEditorState.mode = countFilledSlots() > 0 ? "slots_ready" : "editing";
-    renderCharacterEditor();
+    const empty = document.createElement("div");
+    empty.className = "character-main-image-empty";
+    empty.textContent = "No main image yet.";
+    characterEditorMainImagePreview.appendChild(empty);
   }
 }
 
-async function cancelActiveRoll() {
-  characterEditorState.batchRolling = false;
-  if (!characterEditorState.activeRequestId) {
-    return;
-  }
+function characterEditorPayload() {
+  return {
+    appearance: characterEditorState.appearance,
+    description: characterEditorState.description,
+    current_sprite: characterEditorState.currentSprite,
+  };
+}
+
+async function saveCharacterProfile() {
+  characterEditorError.textContent = "";
+  characterEditorState.saving = true;
+  renderCharacterEditor();
   try {
-    await fetchJsonOrThrow(`/api/char-editor/requests/${characterEditorState.activeRequestId}`, { method: "DELETE" });
+    const payload = await fetchJsonOrThrow("/api/char-editor/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(characterEditorPayload()),
+    });
+    applyCharacterProfile({ descriptor_classes: characterEditorState.descriptorClasses, available_sprites: characterEditorState.availableSprites, char: payload.char });
+    characterEditorError.textContent = "";
   } catch (err) {
     characterEditorError.textContent = err.message;
   } finally {
-    characterEditorState.activeRequestId = null;
-    characterEditorState.mode = "editing";
+    characterEditorState.saving = false;
     renderCharacterEditor();
   }
 }
 
-async function discardCharacterSlot(index) {
-  const sprite = characterEditorState.slots[index];
-  if (!sprite) {
-    return;
-  }
+async function generateCharacterMainImage() {
+  characterEditorError.textContent = "";
+  characterEditorState.generatingMainImage = true;
+  renderCharacterEditor();
   try {
-    await fetchJsonOrThrow(`/api/char-editor/sprites/${encodeURIComponent(sprite.sprite_id)}`, { method: "DELETE" });
-    characterEditorState.slots[index] = null;
-    if (characterEditorState.selectedSlot === index) {
-      characterEditorState.selectedSlot = -1;
-    }
-    renderCharacterEditor();
-  } catch (err) {
-    characterEditorError.textContent = err.message;
-  }
-}
-
-async function saveSelectedCharacterSprite() {
-  const idx = characterEditorState.selectedSlot;
-  if (idx < 0 || !characterEditorState.slots[idx]) {
-    characterEditorError.textContent = "Select one generated sprite before saving.";
-    return;
-  }
-  await applyCharacterSpriteSelection(idx, true);
-}
-
-async function applyCharacterSpriteSelection(index, closeOnSuccess = false) {
-  const sprite = characterEditorState.slots[index];
-  if (!sprite) {
-    characterEditorError.textContent = "Selected slot is empty.";
-    return;
-  }
-  characterEditorState.selectedSlot = index;
-  try {
-    await fetchJsonOrThrow(`/api/char-editor/sprites/${encodeURIComponent(sprite.sprite_id)}/select`, {
+    const payload = await fetchJsonOrThrow("/api/char-editor/main-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ descriptors: characterEditorState.appearance }),
+      body: JSON.stringify(characterEditorPayload()),
     });
+    applyCharacterProfile({ descriptor_classes: characterEditorState.descriptorClasses, available_sprites: characterEditorState.availableSprites, char: payload.char });
     characterEditorError.textContent = "";
-    renderCharacterEditor();
-    if (closeOnSuccess) {
-      closeCharacterEditor();
-    }
   } catch (err) {
     characterEditorError.textContent = err.message;
+  } finally {
+    characterEditorState.generatingMainImage = false;
+    renderCharacterEditor();
   }
 }

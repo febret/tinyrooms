@@ -30,6 +30,10 @@ def user_sprites_dir(username: str) -> Path:
     return user_root(username) / "sprites"
 
 
+def user_images_dir(username: str) -> Path:
+    return user_root(username) / "images"
+
+
 def user_tmp_dir(username: str) -> Path:
     return user_root(username) / "tmp"
 
@@ -41,38 +45,44 @@ def char_yaml_path(username: str) -> Path:
 def ensure_user_paths(username: str):
     root = user_root(username)
     sprites = user_sprites_dir(username)
+    images = user_images_dir(username)
     tmp = user_tmp_dir(username)
     root.mkdir(parents=True, exist_ok=True)
     sprites.mkdir(parents=True, exist_ok=True)
+    images.mkdir(parents=True, exist_ok=True)
     tmp.mkdir(parents=True, exist_ok=True)
-    return root, sprites, tmp
+    return root, sprites, images, tmp
 
 
-def _default_char(appearance_defaults: dict[str, str] | None = None) -> dict[str, Any]:
+def _default_char() -> dict[str, Any]:
     return {
         "version": 1,
-        "appearance": dict(appearance_defaults or {}),
+        "description": "",
         "current_sprite": None,
+        "main_image": None,
         "updated_at": _now_iso(),
     }
 
 
-def read_char(username: str, appearance_defaults: dict[str, str] | None = None) -> dict[str, Any]:
+def read_char(username: str) -> dict[str, Any]:
     path = char_yaml_path(username)
     if not path.exists():
-        return _default_char(appearance_defaults)
+        return _default_char()
 
     with open(path, "r", encoding="utf-8") as handle:
         loaded = yaml.safe_load(handle) or {}
-    char = _default_char(appearance_defaults)
+    char = _default_char()
     if isinstance(loaded, dict):
         char["version"] = loaded.get("version", 1)
-        appearance = loaded.get("appearance", {})
-        if isinstance(appearance, dict):
-            char["appearance"] = {**char["appearance"], **appearance}
+        description = loaded.get("description")
+        if isinstance(description, str):
+            char["description"] = description
         current_sprite = loaded.get("current_sprite")
         if isinstance(current_sprite, str) and current_sprite.strip():
             char["current_sprite"] = current_sprite
+        main_image = loaded.get("main_image")
+        if isinstance(main_image, str) and main_image.strip():
+            char["main_image"] = main_image
         updated_at = loaded.get("updated_at")
         if isinstance(updated_at, str) and updated_at.strip():
             char["updated_at"] = updated_at
@@ -84,20 +94,23 @@ _UNSET = object()
 
 def write_char(
     username: str,
-    appearance: dict[str, str] | None = None,
+    description: str | None = None,
     current_sprite: str | None | object = _UNSET,
-    appearance_defaults: dict[str, str] | None = None,
+    main_image: str | None | object = _UNSET,
 ) -> dict[str, Any]:
     ensure_user_paths(username)
-    current = read_char(username, appearance_defaults=appearance_defaults)
+    current = read_char(username)
     new_char = {
         "version": 1,
-        "appearance": dict(appearance if appearance is not None else current.get("appearance", {})),
+        "description": str(description if description is not None else current.get("description", "")),
         "current_sprite": current.get("current_sprite"),
+        "main_image": current.get("main_image"),
         "updated_at": _now_iso(),
     }
     if current_sprite is not _UNSET:
         new_char["current_sprite"] = current_sprite
+    if main_image is not _UNSET:
+        new_char["main_image"] = main_image
 
     path = char_yaml_path(username)
     with open(path, "w", encoding="utf-8") as handle:
@@ -112,6 +125,10 @@ def sprite_rel_path(sprite_id: str) -> str:
 
 
 def sprite_url(username: str, rel_path: str) -> str:
+    return user_asset_url(username, rel_path)
+
+
+def user_asset_url(username: str, rel_path: str) -> str:
     rel = rel_path.replace("\\", "/").lstrip("/")
     return f"/user-assets/{_validate_username(username)}/{rel}"
 

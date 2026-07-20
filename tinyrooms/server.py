@@ -10,7 +10,6 @@ from flask import Flask, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO
 
 from . import char_data, char_editor, db, icons, object_editor, prop_editor_api, sprite_editor_api, sprites, user
-from .icons import DEFAULT_USER_ASSETS
 from .object import Object
 from .world import active_world, save_generated_thing_def, serialize_prop_library
 
@@ -51,12 +50,10 @@ def configure_char_editor(temp_root: Path | None = None):
     global _char_editor_service
     if _char_editor_service is not None:
         _char_editor_service.stop()
-    config_path = Path(__file__).parent.parent / "data" / "ui" / "char-editor.yaml"
     make_image_script = Path(__file__).parent.parent / "tools" / "make-image"
     temp_dir = Path(temp_root) if temp_root else _default_temp_root()
     temp_dir.mkdir(parents=True, exist_ok=True)
     _char_editor_service = char_editor.CharacterEditorService(
-        config_path=config_path,
         make_image_script=make_image_script,
         temp_root=temp_dir,
     )
@@ -183,21 +180,18 @@ def _update_peep_display_and_broadcast(username: str, display_assets: dict) -> N
             )
 
 
-def _apply_selected_sprite_to_peep(username: str, sprite_rel: str) -> None:
-    """Apply a selected sprite to an online user's peep and broadcast the update.
-    
-    Args:
-        username: The username whose peep should be updated
-        sprite_rel: The relative path to the sprite file
-    """
-    if isinstance(sprite_rel, str) and sprite_rel:
-        sprite_url = char_data.sprite_url(username, sprite_rel)
-        display_assets = {
-            "icon": sprite_url,
-            "img": sprite_url,
-            "sprite": sprite_url,
-        }
-        _update_peep_display_and_broadcast(username, display_assets)
+def _apply_character_state_to_peep(username: str, char_state: dict[str, Any]) -> None:
+    online = user.find_online(username)
+    if online is None or online.peep is None:
+        return
+    online.peep.info["description"] = str(char_state.get("description") or "")
+    display_assets = char_editor.build_character_display_assets(
+        username,
+        char_state,
+        active_world().root_path,
+        sprite_repo=_sprite_repo(force_reindex=False),
+    )
+    _update_peep_display_and_broadcast(username, display_assets)
 
 
 def _random_suffix(length: int = 6) -> str:
@@ -231,16 +225,16 @@ def _create_object_in_user_room(username: str, info: dict) -> tuple[Object, dict
     return obj, room._serialize_foreground_entity(obj, entity_type="object")
 
 
-def _persist_generated_object_icon(icon_source_path: Path, world_id: str) -> str:
+def _persist_object_asset(source_path: Path, world_id: str, prefix: str = "obj") -> str:
     root = _object_assets_root(world_id)
     root.mkdir(parents=True, exist_ok=True)
-    icon_name = f"obj_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{_random_suffix(8)}.png"
-    final_path = root / icon_name
+    asset_name = f"{prefix}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{_random_suffix(8)}.png"
+    final_path = root / asset_name
     try:
-        shutil.copy2(icon_source_path, final_path)
+        shutil.copy2(source_path, final_path)
     except OSError as err:
-        raise ValueError(f"failed to persist object icon: {err}") from err
-    return f"/object-assets/{world_id}/{icon_name}"
+        raise ValueError(f"failed to persist object asset: {err}") from err
+    return f"/object-assets/{world_id}/{asset_name}"
 
 
 @app.route("/")
@@ -345,109 +339,66 @@ def char_editor_profile():
         username = _require_rest_user()
     except PermissionError:
         return _error_response("not authenticated", 401)
-    profile = char_editor_service().profile(username)
+    profile = char_editor_service().profile(username, _sprite_repo(force_reindex=False))
     return jsonify({"ok": True, **profile})
 
 
-@app.route("/api/char-editor/requests", methods=["POST"])
-def char_editor_submit_request():
+@app.route("/api/char-editor/profile", methods=["PUT"])
+def char_editor_update_profile():
     try:
         username = _require_rest_user()
     except PermissionError:
         return _error_response("not authenticated", 401)
     payload = request.json or {}
-    descriptors = payload.get("descriptors", {})
     try:
-        req = char_editor_service().submit_request(username, descriptors)
+        current_sprite = payload["current_sprite"] if "current_sprite" in payload else char_editor.UNSET
+        updated = char_editor_service().update_profile(
+            username,
+            _sprite_repo(force_reindex=False),
+            description=payload.get("description"),
+            current_sprite=current_sprite,
+        )
     except ValueError as err:
-        code = 409 if "active request" in str(err) else 400
-        return _error_response(str(err), code)
-    return jsonify({"ok": True, "request": req}), 201
+        return _error_response(str(err), 400)
+    _apply_character_state_to_peep(username, updated)
+    return jsonify({"ok": True, "char": updated})
 
 
-@app.route("/api/char-editor/requests/<request_id>")
-def char_editor_get_request(request_id):
+@app.route("/api/char-editor/main-image", methods=["POST"])
+def char_editor_generate_main_image():
     try:
         username = _require_rest_user()
     except PermissionError:
         return _error_response("not authenticated", 401)
+    payload = request.json or {}
     try:
-        req = char_editor_service().get_request(username, request_id)
-    except KeyError:
-        return _error_response("request not found", 404)
-    return jsonify({"ok": True, "request": req})
-
-
-@app.route("/api/char-editor/requests/<request_id>", methods=["DELETE"])
-def char_editor_cancel_request(request_id):
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    try:
-        req = char_editor_service().cancel_request(username, request_id)
-    except KeyError:
-        return _error_response("request not found", 404)
-    return jsonify({"ok": True, "request": req})
-
-
-@app.route("/api/char-editor/queue")
-def char_editor_queue():
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    summary = char_editor_service().queue_summary(username)
-    return jsonify({"ok": True, "queue": summary})
-
-
-@app.route("/api/char-editor/sprites/<sprite_id>", methods=["DELETE"])
-def char_editor_discard_sprite(sprite_id):
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    try:
-        cleared_current = char_editor_service().discard_sprite(username, sprite_id)
+        current_sprite = payload["current_sprite"] if "current_sprite" in payload else char_editor.UNSET
+        char_state = char_editor_service().generate_main_image(
+            username,
+            _sprite_repo(force_reindex=False),
+            description=payload.get("description"),
+            current_sprite=current_sprite,
+        )
     except FileNotFoundError:
         return _error_response("sprite not found", 404)
     except ValueError as err:
         return _error_response(str(err), 400)
-    if cleared_current:
-        _update_peep_display_and_broadcast(username, dict(DEFAULT_USER_ASSETS))
-    return jsonify({"ok": True})
-
-
-@app.route("/api/char-editor/sprites/<sprite_id>/select", methods=["POST"])
-def char_editor_select_sprite(sprite_id):
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    try:
-        payload = request.json or {}
-        descriptors = payload.get("descriptors")
-        char_state = char_editor_service().select_sprite(username, sprite_id, descriptors=descriptors)
-    except FileNotFoundError:
-        return _error_response("sprite not found", 404)
-    except ValueError as err:
-        return _error_response(str(err), 400)
-    _apply_selected_sprite_to_peep(username, char_state.get("current_sprite"))  # type: ignore
+    _apply_character_state_to_peep(username, char_state)
     return jsonify({"ok": True, "char": char_state})
 
 
 @app.route("/api/object-editor/profile")
 def object_editor_profile():
     try:
-        username = _require_rest_user()
+        _require_rest_user()
     except PermissionError:
         return _error_response("not authenticated", 401)
-    profile = object_editor_service().profile(username)
+    profile = object_editor_service().profile(_sprite_repo(force_reindex=False))
     return jsonify({"ok": True, **profile})
 
 
-@app.route("/api/object-editor/requests", methods=["POST"])
-def object_editor_submit_request():
+@app.route("/api/object-editor/image", methods=["POST"])
+def object_editor_generate_image():
     try:
         username = _require_rest_user()
     except PermissionError:
@@ -455,66 +406,18 @@ def object_editor_submit_request():
     payload = request.json or {}
     description = payload.get("description", "")
     try:
-        req = object_editor_service().submit_request(username, description)
-    except ValueError as err:
-        code = 409 if "active request" in str(err) else 400
-        return _error_response(str(err), code)
-    return jsonify({"ok": True, "request": req}), 201
-
-
-@app.route("/api/object-editor/requests/<request_id>")
-def object_editor_get_request(request_id):
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    try:
-        req = object_editor_service().get_request(username, request_id)
-    except KeyError:
-        return _error_response("request not found", 404)
-    return jsonify({"ok": True, "request": req})
-
-
-@app.route("/api/object-editor/requests/<request_id>", methods=["DELETE"])
-def object_editor_cancel_request(request_id):
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    try:
-        req = object_editor_service().cancel_request(username, request_id)
-    except KeyError:
-        return _error_response("request not found", 404)
-    return jsonify({"ok": True, "request": req})
-
-
-@app.route("/api/object-editor/queue")
-def object_editor_queue():
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    summary = object_editor_service().queue_summary(username)
-    return jsonify({"ok": True, "queue": summary})
-
-
-@app.route("/api/object-editor/icons/<icon_id>", methods=["DELETE"])
-def object_editor_discard_icon(icon_id):
-    try:
-        username = _require_rest_user()
-    except PermissionError:
-        return _error_response("not authenticated", 401)
-    try:
-        object_editor_service().discard_icon(username, icon_id)
-    except FileNotFoundError:
-        return _error_response("icon not found", 404)
+        generated = object_editor_service().generate_image(
+            username,
+            description,
+            previous_image=payload.get("previous_image"),
+        )
     except ValueError as err:
         return _error_response(str(err), 400)
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "image": generated}), 200
 
 
-@app.route("/api/object-editor/icons/<icon_id>/create", methods=["POST"])
-def object_editor_create_thing(icon_id):
+@app.route("/api/object-editor/create", methods=["POST"])
+def object_editor_create_thing():
     try:
         username = _require_rest_user()
     except PermissionError:
@@ -523,18 +426,24 @@ def object_editor_create_thing(icon_id):
     description = payload.get("description", "")
     try:
         world_id = active_world().ws_id
-        icon_path = object_editor.icon_file_path(username, icon_id)
-        persistent_icon_url = _persist_generated_object_icon(icon_path, world_id)
+        sprite_ref = object_editor_service().validate_current_sprite(
+            payload.get("current_sprite"),
+            _sprite_repo(force_reindex=False),
+        )
+        image_path = object_editor_service().validate_image_path(username, payload.get("image_path"))
+        persistent_image_url = None
+        if image_path:
+            source_path = object_editor.image_file_path(username, image_path)
+            persistent_image_url = _persist_object_asset(source_path, world_id, prefix="obj_img")
         info = object_editor_service().build_object_info(
             username=username,
-            icon_id=icon_id,
             description=description,
-            icon_asset_url=persistent_icon_url,
+            current_sprite=sprite_ref,
+            image_asset_url=persistent_image_url,
         )
         created_obj, serialized = _create_object_in_user_room(username, info)
     except FileNotFoundError:
-        return _error_response("icon not found", 404)
+        return _error_response("image not found", 404)
     except ValueError as err:
         return _error_response(str(err), 400)
     return jsonify({"ok": True, "object_id": created_obj.obj_id, "entity": serialized}), 201
-

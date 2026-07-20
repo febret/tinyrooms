@@ -1,19 +1,22 @@
+// Object / Create-Thing editor module
+
 let objectEditorState = {
   mode: "closed",
   description: "",
-  slots: [null, null, null, null],
-  selectedSlot: -1,
-  activeRequestId: null,
-  batchRolling: false,
+  availableSprites: [],
+  currentSprite: null,
+  imagePath: null,
+  imageUrl: null,
+  generatingImage: false,
+  creating: false,
 };
 
 let objectCreatorPage;
 let objectCreatorDescription;
-let objectCreatorQueue;
-let objectCreatorSlots;
+let objectCreatorSpriteList;
+let objectCreatorImagePreview;
 let objectCreatorError;
-let btnObjectCreatorRoll;
-let btnObjectCreatorCancelRoll;
+let btnObjectCreatorGenerateImage;
 let btnObjectCreatorCreate;
 let btnObjectCreatorClose;
 let btnObjectCreatorDone;
@@ -25,22 +28,20 @@ let objectEditorRestAuthToken;
 function bindObjectEditorDomElements() {
   objectCreatorPage = document.getElementById("objectCreatorPage");
   objectCreatorDescription = document.getElementById("objectCreatorDescription");
-  objectCreatorQueue = document.getElementById("objectCreatorQueue");
-  objectCreatorSlots = document.getElementById("objectCreatorSlots");
+  objectCreatorSpriteList = document.getElementById("objectCreatorSpriteList");
+  objectCreatorImagePreview = document.getElementById("objectCreatorImagePreview");
   objectCreatorError = document.getElementById("objectCreatorError");
-  btnObjectCreatorRoll = document.getElementById("btnObjectCreatorRoll");
-  btnObjectCreatorCancelRoll = document.getElementById("btnObjectCreatorCancelRoll");
+  btnObjectCreatorGenerateImage = document.getElementById("btnObjectCreatorGenerateImage");
   btnObjectCreatorCreate = document.getElementById("btnObjectCreatorCreate");
   btnObjectCreatorClose = document.getElementById("btnObjectCreatorClose");
   btnObjectCreatorDone = document.getElementById("btnObjectCreatorDone");
   return !!(
     objectCreatorPage &&
     objectCreatorDescription &&
-    objectCreatorQueue &&
-    objectCreatorSlots &&
+    objectCreatorSpriteList &&
+    objectCreatorImagePreview &&
     objectCreatorError &&
-    btnObjectCreatorRoll &&
-    btnObjectCreatorCancelRoll &&
+    btnObjectCreatorGenerateImage &&
     btnObjectCreatorCreate &&
     btnObjectCreatorClose &&
     btnObjectCreatorDone
@@ -53,11 +54,10 @@ function initObjectEditor(clientSocket, clientRestAuthToken) {
   if (!bindObjectEditorDomElements() || objectEditorInitialized) {
     return;
   }
-  btnObjectCreatorRoll.addEventListener("click", startObjectRollBatch);
-  btnObjectCreatorCancelRoll.addEventListener("click", cancelActiveObjectRoll);
-  btnObjectCreatorCreate.addEventListener("click", createThingFromSelectedSlot);
+  btnObjectCreatorCreate.addEventListener("click", createThingFromEditor);
   btnObjectCreatorClose.addEventListener("click", closeObjectCreator);
-  btnObjectCreatorDone.addEventListener("click", createThingFromSelectedSlot);
+  btnObjectCreatorDone.addEventListener("click", closeObjectCreator);
+  btnObjectCreatorGenerateImage.addEventListener("click", generateObjectImage);
   objectCreatorDescription.addEventListener("input", () => {
     objectEditorState.description = objectCreatorDescription.value;
   });
@@ -68,10 +68,12 @@ function resetObjectEditorState() {
   objectEditorState = {
     mode: "closed",
     description: "",
-    slots: [null, null, null, null],
-    selectedSlot: -1,
-    activeRequestId: null,
-    batchRolling: false,
+    availableSprites: [],
+    currentSprite: null,
+    imagePath: null,
+    imageUrl: null,
+    generatingImage: false,
+    creating: false,
   };
   if (!bindObjectEditorDomElements()) {
     return;
@@ -95,240 +97,177 @@ async function fetchObjectEditorJson(path, options = {}) {
 
 async function openObjectCreator() {
   objectEditorState.mode = "editing";
-  objectEditorState.batchRolling = false;
+  objectEditorState.description = objectCreatorDescription ? objectCreatorDescription.value : "";
   objectCreatorError.textContent = "";
   objectCreatorPage.style.display = "flex";
   renderObjectCreator();
   try {
     const profile = await fetchObjectEditorJson("/api/object-editor/profile");
-    objectEditorState.slots = [null, null, null, null];
-    const icons = profile.icons || [];
-    for (let i = 0; i < 4 && i < icons.length; i++) {
-      objectEditorState.slots[i] = icons[i];
-    }
-    objectEditorState.selectedSlot = -1;
-    objectEditorState.activeRequestId = profile.queue?.active_request_id || null;
-    if (objectEditorState.activeRequestId) {
-      objectEditorState.mode = "rolling";
-      pollObjectRequest();
-    }
-    renderObjectCreator(profile.queue || null);
+    objectEditorState.availableSprites = profile.available_sprites || [];
+    renderObjectCreator();
   } catch (err) {
     objectCreatorError.textContent = err.message;
-    objectEditorState.mode = "editing";
     renderObjectCreator();
   }
 }
 
 function closeObjectCreator() {
-  objectEditorState.batchRolling = false;
   objectCreatorPage.style.display = "none";
   objectEditorState.mode = "closed";
 }
 
-function renderObjectCreator(queueInfo = null) {
-  if (!objectCreatorQueue || !objectCreatorSlots) {
+function createObjectSpritePreview(option) {
+  const preview = document.createElement("div");
+  preview.className = "character-sprite-preview";
+  if (option.frame) {
+    preview.classList.add("character-sprite-preview-frame");
+    preview.style.width = `${option.frame.width || 32}px`;
+    preview.style.height = `${option.frame.height || 32}px`;
+    preview.style.backgroundImage = `url("${resolveAssetUrl(option.image_url || "")}")`;
+    preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
+    if (option.background_color) {
+      preview.style.backgroundColor = option.background_color;
+    }
+    return preview;
+  }
+  const img = document.createElement("img");
+  img.src = resolveAssetUrl(option.image_url || "");
+  img.alt = option.label || option.sprite_id || "sprite";
+  preview.appendChild(img);
+  return preview;
+}
+
+function renderObjectCreator() {
+  if (!objectCreatorSpriteList || !objectCreatorImagePreview) {
     return;
   }
-  const isGenerating = objectEditorState.mode === "rolling" || !!objectEditorState.activeRequestId;
-  objectCreatorQueue.classList.toggle("generating", isGenerating);
-  objectCreatorQueue.textContent = "";
-  if (queueInfo) {
-    const ahead = queueInfo.items_ahead ?? 0;
-    const queued = queueInfo.queued ?? 0;
-    const running = queueInfo.running ?? 0;
-    objectCreatorQueue.textContent = `Queue: ${queued} queued, ${running} running. Items ahead of your request: ${ahead}`;
-  } else if (objectEditorState.mode === "rolling") {
-    objectCreatorQueue.textContent = "Queue: preparing request status...";
+  const busy = objectEditorState.generatingImage || objectEditorState.creating;
+  objectCreatorDescription.disabled = busy;
+  btnObjectCreatorGenerateImage.disabled = busy;
+  btnObjectCreatorCreate.disabled = busy;
+
+  // Sprite list
+  objectCreatorSpriteList.innerHTML = "";
+
+  const noSpriteCard = document.createElement("button");
+  noSpriteCard.type = "button";
+  noSpriteCard.className = "character-sprite-card character-sprite-card-default";
+  if (!objectEditorState.currentSprite) noSpriteCard.classList.add("selected");
+  noSpriteCard.disabled = busy;
+  noSpriteCard.addEventListener("click", () => {
+    objectEditorState.currentSprite = null;
+    renderObjectCreator();
+  });
+  const noSpriteLabel = document.createElement("div");
+  noSpriteLabel.className = "character-sprite-label";
+  noSpriteLabel.textContent = "Use image only";
+  noSpriteCard.appendChild(noSpriteLabel);
+  const noSpriteMeta = document.createElement("div");
+  noSpriteMeta.className = "character-sprite-meta";
+  noSpriteMeta.textContent = "Image required";
+  noSpriteCard.appendChild(noSpriteMeta);
+  objectCreatorSpriteList.appendChild(noSpriteCard);
+
+  for (const option of objectEditorState.availableSprites) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "character-sprite-card";
+    if (objectEditorState.currentSprite === option.sprite_ref) card.classList.add("selected");
+    card.disabled = busy;
+    card.addEventListener("click", () => {
+      objectEditorState.currentSprite = option.sprite_ref;
+      renderObjectCreator();
+    });
+    card.appendChild(createObjectSpritePreview(option));
+    const label = document.createElement("div");
+    label.className = "character-sprite-label";
+    label.textContent = option.label || option.sprite_id || option.filename || "sprite";
+    card.appendChild(label);
+    const meta = document.createElement("div");
+    meta.className = "character-sprite-meta";
+    meta.textContent = `${option.scope}:${option.filename}/${option.sprite_id}`;
+    card.appendChild(meta);
+    objectCreatorSpriteList.appendChild(card);
   }
 
-  objectCreatorSlots.innerHTML = "";
-  for (let i = 0; i < 4; i++) {
-    const slot = document.createElement("div");
-    slot.className = "character-slot";
-    if (isGenerating && !objectEditorState.slots[i]) {
-      slot.classList.add("generating");
-    }
-    if (i === objectEditorState.selectedSlot) {
-      slot.classList.add("selected");
-    }
-    const icon = objectEditorState.slots[i];
-    if (icon) {
-      const img = document.createElement("img");
-      img.src = icon.icon_url;
-      img.alt = icon.icon_id || `icon-${i + 1}`;
-      slot.appendChild(img);
-      const controls = document.createElement("div");
-      const pick = document.createElement("button");
-      pick.type = "button";
-      pick.textContent = "Select";
-      pick.addEventListener("click", () => {
-        objectEditorState.selectedSlot = i;
-        renderObjectCreator(queueInfo);
-      });
-      controls.appendChild(pick);
-      const discard = document.createElement("button");
-      discard.type = "button";
-      discard.textContent = "Discard";
-      discard.addEventListener("click", async () => {
-        await discardObjectIcon(i);
-      });
-      controls.appendChild(discard);
-      slot.appendChild(controls);
-    } else {
-      const empty = document.createElement("div");
-      empty.className = "character-slot-empty";
-      empty.textContent = "Empty";
-      slot.appendChild(empty);
-    }
-    objectCreatorSlots.appendChild(slot);
+  // Image preview
+  objectCreatorImagePreview.innerHTML = "";
+  objectCreatorImagePreview.classList.toggle("is-busy", objectEditorState.generatingImage);
+  if (objectEditorState.imageUrl) {
+    const img = document.createElement("img");
+    img.src = resolveAssetUrl(objectEditorState.imageUrl);
+    img.alt = "Generated object image";
+    objectCreatorImagePreview.appendChild(img);
+  } else {
+    const empty = document.createElement("div");
+    empty.className = "character-main-image-empty";
+    empty.textContent = "No image yet. Generate one or pick a sprite.";
+    objectCreatorImagePreview.appendChild(empty);
   }
 }
 
-function objectFilledSlotsCount() {
-  return objectEditorState.slots.filter(slot => !!slot).length;
-}
-
-function objectFirstEmptySlot() {
-  return objectEditorState.slots.findIndex(slot => !slot);
-}
-
-async function startObjectRollBatch() {
-  if (objectEditorState.activeRequestId) {
+async function generateObjectImage() {
+  const description = (objectCreatorDescription.value || "").trim();
+  if (!description) {
+    objectCreatorError.textContent = "Enter a description before generating an image.";
     return;
   }
   objectCreatorError.textContent = "";
-  objectEditorState.description = (objectCreatorDescription.value || "").trim();
-  objectCreatorDescription.value = objectEditorState.description;
-  objectEditorState.batchRolling = true;
-  await submitNextObjectRollIfNeeded();
-}
-
-async function submitNextObjectRollIfNeeded() {
-  if (!objectEditorState.batchRolling || objectEditorState.activeRequestId) {
-    return;
-  }
-  if (objectFilledSlotsCount() >= 4) {
-    objectEditorState.batchRolling = false;
-    objectEditorState.mode = "slots_ready";
-    renderObjectCreator();
-    return;
-  }
+  objectEditorState.description = description;
+  objectEditorState.generatingImage = true;
+  renderObjectCreator();
   try {
-    const payload = await fetchObjectEditorJson("/api/object-editor/requests", {
+    const payload = await fetchObjectEditorJson("/api/object-editor/image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: objectEditorState.description }),
+      body: JSON.stringify({
+        description,
+        previous_image: objectEditorState.imagePath || null,
+      }),
     });
-    objectEditorState.activeRequestId = payload.request.request_id;
-    objectEditorState.mode = "rolling";
-    renderObjectCreator(payload.request.queue || null);
-    pollObjectRequest();
-  } catch (err) {
-    objectEditorState.batchRolling = false;
-    objectEditorState.mode = "editing";
-    objectCreatorError.textContent = err.message;
-    renderObjectCreator();
-  }
-}
-
-async function pollObjectRequest() {
-  if (!objectEditorState.activeRequestId) {
-    return;
-  }
-  let keepPolling = true;
-  while (keepPolling && objectEditorState.activeRequestId) {
-    try {
-      const payload = await fetchObjectEditorJson(`/api/object-editor/requests/${objectEditorState.activeRequestId}`);
-      const req = payload.request;
-      renderObjectCreator(req.queue || null);
-      if (req.status === "queued" || req.status === "running") {
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        continue;
-      }
-      if (req.status === "done") {
-        const idx = objectFirstEmptySlot();
-        if (idx >= 0) {
-          objectEditorState.slots[idx] = {
-            icon_id: req.icon_id,
-            icon_path: req.icon_path,
-            icon_url: req.icon_url,
-          };
-        }
-      } else if (req.status === "failed") {
-        objectCreatorError.textContent = req.error || "icon generation failed";
-      } else if (req.status === "cancelled") {
-        objectCreatorError.textContent = "Active generation request was cancelled.";
-      }
-      objectEditorState.activeRequestId = null;
-      keepPolling = false;
-    } catch (err) {
-      objectCreatorError.textContent = err.message;
-      objectEditorState.activeRequestId = null;
-      objectEditorState.batchRolling = false;
-      keepPolling = false;
-    }
-  }
-
-  if (objectEditorState.batchRolling) {
-    await submitNextObjectRollIfNeeded();
-  } else {
-    objectEditorState.mode = objectFilledSlotsCount() > 0 ? "slots_ready" : "editing";
-    renderObjectCreator();
-  }
-}
-
-async function cancelActiveObjectRoll() {
-  objectEditorState.batchRolling = false;
-  if (!objectEditorState.activeRequestId) {
-    return;
-  }
-  try {
-    await fetchObjectEditorJson(`/api/object-editor/requests/${objectEditorState.activeRequestId}`, { method: "DELETE" });
+    objectEditorState.imagePath = payload.image.image_path;
+    objectEditorState.imageUrl = payload.image.image_url;
   } catch (err) {
     objectCreatorError.textContent = err.message;
   } finally {
-    objectEditorState.activeRequestId = null;
-    objectEditorState.mode = "editing";
+    objectEditorState.generatingImage = false;
     renderObjectCreator();
   }
 }
 
-async function discardObjectIcon(index) {
-  const icon = objectEditorState.slots[index];
-  if (!icon) {
+async function createThingFromEditor() {
+  const description = (objectCreatorDescription.value || "").trim();
+  if (!description) {
+    objectCreatorError.textContent = "Enter a description for the thing.";
     return;
   }
-  try {
-    await fetchObjectEditorJson(`/api/object-editor/icons/${encodeURIComponent(icon.icon_id)}`, { method: "DELETE" });
-    objectEditorState.slots[index] = null;
-    if (objectEditorState.selectedSlot === index) {
-      objectEditorState.selectedSlot = -1;
-    }
-    renderObjectCreator();
-  } catch (err) {
-    objectCreatorError.textContent = err.message;
-  }
-}
-
-async function createThingFromSelectedSlot() {
-  const idx = objectEditorState.selectedSlot;
-  if (idx < 0 || !objectEditorState.slots[idx]) {
-    objectCreatorError.textContent = "Select one generated icon before creating a thing.";
+  if (!objectEditorState.currentSprite && !objectEditorState.imagePath) {
+    objectCreatorError.textContent = "Pick a sprite or generate an image first.";
     return;
   }
-  objectEditorState.description = (objectCreatorDescription.value || "").trim();
-  objectCreatorDescription.value = objectEditorState.description;
-  const icon = objectEditorState.slots[idx];
+  objectCreatorError.textContent = "";
+  objectEditorState.description = description;
+  objectEditorState.creating = true;
+  renderObjectCreator();
   try {
-    await fetchObjectEditorJson(`/api/object-editor/icons/${encodeURIComponent(icon.icon_id)}/create`, {
+    await fetchObjectEditorJson("/api/object-editor/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: objectEditorState.description }),
+      body: JSON.stringify({
+        description,
+        current_sprite: objectEditorState.currentSprite || null,
+        image_path: objectEditorState.imagePath || null,
+      }),
     });
     objectCreatorError.textContent = "";
+    // Reset image state so it isn't reused next time
+    objectEditorState.imagePath = null;
+    objectEditorState.imageUrl = null;
     closeObjectCreator();
   } catch (err) {
     objectCreatorError.textContent = err.message;
+  } finally {
+    objectEditorState.creating = false;
+    renderObjectCreator();
   }
 }

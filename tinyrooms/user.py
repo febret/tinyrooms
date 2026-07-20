@@ -1,4 +1,4 @@
-from . import char_data, db, peep
+from . import char_data, char_editor, db, peep, sprites
 from .icons import DEFAULT_USER_ASSETS
 
 
@@ -19,7 +19,7 @@ class User:
         # TODO: load user description etc. from db
         self.peep = peep.Peep(username, "user", {"img": DEFAULT_USER_ASSETS["img"]})
         self.peep._display_assets = dict(DEFAULT_USER_ASSETS)
-        self._apply_saved_character_sprite()
+        self._apply_saved_character_state(world)
         self.actions_stale = True
         self.client_stale = False
         self.styles_stale = False
@@ -30,20 +30,20 @@ class User:
     def __repr__(self):
         return f"User(username={self.username!r}, sid={self.sid!r})"
 
-    def _apply_saved_character_sprite(self):
+    def _apply_saved_character_state(self, world):
         char = char_data.read_char(self.username)
-        current_sprite = char.get("current_sprite")
-        if not isinstance(current_sprite, str) or not current_sprite:
+        self.peep.info["description"] = str(char.get("description") or "")
+        world_root = getattr(world, "root_path", None)
+        if not world_root:
             return
-        sprite_path = char_data.user_root(self.username) / current_sprite
-        if not sprite_path.exists():
-            return
-        sprite_url = char_data.sprite_url(self.username, current_sprite)
-        self.peep._display_assets = {
-            "icon": sprite_url,
-            "img": sprite_url,
-            "sprite": sprite_url,
-        }
+        sprite_repo = sprites.SpriteRepository(world_root)
+        sprite_repo.reindex()
+        self.peep._display_assets = char_editor.build_character_display_assets(
+            self.username,
+            char,
+            world_root,
+            sprite_repo=sprite_repo,
+        )
     
     def load(self):
         user_state = db.user_row_to_state(db.get_user(self.username))

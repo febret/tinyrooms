@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--char-temp-dir",
         default="",
-        help="Temporary directory for character sprite generation jobs",
+        help="Temporary directory for character-editor main-image generation jobs",
     )
     parser.add_argument(
         "--sprite-temp-dir",
