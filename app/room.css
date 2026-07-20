@@ -104,6 +104,7 @@
   max-width: 100%;
   margin: 0 auto;
   overflow: hidden;
+  cursor: crosshair;
 }
 
 .room-layer {
@@ -166,6 +167,23 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
+/* Visual feedback while the player's own peep is in transit */
+.room-entity.is-moving {
+  filter: drop-shadow(0 2px 8px rgba(60, 140, 255, 0.55));
+}
+
+/* Extra wobble for static (single-frame) sprites that have no walk animation */
+@keyframes entityWobble {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(-4deg) scaleX(0.96); }
+  75%  { transform: rotate(4deg) scaleX(0.96); }
+  100% { transform: rotate(0deg); }
+}
+
+.room-entity.is-moving-static {
+  animation: entityWobble 180ms linear;
+}
+
 .room-selectable {
   cursor: pointer;
 }
@@ -197,19 +215,23 @@
   border-radius: 50%;
 }
 
-#roomExits {
+.room-prop-exit-badge {
   position: absolute;
-  top: 2rem;
-  left: 0.45rem;
-  right: 0.45rem;
-  z-index: 11;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.25rem;
-  justify-content: flex-start;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
+  bottom: -1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: #ffe;
+  font-size: 0.6rem;
+  padding: 0.08rem 0.3rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#roomExits {
+  display: none;
 }
 
 .room-exit-btn {
@@ -301,15 +323,7 @@
   }
 
   #roomExits {
-    top: 1.65rem;
-    left: 0.25rem;
-    right: 0.25rem;
-    gap: 0.2rem;
-  }
-
-  .room-exit-btn {
-    padding: 0.14rem 0.25rem;
-    font-size: 0.58rem;
+    display: none;
   }
 
   #logPanel {

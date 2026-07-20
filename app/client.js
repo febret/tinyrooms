@@ -36,6 +36,7 @@ var activeTouchDrag = null;
 var roomState = {
   roomId: null,
   canEditProps: false,
+  canClaimRoom: false,
   stage: {
     type: 'basic',
     width: 400,
@@ -51,6 +52,7 @@ var roomState = {
   props: new Map(),
   propLibrary: new Map(),
   propLibraryWorldId: null,
+  exits: [],
 };
 var roomEditor = {
   enabled: false,
@@ -122,6 +124,53 @@ socket.on("activity_panel", data => {
   activityPanel.innerHTML = `<div class="room-header-title">${title}</div><div>${content}</div>`;
 });
 
+socket.on("inventory_update", data => {
+  renderInventoryPanel(data.items || []);
+});
+
+function renderInventoryPanel(items) {
+  const inventoryList = document.getElementById("inventoryList");
+  if (!inventoryList) return;
+  inventoryList.innerHTML = "";
+  if (items.length === 0) {
+    inventoryList.innerHTML = '<div class="inventory-empty">Empty</div>';
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "inventory-item";
+
+    const icon = document.createElement("div");
+    icon.className = "inventory-item-icon";
+    const iconUrl = item.display && (item.display.icon || item.display.img || item.display.sprite);
+    if (iconUrl) {
+      const img = document.createElement("img");
+      img.src = resolveAssetUrl(iconUrl);
+      img.alt = item.label || "";
+      icon.appendChild(img);
+    }
+    row.appendChild(icon);
+
+    const info = document.createElement("div");
+    info.className = "inventory-item-info";
+    const labelEl = document.createElement("div");
+    labelEl.className = "inventory-item-label";
+    labelEl.textContent = item.label || item.obj_id;
+    info.appendChild(labelEl);
+    row.appendChild(info);
+
+    const dropBtn = document.createElement("button");
+    dropBtn.className = "inventory-drop-btn";
+    dropBtn.textContent = "Drop";
+    dropBtn.addEventListener("click", () => {
+      socket.emit("room_drop_object", { obj_id: item.obj_id });
+    });
+    row.appendChild(dropBtn);
+
+    inventoryList.appendChild(row);
+  }
+}
+
 socket.on("reload_styles", () => reloadStyle());
 socket.on("reload_client", () => {
   saveInputState();
@@ -189,6 +238,7 @@ function handleHeaderUpdate(data) {
   }
   roomState.roomId = nextRoomId;
   roomState.canEditProps = !!data.can_edit_props;
+  roomState.canClaimRoom = !!data.can_claim_room;
   const label = formatText(escapeHtml(data.label || ""));
   const description = formatText(escapeHtml(data.short_description || ""));
   roomTitleOverlay.innerHTML = label;
@@ -240,21 +290,35 @@ function handleRoomObjectUpdate(data) {
 }
 
 function handleRoomExitsUpdate(data) {
-  roomExits.innerHTML = "";
-  for (const exitDef of (data.exits || [])) {
-    const btn = document.createElement("button");
-    btn.className = "room-exit-btn";
-    btn.textContent = exitDef.label || exitDef.id;
-    btn.addEventListener("click", () => socket.emit("message", { text: `.go @way:${exitDef.id}` }));
-    roomExits.appendChild(btn);
-  }
+  // Store exits for the room editor; no longer render overlay buttons.
+  roomState.exits = data.exits || [];
+}
+
+function clearRoomSelection() {
+  document.querySelectorAll(".room-selected").forEach(el => el.classList.remove("room-selected"));
+}
+
+function navigateExit(wayId) {
+  socket.emit("message", { text: `.go @way:${wayId}` });
+  selectedTarget = null;
+  clearRoomSelection();
+  renderActionPalette();
 }
 
 function selectTarget(target, node) {
   selectedTarget = target;
-  document.querySelectorAll(".room-selected").forEach(el => el.classList.remove("room-selected"));
+  clearRoomSelection();
   if (node) node.classList.add("room-selected");
   lookBox.innerHTML = `<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`;
+  if (paletteMode === "main") renderActionPalette();
+}
+
+function pickUpSelectedObject() {
+  if (!selectedTarget || selectedTarget.type !== "object") return;
+  socket.emit("room_pick_object", { entity_id: selectedTarget.id });
+  selectedTarget = null;
+  clearRoomSelection();
+  renderActionPalette();
 }
 
 
@@ -296,6 +360,12 @@ function getPaletteEntries() {
   return [
     { label: "Look", onClick: () => sendAction("basic.look") },
     { label: "Use", onClick: () => sendAction("basic.use") },
+    ...(selectedTarget && selectedTarget.type === "object"
+      ? [{ label: "Pick Up", onClick: () => pickUpSelectedObject() }]
+      : []),
+    ...(selectedTarget && selectedTarget.type === "prop" && selectedTarget.exit_way_id
+      ? [{ label: `Go: ${selectedTarget.exit_label || "Exit"}`, onClick: () => navigateExit(selectedTarget.exit_way_id) }]
+      : []),
     { label: "Emote", onClick: () => { paletteMode = "emote"; renderActionPalette(); } },
     { label: "Equip", onClick: () => requestActivity("equip") },
     { label: "Self", onClick: () => requestActivity("self") },
@@ -332,19 +402,16 @@ function reloadStyle() {
   }
 }
 
-function addMessage(text, cls) {
+function addMessage(text, cls, scroll = true) {
   const div = createChatMessageNode(text, cls);
   chatLogList.appendChild(div);
   window.setTimeout(() => beginMessageExit(div), CHAT_MESSAGE_TTL_MS);
   trimVisibleMessages();
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  if (scroll) messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function restoreChatMessage(text, cls) {
-  const div = createChatMessageNode(text, cls);
-  chatLogList.appendChild(div);
-  window.setTimeout(() => beginMessageExit(div), CHAT_MESSAGE_TTL_MS);
-  trimVisibleMessages();
+  addMessage(text, cls, false);
 }
 
 function createChatMessageNode(text, cls) {

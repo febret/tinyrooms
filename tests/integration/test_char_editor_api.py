@@ -4,17 +4,7 @@ import pytest
 pytestmark = [pytest.mark.integration, pytest.mark.char_editor]
 
 
-def _valid_descriptors(profile_payload: dict) -> dict[str, str]:
-    descriptor_classes = profile_payload["descriptor_classes"]
-    out = {}
-    for key, meta in descriptor_classes.items():
-        options = meta.get("options", [])
-        first = options[0]
-        out[key] = first["id"] if isinstance(first, dict) else str(first)
-    return out
-
-
-def test_char_editor_profile_requires_token_and_returns_contract(auth_socket_user, http_client):
+def test_char_editor_profile_requires_token_and_lists_available_sprites(auth_socket_user, http_client):
     user = auth_socket_user(prefix="it_char_profile")
     headers = user["headers"]
 
@@ -22,88 +12,115 @@ def test_char_editor_profile_requires_token_and_returns_contract(auth_socket_use
     assert profile.status_code == 200
     payload = profile.json()
     assert payload["ok"] is True
-    assert "descriptor_classes" in payload
     assert "char" in payload
-    assert "sprites" in payload
-    assert "queue" in payload
-    assert {"queued", "running", "active_request_id", "active_status", "items_ahead"} <= set(payload["queue"].keys())
+    assert "available_sprites" in payload
+    assert payload["char"]["description"] == ""
+    assert payload["char"]["main_image_url"] is None
+    assert payload["char"]["current_sprite_preview"] is None
+
+    available = payload["available_sprites"]
+    assert available
+    scopes = {item["scope"] for item in available}
+    assert {"server", "world"} <= scopes
+    assert all(item["sprite_ref"].startswith("$") for item in available)
+    assert all(item["image_url"].startswith("/sprites/") for item in available)
 
 
-def test_char_editor_request_queue_lifecycle_and_validation(auth_socket_user, http_client, poll_until_terminal):
-    primary = auth_socket_user(prefix="it_char_main")
-    secondary = auth_socket_user(prefix="it_char_invalid")
+def test_char_editor_profile_update_persists_character_details_and_broadcasts(auth_socket_user, http_client):
+    user = auth_socket_user(prefix="it_char_update")
+    headers = user["headers"]
+    client = user["client"]
 
-    profile = http_client.get("/api/char-editor/profile", headers=primary["headers"])
-    descriptors = _valid_descriptors(profile.json())
+    profile = http_client.get("/api/char-editor/profile", headers=headers)
+    payload = profile.json()
+    selected_sprite = next(item for item in payload["available_sprites"] if item["scope"] == "world")
+    client.drain("update_view")
 
-    created = http_client.post(
-        "/api/char-editor/requests",
-        headers=primary["headers"],
-        json={"descriptors": descriptors},
+    updated = http_client.put(
+        "/api/char-editor/profile",
+        headers=headers,
+        json={
+            "description": "A quiet ranger in a weathered moss cloak.",
+            "current_sprite": selected_sprite["sprite_ref"],
+        },
     )
-    assert created.status_code == 201, created.text
-    request_id = created.json()["request"]["request_id"]
+    assert updated.status_code == 200, updated.text
+    char = updated.json()["char"]
+    assert char["description"] == "A quiet ranger in a weathered moss cloak."
+    assert char["current_sprite"] == selected_sprite["sprite_ref"]
+    assert char["current_sprite_preview"]["sprite_ref"] == selected_sprite["sprite_ref"]
 
-    duplicate = http_client.post(
-        "/api/char-editor/requests",
-        headers=primary["headers"],
-        json={"descriptors": descriptors},
+    saved = http_client.get("/api/char-editor/profile", headers=headers)
+    assert saved.status_code == 200
+    saved_char = saved.json()["char"]
+    assert saved_char["description"] == char["description"]
+    assert saved_char["current_sprite"] == char["current_sprite"]
+
+    update_event = client.wait_for(
+        "update_view",
+        predicate=lambda p: (
+            p.get("view") == "room-object"
+            and p.get("entity", {}).get("owner_username") == user["username"]
+            and p.get("entity", {}).get("description") == char["description"]
+        ),
+        timeout=6.0,
     )
-    assert duplicate.status_code == 409
+    entity = update_event["entity"]
+    assert entity["display"]["sprite"].startswith("/sprites/world/")
+    assert entity["display"]["sprite_meta"]["sprite_id"] == selected_sprite["sprite_id"]
 
-    invalid_descriptors = dict(descriptors)
-    first_key = next(iter(invalid_descriptors.keys()))
-    invalid_descriptors[first_key] = "__invalid__"
-    invalid = http_client.post(
-        "/api/char-editor/requests",
-        headers=secondary["headers"],
-        json={"descriptors": invalid_descriptors},
+    invalid = http_client.put(
+        "/api/char-editor/profile",
+        headers=headers,
+        json={"current_sprite": "$/missing_set/nope"},
     )
     assert invalid.status_code == 400
 
-    terminal = poll_until_terminal(request_id, primary["headers"])
-    assert terminal["status"] == "done"
-    assert terminal["sprite_id"]
 
-    queue = http_client.get("/api/char-editor/queue", headers=primary["headers"])
-    assert queue.status_code == 200
-    queue_payload = queue.json()["queue"]
-    assert {"queued", "running", "active_request_id", "active_status", "items_ahead"} <= set(queue_payload.keys())
-
-
-def test_char_editor_cancel_and_sprite_select_delete(auth_socket_user, http_client, poll_until_terminal):
-    user = auth_socket_user(prefix="it_char_cancel")
+def test_char_editor_main_image_generation_persists_asset_and_broadcasts(auth_socket_user, http_client):
+    user = auth_socket_user(prefix="it_char_main_image")
     headers = user["headers"]
+    client = user["client"]
+
     profile = http_client.get("/api/char-editor/profile", headers=headers)
-    descriptors = _valid_descriptors(profile.json())
+    payload = profile.json()
+    selected_sprite = next(item for item in payload["available_sprites"] if item["scope"] == "server")
 
-    cancelling = http_client.post("/api/char-editor/requests", headers=headers, json={"descriptors": descriptors})
-    assert cancelling.status_code == 201
-    cancelling_request_id = cancelling.json()["request"]["request_id"]
-    cancelled = http_client.delete(f"/api/char-editor/requests/{cancelling_request_id}", headers=headers)
-    assert cancelled.status_code == 200
-    assert cancelled.json()["request"]["status"] in {"cancelled", "done"}
-
-    cancelled_terminal = poll_until_terminal(cancelling_request_id, headers)
-    assert cancelled_terminal["status"] in {"cancelled", "done"}
-
-    created = http_client.post("/api/char-editor/requests", headers=headers, json={"descriptors": descriptors})
-    assert created.status_code == 201
-    request_id = created.json()["request"]["request_id"]
-    done = poll_until_terminal(request_id, headers, timeout_seconds=14.0)
-    assert done["status"] == "done"
-    sprite_id = done["sprite_id"]
-    assert sprite_id
-
-    selected = http_client.post(
-        f"/api/char-editor/sprites/{sprite_id}/select",
+    saved = http_client.put(
+        "/api/char-editor/profile",
         headers=headers,
-        json={"descriptors": descriptors},
+        json={
+            "description": "An armored knight with a calm expression.",
+            "current_sprite": selected_sprite["sprite_ref"],
+        },
     )
-    assert selected.status_code == 200
-    char = selected.json()["char"]
-    assert char["current_sprite_id"] == sprite_id
+    assert saved.status_code == 200
+    client.drain("update_view")
 
-    deleted = http_client.delete(f"/api/char-editor/sprites/{sprite_id}", headers=headers)
-    assert deleted.status_code == 200
-    assert deleted.json()["ok"] is True
+    generated = http_client.post(
+        "/api/char-editor/main-image",
+        headers=headers,
+        json={
+            "description": "An armored knight with a calm expression.",
+            "current_sprite": selected_sprite["sprite_ref"],
+        },
+    )
+    assert generated.status_code == 200, generated.text
+    char = generated.json()["char"]
+    assert char["main_image"]
+    assert char["main_image_url"].startswith(f"/user-assets/{user['username']}/images/")
+    assert http_client.get(char["main_image_url"]).status_code == 200
+
+    update_event = client.wait_for(
+        "update_view",
+        predicate=lambda p: (
+            p.get("view") == "room-object"
+            and p.get("entity", {}).get("owner_username") == user["username"]
+            and p.get("entity", {}).get("display", {}).get("img") == char["main_image_url"]
+        ),
+        timeout=6.0,
+    )
+    entity = update_event["entity"]
+    assert entity["display"]["img"] == char["main_image_url"]
+    assert entity["display"]["icon"] == char["main_image_url"]
+    assert entity["display"]["sprite"].startswith("/sprites/server/")

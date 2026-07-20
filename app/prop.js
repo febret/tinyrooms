@@ -2,6 +2,7 @@ function clonePropState(prop) {
   return {
     prop_instance_id: prop.prop_instance_id,
     prop_id: prop.prop_id,
+    exit_way_id: prop.exit_way_id || null,
     position: { ...(prop.position || {}) },
   };
 }
@@ -81,7 +82,7 @@ function resolvePropLibraryDef(prop) {
 
 function enableRoomEditMode() {
   if (!roomState.canEditProps) {
-    addMessage("<span style='color:red'>Error: only room owner can edit props</span>");
+    addMessage("<span style='color:red'>Error: you do not have permission to edit this room</span>");
     return;
   }
   if (roomEditor.enabled) {
@@ -106,6 +107,10 @@ function disableRoomEditMode() {
   renderActionPalette();
 }
 
+function claimRoom() {
+  socket.emit("room_claim", {});
+}
+
 function cancelRoomEdits() {
   disableRoomEditMode();
   renderRoomStage(roomState.backgroundPath);
@@ -127,6 +132,25 @@ function deleteDraftProp(propInstanceId) {
     selectedTarget = null;
     lookBox.textContent = "";
   }
+  renderRoomStage(roomState.backgroundPath);
+}
+
+function cycleExitAssignment(propInstanceId) {
+  const prop = roomEditor.draftProps.get(propInstanceId);
+  if (!prop) return;
+  const exits = roomState.exits || [];
+  if (exits.length === 0) return;
+  const currentId = prop.exit_way_id || null;
+  const currentIdx = exits.findIndex(e => e.id === currentId);
+  // Cycle: none → exits[0] → exits[1] → ... → none
+  if (currentId === null) {
+    prop.exit_way_id = exits[0].id;
+  } else if (currentIdx >= 0 && currentIdx < exits.length - 1) {
+    prop.exit_way_id = exits[currentIdx + 1].id;
+  } else {
+    prop.exit_way_id = null;
+  }
+  roomEditor.draftProps.set(propInstanceId, prop);
   renderRoomStage(roomState.backgroundPath);
 }
 
@@ -156,6 +180,7 @@ function saveRoomEdits() {
     payloadProps.push({
       prop_instance_id: prop.prop_instance_id,
       prop_id: prop.prop_id,
+      exit_way_id: prop.exit_way_id || null,
       x: Number(prop.position?.x || 0),
       y: Number(prop.position?.y || 0),
       orientation: prop.position?.orientation || "front",
@@ -177,19 +202,34 @@ function renderRoomEditorActivity() {
       return `<button class="palette-btn room-editor-prop-btn" data-prop-add="${safeId}" ${saveDisabled}>+ ${safeLabel}</button>`;
     })
     .join("");
+  const exitsList = (roomState.exits || []).length > 0
+    ? `<div style="margin-top:0.4rem;font-size:0.72rem;opacity:0.75;">Exits: ${
+        roomState.exits.map(e => `<span>${escapeHtml(e.label || e.id)}</span>`).join(", ")
+      } — use 🚪 on a prop to assign</div>`
+    : "";
+  const claimSection = roomState.canClaimRoom
+    ? `<div style="margin-top:0.5rem;">
+         <button id="btnRoomEditorClaim">Claim Room</button>
+         <span style="font-size:0.72rem;opacity:0.75;margin-left:0.4rem;">No owner — become the owner</span>
+       </div>`
+    : "";
   activityPanel.innerHTML = `
     <div class="room-header-title">Room Editor</div>
     <div class="character-editor-actions">
       <button id="btnRoomEditorSave" ${saveDisabled}>Save Room</button>
       <button id="btnRoomEditorCancel" ${saveDisabled}>Cancel</button>
     </div>
+    ${claimSection}
     <div>${roomEditor.saving ? "Saving room..." : "Add prop from library:"}</div>
     <div class="character-editor-actions">${propsList}</div>
+    ${exitsList}
   `;
   const btnSave = document.getElementById("btnRoomEditorSave");
   if (btnSave) btnSave.onclick = saveRoomEdits;
   const btnCancel = document.getElementById("btnRoomEditorCancel");
   if (btnCancel) btnCancel.onclick = cancelRoomEdits;
+  const btnClaim = document.getElementById("btnRoomEditorClaim");
+  if (btnClaim) btnClaim.onclick = claimRoom;
   activityPanel.querySelectorAll("[data-prop-add]").forEach((node) => {
     node.addEventListener("click", () => {
       const propId = node.getAttribute("data-prop-add");
@@ -251,6 +291,20 @@ function makePropNode(prop) {
     visualEl.style.transform = orientationToTransform(prop.position?.orientation);
   }
   node.appendChild(visualEl);
+
+  // Resolve exit once for both the badge and the click handler
+  const exitDef = prop.exit_way_id
+    ? (roomState.exits.find(e => e.id === prop.exit_way_id) || null)
+    : null;
+
+  // Exit badge — visible in both normal and editor mode
+  if (exitDef) {
+    const badge = document.createElement("div");
+    badge.className = "room-prop-exit-badge";
+    badge.textContent = `→ ${exitDef.label || prop.exit_way_id}`;
+    node.appendChild(badge);
+  }
+
   if (roomEditor.enabled) {
     const controls = document.createElement("div");
     controls.className = "room-prop-controls";
@@ -274,19 +328,46 @@ function makePropNode(prop) {
       ev.stopPropagation();
       deleteDraftProp(prop.prop_instance_id);
     });
+    // Exit-assignment button: cycles through available exits (none → exit1 → exit2 → none)
+    const exitBtn = document.createElement("button");
+    exitBtn.type = "button";
+    exitBtn.className = "room-prop-control-btn";
+    exitBtn.textContent = "🚪";
+    exitBtn.title = prop.exit_way_id
+      ? `Exit: ${prop.exit_way_id} (click to change)`
+      : "Assign exit (click to set)";
+    exitBtn.addEventListener("click", ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      cycleExitAssignment(prop.prop_instance_id);
+    });
     controls.addEventListener("pointerdown", ev => {
       ev.stopPropagation();
     });
     controls.appendChild(rotateBtn);
+    controls.appendChild(exitBtn);
     controls.appendChild(deleteBtn);
     node.appendChild(controls);
   }
-  node.addEventListener("click", () => selectTarget({
-    type: "prop",
-    id: prop.prop_instance_id,
-    label: propDef?.label || prop.prop_id || "prop",
-    description: propDef?.description || "",
-  }, node));
+  node.addEventListener("click", () => {
+    if (!roomEditor.enabled && exitDef) {
+      selectTarget({
+        type: "prop",
+        id: prop.prop_instance_id,
+        label: exitDef.label || propDef?.label || prop.prop_id || "exit",
+        description: `Exit to ${exitDef.label || prop.exit_way_id}`,
+        exit_way_id: prop.exit_way_id,
+        exit_label: exitDef.label || prop.exit_way_id,
+      }, node);
+      return;
+    }
+    selectTarget({
+      type: "prop",
+      id: prop.prop_instance_id,
+      label: propDef?.label || prop.prop_id || "prop",
+      description: propDef?.description || "",
+    }, node);
+  });
   configureDragHandlers(node, "prop", prop.prop_instance_id, roomState.canEditProps && roomEditor.enabled);
   return node;
 }

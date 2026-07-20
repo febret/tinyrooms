@@ -306,3 +306,67 @@ def handle_request_activity_panel(data):
         "title": mode.title(),
         "content": f"TODO: server payload for activity panel mode '{mode}' is not fully specified yet.",
     }, to=sid)
+
+
+def _emit_inventory_update(user_obj):
+    """Emit the current inventory contents to the user's socket."""
+    items = []
+    for obj in user_obj.peep.inventory.values():
+        items.append({
+            "obj_id": obj.obj_id,
+            "label": obj.label(),
+            "description": obj.description(),
+            "display": dict(getattr(obj, "_display_assets", {}) or {}),
+        })
+    emit("inventory_update", {"items": items}, to=user_obj.sid)
+
+
+@server.socketio.on("room_pick_object")
+def handle_room_pick_object(data):
+    """Pick up an object from the current room into the user's inventory."""
+    user_obj, room = _require_room_user()
+    if user_obj is None:
+        return
+    sid = user_obj.sid
+    entity_id = (data or {}).get("entity_id", "")
+    obj = room.objs.get(entity_id)
+    if obj is None:
+        emit("error", {"error": "object not found in room"})
+        return
+    del room.objs[entity_id]
+    obj.location_id = f"@{user_obj.username}"
+    user_obj.peep.inventory[entity_id] = obj
+    room.broadcast_room_object_update(obj, change_type="remove", entity_type="object")
+    _save_world()
+    _emit_inventory_update(user_obj)
+    emit("message", {"text": f"You pick up {obj.label()}."}, to=sid)
+    emit("message", {"text": f"{user_obj.label} picks up {obj.label()}."}, room=room.room_id, skip_sid=sid)
+
+
+@server.socketio.on("room_drop_object")
+def handle_room_drop_object(data):
+    """Drop an object from the user's inventory into the current room."""
+    user_obj, room = _require_room_user()
+    if user_obj is None:
+        return
+    sid = user_obj.sid
+    obj_id = (data or {}).get("obj_id", "")
+    obj = user_obj.peep.inventory.get(obj_id)
+    if obj is None:
+        emit("error", {"error": "object not in inventory"})
+        return
+    del user_obj.peep.inventory[obj_id]
+    obj.location_id = room.id()
+    try:
+        obj.x = int((data or {}).get("x", user_obj.peep.x))
+        obj.y = int((data or {}).get("y", user_obj.peep.y))
+    except (TypeError, ValueError):
+        obj.x = user_obj.peep.x
+        obj.y = user_obj.peep.y
+    obj.z_order = room.next_z()
+    room.objs[obj_id] = obj
+    room.broadcast_room_object_update(obj, change_type="upsert", entity_type="object")
+    _save_world()
+    _emit_inventory_update(user_obj)
+    emit("message", {"text": f"You drop {obj.label()}."}, to=sid)
+    emit("message", {"text": f"{user_obj.label} drops {obj.label()}."}, room=room.room_id, skip_sid=sid)

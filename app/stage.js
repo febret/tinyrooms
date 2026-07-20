@@ -110,8 +110,12 @@ function _renderEntityDisplay(node, entity, domKey) {
 
 // ─── Stage rendering ──────────────────────────────────────────────────────────
 
-function renderRoomStage(backgroundPath) {
+function _stopAllSpriteAnimations() {
   spriteAnimationState.forEach((_value, key) => _stopSpriteAnimation(key));
+}
+
+function renderRoomStage(backgroundPath) {
+  _stopAllSpriteAnimations();
   roomCanvas.innerHTML = "";
 
   const stage = roomState.stage;
@@ -152,6 +156,7 @@ function renderRoomStage(backgroundPath) {
   roomCanvas.appendChild(fgLayer);
   roomCanvas.ondragover = e => e.preventDefault();
   roomCanvas.ondrop = handleRoomDrop;
+  roomCanvas.onclick = handleCanvasClick;
 
   if (!roomEditor.enabled) {
     for (const entity of roomState.entities.values()) {
@@ -170,6 +175,7 @@ function renderForegroundEntity(entity) {
 
   const key = `${entity.entity_type}:${entity.entity_id}`;
   const domId = `room-${key.replace(":", "-")}`;
+  const isNew = !document.getElementById(domId);
   let node = document.getElementById(domId);
   if (!node) {
     node = document.createElement("div");
@@ -188,7 +194,16 @@ function renderForegroundEntity(entity) {
   node.style.left = `${entity.position?.x || 0}px`;
   node.style.top = `${posY}px`;
   node.style.zIndex = `${zIndex}`;
-  _renderEntityDisplay(node, entity, domId);
+
+  // Only rebuild the display subtree when this is a new node or when the
+  // display data itself has changed. Skipping the rebuild for position-only
+  // updates keeps sprite animation timers running uninterrupted.
+  const prevDisplayJson = node.dataset.displayJson || "";
+  const nextDisplayJson = JSON.stringify(entity.display || {});
+  if (isNew || prevDisplayJson !== nextDisplayJson) {
+    node.dataset.displayJson = nextDisplayJson;
+    _renderEntityDisplay(node, entity, domId);
+  }
 
   node.onclick = () => selectTarget({
     type: entity.entity_type,
@@ -204,17 +219,19 @@ function canDragEntity(entity) {
   if (roomEditor.enabled) return false;
   if (entity.entity_type === "object") return true;
   if (entity.entity_type === "peep") {
-    return entity.owner_username === myUsername || roomState.canEditProps;
+    // Own peep moves via click-to-move, not drag.
+    // Room owner can still drag OTHER users' peeps.
+    return entity.owner_username !== myUsername && roomState.canEditProps;
   }
   return false;
 }
 
 function resetRoomEntityState() {
-  spriteAnimationState.forEach((_value, key) => _stopSpriteAnimation(key));
+  _stopAllSpriteAnimations();
   roomState.entities.clear();
   selectedTarget = null;
   lookBox.textContent = "";
-  document.querySelectorAll(".room-selected").forEach(el => el.classList.remove("room-selected"));
+  clearRoomSelection();
   const layer = document.getElementById("foregroundLayer");
   if (layer) layer.innerHTML = "";
 }
@@ -280,7 +297,107 @@ function submitMovePayload(payload, clientX, clientY, requireInside) {
   socket.emit("room_move_entity", moveEvent);
 }
 
-// ─── Camera control ───────────────────────────────────────────────────────────
+// ─── Click-to-move ────────────────────────────────────────────────────────────
+
+// Tracks in-progress movement animation for the local player's peep.
+var selfMoveState = {
+  moving: false,
+  timer: null,
+};
+
+function handleCanvasClick(ev) {
+  if (roomEditor.enabled) return;
+  if (!myUsername) return;
+  // Ignore clicks that landed on an entity or prop node
+  if (ev.target instanceof Element && (
+    ev.target.closest(".room-entity") ||
+    ev.target.closest(".room-prop")
+  )) return;
+
+  const point = getStagePoint(ev.clientX, ev.clientY, true);
+  if (!point) return;
+
+  _moveOwnPeepTo(point.x, point.y);
+}
+
+function _moveOwnPeepTo(x, y) {
+  const myKey = `peep:${myUsername}`;
+  const myEntity = roomState.entities.get(myKey);
+  const myDomId = `room-peep-${myUsername}`;
+  const myNode = document.getElementById(myDomId);
+
+  // Optimistic position update — update entity state and DOM directly so the
+  // CSS transition animates smoothly before the server confirms.
+  if (myEntity && myEntity.position) {
+    myEntity.position.x = x;
+    myEntity.position.y = y;
+    if (roomState.stage.type === "standard") {
+      myEntity.position.z_order = computeStandardZOrder(
+        y, roomState.stage.bg_height, roomState.cameraFloorHeight
+      );
+    }
+  }
+  if (myNode) {
+    myNode.style.left = `${x}px`;
+    myNode.style.top = `${y}px`;
+    if (myEntity && myEntity.position) {
+      myNode.style.zIndex = `${myEntity.position.z_order || 0}`;
+    }
+    _startMoveAnimation(myDomId, myEntity);
+  }
+
+  const moveEvent = { entity_type: "peep", entity_id: myUsername, x, y };
+  if (roomState.stage.type === "standard") {
+    moveEvent.z_order = computeStandardZOrder(
+      y, roomState.stage.bg_height, roomState.cameraFloorHeight
+    );
+  }
+  socket.emit("room_move_entity", moveEvent);
+}
+
+// Play the sprite's animation while the CSS position transition is in progress,
+// and stop it once the transition completes (for static / single-frame sprites).
+function _startMoveAnimation(domId, entity) {
+  // Clear any previously scheduled stop
+  if (selfMoveState.timer) {
+    clearTimeout(selfMoveState.timer);
+    selfMoveState.timer = null;
+  }
+  selfMoveState.moving = true;
+
+  const node = document.getElementById(domId);
+  if (node) node.classList.add("is-moving");
+
+  // The CSS transition is 180ms. Force the animation to run during that window
+  // by re-triggering _renderEntityDisplay only if the sprite currently has no
+  // running animation (i.e. it was static). For already-animated sprites,
+  // the interval keeps running uninterrupted.
+  if (entity) {
+    const display = entity.display || {};
+    const spriteMeta = display.sprite_meta || display.img_meta || null;
+    const hasAnimation = spriteMeta && spriteMeta.animation &&
+      Array.isArray(spriteMeta.animation.frames) &&
+      spriteMeta.animation.frames.length > 1;
+
+    if (!hasAnimation && node) {
+      // No multi-frame animation: add a CSS wobble class for visual movement feedback
+      node.classList.add("is-moving-static");
+    }
+  }
+
+  // Schedule cleanup after transition completes (add a small buffer over 180ms)
+  selfMoveState.timer = setTimeout(() => {
+    selfMoveState.moving = false;
+    selfMoveState.timer = null;
+    const n = document.getElementById(domId);
+    if (n) {
+      n.classList.remove("is-moving");
+      n.classList.remove("is-moving-static");
+    }
+  }, 220);
+}
+
+
 
 function setCameraFloorHeight(newFloorHeight) {
   const stage = roomState.stage;
@@ -324,6 +441,18 @@ function handleRoomDrop(ev) {
   const raw = ev.dataTransfer.getData("text/plain");
   if (!raw) return;
   const payload = JSON.parse(raw);
+  // If dropping an object onto the user's own peep, pick it up instead of moving it
+  if (payload.entityType === "object" && myUsername) {
+    const myPeepNode = document.getElementById(`room-peep-${myUsername}`);
+    if (myPeepNode) {
+      const rect = myPeepNode.getBoundingClientRect();
+      if (ev.clientX >= rect.left && ev.clientX <= rect.right &&
+          ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+        socket.emit("room_pick_object", { entity_id: payload.entityId });
+        return;
+      }
+    }
+  }
   submitMovePayload(payload, ev.clientX, ev.clientY, false);
 }
 
@@ -385,6 +514,18 @@ function handleTouchDragEnd(ev) {
   const drag = activeTouchDrag;
   cleanupTouchDrag();
   if (drag.moved) {
+    // If dropping an object onto the user's own peep, pick it up instead of moving it
+    if (drag.entityType === "object" && myUsername) {
+      const myPeepNode = document.getElementById(`room-peep-${myUsername}`);
+      if (myPeepNode) {
+        const rect = myPeepNode.getBoundingClientRect();
+        if (ev.clientX >= rect.left && ev.clientX <= rect.right &&
+            ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+          socket.emit("room_pick_object", { entity_id: drag.entityId });
+          return;
+        }
+      }
+    }
     submitMovePayload({ entityType: drag.entityType, entityId: drag.entityId }, ev.clientX, ev.clientY, true);
     return;
   }

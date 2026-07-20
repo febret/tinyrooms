@@ -61,6 +61,8 @@
           </div>
         </div>
         <div id="inventoryPanel">
+          <div id="inventoryHeader" class="inventory-header">Inventory</div>
+          <div id="inventoryList" class="inventory-list"></div>
           <div id="activityPanel"></div>
         </div>
       </div>
@@ -74,15 +76,25 @@
         <button id="btnCharacterEditorClose">✕</button>
       </div>
       <div id="characterEditorError" class="character-editor-error"></div>
-      <div id="characterEditorDescriptors"></div>
-      <div class="character-editor-actions">
-        <button id="btnCharacterRoll">Roll (4)</button>
-        <button id="btnCharacterCancelRoll">Cancel Active</button>
-        <button id="btnCharacterSave">Save Selection</button>
+      <div class="character-descriptor">
+        <div class="character-descriptor-label">Description</div>
+        <textarea id="characterEditorDescription" rows="3" maxlength="280" placeholder="Describe your character..."></textarea>
       </div>
-      <div id="characterEditorQueue" class="character-editor-queue"></div>
-      <div id="characterEditorSlots" class="character-editor-slots"></div>
+      <div class="character-editor-panels">
+        <div class="character-editor-panel">
+          <div class="character-descriptor-label">Sprite</div>
+          <div id="characterEditorSpriteList" class="character-sprite-list"></div>
+        </div>
+        <div class="character-editor-panel">
+          <div class="character-descriptor-label">Main image</div>
+          <div id="characterEditorMainImagePreview" class="character-main-image-preview"></div>
+          <div class="character-editor-actions">
+            <button id="btnCharacterGenerateMainImage">Generate Main Image</button>
+          </div>
+        </div>
+      </div>
       <div class="character-editor-footer">
+        <button id="btnCharacterSave">Save</button>
         <button id="btnCharacterEditorDone">Done</button>
       </div>
     </div>
@@ -99,14 +111,21 @@
         <div class="character-descriptor-label">Object description</div>
         <textarea id="objectCreatorDescription" rows="3" maxlength="280" placeholder="Describe the object you want to create..."></textarea>
       </div>
-      <div class="character-editor-actions">
-        <button id="btnObjectCreatorRoll">Generate (up to 4)</button>
-        <button id="btnObjectCreatorCancelRoll">Cancel Active</button>
-        <button id="btnObjectCreatorCreate">Create Thing</button>
+      <div class="character-editor-panels">
+        <div class="character-editor-panel">
+          <div class="character-descriptor-label">Sprite</div>
+          <div id="objectCreatorSpriteList" class="character-sprite-list"></div>
+        </div>
+        <div class="character-editor-panel">
+          <div class="character-descriptor-label">Image</div>
+          <div id="objectCreatorImagePreview" class="character-main-image-preview"></div>
+          <div class="character-editor-actions">
+            <button id="btnObjectCreatorGenerateImage">Generate Image</button>
+          </div>
+        </div>
       </div>
-      <div id="objectCreatorQueue" class="character-editor-queue"></div>
-      <div id="objectCreatorSlots" class="character-editor-slots object-creator-slots"></div>
       <div class="character-editor-footer">
+        <button id="btnObjectCreatorCreate">Create Thing</button>
         <button id="btnObjectCreatorDone">Done</button>
       </div>
     </div>
