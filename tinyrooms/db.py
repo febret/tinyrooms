@@ -176,24 +176,11 @@ def init_db(ws_id = 'home'):
             skin TEXT DEFAULT 'base'
         )
     """)
-    
-    # Add missing columns if they don't exist (for schema migration)
-    existing_columns = con.execute("PRAGMA table_info(users)").fetchall()
-    existing_column_names = {col[1] for col in existing_columns}
-    
-    # Define expected columns with their types and defaults
-    expected_columns = {
-        'skin': ('TEXT', "'base'"),
-        'last_world_id': ('TEXT', f"'{DEFAULT_WORLD_ID}'"),
-        'last_room_id': ('TEXT', "''"),
-        'last_x': ('INTEGER', str(DEFAULT_SPAWN_X)),
-        'last_y': ('INTEGER', str(DEFAULT_SPAWN_Y)),
-    }
-    
-    for col_name, (col_type, col_default) in expected_columns.items():
-        if col_name not in existing_column_names:
-            print(f"Adding missing column '{col_name}' to users table")
-            con.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type} DEFAULT {col_default}")
+    _ensure_column(con, "users", "skin", f"TEXT DEFAULT 'base'")
+    _ensure_column(con, "users", "last_world_id", f"TEXT DEFAULT '{DEFAULT_WORLD_ID}'")
+    _ensure_column(con, "users", "last_room_id", "TEXT DEFAULT ''")
+    _ensure_column(con, "users", "last_x", f"INTEGER DEFAULT {DEFAULT_SPAWN_X}")
+    _ensure_column(con, "users", "last_y", f"INTEGER DEFAULT {DEFAULT_SPAWN_Y}")
 
 
 def get_user(username):

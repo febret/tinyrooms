@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
-import sys
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from . import char_data, char_editor, sprites
+from . import char_data, char_editor, sprites, utils
 
 
 def _images_dir(username: str) -> Path:
@@ -155,42 +154,16 @@ class ObjectEditorService:
         output_name = f"thing_image_{uuid.uuid4().hex[:12]}.png"
         temp_output = self._temp_root / output_name
         temp_output.parent.mkdir(parents=True, exist_ok=True)
-        cmd = [
-            sys.executable,
-            str(self._make_image_script),
-            str(temp_output),
-            "--size",
-            "256x256",
-            "--description",
-            description,
-        ]
+        extra_args = ["--description", description]
         style = str(self._config.get("style", "")).strip()
         if style:
-            cmd.extend(["--style", style])
-        try:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-        except OSError as err:
-            raise ValueError(str(err)) from err
-        captured_lines: list[str] = []
-        if proc.stdout is not None:
-            for raw_line in proc.stdout:
-                line = raw_line.rstrip("\n")
-                captured_lines.append(line)
-                print(f"[make-image:thing-image:{username}] {line}", flush=True)
-        return_code = proc.wait()
-        if return_code != 0:
-            err = "\n".join(captured_lines).strip() or "object image generation failed"
-            raise ValueError(err)
-        if not temp_output.exists():
-            raise ValueError("object image output missing")
-        if temp_output.suffix.lower() != ".png":
-            raise ValueError("object image output must be png")
+            extra_args.extend(["--style", style])
+        utils.run_image_subprocess(
+            self._make_image_script,
+            temp_output,
+            log_label=f"thing-image:{username}",
+            extra_args=extra_args,
+        )
 
         images_dir = _ensure_images_dir(username)
         final_name = f"thing_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.png"

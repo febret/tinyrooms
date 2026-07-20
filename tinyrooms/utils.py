@@ -1,5 +1,45 @@
+import shutil
+import subprocess
+import sys
 import yaml
 from pathlib import Path
+
+def run_image_subprocess(
+    script: Path,
+    temp_output: Path,
+    log_label: str,
+    extra_args: list | None = None,
+) -> None:
+    """Run the make-image script as a subprocess.
+
+    Streams stdout/stderr to the console with the given log_label prefix.
+    Raises ValueError on non-zero exit, missing output file, or non-PNG output.
+    """
+    cmd = [sys.executable, str(script), str(temp_output), "--size", "256x256", *(extra_args or [])]
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except OSError as err:
+        raise ValueError(str(err)) from err
+    captured_lines: list[str] = []
+    if proc.stdout is not None:
+        for raw_line in proc.stdout:
+            line = raw_line.rstrip("\n")
+            captured_lines.append(line)
+            print(f"[make-image:{log_label}] {line}", flush=True)
+    return_code = proc.wait()
+    if return_code != 0:
+        raise ValueError("\n".join(captured_lines).strip() or "image generation failed")
+    if not temp_output.exists():
+        raise ValueError("image output missing")
+    if temp_output.suffix.lower() != ".png":
+        raise ValueError("image output must be png")
+
 
 def load_defs(yaml_path, id_key_func=None):
     """

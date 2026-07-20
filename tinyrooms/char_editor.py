@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
-import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import char_data, icons, sprites
+from . import char_data, icons, sprites, utils
 from .icons import DEFAULT_USER_ASSETS
 
 
@@ -252,39 +250,12 @@ class CharacterEditorService:
         output_name = f"char_main_{uuid.uuid4().hex[:12]}.png"
         temp_output = self._temp_root / output_name
         temp_output.parent.mkdir(parents=True, exist_ok=True)
-        cmd = [
-            sys.executable,
-            str(self._make_image_script),
-            str(temp_output),
-            "--size",
-            "256x256",
-            "--description",
-            prompt,
-        ]
-        try:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-        except OSError as err:
-            raise ValueError(str(err)) from err
-        captured_lines: list[str] = []
-        if proc.stdout is not None:
-            for raw_line in proc.stdout:
-                line = raw_line.rstrip("\n")
-                captured_lines.append(line)
-                print(f"[make-image:char-main:{username}] {line}", flush=True)
-        return_code = proc.wait()
-        if return_code != 0:
-            err = "\n".join(captured_lines).strip() or "main image generation failed"
-            raise ValueError(err)
-        if not temp_output.exists():
-            raise ValueError("main image output missing")
-        if temp_output.suffix.lower() != ".png":
-            raise ValueError("main image output must be png")
+        utils.run_image_subprocess(
+            self._make_image_script,
+            temp_output,
+            log_label=f"char-main:{username}",
+            extra_args=["--description", prompt],
+        )
 
         _, _, images_dir, _ = char_data.ensure_user_paths(username)
         final_name = f"main_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.png"
