@@ -1,0 +1,340 @@
+/* Room stage styles */
+
+/* Icon strip — row(s) of 64×64 room icons */
+.icon-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 2px 0;
+  clear: both;
+}
+
+.room-icon {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.25s ease;
+  image-rendering: auto;
+  animation: iconFadeIn 0.25s ease-in;
+}
+
+@keyframes iconFadeIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.room-icon:hover {
+  transform: scale(1.08);
+}
+
+.room-icon.selected {
+  border-color: #007bff;
+}
+
+.room-icon.user-icon {
+  border-radius: 50%;
+  box-shadow: 0 0 8px 3px rgba(60, 140, 255, 0.75);
+  border-color: rgba(60, 140, 255, 0.6);
+}
+
+.room-icon.user-icon.selected {
+  box-shadow: 0 0 12px 5px rgba(60, 140, 255, 0.95);
+  border-color: #3c8cff;
+}
+
+/* Description panel — shows entity description when an icon is clicked */
+#descriptionPanel {
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+.desc-panel-label {
+  font-weight: bold;
+}
+
+.desc-panel-text {
+  font-style: italic;
+}
+
+/* View panel and stage wrapper */
+#viewPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 560px;
+}
+
+#viewStageWrap {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+#roomTitleOverlay {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.45rem;
+  z-index: 10;
+  pointer-events: none;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  backdrop-filter: blur(2px);
+}
+
+.room-header-title {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+/* Room canvas */
+#roomCanvas {
+  position: relative;
+  width: 256px;
+  height: 512px;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.room-layer {
+  position: absolute;
+  inset: 0;
+}
+
+#roomCanvas .room-background {
+  position: absolute;
+  width: 100%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.room-background-tile {
+  background-repeat: repeat !important;
+  background-size: auto !important;
+}
+
+.room-background-stretch {
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+}
+
+.room-floor {
+  background-repeat: repeat;
+  background-size: cover;
+}
+
+.room-standard-stage {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-prop,
+.room-entity {
+  position: absolute;
+  user-select: none;
+  touch-action: none;
+}
+
+.room-prop img,
+.room-entity img {
+  display: block;
+  max-width: 64px;
+  max-height: 64px;
+}
+
+.room-entity img {
+  max-height: 128px;
+}
+
+.room-entity-sprite {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.room-entity {
+  transition: left 180ms linear, top 180ms linear;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.room-selectable {
+  cursor: pointer;
+}
+
+.room-selected {
+  outline: 2px solid #3c8cff;
+}
+
+.room-prop-outline {
+  outline: 2px dashed #ffce6a;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.room-prop-controls {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  gap: 0.2rem;
+}
+
+.room-prop-control-btn {
+  min-width: 1.4rem;
+  min-height: 1.4rem;
+  line-height: 1;
+  padding: 0.1rem;
+  margin: 0;
+  border-radius: 50%;
+}
+
+#roomExits {
+  position: absolute;
+  top: 2rem;
+  left: 0.45rem;
+  right: 0.45rem;
+  z-index: 11;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.room-exit-btn {
+  padding: 0.2rem 0.35rem;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+/* In-stage chat log */
+#logPanel {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 0.7rem;
+  width: min(22rem, calc(100% - 1.4rem));
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 15;
+  background: transparent;
+  color: #fff;
+}
+
+#messages {
+  height: auto;
+  max-height: 12.5rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: inherit;
+}
+
+#chatLogList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.msg {
+  margin: 0;
+}
+
+.chat-log-message {
+  padding: 0.2rem 0.28rem;
+  border-radius: 3px;
+  color: inherit;
+  background: transparent;
+}
+
+#logPanel .meta,
+#logPanel .system,
+#logPanel .ref {
+  color: #fff;
+}
+
+/* Tablet (max-width: 900px) */
+@media (max-width: 900px) {
+  #viewPanel {
+    min-height: 500px;
+  }
+
+  #roomCanvas {
+    width: 224px;
+    height: 448px;
+  }
+}
+
+/* Phone (max-width: 600px) */
+@media (max-width: 600px) {
+  #viewPanel {
+    min-height: 420px;
+    padding: 0.35rem;
+  }
+
+  #roomCanvas {
+    width: 192px;
+    height: 384px;
+  }
+
+  #roomTitleOverlay {
+    top: 0.25rem;
+    left: 0.25rem;
+    font-size: 0.8rem;
+    padding: 0.12rem 0.3rem;
+  }
+
+  #roomExits {
+    top: 1.65rem;
+    left: 0.25rem;
+    right: 0.25rem;
+    gap: 0.2rem;
+  }
+
+  .room-exit-btn {
+    padding: 0.14rem 0.25rem;
+    font-size: 0.58rem;
+  }
+
+  #logPanel {
+    left: 0.35rem;
+    bottom: 0.35rem;
+    width: min(18rem, calc(100% - 0.7rem));
+  }
+
+  #messages {
+    max-height: 9rem;
+    padding: 0.35rem;
+    font-size: 0.8rem;
+  }
+
+  .room-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .icon-strip {
+    gap: 4px;
+  }
+
+  #descriptionPanel {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
