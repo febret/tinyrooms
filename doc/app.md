@@ -29,6 +29,7 @@ The current `app/client.js` runtime is event-driven around Socket.IO and uses th
   - `room-stage` -> `handleRoomStageUpdate`
   - `room-object` -> `handleRoomObjectUpdate`
   - `room-exits` -> `handleRoomExitsUpdate`
+- Prop library loading and room-prop editing/rendering helpers are implemented in `app/prop.js` (`makePropNode`, library fetch/cache, and room editor prop actions).
 - `activity_panel`: displays server-provided activity content in `activityPanel`.
 - `message`, `error`: append text to `logPanel > messages`.
 
