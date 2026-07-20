@@ -7,7 +7,7 @@ from .room import Room, Way
 from .object import Object
 from .prop import Prop
 from .utils import load_defs
-from . import db, icons as icon_module
+from . import db, icons as icon_module, sprites
 
 
 def generated_things_dir() -> Path:
@@ -70,6 +70,8 @@ class World:
 
 
 def serialize_prop_library(world: World) -> list[dict]:
+    sprite_repo = sprites.SpriteRepository(world.root_path)
+    sprite_repo.reindex()
     serialized = []
     for prop_id, prop_info in sorted(world.prop_defs.items()):
         info = dict(prop_info or {})
@@ -77,7 +79,7 @@ def serialize_prop_library(world: World) -> list[dict]:
             'prop_id': prop_id,
             'label': info.get('label', prop_id),
             'description': info.get('description', ''),
-            'display': icon_module.build_display_assets(info, world.root_path),
+            'display': icon_module.build_display_assets(info, world.root_path, sprite_repo=sprite_repo),
             'metadata': dict(info.get('metadata', {}) or {}),
         })
     return serialized

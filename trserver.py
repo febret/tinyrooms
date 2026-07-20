@@ -70,6 +70,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Log REST API requests to stderr",
     )
+    parser.add_argument(
+        "--feature",
+        action="append",
+        default=[],
+        help="Enable optional feature flag (repeatable, e.g. --feature sprite-editor)",
+    )
     args = parser.parse_args()
 
     # Set up signal handlers
@@ -80,6 +86,7 @@ if __name__ == "__main__":
     temp_dir = args.char_temp_dir or args.sprite_temp_dir or None
     server.configure_char_editor(temp_dir)
     server.configure_object_editor(args.object_temp_dir or None)
+    server.configure_features(set(args.feature or []))
     
     # Initialize database
     db.init_db()

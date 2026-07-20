@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tinyrooms Sprite Editor</title>
+  <link rel="stylesheet" href="/app/sprite-editor.css" />
+</head>
+<body>
+  <div class="sprite-editor">
+    <aside class="panel panel-list">
+      <h3>Spritesets</h3>
+      <div class="auth-row">
+        <button id="btnLoadSets">Load</button>
+      </div>
+      <div id="setList" class="set-list"></div>
+    </aside>
+    <main class="panel panel-main">
+      <h3 id="setTitle">No set selected</h3>
+      <div id="setMeta"></div>
+      <div id="imageContainer">
+        <canvas id="spriteCanvas"></canvas>
+      </div>
+      <div class="image-hint" id="imageHint"></div>
+      <div class="edit-row">
+        <label>Frame W <input id="frameWidth" type="number" min="1" /></label>
+        <label>Frame H <input id="frameHeight" type="number" min="1" /></label>
+        <label>Background <input id="backgroundColor" placeholder="#000000 or css color" /></label>
+        <button id="btnClearBackground">Clear Background</button>
+        <button id="btnSaveSet">Save Set</button>
+      </div>
+      <pre id="statusBox"></pre>
+    </main>
+    <aside class="panel panel-side">
+      <h3>Sprites</h3>
+      <div class="auth-row">
+        <input id="newSpriteId" placeholder="new sprite id" />
+        <button id="btnAddSprite">Add</button>
+        <button id="btnDeleteSprite">Delete</button>
+      </div>
+      <div id="spriteList"></div>
+      <h3>Animations</h3>
+      <div class="auth-row">
+        <input id="newAnimId" placeholder="new anim id" />
+        <button id="btnAddAnim">Add</button>
+        <button id="btnDeleteAnim">Delete</button>
+      </div>
+      <div id="animList"></div>
+      <h3>Animation Editor</h3>
+      <div class="edit-col">
+        <label>Speed <input id="animSpeed" type="number" min="0.05" step="0.05" /></label>
+        <label>Type
+          <select id="animType">
+            <option value="loop">loop</option>
+            <option value="bounce">bounce</option>
+            <option value="random">random</option>
+          </select>
+        </label>
+        <label>Frames (comma list) <input id="animFrames" /></label>
+        <button id="btnSaveAnim">Save Animation</button>
+      </div>
+    </aside>
+  </div>
+  <script src="/app/sprite-editor.js"></script>
+</body>
+</html>

@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from . import sprites
+
 DEFAULT_USER_ASSETS = {
     'img': 'images/default_user.svg',
     'sprite': 'images/default_user.svg',
@@ -43,28 +45,43 @@ def resolve_display_assets(info: dict) -> dict:
     return {'img': base_img, 'icon': icon_img, 'sprite': sprite_img}
 
 
-def build_display_assets(info: dict, world_root_path) -> dict:
+def _resolve_display_asset_value(asset_value: str, world_root_path, sprite_repo: sprites.SpriteRepository | None = None):
+    sprite_ref = sprites.parse_sprite_reference(asset_value)
+    if sprite_ref is None:
+        return _resolve_image_path(asset_value, world_root_path), None
+    repo = sprite_repo or sprites.SpriteRepository(Path(world_root_path))
+    if sprite_repo is None:
+        repo.reindex()
+    resolved = sprites.resolve_sprite_reference(sprite_ref, repo)
+    return resolved['image_url'], resolved
+
+
+def build_display_assets(info: dict, world_root_path, sprite_repo: sprites.SpriteRepository | None = None) -> dict:
     assets = resolve_display_assets(info)
-    return {
-        'icon': _resolve_image_path(assets['icon'], world_root_path),
-        'img': _resolve_image_path(assets['img'], world_root_path),
-        'sprite': _resolve_image_path(assets['sprite'], world_root_path),
-    }
+    out = {}
+    for key in ('icon', 'img', 'sprite'):
+        resolved_value, resolved_meta = _resolve_display_asset_value(assets[key], world_root_path, sprite_repo=sprite_repo)
+        out[key] = resolved_value
+        if resolved_meta is not None:
+            out[f'{key}_meta'] = resolved_meta
+    return out
 
 
 def preprocess_world_assets(world):
+    sprite_repo = sprites.SpriteRepository(world.root_path)
+    sprite_repo.reindex()
     count = 0
     for obj in world.objs.values():
-        obj._display_assets = build_display_assets(obj.info, world.root_path)
+        obj._display_assets = build_display_assets(obj.info, world.root_path, sprite_repo=sprite_repo)
         count += 1
 
     for room in world.rooms.values():
         for prop in room.props.values():
-            prop._display_assets = build_display_assets(prop.info, world.root_path)
+            prop._display_assets = build_display_assets(prop.info, world.root_path, sprite_repo=sprite_repo)
             count += 1
 
     for peep in world.peeps.values():
-        peep._display_assets = build_display_assets(peep.info, world.root_path)
+        peep._display_assets = build_display_assets(peep.info, world.root_path, sprite_repo=sprite_repo)
         count += 1
     print(f"assets: preprocessed {count} entity/prop asset sets.")
 

@@ -1,6 +1,9 @@
 import threading
 import code
-import readline
+try:
+    import readline  # type: ignore
+except ImportError:  # pragma: no cover - Windows fallback
+    readline = None  # type: ignore
 import rlcompleter
 import queue
 import os
@@ -34,19 +37,20 @@ def run_admin_cmd(cmd, locals_dict):
 
 def input_thread_func(locals_dict):
     # Enable tab completion
-    readline.set_completer(rlcompleter.Completer(locals_dict).complete)  # type: ignore
-    readline.parse_and_bind("tab: complete")  # type: ignore
-    
-    # Configure history
-    readline.set_history_length(HISTORY_SIZE)  # type: ignore
-    if os.path.exists(HISTORY_FILE):
-        readline.read_history_file(HISTORY_FILE)  # type: ignore
-    
-    # Save history on exit
-    def save_history():
-        readline.write_history_file(HISTORY_FILE)  # type: ignore
-    
-    atexit.register(save_history)
+    if readline is not None:
+        readline.set_completer(rlcompleter.Completer(locals_dict).complete)  # type: ignore
+        readline.parse_and_bind("tab: complete")  # type: ignore
+        
+        # Configure history
+        readline.set_history_length(HISTORY_SIZE)  # type: ignore
+        if os.path.exists(HISTORY_FILE):
+            readline.read_history_file(HISTORY_FILE)  # type: ignore
+        
+        # Save history on exit
+        def save_history():
+            readline.write_history_file(HISTORY_FILE)  # type: ignore
+        
+        atexit.register(save_history)
     
     banner = """
     =================================================

@@ -63,3 +63,10 @@ def test_char_editor_endpoints_require_auth(http_client):
     for method, path in requests_no_auth:
         response = http_client.request(method, path, json={"descriptors": {}})
         assert response.status_code == 401, f"{method} {path}: {response.text}"
+
+
+def test_sprite_editor_endpoints_do_not_require_auth(http_client):
+    listed = http_client.get("/api/sprite-editor/sets")
+    assert listed.status_code == 200, listed.text
+    reindex = http_client.post("/api/sprite-editor/reindex")
+    assert reindex.status_code == 200, reindex.text

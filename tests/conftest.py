@@ -222,6 +222,8 @@ def server_runtime(integration_workspace: Path, server_port: int) -> ServerRunti
         str(server_port),
         "--char-temp-dir",
         str(char_temp_dir),
+        "--feature",
+        "sprite-editor",
     ]
     proc = subprocess.Popen(
         command,

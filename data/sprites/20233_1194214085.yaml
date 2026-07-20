@@ -1,0 +1,8 @@
+label: ''
+description: ''
+frame_width: 32
+frame_height: 32
+sprites:
+  sprite_1:
+    default_frame: '0x0'
+    anims: {}
