@@ -10,7 +10,7 @@ fi
 source .venv/Scripts/activate
 while [ $EXIT_CODE -eq 42 ]; do
     echo "Starting tinyrooms server..."
-    python trserver.py --feature sprite-editor
+    python trserver.py --feature sprite-editor,prop-editor
     EXIT_CODE=$?
     echo "Server exited with code $EXIT_CODE"
     

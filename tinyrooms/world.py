@@ -7,7 +7,7 @@ from .room import Room, Way
 from .object import Object
 from .prop import Prop
 from .utils import load_defs
-from . import db, icons as icon_module, sprites
+from . import db, icons as icon_module, prop_sets, sprites
 
 
 def generated_things_dir() -> Path:
@@ -70,18 +70,48 @@ class World:
 
 
 def serialize_prop_library(world: World) -> list[dict]:
-    sprite_repo = sprites.SpriteRepository(world.root_path)
-    sprite_repo.reindex()
+    prop_repo = prop_sets.PropRepository(world.root_path)
+    prop_repo.reindex()
     serialized = []
-    for prop_id, prop_info in sorted(world.prop_defs.items()):
-        info = dict(prop_info or {})
-        serialized.append({
-            'prop_id': prop_id,
-            'label': info.get('label', prop_id),
-            'description': info.get('description', ''),
-            'display': icon_module.build_display_assets(info, world.root_path, sprite_repo=sprite_repo),
-            'metadata': dict(info.get('metadata', {}) or {}),
-        })
+    for record in prop_repo.list_sets():
+        if record.prop_set is None:
+            continue
+        ps = record.prop_set
+        for prop_id, prop_entry in sorted(ps.props.items()):
+            image_url = f"/props/{ps.scope}/{ps.image_path.name}"
+            frame_x, frame_y = prop_entry.frames[0] if prop_entry.frames else (0, 0)
+            prop_meta = {
+                "ref": f"#{ps.filename}/{prop_id}",
+                "scope": ps.scope,
+                "filename": ps.filename,
+                "prop_id": prop_id,
+                "image_url": image_url,
+                "frame": {"x": frame_x, "y": frame_y, "width": prop_entry.width, "height": prop_entry.height},
+                "offset_x": 0,
+                "offset_y": 0,
+                "rotation_deg": 0,
+            }
+            if prop_entry.anim_speed is not None:
+                prop_meta["animation"] = {
+                    "speed": prop_entry.anim_speed,
+                    "frames": [
+                        {"x": fx, "y": fy, "width": prop_entry.width, "height": prop_entry.height}
+                        for fx, fy in prop_entry.frames
+                    ],
+                }
+            display = {
+                "img": image_url,
+                "icon": image_url,
+                "sprite": image_url,
+                "prop_meta": prop_meta,
+            }
+            serialized.append({
+                "prop_id": prop_id,
+                "label": ps.label or prop_id,
+                "description": ps.description or "",
+                "display": display,
+                "metadata": {},
+            })
     return serialized
 
 
@@ -127,13 +157,19 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
         if generated_id in thing_defs:
             print(f"Warning: generated thing id '{generated_id}' overrides world thing definition.")
         thing_defs[generated_id] = generated_info
-    props_dir = root_path / "props"
-    shared_props_dir = Path(__file__).parent.parent / "data" / "props"
+
+    # Load prop definitions via PropRepository (new schema)
+    _prop_repo = prop_sets.PropRepository(root_path)
+    _prop_repo.reindex()
     prop_defs = {}
-    if shared_props_dir.exists():
-        prop_defs.update(load_defs(shared_props_dir))
-    if props_dir.exists():
-        prop_defs.update(load_defs(props_dir))
+    for _record in _prop_repo.list_sets():
+        if _record.prop_set is not None:
+            _ps = _record.prop_set
+            for _pid, _pe in _ps.props.items():
+                prop_defs[_pid] = {
+                    "label": _ps.label or _pid,
+                    "description": _ps.description or "",
+                }
     
     rooms = {}
     ways = {}

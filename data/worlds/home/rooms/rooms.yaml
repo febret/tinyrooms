@@ -20,13 +20,6 @@ playroom:
     width: 256
     height: 512
     theme: home
-  props:
-    - prop: floor_rug
-      x: 40
-      y: 350
-    - prop: standing_lamp
-      x: 180
-      y: 120
   ways: [to_dressing_stand, to_upstairs_bathroom, to_upstairs_bedroom]
   init_things: [lucille, bookshelf_white, magic_orb]
 
@@ -53,10 +46,6 @@ upstairs_bedroom:
   stage:
     width: 256
     height: 512
-  props:
-    - prop: wall_clock
-      x: 150
-      y: 60
   ways: [to_upstairs_bathroom, to_playroom, to_downstairs]
 
 upstairs_bathroom:

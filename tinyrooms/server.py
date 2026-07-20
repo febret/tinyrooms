@@ -9,7 +9,7 @@ from typing import Any
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO
 
-from . import char_data, char_editor, db, icons, object_editor, sprite_editor_api, sprites, user
+from . import char_data, char_editor, db, icons, object_editor, prop_editor_api, sprite_editor_api, sprites, user
 from .icons import DEFAULT_USER_ASSETS
 from .object import Object
 from .world import active_world, save_generated_thing_def, serialize_prop_library
@@ -24,11 +24,13 @@ app = Flask(__name__, static_folder=str(STATIC_FOLDER), static_url_path="/app")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 app.register_blueprint(sprite_editor_api.blueprint)
+app.register_blueprint(prop_editor_api.blueprint)
 
 _char_editor_service = None
 _object_editor_service = None
 _enabled_features: set[str] = set()
 _sprite_repository: sprites.SpriteRepository | None = None
+_prop_repository = None  # prop_sets.PropRepository | None
 
 
 def _default_temp_root() -> Path:
@@ -133,6 +135,19 @@ def _sprite_repo(force_reindex: bool = False) -> sprites.SpriteRepository:
     if force_reindex:
         _sprite_repository.reindex()
     return _sprite_repository
+
+
+def _prop_repo(force_reindex: bool = False):
+    global _prop_repository
+    from . import prop_sets as prop_sets_module
+    world_root = Path(active_world().root_path)
+    if _prop_repository is None or _prop_repository.world_root_path != world_root:
+        _prop_repository = prop_sets_module.PropRepository(world_root)
+        _prop_repository.reindex()
+        return _prop_repository
+    if force_reindex:
+        _prop_repository.reindex()
+    return _prop_repository
 
 
 def _require_rest_user() -> str:
@@ -274,6 +289,18 @@ def sprite_asset_data(scope, filename):
     record = repo.get(scope, stem)
     if record is None or not record.has_image or record.image_path is None:
         return jsonify({"error": "sprite image not found"}), 404
+    return send_from_directory(str(record.image_path.parent), record.image_path.name)
+
+
+@app.route("/props/<scope>/<path:filename>")
+def prop_asset_data(scope, filename):
+    if scope not in {"server", "world"}:
+        return jsonify({"error": "invalid prop scope"}), 404
+    repo = _prop_repo(force_reindex=False)
+    stem = Path(filename).stem
+    record = repo.get(scope, stem)
+    if record is None or not record.has_image or record.image_path is None:
+        return jsonify({"error": "prop image not found"}), 404
     return send_from_directory(str(record.image_path.parent), record.image_path.name)
 
 

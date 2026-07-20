@@ -74,7 +74,7 @@ if __name__ == "__main__":
         "--feature",
         action="append",
         default=[],
-        help="Enable optional feature flag (repeatable, e.g. --feature sprite-editor)",
+        help="Enable optional feature flag (repeatable; also accepts comma-separated values, e.g. --feature sprite-editor,prop-editor)",
     )
     args = parser.parse_args()
 
@@ -86,7 +86,8 @@ if __name__ == "__main__":
     temp_dir = args.char_temp_dir or args.sprite_temp_dir or None
     server.configure_char_editor(temp_dir)
     server.configure_object_editor(args.object_temp_dir or None)
-    server.configure_features(set(args.feature or []))
+    features = {f.strip() for raw in (args.feature or []) for f in raw.split(",") if f.strip()}
+    server.configure_features(features)
     
     # Initialize database
     db.init_db()

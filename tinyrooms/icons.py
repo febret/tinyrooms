@@ -67,9 +67,47 @@ def build_display_assets(info: dict, world_root_path, sprite_repo: sprites.Sprit
     return out
 
 
+def _build_prop_display_assets(prop_id: str, prop_repo) -> dict:
+    """Build display assets for a prop using the PropRepository."""
+    from . import prop_sets as prop_sets_module
+    # prop_id may be a bare id like "floor_rug" or namespaced "#floor_rug/floor_rug"
+    record = prop_repo.lookup(prop_id)
+    if record is None or record.prop_set is None:
+        return {"img": "", "icon": "", "sprite": ""}
+    ps = record.prop_set
+    prop_entry = ps.props.get(prop_id) or next(iter(ps.props.values()), None)
+    if prop_entry is None:
+        return {"img": "", "icon": "", "sprite": ""}
+    image_url = f"/props/{ps.scope}/{ps.image_path.name}"
+    frame_x, frame_y = prop_entry.frames[0] if prop_entry.frames else (0, 0)
+    prop_meta = {
+        "ref": f"#{ps.filename}/{prop_entry.prop_id}",
+        "scope": ps.scope,
+        "filename": ps.filename,
+        "prop_id": prop_entry.prop_id,
+        "image_url": image_url,
+        "frame": {"x": frame_x, "y": frame_y, "width": prop_entry.width, "height": prop_entry.height},
+        "offset_x": 0,
+        "offset_y": 0,
+        "rotation_deg": 0,
+    }
+    if prop_entry.anim_speed is not None:
+        prop_meta["animation"] = {
+            "speed": prop_entry.anim_speed,
+            "frames": [
+                {"x": fx, "y": fy, "width": prop_entry.width, "height": prop_entry.height}
+                for fx, fy in prop_entry.frames
+            ],
+        }
+    return {"img": image_url, "icon": image_url, "sprite": image_url, "prop_meta": prop_meta}
+
+
 def preprocess_world_assets(world):
+    from . import prop_sets as prop_sets_module
     sprite_repo = sprites.SpriteRepository(world.root_path)
     sprite_repo.reindex()
+    prop_repo = prop_sets_module.PropRepository(world.root_path)
+    prop_repo.reindex()
     count = 0
     for obj in world.objs.values():
         obj._display_assets = build_display_assets(obj.info, world.root_path, sprite_repo=sprite_repo)
@@ -77,7 +115,7 @@ def preprocess_world_assets(world):
 
     for room in world.rooms.values():
         for prop in room.props.values():
-            prop._display_assets = build_display_assets(prop.info, world.root_path, sprite_repo=sprite_repo)
+            prop._display_assets = _build_prop_display_assets(prop.prop_id, prop_repo)
             count += 1
 
     for peep in world.peeps.values():
