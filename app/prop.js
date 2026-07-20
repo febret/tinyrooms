@@ -208,12 +208,49 @@ function makePropNode(prop) {
   node.style.left = `${prop.position?.x || 0}px`;
   node.style.top = `${prop.position?.y || 0}px`;
   node.style.zIndex = `${prop.position?.z_order || 0}`;
-  const img = document.createElement("img");
   const propDef = resolvePropLibraryDef(prop);
-  img.src = resolveAssetUrl(propDef?.display?.sprite || propDef?.display?.img || "");
-  img.alt = propDef?.label || prop.prop_id || "";
-  img.style.transform = orientationToTransform(prop.position?.orientation);
-  node.appendChild(img);
+  const meta = propDef?.display?.prop_meta;
+  let visualEl;
+  if (meta) {
+    // Frame-clipped rendering
+    const frame = meta.frame || {};
+    const w = frame.width || 32;
+    const h = frame.height || 32;
+    visualEl = document.createElement("div");
+    visualEl.style.width = `${w}px`;
+    visualEl.style.height = `${h}px`;
+    visualEl.style.backgroundImage = `url(${resolveAssetUrl(meta.image_url || "")})`;
+    visualEl.style.backgroundRepeat = "no-repeat";
+    visualEl.style.backgroundPosition = `-${frame.x || 0}px -${frame.y || 0}px`;
+    visualEl.style.transform = orientationToTransform(prop.position?.orientation);
+    if (meta.offset_x || meta.offset_y) {
+      visualEl.style.position = "relative";
+      visualEl.style.left = `${meta.offset_x || 0}px`;
+      visualEl.style.top = `${meta.offset_y || 0}px`;
+    }
+    // Animation
+    if (meta.animation && meta.animation.speed > 0 && Array.isArray(meta.animation.frames) && meta.animation.frames.length > 1) {
+      let frameIndex = 0;
+      const frames = meta.animation.frames;
+      const intervalMs = meta.animation.speed * 1000;
+      const timerId = setInterval(() => {
+        if (!document.contains(visualEl)) {
+          clearInterval(timerId);
+          return;
+        }
+        frameIndex = (frameIndex + 1) % frames.length;
+        const f = frames[frameIndex];
+        visualEl.style.backgroundPosition = `-${f.x || 0}px -${f.y || 0}px`;
+      }, intervalMs);
+    }
+  } else {
+    // Legacy <img> fallback
+    visualEl = document.createElement("img");
+    visualEl.src = resolveAssetUrl(propDef?.display?.sprite || propDef?.display?.img || "");
+    visualEl.alt = propDef?.label || prop.prop_id || "";
+    visualEl.style.transform = orientationToTransform(prop.position?.orientation);
+  }
+  node.appendChild(visualEl);
   if (roomEditor.enabled) {
     const controls = document.createElement("div");
     controls.className = "room-prop-controls";

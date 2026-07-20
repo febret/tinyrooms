@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tinyrooms Prop Editor</title>
+  <link rel="stylesheet" href="/app/prop-editor.css" />
+</head>
+<body>
+  <div class="prop-editor">
+    <!-- Left: Propset List -->
+    <aside class="panel panel-list">
+      <h3>Prop Sets</h3>
+      <div class="auth-row">
+        <button id="btnLoadSets">Load</button>
+      </div>
+      <div id="setList" class="set-list"></div>
+
+      <div class="upload-section">
+        <h3>Add Image</h3>
+        <div class="detail-row">
+          <label>Scope</label>
+          <select id="uploadScope">
+            <option value="world">World</option>
+            <option value="server">Server</option>
+          </select>
+        </div>
+        <div class="auth-row">
+          <input id="uploadFile" type="file" accept=".png,.gif,.webp" />
+        </div>
+        <div class="auth-row">
+          <button id="btnUploadImage">Upload Image</button>
+        </div>
+        <div id="uploadStatus" class="image-hint"></div>
+      </div>
+    </aside>
+
+    <!-- Center: Image Canvas -->
+    <main class="panel panel-canvas">
+      <h3 id="setTitle">No set selected</h3>
+      <div id="imageHint" class="image-hint"></div>
+      <div id="imageContainer">
+        <canvas id="propCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+      <pre id="statusBox"></pre>
+    </main>
+
+    <!-- Right: Props Panel + Prop Details -->
+    <aside class="panel panel-side">
+      <h3>Props</h3>
+      <div class="auth-row">
+        <input id="newPropId" placeholder="new prop id" />
+        <button id="btnAddProp">Add</button>
+        <button id="btnDeleteProp">Delete</button>
+      </div>
+      <div id="propList"></div>
+
+      <div class="prop-details">
+        <h3>Prop Details</h3>
+        <div class="detail-row">
+          <label>Width</label>
+          <input id="propWidth" type="number" min="1" placeholder="32" />
+          <span>px</span>
+        </div>
+        <div class="detail-row">
+          <label>Height</label>
+          <input id="propHeight" type="number" min="1" placeholder="32" />
+          <span>px</span>
+        </div>
+        <div class="detail-row">
+          <label>Anim Speed</label>
+          <input id="propAnimSpeed" type="number" min="0.01" step="0.1" placeholder="(none)" />
+          <span>sec</span>
+        </div>
+        <div class="auth-row">
+          <button id="btnSaveSet">Save</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Bottom: Frame Sequence Editor -->
+    <section class="panel panel-frames">
+      <h3>Frame Sequence</h3>
+      <div class="frames-actions">
+        <button id="btnAddFrameFromCanvas">Add frame from canvas click</button>
+        <button id="btnRemoveFrame">Remove selected frame</button>
+        <button id="btnMoveFrameLeft">← Move left</button>
+        <button id="btnMoveFrameRight">→ Move right</button>
+      </div>
+      <div id="framesStrip" class="frames-strip"></div>
+    </section>
+  </div>
+
+  <script src="/app/prop-editor.js"></script>
+</body>
+</html>
