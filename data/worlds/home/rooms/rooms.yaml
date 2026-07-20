@@ -3,6 +3,11 @@ DEFAULT_ROOM:
   label: the Void
   description: You find yourself in an endless void. There is <<nothing>> here.
   image: void.png
+  stage:
+    type: basic
+    width: 400
+    height: 300
+    background_mode: stretch
   ways: to_gateway
 
 to_gateway:
@@ -17,8 +22,10 @@ playroom:
   description: You are in a cozy playroom filled with colorful toys. <<A strange blue light>> comes out from behind a dressing stand.
   image: playroom.png
   stage:
+    type: basic
     width: 256
     height: 512
+    background_mode: stretch
     theme: home
   ways: [to_dressing_stand, to_upstairs_bathroom, to_upstairs_bedroom]
   init_things: [lucille, bookshelf_white, magic_orb]
@@ -41,12 +48,14 @@ to_upstairs_bathroom:
 upstairs_bedroom:
   type: room
   label: the Upstairs Bedroom
-  description: You are in a cozy bedroom with a large bed, a nightstand, and a window with a view of the garden.
+  description: You are in a cozy bedroom with a large bed, a nightstand, and a window with a view of the garden. A set of oak doors leads to the private library.
   image: bedroom1.jpg
   stage:
+    type: basic
     width: 256
     height: 512
-  ways: [to_upstairs_bathroom, to_playroom, to_downstairs]
+    background_mode: stretch
+  ways: [to_upstairs_bathroom, to_playroom, to_downstairs, to_library]
 
 upstairs_bathroom:
   type: room
@@ -54,8 +63,10 @@ upstairs_bathroom:
   description: You are in a small bathroom with a sink, toilet, and bathtub. The walls are tiled in light blue, and there is a fluffy bath mat on the floor.
   image: bathroom1.png
   stage:
+    type: basic
     width: 256
     height: 512
+    background_mode: stretch
   ways: [to_downstairs, to_playroom, to_upstairs_bedroom]
 
 to_downstairs:
@@ -71,14 +82,64 @@ to_playroom:
 backroom:
   type: room
   label: the Backroom
-  description: You are in a dimly lit backroom with old furniture and boxes stacked against the walls. There is a musty smell in the air.
+  description: You are in a dimly lit backroom with old furniture and boxes stacked against the walls. There is a musty smell in the air. A door in the back leads outside to the garden.
   image: backroom.png
   stage:
+    type: basic
     width: 256
     height: 512
-  ways: [to_upstairs]
+    background_mode: stretch
+  ways: [to_upstairs, to_garden]
 
 to_upstairs:
   type: way
   label: up the stairs 🪜
   to: upstairs_bathroom
+
+to_garden:
+  type: way
+  label: out the back door 🚪
+  to: garden
+
+to_library:
+  type: way
+  label: to the library 📚
+  to: library
+
+garden:
+  type: room
+  label: the Garden
+  description: You step outside into a sunlit garden. Tall hedges frame a neat lawn. The scent of freshly cut grass hangs in the air. Sprites placed here appear in front of each other based on how far forward they stand.
+  image: garden_bg.png
+  stage:
+    type: standard
+    width: 400
+    bg_height: 200
+    floor_height: 100
+    background_mode: stretch
+    floor_image: grass_floor.png
+  ways: [to_backroom]
+
+to_backroom:
+  type: way
+  label: back inside 🚪
+  to: backroom
+
+library:
+  type: room
+  label: the Private Library
+  description: Floor-to-ceiling bookshelves line every wall. The polished wooden floor creaks softly underfoot. This is a standard stage room — drag characters around and watch depth ordering shift as they move closer or further away.
+  image: library_bg.png
+  stage:
+    type: standard
+    width: 400
+    bg_height: 200
+    floor_height: 100
+    background_mode: stretch
+    floor_image: wood_floor.png
+  ways: [to_bedroom]
+
+to_bedroom:
+  type: way
+  label: back to the bedroom 🚪
+  to: upstairs_bedroom

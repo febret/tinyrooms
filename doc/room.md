@@ -14,7 +14,7 @@ A room background and props are displayed in the client in the roomPanel section
 In the app, users are allowed to move the sprite for their own peep, plus any objects in the room. Things can be moved via drag/drop. Moves are synchronized across all clients (see Room Update Messages).
 
 ## Prop Definition
-Props are defined similarly to things (see `data/worlds/home/things.yaml`): they have image/description/label metadata. They are defined and handled separately because they can only be edited by a room owner and may carry room-specific gameplay metadata.
+Props are defined similarly to things (see `data/worlds/home/things.yaml`): they have image/description/label metadata. They are defined and handled separately because they can only be edited by a room owner and may carry room-specific gameplay metadata. See prop.md.
 
 ## Prop and Object Display
 Both props and objects have three display slots (specified as properties pointing to image or svg files in their yaml definition):
@@ -28,7 +28,27 @@ The server now resolves and serves the configured source paths directly; it does
 The room background and props are displayed directly on the room canvas, while the object / character sprites are displayed with a subtle background shadow (applied on the client via css) to separate them from the fixed room stage.
 
 ### Room Stage Types
-**TODO**
+A room can have a stage type. The stage type determined how backgrounds / props / sprites are placed on the client room canvas, and it allows the display of different room types. 
+
+Stage type - specific properties are saved in the room yaml definition file together with the rest of a room definition. It is not possible to override stage types or stage properties in the world stage db (rooms table)
+
+The supported room stage types are specified in the following subsections.
+
+#### Basic Room Stage
+A Basic room just has a background image, width and height (default to 400x300). The background image is tiled by default but the room definition can choose to stretch it instead. 
+
+Sprites can be placed anywhere on the room stage.
+
+#### Standard Room Stage
+A standard room stage has a background and a floor section.
+
+The beckground section has a background image, width and height (default to 400x200). The background image is tiled by default but the room definition can choose to stretch it instead. 
+
+The floor section has a floor image, which is tiled AND stretched to occupy the entire floor space, as explained below.
+
+The floor space height is variable based on the client and 'camera' position, and defaults to 100 pixels. Sprites can be placed on a restriced space over the floor section, to appear like they are displayed in 2.5D, with the y coordinate affecting the sprite 'depth'. The sprite depth also determines the display order of sprites. Sprites can only be dragged / moved so that their center point is within the displayed floor space.
+
+The camera on the client can 'move' by expanding or reducing the floor space. for instance, the nominal 100 pixel high floor space can be squeezed in 10 pixels to give the impression of camera movement up. All sprites should move accordingly when the camera moves. The client UI has three camera setting options (camera 10, camera 100, camera 200) in the extra actions menu that allow testing camera movement.
 
 
 ## Room Update Messages
@@ -59,7 +79,14 @@ Fields:
 ### `update_view: room-stage`
 Fields:
 - `room_id`
-- `stage`: `{ width, height, bounds, theme }`
+- `stage`: `{ type, width, height, bg_height, floor_height, background_mode, floor_image, bounds, theme }`
+  - `type`: `'basic'` or `'standard'` (default: `'basic'`)
+  - `width`: canvas width in pixels (default: 400)
+  - `height`: total canvas height for basic rooms (default: 300)
+  - `bg_height`: background section height for standard rooms (default: 200)
+  - `floor_height`: nominal floor section height for standard rooms (default: 100)
+  - `background_mode`: `'tile'` or `'stretch'` (default: `'tile'`)
+  - `floor_image`: floor image path (empty string if not set)
 - `background`: room background image path
 - `props`: full prop placement list
 - `can_edit_props`
@@ -102,7 +129,8 @@ Fields:
 Room interactions use explicit socket events in `tinyrooms/connection.py`:
 
 - `room_move_entity`:
-  - input: `{ entity_type, entity_id, x, y, orientation? }`
+  - input: `{ entity_type, entity_id, x, y, orientation?, z_order? }`
+  - `z_order` is included by the client for Standard-stage rooms and is derived from the entity's y position within the floor section.
   - peep move rule: self can move self; room owner can move any peep in that room.
   - object move rule: any user in room can move objects.
   - on success: server emits `room-object` updates to all room users.
