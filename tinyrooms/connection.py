@@ -1,12 +1,33 @@
 from flask import request, session
 from flask_socketio import emit
 from werkzeug.security import check_password_hash
+import functools
 import secrets
 from uuid import uuid4
 
 from . import message, user, server, db, actions, icons
 from .prop import Prop
 from .world import active_world
+
+
+def _save_world():
+    """Persist the active world state."""
+    world = active_world()
+    world.save_state(world.ws_id)
+
+
+def _require_room_user():
+    """Return (user_obj, room) for the current socket request, or emit an error and return (None, None)."""
+    sid = getattr(request, 'sid', None)
+    user_obj = user.connected_users.get(sid)
+    if not user_obj:
+        emit("error", {"error": "not authenticated"})
+        return None, None
+    room = user_obj.room
+    if room is None:
+        emit("error", {"error": "not in room"})
+        return None, None
+    return user_obj, room
 
 # To send status updates to a client:
 # emit("update_status", {"key1": {"label": "Status 1"}, "key2": {"label": "Status 2"}}, to=sid)
@@ -89,6 +110,7 @@ def handle_login(data):
         db.save_user_state(user_obj)
         
         emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
+        _emit_inventory_update(user_obj)
         
         print(f"login success: {username} (sid={sid}) - added to room {user_obj.room.room_id if user_obj.room else None}")
     else:
@@ -142,14 +164,8 @@ def handle_heartbeat(data):
 
 @server.socketio.on("room_move_entity")
 def handle_room_move_entity(data):
-    sid = getattr(request, 'sid', None)
-    user_obj = user.connected_users.get(sid)
-    if not user_obj:
-        emit("error", {"error": "not authenticated"})
-        return
-    room = user_obj.room
-    if room is None:
-        emit("error", {"error": "not in room"})
+    user_obj, room = _require_room_user()
+    if user_obj is None:
         return
 
     entity_type = (data or {}).get("entity_type", "")
@@ -190,14 +206,8 @@ def handle_room_move_entity(data):
 
 @server.socketio.on("room_edit_prop")
 def handle_room_edit_prop(data):
-    sid = getattr(request, 'sid', None)
-    user_obj = user.connected_users.get(sid)
-    if not user_obj:
-        emit("error", {"error": "not authenticated"})
-        return
-    room = user_obj.room
-    if room is None:
-        emit("error", {"error": "not in room"})
+    user_obj, room = _require_room_user()
+    if user_obj is None:
         return
     if not room.can_user_edit_props(user_obj):
         emit("error", {"error": "only room owner can edit props"})
@@ -219,14 +229,8 @@ def handle_room_edit_prop(data):
 
 @server.socketio.on("room_save_props")
 def handle_room_save_props(data):
-    sid = getattr(request, 'sid', None)
-    user_obj = user.connected_users.get(sid)
-    if not user_obj:
-        emit("error", {"error": "not authenticated"})
-        return
-    room = user_obj.room
-    if room is None:
-        emit("error", {"error": "not in room"})
+    user_obj, room = _require_room_user()
+    if user_obj is None:
         return
     if not room.can_user_edit_props(user_obj):
         emit("error", {"error": "only room owner can edit props"})
@@ -282,7 +286,13 @@ def handle_room_save_props(data):
         })
         z_counter += 1
         prop = Prop(prop_instance_id, prop_id, merged_info, room.room_id)
-        prop._display_assets = icons.build_display_assets(prop.info, world.root_path)
+        prop._display_assets = icons._build_prop_display_assets(prop_id, server._prop_repo())
+        exit_way_id = str(raw_prop.get("exit_way_id") or "").strip() or None
+        if exit_way_id:
+            if exit_way_id not in room.ways:
+                emit("error", {"error": f"unknown exit way '{exit_way_id}'"})
+                return
+            prop.metadata["exit_way_id"] = exit_way_id
         next_props[prop_instance_id] = prop
 
     room.props = next_props
@@ -291,6 +301,22 @@ def handle_room_save_props(data):
 
     for room_user in room.users.values():
         room.send_room_stage_view(room_user)
+
+
+@server.socketio.on("room_claim")
+def handle_room_claim(data):
+    """Allow the current user to claim an ownerless room or reset their own ownership."""
+    user_obj, room = _require_room_user()
+    if user_obj is None:
+        return
+    if not room.can_user_claim(user_obj):
+        emit("error", {"error": "room already has an owner"})
+        return
+    room.owner_id = user_obj.username
+    _save_world()
+    # Broadcast updated header to all users in the room so can_edit_props refreshes.
+    for room_user in room.users.values():
+        room.send_header_view(room_user)
 
 
 @server.socketio.on("request_activity_panel")

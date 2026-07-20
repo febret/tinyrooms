@@ -37,14 +37,23 @@ class Room:
     def is_owner(self, user: User):
         return bool(self.owner_id) and self.owner_id == user.username
 
+    def has_owner(self):
+        return bool(self.owner_id)
+
     def can_user_move_peep(self, actor: User, target_username: str):
         if actor.username == target_username:
             return True
         return self.is_owner(actor)
 
     def can_user_edit_props(self, actor: User):
-        # return True
+        # Anyone can edit an unclaimed room; only the owner can edit a claimed room.
+        if not self.has_owner():
+            return True
         return self.is_owner(actor)
+
+    def can_user_claim(self, actor: User):
+        """Return True when the room has no owner and the actor can claim it."""
+        return not self.has_owner()
 
     def next_z(self):
         self._z_counter += 1
@@ -99,6 +108,7 @@ class Room:
             'owner_id': self.owner_id,
             'is_room_owner': self.is_owner(user),
             'can_edit_props': self.can_user_edit_props(user),
+            'can_claim_room': self.can_user_claim(user),
         }, to=user.sid, namespace='/')
 
     def send_room_stage_view(self, user: User):
@@ -153,6 +163,7 @@ class Room:
         return {
             'prop_instance_id': prop.prop_instance_id,
             'prop_id': prop.prop_id,
+            'exit_way_id': prop.metadata.get('exit_way_id') or None,
             'position': {
                 'x': prop.x,
                 'y': prop.y,

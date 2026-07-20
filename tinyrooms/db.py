@@ -105,6 +105,7 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
             prop_rows.append({
                 'prop_instance_id': prop.prop_instance_id,
                 'prop_id': prop.prop_id,
+                'exit_way_id': prop.metadata.get('exit_way_id') or None,
                 'position': {
                     'x': int(getattr(prop, 'x', 0)),
                     'y': int(getattr(prop, 'y', 0)),

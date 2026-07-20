@@ -228,6 +228,9 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
                         merged = dict(base_info)
                         _apply_saved_prop_position(merged, prop_state)
                         prop = Prop(prop_instance_id, prop_id, merged, rid)
+                        exit_way_id = prop_state.get('exit_way_id') or None
+                        if exit_way_id:
+                            prop.metadata['exit_way_id'] = str(exit_way_id)
                         room.props[prop.prop_instance_id] = prop
                 room.initialized = True
             else:
