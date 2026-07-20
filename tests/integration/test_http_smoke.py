@@ -45,23 +45,15 @@ def test_connected_reflects_online_after_socket_login(
 def test_char_editor_endpoints_require_auth(http_client):
     requests_no_auth = [
         ("GET", "/api/char-editor/profile"),
-        ("POST", "/api/char-editor/requests"),
-        ("GET", "/api/char-editor/requests/req_missing"),
-        ("DELETE", "/api/char-editor/requests/req_missing"),
-        ("GET", "/api/char-editor/queue"),
-        ("POST", "/api/char-editor/sprites/sprite_missing/select"),
-        ("DELETE", "/api/char-editor/sprites/sprite_missing"),
+        ("PUT", "/api/char-editor/profile"),
+        ("POST", "/api/char-editor/main-image"),
         ("GET", "/api/object-editor/profile"),
-        ("POST", "/api/object-editor/requests"),
-        ("GET", "/api/object-editor/requests/obj_req_missing"),
-        ("DELETE", "/api/object-editor/requests/obj_req_missing"),
-        ("GET", "/api/object-editor/queue"),
-        ("DELETE", "/api/object-editor/icons/icon_missing.png"),
-        ("POST", "/api/object-editor/icons/icon_missing.png/create"),
+        ("POST", "/api/object-editor/image"),
+        ("POST", "/api/object-editor/create"),
         ("GET", "/api/props/library"),
     ]
     for method, path in requests_no_auth:
-        response = http_client.request(method, path, json={"descriptors": {}})
+        response = http_client.request(method, path, json={"appearance": {}})
         assert response.status_code == 401, f"{method} {path}: {response.text}"
 
 

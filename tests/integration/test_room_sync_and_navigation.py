@@ -75,3 +75,30 @@ def test_navigation_chat_and_look_activity(auth_socket_user):
     a.emit("message", {"text": f".basic.look @obj:{object_id}"})
     target_panel = a.wait_for("activity_panel", predicate=lambda p: p.get("mode") == "look", timeout=8.0)
     assert target_panel["title"].startswith("Looking at")
+
+
+def test_unclaimed_room_editable_and_claim(auth_socket_user):
+    """Non-owner users can edit and claim rooms that have no owner."""
+    user = auth_socket_user(prefix="it_claim")
+    client = user["client"]
+
+    # Wait for initial room header — DEFAULT_ROOM has no owner
+    header = client.wait_for(
+        "update_view",
+        predicate=lambda p: p.get("view") == "header",
+        timeout=8.0,
+    )
+    # Unclaimed room: anyone can edit and claim
+    assert header.get("can_edit_props") is True
+    assert header.get("can_claim_room") is True
+
+    # Claiming an already-owned room should fail; here we claim the ownerless one
+    client.emit("room_claim", {})
+    claimed_header = client.wait_for(
+        "update_view",
+        predicate=lambda p: p.get("view") == "header" and bool(p.get("owner_id")),
+        timeout=8.0,
+    )
+    assert claimed_header["owner_id"] == user["username"]
+    assert claimed_header.get("can_edit_props") is True
+    assert claimed_header.get("can_claim_room") is False

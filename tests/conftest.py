@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import collections
 import shutil
 import socket
@@ -21,6 +22,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_OWNER_USERNAME = "it_owner"
 TEST_OWNER_PASSWORD = "it_owner_password"
+PNG_1X1 = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7g2k0AAAAASUVORK5CYII=")
 
 
 @dataclass
@@ -41,6 +43,7 @@ class SocketCaptureClient:
         "error",
         "activity_panel",
         "update_view",
+        "inventory_update",
         "set_skin",
         "reload_styles",
         "reload_client",
@@ -140,15 +143,145 @@ print(f"stub make-image wrote {out} ({args.size})")
     script_path.write_text(script, encoding="utf-8")
 
 
+def _reset_dir(path: Path):
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def _write_png(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(PNG_1X1)
+
+
+def _write_yaml(path: Path, payload: dict[str, Any]):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+
+def _write_test_sprite_set(root: Path, stem: str, label: str, sprite_id: str):
+    _write_png(root / f"{stem}.png")
+    _write_yaml(
+        root / f"{stem}.yaml",
+        {
+            "label": label,
+            "description": f"{label} description",
+            "frame_width": 32,
+            "frame_height": 32,
+            "sprites": {
+                sprite_id: {
+                    "default_frame": "0x0",
+                    "anims": {
+                        "idle": {
+                            "speed": 0.5,
+                            "type": "loop",
+                            "frames": ["0x0"],
+                        }
+                    },
+                }
+            },
+        },
+    )
+
+
+def _write_test_world_definitions(workspace: Path):
+    world_root = workspace / "data" / "worlds" / "home"
+    _reset_dir(workspace / "data" / "props")
+    _reset_dir(workspace / "data" / "sprites")
+    _reset_dir(world_root / "sprites")
+    _reset_dir(world_root / "props")
+    _reset_dir(world_root / "rooms")
+    _reset_dir(world_root / "things")
+
+    _write_yaml(world_root / "world.yaml", {"label": "Integration Test World"})
+    _write_yaml(
+        world_root / "rooms" / "rooms.yaml",
+        {
+            "DEFAULT_ROOM": {
+                "type": "room",
+                "label": "the Test Void",
+                "description": "A simple default room used by integration tests.",
+                "image": "images/test_void.png",
+                "stage": {
+                    "type": "basic",
+                    "width": 400,
+                    "height": 300,
+                    "background_mode": "stretch",
+                },
+                "ways": "to_gateway",
+            },
+            "to_gateway": {
+                "type": "way",
+                "label": "through the integration gateway",
+                "to": "playroom",
+            },
+            "playroom": {
+                "type": "room",
+                "owner_id": TEST_OWNER_USERNAME,
+                "label": "the Playroom",
+                "description": "A test playroom with a single movable object and editable props.",
+                "image": "images/test_playroom.png",
+                "stage": {
+                    "type": "basic",
+                    "width": 256,
+                    "height": 512,
+                    "background_mode": "stretch",
+                    "theme": "home",
+                },
+                "init_things": ["test_statue"],
+                "props": ["floor_rug", "standing_lamp"],
+            },
+        },
+    )
+    _write_yaml(
+        world_root / "things" / "things.yaml",
+        {
+            "test_statue": {
+                "type": "object",
+                "label": "a test statue",
+                "description": "A small object created by the integration harness.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+                "tags": ["item"],
+            }
+        },
+    )
+    _write_yaml(
+        workspace / "data" / "props" / "test_room_props.yaml",
+        {
+            "label": "Integration Props",
+            "description": "Props created by the test harness.",
+            "image": "test_room_props.png",
+            "props": {
+                "floor_rug": {
+                    "width": 64,
+                    "height": 32,
+                    "frames": [[0, 0]],
+                },
+                "standing_lamp": {
+                    "width": 32,
+                    "height": 64,
+                    "frames": [[64, 0]],
+                },
+                "wall_clock": {
+                    "width": 32,
+                    "height": 32,
+                    "frames": [[96, 0]],
+                },
+            },
+        },
+    )
+    _write_png(workspace / "data" / "props" / "test_room_props.png")
+    _write_test_sprite_set(workspace / "data" / "sprites", "server_people", "Server People", "server_knight")
+    _write_test_sprite_set(world_root / "sprites", "world_people", "World People", "world_ranger")
+    _write_png(world_root / "images" / "test_void.png")
+    _write_png(world_root / "images" / "test_playroom.png")
+    _write_png(world_root / "images" / "test_object.png")
+
+
 def _prepare_isolated_workspace(workspace: Path):
-    rooms_path = workspace / "data" / "worlds" / "home" / "rooms" / "rooms.yaml"
-    with rooms_path.open("r", encoding="utf-8") as handle:
-        rooms = yaml.safe_load(handle) or {}
-    playroom = rooms.get("playroom")
-    if isinstance(playroom, dict):
-        playroom["owner_id"] = TEST_OWNER_USERNAME
-    with rooms_path.open("w", encoding="utf-8") as handle:
-        yaml.safe_dump(rooms, handle, sort_keys=False)
+    _write_test_world_definitions(workspace)
     _write_stub_make_image(workspace)
 
 
@@ -197,6 +330,7 @@ def integration_workspace(tmp_path_factory: pytest.TempPathFactory) -> Path:
         ".mypy_cache",
         ".ruff_cache",
         "*.duckdb",
+        "*.duckdb.wal",
     )
     shutil.copytree(REPO_ROOT, workspace, ignore=ignore)
     _prepare_isolated_workspace(workspace)
@@ -223,7 +357,7 @@ def server_runtime(integration_workspace: Path, server_port: int) -> ServerRunti
         "--char-temp-dir",
         str(char_temp_dir),
         "--feature",
-        "sprite-editor",
+        "sprite-editor,world-server",
     ]
     proc = subprocess.Popen(
         command,
@@ -317,22 +451,6 @@ def owner_account(http_client: httpx.Client):
     )
     assert response.status_code in {201, 409}, response.text
     return {"username": TEST_OWNER_USERNAME, "password": TEST_OWNER_PASSWORD}
-
-
-@pytest.fixture
-def poll_until_terminal(http_client: httpx.Client):
-    def _poll(request_id: str, headers: dict[str, str], timeout_seconds: float = 12.0):
-        response = _poll_until(
-            lambda: http_client.get(f"/api/char-editor/requests/{request_id}", headers=headers),
-            lambda res: res.status_code == 200 and res.json()["request"]["status"] in {"done", "failed", "cancelled"},
-            timeout_seconds=timeout_seconds,
-            interval_seconds=0.2,
-        )
-        assert isinstance(response, httpx.Response)
-        assert response.status_code == 200, response.text
-        return response.json()["request"]
-
-    return _poll
 
 
 @pytest.fixture
