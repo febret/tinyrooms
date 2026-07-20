@@ -12,7 +12,7 @@ The suite covers:
 - room navigation and multi-client realtime synchronization
 - room interaction permissions (`room_move_entity`, `room_edit_prop`)
 - disconnect and logout behavior
-- character editor REST queue/request/sprite contract
+- character editor REST profile/sprite-selection/main-image contract
 - sprite schema/resolver unit tests
 - sprite-editor REST API lifecycle contract
 

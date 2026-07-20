@@ -13,6 +13,36 @@ A room background and props are displayed in the client in the roomPanel section
 ### Object Manipulation
 In the app, users are allowed to move the sprite for their own peep, plus any objects in the room. Things can be moved via drag/drop. Moves are synchronized across all clients (see Room Update Messages).
 
+### Character Movement and Selection
+Users move their own character by clicking or tapping on an empty spot in the room canvas. The character smoothly transitions to the target position via CSS animation (180ms linear). During movement:
+
+- **Multi-frame sprite**: the sprite's animation plays continuously (unchanged from idle — no separate walk/idle state machine).
+- **Static sprite** (single frame or plain image): a short CSS wobble plays during the transition for visual feedback.
+
+A crosshair cursor on the canvas indicates the stage is clickable for movement.
+
+Dragging is no longer used to move your own character. The room owner may still drag *other* users' peeps.
+
+Objects are still moved by dragging. Dropping an object onto your own character picks it up (see inventory.md).
+
+#### Entity Selection and Targeting
+- Clicking a room entity/prop sets it as selected target.
+- `lookBox` shows one-line quick information (`label: description`) for the selected target.
+- Action emits append a target ref based on selected target type:
+  - object -> `@obj:<id>`
+  - peep -> `@<username>`
+  - prop -> `@prop:<id>`
+- Selecting an object target adds a `Pick Up` button to the main action palette.
+
+### Exit Props
+Room exits are represented directly on the room canvas as props rather than as overlay buttons. Any prop can be assigned an exit in room-edit mode.
+
+- In normal play: clicking an exit prop sets it as the selected target and adds a **Go: [label]** button to the action palette. Clicking that button calls `navigateExit(wayId)`.
+- An exit badge (`→ label`) is rendered below the prop sprite so the exit is always visible.
+- `handleRoomExitsUpdate()` stores exit metadata in `roomState.exits` for reference by prop rendering and palette logic.
+- `navigateExit(wayId)` emits `room_navigate { way_id }` to the server (same as the old exit buttons did).
+- The `#roomExits` DOM element is hidden; its variable is kept in `client.js` for backwards-compatibility but is never populated.
+
 ## Prop Definition
 Props are defined similarly to things (see `data/worlds/home/things.yaml`): they have image/description/label metadata. They are defined and handled separately because they can only be edited by a room owner and may carry room-specific gameplay metadata. See prop.md.
 
@@ -151,6 +181,21 @@ Fallback resolution:
 - `img` is required canonical source.
 - `icon` falls back to `sprite`, then `img`.
 - `sprite` falls back to `img`, then `icon`.
+
+## Room Ownership and Claiming
+Rooms may have an optional owner (`owner_id`). Ownership is stored per-room in the worldstate database.
+
+- **Unclaimed rooms** (no owner): any logged-in user can edit props and claim the room.
+- **Claimed rooms**: only the owner can edit props.
+- `can_edit_props` and `can_claim_room` flags are sent in the `header` view update on every room entry or ownership change.
+- Claiming a room emits `room_claim {}` to the server. The server sets `room.owner_id = username`, persists the change, and broadcasts an updated header to all users in the room.
+- After claiming, `can_claim_room` becomes `False` and only the claimant retains `can_edit_props = True`.
+- The room editor panel shows a **Claim Room** button and a short explanation when `roomState.canClaimRoom` is `True`.
+- Prop library definitions (including prop images) are loaded through REST (`GET /api/props/library`) and kept separate from `room-stage` room layout payloads.
+- **Exit prop assignment**: each prop in room-edit mode has a 🚪 button that cycles through available room exits (none → exit1 → exit2 → … → none). An exit badge (`→ label`) is displayed beneath assigned props both in editor mode and normal play.
+- `Save Room` from the editor writes the full room prop layout (including `exit_way_id` per prop) to world state storage and all users in the room receive an updated room stage.
+- Camera buttons change the floor-height zoom level for standard-stage rooms.
+- The exits reference list in the editor panel shows all exits available for assignment.
 
 ## Persistence Model
 World state persistence is additive and migration-safe in `tinyrooms/db.py`:

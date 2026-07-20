@@ -1,4 +1,4 @@
-# Character Sprite Editor
+# Character Editor
 
 This document describes the current character editor implementation in tinyrooms.
 
@@ -7,86 +7,68 @@ This document describes the current character editor implementation in tinyrooms
 After login, users can open the character editor from the **Modify Character** button in the status panel.  
 The editor appears as a top-level popup (`#characterEditorPage`) over `#mainPage`.
 
-The system supports:
-- descriptor-based sprite generation
-- queued image generation
-- up to 4 candidate sprites in the UI
-- per-sprite discard
-- persistent selected sprite
-- live room update when a new sprite is saved
+The editor supports:
+- freeform character description editing
+- direct sprite selection from indexed server/world sprite definitions
+- optional generated main-image portrait
+- persistent saved character profile
+- live room updates when the profile changes
 
-## Descriptor Configuration
+The old queued sprite-generation pipeline and appearance-descriptor system have been fully removed from both the UI and backend.
 
-Descriptor classes and options are server-driven from:
+## Sprite Source
 
-- `data/ui/char-editor.yaml`
+Selectable sprites come from the indexed sprite-definition files used elsewhere in tinyrooms:
 
-Current descriptor classes:
-- `hair_color` (`type: color`)
-- `skin_color` (`type: color`)
-- `body_adjective` (`type: text`)
-- `clothing` (`type: text`)
-- `clothing_material_or_color` (`type: text`)
+- `data/sprites/*.yaml` (+ matching image files) for **server** sprites
+- `data/worlds/<world>/sprites/*.yaml` (+ matching image files) for **world** sprites
 
-Server-side style presets (hidden from user UI) are also defined in this YAML.
+Every sprite entry defined under a sprite set's `sprites:` mapping is exposed as a selectable character sprite.
+
+Persisted sprite values use the normal tinyrooms sprite-reference format:
+
+- `$/<filename>/<sprite_id>` for server sprites
+- `$<filename>/<sprite_id>` for world sprites
+
+Legacy user-generated sprite asset paths can still be loaded if they already exist in saved character data, but the editor no longer creates new ones.
 
 ## Storage Layout
 
 Per-user character data is stored in filesystem paths:
 
 - `data/users/<username>/char.yaml`
-- `data/users/<username>/sprites/*.png`
-- `data/users/<username>/tmp/` (reserved temp folder)
+- `data/users/<username>/images/*.png`
+- `data/users/<username>/sprites/*.png` (legacy only; no longer written by the editor)
+- `data/users/<username>/tmp/`
 
-`char.yaml` is treated as source of truth for appearance + selected sprite and is regenerated when character properties change.
+`char.yaml` is the source of truth for the saved character profile.
 
 Typical shape:
 
 ```yaml
 version: 1
-appearance:
-  hair_color: black
-  skin_color: olive
-  body_adjective: athletic
-  clothing: cloak
-  clothing_material_or_color: dark linen
-current_sprite: sprites/sprite_20260717_180000_a1b2c3.png
-updated_at: "2026-07-17T18:00:00Z"
+description: A quiet ranger in a weathered moss cloak.
+current_sprite: $world_people/world_ranger
+main_image: images/main_20260720_021500_ab12cd.png
+updated_at: "2026-07-20T02:15:00Z"
 ```
 
-## Generation Tooling
+## Main-Image Generation
 
-Sprite generation is performed by:
+The editor can generate a portrait-style **main image** using:
 
 - `tools/make-image`
 
-Features:
-- prompt composition from descriptor values
-- sticker/simple-line style intent
-- generate at high resolution and fit to **64x128**
-- background-removal post-process step
-- optional border/glow post-effects
-- PNG output only
-- SVG generation uses a text-to-SVG model and enforces pure vector markup (no embedded raster images)
-- explicit non-zero exit on failure
+Current behavior:
+- generation is request/response based; there is no queued candidate pipeline
+- the prompt is composed from the saved description: `"portrait of a game character. {description}"`
+- output is generated at **256x256**
+- output must be PNG
+- the generated image is persisted under `data/users/<username>/images/`
+- when a new main image is generated, the previous generated main image is removed if it was stored in that same `images/` folder
 
-## Queue and Worker Architecture
-
-Queue logic is implemented in `tinyrooms/char_editor.py` via `CharacterEditorService`.
-
-- Uses a dedicated **OS child process** (`multiprocessing.Process`) for sprite generation jobs.
-- Main server keeps request state + queue metadata in memory.
-- States: `queued`, `running`, `done`, `failed`, `cancelled`.
-- Enforces **one active request per user** (`queued` or `running`).
-- Requests are processed one at a time.
-
-Cancellation semantics:
-- queued request: removed and marked cancelled
-- running request: marked cancelled; worker allowed to complete in background, result ignored
-
-Temporary output root:
-- default: system temp directory + `tinyrooms-char-editor`
-- override via server arg: `python trserver.py --char-temp-dir <path>`
+The main image is used for the character's `img` and `icon` display assets.  
+The selected sprite reference is used for the character's `sprite` display asset.
 
 ## REST API
 
@@ -99,68 +81,226 @@ Auth path currently supports:
 Endpoints:
 
 - `GET /api/char-editor/profile`
-  - descriptor classes, current char state, sprite list, queue summary
-- `POST /api/char-editor/requests`
-  - submit one generation request with descriptors
-- `GET /api/char-editor/requests/<request_id>`
-  - request status + queue position
-- `DELETE /api/char-editor/requests/<request_id>`
-  - cancel request
-- `GET /api/char-editor/queue`
-  - queue summary for current user
-- `DELETE /api/char-editor/sprites/<sprite_id>`
-  - delete generated candidate (and clear current sprite if it was selected)
-- `POST /api/char-editor/sprites/<sprite_id>/select`
-  - persist selected sprite and appearance
+  - returns saved character profile and all selectable sprite options
+- `PUT /api/char-editor/profile`
+  - saves description and selected sprite reference
+- `POST /api/char-editor/main-image`
+  - generates and persists a new main image, then returns the updated character profile
 - `GET /user-assets/<username>/<path:filename>`
-  - serve user sprite files to clients
+  - serves persisted user assets (including generated main images and any legacy sprite files)
+
+## Profile Payload Shape
+
+`GET /api/char-editor/profile` returns:
+
+- `available_sprites`
+- `char`
+
+`available_sprites[]` includes:
+- `sprite_ref`
+- `scope`
+- `filename`
+- `sprite_id`
+- `label`
+- `set_label`
+- `set_description`
+- `image_url`
+- `frame`
+- `background_color`
+
+`char` includes:
+- `description`
+- `current_sprite`
+- `current_sprite_preview`
+- `main_image`
+- `main_image_url`
+- `updated_at`
 
 ## Client Flow
 
 Implemented in:
 - `app/client.html`
 - `app/client.css`
-- `app/client.js`
-
-State flow:
-- `closed`
-- `editing`
-- `rolling`
-- `slots_ready`
+- `app/charEditor.js`
 
 Behavior:
-1. Open editor -> load profile from `/api/char-editor/profile`.
-2. User picks descriptor options.
-3. Press Roll -> client chains single-image requests until 4 slots are filled (or stopped).
-4. UI polls status endpoint and shows queue info (`items ahead`).
-5. User can discard any filled slot.
-6. User selects one candidate and saves.
-7. Selected sprite applies immediately in room and persists across sessions.
+1. Open editor → load profile from `GET /api/char-editor/profile`.
+2. User edits description.
+3. User selects any indexed server/world sprite.
+4. User may request a new main image (generated from the description).
+5. User saves the profile with `PUT /api/char-editor/profile`.
+6. Saved changes apply immediately in-room and persist across sessions.
 
 ## Rendering Integration
 
-Room rendering now supports:
-- absolute asset URLs (including `/user-assets/...`)
-- existing `/world/...` relative asset fallback
+Character rendering combines:
+- `sprite`: selected sprite reference resolved through the sprite repository
+- `img`: generated main image (or default fallback)
+- `icon`: generated main image (or default fallback)
 
-This allows world assets and user sprite assets to coexist.
+This lets a character use a sprite-sheet-based room avatar while also keeping a separate portrait-style main image.
 
 ## Login / Runtime Integration
 
 - On login, user gets a per-login REST token (`rest_token` in `login_success` payload).
-- On user creation/login, saved `char.yaml` sprite (if present) is applied to peep display assets.
-- On sprite select/discard (when affecting current sprite), server broadcasts room-object updates so all clients see changes immediately.
-- Users without character data still use default sprite assets.
-
-## Placeholder / Unspecified Items
-
-The following remain intentionally minimal/placeholder pending further spec detail:
-- advanced style controls beyond hidden border/glow presets
-- persistence of generation request state across full server restarts
-- richer queue UX metrics beyond current queue/running/items-ahead fields
+- On login, saved character description is applied to the user's peep info.
+- On login, saved character display assets are rebuilt from the current world sprite repository plus any saved user assets.
+- On character profile save or main-image generation, the server updates the online peep display assets and broadcasts a room-object update so all clients see changes immediately.
+- Users without saved character data still use default user assets.
 
 ## Integration Test Coverage
 
 Character-editor API contracts are exercised in `tests/integration/test_char_editor_api.py` against a real running tinyrooms server.
 
-To keep these tests fast and deterministic, the integration harness runs the server in an isolated copied workspace and swaps `tools/make-image` with a lightweight test stub in that copied workspace only.
+The integration harness:
+- runs the server in an isolated copied workspace
+- provides sample server/world sprite definitions for character selection tests
+- swaps `tools/make-image` with a lightweight test stub so main-image generation remains fast and deterministic
+
+
+Selectable sprites come from the indexed sprite-definition files used elsewhere in tinyrooms:
+
+- `data/sprites/*.yaml` (+ matching image files) for **server** sprites
+- `data/worlds/<world>/sprites/*.yaml` (+ matching image files) for **world** sprites
+
+Every sprite entry defined under a sprite set's `sprites:` mapping is exposed as a selectable character sprite.
+
+Persisted sprite values use the normal tinyrooms sprite-reference format:
+
+- `$/<filename>/<sprite_id>` for server sprites
+- `$<filename>/<sprite_id>` for world sprites
+
+Legacy user-generated sprite asset paths can still be loaded if they already exist in saved character data, but the editor no longer creates new ones.
+
+## Storage Layout
+
+Per-user character data is stored in filesystem paths:
+
+- `data/users/<username>/char.yaml`
+- `data/users/<username>/images/*.png`
+- `data/users/<username>/sprites/*.png` (legacy only; no longer written by the editor)
+- `data/users/<username>/tmp/`
+
+`char.yaml` is the source of truth for the saved character profile.
+
+Typical shape:
+
+```yaml
+version: 1
+appearance:
+  hair_color: black
+  skin_color: olive
+  body_adjective: athletic
+  clothing: cloak
+  clothing_material_or_color: dark linen
+description: A quiet ranger in a weathered moss cloak.
+current_sprite: $world_people/world_ranger
+main_image: images/main_20260720_021500_ab12cd.png
+updated_at: "2026-07-20T02:15:00Z"
+```
+
+## Main-Image Generation
+
+The editor can still generate a portrait-style **main image** using:
+
+- `tools/make-image`
+
+Current behavior:
+- generation is request/response based; there is no queued candidate pipeline
+- the prompt is composed from the saved description plus appearance descriptors
+- output is generated at **256x256**
+- output must be PNG
+- the generated image is persisted under `data/users/<username>/images/`
+- when a new main image is generated, the previous generated main image is removed if it was stored in that same `images/` folder
+
+The main image is used for the character's `img` and `icon` display assets.  
+The selected sprite reference is used for the character's `sprite` display asset.
+
+## REST API
+
+All character-editor endpoints require an authenticated connected user.
+
+Auth path currently supports:
+- `X-TR-Auth` token from Socket.IO `login_success`
+- fallback to Flask session username
+
+Endpoints:
+
+- `GET /api/char-editor/profile`
+  - returns descriptor classes, saved character profile, and all selectable sprite options
+- `PUT /api/char-editor/profile`
+  - saves appearance, description, and selected sprite reference
+- `POST /api/char-editor/main-image`
+  - generates and persists a new main image, then returns the updated character profile
+- `GET /user-assets/<username>/<path:filename>`
+  - serves persisted user assets (including generated main images and any legacy sprite files)
+
+## Profile Payload Shape
+
+`GET /api/char-editor/profile` returns:
+
+- `descriptor_classes`
+- `available_sprites`
+- `char`
+
+`available_sprites[]` includes:
+- `sprite_ref`
+- `scope`
+- `filename`
+- `sprite_id`
+- `label`
+- `set_label`
+- `set_description`
+- `image_url`
+- `frame`
+- `background_color`
+
+`char` includes:
+- `appearance`
+- `description`
+- `current_sprite`
+- `current_sprite_preview`
+- `main_image`
+- `main_image_url`
+- `updated_at`
+
+## Client Flow
+
+Implemented in:
+- `app/client.html`
+- `app/client.css`
+- `app/charEditor.js`
+
+Behavior:
+1. Open editor -> load profile from `GET /api/char-editor/profile`.
+2. User edits descriptor options and description.
+3. User selects any indexed server/world sprite.
+4. User may request a new main image.
+5. User saves the profile with `PUT /api/char-editor/profile`.
+6. Saved changes apply immediately in-room and persist across sessions.
+
+## Rendering Integration
+
+Character rendering now combines:
+- `sprite`: selected sprite reference resolved through the sprite repository
+- `img`: generated main image (or default fallback)
+- `icon`: generated main image (or default fallback)
+
+This lets a character use a sprite-sheet-based room avatar while also keeping a separate portrait-style main image.
+
+## Login / Runtime Integration
+
+- On login, user gets a per-login REST token (`rest_token` in `login_success` payload).
+- On login, saved character description is applied to the user's peep info.
+- On login, saved character display assets are rebuilt from the current world sprite repository plus any saved user assets.
+- On character profile save or main-image generation, the server updates the online peep display assets and broadcasts a room-object update so all clients see changes immediately.
+- Users without saved character data still use default user assets.
+
+## Integration Test Coverage
+
+Character-editor API contracts are exercised in `tests/integration/test_char_editor_api.py` against a real running tinyrooms server.
+
+The integration harness:
+- runs the server in an isolated copied workspace
+- provides sample server/world sprite definitions for character selection tests
+- swaps `tools/make-image` with a lightweight test stub so main-image generation remains fast and deterministic
