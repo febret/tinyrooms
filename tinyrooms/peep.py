@@ -10,6 +10,8 @@ class Peep:
         self.orientation = info.get('orientation', 'front')
         self.layer = int(info.get('layer', 1))
         self.z_order = int(info.get('z_order', 1))
+        self.class_id = info.get('class', '')
+        self.behavior_ns: dict | None = None
         # Populated by icons.preprocess_world_assets() at world-load time
         self._display_assets = None
 

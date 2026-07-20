@@ -184,6 +184,47 @@ def _write_test_sprite_set(root: Path, stem: str, label: str, sprite_id: str):
     )
 
 
+def _write_test_peep_definitions(workspace: Path):
+    """Write test NPC peep class YAML and behavior script."""
+    peeps_dir = workspace / "data" / "peeps"
+    peeps_dir.mkdir(parents=True, exist_ok=True)
+
+    _write_yaml(
+        peeps_dir / "test_peeps.yaml",
+        {
+            "test_greeter": {
+                "label": "Greeter",
+                "description": "A friendly greeter NPC used in integration tests.",
+                "img": "images/test_object.png",
+                "behavior": "test_greeter",
+            }
+        },
+    )
+    # Write the behavior script alongside the YAML
+    behavior_script = """\
+tick_count = 0
+
+def on_tick(secs):
+    global tick_count
+    tick_count += 1
+
+def on_message(src, text):
+    src_label = getattr(src, 'username', getattr(src, 'peep_id', str(src)))
+    text_lower = str(text).lower()
+    if 'hello' in text_lower:
+        say(f'Hello, {src_label}!')
+    elif 'tick_count' in text_lower:
+        say(f'Ticks: {tick_count}')
+    elif 'move_test' in text_lower:
+        move(100, 100)
+    elif 'error_test' in text_lower:
+        raise RuntimeError('intentional behavior error')
+    else:
+        say(f'You said: {text}')
+"""
+    (peeps_dir / "test_greeter.py").write_text(behavior_script, encoding="utf-8")
+
+
 def _write_test_world_definitions(workspace: Path):
     world_root = workspace / "data" / "worlds" / "home"
     _reset_dir(workspace / "data" / "props")
@@ -209,6 +250,9 @@ def _write_test_world_definitions(workspace: Path):
                     "background_mode": "stretch",
                 },
                 "ways": "to_gateway",
+                "peeps": [
+                    {"peep_id": "greeter_npc", "class": "test_greeter", "x": 200, "y": 150},
+                ],
             },
             "to_gateway": {
                 "type": "way",
@@ -282,6 +326,7 @@ def _write_test_world_definitions(workspace: Path):
 
 def _prepare_isolated_workspace(workspace: Path):
     _write_test_world_definitions(workspace)
+    _write_test_peep_definitions(workspace)
     _write_stub_make_image(workspace)
 
 
@@ -358,6 +403,8 @@ def server_runtime(integration_workspace: Path, server_port: int) -> ServerRunti
         str(char_temp_dir),
         "--feature",
         "sprite-editor,world-server",
+        "--tick-secs",
+        "0.5",
     ]
     proc = subprocess.Popen(
         command,

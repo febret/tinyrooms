@@ -5,6 +5,7 @@ import yaml
 
 from .room import Room, Way
 from .object import Object
+from .peep import Peep
 from .prop import Prop
 from .utils import load_defs
 from . import db, icons as icon_module, prop_sets, sprites
@@ -48,6 +49,7 @@ class World:
         ways: dict,
         objs: dict,
         peeps: dict,
+        peep_class_defs: dict | None = None,
         ws_id: str = 'home',
     ):
         self.info = info or {}
@@ -55,6 +57,7 @@ class World:
         self.room_defs = room_defs
         self.thing_defs = thing_defs
         self.prop_defs = prop_defs
+        self.peep_class_defs = peep_class_defs or {}
         self.ws_id = ws_id
         self.rooms = rooms
         self.default_room = Room("", {})
@@ -67,6 +70,7 @@ class World:
         with db.get_worldstate_connection(ws_id) as wsdb:
             db.write_room_data(wsdb, self.rooms)
             db.write_object_data(wsdb, self.objs)
+            db.write_peep_data(wsdb, self.peeps)
 
 
 def serialize_prop_library(world: World) -> list[dict]:
@@ -300,12 +304,87 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
     db.write_object_data(wsdb, objs)
     db.write_room_data(wsdb, rooms)
 
-    # TODO: load peep data from worldstate DB    
+    # Load peep class definitions from data/peeps/ (server-wide) and world/peeps/ (world-local)
+    peep_class_defs = {}
+    server_peeps_dir = Path(__file__).parent.parent / "data" / "peeps"
+    world_peeps_dir = root_path / "peeps"
+    for peep_dir in (server_peeps_dir, world_peeps_dir):
+        if peep_dir.exists():
+            try:
+                loaded = load_defs(peep_dir)
+                for k, v in loaded.items():
+                    if k in peep_class_defs:
+                        print(f"Warning: peep class '{k}' from '{peep_dir}' overrides existing definition.")
+                    peep_class_defs[k] = v
+                    # Record which directory this class lives in for behavior script loading
+                    peep_class_defs[k]['_dir'] = str(peep_dir)
+            except FileNotFoundError:
+                pass
+
+    # Load NPC peep instances from room YAML 'peeps' arrays
+    npc_peeps: dict = {}
+    for rid, room in rooms.items():
+        room_peep_specs = room.info.get('peeps', [])
+        for spec in room_peep_specs:
+            if not isinstance(spec, dict):
+                continue
+            peep_id = spec.get('peep_id')
+            class_id = spec.get('class')
+            if not peep_id or not class_id:
+                print(f"Warning: Room '{rid}' peep entry missing peep_id or class. Skipping.")
+                continue
+            class_def = peep_class_defs.get(class_id, {})
+            merged_info = dict(class_def)
+            merged_info.update(spec)
+            # Per-instance overrides for label/description
+            if 'label' in spec:
+                merged_info['label'] = spec['label']
+            if 'description' in spec:
+                merged_info['description'] = spec['description']
+            peep = Peep(peep_id, 'npc', merged_info, location_id=room.id())
+            peep.class_id = class_id
+            room.peeps[peep_id] = peep
+            npc_peeps[peep_id] = peep
+
+    # Restore saved NPC peep state from worldstate DB
+    if use_saved_state:
+        saved_peep_data = db.read_peep_data(wsdb)
+        for peep_id, pdata in saved_peep_data.items():
+            if peep_id in npc_peeps:
+                peep = npc_peeps[peep_id]
+                peep.x = int(pdata.get('x') or peep.x)
+                peep.y = int(pdata.get('y') or peep.y)
+                peep.orientation = pdata.get('orientation') or peep.orientation
+                peep.layer = int(pdata.get('layer') or peep.layer)
+                peep.z_order = int(pdata.get('z_order') or peep.z_order)
+                # Restore to the saved room location
+                saved_location = pdata.get('location_id', '')
+                if saved_location and saved_location != peep.location_id:
+                    # Move peep to saved room
+                    old_room = room_by_full_id.get(peep.location_id)
+                    if old_room and peep_id in old_room.peeps:
+                        del old_room.peeps[peep_id]
+                    target_room = room_by_full_id.get(saved_location)
+                    if target_room:
+                        peep.location_id = saved_location
+                        target_room.peeps[peep_id] = peep
+
+    # Write initial NPC peep state to DB
+    db.write_peep_data(wsdb, npc_peeps)
+
     global _active_world
-    _active_world = World(world_info, root_path, room_defs, thing_defs, prop_defs, rooms, ways, objs, {}, ws_id=ws_id)
+    _active_world = World(world_info, root_path, room_defs, thing_defs, prop_defs, rooms, ways, objs, {}, peep_class_defs=peep_class_defs, ws_id=ws_id)
+    
+    # Add NPC peeps to world.peeps dict
+    for peep_id, peep in npc_peeps.items():
+        _active_world.peeps[peep_id] = peep
     
     # Preprocess display assets for loaded entities and props
     icon_module.preprocess_world_assets(_active_world)
+
+    # Initialize behavior namespaces for all NPC peeps
+    from . import peep_behavior
+    peep_behavior.init_world_behaviors(_active_world)
     
     return _active_world
 

@@ -65,6 +65,7 @@ def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
     _ensure_column(dbconn, "peeps", "orientation", "TEXT DEFAULT 'front'")
     _ensure_column(dbconn, "peeps", "layer", "INTEGER DEFAULT 1")
     _ensure_column(dbconn, "peeps", "z_order", "INTEGER DEFAULT 1")
+    _ensure_column(dbconn, "peeps", "class_id", "TEXT DEFAULT ''")
 
 def _ensure_column(dbconn: duckdb.DuckDBPyConnection, table_name: str, column_name: str, column_def: str):
     columns = dbconn.execute(f"PRAGMA table_info({table_name})").fetchall()
@@ -167,6 +168,49 @@ def write_object_data(dbconn: duckdb.DuckDBPyConnection, objects: dict):
                 getattr(obj, 'orientation', 'front'),
                 int(getattr(obj, 'layer', 0)),
                 int(getattr(obj, 'z_order', 0)),
+            )
+        )
+
+
+def read_peep_data(dbconn: duckdb.DuckDBPyConnection) -> dict:
+    """Retrieve NPC peep data from the worldstate database."""
+    res = dbconn.execute(
+        "SELECT id, location_id, type, class_id, x, y, orientation, layer, z_order FROM peeps WHERE type != 'user'"
+    ).fetchall()
+    peep_data = {}
+    for row in res:
+        peep_id, location_id, peep_type, class_id, x, y, orientation, layer, z_order = row
+        peep_data[peep_id] = {
+            'id': peep_id,
+            'location_id': location_id or '',
+            'type': peep_type or 'npc',
+            'class_id': class_id or '',
+            'x': x,
+            'y': y,
+            'orientation': orientation or 'front',
+            'layer': layer,
+            'z_order': z_order,
+        }
+    return peep_data
+
+
+def write_peep_data(dbconn: duckdb.DuckDBPyConnection, peeps: dict) -> None:
+    """Write NPC peep data to the worldstate database."""
+    npc_peeps = {pid: p for pid, p in peeps.items() if getattr(p, 'type', 'user') != 'user'}
+    print(f"Committing peep data for {len(npc_peeps)} NPC peeps to worldstate DB...")
+    for peep_id, peep in npc_peeps.items():
+        dbconn.execute(
+            "INSERT OR REPLACE INTO peeps (id, location_id, type, class_id, x, y, orientation, layer, z_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                peep_id,
+                getattr(peep, 'location_id', ''),
+                getattr(peep, 'type', 'npc'),
+                getattr(peep, 'class_id', ''),
+                int(getattr(peep, 'x', 32)),
+                int(getattr(peep, 'y', 32)),
+                getattr(peep, 'orientation', 'front'),
+                int(getattr(peep, 'layer', 1)),
+                int(getattr(peep, 'z_order', 1)),
             )
         )
 

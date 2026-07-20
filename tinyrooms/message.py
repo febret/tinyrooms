@@ -75,6 +75,13 @@ def parse_message(text: str, user: User, room: Room) -> ParsedMessage:
                     refs.append(p)
                 else:
                     print(f"parse_message: Unknown prop reference '{pid}'")
+            elif search.startswith('peep:'):
+                pid = search[5:]
+                peep = active_world().peeps.get(pid, None)
+                if peep:
+                    refs.append(peep)
+                else:
+                    print(f"parse_message: Unknown peep reference '{pid}'")
             if search in room.users:
                 refs.append(room.users[search])
             else:

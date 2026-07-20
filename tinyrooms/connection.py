@@ -8,6 +8,7 @@ from uuid import uuid4
 from . import message, user, server, db, actions, icons
 from .prop import Prop
 from .world import active_world
+from . import peep_behavior as _peep_behavior
 
 
 def _save_world():
@@ -143,6 +144,12 @@ def handle_message(data):
     if parsed.out_text and len(act) == 0:
         act = "basic.say"
     actions.do_action(act, parsed, user = user_obj, room = user_obj.room)
+
+    # Dispatch on_message to any NPC peeps referenced in the message
+    from .peep import Peep
+    for ref in parsed.refs:
+        if isinstance(ref, Peep) and getattr(ref, 'type', 'user') == 'npc':
+            _peep_behavior.call_handler(ref, 'on_message', user_obj, text)
 
 
 # Optional: simple ping from client

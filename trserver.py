@@ -6,6 +6,7 @@ import logging
 
 from flask_socketio import emit
 from tinyrooms import server, console, db, user, connection, actions, room, world
+from tinyrooms import peep_behavior
 
 
 # Add kill function to quickly terminate the server
@@ -16,6 +17,7 @@ def kill():
     server.shutdown_object_editor()
     db.save_userdb_state()
     if server.feature_enabled("world-server"):
+        peep_behavior.stop_tick_loop()
         world.active_world().save_state()
     os._exit(0)
 
@@ -27,6 +29,7 @@ def reboot():
     server.shutdown_object_editor()
     db.save_userdb_state()
     if server.feature_enabled("world-server"):
+        peep_behavior.stop_tick_loop()
         world.active_world().save_state()
     os._exit(42)
 
@@ -73,6 +76,12 @@ if __name__ == "__main__":
         help="Log REST API requests to stderr",
     )
     parser.add_argument(
+        "--tick-secs",
+        type=float,
+        default=1.0,
+        help="Tick interval in seconds for NPC peep behaviors (default: 1.0)",
+    )
+    parser.add_argument(
         "--feature",
         action="append",
         default=[],
@@ -97,6 +106,7 @@ if __name__ == "__main__":
     # Initialize world (only when world-server feature is enabled)
     if server.feature_enabled("world-server"):
         world.load_world()
+        peep_behavior.start_tick_loop(world.active_world, interval=args.tick_secs)
     
     # Start the interactive console in a separate thread
     print("Starting interactive console...")
@@ -134,4 +144,5 @@ if __name__ == "__main__":
         # Save state of all connected users before shutdown
         db.save_userdb_state()
         if server.feature_enabled("world-server"):
+            peep_behavior.stop_tick_loop()
             world.active_world().save_state()
