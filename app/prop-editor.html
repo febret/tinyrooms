@@ -14,25 +14,8 @@
       <div class="auth-row">
         <button id="btnLoadSets">Load</button>
       </div>
+      <p class="list-hint">Sets without a definition (⚠) can be selected to create one. Place image files in the server or world <code>props/</code> directory, then click Load.</p>
       <div id="setList" class="set-list"></div>
-
-      <div class="upload-section">
-        <h3>Add Image</h3>
-        <div class="detail-row">
-          <label>Scope</label>
-          <select id="uploadScope">
-            <option value="world">World</option>
-            <option value="server">Server</option>
-          </select>
-        </div>
-        <div class="auth-row">
-          <input id="uploadFile" type="file" accept=".png,.gif,.webp" />
-        </div>
-        <div class="auth-row">
-          <button id="btnUploadImage">Upload Image</button>
-        </div>
-        <div id="uploadStatus" class="image-hint"></div>
-      </div>
     </aside>
 
     <!-- Center: Image Canvas -->

@@ -453,47 +453,6 @@ btnAddFrameFromCanvas.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Image upload
-// ---------------------------------------------------------------------------
-
-async function uploadImage() {
-  const fileInput = document.getElementById("uploadFile");
-  const scopeSelect = document.getElementById("uploadScope");
-  const uploadStatus = document.getElementById("uploadStatus");
-  const file = fileInput.files[0];
-  if (!file) {
-    uploadStatus.textContent = "Please select an image file first.";
-    uploadStatus.style.color = "#f44";
-    return;
-  }
-  const scope = scopeSelect.value;
-  const formData = new FormData();
-  formData.append("scope", scope);
-  formData.append("image", file);
-  uploadStatus.textContent = "Uploading…";
-  uploadStatus.style.color = "#aaa";
-  try {
-    const res = await fetch("/api/prop-editor/upload-image", { method: "POST", body: formData });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      uploadStatus.textContent = `Error: ${data.error || res.status}`;
-      uploadStatus.style.color = "#f44";
-      return;
-    }
-    uploadStatus.textContent = `Uploaded '${data.image_name}' to ${scope}.`;
-    uploadStatus.style.color = "#4f4";
-    fileInput.value = "";
-    await loadSets();
-    // Auto-select the newly uploaded set so user can immediately create a definition
-    const newRec = state.sets.find(s => s.scope === data.scope && s.filename === data.filename);
-    if (newRec) await selectSet(newRec);
-  } catch (err) {
-    uploadStatus.textContent = `Upload failed: ${err.message}`;
-    uploadStatus.style.color = "#f44";
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Wire up buttons
 // ---------------------------------------------------------------------------
 
@@ -504,7 +463,6 @@ document.getElementById("btnSaveSet").addEventListener("click", saveSet);
 document.getElementById("btnRemoveFrame").addEventListener("click", removeSelectedFrame);
 document.getElementById("btnMoveFrameLeft").addEventListener("click", moveFrameLeft);
 document.getElementById("btnMoveFrameRight").addEventListener("click", moveFrameRight);
-document.getElementById("btnUploadImage").addEventListener("click", uploadImage);
 
 // Auto-load on page open
 loadSets();

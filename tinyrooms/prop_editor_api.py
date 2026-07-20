@@ -1,12 +1,10 @@
 """Prop-editor REST API — enabled only when --feature prop-editor is active."""
 
-import re
 from pathlib import Path
 from typing import Any
 
 import yaml
 from flask import Blueprint, jsonify, request, send_from_directory
-from werkzeug.utils import secure_filename
 
 from . import prop_sets
 
@@ -15,7 +13,6 @@ blueprint = Blueprint("prop_editor", __name__)
 _IMAGE_EXTS = (".png", ".gif", ".webp")
 _YAML_EXTS = (".yaml", ".yml")
 _STATIC_FOLDER = Path(__file__).parent.parent / "app"
-_SAFE_STEM_RE = re.compile(r"^[a-zA-Z0-9_\-]+$")
 
 
 # ---------------------------------------------------------------------------
@@ -255,54 +252,5 @@ def delete_prop(scope, filename, prop_id):
         return jsonify({"ok": True})
     except prop_sets.PropValidationError as e:
         return _verr(e)
-    except ValueError as e:
-        return _err(str(e), 400)
-
-
-@blueprint.route("/api/prop-editor/upload-image", methods=["POST"])
-def upload_image():
-    """Upload an image file into the server or world props directory.
-
-    Accepts multipart/form-data with:
-      - ``scope``: "server" or "world"
-      - ``image``: the image file
-    """
-    if g := _guard():
-        return g
-    try:
-        scope = (request.form.get("scope") or "").strip().lower()
-        if scope not in {"server", "world"}:
-            raise ValueError("scope must be 'server' or 'world'")
-
-        if "image" not in request.files:
-            raise ValueError("no image file in request")
-        file = request.files["image"]
-        if not file.filename:
-            raise ValueError("empty filename")
-
-        safe_name = secure_filename(file.filename)
-        if not safe_name:
-            raise ValueError("filename is invalid after sanitization")
-
-        suffix = Path(safe_name).suffix.lower()
-        if suffix not in _IMAGE_EXTS:
-            raise ValueError(f"unsupported image type '{suffix}'; allowed: {', '.join(_IMAGE_EXTS)}")
-
-        stem = Path(safe_name).stem
-        if not _SAFE_STEM_RE.match(stem):
-            raise ValueError("filename stem must contain only letters, digits, underscores, and hyphens")
-
-        repo = _get_repo()
-        root = repo.server_root_path if scope == "server" else repo.world_props_path
-        root.mkdir(parents=True, exist_ok=True)
-
-        dest = root / safe_name
-        if dest.exists():
-            return _err(f"image '{safe_name}' already exists in {scope} props directory", 409)
-
-        file.save(str(dest))
-        _get_repo(force_reindex=True)
-        return jsonify({"ok": True, "scope": scope, "filename": stem, "image_name": safe_name}), 201
-
     except ValueError as e:
         return _err(str(e), 400)
