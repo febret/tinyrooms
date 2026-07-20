@@ -8,11 +8,12 @@ var loginStatus = document.getElementById("loginStatus");
 var mainPage = document.getElementById("mainPage");
 var statusDisplay = document.getElementById("statusDisplay");
 var messagesDiv = document.getElementById("messages");
+var chatLogList = document.getElementById("chatLogList");
 var msgInput = document.getElementById("msgInput");
 var sendBtn = document.getElementById("sendBtn");
 var btnLogout = document.getElementById("btnLogout");
 var connectionIndicator = document.getElementById("connectionIndicator");
-var roomHeader = document.getElementById("roomHeader");
+var roomTitleOverlay = document.getElementById("roomTitleOverlay");
 var roomCanvas = document.getElementById("roomCanvas");
 var roomExits = document.getElementById("roomExits");
 var lookBox = document.getElementById("lookBox");
@@ -29,6 +30,8 @@ var paletteMode = "main";
 var knownActions = {};
 var selectedTarget = null;
 var TOUCH_DRAG_THRESHOLD_PX = 8;
+var CHAT_MESSAGE_TTL_MS = 30000;
+var CHAT_MAX_VISIBLE = 10;
 var activeTouchDrag = null;
 var roomState = {
   roomId: null,
@@ -169,7 +172,8 @@ socket.on("error", data => {
 
 function handleHeaderUpdate(data) {
   const nextRoomId = data.room_id || null;
-  if (roomState.roomId !== nextRoomId) {
+  const enteringRoom = roomState.roomId !== nextRoomId;
+  if (enteringRoom) {
     resetRoomEntityState();
     disableRoomEditMode();
   }
@@ -177,7 +181,10 @@ function handleHeaderUpdate(data) {
   roomState.canEditProps = !!data.can_edit_props;
   const label = formatText(escapeHtml(data.label || ""));
   const description = formatText(escapeHtml(data.short_description || ""));
-  roomHeader.innerHTML = `<div class="room-header-title">${label}</div><div>${description}</div>`;
+  roomTitleOverlay.innerHTML = label;
+  if (enteringRoom && description) {
+    lookBox.innerHTML = description;
+  }
 }
 
 function handleRoomStageUpdate(data) {
@@ -567,23 +574,50 @@ function reloadStyle() {
 }
 
 function addMessage(text, cls) {
+  const div = createChatMessageNode(text, cls);
+  chatLogList.appendChild(div);
+  window.setTimeout(() => beginMessageExit(div), CHAT_MESSAGE_TTL_MS);
+  trimVisibleMessages();
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function restoreChatMessage(text, cls) {
+  const div = createChatMessageNode(text, cls);
+  chatLogList.appendChild(div);
+  window.setTimeout(() => beginMessageExit(div), CHAT_MESSAGE_TTL_MS);
+  trimVisibleMessages();
+}
+
+function createChatMessageNode(text, cls) {
   const div = document.createElement("div");
-  div.className = "msg " + (cls || "");
+  div.className = `msg chat-log-message ${(cls || "").replace(/\bis-expiring\b/g, "").trim()}`.trim();
   div.innerHTML = text;
-  messagesDiv.appendChild(div);
-  const allMessages = messagesDiv.querySelectorAll(".msg");
-  if (allMessages.length > 50) {
-    const removeCount = allMessages.length - 50;
-    for (let i = 0; i < removeCount; i++) {
-      allMessages[i].remove();
-    }
-  }
   const selfSpans = div.querySelectorAll("span.self");
   selfSpans.forEach(span => {
     span.textContent = "you";
   });
   attachRefEventHandlers(div);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  div.addEventListener("animationend", ev => {
+    if (ev.animationName === "chatMessageOut" && div.classList.contains("is-expiring")) {
+      div.remove();
+    }
+  });
+  return div;
+}
+
+function trimVisibleMessages() {
+  const visibleMessages = Array.from(chatLogList.querySelectorAll(".chat-log-message:not(.is-expiring)"));
+  const overflow = visibleMessages.length - CHAT_MAX_VISIBLE;
+  for (let i = 0; i < overflow; i++) {
+    beginMessageExit(visibleMessages[i]);
+  }
+}
+
+function beginMessageExit(node) {
+  if (!node || !node.parentElement || node.classList.contains("is-expiring")) {
+    return;
+  }
+  node.classList.add("is-expiring");
 }
 
 function setConnectionState(state) {

@@ -46,7 +46,7 @@ function clearCredentials() {
 // localStorage for messages
 function saveMessagesToStorage() {
   const messages = [];
-  const msgDivs = messagesDiv.querySelectorAll('.msg');
+  const msgDivs = messagesDiv.querySelectorAll('.chat-log-message');
   
   // Get only the last 50 messages
   const divsArray = Array.from(msgDivs);
@@ -55,7 +55,7 @@ function saveMessagesToStorage() {
   lastMessages.forEach(div => {
     messages.push({
       html: div.innerHTML,
-      className: div.className
+      className: div.className.replace(/\bis-expiring\b/g, '').trim()
     });
   });
   localStorage.setItem('tr_messages', JSON.stringify(messages));
@@ -68,13 +68,11 @@ function loadMessagesFromStorage() {
     try {
       const messages = JSON.parse(saved);
       messages.forEach(msg => {
-        const div = document.createElement("div");
-        div.className = msg.className;
-        div.innerHTML = msg.html;
-        messagesDiv.appendChild(div);
+        if (typeof restoreChatMessage === 'function') {
+          restoreChatMessage(msg.html, msg.className);
+        }
       });
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      attachRefEventHandlers(messagesDiv);
     } catch (err) {
       console.error('Error loading messages from storage:', err);
     }

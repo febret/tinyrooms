@@ -229,14 +229,15 @@ button:active {
   color: #1a4a7a;
 }
 
-#statusPanel, #roomPanel, #actionsPanel, #activityPanel, #logPanel {
+#statusPanel, #viewPanel, #controlsPanel, #actionsPanel, #inventoryPanel, #activityPanel, #logPanel {
   border: 1px solid #ddd;
   border-radius: 4px;
   background: #f9f9f9;
 }
 
-#roomHeader {
+#roomTitleOverlay {
   color: #333;
+  background: rgba(255, 255, 255, 0.85);
 }
 
 #roomCanvas {

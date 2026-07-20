@@ -36,25 +36,33 @@
       </div>
     </div>
 
-    <div id="roomPanel">
-      <div id="roomHeader"></div>
-      <div id="roomCanvas"></div>
-      <div id="roomExits"></div>
-    </div>
-
-    <div id="activityPanel" style="display:none;"></div>
-
-    <div id="actionsPanel">
-      <div id="lookBox"></div>
-      <div id="actionPalette"></div>
-      <div class="message-input-container">
-        <input id="msgInput" type="text" placeholder="Type a message" />
-        <button id="sendBtn">➤</button>
+    <div id="viewPanel">
+      <div id="viewStageWrap">
+        <div id="roomCanvas"></div>
+        <div id="roomTitleOverlay"></div>
+        <div id="roomExits"></div>
+        <div id="logPanel">
+          <div id="messages">
+            <div id="chatLogList"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div id="logPanel">
-      <div id="messages"></div>
+    <div id="controlsPanel">
+      <div id="lookBox"></div>
+      <div id="interactionPanel">
+        <div id="actionsPanel">
+          <div id="actionPalette"></div>
+          <div class="message-input-container">
+            <input id="msgInput" type="text" placeholder="Type a message" />
+            <button id="sendBtn">➤</button>
+          </div>
+        </div>
+        <div id="inventoryPanel">
+          <div id="activityPanel"></div>
+        </div>
+      </div>
     </div>
   </div>
 
