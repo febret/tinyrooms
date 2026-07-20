@@ -56,7 +56,17 @@
             <option value="random">random</option>
           </select>
         </label>
-        <label>Frames (comma list) <input id="animFrames" /></label>
+        <div class="anim-frames-label">
+          Frames
+          <span class="anim-frames-hint" id="animFramesHint"></span>
+        </div>
+        <div id="animFrameStrip" class="anim-frame-strip"></div>
+        <div class="anim-frames-actions">
+          <button id="btnRemoveFrame" title="Remove selected frame">Remove</button>
+          <button id="btnMoveFrameLeft" title="Move frame left">◀</button>
+          <button id="btnMoveFrameRight" title="Move frame right">▶</button>
+        </div>
+        <div class="anim-frames-hint-small">Click a cell on the sprite image to insert a frame at the selected position.</div>
         <button id="btnSaveAnim">Save Animation</button>
       </div>
     </aside>

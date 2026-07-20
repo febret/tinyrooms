@@ -2,8 +2,10 @@
   let selectedSet = null;
   let selectedSpriteId = null;
   let selectedAnimId = null;
+  let selectedFrameIndex = -1;   // position within animFrames array; -1 = append
   let currentDefinition = null;
   let loadedImage = null;
+  let animFrames = [];           // working copy of the current animation's frames
 
   const setList = document.getElementById("setList");
   const spriteList = document.getElementById("spriteList");
@@ -19,7 +21,10 @@
   const statusBox = document.getElementById("statusBox");
   const animSpeed = document.getElementById("animSpeed");
   const animType = document.getElementById("animType");
-  const animFrames = document.getElementById("animFrames");
+  const animFrameStrip = document.getElementById("animFrameStrip");
+  const animFramesHint = document.getElementById("animFramesHint");
+
+  const THUMB_SIZE = 40;  // thumbnail cell size in px
 
   function setStatus(text) {
     statusBox.textContent = text || "";
@@ -41,49 +46,155 @@
     return payload;
   }
 
-  function setKey(setDef) {
-    return `${setDef.scope}/${setDef.filename}`;
-  }
+  // -------------------------------------------------------------------------
+  // Canvas drawing
+  // -------------------------------------------------------------------------
+
+  function fw() { return Math.max(1, Number(frameWidth.value) || 32); }
+  function fh() { return Math.max(1, Number(frameHeight.value) || 32); }
 
   function drawCanvas() {
     if (!loadedImage) return;
-    const fw = Math.max(1, Number(frameWidth.value) || 32);
-    const fh = Math.max(1, Number(frameHeight.value) || 32);
     spriteCanvas.width = loadedImage.naturalWidth;
     spriteCanvas.height = loadedImage.naturalHeight;
     ctx.drawImage(loadedImage, 0, 0);
 
+    // Pink frame grid
     ctx.strokeStyle = "rgba(255, 105, 180, 0.9)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let x = fw; x < spriteCanvas.width; x += fw) {
+    for (let x = fw(); x < spriteCanvas.width; x += fw()) {
       ctx.moveTo(x + 0.5, 0);
       ctx.lineTo(x + 0.5, spriteCanvas.height);
     }
-    for (let y = fh; y < spriteCanvas.height; y += fh) {
+    for (let y = fh(); y < spriteCanvas.height; y += fh()) {
       ctx.moveTo(0, y + 0.5);
       ctx.lineTo(spriteCanvas.width, y + 0.5);
     }
     ctx.stroke();
   }
 
+  // Draw a single frame thumbnail onto an offscreen canvas, return it.
+  function makeThumb(col, row) {
+    const offscreen = document.createElement("canvas");
+    offscreen.width = THUMB_SIZE;
+    offscreen.height = THUMB_SIZE;
+    const octx = offscreen.getContext("2d");
+    if (loadedImage) {
+      octx.drawImage(
+        loadedImage,
+        col * fw(), row * fh(), fw(), fh(),
+        0, 0, THUMB_SIZE, THUMB_SIZE
+      );
+    }
+    return offscreen;
+  }
+
+  // -------------------------------------------------------------------------
+  // Animation frame strip rendering
+  // -------------------------------------------------------------------------
+
+  function parseFrameToken(token) {
+    const parts = String(token || "0x0").split("x");
+    return { col: parseInt(parts[0], 10) || 0, row: parseInt(parts[1], 10) || 0 };
+  }
+
+  function renderFrameStrip() {
+    animFrameStrip.innerHTML = "";
+    if (!selectedAnimId) {
+      animFramesHint.textContent = "";
+      return;
+    }
+
+    const insertPos = selectedFrameIndex >= 0 && selectedFrameIndex < animFrames.length
+      ? selectedFrameIndex
+      : animFrames.length;
+    animFramesHint.textContent =
+      animFrames.length === 0
+        ? "(no frames)"
+        : `${animFrames.length} frame(s) — inserting at position ${insertPos}`;
+
+    animFrames.forEach((token, i) => {
+      const { col, row } = parseFrameToken(token);
+      const cell = document.createElement("div");
+      cell.className = "frame-cell" + (i === selectedFrameIndex ? " frame-cell-selected" : "");
+      cell.title = `Frame ${i}: ${token} (col ${col}, row ${row})`;
+
+      const thumb = makeThumb(col, row);
+      const img = document.createElement("img");
+      img.src = thumb.toDataURL();
+      img.width = THUMB_SIZE;
+      img.height = THUMB_SIZE;
+      cell.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "frame-label";
+      label.textContent = token;
+      cell.appendChild(label);
+
+      cell.addEventListener("click", () => {
+        selectedFrameIndex = i;
+        renderFrameStrip();
+        setStatus(`Selected frame ${i} (${token}) — click image to insert after it, or use Remove/Move.`);
+      });
+
+      animFrameStrip.appendChild(cell);
+    });
+
+    // "append" slot — always shown at the end, selected when nothing else is
+    const appendCell = document.createElement("div");
+    appendCell.className = "frame-cell frame-cell-append" + (selectedFrameIndex === -1 || selectedFrameIndex >= animFrames.length ? " frame-cell-selected" : "");
+    appendCell.title = "Append new frames here";
+    appendCell.textContent = "+";
+    appendCell.addEventListener("click", () => {
+      selectedFrameIndex = -1;
+      renderFrameStrip();
+      setStatus("Click a cell on the sprite image to append a frame.");
+    });
+    animFrameStrip.appendChild(appendCell);
+  }
+
+  // -------------------------------------------------------------------------
+  // Canvas click: pick color OR insert frame
+  // -------------------------------------------------------------------------
+
   spriteCanvas.addEventListener("click", (e) => {
     if (!loadedImage) return;
     const rect = spriteCanvas.getBoundingClientRect();
     const scaleX = spriteCanvas.width / rect.width;
     const scaleY = spriteCanvas.height / rect.height;
-    const x = Math.floor((e.clientX - rect.left) * scaleX);
-    const y = Math.floor((e.clientY - rect.top) * scaleY);
-    const pixel = ctx.getImageData(x, y, 1, 1).data;
-    const hex = "#" + [pixel[0], pixel[1], pixel[2]]
-      .map((v) => v.toString(16).padStart(2, "0"))
-      .join("");
-    backgroundColor.value = hex;
-    setStatus(`Picked background color: ${hex} — click Save Set to apply.`);
+    const px = Math.floor((e.clientX - rect.left) * scaleX);
+    const py = Math.floor((e.clientY - rect.top) * scaleY);
+
+    if (selectedAnimId) {
+      // Insert a frame token at the selected position
+      const col = Math.floor(px / fw());
+      const row = Math.floor(py / fh());
+      const token = `${col}x${row}`;
+      const insertAt = selectedFrameIndex >= 0 && selectedFrameIndex < animFrames.length
+        ? selectedFrameIndex + 1
+        : animFrames.length;
+      animFrames.splice(insertAt, 0, token);
+      selectedFrameIndex = insertAt;
+      renderFrameStrip();
+      setStatus(`Inserted frame ${token} at position ${insertAt}. Click Save Animation to persist.`);
+    } else {
+      // Pick background color
+      const pixel = ctx.getImageData(px, py, 1, 1).data;
+      const hex = "#" + [pixel[0], pixel[1], pixel[2]]
+        .map((v) => v.toString(16).padStart(2, "0"))
+        .join("");
+      backgroundColor.value = hex;
+      setStatus(`Picked background color: ${hex} — click Save Set to apply.`);
+    }
   });
 
   frameWidth.addEventListener("input", drawCanvas);
   frameHeight.addEventListener("input", drawCanvas);
+
+  // -------------------------------------------------------------------------
+  // Load / select sets
+  // -------------------------------------------------------------------------
 
   async function loadSets() {
     const payload = await api("/api/sprite-editor/sets");
@@ -101,6 +212,8 @@
     selectedSet = setDef;
     selectedSpriteId = null;
     selectedAnimId = null;
+    selectedFrameIndex = -1;
+    animFrames = [];
     const payload = await api(`/api/sprite-editor/sets/${setDef.scope}/${setDef.filename}`);
     currentDefinition = payload.definition;
     setTitle.textContent = `${setDef.scope}:${setDef.filename}`;
@@ -117,7 +230,7 @@
       img.onload = () => {
         loadedImage = img;
         drawCanvas();
-        imageHint.textContent = "Click on image to pick background color.";
+        imageHint.textContent = "Click on image to pick background color, or select an animation to insert frames.";
       };
       img.onerror = () => setStatus("Failed to load sprite image.");
       img.src = imageUrl;
@@ -134,47 +247,64 @@
     frameHeight.value = currentDefinition.frame_height || 32;
     backgroundColor.value = currentDefinition.background_color || "";
     renderSprites();
+    renderFrameStrip();
   }
+
+  // -------------------------------------------------------------------------
+  // Sprites panel
+  // -------------------------------------------------------------------------
 
   function renderSprites() {
     spriteList.innerHTML = "";
     animList.innerHTML = "";
-    if (!currentDefinition || !currentDefinition.sprites) {
-      return;
-    }
+    if (!currentDefinition?.sprites) return;
     Object.keys(currentDefinition.sprites).forEach((spriteId) => {
       const btn = document.createElement("button");
       btn.textContent = spriteId + (selectedSpriteId === spriteId ? " ✓" : "");
       btn.onclick = () => {
         selectedSpriteId = spriteId;
         selectedAnimId = null;
+        selectedFrameIndex = -1;
+        animFrames = [];
         renderSprites();
         renderAnims();
+        renderFrameStrip();
       };
       spriteList.appendChild(btn);
     });
     renderAnims();
   }
 
+  // -------------------------------------------------------------------------
+  // Animations panel
+  // -------------------------------------------------------------------------
+
   function renderAnims() {
     animList.innerHTML = "";
-    if (!selectedSpriteId || !currentDefinition?.sprites?.[selectedSpriteId]) {
-      return;
-    }
+    if (!selectedSpriteId || !currentDefinition?.sprites?.[selectedSpriteId]) return;
     const anims = currentDefinition.sprites[selectedSpriteId].anims || {};
     Object.keys(anims).forEach((animId) => {
+      const anim = anims[animId];
       const btn = document.createElement("button");
-      btn.textContent = `${animId} (${anims[animId].type}, ${anims[animId].speed}s)` + (selectedAnimId === animId ? " ✓" : "");
+      btn.textContent = `${animId} (${anim.type}, ${anim.speed}s, ${(anim.frames || []).length}fr)` +
+        (selectedAnimId === animId ? " ✓" : "");
       btn.onclick = () => {
         selectedAnimId = animId;
-        animSpeed.value = Number(anims[animId].speed || 0.5);
-        animType.value = anims[animId].type || "loop";
-        animFrames.value = (anims[animId].frames || []).join(", ");
-        setStatus(`Editing animation ${animId}`);
+        animSpeed.value = Number(anim.speed || 0.5);
+        animType.value = anim.type || "loop";
+        animFrames = [...(anim.frames || [])];
+        selectedFrameIndex = animFrames.length > 0 ? animFrames.length - 1 : -1;
+        renderAnims();
+        renderFrameStrip();
+        setStatus(`Editing animation "${animId}". Click a sprite cell to insert frames.`);
       };
       animList.appendChild(btn);
     });
   }
+
+  // -------------------------------------------------------------------------
+  // Save set
+  // -------------------------------------------------------------------------
 
   async function saveSet() {
     if (!selectedSet || !currentDefinition) return;
@@ -190,6 +320,10 @@
     setStatus("Saved set.");
   }
 
+  // -------------------------------------------------------------------------
+  // Sprite CRUD
+  // -------------------------------------------------------------------------
+
   async function addSprite() {
     if (!selectedSet) return;
     const spriteId = document.getElementById("newSpriteId").value.trim();
@@ -197,17 +331,6 @@
     await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites`, {
       method: "POST",
       body: JSON.stringify({ sprite_id: spriteId, default_frame: "0x0" }),
-    });
-    await selectSet(selectedSet);
-  }
-
-  async function addAnim() {
-    if (!selectedSet || !selectedSpriteId) return;
-    const animId = document.getElementById("newAnimId").value.trim();
-    if (!animId) return;
-    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims`, {
-      method: "POST",
-      body: JSON.stringify({ anim_id: animId, speed: 0.5, type: "loop", frames: ["0x0"] }),
     });
     await selectSet(selectedSet);
   }
@@ -220,35 +343,89 @@
     await selectSet(selectedSet);
   }
 
+  // -------------------------------------------------------------------------
+  // Animation CRUD
+  // -------------------------------------------------------------------------
+
+  async function addAnim() {
+    if (!selectedSet || !selectedSpriteId) return;
+    const animId = document.getElementById("newAnimId").value.trim();
+    if (!animId) return;
+    await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims`, {
+      method: "POST",
+      body: JSON.stringify({ anim_id: animId, speed: 0.5, type: "loop", frames: ["0x0"] }),
+    });
+    await selectSet(selectedSet);
+  }
+
   async function deleteAnim() {
     if (!selectedSet || !selectedSpriteId || !selectedAnimId) return;
     await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims/${selectedAnimId}`, {
       method: "DELETE",
     });
+    selectedAnimId = null;
+    animFrames = [];
+    selectedFrameIndex = -1;
     await selectSet(selectedSet);
   }
 
   async function saveAnim() {
     if (!selectedSet || !selectedSpriteId || !selectedAnimId) return;
-    const frames = String(animFrames.value || "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0);
     await api(`/api/sprite-editor/sets/${selectedSet.scope}/${selectedSet.filename}/sprites/${selectedSpriteId}/anims/${selectedAnimId}`, {
       method: "PUT",
       body: JSON.stringify({
         speed: Number(animSpeed.value || 0.5),
         type: animType.value || "loop",
-        frames,
+        frames: animFrames,
       }),
     });
     await selectSet(selectedSet);
+    // Restore selected animation after reload
+    const anim = currentDefinition?.sprites?.[selectedSpriteId]?.anims?.[selectedAnimId];
+    if (anim) {
+      animFrames = [...(anim.frames || [])];
+      renderFrameStrip();
+    }
+    setStatus(`Saved animation "${selectedAnimId}".`);
   }
 
-  document.getElementById("btnLoadSets").onclick = () => loadSets().catch((err) => setStatus(err.message));
-  document.getElementById("btnClearBackground").onclick = () => {
-    backgroundColor.value = "";
+  // -------------------------------------------------------------------------
+  // Frame manipulation buttons
+  // -------------------------------------------------------------------------
+
+  document.getElementById("btnRemoveFrame").onclick = () => {
+    if (selectedFrameIndex < 0 || selectedFrameIndex >= animFrames.length) {
+      setStatus("No frame selected to remove.");
+      return;
+    }
+    animFrames.splice(selectedFrameIndex, 1);
+    if (selectedFrameIndex >= animFrames.length) selectedFrameIndex = animFrames.length - 1;
+    renderFrameStrip();
+    setStatus(`Removed frame. ${animFrames.length} frame(s) remaining.`);
   };
+
+  document.getElementById("btnMoveFrameLeft").onclick = () => {
+    if (selectedFrameIndex <= 0 || selectedFrameIndex >= animFrames.length) return;
+    [animFrames[selectedFrameIndex - 1], animFrames[selectedFrameIndex]] =
+      [animFrames[selectedFrameIndex], animFrames[selectedFrameIndex - 1]];
+    selectedFrameIndex--;
+    renderFrameStrip();
+  };
+
+  document.getElementById("btnMoveFrameRight").onclick = () => {
+    if (selectedFrameIndex < 0 || selectedFrameIndex >= animFrames.length - 1) return;
+    [animFrames[selectedFrameIndex], animFrames[selectedFrameIndex + 1]] =
+      [animFrames[selectedFrameIndex + 1], animFrames[selectedFrameIndex]];
+    selectedFrameIndex++;
+    renderFrameStrip();
+  };
+
+  // -------------------------------------------------------------------------
+  // Button wiring
+  // -------------------------------------------------------------------------
+
+  document.getElementById("btnLoadSets").onclick = () => loadSets().catch((err) => setStatus(err.message));
+  document.getElementById("btnClearBackground").onclick = () => { backgroundColor.value = ""; };
   document.getElementById("btnSaveSet").onclick = () => saveSet().catch((err) => setStatus(err.message));
   document.getElementById("btnAddSprite").onclick = () => addSprite().catch((err) => setStatus(err.message));
   document.getElementById("btnAddAnim").onclick = () => addAnim().catch((err) => setStatus(err.message));
