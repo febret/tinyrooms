@@ -52,6 +52,7 @@ var roomEditor = {
 var heartbeatStarted = false;
 var saveLoopStarted = false;
 var restAuthToken = null;
+var spriteAnimationState = new Map();
 
 socket.on("connect", () => {
   const u = usernameInput.value.trim();
@@ -214,8 +215,10 @@ function handleRoomObjectUpdate(data) {
   const key = `${entity.entity_type}:${entity.entity_id}`;
   if (data.change === "remove") {
     roomState.entities.delete(key);
-    const node = document.getElementById(`room-${key.replace(":", "-")}`);
+    const domId = `room-${key.replace(":", "-")}`;
+    const node = document.getElementById(domId);
     if (node) node.remove();
+    _stopSpriteAnimation(domId);
     return;
   }
   roomState.entities.set(key, entity);
@@ -249,7 +252,82 @@ function resolveAssetUrl(assetPath) {
   return "/world/" + assetPath;
 }
 
+function _stopSpriteAnimation(key) {
+  const state = spriteAnimationState.get(key);
+  if (state && state.timer) {
+    clearInterval(state.timer);
+  }
+  spriteAnimationState.delete(key);
+}
+
+function _applyFrameToNode(frameNode, frame) {
+  if (!frameNode || !frame) return;
+  frameNode.style.width = `${frame.width || 32}px`;
+  frameNode.style.height = `${frame.height || 32}px`;
+  frameNode.style.backgroundPosition = `-${frame.x || 0}px -${frame.y || 0}px`;
+}
+
+function _renderEntityDisplay(node, entity, domKey) {
+  const display = entity.display || {};
+  const spriteMeta = display.sprite_meta || display.img_meta || null;
+  const imageUrl = resolveAssetUrl(display.sprite || display.img || "");
+  if (!spriteMeta || !spriteMeta.frame) {
+    _stopSpriteAnimation(domKey);
+    let img = node.querySelector("img");
+    if (!img) {
+      img = document.createElement("img");
+      node.innerHTML = "";
+      node.appendChild(img);
+    }
+    img.src = imageUrl;
+    img.alt = entity.label || "";
+    return;
+  }
+
+  let spriteNode = node.querySelector(".room-entity-sprite");
+  if (!spriteNode) {
+    spriteNode = document.createElement("div");
+    spriteNode.className = "room-entity-sprite";
+    node.innerHTML = "";
+    node.appendChild(spriteNode);
+  }
+  spriteNode.style.backgroundImage = `url("${imageUrl}")`;
+  spriteNode.style.backgroundRepeat = "no-repeat";
+  _applyFrameToNode(spriteNode, spriteMeta.frame);
+
+  const anim = spriteMeta.animation;
+  if (!anim || !Array.isArray(anim.frames) || anim.frames.length <= 1) {
+    _stopSpriteAnimation(domKey);
+    return;
+  }
+  _stopSpriteAnimation(domKey);
+  let index = 0;
+  let direction = 1;
+  const intervalMs = Math.max(40, Number(anim.speed || 0.5) * 1000);
+  const timer = setInterval(() => {
+    const frames = anim.frames;
+    if (!frames.length) return;
+    if (anim.type === "random") {
+      index = Math.floor(Math.random() * frames.length);
+    } else if (anim.type === "bounce") {
+      index += direction;
+      if (index >= frames.length) {
+        index = Math.max(0, frames.length - 2);
+        direction = -1;
+      } else if (index < 0) {
+        index = Math.min(frames.length - 1, 1);
+        direction = 1;
+      }
+    } else {
+      index = (index + 1) % frames.length;
+    }
+    _applyFrameToNode(spriteNode, frames[index]);
+  }, intervalMs);
+  spriteAnimationState.set(domKey, { timer });
+}
+
 function renderRoomStage(backgroundPath) {
+  spriteAnimationState.forEach((_value, key) => _stopSpriteAnimation(key));
   roomCanvas.innerHTML = "";
   const stageLayer = document.createElement("div");
   stageLayer.className = "room-layer";
@@ -293,8 +371,6 @@ function renderForegroundEntity(entity) {
     node = document.createElement("div");
     node.id = domId;
     node.className = "room-entity room-selectable";
-    const img = document.createElement("img");
-    node.appendChild(img);
     layer.appendChild(node);
   }
 
@@ -302,9 +378,7 @@ function renderForegroundEntity(entity) {
   node.style.left = `${entity.position?.x || 0}px`;
   node.style.top = `${entity.position?.y || 0}px`;
   node.style.zIndex = `${entity.position?.z_order || 0}`;
-  const img = node.querySelector("img");
-  img.src = resolveAssetUrl(entity.display?.sprite || entity.display?.img || "");
-  img.alt = entity.label || "";
+  _renderEntityDisplay(node, entity, domId);
   node.onclick = () => selectTarget({
     type: entity.entity_type,
     id: entity.entity_id,
@@ -353,6 +427,7 @@ function handleRoomDrop(ev) {
 }
 
 function resetRoomEntityState() {
+  spriteAnimationState.forEach((_value, key) => _stopSpriteAnimation(key));
   roomState.entities.clear();
   selectedTarget = null;
   lookBox.textContent = "";

@@ -713,6 +713,11 @@ button {
   max-height: 128px;
 }
 
+.room-entity-sprite {
+  display: block;
+  image-rendering: pixelated;
+}
+
 .room-entity {
   transition: left 180ms linear, top 180ms linear;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
