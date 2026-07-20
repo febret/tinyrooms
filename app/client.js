@@ -481,3 +481,75 @@ msgInput.addEventListener("keydown", ev => {
     sendBtn.click();
   }
 });
+
+function getRestToken() {
+  return restAuthToken;
+}
+
+async function fetchJson(path, options = {}, token) {
+  const headers = { ...(options.headers || {}) };
+  const authToken = token !== undefined ? token : restAuthToken;
+  if (authToken) {
+    headers["X-TR-Auth"] = authToken;
+  }
+  const response = await fetch(path, { ...options, headers });
+  const payload = await response.json();
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || `request failed: ${response.status}`);
+  }
+  return payload;
+}
+
+function createSpritePreview(option) {
+  const preview = document.createElement("div");
+  preview.className = "character-sprite-preview";
+  if (option.frame) {
+    preview.classList.add("character-sprite-preview-frame");
+    preview.style.width = `${option.frame.width || 32}px`;
+    preview.style.height = `${option.frame.height || 32}px`;
+    preview.style.backgroundImage = `url("${resolveAssetUrl(option.image_url || "")}")`;
+    preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
+    if (option.background_color) {
+      preview.style.backgroundColor = option.background_color;
+    }
+    return preview;
+  }
+  const img = document.createElement("img");
+  img.src = resolveAssetUrl(option.image_url || "");
+  img.alt = option.label || option.sprite_id || "sprite";
+  preview.appendChild(img);
+  return preview;
+}
+
+function createSpriteCard(option, isSelected, onSelect, disabled) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "character-sprite-card";
+  if (isSelected) card.classList.add("selected");
+  card.disabled = !!disabled;
+  card.addEventListener("click", () => onSelect(option));
+  card.appendChild(createSpritePreview(option));
+  const label = document.createElement("div");
+  label.className = "character-sprite-label";
+  label.textContent = option.label || option.sprite_id || option.filename || "sprite";
+  card.appendChild(label);
+  const meta = document.createElement("div");
+  meta.className = "character-sprite-meta";
+  meta.textContent = `${option.scope}:${option.filename}/${option.sprite_id}`;
+  card.appendChild(meta);
+  return card;
+}
+
+async function withEditorBusy(stateRef, flagKey, errorEl, renderFn, asyncFn) {
+  errorEl.textContent = "";
+  stateRef[flagKey] = true;
+  renderFn();
+  try {
+    await asyncFn();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    stateRef[flagKey] = false;
+    renderFn();
+  }
+}

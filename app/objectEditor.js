@@ -23,7 +23,6 @@ let btnObjectCreatorDone;
 let objectEditorInitialized = false;
 
 let objectEditorSocket;
-let objectEditorRestAuthToken;
 
 function bindObjectEditorDomElements() {
   objectCreatorPage = document.getElementById("objectCreatorPage");
@@ -50,7 +49,6 @@ function bindObjectEditorDomElements() {
 
 function initObjectEditor(clientSocket, clientRestAuthToken) {
   objectEditorSocket = clientSocket;
-  objectEditorRestAuthToken = clientRestAuthToken;
   if (!bindObjectEditorDomElements() || objectEditorInitialized) {
     return;
   }
@@ -82,19 +80,6 @@ function resetObjectEditorState() {
   renderObjectCreator();
 }
 
-async function fetchObjectEditorJson(path, options = {}) {
-  const headers = { ...(options.headers || {}) };
-  if (objectEditorRestAuthToken) {
-    headers["X-TR-Auth"] = objectEditorRestAuthToken;
-  }
-  const response = await fetch(path, { ...options, headers });
-  const payload = await response.json();
-  if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error || `request failed: ${response.status}`);
-  }
-  return payload;
-}
-
 async function openObjectCreator() {
   objectEditorState.mode = "editing";
   objectEditorState.description = objectCreatorDescription ? objectCreatorDescription.value : "";
@@ -102,7 +87,7 @@ async function openObjectCreator() {
   objectCreatorPage.style.display = "flex";
   renderObjectCreator();
   try {
-    const profile = await fetchObjectEditorJson("/api/object-editor/profile");
+    const profile = await fetchJson("/api/object-editor/profile");
     objectEditorState.availableSprites = profile.available_sprites || [];
     renderObjectCreator();
   } catch (err) {
@@ -114,27 +99,6 @@ async function openObjectCreator() {
 function closeObjectCreator() {
   objectCreatorPage.style.display = "none";
   objectEditorState.mode = "closed";
-}
-
-function createObjectSpritePreview(option) {
-  const preview = document.createElement("div");
-  preview.className = "character-sprite-preview";
-  if (option.frame) {
-    preview.classList.add("character-sprite-preview-frame");
-    preview.style.width = `${option.frame.width || 32}px`;
-    preview.style.height = `${option.frame.height || 32}px`;
-    preview.style.backgroundImage = `url("${resolveAssetUrl(option.image_url || "")}")`;
-    preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
-    if (option.background_color) {
-      preview.style.backgroundColor = option.background_color;
-    }
-    return preview;
-  }
-  const img = document.createElement("img");
-  img.src = resolveAssetUrl(option.image_url || "");
-  img.alt = option.label || option.sprite_id || "sprite";
-  preview.appendChild(img);
-  return preview;
 }
 
 function renderObjectCreator() {
@@ -169,25 +133,15 @@ function renderObjectCreator() {
   objectCreatorSpriteList.appendChild(noSpriteCard);
 
   for (const option of objectEditorState.availableSprites) {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "character-sprite-card";
-    if (objectEditorState.currentSprite === option.sprite_ref) card.classList.add("selected");
-    card.disabled = busy;
-    card.addEventListener("click", () => {
-      objectEditorState.currentSprite = option.sprite_ref;
-      renderObjectCreator();
-    });
-    card.appendChild(createObjectSpritePreview(option));
-    const label = document.createElement("div");
-    label.className = "character-sprite-label";
-    label.textContent = option.label || option.sprite_id || option.filename || "sprite";
-    card.appendChild(label);
-    const meta = document.createElement("div");
-    meta.className = "character-sprite-meta";
-    meta.textContent = `${option.scope}:${option.filename}/${option.sprite_id}`;
-    card.appendChild(meta);
-    objectCreatorSpriteList.appendChild(card);
+    objectCreatorSpriteList.appendChild(createSpriteCard(
+      option,
+      objectEditorState.currentSprite === option.sprite_ref,
+      opt => {
+        objectEditorState.currentSprite = opt.sprite_ref;
+        renderObjectCreator();
+      },
+      busy,
+    ));
   }
 
   // Image preview
@@ -212,12 +166,9 @@ async function generateObjectImage() {
     objectCreatorError.textContent = "Enter a description before generating an image.";
     return;
   }
-  objectCreatorError.textContent = "";
   objectEditorState.description = description;
-  objectEditorState.generatingImage = true;
-  renderObjectCreator();
-  try {
-    const payload = await fetchObjectEditorJson("/api/object-editor/image", {
+  await withEditorBusy(objectEditorState, "generatingImage", objectCreatorError, renderObjectCreator, async () => {
+    const payload = await fetchJson("/api/object-editor/image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -227,12 +178,7 @@ async function generateObjectImage() {
     });
     objectEditorState.imagePath = payload.image.image_path;
     objectEditorState.imageUrl = payload.image.image_url;
-  } catch (err) {
-    objectCreatorError.textContent = err.message;
-  } finally {
-    objectEditorState.generatingImage = false;
-    renderObjectCreator();
-  }
+  });
 }
 
 async function createThingFromEditor() {
@@ -245,12 +191,9 @@ async function createThingFromEditor() {
     objectCreatorError.textContent = "Pick a sprite or generate an image first.";
     return;
   }
-  objectCreatorError.textContent = "";
   objectEditorState.description = description;
-  objectEditorState.creating = true;
-  renderObjectCreator();
-  try {
-    await fetchObjectEditorJson("/api/object-editor/create", {
+  await withEditorBusy(objectEditorState, "creating", objectCreatorError, renderObjectCreator, async () => {
+    await fetchJson("/api/object-editor/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -259,15 +202,8 @@ async function createThingFromEditor() {
         image_path: objectEditorState.imagePath || null,
       }),
     });
-    objectCreatorError.textContent = "";
-    // Reset image state so it isn't reused next time
     objectEditorState.imagePath = null;
     objectEditorState.imageUrl = null;
     closeObjectCreator();
-  } catch (err) {
-    objectCreatorError.textContent = err.message;
-  } finally {
-    objectEditorState.creating = false;
-    renderObjectCreator();
-  }
+  });
 }
