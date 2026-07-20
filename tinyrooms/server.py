@@ -25,11 +25,29 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 app.register_blueprint(sprite_editor_api.blueprint)
 app.register_blueprint(prop_editor_api.blueprint)
 
-_char_editor_service = None
-_object_editor_service = None
+_editor_registry: dict[str, Any] = {}
 _enabled_features: set[str] = set()
 _sprite_repository: sprites.SpriteRepository | None = None
 _prop_repository = None  # prop_sets.PropRepository | None
+
+
+def _configure_editor(name: str, service: Any) -> None:
+    existing = _editor_registry.get(name)
+    if existing is not None:
+        existing.stop()
+    _editor_registry[name] = service
+
+
+def _shutdown_editor(name: str) -> None:
+    service = _editor_registry.pop(name, None)
+    if service is not None:
+        service.stop()
+
+
+def _get_editor(name: str, factory) -> Any:
+    if name not in _editor_registry:
+        factory()
+    return _editor_registry[name]
 
 
 def _default_temp_root() -> Path:
@@ -40,68 +58,51 @@ def _default_object_temp_root() -> Path:
     return Path(tempfile.gettempdir()) / "tinyrooms-object-editor"
 
 
-def _object_assets_root(world_id: str) -> Path:
-    if not world_id or "/" in world_id or "\\" in world_id or ".." in world_id:
-        raise ValueError("invalid world id")
-    return Path(__file__).parent.parent / "data" / "object_assets" / world_id
-
-
 def configure_char_editor(temp_root: Path | None = None):
-    global _char_editor_service
-    if _char_editor_service is not None:
-        _char_editor_service.stop()
     make_image_script = Path(__file__).parent.parent / "tools" / "make-image"
     temp_dir = Path(temp_root) if temp_root else _default_temp_root()
     temp_dir.mkdir(parents=True, exist_ok=True)
-    _char_editor_service = char_editor.CharacterEditorService(
-        make_image_script=make_image_script,
-        temp_root=temp_dir,
+    _configure_editor(
+        "char",
+        char_editor.CharacterEditorService(make_image_script=make_image_script, temp_root=temp_dir),
     )
     print(f"char-editor: service ready (temp_root={temp_dir})")
 
 
 def configure_object_editor(temp_root: Path | None = None):
-    global _object_editor_service
-    if _object_editor_service is not None:
-        _object_editor_service.stop()
     config_path = Path(__file__).parent.parent / "data" / "ui" / "object-editor.yaml"
     make_image_script = Path(__file__).parent.parent / "tools" / "make-image"
     temp_dir = Path(temp_root) if temp_root else _default_object_temp_root()
     temp_dir.mkdir(parents=True, exist_ok=True)
-    _object_editor_service = object_editor.ObjectEditorService(
-        config_path=config_path,
-        make_image_script=make_image_script,
-        temp_root=temp_dir,
+    _configure_editor(
+        "object",
+        object_editor.ObjectEditorService(
+            config_path=config_path, make_image_script=make_image_script, temp_root=temp_dir
+        ),
     )
     print(f"object-editor: service ready (temp_root={temp_dir})")
 
 
 def shutdown_char_editor():
-    global _char_editor_service
-    if _char_editor_service is not None:
-        _char_editor_service.stop()
-        _char_editor_service = None
+    _shutdown_editor("char")
 
 
 def shutdown_object_editor():
-    global _object_editor_service
-    if _object_editor_service is not None:
-        _object_editor_service.stop()
-        _object_editor_service = None
+    _shutdown_editor("object")
 
 
 def char_editor_service() -> char_editor.CharacterEditorService:
-    global _char_editor_service
-    if _char_editor_service is None:
-        configure_char_editor()
-    return _char_editor_service # type: ignore
+    return _get_editor("char", configure_char_editor)  # type: ignore
 
 
 def object_editor_service() -> object_editor.ObjectEditorService:
-    global _object_editor_service
-    if _object_editor_service is None:
-        configure_object_editor()
-    return _object_editor_service  # type: ignore
+    return _get_editor("object", configure_object_editor)  # type: ignore
+
+
+def _object_assets_root(world_id: str) -> Path:
+    if not world_id or "/" in world_id or "\\" in world_id or ".." in world_id:
+        raise ValueError("invalid world id")
+    return Path(__file__).parent.parent / "data" / "object_assets" / world_id
 
 
 def configure_features(features: set[str] | list[str] | tuple[str, ...]):
@@ -163,6 +164,13 @@ def _require_rest_user() -> str:
 
 def _error_response(message: str, code: int):
     return jsonify({"ok": False, "error": message}), code
+
+
+def _guard_world_server():
+    """Return a 404 response when world-server feature is disabled, else None."""
+    if not feature_enabled("world-server"):
+        return jsonify({"ok": False, "error": "world-server feature disabled"}), 404
+    return None
 
 def _update_peep_display_and_broadcast(username: str, display_assets: dict) -> None:
     """Update an online user's peep display assets and broadcast the room update.
@@ -239,12 +247,16 @@ def _persist_object_asset(source_path: Path, world_id: str, prefix: str = "obj")
 
 @app.route("/")
 def client():
+    if g := _guard_world_server():
+        return g
     return send_from_directory(str(STATIC_FOLDER), CLIENT_FILENAME)
 
 
 @app.route("/world/<path:filename>")
 def world_data(filename):
     """Serve static files from the world's root path"""
+    if g := _guard_world_server():
+        return g
     if active_world().root_path is None:
         return jsonify({"error": "World not loaded"}), 404
     return send_from_directory(str(active_world().root_path), filename)
@@ -252,6 +264,8 @@ def world_data(filename):
 
 @app.route("/user-assets/<username>/<path:filename>")
 def user_asset_data(username, filename):
+    if g := _guard_world_server():
+        return g
     try:
         root = char_data.user_root(username)
     except ValueError:
@@ -300,6 +314,8 @@ def prop_asset_data(scope, filename):
 
 @app.route("/register", methods=["POST"])
 def register():
+    if g := _guard_world_server():
+        return g
     data = request.json or {}
     username = data.get("username")
     password = data.get("password")
@@ -325,6 +341,8 @@ def list_connected():
 
 @app.route("/api/props/library")
 def props_library():
+    if g := _guard_world_server():
+        return g
     try:
         _require_rest_user()
     except PermissionError:

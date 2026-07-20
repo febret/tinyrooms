@@ -15,7 +15,8 @@ def kill():
     server.shutdown_char_editor()
     server.shutdown_object_editor()
     db.save_userdb_state()
-    world.active_world().save_state()
+    if server.feature_enabled("world-server"):
+        world.active_world().save_state()
     os._exit(0)
 
 
@@ -25,7 +26,8 @@ def reboot():
     server.shutdown_char_editor()
     server.shutdown_object_editor()
     db.save_userdb_state()
-    world.active_world().save_state()
+    if server.feature_enabled("world-server"):
+        world.active_world().save_state()
     os._exit(42)
 
 
@@ -92,8 +94,9 @@ if __name__ == "__main__":
     # Initialize database
     db.init_db()
     
-    # Initialize world
-    world.load_world()
+    # Initialize world (only when world-server feature is enabled)
+    if server.feature_enabled("world-server"):
+        world.load_world()
     
     # Start the interactive console in a separate thread
     print("Starting interactive console...")
@@ -130,4 +133,5 @@ if __name__ == "__main__":
         server.shutdown_object_editor()
         # Save state of all connected users before shutdown
         db.save_userdb_state()
-        world.active_world().save_state()
+        if server.feature_enabled("world-server"):
+            world.active_world().save_state()

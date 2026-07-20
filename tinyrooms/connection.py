@@ -45,6 +45,8 @@ def _require_room_user():
 def handle_connect():
     print(f"connect: sid={getattr(request, 'sid', None)}")
     emit("connected", {"message": "connected to server"})
+    if not server.feature_enabled("world-server"):
+        return
     if len(actions.action_defs) == 0:
         actions.load_actions()
     emit("actions_def", {"actions": actions.action_defs}, to=getattr(request, 'sid', None))
@@ -73,6 +75,9 @@ def handle_login(data):
       - "login_success" with {"username":...}
       - "login_failed" with {"error": "..."}
     """
+    if not server.feature_enabled("world-server"):
+        emit("login_failed", {"error": "world-server feature disabled"})
+        return
     sid = getattr(request, 'sid', None)
     username = (data or {}).get("username")
     password = (data or {}).get("password")
