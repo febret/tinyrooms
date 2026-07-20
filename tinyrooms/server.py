@@ -9,7 +9,7 @@ from typing import Any
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO
 
-from . import char_data, char_editor, db, icons, object_editor, prop_editor_api, sprite_editor_api, sprites, user
+from . import char_data, char_editor, db, icons, object_editor, prop_editor_api, sprite_editor_api, sprites, user, world_editor_api
 from .object import Object
 from .world import active_world, save_generated_thing_def, serialize_prop_library
 
@@ -24,6 +24,7 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 app.register_blueprint(sprite_editor_api.blueprint)
 app.register_blueprint(prop_editor_api.blueprint)
+app.register_blueprint(world_editor_api.blueprint)
 
 _editor_registry: dict[str, Any] = {}
 _enabled_features: set[str] = set()
@@ -103,6 +104,10 @@ def _object_assets_root(world_id: str) -> Path:
     if not world_id or "/" in world_id or "\\" in world_id or ".." in world_id:
         raise ValueError("invalid world id")
     return Path(__file__).parent.parent / "data" / "object_assets" / world_id
+
+
+def _server_images_root() -> Path:
+    return Path(__file__).parent.parent / "data" / "images"
 
 
 def configure_features(features: set[str] | list[str] | tuple[str, ...]):
@@ -282,6 +287,17 @@ def object_asset_data(world_id, filename):
         root = _object_assets_root(world_id)
     except ValueError:
         return jsonify({"error": "invalid world id"}), 400
+    asset_path = root / filename
+    if not asset_path.exists():
+        return jsonify({"error": "asset not found"}), 404
+    return send_from_directory(str(root), filename)
+
+
+@app.route("/server-images/<path:filename>")
+def server_image_data(filename):
+    if g := _guard_world_server():
+        return g
+    root = _server_images_root()
     asset_path = root / filename
     if not asset_path.exists():
         return jsonify({"error": "asset not found"}), 404

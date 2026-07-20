@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tinyrooms World Editor</title>
+  <link rel="stylesheet" href="/app/world-editor.css" />
+</head>
+<body>
+  <div class="world-editor-shell">
+    <header class="we-toolbar">
+      <div class="we-toolbar-group">
+        <a class="we-home-link" href="/">tinyrooms World Editor</a>
+        <div class="we-tab-buttons">
+          <button id="tabRoom" class="is-active" type="button">Room</button>
+          <button id="tabMap" type="button">World Map</button>
+        </div>
+      </div>
+      <div class="we-toolbar-group">
+        <div class="we-tool-buttons">
+          <button id="toolSelect" class="is-active" type="button">Select</button>
+          <button id="toolPlace" type="button">Place Prop</button>
+          <button id="toolExit" type="button">Draw Exit</button>
+        </div>
+        <button id="btnUndo" type="button">Undo</button>
+        <button id="btnRedo" type="button">Redo</button>
+        <button id="btnSaveRoom" type="button">Save Room</button>
+        <button id="btnSaveAll" type="button">Save All</button>
+        <button id="btnResetRoom" type="button">Reset Room</button>
+        <button id="btnToggleGrid" type="button">Grid</button>
+        <button id="btnFitView" type="button">Fit</button>
+      </div>
+      <div class="we-toolbar-group we-auth-group">
+        <span id="loginStatus" class="we-login-status"></span>
+        <button id="btnReloadState" type="button">Reload</button>
+      </div>
+    </header>
+
+    <div class="we-main">
+      <aside class="we-sidebar">
+        <div class="we-sidebar-header">
+          <input id="roomSearch" type="search" placeholder="Search rooms or ways" />
+        </div>
+        <div id="roomList" class="we-room-list"></div>
+        <div class="we-sidebar-actions">
+          <button id="btnNewRoom" type="button">+ New Room</button>
+          <button id="btnNewWay" type="button">+ New Way</button>
+        </div>
+      </aside>
+
+      <main class="we-center-panel">
+        <section id="roomPane" class="we-pane is-active">
+          <div class="we-canvas-toolbar">
+            <div id="roomTitle" class="we-pane-title">No room selected</div>
+            <div class="we-canvas-meta">
+              <span id="zoomLabel">100%</span>
+              <span id="dirtyLabel"></span>
+            </div>
+          </div>
+          <div id="canvasViewport" class="we-canvas-viewport">
+            <div id="canvasStage" class="we-canvas-stage"></div>
+            <div id="exitPicker" class="we-exit-picker hidden"></div>
+          </div>
+        </section>
+
+        <section id="mapPane" class="we-pane">
+          <div class="we-canvas-toolbar">
+            <div class="we-pane-title">World Map</div>
+            <div class="we-canvas-meta">
+              <button id="btnMapNewRoom" type="button">+ New Room</button>
+              <button id="btnMapConnect" type="button">+ Connect</button>
+            </div>
+          </div>
+          <div id="mapViewport" class="we-map-viewport">
+            <svg id="mapSvg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+        </section>
+      </main>
+
+      <aside id="propertiesPanel" class="we-properties-panel"></aside>
+    </div>
+
+    <section class="we-library-shell">
+      <button id="btnToggleLibrary" class="we-library-toggle" type="button">Props ▼</button>
+      <div id="libraryPanel" class="we-library-panel">
+        <div class="we-library-header">
+          <input id="librarySearch" type="search" placeholder="Search props" />
+          <div id="libraryTabs" class="we-library-tabs"></div>
+        </div>
+        <div id="libraryGrid" class="we-library-grid"></div>
+      </div>
+    </section>
+
+    <footer class="we-status-bar">
+      <div id="statusText">Loading…</div>
+    </footer>
+  </div>
+
+  <div id="modalBackdrop" class="we-modal-backdrop hidden">
+    <div class="we-modal">
+      <div class="we-modal-header">
+        <h3 id="modalTitle">Dialog</h3>
+        <button id="btnCloseModal" type="button">✕</button>
+      </div>
+      <form id="modalForm" class="we-modal-body"></form>
+    </div>
+  </div>
+
+  <script src="/app/world-editor.js"></script>
+</body>
+</html>

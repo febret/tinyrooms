@@ -50,7 +50,7 @@ class World:
         peeps: dict,
         ws_id: str = 'home',
     ):
-        self.info = info
+        self.info = info or {}
         self.root_path = root_path
         self.room_defs = room_defs
         self.thing_defs = thing_defs
@@ -139,7 +139,7 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
     
     with open(yaml_path, 'r', encoding='utf-8') as f:
         root_path = yaml_path.parent
-        world_info = yaml.safe_load(f)
+        world_info = yaml.safe_load(f) or {}
     print(f"Loaded world definition from {yaml_path}")
     
     # Initialize the worldstate DB

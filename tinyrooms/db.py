@@ -120,6 +120,11 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
         )
 
 
+def delete_room_data(dbconn: duckdb.DuckDBPyConnection, room_id: str):
+    """Delete persisted room data for a room."""
+    dbconn.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
+
+
 def read_object_data(dbcomm: duckdb.DuckDBPyConnection):
     """Retrieve object data from the worldstate database."""
     res = dbcomm.execute(
