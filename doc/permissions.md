@@ -45,6 +45,10 @@ any user (no special power needed):
 - `:?` - outputs user information, powers, and a list of available commands based on user powers.
 - `:list users [search]` - prints users, optionally filtered by search text, with connection status
 
+admin (manage user powers):
+- `:power list <username>` - display current powers for a user
+- `:power set <username> <power> <grant|remove>` - grant or remove a power from a user
+
 realtor (control room ownership):
 - `:room owner set <username>` — transfer ownership of the current room to the named user
 - `:room owner clear` — remove the owner from the current room (make it claimable again)
