@@ -86,7 +86,7 @@ The room panel in the client is updated when receiving `update_view` messages (s
 - 'header' updates the room description / status header
 - 'room-stage' updates the room stage view, i.e. the room background / props / prop position and orientations
 - 'room-object' updates a single room object, adding it, removing it or updating its display status (position, sprite, sprite effects). When an existing object moves, the move should be applied smoothly.
-- 'room-exits' updates the view with the room exit buttons.
+- 'room-exits' updates the exit list used by the action palette Directions tab.
 
 ## Implemented Server Contract (current)
 Room sync is emitted in `tinyrooms/room.py` by `send_full_room_sync(user)` in this order:

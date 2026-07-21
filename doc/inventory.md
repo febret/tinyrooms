@@ -71,15 +71,18 @@ Emitted privately to the owning user after every pick, drop, or on login.
 ### Inventory panel
 The inventory panel lives in `#inventoryPanel > #inventoryList` in the right-hand controls area. It is always visible.
 
-Each row contains:
-- An icon (the object's display asset image, if available).
-- The object's label and description.
-- A **Drop** button that emits `room_drop_object { obj_id }`.
+The list shows icon-only item tiles.
+- Clicking an icon selects that inventory item.
+- Dragging an icon onto the room canvas drops that object into the room (`room_drop_object` with drop coordinates).
+- The selected icon is highlighted and is used by the **Drop** action in the Actions tab.
 
 When the inventory is empty the list shows "Empty".
 
 ### Picking up from the action palette
-When an object entity is the selected target, a **Pick Up** button appears in the main action palette. Clicking it calls `pickUpSelectedObject()`, which emits `room_pick_object { entity_id }` and clears the selection.
+When an object entity is the selected target, a **Pick Up** button appears in the Actions tab. Clicking it calls `pickUpSelectedObject()`, which emits `room_pick_object { entity_id }` and clears the selection.
+
+### Dropping from the action palette
+The Actions tab includes **Drop**, which emits `room_drop_object { obj_id }` for the currently selected inventory object.
 
 ### Drag-to-pickup
 Dragging an object entity and dropping it on top of the user's own peep (character) on the room canvas also picks it up. This works for both mouse drag and touch drag. The drop target check inspects the element under the pointer at drag end; if that element belongs to the user's own peep entity node, `room_pick_object` is emitted instead of `room_move_entity`.
