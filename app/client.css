@@ -611,6 +611,16 @@ button {
   outline: 1px solid currentColor;
 }
 
+.palette-tab-btn.is-drag-over {
+  outline: 2px dashed currentColor;
+  opacity: 1;
+}
+
+.palette-buttons.is-drag-over {
+  outline: 2px dashed rgba(60, 140, 255, 0.6);
+  border-radius: 4px;
+}
+
 .palette-buttons {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -671,6 +681,11 @@ button {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 0.25rem;
+}
+
+.inventory-list.is-drag-over {
+  outline: 2px dashed rgba(60, 140, 255, 0.6);
+  border-radius: 4px;
 }
 
 .inventory-empty {

@@ -25,7 +25,7 @@ The client DOM (simplified) is:
                 - activityPanel (shows context-dependent activity content when active)
 
 ## Client Runtime and Event Flow
-The current `app/client.js` runtime is event-driven around Socket.IO and uses these key handlers:
+The client runtime is split between `app/client.js` (socket and room sync flow) and `app/actionPanel.js` (action palette and inventory interaction logic). It is event-driven around Socket.IO and uses these key handlers:
 
 - `actions_def`: receives server action definitions and rebuilds the action palette state.
 - `update_status`: updates `statusPanel > statusDisplay`.

@@ -188,6 +188,31 @@ function renderActionPalette() {
       activePaletteTab = tab.id;
       renderActionPalette();
     };
+    if (tab.id === "objects") {
+      tabBtn.addEventListener("dragenter", ev => {
+        if (ev.dataTransfer && ev.dataTransfer.types.includes("text/x-tinyrooms-inventory-obj")) {
+          ev.preventDefault();
+          activePaletteTab = "objects";
+          renderActionPalette();
+        }
+      });
+      tabBtn.addEventListener("dragover", ev => {
+        if (ev.dataTransfer && ev.dataTransfer.types.includes("text/x-tinyrooms-inventory-obj")) {
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = "move";
+          tabBtn.classList.add("is-drag-over");
+        }
+      });
+      tabBtn.addEventListener("dragleave", () => tabBtn.classList.remove("is-drag-over"));
+      tabBtn.addEventListener("drop", ev => {
+        tabBtn.classList.remove("is-drag-over");
+        if (!ev.dataTransfer) return;
+        const objId = (ev.dataTransfer.getData("text/x-tinyrooms-inventory-obj") || "").trim();
+        if (!objId) return;
+        ev.preventDefault();
+        dropInventoryObject(objId, null);
+      });
+    }
     tabsEl.appendChild(tabBtn);
   }
 
@@ -209,7 +234,39 @@ function renderActionPalette() {
       btn.textContent = item.label;
     }
     btn.onclick = item.onClick || null;
+    if (item.entityId) {
+      btn.draggable = true;
+      btn.addEventListener("dragstart", ev => {
+        if (!ev.dataTransfer) return;
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/x-tinyrooms-room-obj", item.entityId);
+        ev.dataTransfer.setData("text/plain", item.entityId);
+      });
+    }
     buttonsEl.appendChild(btn);
+  }
+
+  if (activePaletteTab === "objects") {
+    buttonsEl.addEventListener("dragover", ev => {
+      if (ev.dataTransfer && ev.dataTransfer.types.includes("text/x-tinyrooms-inventory-obj")) {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "move";
+        buttonsEl.classList.add("is-drag-over");
+      }
+    });
+    buttonsEl.addEventListener("dragleave", ev => {
+      if (!buttonsEl.contains(ev.relatedTarget)) {
+        buttonsEl.classList.remove("is-drag-over");
+      }
+    });
+    buttonsEl.addEventListener("drop", ev => {
+      buttonsEl.classList.remove("is-drag-over");
+      if (!ev.dataTransfer) return;
+      const objId = (ev.dataTransfer.getData("text/x-tinyrooms-inventory-obj") || "").trim();
+      if (!objId) return;
+      ev.preventDefault();
+      dropInventoryObject(objId, null);
+    });
   }
 
   layout.appendChild(tabsEl);
@@ -246,6 +303,7 @@ function getPaletteEntriesForTab(tabId) {
       label: entity.label || entity.entity_id || "object",
       title: entity.label || entity.entity_id || "object",
       iconUrl: getEntityThumbnailUrl(entity),
+      entityId: entity.entity_id,
       selected: selectedTarget && selectedTarget.type === "object" && selectedTarget.id === entity.entity_id,
       onClick: () => selectTarget({
         type: "object",
@@ -336,3 +394,28 @@ function requestActivity(mode) {
   socket.emit("request_activity_panel", { mode });
 }
 
+function bindInventoryListPickUpHandler() {
+  const inventoryList = document.getElementById("inventoryList");
+  if (!inventoryList || inventoryList.dataset.pickUpBound === "1") return;
+  inventoryList.dataset.pickUpBound = "1";
+  inventoryList.addEventListener("dragover", ev => {
+    if (ev.dataTransfer && ev.dataTransfer.types.includes("text/x-tinyrooms-room-obj")) {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "move";
+      inventoryList.classList.add("is-drag-over");
+    }
+  });
+  inventoryList.addEventListener("dragleave", ev => {
+    if (!inventoryList.contains(ev.relatedTarget)) {
+      inventoryList.classList.remove("is-drag-over");
+    }
+  });
+  inventoryList.addEventListener("drop", ev => {
+    inventoryList.classList.remove("is-drag-over");
+    if (!ev.dataTransfer) return;
+    const entityId = (ev.dataTransfer.getData("text/x-tinyrooms-room-obj") || "").trim();
+    if (!entityId) return;
+    ev.preventDefault();
+    socket.emit("room_pick_object", { entity_id: entityId });
+  });
+}

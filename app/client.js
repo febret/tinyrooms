@@ -26,6 +26,7 @@ if (btnWorldEditor) {
   btnWorldEditor.addEventListener("click", () => window.open("/world-editor", "_blank"));
 }
 bindInventoryDropHandlers();
+bindInventoryListPickUpHandler();
 
 
 var myUsername = null;
