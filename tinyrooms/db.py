@@ -1,16 +1,6 @@
 from pathlib import Path
-from werkzeug.security import generate_password_hash, check_password_hash
 import duckdb
 import json
-
-# Configuration
-DB_PATH = Path(__file__).parent.parent / "data/users.duckdb"
-DEFAULT_WORLD_ID = "home"
-DEFAULT_SPAWN_X = 32
-DEFAULT_SPAWN_Y = 32
-
-# Persistent database connection
-_user_db_connection = None
 
 # Optional override for the worldstate database path (set via configure_worldstate_path)
 _worldstate_db_path: Path | None = None
@@ -20,14 +10,6 @@ def configure_worldstate_path(path) -> None:
     """Override the worldstate database file path used by get_worldstate_connection."""
     global _worldstate_db_path
     _worldstate_db_path = Path(path)
-
-
-def get_user_connection():
-    """Get or create a persistent database connection."""
-    global _user_db_connection
-    if _user_db_connection is None:
-        _user_db_connection = duckdb.connect(str(DB_PATH))
-    return _user_db_connection
 
 
 def get_worldstate_connection(ws_id: str):
@@ -232,92 +214,9 @@ def write_peep_data(dbconn: duckdb.DuckDBPyConnection, peeps: dict) -> None:
         )
 
 
-# Initialize duckdb and users table
-def init_db(ws_id = 'home'):
-    con = get_user_connection()
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password_hash TEXT NOT NULL,
-            skin TEXT DEFAULT 'base'
-        )
-    """)
-    _ensure_column(con, "users", "skin", f"TEXT DEFAULT 'base'")
-    _ensure_column(con, "users", "last_world_id", f"TEXT DEFAULT '{DEFAULT_WORLD_ID}'")
-    _ensure_column(con, "users", "last_room_id", "TEXT DEFAULT ''")
-    _ensure_column(con, "users", "last_x", f"INTEGER DEFAULT {DEFAULT_SPAWN_X}")
-    _ensure_column(con, "users", "last_y", f"INTEGER DEFAULT {DEFAULT_SPAWN_Y}")
 
-
-def get_user(username):
-    con = get_user_connection()
-    res = con.execute(
-        "SELECT username, password_hash, skin, last_world_id, last_room_id, last_x, last_y FROM users WHERE username = ?",
-        [username],
-    ).fetchall()
-    return res[0] if res else None
-
-
-def _coerce_int(value, default: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def user_row_to_state(user_row):
-    if user_row is None:
-        return None
-    username, password_hash, skin, last_world_id, last_room_id, last_x, last_y = user_row
-    return {
-        "username": username,
-        "password_hash": password_hash,
-        "skin": skin or "base",
-        "last_world_id": last_world_id or DEFAULT_WORLD_ID,
-        "last_room_id": last_room_id or "",
-        "last_x": _coerce_int(last_x, DEFAULT_SPAWN_X),
-        "last_y": _coerce_int(last_y, DEFAULT_SPAWN_Y),
-    }
-
-
-def create_user(username, password_plain):
-    # returns True if created, False if username exists
-    if get_user(username):
-        return False
-    password_hash = generate_password_hash(password_plain)
-    con = get_user_connection()
-    con.execute("INSERT INTO users (username, password_hash, skin) VALUES (?, ?, ?)", [username, password_hash, 'base'])
-    return True
-
-
-def save_user_state(user_obj):
-    """Save user's state to database."""
-    room = getattr(user_obj, "room", None)
-    peep = getattr(user_obj, "peep", None)
-    world = getattr(user_obj, "world", None)
-    world_id = getattr(world, "ws_id", DEFAULT_WORLD_ID)
-    room_id = room.room_id if room is not None else ""
-    x = _coerce_int(getattr(peep, "x", DEFAULT_SPAWN_X), DEFAULT_SPAWN_X)
-    y = _coerce_int(getattr(peep, "y", DEFAULT_SPAWN_Y), DEFAULT_SPAWN_Y)
-    con = get_user_connection()
-    con.execute(
-        "UPDATE users SET skin = ?, last_world_id = ?, last_room_id = ?, last_x = ?, last_y = ? WHERE username = ?",
-        [user_obj.skin, world_id, room_id, x, y, user_obj.username],
-    )
-
-
-def set_user_value(username, field, value):
-    """Set a specific field for a user in the database."""
-    con = get_user_connection()
-    con.execute(f"UPDATE users SET {field} = ? WHERE username = ?", [value, username])
-
-
-def save_userdb_state():
-    """Save state of all connected users to database."""
-    from tinyrooms.user import connected_users
-    if not connected_users:
-        return
-    con = get_user_connection()
-    for user_obj in connected_users.values():
-        save_user_state(user_obj)
-    print(f"Saved state for {len(connected_users)} connected users")
+# Initialize duckdb worldstate schema
+def init_db(ws_id='home'):
+    """Initialize the worldstate database schema."""
+    wsdb = get_worldstate_connection(ws_id)
+    init_workstate_schema(wsdb)

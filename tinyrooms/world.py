@@ -9,6 +9,7 @@ from .peep import Peep
 from .prop import Prop
 from .utils import load_defs
 from . import db, icons as icon_module, prop_sets, sprites
+from . import user_data as user_data
 
 
 def generated_things_dir() -> Path:
@@ -426,7 +427,7 @@ def reset_rooms(ws_id: str | None = None) -> World:
         for obj in refreshed_world.objs.values():
             if obj.location_id == user_inventory_id:
                 connected.peep.inventory[obj.obj_id] = obj
-        db.save_user_state(connected)
+        user_data.save_user_state(connected)
 
     return refreshed_world
 

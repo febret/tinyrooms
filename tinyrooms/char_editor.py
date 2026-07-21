@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import char_data, icons, sprites, utils
+from . import user_data, icons, sprites, utils
 from .icons import DEFAULT_USER_ASSETS
 
 
@@ -61,10 +61,10 @@ def _current_sprite_asset(username: str, current_sprite: Any) -> str | None:
     normalized = current_sprite.strip()
     if sprites.parse_sprite_reference(normalized) is not None:
         return normalized
-    candidate = char_data.user_root(username) / normalized
+    candidate = user_data.user_root(username) / normalized
     if not candidate.exists() or not candidate.is_file():
         return None
-    return char_data.user_asset_url(username, normalized)
+    return user_data.user_asset_url(username, normalized)
 
 
 def resolve_character_sprite_preview(
@@ -79,7 +79,7 @@ def resolve_character_sprite_preview(
     if sprite_ref is None:
         return {
             "sprite_ref": normalized,
-            "image_url": char_data.user_asset_url(username, normalized),
+            "image_url": user_data.user_asset_url(username, normalized),
             "frame": None,
         }
     resolved = sprites.resolve_sprite_reference(sprite_ref, sprite_repo)
@@ -104,7 +104,7 @@ def build_character_display_assets(
     main_image = char.get("main_image")
     main_image_asset = DEFAULT_USER_ASSETS["img"]
     if isinstance(main_image, str) and main_image.strip():
-        main_image_asset = char_data.user_asset_url(username, main_image)
+        main_image_asset = user_data.user_asset_url(username, main_image)
     sprite_asset = _current_sprite_asset(username, char.get("current_sprite")) or main_image_asset
     return icons.build_display_assets(
         {
@@ -126,7 +126,7 @@ class CharacterEditorService:
         return None
 
     def profile(self, username: str, sprite_repo: sprites.SpriteRepository) -> dict[str, Any]:
-        char = char_data.read_char(username)
+        char = user_data.read_char(username)
         return {
             "available_sprites": self.list_available_sprites(sprite_repo),
             "char": self._char_for_client(username, char, sprite_repo),
@@ -139,7 +139,7 @@ class CharacterEditorService:
         description: str | None = None,
         current_sprite: str | None | object = UNSET,
     ) -> dict[str, Any]:
-        current = char_data.read_char(username)
+        current = user_data.read_char(username)
         next_description = self.validate_description(
             description if description is not None else current.get("description", "")
         )
@@ -148,7 +148,7 @@ class CharacterEditorService:
             current.get("current_sprite") if current_sprite is UNSET else current_sprite,
             sprite_repo,
         )
-        updated = char_data.write_char(
+        updated = user_data.write_char(
             username,
             description=next_description,
             current_sprite=next_sprite,
@@ -163,7 +163,7 @@ class CharacterEditorService:
         description: str | None = None,
         current_sprite: str | None | object = UNSET,
     ) -> dict[str, Any]:
-        current = char_data.read_char(username)
+        current = user_data.read_char(username)
         next_description = self.validate_description(
             description if description is not None else current.get("description", "")
         )
@@ -177,7 +177,7 @@ class CharacterEditorService:
             description=next_description,
             previous_main_image=current.get("main_image"),
         )
-        updated = char_data.write_char(
+        updated = user_data.write_char(
             username,
             description=next_description,
             current_sprite=next_sprite,
@@ -216,7 +216,7 @@ class CharacterEditorService:
             sprites.resolve_sprite_reference(sprite_ref, sprite_repo)
             return normalized
         if "/" in normalized or "\\" in normalized:
-            candidate = char_data.user_root(username) / normalized
+            candidate = user_data.user_root(username) / normalized
             if candidate.exists() and candidate.is_file():
                 return normalized.replace("\\", "/")
         raise ValueError("invalid current_sprite")
@@ -230,7 +230,7 @@ class CharacterEditorService:
         out = dict(char)
         main_image = out.get("main_image")
         out["main_image_url"] = (
-            char_data.user_asset_url(username, main_image)
+            user_data.user_asset_url(username, main_image)
             if isinstance(main_image, str) and main_image.strip()
             else None
         )
@@ -257,7 +257,7 @@ class CharacterEditorService:
             extra_args=["--description", prompt],
         )
 
-        _, _, images_dir, _ = char_data.ensure_user_paths(username)
+        _, _, images_dir, _ = user_data.ensure_user_paths(username)
         final_name = f"main_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.png"
         final_path = images_dir / final_name
         try:
@@ -266,8 +266,9 @@ class CharacterEditorService:
             raise ValueError(f"failed to persist main image: {err}") from err
 
         if isinstance(previous_main_image, str) and previous_main_image.startswith("images/"):
-            previous_path = char_data.user_root(username) / previous_main_image
+            previous_path = user_data.user_root(username) / previous_main_image
             if previous_path.exists() and previous_path.is_file():
                 previous_path.unlink(missing_ok=True)
 
         return f"images/{final_name}"
+

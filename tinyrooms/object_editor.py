@@ -8,15 +8,15 @@ from typing import Any
 
 import yaml
 
-from . import char_data, char_editor, sprites, utils
+from . import user_data, char_editor, sprites, utils
 
 
 def _images_dir(username: str) -> Path:
-    return char_data.user_root(username) / "thing_images"
+    return user_data.user_root(username) / "thing_images"
 
 
 def _ensure_images_dir(username: str) -> Path:
-    char_data.ensure_user_paths(username)
+    user_data.ensure_user_paths(username)
     images_dir = _images_dir(username)
     images_dir.mkdir(parents=True, exist_ok=True)
     return images_dir
@@ -29,7 +29,7 @@ def image_rel_path(image_id: str) -> str:
 
 
 def image_url(username: str, rel_path: str) -> str:
-    return char_data.user_asset_url(username, rel_path)
+    return user_data.user_asset_url(username, rel_path)
 
 
 def image_file_path(username: str, rel_path: str) -> Path:
@@ -38,7 +38,7 @@ def image_file_path(username: str, rel_path: str) -> Path:
     normalized = rel_path.replace("\\", "/").strip().lstrip("/")
     if not normalized.startswith("thing_images/"):
         raise ValueError("invalid image path")
-    path = char_data.user_root(username) / normalized
+    path = user_data.user_root(username) / normalized
     if not path.exists() or not path.is_file():
         raise FileNotFoundError("image not found")
     return path
@@ -133,7 +133,7 @@ class ObjectEditorService:
         image_asset = image_asset_url or current_sprite
         metadata: dict[str, Any] = {
             "created_by": username,
-            "generated_at": char_data._now_iso(),
+            "generated_at": user_data._now_iso(),
         }
         if current_sprite:
             metadata["selected_sprite_ref"] = current_sprite
@@ -175,8 +175,9 @@ class ObjectEditorService:
 
         previous_normalized = self.validate_image_path(username, previous_image) if previous_image else None
         if previous_normalized:
-            previous_path = char_data.user_root(username) / previous_normalized
+            previous_path = user_data.user_root(username) / previous_normalized
             if previous_path.exists() and previous_path.is_file():
                 previous_path.unlink(missing_ok=True)
 
         return image_rel_path(final_name)
+

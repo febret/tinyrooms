@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 from flask_socketio import emit
-from tinyrooms import server, console, db, user, connection, room, world
+from tinyrooms import server, console, user_data, user, connection, room, world
 from tinyrooms import peep_behavior
 
 
@@ -16,7 +16,7 @@ def kill():
     print("\n💀 Killing server immediately...")
     server.shutdown_char_editor()
     server.shutdown_object_editor()
-    db.save_userdb_state()
+    user_data.save_all_user_states()
     if server.feature_enabled("world-server"):
         peep_behavior.stop_tick_loop()
         world.active_world().save_state()
@@ -28,7 +28,7 @@ def reboot():
     print("\n🔄 Rebooting server...")
     server.shutdown_char_editor()
     server.shutdown_object_editor()
-    db.save_userdb_state()
+    user_data.save_all_user_states()
     if server.feature_enabled("world-server"):
         peep_behavior.stop_tick_loop()
         world.active_world().save_state()
@@ -133,15 +133,12 @@ if __name__ == "__main__":
     features = {f.strip() for raw in (args.feature or []) for f in raw.split(",") if f.strip()}
     server.configure_features(features)
 
-    # Configure worldstate DB path override if provided
-    if args.worldstate:
-        db.configure_worldstate_path(args.worldstate)
-    
-    # Initialize database
-    db.init_db()
-    
     # Initialize world (only when world-server feature is enabled)
     if server.feature_enabled("world-server"):
+        from tinyrooms import db
+        # Configure worldstate DB path override if provided
+        if args.worldstate:
+            db.configure_worldstate_path(args.worldstate)
         world.load_world(yaml_path=world_yaml, ws_id=world_id)
         peep_behavior.start_tick_loop(world.active_world, interval=args.tick_secs)
     
@@ -155,7 +152,7 @@ if __name__ == "__main__":
         "user": user,
         "room": room,
         "world": world,
-        "db": db,
+        "user_data": user_data,
     }
     console.start_console(console_vars)
     
@@ -178,7 +175,8 @@ if __name__ == "__main__":
         server.shutdown_char_editor()
         server.shutdown_object_editor()
         # Save state of all connected users before shutdown
-        db.save_userdb_state()
+        user_data.save_all_user_states()
         if server.feature_enabled("world-server"):
             peep_behavior.stop_tick_loop()
             world.active_world().save_state()
+

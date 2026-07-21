@@ -1,4 +1,4 @@
-from . import char_data, char_editor, db, peep, sprites
+from . import user_data, char_editor, peep, sprites
 from .icons import DEFAULT_USER_ASSETS
 
 
@@ -16,6 +16,7 @@ class User:
         self.sid = sid
         self.label = f"[[@{username}[[#d33 {username}]]]]"
         self.room = None
+        self.powers: set[str] = set()
         # TODO: load user description etc. from db
         self.peep = peep.Peep(username, "user", {"img": DEFAULT_USER_ASSETS["img"]})
         self.peep._display_assets = dict(DEFAULT_USER_ASSETS)
@@ -25,13 +26,22 @@ class User:
         self.styles_stale = False
         self.skin_stale = True
         self.skin = "base"
+        # Load powers from persisted state
+        if isinstance(persisted_state, dict):
+            raw_powers = persisted_state.get("powers", [])
+            if isinstance(raw_powers, list):
+                self.powers = {str(p) for p in raw_powers}
         self.join_world(world, persisted_state=persisted_state)
     
     def __repr__(self):
         return f"User(username={self.username!r}, sid={self.sid!r})"
 
+    def has_power(self, power: str) -> bool:
+        """Return True if this user has the named power."""
+        return power in self.powers
+
     def _apply_saved_character_state(self, world):
-        char = char_data.read_char(self.username)
+        char = user_data.read_char(self.username)
         self.peep.info["description"] = str(char.get("description") or "")
         world_root = getattr(world, "root_path", None)
         if not world_root:
@@ -44,11 +54,6 @@ class User:
             world_root,
             sprite_repo=sprite_repo,
         )
-    
-    def load(self):
-        user_state = db.user_row_to_state(db.get_user(self.username))
-        if user_state:
-            self.skin = user_state["skin"]
     
     def join_world(self, world, persisted_state=None):
         """Join the given world, restoring room/position when available."""
@@ -83,7 +88,7 @@ class User:
         print(f"Found {len(self.peep.inventory)} objects in inventory for user {self.username}")
         
     def save(self):
-        db.save_user_state(self)
+        user_data.save_user_state(self)
     
     def update_status(self):
         """Send the user's status to the client"""
@@ -115,8 +120,9 @@ def reload_skins(force_value=None):
     for u in connected_users.values():
         if force_value is not None:
             u.skin = force_value
-            db.save_user_state(u)
+            user_data.save_user_state(u)
         u.skin_stale = True
 
 # Maps sid -> User instance
 connected_users = {}
+

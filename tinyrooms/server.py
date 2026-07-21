@@ -9,7 +9,7 @@ from typing import Any
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask_socketio import SocketIO
 
-from . import char_data, char_editor, db, icons, object_editor, prop_editor_api, sprite_editor_api, sprites, user, world_editor_api
+from . import user_data, char_editor, icons, object_editor, prop_editor_api, sprite_editor_api, sprites, user, world_editor_api
 from .object import Object
 from .world import active_world, save_generated_thing_def, serialize_prop_library
 
@@ -272,7 +272,7 @@ def user_asset_data(username, filename):
     if g := _guard_world_server():
         return g
     try:
-        root = char_data.user_root(username)
+        root = user_data.user_root(username)
     except ValueError:
         return jsonify({"error": "invalid username"}), 400
     asset_path = root / filename
@@ -337,7 +337,7 @@ def register():
     password = data.get("password")
     if not username or not password:
         return jsonify({"ok": False, "error": "username and password required"}), 400
-    created = db.create_user(username, password)
+    created = user_data.create_user_profile(username, password)
     if not created:
         return jsonify({"ok": False, "error": "username already exists"}), 409
     return jsonify({"ok": True, "message": "user created"}), 201
@@ -481,3 +481,4 @@ def object_editor_create_thing():
     except ValueError as err:
         return _error_response(str(err), 400)
     return jsonify({"ok": True, "object_id": created_obj.obj_id, "entity": serialized}), 201
+

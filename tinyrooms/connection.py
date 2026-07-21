@@ -1,11 +1,10 @@
 from flask import request, session
 from flask_socketio import emit
-from werkzeug.security import check_password_hash
 import functools
 import secrets
 from uuid import uuid4
 
-from . import message, user, server, db, icons, emotes
+from . import message, user, server, user_data, icons, emotes
 from .prop import Prop
 from .world import active_world
 from . import peep_behavior as _peep_behavior
@@ -30,17 +29,6 @@ def _require_room_user():
         return None, None
     return user_obj, room
 
-# To send status updates to a client:
-# emit("update_status", {"key1": {"label": "Status 1"}, "key2": {"label": "Status 2"}}, to=sid)
-#
-# To send view updates to a client:
-# emit("update_view", {"view": "inventory", "format": "text", "value": "Gold: 100\nItems: 5"}, to=sid)
-#
-# To change a client's skin:
-# user_obj.skin = "base-fantasy"
-# user_obj.skin_stale = True
-# Or use: user.reload_skins() to reload all users' skins
-
 # Socket.IO events
 @server.socketio.on("connect")
 def handle_connect():
@@ -61,7 +49,7 @@ def handle_disconnect():
     print(f"disconnect: sid={sid} username={user_obj.username if user_obj else None}")
     if user_obj:
         # Save user's state before removing from room
-        db.save_user_state(user_obj)
+        user_data.save_user_state(user_obj)
         if user_obj.room:
             user_obj.room.remove_user(user_obj)
         if getattr(user_obj, 'world', None):
@@ -86,41 +74,35 @@ def handle_login(data):
         emit("login_failed", {"error": "username and password required"})
         return
 
-    user_row = db.get_user(username)
-    if not user_row:
+    profile = user_data.read_profile(username)
+    if profile is None:
         emit("login_failed", {"error": "invalid credentials"})
         return
 
-    user_state = db.user_row_to_state(user_row)
-    if user_state is None:
+    if not user_data.check_user_password(username, password):
         emit("login_failed", {"error": "invalid credentials"})
         return
 
-    password_hash = user_state["password_hash"]
-    saved_skin = user_state["skin"]
-    if check_password_hash(password_hash, password):
-        # Check if user is already logged in
-        if any(u.username == username for u in user.connected_users.values()):
-            emit("login_failed", {"error": "user already logged in"})
-            print(f"login rejected: {username} is already logged in")
-            return
-        
-        # Create User instance and store it
-        user_obj = user.User(username, sid, active_world(), persisted_state=user_state)
-        user_obj.rest_token = secrets.token_urlsafe(24)
-        # Load saved skin from database
-        user_obj.skin = saved_skin or 'base'
-        user_obj.skin_stale = True
-        user.connected_users[sid] = user_obj
-        session["username"] = username
-        db.save_user_state(user_obj)
-        
-        emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
-        _emit_inventory_update(user_obj)
-        
-        print(f"login success: {username} (sid={sid}) - added to room {user_obj.room.room_id if user_obj.room else None}")
-    else:
-        emit("login_failed", {"error": "invalid credentials"})
+    # Check if user is already logged in
+    if any(u.username == username for u in user.connected_users.values()):
+        emit("login_failed", {"error": "user already logged in"})
+        print(f"login rejected: {username} is already logged in")
+        return
+
+    # Create User instance and store it
+    user_obj = user.User(username, sid, active_world(), persisted_state=profile)
+    user_obj.rest_token = secrets.token_urlsafe(24)
+    # Load saved skin from profile
+    user_obj.skin = profile.get("skin") or 'base'
+    user_obj.skin_stale = True
+    user.connected_users[sid] = user_obj
+    session["username"] = username
+    user_data.save_user_state(user_obj)
+
+    emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
+    _emit_inventory_update(user_obj)
+
+    print(f"login success: {username} (sid={sid}) - added to room {user_obj.room.room_id if user_obj.room else None}")
 
 
 @server.socketio.on("message")
@@ -138,6 +120,16 @@ def handle_message(data):
     text = (data or {}).get("text", "").strip()
     if not text:
         return
+
+    # Route admin commands (/) and superuser commands (:)
+    from . import commands
+    if text.startswith("/"):
+        commands.dispatch_admin(user_obj, text)
+        return
+    if text.startswith(":"):
+        commands.dispatch(user_obj, text, active_world())
+        return
+
     parsed = message.parse_message(text, user_obj, user_obj.room)
 
     # Handle emotes in order of appearance
@@ -182,7 +174,7 @@ def handle_navigate(data):
     next_room = world.rooms[to]
     user_obj.room.remove_user(user_obj)
     next_room.add_user(user_obj)
-    db.save_user_state(user_obj)
+    user_data.save_user_state(user_obj)
     emit("message", {"text": f"You go {way.label}."}, to=user_obj.sid)
     emit("message", {"text": f"{user_obj.label} leaves {way.label}."}, room=room.room_id, skip_sid=user_obj.sid)
     emit("message", {"text": f"{user_obj.label} arrives from {room.label()}."}, room=next_room.room_id, skip_sid=user_obj.sid)
@@ -363,10 +355,13 @@ def handle_room_claim(data):
         emit("error", {"error": "room already has an owner"})
         return
     room.owner_id = user_obj.username
-    _save_world()
-    # Broadcast updated header to all users in the room so can_edit_props refreshes.
+    # Broadcast updated header immediately so UI reflects claim state without
+    # waiting on world-state persistence.
+    room.send_header_view(user_obj)
     for room_user in room.users.values():
-        room.send_header_view(room_user)
+        if room_user.sid != user_obj.sid:
+            room.send_header_view(room_user)
+    _save_world()
 
 
 @server.socketio.on("request_activity_panel")
