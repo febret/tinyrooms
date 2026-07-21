@@ -1,5 +1,15 @@
 /* Room stage styles */
 
+/* PixiJS canvas fills the roomCanvas wrapper */
+#roomCanvas canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
 /* Icon strip — row(s) of 64×64 room icons */
 .icon-strip {
   display: flex;

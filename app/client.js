@@ -38,7 +38,6 @@ var selectedTarget = null;
 var TOUCH_DRAG_THRESHOLD_PX = 8;
 var CHAT_MESSAGE_TTL_MS = 30000;
 var CHAT_MAX_VISIBLE = 10;
-var activeTouchDrag = null;
 var roomState = {
   roomId: null,
   canEditProps: false,
@@ -69,7 +68,6 @@ var roomEditor = {
 var heartbeatStarted = false;
 var saveLoopStarted = false;
 var restAuthToken = null;
-var spriteAnimationState = new Map();
 
 socket.on("connect", () => {
   const u = usernameInput.value.trim();
@@ -297,14 +295,11 @@ function handleRoomObjectUpdate(data) {
   const key = `${entity.entity_type}:${entity.entity_id}`;
   if (data.change === "remove") {
     roomState.entities.delete(key);
-    const domId = `room-${key.replace(":", "-")}`;
-    const node = document.getElementById(domId);
-    if (node) node.remove();
-    _stopSpriteAnimation(domId);
+    pixiRemoveEntity(key);
     return;
   }
   roomState.entities.set(key, entity);
-  renderForegroundEntity(entity);
+  pixiRenderForegroundEntity(entity);
 }
 
 function handleRoomExitsUpdate(data) {
@@ -313,7 +308,9 @@ function handleRoomExitsUpdate(data) {
 }
 
 function clearRoomSelection() {
-  document.querySelectorAll(".room-selected").forEach(el => el.classList.remove("room-selected"));
+  for (const key of pixiEntityNodes.keys()) {
+    pixiSetEntitySelected(key, false);
+  }
 }
 
 function navigateExit(wayId) {
@@ -326,7 +323,10 @@ function navigateExit(wayId) {
 function selectTarget(target, node) {
   selectedTarget = target;
   clearRoomSelection();
-  if (node) node.classList.add("room-selected");
+  if (target.type === "peep" || target.type === "object") {
+    const key = `${target.type}:${target.id}`;
+    pixiSetEntitySelected(key, true);
+  }
   lookBox.innerHTML = `<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`;
   if (paletteMode === "main") renderActionPalette();
 }
