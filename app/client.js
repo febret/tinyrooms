@@ -12,6 +12,7 @@ var chatLogList = document.getElementById("chatLogList");
 var msgInput = document.getElementById("msgInput");
 var sendBtn = document.getElementById("sendBtn");
 var btnLogout = document.getElementById("btnLogout");
+var btnCharacterEditorTrigger = document.getElementById("btnCharacterEditor");
 var btnWorldEditor = document.getElementById("btnWorldEditor");
 var connectionIndicator = document.getElementById("connectionIndicator");
 var roomTitleOverlay = document.getElementById("roomTitleOverlay");
@@ -24,6 +25,7 @@ var activityPanel = document.getElementById("activityPanel");
 if (btnWorldEditor) {
   btnWorldEditor.addEventListener("click", () => window.open("/world-editor", "_blank"));
 }
+bindInventoryDropHandlers();
 
 
 var myUsername = null;
@@ -31,10 +33,6 @@ var lastPassword = null;
 var selectedActions = [];
 var connectionState = "connecting";
 var connectionTime = null;
-var paletteMode = "main";
-var knownActions = {};
-var knownEmotes = {};
-var selectedTarget = null;
 var TOUCH_DRAG_THRESHOLD_PX = 8;
 var CHAT_MESSAGE_TTL_MS = 30000;
 var CHAT_MAX_VISIBLE = 10;
@@ -119,7 +117,11 @@ socket.on("login_success", data => {
   ensurePropLibraryLoaded(true);
   // Show World Editor button if the feature is available
   fetch("/world-editor", { method: "HEAD" }).then(r => {
-    if (r.ok) document.getElementById("btnWorldEditor").style.display = "";
+    if (r.ok) {
+      worldEditorAvailable = true;
+      document.getElementById("btnWorldEditor").style.display = "";
+      renderActionPalette();
+    }
   }).catch(() => {});
 });
 
@@ -143,49 +145,6 @@ socket.on("activity_panel", data => {
 socket.on("inventory_update", data => {
   renderInventoryPanel(data.items || []);
 });
-
-function renderInventoryPanel(items) {
-  const inventoryList = document.getElementById("inventoryList");
-  if (!inventoryList) return;
-  inventoryList.innerHTML = "";
-  if (items.length === 0) {
-    inventoryList.innerHTML = '<div class="inventory-empty">Empty</div>';
-    return;
-  }
-  for (const item of items) {
-    const row = document.createElement("div");
-    row.className = "inventory-item";
-
-    const icon = document.createElement("div");
-    icon.className = "inventory-item-icon";
-    const iconUrl = item.display && (item.display.icon || item.display.img || item.display.sprite);
-    if (iconUrl) {
-      const img = document.createElement("img");
-      img.src = resolveAssetUrl(iconUrl);
-      img.alt = item.label || "";
-      icon.appendChild(img);
-    }
-    row.appendChild(icon);
-
-    const info = document.createElement("div");
-    info.className = "inventory-item-info";
-    const labelEl = document.createElement("div");
-    labelEl.className = "inventory-item-label";
-    labelEl.textContent = item.label || item.obj_id;
-    info.appendChild(labelEl);
-    row.appendChild(info);
-
-    const dropBtn = document.createElement("button");
-    dropBtn.className = "inventory-drop-btn";
-    dropBtn.textContent = "Drop";
-    dropBtn.addEventListener("click", () => {
-      socket.emit("room_drop_object", { obj_id: item.obj_id });
-    });
-    row.appendChild(dropBtn);
-
-    inventoryList.appendChild(row);
-  }
-}
 
 socket.on("reload_styles", () => reloadStyle());
 socket.on("reload_client", () => {
@@ -300,126 +259,6 @@ function handleRoomObjectUpdate(data) {
   }
   roomState.entities.set(key, entity);
   pixiRenderForegroundEntity(entity);
-}
-
-function handleRoomExitsUpdate(data) {
-  // Store exits for the room editor; no longer render overlay buttons.
-  roomState.exits = data.exits || [];
-}
-
-function clearRoomSelection() {
-  for (const key of pixiEntityNodes.keys()) {
-    pixiSetEntitySelected(key, false);
-  }
-}
-
-function navigateExit(wayId) {
-  socket.emit("navigate", { way_id: wayId });
-  selectedTarget = null;
-  clearRoomSelection();
-  renderActionPalette();
-}
-
-function selectTarget(target, node) {
-  selectedTarget = target;
-  clearRoomSelection();
-  if (target.type === "peep" || target.type === "object") {
-    const key = `${target.type}:${target.id}`;
-    pixiSetEntitySelected(key, true);
-  }
-  lookBox.innerHTML = `<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`;
-  if (paletteMode === "main") renderActionPalette();
-}
-
-function pickUpSelectedObject() {
-  if (!selectedTarget || selectedTarget.type !== "object") return;
-  socket.emit("room_pick_object", { entity_id: selectedTarget.id });
-  selectedTarget = null;
-  clearRoomSelection();
-  renderActionPalette();
-}
-
-
-function renderActionPalette() {
-  actionPalette.innerHTML = "";
-  const entries = getPaletteEntries();
-  for (const item of entries) {
-    const btn = document.createElement("button");
-    btn.className = "palette-btn";
-    btn.textContent = item.label;
-    btn.onclick = item.onClick;
-    actionPalette.appendChild(btn);
-  }
-}
-
-function getPaletteEntries() {
-  if (paletteMode === "emote") {
-    const emotes = Object.entries(knownEmotes).filter(([id]) => id !== "say");
-    const buttons = emotes.map(([id, def]) => ({
-      label: def.label || id,
-      onClick: () => sendEmote(id),
-    }));
-    buttons.push({ label: "Back", onClick: () => { paletteMode = "main"; renderActionPalette(); } });
-    return buttons;
-  }
-  if (paletteMode === "extras") {
-    const entries = [
-      { label: "Create Thing", onClick: () => openObjectCreator() },
-      { label: roomEditor.enabled ? "Editing Room" : "Edit Room", onClick: () => enableRoomEditMode() },
-    ];
-    if (roomState.stage.type === 'standard') {
-      entries.push({ label: "Camera Near", onClick: () => { setCameraFloorHeight(200); paletteMode = "main"; renderActionPalette(); } });
-      entries.push({ label: "Camera Mid", onClick: () => { setCameraFloorHeight(100); paletteMode = "main"; renderActionPalette(); } });
-      entries.push({ label: "Camera Far", onClick: () => { setCameraFloorHeight(10); paletteMode = "main"; renderActionPalette(); } });
-    }
-    entries.push({ label: "Back", onClick: () => { paletteMode = "main"; renderActionPalette(); } });
-    return entries;
-  }
-  return [
-    { label: "Look", onClick: () => sendAction("basic.look") },
-    { label: "Use", onClick: () => sendAction("basic.use") },
-    ...(selectedTarget && selectedTarget.type === "object"
-      ? [{ label: "Pick Up", onClick: () => pickUpSelectedObject() }]
-      : []),
-    ...(selectedTarget && selectedTarget.type === "prop" && selectedTarget.exit_way_id
-      ? [{ label: `Go: ${selectedTarget.exit_label || "Exit"}`, onClick: () => navigateExit(selectedTarget.exit_way_id) }]
-      : []),
-    { label: "Emote", onClick: () => { paletteMode = "emote"; renderActionPalette(); } },
-    { label: "Equip", onClick: () => requestActivity("equip") },
-    { label: "Self", onClick: () => requestActivity("self") },
-    { label: "Extras", onClick: () => { paletteMode = "extras"; renderActionPalette(); } },
-  ];
-}
-
-function sendAction(actionId) {
-  let cmd = `.${actionId}`;
-  if (selectedTarget) {
-    if (selectedTarget.type === "object") cmd += ` @obj:${selectedTarget.id}`;
-    else if (selectedTarget.type === "peep") cmd += ` @${selectedTarget.id}`;
-    else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
-  }
-  socket.emit("message", { text: cmd });
-}
-
-function sendEmote(emoteId) {
-  let cmd = `.${emoteId}`;
-  if (selectedTarget) {
-    if (selectedTarget.type === "peep") cmd += `@${selectedTarget.id}`;
-    else if (selectedTarget.type === "object") cmd += ` @obj:${selectedTarget.id}`;
-    else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
-  }
-  paletteMode = "main";
-  renderActionPalette();
-  socket.emit("message", { text: cmd });
-}
-
-function requestActivity(mode) {
-  socket.emit("request_activity_panel", { mode });
-}
-
-function showLocalActivity(mode, text) {
-  activityPanel.style.display = "block";
-  activityPanel.innerHTML = `<div class="room-header-title">${escapeHtml(mode)}</div><div>${escapeHtml(text)}</div>`;
 }
 
 function reloadStyle() {

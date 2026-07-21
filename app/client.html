@@ -32,8 +32,6 @@
     <div id="statusPanel">
       <div id="statusDisplay"></div>
       <div class="status-controls">
-        <button id="btnCharacterEditor" style="margin: 0; padding: 0.4rem 0.8rem;">Modify Character</button>
-        <button id="btnWorldEditor" style="margin: 0; padding: 0.4rem 0.8rem; display:none;">World Editor</button>
         <div id="connectionIndicator" class="connection-indicator connecting" title="Click for connection info"></div>
         <button id="btnLogout" style="margin: 0; padding: 0.4rem 0.8rem; background: #dc3545;">Exit</button>
       </div>
@@ -69,6 +67,10 @@
         </div>
       </div>
     </div>
+  </div>
+  <div style="display:none;">
+    <button id="btnCharacterEditor">Modify Character</button>
+    <button id="btnWorldEditor" style="display:none;">World Editor</button>
   </div>
 
   <div id="characterEditorPage" style="display:none;">
@@ -138,6 +140,7 @@
 <script src="/app/objectEditor.js"></script>
 <script src="/app/prop.js"></script>
 <script src="/app/stage.js"></script>
+<script src="/app/actionPanel.js"></script>
 <script src="/app/client.js"></script>
 <script src="/app/sound.js"></script>
 <script src="/app/text.js"></script>
