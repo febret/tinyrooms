@@ -3,18 +3,16 @@ var knownActions = {};
 var knownEmotes = {};
 var selectedTarget = null;
 var inventoryItems = [];
-var selectedInventoryObjId = null;
 var worldEditorAvailable = false;
 
 function renderInventoryPanel(items) {
   const inventoryList = document.getElementById("inventoryList");
   if (!inventoryList) return;
   inventoryItems = items;
-  if (selectedInventoryObjId && !items.some(item => item.obj_id === selectedInventoryObjId)) {
-    selectedInventoryObjId = null;
-  }
-  if (!selectedInventoryObjId && items.length > 0) {
-    selectedInventoryObjId = items[0].obj_id;
+  // Clear inventory selection if the selected item left the inventory
+  if (selectedTarget && selectedTarget.type === "inventory" &&
+      !items.some(item => item.obj_id === selectedTarget.id)) {
+    selectedTarget = null;
   }
   inventoryList.innerHTML = "";
   if (items.length === 0) {
@@ -26,17 +24,26 @@ function renderInventoryPanel(items) {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "inventory-item";
-    if (item.obj_id === selectedInventoryObjId) row.classList.add("is-selected");
+    row.dataset.objId = item.obj_id;
     row.title = item.label || item.obj_id || "Item";
     row.draggable = true;
     row.addEventListener("click", () => {
-      selectedInventoryObjId = item.obj_id;
-      renderInventoryPanel(inventoryItems);
-      renderActionPalette();
+      selectTarget({
+        type: "inventory",
+        id: item.obj_id,
+        label: item.label || item.obj_id || "Item",
+        description: item.description || "",
+        display: item.display,
+      }, null);
     });
     row.addEventListener("dragstart", ev => {
-      selectedInventoryObjId = item.obj_id;
-      renderActionPalette();
+      selectTarget({
+        type: "inventory",
+        id: item.obj_id,
+        label: item.label || item.obj_id || "Item",
+        description: item.description || "",
+        display: item.display,
+      }, null);
       if (!ev.dataTransfer) return;
       ev.dataTransfer.effectAllowed = "move";
       ev.dataTransfer.setData("text/x-tinyrooms-inventory-obj", item.obj_id);
@@ -58,12 +65,8 @@ function renderInventoryPanel(items) {
 
     inventoryList.appendChild(row);
   }
+  renderInventorySelection();
   renderActionPalette();
-}
-
-function getSelectedInventoryItem() {
-  if (!selectedInventoryObjId) return null;
-  return inventoryItems.find(item => item.obj_id === selectedInventoryObjId) || null;
 }
 
 function dropInventoryObject(objId, point) {
@@ -74,11 +77,6 @@ function dropInventoryObject(objId, point) {
     payload.y = Math.round(point.y);
   }
   socket.emit("room_drop_object", payload);
-}
-
-function dropSelectedInventoryObject() {
-  if (!selectedInventoryObjId) return;
-  dropInventoryObject(selectedInventoryObjId, null);
 }
 
 function getInventoryDragObjectId(event) {
@@ -103,7 +101,6 @@ function bindInventoryDropHandlers() {
     const objId = getInventoryDragObjectId(event);
     if (!objId) return;
     event.preventDefault();
-    selectedInventoryObjId = objId;
     const point = getStagePoint(event.clientX, event.clientY, true);
     dropInventoryObject(objId, point || null);
   });
@@ -122,20 +119,39 @@ function clearRoomSelection() {
 
 function navigateExit(wayId) {
   socket.emit("navigate", { way_id: wayId });
-  selectedTarget = null;
-  clearRoomSelection();
-  renderActionPalette();
+  clearSelectedTarget();
 }
 
 function selectTarget(target, node) {
   selectedTarget = target;
-  clearRoomSelection();
-  if (target.type === "peep" || target.type === "object") {
-    const key = `${target.type}:${target.id}`;
-    pixiSetEntitySelected(key, true);
+  // Only highlight on the pixi stage for room entities (not inventory items)
+  if (target.type !== "inventory") {
+    clearRoomSelection();
+    if (target.type === "peep" || target.type === "object") {
+      const key = `${target.type}:${target.id}`;
+      pixiSetEntitySelected(key, true);
+    }
   }
   lookBox.innerHTML = `<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`;
   renderActionPalette();
+  renderInventorySelection();
+}
+
+function clearSelectedTarget() {
+  selectedTarget = null;
+  clearRoomSelection();
+  lookBox.innerHTML = "";
+  renderActionPalette();
+  renderInventorySelection();
+}
+
+function renderInventorySelection() {
+  const inventoryList = document.getElementById("inventoryList");
+  if (!inventoryList) return;
+  for (const row of inventoryList.querySelectorAll(".inventory-item")) {
+    const objId = row.dataset.objId;
+    row.classList.toggle("is-selected", selectedTarget?.type === "inventory" && selectedTarget.id === objId);
+  }
 }
 
 function getEntityThumbnailUrl(entity) {
@@ -159,9 +175,7 @@ function getRoomEntitiesByType(entityType) {
 function pickUpSelectedObject() {
   if (!selectedTarget || selectedTarget.type !== "object") return;
   socket.emit("room_pick_object", { entity_id: selectedTarget.id });
-  selectedTarget = null;
-  clearRoomSelection();
-  renderActionPalette();
+  clearSelectedTarget();
 }
 
 function renderActionPalette() {
@@ -347,33 +361,55 @@ function getPaletteEntriesForTab(tabId) {
     }
     return entries;
   }
-  return [
+  // Actions tab — context-sensitive based on selectedTarget
+  const invTarget = selectedTarget?.type === "inventory" ? selectedTarget : null;
+  const roomObjTarget = selectedTarget?.type === "object" ? selectedTarget : null;
+  const peepTarget = selectedTarget?.type === "peep" ? selectedTarget : null;
+  const propTarget = selectedTarget?.type === "prop" ? selectedTarget : null;
+  const hasAnyTarget = !!selectedTarget;
+
+  const entries = [
     { label: "Look", onClick: () => sendAction("basic.look") },
     { label: "Use", onClick: () => sendAction("basic.use") },
-    {
-      label: "Drop",
-      disabled: !selectedInventoryObjId,
-      title: selectedInventoryObjId
-        ? `Drop ${getSelectedInventoryItem()?.label || selectedInventoryObjId}`
-        : "Select an inventory item to drop",
-      onClick: () => dropSelectedInventoryObject(),
-    },
     { label: "Equip", onClick: () => requestActivity("equip") },
     { label: "Move", onClick: () => { activePaletteTab = "directions"; renderActionPalette(); } },
     { label: "Self", onClick: () => requestActivity("self") },
-    ...(selectedTarget && selectedTarget.type === "object"
-      ? [{ label: "Pick Up", onClick: () => pickUpSelectedObject() }]
-      : []),
-    ...(selectedTarget && selectedTarget.type === "prop" && selectedTarget.exit_way_id
-      ? [{ label: `Go: ${selectedTarget.exit_label || "Exit"}`, onClick: () => navigateExit(selectedTarget.exit_way_id) }]
-      : []),
   ];
+
+  if (invTarget) {
+    entries.push({
+      label: "Drop",
+      title: `Drop ${invTarget.label || invTarget.id}`,
+      onClick: () => dropInventoryObject(invTarget.id, null),
+    });
+  } else {
+    entries.push({
+      label: "Drop",
+      disabled: true,
+      title: "Select an inventory item to drop",
+      onClick: null,
+    });
+  }
+
+  if (roomObjTarget) {
+    entries.push({ label: "Pick Up", onClick: () => pickUpSelectedObject() });
+  }
+
+  if (hasAnyTarget) {
+    entries.push({ label: "Deselect", onClick: () => clearSelectedTarget() });
+  }
+
+  if (propTarget && propTarget.exit_way_id) {
+    entries.push({ label: `Go: ${propTarget.exit_label || "Exit"}`, onClick: () => navigateExit(propTarget.exit_way_id) });
+  }
+
+  return entries;
 }
 
 function sendAction(actionId) {
   let cmd = `.${actionId}`;
   if (selectedTarget) {
-    if (selectedTarget.type === "object") cmd += ` @obj:${selectedTarget.id}`;
+    if (selectedTarget.type === "object" || selectedTarget.type === "inventory") cmd += ` @obj:${selectedTarget.id}`;
     else if (selectedTarget.type === "peep") cmd += ` @${selectedTarget.id}`;
     else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
   }
@@ -384,7 +420,7 @@ function sendEmote(emoteId) {
   let cmd = `.${emoteId}`;
   if (selectedTarget) {
     if (selectedTarget.type === "peep") cmd += `@${selectedTarget.id}`;
-    else if (selectedTarget.type === "object") cmd += ` @obj:${selectedTarget.id}`;
+    else if (selectedTarget.type === "object" || selectedTarget.type === "inventory") cmd += ` @obj:${selectedTarget.id}`;
     else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
   }
   socket.emit("message", { text: cmd });
