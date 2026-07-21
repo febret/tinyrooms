@@ -175,6 +175,13 @@ def _cmd_help(user_obj: Any, args: list[str], world: Any) -> None:
             "  :room describe <text> — set room description",
             "  :room reset — reset room to defaults",
         ]
+    if user_obj.has_power("admin"):
+        lines += [
+            "",
+            "**Admin power commands:**",
+            "  :power list <username> — show a user's powers",
+            "  :power set <username> <power> <grant|remove> — grant/remove a power",
+        ]
     if user_obj.has_power("moderator"):
         lines += [
             "",
@@ -219,6 +226,87 @@ def _cmd_list_users(user_obj: Any, args: list[str], world: Any) -> None:
 @_cmd("list users <search>")
 def _cmd_list_users_search(user_obj: Any, args: list[str], world: Any) -> None:
     _cmd_list_users(user_obj, args, world)
+
+
+# ---------------------------------------------------------------------------
+# Admin power-management commands
+# ---------------------------------------------------------------------------
+
+_MANAGED_POWERS = {"admin", "realtor", "builder", "moderator", "game-master"}
+_POWER_ENABLE_ACTIONS = {"grant", "add", "on", "true", "1"}
+_POWER_DISABLE_ACTIONS = {"remove", "revoke", "off", "false", "0"}
+
+
+@_cmd("power list <username>", power="admin")
+def _cmd_power_list(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import user as user_module, user_data
+
+    target_name = args[0] if args else ""
+    if not target_name:
+        _error_panel(user_obj, "Usage: :power list <username>")
+        return
+
+    profile = user_data.read_profile(target_name)
+    if profile is None:
+        _error_panel(user_obj, f"User '{target_name}' not found.")
+        return
+
+    persisted_powers = sorted({str(p).strip() for p in profile.get("powers", []) if str(p).strip()})
+    online = user_module.find_online(target_name)
+    online_text = "online" if online is not None else "offline"
+    lines = [
+        f"User: {target_name} ({online_text})",
+        f"Powers: {', '.join(persisted_powers) if persisted_powers else '(none)'}",
+    ]
+    _emit_panel(user_obj, "Power List", "\n".join(lines))
+
+
+@_cmd("power set <username> <power> <mode>", power="admin")
+def _cmd_power_set(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import user as user_module, user_data
+
+    target_name = args[0] if len(args) > 0 else ""
+    power_name = (args[1] if len(args) > 1 else "").strip().lower()
+    mode_name = (args[2] if len(args) > 2 else "").strip().lower()
+    if not target_name or not power_name or not mode_name:
+        _error_panel(user_obj, "Usage: :power set <username> <power> <grant|remove>")
+        return
+
+    if power_name not in _MANAGED_POWERS:
+        _error_panel(
+            user_obj,
+            f"Unknown power '{power_name}'. Valid powers: {', '.join(sorted(_MANAGED_POWERS))}.",
+        )
+        return
+
+    profile = user_data.read_profile(target_name)
+    if profile is None:
+        _error_panel(user_obj, f"User '{target_name}' not found.")
+        return
+
+    powers = {str(p).strip() for p in profile.get("powers", []) if str(p).strip()}
+    if mode_name in _POWER_ENABLE_ACTIONS:
+        powers.add(power_name)
+        action_text = "granted"
+    elif mode_name in _POWER_DISABLE_ACTIONS:
+        powers.discard(power_name)
+        action_text = "removed"
+    else:
+        _error_panel(user_obj, "Usage: :power set <username> <power> <grant|remove>")
+        return
+
+    final_powers = sorted(powers)
+    user_data.write_profile(target_name, powers=final_powers)
+
+    online_target = user_module.find_online(target_name)
+    if online_target is not None:
+        online_target.powers = set(final_powers)
+
+    lines = [
+        f"Power '{power_name}' {action_text} for user '{target_name}'.",
+        f"Current powers: {', '.join(final_powers) if final_powers else '(none)'}",
+    ]
+    _emit_panel(user_obj, "Power Set", "\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -628,4 +716,3 @@ def dispatch_admin(user_obj: Any, text: str) -> bool:
     }
     console.run_admin_cmd(cmd, locals_dict)
     return True
-

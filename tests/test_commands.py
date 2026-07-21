@@ -223,6 +223,15 @@ def test_help_shows_no_extra_sections_for_no_powers():
     assert "Game-master" not in content
 
 
+def test_help_shows_admin_power_commands_for_admin_user():
+    result, captured, _, _ = _dispatch_and_capture(":?", powers=["admin"])
+    assert result is True
+    content = captured.get("content", "")
+    assert "Admin power commands" in content
+    assert ":power list <username>" in content
+    assert ":power set <username> <power> <grant|remove>" in content
+
+
 def test_dispatch_admin_requires_admin_power():
     user = _make_user(powers=[])
     captured = {}
@@ -259,6 +268,100 @@ def test_dispatch_admin_routes_known_command():
         handled = dispatch_admin(user, "/rc")
     assert handled is True
     mock_run.assert_called_once()
+
+
+def test_power_list_requires_admin_power():
+    result, captured, _, _ = _dispatch_and_capture(":power list alice", powers=[])
+    assert result is True
+    assert "don't have" in captured.get("content", "").lower()
+
+
+def test_power_list_reports_not_found_user():
+    user = _make_user(powers=["admin"])
+    world = _make_world()
+    user.room = world.rooms["DEFAULT_ROOM"]
+    captured = {}
+
+    def fake_emit(event, payload, **kwargs):
+        if event == "activity_panel":
+            captured.update(payload)
+
+    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        with patch("tinyrooms.user_data.read_profile", return_value=None):
+            dispatch(user, ":power list missing_user", world)
+
+    assert captured.get("title") == "Error"
+    assert "not found" in captured.get("content", "").lower()
+
+
+def test_power_list_reports_current_powers():
+    user = _make_user(powers=["admin"])
+    world = _make_world()
+    user.room = world.rooms["DEFAULT_ROOM"]
+    captured = {}
+
+    def fake_emit(event, payload, **kwargs):
+        if event == "activity_panel":
+            captured.update(payload)
+
+    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        with patch(
+            "tinyrooms.user_data.read_profile",
+            return_value={"powers": ["builder", "moderator"]},
+        ):
+            with patch("tinyrooms.user.find_online", return_value=None):
+                dispatch(user, ":power list alice", world)
+
+    assert captured.get("title") == "Power List"
+    assert "builder" in captured.get("content", "")
+    assert "moderator" in captured.get("content", "")
+
+
+def test_power_set_grant_updates_profile_and_online_user():
+    user = _make_user(powers=["admin"])
+    world = _make_world()
+    user.room = world.rooms["DEFAULT_ROOM"]
+    online_target = _make_user(username="alice", powers=["builder"])
+    captured = {}
+
+    def fake_emit(event, payload, **kwargs):
+        if event == "activity_panel":
+            captured.update(payload)
+
+    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        with patch("tinyrooms.user_data.read_profile", return_value={"powers": ["builder"]}):
+            with patch("tinyrooms.user_data.write_profile") as mock_write:
+                with patch("tinyrooms.user.find_online", return_value=online_target):
+                    dispatch(user, ":power set alice moderator grant", world)
+
+    assert captured.get("title") == "Power Set"
+    assert "granted" in captured.get("content", "")
+    mock_write.assert_called_once()
+    _, kwargs = mock_write.call_args
+    assert sorted(kwargs["powers"]) == ["builder", "moderator"]
+    assert online_target.powers == {"builder", "moderator"}
+
+
+def test_power_set_remove_updates_profile():
+    user = _make_user(powers=["admin"])
+    world = _make_world()
+    user.room = world.rooms["DEFAULT_ROOM"]
+    captured = {}
+
+    def fake_emit(event, payload, **kwargs):
+        if event == "activity_panel":
+            captured.update(payload)
+
+    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        with patch("tinyrooms.user_data.read_profile", return_value={"powers": ["builder", "moderator"]}):
+            with patch("tinyrooms.user_data.write_profile") as mock_write:
+                with patch("tinyrooms.user.find_online", return_value=None):
+                    dispatch(user, ":power set alice moderator remove", world)
+
+    assert captured.get("title") == "Power Set"
+    assert "removed" in captured.get("content", "")
+    _, kwargs = mock_write.call_args
+    assert kwargs["powers"] == ["builder"]
 
 
 # ---------------------------------------------------------------------------

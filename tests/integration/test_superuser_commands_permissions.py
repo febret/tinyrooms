@@ -169,3 +169,57 @@ def test_reset_world_restores_yaml_room_label(
         timeout=8.0,
     )
     assert restored_header.get("label") == "the Playroom"
+
+
+def test_admin_power_set_and_list_updates_target_profile(
+    register_user,
+    socket_client_factory,
+    login_socket_user,
+    unique_username,
+    server_runtime,
+):
+    admin_username = unique_username("it_admin_power")
+    admin_password = "admin_power_pass"
+    register_user(admin_username, admin_password)
+    _grant_powers(server_runtime, admin_username, ["admin"])
+
+    target_username = unique_username("it_target_power")
+    target_password = "target_power_pass"
+    register_user(target_username, target_password)
+
+    admin_client = socket_client_factory()
+    login_socket_user(admin_client, admin_username, admin_password)
+
+    admin_client.emit("message", {"text": f":power set {target_username} game-master grant"})
+    grant_panel = admin_client.wait_for(
+        "activity_panel",
+        predicate=lambda p: p.get("title") == "Power Set",
+        timeout=8.0,
+    )
+    assert "granted" in grant_panel.get("content", "").lower()
+    assert "game-master" in grant_panel.get("content", "")
+
+    admin_client.emit("message", {"text": f":power list {target_username}"})
+    list_panel = admin_client.wait_for(
+        "activity_panel",
+        predicate=lambda p: p.get("title") == "Power List",
+        timeout=8.0,
+    )
+    assert "game-master" in list_panel.get("content", "")
+
+    target_profile_path = Path(server_runtime.workspace) / "data" / "users" / target_username / "profile.yaml"
+    target_profile = yaml.safe_load(target_profile_path.read_text(encoding="utf-8")) or {}
+    target_powers = set(target_profile.get("powers", []))
+    assert "game-master" in target_powers
+
+    admin_client.emit("message", {"text": f":power set {target_username} game-master remove"})
+    remove_panel = admin_client.wait_for(
+        "activity_panel",
+        predicate=lambda p: p.get("title") == "Power Set",
+        timeout=8.0,
+    )
+    assert "removed" in remove_panel.get("content", "").lower()
+
+    target_profile_after = yaml.safe_load(target_profile_path.read_text(encoding="utf-8")) or {}
+    target_powers_after = set(target_profile_after.get("powers", []))
+    assert "game-master" not in target_powers_after
