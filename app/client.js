@@ -141,7 +141,20 @@ socket.on("activity_panel", data => {
   const title = escapeHtml(data.title || "");
   const content = formatText(escapeHtml(data.content || ""));
   activityPanel.style.display = "block";
-  activityPanel.innerHTML = `<div class="room-header-title">${title}</div><div>${content}</div>`;
+  activityPanel.innerHTML = `
+    <div class="activity-panel-header">
+      <div class="room-header-title">${title}</div>
+      <button id="btnActivityPanelDismiss" class="activity-panel-dismiss" title="Dismiss">✕</button>
+    </div>
+    <div class="activity-panel-content">${content}</div>
+  `;
+  attachRefEventHandlers(activityPanel);
+  const dismissBtn = document.getElementById("btnActivityPanelDismiss");
+  if (dismissBtn) {
+    dismissBtn.onclick = () => {
+      activityPanel.style.display = "none";
+    };
+  }
 });
 
 socket.on("inventory_update", data => {

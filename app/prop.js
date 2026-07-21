@@ -207,7 +207,10 @@ function renderRoomEditorActivity() {
        </div>`
     : "";
   activityPanel.innerHTML = `
-    <div class="room-header-title">Room Editor</div>
+    <div class="activity-panel-header">
+      <div class="room-header-title">Room Editor</div>
+      <button id="btnRoomEditorDismiss" class="activity-panel-dismiss" title="Dismiss">✕</button>
+    </div>
     <div class="character-editor-actions">
       <button id="btnRoomEditorSave" ${saveDisabled}>Save Room</button>
       <button id="btnRoomEditorCancel" ${saveDisabled}>Cancel</button>
@@ -221,6 +224,8 @@ function renderRoomEditorActivity() {
   if (btnSave) btnSave.onclick = saveRoomEdits;
   const btnCancel = document.getElementById("btnRoomEditorCancel");
   if (btnCancel) btnCancel.onclick = cancelRoomEdits;
+  const btnDismiss = document.getElementById("btnRoomEditorDismiss");
+  if (btnDismiss) btnDismiss.onclick = cancelRoomEdits;
   const btnClaim = document.getElementById("btnRoomEditorClaim");
   if (btnClaim) btnClaim.onclick = claimRoom;
   activityPanel.querySelectorAll("[data-prop-add]").forEach((node) => {
