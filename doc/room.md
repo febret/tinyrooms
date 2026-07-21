@@ -210,9 +210,15 @@ User spawn persistence is handled in `data/users.duckdb`:
 - user state is persisted on login, room transitions (`.go`), disconnect, and graceful shutdown
 
 ## Client Stage Runtime Notes
-The room stage in `app/client.js` is DOM-layer based (not `<canvas>` drawing API):
-- stage background and props are rendered in a fixed layer
-- foreground entities are rendered in a separate layer with CSS transition for movement
-- drag/drop sends intent only on drop (not continuously during drag)
-- drag image uses a translucent clone
-- room exits are button-only UI in `roomExits`
+The room stage in `app/stage.js` is rendered using **PixiJS v8** (canvas/WebGL):
+- `app/client.html` loads PixiJS from CDN (`pixi.js@8.17.0`) before the application scripts, making `PIXI` available globally.
+- `initPixiApp()` creates a `PIXI.Application` and appends its canvas inside `#roomCanvas`. It is called once on the first `room-stage` event and is a no-op thereafter.
+- The PixiJS scene graph has three z-ordered containers: `pixiBgContainer` (background + floor), `pixiPropsContainer` (props, sortable by `z_order`), and `pixiEntitiesContainer` (peeps/objects, sortable by computed depth).
+- Textures are loaded via `PIXI.Assets.load()` and cached in `pixiTextureCache`. Sub-textures for spritesheet frames are created via `makeFrameTexture()`.
+- Background and floor are rendered as `PIXI.Sprite` (stretch) or `PIXI.TilingSprite` (tile).
+- Props are rendered as `PIXI.Sprite` with optional `PIXI.Ticker`-driven frame animation. Editor-mode prop controls (rotate/delete/exit) are rendered as a DOM overlay (`#pixiEditorOverlay`) positioned over the PixiJS canvas.
+- Foreground entities use a move tween driven by the PixiJS ticker for smooth 180ms positional interpolation (equivalent to the previous CSS `transition: left 180ms linear`).
+- Drag interactions (entity drag, prop drag in editor mode) use PixiJS pointer events (`pointerdown`, `globalpointermove`, `pointerup`) — no HTML5 drag API or separate touch handling needed.
+- Click-to-move fires from a `pointertap` listener on `pixiApp.stage`; entity/prop wrappers call `ev.stopPropagation()` to prevent click-through.
+- Selection highlight is drawn as a `PIXI.Graphics` outline child of the entity wrapper, toggled via `pixiSetEntitySelected(key, isSelected)`.
+- DOM overlays (`#roomTitleOverlay`, `#logPanel`, `#roomExits`) remain as regular HTML elements layered over the canvas via `position:absolute`.
