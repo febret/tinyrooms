@@ -12,6 +12,15 @@ DEFAULT_SPAWN_Y = 32
 # Persistent database connection
 _user_db_connection = None
 
+# Optional override for the worldstate database path (set via configure_worldstate_path)
+_worldstate_db_path: Path | None = None
+
+
+def configure_worldstate_path(path) -> None:
+    """Override the worldstate database file path used by get_worldstate_connection."""
+    global _worldstate_db_path
+    _worldstate_db_path = Path(path)
+
 
 def get_user_connection():
     """Get or create a persistent database connection."""
@@ -22,8 +31,16 @@ def get_user_connection():
 
 
 def get_worldstate_connection(ws_id: str):
-    """Get a database connection context for a specific world."""
-    world_db_path = Path(__file__).parent.parent / "data" / f"worldstate_{ws_id}.duckdb"
+    """Get a database connection for a specific world.
+
+    If a custom path has been configured via configure_worldstate_path, that
+    path is used regardless of ws_id.  Otherwise the standard
+    data/worldstate_<ws_id>.duckdb path is used.
+    """
+    if _worldstate_db_path is not None:
+        world_db_path = _worldstate_db_path
+    else:
+        world_db_path = Path(__file__).parent.parent / "data" / f"worldstate_{ws_id}.duckdb"
     return duckdb.connect(str(world_db_path))
 
 

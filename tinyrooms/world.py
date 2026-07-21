@@ -66,8 +66,8 @@ class World:
         self.peeps = peeps
         self.default_room = self.rooms.get("DEFAULT_ROOM", self.default_room)
         
-    def save_state(self, ws_id:str = 'home'):
-        with db.get_worldstate_connection(ws_id) as wsdb:
+    def save_state(self, ws_id: str | None = None):
+        with db.get_worldstate_connection(ws_id if ws_id is not None else self.ws_id) as wsdb:
             db.write_room_data(wsdb, self.rooms)
             db.write_object_data(wsdb, self.objs)
             db.write_peep_data(wsdb, self.peeps)

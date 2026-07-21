@@ -3,6 +3,7 @@ import signal
 import sys
 import argparse
 import logging
+from pathlib import Path
 
 from flask_socketio import emit
 from tinyrooms import server, console, db, user, connection, room, world
@@ -87,7 +88,39 @@ if __name__ == "__main__":
         default=[],
         help="Enable optional feature flag (repeatable; also accepts comma-separated values, e.g. --feature sprite-editor,prop-editor)",
     )
+    parser.add_argument(
+        "--world",
+        default=os.environ.get("TRSERVER_WORLD", "home"),
+        help=(
+            "World to load: either a world name (looked up in data/worlds/<name>) "
+            "or a full path to a world directory (default: home; env: TRSERVER_WORLD)"
+        ),
+    )
+    parser.add_argument(
+        "--worldstate",
+        default=os.environ.get("TRSERVER_WORLDSTATE", ""),
+        help=(
+            "Full path to the DuckDB worldstate file to use instead of the default "
+            "data/worldstate_<world>.duckdb (env: TRSERVER_WORLDSTATE)"
+        ),
+    )
     args = parser.parse_args()
+
+    # Resolve world directory and yaml path from --world argument.
+    # Treat as a full path when it is absolute or contains a path separator;
+    # otherwise look it up by name inside data/worlds/.
+    _world_arg = args.world
+    _world_path = Path(_world_arg)
+    if _world_path.is_absolute() or os.sep in _world_arg or "/" in _world_arg:
+        world_dir = _world_path
+        world_id = _world_path.name
+    else:
+        world_dir = Path(__file__).parent / "data" / "worlds" / _world_arg
+        world_id = _world_arg
+    world_yaml = world_dir / "world.yaml"
+    if not world_yaml.is_file():
+        print(f"Error: world definition not found: {world_yaml}", file=sys.stderr)
+        sys.exit(1)
 
     # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler_kill)  # Ctrl-C
@@ -99,13 +132,17 @@ if __name__ == "__main__":
     server.configure_object_editor(args.object_temp_dir or None)
     features = {f.strip() for raw in (args.feature or []) for f in raw.split(",") if f.strip()}
     server.configure_features(features)
+
+    # Configure worldstate DB path override if provided
+    if args.worldstate:
+        db.configure_worldstate_path(args.worldstate)
     
     # Initialize database
     db.init_db()
     
     # Initialize world (only when world-server feature is enabled)
     if server.feature_enabled("world-server"):
-        world.load_world()
+        world.load_world(yaml_path=world_yaml, ws_id=world_id)
         peep_behavior.start_tick_loop(world.active_world, interval=args.tick_secs)
     
     # Start the interactive console in a separate thread
