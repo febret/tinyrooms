@@ -27,6 +27,7 @@ if (btnWorldEditor) {
 }
 bindInventoryDropHandlers();
 bindInventoryListPickUpHandler();
+initTouchDragHandlers();
 
 
 var myUsername = null;

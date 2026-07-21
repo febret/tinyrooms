@@ -697,6 +697,10 @@ button {
   border-radius: 4px;
 }
 
+#roomCanvas.is-drag-over {
+  outline: 2px dashed rgba(60, 140, 255, 0.5);
+}
+
 .inventory-empty {
   font-size: 0.72rem;
   opacity: 0.5;

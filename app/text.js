@@ -6,9 +6,18 @@ function escapeHtml(s){
 function formatText(text) {
   // Replace [[ and ]] with <span> tags
   // Support [[<@id>text]] or [[<color>text]] formats
+  // Support [[display text|:command]] spec format for clickable command links
   
   let result = text;
-  
+
+  // First, handle spec-format command links: [[display text|command]]
+  // These are fully-enclosed [[...|...]] spans with a pipe separator.
+  result = result.replace(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/g, (match, display, command) => {
+    const escapedDisplay = escapeHtml(display.trim());
+    const escapedCmd = escapeHtml(command.trim());
+    return `<span class="ref cmd-link" data-cmd-text="${escapedCmd}">${escapedDisplay}</span>`;
+  });
+
   // Pattern to match [[@id or [[color or [[ followed by content and closing ]]
   // This regex captures: [[(@id or color)? ... ]]
   result = result.replace(/\[\[(\.\w+@?[\w|:|-]*|@[\w|:|-]*|#\w+)?\s*/g, (match, modifier) => {

@@ -198,6 +198,7 @@ function renderActionPalette() {
     tabBtn.className = `palette-tab-btn${activePaletteTab === tab.id ? " is-active" : ""}`;
     tabBtn.textContent = tab.emoji;
     tabBtn.title = tab.title;
+    tabBtn.dataset.tabId = tab.id;
     tabBtn.onclick = () => {
       activePaletteTab = tab.id;
       renderActionPalette();
@@ -249,6 +250,7 @@ function renderActionPalette() {
     }
     btn.onclick = item.onClick || null;
     if (item.entityId) {
+      btn.dataset.entityId = item.entityId;
       btn.draggable = true;
       btn.addEventListener("dragstart", ev => {
         if (!ev.dataTransfer) return;
@@ -454,4 +456,138 @@ function bindInventoryListPickUpHandler() {
     ev.preventDefault();
     socket.emit("room_pick_object", { entity_id: entityId });
   });
+}
+
+// ─── Touch drag-and-drop manager ─────────────────────────────────────────────
+// Mirrors the HTML5 drag/drop flows for touch devices.
+// touchDrag state: { type, id, sourceEl, startX, startY, active, ghost }
+
+var touchDrag = null;
+var TOUCH_DRAG_THRESHOLD = 8;
+
+function initTouchDragHandlers() {
+  document.addEventListener("touchstart", _tdOnStart, { passive: false });
+  document.addEventListener("touchmove", _tdOnMove, { passive: false });
+  document.addEventListener("touchend", _tdOnEnd, { passive: false });
+  document.addEventListener("touchcancel", _tdOnCancel);
+}
+
+function _tdOnStart(ev) {
+  const el = ev.target;
+  const invItem = el.closest(".inventory-item[data-obj-id]");
+  if (invItem) {
+    const t = ev.touches[0];
+    touchDrag = { type: "inventory-obj", id: invItem.dataset.objId, sourceEl: invItem,
+                  startX: t.clientX, startY: t.clientY, active: false, ghost: null };
+    return;
+  }
+  const pBtn = el.closest(".palette-btn[data-entity-id]");
+  if (pBtn) {
+    const t = ev.touches[0];
+    touchDrag = { type: "room-obj", id: pBtn.dataset.entityId, sourceEl: pBtn,
+                  startX: t.clientX, startY: t.clientY, active: false, ghost: null };
+    return;
+  }
+}
+
+function _tdOnMove(ev) {
+  if (!touchDrag) return;
+  const t = ev.touches[0];
+  const dx = t.clientX - touchDrag.startX;
+  const dy = t.clientY - touchDrag.startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (!touchDrag.active && dist < TOUCH_DRAG_THRESHOLD) return;
+  ev.preventDefault();
+  if (!touchDrag.active) {
+    touchDrag.active = true;
+    const rect = touchDrag.sourceEl.getBoundingClientRect();
+    const ghost = touchDrag.sourceEl.cloneNode(true);
+    ghost.style.cssText = [
+      "position:fixed", "pointer-events:none", "opacity:0.72", "z-index:9999",
+      `width:${rect.width}px`, `height:${rect.height}px`,
+      `left:${rect.left}px`, `top:${rect.top}px`, "margin:0", "transition:none",
+    ].join(";") + ";";
+    document.body.appendChild(ghost);
+    touchDrag.ghost = ghost;
+    touchDrag.halfW = rect.width / 2;
+    touchDrag.halfH = rect.height / 2;
+  }
+  const g = touchDrag.ghost;
+  g.style.left = (t.clientX - touchDrag.halfW) + "px";
+  g.style.top  = (t.clientY - touchDrag.halfH) + "px";
+  _tdUpdateHighlight(t.clientX, t.clientY);
+}
+
+function _tdOnEnd(ev) {
+  if (!touchDrag) return;
+  if (!touchDrag.active) { touchDrag = null; return; }
+  ev.preventDefault();
+  const t = ev.changedTouches[0];
+  // Hide ghost so elementFromPoint sees what is underneath
+  touchDrag.ghost.style.visibility = "hidden";
+  const dropEl = document.elementFromPoint(t.clientX, t.clientY);
+  touchDrag.ghost.remove();
+  _tdClearHighlights();
+  const { type, id } = touchDrag;
+  touchDrag = null;
+  if (type === "inventory-obj") _tdDropInventory(id, dropEl, t.clientX, t.clientY);
+  else if (type === "room-obj") _tdDropRoomObj(id, dropEl);
+}
+
+function _tdOnCancel() {
+  if (!touchDrag) return;
+  if (touchDrag.ghost) touchDrag.ghost.remove();
+  _tdClearHighlights();
+  touchDrag = null;
+}
+
+function _tdDropInventory(objId, el, clientX, clientY) {
+  if (!el) return;
+  // Drop on canvas → place at room coordinates
+  if (el.closest("#roomCanvas")) {
+    const point = getStagePoint(clientX, clientY, true);
+    dropInventoryObject(objId, point || null);
+    return;
+  }
+  // Drop on objects tab button → switch to objects tab then drop without coords
+  const tabBtn = el.closest(".palette-tab-btn[data-tab-id='objects']");
+  if (tabBtn) {
+    activePaletteTab = "objects";
+    renderActionPalette();
+    dropInventoryObject(objId, null);
+    return;
+  }
+  // Drop on palette buttons area when objects tab is active
+  if (el.closest(".palette-buttons") && activePaletteTab === "objects") {
+    dropInventoryObject(objId, null);
+  }
+}
+
+function _tdDropRoomObj(entityId, el) {
+  if (!el) return;
+  if (el.closest("#inventoryList")) {
+    socket.emit("room_pick_object", { entity_id: entityId });
+  }
+}
+
+function _tdUpdateHighlight(x, y) {
+  _tdClearHighlights();
+  if (!touchDrag || !touchDrag.ghost) return;
+  touchDrag.ghost.style.visibility = "hidden";
+  const el = document.elementFromPoint(x, y);
+  touchDrag.ghost.style.visibility = "";
+  if (!el) return;
+  const zones = [
+    touchDrag.type === "inventory-obj" ? el.closest("#roomCanvas") : null,
+    el.closest("#inventoryList"),
+    el.closest(".palette-buttons"),
+    el.closest(".palette-tab-btn[data-tab-id='objects']"),
+  ].filter(Boolean);
+  for (const z of zones) z.classList.add("is-drag-over");
+}
+
+function _tdClearHighlights() {
+  for (const el of document.querySelectorAll(".is-drag-over")) {
+    el.classList.remove("is-drag-over");
+  }
 }

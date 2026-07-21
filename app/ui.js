@@ -3,7 +3,10 @@ function attachRefEventHandlers(tgt) {
   const touchHandler = (e) => {
     e.preventDefault();
     const src = e.currentTarget;
-    if (src.dataset.cmd) {
+    if (src.dataset.cmdText) {
+      // Spec-format command link [[display|command]]
+      socket.emit("message", { text: src.dataset.cmdText });
+    } else if (src.dataset.cmd) {
       let actionCmd = `.${src.dataset.cmd}`;
       if (src.dataset.target) {
         actionCmd += ` @${src.dataset.target}`;
