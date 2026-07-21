@@ -1,0 +1,56 @@
+say:
+  label: "💬"
+  description: Say something
+  msg:
+    first: ["You say", "You say to $1"]
+    second: [null, "$0 says to you"]
+    third: ["$0 says", "$0 says to $1"]
+  animations: "!0"
+
+smile:
+  label: "😊"
+  description: Smile
+  msg:
+    first: ["You smile", "You smile at $1", "You smile at $1 and $2"]
+    second: [null, "$0 smiles at you", "$0 smiles at you and $2"]
+    third: ["$0 smiles", "$0 smiles at $1", "$0 smiles at $1 and $2"]
+  animations: "!0"
+
+hug:
+  label: "🤗"
+  description: Give a warm hug
+  msg:
+    first: ["You hug", "You hug $1"]
+    second: [null, "$0 hugs you"]
+    third: ["$0 hugs", "$0 hugs $1"]
+    end: ["💕", "warmly", "☺️", "squeeze!"]
+  animations: "!0"
+
+wink:
+  label: "😉"
+  description: Give a cheeky wink
+  msg:
+    first: ["You wink", "You wink at $1", "You wink at $1 about $2"]
+    second: [null, "$0 winks at you", "$0 winks at you about $2"]
+    third: ["$0 winks", "$0 winks at $1", "$0 winks at $1 about $2"]
+    end: ["😏", "sneakily", "👁️"]
+  animations: "!0"
+
+giggle:
+  label: "🤭"
+  description: Laugh softly
+  msg:
+    first: ["You giggle", "You giggle at $1", "You giggle with $1 and $2"]
+    second: [null, "$0 giggles at you", "$0 giggles with you and $2"]
+    third: ["$0 giggles", "$0 giggles at $1", "$0 giggles with $1 and $2"]
+    end: ["hehe", "tee-hee!", "😂"]
+  animations: "!0"
+
+wave:
+  label: "👋"
+  description: Wave at someone
+  msg:
+    first: ["You wave", "You wave at $1", "You wave at $1 and $2"]
+    second: [null, "$0 waves at you", "$0 waves at you and $2"]
+    third: ["$0 waves", "$0 waves at $1", "$0 waves at $1 and $2"]
+  animations: "!0"

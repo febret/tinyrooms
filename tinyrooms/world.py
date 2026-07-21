@@ -379,6 +379,15 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
     for peep_id, peep in npc_peeps.items():
         _active_world.peeps[peep_id] = peep
     
+    # Load emote definitions (server-wide + world-local override)
+    from . import emotes as _emotes
+    server_emotes_path = Path(__file__).parent.parent / "data" / "emotes"
+    world_emotes_path = root_path / "emotes"
+    _emotes.load_emotes(
+        server_path=server_emotes_path,
+        world_path=world_emotes_path if world_emotes_path.exists() else None,
+    )
+
     # Preprocess display assets for loaded entities and props
     icon_module.preprocess_world_assets(_active_world)
 

@@ -33,6 +33,7 @@ var connectionState = "connecting";
 var connectionTime = null;
 var paletteMode = "main";
 var knownActions = {};
+var knownEmotes = {};
 var selectedTarget = null;
 var TOUCH_DRAG_THRESHOLD_PX = 8;
 var CHAT_MESSAGE_TTL_MS = 30000;
@@ -92,6 +93,11 @@ socket.on("connected", () => setConnectionState("connected"));
 
 socket.on("actions_def", data => {
   knownActions = data.actions || {};
+  renderActionPalette();
+});
+
+socket.on("emotes_def", data => {
+  knownEmotes = data.emotes || {};
   renderActionPalette();
 });
 
@@ -311,7 +317,7 @@ function clearRoomSelection() {
 }
 
 function navigateExit(wayId) {
-  socket.emit("message", { text: `.go @way:${wayId}` });
+  socket.emit("navigate", { way_id: wayId });
   selectedTarget = null;
   clearRoomSelection();
   renderActionPalette();
@@ -348,10 +354,10 @@ function renderActionPalette() {
 
 function getPaletteEntries() {
   if (paletteMode === "emote") {
-    const emotes = Object.entries(knownActions).filter(([id]) => id.startsWith("emotes.")).slice(0, 5);
+    const emotes = Object.entries(knownEmotes).filter(([id]) => id !== "say");
     const buttons = emotes.map(([id, def]) => ({
       label: def.label || id,
-      onClick: () => sendAction(id),
+      onClick: () => sendEmote(id),
     }));
     buttons.push({ label: "Back", onClick: () => { paletteMode = "main"; renderActionPalette(); } });
     return buttons;
@@ -392,6 +398,18 @@ function sendAction(actionId) {
     else if (selectedTarget.type === "peep") cmd += ` @${selectedTarget.id}`;
     else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
   }
+  socket.emit("message", { text: cmd });
+}
+
+function sendEmote(emoteId) {
+  let cmd = `.${emoteId}`;
+  if (selectedTarget) {
+    if (selectedTarget.type === "peep") cmd += `@${selectedTarget.id}`;
+    else if (selectedTarget.type === "object") cmd += ` @obj:${selectedTarget.id}`;
+    else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
+  }
+  paletteMode = "main";
+  renderActionPalette();
   socket.emit("message", { text: cmd });
 }
 

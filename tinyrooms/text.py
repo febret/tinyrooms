@@ -1,6 +1,5 @@
 import random
 
-from . import world
 
 def get_ref_label(ref, strip_article = False) -> str:
     """Get the label text for a reference, optionally stripping leading articles."""
@@ -29,44 +28,69 @@ def melt_ref_labels(refs) -> str:
     return ' '.join(output)
 
 
-def make_action_text(action_def: dict, user_label, refs, extra_text):
-    action_text = action_def.get("action_text", [])
-    target_text = action_def.get("target_text", [])
-    if isinstance(target_text, str):
-        target_text = [target_text]
-    end_text = action_def.get("end_text", [])
-    out_text = ""
-    if len(refs) > 0 and len(target_text) > 0:
-        out_text = target_text[min(len(refs)-1, len(target_text)-1)]
-    out_text += f': {extra_text} '
-    
-    # Pick a random end text
-    if isinstance(end_text, str):
-        end_text = [end_text]
-    if len(end_text) > 0:
-        out_text += f" {random.choice(end_text)}"
-        
-    # Replace all $ placeholders with names of refs in msg, then find any left over
-    # $- placeholders are the same as $ but with leading articles stripped
+def _apply_placeholders(tmpl: str, user_label: str, refs: list, extra_text: str, end_text: str) -> str:
+    """Substitute $0/$N/$*/<< >> placeholders in a template string."""
+    out = str(tmpl)
+    out = out.replace('$0', user_label)
     for i, ref in enumerate(refs):
-        out_text = out_text.replace(f"${i+1}", get_ref_label(ref))
-        out_text = out_text.replace(f"$-{i+1}", get_ref_label(ref, strip_article=True))
+        out = out.replace(f'${i + 1}', get_ref_label(ref))
+        out = out.replace(f'$-{i + 1}', get_ref_label(ref, strip_article=True))
     nothing_txt = ['nothing', 'no one', 'nobody', 'void', 'the ether']
-    for n in range(len(refs)+1, 10):
-        out_text = out_text.replace(f"${n}", random.choice(nothing_txt))
-    
-    # Replace $* with random tokens from all refs
-    if "$*" in out_text:
-        out_text = out_text.replace("$*", melt_ref_labels(refs))
-    
-    # Replace YAML-compatible << >> constructs with ref creation texts
-    out_text = out_text.replace("<<", "[[@ ")
-    out_text = out_text.replace(">>", " ]]")
+    for n in range(len(refs) + 1, 10):
+        out = out.replace(f'${n}', random.choice(nothing_txt))
+    if '$*' in out:
+        out = out.replace('$*', melt_ref_labels(refs))
+    out = out.replace('<<', '[[@ ')
+    out = out.replace('>>', ' ]]')
+    if extra_text:
+        out = f'{out}: {extra_text}'
+    if end_text:
+        out = f'{out} {end_text}'
+    return out.strip()
 
-    out_text1 = f"{action_text[0]} {out_text}"      
-    out_text3 = f"{action_text[1]}:  {out_text}"
-    out_text3 = out_text3.replace("$0", user_label)
-    return out_text1, out_text3
+
+def make_emote_text(emote_def: dict, user_label: str, refs: list, extra_text: str = '') -> tuple:
+    """Generate (first_person, second_person, third_person) message strings for an emote.
+
+    ``second_person`` is ``None`` when the emote has no ``second`` template for
+    the current ref count, or when the selected template is ``null``.
+
+    ``msg`` in the emote definition may be either a single dict or a list of
+    dicts (multiple message sets), in which case one is chosen at random.
+    """
+    msg = emote_def.get('msg', {})
+    if isinstance(msg, list):
+        msg = random.choice(msg) if msg else {}
+
+    def _coerce_list(val):
+        if val is None:
+            return []
+        if isinstance(val, str):
+            return [val]
+        return list(val)
+
+    first_variants = _coerce_list(msg.get('first', []))
+    second_variants = _coerce_list(msg.get('second', []))
+    third_variants = _coerce_list(msg.get('third', []))
+    end_variants = _coerce_list(msg.get('end', []))
+
+    ref_count = len(refs)
+    end_text = random.choice(end_variants) if end_variants else ''
+
+    def pick(variants, idx):
+        if not variants:
+            return None
+        return variants[min(idx, len(variants) - 1)]
+
+    first_tmpl = pick(first_variants, ref_count)
+    second_tmpl = pick(second_variants, ref_count)
+    third_tmpl = pick(third_variants, ref_count)
+
+    first = _apply_placeholders(first_tmpl, user_label, refs, extra_text, end_text) if first_tmpl else None
+    second = _apply_placeholders(second_tmpl, user_label, refs, extra_text, end_text) if second_tmpl else None
+    third = _apply_placeholders(third_tmpl, user_label, refs, extra_text, end_text) if third_tmpl else None
+
+    return first, second, third
 
 
 def make_room_description_text(room, user):

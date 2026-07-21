@@ -5,7 +5,7 @@ import argparse
 import logging
 
 from flask_socketio import emit
-from tinyrooms import server, console, db, user, connection, actions, room, world
+from tinyrooms import server, console, db, user, connection, room, world
 from tinyrooms import peep_behavior
 
 
@@ -114,7 +114,6 @@ if __name__ == "__main__":
         "kill": kill,
         "reboot": reboot,
         "emit": emit,
-        "actions": actions,
         "server": server,
         "user": user,
         "room": room,

@@ -5,7 +5,7 @@ import functools
 import secrets
 from uuid import uuid4
 
-from . import message, user, server, db, actions, icons
+from . import message, user, server, db, icons, emotes
 from .prop import Prop
 from .world import active_world
 from . import peep_behavior as _peep_behavior
@@ -48,10 +48,10 @@ def handle_connect():
     emit("connected", {"message": "connected to server"})
     if not server.feature_enabled("world-server"):
         return
-    if len(actions.action_defs) == 0:
-        actions.load_actions()
-    emit("actions_def", {"actions": actions.action_defs}, to=getattr(request, 'sid', None))
-
+    if len(emotes.emote_defs) == 0:
+        emotes.load_emotes()
+    client_emotes = {k: v for k, v in emotes.emote_defs.items() if '.' not in k}
+    emit("emotes_def", {"emotes": client_emotes}, to=getattr(request, 'sid', None))
 
 
 @server.socketio.on("disconnect")
@@ -128,28 +128,65 @@ def handle_message(data):
     """
     Expect data: {"text": "..."}
     Only accepts messages if client is authenticated.
-    Sends message to the user's current room (default room for now)
+    Dispatches emotes from the parsed message.
     """
     sid = request.sid # type: ignore
     user_obj = user.connected_users.get(sid)
     if not user_obj:
         emit("error", {"error": "not authenticated"})
         return
-    username = user_obj.username
     text = (data or {}).get("text", "").strip()
     if not text:
         return
     parsed = message.parse_message(text, user_obj, user_obj.room)
-    act = parsed.action
-    if parsed.out_text and len(act) == 0:
-        act = "basic.say"
-    actions.do_action(act, parsed, user = user_obj, room = user_obj.room)
+
+    # Handle emotes in order of appearance
+    for emote_inv in parsed.emotes:
+        emotes.do_emote(
+            emote_inv.emote_id,
+            emote_inv.refs,
+            user_obj,
+            user_obj.room,
+            extra_text=emote_inv.extra_text,
+        )
 
     # Dispatch on_message to any NPC peeps referenced in the message
     from .peep import Peep
     for ref in parsed.refs:
         if isinstance(ref, Peep) and getattr(ref, 'type', 'user') == 'npc':
             _peep_behavior.call_handler(ref, 'on_message', user_obj, text)
+
+
+@server.socketio.on("navigate")
+def handle_navigate(data):
+    """Navigate the current user through a way.
+
+    Expect data: {"way_id": "<way_id>"}
+    """
+    user_obj, room = _require_room_user()
+    if user_obj is None:
+        return
+    way_id = (data or {}).get("way_id", "").strip()
+    if not way_id:
+        emit("message", {"text": "Go where?"}, to=user_obj.sid)
+        return
+    world = active_world()
+    way = world.ways.get(way_id)
+    if way is None or not hasattr(way, 'info'):
+        emit("message", {"text": "You can't go that way."}, to=user_obj.sid)
+        return
+    to = way.info.get('to')
+    if to is None or to not in world.rooms:
+        emit("message", {"text": "You can't go that way."}, to=user_obj.sid)
+        return
+    next_room = world.rooms[to]
+    user_obj.room.remove_user(user_obj)
+    next_room.add_user(user_obj)
+    db.save_user_state(user_obj)
+    emit("message", {"text": f"You go {way.label}."}, to=user_obj.sid)
+    emit("message", {"text": f"{user_obj.label} leaves {way.label}."}, room=room.room_id, skip_sid=user_obj.sid)
+    emit("message", {"text": f"{user_obj.label} arrives from {room.label()}."}, room=next_room.room_id, skip_sid=user_obj.sid)
+
 
 
 # Optional: simple ping from client
@@ -160,7 +197,8 @@ def handle_heartbeat(data):
     if user_obj is None:
         return
     if user_obj.actions_stale:
-        emit("actions_def", {"actions": actions.action_defs}, to=sid)
+        client_emotes = {k: v for k, v in emotes.emote_defs.items() if '.' not in k}
+        emit("emotes_def", {"emotes": client_emotes}, to=sid)
         user_obj.actions_stale = False
     if user_obj.client_stale:
         print("Reloading client for user:", user_obj.username)

@@ -6,14 +6,15 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-def test_socket_connect_emits_connected_and_actions(socket_client_factory):
+def test_socket_connect_emits_connected_and_emotes(socket_client_factory):
     client = socket_client_factory()
     connected = client.wait_for("connected")
-    actions_def = client.wait_for("actions_def")
+    emotes_def = client.wait_for("emotes_def")
 
     assert connected["message"] == "connected to server"
-    assert "actions" in actions_def
-    assert "basic.look" in actions_def["actions"]
+    assert "emotes" in emotes_def
+    assert "say" in emotes_def["emotes"]
+    assert "smile" in emotes_def["emotes"]
 
 
 def test_login_success_invalid_password_and_duplicate_login(

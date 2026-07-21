@@ -36,7 +36,7 @@ class ServerRuntime:
 class SocketCaptureClient:
     _EVENT_NAMES = (
         "connected",
-        "actions_def",
+        "emotes_def",
         "login_success",
         "login_failed",
         "message",

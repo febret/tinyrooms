@@ -5,7 +5,7 @@ pytestmark = pytest.mark.integration
 
 
 def _go_to_playroom(client):
-    client.emit("message", {"text": ".go @way:to_gateway"})
+    client.emit("navigate", {"way_id": "to_gateway"})
     header = client.wait_for(
         "update_view",
         predicate=lambda payload: payload.get("view") == "header" and payload.get("room_id") == "playroom",
@@ -43,7 +43,7 @@ def test_initial_room_sync_contract(auth_socket_user, http_client):
     assert any(item.get("prop_id") == "floor_rug" for item in payload["props"])
 
 
-def test_navigation_chat_and_look_activity(auth_socket_user):
+def test_navigation_and_chat(auth_socket_user):
     first = auth_socket_user(prefix="it_nav_a")
     second = auth_socket_user(prefix="it_nav_b")
     a = first["client"]
@@ -61,20 +61,6 @@ def test_navigation_chat_and_look_activity(auth_socket_user):
     )
     assert "integration hello" in sender_msg["text"]
     assert "integration hello" in other_msg["text"]
-
-    a.emit("message", {"text": ".basic.look"})
-    panel = a.wait_for("activity_panel", predicate=lambda p: p.get("mode") == "look", timeout=8.0)
-    assert panel["title"] == "Look"
-
-    object_update = a.wait_for(
-        "update_view",
-        predicate=lambda p: p.get("view") == "room-object" and p.get("entity", {}).get("entity_type") == "object",
-        timeout=8.0,
-    )
-    object_id = object_update["entity"]["entity_id"]
-    a.emit("message", {"text": f".basic.look @obj:{object_id}"})
-    target_panel = a.wait_for("activity_panel", predicate=lambda p: p.get("mode") == "look", timeout=8.0)
-    assert target_panel["title"].startswith("Looking at")
 
 
 def test_unclaimed_room_editable_and_claim(auth_socket_user):

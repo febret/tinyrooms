@@ -25,14 +25,12 @@ def run_admin_cmd(cmd, locals_dict):
         locals_dict["user"].reload_clients()
     elif cmd == 'rs':
         locals_dict["user"].reload_styles()
-    elif cmd == 'ra':
-        locals_dict["actions"].load_actions()
     elif cmd == 'reset-rooms':
         locals_dict["world"].reset_rooms()
         print("Rooms reset from YAML definitions.")
     elif cmd.startswith('rw'):
         w = locals_dict["world"]
-        w.load_world(w.root_path / "world.yaml")  
+        w.load_world(w.root_path / "world.yaml")
 
 
 def input_thread_func(locals_dict):
