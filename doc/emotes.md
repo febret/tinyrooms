@@ -33,15 +33,14 @@ Emotes are defined in YAML files under `data/emotes/`. Each entry uses the follo
 emote_id:
   label: "emoji or short string"          # optional; shown in the client action bar
   description: "Short description"         # optional
-  msg:                                     # message generation rules
-    first:  ["You smile", "You smile at $1"]       # 1st-person, indexed by ref count
-    second: [null, "$0 smiles at you"]             # 2nd-person (sent to target user)
-    third:  ["$0 smiles", "$0 smiles at $1"]       # 3rd-person (broadcast to room)
-    end:    ["optional", "random suffix"]          # randomly chosen, appended to all
+  msg:                                     # message definitions
+    - verb: ["You smile", "$0 smiles"]     # [first-person, third-person]
+      target: "at $1"                      # optional, defaults to "$1"
+      end: [".", "warmly"]                 # optional, defaults to ["."]
   animations: "!0"                         # comma-separated animation steps (default: "!0")
 ```
 
-`msg` may also be a list of dicts to define multiple message sets; one is chosen at random per invocation.
+`msg` is a list of message-definition dicts. Emotes support at most one target.
 
 ### Placeholder substitution
 
@@ -57,7 +56,7 @@ The `animations` field is a comma-separated string of steps:
 
 | Step syntax | Meaning |
 |-------------|---------|
-| `!N` | Emit the Nth message in the emote's message set (0-based). Default: `!0` |
+| `!N` | Emit the message definition at index N from `msg` (0-based). Default: `!0` |
 | `#<seconds>` | Pause for this many seconds (executed in a background thread, never blocks the socket handler) |
 | `.<emoteID>` | Run another emote (one level of nesting only; silently ignored at depth ≥ 1) |
 | anything else | Treated as a sprite animation ID; emits an `emote_anim` socket event to the room |
