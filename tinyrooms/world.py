@@ -8,7 +8,7 @@ from .object import Object
 from .peep import Peep
 from .prop import Prop
 from .utils import load_defs
-from . import db, icons as icon_module, prop_sets, sprites
+from . import db, decorators as decorator_module, icons as icon_module, prop_sets, sprites
 from . import user_data as user_data
 
 
@@ -46,6 +46,7 @@ class World:
         room_defs: dict,
         thing_defs: dict,
         prop_defs: dict,
+        deco_defs: dict | None,
         rooms: dict,
         ways: dict,
         objs: dict,
@@ -58,6 +59,7 @@ class World:
         self.room_defs = room_defs
         self.thing_defs = thing_defs
         self.prop_defs = prop_defs
+        self.deco_defs = deco_defs or {}
         self.peep_class_defs = peep_class_defs or {}
         self.ws_id = ws_id
         self.rooms = rooms
@@ -157,6 +159,9 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
         id_key_func=lambda key, value: f"{value['place']}.{key}" if 'place' in value else key
     )
     thing_defs = load_defs(root_path / "things")
+    server_deco_dir = Path(__file__).parent.parent / "data" / "decos"
+    world_deco_dir = root_path / "decos"
+    deco_defs = decorator_module.load_decorator_definitions([server_deco_dir, world_deco_dir])
     generated_thing_defs = load_generated_thing_defs()
     for generated_id, generated_info in generated_thing_defs.items():
         if generated_id in thing_defs:
@@ -374,7 +379,20 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
     db.write_peep_data(wsdb, npc_peeps)
 
     global _active_world
-    _active_world = World(world_info, root_path, room_defs, thing_defs, prop_defs, rooms, ways, objs, {}, peep_class_defs=peep_class_defs, ws_id=ws_id)
+    _active_world = World(
+        world_info,
+        root_path,
+        room_defs,
+        thing_defs,
+        prop_defs,
+        deco_defs,
+        rooms,
+        ways,
+        objs,
+        {},
+        peep_class_defs=peep_class_defs,
+        ws_id=ws_id,
+    )
     
     # Add NPC peeps to world.peeps dict
     for peep_id, peep in npc_peeps.items():

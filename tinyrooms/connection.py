@@ -4,7 +4,7 @@ import functools
 import secrets
 from uuid import uuid4
 
-from . import message, user, server, user_data, icons, emotes
+from . import message, user, server, user_data, icons, emotes, decorators as decorator_module
 from .prop import Prop
 from .world import active_world
 from . import peep_behavior as _peep_behavior
@@ -65,6 +65,34 @@ def _normalize_inventory_actions(raw_actions):
 def _inventory_actions_for_object(obj):
     obj_info = getattr(obj, "info", {}) or {}
     return _normalize_inventory_actions(obj_info.get("inventory_action"))
+
+
+def _find_room_entity(room, entity_type: str, entity_id: str):
+    if entity_type == "object":
+        return room.objs.get(entity_id)
+    if entity_type == "peep":
+        return room.peeps.get(entity_id)
+    if entity_type == "prop":
+        return room.props.get(entity_id)
+    return None
+
+
+def _broadcast_decorator_update(room, entity, entity_type: str):
+    if entity_type == "object":
+        room.broadcast_room_object_update(entity, change_type='upsert', entity_type='object')
+        return
+    if entity_type == "peep":
+        room.broadcast_room_object_update(
+            entity,
+            change_type='upsert',
+            entity_type='peep',
+            owner_username=getattr(entity, "peep_id", ""),
+        )
+        return
+    if entity_type == "prop":
+        for room_user in room.users.values():
+            room.send_room_stage_view(room_user)
+        return
 
 
 # Socket.IO events
@@ -349,6 +377,62 @@ def handle_room_save_props(data):
 
     for room_user in room.users.values():
         room.send_room_stage_view(room_user)
+
+
+@server.socketio.on("apply_decorator")
+def handle_apply_decorator(data):
+    user_obj, room = _require_room_user()
+    if user_obj is None:
+        return
+    entity_type = str((data or {}).get("entity_type", "")).strip()
+    entity_id = str((data or {}).get("entity_id", "")).strip()
+    deco_id = str((data or {}).get("deco_id", "")).strip()
+    if not entity_type or not entity_id or not deco_id:
+        emit("error", {"error": "entity_type, entity_id, and deco_id are required"})
+        return
+    try:
+        canonical_deco_id = decorator_module.normalize_decorator_reference(deco_id)
+    except ValueError:
+        emit("error", {"error": "invalid decorator reference"})
+        return
+    world = active_world()
+    if canonical_deco_id not in world.deco_defs:
+        emit("error", {"error": f"unknown decorator '{canonical_deco_id}'"})
+        return
+    entity = _find_room_entity(room, entity_type, entity_id)
+    if entity is None:
+        emit("error", {"error": f"{entity_type} not found"})
+        return
+    if not hasattr(entity, "decorators") or not isinstance(entity.decorators, list):
+        entity.decorators = []
+    if canonical_deco_id not in entity.decorators:
+        entity.decorators.append(canonical_deco_id)
+    _broadcast_decorator_update(room, entity, entity_type)
+
+
+@server.socketio.on("remove_decorator")
+def handle_remove_decorator(data):
+    user_obj, room = _require_room_user()
+    if user_obj is None:
+        return
+    entity_type = str((data or {}).get("entity_type", "")).strip()
+    entity_id = str((data or {}).get("entity_id", "")).strip()
+    deco_id = str((data or {}).get("deco_id", "")).strip()
+    if not entity_type or not entity_id or not deco_id:
+        emit("error", {"error": "entity_type, entity_id, and deco_id are required"})
+        return
+    try:
+        canonical_deco_id = decorator_module.normalize_decorator_reference(deco_id)
+    except ValueError:
+        emit("error", {"error": "invalid decorator reference"})
+        return
+    entity = _find_room_entity(room, entity_type, entity_id)
+    if entity is None:
+        emit("error", {"error": f"{entity_type} not found"})
+        return
+    if hasattr(entity, "decorators") and isinstance(entity.decorators, list):
+        entity.decorators = [value for value in entity.decorators if value != canonical_deco_id]
+    _broadcast_decorator_update(room, entity, entity_type)
 
 
 def _emit_inventory_update(user_obj):

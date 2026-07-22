@@ -1,3 +1,6 @@
+from . import decorators as decorator_module
+
+
 class Object:
     def __init__(self, obj_id, thing_id, info, location_id: str, owner_id: str = ''):
         self.obj_id = obj_id
@@ -13,6 +16,7 @@ class Object:
         self.orientation = info.get('orientation', 'front')
         self.layer = int(info.get('layer', 0))
         self.z_order = int(info.get('z_order', 0))
+        self.decorators = decorator_module.normalize_decorator_list(info.get('decorators', []))
         # Populated by icons.preprocess_world_assets() at world-load time
         self._display_assets = None
 

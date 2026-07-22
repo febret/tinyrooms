@@ -1,3 +1,6 @@
+from . import decorators as decorator_module
+
+
 class Peep:
     def __init__(self, peep_id, type, info, location_id: str = ''):
         self.peep_id = peep_id
@@ -11,6 +14,7 @@ class Peep:
         self.layer = int(info.get('layer', 1))
         self.z_order = int(info.get('z_order', 1))
         self.class_id = info.get('class', '')
+        self.decorators = decorator_module.normalize_decorator_list(info.get('decorators', []))
         self.behavior_ns: dict | None = None
         # Populated by icons.preprocess_world_assets() at world-load time
         self._display_assets = None

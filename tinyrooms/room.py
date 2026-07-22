@@ -1,5 +1,6 @@
 from flask_socketio import emit, join_room, leave_room
 
+from . import decorators as decorator_module
 from .user import User
 
 
@@ -164,6 +165,7 @@ class Room:
             'prop_instance_id': prop.prop_instance_id,
             'prop_id': prop.prop_id,
             'exit_way_id': prop.metadata.get('exit_way_id') or None,
+            'decorators': self._serialize_decorators(prop),
             'position': {
                 'x': prop.x,
                 'y': prop.y,
@@ -184,6 +186,7 @@ class Room:
             'label': label,
             'description': description,
             'display': dict(getattr(entity, '_display_assets', {}) or {}),
+            'decorators': self._serialize_decorators(entity),
             'position': {
                 'x': int(getattr(entity, 'x', 0)),
                 'y': int(getattr(entity, 'y', 0)),
@@ -193,6 +196,17 @@ class Room:
             },
             'is_self': bool(is_self),
         }
+
+    def _serialize_decorators(self, entity):
+        from .world import active_world
+
+        world = active_world()
+        decorator_refs = getattr(entity, 'decorators', [])
+        return decorator_module.resolve_decorator_payloads(
+            decorator_refs,
+            world.deco_defs,
+            world.root_path,
+        )
 
 class Way:
     def __init__(self, way_id, info):

@@ -1,3 +1,6 @@
+from . import decorators as decorator_module
+
+
 class Prop:
     def __init__(self, prop_instance_id: str, prop_id: str, info: dict, room_id: str):
         self.prop_instance_id = prop_instance_id
@@ -10,6 +13,7 @@ class Prop:
         self.layer = int(info.get('layer', 0))
         self.z_order = int(info.get('z_order', 0))
         self.metadata = dict(info.get('metadata', {}))
+        self.decorators = decorator_module.normalize_decorator_list(info.get('decorators', []))
         self._display_assets = None
 
     def id(self):

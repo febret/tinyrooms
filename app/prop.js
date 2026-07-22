@@ -3,6 +3,7 @@ function clonePropState(prop) {
     prop_instance_id: prop.prop_instance_id,
     prop_id: prop.prop_id,
     exit_way_id: prop.exit_way_id || null,
+    decorators: Array.isArray(prop.decorators) ? [...prop.decorators] : [],
     position: { ...(prop.position || {}) },
   };
 }

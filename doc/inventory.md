@@ -71,7 +71,7 @@ The inventory panel lives in `#inventoryPanel > #inventoryList` in the right-han
 
 The list shows icon-only item tiles.
 - Clicking an icon selects that inventory item.
-- Dragging an icon onto the room canvas drops that object into the room (`:drop @obj:<id> <x> <y>`).
+- Dragging an icon onto the room panel drops that object into the room (`:drop @obj:<id>`); dropping directly on the room canvas includes placement coordinates (`:drop @obj:<id> <x> <y>`).
 - The selected icon is highlighted and is used by the **Drop** action in the Actions tab.
 
 When the inventory is empty the list shows "Empty".
@@ -83,7 +83,7 @@ When an object entity is the selected target, a **Pick Up** button appears in th
 The Actions tab includes **Drop**, which emits `:drop @obj:<id>` for the currently selected inventory object.
 
 ### Drag-to-pickup
-Dragging an object entity and dropping it on top of the user's own peep (character) on the room canvas also picks it up. This works for both mouse drag and touch drag. The drop target check inspects the element under the pointer at drag end; if that element belongs to the user's own peep entity node, `:pick @obj:<id>` is emitted instead of `room_move_entity`.
+Dragging an object entity to the inventory panel picks it up (`:pick @obj:<id>`). Dragging and dropping on top of the user's own peep (character) on the room canvas also picks it up. This works for both mouse drag and touch drag.
 
 ## Constraints
 - Only room objects can be picked up; peeps cannot.

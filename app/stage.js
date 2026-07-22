@@ -18,7 +18,7 @@ var pixiBgContainer = null;
 var pixiPropsContainer = null;
 var pixiEntitiesContainer = null;
 var pixiTextureCache = new Map();
-// Per-entity: key → { wrapper, sprite, animTicker, moveTicker, moveTween, displayJson, isSelf }
+// Per-entity: key → { wrapper, sprite, animTicker, decoratorTicker, moveTicker, moveTween, renderJson, isSelf }
 var pixiEntityNodes = new Map();
 // Per-prop: propInstanceId → { sprite (wrapper Container), animTicker }
 var pixiPropNodes = new Map();
@@ -188,6 +188,160 @@ function createFrameAnimationTicker(sprite, frameTextures, intervalMs, animation
     }
 
     sprite.texture = frameTextures[frameIndex];
+  };
+}
+
+function normalizeDecoratorPayloads(rawDecorators) {
+  if (!Array.isArray(rawDecorators)) return [];
+  return rawDecorators.filter((item) => item && typeof item === "object");
+}
+
+function parseDecoratorColor(value, fallback = 0xffffff) {
+  if (typeof value !== "string") return fallback;
+  const raw = value.trim();
+  if (!raw) return fallback;
+  if (raw.startsWith("#")) {
+    const hex = raw.slice(1);
+    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return Number.parseInt(hex, 16);
+    }
+  }
+  return fallback;
+}
+
+function clampDecoratorIntensity(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+async function pixiCreateDecoratorSprite(decoratorPayload) {
+  const spriteDisplay = decoratorPayload?.sprite_display;
+  if (!spriteDisplay || typeof spriteDisplay !== "object") return null;
+  const meta = spriteDisplay.sprite_meta || spriteDisplay.img_meta || null;
+  const imageUrl = resolveAssetUrl(spriteDisplay.sprite || spriteDisplay.img || "");
+  if (!imageUrl) return null;
+
+  if (!meta || !meta.frame) {
+    const tex = await loadPixiTexture(imageUrl);
+    const sprite = new PIXI.Sprite(tex);
+    clampSpriteSize(sprite, 96, 128);
+    return { sprite, animTicker: null };
+  }
+
+  const baseTex = await loadPixiTexture(imageUrl);
+  const frameTex = makeFrameTexture(baseTex, meta.frame || {});
+  const sprite = new PIXI.Sprite(frameTex);
+  const anim = meta.animation;
+  if (!anim || !Array.isArray(anim.frames) || anim.frames.length <= 1) {
+    return { sprite, animTicker: null };
+  }
+  const frames = anim.frames.map((frame) => makeFrameTexture(baseTex, frame));
+  const intervalMs = Math.max(40, Number(anim.speed || 0.5) * 1000);
+  const animTicker = createFrameAnimationTicker(sprite, frames, intervalMs, anim.type || "loop");
+  return { sprite, animTicker };
+}
+
+async function pixiApplyDecoratorsToWrapper(wrapper, baseSprite, decorators, orientationRadians = null) {
+  const normalized = normalizeDecoratorPayloads(decorators);
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  let glowConfig = null;
+  let animationName = "";
+  const spriteDecorators = [];
+  for (const decorator of normalized) {
+    if (decorator.glow && typeof decorator.glow === "object") {
+      glowConfig = decorator.glow;
+    }
+    if (typeof decorator.animation === "string" && decorator.animation.trim()) {
+      animationName = decorator.animation.trim().toLowerCase();
+    }
+    if (decorator.sprite_display && typeof decorator.sprite_display === "object") {
+      spriteDecorators.push(decorator);
+    }
+  }
+
+  const tickers = [];
+  const overlaySprites = [];
+  for (const decorator of spriteDecorators) {
+    const created = await pixiCreateDecoratorSprite(decorator);
+    if (!created) continue;
+    const overlay = created.sprite;
+    overlay.x = baseSprite.x || 0;
+    overlay.y = baseSprite.y || 0;
+    overlay.anchor.set(baseSprite.anchor?.x || 0, baseSprite.anchor?.y || 0);
+    overlay.scale.set(baseSprite.scale?.x || 1, baseSprite.scale?.y || 1);
+    if (typeof orientationRadians === "number") {
+      overlay.rotation = orientationRadians;
+    }
+    wrapper.addChild(overlay);
+    overlaySprites.push(overlay);
+    if (created.animTicker) {
+      tickers.push(created.animTicker);
+    }
+  }
+
+  let glowSprite = null;
+  if (glowConfig) {
+    const intensity = clampDecoratorIntensity(glowConfig.intensity);
+    if (intensity > 0) {
+      glowSprite = new PIXI.Sprite(baseSprite.texture);
+      glowSprite.x = baseSprite.x || 0;
+      glowSprite.y = baseSprite.y || 0;
+      glowSprite.anchor.set(baseSprite.anchor?.x || 0, baseSprite.anchor?.y || 0);
+      glowSprite.rotation = baseSprite.rotation || 0;
+      glowSprite.scale.set((baseSprite.scale?.x || 1) * 1.12, (baseSprite.scale?.y || 1) * 1.12);
+      glowSprite.tint = parseDecoratorColor(glowConfig.color, 0xffffff);
+      glowSprite.alpha = Math.min(0.9, 0.15 + intensity * 0.6);
+      glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
+      wrapper.addChildAt(glowSprite, 0);
+    }
+  }
+
+  const baseRotation = baseSprite.rotation || 0;
+  const baseScaleX = baseSprite.scale?.x || 1;
+  const baseScaleY = baseSprite.scale?.y || 1;
+  const animateWobble = animationName === "wobble";
+  const animateSpin = animationName === "spin";
+  const animatePulse = animationName === "pulse";
+
+  if (glowSprite || animateWobble || animateSpin || animatePulse) {
+    let elapsed = 0;
+    tickers.push((ticker) => {
+      elapsed += ticker.deltaMS;
+      if (glowSprite) {
+        glowSprite.texture = baseSprite.texture;
+      }
+      if (animateSpin) {
+        const spin = ((elapsed * 0.006) % (Math.PI * 2));
+        baseSprite.rotation = baseRotation + spin;
+      } else if (animateWobble) {
+        baseSprite.rotation = baseRotation + Math.sin(elapsed * 0.012) * 0.12;
+      } else {
+        baseSprite.rotation = baseRotation;
+      }
+      if (animatePulse) {
+        const pulseScale = 1 + (Math.sin(elapsed * 0.01) * 0.09);
+        baseSprite.scale.set(baseScaleX * pulseScale, baseScaleY * pulseScale);
+      } else {
+        baseSprite.scale.set(baseScaleX, baseScaleY);
+      }
+      for (const overlaySprite of overlaySprites) {
+        overlaySprite.x = baseSprite.x || 0;
+        overlaySprite.y = baseSprite.y || 0;
+      }
+    });
+  }
+
+  if (tickers.length === 0) {
+    return null;
+  }
+  return (ticker) => {
+    for (const fn of tickers) {
+      fn(ticker);
+    }
   };
 }
 
@@ -373,8 +527,9 @@ function _buildPropEditorControls(prop, wrapper) {
 }
 
 async function pixiRenderProps() {
-  for (const { sprite, animTicker } of pixiPropNodes.values()) {
+  for (const { sprite, animTicker, decoratorTicker } of pixiPropNodes.values()) {
     if (animTicker) pixiApp.ticker.remove(animTicker);
+    if (decoratorTicker) pixiApp.ticker.remove(decoratorTicker);
     sprite.destroy({ children: true });
   }
   pixiPropNodes.clear();
@@ -395,6 +550,15 @@ async function pixiRenderProps() {
     wrapper.eventMode = "static";
     wrapper.cursor = "pointer";
     wrapper.addChild(sprite);
+    const decoratorTicker = await pixiApplyDecoratorsToWrapper(
+      wrapper,
+      sprite,
+      prop.decorators || [],
+      orientationToRadians(prop.position?.orientation),
+    );
+    if (decoratorTicker) {
+      pixiApp.ticker.add(decoratorTicker);
+    }
 
     if (roomEditor.enabled) {
       const bounds = sprite.getLocalBounds();
@@ -449,7 +613,7 @@ async function pixiRenderProps() {
     }
 
     pixiPropsContainer.addChild(wrapper);
-    pixiPropNodes.set(prop.prop_instance_id, { sprite: wrapper, animTicker });
+    pixiPropNodes.set(prop.prop_instance_id, { sprite: wrapper, animTicker, decoratorTicker });
   }
 }
 
@@ -525,7 +689,10 @@ async function pixiRenderForegroundEntity(entity) {
   }
 
   let record = pixiEntityNodes.get(key);
-  const nextDisplayJson = JSON.stringify(entity.display || {});
+  const nextRenderJson = JSON.stringify({
+    display: entity.display || {},
+    decorators: entity.decorators || [],
+  });
 
   if (!record) {
     const { sprite, animTicker } = await pixiCreateEntitySprite(entity);
@@ -549,9 +716,19 @@ async function pixiRenderForegroundEntity(entity) {
       animTicker,
       moveTicker: null,
       moveTween: null,
-      displayJson: nextDisplayJson,
+      decoratorTicker: null,
+      renderJson: nextRenderJson,
       isSelf: entity.is_self,
     };
+    const decoratorTicker = await pixiApplyDecoratorsToWrapper(
+      wrapper,
+      sprite,
+      entity.decorators || [],
+    );
+    if (decoratorTicker) {
+      pixiApp.ticker.add(decoratorTicker);
+      record.decoratorTicker = decoratorTicker;
+    }
     pixiEntityNodes.set(key, record);
 
     if (canDragEntity(entity)) {
@@ -561,15 +738,25 @@ async function pixiRenderForegroundEntity(entity) {
 
   const wrapper = record.wrapper;
 
-  if (record.displayJson !== nextDisplayJson) {
-    record.displayJson = nextDisplayJson;
+  if (record.renderJson !== nextRenderJson) {
+    record.renderJson = nextRenderJson;
     if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
+    if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
     wrapper.removeChildren();
     const { sprite, animTicker } = await pixiCreateEntitySprite(entity);
     if (animTicker) pixiApp.ticker.add(animTicker);
     wrapper.addChild(sprite);
     record.sprite = sprite;
     record.animTicker = animTicker;
+    const decoratorTicker = await pixiApplyDecoratorsToWrapper(
+      wrapper,
+      sprite,
+      entity.decorators || [],
+    );
+    record.decoratorTicker = decoratorTicker;
+    if (decoratorTicker) {
+      pixiApp.ticker.add(decoratorTicker);
+    }
   }
 
   wrapper.zIndex = zIndex;
@@ -613,6 +800,7 @@ function pixiRemoveEntity(key) {
   const record = pixiEntityNodes.get(key);
   if (!record) return;
   if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
+  if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
   if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
   record.wrapper.destroy({ children: true });
   pixiEntityNodes.delete(key);
@@ -879,6 +1067,7 @@ function resetRoomEntityState() {
   if (pixiApp) {
     for (const record of pixiEntityNodes.values()) {
       if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
+      if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
       if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
       record.wrapper.destroy({ children: true });
     }

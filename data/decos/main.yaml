@@ -1,0 +1,9 @@
+on_fire:
+  glow:
+    intensity: 0.8
+    color: "#ff4400"
+  animation: pulse
+
+sparkle:
+  sprite: images/default_user.svg
+  animation: wobble
