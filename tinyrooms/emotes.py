@@ -158,57 +158,37 @@ def _execute_steps(
     emote_def: dict,
     user_sid: str,
     room_id: str,
-    first_msg: str | None,
-    second_msg: str | None,
-    second_sid: str | None,
-    third_msg: str | None,
-    nested_emote_refs: list,
-    nested_user_sid: str,
-    nested_room_id: str,
-    nested_user_label: str,
-    nested_extra_text: str,
+    refs: list,
+    user_label: str,
+    extra_text: str,
     depth: int,
     in_handler: bool,
 ):
     """Execute a parsed list of animation steps.
 
-    Pre-computed first/second/third messages are passed in so we only call
-    ``make_emote_text`` once regardless of which ``!N`` steps are present.
+    ``!N`` message steps select the message-definition object at index ``N``
+    from the emote's ``msg`` array.
     """
-    # Build a list of message variants for !N indexing.
-    # For emotes with a single message set this is straightforwardly [first, …]
-    # We expose up to three messages (first, second, third) as indices 0/1/2.
-    msg_variants = []
-    if first_msg is not None:
-        msg_variants.append(first_msg)
-    if third_msg is not None:
-        msg_variants.append(third_msg)
+    # Resolve 2nd-person target (first User ref, if any)
+    from .user import User as _User
+    target_user = next((r for r in refs if isinstance(r, _User)), None)
+    second_sid = target_user.sid if target_user is not None else None
 
     for step in steps:
         stype = step['type']
 
         if stype == 'message':
             idx = step['index']
-            if idx < len(msg_variants):
-                # Emit to the originating user (first-person view)
-                _emit("message", {"text": msg_variants[idx]}, to=user_sid,
-                      in_handler=in_handler)
-                # Emit 2nd person to target user
-                if second_msg is not None and second_sid is not None:
-                    _emit("message", {"text": second_msg}, to=second_sid,
-                          in_handler=in_handler)
-                # Emit 3rd person to rest of the room
-                skip = user_sid if second_sid is None else None
-                _emit("message", {"text": third_msg or msg_variants[idx]},
-                      room=room_id, skip_sid=skip, in_handler=in_handler)
-                # Also skip second_sid from 3rd-person broadcast explicitly
-                if second_sid is not None:
-                    # socketio room-skipping supports only one skip_sid, so
-                    # send individually to room members and skip both sids.
-                    # For simplicity we skip only the sender; the target gets
-                    # the 2nd-person message which is more appropriate.
-                    _emit("message", {"text": third_msg or msg_variants[idx]},
-                          room=room_id, skip_sid=user_sid, in_handler=in_handler)
+            first_msg, second_msg, third_msg = _text.make_emote_text(
+                emote_def, user_label, refs, extra_text, msg_index=idx
+            )
+            if first_msg is not None:
+                _emit("message", {"text": first_msg}, to=user_sid, in_handler=in_handler)
+            if second_msg is not None and second_sid is not None:
+                _emit("message", {"text": second_msg}, to=second_sid, in_handler=in_handler)
+            if third_msg is not None:
+                _emit("message", {"text": third_msg},
+                      room=room_id, skip_sid=user_sid, in_handler=in_handler)
 
         elif stype == 'pause':
             time.sleep(step['seconds'])
@@ -220,16 +200,11 @@ def _execute_steps(
             if nested_def is None:
                 print(f"emotes: nested emote '{step['emote_id']}' not found — skipped")
                 continue
-            nf, ns, nt = _text.make_emote_text(
-                nested_def, nested_user_label, nested_emote_refs, nested_extra_text
-            )
             nested_steps = _parse_animation_steps(nested_def.get('animations', '!0'))
             _execute_steps(
                 nested_steps, nested_def,
-                nested_user_sid, nested_room_id,
-                nf, ns, None, nt,
-                nested_emote_refs,
-                nested_user_sid, nested_room_id, nested_user_label, nested_extra_text,
+                user_sid, room_id,
+                refs, user_label, extra_text,
                 depth=depth + 1, in_handler=in_handler,
             )
 
@@ -278,14 +253,9 @@ def do_emote(
         print(f"do_emote: Unknown emote '{emote_id}'")
         return
 
-    # Resolve 2nd-person target (first User ref, if any)
-    from .user import User as _User
-    target_user = next((r for r in refs if isinstance(r, _User)), None)
-
-    first_msg, second_msg, third_msg = _text.make_emote_text(
-        emote_def, user.label, refs, extra_text
-    )
-    second_sid = target_user.sid if target_user is not None else None
+    if len(refs) > 1:
+        print(f"do_emote: emote '{emote_id}' received {len(refs)} refs; using first target only")
+    refs = refs[:1]
 
     animations = emote_def.get('animations', '!0')
     steps = _parse_animation_steps(animations)
@@ -296,15 +266,9 @@ def do_emote(
         emote_def=emote_def,
         user_sid=user.sid,
         room_id=room.room_id,
-        first_msg=first_msg,
-        second_msg=second_msg,
-        second_sid=second_sid,
-        third_msg=third_msg,
-        nested_emote_refs=refs,
-        nested_user_sid=user.sid,
-        nested_room_id=room.room_id,
-        nested_user_label=user.label,
-        nested_extra_text=extra_text,
+        refs=refs,
+        user_label=user.label,
+        extra_text=extra_text,
         depth=_depth,
     )
 

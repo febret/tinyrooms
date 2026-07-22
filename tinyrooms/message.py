@@ -34,7 +34,7 @@ def parse_message(text: str, user: User, room: Room) -> ParsedMessage:
     ----------------
     - ``[.filename].<emoteId>[@target]`` — emote token (dot-prefixed word).
       ``filename`` defaults to ``main`` when omitted.  An optional ``@target``
-      suffix resolves inline.
+      suffix resolves inline. Emotes support at most one target.
     - ``@name`` / ``@way:<id>`` / ``@obj:<id>`` / ``@prop:<id>`` /
       ``@peep:<id>`` — standalone reference tokens.
     - ``[[@ … ]]`` — literal text-reference capture (client UI links).
@@ -109,10 +109,11 @@ def parse_message(text: str, user: User, room: Room) -> ParsedMessage:
                 # Attach to the most recently parsed emote, if any
                 if emote_list:
                     last = emote_list[-1]
-                    emote_list[-1] = ParsedEmote(
-                        last.emote_id, last.filename,
-                        last.refs + [ref], last.extra_text
-                    )
+                    if not last.refs:
+                        emote_list[-1] = ParsedEmote(
+                            last.emote_id, last.filename,
+                            [ref], last.extra_text
+                        )
 
         else:
             chunk.append(word)

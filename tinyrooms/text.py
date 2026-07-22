@@ -45,50 +45,63 @@ def _apply_placeholders(tmpl: str, user_label: str, refs: list, extra_text: str,
     if extra_text:
         out = f'{out}: {extra_text}'
     if end_text:
-        out = f'{out} {end_text}'
+        if end_text and end_text[0] in ".,!?;:":
+            out = f"{out}{end_text}"
+        else:
+            out = f"{out} {end_text}"
     return out.strip()
 
 
-def make_emote_text(emote_def: dict, user_label: str, refs: list, extra_text: str = '') -> tuple:
+def make_emote_text(
+    emote_def: dict,
+    user_label: str,
+    refs: list,
+    extra_text: str = '',
+    msg_index: int = 0,
+) -> tuple:
     """Generate (first_person, second_person, third_person) message strings for an emote.
 
-    ``second_person`` is ``None`` when the emote has no ``second`` template for
-    the current ref count, or when the selected template is ``null``.
-
-    ``msg`` in the emote definition may be either a single dict or a list of
-    dicts (multiple message sets), in which case one is chosen at random.
+    Emote ``msg`` is expected to be a list of message-definition dicts:
+    ``{verb: [first, third], target: "$1", end: ["."]}``.
+    ``msg_index`` selects the message definition (clamped to available entries).
     """
-    msg = emote_def.get('msg', {})
-    if isinstance(msg, list):
-        msg = random.choice(msg) if msg else {}
+    msg_defs = emote_def.get('msg', [])
+    if not isinstance(msg_defs, list) or not msg_defs:
+        return None, None, None
 
-    def _coerce_list(val):
-        if val is None:
-            return []
-        if isinstance(val, str):
-            return [val]
-        return list(val)
+    msg_def = msg_defs[min(max(msg_index, 0), len(msg_defs) - 1)] or {}
 
-    first_variants = _coerce_list(msg.get('first', []))
-    second_variants = _coerce_list(msg.get('second', []))
-    third_variants = _coerce_list(msg.get('third', []))
-    end_variants = _coerce_list(msg.get('end', []))
+    verb = msg_def.get("verb", [])
+    if isinstance(verb, str):
+        verb = [verb]
+    elif not isinstance(verb, list):
+        verb = []
 
-    ref_count = len(refs)
-    end_text = random.choice(end_variants) if end_variants else ''
+    first_verb = str(verb[0]) if len(verb) >= 1 else ""
+    third_verb = str(verb[1]) if len(verb) >= 2 else first_verb
 
-    def pick(variants, idx):
-        if not variants:
-            return None
-        return variants[min(idx, len(variants) - 1)]
+    target_ref = refs[0] if refs else None
+    target_tmpl = str(msg_def.get("target", "$1"))
+    target_text = f" {target_tmpl}" if target_ref and target_tmpl else ""
 
-    first_tmpl = pick(first_variants, ref_count)
-    second_tmpl = pick(second_variants, ref_count)
-    third_tmpl = pick(third_variants, ref_count)
+    end_variants = msg_def.get("end", ["."])
+    if isinstance(end_variants, str):
+        end_variants = [end_variants]
+    elif not isinstance(end_variants, list):
+        end_variants = ["."]
+    end_text = str(random.choice(end_variants)) if end_variants else "."
 
-    first = _apply_placeholders(first_tmpl, user_label, refs, extra_text, end_text) if first_tmpl else None
-    second = _apply_placeholders(second_tmpl, user_label, refs, extra_text, end_text) if second_tmpl else None
-    third = _apply_placeholders(third_tmpl, user_label, refs, extra_text, end_text) if third_tmpl else None
+    first_tmpl = f"{first_verb}{target_text}".strip() if first_verb else None
+    third_tmpl = f"{third_verb}{target_text}".strip() if third_verb else None
+
+    second_tmpl = None
+    if target_ref is not None and third_tmpl:
+        second_tmpl = third_tmpl.replace("$1", "you").replace("$-1", "you")
+
+    effective_refs = [target_ref] if target_ref is not None else []
+    first = _apply_placeholders(first_tmpl, user_label, effective_refs, extra_text, end_text) if first_tmpl else None
+    second = _apply_placeholders(second_tmpl, user_label, effective_refs, extra_text, end_text) if second_tmpl else None
+    third = _apply_placeholders(third_tmpl, user_label, effective_refs, extra_text, end_text) if third_tmpl else None
 
     return first, second, third
 

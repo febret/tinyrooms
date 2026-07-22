@@ -31,11 +31,7 @@ def _make_emote_yaml(path: Path, name: str, defs: dict):
 
 def _simple_emote(first="You smile", third="$0 smiles"):
     return {
-        "msg": {
-            "first": [first],
-            "second": [None],
-            "third": [third],
-        },
+        "msg": [{"verb": [first, third], "end": ["."]}],
         "animations": "!0",
     }
 
@@ -91,7 +87,7 @@ class TestLoadEmotes:
         emotes.load_emotes(server_path=server_dir, world_path=world_dir)
 
         msg = emotes.emote_defs["smile"]["msg"]
-        assert msg["first"][0] == "World smile"
+        assert msg[0]["verb"][0] == "World smile"
 
     def test_qualified_key_always_reflects_loaded_file(self, tmp_path):
         from tinyrooms import emotes
@@ -205,6 +201,12 @@ class TestParseMessage:
         assert "smile" in emote_ids
         assert "wave" in emote_ids
 
+    def test_only_one_target_attached_per_emote(self):
+        alice = _FakeUser("alice", "sid-alice")
+        bob = _FakeUser("bob", "sid-bob")
+        parsed = self._parse(".smile@alice @bob", room_users={"alice": alice, "bob": bob})
+        assert parsed.emotes[0].refs == [alice]
+
 
 # ---------------------------------------------------------------------------
 # make_emote_text
@@ -216,53 +218,56 @@ class TestMakeEmoteText:
         return make_emote_text(emote_def, "Alice", refs or [], extra)
 
     def test_no_refs_returns_first_variant(self):
-        emote = {"msg": {"first": ["You smile"], "second": [None], "third": ["$0 smiles"]}}
+        emote = {"msg": [{"verb": ["You smile", "$0 smiles"]}]}
         first, second, third = self._text(emote)
-        assert first == "You smile"
+        assert first == "You smile."
         assert second is None
-        assert third == "Alice smiles"
+        assert third == "Alice smiles."
 
-    def test_with_ref_uses_indexed_variant(self):
+    def test_with_ref_uses_target_clause(self):
         emote = {
-            "msg": {
-                "first": ["You smile", "You smile at $1"],
-                "second": [None, "$0 smiles at you"],
-                "third": ["$0 smiles", "$0 smiles at $1"],
-            }
+            "msg": [{"verb": ["You smile", "$0 smiles"], "target": "at $1"}]
         }
         target = _FakeUser("bob")
         first, second, third = self._text(emote, refs=[target])
         assert "Bob" in first or "bob" in first.lower()
-        assert "$0 smiles at you" in second.replace("Alice", "$0")
+        assert "$0 smiles at you." in second.replace("Alice", "$0")
         assert "bob" in third.lower() or "Bob" in third
 
     def test_extra_text_appended(self):
-        emote = {"msg": {"first": ["You say"], "third": ["$0 says"]}}
+        emote = {"msg": [{"verb": ["You say", "$0 says"], "target": ""}]}
         first, _, third = self._text(emote, extra="hello world")
-        assert first == "You say: hello world"
-        assert "Alice says: hello world" == third
+        assert first == "You say: hello world."
+        assert "Alice says: hello world." == third
 
     def test_end_text_appended(self):
-        import random
-        emote = {"msg": {"first": ["You hug"], "third": ["$0 hugs"], "end": ["💕"]}}
+        emote = {"msg": [{"verb": ["You hug", "$0 hugs"], "end": ["💕"]}]}
         first, _, third = self._text(emote)
         assert first == "You hug 💕"
         assert third == "Alice hugs 💕"
 
-    def test_msg_list_picks_one_set(self):
+    def test_msg_index_can_select_specific_message_set(self):
+        from tinyrooms.text import make_emote_text
         emote = {
             "msg": [
-                {"first": ["Set A"], "third": ["$0 set A"]},
-                {"first": ["Set B"], "third": ["$0 set B"]},
+                {"verb": ["Set A", "$0 set A"], "target": ""},
+                {"verb": ["Set B", "$0 set B"], "target": ""},
             ]
         }
-        first, _, _ = self._text(emote)
-        assert first in ("Set A", "Set B")
+        first, _, _ = make_emote_text(emote, "Alice", [], "", msg_index=1)
+        assert first == "Set B."
+
+    def test_msg_must_be_array_of_message_definitions(self):
+        emote = {"msg": {"verb": ["You smile", "$0 smiles"]}}
+        first, second, third = self._text(emote)
+        assert first is None
+        assert second is None
+        assert third is None
 
     def test_placeholder_zero_substituted(self):
-        emote = {"msg": {"first": ["You smile"], "third": ["$0 smiles"]}}
+        emote = {"msg": [{"verb": ["You smile", "$0 smiles"]}]}
         _, _, third = self._text(emote)
-        assert third == "Alice smiles"
+        assert third == "Alice smiles."
 
 
 # ---------------------------------------------------------------------------
@@ -286,11 +291,7 @@ class TestDoEmote:
         from tinyrooms import emotes
         emotes.emote_defs = {
             "smile": {
-                "msg": {
-                    "first": ["You smile"],
-                    "second": [None],
-                    "third": ["$0 smiles"],
-                },
+                "msg": [{"verb": ["You smile", "$0 smiles"]}],
                 "animations": "!0",
             }
         }
@@ -319,11 +320,7 @@ class TestDoEmote:
 
         emotes.emote_defs = {
             "smile": {
-                "msg": {
-                    "first": ["You smile at $1"],
-                    "second": [None, "Alice smiles at you"],
-                    "third": ["Alice smiles at $1"],
-                },
+                "msg": [{"verb": ["You smile", "$0 smiles"], "target": "at $1"}],
                 "animations": "!0",
             }
         }
@@ -353,11 +350,7 @@ class TestDoEmote:
         from tinyrooms import emotes
         emotes.emote_defs = {
             "smile": {
-                "msg": {
-                    "first": ["You smile"],
-                    "second": [None],
-                    "third": ["$0 smiles"],
-                },
+                "msg": [{"verb": ["You smile", "$0 smiles"]}],
                 # no 'animations' key
             }
         }
@@ -393,11 +386,7 @@ class TestAnimationSteps:
 
     def _emote_def(self, animations="!0"):
         return {
-            "msg": {
-                "first": ["You smile"],
-                "second": [None],
-                "third": ["$0 smiles"],
-            },
+            "msg": [{"verb": ["You smile", "$0 smiles"]}],
             "animations": animations,
         }
 
@@ -411,15 +400,34 @@ class TestAnimationSteps:
 
         assert any(e[0] == "message" for e in emitted)
 
+    def test_msg_step_index_selects_message_definition(self):
+        from tinyrooms import emotes
+        emotes.emote_defs = {
+            "smile": {
+                "msg": [
+                    {"verb": ["You base", "$0 base"], "target": ""},
+                    {"verb": ["You alt", "$0 alt"], "target": ""},
+                ],
+                "animations": "!1",
+            }
+        }
+
+        emitted: list = []
+        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))):
+            emotes.do_emote("smile", [], self._user(), self._room())
+
+        texts = [e[1]["text"] for e in emitted if e[0] == "message" and e[2].get("to") == "sid-alice"]
+        assert "You alt." in texts
+
     def test_nested_emote_step_invoked_at_depth_zero(self):
         from tinyrooms import emotes
         emotes.emote_defs = {
             "outer": {
-                "msg": {"first": ["You outer"], "second": [None], "third": ["$0 outer"]},
+                "msg": [{"verb": ["You outer", "$0 outer"]}],
                 "animations": "!0,.inner",
             },
             "inner": {
-                "msg": {"first": ["You inner"], "second": [None], "third": ["$0 inner"]},
+                "msg": [{"verb": ["You inner", "$0 inner"]}],
                 "animations": "!0",
             },
         }
@@ -436,11 +444,11 @@ class TestAnimationSteps:
         from tinyrooms import emotes
         emotes.emote_defs = {
             "outer": {
-                "msg": {"first": ["You outer"], "second": [None], "third": ["$0 outer"]},
+                "msg": [{"verb": ["You outer", "$0 outer"]}],
                 "animations": "!0,.inner",
             },
             "inner": {
-                "msg": {"first": ["SHOULD NOT APPEAR"], "second": [None], "third": ["SHOULD NOT APPEAR"]},
+                "msg": [{"verb": ["SHOULD NOT APPEAR", "SHOULD NOT APPEAR"]}],
                 "animations": "!0",
             },
         }
@@ -454,15 +462,12 @@ class TestAnimationSteps:
 
         steps = _parse_animation_steps("!0,.inner")
         outer_def = emotes.emote_defs["outer"]
-        from tinyrooms.text import make_emote_text
-        f, s, t = make_emote_text(outer_def, "Alice", [], "")
 
         with patch("flask_socketio.emit", side_effect=fake_emit_fn):
             _execute_steps(
                 steps, outer_def,
                 "sid-alice", "room1",
-                f, s, None, t,
-                [], "sid-alice", "room1", "Alice", "",
+                [], "Alice", "",
                 depth=1,  # already at depth 1 → inner should be skipped
                 in_handler=True,
             )
@@ -475,7 +480,7 @@ class TestAnimationSteps:
         from tinyrooms import emotes
         emotes.emote_defs = {
             "delayed": {
-                "msg": {"first": ["You delayed"], "second": [None], "third": ["$0 delayed"]},
+                "msg": [{"verb": ["You delayed", "$0 delayed"]}],
                 "animations": "!0,#0.05",
             }
         }
