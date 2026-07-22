@@ -13,6 +13,7 @@ import shlex
 from typing import Any, Callable
 
 from flask_socketio import emit
+from .world import active_world
 
 
 # ---------------------------------------------------------------------------
@@ -40,6 +41,161 @@ def _save_world(world: Any) -> None:
 def _broadcast_header(room: Any) -> None:
     for room_user in room.users.values():
         room.send_header_view(room_user)
+
+
+def _emit_inventory_update(user_obj: Any) -> None:
+    items = []
+    for obj in user_obj.peep.inventory.values():
+        obj_info = getattr(obj, "info", {}) or {}
+        raw_action = obj_info.get("inventory_action")
+        inventory_actions = []
+        if isinstance(raw_action, str):
+            command_text = raw_action.strip()
+            if command_text:
+                inventory_actions = [{"label": "Use Item", "commands": command_text}]
+        elif isinstance(raw_action, dict):
+            command_text = str(raw_action.get("commands") or raw_action.get("command") or "").strip()
+            if command_text:
+                label = str(raw_action.get("label") or "Action").strip() or "Action"
+                inventory_actions = [{"label": label, "commands": command_text}]
+        elif isinstance(raw_action, list):
+            for idx, entry in enumerate(raw_action, start=1):
+                if isinstance(entry, str):
+                    command_text = entry.strip()
+                    if command_text:
+                        inventory_actions.append({
+                            "label": "Use Item" if idx == 1 else f"Action {idx}",
+                            "commands": command_text,
+                        })
+                elif isinstance(entry, dict):
+                    command_text = str(entry.get("commands") or entry.get("command") or "").strip()
+                    if command_text:
+                        label = str(entry.get("label") or f"Action {idx}").strip() or f"Action {idx}"
+                        inventory_actions.append({"label": label, "commands": command_text})
+        items.append({
+            "obj_id": obj.obj_id,
+            "label": obj.label(),
+            "description": obj.description(),
+            "display": dict(getattr(obj, "_display_assets", {}) or {}),
+            "inventory_actions": inventory_actions,
+        })
+    emit("inventory_update", {"items": items}, to=user_obj.sid)
+
+
+def _resolve_action_target(user_obj: Any, target_token: str):
+    room = user_obj.room
+    if room is None:
+        return None, "You are not in a room."
+    token = str(target_token or "").strip()
+    if not token:
+        return None, "missing target"
+    if not token.startswith("@"):
+        return None, f"invalid target token '{token}'"
+    search = token[1:].strip()
+    if not search:
+        return None, "invalid target token '@'"
+
+    if search.startswith("obj:"):
+        obj_id = search[4:].strip()
+        if not obj_id:
+            return None, "invalid object target"
+        room_obj = room.objs.get(obj_id)
+        if room_obj is not None:
+            return {"type": "object", "entity": room_obj, "target_ref": f"@obj:{obj_id}"}, ""
+        inv_obj = user_obj.peep.inventory.get(obj_id)
+        if inv_obj is not None:
+            return {"type": "inventory", "entity": inv_obj, "target_ref": f"@obj:{obj_id}"}, ""
+        return None, f"object '{obj_id}' not found in room or inventory"
+
+    if search.startswith("prop:"):
+        prop_id = search[5:].strip()
+        if not prop_id:
+            return None, "invalid prop target"
+        prop_obj = room.props.get(prop_id)
+        if prop_obj is None:
+            return None, f"prop '{prop_id}' not found"
+        return {"type": "prop", "entity": prop_obj, "target_ref": f"@prop:{prop_id}"}, ""
+
+    if search.startswith("peep:"):
+        peep_id = search[5:].strip()
+        if not peep_id:
+            return None, "invalid peep target"
+        room_user = room.users.get(peep_id)
+        if room_user is not None:
+            return {"type": "peep", "entity": room_user.peep, "target_ref": f"@{room_user.username}"}, ""
+        room_peep = room.peeps.get(peep_id)
+        if room_peep is not None:
+            return {"type": "peep", "entity": room_peep, "target_ref": f"@peep:{peep_id}"}, ""
+        return None, f"peep '{peep_id}' not found"
+
+    if search.startswith("way:"):
+        return None, "ways are not valid targets for this action"
+
+    room_user = room.users.get(search)
+    if room_user is not None:
+        return {"type": "peep", "entity": room_user.peep, "target_ref": f"@{room_user.username}"}, ""
+    room_peep = room.peeps.get(search)
+    if room_peep is not None:
+        return {"type": "peep", "entity": room_peep, "target_ref": f"@peep:{search}"}, ""
+    return None, f"target '{token}' not found"
+
+
+def _build_look_panel(user_obj: Any, resolved_target):
+    from . import text as text_utils
+
+    room = user_obj.room
+    if room is None:
+        return "Look", "You are not in a room."
+    if resolved_target is None:
+        return room.label(), text_utils.make_room_description_text(room, user_obj)
+
+    target_type = resolved_target["type"]
+    target_entity = resolved_target["entity"]
+    target_ref = resolved_target["target_ref"]
+    label = target_entity.label() if callable(getattr(target_entity, "label", None)) else target_ref
+    description = target_entity.description() if callable(getattr(target_entity, "description", None)) else ""
+    description = description or f"You look at {label}."
+
+    if target_type == "object":
+        return label, f"Object: {target_ref}\n\n{description}"
+    if target_type == "inventory":
+        return label, f"Inventory item: {target_ref}\n\n{description}"
+    if target_type == "peep":
+        peep_type = getattr(target_entity, "type", "user")
+        return label, f"Peep ({peep_type}): {target_ref}\n\n{description}"
+    if target_type == "prop":
+        room = user_obj.room
+        exit_way_id = target_entity.metadata.get("exit_way_id")
+        exit_text = ""
+        if exit_way_id and room is not None:
+            exit_way = room.ways.get(exit_way_id)
+            exit_label = exit_way.label if exit_way is not None else exit_way_id
+            exit_text = f"\n\nExit: {exit_label}"
+        return label, f"Prop: {target_ref}\n\n{description}{exit_text}"
+    return "Look", description
+
+
+def _resolve_way_target(user_obj: Any, target_token: str):
+    room = user_obj.room
+    if room is None:
+        return None, "You are not in a room."
+    token = str(target_token or "").strip()
+    if not token:
+        return None, "Go where?"
+    raw = token[1:] if token.startswith("@") else token
+    if raw.startswith("way:"):
+        way_id = raw[4:].strip()
+    else:
+        way_id = raw.strip()
+    if not way_id:
+        return None, "Go where?"
+    way = room.ways.get(way_id)
+    if way is None:
+        world_way = active_world().ways.get(way_id)
+        if world_way is None or way_id not in room.ways:
+            return None, "You can't go that way."
+        way = world_way
+    return way, ""
 
 # ---------------------------------------------------------------------------
 # Command registry
@@ -157,6 +313,14 @@ def _cmd_help(user_obj: Any, args: list[str], world: Any) -> None:
         "**Available commands:**",
         "  [[:?|:?]] — this help",
         "  [[:list users|:list users]] — list all users",
+        "  [:go <target>] — go through an exit (@way:<id>)",
+        "  [:look [target]] — inspect room or target",
+        "  [:pick <target>] — pick up object from room",
+        "  [:drop <target> [x y]] — drop inventory object",
+        "  [:equip] — show equip panel",
+        "  [:self] — show self panel",
+        "  [:claim room] — claim current unowned room",
+        "  [:use <target>] — default use action feedback",
     ]
     if user_obj.has_power("realtor"):
         lines += [
@@ -226,6 +390,188 @@ def _cmd_list_users(user_obj: Any, args: list[str], world: Any) -> None:
 @_cmd("list users <search>")
 def _cmd_list_users_search(user_obj: Any, args: list[str], world: Any) -> None:
     _cmd_list_users(user_obj, args, world)
+
+
+@_cmd("look")
+def _cmd_look_room(user_obj: Any, args: list[str], world: Any) -> None:
+    title, content = _build_look_panel(user_obj, None)
+    emit("activity_panel", {"mode": "look", "title": title, "content": content}, to=user_obj.sid)
+
+
+@_cmd("look <target>")
+def _cmd_look_target(user_obj: Any, args: list[str], world: Any) -> None:
+    target = (args[0] if args else "").strip()
+    resolved_target, error = _resolve_action_target(user_obj, target)
+    if error:
+        emit("error", {"error": f"look: {error}"}, to=user_obj.sid)
+        return
+    title, content = _build_look_panel(user_obj, resolved_target)
+    emit("activity_panel", {"mode": "look", "title": title, "content": content}, to=user_obj.sid)
+
+
+@_cmd("go")
+def _cmd_go_missing_target(user_obj: Any, args: list[str], world: Any) -> None:
+    emit("message", {"text": "Go where?"}, to=user_obj.sid)
+
+
+@_cmd("go <target>")
+def _cmd_go(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import user_data
+    room = user_obj.room
+    if room is None:
+        emit("error", {"error": "not in room"}, to=user_obj.sid)
+        return
+    way, error = _resolve_way_target(user_obj, args[0] if args else "")
+    if error:
+        emit("message", {"text": error}, to=user_obj.sid)
+        return
+    to = getattr(way, "info", {}).get("to")
+    if to is None or to not in world.rooms:
+        emit("message", {"text": "You can't go that way."}, to=user_obj.sid)
+        return
+    next_room = world.rooms[to]
+    user_obj.room.remove_user(user_obj)
+    next_room.add_user(user_obj)
+    user_data.save_user_state(user_obj)
+    emit("message", {"text": f"You go {way.label}."}, to=user_obj.sid)
+    emit("message", {"text": f"{user_obj.label} leaves {way.label}."}, room=room.room_id, skip_sid=user_obj.sid)
+    emit("message", {"text": f"{user_obj.label} arrives from {room.label()}."}, room=next_room.room_id, skip_sid=user_obj.sid)
+
+
+@_cmd("pick")
+def _cmd_pick_missing_target(user_obj: Any, args: list[str], world: Any) -> None:
+    emit("error", {"error": "pick: missing target"}, to=user_obj.sid)
+
+
+@_cmd("pick <target>")
+def _cmd_pick(user_obj: Any, args: list[str], world: Any) -> None:
+    resolved_target, error = _resolve_action_target(user_obj, args[0] if args else "")
+    if error:
+        emit("error", {"error": f"pick: {error}"}, to=user_obj.sid)
+        return
+    if resolved_target is None or resolved_target["type"] != "object":
+        emit("error", {"error": "pick: target must be a room object"}, to=user_obj.sid)
+        return
+    room = user_obj.room
+    if room is None:
+        emit("error", {"error": "not in room"}, to=user_obj.sid)
+        return
+    obj = resolved_target["entity"]
+    obj_id = obj.obj_id
+    if obj_id not in room.objs:
+        emit("error", {"error": "object not found in room"}, to=user_obj.sid)
+        return
+    del room.objs[obj_id]
+    obj.location_id = f"@{user_obj.username}"
+    user_obj.peep.inventory[obj_id] = obj
+    room.broadcast_room_object_update(obj, change_type="remove", entity_type="object")
+    world.save_state(world.ws_id)
+    _emit_inventory_update(user_obj)
+    emit("message", {"text": f"You pick up {obj.label()}."}, to=user_obj.sid)
+    emit("message", {"text": f"{user_obj.label} picks up {obj.label()}."}, room=room.room_id, skip_sid=user_obj.sid)
+
+
+@_cmd("drop")
+def _cmd_drop_missing_target(user_obj: Any, args: list[str], world: Any) -> None:
+    emit("error", {"error": "drop: missing target"}, to=user_obj.sid)
+
+
+@_cmd("drop <target>")
+def _cmd_drop(user_obj: Any, args: list[str], world: Any) -> None:
+    _cmd_drop_with_coords(user_obj, args, world)
+
+
+@_cmd("drop <target> <x> <y>")
+def _cmd_drop_with_coords(user_obj: Any, args: list[str], world: Any) -> None:
+    resolved_target, error = _resolve_action_target(user_obj, args[0] if args else "")
+    if error:
+        emit("error", {"error": f"drop: {error}"}, to=user_obj.sid)
+        return
+    if resolved_target is None or resolved_target["type"] != "inventory":
+        emit("error", {"error": "drop: target must be an inventory object"}, to=user_obj.sid)
+        return
+    room = user_obj.room
+    if room is None:
+        emit("error", {"error": "not in room"}, to=user_obj.sid)
+        return
+    obj = resolved_target["entity"]
+    obj_id = obj.obj_id
+    if obj_id not in user_obj.peep.inventory:
+        emit("error", {"error": "object not in inventory"}, to=user_obj.sid)
+        return
+    x = user_obj.peep.x
+    y = user_obj.peep.y
+    if len(args) >= 3:
+        try:
+            x = int(args[1])
+            y = int(args[2])
+        except (TypeError, ValueError):
+            emit("error", {"error": "drop: x and y must be integers"}, to=user_obj.sid)
+            return
+    del user_obj.peep.inventory[obj_id]
+    obj.location_id = room.id()
+    obj.x = x
+    obj.y = y
+    obj.z_order = room.next_z()
+    room.objs[obj_id] = obj
+    room.broadcast_room_object_update(obj, change_type="upsert", entity_type="object")
+    world.save_state(world.ws_id)
+    _emit_inventory_update(user_obj)
+    emit("message", {"text": f"You drop {obj.label()}."}, to=user_obj.sid)
+    emit("message", {"text": f"{user_obj.label} drops {obj.label()}."}, room=room.room_id, skip_sid=user_obj.sid)
+
+
+@_cmd("equip")
+def _cmd_equip(user_obj: Any, args: list[str], world: Any) -> None:
+    inventory_count = len(user_obj.peep.inventory)
+    if inventory_count:
+        lines = [f"You are carrying {inventory_count} item(s).", "Select an inventory item and use contextual actions."]
+    else:
+        lines = ["Your inventory is empty.", "Pick up an object to equip or use it."]
+    emit("activity_panel", {"mode": "equip", "title": "Equip", "content": "\n".join(lines)}, to=user_obj.sid)
+
+
+@_cmd("self")
+def _cmd_self(user_obj: Any, args: list[str], world: Any) -> None:
+    room_label = user_obj.room.label() if user_obj.room is not None else "Nowhere"
+    description = user_obj.peep.description() if callable(getattr(user_obj.peep, "description", None)) else ""
+    description = description or "No character description."
+    emit(
+        "activity_panel",
+        {"mode": "self", "title": "Self", "content": f"User: {user_obj.username}\nRoom: {room_label}\n\n{description}"},
+        to=user_obj.sid,
+    )
+
+
+@_cmd("claim room")
+def _cmd_claim_room(user_obj: Any, args: list[str], world: Any) -> None:
+    room = user_obj.room
+    if room is None:
+        emit("error", {"error": "not in room"}, to=user_obj.sid)
+        return
+    if not room.can_user_claim(user_obj):
+        emit("error", {"error": "room already has an owner"}, to=user_obj.sid)
+        return
+    room.owner_id = user_obj.username
+    room.send_header_view(user_obj)
+    for room_user in room.users.values():
+        if room_user.sid != user_obj.sid:
+            room.send_header_view(room_user)
+    world.save_state(world.ws_id)
+
+
+@_cmd("use")
+def _cmd_use_missing_target(user_obj: Any, args: list[str], world: Any) -> None:
+    emit("message", {"text": "Use what?"}, to=user_obj.sid)
+
+
+@_cmd("use <target>")
+def _cmd_use(user_obj: Any, args: list[str], world: Any) -> None:
+    target = (args[0] if args else "").strip()
+    if not target:
+        emit("message", {"text": "Use what?"}, to=user_obj.sid)
+        return
+    emit("message", {"text": f"You use {target}."}, to=user_obj.sid)
 
 
 # ---------------------------------------------------------------------------

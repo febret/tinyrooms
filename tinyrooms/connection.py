@@ -9,7 +9,6 @@ from .prop import Prop
 from .world import active_world
 from . import peep_behavior as _peep_behavior
 
-
 def _save_world():
     """Persist the active world state."""
     world = active_world()
@@ -28,6 +27,45 @@ def _require_room_user():
         emit("error", {"error": "not in room"})
         return None, None
     return user_obj, room
+
+
+def _normalize_inventory_actions(raw_actions):
+    if raw_actions is None:
+        return []
+
+    def _normalize_entry(entry, idx: int):
+        if isinstance(entry, str):
+            commands = entry.strip()
+            if not commands:
+                return None
+            return {"label": "Use Item" if idx == 1 else f"Action {idx}", "commands": commands}
+        if isinstance(entry, dict):
+            commands = str(entry.get("commands") or entry.get("command") or "").strip()
+            if not commands:
+                return None
+            label = str(entry.get("label") or f"Action {idx}").strip() or f"Action {idx}"
+            return {"label": label, "commands": commands}
+        return None
+
+    if isinstance(raw_actions, (str, dict)):
+        normalized = _normalize_entry(raw_actions, 1)
+        return [normalized] if normalized else []
+
+    if isinstance(raw_actions, list):
+        out = []
+        for idx, entry in enumerate(raw_actions, start=1):
+            normalized = _normalize_entry(entry, idx)
+            if normalized:
+                out.append(normalized)
+        return out
+
+    return []
+
+
+def _inventory_actions_for_object(obj):
+    obj_info = getattr(obj, "info", {}) or {}
+    return _normalize_inventory_actions(obj_info.get("inventory_action"))
+
 
 # Socket.IO events
 @server.socketio.on("connect")
@@ -147,38 +185,6 @@ def handle_message(data):
     for ref in parsed.refs:
         if isinstance(ref, Peep) and getattr(ref, 'type', 'user') == 'npc':
             _peep_behavior.call_handler(ref, 'on_message', user_obj, text)
-
-
-@server.socketio.on("navigate")
-def handle_navigate(data):
-    """Navigate the current user through a way.
-
-    Expect data: {"way_id": "<way_id>"}
-    """
-    user_obj, room = _require_room_user()
-    if user_obj is None:
-        return
-    way_id = (data or {}).get("way_id", "").strip()
-    if not way_id:
-        emit("message", {"text": "Go where?"}, to=user_obj.sid)
-        return
-    world = active_world()
-    way = world.ways.get(way_id)
-    if way is None or not hasattr(way, 'info'):
-        emit("message", {"text": "You can't go that way."}, to=user_obj.sid)
-        return
-    to = way.info.get('to')
-    if to is None or to not in world.rooms:
-        emit("message", {"text": "You can't go that way."}, to=user_obj.sid)
-        return
-    next_room = world.rooms[to]
-    user_obj.room.remove_user(user_obj)
-    next_room.add_user(user_obj)
-    user_data.save_user_state(user_obj)
-    emit("message", {"text": f"You go {way.label}."}, to=user_obj.sid)
-    emit("message", {"text": f"{user_obj.label} leaves {way.label}."}, room=room.room_id, skip_sid=user_obj.sid)
-    emit("message", {"text": f"{user_obj.label} arrives from {room.label()}."}, room=next_room.room_id, skip_sid=user_obj.sid)
-
 
 
 # Optional: simple ping from client
@@ -345,40 +351,6 @@ def handle_room_save_props(data):
         room.send_room_stage_view(room_user)
 
 
-@server.socketio.on("room_claim")
-def handle_room_claim(data):
-    """Allow the current user to claim an ownerless room or reset their own ownership."""
-    user_obj, room = _require_room_user()
-    if user_obj is None:
-        return
-    if not room.can_user_claim(user_obj):
-        emit("error", {"error": "room already has an owner"})
-        return
-    room.owner_id = user_obj.username
-    # Broadcast updated header immediately so UI reflects claim state without
-    # waiting on world-state persistence.
-    room.send_header_view(user_obj)
-    for room_user in room.users.values():
-        if room_user.sid != user_obj.sid:
-            room.send_header_view(room_user)
-    _save_world()
-
-
-@server.socketio.on("request_activity_panel")
-def handle_request_activity_panel(data):
-    sid = getattr(request, 'sid', None)
-    user_obj = user.connected_users.get(sid)
-    if not user_obj:
-        emit("error", {"error": "not authenticated"})
-        return
-    mode = (data or {}).get("mode", "unknown")
-    emit("activity_panel", {
-        "mode": mode,
-        "title": mode.title(),
-        "content": f"TODO: server payload for activity panel mode '{mode}' is not fully specified yet.",
-    }, to=sid)
-
-
 def _emit_inventory_update(user_obj):
     """Emit the current inventory contents to the user's socket."""
     items = []
@@ -388,56 +360,6 @@ def _emit_inventory_update(user_obj):
             "label": obj.label(),
             "description": obj.description(),
             "display": dict(getattr(obj, "_display_assets", {}) or {}),
+            "inventory_actions": _inventory_actions_for_object(obj),
         })
     emit("inventory_update", {"items": items}, to=user_obj.sid)
-
-
-@server.socketio.on("room_pick_object")
-def handle_room_pick_object(data):
-    """Pick up an object from the current room into the user's inventory."""
-    user_obj, room = _require_room_user()
-    if user_obj is None:
-        return
-    sid = user_obj.sid
-    entity_id = (data or {}).get("entity_id", "")
-    obj = room.objs.get(entity_id)
-    if obj is None:
-        emit("error", {"error": "object not found in room"})
-        return
-    del room.objs[entity_id]
-    obj.location_id = f"@{user_obj.username}"
-    user_obj.peep.inventory[entity_id] = obj
-    room.broadcast_room_object_update(obj, change_type="remove", entity_type="object")
-    _save_world()
-    _emit_inventory_update(user_obj)
-    emit("message", {"text": f"You pick up {obj.label()}."}, to=sid)
-    emit("message", {"text": f"{user_obj.label} picks up {obj.label()}."}, room=room.room_id, skip_sid=sid)
-
-
-@server.socketio.on("room_drop_object")
-def handle_room_drop_object(data):
-    """Drop an object from the user's inventory into the current room."""
-    user_obj, room = _require_room_user()
-    if user_obj is None:
-        return
-    sid = user_obj.sid
-    obj_id = (data or {}).get("obj_id", "")
-    obj = user_obj.peep.inventory.get(obj_id)
-    if obj is None:
-        emit("error", {"error": "object not in inventory"})
-        return
-    del user_obj.peep.inventory[obj_id]
-    obj.location_id = room.id()
-    try:
-        obj.x = int((data or {}).get("x", user_obj.peep.x))
-        obj.y = int((data or {}).get("y", user_obj.peep.y))
-    except (TypeError, ValueError):
-        obj.x = user_obj.peep.x
-        obj.y = user_obj.peep.y
-    obj.z_order = room.next_z()
-    room.objs[obj_id] = obj
-    room.broadcast_room_object_update(obj, change_type="upsert", entity_type="object")
-    _save_world()
-    _emit_inventory_update(user_obj)
-    emit("message", {"text": f"You drop {obj.label()}."}, to=sid)
-    emit("message", {"text": f"{user_obj.label} drops {obj.label()}."}, room=room.room_id, skip_sid=sid)

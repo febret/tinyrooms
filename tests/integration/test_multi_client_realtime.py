@@ -5,7 +5,7 @@ pytestmark = pytest.mark.integration
 
 
 def _go_to_playroom(client):
-    client.emit("navigate", {"way_id": "to_gateway"})
+    client.emit("message", {"text": ":go @way:to_gateway"})
     client.wait_for(
         "update_view",
         predicate=lambda payload: payload.get("view") == "header" and payload.get("room_id") == "playroom",

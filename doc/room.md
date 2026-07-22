@@ -188,7 +188,7 @@ Rooms may have an optional owner (`owner_id`). Ownership is stored per-room in t
 - **Unclaimed rooms** (no owner): any logged-in user can edit props and claim the room.
 - **Claimed rooms**: only the owner can edit props.
 - `can_edit_props` and `can_claim_room` flags are sent in the `header` view update on every room entry or ownership change.
-- Claiming a room emits `room_claim {}` to the server. The server sets `room.owner_id = username`, persists the change, and broadcasts an updated header to all users in the room.
+- Claiming a room emits `:claim room` through the message command pipeline. The server sets `room.owner_id = username`, persists the change, and broadcasts an updated header to all users in the room.
 - After claiming, `can_claim_room` becomes `False` and only the claimant retains `can_edit_props = True`.
 - The room editor panel shows a **Claim Room** button and a short explanation when `roomState.canClaimRoom` is `True`.
 - Prop library definitions (including prop images) are loaded through REST (`GET /api/props/library`) and kept separate from `room-stage` room layout payloads.

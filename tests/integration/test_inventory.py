@@ -28,7 +28,7 @@ def test_inventory_pick_and_drop_lifecycle(auth_socket_user, http_client):
     client.drain("inventory_update")
 
     # Pick it up
-    client.emit("room_pick_object", {"entity_id": object_id})
+    client.emit("message", {"text": f":pick @obj:{object_id}"})
 
     # Should receive a room-object remove broadcast
     remove_event = client.wait_for(
@@ -53,7 +53,7 @@ def test_inventory_pick_and_drop_lifecycle(auth_socket_user, http_client):
     assert item["label"]
 
     # Drop it back
-    client.emit("room_drop_object", {"obj_id": object_id})
+    client.emit("message", {"text": f":drop @obj:{object_id}"})
 
     # Should receive a room-object upsert
     upsert_event = client.wait_for(
@@ -98,7 +98,7 @@ def test_inventory_is_sent_on_login(auth_socket_user, http_client, socket_client
     client.drain("update_view")
     client.drain("inventory_update")
 
-    client.emit("room_pick_object", {"entity_id": object_id})
+    client.emit("message", {"text": f":pick @obj:{object_id}"})
     client.wait_for(
         "inventory_update",
         predicate=lambda p: any(i["obj_id"] == object_id for i in (p.get("items") or [])),
@@ -116,3 +116,59 @@ def test_inventory_is_sent_on_login(auth_socket_user, http_client, socket_client
     )
     assert inv is not None
     new_client.disconnect()
+
+
+def test_inventory_update_includes_custom_inventory_actions(auth_socket_user):
+    user = auth_socket_user(prefix="it_inv_actions")
+    client = user["client"]
+
+    client.emit("message", {"text": ":go @way:to_gateway"})
+    client.wait_for("update_view", predicate=lambda p: p.get("view") == "header" and p.get("room_id") == "playroom", timeout=8.0)
+
+    room_object = client.wait_for(
+        "update_view",
+        predicate=lambda p: (
+            p.get("view") == "room-object"
+            and p.get("change") == "upsert"
+            and p.get("entity", {}).get("entity_type") == "object"
+        ),
+        timeout=8.0,
+    )
+    object_id = room_object["entity"]["entity_id"]
+
+    client.emit("message", {"text": f":pick @obj:{object_id}"})
+    inv_event = client.wait_for(
+        "inventory_update",
+        predicate=lambda p: any(i["obj_id"] == object_id for i in (p.get("items") or [])),
+        timeout=8.0,
+    )
+    item = next(i for i in inv_event["items"] if i["obj_id"] == object_id)
+    actions = item.get("inventory_actions") or []
+    assert actions
+    assert actions[0]["commands"] == ":use $0, :use $0"
+
+    expanded_commands = [
+        command.strip().replace("$0", f"@obj:{object_id}")
+        for command in actions[0]["commands"].split(",")
+        if command.strip()
+    ]
+    assert expanded_commands == [f":use @obj:{object_id}", f":use @obj:{object_id}"]
+
+    for command in expanded_commands:
+        client.emit("message", {"text": command})
+
+    first = client.wait_for("message", predicate=lambda p: p.get("text") == f"You use @obj:{object_id}.", timeout=8.0)
+    second = client.wait_for("message", predicate=lambda p: p.get("text") == f"You use @obj:{object_id}.", timeout=8.0)
+    assert first is not None
+    assert second is not None
+
+    client.emit("message", {"text": f":drop @obj:{object_id}"})
+    client.wait_for(
+        "update_view",
+        predicate=lambda p: (
+            p.get("view") == "room-object"
+            and p.get("change") == "upsert"
+            and p.get("entity", {}).get("entity_id") == object_id
+        ),
+        timeout=8.0,
+    )

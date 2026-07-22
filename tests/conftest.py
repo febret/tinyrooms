@@ -287,6 +287,7 @@ def _write_test_world_definitions(workspace: Path):
                 "img": "images/test_object.png",
                 "sprite": "images/test_object.png",
                 "icon": "img:images/test_object.png",
+                "inventory_action": ":use $0, :use $0",
                 "tags": ["item"],
             }
         },

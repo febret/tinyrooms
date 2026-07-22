@@ -44,14 +44,14 @@ The palette is a dynamic tabbed control in `actionsPanel > actionPalette`. Tabs 
 
 ### Tabs
 - 🤚 **Actions**
-  1. Look -> emits `.basic.look` (optionally with selected target ref).
-  2. Use -> emits `.basic.use` (optionally with selected target ref).
-  3. Drop -> drops the selected inventory object (`room_drop_object`).
-  4. Equip -> requests `request_activity_panel` mode `equip`.
-  5. Move -> switches to Directions tab.
-  6. Self -> requests `request_activity_panel` mode `self`.
-  7. Pick Up -> appears only when an object is the selected target; emits `room_pick_object` to the server.
-  8. Go: [label] -> appears only when a prop with an `exit_way_id` is the selected target; calls `navigateExit(wayId)` to leave via that exit.
+  1. Look -> emits `:look` (optionally with selected target ref).
+  2. Use -> emits `:use` (optionally with selected target ref).
+  3. Drop -> emits `:drop @obj:<id>` (with optional x/y when dropped on canvas).
+  4. Equip -> emits `:equip`.
+  5. Self -> emits `:self`.
+  6. Pick Up -> appears only when an object is the selected target; emits `:pick @obj:<id>`.
+  7. Go: [label] -> appears only when a prop with an `exit_way_id` is the selected target; emits `:go @way:<id>`.
+  8. Inventory custom actions -> appear for selected inventory items from `inventory_action` metadata and emit one or more commands via `message`.
 - 🧭 **Directions**
   - Populated from current room exits (`update_view: room-exits`), so buttons change with the room.
 - 📦 **Objects**
@@ -82,8 +82,6 @@ See [inventory.md](inventory.md) for the full inventory system specification.
 `activityPanel` is currently fed by dedicated `activity_panel` socket messages.
 
 Implemented modes:
-- `look` via action routing
-- `equip` via `request_activity_panel`
-- `self` via `request_activity_panel`
-
-Unspecified activity payload details are intentionally left as TODO placeholders in the server message content.
+- `look` via `:look` command routing
+- `equip` via `:equip`
+- `self` via `:self`

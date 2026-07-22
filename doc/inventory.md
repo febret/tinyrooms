@@ -23,12 +23,9 @@ This is populated on login by scanning `world.objs` for any object whose `locati
 ### Persistence
 Inventory state persists across sessions. When `world.save_state()` is called (after pick or drop), the object's updated `location_id` is written to the worldstate database (`objects` table). On next login the object is restored to the user's inventory automatically.
 
-## Server Events
+## Commands
 
-### `room_pick_object` (client → server)
-```json
-{ "entity_id": "<obj_id>" }
-```
+### `:pick @obj:<obj_id>`
 - Validates the user is authenticated and in a room.
 - Validates the object exists in the current room (`room.objs`).
 - Moves the object: `room.objs` → `peep.inventory`; sets `obj.location_id = "@<username>"`.
@@ -37,11 +34,8 @@ Inventory state persists across sessions. When `world.save_state()` is called (a
 - Emits `inventory_update` to the picking user.
 - Broadcasts a chat message to the room: "You pick up X." / "Username picks up X."
 
-### `room_drop_object` (client → server)
-```json
-{ "obj_id": "<obj_id>", "x": 120, "y": 200 }
-```
-- `x` and `y` are optional; defaults to the user's current peep position.
+### `:drop @obj:<obj_id> [x y]`
+- `x` and `y` are optional and when present place the object at that coordinate; otherwise defaults to the user's current peep position.
 - Validates the object is in the user's inventory.
 - Moves the object: `peep.inventory` → `room.objs`; sets `obj.location_id = room.id()`.
 - Sets the object's `x`, `y`, and a new `z_order` so it appears on top.
@@ -59,12 +53,16 @@ Emitted privately to the owning user after every pick, drop, or on login.
       "obj_id": "abc123",
       "label": "Old Lantern",
       "description": "A battered tin lantern.",
-      "display": { "icon": "/assets/...", "img": "..." }
+      "display": { "icon": "/assets/...", "img": "..." },
+      "inventory_actions": [
+        { "label": "Use Item", "commands": ":inspect $0, :use $0" }
+      ]
     }
   ]
 }
 ```
 `display` mirrors the object's display assets (icon/img/sprite URLs) for rendering the inventory row icon.
+`inventory_actions` carries contextual action definitions derived from a thing/object `inventory_action` field.
 
 ## Client UI
 
@@ -73,19 +71,19 @@ The inventory panel lives in `#inventoryPanel > #inventoryList` in the right-han
 
 The list shows icon-only item tiles.
 - Clicking an icon selects that inventory item.
-- Dragging an icon onto the room canvas drops that object into the room (`room_drop_object` with drop coordinates).
+- Dragging an icon onto the room canvas drops that object into the room (`:drop @obj:<id> <x> <y>`).
 - The selected icon is highlighted and is used by the **Drop** action in the Actions tab.
 
 When the inventory is empty the list shows "Empty".
 
 ### Picking up from the action palette
-When an object entity is the selected target, a **Pick Up** button appears in the Actions tab. Clicking it calls `pickUpSelectedObject()`, which emits `room_pick_object { entity_id }` and clears the selection.
+When an object entity is the selected target, a **Pick Up** button appears in the Actions tab. Clicking it emits `:pick @obj:<id>` and clears the selection.
 
 ### Dropping from the action palette
-The Actions tab includes **Drop**, which emits `room_drop_object { obj_id }` for the currently selected inventory object.
+The Actions tab includes **Drop**, which emits `:drop @obj:<id>` for the currently selected inventory object.
 
 ### Drag-to-pickup
-Dragging an object entity and dropping it on top of the user's own peep (character) on the room canvas also picks it up. This works for both mouse drag and touch drag. The drop target check inspects the element under the pointer at drag end; if that element belongs to the user's own peep entity node, `room_pick_object` is emitted instead of `room_move_entity`.
+Dragging an object entity and dropping it on top of the user's own peep (character) on the room canvas also picks it up. This works for both mouse drag and touch drag. The drop target check inspects the element under the pointer at drag end; if that element belongs to the user's own peep entity node, `:pick @obj:<id>` is emitted instead of `room_move_entity`.
 
 ## Constraints
 - Only room objects can be picked up; peeps cannot.

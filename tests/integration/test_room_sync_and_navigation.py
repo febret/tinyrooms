@@ -5,7 +5,7 @@ pytestmark = pytest.mark.integration
 
 
 def _go_to_playroom(client):
-    client.emit("navigate", {"way_id": "to_gateway"})
+    client.emit("message", {"text": ":go @way:to_gateway"})
     header = client.wait_for(
         "update_view",
         predicate=lambda payload: payload.get("view") == "header" and payload.get("room_id") == "playroom",
@@ -79,7 +79,7 @@ def test_unclaimed_room_editable_and_claim(auth_socket_user):
     assert header.get("can_claim_room") is True
 
     # Claiming an already-owned room should fail; here we claim the ownerless one
-    client.emit("room_claim", {})
+    client.emit("message", {"text": ":claim room"})
     claimed_header = client.wait_for(
         "update_view",
         predicate=lambda p: p.get("view") == "header" and bool(p.get("owner_id")),

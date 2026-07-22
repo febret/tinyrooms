@@ -205,6 +205,41 @@ def test_dispatch_list_users_any_user():
     assert "User" in captured.get("content", "") or "user" in captured.get("content", "").lower()
 
 
+def test_dispatch_use_command_emits_message_to_user():
+    user = _make_user(powers=[])
+    world = _make_world()
+    user.room = world.rooms["DEFAULT_ROOM"]
+    captured = {}
+
+    def fake_emit(event, payload, **kwargs):
+        if event == "message":
+            captured.update(payload)
+
+    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        dispatch(user, ":use @obj:test-item", world)
+
+    assert captured.get("text") == "You use @obj:test-item."
+
+
+def test_dispatch_look_command_emits_activity_panel():
+    user = _make_user(powers=[])
+    world = _make_world()
+    user.room = world.rooms["DEFAULT_ROOM"]
+    user.room.label = MagicMock(return_value="Default Room")
+    captured = {}
+
+    def fake_emit(event, payload, **kwargs):
+        if event == "activity_panel":
+            captured.update(payload)
+
+    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        dispatch(user, ":look", world)
+
+    assert captured.get("mode") == "look"
+    assert captured.get("title")
+    assert captured.get("content")
+
+
 def test_help_shows_power_specific_commands():
     result, captured, _, _ = _dispatch_and_capture(":?", powers=["realtor", "builder"])
     assert result is True
