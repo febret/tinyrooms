@@ -1,14 +1,32 @@
 // ─── Stage math helpers ──────────────────────────────────────────────────────
 
 function getStageTotalHeight(stage, cameraFloorHeight) {
-  return stage.type === 'standard'
-    ? (stage.bg_height + cameraFloorHeight)
-    : stage.height;
+  if (stage.type === 'standard') {
+    return getStageBackgroundHeight(stage) + getStageFloorHeight(cameraFloorHeight);
+  }
+  return Math.max(1, toStageNumber(stage.height, 1));
 }
 
 // Depth-sort z-index for an entity on the standard stage floor.
 function computeStandardZOrder(y, bgH, floorH) {
   return Math.round(Math.max(0, y - bgH) / Math.max(1, floorH) * 1000);
+}
+
+function toStageNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function getStageWidth(stage) {
+  return Math.max(1, toStageNumber(stage?.width, 1));
+}
+
+function getStageBackgroundHeight(stage) {
+  return Math.max(0, toStageNumber(stage?.bg_height, 0));
+}
+
+function getStageFloorHeight(cameraFloorHeight) {
+  return Math.max(0, toStageNumber(cameraFloorHeight, 0));
 }
 
 // ─── PixiJS globals ───────────────────────────────────────────────────────────
@@ -49,7 +67,7 @@ function computeRoomCanvasFitSize(stageW, stageH) {
 
 function updateEditorOverlayControlPositions() {
   if (!pixiEditorOverlay || !roomState.stage) return;
-  const stageW = roomState.stage.width || 1;
+  const stageW = getStageWidth(roomState.stage);
   const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
   const scaleX = roomCanvas.clientWidth / stageW;
   const scaleY = roomCanvas.clientHeight / stageH;
@@ -65,16 +83,11 @@ function updateEditorOverlayControlPositions() {
 
 function fitRoomCanvasToViewPanel() {
   if (!roomCanvas || !roomState.stage) return;
-  const stageW = roomState.stage.width || 1;
+  const stageW = getStageWidth(roomState.stage);
   const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
   const fit = computeRoomCanvasFitSize(stageW, stageH);
   roomCanvas.style.width = `${fit.width}px`;
   roomCanvas.style.height = `${fit.height}px`;
-  const viewStageWrap = document.getElementById("viewStageWrap");
-  if (viewStageWrap) {
-    viewStageWrap.style.width = `${fit.width}px`;
-    viewStageWrap.style.height = `${fit.height}px`;
-  }
   updateEditorOverlayControlPositions();
 }
 
@@ -95,7 +108,7 @@ async function initPixiApp() {
   if (pixiApp) return;
   pixiApp = new PIXI.Application();
   await pixiApp.init({
-    width: roomState.stage.width,
+    width: getStageWidth(roomState.stage),
     height: getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight),
     backgroundAlpha: 0,
     antialias: false,
@@ -172,12 +185,12 @@ async function pixiRenderBackground(backgroundPath) {
 
   const stage = roomState.stage;
   const totalH = getStageTotalHeight(stage, roomState.cameraFloorHeight);
-  const stageW = stage.width;
+  const stageW = getStageWidth(stage);
 
   if (backgroundPath) {
     const bgUrl = resolveBackgroundUrl(backgroundPath);
     const bgTex = await loadPixiTexture(bgUrl);
-    const bgH = stage.type === 'standard' ? stage.bg_height : totalH;
+    const bgH = stage.type === 'standard' ? getStageBackgroundHeight(stage) : totalH;
 
     if (stage.background_mode === 'stretch' || stage.type !== 'standard') {
       const bg = new PIXI.Sprite(bgTex);
@@ -195,8 +208,8 @@ async function pixiRenderBackground(backgroundPath) {
   }
 
   if (stage.type === 'standard') {
-    const floorY = stage.bg_height;
-    const floorH = roomState.cameraFloorHeight;
+    const floorY = getStageBackgroundHeight(stage);
+    const floorH = getStageFloorHeight(roomState.cameraFloorHeight);
     if (stage.floor_image) {
       const floorUrl = resolveBackgroundUrl(stage.floor_image);
       const floorTex = await loadPixiTexture(floorUrl);
@@ -756,7 +769,11 @@ async function pixiRenderForegroundEntity(entity) {
   const posY = entity.position?.y || 0;
   let zIndex = entity.position?.z_order || 0;
   if (roomState.stage.type === 'standard') {
-    zIndex = computeStandardZOrder(posY, roomState.stage.bg_height, roomState.cameraFloorHeight);
+    zIndex = computeStandardZOrder(
+      posY,
+      getStageBackgroundHeight(roomState.stage),
+      getStageFloorHeight(roomState.cameraFloorHeight),
+    );
   }
 
   let record = pixiEntityNodes.get(key);
@@ -906,7 +923,7 @@ function getStagePoint(clientX, clientY, requireInside) {
 
   const stage = roomState.stage;
   const totalHeight = getStageTotalHeight(stage, roomState.cameraFloorHeight);
-  const x = Math.round((clientX - rect.left) * (stage.width / rect.width));
+  const x = Math.round((clientX - rect.left) * (getStageWidth(stage) / rect.width));
   const y = Math.round((clientY - rect.top) * (totalHeight / rect.height));
   return clampStagePoint(x, y, stage, totalHeight);
 }
@@ -918,17 +935,17 @@ function getStagePointFromPixi(pixiX, pixiY) {
   const canvasW = pixiApp.canvas.clientWidth;
   const canvasH = pixiApp.canvas.clientHeight;
 
-  const x = Math.round(pixiX * (stage.width / canvasW));
+  const x = Math.round(pixiX * (getStageWidth(stage) / canvasW));
   const y = Math.round(pixiY * (totalHeight / canvasH));
   return clampStagePoint(x, y, stage, totalHeight);
 }
 
 function clampStagePoint(x, y, stage, totalHeight) {
-  const clampedX = Math.min(stage.width, Math.max(0, x));
+  const clampedX = Math.min(getStageWidth(stage), Math.max(0, x));
   let clampedY = Math.min(totalHeight, Math.max(0, y));
   if (stage.type === 'standard') {
-    const floorTop = stage.bg_height;
-    const floorBottom = stage.bg_height + roomState.cameraFloorHeight;
+    const floorTop = getStageBackgroundHeight(stage);
+    const floorBottom = floorTop + getStageFloorHeight(roomState.cameraFloorHeight);
     clampedY = Math.min(floorBottom, Math.max(floorTop, clampedY));
   }
   return { x: clampedX, y: clampedY };
@@ -951,7 +968,7 @@ function pixiAttachStageClickToMove() {
   pixiApp.stage.eventMode = "static";
   pixiApp.stage.hitArea = new PIXI.Rectangle(
     0, 0,
-    roomState.stage.width,
+    getStageWidth(roomState.stage),
     getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight),
   );
   pixiApp.stage.on("pointertap", (ev) => {
@@ -1070,7 +1087,9 @@ function _buildMoveEvent(entityType, entityId, x, y) {
   const moveEvent = { entity_type: entityType, entity_id: entityId, x, y };
   if (roomState.stage.type === "standard") {
     moveEvent.z_order = computeStandardZOrder(
-      y, roomState.stage.bg_height, roomState.cameraFloorHeight
+      y,
+      getStageBackgroundHeight(roomState.stage),
+      getStageFloorHeight(roomState.cameraFloorHeight),
     );
   }
   return moveEvent;
@@ -1110,20 +1129,21 @@ function _moveOwnPeepTo(x, y) {
 function setCameraFloorHeight(newFloorHeight) {
   const stage = roomState.stage;
   if (stage.type !== 'standard') return;
-  const oldFloorH = roomState.cameraFloorHeight;
-  if (oldFloorH === newFloorHeight) return;
+  const oldFloorH = getStageFloorHeight(roomState.cameraFloorHeight);
+  const nextFloorH = getStageFloorHeight(newFloorHeight);
+  if (oldFloorH === nextFloorH) return;
 
-  const bgH = stage.bg_height;
+  const bgH = getStageBackgroundHeight(stage);
   for (const entity of roomState.entities.values()) {
     if (!entity.position) continue;
     const relY = Math.max(0, entity.position.y - bgH);
     const ratio = oldFloorH > 0 ? relY / oldFloorH : 0;
-    entity.position.y = bgH + Math.round(ratio * newFloorHeight);
+    entity.position.y = bgH + Math.round(ratio * nextFloorH);
   }
-  roomState.cameraFloorHeight = newFloorHeight;
+  roomState.cameraFloorHeight = nextFloorH;
 
-  const totalH = bgH + newFloorHeight;
-  if (pixiApp) pixiApp.renderer.resize(stage.width, totalH);
+  const totalH = bgH + nextFloorH;
+  if (pixiApp) pixiApp.renderer.resize(getStageWidth(stage), totalH);
   fitRoomCanvasToViewPanel();
 
   pixiRenderBackground(roomState.backgroundPath);
@@ -1156,10 +1176,11 @@ async function renderRoomStage(backgroundPath) {
   await initPixiApp();
 
   const stage = roomState.stage;
+  const stageW = getStageWidth(stage);
   const totalH = getStageTotalHeight(stage, roomState.cameraFloorHeight);
 
-  pixiApp.renderer.resize(stage.width, totalH);
-  pixiApp.stage.hitArea = new PIXI.Rectangle(0, 0, stage.width, totalH);
+  pixiApp.renderer.resize(stageW, totalH);
+  pixiApp.stage.hitArea = new PIXI.Rectangle(0, 0, stageW, totalH);
   fitRoomCanvasToViewPanel();
 
   await pixiRenderBackground(backgroundPath);

@@ -108,7 +108,7 @@ socket.on("login_success", data => {
   loginStatus.style.color = "green";
   loginStatus.textContent = "Login successful — welcome " + myUsername;
   document.getElementById("loginPage").style.display = "none";
-  mainPage.style.display = "block";
+  mainPage.style.display = "grid";
   saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
   loadMessagesFromStorage();
   loadInputState();
@@ -242,7 +242,10 @@ function handleRoomStageUpdate(data) {
     type: 'basic', width: 400, height: 300, bg_height: 200,
     floor_height: 100, background_mode: 'tile', floor_image: '',
   };
-  roomState.cameraFloorHeight = roomState.stage.floor_height || 100;
+  const nextFloorHeight = Number(roomState.stage.floor_height);
+  roomState.cameraFloorHeight = Number.isFinite(nextFloorHeight) && nextFloorHeight > 0
+    ? nextFloorHeight
+    : 100;
   roomState.canEditProps = !!data.can_edit_props;
   roomState.backgroundPath = data.background || "";
   const nextProps = new Map();
