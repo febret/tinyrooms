@@ -25,6 +25,8 @@ Inventory state persists across sessions. When `world.save_state()` is called (a
 
 ## Commands
 
+For full command syntax and power requirements, see [commands.md](commands.md).
+
 ### `:pick @obj:<obj_id>`
 - Validates the user is authenticated and in a room.
 - Validates the object exists in the current room (`room.objs`).

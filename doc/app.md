@@ -41,6 +41,7 @@ The client runtime is split between `app/client.js` (socket and room sync flow) 
 
 ## The Action Palette
 The palette is a dynamic tabbed control in `actionsPanel > actionPalette`. Tabs are compact emoji buttons in a vertical strip on the left.
+Command syntax details referenced below are centralized in [commands.md](commands.md).
 
 ### Tabs
 - 🤚 **Actions**

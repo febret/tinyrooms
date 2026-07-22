@@ -10,6 +10,8 @@ Some actions have different meanings depending on the target, but they share the
 ## Actions Reference
 These are the currently implemented actions
 
+For exact command forms (including command powers and target token conventions), see [commands.md](commands.md).
+
 ### Look
 Icon: 👁️
 Description: Look at a target
