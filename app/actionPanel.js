@@ -90,18 +90,45 @@ function getInventoryDragObjectId(event) {
 }
 
 function bindInventoryDropHandlers() {
-  if (!roomCanvas || roomCanvas.dataset.inventoryDropBound === "1") return;
+  const roomPanel = document.getElementById("viewPanel");
+  if (!roomCanvas || !roomPanel || roomCanvas.dataset.inventoryDropBound === "1") return;
   roomCanvas.dataset.inventoryDropBound = "1";
+  roomPanel.dataset.inventoryDropBound = "1";
+
+  roomPanel.addEventListener("dragover", event => {
+    const objId = getInventoryDragObjectId(event);
+    if (!objId) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    roomPanel.classList.add("is-drag-over");
+  });
+  roomPanel.addEventListener("dragleave", event => {
+    if (!roomPanel.contains(event.relatedTarget)) {
+      roomPanel.classList.remove("is-drag-over");
+    }
+  });
+  roomPanel.addEventListener("drop", event => {
+    roomPanel.classList.remove("is-drag-over");
+    const objId = getInventoryDragObjectId(event);
+    if (!objId) return;
+    event.preventDefault();
+    const point = getStagePoint(event.clientX, event.clientY, true);
+    dropInventoryObject(objId, point || null);
+  });
+
   roomCanvas.addEventListener("dragover", event => {
     const objId = getInventoryDragObjectId(event);
     if (!objId) return;
     event.preventDefault();
+    event.stopPropagation();
     if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
   });
   roomCanvas.addEventListener("drop", event => {
     const objId = getInventoryDragObjectId(event);
     if (!objId) return;
     event.preventDefault();
+    event.stopPropagation();
+    roomPanel.classList.remove("is-drag-over");
     const point = getStagePoint(event.clientX, event.clientY, true);
     dropInventoryObject(objId, point || null);
   });
@@ -500,11 +527,34 @@ function requestActivity(mode) {
 
 function bindInventoryListPickUpHandler() {
   const inventoryList = document.getElementById("inventoryList");
-  if (!inventoryList || inventoryList.dataset.pickUpBound === "1") return;
+  const inventoryPanel = document.getElementById("inventoryPanel");
+  if (!inventoryList || !inventoryPanel || inventoryList.dataset.pickUpBound === "1") return;
   inventoryList.dataset.pickUpBound = "1";
+  inventoryPanel.dataset.pickUpBound = "1";
+  inventoryPanel.addEventListener("dragover", ev => {
+    if (ev.dataTransfer && ev.dataTransfer.types.includes("text/x-tinyrooms-room-obj")) {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "move";
+      inventoryPanel.classList.add("is-drag-over");
+    }
+  });
+  inventoryPanel.addEventListener("dragleave", ev => {
+    if (!inventoryPanel.contains(ev.relatedTarget)) {
+      inventoryPanel.classList.remove("is-drag-over");
+    }
+  });
+  inventoryPanel.addEventListener("drop", ev => {
+    inventoryPanel.classList.remove("is-drag-over");
+    if (!ev.dataTransfer) return;
+    const entityId = (ev.dataTransfer.getData("text/x-tinyrooms-room-obj") || "").trim();
+    if (!entityId) return;
+    ev.preventDefault();
+    socket.emit("message", { text: `:pick @obj:${entityId}` });
+  });
   inventoryList.addEventListener("dragover", ev => {
     if (ev.dataTransfer && ev.dataTransfer.types.includes("text/x-tinyrooms-room-obj")) {
       ev.preventDefault();
+      ev.stopPropagation();
       ev.dataTransfer.dropEffect = "move";
       inventoryList.classList.add("is-drag-over");
     }
@@ -516,10 +566,12 @@ function bindInventoryListPickUpHandler() {
   });
   inventoryList.addEventListener("drop", ev => {
     inventoryList.classList.remove("is-drag-over");
+    inventoryPanel.classList.remove("is-drag-over");
     if (!ev.dataTransfer) return;
     const entityId = (ev.dataTransfer.getData("text/x-tinyrooms-room-obj") || "").trim();
     if (!entityId) return;
     ev.preventDefault();
+    ev.stopPropagation();
     socket.emit("message", { text: `:pick @obj:${entityId}` });
   });
 }
@@ -609,6 +661,12 @@ function _tdOnCancel() {
 
 function _tdDropInventory(objId, el, clientX, clientY) {
   if (!el) return;
+  const roomPanel = el.closest("#viewPanel");
+  if (roomPanel) {
+    const point = getStagePoint(clientX, clientY, true);
+    dropInventoryObject(objId, point || null);
+    return;
+  }
   // Drop on canvas → place at room coordinates
   if (el.closest("#roomCanvas")) {
     const point = getStagePoint(clientX, clientY, true);
@@ -631,7 +689,7 @@ function _tdDropInventory(objId, el, clientX, clientY) {
 
 function _tdDropRoomObj(entityId, el) {
   if (!el) return;
-  if (el.closest("#inventoryList")) {
+  if (el.closest("#inventoryPanel")) {
     socket.emit("message", { text: `:pick @obj:${entityId}` });
   }
 }
@@ -644,8 +702,8 @@ function _tdUpdateHighlight(x, y) {
   touchDrag.ghost.style.visibility = "";
   if (!el) return;
   const zones = [
-    touchDrag.type === "inventory-obj" ? el.closest("#roomCanvas") : null,
-    el.closest("#inventoryList"),
+    touchDrag.type === "inventory-obj" ? (el.closest("#viewPanel") || el.closest("#roomCanvas")) : null,
+    el.closest("#inventoryPanel") || el.closest("#inventoryList"),
     el.closest(".palette-buttons"),
     el.closest(".palette-tab-btn[data-tab-id='objects']"),
   ].filter(Boolean);

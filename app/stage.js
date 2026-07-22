@@ -669,6 +669,17 @@ function getStagePointFromPixi(pixiX, pixiY) {
   return { x: clampedX, y: clampedY };
 }
 
+function getClientPointFromPixi(pixiX, pixiY) {
+  const rect = roomCanvas.getBoundingClientRect();
+  const canvasW = pixiApp.canvas.clientWidth;
+  const canvasH = pixiApp.canvas.clientHeight;
+  if (!rect.width || !rect.height || !canvasW || !canvasH) return null;
+  return {
+    x: rect.left + (pixiX * rect.width / canvasW),
+    y: rect.top + (pixiY * rect.height / canvasH),
+  };
+}
+
 // ─── Click-to-move ────────────────────────────────────────────────────────────
 
 function pixiAttachStageClickToMove() {
@@ -691,31 +702,103 @@ function pixiAttachStageClickToMove() {
 
 function pixiAttachEntityDrag(wrapper, entityType, entityId) {
   let dragging = false;
+  let latestGlobalPointer = null;
+  let latestClientPointer = null;
+  let windowPointerUpHandler = null;
+  let windowPointerCancelHandler = null;
 
-  wrapper.on("pointerdown", (ev) => {
-    dragging = true;
-    ev.stopPropagation();
-  });
-  wrapper.on("pointerup", (ev) => {
+  function updatePointer(pixiX, pixiY) {
+    latestGlobalPointer = { x: pixiX, y: pixiY };
+    latestClientPointer = getClientPointFromPixi(pixiX, pixiY);
+  }
+
+  function unbindWindowPointerEnd() {
+    if (windowPointerUpHandler) {
+      window.removeEventListener("pointerup", windowPointerUpHandler, true);
+      windowPointerUpHandler = null;
+    }
+    if (windowPointerCancelHandler) {
+      window.removeEventListener("pointercancel", windowPointerCancelHandler, true);
+      windowPointerCancelHandler = null;
+    }
+  }
+
+  function bindWindowPointerEnd() {
+    if (windowPointerUpHandler || windowPointerCancelHandler) return;
+    windowPointerUpHandler = (ev) => {
+      if (!dragging) return;
+      if (typeof ev.clientX === "number" && typeof ev.clientY === "number") {
+        latestClientPointer = { x: ev.clientX, y: ev.clientY };
+      }
+      finalizeDrag();
+    };
+    windowPointerCancelHandler = () => {
+      if (!dragging) return;
+      finalizeDrag();
+    };
+    window.addEventListener("pointerup", windowPointerUpHandler, true);
+    window.addEventListener("pointercancel", windowPointerCancelHandler, true);
+  }
+
+  function finalizeDrag(ev) {
+    unbindWindowPointerEnd();
     if (dragging && entityType === "object" && myUsername) {
+      const inventoryPanel = document.getElementById("inventoryPanel");
+      if (inventoryPanel && latestClientPointer) {
+        const panelRect = inventoryPanel.getBoundingClientRect();
+        if (
+          latestClientPointer.x >= panelRect.left &&
+          latestClientPointer.x <= panelRect.right &&
+          latestClientPointer.y >= panelRect.top &&
+          latestClientPointer.y <= panelRect.bottom
+        ) {
+          socket.emit("message", { text: `:pick @obj:${entityId}` });
+          dragging = false;
+          latestGlobalPointer = null;
+          latestClientPointer = null;
+          return;
+        }
+      }
       // Check if dropped onto own peep (pick up)
       const myKey = `peep:${myUsername}`;
       const myRecord = pixiEntityNodes.get(myKey);
-      if (myRecord) {
+      const eventPoint = ev?.global || latestGlobalPointer;
+      if (myRecord && eventPoint) {
         const peepBounds = myRecord.wrapper.getBounds();
-        if (ev.global.x >= peepBounds.x && ev.global.x <= peepBounds.x + peepBounds.width &&
-            ev.global.y >= peepBounds.y && ev.global.y <= peepBounds.y + peepBounds.height) {
+        if (eventPoint.x >= peepBounds.x && eventPoint.x <= peepBounds.x + peepBounds.width &&
+            eventPoint.y >= peepBounds.y && eventPoint.y <= peepBounds.y + peepBounds.height) {
           socket.emit("message", { text: `:pick @obj:${entityId}` });
           dragging = false;
+          latestGlobalPointer = null;
+          latestClientPointer = null;
           return;
         }
       }
     }
     dragging = false;
+    latestGlobalPointer = null;
+    latestClientPointer = null;
+  }
+
+  wrapper.on("pointerdown", (ev) => {
+    dragging = true;
+    updatePointer(ev.global.x, ev.global.y);
+    bindWindowPointerEnd();
+    ev.stopPropagation();
   });
-  wrapper.on("pointerupoutside", () => { dragging = false; });
+  wrapper.on("pointerup", (ev) => {
+    updatePointer(ev.global.x, ev.global.y);
+    finalizeDrag(ev);
+  });
+  wrapper.on("pointerupoutside", (ev) => {
+    if (ev?.global) {
+      updatePointer(ev.global.x, ev.global.y);
+    }
+    finalizeDrag(ev);
+  });
   wrapper.on("globalpointermove", (ev) => {
     if (!dragging) return;
+    updatePointer(ev.global.x, ev.global.y);
     const point = getStagePointFromPixi(ev.global.x, ev.global.y);
     if (!point) return;
     _submitPixiMovePayload(entityType, entityId, point.x, point.y);

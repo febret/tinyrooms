@@ -701,6 +701,16 @@ button {
   outline: 2px dashed rgba(60, 140, 255, 0.5);
 }
 
+#viewPanel.is-drag-over {
+  outline: 2px dashed rgba(60, 140, 255, 0.35);
+  outline-offset: -2px;
+}
+
+#inventoryPanel.is-drag-over {
+  outline: 2px dashed rgba(60, 140, 255, 0.45);
+  outline-offset: -2px;
+}
+
 .inventory-empty {
   font-size: 0.72rem;
   opacity: 0.5;
