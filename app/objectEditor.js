@@ -22,8 +22,6 @@ let btnObjectCreatorClose;
 let btnObjectCreatorDone;
 let objectEditorInitialized = false;
 
-let objectEditorSocket;
-
 function bindObjectEditorDomElements() {
   objectCreatorPage = document.getElementById("objectCreatorPage");
   objectCreatorDescription = document.getElementById("objectCreatorDescription");
@@ -47,8 +45,7 @@ function bindObjectEditorDomElements() {
   );
 }
 
-function initObjectEditor(clientSocket, clientRestAuthToken) {
-  objectEditorSocket = clientSocket;
+function initObjectEditor() {
   if (!bindObjectEditorDomElements() || objectEditorInitialized) {
     return;
   }

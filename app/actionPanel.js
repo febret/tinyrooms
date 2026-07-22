@@ -151,7 +151,7 @@ function navigateExit(wayId) {
   clearSelectedTarget();
 }
 
-function selectTarget(target, node) {
+function selectTarget(target) {
   selectedTarget = target;
   // Only highlight on the pixi stage for room entities (not inventory items)
   if (target.type !== "inventory") {
@@ -240,12 +240,12 @@ function handleTargetTap(target) {
     sendUseCommand(target);
     return;
   }
-  selectTarget(target, null);
+  selectTarget(target);
 }
 
 function handleTargetLook(target) {
   if (!target) return;
-  selectTarget(target, null);
+  selectTarget(target);
   sendLookCommand(target);
 }
 

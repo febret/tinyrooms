@@ -24,10 +24,6 @@ function nextDraftZOrder() {
   return maxZ + 1;
 }
 
-function resolveBackgroundUrlFromCanvas() {
-  return roomState.backgroundPath || "";
-}
-
 function getEditableProps() {
   return roomEditor.enabled ? roomEditor.draftProps : roomState.props;
 }

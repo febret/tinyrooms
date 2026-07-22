@@ -133,19 +133,3 @@ function playBopSound() {
   source.connect(audioCtx.destination);
   source.start(0);
 }
-
-// Play pre-rendered page flip sound
-function playPageFlipSound() {
-  if (!pageFlipBuffer) {
-    // Buffer not ready yet, regenerate and try again later
-    generatePageFlipSound();
-    return;
-  }
-  
-  const audioCtx = getAudioContext();
-  const source = audioCtx.createBufferSource();
-  source.buffer = pageFlipBuffer;
-  source.connect(audioCtx.destination);
-  source.start(0);
-}
-

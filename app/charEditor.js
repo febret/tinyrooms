@@ -26,8 +26,6 @@ let btnCharacterEditorClose;
 let btnCharacterEditorDone;
 let characterEditorInitialized = false;
 
-let characterEditorSocket;
-
 function bindCharacterEditorDomElements() {
   btnCharacterEditor = document.getElementById("btnCharacterEditor");
   characterEditorPage = document.getElementById("characterEditorPage");
@@ -55,8 +53,7 @@ function bindCharacterEditorDomElements() {
   );
 }
 
-function initCharacterEditor(clientSocket, clientRestAuthToken) {
-  characterEditorSocket = clientSocket;
+function initCharacterEditor() {
   if (!bindCharacterEditorDomElements() || characterEditorInitialized) {
     return;
   }

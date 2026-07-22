@@ -229,7 +229,7 @@ button:active {
   color: #1a4a7a;
 }
 
-#statusPanel, #viewPanel, #controlsPanel, #actionsPanel, #inventoryPanel, #activityPanel, #logPanel {
+#statusPanel, #viewPanel, #controlsPanel, #actionsPanel, #inventoryPanel, #activityPanel {
   border: 1px solid #ddd;
   border-radius: 4px;
   background: #f9f9f9;
@@ -259,7 +259,7 @@ button:active {
 }
 
 .palette-btn {
-  background: #28a745;
+  background: #2868a7;
 }
 
 .palette-btn:hover {

@@ -35,7 +35,6 @@ var lastPassword = null;
 var selectedActions = [];
 var connectionState = "connecting";
 var connectionTime = null;
-var TOUCH_DRAG_THRESHOLD_PX = 8;
 var CHAT_MESSAGE_TTL_MS = 30000;
 var CHAT_MAX_VISIBLE = 10;
 var roomState = {
@@ -112,9 +111,9 @@ socket.on("login_success", data => {
   saveCredentials(usernameInput.value.trim(), lastPassword || passwordInput.value);
   loadMessagesFromStorage();
   loadInputState();
-  initCharacterEditor(socket, restAuthToken);
+  initCharacterEditor();
   resetCharacterEditorState();
-  initObjectEditor(socket, restAuthToken);
+  initObjectEditor();
   resetObjectEditorState();
   ensurePropLibraryLoaded(true);
   // Show World Editor button if the feature is available
@@ -365,10 +364,6 @@ msgInput.addEventListener("keydown", ev => {
     sendBtn.click();
   }
 });
-
-function getRestToken() {
-  return restAuthToken;
-}
 
 async function fetchJson(path, options = {}, token) {
   const headers = { ...(options.headers || {}) };

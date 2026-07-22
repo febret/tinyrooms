@@ -500,7 +500,7 @@ function bindTargetInteractions(wrapper, getTarget) {
     const target = getTarget();
     if (!target) return;
     if (roomEditor.enabled) {
-      selectTarget(target, null);
+      selectTarget(target);
       return;
     }
     if (longTapTriggered) {
