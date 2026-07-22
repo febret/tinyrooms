@@ -245,9 +245,6 @@ function handleRoomStageUpdate(data) {
   roomState.cameraFloorHeight = roomState.stage.floor_height || 100;
   roomState.canEditProps = !!data.can_edit_props;
   roomState.backgroundPath = data.background || "";
-  const totalHeight = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight);
-  roomCanvas.style.width = `${roomState.stage.width}px`;
-  roomCanvas.style.height = `${totalHeight}px`;
   const nextProps = new Map();
   for (const prop of (data.props || [])) {
     nextProps.set(prop.prop_instance_id, clonePropState(prop));

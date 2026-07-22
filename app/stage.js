@@ -24,6 +24,72 @@ var pixiEntityNodes = new Map();
 var pixiPropNodes = new Map();
 // DOM overlay for editor prop controls (positioned above the PixiJS canvas)
 var pixiEditorOverlay = null;
+var roomPanelResizeObserver = null;
+var roomPanelResizeBound = false;
+
+function computeRoomCanvasFitSize(stageW, stageH) {
+  const viewPanel = document.getElementById("viewPanel");
+  if (!viewPanel || stageW <= 0 || stageH <= 0) {
+    return { width: Math.max(1, stageW || 1), height: Math.max(1, stageH || 1) };
+  }
+  const style = window.getComputedStyle(viewPanel);
+  const paddingX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+  const paddingY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+  const availableW = Math.max(1, viewPanel.clientWidth - paddingX);
+  const availableH = Math.max(1, viewPanel.clientHeight - paddingY);
+  const scale = Math.min(availableW / stageW, availableH / stageH);
+  if (!Number.isFinite(scale) || scale <= 0) {
+    return { width: Math.max(1, stageW), height: Math.max(1, stageH) };
+  }
+  return {
+    width: Math.max(1, Math.round(stageW * scale)),
+    height: Math.max(1, Math.round(stageH * scale)),
+  };
+}
+
+function updateEditorOverlayControlPositions() {
+  if (!pixiEditorOverlay || !roomState.stage) return;
+  const stageW = roomState.stage.width || 1;
+  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  const scaleX = roomCanvas.clientWidth / stageW;
+  const scaleY = roomCanvas.clientHeight / stageH;
+  if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || scaleX <= 0 || scaleY <= 0) return;
+  const controls = pixiEditorOverlay.querySelectorAll(".room-prop-controls");
+  for (const control of controls) {
+    const stageX = Number.parseFloat(control.dataset.stageX || "0");
+    const stageY = Number.parseFloat(control.dataset.stageY || "0");
+    control.style.left = `${Math.round((stageX + 2) * scaleX)}px`;
+    control.style.top = `${Math.round(Math.max(0, stageY - 14) * scaleY)}px`;
+  }
+}
+
+function fitRoomCanvasToViewPanel() {
+  if (!roomCanvas || !roomState.stage) return;
+  const stageW = roomState.stage.width || 1;
+  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  const fit = computeRoomCanvasFitSize(stageW, stageH);
+  roomCanvas.style.width = `${fit.width}px`;
+  roomCanvas.style.height = `${fit.height}px`;
+  const viewStageWrap = document.getElementById("viewStageWrap");
+  if (viewStageWrap) {
+    viewStageWrap.style.width = `${fit.width}px`;
+    viewStageWrap.style.height = `${fit.height}px`;
+  }
+  updateEditorOverlayControlPositions();
+}
+
+function bindRoomCanvasAutoFit() {
+  if (roomPanelResizeBound) return;
+  roomPanelResizeBound = true;
+  window.addEventListener("resize", fitRoomCanvasToViewPanel);
+  const viewPanel = document.getElementById("viewPanel");
+  if (viewPanel && typeof ResizeObserver === "function") {
+    roomPanelResizeObserver = new ResizeObserver(() => {
+      fitRoomCanvasToViewPanel();
+    });
+    roomPanelResizeObserver.observe(viewPanel);
+  }
+}
 
 async function initPixiApp() {
   if (pixiApp) return;
@@ -68,6 +134,8 @@ async function initPixiApp() {
   pixiApp.stage.addChild(pixiEntitiesContainer);
 
   pixiAttachStageClickToMove();
+  bindRoomCanvasAutoFit();
+  fitRoomCanvasToViewPanel();
 }
 
 // ─── Texture utilities ────────────────────────────────────────────────────────
@@ -484,10 +552,12 @@ function _buildPropEditorControls(prop, wrapper) {
   if (!pixiEditorOverlay) return;
   const controlDiv = document.createElement("div");
   controlDiv.className = "room-prop-controls";
+  controlDiv.dataset.stageX = String(prop.position?.x || 0);
+  controlDiv.dataset.stageY = String(prop.position?.y || 0);
   controlDiv.style.pointerEvents = "auto";
   controlDiv.style.position = "absolute";
-  controlDiv.style.left = `${(prop.position?.x || 0) + 2}px`;
-  controlDiv.style.top = `${Math.max(0, (prop.position?.y || 0) - 14)}px`;
+  controlDiv.style.left = "0px";
+  controlDiv.style.top = "0px";
 
   function makePropControlButton(icon, title, onClick) {
     const button = document.createElement("button");
@@ -524,6 +594,7 @@ function _buildPropEditorControls(prop, wrapper) {
   controlDiv.appendChild(exitBtn);
   controlDiv.appendChild(deleteBtn);
   pixiEditorOverlay.appendChild(controlDiv);
+  updateEditorOverlayControlPositions();
 }
 
 async function pixiRenderProps() {
@@ -1052,8 +1123,8 @@ function setCameraFloorHeight(newFloorHeight) {
   roomState.cameraFloorHeight = newFloorHeight;
 
   const totalH = bgH + newFloorHeight;
-  roomCanvas.style.height = `${totalH}px`;
   if (pixiApp) pixiApp.renderer.resize(stage.width, totalH);
+  fitRoomCanvasToViewPanel();
 
   pixiRenderBackground(roomState.backgroundPath);
   for (const entity of roomState.entities.values()) {
@@ -1089,6 +1160,7 @@ async function renderRoomStage(backgroundPath) {
 
   pixiApp.renderer.resize(stage.width, totalH);
   pixiApp.stage.hitArea = new PIXI.Rectangle(0, 0, stage.width, totalH);
+  fitRoomCanvasToViewPanel();
 
   await pixiRenderBackground(backgroundPath);
   await pixiRenderProps();

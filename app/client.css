@@ -347,6 +347,10 @@ button {
   body {
     padding: 0.25rem;
   }
+
+  #mainPage {
+    height: calc(100dvh - 0.5rem);
+  }
   
   h1 {
     font-size: 1rem;
@@ -470,6 +474,10 @@ button {
   body {
     padding: 1rem;
   }
+
+  #mainPage {
+    height: calc(100dvh - 2rem);
+  }
   
   h1 {
     font-size: 1.75rem;
@@ -488,6 +496,10 @@ button {
 @media (min-width: 901px) {
   body {
     padding: 2rem;
+  }
+
+  #mainPage {
+    height: calc(100dvh - 4rem);
   }
   
   h1 {
@@ -508,6 +520,8 @@ button {
   display: grid;
   gap: 0.5rem;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  height: calc(100dvh - 2rem);
+  min-height: 0;
 }
 
 #statusPanel,
@@ -524,6 +538,10 @@ button {
   justify-content: space-between;
   gap: 0.6rem;
   min-height: 2.7rem;
+}
+
+#viewPanel {
+  min-height: 0;
 }
 
 #statusDisplay {
