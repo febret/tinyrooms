@@ -163,6 +163,53 @@ function clampSpriteSize(sprite, maxW, maxH) {
   sprite.scale.set(scale);
 }
 
+function createFrameAnimationTicker(sprite, frameTextures, intervalMs, animationType = "loop") {
+  let elapsedMs = 0;
+  let frameIndex = 0;
+  let direction = 1;
+  return (ticker) => {
+    elapsedMs += ticker.deltaMS;
+    if (elapsedMs < intervalMs) return;
+    elapsedMs = 0;
+
+    if (animationType === "random") {
+      frameIndex = Math.floor(Math.random() * frameTextures.length);
+    } else if (animationType === "bounce") {
+      frameIndex += direction;
+      if (frameIndex >= frameTextures.length) {
+        frameIndex = Math.max(0, frameTextures.length - 2);
+        direction = -1;
+      } else if (frameIndex < 0) {
+        frameIndex = Math.min(frameTextures.length - 1, 1);
+        direction = 1;
+      }
+    } else {
+      frameIndex = (frameIndex + 1) % frameTextures.length;
+    }
+
+    sprite.texture = frameTextures[frameIndex];
+  };
+}
+
+function pointInBox(point, box) {
+  if (!point || !box) return false;
+  return (
+    point.x >= box.left &&
+    point.x <= box.right &&
+    point.y >= box.top &&
+    point.y <= box.bottom
+  );
+}
+
+function toLeftTopRightBottom(box) {
+  return {
+    left: box.x,
+    top: box.y,
+    right: box.x + box.width,
+    bottom: box.y + box.height,
+  };
+}
+
 const TARGET_LONG_TAP_MS = 550;
 const TARGET_LONG_TAP_MOVE_THRESHOLD = 8;
 
@@ -254,16 +301,8 @@ async function pixiCreatePropSprite(prop) {
     if (meta.animation && meta.animation.speed > 0 &&
         Array.isArray(meta.animation.frames) && meta.animation.frames.length > 1) {
       const frames = meta.animation.frames.map(f => makeFrameTexture(baseTex, f));
-      let frameIndex = 0;
       const intervalMs = meta.animation.speed * 1000;
-      const animTicker = (ticker) => {
-        animTicker._elapsed = (animTicker._elapsed || 0) + ticker.deltaMS;
-        if (animTicker._elapsed >= intervalMs) {
-          animTicker._elapsed = 0;
-          frameIndex = (frameIndex + 1) % frames.length;
-          sprite.texture = frames[frameIndex];
-        }
-      };
+      const animTicker = createFrameAnimationTicker(sprite, frames, intervalMs, "loop");
       pixiApp.ticker.add(animTicker);
       if (meta.offset_x || meta.offset_y) {
         sprite.x = meta.offset_x || 0;
@@ -296,38 +335,33 @@ function _buildPropEditorControls(prop, wrapper) {
   controlDiv.style.left = `${(prop.position?.x || 0) + 2}px`;
   controlDiv.style.top = `${Math.max(0, (prop.position?.y || 0) - 14)}px`;
 
-  const rotateBtn = document.createElement("button");
-  rotateBtn.type = "button";
-  rotateBtn.className = "room-prop-control-btn";
-  rotateBtn.textContent = "↻";
-  rotateBtn.title = "Rotate";
-  rotateBtn.addEventListener("click", ev => {
-    ev.preventDefault();
-    ev.stopPropagation();
+  function makePropControlButton(icon, title, onClick) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "room-prop-control-btn";
+    button.textContent = icon;
+    button.title = title;
+    button.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      onClick();
+    });
+    return button;
+  }
+
+  const rotateBtn = makePropControlButton("↻", "Rotate", () => {
     rotateDraftProp(prop.prop_instance_id);
   });
-
-  const exitBtn = document.createElement("button");
-  exitBtn.type = "button";
-  exitBtn.className = "room-prop-control-btn";
-  exitBtn.textContent = "🚪";
-  exitBtn.title = prop.exit_way_id
-    ? `Exit: ${prop.exit_way_id} (click to change)`
-    : "Assign exit (click to set)";
-  exitBtn.addEventListener("click", ev => {
-    ev.preventDefault();
-    ev.stopPropagation();
-    cycleExitAssignment(prop.prop_instance_id);
-  });
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "room-prop-control-btn";
-  deleteBtn.textContent = "✕";
-  deleteBtn.title = "Delete";
-  deleteBtn.addEventListener("click", ev => {
-    ev.preventDefault();
-    ev.stopPropagation();
+  const exitBtn = makePropControlButton(
+    "🚪",
+    prop.exit_way_id
+      ? `Exit: ${prop.exit_way_id} (click to change)`
+      : "Assign exit (click to set)",
+    () => {
+      cycleExitAssignment(prop.prop_instance_id);
+    },
+  );
+  const deleteBtn = makePropControlButton("✕", "Delete", () => {
     deleteDraftProp(prop.prop_instance_id);
   });
 
@@ -469,31 +503,13 @@ async function pixiCreateEntitySprite(entity) {
   }
 
   const frameTextures = anim.frames.map(f => makeFrameTexture(baseTex, f));
-  let frameIndex = 0;
-  let direction = 1;
   const intervalMs = Math.max(40, Number(anim.speed || 0.5) * 1000);
-
-  const animTicker = (ticker) => {
-    animTicker._elapsed = (animTicker._elapsed || 0) + ticker.deltaMS;
-    if (animTicker._elapsed < intervalMs) return;
-    animTicker._elapsed = 0;
-
-    if (anim.type === "random") {
-      frameIndex = Math.floor(Math.random() * frameTextures.length);
-    } else if (anim.type === "bounce") {
-      frameIndex += direction;
-      if (frameIndex >= frameTextures.length) {
-        frameIndex = Math.max(0, frameTextures.length - 2);
-        direction = -1;
-      } else if (frameIndex < 0) {
-        frameIndex = Math.min(frameTextures.length - 1, 1);
-        direction = 1;
-      }
-    } else {
-      frameIndex = (frameIndex + 1) % frameTextures.length;
-    }
-    sprite.texture = frameTextures[frameIndex];
-  };
+  const animTicker = createFrameAnimationTicker(
+    sprite,
+    frameTextures,
+    intervalMs,
+    anim.type || "loop",
+  );
 
   return { sprite, animTicker };
 }
@@ -633,17 +649,7 @@ function getStagePoint(clientX, clientY, requireInside) {
   const totalHeight = getStageTotalHeight(stage, roomState.cameraFloorHeight);
   const x = Math.round((clientX - rect.left) * (stage.width / rect.width));
   const y = Math.round((clientY - rect.top) * (totalHeight / rect.height));
-  const clampedX = Math.min(stage.width, Math.max(0, x));
-
-  let clampedY;
-  if (stage.type === 'standard') {
-    const floorTop = stage.bg_height;
-    const floorBottom = stage.bg_height + roomState.cameraFloorHeight;
-    clampedY = Math.min(floorBottom, Math.max(floorTop, y));
-  } else {
-    clampedY = Math.min(totalHeight, Math.max(0, y));
-  }
-  return { x: clampedX, y: clampedY };
+  return clampStagePoint(x, y, stage, totalHeight);
 }
 
 // Convert PixiJS global canvas coordinates to room-space coordinates.
@@ -655,16 +661,16 @@ function getStagePointFromPixi(pixiX, pixiY) {
 
   const x = Math.round(pixiX * (stage.width / canvasW));
   const y = Math.round(pixiY * (totalHeight / canvasH));
+  return clampStagePoint(x, y, stage, totalHeight);
+}
 
+function clampStagePoint(x, y, stage, totalHeight) {
   const clampedX = Math.min(stage.width, Math.max(0, x));
-  let clampedY;
+  let clampedY = Math.min(totalHeight, Math.max(0, y));
   if (stage.type === 'standard') {
-    clampedY = Math.min(
-      stage.bg_height + roomState.cameraFloorHeight,
-      Math.max(stage.bg_height, y),
-    );
-  } else {
-    clampedY = Math.min(totalHeight, Math.max(0, y));
+    const floorTop = stage.bg_height;
+    const floorBottom = stage.bg_height + roomState.cameraFloorHeight;
+    clampedY = Math.min(floorBottom, Math.max(floorTop, clampedY));
   }
   return { x: clampedX, y: clampedY };
 }
@@ -712,6 +718,12 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
     latestClientPointer = getClientPointFromPixi(pixiX, pixiY);
   }
 
+  function resetDragState() {
+    dragging = false;
+    latestGlobalPointer = null;
+    latestClientPointer = null;
+  }
+
   function unbindWindowPointerEnd() {
     if (windowPointerUpHandler) {
       window.removeEventListener("pointerup", windowPointerUpHandler, true);
@@ -745,17 +757,9 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
     if (dragging && entityType === "object" && myUsername) {
       const inventoryPanel = document.getElementById("inventoryPanel");
       if (inventoryPanel && latestClientPointer) {
-        const panelRect = inventoryPanel.getBoundingClientRect();
-        if (
-          latestClientPointer.x >= panelRect.left &&
-          latestClientPointer.x <= panelRect.right &&
-          latestClientPointer.y >= panelRect.top &&
-          latestClientPointer.y <= panelRect.bottom
-        ) {
+        if (pointInBox(latestClientPointer, inventoryPanel.getBoundingClientRect())) {
           socket.emit("message", { text: `:pick @obj:${entityId}` });
-          dragging = false;
-          latestGlobalPointer = null;
-          latestClientPointer = null;
+          resetDragState();
           return;
         }
       }
@@ -764,20 +768,14 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
       const myRecord = pixiEntityNodes.get(myKey);
       const eventPoint = ev?.global || latestGlobalPointer;
       if (myRecord && eventPoint) {
-        const peepBounds = myRecord.wrapper.getBounds();
-        if (eventPoint.x >= peepBounds.x && eventPoint.x <= peepBounds.x + peepBounds.width &&
-            eventPoint.y >= peepBounds.y && eventPoint.y <= peepBounds.y + peepBounds.height) {
+        if (pointInBox(eventPoint, toLeftTopRightBottom(myRecord.wrapper.getBounds()))) {
           socket.emit("message", { text: `:pick @obj:${entityId}` });
-          dragging = false;
-          latestGlobalPointer = null;
-          latestClientPointer = null;
+          resetDragState();
           return;
         }
       }
     }
-    dragging = false;
-    latestGlobalPointer = null;
-    latestClientPointer = null;
+    resetDragState();
   }
 
   wrapper.on("pointerdown", (ev) => {
@@ -806,13 +804,17 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
 }
 
 function _submitPixiMovePayload(entityType, entityId, x, y) {
+  socket.emit("room_move_entity", _buildMoveEvent(entityType, entityId, x, y));
+}
+
+function _buildMoveEvent(entityType, entityId, x, y) {
   const moveEvent = { entity_type: entityType, entity_id: entityId, x, y };
-  if (roomState.stage.type === 'standard') {
+  if (roomState.stage.type === "standard") {
     moveEvent.z_order = computeStandardZOrder(
       y, roomState.stage.bg_height, roomState.cameraFloorHeight
     );
   }
-  socket.emit("room_move_entity", moveEvent);
+  return moveEvent;
 }
 
 function canDragEntity(entity) {
@@ -829,25 +831,18 @@ function canDragEntity(entity) {
 function _moveOwnPeepTo(x, y) {
   const myKey = `peep:${myUsername}`;
   const myEntity = roomState.entities.get(myKey);
+  const moveEvent = _buildMoveEvent("peep", myUsername, x, y);
 
   if (myEntity && myEntity.position) {
     myEntity.position.x = x;
     myEntity.position.y = y;
-    if (roomState.stage.type === "standard") {
-      myEntity.position.z_order = computeStandardZOrder(
-        y, roomState.stage.bg_height, roomState.cameraFloorHeight
-      );
+    if (moveEvent.z_order !== undefined) {
+      myEntity.position.z_order = moveEvent.z_order;
     }
     // Optimistic update: trigger smooth movement tween in PixiJS
     pixiRenderForegroundEntity(myEntity);
   }
 
-  const moveEvent = { entity_type: "peep", entity_id: myUsername, x, y };
-  if (roomState.stage.type === "standard") {
-    moveEvent.z_order = computeStandardZOrder(
-      y, roomState.stage.bg_height, roomState.cameraFloorHeight
-    );
-  }
   socket.emit("room_move_entity", moveEvent);
 }
 
