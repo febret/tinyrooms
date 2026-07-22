@@ -101,7 +101,7 @@ function disableRoomEditMode() {
 }
 
 function claimRoom() {
-  socket.emit("room_claim", {});
+  socket.emit("message", { text: ":claim room" });
 }
 
 function cancelRoomEdits() {

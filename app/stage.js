@@ -44,6 +44,12 @@ async function initPixiApp() {
   pixiEditorOverlay.id = "pixiEditorOverlay";
   pixiEditorOverlay.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;";
   roomCanvas.appendChild(pixiEditorOverlay);
+  if (roomCanvas.dataset.contextMenuBound !== "1") {
+    roomCanvas.dataset.contextMenuBound = "1";
+    roomCanvas.addEventListener("contextmenu", (ev) => {
+      ev.preventDefault();
+    });
+  }
 
   pixiApp.stage.sortableChildren = true;
 
@@ -155,6 +161,79 @@ function clampSpriteSize(sprite, maxW, maxH) {
   if (!w || !h) return;
   const scale = Math.min(1, maxW / w, maxH / h);
   sprite.scale.set(scale);
+}
+
+const TARGET_LONG_TAP_MS = 550;
+const TARGET_LONG_TAP_MOVE_THRESHOLD = 8;
+
+function bindTargetInteractions(wrapper, getTarget) {
+  let longTapTimer = null;
+  let longTapTriggered = false;
+  let startPoint = null;
+
+  function cancelLongTap() {
+    if (longTapTimer !== null) {
+      clearTimeout(longTapTimer);
+      longTapTimer = null;
+    }
+    startPoint = null;
+  }
+
+  function beginLongTap(ev) {
+    cancelLongTap();
+    longTapTriggered = false;
+    if (roomEditor.enabled || ev.pointerType !== "touch") {
+      return;
+    }
+    startPoint = { x: ev.global.x, y: ev.global.y };
+    longTapTimer = setTimeout(() => {
+      longTapTimer = null;
+      longTapTriggered = true;
+      const target = getTarget();
+      if (target) {
+        handleTargetLook(target);
+      }
+    }, TARGET_LONG_TAP_MS);
+  }
+
+  wrapper.on("pointerdown", (ev) => {
+    beginLongTap(ev);
+  });
+  wrapper.on("pointerup", () => {
+    cancelLongTap();
+  });
+  wrapper.on("pointerupoutside", () => {
+    cancelLongTap();
+  });
+  wrapper.on("globalpointermove", (ev) => {
+    if (longTapTimer === null || !startPoint) return;
+    const dx = ev.global.x - startPoint.x;
+    const dy = ev.global.y - startPoint.y;
+    if (Math.sqrt(dx * dx + dy * dy) > TARGET_LONG_TAP_MOVE_THRESHOLD) {
+      cancelLongTap();
+    }
+  });
+  wrapper.on("pointertap", (ev) => {
+    ev.stopPropagation();
+    const target = getTarget();
+    if (!target) return;
+    if (roomEditor.enabled) {
+      selectTarget(target, null);
+      return;
+    }
+    if (longTapTriggered) {
+      longTapTriggered = false;
+      return;
+    }
+    handleTargetTap(target);
+  });
+  wrapper.on("rightclick", (ev) => {
+    ev.stopPropagation();
+    if (roomEditor.enabled) return;
+    const target = getTarget();
+    if (!target) return;
+    handleTargetLook(target);
+  });
 }
 
 // ─── Prop rendering ───────────────────────────────────────────────────────────
@@ -311,25 +390,23 @@ async function pixiRenderProps() {
       wrapper.addChild(badge);
     }
 
-    wrapper.on("pointertap", (ev) => {
-      ev.stopPropagation();
-      if (!roomEditor.enabled && exitDef) {
-        selectTarget({
+    bindTargetInteractions(wrapper, () => {
+      if (exitDef) {
+        return {
           type: "prop",
           id: prop.prop_instance_id,
           label: exitDef.label || propDef?.label || prop.prop_id || "exit",
           description: `Exit to ${exitDef.label || prop.exit_way_id}`,
           exit_way_id: prop.exit_way_id,
           exit_label: exitDef.label || prop.exit_way_id,
-        }, null);
-        return;
+        };
       }
-      selectTarget({
+      return {
         type: "prop",
         id: prop.prop_instance_id,
         label: propDef?.label || prop.prop_id || "prop",
         description: propDef?.description || "",
-      }, null);
+      };
     });
 
     if (roomState.canEditProps && roomEditor.enabled) {
@@ -442,15 +519,12 @@ async function pixiRenderForegroundEntity(entity) {
     if (animTicker) pixiApp.ticker.add(animTicker);
     wrapper.addChild(sprite);
 
-    wrapper.on("pointertap", (ev) => {
-      ev.stopPropagation();
-      selectTarget({
-        type: entity.entity_type,
-        id: entity.entity_id,
-        label: entity.label || entity.entity_id,
-        description: entity.description || "",
-      }, null);
-    });
+    bindTargetInteractions(wrapper, () => ({
+      type: entity.entity_type,
+      id: entity.entity_id,
+      label: entity.label || entity.entity_id,
+      description: entity.description || "",
+    }));
 
     pixiEntitiesContainer.addChild(wrapper);
     record = {
@@ -631,7 +705,7 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
         const peepBounds = myRecord.wrapper.getBounds();
         if (ev.global.x >= peepBounds.x && ev.global.x <= peepBounds.x + peepBounds.width &&
             ev.global.y >= peepBounds.y && ev.global.y <= peepBounds.y + peepBounds.height) {
-          socket.emit("room_pick_object", { entity_id: entityId });
+          socket.emit("message", { text: `:pick @obj:${entityId}` });
           dragging = false;
           return;
         }

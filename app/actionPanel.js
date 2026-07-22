@@ -34,6 +34,7 @@ function renderInventoryPanel(items) {
         label: item.label || item.obj_id || "Item",
         description: item.description || "",
         display: item.display,
+        inventory_actions: item.inventory_actions,
       }, null);
     });
     row.addEventListener("dragstart", ev => {
@@ -43,6 +44,7 @@ function renderInventoryPanel(items) {
         label: item.label || item.obj_id || "Item",
         description: item.description || "",
         display: item.display,
+        inventory_actions: item.inventory_actions,
       }, null);
       if (!ev.dataTransfer) return;
       ev.dataTransfer.effectAllowed = "move";
@@ -71,12 +73,11 @@ function renderInventoryPanel(items) {
 
 function dropInventoryObject(objId, point) {
   if (!objId) return;
-  const payload = { obj_id: objId };
+  let cmd = `:drop @obj:${objId}`;
   if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) {
-    payload.x = Math.round(point.x);
-    payload.y = Math.round(point.y);
+    cmd += ` ${Math.round(point.x)} ${Math.round(point.y)}`;
   }
-  socket.emit("room_drop_object", payload);
+  socket.emit("message", { text: cmd });
 }
 
 function getInventoryDragObjectId(event) {
@@ -118,7 +119,8 @@ function clearRoomSelection() {
 }
 
 function navigateExit(wayId) {
-  socket.emit("navigate", { way_id: wayId });
+  if (!wayId) return;
+  socket.emit("message", { text: `:go @way:${wayId}` });
   clearSelectedTarget();
 }
 
@@ -174,8 +176,63 @@ function getRoomEntitiesByType(entityType) {
 
 function pickUpSelectedObject() {
   if (!selectedTarget || selectedTarget.type !== "object") return;
-  socket.emit("room_pick_object", { entity_id: selectedTarget.id });
+  socket.emit("message", { text: `:pick @obj:${selectedTarget.id}` });
   clearSelectedTarget();
+}
+
+function targetsMatch(left, right) {
+  if (!left || !right) return false;
+  return left.type === right.type && left.id === right.id;
+}
+
+function targetToCommandRef(target) {
+  if (!target) return "";
+  if (target.type === "object" || target.type === "inventory") return `@obj:${target.id}`;
+  if (target.type === "peep") return `@${target.id}`;
+  if (target.type === "prop") return `@prop:${target.id}`;
+  return "";
+}
+
+function sendLookCommand(target) {
+  const activeTarget = target || selectedTarget;
+  const targetRef = targetToCommandRef(activeTarget);
+  const text = targetRef ? `:look ${targetRef}` : ":look";
+  socket.emit("message", { text });
+}
+
+function sendUseCommand(target) {
+  const activeTarget = target || selectedTarget;
+  const targetRef = targetToCommandRef(activeTarget);
+  const text = targetRef ? `:use ${targetRef}` : ":use";
+  socket.emit("message", { text });
+}
+
+function handleTargetTap(target) {
+  if (!target) return;
+  if (targetsMatch(selectedTarget, target)) {
+    sendUseCommand(target);
+    return;
+  }
+  selectTarget(target, null);
+}
+
+function handleTargetLook(target) {
+  if (!target) return;
+  selectTarget(target, null);
+  sendLookCommand(target);
+}
+
+function executeInventoryAction(commandsText, objId) {
+  const commandTemplate = String(commandsText || "").trim();
+  if (!commandTemplate || !objId) return;
+  const objRef = `@obj:${objId}`;
+  const commands = commandTemplate
+    .split(",")
+    .map(command => command.trim())
+    .filter(Boolean);
+  for (const command of commands) {
+    socket.emit("message", { text: command.replace(/\$0/g, objRef) });
+  }
 }
 
 function renderActionPalette() {
@@ -371,12 +428,25 @@ function getPaletteEntriesForTab(tabId) {
   const hasAnyTarget = !!selectedTarget;
 
   const entries = [
-    { label: "Look", onClick: () => sendAction("basic.look") },
-    { label: "Use", onClick: () => sendAction("basic.use") },
+    { label: "Look", onClick: () => sendLookCommand() },
+    { label: "Use", onClick: () => sendUseCommand() },
     { label: "Equip", onClick: () => requestActivity("equip") },
-    { label: "Move", onClick: () => { activePaletteTab = "directions"; renderActionPalette(); } },
     { label: "Self", onClick: () => requestActivity("self") },
   ];
+
+  if (invTarget) {
+    const customActions = Array.isArray(invTarget.inventory_actions) ? invTarget.inventory_actions : [];
+    for (const action of customActions) {
+      const commandTemplate = String(action?.commands || "").trim();
+      if (!commandTemplate) continue;
+      const actionLabel = String(action?.label || "Action").trim() || "Action";
+      entries.push({
+        label: actionLabel,
+        title: `${actionLabel}: ${commandTemplate}`,
+        onClick: () => executeInventoryAction(commandTemplate, invTarget.id),
+      });
+    }
+  }
 
   if (invTarget) {
     entries.push({
@@ -408,16 +478,6 @@ function getPaletteEntriesForTab(tabId) {
   return entries;
 }
 
-function sendAction(actionId) {
-  let cmd = `.${actionId}`;
-  if (selectedTarget) {
-    if (selectedTarget.type === "object" || selectedTarget.type === "inventory") cmd += ` @obj:${selectedTarget.id}`;
-    else if (selectedTarget.type === "peep") cmd += ` @${selectedTarget.id}`;
-    else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
-  }
-  socket.emit("message", { text: cmd });
-}
-
 function sendEmote(emoteId) {
   let cmd = `.${emoteId}`;
   if (selectedTarget) {
@@ -429,7 +489,13 @@ function sendEmote(emoteId) {
 }
 
 function requestActivity(mode) {
-  socket.emit("request_activity_panel", { mode });
+  if (mode === "equip") {
+    socket.emit("message", { text: ":equip" });
+    return;
+  }
+  if (mode === "self") {
+    socket.emit("message", { text: ":self" });
+  }
 }
 
 function bindInventoryListPickUpHandler() {
@@ -454,7 +520,7 @@ function bindInventoryListPickUpHandler() {
     const entityId = (ev.dataTransfer.getData("text/x-tinyrooms-room-obj") || "").trim();
     if (!entityId) return;
     ev.preventDefault();
-    socket.emit("room_pick_object", { entity_id: entityId });
+    socket.emit("message", { text: `:pick @obj:${entityId}` });
   });
 }
 
@@ -566,7 +632,7 @@ function _tdDropInventory(objId, el, clientX, clientY) {
 function _tdDropRoomObj(entityId, el) {
   if (!el) return;
   if (el.closest("#inventoryList")) {
-    socket.emit("room_pick_object", { entity_id: entityId });
+    socket.emit("message", { text: `:pick @obj:${entityId}` });
   }
 }
 
