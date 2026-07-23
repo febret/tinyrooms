@@ -53,15 +53,20 @@ function computeRoomCanvasFitSize(stageW, stageH) {
   const style = window.getComputedStyle(viewPanel);
   const paddingX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
   const paddingY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
-  const availableW = Math.max(1, viewPanel.clientWidth - paddingX);
-  const availableH = Math.max(1, viewPanel.clientHeight - paddingY);
+  const availableW = viewPanel.clientWidth - paddingX;
+  const availableH = viewPanel.clientHeight - paddingY;
+  if (!Number.isFinite(availableW) || !Number.isFinite(availableH) || availableW <= 0 || availableH <= 0) {
+    return { width: Math.max(1, stageW), height: Math.max(1, stageH) };
+  }
   const scale = Math.min(availableW / stageW, availableH / stageH);
   if (!Number.isFinite(scale) || scale <= 0) {
     return { width: Math.max(1, stageW), height: Math.max(1, stageH) };
   }
+  const fittedW = Math.min(availableW, stageW * scale);
+  const fittedH = Math.min(availableH, stageH * scale);
   return {
-    width: Math.max(1, Math.round(stageW * scale)),
-    height: Math.max(1, Math.round(stageH * scale)),
+    width: Math.max(1, Number(fittedW.toFixed(3))),
+    height: Math.max(1, Number(fittedH.toFixed(3))),
   };
 }
 
@@ -83,11 +88,13 @@ function updateEditorOverlayControlPositions() {
 
 function fitRoomCanvasToViewPanel() {
   if (!roomCanvas || !roomState.stage) return;
-  const stageW = getStageWidth(roomState.stage);
-  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
-  const fit = computeRoomCanvasFitSize(stageW, stageH);
-  roomCanvas.style.width = `${fit.width}px`;
-  roomCanvas.style.height = `${fit.height}px`;
+  // const stageW = getStageWidth(roomState.stage);
+  // const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  // const fit = computeRoomCanvasFitSize(stageW, stageH);
+  // roomCanvas.style.width = `${fit.width}px`;
+  // roomCanvas.style.height = `${fit.height}px`;
+  roomCanvas.style.width = "100%";
+  roomCanvas.style.height = "100%";
   updateEditorOverlayControlPositions();
 }
 
@@ -115,8 +122,9 @@ async function initPixiApp() {
     autoDensity: true,
     resolution: window.devicePixelRatio || 1,
     autoStart: true,
-    preference: "webgl",
-  });
+    preference: "webgl"
+    });
+  pixiApp.canvas.style.cssText = "width:100%;height:100%;";
   roomCanvas.appendChild(pixiApp.canvas);
 
   pixiEditorOverlay = document.createElement("div");

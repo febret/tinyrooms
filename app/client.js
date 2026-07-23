@@ -17,7 +17,6 @@ var btnWorldEditor = document.getElementById("btnWorldEditor");
 var connectionIndicator = document.getElementById("connectionIndicator");
 var roomTitleOverlay = document.getElementById("roomTitleOverlay");
 var roomCanvas = document.getElementById("roomCanvas");
-var roomExits = document.getElementById("roomExits");
 var lookBox = document.getElementById("lookBox");
 var actionPalette = document.getElementById("actionPalette");
 var activityPanel = document.getElementById("activityPanel");

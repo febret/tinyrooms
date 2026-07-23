@@ -44,9 +44,6 @@ body {
 }
 
 #messages { 
-  border: 1px solid #eee; 
-  background: #fafafa;
-  border-radius: 4px;
 }
 
 .meta { 

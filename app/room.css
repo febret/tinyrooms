@@ -236,10 +236,6 @@
   z-index: 10;
 }
 
-#roomExits {
-  display: none;
-}
-
 .room-exit-btn {
   padding: 0.2rem 0.35rem;
   font-size: 0.68rem;
@@ -269,7 +265,6 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: rgba(0, 0, 0, 0.8) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: inherit;
 }
@@ -289,6 +284,8 @@
   border-radius: 3px;
   color: inherit;
   background: transparent;
+  font-size: 16px;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5), 0 0 4px rgba(0, 0, 0, 0.8), 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.8);
 }
 
 #logPanel .meta,
