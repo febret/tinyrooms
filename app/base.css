@@ -1,20 +1,19 @@
-/* Base theme - clean and minimal */
+/* Base skin (color + visual treatment only). */
 
-body { 
-  font-family: Arial, sans-serif; 
-  background: #f5f5f5;
+body {
+  font-family: serif;
+  background: #000000;
 }
 
-#loginPage, #mainPage { 
-  border: 1px solid #ddd; 
-  border-radius: 8px;
-  background: white;
+#loginPage,
+#mainPage {
+  background: #000000;
 }
 
 #statusDisplay {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #e7f3ff;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .status-item {
@@ -24,47 +23,27 @@ body {
   color: #333;
 }
 
-.view-container {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f9f9f9;
-  color: #333;
+.meta {
+  color: #666;
 }
 
-.view-image img {
-  border: 1px solid #ddd;
-}
-
-.view-label {
+.system {
   color: #007bff;
-}
-
-.view-description {
-  color: #555;
-}
-
-#messages { 
-}
-
-.meta { 
-  color: #666; 
-}
-
-.system { 
-  color: #007bff; 
 }
 
 input[type="text"],
 input[type="password"] {
-  border: 1px solid #ddd;
+  border: none;
   border-radius: 4px;
+  background: rgba(255, 255, 255, 0);
+  color: #fff;
 }
 
 button {
-  background: #007bff;
+  background: #2a2a2d;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 16px;
 }
 
 button:hover {
@@ -77,49 +56,6 @@ button:active {
 
 #loginStatus {
   color: red;
-}
-
-#actionsContainer {
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background: #f9f9f9;
-}
-
-#actionsContainer h4 {
-  color: #666;
-}
-
-.action-btn {
-  background: #28a745;
-}
-
-.action-btn:hover {
-  background: #218838;
-}
-
-.action-btn:active {
-  background: #1e7e34;
-}
-
-.group-btn {
-  background: #007bff;
-  font-weight: bold;
-}
-
-.group-btn:hover {
-  background: #0056b3;
-}
-
-.group-btn:active {
-  background: #004085;
-}
-
-.back-btn:hover {
-  background: #5a6268;
-}
-
-.back-btn:active {
-  background: #545b62;
 }
 
 .ref {
@@ -155,26 +91,6 @@ button:active {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-#actionsChips {
-  border-radius: 4px;
-  background: #f0f0f0;
-}
-
-.action-chip {
-  background: #007bff;
-  color: white;
-  border-radius: 16px;
-}
-
-.action-chip:hover {
-  background: #dc3545;
-  transform: scale(1.05);
-}
-
-.action-chip:active {
-  transform: scale(0.95);
-}
-
 .connection-indicator.connected {
   background: #28a745;
   box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
@@ -189,49 +105,6 @@ button:active {
   background: #6c757d;
 }
 
-/* Responsive padding overrides for base theme */
-@media (max-width: 600px) {
-  #loginPage, #mainPage {
-    padding: 0.75rem;
-  }
-}
-
-.room-icon {
-  border-color: #ddd;
-  background: #f0f0f0;
-}
-
-.room-icon:hover {
-  border-color: #007bff;
-}
-
-.room-icon.selected {
-  border-color: #007bff;
-  box-shadow: 0 0 6px rgba(0, 123, 255, 0.5);
-}
-
-.room-icon.user-icon {
-  box-shadow: 0 0 10px 4px rgba(30, 120, 255, 0.7);
-  border-color: rgba(30, 120, 255, 0.55);
-}
-
-.room-icon.user-icon.selected {
-  box-shadow: 0 0 14px 6px rgba(30, 120, 255, 1);
-  border-color: #1e78ff;
-}
-
-#descriptionPanel {
-  background: #e7f3ff;
-  border: 1px solid #c4dcf5;
-  color: #1a4a7a;
-}
-
-#statusPanel, #viewPanel, #controlsPanel, #actionsPanel, #inventoryPanel, #activityPanel {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f9f9f9;
-}
-
 #roomTitleOverlay {
   color: #333;
   background: rgba(255, 255, 255, 0.85);
@@ -244,15 +117,14 @@ button:active {
 }
 
 #lookBox {
-  border: 1px solid #c4dcf5;
-  background: #e7f3ff;
-  color: #1a4a7a;
+  background: transparent;
+  color: #007bff;
   border-radius: 4px;
 }
 
 #activityPanel {
   background: #fff7e6;
-  border-color: #ffd591;
+  border: 1px solid #ffd591;
 }
 
 .palette-btn {
@@ -261,12 +133,4 @@ button:active {
 
 .palette-btn:hover {
   background: #218838;
-}
-
-.room-exit-btn {
-  background: #007bff;
-}
-
-.room-exit-btn:hover {
-  background: #0056b3;
 }

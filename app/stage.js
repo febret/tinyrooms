@@ -88,13 +88,17 @@ function updateEditorOverlayControlPositions() {
 
 function fitRoomCanvasToViewPanel() {
   if (!roomCanvas || !roomState.stage) return;
-  // const stageW = getStageWidth(roomState.stage);
-  // const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  const stageW = getStageWidth(roomState.stage);
+  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
   // const fit = computeRoomCanvasFitSize(stageW, stageH);
   // roomCanvas.style.width = `${fit.width}px`;
   // roomCanvas.style.height = `${fit.height}px`;
-  roomCanvas.style.width = "100%";
-  roomCanvas.style.height = "100%";
+  console.log("fitRoomCanvasToViewPanel", stageW, stageH);
+  if (stageW > stageH) {
+    roomCanvas.style.width = "100%";
+  } else {
+    roomCanvas.style.height = "100%";
+  }
   updateEditorOverlayControlPositions();
 }
 
@@ -124,7 +128,7 @@ async function initPixiApp() {
     autoStart: true,
     preference: "webgl"
     });
-  pixiApp.canvas.style.cssText = "width:100%;height:100%;";
+  //pixiApp.canvas.style.cssText = "width:100%;height:100%;";
   roomCanvas.appendChild(pixiApp.canvas);
 
   pixiEditorOverlay = document.createElement("div");
@@ -166,6 +170,7 @@ async function loadPixiTexture(url) {
   if (pixiTextureCache.has(url)) return pixiTextureCache.get(url);
   try {
     const texture = await PIXI.Assets.load(url);
+    console.log("PixiJS texture loaded:", url, texture);
     pixiTextureCache.set(url, texture);
     return texture;
   } catch (err) {
@@ -314,6 +319,7 @@ async function pixiCreateDecoratorSprite(decoratorPayload) {
   if (!meta || !meta.frame) {
     const tex = await loadPixiTexture(imageUrl);
     const sprite = new PIXI.Sprite(tex);
+    //TODO: Review hardcoded size?
     clampSpriteSize(sprite, 96, 128);
     return { sprite, animTicker: null };
   }
