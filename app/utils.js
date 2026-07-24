@@ -64,7 +64,7 @@ function parseBgColor(hexStr) {
 //   sw, sh  – size of the source region in image pixels
 //   bgRgb   – [r, g, b] color to make transparent, or null to skip removal
 //   tolerance – per-channel threshold for color matching (default 10)
-function drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh, bgRgb = null, tolerance = 10) {
+function drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh, bgRgb = null, tolerance = 10, allowUpscale = false) {
   const tc = canvas.getContext("2d");
   const dw = canvas.width;
   const dh = canvas.height;
@@ -94,7 +94,8 @@ function drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh, bgRgb = null, tolerance
     tmpc.putImageData(id, 0, 0);
   }
 
-  const scale = Math.min(dw / sw, dh / sh, 1);
+  const maxScale = allowUpscale ? Number.POSITIVE_INFINITY : 1;
+  const scale = Math.min(dw / sw, dh / sh, maxScale);
   const scaledW = Math.round(sw * scale);
   const scaledH = Math.round(sh * scale);
   const dx = Math.floor((dw - scaledW) / 2);

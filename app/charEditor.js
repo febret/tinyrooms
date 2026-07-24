@@ -8,9 +8,7 @@ let characterEditorState = {
   availableSprites: [],
   currentSprite: null,
   currentSpritePreview: null,
-  mainImageUrl: null,
   saving: false,
-  generatingMainImage: false,
 };
 
 let btnCharacterEditor;
@@ -18,9 +16,7 @@ let characterEditorPage;
 let characterEditorDescriptors;
 let characterEditorDescription;
 let characterEditorSpriteList;
-let characterEditorMainImagePreview;
 let characterEditorError;
-let btnCharacterGenerateMainImage;
 let btnCharacterSave;
 let btnCharacterEditorClose;
 let btnCharacterEditorDone;
@@ -32,9 +28,7 @@ function bindCharacterEditorDomElements() {
   characterEditorDescriptors = document.getElementById("characterEditorDescriptors");
   characterEditorDescription = document.getElementById("characterEditorDescription");
   characterEditorSpriteList = document.getElementById("characterEditorSpriteList");
-  characterEditorMainImagePreview = document.getElementById("characterEditorMainImagePreview");
   characterEditorError = document.getElementById("characterEditorError");
-  btnCharacterGenerateMainImage = document.getElementById("btnCharacterGenerateMainImage");
   btnCharacterSave = document.getElementById("btnCharacterSave");
   btnCharacterEditorClose = document.getElementById("btnCharacterEditorClose");
   btnCharacterEditorDone = document.getElementById("btnCharacterEditorDone");
@@ -44,9 +38,7 @@ function bindCharacterEditorDomElements() {
     characterEditorDescriptors &&
     characterEditorDescription &&
     characterEditorSpriteList &&
-    characterEditorMainImagePreview &&
     characterEditorError &&
-    btnCharacterGenerateMainImage &&
     btnCharacterSave &&
     btnCharacterEditorClose &&
     btnCharacterEditorDone
@@ -61,7 +53,6 @@ function initCharacterEditor() {
   btnCharacterEditor.addEventListener("click", openCharacterEditor);
   btnCharacterEditorClose.addEventListener("click", closeCharacterEditor);
   btnCharacterEditorDone.addEventListener("click", closeCharacterEditor);
-  btnCharacterGenerateMainImage.addEventListener("click", generateCharacterMainImage);
   btnCharacterSave.addEventListener("click", saveCharacterProfile);
   characterEditorDescription.addEventListener("input", event => {
     characterEditorState.description = event.target.value;
@@ -78,9 +69,7 @@ function resetCharacterEditorState() {
     availableSprites: [],
     currentSprite: null,
     currentSpritePreview: null,
-    mainImageUrl: null,
     saving: false,
-    generatingMainImage: false,
   };
   if (!bindCharacterEditorDomElements()) {
     return;
@@ -96,7 +85,6 @@ function applyCharacterProfile(profile) {
   characterEditorState.description = char.description || "";
   characterEditorState.currentSprite = char.current_sprite || null;
   characterEditorState.currentSpritePreview = char.current_sprite_preview || null;
-  characterEditorState.mainImageUrl = char.main_image_url || null;
 }
 
 async function openCharacterEditor() {
@@ -133,17 +121,15 @@ function renderCharacterEditor() {
   if (
     !characterEditorDescriptors ||
     !characterEditorDescription ||
-    !characterEditorSpriteList ||
-    !characterEditorMainImagePreview
+    !characterEditorSpriteList
   ) {
     return;
   }
 
-  const busy = characterEditorState.saving || characterEditorState.generatingMainImage;
+  const busy = characterEditorState.saving;
   characterEditorDescription.value = characterEditorState.description;
   characterEditorDescription.disabled = busy;
   btnCharacterSave.disabled = busy;
-  btnCharacterGenerateMainImage.disabled = busy;
 
   characterEditorDescriptors.innerHTML = "";
   for (const [descriptorKey, descriptorMeta] of Object.entries(characterEditorState.descriptorClasses)) {
@@ -202,11 +188,11 @@ function renderCharacterEditor() {
   });
   const defaultLabel = document.createElement("div");
   defaultLabel.className = "character-sprite-label";
-  defaultLabel.textContent = "Use main image";
+  defaultLabel.textContent = "Use default appearance";
   defaultCard.appendChild(defaultLabel);
   const defaultMeta = document.createElement("div");
   defaultMeta.className = "character-sprite-meta";
-  defaultMeta.textContent = "No sprite sheet";
+  defaultMeta.textContent = "No custom sprite";
   defaultCard.appendChild(defaultMeta);
   characterEditorSpriteList.appendChild(defaultCard);
 
@@ -222,20 +208,6 @@ function renderCharacterEditor() {
       busy,
     ));
   }
-
-  characterEditorMainImagePreview.innerHTML = "";
-  characterEditorMainImagePreview.classList.toggle("is-busy", characterEditorState.generatingMainImage);
-  if (characterEditorState.mainImageUrl) {
-    const img = document.createElement("img");
-    img.src = resolveAssetUrl(characterEditorState.mainImageUrl);
-    img.alt = "Character main image";
-    characterEditorMainImagePreview.appendChild(img);
-  } else {
-    const empty = document.createElement("div");
-    empty.className = "character-main-image-empty";
-    empty.textContent = "No main image yet.";
-    characterEditorMainImagePreview.appendChild(empty);
-  }
 }
 
 function characterEditorPayload() {
@@ -250,17 +222,6 @@ async function saveCharacterProfile() {
   await withEditorBusy(characterEditorState, "saving", characterEditorError, renderCharacterEditor, async () => {
     const payload = await fetchJson("/api/char-editor/profile", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(characterEditorPayload()),
-    });
-    applyCharacterProfile({ descriptor_classes: characterEditorState.descriptorClasses, available_sprites: characterEditorState.availableSprites, char: payload.char });
-  });
-}
-
-async function generateCharacterMainImage() {
-  await withEditorBusy(characterEditorState, "generatingMainImage", characterEditorError, renderCharacterEditor, async () => {
-    const payload = await fetchJson("/api/char-editor/main-image", {
-      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(characterEditorPayload()),
     });

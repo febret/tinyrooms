@@ -562,13 +562,20 @@ button {
 #objectCreatorPage {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 1rem;
   overflow: auto;
+}
+
+#characterEditorPage {
+  background: #000;
+}
+
+#objectCreatorPage {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .character-editor-card {
@@ -636,6 +643,10 @@ button {
   padding: 0.4rem;
 }
 
+.character-editor-panel-sprites {
+  grid-column: 1 / -1;
+}
+
 .character-sprite-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -662,8 +673,21 @@ button {
 }
 
 .character-sprite-preview {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 6px;
   background-repeat: no-repeat;
   image-rendering: pixelated;
+}
+
+.character-sprite-preview canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .character-sprite-preview img {
