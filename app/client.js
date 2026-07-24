@@ -20,6 +20,7 @@ var roomCanvas = document.getElementById("roomCanvas");
 var lookBox = document.getElementById("lookBox");
 var actionPalette = document.getElementById("actionPalette");
 var activityPanel = document.getElementById("activityPanel");
+var roomDescriptionHtml = "";
 
 if (btnWorldEditor) {
   btnWorldEditor.addEventListener("click", () => window.open("/world-editor", "_blank"));
@@ -66,6 +67,72 @@ var roomEditor = {
 var heartbeatStarted = false;
 var saveLoopStarted = false;
 var restAuthToken = null;
+
+function updateLookBoxToggleVisibility() {
+  if (!lookBox) return;
+  const content = lookBox.querySelector(".look-box-content");
+  const toggle = lookBox.querySelector(".look-box-toggle");
+  if (!content || !toggle) return;
+
+  const wasExpanded = lookBox.classList.contains("is-expanded");
+  if (wasExpanded) {
+    lookBox.classList.remove("is-expanded");
+  }
+  requestAnimationFrame(() => {
+    const needsToggle = content.scrollHeight > content.clientHeight + 1 || content.scrollWidth > content.clientWidth + 1;
+    lookBox.classList.toggle("has-toggle", needsToggle);
+    toggle.hidden = !needsToggle;
+    if (!needsToggle) {
+      toggle.setAttribute("aria-expanded", "false");
+    } else if (wasExpanded) {
+      lookBox.classList.add("is-expanded");
+      toggle.setAttribute("aria-expanded", "true");
+    }
+  });
+}
+
+function setLookBoxContent(contentHtml) {
+  if (!lookBox) return;
+  const html = (contentHtml || "").trim();
+  if (!html) {
+    lookBox.replaceChildren();
+    lookBox.classList.remove("is-expanded", "has-toggle");
+    return;
+  }
+
+  const content = document.createElement("div");
+  content.className = "look-box-content";
+  content.innerHTML = html;
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "look-box-toggle";
+  toggle.title = "Expand";
+  toggle.textContent = "🔽";
+  toggle.hidden = true;
+  toggle.setAttribute("aria-label", "Expand room text");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.addEventListener("click", () => {
+    const isExpanded = lookBox.classList.toggle("is-expanded");
+    toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+    toggle.title = isExpanded ? "Collapse" : "Expand";
+  });
+
+  lookBox.classList.remove("is-expanded");
+  lookBox.replaceChildren(content, toggle);
+  attachRefEventHandlers(content);
+  updateLookBoxToggleVisibility();
+}
+
+function showRoomDescriptionInLookBox() {
+  if (roomDescriptionHtml) {
+    setLookBoxContent(roomDescriptionHtml);
+  }
+}
+
+window.addEventListener("resize", () => {
+  updateLookBoxToggleVisibility();
+});
 
 socket.on("connect", () => {
   const u = usernameInput.value.trim();
@@ -138,7 +205,7 @@ socket.on("message", data => {
 socket.on("activity_panel", data => {
   const title = escapeHtml(data.title || "");
   const content = formatText(escapeHtml(data.content || ""));
-  activityPanel.style.display = "block";
+  activityPanel.style.display = "flex";
   activityPanel.innerHTML = `
     <div class="activity-panel-header">
       <div class="room-header-title">${title}</div>
@@ -228,10 +295,18 @@ function handleHeaderUpdate(data) {
   roomState.canEditProps = !!data.can_edit_props;
   roomState.canClaimRoom = !!data.can_claim_room;
   const label = formatText(escapeHtml(data.label || ""));
-  const description = formatText(escapeHtml(data.short_description || ""));
-  roomTitleOverlay.innerHTML = label;
-  if (enteringRoom && description) {
-    lookBox.innerHTML = description;
+  roomDescriptionHtml = formatText(escapeHtml(data.short_description || ""));
+  if (roomDescriptionHtml) {
+    roomTitleOverlay.innerHTML = `<button id="roomTitleButton" class="room-title-button" type="button" title="Show room description">${label}</button>`;
+    const roomTitleButton = document.getElementById("roomTitleButton");
+    if (roomTitleButton) {
+      roomTitleButton.addEventListener("click", showRoomDescriptionInLookBox);
+    }
+  } else {
+    roomTitleOverlay.innerHTML = label;
+  }
+  if (enteringRoom && roomDescriptionHtml) {
+    setLookBoxContent(roomDescriptionHtml);
   }
 }
 

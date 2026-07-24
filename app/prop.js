@@ -84,7 +84,7 @@ function enableRoomEditMode() {
   for (const [propId, prop] of roomState.props.entries()) {
     roomEditor.draftProps.set(propId, clonePropState(prop));
   }
-  activityPanel.style.display = "block";
+  activityPanel.style.display = "flex";
   renderActionPalette();
   renderRoomStage(roomState.backgroundPath);
 }
@@ -120,7 +120,7 @@ function deleteDraftProp(propInstanceId) {
   roomEditor.draftProps.delete(propInstanceId);
   if (selectedTarget?.type === "prop" && selectedTarget.id === propInstanceId) {
     selectedTarget = null;
-    lookBox.textContent = "";
+    setLookBoxContent("");
   }
   renderRoomStage(roomState.backgroundPath);
 }
@@ -183,7 +183,7 @@ function renderRoomEditorActivity() {
   if (!roomEditor.enabled) {
     return;
   }
-  activityPanel.style.display = "block";
+  activityPanel.style.display = "flex";
   const saveDisabled = roomEditor.saving ? "disabled" : "";
   const propsList = Array.from(roomState.propLibrary.values())
     .map((item) => {
@@ -208,14 +208,16 @@ function renderRoomEditorActivity() {
       <div class="room-header-title">Room Editor</div>
       <button id="btnRoomEditorDismiss" class="activity-panel-dismiss" title="Dismiss">✕</button>
     </div>
-    <div class="character-editor-actions">
-      <button id="btnRoomEditorSave" ${saveDisabled}>Save Room</button>
-      <button id="btnRoomEditorCancel" ${saveDisabled}>Cancel</button>
+    <div class="activity-panel-content">
+      <div class="character-editor-actions">
+        <button id="btnRoomEditorSave" ${saveDisabled}>Save Room</button>
+        <button id="btnRoomEditorCancel" ${saveDisabled}>Cancel</button>
+      </div>
+      ${claimSection}
+      <div>${roomEditor.saving ? "Saving room..." : "Add prop from library:"}</div>
+      <div class="character-editor-actions">${propsList}</div>
+      ${exitsList}
     </div>
-    ${claimSection}
-    <div>${roomEditor.saving ? "Saving room..." : "Add prop from library:"}</div>
-    <div class="character-editor-actions">${propsList}</div>
-    ${exitsList}
   `;
   const btnSave = document.getElementById("btnRoomEditorSave");
   if (btnSave) btnSave.onclick = saveRoomEdits;

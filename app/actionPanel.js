@@ -161,7 +161,7 @@ function selectTarget(target) {
       pixiSetEntitySelected(key, true);
     }
   }
-  lookBox.innerHTML = `<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`;
+  setLookBoxContent(`<strong>${escapeHtml(target.label || "")}</strong>: ${escapeHtml(target.description || "")}`);
   renderActionPalette();
   renderInventorySelection();
 }
@@ -169,7 +169,7 @@ function selectTarget(target) {
 function clearSelectedTarget() {
   selectedTarget = null;
   clearRoomSelection();
-  lookBox.innerHTML = "";
+  setLookBoxContent("");
   renderActionPalette();
   renderInventorySelection();
 }
@@ -273,7 +273,7 @@ function renderActionPalette() {
     { id: "actions", emoji: "🤚", title: "Actions" },
     { id: "directions", emoji: "🧭", title: "Directions" },
     { id: "objects", emoji: "📦", title: "Objects" },
-    { id: "peeps", emoji: "🧑", title: "Peeps" },
+    { id: "peeps", emoji: "🧍‍♀️", title: "Peeps" },
     { id: "emotes", emoji: "😀", title: "Emotes" },
     { id: "tools", emoji: "🧰", title: "Tools" },
   ];
@@ -457,8 +457,6 @@ function getPaletteEntriesForTab(tabId) {
   const entries = [
     { label: "Look", onClick: () => sendLookCommand() },
     { label: "Use", onClick: () => sendUseCommand() },
-    { label: "Equip", onClick: () => requestActivity("equip") },
-    { label: "Self", onClick: () => requestActivity("self") },
   ];
 
   if (invTarget) {
@@ -513,16 +511,6 @@ function sendEmote(emoteId) {
     else if (selectedTarget.type === "prop") cmd += ` @prop:${selectedTarget.id}`;
   }
   socket.emit("message", { text: cmd });
-}
-
-function requestActivity(mode) {
-  if (mode === "equip") {
-    socket.emit("message", { text: ":equip" });
-    return;
-  }
-  if (mode === "self") {
-    socket.emit("message", { text: ":self" });
-  }
 }
 
 function bindInventoryListPickUpHandler() {

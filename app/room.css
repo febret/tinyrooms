@@ -7,16 +7,19 @@
 }
 
 #roomTitleOverlay {
-  position: absolute;
-  top: 0.4rem;
-  left: 0.45rem;
-  z-index: 10;
-  pointer-events: none;
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: 4px;
+  font-weight: 200;
+  font-size: 22px;
   backdrop-filter: blur(2px);
+  padding-left: 10px;
+  color: var(--room-title-color, #fff);
+  font-family: var(--room-title-font-family, sans-serif);
+}
+
+.room-title-button {
+  all: unset;
+  cursor: pointer;
+  display: inline-block;
+  max-width: 100%;
 }
 
 #roomCanvas {
@@ -26,6 +29,9 @@
   margin: 0 auto;
   overflow: hidden;
   cursor: crosshair;
+  border: var(--room-canvas-border, 1px solid #ddd);
+  border-radius: 4px;
+  background: var(--room-canvas-bg, #fff);
 }
 
 /* PixiJS canvas fills roomCanvas wrapper. */
@@ -34,6 +40,7 @@
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
   height: 100%;
 }
 
@@ -115,13 +122,6 @@
   #roomCanvas {
     width: min(100%, 16.5rem);
     height: min(100%, 22rem);
-  }
-
-  #roomTitleOverlay {
-    top: 0.25rem;
-    left: 0.25rem;
-    font-size: 0.8rem;
-    padding: 0.12rem 0.3rem;
   }
 
   #logPanel {

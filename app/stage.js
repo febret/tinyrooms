@@ -1180,7 +1180,7 @@ function resetRoomEntityState() {
   pixiEntityNodes.clear();
   roomState.entities.clear();
   selectedTarget = null;
-  lookBox.textContent = "";
+  setLookBoxContent("");
   clearRoomSelection();
 }
 
