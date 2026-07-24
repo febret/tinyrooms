@@ -54,6 +54,7 @@ class SpriteSet:
     yaml_path: Path
     frame_width: int
     frame_height: int
+    scale: float
     background_color: str | None
     sprites: dict[str, SpriteEntry]
     label: str
@@ -131,6 +132,20 @@ def _normalize_background_color(value: Any, errors: list[str]) -> str | None:
     return normalized
 
 
+def _normalize_scale(value: Any, errors: list[str]) -> float:
+    if value is None:
+        return 1.0
+    try:
+        scale = float(value)
+    except (TypeError, ValueError):
+        errors.append("scale must be numeric")
+        return 1.0
+    if scale <= 0:
+        errors.append("scale must be > 0")
+        return 1.0
+    return scale
+
+
 def _normalize_anim(anim_id: str, raw: Any, errors: list[str]) -> SpriteAnimation:
     if not isinstance(raw, dict):
         errors.append(f"sprites.*.anims.{anim_id} must be an object")
@@ -201,6 +216,7 @@ def load_sprite_set(scope: str, filename: str, image_path: Path, yaml_path: Path
         raise SpriteValidationError("sprite definition must be a mapping")
     frame_width = _validate_positive_int(loaded.get("frame_width"), "frame_width", errors)
     frame_height = _validate_positive_int(loaded.get("frame_height"), "frame_height", errors)
+    scale = _normalize_scale(loaded.get("scale"), errors)
     background_color = _normalize_background_color(loaded.get("background_color"), errors)
     sprites_raw = loaded.get("sprites", {})
     if not isinstance(sprites_raw, dict) or not sprites_raw:
@@ -219,6 +235,7 @@ def load_sprite_set(scope: str, filename: str, image_path: Path, yaml_path: Path
         yaml_path=yaml_path,
         frame_width=frame_width,
         frame_height=frame_height,
+        scale=scale,
         background_color=background_color,
         sprites=sprites,
         label=str(loaded.get("label", "") or ""),
@@ -270,6 +287,12 @@ def _selected_frame(
         return anim.frames[frame_idx]
     if anim is not None and anim.frames:
         return anim.frames[0]
+    front_anim = sprite.anims.get("front")
+    if front_anim is not None and front_anim.frames:
+        return front_anim.frames[0]
+    for candidate in sprite.anims.values():
+        if candidate.frames:
+            return candidate.frames[0]
     if sprite.default_frame is not None:
         return sprite.default_frame
     return FrameCoord(0, 0)
@@ -361,9 +384,21 @@ def resolve_sprite_reference(reference: SpriteReference, repository: SpriteRepos
         "image_url": f"/sprites/{sprite_set.scope}/{sprite_set.image_path.name}",
         "frame_width": sprite_set.frame_width,
         "frame_height": sprite_set.frame_height,
+        "scale": sprite_set.scale,
         "background_color": sprite_set.background_color,
         "frame": sprite_set.frame_rect(selected),
     }
+    if sprite.anims:
+        payload["animations"] = {
+            anim.anim_id: {
+                "id": anim.anim_id,
+                "speed": anim.speed,
+                "type": anim.anim_type,
+                "frames": [sprite_set.frame_rect(frame) for frame in anim.frames],
+            }
+            for anim in sprite.anims.values()
+            if anim.frames
+        }
     if anim is not None:
         payload["animation"] = {
             "id": anim.anim_id,
@@ -393,6 +428,7 @@ def to_definition_dict(sprite_set: SpriteSet) -> dict[str, Any]:
         "description": sprite_set.description,
         "frame_width": sprite_set.frame_width,
         "frame_height": sprite_set.frame_height,
+        "scale": sprite_set.scale,
         "sprites": sprites_payload,
     }
     if sprite_set.background_color is not None:

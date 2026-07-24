@@ -23,6 +23,7 @@ def test_sprite_repository_world_precedence_and_reference_resolution(tmp_path: P
         {
             "frame_width": 16,
             "frame_height": 16,
+            "scale": 2,
             "background_color": "#101010",
             "sprites": {"server_idle": {"default_frame": "0x0", "anims": {}}},
         },
@@ -54,6 +55,7 @@ def test_sprite_repository_world_precedence_and_reference_resolution(tmp_path: P
     resolved_server = sprites.resolve_sprite_reference(sprites.parse_sprite_reference("$/hero/server_idle") , repo)  # type: ignore[arg-type]
     assert resolved_server["scope"] == "server"
     assert resolved_server["sprite_id"] == "server_idle"
+    assert resolved_server["scale"] == 2
     assert resolved_server["background_color"] == "#101010"
 
     resolved_anim = sprites.resolve_sprite_reference(sprites.parse_sprite_reference("$hero/world_idle/walk/1") , repo)  # type: ignore[arg-type]
@@ -110,6 +112,38 @@ def test_sprite_background_color_can_be_cleared_and_invalid_type_rejected(tmp_pa
     assert "background_color" in "; ".join(err.value.errors)
 
 
+def test_sprite_scale_defaults_and_validation(tmp_path: Path):
+    sprite_dir = tmp_path / "sprites"
+    _write_sprite_pair(
+        sprite_dir,
+        "hero",
+        {
+            "frame_width": 16,
+            "frame_height": 16,
+            "sprites": {"idle": {"default_frame": "0x0", "anims": {}}},
+        },
+    )
+    loaded = sprites.load_sprite_set("world", "hero", sprite_dir / "hero.png", sprite_dir / "hero.yaml")
+    assert loaded.scale == 1.0
+    assert sprites.to_definition_dict(loaded)["scale"] == 1.0
+
+    (sprite_dir / "hero.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "frame_width": 16,
+                "frame_height": 16,
+                "scale": 0,
+                "sprites": {"idle": {"default_frame": "0x0", "anims": {}}},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(sprites.SpriteValidationError) as err:
+        sprites.load_sprite_set("world", "hero", sprite_dir / "hero.png", sprite_dir / "hero.yaml")
+    assert "scale" in "; ".join(err.value.errors)
+
+
 def test_build_display_assets_keeps_plain_image_behavior(tmp_path: Path):
     world_root = tmp_path / "world"
     world_root.mkdir(parents=True, exist_ok=True)
@@ -122,8 +156,75 @@ def test_build_display_assets_keeps_plain_image_behavior(tmp_path: Path):
     assert "sprite_meta" not in display
 
 
+def test_build_display_assets_invalid_sprite_reference_falls_back_to_placeholder(tmp_path: Path, capsys):
+    world_root = tmp_path / "world"
+    world_root.mkdir(parents=True, exist_ok=True)
+    display = icons.build_display_assets(
+        {"img": "images/thing.png", "sprite": "$missing_set/sprite_1"},
+        world_root,
+    )
+    assert display["sprite"] == "/app/placeholder-sprite.svg"
+    assert display["sprite_meta"]["sprite_id"] == "placeholder_invalid"
+    assert display["icon"] == "/app/placeholder-sprite.svg"
+    assert display["icon_meta"]["sprite_id"] == "placeholder_invalid"
+    output = capsys.readouterr().out
+    assert "assets: warning:" in output
+    assert "Using placeholder sprite." in output
+
+
 def test_parse_sprite_reference_rejects_invalid_shapes():
     with pytest.raises(sprites.SpriteValidationError):
         sprites.parse_sprite_reference("$")
     with pytest.raises(sprites.SpriteValidationError):
         sprites.parse_sprite_reference("$a/b/c/d/e")
+
+
+def test_resolve_sprite_reference_prefers_front_animation_for_default_frame(tmp_path: Path):
+    world_root = tmp_path / "world"
+    sprite_dir = world_root / "sprites"
+    _write_sprite_pair(
+        sprite_dir,
+        "hero",
+        {
+            "frame_width": 16,
+            "frame_height": 16,
+            "sprites": {
+                "idle": {
+                    "default_frame": "0x0",
+                    "anims": {
+                        "walk": {"speed": 0.2, "type": "loop", "frames": ["4x0", "5x0"]},
+                        "front": {"speed": 0.2, "type": "loop", "frames": ["2x1"]},
+                    },
+                }
+            },
+        },
+    )
+    repo = sprites.SpriteRepository(world_root_path=world_root, server_root_path=tmp_path / "server_sprites")
+    repo.reindex()
+    resolved = sprites.resolve_sprite_reference(sprites.parse_sprite_reference("$hero/idle"), repo)  # type: ignore[arg-type]
+    assert resolved["frame"]["token"] == "2x1"
+
+
+def test_resolve_sprite_reference_falls_back_to_first_animation_when_front_missing(tmp_path: Path):
+    world_root = tmp_path / "world"
+    sprite_dir = world_root / "sprites"
+    _write_sprite_pair(
+        sprite_dir,
+        "hero",
+        {
+            "frame_width": 16,
+            "frame_height": 16,
+            "sprites": {
+                "idle": {
+                    "default_frame": "0x0",
+                    "anims": {
+                        "walk": {"speed": 0.2, "type": "loop", "frames": ["3x2", "4x2"]},
+                    },
+                }
+            },
+        },
+    )
+    repo = sprites.SpriteRepository(world_root_path=world_root, server_root_path=tmp_path / "server_sprites")
+    repo.reindex()
+    resolved = sprites.resolve_sprite_reference(sprites.parse_sprite_reference("$hero/idle"), repo)  # type: ignore[arg-type]
+    assert resolved["frame"]["token"] == "3x2"

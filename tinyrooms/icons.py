@@ -9,6 +9,27 @@ DEFAULT_USER_ASSETS = {
     'sprite': 'images/default_user.svg',
     'icon': 'images/default_user.svg',
 }
+PLACEHOLDER_SPRITE_URL = "/app/placeholder-sprite.svg"
+PLACEHOLDER_SPRITE_META = {
+    "ref": "$placeholder/placeholder_invalid",
+    "scope": "builtin",
+    "filename": "placeholder",
+    "sprite_id": "placeholder_invalid",
+    "image_url": PLACEHOLDER_SPRITE_URL,
+    "frame_width": 32,
+    "frame_height": 32,
+    "scale": 1.0,
+    "background_color": None,
+    "frame": {
+        "token": "0x0",
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32,
+        "grid_x": 0,
+        "grid_y": 0,
+    },
+}
 
 
 def parse_asset_def(asset_value) -> dict:
@@ -46,14 +67,28 @@ def resolve_display_assets(info: dict) -> dict:
 
 
 def _resolve_display_asset_value(asset_value: str, world_root_path, sprite_repo: sprites.SpriteRepository | None = None):
-    sprite_ref = sprites.parse_sprite_reference(asset_value)
+    try:
+        sprite_ref = sprites.parse_sprite_reference(asset_value)
+    except sprites.SpriteValidationError as err:
+        print(
+            f"assets: warning: invalid sprite reference '{asset_value}': {err}. "
+            f"Using placeholder sprite."
+        )
+        return PLACEHOLDER_SPRITE_URL, dict(PLACEHOLDER_SPRITE_META)
     if sprite_ref is None:
         return _resolve_image_path(asset_value, world_root_path), None
     repo = sprite_repo or sprites.SpriteRepository(Path(world_root_path))
     if sprite_repo is None:
         repo.reindex()
-    resolved = sprites.resolve_sprite_reference(sprite_ref, repo)
-    return resolved['image_url'], resolved
+    try:
+        resolved = sprites.resolve_sprite_reference(sprite_ref, repo)
+        return resolved['image_url'], resolved
+    except sprites.SpriteValidationError as err:
+        print(
+            f"assets: warning: failed to resolve sprite reference '{asset_value}': {err}. "
+            f"Using placeholder sprite."
+        )
+        return PLACEHOLDER_SPRITE_URL, dict(PLACEHOLDER_SPRITE_META)
 
 
 def build_display_assets(info: dict, world_root_path, sprite_repo: sprites.SpriteRepository | None = None) -> dict:
