@@ -14,9 +14,10 @@ A room background and props are displayed in the client in the roomPanel section
 In the app, users are allowed to move the sprite for their own peep, plus any objects in the room. Things can be moved via drag/drop. Moves are synchronized across all clients (see Room Update Messages).
 
 ### Character Movement and Selection
-Users move their own character by clicking or tapping on an empty spot in the room canvas. The character smoothly transitions to the target position via CSS animation (180ms linear). During movement:
+Users move their own character by clicking or tapping on an empty spot in the room canvas. The character smoothly transitions to the target position in PixiJS at a constant movement speed (duration is distance-based). During movement:
 
-- **Multi-frame sprite**: the sprite's animation plays continuously (unchanged from idle — no separate walk/idle state machine).
+- **Sprite with `walk` animation frames**: while moving, the client plays the sprite's `walk` animation frames (when available in sprite metadata).
+- **Direction facing**: the sprite flips horizontally (Y-axis mirror) based on movement direction (left vs right).
 - **Static sprite** (single frame or plain image): a short CSS wobble plays during the transition for visual feedback.
 
 A crosshair cursor on the canvas indicates the stage is clickable for movement.

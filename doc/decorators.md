@@ -52,6 +52,7 @@ Fields:
   - `wobble`
   - `spin`
   - `pulse`
+  - `walk` (for peeps, runs the sprite's `walk` animation frames while the peep is moving)
 
 ## Runtime behavior
 
@@ -61,6 +62,7 @@ Fields:
   - `room-object` entities include `decorators`
   - room stage props include `decorators`
 - If a decorator has `sprite`, payloads include resolved sprite metadata in `sprite_display` when resolution succeeds.
+- Client-side decorator rendering lives in `app/decorators.js` (loaded by `app/client.html`), while shared value normalization helpers are in `app/utils.js`.
 
 ## Socket API
 
