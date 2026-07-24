@@ -14,6 +14,46 @@ function resolveAssetUrl(assetPath) {
   return "/world/" + assetPath;
 }
 
+function toFiniteNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clampNumber(value, min = -Infinity, max = Infinity, fallback = 0) {
+  const n = toFiniteNumber(value, fallback);
+  return Math.max(min, Math.min(max, n));
+}
+
+function normalizeObjectArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => item && typeof item === "object");
+}
+
+function normalizeHexColor(value, options = null) {
+  const opts = options || {};
+  const fallback = opts.fallback ?? null;
+  if (typeof value !== "string") return fallback;
+  const raw = value.trim();
+  if (!raw) return fallback;
+  const hex = raw.startsWith("#") ? raw.slice(1) : raw;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return fallback;
+  const normalized = hex.toLowerCase();
+  return opts.includeHash === false ? normalized : `#${normalized}`;
+}
+
+function parseHexColorInt(value, fallback = null) {
+  const normalized = normalizeHexColor(value, { includeHash: false, fallback: null });
+  if (!normalized) return fallback;
+  return Number.parseInt(normalized, 16);
+}
+
+function normalizeSpriteOrigin(meta) {
+  return {
+    x: toFiniteNumber(meta?.offset_x, 0),
+    y: toFiniteNumber(meta?.offset_y, 0),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Editor shared utilities
 // ---------------------------------------------------------------------------
@@ -49,9 +89,9 @@ function loadImage(url) {
 // Parse a CSS hex color string ("#rrggbb" or "rrggbb") into [r, g, b].
 // Returns null if the string is missing or invalid.
 function parseBgColor(hexStr) {
-  if (!hexStr) return null;
-  const s = hexStr.trim();
-  const m = s.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  const normalized = normalizeHexColor(hexStr, { fallback: null });
+  if (!normalized) return null;
+  const m = normalized.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
   if (!m) return null;
   return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
 }
