@@ -7,7 +7,7 @@ import yaml
 
 from . import sprites
 
-SUPPORTED_ANIMATIONS = {"wobble", "spin", "pulse"}
+SUPPORTED_ANIMATIONS = {"wobble", "spin", "pulse", "walk"}
 
 _sprite_repo_cache: dict[str, sprites.SpriteRepository] = {}
 
