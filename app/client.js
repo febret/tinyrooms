@@ -68,35 +68,12 @@ var heartbeatStarted = false;
 var saveLoopStarted = false;
 var restAuthToken = null;
 
-function updateLookBoxToggleVisibility() {
-  if (!lookBox) return;
-  const content = lookBox.querySelector(".look-box-content");
-  const toggle = lookBox.querySelector(".look-box-toggle");
-  if (!content || !toggle) return;
-
-  const wasExpanded = lookBox.classList.contains("is-expanded");
-  if (wasExpanded) {
-    lookBox.classList.remove("is-expanded");
-  }
-  requestAnimationFrame(() => {
-    const needsToggle = content.scrollHeight > content.clientHeight + 1 || content.scrollWidth > content.clientWidth + 1;
-    lookBox.classList.toggle("has-toggle", needsToggle);
-    toggle.hidden = !needsToggle;
-    if (!needsToggle) {
-      toggle.setAttribute("aria-expanded", "false");
-    } else if (wasExpanded) {
-      lookBox.classList.add("is-expanded");
-      toggle.setAttribute("aria-expanded", "true");
-    }
-  });
-}
-
 function setLookBoxContent(contentHtml) {
   if (!lookBox) return;
   const html = (contentHtml || "").trim();
   if (!html) {
     lookBox.replaceChildren();
-    lookBox.classList.remove("is-expanded", "has-toggle");
+    lookBox.classList.remove("is-expanded");
     return;
   }
 
@@ -109,7 +86,6 @@ function setLookBoxContent(contentHtml) {
   toggle.className = "look-box-toggle";
   toggle.title = "Expand";
   toggle.textContent = "🔽";
-  toggle.hidden = true;
   toggle.setAttribute("aria-label", "Expand room text");
   toggle.setAttribute("aria-expanded", "false");
   toggle.addEventListener("click", () => {
@@ -121,7 +97,6 @@ function setLookBoxContent(contentHtml) {
   lookBox.classList.remove("is-expanded");
   lookBox.replaceChildren(content, toggle);
   attachRefEventHandlers(content);
-  updateLookBoxToggleVisibility();
 }
 
 function showRoomDescriptionInLookBox() {
@@ -129,10 +104,6 @@ function showRoomDescriptionInLookBox() {
     setLookBoxContent(roomDescriptionHtml);
   }
 }
-
-window.addEventListener("resize", () => {
-  updateLookBoxToggleVisibility();
-});
 
 socket.on("connect", () => {
   const u = usernameInput.value.trim();

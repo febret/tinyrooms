@@ -151,7 +151,9 @@ body {
 }
 
 #lookBox .look-box-toggle {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 1.35rem !important;
   min-height: 1.35rem !important;
   width: 1.35rem;
@@ -162,12 +164,6 @@ body {
   border-radius: 50%;
   flex-shrink: 0;
   transition: transform 0.18s ease;
-}
-
-#lookBox.has-toggle .look-box-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 #lookBox.is-expanded .look-box-toggle {
