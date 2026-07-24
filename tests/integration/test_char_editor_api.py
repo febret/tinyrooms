@@ -116,11 +116,11 @@ def test_char_editor_main_image_generation_persists_asset_and_broadcasts(auth_so
         predicate=lambda p: (
             p.get("view") == "room-object"
             and p.get("entity", {}).get("owner_username") == user["username"]
-            and p.get("entity", {}).get("display", {}).get("img") == char["main_image_url"]
+            and p.get("entity", {}).get("display", {}).get("sprite", "").startswith("/sprites/server/")
         ),
         timeout=6.0,
     )
     entity = update_event["entity"]
-    assert entity["display"]["img"] == char["main_image_url"]
-    assert entity["display"]["icon"] == char["main_image_url"]
     assert entity["display"]["sprite"].startswith("/sprites/server/")
+    assert entity["display"]["img"] == entity["display"]["sprite"]
+    assert entity["display"]["icon"] == entity["display"]["sprite"]
