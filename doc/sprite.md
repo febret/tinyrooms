@@ -26,6 +26,7 @@ label: Optional label for this sprite set
 description: Optional description for this sprite set
 frame_width: width in pixels of a single sprite frame (all frames are the same size)
 frame_height: height of sprite frame
+scale: optional display scale multiplier (default 1.0)
 background_color: optional background color for this sprite set (any CSS color string); omit/empty to remove
 sprites:
     sprite_1: #Sprite ID
@@ -109,6 +110,7 @@ The sprite editor should work through a set of REST APIs exposed by the tinyroom
 When a display asset is a `$...` sprite reference, server payload now includes:
 - resolved sprite image URL (`/sprites/<scope>/<image-file>`)
 - selected frame rectangle (`x`, `y`, `width`, `height`)
+- optional set-level display scale (`scale`, default `1.0`)
 - optional animation metadata (`speed`, `type`, `frames[]`)
 
 Non-sprite image paths (`images/...`, `/...`, `http(s)://...`) are preserved unchanged.

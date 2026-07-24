@@ -25,7 +25,7 @@ def test_sprite_repository_world_precedence_and_reference_resolution(tmp_path: P
             "frame_height": 16,
             "scale": 2,
             "background_color": "#101010",
-            "sprites": {"server_idle": {"default_frame": "0x0", "anims": {}}},
+            "sprites": {"server_idle": {"default_frame": "0x0", "offset_x": 8, "offset_y": 16, "anims": {}}},
         },
     )
     _write_sprite_pair(
@@ -37,6 +37,8 @@ def test_sprite_repository_world_precedence_and_reference_resolution(tmp_path: P
             "sprites": {
                 "world_idle": {
                     "default_frame": "1x2",
+                    "offset_x": 8,
+                    "offset_y": 16,
                     "anims": {
                         "walk": {"speed": 0.2, "type": "loop", "frames": ["1x2", "2x2", "3x2"]},
                     },
@@ -51,12 +53,16 @@ def test_sprite_repository_world_precedence_and_reference_resolution(tmp_path: P
     assert resolved_default["scope"] == "world"
     assert resolved_default["sprite_id"] == "world_idle"
     assert resolved_default["frame"]["token"] == "1x2"
+    assert resolved_default["offset_x"] == 8.0
+    assert resolved_default["offset_y"] == 16.0
 
     resolved_server = sprites.resolve_sprite_reference(sprites.parse_sprite_reference("$/hero/server_idle") , repo)  # type: ignore[arg-type]
     assert resolved_server["scope"] == "server"
     assert resolved_server["sprite_id"] == "server_idle"
     assert resolved_server["scale"] == 2
     assert resolved_server["background_color"] == "#101010"
+    assert resolved_server["offset_x"] == 8.0
+    assert resolved_server["offset_y"] == 16.0
 
     resolved_anim = sprites.resolve_sprite_reference(sprites.parse_sprite_reference("$hero/world_idle/walk/1") , repo)  # type: ignore[arg-type]
     assert resolved_anim["animation"]["type"] == "loop"
@@ -142,6 +148,22 @@ def test_sprite_scale_defaults_and_validation(tmp_path: Path):
     with pytest.raises(sprites.SpriteValidationError) as err:
         sprites.load_sprite_set("world", "hero", sprite_dir / "hero.png", sprite_dir / "hero.yaml")
     assert "scale" in "; ".join(err.value.errors)
+
+
+def test_sprite_offset_validation(tmp_path: Path):
+    sprite_dir = tmp_path / "sprites"
+    _write_sprite_pair(
+        sprite_dir,
+        "hero",
+        {
+            "frame_width": 16,
+            "frame_height": 16,
+            "sprites": {"idle": {"default_frame": "0x0", "offset_x": "bad", "anims": {}}},
+        },
+    )
+    with pytest.raises(sprites.SpriteValidationError) as err:
+        sprites.load_sprite_set("world", "hero", sprite_dir / "hero.png", sprite_dir / "hero.yaml")
+    assert "offset_x" in "; ".join(err.value.errors)
 
 
 def test_build_display_assets_keeps_plain_image_behavior(tmp_path: Path):

@@ -44,6 +44,8 @@ class SpriteEntry:
     sprite_id: str
     default_frame: FrameCoord | None
     anims: dict[str, SpriteAnimation]
+    offset_x: float
+    offset_y: float
 
 
 @dataclass
@@ -146,6 +148,16 @@ def _normalize_scale(value: Any, errors: list[str]) -> float:
     return scale
 
 
+def _normalize_offset(value: Any, field_name: str, errors: list[str]) -> float:
+    if value is None:
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        errors.append(f"{field_name} must be numeric")
+        return 0.0
+
+
 def _normalize_anim(anim_id: str, raw: Any, errors: list[str]) -> SpriteAnimation:
     if not isinstance(raw, dict):
         errors.append(f"sprites.*.anims.{anim_id} must be an object")
@@ -179,7 +191,7 @@ def _normalize_anim(anim_id: str, raw: Any, errors: list[str]) -> SpriteAnimatio
 def _normalize_sprite(sprite_id: str, raw: Any, errors: list[str]) -> SpriteEntry:
     if not isinstance(raw, dict):
         errors.append(f"sprites.{sprite_id} must be an object")
-        return SpriteEntry(sprite_id=sprite_id, default_frame=None, anims={})
+        return SpriteEntry(sprite_id=sprite_id, default_frame=None, anims={}, offset_x=0.0, offset_y=0.0)
     default_frame_raw = raw.get("default_frame")
     default_frame = None
     if default_frame_raw is not None:
@@ -199,7 +211,15 @@ def _normalize_sprite(sprite_id: str, raw: Any, errors: list[str]) -> SpriteEntr
         first_anim = next(iter(anims.values()))
         if first_anim.frames:
             default_frame = first_anim.frames[0]
-    return SpriteEntry(sprite_id=sprite_id, default_frame=default_frame, anims=anims)
+    offset_x = _normalize_offset(raw.get("offset_x"), f"sprites.{sprite_id}.offset_x", errors)
+    offset_y = _normalize_offset(raw.get("offset_y"), f"sprites.{sprite_id}.offset_y", errors)
+    return SpriteEntry(
+        sprite_id=sprite_id,
+        default_frame=default_frame,
+        anims=anims,
+        offset_x=offset_x,
+        offset_y=offset_y,
+    )
 
 
 def load_sprite_set(scope: str, filename: str, image_path: Path, yaml_path: Path) -> SpriteSet:
@@ -387,6 +407,8 @@ def resolve_sprite_reference(reference: SpriteReference, repository: SpriteRepos
         "scale": sprite_set.scale,
         "background_color": sprite_set.background_color,
         "frame": sprite_set.frame_rect(selected),
+        "offset_x": sprite.offset_x,
+        "offset_y": sprite.offset_y,
     }
     if sprite.anims:
         payload["animations"] = {
@@ -422,6 +444,8 @@ def to_definition_dict(sprite_set: SpriteSet) -> dict[str, Any]:
         sprites_payload[sprite_id] = {
             "default_frame": sprite.default_frame.token if sprite.default_frame else "0x0",
             "anims": anims_payload,
+            "offset_x": sprite.offset_x,
+            "offset_y": sprite.offset_y,
         }
     payload = {
         "label": sprite_set.label,

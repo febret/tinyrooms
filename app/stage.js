@@ -93,11 +93,10 @@ function fitRoomCanvasToViewPanel() {
   const fit = computeRoomCanvasFitSize(stageW, stageH);
   roomCanvas.style.width = `${fit.width}px`;
   roomCanvas.style.height = `${fit.height}px`;
-  console.log("fitRoomCanvasToViewPanel", stageW, stageH);
-
-
-
-
+  // Update roomstate.stage.scale based on the fit size vs the original stage size
+  pixiApp.stage.scale.set(Math.max(fit.width / stageW, fit.height / stageH));
+  // Resize the pixiApp stage to match the fit size (in pixels)
+  pixiApp.renderer.resize(fit.width, fit.height);
   updateEditorOverlayControlPositions();
 }
 
@@ -742,21 +741,29 @@ function pixiAttachPropDrag(wrapper, propInstanceId) {
 async function pixiCreateEntitySprite(entity) {
   const display = entity.display || {};
   const spriteMeta = display.sprite_meta || display.img_meta || null;
+  const spriteScale = Number(spriteMeta?.scale);
+  const normalizedScale = Number.isFinite(spriteScale) && spriteScale > 0 ? spriteScale : 1;
   const imageUrl = resolveAssetUrl(display.sprite || display.img || "");
 
+  const origin = normalizeSpriteOrigin(spriteMeta);
+
   if (!spriteMeta || !spriteMeta.frame) {
-    const tex = await loadPixiTexture(imageUrl);
+    const tex = await loadPixiTextureWithBgTransparency(imageUrl, spriteMeta);
     const sprite = new PIXI.Sprite(tex);
     sprite.anchor.set(0, 0);
     clampSpriteSize(sprite, 64, 128);
+    sprite.scale.set((sprite.scale?.x || 1) * normalizedScale, (sprite.scale?.y || 1) * normalizedScale);
+    sprite.pivot.set(origin.x, origin.y);
     return { sprite, animTicker: null };
   }
 
-  const baseTex = await loadPixiTexture(imageUrl);
+  const baseTex = await loadPixiTextureWithBgTransparency(imageUrl, spriteMeta);
   const frame = spriteMeta.frame;
   const frameTex = makeFrameTexture(baseTex, frame);
   const sprite = new PIXI.Sprite(frameTex);
   sprite.anchor.set(0, 0);
+  sprite.scale.set((sprite.scale?.x || 1) * normalizedScale, (sprite.scale?.y || 1) * normalizedScale);
+  sprite.pivot.set(origin.x, origin.y);
 
   const anim = spriteMeta.animation;
   if (!anim || !Array.isArray(anim.frames) || anim.frames.length <= 1) {
@@ -779,7 +786,9 @@ async function pixiRenderForegroundEntity(entity) {
   if (roomEditor.enabled) return;
 
   const key = `${entity.entity_type}:${entity.entity_id}`;
+  const targetX = entity.position?.x || 0;
   const posY = entity.position?.y || 0;
+  const targetY = posY;
   let zIndex = entity.position?.z_order || 0;
   if (roomState.stage.type === 'standard') {
     zIndex = computeStandardZOrder(
@@ -820,6 +829,9 @@ async function pixiRenderForegroundEntity(entity) {
       decoratorTicker: null,
       renderJson: nextRenderJson,
       isSelf: entity.is_self,
+      logicalX: targetX,
+      logicalY: targetY,
+      facingLeft: false,
     };
     const decoratorTicker = await pixiApplyDecoratorsToWrapper(
       wrapper,
@@ -860,20 +872,40 @@ async function pixiRenderForegroundEntity(entity) {
     }
   }
 
+  const setFacingFromDelta = (deltaX) => {
+    if (deltaX < -0.5) {
+      record.facingLeft = true;
+    } else if (deltaX > 0.5) {
+      record.facingLeft = false;
+    }
+    wrapper.scale.x = record.facingLeft ? -1 : 1;
+    wrapper.scale.y = 1;
+  };
+
+  const setRenderPosition = (x, y) => {
+    record.logicalX = x;
+    record.logicalY = y;
+    wrapper.x = x;
+    wrapper.y = y;
+  };
+
   wrapper.zIndex = zIndex;
+  const currentX = Number.isFinite(record.logicalX) ? record.logicalX : targetX;
+  const currentY = Number.isFinite(record.logicalY) ? record.logicalY : targetY;
+  const dx = targetX - currentX;
+  const dy = targetY - currentY;
+  const distance = Math.hypot(dx, dy);
 
-  const targetX = entity.position?.x || 0;
-  const targetY = posY;
-  const MOVE_DURATION_MS = 180;
-
-  if (Math.abs(wrapper.x - targetX) > 0.5 || Math.abs(wrapper.y - targetY) > 0.5) {
+  if (distance > 0.5) {
+    const durationMs = Math.max(ENTITY_MOVE_MIN_DURATION_MS, (distance / ENTITY_MOVE_SPEED_PX_PER_SEC) * 1000);
+    setFacingFromDelta(dx);
     record.moveTween = {
-      fromX: wrapper.x,
-      fromY: wrapper.y,
+      fromX: currentX,
+      fromY: currentY,
       targetX,
       targetY,
       elapsed: 0,
-      duration: MOVE_DURATION_MS,
+      duration: durationMs,
     };
     if (!record.moveTicker) {
       record.moveTicker = (ticker) => {
@@ -881,9 +913,11 @@ async function pixiRenderForegroundEntity(entity) {
         if (!t) return;
         t.elapsed += ticker.deltaMS;
         const progress = Math.min(1, t.elapsed / t.duration);
-        wrapper.x = t.fromX + (t.targetX - t.fromX) * progress;
-        wrapper.y = t.fromY + (t.targetY - t.fromY) * progress;
+        const nextX = t.fromX + (t.targetX - t.fromX) * progress;
+        const nextY = t.fromY + (t.targetY - t.fromY) * progress;
+        setRenderPosition(nextX, nextY);
         if (progress >= 1) {
+          setRenderPosition(t.targetX, t.targetY);
           record.moveTween = null;
           pixiApp.ticker.remove(record.moveTicker);
           record.moveTicker = null;
@@ -892,8 +926,7 @@ async function pixiRenderForegroundEntity(entity) {
       pixiApp.ticker.add(record.moveTicker);
     }
   } else {
-    wrapper.x = targetX;
-    wrapper.y = targetY;
+    setRenderPosition(targetX, targetY);
   }
 }
 
@@ -918,7 +951,12 @@ function pixiSetEntitySelected(key, isSelected) {
   if (isSelected) {
     const bounds = record.sprite.getLocalBounds();
     const outline = new PIXI.Graphics({ label: "selectionOutline" });
-    outline.rect(-2, -2, (bounds.width || 32) + 4, (bounds.height || 32) + 4)
+    outline.rect(
+      (bounds.x || 0) - 2,
+      (bounds.y || 0) - 2,
+      (bounds.width || 32) + 4,
+      (bounds.height || 32) + 4,
+    )
            .stroke({ color: 0x3c8cff, width: 2 });
     wrapper.addChild(outline);
   }
@@ -1122,7 +1160,9 @@ function canDragEntity(entity) {
 function _moveOwnPeepTo(x, y) {
   const myKey = `peep:${myUsername}`;
   const myEntity = roomState.entities.get(myKey);
-  const moveEvent = _buildMoveEvent("peep", myUsername, x, y);
+  const fromX = Number(myEntity?.position?.x ?? x);
+  const fromY = Number(myEntity?.position?.y ?? y);
+  const moveEvent = _buildMoveEvent("peep", myUsername, x, y, fromX, fromY);
 
   if (myEntity && myEntity.position) {
     myEntity.position.x = x;
