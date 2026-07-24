@@ -2,22 +2,72 @@ label: ''
 description: ''
 frame_width: 24
 frame_height: 32
+scale: 3.0
 sprites:
-  sprite_1:
+  char_1:
     default_frame: '0x0'
+    offset_x: 12
+    offset_y: 32
     anims:
-      back:
-        speed: 0.5
-        type: loop
-        frames:
-        - '0x0'
-        - 1x0
-        - 2x0
       front:
         speed: 0.5
         type: loop
         frames:
-        - '0x2'
         - 1x2
-        - 2x2
+      walk:
+        speed: 0.5
+        type: loop
+        frames:
+        - '0x1'
+        - 1x1
+        - 2x1
+  char_2:
+    default_frame: '0x0'
+    offset_x: 12
+    offset_y: 32
+    anims:
+      front:
+        speed: 0.5
+        type: loop
+        frames:
+        - 10x2
+      walk:
+        speed: 0.5
+        type: loop
+        frames:
+        - 9x1
+        - 10x1
+        - 11x1
+  char_3:
+    default_frame: '0x0'
+    offset_x: 12
+    offset_y: 32
+    anims:
+      front:
+        speed: 0.5
+        type: loop
+        frames:
+        - 7x6
+      walk:
+        speed: 0.1
+        type: loop
+        frames:
+        - 6x5
+        - 7x5
+        - 8x5
+  char_4:
+    default_frame: '0x0'
+    anims:
+      front:
+        speed: 0.5
+        type: loop
+        frames:
+        - 1x6
+      walk:
+        speed: 0.5
+        type: loop
+        frames:
+        - '0x5'
+        - 1x5
+        - 2x5
 background_color: '#209c00'
