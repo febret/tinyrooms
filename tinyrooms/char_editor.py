@@ -108,8 +108,8 @@ def build_character_display_assets(
     sprite_asset = _current_sprite_asset(username, char.get("current_sprite")) or main_image_asset
     return icons.build_display_assets(
         {
-            "img": main_image_asset,
-            "icon": main_image_asset,
+            "img": sprite_asset,
+            "icon": sprite_asset,
             "sprite": sprite_asset,
         },
         world_root_path,
@@ -271,4 +271,3 @@ class CharacterEditorService:
                 previous_path.unlink(missing_ok=True)
 
         return f"images/{final_name}"
-
