@@ -183,11 +183,58 @@ function renderInventorySelection() {
   }
 }
 
-function getEntityThumbnailUrl(entity) {
-  if (!entity) return "";
+function getEntityThumbnailSpec(entity) {
+  if (!entity) return null;
   const display = entity.display || {};
+  const meta = display.sprite_meta || display.img_meta || null;
+  const imageUrl = resolveAssetUrl(display.sprite || display.img || display.icon || "");
+  if (meta && meta.frame && imageUrl) {
+    return {
+      imageUrl,
+      frame: meta.frame,
+      backgroundColor: meta.background_color || null,
+    };
+  }
   const iconUrl = display.icon || display.img || display.sprite || "";
-  return iconUrl ? resolveAssetUrl(iconUrl) : "";
+  if (!iconUrl) return null;
+  return { imageUrl: resolveAssetUrl(iconUrl), frame: null, backgroundColor: null };
+}
+
+function createPaletteThumbNode(item) {
+  const spec = item.thumbnailSpec || null;
+  if (!spec || !spec.imageUrl) {
+    return null;
+  }
+  if (spec.frame) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 48;
+    canvas.height = 48;
+    canvas.className = "palette-btn-thumb-canvas";
+    loadImage(spec.imageUrl).then((img) => {
+      drawSpriteThumb(
+        canvas,
+        img,
+        Number(spec.frame.x || 0),
+        Number(spec.frame.y || 0),
+        Math.max(1, Number(spec.frame.width || 32)),
+        Math.max(1, Number(spec.frame.height || 32)),
+        parseBgColor(spec.backgroundColor || ""),
+        10,
+        true,
+      );
+    }).catch(() => {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+    return canvas;
+  }
+  const img = document.createElement("img");
+  img.src = spec.imageUrl;
+  img.alt = item.label || item.title || "";
+  img.className = "palette-btn-thumb-image";
+  return img;
 }
 
 function getRoomEntitiesByType(entityType) {
@@ -320,15 +367,14 @@ function renderActionPalette() {
   const entries = getPaletteEntriesForTab(activePaletteTab);
   for (const item of entries) {
     const btn = document.createElement("button");
-    btn.className = `palette-btn${item.iconUrl ? " palette-btn-thumb" : ""}${item.selected ? " is-selected" : ""}`;
+    btn.className = `palette-btn${item.thumbnailSpec ? " palette-btn-thumb" : ""}${item.selected ? " is-selected" : ""}`;
     btn.disabled = !!item.disabled;
     if (item.title) btn.title = item.title;
-    if (item.iconUrl) {
-      const img = document.createElement("img");
-      img.src = item.iconUrl;
-      img.alt = item.label || item.title || "";
-      img.className = "palette-btn-thumb-image";
-      btn.appendChild(img);
+    if (item.thumbnailSpec) {
+      const thumbNode = createPaletteThumbNode(item);
+      if (thumbNode) {
+        btn.appendChild(thumbNode);
+      }
     } else {
       btn.textContent = item.label;
     }
@@ -402,7 +448,7 @@ function getPaletteEntriesForTab(tabId) {
     return objects.map(entity => ({
       label: entity.label || entity.entity_id || "object",
       title: entity.label || entity.entity_id || "object",
-      iconUrl: getEntityThumbnailUrl(entity),
+      thumbnailSpec: getEntityThumbnailSpec(entity),
       entityId: entity.entity_id,
       selected: selectedTarget && selectedTarget.type === "object" && selectedTarget.id === entity.entity_id,
       onClick: () => selectTarget({
@@ -421,7 +467,7 @@ function getPaletteEntriesForTab(tabId) {
     return peeps.map(entity => ({
       label: entity.label || entity.entity_id || "peep",
       title: entity.is_self ? "You" : (entity.label || entity.entity_id || "peep"),
-      iconUrl: getEntityThumbnailUrl(entity),
+      thumbnailSpec: getEntityThumbnailSpec(entity),
       selected: selectedTarget && selectedTarget.type === "peep" && selectedTarget.id === entity.entity_id,
       onClick: () => selectTarget({
         type: "peep",

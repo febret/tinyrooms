@@ -300,6 +300,12 @@ body {
   image-rendering: pixelated;
 }
 
+.palette-btn-thumb-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+
 .palette-btn.is-selected {
   outline: 2px solid #3c8cff;
   outline-offset: -2px;
