@@ -90,15 +90,14 @@ function fitRoomCanvasToViewPanel() {
   if (!roomCanvas || !roomState.stage) return;
   const stageW = getStageWidth(roomState.stage);
   const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
-  // const fit = computeRoomCanvasFitSize(stageW, stageH);
-  // roomCanvas.style.width = `${fit.width}px`;
-  // roomCanvas.style.height = `${fit.height}px`;
+  const fit = computeRoomCanvasFitSize(stageW, stageH);
+  roomCanvas.style.width = `${fit.width}px`;
+  roomCanvas.style.height = `${fit.height}px`;
   console.log("fitRoomCanvasToViewPanel", stageW, stageH);
-  if (stageW > stageH) {
-    roomCanvas.style.width = "100%";
-  } else {
-    roomCanvas.style.height = "100%";
-  }
+
+
+
+
   updateEditorOverlayControlPositions();
 }
 
