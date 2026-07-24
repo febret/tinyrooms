@@ -171,7 +171,7 @@ async function loadPixiTexture(url) {
   if (pixiTextureCache.has(url)) return pixiTextureCache.get(url);
   try {
     const texture = await PIXI.Assets.load(url);
-    cionsole.log("PixiJS texture loaded:", url, texture);
+    console.log("PixiJS texture loaded:", url, texture);
     pixiTextureCache.set(url, texture);
     return texture;
   } catch (err) {
