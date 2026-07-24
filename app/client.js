@@ -37,6 +37,7 @@ var connectionState = "connecting";
 var connectionTime = null;
 var CHAT_MESSAGE_TTL_MS = 30000;
 var CHAT_MAX_VISIBLE = 10;
+var CHAT_DECORATOR_MAX_CHARS = 31;
 var roomState = {
   roomId: null,
   canEditProps: false,
@@ -169,8 +170,11 @@ socket.on("login_failed", data => {
 });
 
 socket.on("message", data => {
-  const safeText = escapeHtml(data.text || "");
-  addMessage(formatText(safeText));
+  const rawText = String(data.text || "");
+  const safeText = escapeHtml(rawText);
+  const formattedText = formatText(safeText);
+  addMessage(formattedText);
+  maybeAttachChatDecorator(formattedText);
 });
 
 socket.on("activity_panel", data => {
@@ -338,6 +342,76 @@ function addMessage(text, cls, scroll = true) {
   if (scroll) messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+function parseChatDecoratorCandidate(formattedText) {
+  if (!formattedText) return null;
+  const probe = document.createElement("div");
+  probe.innerHTML = formattedText;
+  const plain = (probe.textContent || "").replace(/\s+/g, " ").trim();
+  if (!plain) return null;
+  const refNodes = Array.from(probe.querySelectorAll("span.ref[id]"));
+  const refIds = refNodes
+    .map((node) => String(node.id || "").trim())
+    .filter(Boolean);
+  const match = plain.match(/^(.+?) says(?: to .+?)?:\s*(.+)$/i);
+  const speakerLabel = (match?.[1] || "").trim();
+  const chatText = (match?.[2] || plain).trim();
+  return { refIds, speakerLabel, chatText };
+}
+
+function extractEmojiDecorators(text) {
+  if (!text) return [];
+  const emojiPattern = /\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\p{Emoji_Modifier})?)*/gu;
+  return Array.from(String(text).matchAll(emojiPattern), (match) => match[0]).filter(Boolean);
+}
+
+function resolveSpeakerPeepId(candidate) {
+  if (!candidate) return "";
+  if (Array.isArray(candidate.refIds)) {
+    for (const refId of candidate.refIds) {
+      const byIdKey = `peep:${refId}`;
+      if (roomState.entities.has(byIdKey)) {
+        return refId;
+      }
+      if (refId === "you" && myUsername && roomState.entities.has(`peep:${myUsername}`)) {
+        return myUsername;
+      }
+    }
+  }
+  const labelSearch = (candidate.speakerLabel || "").trim().toLowerCase();
+  if (!labelSearch) return "";
+  if (labelSearch === "you" && myUsername) {
+    return myUsername;
+  }
+  for (const entity of roomState.entities.values()) {
+    if (entity.entity_type !== "peep") continue;
+    const entityLabel = String(entity.label || entity.entity_id || "").trim().toLowerCase();
+    if (entityLabel === labelSearch) {
+      return String(entity.entity_id || "");
+    }
+  }
+  return "";
+}
+
+function maybeAttachChatDecorator(formattedText) {
+  const candidate = parseChatDecoratorCandidate(formattedText);
+  if (!candidate) return;
+  const peepId = resolveSpeakerPeepId(candidate);
+  if (!peepId) return;
+  const emojis = extractEmojiDecorators(candidate.chatText);
+  const decoratorText = emojis.length > 0
+    ? emojis.slice(0, 3).join("")
+    : candidate.chatText;
+  if (!decoratorText) return;
+  if (emojis.length === 0 && decoratorText.length > CHAT_DECORATOR_MAX_CHARS) {
+    return;
+  }
+  pixiAddFloatingTextToEntity("peep", peepId, decoratorText, {
+    durationMs: 1800,
+    risePx: 22,
+    fontSize: 14,
+  });
+}
+
 function restoreChatMessage(text, cls) {
   addMessage(text, cls, false);
 }
@@ -429,13 +503,33 @@ function createSpritePreview(option) {
   preview.className = "character-sprite-preview";
   if (option.frame) {
     preview.classList.add("character-sprite-preview-frame");
-    preview.style.width = `${option.frame.width || 32}px`;
-    preview.style.height = `${option.frame.height || 32}px`;
-    preview.style.backgroundImage = `url("${resolveAssetUrl(option.image_url || "")}")`;
-    preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
-    if (option.background_color) {
-      preview.style.backgroundColor = option.background_color;
-    }
+    const frameW = Math.max(1, Number(option.frame.width || 32));
+    const frameH = Math.max(1, Number(option.frame.height || 32));
+    const boxSize = 88;
+    preview.style.width = `${boxSize}px`;
+    preview.style.height = `${boxSize}px`;
+    const canvas = document.createElement("canvas");
+    canvas.width = boxSize;
+    canvas.height = boxSize;
+    preview.appendChild(canvas);
+
+    const imageUrl = resolveAssetUrl(option.image_url || "");
+    loadImage(imageUrl).then((img) => {
+      drawSpriteThumb(
+        canvas,
+        img,
+        Number(option.frame.x || 0),
+        Number(option.frame.y || 0),
+        frameW,
+        frameH,
+        parseBgColor(option.background_color || ""),
+        10,
+        true,
+      );
+    }).catch(() => {
+      preview.style.backgroundImage = `url("${imageUrl}")`;
+      preview.style.backgroundPosition = `-${option.frame.x || 0}px -${option.frame.y || 0}px`;
+    });
     return preview;
   }
   const img = document.createElement("img");
@@ -459,7 +553,7 @@ function createSpriteCard(option, isSelected, onSelect, disabled) {
   card.appendChild(label);
   const meta = document.createElement("div");
   meta.className = "character-sprite-meta";
-  meta.textContent = `${option.scope}:${option.filename}/${option.sprite_id}`;
+  meta.textContent = option.set_label || option.label || option.sprite_id || "";
   card.appendChild(meta);
   return card;
 }

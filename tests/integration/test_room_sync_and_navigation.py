@@ -88,3 +88,50 @@ def test_unclaimed_room_editable_and_claim(auth_socket_user):
     assert claimed_header["owner_id"] == user["username"]
     assert claimed_header.get("can_edit_props") is True
     assert claimed_header.get("can_claim_room") is False
+
+
+def test_peep_move_does_not_toggle_walk_decorator(auth_socket_user):
+    user = auth_socket_user(prefix="it_walk")
+    client = user["client"]
+
+    peep_upsert = client.wait_for(
+        "update_view",
+        predicate=lambda p: (
+            p.get("view") == "room-object"
+            and p.get("entity", {}).get("entity_type") == "peep"
+            and p.get("entity", {}).get("entity_id") == user["username"]
+        ),
+        timeout=8.0,
+    )
+    current_x = int(peep_upsert["entity"]["position"]["x"])
+    current_y = int(peep_upsert["entity"]["position"]["y"])
+    initial_has_walk = "main:walk" in [
+        d.get("id") for d in peep_upsert["entity"].get("decorators", []) if isinstance(d, dict)
+    ]
+
+    client.emit(
+        "room_move_entity",
+        {
+            "entity_type": "peep",
+            "entity_id": user["username"],
+            "x": current_x + 20,
+            "y": current_y + 5,
+            "orientation": "front",
+        },
+    )
+
+    moved_upsert = client.wait_for(
+        "update_view",
+        predicate=lambda p: (
+            p.get("view") == "room-object"
+            and p.get("entity", {}).get("entity_type") == "peep"
+            and p.get("entity", {}).get("entity_id") == user["username"]
+            and int(p.get("entity", {}).get("position", {}).get("x", current_x)) == current_x + 20
+            and int(p.get("entity", {}).get("position", {}).get("y", current_y)) == current_y + 5
+        ),
+        timeout=8.0,
+    )
+    moved_has_walk = "main:walk" in [
+        d.get("id") for d in moved_upsert["entity"].get("decorators", []) if isinstance(d, dict)
+    ]
+    assert moved_has_walk is initial_has_walk

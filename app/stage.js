@@ -36,7 +36,8 @@ var pixiBgContainer = null;
 var pixiPropsContainer = null;
 var pixiEntitiesContainer = null;
 var pixiTextureCache = new Map();
-// Per-entity: key → { wrapper, sprite, animTicker, decoratorTicker, moveTicker, moveTween, renderJson, isSelf }
+var pixiTransparentTextureCache = new Map();
+// Per-entity: key → { wrapper, sprite, animTicker, decoratorTicker, moveTicker, moveTween, renderJson, isSelf, logicalX, logicalY, facingLeft }
 var pixiEntityNodes = new Map();
 // Per-prop: propInstanceId → { sprite (wrapper Container), animTicker }
 var pixiPropNodes = new Map();
@@ -44,6 +45,8 @@ var pixiPropNodes = new Map();
 var pixiEditorOverlay = null;
 var roomPanelResizeObserver = null;
 var roomPanelResizeBound = false;
+const ENTITY_MOVE_SPEED_PX_PER_SEC = 320;
+const ENTITY_MOVE_MIN_DURATION_MS = 40;
 
 function computeRoomCanvasFitSize(stageW, stageH) {
   const viewPanel = document.getElementById("viewPanel");
@@ -168,12 +171,48 @@ async function loadPixiTexture(url) {
   if (pixiTextureCache.has(url)) return pixiTextureCache.get(url);
   try {
     const texture = await PIXI.Assets.load(url);
-    console.log("PixiJS texture loaded:", url, texture);
+    cionsole.log("PixiJS texture loaded:", url, texture);
     pixiTextureCache.set(url, texture);
     return texture;
   } catch (err) {
     console.warn("PixiJS texture load failed:", url, err);
     return PIXI.Texture.EMPTY;
+  }
+}
+
+async function loadPixiTextureWithBgTransparency(url, displayMeta) {
+  if (!url) return PIXI.Texture.EMPTY;
+  const bgHex = normalizeHexColor(displayMeta?.background_color, { fallback: null });
+  if (!bgHex) {
+    return loadPixiTexture(url);
+  }
+  const cacheKey = `${url}|${bgHex}`;
+  if (pixiTransparentTextureCache.has(cacheKey)) {
+    return pixiTransparentTextureCache.get(cacheKey);
+  }
+  try {
+    const image = await loadImage(url);
+    const width = Math.max(1, image.naturalWidth || image.width || 1);
+    const height = Math.max(1, image.naturalHeight || image.height || 1);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return loadPixiTexture(url);
+    }
+    ctx.drawImage(image, 0, 0);
+    const bgRgb = parseBgColor(bgHex);
+    if (!bgRgb) {
+      return loadPixiTexture(url);
+    }
+    applyCanvasBgTransparency(ctx, width, height, bgRgb, 10);
+    const texture = PIXI.Texture.from(canvas);
+    pixiTransparentTextureCache.set(cacheKey, texture);
+    return texture;
+  } catch (err) {
+    console.warn("PixiJS transparent texture load failed:", url, err);
+    return loadPixiTexture(url);
   }
 }
 
@@ -283,161 +322,6 @@ function createFrameAnimationTicker(sprite, frameTextures, intervalMs, animation
   };
 }
 
-function normalizeDecoratorPayloads(rawDecorators) {
-  if (!Array.isArray(rawDecorators)) return [];
-  return rawDecorators.filter((item) => item && typeof item === "object");
-}
-
-function parseDecoratorColor(value, fallback = 0xffffff) {
-  if (typeof value !== "string") return fallback;
-  const raw = value.trim();
-  if (!raw) return fallback;
-  if (raw.startsWith("#")) {
-    const hex = raw.slice(1);
-    if (/^[0-9a-fA-F]{6}$/.test(hex)) {
-      return Number.parseInt(hex, 16);
-    }
-  }
-  return fallback;
-}
-
-function clampDecoratorIntensity(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(1, n));
-}
-
-async function pixiCreateDecoratorSprite(decoratorPayload) {
-  const spriteDisplay = decoratorPayload?.sprite_display;
-  if (!spriteDisplay || typeof spriteDisplay !== "object") return null;
-  const meta = spriteDisplay.sprite_meta || spriteDisplay.img_meta || null;
-  const imageUrl = resolveAssetUrl(spriteDisplay.sprite || spriteDisplay.img || "");
-  if (!imageUrl) return null;
-
-  if (!meta || !meta.frame) {
-    const tex = await loadPixiTexture(imageUrl);
-    const sprite = new PIXI.Sprite(tex);
-    //TODO: Review hardcoded size?
-    clampSpriteSize(sprite, 96, 128);
-    return { sprite, animTicker: null };
-  }
-
-  const baseTex = await loadPixiTexture(imageUrl);
-  const frameTex = makeFrameTexture(baseTex, meta.frame || {});
-  const sprite = new PIXI.Sprite(frameTex);
-  const anim = meta.animation;
-  if (!anim || !Array.isArray(anim.frames) || anim.frames.length <= 1) {
-    return { sprite, animTicker: null };
-  }
-  const frames = anim.frames.map((frame) => makeFrameTexture(baseTex, frame));
-  const intervalMs = Math.max(40, Number(anim.speed || 0.5) * 1000);
-  const animTicker = createFrameAnimationTicker(sprite, frames, intervalMs, anim.type || "loop");
-  return { sprite, animTicker };
-}
-
-async function pixiApplyDecoratorsToWrapper(wrapper, baseSprite, decorators, orientationRadians = null) {
-  const normalized = normalizeDecoratorPayloads(decorators);
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  let glowConfig = null;
-  let animationName = "";
-  const spriteDecorators = [];
-  for (const decorator of normalized) {
-    if (decorator.glow && typeof decorator.glow === "object") {
-      glowConfig = decorator.glow;
-    }
-    if (typeof decorator.animation === "string" && decorator.animation.trim()) {
-      animationName = decorator.animation.trim().toLowerCase();
-    }
-    if (decorator.sprite_display && typeof decorator.sprite_display === "object") {
-      spriteDecorators.push(decorator);
-    }
-  }
-
-  const tickers = [];
-  const overlaySprites = [];
-  for (const decorator of spriteDecorators) {
-    const created = await pixiCreateDecoratorSprite(decorator);
-    if (!created) continue;
-    const overlay = created.sprite;
-    overlay.x = baseSprite.x || 0;
-    overlay.y = baseSprite.y || 0;
-    overlay.anchor.set(baseSprite.anchor?.x || 0, baseSprite.anchor?.y || 0);
-    overlay.scale.set(baseSprite.scale?.x || 1, baseSprite.scale?.y || 1);
-    if (typeof orientationRadians === "number") {
-      overlay.rotation = orientationRadians;
-    }
-    wrapper.addChild(overlay);
-    overlaySprites.push(overlay);
-    if (created.animTicker) {
-      tickers.push(created.animTicker);
-    }
-  }
-
-  let glowSprite = null;
-  if (glowConfig) {
-    const intensity = clampDecoratorIntensity(glowConfig.intensity);
-    if (intensity > 0) {
-      glowSprite = new PIXI.Sprite(baseSprite.texture);
-      glowSprite.x = baseSprite.x || 0;
-      glowSprite.y = baseSprite.y || 0;
-      glowSprite.anchor.set(baseSprite.anchor?.x || 0, baseSprite.anchor?.y || 0);
-      glowSprite.rotation = baseSprite.rotation || 0;
-      glowSprite.scale.set((baseSprite.scale?.x || 1) * 1.12, (baseSprite.scale?.y || 1) * 1.12);
-      glowSprite.tint = parseDecoratorColor(glowConfig.color, 0xffffff);
-      glowSprite.alpha = Math.min(0.9, 0.15 + intensity * 0.6);
-      glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
-      wrapper.addChildAt(glowSprite, 0);
-    }
-  }
-
-  const baseRotation = baseSprite.rotation || 0;
-  const baseScaleX = baseSprite.scale?.x || 1;
-  const baseScaleY = baseSprite.scale?.y || 1;
-  const animateWobble = animationName === "wobble";
-  const animateSpin = animationName === "spin";
-  const animatePulse = animationName === "pulse";
-
-  if (glowSprite || animateWobble || animateSpin || animatePulse) {
-    let elapsed = 0;
-    tickers.push((ticker) => {
-      elapsed += ticker.deltaMS;
-      if (glowSprite) {
-        glowSprite.texture = baseSprite.texture;
-      }
-      if (animateSpin) {
-        const spin = ((elapsed * 0.006) % (Math.PI * 2));
-        baseSprite.rotation = baseRotation + spin;
-      } else if (animateWobble) {
-        baseSprite.rotation = baseRotation + Math.sin(elapsed * 0.012) * 0.12;
-      } else {
-        baseSprite.rotation = baseRotation;
-      }
-      if (animatePulse) {
-        const pulseScale = 1 + (Math.sin(elapsed * 0.01) * 0.09);
-        baseSprite.scale.set(baseScaleX * pulseScale, baseScaleY * pulseScale);
-      } else {
-        baseSprite.scale.set(baseScaleX, baseScaleY);
-      }
-      for (const overlaySprite of overlaySprites) {
-        overlaySprite.x = baseSprite.x || 0;
-        overlaySprite.y = baseSprite.y || 0;
-      }
-    });
-  }
-
-  if (tickers.length === 0) {
-    return null;
-  }
-  return (ticker) => {
-    for (const fn of tickers) {
-      fn(ticker);
-    }
-  };
-}
-
 function pointInBox(point, box) {
   if (!point || !box) return false;
   return (
@@ -539,7 +423,7 @@ async function pixiCreatePropSprite(prop) {
 
   if (meta) {
     const imgUrl = resolveAssetUrl(meta.image_url || "");
-    const baseTex = await loadPixiTexture(imgUrl);
+    const baseTex = await loadPixiTextureWithBgTransparency(imgUrl, meta);
     const frame = meta.frame || {};
     const frameTex = makeFrameTexture(baseTex, frame);
     sprite = new PIXI.Sprite(frameTex);
@@ -564,7 +448,7 @@ async function pixiCreatePropSprite(prop) {
     }
   } else {
     const imgUrl = resolveAssetUrl(propDef?.display?.sprite || propDef?.display?.img || "");
-    const tex = await loadPixiTexture(imgUrl);
+    const tex = await loadPixiTextureWithBgTransparency(imgUrl, meta);
     sprite = new PIXI.Sprite(tex);
     sprite.rotation = orientationToRadians(prop.position?.orientation);
     clampSpriteSize(sprite, 64, 64);
@@ -827,6 +711,7 @@ async function pixiRenderForegroundEntity(entity) {
       moveTicker: null,
       moveTween: null,
       decoratorTicker: null,
+      transientTickers: new Set(),
       renderJson: nextRenderJson,
       isSelf: entity.is_self,
       logicalX: targetX,
@@ -837,6 +722,13 @@ async function pixiRenderForegroundEntity(entity) {
       wrapper,
       sprite,
       entity.decorators || [],
+      null,
+      {
+        displayMeta: entity.display?.sprite_meta || entity.display?.img_meta || null,
+        displayImage: entity.display?.sprite || entity.display?.img || "",
+        isMoving: () => Boolean(record.moveTween),
+        enableAutoWalk: entity.entity_type === "peep",
+      },
     );
     if (decoratorTicker) {
       pixiApp.ticker.add(decoratorTicker);
@@ -865,6 +757,13 @@ async function pixiRenderForegroundEntity(entity) {
       wrapper,
       sprite,
       entity.decorators || [],
+      null,
+      {
+        displayMeta: entity.display?.sprite_meta || entity.display?.img_meta || null,
+        displayImage: entity.display?.sprite || entity.display?.img || "",
+        isMoving: () => Boolean(record.moveTween),
+        enableAutoWalk: entity.entity_type === "peep",
+      },
     );
     record.decoratorTicker = decoratorTicker;
     if (decoratorTicker) {
@@ -936,6 +835,12 @@ function pixiRemoveEntity(key) {
   if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
   if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
   if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
+  if (record.transientTickers && record.transientTickers.size > 0) {
+    for (const tickerFn of record.transientTickers) {
+      pixiApp.ticker.remove(tickerFn);
+    }
+    record.transientTickers.clear();
+  }
   record.wrapper.destroy({ children: true });
   pixiEntityNodes.delete(key);
 }
@@ -1160,9 +1065,7 @@ function canDragEntity(entity) {
 function _moveOwnPeepTo(x, y) {
   const myKey = `peep:${myUsername}`;
   const myEntity = roomState.entities.get(myKey);
-  const fromX = Number(myEntity?.position?.x ?? x);
-  const fromY = Number(myEntity?.position?.y ?? y);
-  const moveEvent = _buildMoveEvent("peep", myUsername, x, y, fromX, fromY);
+  const moveEvent = _buildMoveEvent("peep", myUsername, x, y);
 
   if (myEntity && myEntity.position) {
     myEntity.position.x = x;
@@ -1213,6 +1116,12 @@ function resetRoomEntityState() {
       if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
       if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
       if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
+      if (record.transientTickers && record.transientTickers.size > 0) {
+        for (const tickerFn of record.transientTickers) {
+          pixiApp.ticker.remove(tickerFn);
+        }
+        record.transientTickers.clear();
+      }
       record.wrapper.destroy({ children: true });
     }
   }

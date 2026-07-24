@@ -96,6 +96,23 @@ function parseBgColor(hexStr) {
   return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
 }
 
+function applyCanvasBgTransparency(ctx, width, height, bgRgb, tolerance = 10) {
+  if (!ctx || !bgRgb) return;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const [tr, tg, tb] = bgRgb;
+  for (let i = 0; i < data.length; i += 4) {
+    if (
+      Math.abs(data[i] - tr) <= tolerance &&
+      Math.abs(data[i + 1] - tg) <= tolerance &&
+      Math.abs(data[i + 2] - tb) <= tolerance
+    ) {
+      data[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
 // Draw a cropped region of srcImg onto canvas with optional background-color removal.
 // The region is scaled to fill canvas dimensions while preserving aspect ratio (centered).
 //   canvas  – target HTMLCanvasElement (already sized by caller)
@@ -119,19 +136,7 @@ function drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh, bgRgb = null, tolerance
   tmpc.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
 
   if (bgRgb) {
-    const id = tmpc.getImageData(0, 0, sw, sh);
-    const d = id.data;
-    const [tr, tg, tb] = bgRgb;
-    for (let i = 0; i < d.length; i += 4) {
-      if (
-        Math.abs(d[i]     - tr) <= tolerance &&
-        Math.abs(d[i + 1] - tg) <= tolerance &&
-        Math.abs(d[i + 2] - tb) <= tolerance
-      ) {
-        d[i + 3] = 0;
-      }
-    }
-    tmpc.putImageData(id, 0, 0);
+    applyCanvasBgTransparency(tmpc, sw, sh, bgRgb, tolerance);
   }
 
   const maxScale = allowUpscale ? Number.POSITIVE_INFINITY : 1;
