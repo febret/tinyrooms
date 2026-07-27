@@ -1,0 +1,232 @@
+label: ''
+description: ''
+frame_width: 48
+frame_height: 64
+scale: 1.0
+sprites:
+  basket1:
+    default_frame: '0x0'
+    anims: {}
+    offset_x: 0.0
+    offset_y: 0.0
+  basket2:
+    default_frame: '0x0'
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 1x0
+    offset_x: 0.0
+    offset_y: 0.0
+  cutting_board:
+    default_frame: 3x0
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 3x0
+    offset_x: 0.0
+    offset_y: 0.0
+  cutting_board_w_cheese:
+    default_frame: 4x0
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 4x0
+    offset_x: 0.0
+    offset_y: 0.0
+  bucket:
+    default_frame: 4x2
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 4x2
+    offset_x: 0.0
+    offset_y: 0.0
+  barrel:
+    default_frame: 8x3
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 8x3
+    offset_x: 0.0
+    offset_y: 0.0
+  barrel2:
+    default_frame: 1x7
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 1x7
+    offset_x: 0.0
+    offset_y: 0.0
+  skel:
+    default_frame: 4x4
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 4x4
+    offset_x: 0.0
+    offset_y: 0.0
+  skel2:
+    default_frame: 5x4
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 5x4
+    offset_x: 0.0
+    offset_y: 0.0
+  skel3:
+    default_frame: 3x4
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 3x4
+    offset_x: 0.0
+    offset_y: 0.0
+  potion_red:
+    default_frame: 1x4
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 1x4
+    offset_x: 0.0
+    offset_y: 0.0
+  potion_green:
+    default_frame: 10x4
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 10x4
+    offset_x: 0.0
+    offset_y: 0.0
+  sign_stone:
+    default_frame: 10x5
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 10x5
+    offset_x: 0.0
+    offset_y: 0.0
+  sign_stone2:
+    default_frame: 11x5
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 11x5
+    offset_x: 0.0
+    offset_y: 0.0
+  skel4:
+    default_frame: 8x2
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 8x2
+    offset_x: 0.0
+    offset_y: 0.0
+  fruit1:
+    default_frame: 3x7
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 3x7
+    offset_x: 0.0
+    offset_y: 0.0
+  fruit2:
+    default_frame: 4x7
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 4x7
+    offset_x: 0.0
+    offset_y: 0.0
+  crystal1:
+    default_frame: 6x3
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 6x3
+    offset_x: 0.0
+    offset_y: 0.0
+  crystal2:
+    default_frame: 7x3
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 7x3
+    offset_x: 0.0
+    offset_y: 0.0
+  crystal3:
+    default_frame: 9x3
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 9x3
+    offset_x: 0.0
+    offset_y: 0.0
+  crystal4:
+    default_frame: 10x3
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 10x3
+    offset_x: 0.0
+    offset_y: 0.0
+  crystal5:
+    default_frame: 11x3
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 11x3
+    offset_x: 0.0
+    offset_y: 0.0
+  crystal6:
+    default_frame: 11x1
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 11x1
+    offset_x: 0.0
+    offset_y: 0.0
+background_color: '#000000'

@@ -1,0 +1,37 @@
+label: ''
+description: ''
+frame_width: 48
+frame_height: 64
+scale: 1.0
+sprites:
+  sprite_1:
+    default_frame: '0x0'
+    anims: {}
+    offset_x: 0.0
+    offset_y: 0.0
+  herb1:
+    default_frame: 11x7
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 11x7
+    offset_x: 0.0
+    offset_y: 0.0
+  pot:
+    default_frame: 10x6
+    anims:
+      front:
+        speed: 0.2
+        type: loop
+        frames:
+        - 10x6
+      closed:
+        speed: 0.2
+        type: loop
+        frames:
+        - 10x7
+    offset_x: 0.0
+    offset_y: 0.0
+background_color: '#000000'
