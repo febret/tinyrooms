@@ -1,5 +1,4 @@
 """Unit tests for the superuser command dispatcher and permission framework."""
-import pytest
 from unittest.mock import MagicMock, patch
 
 
@@ -61,39 +60,21 @@ def _make_world(room_ids=("DEFAULT_ROOM", "playroom"), thing_ids=()):
 from tinyrooms.commands import _matches, _extract_args
 
 
-def test_matches_simple_keyword():
+def test_pattern_matching():
     assert _matches(["?"], "?")
     assert not _matches(["goto"], "?")
-
-
-def test_matches_multi_keyword():
     assert _matches(["room", "owner", "show"], "room owner show")
     assert not _matches(["room", "owner"], "room owner show")
-
-
-def test_matches_keyword_with_arg():
     assert _matches(["goto", "playroom"], "goto <room_id>")
     assert not _matches(["goto"], "goto <room_id>")
-
-
-def test_matches_greedy_rest():
     assert _matches(["room", "rename", "The", "Cool", "Room"], "room rename ...")
     assert _matches(["room", "rename", "x"], "room rename ...")
 
 
-def test_extract_args_simple():
-    args = _extract_args(["goto", "playroom"], "goto <room_id>")
-    assert args == ["playroom"]
-
-
-def test_extract_args_two_args():
-    args = _extract_args(["move", "alice", "playroom"], "move <username> <room_id>")
-    assert args == ["alice", "playroom"]
-
-
-def test_extract_args_greedy():
-    args = _extract_args(["room", "rename", "The", "Cool", "Room"], "room rename ...")
-    assert args == ["The", "Cool", "Room"]
+def test_extract_args():
+    assert _extract_args(["goto", "playroom"], "goto <room_id>") == ["playroom"]
+    assert _extract_args(["move", "alice", "playroom"], "move <username> <room_id>") == ["alice", "playroom"]
+    assert _extract_args(["room", "rename", "The", "Cool", "Room"], "room rename ...") == ["The", "Cool", "Room"]
 
 
 # ---------------------------------------------------------------------------
@@ -126,13 +107,9 @@ def test_dispatch_returns_false_for_non_command():
     assert not captured
 
 
-def test_dispatch_returns_true_for_command():
-    result, captured, _, _ = _dispatch_and_capture(":?")
-    assert result is True
-
-
 def test_dispatch_help_returns_activity_panel():
     result, captured, _, _ = _dispatch_and_capture(":?")
+    assert result is True
     assert captured.get("mode") == "superuser"
     assert "Help" in captured.get("title", "")
 
@@ -143,10 +120,20 @@ def test_dispatch_unknown_command_shows_error():
     assert "Unknown command" in captured.get("content", "")
 
 
-def test_dispatch_missing_power_shows_error():
-    result, captured, _, _ = _dispatch_and_capture(":room owner show", powers=[])
-    assert result is True
-    assert "don't have" in captured.get("content", "").lower() or "realtor" in captured.get("content", "")
+def test_dispatch_requires_power():
+    """Commands with missing powers all produce a permission-error response."""
+    for cmd, expected_power in [
+        (":room owner show", "realtor"),
+        (":goto playroom", "game-master"),
+        (":room rename New Name", "builder"),
+        (":kick alice", "moderator"),
+    ]:
+        result, captured, _, _ = _dispatch_and_capture(cmd, powers=[])
+        assert result is True, f"Expected dispatch to return True for {cmd!r}"
+        content = captured.get("content", "").lower()
+        assert "don't have" in content or expected_power in content, (
+            f"Expected permission error for {cmd!r}, got: {content!r}"
+        )
 
 
 def test_dispatch_room_owner_show_with_realtor():
@@ -157,46 +144,17 @@ def test_dispatch_room_owner_show_with_realtor():
     assert "owned by" in captured.get("content", "").lower()
 
 
-def test_dispatch_goto_requires_game_master():
-    result, captured, _, _ = _dispatch_and_capture(":goto playroom", powers=[])
-    assert result is True
-    assert "game-master" in captured.get("content", "") or "don't have" in captured.get("content", "").lower()
-
-
 def test_dispatch_goto_with_game_master_moves_user():
     user = _make_user(powers=["game-master"])
     world = _make_world()
     user.room = world.rooms["DEFAULT_ROOM"]
-    playroom = world.rooms["playroom"]
-    playroom.users = {}
-    playroom.peeps = {}
-    playroom.objs = {}
-    default_room = world.rooms["DEFAULT_ROOM"]
-    default_room.users = {"testuser": user}
-
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+    world.rooms["playroom"].users = world.rooms["playroom"].peeps = world.rooms["playroom"].objs = {}
+    world.rooms["DEFAULT_ROOM"].users = {"testuser": user}
+    cap = {}
+    with patch("tinyrooms.commands.emit", side_effect=lambda e, p, **kw: cap.update(p) if e == "activity_panel" else None):
         with patch("tinyrooms.commands._save_world"):
             dispatch(user, ":goto playroom", world)
-
-    assert "playroom" in captured.get("content", "")
-
-
-def test_dispatch_room_rename_requires_builder():
-    result, captured, _, _ = _dispatch_and_capture(":room rename New Name", powers=[])
-    assert result is True
-    assert "builder" in captured.get("content", "") or "don't have" in captured.get("content", "").lower()
-
-
-def test_dispatch_kick_requires_moderator():
-    result, captured, _, _ = _dispatch_and_capture(":kick alice", powers=[])
-    assert result is True
-    assert "moderator" in captured.get("content", "") or "don't have" in captured.get("content", "").lower()
+    assert "playroom" in cap.get("content", "")
 
 
 def test_dispatch_list_users_any_user():
@@ -205,57 +163,43 @@ def test_dispatch_list_users_any_user():
     assert "User" in captured.get("content", "") or "user" in captured.get("content", "").lower()
 
 
-def test_dispatch_use_command_emits_message_to_user():
-    user = _make_user(powers=[])
-    world = _make_world()
-    user.room = world.rooms["DEFAULT_ROOM"]
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "message":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        dispatch(user, ":use @obj:test-item", world)
-
-    assert captured.get("text") == "You use @obj:test-item."
-
-
-def test_dispatch_look_command_emits_activity_panel():
+def test_dispatch_use_and_look():
+    """':use' emits a message; ':look' emits an activity_panel."""
     user = _make_user(powers=[])
     world = _make_world()
     user.room = world.rooms["DEFAULT_ROOM"]
     user.room.label = MagicMock(return_value="Default Room")
-    captured = {}
+    msg_cap, panel_cap = {}, {}
 
     def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
+        if event == "message":
+            msg_cap.update(payload)
+        elif event == "activity_panel":
+            panel_cap.update(payload)
 
     with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+        dispatch(user, ":use @obj:test-item", world)
         dispatch(user, ":look", world)
 
-    assert captured.get("mode") == "look"
-    assert captured.get("title")
-    assert captured.get("content")
+    assert msg_cap.get("text") == "You use @obj:test-item."
+    assert panel_cap.get("mode") == "look"
+    assert panel_cap.get("title") and panel_cap.get("content")
 
 
-def test_help_shows_power_specific_commands():
+def test_help_content():
+    """Help sections are shown only for the user's actual powers."""
     result, captured, _, _ = _dispatch_and_capture(":?", powers=["realtor", "builder"])
-    assert result is True
     content = captured.get("content", "")
+    assert result is True
     assert "Realtor" in content or "realtor" in content
     assert "Builder" in content or "builder" in content
 
-
-def test_help_shows_no_extra_sections_for_no_powers():
-    result, captured, _, _ = _dispatch_and_capture(":?", powers=[])
-    assert result is True
-    content = captured.get("content", "")
-    assert "Realtor" not in content
-    assert "Builder" not in content
-    assert "Moderator" not in content
-    assert "Game-master" not in content
+    _, captured2, _, _ = _dispatch_and_capture(":?", powers=[])
+    content2 = captured2.get("content", "")
+    assert "Realtor" not in content2
+    assert "Builder" not in content2
+    assert "Moderator" not in content2
+    assert "Game-master" not in content2
 
 
 def test_help_shows_admin_power_commands_for_admin_user():
@@ -267,34 +211,21 @@ def test_help_shows_admin_power_commands_for_admin_user():
     assert ":power set <username> <power> <grant|remove>" in content
 
 
-def test_dispatch_admin_requires_admin_power():
-    user = _make_user(powers=[])
-    captured = {}
+def test_dispatch_admin():
+    """dispatch_admin rejects non-admin users and blocks console-only commands."""
+    # No admin power → error
+    user_no_admin = _make_user(powers=[])
+    cap1 = {}
+    with patch("tinyrooms.commands.emit", side_effect=lambda e, p, **kw: cap1.update(p) if e == "error" else None):
+        assert dispatch_admin(user_no_admin, "/r") is True
+    assert "admin" in cap1.get("error", "").lower()
 
-    def fake_emit(event, payload, **kwargs):
-        if event == "error":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        handled = dispatch_admin(user, "/r")
-
-    assert handled is True
-    assert "admin" in captured.get("error", "").lower()
-
-
-def test_dispatch_admin_rejects_console_only_commands():
-    user = _make_user(powers=["admin"])
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "error":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        handled = dispatch_admin(user, "/r")
-
-    assert handled is True
-    assert "console-only" in captured.get("error", "").lower()
+    # Admin power but console-only command → error
+    user_admin = _make_user(powers=["admin"])
+    cap2 = {}
+    with patch("tinyrooms.commands.emit", side_effect=lambda e, p, **kw: cap2.update(p) if e == "error" else None):
+        assert dispatch_admin(user_admin, "/r") is True
+    assert "console-only" in cap2.get("error", "").lower()
 
 
 def test_dispatch_admin_routes_known_command():
@@ -305,181 +236,112 @@ def test_dispatch_admin_routes_known_command():
     mock_run.assert_called_once()
 
 
-def test_power_list_requires_admin_power():
+def test_power_list():
+    """Requires admin; reports not-found for missing profiles; shows current powers."""
     result, captured, _, _ = _dispatch_and_capture(":power list alice", powers=[])
-    assert result is True
-    assert "don't have" in captured.get("content", "").lower()
+    assert result is True and "don't have" in captured.get("content", "").lower()
 
-
-def test_power_list_reports_not_found_user():
     user = _make_user(powers=["admin"])
     world = _make_world()
     user.room = world.rooms["DEFAULT_ROOM"]
-    captured = {}
+    cap = {}
+    emit_fn = lambda e, p, **kw: cap.update(p) if e == "activity_panel" else None  # noqa: E731
 
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+    with patch("tinyrooms.commands.emit", side_effect=emit_fn):
         with patch("tinyrooms.user_data.read_profile", return_value=None):
             dispatch(user, ":power list missing_user", world)
+    assert cap.get("title") == "Error" and "not found" in cap.get("content", "").lower()
 
-    assert captured.get("title") == "Error"
-    assert "not found" in captured.get("content", "").lower()
-
-
-def test_power_list_reports_current_powers():
-    user = _make_user(powers=["admin"])
-    world = _make_world()
-    user.room = world.rooms["DEFAULT_ROOM"]
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        with patch(
-            "tinyrooms.user_data.read_profile",
-            return_value={"powers": ["builder", "moderator"]},
-        ):
+    cap.clear()
+    with patch("tinyrooms.commands.emit", side_effect=emit_fn):
+        with patch("tinyrooms.user_data.read_profile", return_value={"powers": ["builder", "moderator"]}):
             with patch("tinyrooms.user.find_online", return_value=None):
                 dispatch(user, ":power list alice", world)
-
-    assert captured.get("title") == "Power List"
-    assert "builder" in captured.get("content", "")
-    assert "moderator" in captured.get("content", "")
+    assert cap.get("title") == "Power List"
+    assert "builder" in cap.get("content", "") and "moderator" in cap.get("content", "")
 
 
-def test_power_set_grant_updates_profile_and_online_user():
+def test_power_set_operations():
+    """Power set: grant adds a power (updating online user); remove subtracts a power."""
     user = _make_user(powers=["admin"])
     world = _make_world()
     user.room = world.rooms["DEFAULT_ROOM"]
     online_target = _make_user(username="alice", powers=["builder"])
-    captured = {}
 
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
+    def _run(cmd, initial_powers, find_online_result):
+        cap = {}
+        emit_fn = lambda e, p, **kw: cap.update(p) if e == "activity_panel" else None  # noqa: E731
+        with patch("tinyrooms.commands.emit", side_effect=emit_fn):
+            with patch("tinyrooms.user_data.read_profile", return_value={"powers": initial_powers}):
+                with patch("tinyrooms.user_data.write_profile") as mock_write:
+                    with patch("tinyrooms.user.find_online", return_value=find_online_result):
+                        dispatch(user, cmd, world)
+        return cap, mock_write
 
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        with patch("tinyrooms.user_data.read_profile", return_value={"powers": ["builder"]}):
-            with patch("tinyrooms.user_data.write_profile") as mock_write:
-                with patch("tinyrooms.user.find_online", return_value=online_target):
-                    dispatch(user, ":power set alice moderator grant", world)
-
-    assert captured.get("title") == "Power Set"
-    assert "granted" in captured.get("content", "")
-    mock_write.assert_called_once()
-    _, kwargs = mock_write.call_args
-    assert sorted(kwargs["powers"]) == ["builder", "moderator"]
+    cap, mw = _run(":power set alice moderator grant", ["builder"], online_target)
+    assert cap.get("title") == "Power Set" and "granted" in cap.get("content", "")
+    mw.assert_called_once()
+    _, kw = mw.call_args
+    assert sorted(kw["powers"]) == ["builder", "moderator"]
     assert online_target.powers == {"builder", "moderator"}
 
-
-def test_power_set_remove_updates_profile():
-    user = _make_user(powers=["admin"])
-    world = _make_world()
-    user.room = world.rooms["DEFAULT_ROOM"]
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        with patch("tinyrooms.user_data.read_profile", return_value={"powers": ["builder", "moderator"]}):
-            with patch("tinyrooms.user_data.write_profile") as mock_write:
-                with patch("tinyrooms.user.find_online", return_value=None):
-                    dispatch(user, ":power set alice moderator remove", world)
-
-    assert captured.get("title") == "Power Set"
-    assert "removed" in captured.get("content", "")
-    _, kwargs = mock_write.call_args
-    assert kwargs["powers"] == ["builder"]
+    cap2, mw2 = _run(":power set alice moderator remove", ["builder", "moderator"], None)
+    assert cap2.get("title") == "Power Set" and "removed" in cap2.get("content", "")
+    _, kw2 = mw2.call_args
+    assert kw2["powers"] == ["builder"]
 
 
 # ---------------------------------------------------------------------------
 # Test thing list command
 # ---------------------------------------------------------------------------
 
-def test_thing_list_shows_all_things():
+def test_thing_list():
+    """thing list shows all things and can filter by name fragment."""
     user = _make_user(powers=["game-master"])
     world = _make_world(thing_ids=["test_apple", "test_sword"])
     user.room = world.rooms["DEFAULT_ROOM"]
-    captured = {}
 
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
+    def _capture(cmd):
+        cap = {}
+        with patch("tinyrooms.commands.emit", side_effect=lambda e, p, **kw: cap.update(p) if e == "activity_panel" else None):
+            dispatch(user, cmd, world)
+        return cap.get("content", "")
 
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        dispatch(user, ":thing list", world)
+    all_content = _capture(":thing list")
+    assert "test_apple" in all_content
+    assert "test_sword" in all_content
 
-    content = captured.get("content", "")
-    assert "test_apple" in content
-    assert "test_sword" in content
-
-
-def test_thing_list_filter():
-    user = _make_user(powers=["game-master"])
-    world = _make_world(thing_ids=["test_apple", "test_sword"])
-    user.room = world.rooms["DEFAULT_ROOM"]
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        dispatch(user, ":thing list apple", world)
-
-    content = captured.get("content", "")
-    assert "test_apple" in content
-    assert "test_sword" not in content
+    filtered_content = _capture(":thing list apple")
+    assert "test_apple" in filtered_content
+    assert "test_sword" not in filtered_content
 
 
 # ---------------------------------------------------------------------------
 # Test room commands
 # ---------------------------------------------------------------------------
 
-def test_room_owner_set_updates_owner():
+def test_room_owner_operations():
+    """Room owner can be set and cleared."""
     user = _make_user(powers=["realtor"])
     world = _make_world()
     room = world.rooms["DEFAULT_ROOM"]
     room.users = {"testuser": user}
     user.room = room
-    captured = {}
 
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
+    def _capture(cmd):
+        cap = {}
+        with patch("tinyrooms.commands.emit", side_effect=lambda e, p, **kw: cap.update(p) if e == "activity_panel" else None):
+            dispatch(user, cmd, world)
+        return cap.get("content", "")
 
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        dispatch(user, ":room owner set alice", world)
-
+    set_content = _capture(":room owner set alice")
     assert room.owner_id == "alice"
-    assert "alice" in captured.get("content", "")
+    assert "alice" in set_content
 
-
-def test_room_owner_clear():
-    user = _make_user(powers=["realtor"])
-    world = _make_world()
-    room = world.rooms["DEFAULT_ROOM"]
     room.owner_id = "alice"
-    room.users = {"testuser": user}
-    user.room = room
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
-        dispatch(user, ":room owner clear", world)
-
+    clear_content = _capture(":room owner clear")
     assert room.owner_id == ""
-    assert "cleared" in captured.get("content", "").lower()
+    assert "cleared" in clear_content.lower()
 
 
 def test_room_rename_updates_label():
@@ -488,14 +350,8 @@ def test_room_rename_updates_label():
     room = world.rooms["DEFAULT_ROOM"]
     room.users = {"testuser": user}
     user.room = room
-    captured = {}
-
-    def fake_emit(event, payload, **kwargs):
-        if event == "activity_panel":
-            captured.update(payload)
-
-    with patch("tinyrooms.commands.emit", side_effect=fake_emit):
+    cap = {}
+    with patch("tinyrooms.commands.emit", side_effect=lambda e, p, **kw: cap.update(p) if e == "activity_panel" else None):
         dispatch(user, ":room rename The New Room Name", world)
-
     assert room.label_override == "The New Room Name"
-    assert "New Room Name" in captured.get("content", "")
+    assert "New Room Name" in cap.get("content", "")

@@ -159,7 +159,7 @@ def _write_yaml(path: Path, payload: dict[str, Any]):
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
-def _write_test_sprite_set(root: Path, stem: str, label: str, sprite_id: str):
+def _write_test_sprite_set(root: Path, stem: str, label: str, sprite_id: str, tags: list[str] | None = None):
     _write_png(root / f"{stem}.png")
     _write_yaml(
         root / f"{stem}.yaml",
@@ -171,6 +171,7 @@ def _write_test_sprite_set(root: Path, stem: str, label: str, sprite_id: str):
             "sprites": {
                 sprite_id: {
                     "default_frame": "0x0",
+                    "tags": list(tags or []),
                     "anims": {
                         "idle": {
                             "speed": 0.5,
@@ -318,8 +319,20 @@ def _write_test_world_definitions(workspace: Path):
         },
     )
     _write_png(workspace / "data" / "props" / "test_room_props.png")
-    _write_test_sprite_set(workspace / "data" / "sprites", "server_people", "Server People", "server_knight")
-    _write_test_sprite_set(world_root / "sprites", "world_people", "World People", "world_ranger")
+    _write_test_sprite_set(
+        workspace / "data" / "sprites",
+        "server_people",
+        "Server People",
+        "server_knight",
+        tags=["avatar", "peep"],
+    )
+    _write_test_sprite_set(
+        world_root / "sprites",
+        "world_people",
+        "World People",
+        "world_ranger",
+        tags=["avatar", "peep"],
+    )
     _write_png(world_root / "images" / "test_void.png")
     _write_png(world_root / "images" / "test_playroom.png")
     _write_png(world_root / "images" / "test_object.png")

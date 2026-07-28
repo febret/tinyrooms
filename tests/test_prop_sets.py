@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tinyrooms import prop_sets
+from tinyrooms import icons, prop_sets
 
 
 # ---------------------------------------------------------------------------
@@ -62,71 +62,59 @@ def test_load_prop_set_with_animation(tmp_path: Path):
     assert len(clock.frames) == 3
 
 
-def test_load_prop_set_missing_image(tmp_path: Path):
+@pytest.mark.parametrize("name,bad_def,write_png,expected_error", [
+    ("no_image", _MINIMAL_DEF, False, "missing image"),
+    ("bad_width", {"image": "bad.png", "props": {"x": {"width": -1, "height": 32, "frames": [[0, 0]]}}}, True, "width"),
+    ("bad_height", {"image": "bad.png", "props": {"x": {"width": 32, "height": 0, "frames": [[0, 0]]}}}, True, "height"),
+    ("empty_props", {"image": "bad.png", "props": {}}, True, "props"),
+    ("bad_frame", {"image": "bad.png", "props": {"x": {"width": 32, "height": 32, "frames": [[0]]}}}, True, "frames"),
+    ("bad_anim_speed", {"image": "bad.png", "props": {"x": {"width": 32, "height": 32, "frames": [[0, 0]], "anim_speed": -1}}}, True, "anim_speed"),
+])
+def test_load_prop_set_validation_errors(tmp_path: Path, name, bad_def, write_png, expected_error):
     root = tmp_path / "props"
-    root.mkdir(parents=True)
-    yaml_path = root / "nope.yaml"
-    yaml_path.write_text(yaml.safe_dump(_MINIMAL_DEF), encoding="utf-8")
+    if write_png:
+        _write_prop_pair(root, name, bad_def)
+    else:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / f"{name}.yaml").write_text(yaml.safe_dump(bad_def), encoding="utf-8")
     with pytest.raises(prop_sets.PropValidationError) as exc_info:
-        prop_sets.load_prop_set("world", "nope", root / "nope.png", yaml_path)
-    assert any("missing image" in e for e in exc_info.value.errors)
+        prop_sets.load_prop_set("world", name, root / f"{name}.png", root / f"{name}.yaml")
+    assert any(expected_error in e for e in exc_info.value.errors)
 
 
-def test_load_prop_set_invalid_width(tmp_path: Path):
+def test_prop_tags_are_normalized_and_validated(tmp_path: Path):
     root = tmp_path / "props"
-    bad_def = {
-        "image": "bad.png",
-        "props": {"x": {"width": -1, "height": 32, "frames": [[0, 0]]}},
+    tagged_def = {
+        "image": "tagged.png",
+        "props": {
+            "crate": {
+                "width": 32,
+                "height": 32,
+                "frames": [[0, 0]],
+                "tags": [" Object ", "object", "container"],
+            }
+        },
     }
-    _write_prop_pair(root, "bad", bad_def)
-    with pytest.raises(prop_sets.PropValidationError) as exc_info:
-        prop_sets.load_prop_set("world", "bad", root / "bad.png", root / "bad.yaml")
-    assert any("width" in e for e in exc_info.value.errors)
+    _write_prop_pair(root, "tagged", tagged_def)
+    loaded = prop_sets.load_prop_set("world", "tagged", root / "tagged.png", root / "tagged.yaml")
+    assert loaded.props["crate"].tags == ["object", "container"]
+    assert prop_sets.to_definition_dict(loaded)["props"]["crate"]["tags"] == ["object", "container"]
 
-
-def test_load_prop_set_invalid_height(tmp_path: Path):
-    root = tmp_path / "props"
     bad_def = {
-        "image": "bad.png",
-        "props": {"x": {"width": 32, "height": 0, "frames": [[0, 0]]}},
+        "image": "tagged.png",
+        "props": {
+            "crate": {
+                "width": 32,
+                "height": 32,
+                "frames": [[0, 0]],
+                "tags": "object",
+            }
+        },
     }
-    _write_prop_pair(root, "bad", bad_def)
+    _write_prop_pair(root, "tagged_bad", bad_def)
     with pytest.raises(prop_sets.PropValidationError) as exc_info:
-        prop_sets.load_prop_set("world", "bad", root / "bad.png", root / "bad.yaml")
-    assert any("height" in e for e in exc_info.value.errors)
-
-
-def test_load_prop_set_empty_props(tmp_path: Path):
-    root = tmp_path / "props"
-    bad_def = {"image": "bad.png", "props": {}}
-    _write_prop_pair(root, "bad", bad_def)
-    with pytest.raises(prop_sets.PropValidationError) as exc_info:
-        prop_sets.load_prop_set("world", "bad", root / "bad.png", root / "bad.yaml")
-    assert any("props" in e for e in exc_info.value.errors)
-
-
-def test_load_prop_set_bad_frame(tmp_path: Path):
-    root = tmp_path / "props"
-    bad_def = {
-        "image": "bad.png",
-        "props": {"x": {"width": 32, "height": 32, "frames": [[0]]}},  # one-element list
-    }
-    _write_prop_pair(root, "bad", bad_def)
-    with pytest.raises(prop_sets.PropValidationError) as exc_info:
-        prop_sets.load_prop_set("world", "bad", root / "bad.png", root / "bad.yaml")
-    assert any("frames" in e for e in exc_info.value.errors)
-
-
-def test_load_prop_set_bad_anim_speed(tmp_path: Path):
-    root = tmp_path / "props"
-    bad_def = {
-        "image": "bad.png",
-        "props": {"x": {"width": 32, "height": 32, "frames": [[0, 0]], "anim_speed": -1}},
-    }
-    _write_prop_pair(root, "bad", bad_def)
-    with pytest.raises(prop_sets.PropValidationError) as exc_info:
-        prop_sets.load_prop_set("world", "bad", root / "bad.png", root / "bad.yaml")
-    assert any("anim_speed" in e for e in exc_info.value.errors)
+        prop_sets.load_prop_set("world", "tagged_bad", root / "tagged_bad.png", root / "tagged_bad.yaml")
+    assert any("tags" in e for e in exc_info.value.errors)
 
 
 # ---------------------------------------------------------------------------
@@ -166,70 +154,41 @@ def test_parse_prop_reference_invalid(bad_ref):
 
 
 # ---------------------------------------------------------------------------
-# PropRepository — world overrides server
+# PropRepository — world overrides server, server-only, listing
 # ---------------------------------------------------------------------------
 
-def test_prop_repository_world_precedence(tmp_path: Path):
+def test_prop_repository(tmp_path: Path):
+    """World overrides server for same filename; server-only props are accessible; list is sorted world-first."""
     server_root = tmp_path / "server_props"
     world_root = tmp_path / "world"
     world_props = world_root / "props"
 
     server_def = {"image": "myprop.png", "props": {"from_server": {"width": 8, "height": 8, "frames": [[0, 0]]}}}
     world_def = {"image": "myprop.png", "props": {"from_world": {"width": 16, "height": 16, "frames": [[0, 0]]}}}
+    server_only_def = {"image": "tile.png", "props": {"tile": {"width": 32, "height": 32, "frames": [[0, 0]]}}}
 
     _write_prop_pair(server_root, "myprop", server_def)
     _write_prop_pair(world_props, "myprop", world_def)
+    _write_prop_pair(server_root, "tile", server_only_def)
 
     repo = prop_sets.PropRepository(world_root_path=world_root, server_root_path=server_root)
     repo.reindex()
 
     # World takes precedence on same filename
     record = repo.lookup("myprop")
-    assert record is not None
-    assert record.scope == "world"
+    assert record is not None and record.scope == "world"
     assert "from_world" in record.prop_set.props
 
-    # Can still access server version directly
+    # Server version directly accessible
     server_record = repo.get("server", "myprop")
-    assert server_record is not None
-    assert "from_server" in server_record.prop_set.props
+    assert server_record is not None and "from_server" in server_record.prop_set.props
 
+    # Server-only prop shows as server scope
+    tile = repo.lookup("tile")
+    assert tile is not None and tile.scope == "server"
 
-def test_prop_repository_server_only(tmp_path: Path):
-    server_root = tmp_path / "server_props"
-    world_root = tmp_path / "world"
-
-    _write_prop_pair(server_root, "tile", {
-        "image": "tile.png",
-        "props": {"tile": {"width": 32, "height": 32, "frames": [[0, 0]]}},
-    })
-
-    repo = prop_sets.PropRepository(world_root_path=world_root, server_root_path=server_root)
-    repo.reindex()
-
-    record = repo.lookup("tile")
-    assert record is not None
-    assert record.scope == "server"
-
-
-def test_prop_repository_list_sets_sorted(tmp_path: Path):
-    server_root = tmp_path / "server_props"
-    world_root = tmp_path / "world"
-    world_props = world_root / "props"
-
-    for name, def_ in [
-        ("alpha", {"image": "alpha.png", "props": {"a": {"width": 8, "height": 8, "frames": [[0, 0]]}}}),
-        ("beta", {"image": "beta.png", "props": {"b": {"width": 8, "height": 8, "frames": [[0, 0]]}}}),
-    ]:
-        _write_prop_pair(server_root, name, def_)
-        _write_prop_pair(world_props, name, def_)
-
-    repo = prop_sets.PropRepository(world_root_path=world_root, server_root_path=server_root)
-    repo.reindex()
-
-    names = [r.filename for r in repo.list_sets()]
-    # Should be sorted by filename; world entries come before server for same name
-    alpha_entries = [r for r in repo.list_sets() if r.filename == "alpha"]
+    # list_sets: world entries come before server for same filename
+    alpha_entries = [r for r in repo.list_sets() if r.filename == "myprop"]
     assert alpha_entries[0].scope == "world"
 
 
@@ -238,13 +197,23 @@ def test_prop_repository_list_sets_sorted(tmp_path: Path):
 # ---------------------------------------------------------------------------
 
 def test_resolve_prop_reference(tmp_path: Path):
+    """Basic and animated prop references resolve correctly; missing prop raises."""
     world_root = tmp_path / "world"
     _write_prop_pair(
         world_root / "props",
         "items",
         {
             "image": "items.png",
+            "background_color": "#ff00ff",
             "props": {"gem": {"width": 16, "height": 16, "frames": [[0, 0], [16, 0]]}},
+        },
+    )
+    _write_prop_pair(
+        world_root / "props",
+        "animated",
+        {
+            "image": "animated.png",
+            "props": {"spin": {"width": 24, "height": 24, "frames": [[0, 0], [24, 0]], "anim_speed": 0.25}},
         },
     )
     repo = prop_sets.PropRepository(world_root_path=world_root)
@@ -258,36 +227,39 @@ def test_resolve_prop_reference(tmp_path: Path):
     assert result["frame"]["y"] == 0
     assert result["frame"]["width"] == 16
     assert result["image_url"] == "/props/world/items.png"
+    assert result["background_color"] == "#ff00ff"
+
+    ref2 = prop_sets.parse_prop_reference("#animated/spin")
+    assert ref2 is not None
+    result2 = prop_sets.resolve_prop_reference(ref2, repo)
+    assert "animation" in result2
+    assert result2["animation"]["speed"] == 0.25
+    assert len(result2["animation"]["frames"]) == 2
+
+    with pytest.raises(prop_sets.PropValidationError, match="not found"):
+        prop_sets.resolve_prop_reference(prop_sets.parse_prop_reference("#missing/prop"), repo)
 
 
-def test_resolve_prop_reference_with_animation(tmp_path: Path):
+def test_build_prop_display_assets_resolves_namespaced_reference(tmp_path: Path):
     world_root = tmp_path / "world"
     _write_prop_pair(
         world_root / "props",
-        "animated",
+        "items",
         {
-            "image": "animated.png",
-            "props": {"spin": {"width": 24, "height": 24, "frames": [[0, 0], [24, 0]], "anim_speed": 0.25}},
+            "image": "items.png",
+            "props": {"gem": {"width": 16, "height": 16, "frames": [[4, 8]]}},
         },
     )
     repo = prop_sets.PropRepository(world_root_path=world_root)
     repo.reindex()
 
-    ref = prop_sets.parse_prop_reference("#animated/spin")
-    assert ref is not None
-    result = prop_sets.resolve_prop_reference(ref, repo)
-    assert "animation" in result
-    assert result["animation"]["speed"] == 0.25
-    assert len(result["animation"]["frames"]) == 2
+    display = icons._build_prop_display_assets("#items/gem.x3.y-2.r45", repo)
 
-
-def test_resolve_prop_reference_not_found(tmp_path: Path):
-    repo = prop_sets.PropRepository(world_root_path=tmp_path / "world")
-    repo.reindex()
-    ref = prop_sets.parse_prop_reference("#missing/prop")
-    assert ref is not None
-    with pytest.raises(prop_sets.PropValidationError, match="not found"):
-        prop_sets.resolve_prop_reference(ref, repo)
+    assert display["prop_meta"]["prop_id"] == "gem"
+    assert display["prop_meta"]["frame"]["x"] == 4
+    assert display["prop_meta"]["offset_x"] == 3.0
+    assert display["prop_meta"]["offset_y"] == -2.0
+    assert display["prop_meta"]["rotation_deg"] == 45.0
 
 
 # ---------------------------------------------------------------------------

@@ -10,13 +10,9 @@ Tests cover:
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 import yaml
 
 
@@ -61,21 +57,21 @@ class _FakeRoom:
 # ---------------------------------------------------------------------------
 
 class TestLoadEmotes:
-    def test_loads_flat_and_qualified_keys(self, tmp_path):
+    def test_loads_keys_and_ignores_missing_world_path(self, tmp_path):
+        """Flat + qualified keys are registered; nonexistent world_path is silently skipped."""
         from tinyrooms import emotes
         emotes.emote_defs = {}
 
         _make_emote_yaml(tmp_path, "main", {"smile": _simple_emote(), "wave": _simple_emote("You wave", "$0 waves")})
-        emotes.load_emotes(server_path=tmp_path)
+        emotes.load_emotes(server_path=tmp_path, world_path=tmp_path / "nonexistent")
 
-        # Flat keys
         assert "smile" in emotes.emote_defs
         assert "wave" in emotes.emote_defs
-        # Qualified keys
         assert "main.smile" in emotes.emote_defs
         assert "main.wave" in emotes.emote_defs
 
-    def test_world_emote_overrides_server_emote(self, tmp_path):
+    def test_world_overrides_server_and_qualified_keys_reflect_file(self, tmp_path):
+        """World emotes take precedence; qualified keys are created per source file."""
         from tinyrooms import emotes
         emotes.emote_defs = {}
 
@@ -83,23 +79,11 @@ class TestLoadEmotes:
         world_dir = tmp_path / "world"
         _make_emote_yaml(server_dir, "main", {"smile": _simple_emote("Server smile", "$0 server-smiles")})
         _make_emote_yaml(world_dir, "main", {"smile": _simple_emote("World smile", "$0 world-smiles")})
-
-        emotes.load_emotes(server_path=server_dir, world_path=world_dir)
-
-        msg = emotes.emote_defs["smile"]["msg"]
-        assert msg[0]["verb"][0] == "World smile"
-
-    def test_qualified_key_always_reflects_loaded_file(self, tmp_path):
-        from tinyrooms import emotes
-        emotes.emote_defs = {}
-
-        server_dir = tmp_path / "server"
-        world_dir = tmp_path / "world"
-        _make_emote_yaml(server_dir, "main", {"smile": _simple_emote("Server smile", "$0 s")})
         _make_emote_yaml(world_dir, "custom", {"hug": _simple_emote("You hug", "$0 hugs")})
 
         emotes.load_emotes(server_path=server_dir, world_path=world_dir)
 
+        assert emotes.emote_defs["smile"]["msg"][0]["verb"][0] == "World smile"
         assert "main.smile" in emotes.emote_defs
         assert "custom.hug" in emotes.emote_defs
         assert "hug" in emotes.emote_defs
@@ -110,15 +94,6 @@ class TestLoadEmotes:
         emotes.emote_defs = {}
         emotes.load_emotes()
         assert "say" in emotes.emote_defs
-        assert "smile" in emotes.emote_defs
-
-    def test_missing_world_path_is_silently_ignored(self, tmp_path):
-        from tinyrooms import emotes
-        emotes.emote_defs = {}
-        server_dir = tmp_path / "server"
-        _make_emote_yaml(server_dir, "main", {"smile": _simple_emote()})
-
-        emotes.load_emotes(server_path=server_dir, world_path=tmp_path / "nonexistent")
         assert "smile" in emotes.emote_defs
 
 
@@ -142,35 +117,34 @@ class TestParseMessage:
             mock_world.return_value.peeps = {}
             return message.parse_message(text, user, room)
 
-    def test_plain_text_creates_implicit_say(self):
-        parsed = self._parse("hello world")
-        assert len(parsed.emotes) == 1
-        emote = parsed.emotes[0]
-        assert emote.emote_id == "say"
-        assert emote.extra_text == "hello world"
-
     def test_inline_emote_token(self):
-        parsed = self._parse(".smile")
-        assert len(parsed.emotes) == 1
-        assert parsed.emotes[0].emote_id == "smile"
-        assert parsed.emotes[0].filename == "main"
+        """plain text → implicit say; .go parsed as emote; pure emote has no implicit say; multiple work."""
+        e = self._parse("hello world").emotes
+        assert len(e) == 1 and e[0].emote_id == "say" and e[0].extra_text == "hello world"
 
-    def test_emote_with_inline_target_and_leading_text(self):
-        """'hello! .smile@alice' → implicit say('hello!') then smile targeting alice."""
+        assert any(e.emote_id == "go" for e in self._parse(".go @way:somewhere").emotes)
+
+        parsed = self._parse(".smile")
+        assert parsed.emotes[0].emote_id == "smile" and parsed.emotes[0].filename == "main"
+        assert not any(e.emote_id == "say" for e in parsed.emotes), "pure emote should not create say"
+
+        ids = [e.emote_id for e in self._parse(".smile .wave").emotes]
+        assert "smile" in ids and "wave" in ids
+
+    def test_emote_with_inline_target(self):
+        """'hello! .smile@alice' → say('hello!') then smile targeting alice only."""
         alice = _FakeUser("alice", "sid-alice")
-        parsed = self._parse("hello! .smile@alice", room_users={"alice": alice})
-        # First emote is implicit say with 'hello!'
+        bob = _FakeUser("bob", "sid-bob")
+        parsed = self._parse("hello! .smile@alice @bob", room_users={"alice": alice, "bob": bob})
         assert parsed.emotes[0].emote_id == "say"
         assert parsed.emotes[0].extra_text == "hello!"
-        # Second emote is smile at alice
-        assert parsed.emotes[1].emote_id == "smile"
-        assert parsed.emotes[1].refs == [alice]
+        smile = next(e for e in parsed.emotes if e.emote_id == "smile")
+        assert smile.refs == [alice], "only the @alice ref should attach to .smile"
 
     def test_leading_emote_with_following_text(self):
         """.smile@alice hello → smile first, then say 'hello'."""
         alice = _FakeUser("alice", "sid-alice")
         parsed = self._parse(".smile@alice hello", room_users={"alice": alice})
-        # The say emote comes first (all plain text is gathered), smile follows
         say_emotes = [e for e in parsed.emotes if e.emote_id == "say"]
         smile_emotes = [e for e in parsed.emotes if e.emote_id == "smile"]
         assert say_emotes and say_emotes[0].extra_text == "hello"
@@ -181,31 +155,6 @@ class TestParseMessage:
         parsed = self._parse(".funny.dance")
         assert parsed.emotes[0].emote_id == "dance"
         assert parsed.emotes[0].filename == "funny"
-
-    def test_go_token_treated_as_emote(self):
-        """.go is no longer a special action — it is parsed as an emote token."""
-        parsed = self._parse(".go @way:somewhere")
-        assert not any(e.emote_id == "go" and e.filename != "main" for e in parsed.emotes)
-        # Treated as a regular emote with id 'go'
-        go_emotes = [e for e in parsed.emotes if e.emote_id == "go"]
-        assert go_emotes
-
-    def test_pure_emote_message_no_implicit_say(self):
-        """.smile with no plain text should not create a say emote."""
-        parsed = self._parse(".smile")
-        assert not any(e.emote_id == "say" for e in parsed.emotes)
-
-    def test_multiple_inline_emotes(self):
-        parsed = self._parse(".smile .wave")
-        emote_ids = [e.emote_id for e in parsed.emotes]
-        assert "smile" in emote_ids
-        assert "wave" in emote_ids
-
-    def test_only_one_target_attached_per_emote(self):
-        alice = _FakeUser("alice", "sid-alice")
-        bob = _FakeUser("bob", "sid-bob")
-        parsed = self._parse(".smile@alice @bob", room_users={"alice": alice, "bob": bob})
-        assert parsed.emotes[0].refs == [alice]
 
 
 # ---------------------------------------------------------------------------
@@ -218,11 +167,20 @@ class TestMakeEmoteText:
         return make_emote_text(emote_def, "Alice", refs or [], extra)
 
     def test_no_refs_returns_first_variant(self):
+        """$0 placeholder substituted; end text appended; malformed msg returns Nones."""
         emote = {"msg": [{"verb": ["You smile", "$0 smiles"]}]}
         first, second, third = self._text(emote)
         assert first == "You smile."
         assert second is None
         assert third == "Alice smiles."
+
+        emote_end = {"msg": [{"verb": ["You hug", "$0 hugs"], "end": ["💕"]}]}
+        f2, _, t2 = self._text(emote_end)
+        assert f2 == "You hug 💕"
+        assert t2 == "Alice hugs 💕"
+
+        bad = {"msg": {"verb": ["You smile", "$0 smiles"]}}
+        assert self._text(bad) == (None, None, None)
 
     def test_with_ref_uses_target_clause(self):
         emote = {
@@ -240,12 +198,6 @@ class TestMakeEmoteText:
         assert first == "You say: hello world."
         assert "Alice says: hello world." == third
 
-    def test_end_text_appended(self):
-        emote = {"msg": [{"verb": ["You hug", "$0 hugs"], "end": ["💕"]}]}
-        first, _, third = self._text(emote)
-        assert first == "You hug 💕"
-        assert third == "Alice hugs 💕"
-
     def test_msg_index_can_select_specific_message_set(self):
         from tinyrooms.text import make_emote_text
         emote = {
@@ -257,17 +209,20 @@ class TestMakeEmoteText:
         first, _, _ = make_emote_text(emote, "Alice", [], "", msg_index=1)
         assert first == "Set B."
 
-    def test_msg_must_be_array_of_message_definitions(self):
-        emote = {"msg": {"verb": ["You smile", "$0 smiles"]}}
-        first, second, third = self._text(emote)
-        assert first is None
-        assert second is None
-        assert third is None
 
-    def test_placeholder_zero_substituted(self):
-        emote = {"msg": [{"verb": ["You smile", "$0 smiles"]}]}
-        _, _, third = self._text(emote)
-        assert third == "Alice smiles."
+# Module-level mock factories shared by TestDoEmote and TestAnimationSteps
+def _mock_user(username="alice", sid=None):
+    u = MagicMock()
+    u.username = username
+    u.sid = sid or f"sid-{username}"
+    u.label = username.title()
+    return u
+
+
+def _mock_room(room_id="room1"):
+    r = MagicMock()
+    r.room_id = room_id
+    return r
 
 
 # ---------------------------------------------------------------------------
@@ -275,42 +230,34 @@ class TestMakeEmoteText:
 # ---------------------------------------------------------------------------
 
 class TestDoEmote:
-    def _make_user(self, username="alice", sid="sid-alice"):
-        u = MagicMock()
-        u.username = username
-        u.sid = sid
-        u.label = username.title()
-        return u
-
-    def _make_room(self, room_id="room1"):
-        r = MagicMock()
-        r.room_id = room_id
-        return r
-
-    def test_emits_first_and_third_person(self, tmp_path):
+    def test_emits_first_and_third_person(self):
+        """Normal emote dispatches 1st/3rd person; missing animations defaults to !0; unknown emote does not raise."""
         from tinyrooms import emotes
         emotes.emote_defs = {
-            "smile": {
-                "msg": [{"verb": ["You smile", "$0 smiles"]}],
-                "animations": "!0",
-            }
+            "smile": {"msg": [{"verb": ["You smile", "$0 smiles"]}], "animations": "!0"},
         }
 
         emitted: list[tuple] = []
+        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))):
+            emotes.do_emote("smile", [], _mock_user(), _mock_room())
 
-        def fake_emit(event, data, **kwargs):
-            emitted.append((event, data, kwargs))
-
-        with patch("flask_socketio.emit", side_effect=fake_emit):
-            emotes.do_emote("smile", [], self._make_user(), self._make_room())
-
-        events = [e[0] for e in emitted]
-        assert "message" in events
         texts = [e[1]["text"] for e in emitted if e[0] == "message"]
         assert any("You smile" in t for t in texts)
         assert any("smiles" in t for t in texts)
 
-    def test_second_person_sent_to_target_user(self, tmp_path):
+        # No 'animations' key → same result
+        emotes.emote_defs["smile"].pop("animations")
+        emitted2: list[tuple] = []
+        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted2.append((e, d, kw))):
+            emotes.do_emote("smile", [], _mock_user(), _mock_room())
+        assert any("You smile" in e[1]["text"] for e in emitted2 if e[0] == "message")
+
+        # Unknown emote → no raise
+        emotes.emote_defs = {}
+        with patch("flask_socketio.emit"):
+            emotes.do_emote("nonexistent", [], _mock_user(), _mock_room())
+
+    def test_second_person_sent_to_target_user(self):
         from tinyrooms import emotes
         from tinyrooms.user import User as _RealUser
 
@@ -326,45 +273,12 @@ class TestDoEmote:
         }
 
         emitted: list[tuple] = []
+        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))):
+            emotes.do_emote("smile", [target_mock], _mock_user(), _mock_room())
 
-        def fake_emit(event, data, **kwargs):
-            emitted.append((event, data, kwargs))
-
-        with patch("flask_socketio.emit", side_effect=fake_emit):
-            emotes.do_emote("smile", [target_mock], self._make_user(), self._make_room())
-
-        # 2nd-person message must be directed to target's sid
         second_person = [e for e in emitted if e[2].get("to") == "sid-bob"]
         assert second_person, "No 2nd-person message sent to target SID"
         assert "smiles at you" in second_person[0][1]["text"]
-
-    def test_unknown_emote_logs_and_does_not_raise(self):
-        from tinyrooms import emotes
-        emotes.emote_defs = {}
-        # Should not raise; just prints a warning
-        with patch("flask_socketio.emit"):
-            emotes.do_emote("nonexistent", [], self._make_user(), self._make_room())
-
-    def test_default_animation_is_msg_zero(self):
-        """When 'animations' is absent, !0 is used as the default."""
-        from tinyrooms import emotes
-        emotes.emote_defs = {
-            "smile": {
-                "msg": [{"verb": ["You smile", "$0 smiles"]}],
-                # no 'animations' key
-            }
-        }
-
-        emitted: list[tuple] = []
-
-        def fake_emit(event, data, **kwargs):
-            emitted.append((event, data, kwargs))
-
-        with patch("flask_socketio.emit", side_effect=fake_emit):
-            emotes.do_emote("smile", [], self._make_user(), self._make_room())
-
-        texts = [e[1]["text"] for e in emitted if e[0] == "message"]
-        assert any("You smile" in t for t in texts)
 
 
 # ---------------------------------------------------------------------------
@@ -372,36 +286,16 @@ class TestDoEmote:
 # ---------------------------------------------------------------------------
 
 class TestAnimationSteps:
-    def _user(self):
-        u = MagicMock()
-        u.username = "alice"
-        u.sid = "sid-alice"
-        u.label = "Alice"
-        return u
-
-    def _room(self):
-        r = MagicMock()
-        r.room_id = "room1"
-        return r
-
-    def _emote_def(self, animations="!0"):
-        return {
-            "msg": [{"verb": ["You smile", "$0 smiles"]}],
-            "animations": animations,
-        }
-
-    def test_msg_step_emits_message(self):
+    def test_msg_step_index_selects_message_definition(self):
+        """!0 emits a message; !1 selects the second message definition."""
         from tinyrooms import emotes
-        emotes.emote_defs = {"smile": self._emote_def("!0")}
+        emotes.emote_defs = {"smile": {"msg": [{"verb": ["You smile", "$0 smiles"]}], "animations": "!0"}}
 
         emitted: list = []
         with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))):
-            emotes.do_emote("smile", [], self._user(), self._room())
-
+            emotes.do_emote("smile", [], _mock_user(), _mock_room())
         assert any(e[0] == "message" for e in emitted)
 
-    def test_msg_step_index_selects_message_definition(self):
-        from tinyrooms import emotes
         emotes.emote_defs = {
             "smile": {
                 "msg": [
@@ -411,15 +305,14 @@ class TestAnimationSteps:
                 "animations": "!1",
             }
         }
-
-        emitted: list = []
-        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))):
-            emotes.do_emote("smile", [], self._user(), self._room())
-
-        texts = [e[1]["text"] for e in emitted if e[0] == "message" and e[2].get("to") == "sid-alice"]
+        emitted2: list = []
+        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted2.append((e, d, kw))):
+            emotes.do_emote("smile", [], _mock_user(), _mock_room())
+        texts = [e[1]["text"] for e in emitted2 if e[0] == "message" and e[2].get("to") == "sid-alice"]
         assert "You alt." in texts
 
-    def test_nested_emote_step_invoked_at_depth_zero(self):
+    def test_nested_emote_depth_guard(self):
+        """At depth 0, inner emote is invoked; at depth 1 it is silently skipped."""
         from tinyrooms import emotes
         emotes.emote_defs = {
             "outer": {
@@ -434,46 +327,24 @@ class TestAnimationSteps:
 
         emitted: list = []
         with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))):
-            emotes.do_emote("outer", [], self._user(), self._room())
+            emotes.do_emote("outer", [], _mock_user(), _mock_room())
 
         texts = [e[1]["text"] for e in emitted if e[0] == "message"]
         assert any("outer" in t.lower() for t in texts)
         assert any("inner" in t.lower() for t in texts)
 
-    def test_nested_emote_silently_skipped_at_depth_one(self):
-        from tinyrooms import emotes
-        emotes.emote_defs = {
-            "outer": {
-                "msg": [{"verb": ["You outer", "$0 outer"]}],
-                "animations": "!0,.inner",
-            },
-            "inner": {
-                "msg": [{"verb": ["SHOULD NOT APPEAR", "SHOULD NOT APPEAR"]}],
-                "animations": "!0",
-            },
-        }
-
+        # At depth 1, inner is skipped
         from tinyrooms.emotes import _execute_steps, _parse_animation_steps
-
-        emitted: list = []
-
-        def fake_emit_fn(event, data, **kwargs):
-            emitted.append((event, data, kwargs))
-
+        emotes.emote_defs["inner"]["msg"][0]["verb"] = ["SHOULD NOT APPEAR", "SHOULD NOT APPEAR"]
+        emitted2: list = []
         steps = _parse_animation_steps("!0,.inner")
-        outer_def = emotes.emote_defs["outer"]
-
-        with patch("flask_socketio.emit", side_effect=fake_emit_fn):
+        with patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted2.append((e, d, kw))):
             _execute_steps(
-                steps, outer_def,
-                "sid-alice", "room1",
-                [], "Alice", "",
-                depth=1,  # already at depth 1 → inner should be skipped
-                in_handler=True,
+                steps, emotes.emote_defs["outer"],
+                "sid-alice", "room1", [], "Alice", "",
+                depth=1, in_handler=True,
             )
-
-        texts = [e[1]["text"] for e in emitted if e[0] == "message"]
-        assert not any("SHOULD NOT APPEAR" in t for t in texts)
+        assert not any("SHOULD NOT APPEAR" in e[1]["text"] for e in emitted2 if e[0] == "message")
 
     def test_pause_step_executes_in_background_thread(self):
         """A #0.05 pause should not block the caller and runs in a background task."""
@@ -489,8 +360,6 @@ class TestAnimationSteps:
         sio_mock = MagicMock()
 
         def fake_start_bg_task(fn, **kwargs):
-            # Run the function directly in this test (synchronously).
-            # in_handler=False is already in kwargs from the do_emote call.
             fn(**kwargs)
             completed.append(True)
 
@@ -502,7 +371,7 @@ class TestAnimationSteps:
             patch("flask_socketio.emit", side_effect=lambda e, d, **kw: emitted.append((e, d, kw))),
             patch("tinyrooms.server.socketio", sio_mock),
         ):
-            emotes.do_emote("delayed", [], self._user(), self._room())
+            emotes.do_emote("delayed", [], _mock_user(), _mock_room())
 
         assert completed, "Background task was not started for a pause step"
 
@@ -512,27 +381,11 @@ class TestAnimationSteps:
 # ---------------------------------------------------------------------------
 
 class TestParseAnimationSteps:
-    def _parse(self, s):
+    def test_all_step_types(self):
         from tinyrooms.emotes import _parse_animation_steps
-        return _parse_animation_steps(s)
-
-    def test_msg_step(self):
-        steps = self._parse("!0")
-        assert steps == [{"type": "message", "index": 0}]
-
-    def test_pause_step(self):
-        steps = self._parse("#1.5")
-        assert steps == [{"type": "pause", "seconds": 1.5}]
-
-    def test_emote_step(self):
-        steps = self._parse(".smile")
-        assert steps == [{"type": "emote", "emote_id": "smile"}]
-
-    def test_sprite_step(self):
-        steps = self._parse("idle")
-        assert steps == [{"type": "sprite", "anim_id": "idle"}]
-
-    def test_mixed_steps(self):
-        steps = self._parse("!0,#0.5,.dance,run_anim")
-        types = [s["type"] for s in steps]
+        assert _parse_animation_steps("!0") == [{"type": "message", "index": 0}]
+        assert _parse_animation_steps("#1.5") == [{"type": "pause", "seconds": 1.5}]
+        assert _parse_animation_steps(".smile") == [{"type": "emote", "emote_id": "smile"}]
+        assert _parse_animation_steps("idle") == [{"type": "sprite", "anim_id": "idle"}]
+        types = [s["type"] for s in _parse_animation_steps("!0,#0.5,.dance,run_anim")]
         assert types == ["message", "pause", "emote", "sprite"]

@@ -24,6 +24,7 @@ def test_char_editor_profile_requires_token_and_lists_available_sprites(auth_soc
     assert {"server", "world"} <= scopes
     assert all(item["sprite_ref"].startswith("$") for item in available)
     assert all(item["image_url"].startswith("/sprites/") for item in available)
+    assert all("avatar" in item.get("tags", []) for item in available)
 
 
 def test_char_editor_profile_update_persists_character_details_and_broadcasts(auth_socket_user, http_client):
