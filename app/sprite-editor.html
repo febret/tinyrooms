@@ -3,17 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <base href="/app/" />
   <title>tinyrooms Sprite Editor</title>
-  <link rel="stylesheet" href="/app/sprite-editor.css" />
+  <link rel="stylesheet" href="sprite-editor.css" />
 </head>
 <body>
   <div class="sprite-editor">
     <aside class="panel panel-list">
       <h3>Spritesets</h3>
-      <div class="auth-row">
-        <button id="btnLoadSets">Load</button>
+      <div class="browser-tabs">
+        <button id="btnSetBrowserTab" class="browser-tab browser-tab-active" type="button">Spritesets</button>
+        <button id="btnSpriteBrowserTab" class="browser-tab" type="button">Sprites</button>
       </div>
-      <div id="setList" class="set-list"></div>
+      <div id="setBrowserPane" class="browser-pane">
+        <div class="auth-row">
+          <button id="btnLoadSets">Load</button>
+        </div>
+        <div id="setList" class="set-list"></div>
+      </div>
+      <div id="spriteBrowserPane" class="browser-pane" hidden>
+        <div class="auth-row">
+          <input id="globalSpriteSearchInput" placeholder="search sprite name" />
+        </div>
+        <div class="auth-row">
+          <select id="globalSpriteTagFilter">
+            <option value="">all tags</option>
+            <option value="avatar">avatar</option>
+            <option value="peep">peep</option>
+            <option value="object">object</option>
+            <option value="item">item</option>
+            <option value="container">container</option>
+            <option value="consumable">consumable</option>
+          </select>
+        </div>
+        <div id="globalSpriteBrowseStatus" class="list-item-subtitle"></div>
+        <div id="globalSpriteGrid" class="sprite-browser-grid"></div>
+      </div>
     </aside>
     <main class="panel panel-main">
       <h3 id="setTitle">No set selected</h3>
@@ -25,9 +50,10 @@
       <div class="edit-row">
         <label>Frame W <input id="frameWidth" type="number" min="1" /></label>
         <label>Frame H <input id="frameHeight" type="number" min="1" /></label>
+        <label>Scale <input id="spriteScale" type="number" min="0.1" step="0.1" /></label>
         <label>Background <input id="backgroundColor" placeholder="#000000 or css color" /></label>
         <button id="btnClearBackground">Clear Background</button>
-        <button id="btnSaveSet">Save Set</button>
+        <button id="btnSaveSet">Save</button>
       </div>
       <pre id="statusBox"></pre>
     </main>
@@ -42,7 +68,23 @@
         <input id="renameSpriteId" placeholder="rename selected sprite" />
         <button id="btnRenameSprite">Rename</button>
       </div>
+      <div class="auth-row">
+        <input id="spriteSearchInput" placeholder="search sprite name" />
+      </div>
+      <div class="auth-row">
+        <select id="spriteTagFilter">
+          <option value="">all tags</option>
+          <option value="avatar">avatar</option>
+          <option value="peep">peep</option>
+          <option value="object">object</option>
+          <option value="item">item</option>
+          <option value="container">container</option>
+          <option value="consumable">consumable</option>
+        </select>
+      </div>
       <div id="spriteList"></div>
+      <h3>Sprite Tags</h3>
+      <div id="spriteTagEditor" class="tag-editor"></div>
       <h3>Animations</h3>
       <div class="auth-row">
         <input id="newAnimId" placeholder="new anim id" />
@@ -70,16 +112,13 @@
         </div>
         <div id="animFrameStrip" class="anim-frame-strip"></div>
         <div class="anim-frames-actions">
-          <button id="btnRemoveFrame" title="Remove selected frame">Remove</button>
-          <button id="btnMoveFrameLeft" title="Move frame left">◀</button>
-          <button id="btnMoveFrameRight" title="Move frame right">▶</button>
+          <button id="btnRemoveFrame" title="Remove last frame">Remove Last Frame</button>
         </div>
-        <div class="anim-frames-hint-small">Click a cell on the sprite image to insert a frame at the selected position.</div>
-        <button id="btnSaveAnim">Save Animation</button>
+        <div class="anim-frames-hint-small">Click a cell on the sprite image to append a frame.</div>
       </div>
     </aside>
   </div>
-  <script src="/app/utils.js"></script>
-  <script src="/app/sprite-editor.js"></script>
+  <script src="utils.js"></script>
+  <script src="sprite-editor.js"></script>
 </body>
 </html>

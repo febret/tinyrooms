@@ -6,6 +6,38 @@
 
 const TOKEN_KEY = "tr_rest_auth_token";
 
+// Image loading helpers (mirrors utils.js)
+function _loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load: ${url}`));
+    img.src = url;
+  });
+}
+
+function _drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh) {
+  const tc = canvas.getContext("2d");
+  const dw = canvas.width, dh = canvas.height;
+  tc.clearRect(0, 0, dw, dh);
+  if (!srcImg || sw <= 0 || sh <= 0) return;
+  const tmp = document.createElement("canvas");
+  tmp.width = sw; tmp.height = sh;
+  tmp.getContext("2d").drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
+  const scale = Math.min(dw / sw, dh / sh);
+  const scaledW = Math.round(sw * scale), scaledH = Math.round(sh * scale);
+  const dx = Math.floor((dw - scaledW) / 2), dy = Math.floor((dh - scaledH) / 2);
+  tc.imageSmoothingEnabled = false;
+  tc.drawImage(tmp, 0, 0, sw, sh, dx, dy, scaledW, scaledH);
+}
+
+function _cachedLoadImage(url) {
+  if (!WE.imgCache.has(url)) {
+    WE.imgCache.set(url, _loadImage(url));
+  }
+  return WE.imgCache.get(url);
+}
+
 const authHeaders = (token) =>
   token ? { "X-TR-Auth": token, "Content-Type": "application/json" }
         : { "Content-Type": "application/json" };
@@ -52,6 +84,9 @@ const WE = {
   mapLayout: new Map(),
   mapConnectMode: false,
   mapConnectFrom: null,
+  libTagFilter: "",
+  libAllTags: [],
+  imgCache: new Map(),   // url -> Promise<HTMLImageElement>
 };
 
 // ---------------------------------------------------------------------------
@@ -102,6 +137,10 @@ const modalForm      = $("modalForm");
 const btnCloseModal  = $("btnCloseModal");
 const btnMapNewRoom  = $("btnMapNewRoom");
 const btnMapConnect  = $("btnMapConnect");
+const btnZoomIn       = $("btnZoomIn");
+const btnZoomOut      = $("btnZoomOut");
+const libraryTagFilter = $("libraryTagFilter");
+const btnToggleSidebar = $("btnToggleSidebar");
 
 // ---------------------------------------------------------------------------
 // Status
@@ -170,9 +209,13 @@ function applyState(data) {
   buildPropLibrarySets();
   renderRoomList();
   renderPropLibraryTabs();
+  renderPropLibraryTagFilter();
   renderPropLibraryGrid();
   renderPropertiesPanel();
-  if (WE.currentRoomId && WE.rooms.has(WE.currentRoomId)) {
+  const _urlRoom = new URLSearchParams(window.location.search).get("room");
+  if (_urlRoom && WE.rooms.has(_urlRoom)) {
+    openRoom(_urlRoom);
+  } else if (WE.currentRoomId && WE.rooms.has(WE.currentRoomId)) {
     openRoom(WE.currentRoomId);
   } else if (WE.rooms.size > 0) {
     openRoom(WE.rooms.keys().next().value);
@@ -189,6 +232,13 @@ function buildPropLibrarySets() {
     setMap.get(key).props.push(p);
   }
   WE.propLibrarySets = [...setMap.values()];
+  // collect all unique tags across all props
+  const allTagSet = new Set();
+  for (const p of WE.propLibrary) {
+    for (const tag of (p.tags || [])) allTagSet.add(tag);
+  }
+  WE.libAllTags = [...allTagSet].sort();
+  WE.imgCache = new Map();  // invalidate on reload
   if (WE.propLibrarySets.length > 0 && !WE.libActiveSet) {
     WE.libActiveSet = WE.propLibrarySets[0].filename;
   }
@@ -320,9 +370,13 @@ function renderRoomList() {
     nameEl.className = "we-tree-label";
     nameEl.textContent = label;
 
+    const draft = WE.drafts.get(roomId) || WE.rooms.get(roomId);
+    const propCount = (draft?.props || []).length;
+    const wayCount  = wayIds.length;
     const idEl = document.createElement("span");
     idEl.className = "we-tree-id";
-    idEl.textContent = roomId;
+    idEl.title = `${propCount} props, ${wayCount} ways`;
+    idEl.textContent = `${propCount}p ${wayCount}w`;
 
     row.appendChild(arrow);
     row.appendChild(nameEl);
@@ -509,11 +563,17 @@ function renderPropEl(prop, room) {
   const w = pm?.frame?.width  || 32;
   const h = pm?.frame?.height || 32;
   const orientation = prop.position?.orientation || "front";
+  const rawScale = prop.position?.scale ?? 1;
+  const scale = (Number.isFinite(rawScale) && rawScale > 0) ? rawScale : 1;
 
   const el = document.createElement("div");
   el.className  = "we-room-prop" + (prop.prop_instance_id === WE.selectedPropId ? " is-selected" : "");
   el.style.left = x + "px";
   el.style.top  = y + "px";
+  if (Math.abs(scale - 1) > 0.001) {
+    el.style.transformOrigin = "0 0";
+    el.style.transform = `scale(${scale})`;
+  }
   el.dataset.propInstanceId = prop.prop_instance_id;
 
   const sprite = document.createElement("div");
@@ -597,6 +657,23 @@ window.addEventListener("mouseup", e => {
   if (WE.drag) onDragEnd(e);
 });
 
+// Touch pan support for tablets
+let _touchPan = null;
+canvasViewport.addEventListener("touchstart", e => {
+  if (e.touches.length === 1) {
+    _touchPan = { x: e.touches[0].clientX - WE.pan.x, y: e.touches[0].clientY - WE.pan.y };
+    e.preventDefault();
+  }
+}, { passive: false });
+canvasViewport.addEventListener("touchmove", e => {
+  if (_touchPan && e.touches.length === 1) {
+    WE.pan = { x: e.touches[0].clientX - _touchPan.x, y: e.touches[0].clientY - _touchPan.y };
+    applyTransform();
+    e.preventDefault();
+  }
+}, { passive: false });
+canvasViewport.addEventListener("touchend", () => { _touchPan = null; });
+
 function stageCoords(clientX, clientY) {
   const rect = canvasViewport.getBoundingClientRect();
   return {
@@ -622,7 +699,7 @@ function onCanvasClick(e) {
       prop_instance_id: instanceId,
       prop_id: WE.libraryPropId,
       exit_way_id: null,
-      position: { x: snapToGrid(pos.x), y: snapToGrid(pos.y), orientation: "front", layer: 0, z_order: maxZ },
+      position: { x: snapToGrid(pos.x), y: snapToGrid(pos.y), orientation: "front", layer: 0, z_order: maxZ, scale: 1 },
     });
     WE.selectedPropId = instanceId;
     setTool("select");
@@ -779,6 +856,7 @@ function showPropContextMenu(e, propInstanceId) {
   menu.style.top  = e.clientY + "px";
 
   const actions = [
+    ["Duplicate Prop",  () => duplicateProp(propInstanceId)],
     ["Bring Forward",   () => changePropZ(propInstanceId,  1)],
     ["Send Backward",   () => changePropZ(propInstanceId, -1)],
     ["Remove Prop",     () => removeProp(propInstanceId)],
@@ -812,6 +890,23 @@ function removeProp(propInstanceId) {
   snapshotHistory(WE.currentRoomId);
   draft.props = (draft.props || []).filter(p => p.prop_instance_id !== propInstanceId);
   if (WE.selectedPropId === propInstanceId) WE.selectedPropId = null;
+  markDirty(WE.currentRoomId);
+  renderCanvas();
+  renderPropertiesPanel();
+}
+
+function duplicateProp(propInstanceId) {
+  const draft = currentDraft();
+  if (!draft) return;
+  const orig = draft.props?.find(p => p.prop_instance_id === propInstanceId);
+  if (!orig) return;
+  snapshotHistory(WE.currentRoomId);
+  const newId = `${WE.currentRoomId}-dup-${Date.now().toString(36)}`;
+  const newProp = deepClone(orig);
+  newProp.prop_instance_id = newId;
+  newProp.position = { ...deepClone(orig.position), x: (orig.position?.x || 0) + 16, y: (orig.position?.y || 0) + 16 };
+  draft.props.push(newProp);
+  WE.selectedPropId = newId;
   markDirty(WE.currentRoomId);
   renderCanvas();
   renderPropertiesPanel();
@@ -880,55 +975,81 @@ function renderRoomProperties() {
         </label>
         <label><span>Theme</span><input id="rp-theme" type="text" value="${esc(stage.theme||'')}"></label>
       </div>
-    </details>
-    <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-      <button id="rp-apply">Apply Changes</button>
-    </div>`;
+    </details>`;
 
-  $("rp-apply").addEventListener("click", applyRoomProperties);
+  // Snapshot history once before the first change in this panel session.
+  let _snapped = false;
+  function maybeSnap() {
+    if (!_snapped) { snapshotHistory(WE.currentRoomId); _snapped = true; }
+  }
+
+  // Read all current field values into the draft and re-render canvas.
+  function liveApply() {
+    const d = currentDraft();
+    if (!d) return;
+    d.label       = $("rp-label").value.trim();
+    d.description = $("rp-desc").value.trim();
+    d.owner_id    = $("rp-owner").value.trim();
+    const bgPath  = $("rp-bg").value;
+    d.background     = bgPath;
+    d.background_url = resolveAssetUrl(bgPath);
+    const stType = $("rp-stagetype").value;
+    const st = d.stage = d.stage || {};
+    st.type  = stType;
+    st.width = parseInt($("rp-width").value) || 400;
+    if (stType === "basic") {
+      st.height = parseInt($("rp-height")?.value) || 300;
+      delete st.bg_height; delete st.floor_height; delete st.floor_image;
+    } else {
+      st.bg_height    = parseInt($("rp-bgh")?.value) || 200;
+      st.floor_height = parseInt($("rp-fh")?.value)  || 100;
+      st.floor_image  = $("rp-floorimg")?.value || "";
+      delete st.height;
+    }
+    st.background_mode = $("rp-bgmode").value;
+    st.theme           = $("rp-theme").value.trim();
+    markDirty(WE.currentRoomId);
+    renderCanvas();
+    renderRoomList();
+  }
+
+  // Text / textarea: live preview on every keystroke.
+  for (const id of ["rp-label", "rp-owner", "rp-theme"]) {
+    $(id)?.addEventListener("input", () => { maybeSnap(); liveApply(); });
+  }
+  $("rp-desc")?.addEventListener("input", () => { maybeSnap(); liveApply(); });
+
+  // Number inputs: live preview while spinning/typing.
+  for (const id of ["rp-width", "rp-height", "rp-bgh", "rp-fh"]) {
+    $(id)?.addEventListener("input", () => { maybeSnap(); liveApply(); });
+  }
+
+  // Selects: update on pick.
+  for (const id of ["rp-bg", "rp-bgmode", "rp-floorimg"]) {
+    $(id)?.addEventListener("change", () => { maybeSnap(); liveApply(); });
+  }
+
+  // Stage type: re-render the whole panel (fields change) then apply.
+  $("rp-stagetype")?.addEventListener("change", () => {
+    maybeSnap();
+    liveApply();
+    renderPropertiesPanel();  // rebuilds with correct height fields
+  });
 }
 
 function imageOptions(current) {
   const cur = current || "";
+  // Also match by basename in case YAML stores a bare filename like "bg.png"
+  // while img.path is "images/bg.png".
+  const curBasename = cur.includes("/") ? cur.split("/").pop() : cur;
   let html = `<option value=""${!cur?" selected":""}>— none —</option>`;
   for (const img of WE.images) {
-    const sel = img.path === cur || img.url === cur ? " selected" : "";
+    const imgBasename = img.path.includes("/") ? img.path.split("/").pop() : img.path;
+    const sel = img.path === cur || img.url === cur ||
+                (cur && imgBasename === curBasename) ? " selected" : "";
     html += `<option value="${esc(img.path)}"${sel}>${esc(img.label || img.path)}</option>`;
   }
   return html;
-}
-
-function applyRoomProperties() {
-  const draft = currentDraft();
-  if (!draft) return;
-  snapshotHistory(WE.currentRoomId);
-  draft.label        = $("rp-label").value.trim();
-  draft.description  = $("rp-desc").value.trim();
-  draft.owner_id     = $("rp-owner").value.trim();
-  const bgPath       = $("rp-bg").value;
-  draft.background   = bgPath;
-  draft.background_url = resolveAssetUrl(bgPath);
-
-  const stType = $("rp-stagetype").value;
-  const st = draft.stage = draft.stage || {};
-  st.type   = stType;
-  st.width  = parseInt($("rp-width").value) || 400;
-  if (stType === "basic") {
-    st.height = parseInt($("rp-height")?.value) || 300;
-    delete st.bg_height; delete st.floor_height; delete st.floor_image;
-  } else {
-    st.bg_height    = parseInt($("rp-bgh")?.value)      || 200;
-    st.floor_height = parseInt($("rp-fh")?.value)       || 100;
-    st.floor_image  = $("rp-floorimg")?.value || "";
-    delete st.height;
-  }
-  st.background_mode = $("rp-bgmode").value;
-  st.theme           = $("rp-theme").value.trim();
-
-  markDirty(WE.currentRoomId);
-  renderCanvas();
-  renderPropertiesPanel();
-  renderRoomList();
 }
 
 function resolveAssetUrl(path) {
@@ -954,11 +1075,17 @@ function renderPropProperties() {
     exitHtml += `<option value="${esc(wid)}"${prop.exit_way_id===wid?" selected":""}>${esc(lbl)}</option>`;
   }
 
+  const thumbHtml = meta?.display?.prop_meta
+    ? `<canvas id="pp-thumb" class="we-selected-prop-thumb" width="80" height="80"></canvas>`
+    : "";
+
   propertiesPanel.innerHTML = `
+    ${thumbHtml}
     <div class="we-form-grid">
       <label><span>Prop ID</span><input type="text" value="${esc(prop.prop_id)}" disabled></label>
       <label><span>X (px)</span><input id="pp-x" type="number" value="${pos.x||0}"></label>
       <label><span>Y (px)</span><input id="pp-y" type="number" value="${pos.y||0}"></label>
+      <label><span>Scale</span><input id="pp-scale" type="number" min="0.1" max="10" step="0.05" value="${(pos.scale ?? 1).toFixed(2)}"></label>
       <label><span>Orientation</span>
         <select id="pp-orient">
           ${["front","back","left","right"].map(o=>`<option${pos.orientation===o?" selected":""}>${o}</option>`).join("")}
@@ -971,23 +1098,55 @@ function renderPropProperties() {
       </label>
     </div>
     <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-      <button id="pp-apply">Apply</button>
+      <button id="pp-dup">Duplicate</button>
       <button id="pp-remove" style="border-color:#f66">Remove Prop</button>
     </div>`;
 
-  $("pp-apply").addEventListener("click", () => {
-    snapshotHistory(WE.currentRoomId);
+  // Draw prop thumbnail.
+  const pm = meta?.display?.prop_meta;
+  if (pm) {
+    const thumbCanvas = $("pp-thumb");
+    if (thumbCanvas) {
+      _cachedLoadImage(pm.image_url).then(img => {
+        _drawSpriteThumb(thumbCanvas, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height);
+      }).catch(() => {});
+    }
+  }
+
+  // Snapshot history once before the first change in this panel session.
+  let _snapped = false;
+  function maybeSnap() {
+    if (!_snapped) { snapshotHistory(WE.currentRoomId); _snapped = true; }
+  }
+
+  // Read all fields into prop.position and re-render the canvas immediately.
+  // Does NOT call renderPropertiesPanel() to avoid resetting inputs mid-edit.
+  function liveApply() {
     prop.position.x           = parseInt($("pp-x").value) || 0;
     prop.position.y           = parseInt($("pp-y").value) || 0;
+    const rawScale            = parseFloat($("pp-scale").value);
+    prop.position.scale       = Number.isFinite(rawScale) && rawScale > 0
+      ? Math.max(0.1, Math.min(10.0, rawScale)) : 1.0;
     prop.position.orientation = $("pp-orient").value;
     prop.position.layer       = parseInt($("pp-layer").value) || 0;
     prop.position.z_order     = parseInt($("pp-z").value) || 0;
     prop.exit_way_id          = $("pp-exit").value || null;
     markDirty(WE.currentRoomId);
     renderCanvas();
-    renderPropertiesPanel();
-  });
+  }
+
+  // Number inputs: live preview on every keystroke/spin.
+  for (const id of ["pp-x", "pp-y", "pp-scale", "pp-layer", "pp-z"]) {
+    $(id)?.addEventListener("input", () => { maybeSnap(); liveApply(); });
+  }
+
+  // Selects: update immediately on pick.
+  for (const id of ["pp-orient", "pp-exit"]) {
+    $(id)?.addEventListener("change", () => { maybeSnap(); liveApply(); });
+  }
+
   $("pp-remove").addEventListener("click", () => removeProp(WE.selectedPropId));
+  $("pp-dup")?.addEventListener("click", () => duplicateProp(WE.selectedPropId));
 }
 
 function renderWayProperties() {
@@ -1138,28 +1297,63 @@ function renderPropLibraryTabs() {
   }
 }
 
+function renderPropLibraryTagFilter() {
+  if (!libraryTagFilter) return;
+  libraryTagFilter.innerHTML = '<option value="">All tags</option>';
+  for (const tag of WE.libAllTags) {
+    const opt = document.createElement("option");
+    opt.value = tag;
+    opt.textContent = tag;
+    if (tag === WE.libTagFilter) opt.selected = true;
+    libraryTagFilter.appendChild(opt);
+  }
+  libraryTagFilter.style.display = WE.libAllTags.length > 0 ? "" : "none";
+}
+
 function renderPropLibraryGrid() {
   libraryGrid.innerHTML = "";
   const search = WE.libSearch.toLowerCase();
-  const activeSet = WE.propLibrarySets.find(s => s.filename === WE.libActiveSet);
-  const props = activeSet ? activeSet.props : [];
+  const tagFilter = WE.libTagFilter;
+
+  // When searching/filtering use all sets; otherwise only the active set
+  let props;
+  if (search || tagFilter) {
+    props = WE.propLibrary;
+  } else {
+    const activeSet = WE.propLibrarySets.find(s => s.filename === WE.libActiveSet);
+    props = activeSet ? activeSet.props : [];
+  }
+
   for (const p of props) {
-    if (search && !p.prop_id.toLowerCase().includes(search)) continue;
+    const labelText = (p.label || p.prop_id).toLowerCase();
+    const propIdLower = p.prop_id.toLowerCase();
+    if (search && !propIdLower.includes(search) && !labelText.includes(search)) continue;
+    if (tagFilter && !(p.tags || []).includes(tagFilter)) continue;
+
     const pm = p.display?.prop_meta;
     const card = document.createElement("div");
     card.className = "we-prop-card" + (p.prop_id === WE.libraryPropId ? " is-selected" : "");
     card.title = p.prop_id;
 
     if (pm) {
-      const thumb = document.createElement("div");
-      thumb.className = "we-prop-thumb";
-      thumb.style.cssText = `width:${Math.min(pm.frame.width,72)}px;height:${Math.min(pm.frame.height,72)}px;margin:0 auto 0.35rem;background-image:url("${pm.image_url}");background-position:-${pm.frame.x}px -${pm.frame.y}px;background-repeat:no-repeat;image-rendering:pixelated;`;
-      card.appendChild(thumb);
+      const thumbWrap = document.createElement("div");
+      thumbWrap.className = "we-prop-thumb";
+      thumbWrap.style.cssText = "width:72px;height:72px;margin:0 auto 0.35rem;position:relative;overflow:hidden;";
+      const canvas = document.createElement("canvas");
+      canvas.width = 72; canvas.height = 72;
+      canvas.style.imageRendering = "pixelated";
+      thumbWrap.appendChild(canvas);
+      card.appendChild(thumbWrap);
+      _cachedLoadImage(pm.image_url).then(img => {
+        _drawSpriteThumb(canvas, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height);
+      }).catch(() => {});
     }
+
     const lbl = document.createElement("div");
     lbl.style.fontSize = "0.7rem";
     lbl.textContent = p.prop_id.split("/").pop();
     card.appendChild(lbl);
+
     card.addEventListener("click", () => {
       WE.libraryPropId = p.prop_id;
       setTool("place");
@@ -1397,6 +1591,18 @@ tabMap.addEventListener("click",  () => setActiveTab("map"));
 // Toolbar wiring
 // ---------------------------------------------------------------------------
 
+// Zoom controls
+btnZoomIn.addEventListener("click", () => {
+  WE.zoom = Math.min(4, WE.zoom * 1.2);
+  applyTransform();
+  updateZoomLabel();
+});
+btnZoomOut.addEventListener("click", () => {
+  WE.zoom = Math.max(0.1, WE.zoom / 1.2);
+  applyTransform();
+  updateZoomLabel();
+});
+
 btnUndo.addEventListener("click",       undo);
 btnRedo.addEventListener("click",       redo);
 btnSaveRoom.addEventListener("click",   () => WE.currentRoomId && saveRoom(WE.currentRoomId));
@@ -1422,10 +1628,23 @@ btnToggleLib.addEventListener("click", () => {
   btnToggleLib.textContent = libraryPanel.classList.contains("is-collapsed") ? "Props ▲" : "Props ▼";
 });
 
+if (btnToggleSidebar) {
+  btnToggleSidebar.addEventListener("click", () => {
+    document.querySelector(".we-sidebar").classList.toggle("is-open");
+  });
+}
+
 librarySearch.addEventListener("input", () => {
   WE.libSearch = librarySearch.value;
   renderPropLibraryGrid();
 });
+
+if (libraryTagFilter) {
+  libraryTagFilter.addEventListener("change", () => {
+    WE.libTagFilter = libraryTagFilter.value;
+    renderPropLibraryGrid();
+  });
+}
 
 btnReload.addEventListener("click", () => {
   if (!WE.token) {
@@ -1464,6 +1683,11 @@ document.addEventListener("keydown", e => {
     WE.currentRoomId && saveRoom(WE.currentRoomId);
     return;
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === "d" && WE.selectedPropId) {
+    e.preventDefault();
+    duplicateProp(WE.selectedPropId);
+    return;
+  }
   if ((e.key === "Delete" || e.key === "Backspace") && WE.selectedPropId) {
     e.preventDefault();
     removeProp(WE.selectedPropId);
@@ -1498,6 +1722,13 @@ function esc(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+window.addEventListener("beforeunload", e => {
+  if (WE.dirty.size > 0) {
+    e.preventDefault();
+    e.returnValue = "You have unsaved room changes. Are you sure you want to leave?";
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Init

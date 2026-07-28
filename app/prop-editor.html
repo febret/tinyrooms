@@ -3,22 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <base href="/app/" />
   <title>tinyrooms Prop Editor</title>
-  <link rel="stylesheet" href="/app/prop-editor.css" />
+  <link rel="stylesheet" href="prop-editor.css" />
 </head>
 <body>
   <div class="prop-editor">
-    <!-- Left: Propset List -->
     <aside class="panel panel-list">
       <h3>Prop Sets</h3>
       <div class="auth-row">
         <button id="btnLoadSets">Load</button>
       </div>
-      <p class="list-hint">Sets without a definition (⚠) can be selected to create one. Place image files in the server or world <code>props/</code> directory, then click Load.</p>
       <div id="setList" class="set-list"></div>
     </aside>
 
-    <!-- Center: Image Canvas -->
     <main class="panel panel-canvas">
       <h3 id="setTitle">No set selected</h3>
       <div class="canvas-toolbar">
@@ -35,19 +33,44 @@
         <canvas id="propCanvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
       </div>
+      <div class="edit-row">
+        <label>Bg Color <input id="bgColorText" type="text" placeholder="#rrggbb" /></label>
+        <span id="bgColorSwatch" class="bg-color-swatch"></span>
+        <button id="btnPickBgColor">Pick</button>
+        <button id="btnClearBgColor">Clear</button>
+        <button id="btnSaveSet">Save</button>
+      </div>
       <pre id="statusBox"></pre>
     </main>
 
-    <!-- Right: Props Panel + Prop Details -->
     <aside class="panel panel-side">
       <h3>Props</h3>
       <div class="auth-row">
         <input id="newPropId" placeholder="new prop id" />
         <button id="btnAddProp">Add</button>
         <button id="btnDeleteProp">Delete</button>
+      </div>
+      <div class="auth-row">
+        <input id="renamePropId" placeholder="rename selected prop" />
         <button id="btnRenameProp">Rename</button>
       </div>
+      <div class="auth-row">
+        <input id="propSearchInput" placeholder="search prop name" />
+      </div>
+      <div class="auth-row">
+        <select id="propTagFilter">
+          <option value="">all tags</option>
+          <option value="avatar">avatar</option>
+          <option value="peep">peep</option>
+          <option value="object">object</option>
+          <option value="item">item</option>
+          <option value="container">container</option>
+          <option value="consumable">consumable</option>
+        </select>
+      </div>
       <div id="propList"></div>
+      <h3>Prop Tags</h3>
+      <div id="propTagEditor" class="tag-editor"></div>
 
       <div class="prop-details">
         <h3>Prop Details</h3>
@@ -76,35 +99,20 @@
           <input id="propAnimSpeed" type="number" min="0.01" step="0.1" placeholder="(none)" />
           <span>sec</span>
         </div>
-        <div class="detail-row detail-row-separator">
-          <label>Bg Color</label>
-          <input id="bgColorText" type="text" placeholder="#rrggbb" style="width:75px;font-family:monospace;" />
-          <span id="bgColorSwatch" class="bg-color-swatch"></span>
-        </div>
-        <div class="auth-row">
-          <button id="btnPickBgColor">Pick</button>
-          <button id="btnClearBgColor">Clear</button>
-        </div>
-        <div class="auth-row">
-          <button id="btnSaveSet">Save</button>
-        </div>
       </div>
     </aside>
 
-    <!-- Bottom: Frame Sequence Editor -->
     <section class="panel panel-frames">
       <h3>Frame Sequence</h3>
       <div class="frames-actions">
-        <button id="btnAddFrameFromCanvas">Add frame from canvas click</button>
-        <button id="btnRemoveFrame">Remove selected frame</button>
-        <button id="btnMoveFrameLeft">← Move left</button>
-        <button id="btnMoveFrameRight">→ Move right</button>
+        <button id="btnRemoveFrame">Remove Last Frame</button>
       </div>
       <div id="framesStrip" class="frames-strip"></div>
+      <div class="image-hint">Click on the prop image to append a frame, or enter a new prop id and click to create a prop from that frame.</div>
     </section>
   </div>
 
-  <script src="/app/utils.js"></script>
-  <script src="/app/prop-editor.js"></script>
+  <script src="utils.js"></script>
+  <script src="prop-editor.js"></script>
 </body>
 </html>

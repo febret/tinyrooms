@@ -27,7 +27,8 @@ button:hover {
 }
 
 .world-editor-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
 }
@@ -79,12 +80,14 @@ button:hover {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 320px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .we-sidebar,
 .we-properties-panel,
 .we-center-panel {
   min-height: 0;
+  overflow: hidden;
 }
 
 .we-sidebar,
@@ -498,6 +501,115 @@ button:hover {
   display: none !important;
 }
 
+.we-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.we-zoom-controls button {
+  padding: 0.2rem 0.5rem;
+  min-width: 1.8rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.we-library-search-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.we-library-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.we-library-search-row select {
+  min-width: 90px;
+}
+
+.we-prop-card {
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.we-prop-card:hover {
+  border-color: #8ab4ff;
+}
+
+.we-prop-thumb canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.we-room-prop-count {
+  font-size: 0.65rem;
+  color: #556070;
+  white-space: nowrap;
+}
+
+.we-tree-room.is-active .we-room-prop-count { color: #6a84a8; }
+
+.we-sidebar-toggle-btn {
+  display: none;
+  width: 100%;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid #273247;
+  background: #121927;
+  text-align: left;
+  padding: 0.5rem 0.8rem;
+}
+
+.we-selected-prop-thumb {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 0.5rem;
+  display: block;
+  image-rendering: pixelated;
+}
+
+@media (max-width: 900px) {
+  .we-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .we-sidebar {
+    position: fixed;
+    left: -300px;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 40;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.6);
+    transition: left 0.2s ease;
+  }
+
+  .we-sidebar.is-open {
+    left: 0;
+  }
+
+  .we-sidebar-toggle-btn {
+    display: block;
+  }
+
+  .we-properties-panel {
+    display: none;
+  }
+
+  .we-toolbar button,
+  .we-tool-buttons button {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .we-library-panel {
+    max-height: 220px;
+  }
+}
+
 @media (max-width: 1200px) {
   .we-main {
     grid-template-columns: 240px minmax(0, 1fr);
@@ -508,5 +620,6 @@ button:hover {
     grid-column: 1 / -1;
     border-left: none;
     border-top: 1px solid #273247;
+    max-height: 260px;
   }
 }

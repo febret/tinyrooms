@@ -1,10 +1,11 @@
 <!doctype html>
 <html>
 <head>
+  <base href="/app/" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>tinyrooms World Editor</title>
-  <link rel="stylesheet" href="/app/world-editor.css" />
+  <link rel="stylesheet" href="world-editor.css" />
 </head>
 <body>
   <div class="world-editor-shell">
@@ -38,6 +39,7 @@
 
     <div class="we-main">
       <aside class="we-sidebar">
+        <button id="btnToggleSidebar" class="we-sidebar-toggle-btn" type="button" title="Toggle sidebar">☰</button>
         <div class="we-sidebar-header">
           <input id="roomSearch" type="search" placeholder="Search rooms or ways" />
         </div>
@@ -53,7 +55,11 @@
           <div class="we-canvas-toolbar">
             <div id="roomTitle" class="we-pane-title">No room selected</div>
             <div class="we-canvas-meta">
-              <span id="zoomLabel">100%</span>
+              <div class="we-zoom-controls">
+                <button id="btnZoomOut" type="button" title="Zoom out (−)">−</button>
+                <span id="zoomLabel">100%</span>
+                <button id="btnZoomIn" type="button" title="Zoom in (+)">+</button>
+              </div>
               <span id="dirtyLabel"></span>
             </div>
           </div>
@@ -84,7 +90,10 @@
       <button id="btnToggleLibrary" class="we-library-toggle" type="button">Props ▼</button>
       <div id="libraryPanel" class="we-library-panel">
         <div class="we-library-header">
-          <input id="librarySearch" type="search" placeholder="Search props" />
+          <div class="we-library-search-row">
+            <input id="librarySearch" type="search" placeholder="Search props…" />
+            <select id="libraryTagFilter" title="Filter by tag"><option value="">All tags</option></select>
+          </div>
           <div id="libraryTabs" class="we-library-tabs"></div>
         </div>
         <div id="libraryGrid" class="we-library-grid"></div>
@@ -106,6 +115,7 @@
     </div>
   </div>
 
-  <script src="/app/world-editor.js"></script>
+  <script src="utils.js"></script>
+  <script src="world-editor.js"></script>
 </body>
 </html>
