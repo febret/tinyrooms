@@ -6,8 +6,6 @@ scale: 3.0
 sprites:
   char_1:
     default_frame: '0x0'
-    offset_x: 12
-    offset_y: 32
     anims:
       front:
         speed: 0.5
@@ -21,10 +19,12 @@ sprites:
         - '0x1'
         - 1x1
         - 2x1
+    tags:
+    - avatar
+    offset_x: 12.0
+    offset_y: 32.0
   char_2:
     default_frame: '0x0'
-    offset_x: 12
-    offset_y: 32
     anims:
       front:
         speed: 0.5
@@ -38,10 +38,12 @@ sprites:
         - 9x1
         - 10x1
         - 11x1
+    tags:
+    - avatar
+    offset_x: 12.0
+    offset_y: 32.0
   char_3:
     default_frame: '0x0'
-    offset_x: 12
-    offset_y: 32
     anims:
       front:
         speed: 0.5
@@ -55,6 +57,10 @@ sprites:
         - 6x5
         - 7x5
         - 8x5
+    tags:
+    - avatar
+    offset_x: 12.0
+    offset_y: 32.0
   char_4:
     default_frame: '0x0'
     anims:
@@ -70,4 +76,8 @@ sprites:
         - '0x5'
         - 1x5
         - 2x5
+    tags:
+    - avatar
+    offset_x: 0.0
+    offset_y: 0.0
 background_color: '#209c00'

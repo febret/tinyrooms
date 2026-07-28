@@ -23,7 +23,13 @@ var activityPanel = document.getElementById("activityPanel");
 var roomDescriptionHtml = "";
 
 if (btnWorldEditor) {
-  btnWorldEditor.addEventListener("click", () => window.open("/world-editor", "_blank"));
+  btnWorldEditor.addEventListener("click", () => {
+    const roomId = typeof roomState !== "undefined" ? roomState.roomId : null;
+    const url = roomId
+      ? `/world-editor?room=${encodeURIComponent(roomId)}`
+      : "/world-editor";
+    window.open(url, "_blank");
+  });
 }
 bindInventoryDropHandlers();
 bindInventoryListPickUpHandler();

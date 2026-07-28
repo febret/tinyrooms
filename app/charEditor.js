@@ -77,10 +77,15 @@ function resetCharacterEditorState() {
   renderCharacterEditor();
 }
 
+function isAvatarSpriteOption(option) {
+  const tags = Array.isArray(option?.tags) ? option.tags : [];
+  return tags.map(tag => String(tag || "").trim().toLowerCase()).includes("avatar");
+}
+
 function applyCharacterProfile(profile) {
   const char = profile.char || {};
   characterEditorState.descriptorClasses = profile.descriptor_classes || {};
-  characterEditorState.availableSprites = profile.available_sprites || [];
+  characterEditorState.availableSprites = (profile.available_sprites || []).filter(isAvatarSpriteOption);
   characterEditorState.appearance = { ...(char.appearance || {}) };
   characterEditorState.description = char.description || "";
   characterEditorState.currentSprite = char.current_sprite || null;

@@ -149,6 +149,15 @@ def _resolve_asset_url(asset_path: str) -> str:
 def _serialize_room(room) -> dict[str, Any]:
     stage = _normalized_stage(room.info.get("stage", {}), room.info.get("stage", {}))
     background = str(room.info.get("image") or room.info.get("img") or "").strip()
+    # Normalize bare filenames: legacy YAMLs often store just "bg.png" while the
+    # file actually lives in the world's images/ subdirectory.
+    if background and "/" not in background and not background.startswith("http"):
+        try:
+            world_root = Path(active_world().root_path)
+            if not (world_root / background).exists() and (world_root / "images" / background).exists():
+                background = f"images/{background}"
+        except Exception:
+            pass
     description = room.description_override if room.description_override is not None else room.info.get("description", "")
     props = sorted(room.props.values(), key=lambda prop: (int(getattr(prop, "layer", 0)), int(getattr(prop, "z_order", 0)), prop.prop_instance_id))
     return {
@@ -342,6 +351,11 @@ def _build_room_props(room, raw_props, allowed_way_ids: set[str] | None = None) 
             raise ValueError(f"invalid orientation '{orientation}'")
         layer = int(raw_prop.get("layer", raw_prop.get("position", {}).get("layer", 0)))
         z_order = int(raw_prop.get("z_order", raw_prop.get("position", {}).get("z_order", idx + 11)))
+        raw_scale = raw_prop.get("scale", raw_prop.get("position", {}).get("scale", 1.0))
+        try:
+            scale = max(0.1, min(10.0, float(raw_scale) if raw_scale is not None else 1.0))
+        except (TypeError, ValueError):
+            scale = 1.0
         merged_info = dict(world.prop_defs[prop_id])
         merged_info.update(
             {
@@ -350,6 +364,7 @@ def _build_room_props(room, raw_props, allowed_way_ids: set[str] | None = None) 
                 "orientation": orientation,
                 "layer": layer,
                 "z_order": z_order,
+                "scale": scale,
             }
         )
         prop = Prop(prop_instance_id, prop_id, merged_info, room.room_id)

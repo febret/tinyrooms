@@ -6,12 +6,10 @@ from typing import Any
 import yaml
 from flask import Blueprint, jsonify, request, send_from_directory
 
-from . import prop_sets
+from . import asset_sets, prop_sets
 
 blueprint = Blueprint("prop_editor", __name__)
 
-_IMAGE_EXTS = (".png", ".gif", ".webp")
-_YAML_EXTS = (".yaml", ".yml")
 _STATIC_FOLDER = Path(__file__).parent.parent / "app"
 
 
@@ -67,7 +65,7 @@ def _yaml_path(scope: str, filename: str) -> Path:
 def _image_path(scope: str, filename: str) -> Path:
     repo = _get_repo()
     root = repo.server_root_path if scope == "server" else repo.world_props_path
-    for ext in _IMAGE_EXTS:
+    for ext in asset_sets.IMAGE_EXTENSIONS:
         p = root / f"{filename}{ext}"
         if p.exists():
             return p
@@ -170,6 +168,7 @@ def create_definition(scope, filename):
                     "width": int(body.get("width", 32)),
                     "height": int(body.get("height", 32)),
                     "frames": [[0, 0]],
+                    "tags": list(body.get("tags") or []),
                 }
             },
         }
@@ -216,10 +215,13 @@ def create_prop(scope, filename):
         props_doc = dict(doc.get("props", {}) or {})
         if prop_id in props_doc:
             return _err("prop already exists", 409)
+        raw_tags = body.get("tags")
+        tags = list(raw_tags) if isinstance(raw_tags, list) else []
         props_doc[prop_id] = {
             "width": int(body.get("width", 32)),
             "height": int(body.get("height", 32)),
             "frames": list(body.get("frames", [[0, 0]])),
+            "tags": tags,
         }
         if body.get("anim_speed") is not None:
             props_doc[prop_id]["anim_speed"] = float(body["anim_speed"])

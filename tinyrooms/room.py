@@ -172,6 +172,7 @@ class Room:
                 'orientation': prop.orientation,
                 'layer': prop.layer,
                 'z_order': prop.z_order,
+                'scale': getattr(prop, 'scale', 1.0),
             },
         }
 

@@ -19,13 +19,31 @@ def _sprite_reference(scope: str, filename: str, sprite_id: str) -> str:
     return f"${filename}/{sprite_id}"
 
 
-def list_available_sprite_options(sprite_repo: sprites.SpriteRepository) -> list[dict[str, Any]]:
+def list_available_sprite_options(
+    sprite_repo: sprites.SpriteRepository,
+    required_tags: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Return sprite choices for UI pickers resolved against the sprite repository.
+
+    The function iterates every sprite in every loaded sprite set, optionally
+    filtering out sprites that do not include all tags in ``required_tags``.
+    Each accepted sprite is converted into a normalized dictionary containing
+    reference metadata plus resolved render fields (image URL, frame, and
+    background color).
+
+    Results are sorted so world-scoped sprites appear before server-scoped
+    sprites, then by filename and sprite id.
+    """
     available: list[dict[str, Any]] = []
+    required = {str(tag).strip().lower() for tag in (required_tags or set()) if str(tag).strip()}
     for record in sprite_repo.list_sets():
         sprite_set = record.sprite_set
         if sprite_set is None:
             continue
-        for sprite_id in sprite_set.sprites:
+        for sprite_id, sprite in sprite_set.sprites.items():
+            sprite_tags = list(sprite.tags or [])
+            if required and required.difference(sprite_tags):
+                continue
             sprite_ref = _sprite_reference(sprite_set.scope, sprite_set.filename, sprite_id)
             parsed = sprites.parse_sprite_reference(sprite_ref)
             if parsed is None:
@@ -43,6 +61,7 @@ def list_available_sprite_options(sprite_repo: sprites.SpriteRepository) -> list
                     "image_url": resolved["image_url"],
                     "frame": resolved["frame"],
                     "background_color": resolved.get("background_color"),
+                    "tags": sprite_tags,
                 }
             )
     available.sort(
@@ -186,7 +205,7 @@ class CharacterEditorService:
         return self._char_for_client(username, updated, sprite_repo)
 
     def list_available_sprites(self, sprite_repo: sprites.SpriteRepository) -> list[dict[str, Any]]:
-        return list_available_sprite_options(sprite_repo)
+        return list_available_sprite_options(sprite_repo, required_tags={"avatar"})
 
     def validate_description(self, description: Any) -> str:
         if description is None:

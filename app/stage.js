@@ -527,6 +527,10 @@ async function pixiRenderProps() {
     wrapper.x = prop.position?.x || 0;
     wrapper.y = prop.position?.y || 0;
     wrapper.zIndex = prop.position?.z_order || 0;
+    const instScale = Number(prop.position?.scale);
+    if (Number.isFinite(instScale) && instScale > 0 && Math.abs(instScale - 1) > 0.001) {
+      wrapper.scale.set(instScale);
+    }
     wrapper.eventMode = "static";
     wrapper.cursor = "pointer";
     wrapper.addChild(sprite);
