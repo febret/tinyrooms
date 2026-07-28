@@ -105,7 +105,13 @@ def build_display_assets(info: dict, world_root_path, sprite_repo: sprites.Sprit
 def _build_prop_display_assets(prop_id: str, prop_repo) -> dict:
     """Build display assets for a prop using the PropRepository."""
     from . import prop_sets as prop_sets_module
-    # prop_id may be a bare id like "floor_rug" or namespaced "#floor_rug/floor_rug"
+
+    prop_ref = prop_sets_module.parse_prop_reference(prop_id)
+    if prop_ref is not None:
+        prop_meta = prop_sets_module.resolve_prop_reference(prop_ref, prop_repo)
+        image_url = prop_meta["image_url"]
+        return {"img": image_url, "icon": image_url, "sprite": image_url, "prop_meta": prop_meta}
+
     record = prop_repo.lookup(prop_id)
     if record is None or record.prop_set is None:
         return {"img": "", "icon": "", "sprite": ""}
@@ -113,27 +119,12 @@ def _build_prop_display_assets(prop_id: str, prop_repo) -> dict:
     prop_entry = ps.props.get(prop_id) or next(iter(ps.props.values()), None)
     if prop_entry is None:
         return {"img": "", "icon": "", "sprite": ""}
-    image_url = f"/props/{ps.scope}/{ps.image_path.name}"
-    frame_x, frame_y = prop_entry.frames[0] if prop_entry.frames else (0, 0)
-    prop_meta = {
-        "ref": f"#{ps.filename}/{prop_entry.prop_id}",
-        "scope": ps.scope,
-        "filename": ps.filename,
-        "prop_id": prop_entry.prop_id,
-        "image_url": image_url,
-        "frame": {"x": frame_x, "y": frame_y, "width": prop_entry.width, "height": prop_entry.height},
-        "offset_x": 0,
-        "offset_y": 0,
-        "rotation_deg": 0,
-    }
-    if prop_entry.anim_speed is not None:
-        prop_meta["animation"] = {
-            "speed": prop_entry.anim_speed,
-            "frames": [
-                {"x": fx, "y": fy, "width": prop_entry.width, "height": prop_entry.height}
-                for fx, fy in prop_entry.frames
-            ],
-        }
+    prop_meta = prop_sets_module.build_prop_display_payload(
+        ps,
+        prop_entry,
+        ref=f"#{ps.filename}/{prop_entry.prop_id}",
+    )
+    image_url = prop_meta["image_url"]
     return {"img": image_url, "icon": image_url, "sprite": image_url, "prop_meta": prop_meta}
 
 

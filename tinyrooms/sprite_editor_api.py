@@ -6,12 +6,10 @@ from typing import Any
 import yaml
 from flask import Blueprint, jsonify, request, send_from_directory
 
-from . import sprites
+from . import asset_sets, sprites
 
 blueprint = Blueprint("sprite_editor", __name__)
 
-_IMAGE_EXTS = (".png", ".gif", ".webp")
-_YAML_EXTS = (".yaml", ".yml")
 _STATIC_FOLDER = Path(__file__).parent.parent / "app"
 
 
@@ -68,7 +66,7 @@ def _yaml_path(scope: str, filename: str) -> Path:
 def _image_path(scope: str, filename: str) -> Path:
     repo = _get_repo()
     root = repo.server_root_path if scope == "server" else repo.world_sprites_path
-    for ext in _IMAGE_EXTS:
+    for ext in asset_sets.IMAGE_EXTENSIONS:
         p = root / f"{filename}{ext}"
         if p.exists():
             return p
@@ -213,7 +211,13 @@ def create_sprite(scope, filename):
         sprites_doc = dict(doc.get("sprites", {}) or {})
         if sprite_id in sprites_doc:
             return _err("sprite already exists", 409)
-        sprites_doc[sprite_id] = {"default_frame": str(body.get("default_frame", "0x0")), "anims": {}}
+        raw_tags = body.get("tags")
+        tags = list(raw_tags) if isinstance(raw_tags, list) else []
+        sprites_doc[sprite_id] = {
+            "default_frame": str(body.get("default_frame", "0x0")),
+            "tags": tags,
+            "anims": {},
+        }
         doc["sprites"] = sprites_doc
         _persist(yp, ip, doc)
         _get_repo(force_reindex=True)
@@ -266,7 +270,7 @@ def create_anim(scope, filename, sprite_id):
         if anim_id in anims_doc:
             return _err("animation already exists", 409)
         anims_doc[anim_id] = {
-            "speed": body.get("speed", 0.5),
+            "speed": body.get("speed", 0.2),
             "type": body.get("type", "loop"),
             "frames": list(body.get("frames", ["0x0"])),
         }
@@ -299,7 +303,7 @@ def update_anim(scope, filename, sprite_id, anim_id):
             return _err("animation not found", 404)
         prev = anims_doc[anim_id]
         anims_doc[anim_id] = {
-            "speed": body.get("speed", prev.get("speed", 0.5)),
+            "speed": body.get("speed", prev.get("speed", 0.2)),
             "type": body.get("type", prev.get("type", "loop")),
             "frames": body.get("frames", prev.get("frames", ["0x0"])),
         }

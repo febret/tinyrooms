@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from . import asset_sets
+
 
 # #<filename>/<propId>[/<frameNum>][.x<n>][.y<n>][.r<n>]
 _REF_RE = re.compile(
@@ -34,6 +36,7 @@ class PropEntry:
     height: int
     frames: list[tuple[int, int]]
     anim_speed: float | None = None
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -81,32 +84,10 @@ class PropSetRecord:
 # Validation helpers
 # ---------------------------------------------------------------------------
 
-def _validate_positive_int(value: Any, field_name: str, errors: list[str], default: int = 32) -> int:
-    try:
-        out = int(value)
-    except (TypeError, ValueError):
-        errors.append(f"{field_name} must be a positive integer")
-        return default
-    if out <= 0:
-        errors.append(f"{field_name} must be > 0")
-        return default
-    return out
-
-
-def _normalize_background_color(value: Any, errors: list[str]) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        errors.append("background_color must be a string")
-        return None
-    normalized = value.strip()
-    return normalized if normalized else None
-
-
 def _normalize_frames(prop_id: str, raw: Any, errors: list[str]) -> list[tuple[int, int]]:
     if not isinstance(raw, list) or not raw:
         errors.append(f"props.{prop_id}.frames must be a non-empty list")
-        return [[0, 0]]
+        return [(0, 0)]
     out: list[tuple[int, int]] = []
     for idx, item in enumerate(raw):
         if not isinstance(item, (list, tuple)) or len(item) != 2:
@@ -129,8 +110,8 @@ def _normalize_prop(prop_id: str, raw: Any, errors: list[str]) -> PropEntry:
     if not isinstance(raw, dict):
         errors.append(f"props.{prop_id} must be an object")
         return PropEntry(prop_id=prop_id, width=32, height=32, frames=[(0, 0)])
-    width = _validate_positive_int(raw.get("width"), f"props.{prop_id}.width", errors)
-    height = _validate_positive_int(raw.get("height"), f"props.{prop_id}.height", errors)
+    width = asset_sets.validate_positive_int(raw.get("width"), f"props.{prop_id}.width", errors)
+    height = asset_sets.validate_positive_int(raw.get("height"), f"props.{prop_id}.height", errors)
     frames = _normalize_frames(prop_id, raw.get("frames", [[0, 0]]), errors)
     anim_speed = None
     if "anim_speed" in raw and raw["anim_speed"] is not None:
@@ -142,7 +123,8 @@ def _normalize_prop(prop_id: str, raw: Any, errors: list[str]) -> PropEntry:
             if anim_speed <= 0:
                 errors.append(f"props.{prop_id}.anim_speed must be > 0")
                 anim_speed = None
-    return PropEntry(prop_id=prop_id, width=width, height=height, frames=frames, anim_speed=anim_speed)
+    tags = asset_sets.normalize_tags(raw.get("tags"), f"props.{prop_id}.tags", errors)
+    return PropEntry(prop_id=prop_id, width=width, height=height, frames=frames, anim_speed=anim_speed, tags=tags)
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +151,7 @@ def load_prop_set(scope: str, filename: str, image_path: Path, yaml_path: Path) 
     for pid, praw in props_raw.items():
         normalized = _normalize_prop(str(pid), praw, errors)
         props[str(pid)] = normalized
-    background_color = _normalize_background_color(loaded.get("background_color"), errors)
+    background_color = asset_sets.normalize_background_color(loaded.get("background_color"), errors)
     if errors:
         raise PropValidationError("prop schema validation failed", errors=errors)
     return PropSet(
@@ -219,32 +201,31 @@ def parse_prop_reference(asset_value: str) -> PropReference | None:
     )
 
 
-def resolve_prop_reference(ref: PropReference, repo: "PropRepository") -> dict[str, Any]:
-    record = repo.lookup(ref.filename)
-    if record is None:
-        raise PropValidationError(f"prop set '{ref.filename}' not found")
-    if record.prop_set is None:
-        if record.load_error:
-            raise PropValidationError(record.load_error)
-        raise PropValidationError(f"prop set '{ref.filename}' has no valid yaml definition")
-    prop_set = record.prop_set
-    prop = prop_set.props.get(ref.prop_id)
-    if prop is None:
-        raise PropValidationError(f"prop '{ref.prop_id}' not found in '{ref.filename}'")
-    frame_idx = ref.frame_num if ref.frame_num is not None else 0
+def build_prop_display_payload(
+    prop_set: PropSet,
+    prop: PropEntry,
+    *,
+    ref: str,
+    frame_num: int | None = None,
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
+    rotation_deg: float = 0.0,
+) -> dict[str, Any]:
+    frame_idx = frame_num if frame_num is not None else 0
     if frame_idx < 0 or frame_idx >= len(prop.frames):
         frame_idx = 0
     frame_x, frame_y = prop.frames[frame_idx]
     payload: dict[str, Any] = {
-        "ref": ref.raw,
+        "ref": ref,
         "scope": prop_set.scope,
         "filename": prop_set.filename,
-        "prop_id": ref.prop_id,
+        "prop_id": prop.prop_id,
         "image_url": f"/props/{prop_set.scope}/{prop_set.image_path.name}",
         "frame": {"x": frame_x, "y": frame_y, "width": prop.width, "height": prop.height},
-        "offset_x": ref.offset_x,
-        "offset_y": ref.offset_y,
-        "rotation_deg": ref.rotation_deg,
+        "offset_x": offset_x,
+        "offset_y": offset_y,
+        "rotation_deg": rotation_deg,
+        "background_color": prop_set.background_color,
     }
     if prop.anim_speed is not None:
         payload["animation"] = {
@@ -254,6 +235,28 @@ def resolve_prop_reference(ref: PropReference, repo: "PropRepository") -> dict[s
     return payload
 
 
+def resolve_prop_reference(ref: PropReference, repo: "PropRepository") -> dict[str, Any]:
+    record = repo.lookup(ref.filename)
+    if record is None:
+        raise PropValidationError(f"prop set '{ref.filename}' not found")
+    if record.prop_set is None:
+        if record.load_error:
+            raise PropValidationError(record.load_error)
+        raise PropValidationError(f"prop set '{ref.filename}' has no valid yaml definition")
+    prop = record.prop_set.props.get(ref.prop_id)
+    if prop is None:
+        raise PropValidationError(f"prop '{ref.prop_id}' not found in '{ref.filename}'")
+    return build_prop_display_payload(
+        record.prop_set,
+        prop,
+        ref=ref.raw,
+        frame_num=ref.frame_num,
+        offset_x=ref.offset_x,
+        offset_y=ref.offset_y,
+        rotation_deg=ref.rotation_deg,
+    )
+
+
 def to_definition_dict(prop_set: PropSet) -> dict[str, Any]:
     props_payload: dict[str, Any] = {}
     for pid, prop in prop_set.props.items():
@@ -261,6 +264,7 @@ def to_definition_dict(prop_set: PropSet) -> dict[str, Any]:
             "width": prop.width,
             "height": prop.height,
             "frames": [[x, y] for x, y in prop.frames],
+            "tags": list(prop.tags),
         }
         if prop.anim_speed is not None:
             entry["anim_speed"] = prop.anim_speed
@@ -288,78 +292,39 @@ def validate_definition_document(doc: dict[str, Any], image_path: Path) -> dict[
 
 
 def write_definition_document(yaml_path: Path, definition: dict[str, Any]) -> None:
-    yaml_path.parent.mkdir(parents=True, exist_ok=True)
-    serialized = yaml.safe_dump(definition, sort_keys=False, allow_unicode=True)
-    with tempfile.NamedTemporaryFile(
-        "w", encoding="utf-8", delete=False,
-        dir=str(yaml_path.parent), prefix=".tmp_prop_", suffix=".yaml"
-    ) as handle:
-        handle.write(serialized)
-        tmp_name = handle.name
-    Path(tmp_name).replace(yaml_path)
+    asset_sets.write_definition_document(yaml_path, definition, temp_prefix=".tmp_prop_")
 
 
 # ---------------------------------------------------------------------------
 # Repository
 # ---------------------------------------------------------------------------
 
-class PropRepository:
+class PropRepository(asset_sets.AssetSetRepository[PropSetRecord]):
     def __init__(self, world_root_path: Path, server_root_path: Path | None = None):
-        self.world_root_path = Path(world_root_path)
-        self.server_root_path = (
-            Path(server_root_path) if server_root_path
-            else Path(__file__).parent.parent / "data" / "props"
+        server_root = Path(server_root_path) if server_root_path else Path(__file__).parent.parent / "data" / "props"
+        super().__init__(world_root_path, server_root, "props")
+
+    @property
+    def world_props_path(self) -> Path:
+        return self.world_assets_path
+
+    def _load_record(
+        self,
+        scope: str,
+        stem: str,
+        image_path: Path | None,
+        yaml_path: Path | None,
+    ) -> PropSetRecord:
+        record = PropSetRecord(
+            scope=scope,
+            filename=stem,
+            image_path=image_path,
+            yaml_path=yaml_path,
+            prop_set=None,
         )
-        self.world_props_path = self.world_root_path / "props"
-        self._index: dict[tuple[str, str], PropSetRecord] = {}
-
-    def _scan_scope(self, scope: str, root: Path) -> None:
-        if not root.exists():
-            return
-        stems: set[str] = set()
-        for item in root.iterdir():
-            if not item.is_file():
-                continue
-            suffix = item.suffix.lower()
-            if suffix in {".png", ".gif", ".webp"}:
-                stems.add(item.stem)
-            elif suffix in {".yaml", ".yml"}:
-                stems.add(item.stem)
-        for stem in sorted(stems):
-            image_path = None
-            for ext in (".png", ".gif", ".webp"):
-                candidate = root / f"{stem}{ext}"
-                if candidate.exists():
-                    image_path = candidate
-                    break
-            yaml_path = None
-            for ext in (".yaml", ".yml"):
-                candidate = root / f"{stem}{ext}"
-                if candidate.exists():
-                    yaml_path = candidate
-                    break
-            record = PropSetRecord(scope=scope, filename=stem, image_path=image_path, yaml_path=yaml_path, prop_set=None)
-            if record.has_image and record.has_yaml and image_path is not None and yaml_path is not None:
-                try:
-                    record.prop_set = load_prop_set(scope, stem, image_path, yaml_path)
-                except PropValidationError as err:
-                    record.load_error = "; ".join(err.errors)
-            self._index[(scope, stem)] = record
-
-    def reindex(self) -> None:
-        self._index = {}
-        self._scan_scope("server", self.server_root_path)
-        self._scan_scope("world", self.world_props_path)
-
-    def list_sets(self) -> list[PropSetRecord]:
-        out = list(self._index.values())
-        out.sort(key=lambda rec: (rec.filename, 0 if rec.scope == "world" else 1, rec.scope))
-        return out
-
-    def get(self, scope: str, filename: str) -> PropSetRecord | None:
-        return self._index.get((scope, filename))
-
-    def lookup(self, filename: str, scope_hint: str | None = None) -> PropSetRecord | None:
-        if scope_hint in {"world", "server"}:
-            return self.get(scope_hint, filename)
-        return self.get("world", filename) or self.get("server", filename)
+        if record.has_image and record.has_yaml and image_path is not None and yaml_path is not None:
+            try:
+                record.prop_set = load_prop_set(scope, stem, image_path, yaml_path)
+            except PropValidationError as err:
+                record.load_error = "; ".join(err.errors)
+        return record

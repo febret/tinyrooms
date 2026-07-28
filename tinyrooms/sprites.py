@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from . import asset_sets
+
 
 FRAME_TOKEN_RE = re.compile(r"^(\d+)x(\d+)$")
 ANIM_TYPES = {"loop", "bounce", "random"}
@@ -44,6 +46,7 @@ class SpriteEntry:
     sprite_id: str
     default_frame: FrameCoord | None
     anims: dict[str, SpriteAnimation]
+    tags: list[str]
     offset_x: float
     offset_y: float
 
@@ -110,30 +113,6 @@ def parse_frame_token(raw: str) -> FrameCoord:
     return FrameCoord(int(m.group(1)), int(m.group(2)))
 
 
-def _validate_positive_int(value: Any, field_name: str, errors: list[str], default: int = 32) -> int:
-    try:
-        out = int(value)
-    except (TypeError, ValueError):
-        errors.append(f"{field_name} must be a positive integer")
-        return default
-    if out <= 0:
-        errors.append(f"{field_name} must be > 0")
-        return default
-    return out
-
-
-def _normalize_background_color(value: Any, errors: list[str]) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        errors.append("background_color must be a string")
-        return None
-    normalized = value.strip()
-    if not normalized:
-        return None
-    return normalized
-
-
 def _normalize_scale(value: Any, errors: list[str]) -> float:
     if value is None:
         return 1.0
@@ -191,7 +170,7 @@ def _normalize_anim(anim_id: str, raw: Any, errors: list[str]) -> SpriteAnimatio
 def _normalize_sprite(sprite_id: str, raw: Any, errors: list[str]) -> SpriteEntry:
     if not isinstance(raw, dict):
         errors.append(f"sprites.{sprite_id} must be an object")
-        return SpriteEntry(sprite_id=sprite_id, default_frame=None, anims={}, offset_x=0.0, offset_y=0.0)
+        return SpriteEntry(sprite_id=sprite_id, default_frame=None, anims={}, tags=[], offset_x=0.0, offset_y=0.0)
     default_frame_raw = raw.get("default_frame")
     default_frame = None
     if default_frame_raw is not None:
@@ -211,12 +190,14 @@ def _normalize_sprite(sprite_id: str, raw: Any, errors: list[str]) -> SpriteEntr
         first_anim = next(iter(anims.values()))
         if first_anim.frames:
             default_frame = first_anim.frames[0]
+    tags = asset_sets.normalize_tags(raw.get("tags"), f"sprites.{sprite_id}.tags", errors)
     offset_x = _normalize_offset(raw.get("offset_x"), f"sprites.{sprite_id}.offset_x", errors)
     offset_y = _normalize_offset(raw.get("offset_y"), f"sprites.{sprite_id}.offset_y", errors)
     return SpriteEntry(
         sprite_id=sprite_id,
         default_frame=default_frame,
         anims=anims,
+        tags=tags,
         offset_x=offset_x,
         offset_y=offset_y,
     )
@@ -234,10 +215,10 @@ def load_sprite_set(scope: str, filename: str, image_path: Path, yaml_path: Path
         loaded = yaml.safe_load(handle) or {}
     if not isinstance(loaded, dict):
         raise SpriteValidationError("sprite definition must be a mapping")
-    frame_width = _validate_positive_int(loaded.get("frame_width"), "frame_width", errors)
-    frame_height = _validate_positive_int(loaded.get("frame_height"), "frame_height", errors)
+    frame_width = asset_sets.validate_positive_int(loaded.get("frame_width"), "frame_width", errors)
+    frame_height = asset_sets.validate_positive_int(loaded.get("frame_height"), "frame_height", errors)
     scale = _normalize_scale(loaded.get("scale"), errors)
-    background_color = _normalize_background_color(loaded.get("background_color"), errors)
+    background_color = asset_sets.normalize_background_color(loaded.get("background_color"), errors)
     sprites_raw = loaded.get("sprites", {})
     if not isinstance(sprites_raw, dict) or not sprites_raw:
         errors.append("sprites must be a non-empty mapping")
@@ -318,63 +299,35 @@ def _selected_frame(
     return FrameCoord(0, 0)
 
 
-class SpriteRepository:
+class SpriteRepository(asset_sets.AssetSetRepository[SpriteSetRecord]):
     def __init__(self, world_root_path: Path, server_root_path: Path | None = None):
-        self.world_root_path = Path(world_root_path)
-        self.server_root_path = Path(server_root_path) if server_root_path else Path(__file__).parent.parent / "data" / "sprites"
-        self.world_sprites_path = self.world_root_path / "sprites"
-        self._index: dict[tuple[str, str], SpriteSetRecord] = {}
+        server_root = Path(server_root_path) if server_root_path else Path(__file__).parent.parent / "data" / "sprites"
+        super().__init__(world_root_path, server_root, "sprites")
 
-    def _scan_scope(self, scope: str, root: Path) -> None:
-        if not root.exists():
-            return
-        stems: set[str] = set()
-        for item in root.iterdir():
-            if not item.is_file():
-                continue
-            suffix = item.suffix.lower()
-            if suffix in {".png", ".gif", ".webp"}:
-                stems.add(item.stem)
-            elif suffix in {".yaml", ".yml"}:
-                stems.add(item.stem)
-        for stem in sorted(stems):
-            image_path = None
-            for ext in (".png", ".gif", ".webp"):
-                candidate = root / f"{stem}{ext}"
-                if candidate.exists():
-                    image_path = candidate
-                    break
-            yaml_path = None
-            for ext in (".yaml", ".yml"):
-                candidate = root / f"{stem}{ext}"
-                if candidate.exists():
-                    yaml_path = candidate
-                    break
-            record = SpriteSetRecord(scope=scope, filename=stem, image_path=image_path, yaml_path=yaml_path, sprite_set=None)
-            if record.has_image and record.has_yaml and image_path is not None and yaml_path is not None:
-                try:
-                    record.sprite_set = load_sprite_set(scope, stem, image_path, yaml_path)
-                except SpriteValidationError as err:
-                    record.load_error = "; ".join(err.errors)
-            self._index[(scope, stem)] = record
+    @property
+    def world_sprites_path(self) -> Path:
+        return self.world_assets_path
 
-    def reindex(self) -> None:
-        self._index = {}
-        self._scan_scope("server", self.server_root_path)
-        self._scan_scope("world", self.world_sprites_path)
-
-    def list_sets(self) -> list[SpriteSetRecord]:
-        out = list(self._index.values())
-        out.sort(key=lambda rec: (rec.filename, 0 if rec.scope == "world" else 1, rec.scope))
-        return out
-
-    def get(self, scope: str, filename: str) -> SpriteSetRecord | None:
-        return self._index.get((scope, filename))
-
-    def lookup(self, filename: str, scope_hint: str | None = None) -> SpriteSetRecord | None:
-        if scope_hint in {"world", "server"}:
-            return self.get(scope_hint, filename)
-        return self.get("world", filename) or self.get("server", filename)
+    def _load_record(
+        self,
+        scope: str,
+        stem: str,
+        image_path: Path | None,
+        yaml_path: Path | None,
+    ) -> SpriteSetRecord:
+        record = SpriteSetRecord(
+            scope=scope,
+            filename=stem,
+            image_path=image_path,
+            yaml_path=yaml_path,
+            sprite_set=None,
+        )
+        if record.has_image and record.has_yaml and image_path is not None and yaml_path is not None:
+            try:
+                record.sprite_set = load_sprite_set(scope, stem, image_path, yaml_path)
+            except SpriteValidationError as err:
+                record.load_error = "; ".join(err.errors)
+        return record
 
 
 def resolve_sprite_reference(reference: SpriteReference, repository: SpriteRepository) -> dict[str, Any]:
@@ -444,6 +397,7 @@ def to_definition_dict(sprite_set: SpriteSet) -> dict[str, Any]:
         sprites_payload[sprite_id] = {
             "default_frame": sprite.default_frame.token if sprite.default_frame else "0x0",
             "anims": anims_payload,
+            "tags": list(sprite.tags),
             "offset_x": sprite.offset_x,
             "offset_y": sprite.offset_y,
         }
@@ -472,9 +426,4 @@ def validate_definition_document(doc: dict[str, Any], image_path: Path) -> dict[
 
 
 def write_definition_document(yaml_path: Path, definition: dict[str, Any]) -> None:
-    yaml_path.parent.mkdir(parents=True, exist_ok=True)
-    serialized = yaml.safe_dump(definition, sort_keys=False, allow_unicode=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, dir=str(yaml_path.parent), prefix=".tmp_sprite_", suffix=".yaml") as handle:
-        handle.write(serialized)
-        tmp_name = handle.name
-    Path(tmp_name).replace(yaml_path)
+    asset_sets.write_definition_document(yaml_path, definition, temp_prefix=".tmp_sprite_")

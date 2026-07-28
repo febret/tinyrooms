@@ -12,6 +12,8 @@ class Prop:
         self.orientation = info.get('orientation', 'front')
         self.layer = int(info.get('layer', 0))
         self.z_order = int(info.get('z_order', 0))
+        raw_scale = info.get('scale', 1.0)
+        self.scale = max(0.1, min(10.0, float(raw_scale) if raw_scale else 1.0))
         self.metadata = dict(info.get('metadata', {}))
         self.decorators = decorator_module.normalize_decorator_list(info.get('decorators', []))
         self._display_assets = None

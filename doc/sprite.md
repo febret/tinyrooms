@@ -31,6 +31,7 @@ background_color: optional background color for this sprite set (any CSS color s
 sprites:
     sprite_1: #Sprite ID
         default_frame: 0x0 # Frame to use as the default display frame for this sprite.
+        tags: [avatar, peep] # Optional normalized search/filter tags
         anims: #Animations for this sprite
             anim_1: 
                 speed: 0.5 #Frame speed in seconds. Default is 0.5

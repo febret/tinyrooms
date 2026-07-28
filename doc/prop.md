@@ -35,6 +35,7 @@ props:
   prop_id:
     width: 64    # width in pixels of a single frame (all frames same size)
     height: 64   # height in pixels of a single frame
+    tags: [object, container]  # optional normalized search/filter tags
     frames:
       - [0, 0]   # pixel top-left coordinate of each frame in the image
       - [64, 0]
@@ -90,4 +91,3 @@ The prop editor is a web-based prop creation utility available at `/prop-editor`
 Props with a `prop_meta` field in their display data are rendered as a CSS-clipped `<div>` (background-image + background-position + fixed width/height), enabling pixel-accurate frame selection. If `prop_meta.animation` is present, a `setInterval` loop cycles through the frame list at the specified `speed` in seconds.
 
 Legacy props that only carry `display.sprite` or `display.img` continue to render via a plain `<img>` element.
-

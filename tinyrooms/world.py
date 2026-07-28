@@ -85,27 +85,12 @@ def serialize_prop_library(world: World) -> list[dict]:
             continue
         ps = record.prop_set
         for prop_id, prop_entry in sorted(ps.props.items()):
-            image_url = f"/props/{ps.scope}/{ps.image_path.name}"
-            frame_x, frame_y = prop_entry.frames[0] if prop_entry.frames else (0, 0)
-            prop_meta = {
-                "ref": f"#{ps.filename}/{prop_id}",
-                "scope": ps.scope,
-                "filename": ps.filename,
-                "prop_id": prop_id,
-                "image_url": image_url,
-                "frame": {"x": frame_x, "y": frame_y, "width": prop_entry.width, "height": prop_entry.height},
-                "offset_x": 0,
-                "offset_y": 0,
-                "rotation_deg": 0,
-            }
-            if prop_entry.anim_speed is not None:
-                prop_meta["animation"] = {
-                    "speed": prop_entry.anim_speed,
-                    "frames": [
-                        {"x": fx, "y": fy, "width": prop_entry.width, "height": prop_entry.height}
-                        for fx, fy in prop_entry.frames
-                    ],
-                }
+            prop_meta = prop_sets.build_prop_display_payload(
+                ps,
+                prop_entry,
+                ref=f"#{ps.filename}/{prop_id}",
+            )
+            image_url = prop_meta["image_url"]
             display = {
                 "img": image_url,
                 "icon": image_url,
@@ -118,6 +103,7 @@ def serialize_prop_library(world: World) -> list[dict]:
                 "description": ps.description or "",
                 "display": display,
                 "metadata": {},
+                "tags": list(prop_entry.tags),
             })
     return serialized
 
@@ -126,12 +112,12 @@ def _apply_saved_prop_position(merged_info: dict, prop_state: dict) -> None:
     assigned: set[str] = set()
     position = prop_state.get('position')
     if isinstance(position, dict):
-        for key in ("x", "y", "orientation", "layer", "z_order"):
+        for key in ("x", "y", "orientation", "layer", "z_order", "scale"):
             if key in position:
                 merged_info[key] = position[key]
                 assigned.add(key)
 
-    for key in ("x", "y", "orientation", "layer", "z_order"):
+    for key in ("x", "y", "orientation", "layer", "z_order", "scale"):
         if key in prop_state:
             merged_info[key] = prop_state[key]
             assigned.add(key)
