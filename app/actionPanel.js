@@ -542,10 +542,6 @@ function getPaletteEntriesForTab(tabId) {
     entries.push({ label: "Deselect", onClick: () => clearSelectedTarget() });
   }
 
-  if (propTarget && propTarget.exit_way_id) {
-    entries.push({ label: `Go: ${propTarget.exit_label || "Exit"}`, onClick: () => navigateExit(propTarget.exit_way_id) });
-  }
-
   return entries;
 }
 

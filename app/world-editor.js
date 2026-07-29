@@ -16,19 +16,9 @@ function _loadImage(url) {
   });
 }
 
-function _drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh) {
-  const tc = canvas.getContext("2d");
-  const dw = canvas.width, dh = canvas.height;
-  tc.clearRect(0, 0, dw, dh);
-  if (!srcImg || sw <= 0 || sh <= 0) return;
-  const tmp = document.createElement("canvas");
-  tmp.width = sw; tmp.height = sh;
-  tmp.getContext("2d").drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
-  const scale = Math.min(dw / sw, dh / sh);
-  const scaledW = Math.round(sw * scale), scaledH = Math.round(sh * scale);
-  const dx = Math.floor((dw - scaledW) / 2), dy = Math.floor((dh - scaledH) / 2);
-  tc.imageSmoothingEnabled = false;
-  tc.drawImage(tmp, 0, 0, sw, sh, dx, dy, scaledW, scaledH);
+function _drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh, bgRgb) {
+  // Delegate to shared drawSpriteThumb from utils.js which supports background-color removal.
+  drawSpriteThumb(canvas, srcImg, sx, sy, sw, sh, bgRgb, 10, false);
 }
 
 function _cachedLoadImage(url) {
@@ -60,7 +50,7 @@ const WE = {
   selectedPropId: null,  // prop_instance_id
   selectedWayId: null,
 
-  activeTool: "select",  // "select" | "place" | "exit"
+  activeTool: "select",  // "select" | "place"
   libraryPropId: null,   // prop_id selected in library for placement
   libActiveSet: null,    // filename of active library set tab
   libSearch: "",
@@ -78,7 +68,7 @@ const WE = {
   // undo/redo: room_id -> {past:[], future:[]}
   history: new Map(),
 
-  exitPickerPropId: null,
+  exitPickerPropId: null,  // unused, kept for compatibility
 
   // world map layout: room_id -> {x, y}
   mapLayout: new Map(),
@@ -102,7 +92,6 @@ const tabRoom        = $("tabRoom");
 const tabMap         = $("tabMap");
 const toolSelect     = $("toolSelect");
 const toolPlace      = $("toolPlace");
-const toolExit       = $("toolExit");
 const btnUndo        = $("btnUndo");
 const btnRedo        = $("btnRedo");
 const btnSaveRoom    = $("btnSaveRoom");
@@ -121,7 +110,6 @@ const zoomLabel      = $("zoomLabel");
 const dirtyLabel     = $("dirtyLabel");
 const canvasViewport = $("canvasViewport");
 const canvasStage    = $("canvasStage");
-const exitPicker     = $("exitPicker");
 const mapViewport    = $("mapViewport");
 const mapSvg         = $("mapSvg");
 const propertiesPanel = $("propertiesPanel");
@@ -434,7 +422,6 @@ function openRoom(roomId) {
   WE.currentRoomId = roomId;
   WE.selectedPropId = null;
   WE.selectedWayId  = null;
-  hideExitPicker();
   const room = WE.rooms.get(roomId);
   roomTitle.textContent = room ? (room.label || roomId) : roomId;
   renderRoomList();
@@ -504,7 +491,6 @@ function updateZoomLabel() {
 
 function renderCanvas() {
   canvasStage.innerHTML = "";
-  hideExitPicker();
 
   const draft = currentDraft();
   const room  = draft || WE.rooms.get(WE.currentRoomId);
@@ -576,25 +562,30 @@ function renderPropEl(prop, room) {
   }
   el.dataset.propInstanceId = prop.prop_instance_id;
 
-  const sprite = document.createElement("div");
+  // Use a canvas to allow per-pixel background-colour removal via drawSpriteThumb.
+  // CSS background-image on a <div> cannot do pixel-level transparency stripping.
+  const sprite = document.createElement("canvas");
   sprite.className = "sprite";
+  sprite.width  = w;
+  sprite.height = h;
   sprite.style.width  = w + "px";
   sprite.style.height = h + "px";
+  sprite.style.imageRendering = "pixelated";
+  sprite.style.display = "block";
   if (pm) {
-    sprite.style.backgroundImage    = `url("${pm.image_url}")`;
-    sprite.style.backgroundPosition = `-${pm.frame.x}px -${pm.frame.y}px`;
-    sprite.style.backgroundRepeat   = "no-repeat";
-    sprite.style.backgroundSize     = "auto";
-    sprite.style.transform          = orientationTransform(orientation);
+    sprite.style.transform = orientationTransform(orientation);
+    const bgRgb = parseBgColor(pm.background_color);
+    _cachedLoadImage(pm.image_url).then(img => {
+      drawSpriteThumb(sprite, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height, bgRgb, 10, true);
+    }).catch(() => {});
   }
   el.appendChild(sprite);
 
-  // exit badge
-  if (prop.exit_way_id) {
-    const way  = WE.ways.get(prop.exit_way_id);
+  // interactive badge
+  if (prop.interactive) {
     const badge = document.createElement("div");
     badge.className   = "we-exit-badge";
-    badge.textContent = way ? (way.label || prop.exit_way_id) : prop.exit_way_id;
+    badge.textContent = "interactive";
     el.appendChild(badge);
   }
 
@@ -698,7 +689,7 @@ function onCanvasClick(e) {
     draft.props.push({
       prop_instance_id: instanceId,
       prop_id: WE.libraryPropId,
-      exit_way_id: null,
+      interactive: false,
       position: { x: snapToGrid(pos.x), y: snapToGrid(pos.y), orientation: "front", layer: 0, z_order: maxZ, scale: 1 },
     });
     WE.selectedPropId = instanceId;
@@ -712,7 +703,6 @@ function onCanvasClick(e) {
   if (WE.activeTool === "select") {
     WE.selectedPropId = null;
     WE.selectedWayId  = null;
-    hideExitPicker();
     renderCanvas();
     renderPropertiesPanel();
   }
@@ -720,13 +710,8 @@ function onCanvasClick(e) {
 
 function onPropMouseDown(e, propInstanceId) {
   e.stopPropagation();
-  if (WE.activeTool === "exit") {
-    showExitPickerFor(e, propInstanceId);
-    return;
-  }
   WE.selectedPropId = propInstanceId;
   WE.selectedWayId  = null;
-  hideExitPicker();
   renderCanvas();
   renderPropertiesPanel();
 
@@ -778,64 +763,6 @@ function onDragEnd(e) {
   renderCanvas();
   renderPropertiesPanel();
 }
-
-// ---------------------------------------------------------------------------
-// Exit picker
-// ---------------------------------------------------------------------------
-
-function showExitPickerFor(e, propInstanceId) {
-  WE.exitPickerPropId = propInstanceId;
-  WE.selectedPropId   = propInstanceId;
-
-  const draft = currentDraft();
-  const room  = draft || WE.rooms.get(WE.currentRoomId);
-  const wayIds = room?.ways || [];
-
-  const pos = stageCoords(e.clientX, e.clientY);
-  exitPicker.style.left = (pos.x * WE.zoom + WE.pan.x) + "px";
-  exitPicker.style.top  = (pos.y * WE.zoom + WE.pan.y) + "px";
-  exitPicker.innerHTML  = "";
-  exitPicker.classList.remove("hidden");
-
-  const noneOpt = document.createElement("button");
-  noneOpt.style.display = "block"; noneOpt.style.width = "100%";
-  noneOpt.textContent = "— none —";
-  noneOpt.addEventListener("click", () => assignExit(propInstanceId, null));
-  exitPicker.appendChild(noneOpt);
-
-  for (const wayId of wayIds) {
-    const way = WE.ways.get(wayId);
-    const btn = document.createElement("button");
-    btn.style.display = "block"; btn.style.width = "100%";
-    btn.textContent = way ? (way.label || wayId) : wayId;
-    btn.addEventListener("click", () => assignExit(propInstanceId, wayId));
-    exitPicker.appendChild(btn);
-  }
-}
-
-function assignExit(propInstanceId, wayId) {
-  const draft = currentDraft();
-  if (!draft) { hideExitPicker(); return; }
-  snapshotHistory(WE.currentRoomId);
-  const prop = draft.props?.find(p => p.prop_instance_id === propInstanceId);
-  if (prop) prop.exit_way_id = wayId;
-  markDirty(WE.currentRoomId);
-  hideExitPicker();
-  renderCanvas();
-  renderPropertiesPanel();
-}
-
-function hideExitPicker() {
-  exitPicker.classList.add("hidden");
-  exitPicker.innerHTML = "";
-  WE.exitPickerPropId  = null;
-}
-
-canvasViewport.addEventListener("click", e => {
-  if (e.target === canvasViewport && !exitPicker.classList.contains("hidden")) {
-    hideExitPicker();
-  }
-});
 
 // ---------------------------------------------------------------------------
 // Prop context menu
@@ -940,6 +867,10 @@ function renderRoomProperties() {
   if (!room) return;
   const stage = room.stage || {};
   const isStandard = stage.type === "standard";
+  const bgMatch = findImageChoice(room.background);
+  const bgLabel = bgMatch
+    ? (bgMatch.label || bgMatch.path)
+    : (room.background || "— none —");
 
   propertiesPanel.innerHTML = `
     <div class="we-form-grid">
@@ -948,7 +879,13 @@ function renderRoomProperties() {
       <label><span>Description</span><textarea id="rp-desc" rows="3">${esc(room.description || '')}</textarea></label>
       <label><span>Owner</span><input id="rp-owner" type="text" value="${esc(room.owner_id || '')}"></label>
       <label><span>Background Image</span>
-        <select id="rp-bg">${imageOptions(room.background)}</select>
+        <div class="we-bg-picker-field">
+          <button id="rp-bg-open" type="button">Choose…</button>
+          <button id="rp-bg-clear" type="button"${room.background ? "" : " disabled"}>Clear</button>
+        </div>
+        <input id="rp-bg" type="hidden" value="${esc(room.background || "")}">
+        <span id="rp-bg-current" class="we-bg-picker-current">${esc(bgLabel)}</span>
+        <div id="rp-bg-preview" class="we-bg-picker-preview"></div>
       </label>
     </div>
     <details open style="margin-top:1rem">
@@ -1013,6 +950,24 @@ function renderRoomProperties() {
     renderRoomList();
   }
 
+  function refreshBgPreview() {
+    const bgPath = $("rp-bg")?.value || "";
+    const match = findImageChoice(bgPath);
+    const currentEl = $("rp-bg-current");
+    const previewEl = $("rp-bg-preview");
+    const clearBtn = $("rp-bg-clear");
+    if (currentEl) currentEl.textContent = match ? (match.label || match.path) : (bgPath || "— none —");
+    if (clearBtn) clearBtn.disabled = !bgPath;
+    if (previewEl) {
+      if (!bgPath) {
+        previewEl.innerHTML = "";
+      } else {
+        const url = match?.url || resolveAssetUrl(bgPath);
+        previewEl.innerHTML = `<img class="we-bg-picker-thumb" src="${esc(url)}" alt="">`;
+      }
+    }
+  }
+
   // Text / textarea: live preview on every keystroke.
   for (const id of ["rp-label", "rp-owner", "rp-theme"]) {
     $(id)?.addEventListener("input", () => { maybeSnap(); liveApply(); });
@@ -1025,9 +980,26 @@ function renderRoomProperties() {
   }
 
   // Selects: update on pick.
-  for (const id of ["rp-bg", "rp-bgmode", "rp-floorimg"]) {
+  for (const id of ["rp-bgmode", "rp-floorimg"]) {
     $(id)?.addEventListener("change", () => { maybeSnap(); liveApply(); });
   }
+
+  $("rp-bg-open")?.addEventListener("click", () => {
+    openBackgroundPicker($("rp-bg")?.value || "", (nextPath) => {
+      maybeSnap();
+      if ($("rp-bg")) $("rp-bg").value = nextPath;
+      refreshBgPreview();
+      liveApply();
+    });
+  });
+  $("rp-bg-clear")?.addEventListener("click", () => {
+    maybeSnap();
+    if ($("rp-bg")) $("rp-bg").value = "";
+    refreshBgPreview();
+    liveApply();
+  });
+
+  refreshBgPreview();
 
   // Stage type: re-render the whole panel (fields change) then apply.
   $("rp-stagetype")?.addEventListener("change", () => {
@@ -1039,17 +1011,28 @@ function renderRoomProperties() {
 
 function imageOptions(current) {
   const cur = current || "";
-  // Also match by basename in case YAML stores a bare filename like "bg.png"
-  // while img.path is "images/bg.png".
-  const curBasename = cur.includes("/") ? cur.split("/").pop() : cur;
   let html = `<option value=""${!cur?" selected":""}>— none —</option>`;
   for (const img of WE.images) {
-    const imgBasename = img.path.includes("/") ? img.path.split("/").pop() : img.path;
-    const sel = img.path === cur || img.url === cur ||
-                (cur && imgBasename === curBasename) ? " selected" : "";
+    const sel = imageMatchesCurrent(img, cur) ? " selected" : "";
     html += `<option value="${esc(img.path)}"${sel}>${esc(img.label || img.path)}</option>`;
   }
   return html;
+}
+
+function imageMatchesCurrent(img, current) {
+  const cur = current || "";
+  if (!cur) return false;
+  const curBasename = cur.includes("/") ? cur.split("/").pop() : cur;
+  const imgPath = img?.path || "";
+  const imgBasename = imgPath.includes("/") ? imgPath.split("/").pop() : imgPath;
+  return imgPath === cur || img.url === cur || imgBasename === curBasename;
+}
+
+function findImageChoice(current) {
+  for (const img of WE.images) {
+    if (imageMatchesCurrent(img, current)) return img;
+  }
+  return null;
 }
 
 function resolveAssetUrl(path) {
@@ -1066,14 +1049,6 @@ function renderPropProperties() {
   if (!prop) { renderRoomProperties(); return; }
   const meta = resolveLibProp(prop.prop_id);
   const pos  = prop.position || {};
-  const wayIds = room.ways || [];
-
-  let exitHtml = `<option value=""${!prop.exit_way_id?" selected":""}>— none —</option>`;
-  for (const wid of wayIds) {
-    const w   = WE.ways.get(wid);
-    const lbl = w ? (w.label || wid) : wid;
-    exitHtml += `<option value="${esc(wid)}"${prop.exit_way_id===wid?" selected":""}>${esc(lbl)}</option>`;
-  }
 
   const thumbHtml = meta?.display?.prop_meta
     ? `<canvas id="pp-thumb" class="we-selected-prop-thumb" width="80" height="80"></canvas>`
@@ -1093,8 +1068,8 @@ function renderPropProperties() {
       </label>
       <label><span>Layer</span><input id="pp-layer" type="number" value="${pos.layer||0}"></label>
       <label><span>Z-order</span><input id="pp-z" type="number" value="${pos.z_order||0}"></label>
-      <label><span>Exit</span>
-        <select id="pp-exit">${exitHtml}</select>
+      <label><span>Interactive</span>
+        <input id="pp-interactive" type="checkbox"${prop.interactive ? " checked" : ""}>
       </label>
     </div>
     <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
@@ -1108,7 +1083,7 @@ function renderPropProperties() {
     const thumbCanvas = $("pp-thumb");
     if (thumbCanvas) {
       _cachedLoadImage(pm.image_url).then(img => {
-        _drawSpriteThumb(thumbCanvas, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height);
+        _drawSpriteThumb(thumbCanvas, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height, parseBgColor(pm.background_color));
       }).catch(() => {});
     }
   }
@@ -1130,7 +1105,7 @@ function renderPropProperties() {
     prop.position.orientation = $("pp-orient").value;
     prop.position.layer       = parseInt($("pp-layer").value) || 0;
     prop.position.z_order     = parseInt($("pp-z").value) || 0;
-    prop.exit_way_id          = $("pp-exit").value || null;
+    prop.interactive          = $("pp-interactive").checked;
     markDirty(WE.currentRoomId);
     renderCanvas();
   }
@@ -1141,9 +1116,10 @@ function renderPropProperties() {
   }
 
   // Selects: update immediately on pick.
-  for (const id of ["pp-orient", "pp-exit"]) {
-    $(id)?.addEventListener("change", () => { maybeSnap(); liveApply(); });
-  }
+  $("pp-orient")?.addEventListener("change", () => { maybeSnap(); liveApply(); });
+
+  // Checkbox: update immediately on change.
+  $("pp-interactive")?.addEventListener("change", () => { maybeSnap(); liveApply(); });
 
   $("pp-remove").addEventListener("click", () => removeProp(WE.selectedPropId));
   $("pp-dup")?.addEventListener("click", () => duplicateProp(WE.selectedPropId));
@@ -1345,7 +1321,7 @@ function renderPropLibraryGrid() {
       thumbWrap.appendChild(canvas);
       card.appendChild(thumbWrap);
       _cachedLoadImage(pm.image_url).then(img => {
-        _drawSpriteThumb(canvas, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height);
+        _drawSpriteThumb(canvas, img, pm.frame.x, pm.frame.y, pm.frame.width, pm.frame.height, parseBgColor(pm.background_color));
       }).catch(() => {});
     }
 
@@ -1466,6 +1442,75 @@ function startMapDrag(e, roomId) {
 // Modal dialogs
 // ---------------------------------------------------------------------------
 
+function openBackgroundPicker(currentPath, onPick) {
+  const selected = findImageChoice(currentPath)?.path || currentPath || "";
+  modalTitle.textContent = "Choose Background Image";
+  modalForm.innerHTML = `
+    <div class="we-bg-picker-shell">
+      <input id="bgpick-search" type="search" placeholder="Search backgrounds by name or path…" />
+      <div class="we-bg-picker-top-actions">
+        <button id="bgpick-none" type="button" class="we-bg-picker-none${selected ? "" : " is-selected"}">No background</button>
+      </div>
+      <div id="bgpick-grid" class="we-bg-picker-grid"></div>
+      <div class="we-modal-footer">
+        <button type="button" id="btnCancelModal">Cancel</button>
+      </div>
+    </div>`;
+  modalForm.onsubmit = e => e.preventDefault();
+  modalBackdrop.classList.remove("hidden");
+
+  const searchEl = $("bgpick-search");
+  const gridEl = $("bgpick-grid");
+  const noneBtn = $("bgpick-none");
+  const cancelBtn = $("btnCancelModal");
+
+  const renderGrid = () => {
+    const q = (searchEl?.value || "").trim().toLowerCase();
+    const matches = WE.images.filter((img) => {
+      if (!q) return true;
+      const label = (img.label || "").toLowerCase();
+      const path = (img.path || "").toLowerCase();
+      return label.includes(q) || path.includes(q);
+    });
+
+    if (!gridEl) return;
+    if (!matches.length) {
+      gridEl.innerHTML = `<div class="we-bg-picker-empty">No backgrounds found.</div>`;
+      return;
+    }
+
+    gridEl.innerHTML = matches.map((img) => {
+      const label = img.label || img.path;
+      const path = img.path || "";
+      const isSelected = path === selected ? " is-selected" : "";
+      const url = img.url || resolveAssetUrl(path);
+      return `
+        <button type="button" class="we-bg-picker-card${isSelected}" data-bg-path="${esc(path)}" title="${esc(path)}">
+          <img class="we-bg-picker-card-thumb" src="${esc(url)}" alt="${esc(label)}">
+          <span class="we-bg-picker-card-label">${esc(label)}</span>
+          <span class="we-bg-picker-card-path">${esc(path)}</span>
+        </button>`;
+    }).join("");
+
+    for (const btn of gridEl.querySelectorAll(".we-bg-picker-card")) {
+      btn.addEventListener("click", () => {
+        onPick(btn.getAttribute("data-bg-path") || "");
+        closeModal();
+      });
+    }
+  };
+
+  noneBtn?.addEventListener("click", () => {
+    onPick("");
+    closeModal();
+  });
+  cancelBtn?.addEventListener("click", closeModal);
+  searchEl?.addEventListener("input", renderGrid);
+
+  renderGrid();
+  searchEl?.focus();
+}
+
 function showModal(title, fieldsHtml, onSubmit, submitLabel = "Create") {
   modalTitle.textContent = title;
   modalForm.innerHTML    = fieldsHtml + `<div class="we-modal-footer"><button type="submit">${submitLabel}</button><button type="button" id="btnCancelModal">Cancel</button></div>`;
@@ -1563,13 +1608,11 @@ function setTool(tool) {
   WE.activeTool = tool;
   toolSelect.classList.toggle("is-active", tool === "select");
   toolPlace.classList.toggle("is-active",  tool === "place");
-  toolExit.classList.toggle("is-active",   tool === "exit");
-  canvasViewport.style.cursor = tool === "place" ? "crosshair" : tool === "exit" ? "cell" : "default";
+  canvasViewport.style.cursor = tool === "place" ? "crosshair" : "default";
 }
 
 toolSelect.addEventListener("click", () => setTool("select"));
 toolPlace.addEventListener("click",  () => setTool("place"));
-toolExit.addEventListener("click",   () => setTool("exit"));
 
 // ---------------------------------------------------------------------------
 // Tab switching
@@ -1664,13 +1707,11 @@ document.addEventListener("keydown", e => {
 
   if (e.key === "s" || e.key === "S") { setTool("select"); return; }
   if (e.key === "p" || e.key === "P") { setTool("place");  return; }
-  if (e.key === "e" || e.key === "E") { setTool("exit");   return; }
   if (e.key === "l" || e.key === "L") { btnToggleLib.click(); return; }
   if (e.key === "g" || e.key === "G") { btnToggleGrid.click(); return; }
   if (e.key === "f" || e.key === "F") { fitView(); return; }
   if (e.key === "Escape") {
     if (WE.activeTool !== "select") setTool("select");
-    hideExitPicker();
     return;
   }
   if ((e.ctrlKey || e.metaKey) && e.key === "z") {

@@ -20,7 +20,7 @@ blueprint = Blueprint("world_editor", __name__)
 
 _STATIC_FOLDER = Path(__file__).parent.parent / "app"
 _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
-_ID_RE = re.compile(r"^[a-z0-9_]+$")
+_ID_RE         = re.compile(r"^[a-zA-Z0-9_]+$")
 
 
 def _feature_enabled() -> bool:
@@ -321,8 +321,6 @@ def _build_room_props(room, raw_props, allowed_way_ids: set[str] | None = None) 
     if raw_props is None:
         props = {}
         for prop_instance_id, prop in room.props.items():
-            if allowed_way_ids is not None and prop.metadata.get("exit_way_id") not in allowed_way_ids:
-                prop.metadata.pop("exit_way_id", None)
             props[prop_instance_id] = prop
         max_z = max([10, *[int(getattr(prop, "z_order", 0)) for prop in props.values()]])
         return props, max_z
@@ -369,12 +367,8 @@ def _build_room_props(room, raw_props, allowed_way_ids: set[str] | None = None) 
         )
         prop = Prop(prop_instance_id, prop_id, merged_info, room.room_id)
         prop._display_assets = icons._build_prop_display_assets(prop_id, _prop_repo())
-        exit_way_id = str(raw_prop.get("exit_way_id") or raw_prop.get("metadata", {}).get("exit_way_id") or "").strip()
-        if exit_way_id:
-            valid_way_ids = allowed_way_ids if allowed_way_ids is not None else set(room.ways.keys())
-            if exit_way_id not in valid_way_ids:
-                raise ValueError(f"unknown exit way '{exit_way_id}'")
-            prop.metadata["exit_way_id"] = exit_way_id
+        if raw_prop.get("interactive") or raw_prop.get("metadata", {}).get("interactive"):
+            prop.metadata["interactive"] = True
         next_props[prop.prop_instance_id] = prop
         max_z = max(max_z, z_order)
     return next_props, max_z
@@ -707,10 +701,6 @@ def delete_way(way_id):
                 world.room_defs[room.room_id] = room.info
                 _persist_definition(Path(world.root_path), room.room_id, room.info)
                 affected_room_ids.add(room.room_id)
-            for prop in room.props.values():
-                if prop.metadata.get("exit_way_id") == way_id:
-                    prop.metadata.pop("exit_way_id", None)
-                    affected_room_ids.add(room.room_id)
 
         del world.ways[way_id]
         world.room_defs.pop(way_id, None)

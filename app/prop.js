@@ -2,7 +2,7 @@ function clonePropState(prop) {
   return {
     prop_instance_id: prop.prop_instance_id,
     prop_id: prop.prop_id,
-    exit_way_id: prop.exit_way_id || null,
+    interactive: prop.interactive || false,
     decorators: Array.isArray(prop.decorators) ? [...prop.decorators] : [],
     position: { ...(prop.position || {}) },
   };
@@ -125,21 +125,10 @@ function deleteDraftProp(propInstanceId) {
   renderRoomStage(roomState.backgroundPath);
 }
 
-function cycleExitAssignment(propInstanceId) {
+function toggleInteractiveDraftProp(propInstanceId) {
   const prop = roomEditor.draftProps.get(propInstanceId);
   if (!prop) return;
-  const exits = roomState.exits || [];
-  if (exits.length === 0) return;
-  const currentId = prop.exit_way_id || null;
-  const currentIdx = exits.findIndex(e => e.id === currentId);
-  // Cycle: none → exits[0] → exits[1] → ... → none
-  if (currentId === null) {
-    prop.exit_way_id = exits[0].id;
-  } else if (currentIdx >= 0 && currentIdx < exits.length - 1) {
-    prop.exit_way_id = exits[currentIdx + 1].id;
-  } else {
-    prop.exit_way_id = null;
-  }
+  prop.interactive = !prop.interactive;
   roomEditor.draftProps.set(propInstanceId, prop);
   renderRoomStage(roomState.backgroundPath);
 }
@@ -153,6 +142,7 @@ function addDraftProp(propId) {
   const nextProp = {
     prop_instance_id: instanceId,
     prop_id: propId,
+    interactive: false,
     position: { x, y, orientation: "front", layer: 0, z_order: nextDraftZOrder() },
   };
   roomEditor.draftProps.set(instanceId, nextProp);
@@ -170,7 +160,7 @@ function saveRoomEdits() {
     payloadProps.push({
       prop_instance_id: prop.prop_instance_id,
       prop_id: prop.prop_id,
-      exit_way_id: prop.exit_way_id || null,
+      interactive: prop.interactive || false,
       x: Number(prop.position?.x || 0),
       y: Number(prop.position?.y || 0),
       orientation: prop.position?.orientation || "front",
@@ -192,11 +182,6 @@ function renderRoomEditorActivity() {
       return `<button class="palette-btn room-editor-prop-btn" data-prop-add="${safeId}" ${saveDisabled}>+ ${safeLabel}</button>`;
     })
     .join("");
-  const exitsList = (roomState.exits || []).length > 0
-    ? `<div style="margin-top:0.4rem;font-size:0.72rem;opacity:0.75;">Exits: ${
-        roomState.exits.map(e => `<span>${escapeHtml(e.label || e.id)}</span>`).join(", ")
-      } — use 🚪 on a prop to assign</div>`
-    : "";
   const claimSection = roomState.canClaimRoom
     ? `<div style="margin-top:0.5rem;">
          <button id="btnRoomEditorClaim">Claim Room</button>
@@ -216,7 +201,6 @@ function renderRoomEditorActivity() {
       ${claimSection}
       <div>${roomEditor.saving ? "Saving room..." : "Add prop from library:"}</div>
       <div class="character-editor-actions">${propsList}</div>
-      ${exitsList}
     </div>
   `;
   const btnSave = document.getElementById("btnRoomEditorSave");

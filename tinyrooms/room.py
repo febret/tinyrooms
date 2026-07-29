@@ -164,7 +164,7 @@ class Room:
         return {
             'prop_instance_id': prop.prop_instance_id,
             'prop_id': prop.prop_id,
-            'exit_way_id': prop.metadata.get('exit_way_id') or None,
+            'interactive': bool(prop.metadata.get('interactive', False)),
             'decorators': self._serialize_decorators(prop),
             'position': {
                 'x': prop.x,

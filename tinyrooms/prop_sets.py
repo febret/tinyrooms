@@ -232,6 +232,12 @@ def build_prop_display_payload(
             "speed": prop.anim_speed,
             "frames": [{"x": fx, "y": fy, "width": prop.width, "height": prop.height} for fx, fy in prop.frames],
         }
+    elif len(prop.frames) > 1:
+        # Expose all frames for non-animated multi-frame props (used for interactive frame cycling).
+        payload["all_frames"] = [
+            {"x": fx, "y": fy, "width": prop.width, "height": prop.height}
+            for fx, fy in prop.frames
+        ]
     return payload
 
 

@@ -2,6 +2,8 @@
 Props are semi-static objects that can be added to a tinyrooms room and can only be modified by the room owner.
 A prop is made of one or more images, and is optionally animated.
 
+Props are **non-interactive by default**: users cannot click or select them in the room view. Only props explicitly marked as `interactive` respond to user input.
+
 ## Referencing Props
 A prop can be referenced using a string in the format `#<filename>/<propId>[/<frameNum>][.x<x>][.y<y>][.r<deg>]` where
 - `filename` is the stem of the prop set YAML file (without extension)
@@ -41,6 +43,15 @@ props:
       - [64, 0]
     anim_speed: 0.25  # optional: seconds between frames for auto-animation
 ```
+
+## Interactive Props
+By default, props are non-interactive and cannot be clicked or selected by users.
+
+Prop instances can be marked as **interactive** via the room editor (toggle button on each prop) or the world editor (Interactive checkbox in the prop properties panel). Interactive props:
+
+- Can be clicked / tapped by users in the room view.
+- Display their description in the look box when selected.
+- If a prop has **multiple frames** and is **not animated** (no `anim_speed`), each click cycles through its frames. This enables stateful visual props such as open/close windows, toggled switches, or flower pot variants.
 
 ## Server Routes
 - `GET /props/<scope>/<filename>` — serves the prop image file; scope is `world` or `server`
@@ -89,5 +100,7 @@ The prop editor is a web-based prop creation utility available at `/prop-editor`
 
 ## Client Rendering
 Props with a `prop_meta` field in their display data are rendered as a CSS-clipped `<div>` (background-image + background-position + fixed width/height), enabling pixel-accurate frame selection. If `prop_meta.animation` is present, a `setInterval` loop cycles through the frame list at the specified `speed` in seconds.
+
+For non-animated multi-frame props, the display payload includes an `all_frames` array alongside the current `frame`, enabling the client to perform interactive frame cycling when the prop instance is marked interactive.
 
 Legacy props that only carry `display.sprite` or `display.img` continue to render via a plain `<img>` element.

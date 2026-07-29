@@ -439,13 +439,19 @@ async function pixiCreatePropSprite(prop) {
         sprite.x = meta.offset_x || 0;
         sprite.y = meta.offset_y || 0;
       }
-      return { sprite, animTicker };
+      return { sprite, animTicker, allFrameTextures: [] };
     }
+
+    // Build all-frames list for non-animated multi-frame props (used for interactive cycling).
+    const allFrameTextures = Array.isArray(meta.all_frames) && meta.all_frames.length > 1
+      ? meta.all_frames.map(f => makeFrameTexture(baseTex, f))
+      : [];
 
     if (meta.offset_x || meta.offset_y) {
       sprite.x = meta.offset_x || 0;
       sprite.y = meta.offset_y || 0;
     }
+    return { sprite, animTicker: null, allFrameTextures };
   } else {
     const imgUrl = resolveAssetUrl(propDef?.display?.sprite || propDef?.display?.img || "");
     const tex = await loadPixiTextureWithBgTransparency(imgUrl, meta);
@@ -454,7 +460,7 @@ async function pixiCreatePropSprite(prop) {
     clampSpriteSize(sprite, 64, 64);
   }
 
-  return { sprite, animTicker: null };
+  return { sprite, animTicker: null, allFrameTextures: [] };
 }
 
 function _buildPropEditorControls(prop, wrapper) {
@@ -485,13 +491,12 @@ function _buildPropEditorControls(prop, wrapper) {
   const rotateBtn = makePropControlButton("↻", "Rotate", () => {
     rotateDraftProp(prop.prop_instance_id);
   });
-  const exitBtn = makePropControlButton(
-    "🚪",
-    prop.exit_way_id
-      ? `Exit: ${prop.exit_way_id} (click to change)`
-      : "Assign exit (click to set)",
+  const isInteractive = prop.interactive || false;
+  const interactiveBtn = makePropControlButton(
+    isInteractive ? "🔵" : "○",
+    isInteractive ? "Interactive (click to toggle off)" : "Not interactive (click to make interactive)",
     () => {
-      cycleExitAssignment(prop.prop_instance_id);
+      toggleInteractiveDraftProp(prop.prop_instance_id);
     },
   );
   const deleteBtn = makePropControlButton("✕", "Delete", () => {
@@ -500,7 +505,7 @@ function _buildPropEditorControls(prop, wrapper) {
 
   controlDiv.addEventListener("pointerdown", ev => ev.stopPropagation());
   controlDiv.appendChild(rotateBtn);
-  controlDiv.appendChild(exitBtn);
+  controlDiv.appendChild(interactiveBtn);
   controlDiv.appendChild(deleteBtn);
   pixiEditorOverlay.appendChild(controlDiv);
   updateEditorOverlayControlPositions();
@@ -517,11 +522,8 @@ async function pixiRenderProps() {
   if (pixiEditorOverlay) pixiEditorOverlay.innerHTML = "";
 
   for (const prop of getEditableProps().values()) {
-    const { sprite, animTicker } = await pixiCreatePropSprite(prop);
+    const { sprite, animTicker, allFrameTextures } = await pixiCreatePropSprite(prop);
     const propDef = resolvePropLibraryDef(prop);
-    const exitDef = prop.exit_way_id
-      ? (roomState.exits.find(e => e.id === prop.exit_way_id) || null)
-      : null;
 
     const wrapper = new PIXI.Container();
     wrapper.x = prop.position?.x || 0;
@@ -531,8 +533,6 @@ async function pixiRenderProps() {
     if (Number.isFinite(instScale) && instScale > 0 && Math.abs(instScale - 1) > 0.001) {
       wrapper.scale.set(instScale);
     }
-    wrapper.eventMode = "static";
-    wrapper.cursor = "pointer";
     wrapper.addChild(sprite);
     const decoratorTicker = await pixiApplyDecoratorsToWrapper(
       wrapper,
@@ -556,40 +556,51 @@ async function pixiRenderProps() {
       wrapper.addChild(outline);
     }
 
-    if (exitDef) {
-      const badge = new PIXI.Text({
-        text: `→ ${exitDef.label || prop.exit_way_id}`,
-        style: new PIXI.TextStyle({
-          fontSize: 10,
-          fill: 0xffffee,
-          stroke: { color: 0x000000, width: 2 },
-        }),
-      });
-      badge.anchor.set(0.5, 0);
-      const bounds = sprite.getLocalBounds();
-      badge.x = (sprite.x || 0) + (bounds.width || 32) / 2;
-      badge.y = (sprite.y || 0) + (bounds.height || 32) + 4;
-      wrapper.addChild(badge);
-    }
+    const isInteractive = prop.interactive || false;
+    const isCycling = isInteractive && allFrameTextures.length > 1;
 
-    bindTargetInteractions(wrapper, () => {
-      if (exitDef) {
-        return {
-          type: "prop",
-          id: prop.prop_instance_id,
-          label: exitDef.label || propDef?.label || prop.prop_id || "exit",
-          description: `Exit to ${exitDef.label || prop.exit_way_id}`,
-          exit_way_id: prop.exit_way_id,
-          exit_label: exitDef.label || prop.exit_way_id,
-        };
-      }
-      return {
+    if (roomEditor.enabled) {
+      // In editor mode props are always interactive so they can be selected.
+      wrapper.eventMode = "static";
+      wrapper.cursor = "pointer";
+      bindTargetInteractions(wrapper, () => ({
+        type: "prop",
+        id: prop.prop_instance_id,
+        label: propDef?.label || prop.prop_id || "prop",
+        description: propDef?.description || "",
+      }));
+    } else if (isCycling) {
+      // Interactive multi-frame non-animated prop: clicking cycles frames and shows description.
+      wrapper.eventMode = "static";
+      wrapper.cursor = "pointer";
+      const targetInfo = {
         type: "prop",
         id: prop.prop_instance_id,
         label: propDef?.label || prop.prop_id || "prop",
         description: propDef?.description || "",
       };
-    });
+      wrapper.on("pointertap", (ev) => {
+        ev.stopPropagation();
+        const node = pixiPropNodes.get(prop.prop_instance_id);
+        if (!node) return;
+        node.currentFrameIdx = (node.currentFrameIdx + 1) % node.allFrameTextures.length;
+        node.frameSprite.texture = node.allFrameTextures[node.currentFrameIdx];
+        selectTarget(targetInfo);
+      });
+    } else if (isInteractive) {
+      // Interactive prop: clicking shows description.
+      wrapper.eventMode = "static";
+      wrapper.cursor = "pointer";
+      bindTargetInteractions(wrapper, () => ({
+        type: "prop",
+        id: prop.prop_instance_id,
+        label: propDef?.label || prop.prop_id || "prop",
+        description: propDef?.description || "",
+      }));
+    } else {
+      // Non-interactive prop: no pointer events.
+      wrapper.eventMode = "none";
+    }
 
     if (roomState.canEditProps && roomEditor.enabled) {
       pixiAttachPropDrag(wrapper, prop.prop_instance_id);
@@ -597,7 +608,14 @@ async function pixiRenderProps() {
     }
 
     pixiPropsContainer.addChild(wrapper);
-    pixiPropNodes.set(prop.prop_instance_id, { sprite: wrapper, animTicker, decoratorTicker });
+    pixiPropNodes.set(prop.prop_instance_id, {
+      sprite: wrapper,
+      frameSprite: sprite,
+      animTicker,
+      decoratorTicker,
+      allFrameTextures,
+      currentFrameIdx: 0,
+    });
   }
 }
 

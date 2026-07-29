@@ -376,6 +376,8 @@ button:hover {
   border-radius: 8px;
   padding: 0.45rem;
   text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
 
 .we-prop-card.is-selected {
@@ -482,6 +484,106 @@ button:hover {
   gap: 0.75rem;
 }
 
+.we-bg-picker-field {
+  display: flex;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.we-bg-picker-current {
+  display: block;
+  color: #b9c7e3;
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
+.we-bg-picker-preview {
+  margin-top: 0.35rem;
+}
+
+.we-bg-picker-thumb {
+  width: 100%;
+  max-width: 180px;
+  height: 90px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid #33415c;
+  border-radius: 6px;
+  background: #0f1420;
+}
+
+.we-bg-picker-shell {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.we-bg-picker-top-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.we-bg-picker-none.is-selected {
+  border-color: #ffd166;
+}
+
+.we-bg-picker-grid {
+  max-height: 360px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.55rem;
+}
+
+.we-bg-picker-card {
+  border: 1px solid #33415c;
+  border-radius: 8px;
+  background: #162238;
+  padding: 0.4rem;
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.we-bg-picker-card:hover {
+  border-color: #8ab4ff;
+}
+
+.we-bg-picker-card.is-selected {
+  border-color: #ffd166;
+}
+
+.we-bg-picker-card-thumb {
+  width: 100%;
+  height: 72px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: #0f1420;
+  border: 1px solid #2e3f5f;
+  border-radius: 6px;
+}
+
+.we-bg-picker-card-label {
+  font-size: 0.8rem;
+  color: #e8efff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-bg-picker-card-path {
+  font-size: 0.68rem;
+  color: #8ea1c3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-bg-picker-empty {
+  color: #a6b6d7;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.3rem;
+}
+
 .we-modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -528,11 +630,6 @@ button:hover {
 
 .we-library-search-row select {
   min-width: 90px;
-}
-
-.we-prop-card {
-  cursor: pointer;
-  transition: border-color 0.15s;
 }
 
 .we-prop-card:hover {
