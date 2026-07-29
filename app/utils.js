@@ -3,7 +3,11 @@ function resolveBackgroundUrl(backgroundPath) {
   if (backgroundPath.startsWith("/") || backgroundPath.startsWith("http://") || backgroundPath.startsWith("https://")) {
     return backgroundPath;
   }
-  return "/world/images/" + backgroundPath;
+  const normalized = String(backgroundPath).replace(/^\/+/, "");
+  if (normalized.startsWith("images/")) {
+    return "/world/" + normalized;
+  }
+  return "/world/images/" + normalized;
 }
 
 function resolveAssetUrl(assetPath) {

@@ -25,6 +25,7 @@
   const zoomLabel = document.getElementById("zoomLabel");
   const propCanvas = document.getElementById("propCanvas");
   const overlayCanvas = document.getElementById("overlayCanvas");
+  const canvasViewport = document.getElementById("canvasViewport");
   const propList = document.getElementById("propList");
   const newPropId = document.getElementById("newPropId");
   const renamePropId = document.getElementById("renamePropId");
@@ -116,6 +117,18 @@
     bgColorSwatch.style.border = rgb ? "1px solid #555" : "1px dashed #555";
   }
 
+  function normalizeZoom(value) {
+    const raw = Number(value);
+    if (!Number.isFinite(raw) || raw <= 0) return 1;
+    const step = 0.25;
+    const snapped = Math.round(raw / step) * step;
+    return Math.min(8, Math.max(0.25, snapped));
+  }
+
+  function formatZoom(value) {
+    return `${Number(value).toFixed(value % 1 === 0 ? 0 : 2)}×`;
+  }
+
   function drawCanvas() {
     if (!state.image) {
       ctx.clearRect(0, 0, propCanvas.width, propCanvas.height);
@@ -140,7 +153,7 @@
     overlayCanvas.style.width = `${width}px`;
     overlayCanvas.style.height = `${height}px`;
     zoomSlider.value = String(state.zoom);
-    zoomLabel.textContent = `${state.zoom}×`;
+    zoomLabel.textContent = formatZoom(state.zoom);
   }
 
   function drawOverlay() {
@@ -380,8 +393,16 @@
     const frames = Array.isArray(prop.frames) ? prop.frames : [];
     const pw = parsePositiveInt(prop.width, 32);
     const ph = parsePositiveInt(prop.height, 32);
-    const thumbW = Math.max(12, Math.min(64, pw));
-    const thumbH = Math.max(12, Math.min(64, ph));
+    const thumbW = Math.max(24, Math.min(72, pw));
+    const thumbH = Math.max(24, Math.min(72, ph));
+
+    if (frames.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "tag-editor-empty";
+      empty.textContent = "No frames yet.";
+      framesStrip.appendChild(empty);
+      return;
+    }
 
     frames.forEach((frame, idx) => {
       const [fx, fy] = frame;
@@ -602,7 +623,7 @@
     setStatus("Saved propset.");
   }
 
-  function removeLastFrame() {
+  function deleteSelectedFrame() {
     const prop = selectedProp();
     if (!prop) return;
     const frames = Array.isArray(prop.frames) ? prop.frames : [];
@@ -610,16 +631,21 @@
       setStatus("A prop must have at least one frame.", true);
       return;
     }
-    const removed = frames.pop();
-    state.selectedFrameIdx = frames.length - 1;
+    if (state.selectedFrameIdx == null || state.selectedFrameIdx >= frames.length) {
+      setStatus("Select a frame to delete first.", true);
+      return;
+    }
+    const removed = frames.splice(state.selectedFrameIdx, 1)[0];
+    const nextIdx = Math.min(state.selectedFrameIdx, frames.length - 1);
+    state.selectedFrameIdx = nextIdx;
     renderFrames();
     renderPropDetails();
     drawOverlay();
-    markDirty(`Removed last frame (${removed[0]},${removed[1]}).`);
+    markDirty(`Deleted frame (${removed[0]},${removed[1]}).`);
   }
 
   function setZoom(nextZoom) {
-    state.zoom = Math.max(1, Math.min(8, Number(nextZoom) || 1));
+    state.zoom = normalizeZoom(nextZoom);
     applyZoom();
     drawOverlay();
   }
@@ -737,7 +763,7 @@
   document.getElementById("btnDeleteProp").addEventListener("click", deleteProp);
   document.getElementById("btnRenameProp").addEventListener("click", renameProp);
   document.getElementById("btnSaveSet").addEventListener("click", () => saveSet().catch((err) => setStatus(err.message, true)));
-  document.getElementById("btnRemoveFrame").addEventListener("click", removeLastFrame);
+  document.getElementById("btnDeleteFrame").addEventListener("click", deleteSelectedFrame);
 
   btnPickBgColor.addEventListener("click", () => {
     state.pickingBgColor = !state.pickingBgColor;
@@ -758,9 +784,9 @@
     markDirty("Cleared background color.");
   });
 
-  zoomSlider.addEventListener("input", () => setZoom(Number.parseInt(zoomSlider.value, 10)));
-  document.getElementById("btnZoomIn").addEventListener("click", () => setZoom(state.zoom + 1));
-  document.getElementById("btnZoomOut").addEventListener("click", () => setZoom(state.zoom - 1));
+  zoomSlider.addEventListener("input", () => setZoom(zoomSlider.value));
+  document.getElementById("btnZoomIn").addEventListener("click", () => setZoom(state.zoom + 0.25));
+  document.getElementById("btnZoomOut").addEventListener("click", () => setZoom(state.zoom - 0.25));
 
   propSearchInput.addEventListener("input", () => {
     state.propNameQuery = String(propSearchInput.value || "").trim();

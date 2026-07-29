@@ -1,11 +1,10 @@
+/* sprite-editor.css — editor-specific styles only.
+   Base styles live in editor-common.css (loaded first). */
+
 html,
 body {
-  margin: 0;
   height: 100%;
   overflow: hidden;
-  font-family: sans-serif;
-  background: #111;
-  color: #eee;
 }
 
 .sprite-editor {
@@ -15,10 +14,8 @@ body {
   overflow: hidden;
 }
 
+/* Extra panel constraints specific to this editor */
 .panel {
-  padding: 0.8rem;
-  border-right: 1px solid #2d2d2d;
-  min-width: 0;
   min-height: 0;
 }
 
@@ -36,12 +33,7 @@ body {
   border-right: none;
 }
 
-.auth-row {
-  display: flex;
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
-}
-
+/* ── Browser tabs ── */
 .browser-tabs {
   display: flex;
   gap: 0.35rem;
@@ -63,29 +55,7 @@ body {
   display: none;
 }
 
-.auth-row input,
-.auth-row button {
-  min-width: 0;
-}
-
-input,
-button,
-select {
-  background: #1b1b1b;
-  border: 1px solid #444;
-  color: #eee;
-  padding: 0.35rem;
-}
-
-input,
-select {
-  width: 100%;
-}
-
-button {
-  cursor: pointer;
-}
-
+/* ── Spriteset meta / canvas ── */
 #setMeta {
   color: #ff8f8f;
   font-size: 0.8rem;
@@ -108,19 +78,9 @@ button {
   image-rendering: pixelated;
 }
 
+/* Override shared .image-hint to add vertical margin */
 .image-hint {
-  font-size: 0.75rem;
-  color: #ff69b4;
   margin: 0.2rem 0 0.4rem;
-  min-height: 1rem;
-}
-
-.edit-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
 }
 
 .edit-row label {
@@ -141,6 +101,7 @@ button {
   gap: 0.4rem;
 }
 
+/* ── List grids ── */
 .set-list,
 #spriteList,
 #animList {
@@ -159,53 +120,8 @@ button {
   gap: 0.35rem;
 }
 
-.tag-editor {
-  border: 1px solid #333;
-  background: #0d0d0d;
-  padding: 0.45rem;
-  margin-bottom: 0.8rem;
-  min-height: 38px;
-}
-
-.tag-editor-empty {
-  color: #888;
-  font-size: 0.75rem;
-}
-
-.tag-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin: 0 0.45rem 0.35rem 0;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid #3f3f3f;
-  border-radius: 999px;
-  background: #191919;
-  font-size: 0.75rem;
-}
-
-.tag-option input {
-  width: auto;
-  margin: 0;
-}
-
-.sprite-tags-line {
-  color: #ffbcde;
-}
-
-.list-item-button {
-  width: 100%;
-  text-align: left;
-  margin: 0;
-  padding: 0.35rem;
-  border: 1px solid #333;
-}
-
-.sprite-grid-item {
-  text-align: center;
-  padding: 0.3rem 0.25rem;
-}
-
+/* ── Sprite / set grid items ── */
+.sprite-grid-item,
 .set-grid-item {
   text-align: center;
   padding: 0.3rem 0.25rem;
@@ -221,15 +137,7 @@ button {
   height: 52px;
 }
 
-.sprite-grid-label {
-  margin-top: 0.2rem;
-  font-size: 0.66rem;
-  color: #c9c9c9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+.sprite-grid-label,
 .set-grid-label {
   margin-top: 0.2rem;
   font-size: 0.66rem;
@@ -253,54 +161,11 @@ button {
   gap: 0.35rem;
 }
 
-.list-item-button:hover {
-  border-color: #666;
+.sprite-tags-line {
+  color: #ffbcde;
 }
 
-.list-item-selected {
-  border-color: #ff69b4;
-  background: #1c1218;
-}
-
-.list-item-row {
-  display: flex;
-  gap: 0.45rem;
-  align-items: center;
-}
-
-.list-item-text {
-  min-width: 0;
-}
-
-.list-item-title {
-  font-size: 0.85rem;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.list-item-subtitle {
-  font-size: 0.7rem;
-  color: #9f9f9f;
-  margin-top: 1px;
-}
-
-.thumb-image,
-.set-preview,
-.frame-thumb-image {
-  width: 40px;
-  height: 40px;
-  image-rendering: pixelated;
-  border: 1px solid #333;
-  background: #000;
-  object-fit: contain;
-  flex: 0 0 auto;
-}
-
-.thumb-placeholder {
-  background: #222;
-}
-
+/* ── Animation editor ── */
 .anim-frames-label {
   font-size: 0.85rem;
   color: #aaa;
@@ -318,18 +183,6 @@ button {
   font-size: 0.72rem;
   color: #888;
   font-style: italic;
-}
-
-.anim-frame-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  background: #0a0a0a;
-  border: 1px solid #333;
-  padding: 4px;
-  min-height: 56px;
-  align-items: flex-start;
-  align-content: flex-start;
 }
 
 .frame-cell {
@@ -354,6 +207,7 @@ button {
   gap: 0.3rem;
 }
 
+/* ── Responsive ── */
 @media (max-width: 1180px) {
   .sprite-editor {
     grid-template-columns: 230px 1fr;
@@ -362,13 +216,8 @@ button {
       "side side";
   }
 
-  .panel-list {
-    grid-area: list;
-  }
-
-  .panel-main {
-    grid-area: main;
-  }
+  .panel-list { grid-area: list; }
+  .panel-main { grid-area: main; }
 
   .panel-side {
     grid-area: side;
@@ -385,20 +234,9 @@ button {
       "side";
   }
 
-  .panel {
-    border-right: none;
-    border-bottom: 1px solid #2d2d2d;
-  }
+  /* .panel border handled by editor-common.css */
 
   .panel-side {
     border-bottom: none;
-  }
-
-  .auth-row {
-    flex-wrap: wrap;
-  }
-
-  .auth-row button {
-    flex: 1 1 auto;
   }
 }
