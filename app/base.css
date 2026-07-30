@@ -1,125 +1,641 @@
-/* Base skin (color + visual treatment only). */
+/* ============================================================
+   16-bit JRPG skin  –  SNES-era RPG aesthetic
+   (Chrono Trigger / Final Fantasy VI palette)
+   ============================================================ */
 
 :root {
-  --room-title-overlay-color: #333;
-  --room-title-overlay-bg: rgba(255, 255, 255, 0.85);
-  --room-canvas-border: 1px solid #ddd;
-  --room-canvas-bg: #fff;
-  --look-box-bg: transparent;
-  --look-box-color: #007bff;
-  --activity-panel-bg: #fff7e6;
-  --activity-panel-border: 1px solid #ffd591;
+  /* Core palette */
+  --jrpg-bg:               #080818;
+  --jrpg-panel:            #141428;
+  --jrpg-panel-alt:        #1c1c3c;
+  --jrpg-border:           #3848b8;
+  --jrpg-border-hi:        #7080e8;
+  --jrpg-text:             #e8e0c0;
+  --jrpg-text-dim:         #8880a8;
+  --jrpg-gold:             #f0c020;
+  --jrpg-gold-dim:         #a87810;
+  --jrpg-cyan:             #28c8f0;
+  --jrpg-green:            #28d058;
+  --jrpg-red:              #e83030;
+  --jrpg-orange:           #e87820;
+  --jrpg-purple:           #b050e0;
+
+  /* JRPG double-border window mixin (bolder, more authentic) */
+  --jrpg-window-shadow:
+    0 0 0 6px var(--jrpg-bg),
+    0 0 0 9px var(--jrpg-border),
+    0 0 0 11px var(--jrpg-border-hi),
+    0 0 28px rgba(56, 72, 184, 0.5);
+
+  /* Component tokens (referenced by layout CSS + room CSS) */
+  --room-title-overlay-color:  var(--jrpg-gold);
+  --room-title-overlay-bg:     rgba(8, 8, 24, 0.88);
+  --room-canvas-border:        2px solid var(--jrpg-border-hi);
+  --room-canvas-bg:            #060c18;
+  --look-box-bg:               var(--jrpg-panel);
+  --look-box-color:            var(--jrpg-text);
+  --activity-panel-bg:         var(--jrpg-panel);
+  --activity-panel-border:     2px solid var(--jrpg-border-hi);
+  --activity-panel-color:      var(--jrpg-text);
+  --interaction-panel-bg:      rgba(20, 20, 40, 0.98);
+  --interaction-panel-border:  2px solid var(--jrpg-border-hi);
+  --interaction-panel-shadow:  var(--jrpg-window-shadow);
 }
 
+/* ── Global ─────────────────────────────────────────────── */
+
 body {
-  font-family: serif;
-  background: #000000;
+  font-family: 'VT323', 'Courier New', 'Lucida Console', monospace;
+  background: var(--jrpg-bg);
+  color: var(--jrpg-text);
+  font-size: 18px;
+  line-height: 1.3;
 }
+
+/* CRT scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.06) 3px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Pixel font for game-UI elements ────────────────────── */
+
+h1, h2, h3 {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+h3 { font-size: 0.7rem; line-height: 1.8; }
+
+.inventory-header,
+.character-descriptor-label,
+.input-group label,
+.room-header-title {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+.inventory-header      { font-size: 0.5rem; line-height: 1.8; }
+.character-descriptor-label { font-size: 0.5rem; line-height: 1.8; }
+.input-group label     { font-size: 0.5rem; line-height: 1.8; }
+.room-header-title     { font-size: 0.55rem; line-height: 1.8; }
+
+#roomTitleOverlay {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* ── Pages ──────────────────────────────────────────────── */
 
 #loginPage,
 #mainPage {
-  background: #000000;
+  background: var(--jrpg-bg);
 }
 
+/* Login page: centered card with JRPG double-border */
+#loginPage {
+  border: 2px solid var(--jrpg-border-hi);
+  box-shadow: var(--jrpg-window-shadow);
+  background: var(--jrpg-panel);
+  position: relative;
+}
+
+/* Game title above the login form */
+#loginPage::before {
+  content: '★  TINYROOMS  ★';
+  display: block;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 0.55rem;
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 14px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.9);
+  text-align: center;
+  margin-bottom: 1.2rem;
+  letter-spacing: 0.12em;
+  line-height: 2;
+}
+
+/* Bottom corner ornament */
+#loginPage::after {
+  content: '◆────────────────◆';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--jrpg-border-hi);
+  font-size: 0.45rem;
+  line-height: 1;
+  font-family: monospace;
+  opacity: 0.5;
+  white-space: nowrap;
+  letter-spacing: -0.05em;
+}
+
+#loginPage h3 {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 12px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.8);
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+
+/* ── Main page background ────────────────────────────────── */
+
+#mainPage {
+  background:
+    radial-gradient(1px 1px at 25% 20%, rgba(112,128,232,0.25) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 75%, rgba(112,128,232,0.18) 0%, transparent 100%),
+    radial-gradient(1px 1px at 82% 12%, rgba(240,192,32,0.12) 0%, transparent 100%),
+    var(--jrpg-bg);
+}
+
+/* ── Status panel ────────────────────────────────────────── */
+
+#statusPanel {
+  background: var(--jrpg-panel);
+  border-bottom: 2px solid var(--jrpg-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+/* ── Status display ─────────────────────────────────────── */
+
 #statusDisplay {
-  border: 1px solid #333;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--jrpg-border);
+  border-radius: 0;
+  background: rgba(8, 8, 24, 0.9);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .status-item {
-  background: white;
-  border-left: 3px solid #007bff;
-  border-radius: 2px;
-  color: #333;
+  background: var(--jrpg-panel-alt);
+  border-left: 2px solid var(--jrpg-border-hi);
+  border-radius: 0;
+  color: var(--jrpg-text);
+  font-size: 0.88rem;
 }
 
+/* ── Typography ─────────────────────────────────────────── */
+
 .meta {
-  color: #666;
+  color: var(--jrpg-text-dim);
 }
 
 .system {
-  color: #007bff;
+  color: var(--jrpg-cyan);
+  text-shadow: 0 0 5px rgba(40, 200, 240, 0.4);
 }
+
+/* ── Inputs ─────────────────────────────────────────────── */
 
 input[type="text"],
 input[type="password"] {
-  border: none;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0);
-  color: #fff;
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+  background: rgba(8, 8, 24, 0.8);
+  color: var(--jrpg-text);
+  outline: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 1.1rem;
 }
 
+input[type="text"]:focus,
+input[type="password"]:focus {
+  border-color: var(--jrpg-border-hi);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--jrpg-border-hi),
+    0 0 8px rgba(112, 128, 232, 0.35);
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
 button {
-  background: #2a2a2d;
-  color: white;
-  border: none;
-  border-radius: 16px;
+  background: var(--jrpg-panel-alt);
+  color: var(--jrpg-text);
+  border: 2px solid var(--jrpg-border-hi);
+  border-radius: 0;
+  box-shadow:
+    0 3px 0 var(--jrpg-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
+  transition: background 0.05s, color 0.05s, transform 0.05s, box-shadow 0.05s;
+  position: relative;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
+/* JRPG cursor indicator before hovered buttons */
+button:not(.palette-btn):not(.palette-tab-btn):not(#sendBtn):not(.activity-panel-dismiss):not(.look-box-toggle):hover::before {
+  content: '► ';
+  color: var(--jrpg-cyan);
+  font-size: 0.75em;
 }
 
 button:hover {
-  background: #0056b3;
+  background: #242450;
+  border-color: var(--jrpg-cyan);
+  color: var(--jrpg-cyan);
+  box-shadow:
+    0 3px 0 #183868,
+    0 0 10px rgba(40, 200, 240, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 button:active {
-  background: #004085;
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 var(--jrpg-border),
+    inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
+
+/* ── Login status / error ────────────────────────────────── */
 
 #loginStatus {
-  color: red;
+  min-height: 1.2rem;
 }
 
+#loginStatus:not(:empty) {
+  color: var(--jrpg-red);
+  background: rgba(80, 0, 0, 0.35);
+  border: 2px solid var(--jrpg-red);
+  box-shadow: inset 0 0 0 1px rgba(232, 48, 48, 0.2);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+#loginStatus:not(:empty)::before {
+  content: '▶ ';
+  color: var(--jrpg-red);
+}
+
+/* ── Input group labels ──────────────────────────────────── */
+
+.input-group label {
+  color: var(--jrpg-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 6px var(--jrpg-gold-dim);
+}
+
+/* ── Ref spans ──────────────────────────────────────────── */
+
 .ref {
-  background: rgba(0, 123, 255, 0.15);
-  border-radius: 4px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: rgba(56, 72, 184, 0.25);
+  border: 1px solid rgba(112, 128, 232, 0.5);
+  border-radius: 0;
+  color: var(--jrpg-cyan);
+  text-shadow: none;
 }
 
 .ref:hover {
-  background: rgba(0, 123, 255, 0.25);
-  transform: scale(1.05);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  background: rgba(56, 72, 184, 0.5);
+  border-color: var(--jrpg-cyan);
+  transform: none;
+  box-shadow: 0 0 6px rgba(40, 200, 240, 0.4);
+  text-shadow: none;
 }
 
 .ref.self {
-  background: rgba(40, 167, 69, 0.2);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  background: rgba(40, 208, 88, 0.2);
+  border: 1px solid rgba(40, 208, 88, 0.6);
+  color: var(--jrpg-green);
+  font-weight: bold;
+  text-shadow: none;
 }
 
 .ref.self:hover {
-  background: rgba(40, 167, 69, 0.3);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: rgba(40, 208, 88, 0.4);
+  border-color: var(--jrpg-green);
+  box-shadow: 0 0 6px rgba(40, 208, 88, 0.4);
+  text-shadow: none;
 }
 
 .ref.cmd {
-  background: rgba(255, 193, 7, 0.2);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  background: rgba(176, 80, 224, 0.2);
+  border: 1px solid rgba(176, 80, 224, 0.6);
+  color: var(--jrpg-purple);
+  text-shadow: none;
 }
 
 .ref.cmd:hover {
-  background: rgba(255, 193, 7, 0.35);
-  transform: scale(1.05);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: rgba(176, 80, 224, 0.4);
+  border-color: var(--jrpg-purple);
+  transform: none;
+  box-shadow: 0 0 6px rgba(176, 80, 224, 0.4);
+  text-shadow: none;
+}
+
+/* ── Connection indicator ────────────────────────────────── */
+
+.connection-indicator {
+  border: 2px solid var(--jrpg-border-hi);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.6);
 }
 
 .connection-indicator.connected {
-  background: #28a745;
-  box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+  background: var(--jrpg-green);
+  box-shadow: 0 0 8px rgba(40, 208, 88, 0.8),
+              inset 0 0 3px rgba(0, 0, 0, 0.3);
 }
 
 .connection-indicator.disconnected {
-  background: #dc3545;
-  box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+  background: var(--jrpg-red);
+  box-shadow: 0 0 8px rgba(232, 48, 48, 0.8),
+              inset 0 0 3px rgba(0, 0, 0, 0.3);
 }
 
 .connection-indicator.connecting {
-  background: #6c757d;
+  background: var(--jrpg-text-dim);
 }
 
+/* ── Action palette buttons ──────────────────────────────── */
+
 .palette-btn {
-  background: #2868a7;
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+  color: var(--jrpg-text);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  font-family: 'VT323', monospace;
+  font-size: 0.95rem;
 }
 
 .palette-btn:hover {
-  background: #218838;
+  background: #242448;
+  border-color: var(--jrpg-border-hi);
+  color: var(--jrpg-cyan);
+  box-shadow: 0 2px 0 var(--jrpg-border),
+              0 0 6px rgba(40, 200, 240, 0.2);
 }
+
+/* ── Palette tab buttons ─────────────────────────────────── */
+
+.palette-tab-btn {
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+}
+
+.palette-tab-btn.is-active {
+  outline: none;
+  border-color: var(--jrpg-cyan);
+  color: var(--jrpg-cyan);
+  box-shadow: 0 0 6px rgba(40, 200, 240, 0.3);
+}
+
+/* ── Inventory items ─────────────────────────────────────── */
+
+.inventory-item {
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+}
+
+.inventory-item:hover {
+  border-color: var(--jrpg-border-hi);
+}
+
+/* ── Interaction panel ───────────────────────────────────── */
+
+#interactionPanel {
+  border: 2px solid var(--jrpg-border-hi);
+  background: var(--jrpg-panel);
+  /* Inner highlight on top = "inset top edge" like SNES dialog box */
+  box-shadow:
+    inset 0 1px 0 rgba(112, 128, 232, 0.3),
+    inset 0 -1px 0 rgba(56, 72, 184, 0.2);
+}
+
+/* Sub-panel divider between actions and inventory */
+#actionsPanel {
+  border-right: 2px solid var(--jrpg-border);
+}
+
+/* ── Inventory header ────────────────────────────────────── */
+
+.inventory-header {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 6px var(--jrpg-gold-dim);
+  letter-spacing: 0.06em;
+  opacity: 1;
+}
+
+/* ── Look box ────────────────────────────────────────────── */
+
+#lookBox {
+  border: 2px solid var(--jrpg-border-hi);
+  box-shadow: var(--jrpg-window-shadow);
+  background: var(--jrpg-panel);
+}
+
+#lookBox .look-box-toggle {
+  border-radius: 0;
+  border: 2px solid var(--jrpg-border);
+}
+
+/* ── Character editor card ──────────────────────────────── */
+
+.character-editor-card {
+  background: var(--jrpg-panel);
+  border: 2px solid var(--jrpg-border-hi);
+  box-shadow: var(--jrpg-window-shadow);
+  color: var(--jrpg-text);
+  border-radius: 0;
+}
+
+.character-editor-header h3 {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 12px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.8);
+  text-transform: uppercase;
+}
+
+.character-editor-header {
+  border-bottom: 2px solid var(--jrpg-border);
+}
+
+.character-descriptor {
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+}
+
+.character-descriptor-label {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 6px var(--jrpg-gold-dim);
+  text-transform: uppercase;
+}
+
+.character-sprite-card {
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+}
+
+.character-sprite-card.selected {
+  border-color: var(--jrpg-cyan);
+  box-shadow: 0 0 8px rgba(40, 200, 240, 0.5);
+}
+
+.character-sprite-label {
+  color: var(--jrpg-text);
+}
+
+.character-sprite-meta {
+  color: var(--jrpg-text-dim);
+}
+
+.character-main-image-preview {
+  background: var(--jrpg-bg);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+}
+
+/* ── Game viewport frame ─────────────────────────────────── */
+
+#viewPanel {
+  /* Top and bottom JRPG frame borders to separate from status + HUD */
+  border-top: 2px solid var(--jrpg-border);
+  border-bottom: 2px solid var(--jrpg-border);
+}
+
+/* ── Room title in controls panel ────────────────────────── */
+
+#roomTitleOverlay {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 10px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.9);
+  border-bottom: 1px solid var(--jrpg-border);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.1rem;
+  letter-spacing: 0.06em;
+}
+
+
+#logPanel {
+  border: 2px solid var(--jrpg-border);
+  outline: 2px solid var(--jrpg-border-hi);
+  outline-offset: -4px;
+  background: rgba(8, 8, 24, 0.92);
+  color: var(--jrpg-text);
+}
+
+#logPanel .chat-log-message {
+  color: var(--jrpg-text);
+}
+
+/* ── Inventory panel inner sub-panel ─────────────────────── */
+
+#inventoryPanel {
+  border-left: 2px solid var(--jrpg-border);
+  padding-left: 0.4rem;
+}
+
+/* ── Inventory empty state ───────────────────────────────── */
+
+.inventory-empty {
+  color: var(--jrpg-text-dim);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.25rem;
+  text-align: center;
+}
+
+.inventory-empty::before { content: '── '; }
+.inventory-empty::after  { content: ' ──'; }
+
+.activity-panel-header {
+  background: var(--jrpg-panel-alt);
+  border-bottom: 2px solid var(--jrpg-border-hi);
+}
+
+/* ── Status panel buttons ────────────────────────────────── */
+
+#btnLogout {
+  background: var(--jrpg-panel-alt) !important;
+  border: 2px solid var(--jrpg-border) !important;
+  color: var(--jrpg-text) !important;
+}
+
+#btnLogout:hover {
+  border-color: var(--jrpg-red) !important;
+  color: var(--jrpg-red) !important;
+}
+
+/* ── Send button ─────────────────────────────────────────── */
+
+#sendBtn {
+  background: var(--jrpg-border);
+  border: 2px solid var(--jrpg-border-hi);
+  color: var(--jrpg-text);
+}
+
+#sendBtn:hover {
+  background: var(--jrpg-cyan);
+  border-color: var(--jrpg-cyan);
+  color: var(--jrpg-bg);
+  box-shadow: 0 0 12px rgba(40, 200, 240, 0.6);
+}
+
+/* ── Selected palette + inventory ─────────────────────────── */
+
+.palette-btn.is-selected {
+  outline: 2px solid var(--jrpg-cyan);
+  outline-offset: -2px;
+  border-color: var(--jrpg-cyan);
+}
+
+.inventory-item.is-selected {
+  outline: 2px solid var(--jrpg-cyan);
+  outline-offset: 1px;
+  border-color: var(--jrpg-cyan);
+}
+
+/* ── Textarea ────────────────────────────────────────────── */
+
+textarea {
+  background: rgba(8, 8, 24, 0.8);
+  color: var(--jrpg-text);
+  border: 2px solid var(--jrpg-border);
+  border-radius: 0;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 1.1rem;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: var(--jrpg-border-hi);
+  box-shadow: 0 0 0 1px var(--jrpg-border-hi), 0 0 8px rgba(112,128,232,0.3);
+}
+
+/* ── Scrollbar theming ───────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--jrpg-border-hi) var(--jrpg-panel);
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--jrpg-panel);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--jrpg-border);
+  border-radius: 0;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--jrpg-border-hi);
+}
+

@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>tinyrooms Client</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/app/client.css">
   <link rel="stylesheet" href="/app/room.css">
   <link id="skin-style" rel="stylesheet" href="/app/base.css">
@@ -23,7 +26,7 @@
     </div>
     <div>
       <button id="btnLogin">Login</button>
-      <button id="btnRegister">Register (local)</button>
+      <button id="btnRegister">Register</button>
     </div>
     <div id="loginStatus"></div>
   </div>
@@ -46,11 +49,11 @@
             <div id="chatLogList"></div>
           </div>
         </div>
-        <div id="activityPanel"></div>
       </div>
     </div>
     
     <div id="controlsPanel">
+      <div id="activityPanel"></div>
       <div id="roomTitleOverlay"></div>
       <div id="lookBox"></div>
       <div class="message-input-container">

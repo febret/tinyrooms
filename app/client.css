@@ -23,41 +23,57 @@ body {
 }
 
 #loginPage {
-  padding: 0.75rem;
+  /* Centred card on desktop, full-width on mobile */
+  padding: clamp(0.8rem, 4vw, 1.2rem);
+  max-width: min(420px, 100%);
+  /* Vertically center in the viewport */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 #mainPage {
-  display: grid;
-  grid-template-rows: auto minmax(180px, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
 #statusPanel,
-#viewPanel,
 #controlsPanel,
 #actionsPanel,
 #inventoryPanel {
-  padding: 0.5rem;
+  padding: clamp(0.25rem, 1.5vw, 0.5rem);
 }
 
+/* viewPanel has no padding — canvas fills edge-to-edge */
+
 #statusPanel {
-  display: flex;
+  flex-shrink: 0;
+}
+
+#controlsPanel {
+  flex-shrink: 0;
+}
+
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  min-height: 2.7rem;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  padding-left: clamp(0.3rem, 1.5vw, 0.5rem);
+  padding-right: clamp(0.3rem, 1.5vw, 0.5rem);
 }
 
 #statusDisplay {
   margin: 0;
-  padding: 0.25rem 0.4rem;
+  padding: 0.2rem 0.35rem;
   min-height: 16px;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
   overflow-x: auto;
   white-space: nowrap;
   flex: 1;
@@ -65,50 +81,57 @@ body {
 
 .status-item {
   margin: 0;
-  padding: 0.25rem 0.45rem;
-  font-size: 0.9rem;
+  padding: 0.2rem 0.35rem;
+  font-size: clamp(0.68rem, 1.8vw, 0.8rem);
 }
 
 .status-controls {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
   flex-shrink: 0;
 }
 
+.status-controls button {
+  padding: 0.25rem 0.5rem !important;
+  font-size: clamp(0.7rem, 1.8vw, 0.82rem) !important;
+  margin: 0 !important;
+}
 #viewPanel {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  position: relative;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
+  padding: 0;
 }
 
 #roomCanvas {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 1;
 }
 
 #overlayPanels {
   position: absolute;
-  left: 0.7rem;
-  right: 0.7rem;
-  bottom: 0.7rem;
+  left: clamp(0.5rem, 2vw, 1rem);
+  bottom: clamp(0.5rem, 2vw, 0.8rem);
   z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
   align-items: flex-start;
   pointer-events: none;
+  max-width: min(26rem, 45%);
 }
 
 #overlayPanels > * {
   pointer-events: auto;
 }
 
-#overlayPanels #logPanel,
-#overlayPanels #activityPanel {
+#overlayPanels #logPanel {
   position: static;
   width: min(24rem, 100%);
   max-width: 100%;
@@ -117,19 +140,70 @@ body {
 #controlsPanel {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
   min-height: 0;
   overflow: auto;
+  border-top: 2px solid var(--jrpg-border, #3848b8);
+  background: var(--jrpg-panel, #141428);
+  padding-top: 0.4rem;
+}
+
+/* Activity panel — inside controlsPanel, shown/hidden by JS */
+#activityPanel {
+  display: none;
+  flex-direction: column;
+  max-height: min(280px, 40vh);
+  overflow: hidden;
+  padding: 0;
+  border-radius: 2px;
+  background: var(--activity-panel-bg, #fff7e6);
+  border: var(--activity-panel-border, 1px solid #ffd591);
+  z-index: 1;
+  color: var(--activity-panel-color, inherit);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.activity-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.4rem 0.55rem;
+  border-bottom: var(--activity-panel-border, 1px solid #ffd591);
+}
+
+.activity-panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.4rem 0.55rem;
+  white-space: pre-wrap;
+  font-size: clamp(0.72rem, 1.8vw, 0.85rem);
+}
+
+.activity-panel-dismiss {
+  min-width: 1.5rem !important;
+  min-height: 1.5rem !important;
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
 }
 
 #lookBox {
-  font-size: 1rem;
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
   font-weight: 500;
-  padding: 0.2rem 0.55rem;
-  border-radius: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
   background: var(--look-box-bg, transparent);
   color: var(--look-box-color, inherit);
-  margin: 0.25rem 0 0;
+  margin: 0;
   display: flex;
   align-items: flex-start;
   gap: 0.3rem;
@@ -154,10 +228,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.35rem !important;
-  min-height: 1.35rem !important;
-  width: 1.35rem;
-  height: 1.35rem;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  width: 1.25rem;
+  height: 1.25rem;
   line-height: 1;
   padding: 0;
   margin: 0;
@@ -172,28 +246,29 @@ body {
 
 .message-input-container {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.35rem;
+  margin-top: 0;
   align-items: center;
 }
 
 #msgInput {
   flex: 1;
   margin: 0;
+  font-size: clamp(0.78rem, 2vw, 0.9rem);
 }
 
 #sendBtn {
   flex-shrink: 0;
   margin: 0;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  min-width: 2.5rem;
+  border-radius: 2px;
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: 2.2rem;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -201,10 +276,11 @@ body {
 #interactionPanel {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-  min-height: 200px;
-  padding: 0.35rem;
-  border-radius: 10px;
+  gap: 0.4rem;
+  min-height: 0;
+  flex: 1;
+  padding: 0.3rem;
+  border-radius: 2px;
   background: var(--interaction-panel-bg, rgba(0, 0, 0, 0.06));
   border: var(--interaction-panel-border, 1px solid rgba(0, 0, 0, 0.14));
   box-shadow: var(--interaction-panel-shadow, 0 4px 10px rgba(0, 0, 0, 0.12));
@@ -234,7 +310,7 @@ body {
 .palette-layout {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.3rem;
+  gap: 0.25rem;
   align-items: start;
 }
 
@@ -245,13 +321,13 @@ body {
 }
 
 .palette-tab-btn {
-  width: 2rem;
-  height: 2rem;
+  width: 1.8rem;
+  height: 1.8rem;
   min-width: 0 !important;
   margin: 0;
   padding: 0;
   line-height: 1;
-  font-size: 1.15rem;
+  font-size: 1rem;
 }
 
 .palette-tab-btn.is-active {
@@ -266,22 +342,22 @@ body {
 .palette-buttons {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .palette-buttons.is-drag-over {
-  outline: 2px dashed rgba(60, 140, 255, 0.6);
-  border-radius: 4px;
+  outline: 2px dashed rgba(48, 200, 240, 0.5);
+  border-radius: 2px;
 }
 
 .palette-btn {
   width: 100%;
   min-height: 0;
-  padding: 0.6rem;
-  font-size: 0.9rem;
+  padding: 0.45rem 0.3rem;
+  font-size: clamp(0.62rem, 1.6vw, 0.78rem);
   font-weight: 600;
   white-space: normal;
-  line-height: 1;
+  line-height: 1.1;
   overflow: hidden;
   text-align: center;
 }
@@ -306,46 +382,41 @@ body {
   image-rendering: pixelated;
 }
 
-.palette-btn.is-selected {
-  outline: 2px solid #3c8cff;
-  outline-offset: -2px;
-}
-
 .inventory-header {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.55;
-  padding: 0.3rem 0.4rem 0.15rem;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+  padding: 0.25rem 0.35rem 0.1rem;
 }
 
 .inventory-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0.2rem 0.25rem;
+  padding: 0.15rem 0.2rem;
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .inventory-empty {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   opacity: 0.5;
-  padding: 0.25rem 0.3rem;
+  padding: 0.2rem 0.25rem;
 }
 
 .inventory-item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.9rem;
+  height: 1.9rem;
   min-width: 0 !important;
   margin: 0;
   padding: 0;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .inventory-item-icon {
@@ -359,87 +430,39 @@ body {
 }
 
 .inventory-item-icon img {
-  max-width: 1.5rem;
-  max-height: 1.5rem;
+  max-width: 1.4rem;
+  max-height: 1.4rem;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
-.inventory-item.is-selected {
-  outline: 2px solid #3c8cff;
-  outline-offset: 1px;
-}
-
 #viewPanel.is-drag-over {
-  outline: 2px dashed rgba(60, 140, 255, 0.35);
+  outline: 2px dashed rgba(48, 200, 240, 0.35);
   outline-offset: -2px;
 }
 
 #inventoryPanel.is-drag-over {
-  outline: 2px dashed rgba(60, 140, 255, 0.45);
+  outline: 2px dashed rgba(48, 200, 240, 0.45);
   outline-offset: -2px;
 }
 
 .inventory-list.is-drag-over {
-  outline: 2px dashed rgba(60, 140, 255, 0.6);
-  border-radius: 4px;
+  outline: 2px dashed rgba(48, 200, 240, 0.6);
+  border-radius: 2px;
 }
 
-#activityPanel {
-  display: none;
-  flex-direction: column;
-  max-height: min(400px, calc(100% - 2rem));
-  overflow: hidden;
-  padding: 0;
-  border-radius: 8px;
-  background: var(--activity-panel-bg, #fff7e6);
-  border: var(--activity-panel-border, 1px solid #ffd591);
-  z-index: 1;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.activity-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 0.55rem 0.65rem;
-  background: var(--activity-panel-bg, #fff7e6);
-  border-bottom: var(--activity-panel-border, 1px solid #ffd591);
-}
-
-.activity-panel-content {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 0.55rem 0.65rem;
-  white-space: pre-wrap;
-}
-
-.activity-panel-dismiss {
-  min-width: 1.65rem !important;
-  min-height: 1.65rem !important;
-  width: 1.65rem;
-  height: 1.65rem;
-  line-height: 1;
-  padding: 0;
-  margin: 0;
-  border-radius: 50%;
-}
+/* ── Chat log ──────────────────────────────────────────── */
 
 #messages {
   margin: 0;
-  padding: 0.5rem;
+  padding: 0.4rem;
   overflow: auto;
 }
 
 #chatLogList {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 
 .msg {
@@ -450,8 +473,8 @@ body {
 }
 
 .chat-log-message {
-  padding: 0.2rem 0.28rem;
-  border-radius: 3px;
+  padding: 0.15rem 0.25rem;
+  border-radius: 1px;
 }
 
 .msg.is-expiring {
@@ -459,37 +482,23 @@ body {
 }
 
 @keyframes chatMessageIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes chatMessageOut {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
 }
 
 .meta {
-  font-size: 0.9rem;
+  font-size: clamp(0.72rem, 1.8vw, 0.85rem);
 }
 
 .ref {
-  padding: 0.15rem 0.4rem;
+  padding: 0.1rem 0.35rem;
   display: inline-block;
-  transition: all 0.2s ease;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .ref:hover {
@@ -500,43 +509,48 @@ body {
   font-weight: bold;
 }
 
+/* ── Form elements ────────────────────────────────────── */
+
 input[type="text"],
 input[type="password"] {
   width: 100%;
-  padding: 0.5rem;
-  margin: 0.25rem 0;
-  font-size: 1rem;
+  padding: clamp(0.3rem, 1.5vw, 0.5rem);
+  margin: 0.2rem 0;
+  font-size: clamp(0.82rem, 2.2vw, 1rem);
   font-weight: 500;
-  font-family: sans-serif;
+  font-family: inherit;
 }
 
 button {
-  padding: 0.5rem 0.9rem;
+  padding: clamp(0.3rem, 1.5vw, 0.45rem) clamp(0.5rem, 2vw, 0.85rem);
   cursor: pointer;
-  font-size: 0.95rem;
-  margin: 0.25rem 0.25rem 0.25rem 0;
+  font-size: clamp(0.72rem, 2vw, 0.88rem);
+  font-family: inherit;
+  margin: 0.2rem 0.2rem 0.2rem 0;
 }
 
 .input-group {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
 }
 
 .input-group label {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: clamp(0.7rem, 1.8vw, 0.82rem);
 }
 
 #loginStatus {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+  margin-top: 0.4rem;
+  font-size: clamp(0.72rem, 1.8vw, 0.85rem);
 }
+
+/* ── Connection indicator ─────────────────────────────── */
 
 .connection-indicator {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -552,17 +566,11 @@ button {
 }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.2); }
 }
+
+/* ── Overlay pages (char editor, object creator) ─────── */
 
 #characterEditorPage,
 #objectCreatorPage {
@@ -572,31 +580,31 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 1rem;
+  padding: clamp(0.4rem, 2vw, 1rem);
   overflow: auto;
 }
 
 #characterEditorPage {
-  background: #000;
+  background: rgba(8, 8, 24, 0.95);
 }
 
 #objectCreatorPage {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(8, 8, 24, 0.8);
 }
 
 .character-editor-card {
   width: min(900px, 100%);
   max-width: 900px;
-  padding: 0.75rem;
-  border-radius: 10px;
+  padding: clamp(0.5rem, 2vw, 0.85rem);
+  border-radius: 2px;
 }
 
 .character-editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.4rem;
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
 }
 
 .character-editor-header h3 {
@@ -604,49 +612,57 @@ button {
 }
 
 .character-editor-error {
-  min-height: 1.2rem;
-  margin-bottom: 0.5rem;
+  min-height: 1.1rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  color: #e03030;
 }
 
 #characterEditorDescriptors {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .character-descriptor {
-  padding: 0.4rem;
+  padding: 0.35rem;
 }
 
 .character-descriptor-label {
   font-weight: 600;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.25rem;
 }
 
 #characterEditorDescription,
 #objectCreatorDescription {
   width: 100%;
   resize: vertical;
-  min-height: 4rem;
+  min-height: 3.5rem;
   font: inherit;
+  font-size: 0.82rem;
+  background: var(--jrpg-panel, #141428);
+  color: var(--jrpg-text, #e0d8b8);
+  border: 1px solid var(--jrpg-border, #3848b8);
+  border-radius: 2px;
+  padding: 0.35rem;
 }
 
 .character-editor-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.6rem;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
 }
 
 .character-editor-panels {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 0.6rem;
+  margin-top: 0.4rem;
 }
 
 .character-editor-panel {
-  padding: 0.4rem;
+  padding: 0.35rem;
 }
 
 .character-editor-panel-sprites {
@@ -655,23 +671,19 @@ button {
 
 .character-sprite-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.4rem;
 }
 
 .character-sprite-card {
-  border-radius: 8px;
-  padding: 0.45rem;
-  min-height: 164px;
+  border-radius: 2px;
+  padding: 0.4rem;
+  min-height: 148px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   text-align: center;
-}
-
-.character-sprite-card.selected {
-  outline: 2px solid #3c8cff;
 }
 
 .character-sprite-card-default {
@@ -679,23 +691,18 @@ button {
 }
 
 .character-sprite-preview {
-  width: 88px;
-  height: 88px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 2px;
   background-repeat: no-repeat;
   image-rendering: pixelated;
 }
 
-.character-sprite-preview canvas {
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-}
-
+.character-sprite-preview canvas,
 .character-sprite-preview img {
   display: block;
   max-width: 100%;
@@ -703,39 +710,40 @@ button {
 }
 
 .character-sprite-preview-frame {
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .character-sprite-label {
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
 .character-sprite-meta {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   opacity: 0.8;
 }
 
 .character-main-image-preview {
-  min-height: 260px;
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  padding: 0.75rem;
+  border-radius: 2px;
+  padding: 0.6rem;
 }
 
 .character-main-image-preview img {
   display: block;
   max-width: 100%;
-  max-height: 320px;
+  max-height: 280px;
   height: auto;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .character-main-image-empty {
   text-align: center;
   opacity: 0.8;
+  font-size: 0.78rem;
 }
 
 .character-main-image-preview.is-busy {
@@ -744,39 +752,37 @@ button {
 
 .character-main-image-preview.is-busy::after {
   content: "Generating...";
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 .character-main-image-preview.is-busy::before {
   content: "";
   position: absolute;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1rem;
+  height: 1rem;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-top-color: #7db1ff;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--jrpg-cyan, #30c8f0);
   animation: char-editor-spin 0.85s linear infinite;
-  top: 0.75rem;
-  right: 0.75rem;
+  top: 0.6rem;
+  right: 0.6rem;
 }
 
 .character-editor-footer {
-  margin-top: 0.6rem;
+  margin-top: 0.5rem;
   display: flex;
   justify-content: flex-end;
-  gap: 0.4rem;
-  padding-top: 0.4rem;
+  gap: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--jrpg-border, #3848b8);
 }
 
 @keyframes char-editor-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
+
+/* ── Responsive breakpoints ──────────────────────────── */
 
 @media (max-width: 900px) {
   .palette-buttons {
@@ -791,111 +797,25 @@ button {
   }
 }
 
+/* Tablet / large phones */
 @media (max-width: 600px) {
-  #loginPage,
-  #mainPage {
-    padding: 0.5rem;
-  }
-
-  #statusPanel {
-    gap: 0.4rem;
-    min-height: 2.3rem;
-  }
-
-  #statusDisplay {
-    padding: 0.2rem 0.3rem;
-    font-size: 0.78rem;
-  }
-
-  .status-item {
-    font-size: 0.76rem;
-    padding: 0.2rem 0.3rem;
-  }
-
-  .status-controls {
-    gap: 0.3rem;
-  }
-
-  .status-controls button {
-    padding: 0.3rem 0.45rem !important;
-    font-size: 0.75rem;
-  }
-
-  #overlayPanels {
-    left: 0.35rem;
-    right: 0.35rem;
-    bottom: 0.35rem;
-    gap: 0.35rem;
-  }
-
-  #overlayPanels #logPanel,
-  #overlayPanels #activityPanel {
+  #overlayPanels #logPanel {
     width: min(18rem, 100%);
   }
 
-  #lookBox {
-    font-size: 0.9rem;
-    padding: 0.15rem 0.45rem;
+  #activityPanel {
+    max-height: min(200px, 35vh);
   }
 
-  .message-input-container {
-    margin-top: 0.25rem;
-    gap: 0.3rem;
-  }
-
-  #sendBtn {
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    font-size: 1rem;
-  }
-
-  #interactionPanel {
-    gap: 0.35rem;
-  }
-
-  #actionsPanel,
-  #inventoryPanel {
-    padding: 0.35rem;
-  }
-
-  .palette-btn {
-    font-size: 0.66rem;
-    padding: 0.35rem;
-  }
-
-  .palette-tab-btn {
-    width: 1.45rem;
-    height: 1.45rem;
-    font-size: 0.82rem;
-  }
-
-  .inventory-item {
-    width: 1.8rem;
-    height: 1.8rem;
-  }
-
-  #characterEditorPage,
-  #objectCreatorPage {
-    padding: 0.5rem;
-  }
-
-  .character-editor-card {
-    padding: 0.6rem;
+  .activity-panel-content {
+    font-size: 0.72rem;
   }
 }
 
+/* Small phones */
 @media (max-width: 420px) {
   body {
-    font-size: 14px;
-  }
-
-  #statusPanel,
-  #viewPanel,
-  #controlsPanel,
-  #actionsPanel,
-  #inventoryPanel {
-    padding: 0.35rem;
+    font-size: 13px;
   }
 
   #interactionPanel {
@@ -903,11 +823,10 @@ button {
   }
 
   .palette-buttons {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .palette-btn {
-    font-size: 0.62rem;
-    min-height: 1.75rem;
+  #activityPanel {
+    max-height: min(160px, 30vh);
   }
 }
