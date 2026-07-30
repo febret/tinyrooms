@@ -749,7 +749,7 @@ async function pixiRenderForegroundEntity(entity) {
         displayMeta: entity.display?.sprite_meta || entity.display?.img_meta || null,
         displayImage: entity.display?.sprite || entity.display?.img || "",
         isMoving: () => Boolean(record.moveTween),
-        enableAutoWalk: entity.entity_type === "peep",
+        walkWhileMoving: entity.entity_type === "peep",
       },
     );
     if (decoratorTicker) {
@@ -784,7 +784,7 @@ async function pixiRenderForegroundEntity(entity) {
         displayMeta: entity.display?.sprite_meta || entity.display?.img_meta || null,
         displayImage: entity.display?.sprite || entity.display?.img || "",
         isMoving: () => Boolean(record.moveTween),
-        enableAutoWalk: entity.entity_type === "peep",
+        walkWhileMoving: entity.entity_type === "peep",
       },
     );
     record.decoratorTicker = decoratorTicker;

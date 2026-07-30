@@ -47,7 +47,7 @@ def test_load_decorator_definitions_supports_override_and_missing_dirs(tmp_path:
         encoding="utf-8",
     )
     (world_dir / "status.yaml").write_text(
-        yaml.safe_dump({"frozen": {"animation": "pulse"}, "moving": {"animation": "walk"}}),
+        yaml.safe_dump({"frozen": {"animation": "pulse"}, "moving": {"animation": "spin"}}),
         encoding="utf-8",
     )
 
@@ -55,7 +55,7 @@ def test_load_decorator_definitions_supports_override_and_missing_dirs(tmp_path:
     assert loaded["main:on_fire"]["animation"] == "spin"
     assert loaded["main:on_fire"]["glow"]["intensity"] == 0.8
     assert loaded["status:frozen"]["animation"] == "pulse"
-    assert loaded["status:moving"]["animation"] == "walk"
+    assert loaded["status:moving"]["animation"] == "spin"
 
 
 def test_room_serialization_includes_resolved_decorators_for_entities_and_props(tmp_path: Path, monkeypatch):

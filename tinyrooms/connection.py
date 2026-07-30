@@ -363,12 +363,8 @@ def handle_room_save_props(data):
         z_counter += 1
         prop = Prop(prop_instance_id, prop_id, merged_info, room.room_id)
         prop._display_assets = icons._build_prop_display_assets(prop_id, server._prop_repo())
-        exit_way_id = str(raw_prop.get("exit_way_id") or "").strip() or None
-        if exit_way_id:
-            if exit_way_id not in room.ways:
-                emit("error", {"error": f"unknown exit way '{exit_way_id}'"})
-                return
-            prop.metadata["exit_way_id"] = exit_way_id
+        if raw_prop.get("interactive"):
+            prop.metadata["interactive"] = True
         next_props[prop_instance_id] = prop
 
     room.props = next_props

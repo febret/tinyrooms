@@ -7,6 +7,3 @@ on_fire:
 sparkle:
   sprite: images/default_user.svg
   animation: wobble
-
-walk:
-  animation: walk

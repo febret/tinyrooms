@@ -195,8 +195,8 @@ async function pixiApplyDecoratorsToWrapper(
   decoratorOptions = null,
 ) {
   const normalized = normalizeObjectArray(decorators);
-  const enableAutoWalk = decoratorOptions?.enableAutoWalk === true;
-  if (normalized.length === 0 && !enableAutoWalk) return null;
+  const walkWhileMoving = decoratorOptions?.walkWhileMoving === true;
+  if (normalized.length === 0 && !walkWhileMoving) return null;
 
   const spriteDecorators = [];
   const floatingTextDecorators = [];
@@ -268,7 +268,7 @@ async function pixiApplyDecoratorsToWrapper(
   const baseRotation = baseSprite.rotation || 0;
   const baseScaleX = baseSprite.scale?.x || 1;
   const baseScaleY = baseSprite.scale?.y || 1;
-  const animateWalk = animationName === "walk" || enableAutoWalk;
+  const animateWalk = walkWhileMoving;
   const animateWobble = animationName === "wobble";
   const animateSpin = animationName === "spin";
   const animatePulse = animationName === "pulse";

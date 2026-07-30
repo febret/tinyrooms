@@ -52,7 +52,6 @@ Fields:
   - `wobble`
   - `spin`
   - `pulse`
-  - `walk` (for peeps, runs the sprite's `walk` animation frames while the peep is moving)
 
 ## Runtime behavior
 

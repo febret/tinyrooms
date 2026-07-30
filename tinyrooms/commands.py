@@ -161,17 +161,11 @@ def _build_look_panel(user_obj: Any, resolved_target):
     if target_type == "inventory":
         return label, f"Inventory item: {target_ref}\n\n{description}"
     if target_type == "peep":
+        from . import vibes as _vibes
         peep_type = getattr(target_entity, "type", "user")
         return label, f"Peep ({peep_type}): {target_ref}\n\n{description}"
     if target_type == "prop":
-        room = user_obj.room
-        exit_way_id = target_entity.metadata.get("exit_way_id")
-        exit_text = ""
-        if exit_way_id and room is not None:
-            exit_way = room.ways.get(exit_way_id)
-            exit_label = exit_way.label if exit_way is not None else exit_way_id
-            exit_text = f"\n\nExit: {exit_label}"
-        return label, f"Prop: {target_ref}\n\n{description}{exit_text}"
+        return label, f"Prop: {target_ref}\n\n{description}"
     return "Look", description
 
 
