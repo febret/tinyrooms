@@ -1,6 +1,8 @@
 from . import user_data, char_editor, peep, sprites
 from .icons import DEFAULT_USER_ASSETS
 from . import db as _db, vibes as _vibes
+from . import gameplay as _gameplay
+from . import user_data as _user_data
 
 
 def _coerce_int(value, default: int) -> int:
@@ -26,13 +28,93 @@ class User:
         self.client_stale = False
         self.styles_stale = False
         self.skin_stale = True
+        self.status_stale = True
         self.skin = "base"
         # Load powers from persisted state
         if isinstance(persisted_state, dict):
             raw_powers = persisted_state.get("powers", [])
             if isinstance(raw_powers, list):
                 self.powers = {str(p) for p in raw_powers}
+        # Gameplay state
+        self._juice: float = _gameplay.BASE_MAX_JUICE
+        self.juice_last_tick: str = _user_data._now_iso()
+        self.bops: int = 0
+        self.traits: list[str] = []
+        self._load_gameplay_state(persisted_state)
         self.join_world(world, persisted_state=persisted_state)
+
+    def _load_gameplay_state(self, persisted_state: dict | None) -> None:
+        """Load juice, bops, traits from persisted profile state."""
+        if not isinstance(persisted_state, dict):
+            return
+        raw_juice = persisted_state.get("juice")
+        try:
+            self._juice = float(raw_juice) if raw_juice is not None else _gameplay.BASE_MAX_JUICE
+        except (TypeError, ValueError):
+            self._juice = _gameplay.BASE_MAX_JUICE
+        juice_tick = persisted_state.get("juice_last_tick")
+        if isinstance(juice_tick, str):
+            self.juice_last_tick = juice_tick
+        raw_bops = persisted_state.get("bops")
+        try:
+            self.bops = int(raw_bops) if raw_bops is not None else 0
+        except (TypeError, ValueError):
+            self.bops = 0
+        raw_traits = persisted_state.get("traits")
+        if isinstance(raw_traits, list):
+            self.traits = [str(t) for t in raw_traits]
+
+    @property
+    def level_info(self) -> dict:
+        """Current level info computed from total kudos received."""
+        kudos = _user_data.read_kudos(self.username)
+        return _gameplay.compute_level(kudos.get("total_received", 0))
+
+    @property
+    def level(self) -> int:
+        """Current user level (0–10)."""
+        return self.level_info["level"]
+
+    @property
+    def max_juice(self) -> float:
+        """Maximum juice for this user's level."""
+        return _gameplay.max_juice(self.level)
+
+    @property
+    def juice(self) -> float:
+        return self._juice
+
+    @juice.setter
+    def juice(self, value: float) -> None:
+        self._juice = max(0.0, min(float(value), self.max_juice))
+
+    @property
+    def can_act(self) -> bool:
+        """True when the user has enough juice to take any action."""
+        return self._juice > 0.0
+
+    def recover_juice(self) -> None:
+        """Recover juice based on elapsed time since last tick.
+
+        Updates ``juice_last_tick`` to now.
+        """
+        rate = _gameplay.juice_rate_for_user(self)
+        recovered = _gameplay.compute_juice_recovery(self.juice_last_tick, rate)
+        self.juice = self._juice + recovered
+        self.juice_last_tick = _user_data._now_iso()
+        self.status_stale = True
+
+    def consume_juice(self, amount: float | None = None) -> bool:
+        """Deduct *amount* of juice (default: one message cost).
+
+        Returns True if the user had enough juice; False otherwise.
+        """
+        cost = amount if amount is not None else _gameplay.juice_cost_per_message()
+        if self._juice <= 0.0:
+            return False
+        self._juice = max(0.0, self._juice - cost)
+        self.status_stale = True
+        return True
     
     def __repr__(self):
         return f"User(username={self.username!r}, sid={self.sid!r})"
@@ -100,11 +182,25 @@ class User:
         user_data.save_user_state(self)
     
     def update_status(self):
-        """Send the user's status to the client"""
+        """Send the user's current gameplay status to the client."""
         from flask_socketio import emit
+        kudos = _user_data.read_kudos(self.username)
+        level_info = _gameplay.compute_level(kudos.get("total_received", 0))
         emit('update_status', {
-            'status': {'label': f'Status: '}
+            'username': self.username,
+            'level': level_info["level"],
+            'level_title': level_info["title"],
+            'level_icon': level_info["icon"],
+            'kudos_received': kudos.get("total_received", 0),
+            'kudos_next_level': level_info["next_threshold"],
+            'kudos_required': level_info["kudos_required"],
+            'daily_given_remaining': kudos.get("daily_given_remaining", 0),
+            'juice': round(self._juice, 2),
+            'max_juice': round(self.max_juice, 2),
+            'bops': self.bops,
+            'traits': list(self.traits),
         }, to=self.sid, namespace='/')
+        self.status_stale = False
 
 
 def find_online(username):

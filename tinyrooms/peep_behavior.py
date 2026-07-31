@@ -12,6 +12,7 @@ import random
 from flask_socketio import emit as socketio_emit
 
 from . import icons as icon_module
+from . import user as user_module
 from . import vibes as vibes_module
 
 if TYPE_CHECKING:
@@ -398,6 +399,12 @@ def start_tick_loop(get_world: Callable[[], 'World'], interval: float = 1.0) -> 
                 for peep in list(world.peeps.values()):
                     if getattr(peep, 'type', 'user') == 'npc':
                         call_handler(peep, 'on_tick', secs)
+                # Recover juice for all connected users
+                try:
+                    for user_obj in list(user_module.connected_users.values()):
+                        user_obj.recover_juice()
+                except Exception as juice_exc:
+                    print(f"peep_behavior: juice recovery error: {juice_exc}")
                 # Baseline vibe decay (once per accumulated minute)
                 _seconds_accumulator += secs
                 if _seconds_accumulator >= 60.0:

@@ -1072,3 +1072,179 @@ def dispatch_admin(user_obj: Any, text: str) -> bool:
     }
     console.run_admin_cmd(cmd, locals_dict)
     return True
+
+
+# ---------------------------------------------------------------------------
+# Gameplay commands (any user)
+# ---------------------------------------------------------------------------
+
+@_cmd("juice-status")
+def _cmd_juice_status(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import gameplay as gp
+    rate = gp.juice_rate_for_user(user_obj)
+    packs_lines = []
+    for pack_name, pack in gp.JUICE_PACKS.items():
+        link = _cmd_link(f"Buy {pack_name} ({pack['bops_cost']} Bops, +{pack['juice_amount']} 🧃)", f":buy-juice {pack_name}")
+        packs_lines.append(f"  {link}")
+    content = (
+        f"**🧃 Juice:** {user_obj.juice:.1f} / {user_obj.max_juice:.1f}\n"
+        f"**Recharge rate:** {rate:.2f} juice/min\n"
+        f"**Bops:** {user_obj.bops} 🪙\n"
+        "\n**Juice packs (buy with Bops):**\n" + "\n".join(packs_lines)
+    )
+    _emit_panel(user_obj, "🧃 Juice Status", content)
+
+
+@_cmd("buy-juice <pack>")
+def _cmd_buy_juice(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import gameplay as gp, user_data
+    pack_name = (args[0] if args else "").strip().lower()
+    pack = gp.JUICE_PACKS.get(pack_name)
+    if pack is None:
+        valid = ", ".join(gp.JUICE_PACKS)
+        _error_panel(user_obj, f"Unknown juice pack '{pack_name}'. Valid options: {valid}.")
+        return
+    cost = pack["bops_cost"]
+    if user_obj.bops < cost:
+        _error_panel(user_obj, f"Not enough Bops. Need {cost}, have {user_obj.bops}.")
+        return
+    user_obj.bops -= cost
+    user_obj.juice = user_obj._juice + pack["juice_amount"]
+    user_data.save_user_state(user_obj)
+    user_obj.update_status()
+    _emit_panel(
+        user_obj,
+        "🧃 Juice Purchased",
+        f"You bought a **{pack_name}** juice pack for {cost} Bops.\n"
+        f"Juice: {user_obj.juice:.1f} / {user_obj.max_juice:.1f}",
+    )
+
+
+@_cmd("give-kudos <target>")
+def _cmd_give_kudos(user_obj: Any, args: list[str], world: Any) -> None:
+    _give_kudos_impl(user_obj, args[0] if args else "", 1)
+
+
+@_cmd("give-kudos <target> <amount>")
+def _cmd_give_kudos_amount(user_obj: Any, args: list[str], world: Any) -> None:
+    target_token = args[0] if args else ""
+    try:
+        amount = max(1, int(args[1])) if len(args) > 1 else 1
+    except (ValueError, TypeError):
+        amount = 1
+    _give_kudos_impl(user_obj, target_token, amount)
+
+
+def _give_kudos_impl(user_obj: Any, target_token: str, amount: int) -> None:
+    from . import user as user_module, user_data, gameplay as gp
+
+    # Resolve target username from @username or bare username
+    token = target_token.strip()
+    target_name = token.lstrip("@")
+    if not target_name:
+        _error_panel(user_obj, "Usage: :give-kudos @username [amount]")
+        return
+    if target_name == user_obj.username:
+        _error_panel(user_obj, "You cannot give kudos to yourself.")
+        return
+
+    # Check giver's daily budget
+    giver_kudos = user_data.read_kudos(user_obj.username)
+    remaining = giver_kudos.get("daily_given_remaining", 0)
+    if remaining <= 0:
+        _error_panel(user_obj, "You have no kudos left to give today. Come back tomorrow!")
+        return
+    actual_amount = min(amount, remaining)
+
+    # Verify target exists (doesn't need to be online)
+    if user_data.read_profile(target_name) is None:
+        _error_panel(user_obj, f"User '{target_name}' not found.")
+        return
+
+    # Update giver's kudos
+    given_map = dict(giver_kudos.get("given", {}))
+    given_map[target_name] = given_map.get(target_name, 0) + actual_amount
+    user_data.write_kudos(
+        user_obj.username,
+        total_given_all_time=giver_kudos.get("total_given_all_time", 0) + actual_amount,
+        daily_given_remaining=remaining - actual_amount,
+        given=given_map,
+    )
+
+    # Update receiver's kudos
+    recv_kudos = user_data.read_kudos(target_name)
+    recv_map = dict(recv_kudos.get("received", {}))
+    recv_map[user_obj.username] = recv_map.get(user_obj.username, 0) + actual_amount
+    user_data.write_kudos(
+        target_name,
+        total_received=recv_kudos.get("total_received", 0) + actual_amount,
+        received=recv_map,
+    )
+
+    # Notify giver
+    new_remaining = remaining - actual_amount
+    user_obj.update_status()
+    _emit_panel(
+        user_obj,
+        "✨ Kudos Given",
+        f"You gave {actual_amount} Kudos to **{target_name}**!\n"
+        f"Kudos left to give today: {new_remaining}",
+    )
+
+    # Notify receiver if online
+    target_online = user_module.find_online(target_name)
+    if target_online is not None:
+        target_online.status_stale = True
+        target_online.update_status()
+        emit(
+            "message",
+            {"text": f"✨ {user_obj.username} gave you {actual_amount} Kudos!"},
+            to=target_online.sid,
+        )
+
+
+@_cmd("kudos-status")
+def _cmd_kudos_status(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import user_data, gameplay as gp
+    kudos = user_data.read_kudos(user_obj.username)
+    level_info = gp.compute_level(kudos.get("total_received", 0))
+    total = kudos.get("total_received", 0)
+    remaining = kudos.get("daily_given_remaining", 0)
+    next_t = level_info["next_threshold"]
+    progress = f"{total} / {next_t}" if next_t else f"{total} (max level)"
+
+    # Top givers to this user
+    received_map = kudos.get("received", {})
+    top_received = sorted(received_map.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    recv_lines = [f"  {u}: {n}" for u, n in top_received] or ["  (none yet)"]
+
+    # Top users this user gave to
+    given_map = kudos.get("given", {})
+    top_given = sorted(given_map.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    given_lines = [f"  {u}: {n}" for u, n in top_given] or ["  (none yet)"]
+
+    content = (
+        f"**Level:** {level_info['icon']} {level_info['title']} (L{level_info['level']})\n"
+        f"**Kudos received:** {progress}\n"
+        f"**Kudos to give today:** {remaining}\n\n"
+        f"**Top kudos givers to you:**\n" + "\n".join(recv_lines) + "\n\n"
+        f"**You gave most kudos to:**\n" + "\n".join(given_lines)
+    )
+    _emit_panel(user_obj, "✨ Kudos Status", content)
+
+
+@_cmd("level-info")
+def _cmd_level_info(user_obj: Any, args: list[str], world: Any) -> None:
+    from . import gameplay as gp
+    lines = ["**Level progression:**"]
+    for entry in gp.LEVEL_TABLE:
+        lvl = entry["level"]
+        icon = entry["icon"]
+        title = entry["title"]
+        kudos_req = entry["kudos_required"]
+        bops = gp.daily_bops(lvl)
+        max_j = gp.max_juice(lvl)
+        lines.append(
+            f"  L{lvl} {icon} **{title}** — {kudos_req} Kudos | {bops} Bops/day | Max Juice: {max_j:.0f}"
+        )
+    _emit_panel(user_obj, "📊 Level Info", "\n".join(lines))

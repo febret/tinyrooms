@@ -176,6 +176,11 @@ def profile_yaml_path(username: str) -> Path:
     return user_root(username) / "profile.yaml"
 
 
+DEFAULT_JUICE = 100.0
+DEFAULT_JUICE_RATE = 5.0  # juice per minute
+DEFAULT_STARTING_BOPS = 50  # bops given to brand-new accounts
+
+
 def _default_profile() -> dict[str, Any]:
     return {
         "version": 1,
@@ -186,6 +191,11 @@ def _default_profile() -> dict[str, Any]:
         "last_x": DEFAULT_SPAWN_X,
         "last_y": DEFAULT_SPAWN_Y,
         "powers": [],
+        # Gameplay fields
+        "juice": DEFAULT_JUICE,
+        "juice_last_tick": _now_iso(),
+        "bops": DEFAULT_STARTING_BOPS,
+        "traits": [],
         "updated_at": _now_iso(),
     }
 
@@ -206,7 +216,7 @@ def read_profile(username: str) -> dict[str, Any] | None:
         loaded = yaml.safe_load(handle) or {}
     profile = _default_profile()
     if isinstance(loaded, dict):
-        for key in ("password_hash", "skin", "last_world_id", "last_room_id", "updated_at"):
+        for key in ("password_hash", "skin", "last_world_id", "last_room_id", "updated_at", "juice_last_tick"):
             if key in loaded and isinstance(loaded[key], str):
                 profile[key] = loaded[key]
         for key in ("last_x", "last_y"):
@@ -216,6 +226,15 @@ def read_profile(username: str) -> dict[str, Any] | None:
             profile["powers"] = [str(p) for p in loaded["powers"]]
         if "version" in loaded:
             profile["version"] = loaded["version"]
+        if "juice" in loaded:
+            try:
+                profile["juice"] = float(loaded["juice"])
+            except (TypeError, ValueError):
+                pass
+        if "bops" in loaded:
+            profile["bops"] = _coerce_int(loaded["bops"], 0)
+        if "traits" in loaded and isinstance(loaded["traits"], list):
+            profile["traits"] = [str(t) for t in loaded["traits"]]
     return profile
 
 
@@ -228,6 +247,10 @@ def write_profile(
     last_x: int | None = None,
     last_y: int | None = None,
     powers: list[str] | None = None,
+    juice: float | None = None,
+    juice_last_tick: str | None = None,
+    bops: int | None = None,
+    traits: list[str] | None = None,
 ) -> dict[str, Any]:
     """Create or update a user profile.  Returns the final profile dict."""
     ensure_user_paths(username)
@@ -246,6 +269,14 @@ def write_profile(
         current["last_y"] = int(last_y)
     if powers is not None:
         current["powers"] = list(powers)
+    if juice is not None:
+        current["juice"] = float(juice)
+    if juice_last_tick is not None:
+        current["juice_last_tick"] = juice_last_tick
+    if bops is not None:
+        current["bops"] = int(bops)
+    if traits is not None:
+        current["traits"] = list(traits)
     current["updated_at"] = _now_iso()
     path = profile_yaml_path(username)
     with open(path, "w", encoding="utf-8") as handle:
@@ -286,6 +317,10 @@ def save_user_state(user_obj: Any) -> None:
         last_room_id=room_id,
         last_x=x,
         last_y=y,
+        juice=getattr(user_obj, "juice", None),
+        juice_last_tick=getattr(user_obj, "juice_last_tick", None),
+        bops=getattr(user_obj, "bops", None),
+        traits=getattr(user_obj, "traits", None),
     )
     # Persist user peep vibes to worldstate DB
     if from_peep is not None:
@@ -305,3 +340,98 @@ def save_all_user_states() -> None:
     for user_obj in connected_users.values():
         save_user_state(user_obj)
     print(f"Saved state for {len(connected_users)} connected users")
+
+
+# ---------------------------------------------------------------------------
+# Per-user kudos state stored in kudos.yaml
+# ---------------------------------------------------------------------------
+
+DAILY_KUDOS_BUDGET = 5  # kudos a user may give per day
+
+
+def kudos_yaml_path(username: str) -> Path:
+    return user_root(username) / "kudos.yaml"
+
+
+def _default_kudos() -> dict[str, Any]:
+    return {
+        "version": 1,
+        "total_received": 0,
+        "total_given_all_time": 0,
+        "daily_given_budget": DAILY_KUDOS_BUDGET,
+        "daily_given_remaining": DAILY_KUDOS_BUDGET,
+        "last_daily_reset": _now_iso()[:10],  # YYYY-MM-DD
+        "given": {},     # {username: total kudos given to them}
+        "received": {},  # {username: total kudos received from them}
+        "updated_at": _now_iso(),
+    }
+
+
+def read_kudos(username: str) -> dict[str, Any]:
+    """Read kudos data from disk.  Returns defaults if file not present."""
+    path = kudos_yaml_path(username)
+    if not path.exists():
+        return _default_kudos()
+    with open(path, "r", encoding="utf-8") as handle:
+        loaded = yaml.safe_load(handle) or {}
+    kudos = _default_kudos()
+    if not isinstance(loaded, dict):
+        return kudos
+    for key in ("last_daily_reset", "updated_at"):
+        if key in loaded and isinstance(loaded[key], str):
+            kudos[key] = loaded[key]
+    for key in ("total_received", "total_given_all_time", "daily_given_budget", "daily_given_remaining"):
+        if key in loaded:
+            kudos[key] = _coerce_int(loaded[key], kudos[key])
+    for key in ("given", "received"):
+        if key in loaded and isinstance(loaded[key], dict):
+            kudos[key] = {str(k): _coerce_int(v, 0) for k, v in loaded[key].items()}
+    return kudos
+
+
+def write_kudos(
+    username: str,
+    total_received: int | None = None,
+    total_given_all_time: int | None = None,
+    daily_given_remaining: int | None = None,
+    last_daily_reset: str | None = None,
+    given: dict[str, int] | None = None,
+    received: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    """Update and persist kudos data for a user.  Returns the final kudos dict."""
+    ensure_user_paths(username)
+    current = read_kudos(username)
+    if total_received is not None:
+        current["total_received"] = int(total_received)
+    if total_given_all_time is not None:
+        current["total_given_all_time"] = int(total_given_all_time)
+    if daily_given_remaining is not None:
+        current["daily_given_remaining"] = int(daily_given_remaining)
+    if last_daily_reset is not None:
+        current["last_daily_reset"] = last_daily_reset
+    if given is not None:
+        current["given"] = {str(k): int(v) for k, v in given.items()}
+    if received is not None:
+        current["received"] = {str(k): int(v) for k, v in received.items()}
+    current["updated_at"] = _now_iso()
+    path = kudos_yaml_path(username)
+    with open(path, "w", encoding="utf-8") as handle:
+        yaml.safe_dump(current, handle, sort_keys=False)
+    return current
+
+
+def reset_daily_kudos_if_needed(username: str) -> dict[str, Any]:
+    """Reset the daily kudos giving budget if the calendar day has changed.
+
+    Returns the (possibly-updated) kudos dict.
+    """
+    kudos = read_kudos(username)
+    today = _now_iso()[:10]
+    if kudos.get("last_daily_reset", "") != today:
+        kudos = write_kudos(
+            username,
+            daily_given_remaining=DAILY_KUDOS_BUDGET,
+            last_daily_reset=today,
+        )
+    return kudos
+

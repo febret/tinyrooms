@@ -47,6 +47,7 @@ class SocketCaptureClient:
         "set_skin",
         "reload_styles",
         "reload_client",
+        "update_status",
     )
 
     def __init__(self, base_url: str):

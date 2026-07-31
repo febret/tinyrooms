@@ -1,0 +1,91 @@
+---
+# Core trait library for tinyrooms
+# Each trait key is its unique id.
+# Fields:
+#   label: Display name
+#   description: Short description shown in character editor
+#   opposite: id of the opposing trait (optional)
+#   buffs: list of {stat, amount} modifiers applied as permanent buffs
+#   vibe_modifier: flat vibe score adjustment when two peeps share this trait
+#   kudos_rate_modifier: multiplier applied to daily kudos budget (1.0 = no change)
+#   juice_rate_modifier: multiplier applied to juice recharge rate (1.0 = no change)
+
+strong:
+  label: "💪 Strong"
+  description: "Physical power courses through your veins."
+  opposite: frail
+  buffs:
+    - stat: strength
+      amount: 20
+  vibe_modifier: 5
+
+frail:
+  label: "🩺 Frail"
+  description: "Delicate constitution, but sharp instincts."
+  opposite: strong
+  buffs:
+    - stat: strength
+      amount: -10
+    - stat: intelligence
+      amount: 10
+  vibe_modifier: 0
+
+smart:
+  label: "🧠 Smart"
+  description: "A keen intellect shines through every interaction."
+  opposite: simple
+  buffs:
+    - stat: intelligence
+      amount: 20
+  vibe_modifier: 5
+
+simple:
+  label: "🌾 Simple"
+  description: "Life is better when you don't overthink it."
+  opposite: smart
+  buffs:
+    - stat: constitution
+      amount: 15
+    - stat: intelligence
+      amount: -5
+  vibe_modifier: 0
+
+empathic:
+  label: "🤝 Empathic"
+  description: "You easily sense the feelings of others, earning extra kudos."
+  opposite: detached
+  buffs:
+    - stat: charisma
+      amount: 15
+  kudos_rate_modifier: 1.5
+  vibe_modifier: 10
+
+detached:
+  label: "🧊 Detached"
+  description: "Emotions are noise. Logic is signal."
+  opposite: empathic
+  buffs:
+    - stat: intelligence
+      amount: 10
+  kudos_rate_modifier: 0.8
+  vibe_modifier: -5
+
+energetic:
+  label: "⚡ Energetic"
+  description: "Your juice recharges faster than most."
+  opposite: lethargic
+  buffs:
+    - stat: stamina
+      amount: 15
+  juice_rate_modifier: 1.5
+  vibe_modifier: 5
+
+lethargic:
+  label: "😴 Lethargic"
+  description: "You move at your own pace — unfortunately a slow one."
+  opposite: energetic
+  buffs:
+    - stat: stamina
+      amount: -10
+  juice_rate_modifier: 0.7
+  vibe_modifier: 0

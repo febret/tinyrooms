@@ -155,18 +155,24 @@ def handle_login(data):
         print(f"login rejected: {username} is already logged in")
         return
 
+    # Apply daily reset for kudos giving budget and bops before creating User
+    user_data.reset_daily_kudos_if_needed(username)
+
     # Create User instance and store it
     user_obj = user.User(username, sid, active_world(), persisted_state=profile)
     user_obj.rest_token = secrets.token_urlsafe(24)
     # Load saved skin from profile
     user_obj.skin = profile.get("skin") or 'base'
     user_obj.skin_stale = True
+    # Apply accumulated juice recovery since last login
+    user_obj.recover_juice()
     user.connected_users[sid] = user_obj
     session["username"] = username
     user_data.save_user_state(user_obj)
 
     emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
     _emit_inventory_update(user_obj)
+    user_obj.update_status()
 
     print(f"login success: {username} (sid={sid}) - added to room {user_obj.room.room_id if user_obj.room else None}")
 
@@ -187,13 +193,18 @@ def handle_message(data):
     if not text:
         return
 
-    # Route admin commands (/) and superuser commands (:)
+    # Route admin commands (/) and superuser commands (:) — these bypass juice cost
     from . import commands
     if text.startswith("/"):
         commands.dispatch_admin(user_obj, text)
         return
     if text.startswith(":"):
         commands.dispatch(user_obj, text, active_world())
+        return
+
+    # Consume juice for regular messages
+    if not user_obj.consume_juice():
+        emit("error", {"error": "out of juice — wait for it to recharge"})
         return
 
     parsed = message.parse_message(text, user_obj, user_obj.room)
@@ -236,6 +247,8 @@ def handle_heartbeat(data):
     if user_obj.skin_stale:
         emit("set_skin", {"skin": user_obj.skin}, to=sid)
         user_obj.skin_stale = False
+    if user_obj.status_stale:
+        user_obj.update_status()
 
 
 @server.socketio.on("room_move_entity")

@@ -485,3 +485,135 @@ def object_editor_create_thing():
         return _error_response(str(err), 400)
     return jsonify({"ok": True, "object_id": created_obj.obj_id, "entity": serialized}), 201
 
+
+# ---------------------------------------------------------------------------
+# Gameplay REST API
+# ---------------------------------------------------------------------------
+
+@app.route("/api/gameplay/status")
+def gameplay_status():
+    """Return the authenticated user's current gameplay state."""
+    try:
+        username = _require_rest_user()
+    except PermissionError:
+        return _error_response("not authenticated", 401)
+    from . import gameplay as _gp, user_data as _ud, user as _user
+    kudos = _ud.read_kudos(username)
+    level_info = _gp.compute_level(kudos.get("total_received", 0))
+    online = _user.find_online(username)
+    if online is not None:
+        juice = online.juice
+        max_juice = online.max_juice
+        bops = online.bops
+        traits = list(online.traits)
+    else:
+        profile = _ud.read_profile(username) or {}
+        juice = float(profile.get("juice") or _gp.BASE_MAX_JUICE)
+        bops = int(profile.get("bops") or 0)
+        traits = list(profile.get("traits") or [])
+        max_juice = _gp.max_juice(level_info["level"])
+    return jsonify({
+        "ok": True,
+        "username": username,
+        "level": level_info["level"],
+        "level_title": level_info["title"],
+        "level_icon": level_info["icon"],
+        "kudos_received": kudos.get("total_received", 0),
+        "kudos_next_level": level_info["next_threshold"],
+        "kudos_required": level_info["kudos_required"],
+        "daily_given_remaining": kudos.get("daily_given_remaining", 0),
+        "juice": round(juice, 2),
+        "max_juice": round(max_juice, 2),
+        "bops": bops,
+        "traits": traits,
+    })
+
+
+@app.route("/api/gameplay/give-kudos", methods=["POST"])
+def gameplay_give_kudos():
+    """Give kudos to another user.  Body: {username, amount}."""
+    try:
+        giver_name = _require_rest_user()
+    except PermissionError:
+        return _error_response("not authenticated", 401)
+    from . import gameplay as _gp, user_data as _ud, user as _user
+    payload = request.json or {}
+    target_name = str(payload.get("username") or "").strip()
+    try:
+        amount = max(1, int(payload.get("amount", 1)))
+    except (TypeError, ValueError):
+        amount = 1
+    if not target_name:
+        return _error_response("username is required", 400)
+    if target_name == giver_name:
+        return _error_response("cannot give kudos to yourself", 400)
+    if _ud.read_profile(target_name) is None:
+        return _error_response(f"user '{target_name}' not found", 404)
+
+    giver_kudos = _ud.read_kudos(giver_name)
+    remaining = giver_kudos.get("daily_given_remaining", 0)
+    if remaining <= 0:
+        return _error_response("no kudos left to give today", 409)
+    actual = min(amount, remaining)
+
+    given_map = dict(giver_kudos.get("given", {}))
+    given_map[target_name] = given_map.get(target_name, 0) + actual
+    _ud.write_kudos(
+        giver_name,
+        total_given_all_time=giver_kudos.get("total_given_all_time", 0) + actual,
+        daily_given_remaining=remaining - actual,
+        given=given_map,
+    )
+    recv_kudos = _ud.read_kudos(target_name)
+    recv_map = dict(recv_kudos.get("received", {}))
+    recv_map[giver_name] = recv_map.get(giver_name, 0) + actual
+    _ud.write_kudos(
+        target_name,
+        total_received=recv_kudos.get("total_received", 0) + actual,
+        received=recv_map,
+    )
+
+    # Notify both users if online
+    giver_online = _user.find_online(giver_name)
+    if giver_online:
+        giver_online.update_status()
+    target_online = _user.find_online(target_name)
+    if target_online:
+        target_online.status_stale = True
+        target_online.update_status()
+
+    return jsonify({"ok": True, "given": actual, "daily_given_remaining": remaining - actual})
+
+
+@app.route("/api/gameplay/buy-juice", methods=["POST"])
+def gameplay_buy_juice():
+    """Purchase a juice pack with Bops.  Body: {pack: 'small'|'medium'|'large'}."""
+    try:
+        username = _require_rest_user()
+    except PermissionError:
+        return _error_response("not authenticated", 401)
+    from . import gameplay as _gp, user_data as _ud, user as _user
+    payload = request.json or {}
+    pack_name = str(payload.get("pack") or "").strip().lower()
+    pack = _gp.JUICE_PACKS.get(pack_name)
+    if pack is None:
+        return _error_response(f"unknown pack '{pack_name}'. valid: {', '.join(_gp.JUICE_PACKS)}", 400)
+
+    online = _user.find_online(username)
+    if online is None:
+        return _error_response("user is not online", 403)
+    if online.bops < pack["bops_cost"]:
+        return _error_response(f"not enough bops (need {pack['bops_cost']}, have {online.bops})", 409)
+    online.bops -= pack["bops_cost"]
+    online.juice = online._juice + pack["juice_amount"]
+    _ud.save_user_state(online)
+    online.update_status()
+    return jsonify({
+        "ok": True,
+        "pack": pack_name,
+        "juice": round(online.juice, 2),
+        "max_juice": round(online.max_juice, 2),
+        "bops": online.bops,
+    })
+
+

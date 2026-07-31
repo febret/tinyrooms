@@ -96,6 +96,68 @@ body {
   font-size: clamp(0.7rem, 1.8vw, 0.82rem) !important;
   margin: 0 !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Gameplay status bar buttons
+   --------------------------------------------------------------------------- */
+
+.status-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  font-size: clamp(0.65rem, 1.7vw, 0.78rem);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  color: inherit;
+  white-space: nowrap;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.status-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.status-kudos-btn {
+  flex-grow: 1;
+  max-width: 140px;
+}
+
+.kudos-progress {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  min-width: 40px;
+}
+
+.kudos-give-active {
+  color: #ffd700;
+  border-color: #ffd70060;
+}
+
+/* Juice level colour classes */
+.status-btn.juice-high   { color: #7fdb7f; }
+.status-btn.juice-medium { color: #f0d060; }
+.status-btn.juice-low    { color: #e05030; }
+.status-btn.juice-empty  { color: #666; animation: juice-blink 1s step-start infinite; }
+
+@keyframes juice-blink {
+  50% { opacity: 0.4; }
+}
+
+/* Low/no juice effect on the room canvas */
+#roomCanvas.low-juice canvas {
+  opacity: 0.75;
+  filter: blur(0.5px);
+}
+#roomCanvas.no-juice canvas {
+  opacity: 0.5;
+  filter: blur(1.5px) grayscale(0.6);
+}
 #viewPanel {
   position: relative;
   min-height: 0;

@@ -33,7 +33,21 @@
 
   <div id="mainPage" style="display:none;">
     <div id="statusPanel">
-      <div id="statusDisplay"></div>
+      <div id="statusDisplay">
+        <button id="statusName" class="status-btn" title="Character info">
+          <span id="statusNameText">—</span>
+        </button>
+        <button id="statusKudosBar" class="status-btn status-kudos-btn" title="Kudos progress">
+          <span id="statusKudosText">✨ 0</span>
+          <progress id="statusKudosProgress" class="kudos-progress" value="0" max="10"></progress>
+        </button>
+        <button id="statusKudosGive" class="status-btn" title="Kudos to give today">
+          <span id="statusKudosGiveText">✨→ 0</span>
+        </button>
+        <button id="statusJuice" class="status-btn" title="Juice level">
+          <span id="statusJuiceText">🧃 100</span>
+        </button>
+      </div>
       <div class="status-controls">
         <div id="connectionIndicator" class="connection-indicator connecting" title="Click for connection info"></div>
         <button id="btnLogout" style="margin: 0;padding: 0.4rem 0.8rem;background: #333;">⭕</button>

@@ -7,6 +7,15 @@ var btnRegister = document.getElementById("btnRegister");
 var loginStatus = document.getElementById("loginStatus");
 var mainPage = document.getElementById("mainPage");
 var statusDisplay = document.getElementById("statusDisplay");
+var statusNameBtn = document.getElementById("statusName");
+var statusNameText = document.getElementById("statusNameText");
+var statusKudosBar = document.getElementById("statusKudosBar");
+var statusKudosText = document.getElementById("statusKudosText");
+var statusKudosProgress = document.getElementById("statusKudosProgress");
+var statusKudosGive = document.getElementById("statusKudosGive");
+var statusKudosGiveText = document.getElementById("statusKudosGiveText");
+var statusJuice = document.getElementById("statusJuice");
+var statusJuiceText = document.getElementById("statusJuiceText");
 var messagesDiv = document.getElementById("messages");
 var chatLogList = document.getElementById("chatLogList");
 var msgInput = document.getElementById("msgInput");
@@ -74,6 +83,35 @@ var roomEditor = {
 var heartbeatStarted = false;
 var saveLoopStarted = false;
 var restAuthToken = null;
+
+// ---------------------------------------------------------------------------
+// Status bar click handlers
+// ---------------------------------------------------------------------------
+
+function _emitStatusCommand(cmd) {
+  socket.emit("message", { text: cmd });
+}
+
+if (statusNameBtn) {
+  statusNameBtn.addEventListener("click", () => {
+    _emitStatusCommand(":level-info");
+  });
+}
+if (statusKudosBar) {
+  statusKudosBar.addEventListener("click", () => {
+    _emitStatusCommand(":level-info");
+  });
+}
+if (statusKudosGive) {
+  statusKudosGive.addEventListener("click", () => {
+    _emitStatusCommand(":kudos-status");
+  });
+}
+if (statusJuice) {
+  statusJuice.addEventListener("click", () => {
+    _emitStatusCommand(":juice-status");
+  });
+}
 
 function setLookBoxContent(contentHtml) {
   if (!lookBox) return;
@@ -226,13 +264,59 @@ socket.on("set_skin", data => {
 });
 
 socket.on("update_status", data => {
-  statusDisplay.innerHTML = "";
-  for (const item of Object.values(data || {})) {
-    const div = document.createElement("div");
-    div.className = "status-item";
-    div.textContent = item.label || "";
-    statusDisplay.appendChild(div);
+  if (!data) return;
+
+  // Username + level button
+  const levelIcon = data.level_icon || "";
+  const levelTitle = data.level_title || "";
+  const username = data.username || myUsername || "—";
+  if (statusNameText) {
+    statusNameText.textContent = `${levelIcon} ${username} · ${levelTitle}`.trim();
   }
+
+  // Kudos progress bar
+  const kudosReceived = data.kudos_received || 0;
+  const kudosNext = data.kudos_next_level;
+  if (statusKudosText) {
+    statusKudosText.textContent = `✨ ${kudosReceived}`;
+  }
+  if (statusKudosProgress) {
+    statusKudosProgress.value = kudosReceived;
+    statusKudosProgress.max = kudosNext != null ? kudosNext : kudosReceived || 1;
+  }
+
+  // Kudos-to-give indicator
+  const kudosGiveRemaining = data.daily_given_remaining || 0;
+  if (statusKudosGiveText) {
+    statusKudosGiveText.textContent = `✨→ ${kudosGiveRemaining}`;
+    if (statusKudosGive) {
+      statusKudosGive.classList.toggle("kudos-give-active", kudosGiveRemaining > 0);
+    }
+  }
+
+  // Juice indicator
+  const juice = data.juice != null ? data.juice : 0;
+  const maxJuice = data.max_juice != null ? data.max_juice : 100;
+  const juicePct = maxJuice > 0 ? juice / maxJuice : 0;
+  if (statusJuiceText) {
+    statusJuiceText.textContent = `🧃 ${Math.floor(juice)}`;
+  }
+  if (statusJuice) {
+    statusJuice.classList.remove("juice-high", "juice-medium", "juice-low", "juice-empty");
+    if (juicePct <= 0) statusJuice.classList.add("juice-empty");
+    else if (juicePct <= 0.25) statusJuice.classList.add("juice-low");
+    else if (juicePct <= 0.6) statusJuice.classList.add("juice-medium");
+    else statusJuice.classList.add("juice-high");
+  }
+
+  // Low-juice visual on room canvas
+  if (roomCanvas) {
+    roomCanvas.classList.toggle("low-juice", juicePct < 0.25 && juicePct > 0);
+    roomCanvas.classList.toggle("no-juice", juicePct <= 0);
+  }
+
+  // Store for click handlers
+  window._lastStatusData = data;
 });
 
 socket.on("update_view", data => {
