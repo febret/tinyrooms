@@ -10,10 +10,12 @@ spec format: [[<display text>|<command>]]
 from __future__ import annotations
 
 import shlex
-from typing import Any, Callable
+from typing import Any
 
 from flask_socketio import emit
-from .world import active_world
+from ..world import active_world
+from .help_docs import build_help_text
+from .registry import COMMANDS, cmd as _cmd, extract_args as _extract_args, matches as _matches
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +143,7 @@ def _resolve_action_target(user_obj: Any, target_token: str):
 
 
 def _build_look_panel(user_obj: Any, resolved_target):
-    from . import text as text_utils
+    from .. import text as text_utils
 
     room = user_obj.room
     if room is None:
@@ -161,7 +163,7 @@ def _build_look_panel(user_obj: Any, resolved_target):
     if target_type == "inventory":
         return label, f"Inventory item: {target_ref}\n\n{description}"
     if target_type == "peep":
-        from . import vibes as _vibes
+        from .. import vibes as _vibes
         peep_type = getattr(target_entity, "type", "user")
         source_peep = getattr(user_obj, "peep", None)
         vibe_lines = ""
@@ -208,23 +210,6 @@ def _resolve_way_target(user_obj: Any, target_token: str):
     return way, ""
 
 # ---------------------------------------------------------------------------
-# Command registry
-# ---------------------------------------------------------------------------
-
-# Each entry: (required_power_or_None, handler_fn)
-# handler signature: handler(user_obj, args: list[str], world) -> None
-_REGISTRY: list[tuple[str, str | None, Callable]] = []
-
-
-def _cmd(pattern: str, power: str | None = None):
-    """Decorator that registers a command handler."""
-    def decorator(fn: Callable) -> Callable:
-        _REGISTRY.append((pattern, power, fn))
-        return fn
-    return decorator
-
-
-# ---------------------------------------------------------------------------
 # Command dispatcher
 # ---------------------------------------------------------------------------
 
@@ -247,66 +232,17 @@ def dispatch(user_obj: Any, text: str, world: Any) -> bool:
         _error_panel(user_obj, "Empty command. Type [[:?|:?]] for help.")
         return True
 
-    for pattern, required_power, handler in _REGISTRY:
-        if _matches(tokens, pattern):
-            if required_power and not user_obj.has_power(required_power):
-                _error_panel(user_obj, f"You don't have the '{required_power}' power required for this command.")
+    for spec in COMMANDS:
+        if _matches(tokens, spec.pattern):
+            if spec.power and not user_obj.has_power(spec.power):
+                _error_panel(user_obj, f"You don't have the '{spec.power}' power required for this command.")
                 return True
-            args = _extract_args(tokens, pattern)
-            handler(user_obj, args, world)
+            args = _extract_args(tokens, spec.pattern)
+            spec.handler(user_obj, args, world)
             return True
 
     _error_panel(user_obj, f"Unknown command: :{cmd_text}\nType [[:?|:?]] for help.")
     return True
-
-
-def _pattern_words(pattern: str) -> list[str]:
-    """Split a command pattern into fixed keyword words."""
-    return pattern.split()
-
-
-def _matches(tokens: list[str], pattern: str) -> bool:
-    """Check whether tokens match a command pattern.
-
-    A pattern is a space-separated sequence of keywords followed by optional
-    <arg> placeholders.  Example: 'room owner set <username>'
-    Keywords are matched case-insensitively; placeholders match any token.
-    A trailing '...' placeholder consumes all remaining tokens.
-    """
-    words = _pattern_words(pattern)
-    token_idx = 0
-    for word in words:
-        if word.startswith("<") and word.endswith(">"):
-            if token_idx >= len(tokens):
-                return False  # required arg missing
-            token_idx += 1
-        elif word == "...":
-            return True  # greedy match of rest
-        else:
-            if token_idx >= len(tokens):
-                return False
-            if tokens[token_idx].lower() != word.lower():
-                return False
-            token_idx += 1
-    return token_idx == len(tokens)
-
-
-def _extract_args(tokens: list[str], pattern: str) -> list[str]:
-    """Return only the argument tokens (non-keyword parts) from tokens."""
-    words = _pattern_words(pattern)
-    args: list[str] = []
-    token_idx = 0
-    for word in words:
-        if word.startswith("<") and word.endswith(">"):
-            if token_idx < len(tokens):
-                args.append(tokens[token_idx])
-            token_idx += 1
-        elif word == "...":
-            args.extend(tokens[token_idx:])
-            break
-        else:
-            token_idx += 1
-    return args
 
 
 # ---------------------------------------------------------------------------
@@ -315,74 +251,13 @@ def _extract_args(tokens: list[str], pattern: str) -> list[str]:
 
 @_cmd("?")
 def _cmd_help(user_obj: Any, args: list[str], world: Any) -> None:
-    powers = sorted(user_obj.powers) if user_obj.powers else []
-    lines = [
-        f"**User:** {user_obj.username}",
-        f"**Powers:** {', '.join(powers) if powers else '(none)'}",
-        "",
-        "**Available commands:**",
-        "  [[:?|:?]] — this help",
-        "  [[:list users|:list users]] — list all users",
-        "  [:go <target>] — go through an exit (@way:<id>)",
-        "  [:look [target]] — inspect room or target",
-        "  [:pick <target>] — pick up object from room",
-        "  [:drop <target> [x y]] — drop inventory object",
-        "  [:equip] — show equip panel",
-        "  [:self] — show self panel",
-        "  [:claim room] — claim current unowned room",
-        "  [:use <target>] — default use action feedback",
-    ]
-    if user_obj.has_power("realtor"):
-        lines += [
-            "",
-            "**Realtor commands:**",
-            "  :room owner set <username> — set room owner",
-            "  :room owner clear — clear room owner",
-            "  :room owner show — show room owner",
-            "  :room list — list all rooms",
-        ]
-    if user_obj.has_power("builder"):
-        lines += [
-            "",
-            "**Builder commands:**",
-            "  :room rename <name> — rename current room",
-            "  :room describe <text> — set room description",
-            "  :room reset — reset room to defaults",
-        ]
-    if user_obj.has_power("admin"):
-        lines += [
-            "",
-            "**Admin power commands:**",
-            "  :power list <username> — show a user's powers",
-            "  :power set <username> <power> <grant|remove> — grant/remove a power",
-        ]
-    if user_obj.has_power("moderator"):
-        lines += [
-            "",
-            "**Moderator commands:**",
-            "  :kick <username> — kick user to default room",
-            "  :bring <username> — bring user to your room",
-            "  :move <username> <room_id> — move user to room",
-        ]
-    if user_obj.has_power("game-master"):
-        lines += [
-            "",
-            "**Game-master commands:**",
-            "  :goto <room_id> — teleport to room",
-            "  :spawn <thing_id> — spawn object in current room",
-            "  :despawn <obj_id> — remove object from room",
-            "  :reset-world — reset all rooms to defaults",
-            "  :obj list — list objects in room",
-            "  :peep list — list peeps in room",
-            "  :prop list — list props in room",
-            "  :thing list — list available thing definitions",
-        ]
-    _emit_panel(user_obj, "Help", "\n".join(lines))
+    content = build_help_text(user_obj, COMMANDS, _cmd_link)
+    _emit_panel(user_obj, "Help", content)
 
 
 @_cmd("list users")
 def _cmd_list_users(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user as user_module
+    from .. import user as user_module
     search = args[0].lower() if args else ""
     lines = ["**Connected users:**"]
     for u in user_module.connected_users.values():
@@ -426,7 +301,7 @@ def _cmd_go_missing_target(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("go <target>")
 def _cmd_go(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user_data
+    from .. import user_data
     room = user_obj.room
     if room is None:
         emit("error", {"error": "not in room"}, to=user_obj.sid)
@@ -595,7 +470,7 @@ _POWER_DISABLE_ACTIONS = {"remove", "revoke", "off", "false", "0"}
 
 @_cmd("power list <username>", power="admin")
 def _cmd_power_list(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user as user_module, user_data
+    from .. import user as user_module, user_data
 
     target_name = args[0] if args else ""
     if not target_name:
@@ -617,9 +492,9 @@ def _cmd_power_list(user_obj: Any, args: list[str], world: Any) -> None:
     _emit_panel(user_obj, "Power List", "\n".join(lines))
 
 
-@_cmd("power set <username> <power> <mode>", power="admin")
+@_cmd("power set <username> <power> <grant|remove>", power="admin")
 def _cmd_power_set(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user as user_module, user_data
+    from .. import user as user_module, user_data
 
     target_name = args[0] if len(args) > 0 else ""
     power_name = (args[1] if len(args) > 1 else "").strip().lower()
@@ -787,7 +662,7 @@ def _cmd_room_reset(user_obj: Any, args: list[str], world: Any) -> None:
         prop_info = world.prop_defs.get(prop_id, {})
         merged = {**prop_info, **prop_spec}
         prop_instance_id = prop_spec.get("prop_instance_id") or f"{room.room_id}-{prop_id}-{idx}"
-        from .prop import Prop
+        from ..prop import Prop
         new_props[prop_instance_id] = Prop(prop_instance_id, prop_id, merged, room.room_id)
     room.props = new_props
     _save_world(world)
@@ -803,7 +678,7 @@ def _cmd_room_reset(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("kick <username>", power="moderator")
 def _cmd_kick(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user as user_module, user_data
+    from .. import user as user_module, user_data
     target_name = args[0] if args else ""
     if not target_name:
         _error_panel(user_obj, "Usage: :kick <username>")
@@ -824,7 +699,7 @@ def _cmd_kick(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("bring <username>", power="moderator")
 def _cmd_bring(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user as user_module, user_data
+    from .. import user as user_module, user_data
     target_name = args[0] if args else ""
     if not target_name:
         _error_panel(user_obj, "Usage: :bring <username>")
@@ -848,7 +723,7 @@ def _cmd_bring(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("move <username> <room_id>", power="moderator")
 def _cmd_move(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user as user_module, user_data
+    from .. import user as user_module, user_data
     target_name = args[0] if len(args) > 0 else ""
     room_id = args[1] if len(args) > 1 else ""
     if not target_name or not room_id:
@@ -877,7 +752,7 @@ def _cmd_move(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("goto <room_id>", power="game-master")
 def _cmd_goto(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user_data
+    from .. import user_data
     room_id = args[0] if args else ""
     if not room_id:
         _error_panel(user_obj, "Usage: :goto <room_id>")
@@ -897,7 +772,7 @@ def _cmd_goto(user_obj: Any, args: list[str], world: Any) -> None:
 @_cmd("spawn <thing_id>", power="game-master")
 def _cmd_spawn(user_obj: Any, args: list[str], world: Any) -> None:
     import random
-    from .object import Object
+    from ..object import Object
     thing_id = args[0] if args else ""
     if not thing_id:
         _error_panel(user_obj, "Usage: :spawn <thing_id>")
@@ -916,7 +791,7 @@ def _cmd_spawn(user_obj: Any, args: list[str], world: Any) -> None:
     obj.x = getattr(user_obj.peep, "x", 32)
     obj.y = getattr(user_obj.peep, "y", 32)
     obj.z_order = room.next_z()
-    from . import icons
+    from .. import icons
     obj._display_assets = icons.build_display_assets(thing_def, world.root_path)
     world.objs[obj_id] = obj
     room.objs[obj_id] = obj
@@ -948,7 +823,7 @@ def _cmd_despawn(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("reset-world", power="game-master")
 def _cmd_reset_world(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import world as world_module
+    from .. import world as world_module
     world_module.reset_rooms()
     _emit_panel(user_obj, "Reset World", "World has been reset to YAML defaults.")
 
@@ -1059,12 +934,12 @@ def dispatch_admin(user_obj: Any, text: str) -> bool:
     if not user_obj.has_power("admin"):
         emit("error", {"error": "You don't have 'admin' power."}, to=user_obj.sid)
         return True
-    from . import console
+    from .. import console
     cmd = text[1:].strip()
     if cmd in {"r", "k"}:
         emit("error", {"error": f"/{cmd} is console-only and cannot be run from client."}, to=user_obj.sid)
         return True
-    from . import user as user_module, world as world_module, server as server_module
+    from .. import user as user_module, world as world_module, server as server_module
     locals_dict = {
         "user": user_module,
         "world": world_module,
@@ -1080,7 +955,7 @@ def dispatch_admin(user_obj: Any, text: str) -> bool:
 
 @_cmd("juice-status")
 def _cmd_juice_status(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import gameplay as gp
+    from .. import gameplay as gp
     rate = gp.juice_rate_for_user(user_obj)
     packs_lines = []
     for pack_name, pack in gp.JUICE_PACKS.items():
@@ -1097,7 +972,7 @@ def _cmd_juice_status(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("buy-juice <pack>")
 def _cmd_buy_juice(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import gameplay as gp, user_data
+    from .. import gameplay as gp, user_data
     pack_name = (args[0] if args else "").strip().lower()
     pack = gp.JUICE_PACKS.get(pack_name)
     if pack is None:
@@ -1136,7 +1011,7 @@ def _cmd_give_kudos_amount(user_obj: Any, args: list[str], world: Any) -> None:
 
 
 def _give_kudos_impl(user_obj: Any, target_token: str, amount: int) -> None:
-    from . import user as user_module, user_data, gameplay as gp
+    from .. import user as user_module, user_data, gameplay as gp
 
     # Resolve target username from @username or bare username
     token = target_token.strip()
@@ -1205,7 +1080,7 @@ def _give_kudos_impl(user_obj: Any, target_token: str, amount: int) -> None:
 
 @_cmd("kudos-status")
 def _cmd_kudos_status(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import user_data, gameplay as gp
+    from .. import user_data, gameplay as gp
     kudos = user_data.read_kudos(user_obj.username)
     level_info = gp.compute_level(kudos.get("total_received", 0))
     total = kudos.get("total_received", 0)
@@ -1235,7 +1110,7 @@ def _cmd_kudos_status(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("level-info")
 def _cmd_level_info(user_obj: Any, args: list[str], world: Any) -> None:
-    from . import gameplay as gp
+    from .. import gameplay as gp
     lines = ["**Level progression:**"]
     for entry in gp.LEVEL_TABLE:
         lvl = entry["level"]

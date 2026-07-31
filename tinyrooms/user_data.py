@@ -310,17 +310,41 @@ def save_user_state(user_obj: Any) -> None:
     room_id = from_room.room_id if from_room is not None else ""
     x = _coerce_int(getattr(from_peep, "x", DEFAULT_SPAWN_X), DEFAULT_SPAWN_X)
     y = _coerce_int(getattr(from_peep, "y", DEFAULT_SPAWN_Y), DEFAULT_SPAWN_Y)
+
+    # Safely extract gameplay fields; ignore if values are not the expected type
+    def _safe_float(attr):
+        v = getattr(user_obj, attr, None)
+        try:
+            return float(v) if v is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _safe_int(attr):
+        v = getattr(user_obj, attr, None)
+        try:
+            return int(v) if v is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _safe_str(attr):
+        v = getattr(user_obj, attr, None)
+        return v if isinstance(v, str) else None
+
+    def _safe_list(attr):
+        v = getattr(user_obj, attr, None)
+        return v if isinstance(v, list) else None
+
     write_profile(
         user_obj.username,
-        skin=getattr(user_obj, "skin", "base"),
-        last_world_id=world_id,
-        last_room_id=room_id,
+        skin=getattr(user_obj, "skin", "base") if isinstance(getattr(user_obj, "skin", None), str) else None,
+        last_world_id=world_id if isinstance(world_id, str) else None,
+        last_room_id=room_id if isinstance(room_id, str) else None,
         last_x=x,
         last_y=y,
-        juice=getattr(user_obj, "juice", None),
-        juice_last_tick=getattr(user_obj, "juice_last_tick", None),
-        bops=getattr(user_obj, "bops", None),
-        traits=getattr(user_obj, "traits", None),
+        juice=_safe_float("juice"),
+        juice_last_tick=_safe_str("juice_last_tick"),
+        bops=_safe_int("bops"),
+        traits=_safe_list("traits"),
     )
     # Persist user peep vibes to worldstate DB
     if from_peep is not None:
