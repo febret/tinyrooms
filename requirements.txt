@@ -1,5 +1,7 @@
 # requirements.txt
 
+selenium==4.33.0
+webdriver-manager==4.0.2
 accelerate==1.13.0
 annotated-doc==0.0.4
 anyio==4.13.0
