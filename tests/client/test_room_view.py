@@ -110,6 +110,50 @@ def test_room_title_button_opens_description(client_runner, unique_username, reg
     ])
 
 
+def test_give_kudos_action_for_other_peep_selection(client_runner, unique_username, register_user):
+    """Selecting another user's peep exposes a Give Kudos action in the palette."""
+    username = unique_username("ui_give_kudos")
+    password = "test_password_123"
+    register_user(username, password)
+
+    _login_and_wait_for_room(client_runner, username, password)
+
+    client_runner.run([
+        ExecuteScript("""
+            if (typeof window.selectTarget === 'function') {
+                window.selectTarget({
+                    type: 'peep',
+                    id: 'other-user',
+                    label: 'Other User',
+                    description: 'Another user in the room',
+                    is_self: false,
+                });
+            }
+        """),
+        Wait(seconds=0.5),
+    ])
+
+    palette = client_runner.driver.find_element("id", "actionPalette")
+    assert "Give Kudos" in palette.text
+
+    client_runner.run([
+        ExecuteScript("""
+            if (typeof window.selectTarget === 'function') {
+                window.selectTarget({
+                    type: 'peep',
+                    id: 'self-user',
+                    label: 'Self User',
+                    description: 'Your own peep',
+                    is_self: true,
+                });
+            }
+        """),
+        Wait(seconds=0.5),
+    ])
+
+    assert "Give Kudos" not in client_runner.driver.find_element("id", "actionPalette").text
+
+
 def test_character_editor_overlay(client_runner, unique_username, register_user):
     """Triggering the character editor shows the editor overlay card."""
     username = unique_username("ui_chared")

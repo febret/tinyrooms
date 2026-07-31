@@ -100,6 +100,26 @@ def test_juice_consumed_on_message(auth_socket_user, http_client: httpx.Client):
     )
 
 
+def test_go_command_consumes_juice(auth_socket_user, http_client: httpx.Client):
+    """Changing rooms via :go should reduce the user's juice."""
+    user = auth_socket_user(prefix="it_gp_room_move")
+    client = user["client"]
+    headers = user["headers"]
+
+    _wait_update_status(client)
+
+    initial_status = _status_via_rest(http_client, headers)
+    initial_juice = initial_status["juice"]
+
+    client.emit("message", {"text": ":go @way:to_gateway"})
+    time.sleep(0.5)
+
+    updated_status = _status_via_rest(http_client, headers)
+    assert updated_status["juice"] < initial_juice, (
+        f"Expected room-change juice cost: {initial_juice} → {updated_status['juice']}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Kudos: give-kudos command and REST endpoint
 # ---------------------------------------------------------------------------

@@ -45,6 +45,19 @@ def _broadcast_header(room: Any) -> None:
         room.send_header_view(room_user)
 
 
+def _consume_room_change_cost(user_obj: Any) -> bool:
+    """Charge juice for a user-initiated room change.
+
+    Returns True when the room change can proceed; False when the user is out of juice.
+    """
+    if not hasattr(user_obj, "consume_juice"):
+        return True
+    if user_obj.consume_juice():
+        return True
+    emit("error", {"error": "out of juice — wait for it to recharge"}, to=user_obj.sid)
+    return False
+
+
 def _emit_inventory_update(user_obj: Any) -> None:
     items = []
     for obj in user_obj.peep.inventory.values():
@@ -313,6 +326,8 @@ def _cmd_go(user_obj: Any, args: list[str], world: Any) -> None:
     to = getattr(way, "info", {}).get("to")
     if to is None or to not in world.rooms:
         emit("message", {"text": "You can't go that way."}, to=user_obj.sid)
+        return
+    if not _consume_room_change_cost(user_obj):
         return
     next_room = world.rooms[to]
     user_obj.room.remove_user(user_obj)
@@ -760,6 +775,8 @@ def _cmd_goto(user_obj: Any, args: list[str], world: Any) -> None:
     dest_room = world.rooms.get(room_id)
     if dest_room is None:
         _error_panel(user_obj, f"Room '{room_id}' not found.")
+        return
+    if not _consume_room_change_cost(user_obj):
         return
     old_room = user_obj.room
     if old_room:

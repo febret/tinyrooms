@@ -259,6 +259,12 @@ function targetsMatch(left, right) {
   return left.type === right.type && left.id === right.id;
 }
 
+function isSelfPeepTarget(target) {
+  if (!target || target.type !== "peep") return false;
+  if (target.is_self) return true;
+  return !!(myUsername && target.id && String(target.id) === String(myUsername));
+}
+
 function targetToCommandRef(target) {
   if (!target) return "";
   if (target.type === "object" || target.type === "inventory") return `@obj:${target.id}`;
@@ -279,6 +285,14 @@ function sendUseCommand(target) {
   const targetRef = targetToCommandRef(activeTarget);
   const text = targetRef ? `:use ${targetRef}` : ":use";
   socket.emit("message", { text });
+}
+
+function sendGiveKudosCommand(target) {
+  const activeTarget = target || selectedTarget;
+  if (!activeTarget || activeTarget.type !== "peep" || isSelfPeepTarget(activeTarget)) {
+    return;
+  }
+  socket.emit("message", { text: `:give-kudos @${activeTarget.id}` });
 }
 
 function handleTargetTap(target) {
@@ -474,6 +488,7 @@ function getPaletteEntriesForTab(tabId) {
         id: entity.entity_id,
         label: entity.label || entity.entity_id,
         description: entity.description || "",
+        is_self: !!entity.is_self,
       }, null),
     }));
   }
@@ -504,6 +519,14 @@ function getPaletteEntriesForTab(tabId) {
     { label: "Look", onClick: () => sendLookCommand() },
     { label: "Use", onClick: () => sendUseCommand() },
   ];
+
+  if (peepTarget && !isSelfPeepTarget(peepTarget)) {
+    entries.push({
+      label: "Give Kudos",
+      title: `Give kudos to ${peepTarget.label || peepTarget.id}`,
+      onClick: () => sendGiveKudosCommand(peepTarget),
+    });
+  }
 
   if (invTarget) {
     const customActions = Array.isArray(invTarget.inventory_actions) ? invTarget.inventory_actions : [];
