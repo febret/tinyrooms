@@ -392,8 +392,8 @@ button:active {
 /* ── Look box ────────────────────────────────────────────── */
 
 #lookBox {
-  border: 2px solid var(--jrpg-border-hi);
-  box-shadow: var(--jrpg-window-shadow);
+  /* border: 2px solid var(--jrpg-border-hi); */
+  /* box-shadow: var(--jrpg-window-shadow); */
   background: var(--jrpg-panel);
 }
 

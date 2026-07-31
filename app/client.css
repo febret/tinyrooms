@@ -162,8 +162,8 @@ body {
   overflow: hidden;
   padding: 0;
   border-radius: 2px;
-  background: var(--activity-panel-bg, #fff7e6);
-  border: var(--activity-panel-border, 1px solid #ffd591);
+  background: #141428;
+  border: var(--activity-panel-border, 1px solid #3848b8);
   z-index: 1;
   color: var(--activity-panel-color, inherit);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5),
