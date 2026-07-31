@@ -10,6 +10,9 @@ function formatText(text) {
   
   let result = text;
 
+  // Replace **text** with bold
+  result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
   // First, handle spec-format command links: [[display text|command]]
   // These are fully-enclosed [[...|...]] spans with a pipe separator.
   result = result.replace(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/g, (match, display, command) => {
