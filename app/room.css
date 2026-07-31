@@ -1,6 +1,5 @@
 /* Room-stage specific layout + scale behavior. */
 
-/* viewPanel: game viewport — no padding, canvas fills edge-to-edge */
 #viewPanel {
   background: #050810;
 }
@@ -9,7 +8,7 @@
   font-weight: 400;
   font-size: clamp(0.5rem, 1.5vw, 0.65rem);
   padding: 0.3rem 0.6rem;
-  color: var(--room-title-color, var(--jrpg-gold, #f0c020));
+  color: var(--jrpg-gold, #f0c020);
   font-family: 'Press Start 2P', 'Courier New', monospace;
   letter-spacing: 0.06em;
   text-shadow: 0 0 10px rgba(240, 192, 32, 0.5), 2px 2px 0 rgba(0,0,0,0.8);
@@ -24,10 +23,8 @@
   max-width: 100%;
 }
 
-/* roomCanvas fills viewPanel absolutely (no dead space) */
 #roomCanvas {
   cursor: crosshair;
-  /* Atmospheric placeholder when game hasn't loaded any tiles */
   background:
     radial-gradient(ellipse at 50% 35%, #12184a 0%, #060c18 70%),
     repeating-linear-gradient(
@@ -42,55 +39,23 @@
 #roomCanvas canvas {
   display: block;
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* overlayPanels: chat log floats over game canvas, bottom-left */
-#overlayPanels {
-  z-index: 30;
-}
-
-#logPanel {
-  padding: 0;
-  border-radius: 0;
-  overflow: hidden;
-  z-index: 15;
-  background: rgba(8, 8, 24, 0.9);
-  border: 2px solid var(--jrpg-border, #3848b8);
-  outline: 2px solid var(--jrpg-border-hi, #7080e8);
-  outline-offset: -4px;
-  color: var(--jrpg-text, #e8e0c0);
+  top: 0; left: 0;
+  width: 100%; height: 100%;
 }
 
 #messages {
-  height: auto;
   max-height: 10rem;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
   padding: 0.3rem 0.5rem;
 }
 
-#chatLogList {
-  gap: 0.15rem;
-}
+#chatLogList { gap: 0.15rem; }
 
 .chat-log-message {
-  color: var(--jrpg-text, #e8e0c0);
-  background: transparent;
   font-size: clamp(0.85rem, 2vw, 1rem);
   font-family: 'VT323', 'Courier New', monospace;
-  text-shadow: none;
-}
-
-#logPanel .meta,
-#logPanel .system,
-#logPanel .ref {
-  color: var(--jrpg-text, #e8e0c0);
 }
 
 .room-header-title {
@@ -112,33 +77,16 @@
   line-height: 1;
   padding: 0.1rem;
   margin: 0;
-  border-radius: 2px;
 }
 
 @media (max-width: 600px) {
-  #logPanel {
-    max-width: calc(100% - 0.5rem);
-  }
-
-  #messages {
-    max-height: 8rem;
-    padding: 0.25rem 0.35rem;
-  }
-
-  .chat-log-message {
-    font-size: 0.95rem;
-  }
+  #logPanel  { max-width: calc(100% - 0.5rem); }
+  #messages  { max-height: 8rem; padding: 0.25rem 0.35rem; }
+  .chat-log-message { font-size: 0.95rem; }
 }
 
 @media (max-width: 420px) {
-  #messages {
-    max-height: 7rem;
-  }
-
-  .room-prop-control-btn {
-    min-width: 1.1rem;
-    min-height: 1.1rem;
-    font-size: 0.68rem;
-  }
+  #messages { max-height: 7rem; }
+  .room-prop-control-btn { min-width: 1.1rem; min-height: 1.1rem; font-size: 0.68rem; }
 }
 

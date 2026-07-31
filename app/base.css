@@ -20,32 +20,24 @@
   --jrpg-orange:           #e87820;
   --jrpg-purple:           #b050e0;
 
-  /* JRPG double-border window mixin (bolder, more authentic) */
+  /* Font stacks */
+  --font-pixel:   'Press Start 2P', 'Courier New', monospace;
+  --font-vt:      'VT323', 'Courier New', monospace;
+
+  /* JRPG double-border window mixin */
   --jrpg-window-shadow:
     0 0 0 6px var(--jrpg-bg),
     0 0 0 9px var(--jrpg-border),
     0 0 0 11px var(--jrpg-border-hi),
     0 0 28px rgba(56, 72, 184, 0.5);
-
-  /* Component tokens (referenced by layout CSS + room CSS) */
-  --room-title-overlay-color:  var(--jrpg-gold);
-  --room-title-overlay-bg:     rgba(8, 8, 24, 0.88);
-  --room-canvas-border:        2px solid var(--jrpg-border-hi);
-  --room-canvas-bg:            #060c18;
-  --look-box-bg:               var(--jrpg-panel);
-  --look-box-color:            var(--jrpg-text);
-  --activity-panel-bg:         var(--jrpg-panel);
-  --activity-panel-border:     2px solid var(--jrpg-border-hi);
-  --activity-panel-color:      var(--jrpg-text);
-  --interaction-panel-bg:      rgba(20, 20, 40, 0.98);
-  --interaction-panel-border:  2px solid var(--jrpg-border-hi);
-  --interaction-panel-shadow:  var(--jrpg-window-shadow);
 }
 
 /* ── Global ─────────────────────────────────────────────── */
 
+* { border-radius: 0; }
+
 body {
-  font-family: 'VT323', 'Courier New', 'Lucida Console', monospace;
+  font-family: var(--font-vt);
   background: var(--jrpg-bg);
   color: var(--jrpg-text);
   font-size: 18px;
@@ -70,36 +62,23 @@ body::before {
 
 /* ── Pixel font for game-UI elements ────────────────────── */
 
-h1, h2, h3 {
-  font-family: 'Press Start 2P', 'Courier New', monospace;
-}
-
-h3 { font-size: 0.7rem; line-height: 1.8; }
-
+h1, h2, h3,
 .inventory-header,
 .character-descriptor-label,
 .input-group label,
-.room-header-title {
-  font-family: 'Press Start 2P', 'Courier New', monospace;
-}
-
-.inventory-header      { font-size: 0.5rem; line-height: 1.8; }
-.character-descriptor-label { font-size: 0.5rem; line-height: 1.8; }
-.input-group label     { font-size: 0.5rem; line-height: 1.8; }
-.room-header-title     { font-size: 0.55rem; line-height: 1.8; }
-
+.room-header-title,
 #roomTitleOverlay {
-  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-family: var(--font-pixel);
 }
 
-/* ── Pages ──────────────────────────────────────────────── */
+h3                          { font-size: 0.7rem;  line-height: 1.8; }
+.inventory-header           { font-size: 0.5rem;  line-height: 1.8; }
+.character-descriptor-label { font-size: 0.5rem;  line-height: 1.8; }
+.input-group label          { font-size: 0.5rem;  line-height: 1.8; }
+.room-header-title          { font-size: 0.55rem; line-height: 1.8; }
 
-#loginPage,
-#mainPage {
-  background: var(--jrpg-bg);
-}
+/* ── Login page ─────────────────────────────────────────── */
 
-/* Login page: centered card with JRPG double-border */
 #loginPage {
   border: 2px solid var(--jrpg-border-hi);
   box-shadow: var(--jrpg-window-shadow);
@@ -111,7 +90,7 @@ h3 { font-size: 0.7rem; line-height: 1.8; }
 #loginPage::before {
   content: '★  TINYROOMS  ★';
   display: block;
-  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-family: var(--font-pixel);
   font-size: 0.55rem;
   color: var(--jrpg-gold);
   text-shadow: 0 0 14px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.9);
@@ -121,7 +100,7 @@ h3 { font-size: 0.7rem; line-height: 1.8; }
   line-height: 2;
 }
 
-/* Bottom corner ornament */
+/* Bottom ornament line */
 #loginPage::after {
   content: '◆────────────────◆';
   position: absolute;
@@ -144,7 +123,7 @@ h3 { font-size: 0.7rem; line-height: 1.8; }
   text-align: center;
 }
 
-/* ── Main page background ────────────────────────────────── */
+/* ── Main page ───────────────────────────────────────────── */
 
 #mainPage {
   background:
@@ -160,13 +139,11 @@ h3 { font-size: 0.7rem; line-height: 1.8; }
   background: var(--jrpg-panel);
   border-bottom: 2px solid var(--jrpg-border);
   box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  height: 42px;
 }
-
-/* ── Status display ─────────────────────────────────────── */
 
 #statusDisplay {
   border: 1px solid var(--jrpg-border);
-  border-radius: 0;
   background: rgba(8, 8, 24, 0.9);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
@@ -174,16 +151,13 @@ h3 { font-size: 0.7rem; line-height: 1.8; }
 .status-item {
   background: var(--jrpg-panel-alt);
   border-left: 2px solid var(--jrpg-border-hi);
-  border-radius: 0;
   color: var(--jrpg-text);
   font-size: 0.88rem;
 }
 
 /* ── Typography ─────────────────────────────────────────── */
 
-.meta {
-  color: var(--jrpg-text-dim);
-}
+.meta   { color: var(--jrpg-text-dim); }
 
 .system {
   color: var(--jrpg-cyan);
@@ -195,12 +169,11 @@ h3 { font-size: 0.7rem; line-height: 1.8; }
 input[type="text"],
 input[type="password"] {
   border: 2px solid var(--jrpg-border);
-  border-radius: 0;
   background: rgba(8, 8, 24, 0.8);
   color: var(--jrpg-text);
   outline: none;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-  font-family: 'VT323', 'Courier New', monospace;
+  font-family: var(--font-vt);
   font-size: 1.1rem;
 }
 
@@ -219,19 +192,18 @@ button {
   background: var(--jrpg-panel-alt);
   color: var(--jrpg-text);
   border: 2px solid var(--jrpg-border-hi);
-  border-radius: 0;
   box-shadow:
     0 3px 0 var(--jrpg-border),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
   transition: background 0.05s, color 0.05s, transform 0.05s, box-shadow 0.05s;
   position: relative;
-  font-family: 'VT323', 'Courier New', monospace;
+  font-family: var(--font-vt);
   font-size: 1rem;
   letter-spacing: 0.03em;
 }
 
-/* JRPG cursor indicator before hovered buttons */
+/* JRPG cursor on hovered buttons */
 button:not(.palette-btn):not(.palette-tab-btn):not(#sendBtn):not(.activity-panel-dismiss):not(.look-box-toggle):hover::before {
   content: '► ';
   color: var(--jrpg-cyan);
@@ -257,9 +229,7 @@ button:active {
 
 /* ── Login status / error ────────────────────────────────── */
 
-#loginStatus {
-  min-height: 1.2rem;
-}
+#loginStatus { min-height: 1.2rem; }
 
 #loginStatus:not(:empty) {
   color: var(--jrpg-red);
@@ -288,19 +258,16 @@ button:active {
 /* ── Ref spans ──────────────────────────────────────────── */
 
 .ref {
-  background: rgba(56, 72, 184, 0.25);
   border: 1px solid rgba(112, 128, 232, 0.5);
-  border-radius: 0;
   color: var(--jrpg-cyan);
+  background: rgba(56, 72, 184, 0.25);
   text-shadow: none;
 }
 
 .ref:hover {
   background: rgba(56, 72, 184, 0.5);
   border-color: var(--jrpg-cyan);
-  transform: none;
   box-shadow: 0 0 6px rgba(40, 200, 240, 0.4);
-  text-shadow: none;
 }
 
 .ref.self {
@@ -308,29 +275,24 @@ button:active {
   border: 1px solid rgba(40, 208, 88, 0.6);
   color: var(--jrpg-green);
   font-weight: bold;
-  text-shadow: none;
 }
 
 .ref.self:hover {
   background: rgba(40, 208, 88, 0.4);
   border-color: var(--jrpg-green);
   box-shadow: 0 0 6px rgba(40, 208, 88, 0.4);
-  text-shadow: none;
 }
 
 .ref.cmd {
   background: rgba(176, 80, 224, 0.2);
   border: 1px solid rgba(176, 80, 224, 0.6);
   color: var(--jrpg-purple);
-  text-shadow: none;
 }
 
 .ref.cmd:hover {
   background: rgba(176, 80, 224, 0.4);
   border-color: var(--jrpg-purple);
-  transform: none;
   box-shadow: 0 0 6px rgba(176, 80, 224, 0.4);
-  text-shadow: none;
 }
 
 /* ── Connection indicator ────────────────────────────────── */
@@ -342,29 +304,30 @@ button:active {
 
 .connection-indicator.connected {
   background: var(--jrpg-green);
-  box-shadow: 0 0 8px rgba(40, 208, 88, 0.8),
-              inset 0 0 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 8px rgba(40, 208, 88, 0.8), inset 0 0 3px rgba(0, 0, 0, 0.3);
 }
 
 .connection-indicator.disconnected {
   background: var(--jrpg-red);
-  box-shadow: 0 0 8px rgba(232, 48, 48, 0.8),
-              inset 0 0 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 8px rgba(232, 48, 48, 0.8), inset 0 0 3px rgba(0, 0, 0, 0.3);
 }
 
 .connection-indicator.connecting {
   background: var(--jrpg-text-dim);
 }
 
-/* ── Action palette buttons ──────────────────────────────── */
+/* ── Palette buttons (action + tab) ─────────────────────── */
 
-.palette-btn {
+.palette-btn,
+.palette-tab-btn {
   background: var(--jrpg-panel-alt);
   border: 2px solid var(--jrpg-border);
-  border-radius: 0;
+}
+
+.palette-btn {
   color: var(--jrpg-text);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
-  font-family: 'VT323', monospace;
+  font-family: var(--font-vt);
   font-size: 0.95rem;
 }
 
@@ -372,20 +335,10 @@ button:active {
   background: #242448;
   border-color: var(--jrpg-border-hi);
   color: var(--jrpg-cyan);
-  box-shadow: 0 2px 0 var(--jrpg-border),
-              0 0 6px rgba(40, 200, 240, 0.2);
-}
-
-/* ── Palette tab buttons ─────────────────────────────────── */
-
-.palette-tab-btn {
-  background: var(--jrpg-panel-alt);
-  border: 2px solid var(--jrpg-border);
-  border-radius: 0;
+  box-shadow: 0 2px 0 var(--jrpg-border), 0 0 6px rgba(40, 200, 240, 0.2);
 }
 
 .palette-tab-btn.is-active {
-  outline: none;
   border-color: var(--jrpg-cyan);
   color: var(--jrpg-cyan);
   box-shadow: 0 0 6px rgba(40, 200, 240, 0.3);
@@ -396,148 +349,34 @@ button:active {
 .inventory-item {
   background: var(--jrpg-panel-alt);
   border: 2px solid var(--jrpg-border);
-  border-radius: 0;
 }
 
-.inventory-item:hover {
-  border-color: var(--jrpg-border-hi);
-}
+.inventory-item:hover { border-color: var(--jrpg-border-hi); }
 
 /* ── Interaction panel ───────────────────────────────────── */
 
 #interactionPanel {
   border: 2px solid var(--jrpg-border-hi);
   background: var(--jrpg-panel);
-  /* Inner highlight on top = "inset top edge" like SNES dialog box */
   box-shadow:
     inset 0 1px 0 rgba(112, 128, 232, 0.3),
     inset 0 -1px 0 rgba(56, 72, 184, 0.2);
 }
 
-/* Sub-panel divider between actions and inventory */
-#actionsPanel {
-  border-right: 2px solid var(--jrpg-border);
-}
+#actionsPanel { border-right: 2px solid var(--jrpg-border); }
 
-/* ── Inventory header ────────────────────────────────────── */
+/* ── Inventory ───────────────────────────────────────────── */
 
 .inventory-header {
   color: var(--jrpg-gold);
   text-shadow: 0 0 6px var(--jrpg-gold-dim);
   letter-spacing: 0.06em;
-  opacity: 1;
 }
-
-/* ── Look box ────────────────────────────────────────────── */
-
-#lookBox {
-  border: 2px solid var(--jrpg-border-hi);
-  box-shadow: var(--jrpg-window-shadow);
-  background: var(--jrpg-panel);
-}
-
-#lookBox .look-box-toggle {
-  border-radius: 0;
-  border: 2px solid var(--jrpg-border);
-}
-
-/* ── Character editor card ──────────────────────────────── */
-
-.character-editor-card {
-  background: var(--jrpg-panel);
-  border: 2px solid var(--jrpg-border-hi);
-  box-shadow: var(--jrpg-window-shadow);
-  color: var(--jrpg-text);
-  border-radius: 0;
-}
-
-.character-editor-header h3 {
-  color: var(--jrpg-gold);
-  text-shadow: 0 0 12px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.8);
-  text-transform: uppercase;
-}
-
-.character-editor-header {
-  border-bottom: 2px solid var(--jrpg-border);
-}
-
-.character-descriptor {
-  background: var(--jrpg-panel-alt);
-  border: 2px solid var(--jrpg-border);
-  border-radius: 0;
-}
-
-.character-descriptor-label {
-  color: var(--jrpg-gold);
-  text-shadow: 0 0 6px var(--jrpg-gold-dim);
-  text-transform: uppercase;
-}
-
-.character-sprite-card {
-  background: var(--jrpg-panel-alt);
-  border: 2px solid var(--jrpg-border);
-  border-radius: 0;
-}
-
-.character-sprite-card.selected {
-  border-color: var(--jrpg-cyan);
-  box-shadow: 0 0 8px rgba(40, 200, 240, 0.5);
-}
-
-.character-sprite-label {
-  color: var(--jrpg-text);
-}
-
-.character-sprite-meta {
-  color: var(--jrpg-text-dim);
-}
-
-.character-main-image-preview {
-  background: var(--jrpg-bg);
-  border: 2px solid var(--jrpg-border);
-  border-radius: 0;
-}
-
-/* ── Game viewport frame ─────────────────────────────────── */
-
-#viewPanel {
-  /* Top and bottom JRPG frame borders to separate from status + HUD */
-  border-top: 2px solid var(--jrpg-border);
-  border-bottom: 2px solid var(--jrpg-border);
-}
-
-/* ── Room title in controls panel ────────────────────────── */
-
-#roomTitleOverlay {
-  color: var(--jrpg-gold);
-  text-shadow: 0 0 10px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.9);
-  border-bottom: 1px solid var(--jrpg-border);
-  padding-bottom: 0.35rem;
-  margin-bottom: 0.1rem;
-  letter-spacing: 0.06em;
-}
-
-
-#logPanel {
-  border: 2px solid var(--jrpg-border);
-  outline: 2px solid var(--jrpg-border-hi);
-  outline-offset: -4px;
-  background: rgba(8, 8, 24, 0.92);
-  color: var(--jrpg-text);
-}
-
-#logPanel .chat-log-message {
-  color: var(--jrpg-text);
-}
-
-/* ── Inventory panel inner sub-panel ─────────────────────── */
 
 #inventoryPanel {
   border-left: 2px solid var(--jrpg-border);
   padding-left: 0.4rem;
 }
-
-/* ── Inventory empty state ───────────────────────────────── */
 
 .inventory-empty {
   color: var(--jrpg-text-dim);
@@ -550,12 +389,97 @@ button:active {
 .inventory-empty::before { content: '── '; }
 .inventory-empty::after  { content: ' ──'; }
 
+/* ── Look box ────────────────────────────────────────────── */
+
+#lookBox {
+  border: 2px solid var(--jrpg-border-hi);
+  box-shadow: var(--jrpg-window-shadow);
+  background: var(--jrpg-panel);
+}
+
+#lookBox .look-box-toggle { border: 2px solid var(--jrpg-border); }
+
+/* ── Character editor ────────────────────────────────────── */
+
+.character-editor-card {
+  background: var(--jrpg-panel);
+  border: 2px solid var(--jrpg-border-hi);
+  box-shadow: var(--jrpg-window-shadow);
+  color: var(--jrpg-text);
+}
+
+.character-editor-header {
+  border-bottom: 2px solid var(--jrpg-border);
+}
+
+.character-editor-header h3 {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 12px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.8);
+  text-transform: uppercase;
+}
+
+.character-descriptor {
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+}
+
+.character-descriptor-label {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 6px var(--jrpg-gold-dim);
+  text-transform: uppercase;
+}
+
+.character-sprite-card {
+  background: var(--jrpg-panel-alt);
+  border: 2px solid var(--jrpg-border);
+}
+
+.character-sprite-card.selected {
+  border-color: var(--jrpg-cyan);
+  box-shadow: 0 0 8px rgba(40, 200, 240, 0.5);
+}
+
+.character-main-image-preview {
+  background: var(--jrpg-bg);
+  border: 2px solid var(--jrpg-border);
+}
+
+/* ── Activity panel ──────────────────────────────────────── */
+
 .activity-panel-header {
   background: var(--jrpg-panel-alt);
   border-bottom: 2px solid var(--jrpg-border-hi);
 }
 
-/* ── Status panel buttons ────────────────────────────────── */
+/* ── Game viewport frame ─────────────────────────────────── */
+
+#viewPanel {
+  border-top: 2px solid var(--jrpg-border);
+  border-bottom: 2px solid var(--jrpg-border);
+}
+
+/* ── Room title ──────────────────────────────────────────── */
+
+#roomTitleOverlay {
+  color: var(--jrpg-gold);
+  text-shadow: 0 0 10px var(--jrpg-gold-dim), 2px 2px 0 rgba(0,0,0,0.9);
+  border-bottom: 1px solid var(--jrpg-border);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.1rem;
+  letter-spacing: 0.06em;
+}
+
+/* ── Chat log panel ──────────────────────────────────────── */
+
+#logPanel {
+  border: 2px solid var(--jrpg-border);
+  outline: 2px solid var(--jrpg-border-hi);
+  outline-offset: -4px;
+  background: rgba(8, 8, 24, 0.92);
+  color: var(--jrpg-text);
+}
+
+/* ── Buttons — specific overrides ───────────────────────── */
 
 #btnLogout {
   background: var(--jrpg-panel-alt) !important;
@@ -567,8 +491,6 @@ button:active {
   border-color: var(--jrpg-red) !important;
   color: var(--jrpg-red) !important;
 }
-
-/* ── Send button ─────────────────────────────────────────── */
 
 #sendBtn {
   background: var(--jrpg-border);
@@ -583,19 +505,16 @@ button:active {
   box-shadow: 0 0 12px rgba(40, 200, 240, 0.6);
 }
 
-/* ── Selected palette + inventory ─────────────────────────── */
+/* ── Selection states ────────────────────────────────────── */
 
-.palette-btn.is-selected {
-  outline: 2px solid var(--jrpg-cyan);
-  outline-offset: -2px;
-  border-color: var(--jrpg-cyan);
-}
-
+.palette-btn.is-selected,
 .inventory-item.is-selected {
   outline: 2px solid var(--jrpg-cyan);
-  outline-offset: 1px;
   border-color: var(--jrpg-cyan);
 }
+
+.palette-btn.is-selected    { outline-offset: -2px; }
+.inventory-item.is-selected { outline-offset: 1px; }
 
 /* ── Textarea ────────────────────────────────────────────── */
 
@@ -603,8 +522,7 @@ textarea {
   background: rgba(8, 8, 24, 0.8);
   color: var(--jrpg-text);
   border: 2px solid var(--jrpg-border);
-  border-radius: 0;
-  font-family: 'VT323', 'Courier New', monospace;
+  font-family: var(--font-vt);
   font-size: 1.1rem;
   outline: none;
 }
@@ -614,28 +532,14 @@ textarea:focus {
   box-shadow: 0 0 0 1px var(--jrpg-border-hi), 0 0 8px rgba(112,128,232,0.3);
 }
 
-/* ── Scrollbar theming ───────────────────────────────────── */
+/* ── Scrollbars ──────────────────────────────────────────── */
 
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--jrpg-border-hi) var(--jrpg-panel);
 }
 
-*::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--jrpg-panel);
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--jrpg-border);
-  border-radius: 0;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--jrpg-border-hi);
-}
-
+*::-webkit-scrollbar       { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: var(--jrpg-panel); }
+*::-webkit-scrollbar-thumb { background: var(--jrpg-border); }
+*::-webkit-scrollbar-thumb:hover { background: var(--jrpg-border-hi); }
