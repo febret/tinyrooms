@@ -1,5 +1,6 @@
 from . import user_data, char_editor, peep, sprites
 from .icons import DEFAULT_USER_ASSETS
+from . import db as _db, vibes as _vibes
 
 
 def _coerce_int(value, default: int) -> int:
@@ -86,6 +87,14 @@ class User:
             if obj.location_id == uid:
                 self.peep.inventory[obj.obj_id] = obj
         print(f"Found {len(self.peep.inventory)} objects in inventory for user {self.username}")
+        # Load vibes from worldstate DB
+        try:
+            ws_id = getattr(world, "ws_id", "home")
+            with _db.get_worldstate_connection(ws_id) as wsdb:
+                loaded_vibes = _db.read_peep_vibes(wsdb, self.username)
+            self.peep.vibes = _vibes.normalize_vibe_map(loaded_vibes)
+        except Exception as exc:
+            print(f"User.join_world: could not load vibes for '{self.username}': {exc}")
         
     def save(self):
         user_data.save_user_state(self)

@@ -163,7 +163,23 @@ def _build_look_panel(user_obj: Any, resolved_target):
     if target_type == "peep":
         from . import vibes as _vibes
         peep_type = getattr(target_entity, "type", "user")
-        return label, f"Peep ({peep_type}): {target_ref}\n\n{description}"
+        source_peep = getattr(user_obj, "peep", None)
+        vibe_lines = ""
+        if source_peep is not None:
+            target_peep = target_entity
+            # User's vibe toward the target
+            my_score = _vibes.clamp_visible(_vibes.get_target_vibe(source_peep, target_peep))
+            my_desc = _vibes.describe_vibe(my_score)
+            # Target's vibe toward the user
+            their_score = _vibes.clamp_visible(_vibes.get_target_vibe(target_peep, source_peep))
+            their_desc = _vibes.describe_vibe(their_score)
+            my_label = my_desc if my_desc else "Unknown"
+            their_label = their_desc if their_desc else "Unknown"
+            vibe_lines = (
+                f"\n\nYour vibe toward {label}: {my_label} ({int(my_score):+d})"
+                f"\n{label}'s vibe toward you: {their_label} ({int(their_score):+d})"
+            )
+        return label, f"Peep ({peep_type}): {target_ref}\n\n{description}{vibe_lines}"
     if target_type == "prop":
         return label, f"Prop: {target_ref}\n\n{description}"
     return "Look", description

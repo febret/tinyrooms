@@ -1,5 +1,5 @@
 from . import decorators as decorator_module
-
+from . import vibes
 
 class Peep:
     def __init__(self, peep_id, type, info, location_id: str = ''):
@@ -18,6 +18,8 @@ class Peep:
         self.behavior_ns: dict | None = None
         # Populated by icons.preprocess_world_assets() at world-load time
         self._display_assets = None
+        # Vibe baselines: {target_peep_id: float score}
+        self.vibes: dict[str, float] = vibes.normalize_vibe_map(info.get('vibes', {}))
 
     @property
     def display_assets(self):

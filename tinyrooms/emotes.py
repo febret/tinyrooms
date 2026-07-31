@@ -257,6 +257,27 @@ def do_emote(
         print(f"do_emote: emote '{emote_id}' received {len(refs)} refs; using first target only")
     refs = refs[:1]
 
+    # Apply optional vibe modifier to the emote target
+    vibe_delta = emote_def.get("vibe")
+    if vibe_delta is not None and refs:
+        try:
+            vibe_delta_f = float(vibe_delta)
+            target_ref = refs[0]
+            # Resolve the target peep via duck typing:
+            # May be a bare Peep (has peep_id, no .peep) or a User (has .peep with peep_id)
+            inner = getattr(target_ref, 'peep', target_ref)
+            if hasattr(inner, 'peep_id'):
+                target_peep = inner
+            else:
+                target_peep = None
+            if target_peep is not None:
+                source_peep = getattr(user, 'peep', None)
+                if source_peep is not None:
+                    from . import vibes as _vibes
+                    _vibes.apply_baseline_delta(target_peep, source_peep.peep_id, vibe_delta_f)
+        except (TypeError, ValueError):
+            pass
+
     animations = emote_def.get('animations', '!0')
     steps = _parse_animation_steps(animations)
     has_pause = any(s['type'] == 'pause' for s in steps)

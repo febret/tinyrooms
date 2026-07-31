@@ -113,10 +113,12 @@ def _server_images_root() -> Path:
 def configure_features(features: set[str] | list[str] | tuple[str, ...]):
     global _enabled_features
     normalized = {str(feature).strip() for feature in features if str(feature).strip()}
+    print(f"enabled features: {', '.join(sorted(normalized))}")
     _enabled_features = normalized
 
 
 def feature_enabled(feature_name: str) -> bool:
+    print(f"checking if feature '{feature_name}' is enabled: {'yes' if feature_name in _enabled_features else 'no'}")
     return feature_name in _enabled_features
 
 
@@ -174,6 +176,7 @@ def _error_response(message: str, code: int):
 def _guard_world_server():
     """Return a 404 response when world-server feature is disabled, else None."""
     if not feature_enabled("world-server"):
+        print("world-server feature is disabled; returning 404 for request")
         return jsonify({"ok": False, "error": "world-server feature disabled"}), 404
     return None
 

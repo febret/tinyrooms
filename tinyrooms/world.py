@@ -348,6 +348,11 @@ def load_world(yaml_path=None, ws_id='home', use_saved_state: bool = True) -> Wo
                 peep.orientation = pdata.get('orientation') or peep.orientation
                 peep.layer = int(pdata.get('layer') or peep.layer)
                 peep.z_order = int(pdata.get('z_order') or peep.z_order)
+                # Restore saved vibe baselines
+                saved_vibes = pdata.get('vibes')
+                if isinstance(saved_vibes, dict):
+                    from . import vibes as _vibes
+                    peep.vibes = _vibes.normalize_vibe_map(saved_vibes)
                 # Restore to the saved room location
                 saved_location = pdata.get('location_id', '')
                 if saved_location and saved_location != peep.location_id:

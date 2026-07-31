@@ -65,6 +65,7 @@ def init_workstate_schema(dbconn: duckdb.DuckDBPyConnection):
     _ensure_column(dbconn, "peeps", "layer", "INTEGER DEFAULT 1")
     _ensure_column(dbconn, "peeps", "z_order", "INTEGER DEFAULT 1")
     _ensure_column(dbconn, "peeps", "class_id", "TEXT DEFAULT ''")
+    _ensure_column(dbconn, "peeps", "vibes", "TEXT DEFAULT '{}'")
 
 def _ensure_column(dbconn: duckdb.DuckDBPyConnection, table_name: str, column_name: str, column_def: str):
     columns = dbconn.execute(f"PRAGMA table_info({table_name})").fetchall()
@@ -105,7 +106,7 @@ def write_room_data(dbconn: duckdb.DuckDBPyConnection, rooms: dict):
             prop_rows.append({
                 'prop_instance_id': prop.prop_instance_id,
                 'prop_id': prop.prop_id,
-                'exit_way_id': prop.metadata.get('exit_way_id') or None,
+                'interactive': bool(prop.metadata.get('interactive', False)),
                 'position': {
                     'x': int(getattr(prop, 'x', 0)),
                     'y': int(getattr(prop, 'y', 0)),
@@ -174,11 +175,19 @@ def write_object_data(dbconn: duckdb.DuckDBPyConnection, objects: dict):
 def read_peep_data(dbconn: duckdb.DuckDBPyConnection) -> dict:
     """Retrieve NPC peep data from the worldstate database."""
     res = dbconn.execute(
-        "SELECT id, location_id, type, class_id, x, y, orientation, layer, z_order FROM peeps WHERE type != 'user'"
+        "SELECT id, location_id, type, class_id, x, y, orientation, layer, z_order, vibes FROM peeps WHERE type != 'user'"
     ).fetchall()
     peep_data = {}
     for row in res:
-        peep_id, location_id, peep_type, class_id, x, y, orientation, layer, z_order = row
+        peep_id, location_id, peep_type, class_id, x, y, orientation, layer, z_order, vibes_raw = row
+        vibes = {}
+        if vibes_raw:
+            try:
+                parsed = json.loads(vibes_raw)
+                if isinstance(parsed, dict):
+                    vibes = {str(k): float(v) for k, v in parsed.items() if isinstance(v, (int, float))}
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
         peep_data[peep_id] = {
             'id': peep_id,
             'location_id': location_id or '',
@@ -189,17 +198,24 @@ def read_peep_data(dbconn: duckdb.DuckDBPyConnection) -> dict:
             'orientation': orientation or 'front',
             'layer': layer,
             'z_order': z_order,
+            'vibes': vibes,
         }
     return peep_data
 
 
 def write_peep_data(dbconn: duckdb.DuckDBPyConnection, peeps: dict) -> None:
-    """Write NPC peep data to the worldstate database."""
+    """Write NPC peep data to the worldstate database.
+
+    NPC peeps are written with all fields.  User peeps are upserted with only
+    their vibes (other positional fields use DB defaults or existing values).
+    """
     npc_peeps = {pid: p for pid, p in peeps.items() if getattr(p, 'type', 'user') != 'user'}
+    user_peeps = {pid: p for pid, p in peeps.items() if getattr(p, 'type', 'user') == 'user'}
     print(f"Committing peep data for {len(npc_peeps)} NPC peeps to worldstate DB...")
     for peep_id, peep in npc_peeps.items():
+        vibes_json = json.dumps(getattr(peep, 'vibes', {}) or {})
         dbconn.execute(
-            "INSERT OR REPLACE INTO peeps (id, location_id, type, class_id, x, y, orientation, layer, z_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO peeps (id, location_id, type, class_id, x, y, orientation, layer, z_order, vibes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 peep_id,
                 getattr(peep, 'location_id', ''),
@@ -210,8 +226,33 @@ def write_peep_data(dbconn: duckdb.DuckDBPyConnection, peeps: dict) -> None:
                 getattr(peep, 'orientation', 'front'),
                 int(getattr(peep, 'layer', 1)),
                 int(getattr(peep, 'z_order', 1)),
+                vibes_json,
             )
         )
+    if user_peeps:
+        print(f"Committing vibe data for {len(user_peeps)} user peeps to worldstate DB...")
+    for peep_id, peep in user_peeps.items():
+        vibes_json = json.dumps(getattr(peep, 'vibes', {}) or {})
+        # Upsert: insert a new row if needed, otherwise only update vibes
+        dbconn.execute(
+            "INSERT INTO peeps (id, type, vibes) VALUES (?, 'user', ?) "
+            "ON CONFLICT (id) DO UPDATE SET vibes = EXCLUDED.vibes",
+            (peep_id, vibes_json)
+        )
+
+
+def read_peep_vibes(dbconn: duckdb.DuckDBPyConnection, peep_id: str) -> dict[str, float]:
+    """Read the vibes dict for a single peep from the worldstate database."""
+    res = dbconn.execute("SELECT vibes FROM peeps WHERE id = ?", (peep_id,)).fetchone()
+    if res is None or not res[0]:
+        return {}
+    try:
+        parsed = json.loads(res[0])
+        if isinstance(parsed, dict):
+            return {str(k): float(v) for k, v in parsed.items() if isinstance(v, (int, float))}
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return {}
 
 
 

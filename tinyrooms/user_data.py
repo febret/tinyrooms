@@ -8,6 +8,8 @@ import threading
 import yaml
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from tinyrooms import db as _db
+
 
 DATA_ROOT = Path(__file__).parent.parent / "data"
 USERS_ROOT = DATA_ROOT / "users"
@@ -269,7 +271,7 @@ def check_user_password(username: str, password_plain: str) -> bool:
 
 
 def save_user_state(user_obj: Any) -> None:
-    """Persist a connected User's current state to their profile.yaml."""
+    """Persist a connected User's current state to their profile.yaml and worldstate DB."""
     from_room = getattr(user_obj, "room", None)
     from_peep = getattr(user_obj, "peep", None)
     from_world = getattr(user_obj, "world", None)
@@ -285,6 +287,14 @@ def save_user_state(user_obj: Any) -> None:
         last_x=x,
         last_y=y,
     )
+    # Persist user peep vibes to worldstate DB
+    if from_peep is not None:
+        try:
+            vibes = getattr(from_peep, "vibes", {}) or {}
+            with _db.get_worldstate_connection(world_id) as wsdb:
+                _db.write_peep_data(wsdb, {user_obj.username: from_peep})
+        except Exception as exc:
+            print(f"save_user_state: could not persist vibes for '{user_obj.username}': {exc}")
 
 
 def save_all_user_states() -> None:

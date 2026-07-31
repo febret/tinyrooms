@@ -7,6 +7,13 @@ import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+import math
+import random
+from flask_socketio import emit as socketio_emit
+
+from . import icons as icon_module
+from . import vibes as vibes_module
+
 if TYPE_CHECKING:
     from .peep import Peep
     from .room import Room
@@ -17,6 +24,8 @@ _behavior_cache: dict[str, object] = {}
 
 _tick_thread: threading.Thread | None = None
 _tick_stop_event: threading.Event = threading.Event()
+# Accumulated seconds since last minute decay tick
+_seconds_accumulator: float = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -195,12 +204,11 @@ def _make_go_to(peep: 'Peep', get_room: Callable[[], 'Room | None'], get_world: 
         # Remove from current room
         if peep.peep_id in room.peeps:
             del room.peeps[peep.peep_id]
-            from flask_socketio import emit as _emit
-            _emit('update_view', {
+            socketio_emit('update_view', {
                 'view': 'room-object',
                 'change': 'remove',
                 'entity': {'entity_type': 'peep', 'entity_id': peep.peep_id},
-            }, room=room.room_id, namespace='/')
+            }, room=room.room_id, namespace='/')  # type: ignore[call-arg]
         # Add to next room
         peep.location_id = next_room.id()
         next_room.peeps[peep.peep_id] = peep
@@ -225,7 +233,6 @@ def _make_look(get_room: Callable[[], 'Room | None']):
 def _make_set_sprite(peep: 'Peep', get_room: Callable[[], 'Room | None'], world_root_path):
     def set_sprite(sprite_string: str):
         """Update the peep's display sprite and broadcast to room clients."""
-        from . import icons as icon_module
         try:
             peep._display_assets = icon_module.build_display_assets(
                 {'sprite': sprite_string, 'img': sprite_string},
@@ -242,7 +249,6 @@ def _make_set_sprite(peep: 'Peep', get_room: Callable[[], 'Room | None'], world_
 def _make_show(peep: 'Peep', get_room: Callable[[], 'Room | None']):
     def show(animation_id: str, frame=None):
         """Send an animation update for the peep to all room clients."""
-        from flask_socketio import emit as _emit
         room = get_room()
         if room is None:
             return
@@ -254,7 +260,7 @@ def _make_show(peep: 'Peep', get_room: Callable[[], 'Room | None']):
         }
         if frame is not None:
             payload['frame'] = frame
-        _emit('update_view', payload, room=room.room_id, namespace='/')
+        socketio_emit('update_view', payload, room=room.room_id, namespace='/')  # type: ignore[call-arg]
     return show
 
 
@@ -301,13 +307,10 @@ def init_behavior_ns(peep: 'Peep', world: 'World') -> dict | None:
         'set': set, 'sorted': sorted, 'str': str, 'sum': sum,
         'tuple': tuple, 'zip': zip,
     }
-    import random as _random
-    import math as _math
-
     ns: dict = {
         '__builtins__': safe_builtins,
-        'random': _random,
-        'math': _math,
+        'random': random,
+        'math': math,
         # Utility functions
         'say':       _make_say(peep, get_room),
         'emote':     _make_emote(peep, get_room),
@@ -323,6 +326,11 @@ def init_behavior_ns(peep: 'Peep', world: 'World') -> dict | None:
         'show':      _make_show(peep, get_room),
         # Peep self-reference
         'peep':      peep,
+        # Vibe helpers
+        'get_target_vibe': lambda source, target: vibes_module.get_target_vibe(
+            source, target, room=get_room(), world=world
+        ),
+        'get_room_vibe': lambda target: vibes_module.get_room_vibe(target, room_obj) if (room_obj := get_room()) is not None else 0.0,
     }
     try:
         exec(code, ns)  # noqa: S102
@@ -373,6 +381,7 @@ def start_tick_loop(get_world: Callable[[], 'World'], interval: float = 1.0) -> 
     _tick_stop_event.clear()
 
     def _loop():
+        global _seconds_accumulator
         last_tick = time.monotonic()
         while not _tick_stop_event.is_set():
             _tick_stop_event.wait(timeout=interval)
@@ -385,9 +394,18 @@ def start_tick_loop(get_world: Callable[[], 'World'], interval: float = 1.0) -> 
                 world = get_world()
                 if world is None:
                     continue
+                # NPC behavior ticks
                 for peep in list(world.peeps.values()):
                     if getattr(peep, 'type', 'user') == 'npc':
                         call_handler(peep, 'on_tick', secs)
+                # Baseline vibe decay (once per accumulated minute)
+                _seconds_accumulator += secs
+                if _seconds_accumulator >= 60.0:
+                    _seconds_accumulator -= 60.0
+                    try:
+                        vibes_module.decay_active_baselines(world)
+                    except Exception as decay_exc:
+                        print(f"peep_behavior: vibe decay error: {decay_exc}")
             except Exception as exc:
                 print(f"peep_behavior: tick loop error: {exc}")
                 traceback.print_exc()
@@ -399,9 +417,10 @@ def start_tick_loop(get_world: Callable[[], 'World'], interval: float = 1.0) -> 
 
 def stop_tick_loop() -> None:
     """Stop the background tick loop."""
-    global _tick_thread
+    global _tick_thread, _seconds_accumulator
     _tick_stop_event.set()
     if _tick_thread is not None:
         _tick_thread.join(timeout=5.0)
         _tick_thread = None
+    _seconds_accumulator = 0.0
     print("peep_behavior: tick loop stopped")
