@@ -179,6 +179,37 @@ def profile_yaml_path(username: str) -> Path:
 DEFAULT_JUICE = 100.0
 DEFAULT_JUICE_RATE = 5.0  # juice per minute
 DEFAULT_STARTING_BOPS = 50  # bops given to brand-new accounts
+CLIENT_COLOR_THEMES = ("default", "ocean", "sunset", "forest")
+
+
+def _default_client_config() -> dict[str, Any]:
+    return {
+        "show_own_chat_decorators": True,
+        "show_text_bubbles": True,
+        "color_theme": "default",
+    }
+
+
+def normalize_client_config(raw: Any, base: dict[str, Any] | None = None) -> dict[str, Any]:
+    normalized = _default_client_config()
+    if isinstance(base, dict):
+        if isinstance(base.get("show_own_chat_decorators"), bool):
+            normalized["show_own_chat_decorators"] = base["show_own_chat_decorators"]
+        if isinstance(base.get("show_text_bubbles"), bool):
+            normalized["show_text_bubbles"] = base["show_text_bubbles"]
+        theme_name = base.get("color_theme")
+        if isinstance(theme_name, str) and theme_name in CLIENT_COLOR_THEMES:
+            normalized["color_theme"] = theme_name
+    if not isinstance(raw, dict):
+        return normalized
+    if isinstance(raw.get("show_own_chat_decorators"), bool):
+        normalized["show_own_chat_decorators"] = raw["show_own_chat_decorators"]
+    if isinstance(raw.get("show_text_bubbles"), bool):
+        normalized["show_text_bubbles"] = raw["show_text_bubbles"]
+    theme_name = raw.get("color_theme")
+    if isinstance(theme_name, str) and theme_name in CLIENT_COLOR_THEMES:
+        normalized["color_theme"] = theme_name
+    return normalized
 
 
 def _default_profile() -> dict[str, Any]:
@@ -196,6 +227,7 @@ def _default_profile() -> dict[str, Any]:
         "juice_last_tick": _now_iso(),
         "bops": DEFAULT_STARTING_BOPS,
         "traits": [],
+        "client_config": _default_client_config(),
         "updated_at": _now_iso(),
     }
 
@@ -235,6 +267,8 @@ def read_profile(username: str) -> dict[str, Any] | None:
             profile["bops"] = _coerce_int(loaded["bops"], 0)
         if "traits" in loaded and isinstance(loaded["traits"], list):
             profile["traits"] = [str(t) for t in loaded["traits"]]
+        if "client_config" in loaded:
+            profile["client_config"] = normalize_client_config(loaded["client_config"])
     return profile
 
 
@@ -251,6 +285,7 @@ def write_profile(
     juice_last_tick: str | None = None,
     bops: int | None = None,
     traits: list[str] | None = None,
+    client_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create or update a user profile.  Returns the final profile dict."""
     ensure_user_paths(username)
@@ -277,6 +312,8 @@ def write_profile(
         current["bops"] = int(bops)
     if traits is not None:
         current["traits"] = list(traits)
+    if client_config is not None:
+        current["client_config"] = normalize_client_config(client_config, base=current.get("client_config"))
     current["updated_at"] = _now_iso()
     path = profile_yaml_path(username)
     with open(path, "w", encoding="utf-8") as handle:
@@ -345,6 +382,11 @@ def save_user_state(user_obj: Any) -> None:
         juice_last_tick=_safe_str("juice_last_tick"),
         bops=_safe_int("bops"),
         traits=_safe_list("traits"),
+        client_config=(
+            getattr(user_obj, "client_config", None)
+            if isinstance(getattr(user_obj, "client_config", None), dict)
+            else None
+        ),
     )
     # Persist user peep vibes to worldstate DB
     if from_peep is not None:
@@ -458,4 +500,3 @@ def reset_daily_kudos_if_needed(username: str) -> dict[str, Any]:
             last_daily_reset=today,
         )
     return kudos
-
