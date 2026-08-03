@@ -16,6 +16,7 @@ var statusKudosGive = document.getElementById("statusKudosGive");
 var statusKudosGiveText = document.getElementById("statusKudosGiveText");
 var statusJuice = document.getElementById("statusJuice");
 var statusJuiceText = document.getElementById("statusJuiceText");
+var statusConfigBtn = document.getElementById("statusConfig");
 var messagesDiv = document.getElementById("messages");
 var chatLogList = document.getElementById("chatLogList");
 var msgInput = document.getElementById("msgInput");
@@ -27,9 +28,11 @@ var connectionIndicator = document.getElementById("connectionIndicator");
 var roomTitleOverlay = document.getElementById("roomTitleOverlay");
 var roomCanvas = document.getElementById("roomCanvas");
 var lookBox = document.getElementById("lookBox");
+var interactionPanel = document.getElementById("interactionPanel");
 var actionPalette = document.getElementById("actionPalette");
 var activityPanel = document.getElementById("activityPanel");
 var roomDescriptionHtml = "";
+var mobileViewportBaselineHeight = null;
 
 if (btnWorldEditor) {
   btnWorldEditor.addEventListener("click", () => {
@@ -53,6 +56,8 @@ var connectionTime = null;
 var CHAT_MESSAGE_TTL_MS = 30000;
 var CHAT_MAX_VISIBLE = 10;
 var CHAT_DECORATOR_MAX_CHARS = 31;
+var CHAT_DECORATOR_TTL_MS = 15000;
+var activeChatDecoratorHandle = null;
 var roomState = {
   roomId: null,
   canEditProps: false,
@@ -83,6 +88,118 @@ var roomEditor = {
 var heartbeatStarted = false;
 var saveLoopStarted = false;
 var restAuthToken = null;
+var CLIENT_COLOR_THEMES = ["default", "ocean", "sunset", "forest"];
+var clientConfig = {
+  showOwnChatDecorators: true,
+  showTextBubbles: true,
+  colorTheme: "default",
+};
+
+function normalizeClientConfig(raw) {
+  const normalized = {
+    showOwnChatDecorators: true,
+    showTextBubbles: true,
+    colorTheme: "default",
+  };
+  if (!raw || typeof raw !== "object") return normalized;
+  if (typeof raw.show_own_chat_decorators === "boolean") {
+    normalized.showOwnChatDecorators = raw.show_own_chat_decorators;
+  } else if (typeof raw.showOwnChatDecorators === "boolean") {
+    normalized.showOwnChatDecorators = raw.showOwnChatDecorators;
+  }
+  if (typeof raw.show_text_bubbles === "boolean") {
+    normalized.showTextBubbles = raw.show_text_bubbles;
+  } else if (typeof raw.showTextBubbles === "boolean") {
+    normalized.showTextBubbles = raw.showTextBubbles;
+  }
+  const themeName = typeof raw.color_theme === "string"
+    ? raw.color_theme
+    : (typeof raw.colorTheme === "string" ? raw.colorTheme : "");
+  if (CLIENT_COLOR_THEMES.includes(themeName)) {
+    normalized.colorTheme = themeName;
+  }
+  return normalized;
+}
+
+function applyClientColorTheme(themeName) {
+  const resolvedTheme = CLIENT_COLOR_THEMES.includes(themeName) ? themeName : "default";
+  document.body.setAttribute("data-client-theme", resolvedTheme);
+}
+
+function applyClientConfig(rawConfig) {
+  clientConfig = normalizeClientConfig(rawConfig);
+  applyClientColorTheme(clientConfig.colorTheme);
+  if (!clientConfig.showTextBubbles && activeChatDecoratorHandle && typeof activeChatDecoratorHandle.remove === "function") {
+    activeChatDecoratorHandle.remove();
+    activeChatDecoratorHandle = null;
+  }
+}
+
+function setActivityPanelContent(title, contentHtml, mode) {
+  if (!activityPanel) return;
+  activityPanel.style.display = "flex";
+  activityPanel.dataset.mode = mode || "";
+  activityPanel.innerHTML = `
+    <div class="activity-panel-header">
+      <div class="room-header-title">${title || ""}</div>
+      <button id="btnActivityPanelDismiss" class="activity-panel-dismiss" title="Dismiss">✕</button>
+    </div>
+    <div class="activity-panel-content">${contentHtml || ""}</div>
+  `;
+  attachRefEventHandlers(activityPanel);
+  const dismissBtn = document.getElementById("btnActivityPanelDismiss");
+  if (dismissBtn) {
+    dismissBtn.onclick = () => {
+      activityPanel.style.display = "none";
+      activityPanel.dataset.mode = "";
+    };
+  }
+}
+
+function openClientConfigPanel() {
+  const checkedOwn = clientConfig.showOwnChatDecorators ? " checked" : "";
+  const checkedBubbles = clientConfig.showTextBubbles ? " checked" : "";
+  const themeOptions = CLIENT_COLOR_THEMES
+    .map(themeName => `<option value="${themeName}"${clientConfig.colorTheme === themeName ? " selected" : ""}>${themeName}</option>`)
+    .join("");
+  setActivityPanelContent("Client Configuration", `
+    <div class="config-panel">
+      <label class="config-panel-row">
+        <input id="cfgShowOwnDecorators" type="checkbox"${checkedOwn}>
+        <span>Show my own chat decorators</span>
+      </label>
+      <label class="config-panel-row">
+        <input id="cfgShowTextBubbles" type="checkbox"${checkedBubbles}>
+        <span>Show chat text bubbles</span>
+      </label>
+      <label class="config-panel-field">
+        <span>Color theme</span>
+        <select id="cfgColorTheme">${themeOptions}</select>
+      </label>
+      <div class="config-panel-actions">
+        <button id="cfgSaveBtn" type="button">Save</button>
+      </div>
+    </div>
+  `, "client-config");
+  const saveBtn = document.getElementById("cfgSaveBtn");
+  if (!saveBtn) return;
+  saveBtn.onclick = () => {
+    const showOwnDecoratorsInput = document.getElementById("cfgShowOwnDecorators");
+    const showTextBubblesInput = document.getElementById("cfgShowTextBubbles");
+    const colorThemeInput = document.getElementById("cfgColorTheme");
+    if (!(showOwnDecoratorsInput instanceof HTMLInputElement)) return;
+    if (!(showTextBubblesInput instanceof HTMLInputElement)) return;
+    if (!(colorThemeInput instanceof HTMLSelectElement)) return;
+    const payload = {
+      show_own_chat_decorators: showOwnDecoratorsInput.checked,
+      show_text_bubbles: showTextBubblesInput.checked,
+      color_theme: colorThemeInput.value,
+    };
+    socket.emit("set_client_config", payload);
+  };
+}
+
+applyClientConfig(clientConfig);
 
 // ---------------------------------------------------------------------------
 // Status bar click handlers
@@ -110,6 +227,11 @@ if (statusKudosGive) {
 if (statusJuice) {
   statusJuice.addEventListener("click", () => {
     _emitStatusCommand(":juice-status");
+  });
+}
+if (statusConfigBtn) {
+  statusConfigBtn.addEventListener("click", () => {
+    openClientConfigPanel();
   });
 }
 
@@ -183,6 +305,7 @@ socket.on("emotes_def", data => {
 socket.on("login_success", data => {
   myUsername = data.username;
   restAuthToken = data.rest_token || null;
+  applyClientConfig(data.client_config || null);
   if (restAuthToken) {
     localStorage.setItem("tr_rest_auth_token", restAuthToken);
   }
@@ -224,21 +347,7 @@ socket.on("message", data => {
 socket.on("activity_panel", data => {
   const title = escapeHtml(data.title || "");
   const content = formatText(escapeHtml(data.content || ""));
-  activityPanel.style.display = "flex";
-  activityPanel.innerHTML = `
-    <div class="activity-panel-header">
-      <div class="room-header-title">${title}</div>
-      <button id="btnActivityPanelDismiss" class="activity-panel-dismiss" title="Dismiss">✕</button>
-    </div>
-    <div class="activity-panel-content">${content}</div>
-  `;
-  attachRefEventHandlers(activityPanel);
-  const dismissBtn = document.getElementById("btnActivityPanelDismiss");
-  if (dismissBtn) {
-    dismissBtn.onclick = () => {
-      activityPanel.style.display = "none";
-    };
-  }
+  setActivityPanelContent(title, content, data.mode || "");
 });
 
 socket.on("inventory_update", data => {
@@ -261,6 +370,10 @@ socket.on("set_skin", data => {
       break;
     }
   }
+});
+
+socket.on("client_config", data => {
+  applyClientConfig(data || null);
 });
 
 socket.on("update_status", data => {
@@ -442,10 +555,76 @@ function parseChatDecoratorCandidate(formattedText) {
   const refIds = refNodes
     .map((node) => String(node.id || "").trim())
     .filter(Boolean);
-  const match = plain.match(/^(.+?) says(?: to .+?)?:\s*(.+)$/i);
-  const speakerLabel = (match?.[1] || "").trim();
-  const chatText = (match?.[2] || plain).trim();
-  return { refIds, speakerLabel, chatText };
+  const match = plain.match(/^(.+?)\s+say(?:s)?(?: to .+?)?[:,-]\s*(.+)$/i);
+  if (match) {
+    const speakerLabel = (match[1] || "").trim();
+    const quotedFallback = plain.match(/["“](.+?)["”]\s*$/);
+    const chatText = (match[2] || quotedFallback?.[1] || plain).trim();
+    return { refIds, speakerLabel, chatText };
+  }
+  const emoteCandidate = parseEmoteDecoratorCandidate(plain);
+  if (!emoteCandidate) return null;
+  return { refIds, speakerLabel: emoteCandidate.speakerLabel, chatText: emoteCandidate.chatText };
+}
+
+function escapeRegExp(text) {
+  return String(text || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parseEmoteDecoratorCandidate(plainText) {
+  const plain = String(plainText || "").trim();
+  if (!plain) return null;
+  const emoteDefs = knownEmotes && typeof knownEmotes === "object" ? Object.values(knownEmotes) : [];
+  if (emoteDefs.length === 0) return null;
+
+  const normalizedLower = plain.toLowerCase();
+  const firstPersonVerbs = [];
+  const thirdPersonVerbCores = [];
+  for (const emoteDef of emoteDefs) {
+    if (!emoteDef || typeof emoteDef !== "object") continue;
+    const msgDefs = Array.isArray(emoteDef.msg) ? emoteDef.msg : [];
+    for (const msgDef of msgDefs) {
+      const verbs = Array.isArray(msgDef?.verb)
+        ? msgDef.verb
+        : (typeof msgDef?.verb === "string" ? [msgDef.verb] : []);
+      const firstVerb = String(verbs[0] || "").trim();
+      if (firstVerb) {
+        firstPersonVerbs.push(firstVerb.toLowerCase());
+      }
+      const thirdVerb = String(verbs[1] || "").trim();
+      if (thirdVerb && thirdVerb.includes("$0")) {
+        const core = thirdVerb
+          .replace(/\$0/g, "")
+          .replace(/\$-?\d+/g, "")
+          .replace(/\$\*/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (core) {
+          thirdPersonVerbCores.push(core.toLowerCase());
+        }
+      }
+    }
+  }
+
+  for (const firstVerbLower of firstPersonVerbs) {
+    if (!firstVerbLower) continue;
+    if (normalizedLower === firstVerbLower || normalizedLower.startsWith(`${firstVerbLower} `) || normalizedLower.startsWith(`${firstVerbLower}.`) || normalizedLower.startsWith(`${firstVerbLower},`) || normalizedLower.startsWith(`${firstVerbLower}!`) || normalizedLower.startsWith(`${firstVerbLower}?`)) {
+      return { speakerLabel: "you", chatText: plain };
+    }
+  }
+
+  for (const coreLower of thirdPersonVerbCores) {
+    if (!coreLower) continue;
+    const regex = new RegExp(`^(.+?)\\s+${escapeRegExp(coreLower)}(?:\\b|[\\s\\.,!?;:].*)$`, "i");
+    const match = plain.match(regex);
+    if (match) {
+      return {
+        speakerLabel: String(match[1] || "").trim(),
+        chatText: plain,
+      };
+    }
+  }
+  return null;
 }
 
 function extractEmojiDecorators(text) {
@@ -483,10 +662,14 @@ function resolveSpeakerPeepId(candidate) {
 }
 
 function maybeAttachChatDecorator(formattedText) {
+  if (!clientConfig.showTextBubbles) return;
   const candidate = parseChatDecoratorCandidate(formattedText);
   if (!candidate) return;
   const peepId = resolveSpeakerPeepId(candidate);
   if (!peepId) return;
+  if (!clientConfig.showOwnChatDecorators && myUsername && String(peepId) === String(myUsername)) {
+    return;
+  }
   const emojis = extractEmojiDecorators(candidate.chatText);
   const decoratorText = emojis.length > 0
     ? emojis.slice(0, 3).join("")
@@ -495,11 +678,21 @@ function maybeAttachChatDecorator(formattedText) {
   if (emojis.length === 0 && decoratorText.length > CHAT_DECORATOR_MAX_CHARS) {
     return;
   }
-  pixiAddFloatingTextToEntity("peep", peepId, decoratorText, {
-    durationMs: 1800,
-    risePx: 22,
+  if (activeChatDecoratorHandle && typeof activeChatDecoratorHandle.remove === "function") {
+    activeChatDecoratorHandle.remove();
+    activeChatDecoratorHandle = null;
+  }
+  const nextHandle = pixiAddFloatingTextToEntity("peep", peepId, decoratorText, {
+    durationMs: CHAT_DECORATOR_TTL_MS,
+    risePx: 0,
     fontSize: 14,
+    bubble: true,
+    pointerTipOffsetY: -2,
+    dismissOnMove: true,
   });
+  activeChatDecoratorHandle = nextHandle && typeof nextHandle.remove === "function"
+    ? nextHandle
+    : null;
 }
 
 function restoreChatMessage(text, cls) {
@@ -571,6 +764,47 @@ sendBtn.addEventListener("click", () => {
 msgInput.addEventListener("keydown", ev => {
   if (ev.key === "Enter") {
     sendBtn.click();
+  }
+});
+
+function isMobileLayout() {
+  return window.matchMedia("(max-width: 900px)").matches || window.matchMedia("(pointer: coarse)").matches;
+}
+
+function isKeyboardLikelyVisible() {
+  if (!window.visualViewport || mobileViewportBaselineHeight == null) {
+    return false;
+  }
+  return (mobileViewportBaselineHeight - window.visualViewport.height) > 120;
+}
+
+function updateMobileKeyboardUiState() {
+  if (!interactionPanel || !msgInput) return;
+  const inputFocused = document.activeElement === msgInput;
+  const shouldCollapseInteractionPanel = isMobileLayout() && inputFocused && (
+    !window.visualViewport || isKeyboardLikelyVisible()
+  );
+  document.body.classList.toggle("mobile-keyboard-open", shouldCollapseInteractionPanel);
+}
+
+if (window.visualViewport) {
+  mobileViewportBaselineHeight = window.visualViewport.height;
+  window.visualViewport.addEventListener("resize", () => {
+    if (document.activeElement !== msgInput) {
+      mobileViewportBaselineHeight = Math.max(mobileViewportBaselineHeight || 0, window.visualViewport.height);
+    }
+    updateMobileKeyboardUiState();
+  });
+}
+
+msgInput.addEventListener("focus", () => {
+  updateMobileKeyboardUiState();
+});
+
+msgInput.addEventListener("blur", () => {
+  document.body.classList.remove("mobile-keyboard-open");
+  if (window.visualViewport) {
+    mobileViewportBaselineHeight = Math.max(mobileViewportBaselineHeight || 0, window.visualViewport.height);
   }
 });
 

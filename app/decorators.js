@@ -48,48 +48,149 @@ function createFloatingTextDecoratorTicker(
     floatingText?.stroke_color ?? floatingText?.strokeColor,
     0x000000,
   );
+  const showBubble = floatingText?.bubble === true;
+  const bubbleColor = parseHexColorInt(
+    floatingText?.bubble_color ?? floatingText?.bubbleColor,
+    0xffffff,
+  );
+  const bubbleBorderColor = parseHexColorInt(
+    floatingText?.bubble_border_color ?? floatingText?.bubbleBorderColor,
+    0x000000,
+  );
+  const bubbleAlpha = clampNumber(
+    floatingText?.bubble_alpha ?? floatingText?.bubbleAlpha ?? 0.94,
+    0,
+    1,
+    0.94,
+  );
+  const bubbleBorderWidth = clampNumber(
+    floatingText?.bubble_border_width ?? floatingText?.bubbleBorderWidth ?? 2,
+    0,
+    Number.POSITIVE_INFINITY,
+    2,
+  );
+  const bubblePaddingX = clampNumber(
+    floatingText?.bubble_padding_x ?? floatingText?.bubblePaddingX ?? 8,
+    0,
+    Number.POSITIVE_INFINITY,
+    8,
+  );
+  const bubblePaddingY = clampNumber(
+    floatingText?.bubble_padding_y ?? floatingText?.bubblePaddingY ?? 5,
+    0,
+    Number.POSITIVE_INFINITY,
+    5,
+  );
+  const pointerHeight = clampNumber(
+    floatingText?.pointer_height ?? floatingText?.pointerHeight ?? 8,
+    0,
+    Number.POSITIVE_INFINITY,
+    8,
+  );
+  const pointerHalfWidth = clampNumber(
+    floatingText?.pointer_half_width ?? floatingText?.pointerHalfWidth ?? 7,
+    0,
+    Number.POSITIVE_INFINITY,
+    7,
+  );
+  const pointerTipOffsetY = clampNumber(
+    floatingText?.pointer_tip_offset_y ?? floatingText?.pointerTipOffsetY ?? -2,
+    -64,
+    64,
+    -2,
+  );
+  const dismissOnMove = floatingText?.dismiss_on_move === true || floatingText?.dismissOnMove === true;
+  const isMoving = typeof floatingText?.is_moving === "function"
+    ? floatingText.is_moving
+    : (typeof floatingText?.isMoving === "function" ? floatingText.isMoving : null);
 
   const spriteBounds = baseSprite.getLocalBounds();
   const baseX = (spriteBounds.x || 0) + (spriteBounds.width || 0) / 2;
-  const baseY = (spriteBounds.y || 0) - 6;
+  const baseY = (spriteBounds.y || 0) + pointerTipOffsetY;
 
   const textNode = new PIXI.Text({
     text: text.slice(0, 64),
     style: new PIXI.TextStyle({
       fontSize,
-      fill: color,
+      fill: showBubble ? 0x111111 : color,
       fontWeight: "700",
-      stroke: { color: strokeColor, width: strokeWidth },
+      stroke: showBubble ? { color: 0x000000, width: 0 } : { color: strokeColor, width: strokeWidth },
       align: "center",
     }),
   });
   textNode.anchor.set(0.5, 1);
-  textNode.x = baseX;
-  textNode.y = baseY;
-  wrapper.addChild(textNode);
 
-  let elapsedMs = 0;
-  const tickerFn = (ticker) => {
-    elapsedMs += ticker.deltaMS;
-    const progress = Math.min(1, elapsedMs / durationMs);
-    textNode.x = baseX;
-    textNode.y = baseY - risePx * progress;
-    textNode.alpha = 1 - progress;
-    if (typeof getFacingDirection === "function") {
-      textNode.scale.x = getFacingDirection() < 0 ? -1 : 1;
+  const decoratorNode = new PIXI.Container();
+  decoratorNode.x = baseX;
+  decoratorNode.y = baseY;
+  decoratorNode.addChild(textNode);
+
+  if (showBubble) {
+    const bubbleNode = new PIXI.Graphics();
+    const bubbleWidth = Math.ceil(textNode.width + bubblePaddingX * 2);
+    const bubbleHeight = Math.ceil(textNode.height + bubblePaddingY * 2);
+    const bubbleTop = -pointerHeight - bubbleHeight;
+    const bubbleLeft = -bubbleWidth / 2;
+    const radius = Math.min(10, Math.floor(Math.min(bubbleWidth, bubbleHeight) / 3));
+    bubbleNode.roundRect(bubbleLeft, bubbleTop, bubbleWidth, bubbleHeight, radius)
+      .fill({ color: bubbleColor, alpha: bubbleAlpha });
+    if (bubbleBorderWidth > 0) {
+      bubbleNode.roundRect(bubbleLeft, bubbleTop, bubbleWidth, bubbleHeight, radius)
+        .stroke({ color: bubbleBorderColor, width: bubbleBorderWidth, alignment: 0.5 });
     }
-    if (progress < 1) return;
-    if (textNode.parent) {
-      textNode.parent.removeChild(textNode);
+    bubbleNode.poly([
+      -pointerHalfWidth, -pointerHeight,
+      0, 0,
+      pointerHalfWidth, -pointerHeight,
+    ]).fill({ color: bubbleColor, alpha: bubbleAlpha });
+    if (bubbleBorderWidth > 0) {
+      bubbleNode.moveTo(-pointerHalfWidth, -pointerHeight)
+        .lineTo(0, 0)
+        .lineTo(pointerHalfWidth, -pointerHeight)
+        .stroke({ color: bubbleBorderColor, width: bubbleBorderWidth, alignment: 0.5 });
     }
-    textNode.destroy();
+    decoratorNode.addChildAt(bubbleNode, 0);
+    textNode.y = -pointerHeight - bubblePaddingY;
+  } else {
+    textNode.y = 0;
+  }
+
+  wrapper.addChild(decoratorNode);
+
+  let disposed = false;
+  const cleanup = (notifyComplete) => {
+    if (disposed) return;
+    disposed = true;
+    if (decoratorNode.parent) {
+      decoratorNode.parent.removeChild(decoratorNode);
+    }
+    decoratorNode.destroy({ children: true });
     if (pixiApp) {
       pixiApp.ticker.remove(tickerFn);
     }
-    if (typeof onComplete === "function") {
+    if (notifyComplete && typeof onComplete === "function") {
       onComplete(tickerFn);
     }
   };
+
+  let elapsedMs = 0;
+  const tickerFn = (ticker) => {
+    if (dismissOnMove && typeof isMoving === "function" && isMoving()) {
+      cleanup(true);
+      return;
+    }
+    elapsedMs += ticker.deltaMS;
+    const progress = Math.min(1, elapsedMs / durationMs);
+    decoratorNode.x = baseX;
+    decoratorNode.y = baseY - risePx * progress;
+    decoratorNode.alpha = 1 - progress;
+    if (typeof getFacingDirection === "function") {
+      decoratorNode.scale.x = getFacingDirection() < 0 ? -1 : 1;
+    }
+    if (progress < 1) return;
+    cleanup(true);
+  };
+  tickerFn.destroy = () => cleanup(true);
   return tickerFn;
 }
 
@@ -339,7 +440,7 @@ async function pixiApplyDecoratorsToWrapper(
  * @param {string|number} entityId Target entity id.
  * @param {string} text Floating text content.
  * @param {object|null} options Optional effect config overrides.
- * @returns {boolean} True when a ticker was added; false when target/text/app is unavailable.
+ * @returns {{tickerFn: Function, remove: Function}|false} Handle for dismissing the decorator, or false when unavailable.
  */
 function pixiAddFloatingTextToEntity(entityType, entityId, text, options = null) {
   if (!pixiApp) return false;
@@ -356,10 +457,20 @@ function pixiAddFloatingTextToEntity(entityType, entityId, text, options = null)
       duration_ms: options?.duration_ms ?? options?.durationMs ?? 1700,
       rise_px: options?.rise_px ?? options?.risePx ?? 20,
       font_size: options?.font_size ?? options?.fontSize ?? 14,
+      bubble: options?.bubble === true,
+      pointer_tip_offset_y: options?.pointer_tip_offset_y ?? options?.pointerTipOffsetY,
+      dismiss_on_move: options?.dismiss_on_move ?? options?.dismissOnMove,
+      is_moving: () => Boolean(record.moveTween),
     },
     () => (record.wrapper.scale?.x || 1),
     (completed) => {
-      record.transientTickers?.delete(completed);
+      if (!record.transientTickers) return;
+      for (const entry of record.transientTickers) {
+        if (entry?.tickerFn === completed || entry === completed) {
+          record.transientTickers.delete(entry);
+          break;
+        }
+      }
     },
   );
   if (!tickerFn) return false;
@@ -367,7 +478,18 @@ function pixiAddFloatingTextToEntity(entityType, entityId, text, options = null)
   if (!record.transientTickers) {
     record.transientTickers = new Set();
   }
-  record.transientTickers.add(tickerFn);
+  const handle = {
+    tickerFn,
+    remove() {
+      if (typeof tickerFn.destroy === "function") {
+        tickerFn.destroy();
+      } else if (pixiApp) {
+        pixiApp.ticker.remove(tickerFn);
+      }
+      record.transientTickers?.delete(handle);
+    },
+  };
+  record.transientTickers.add(handle);
   pixiApp.ticker.add(tickerFn);
-  return true;
+  return handle;
 }

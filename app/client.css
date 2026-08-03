@@ -16,6 +16,38 @@ body {
   overflow: hidden;
 }
 
+body[data-client-theme="default"] {
+  --client-status-bg: transparent;
+  --client-status-border: transparent;
+  --client-controls-bg: var(--jrpg-panel, #141428);
+  --client-controls-border: var(--jrpg-border, #3848b8);
+  --client-activity-bg: #141428;
+}
+
+body[data-client-theme="ocean"] {
+  --client-status-bg: #10243f;
+  --client-status-border: #2c6fa8;
+  --client-controls-bg: #0e1d33;
+  --client-controls-border: #2d79b8;
+  --client-activity-bg: #0f2742;
+}
+
+body[data-client-theme="sunset"] {
+  --client-status-bg: #3d1f2f;
+  --client-status-border: #8f4b6a;
+  --client-controls-bg: #332032;
+  --client-controls-border: #9d5f60;
+  --client-activity-bg: #3a2536;
+}
+
+body[data-client-theme="forest"] {
+  --client-status-bg: #1a2f25;
+  --client-status-border: #3f7b5b;
+  --client-controls-bg: #18281f;
+  --client-controls-border: #4b8967;
+  --client-activity-bg: #1b3026;
+}
+
 #loginPage,
 #mainPage {
   width: 100%;
@@ -62,6 +94,8 @@ body {
   padding-right: clamp(0.3rem, 1.5vw, 0.5rem);
   padding-top: 0;
   padding-bottom: 0;
+  background: var(--client-status-bg, transparent);
+  border-bottom: 1px solid var(--client-status-border, transparent);
 }
 
 
@@ -95,6 +129,13 @@ body {
   padding: 0.25rem 0.5rem !important;
   font-size: clamp(0.7rem, 1.8vw, 0.82rem) !important;
   margin: 0 !important;
+}
+
+.status-config-btn {
+  min-width: 1.8rem !important;
+  width: 1.8rem;
+  padding: 0 !important;
+  justify-content: center;
 }
 
 /* ---------------------------------------------------------------------------
@@ -204,8 +245,8 @@ body {
   flex-direction: column;
   gap: 0.4rem;
   overflow: auto;
-  border-top: 2px solid var(--jrpg-border, #3848b8);
-  background: var(--jrpg-panel, #141428);
+  border-top: 2px solid var(--client-controls-border, var(--jrpg-border, #3848b8));
+  background: var(--client-controls-bg, var(--jrpg-panel, #141428));
   padding-top: 0.4rem;
   /* Default: capped at 200px when activityPanel is hidden */
   max-height: 600px;
@@ -223,13 +264,12 @@ body {
   max-height: min(280px, 40vh);
   overflow: hidden;
   padding: 0;
-  border-radius: 2px;
-  background: #141428;
-  border: var(--activity-panel-border, 1px solid #3848b8);
+  border-radius: 0;
+  background: transparent;
+  border: none;
   z-index: 1;
   color: var(--activity-panel-color, inherit);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5),
-              0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -323,6 +363,8 @@ body {
   flex: 1;
   margin: 0;
   font-size: clamp(0.78rem, 2vw, 0.9rem);
+  background: var(--client-controls-bg, var(--jrpg-panel, #141428));
+  border-color: var(--client-controls-border, var(--jrpg-border, #3848b8));
 }
 
 #sendBtn {
@@ -339,6 +381,34 @@ body {
   font-size: 1rem;
   font-weight: 800;
   line-height: 1;
+  border-color: var(--client-controls-border, var(--jrpg-border, #3848b8));
+}
+
+.config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.config-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.config-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.config-panel-field select {
+  width: 100%;
+}
+
+.config-panel-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 #interactionPanel {
@@ -354,6 +424,10 @@ body {
   box-shadow: var(--interaction-panel-shadow, 0 4px 10px rgba(0, 0, 0, 0.12));
 }
 
+body.mobile-keyboard-open #interactionPanel {
+  display: none;
+}
+
 #actionsPanel,
 #inventoryPanel {
   min-height: 0;
@@ -363,6 +437,7 @@ body {
   display: flex;
   flex-direction: row;
   overflow: auto;
+  padding: 0.15rem;
 }
 
 #inventoryPanel {
@@ -377,25 +452,26 @@ body {
 
 .palette-layout {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.25rem;
-  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.18rem;
+  align-items: stretch;
 }
 
 .palette-tabs {
   display: flex;
-  flex-direction: row;
-  gap: 0.2rem;
+  flex-direction: column;
+  gap: 0.14rem;
+  padding: 0.05rem;
 }
 
 .palette-tab-btn {
-  width: 1.8rem;
-  height: 1.8rem;
+  width: 1.55rem;
+  height: 1.55rem;
   min-width: 0 !important;
   margin: 0;
   padding: 0;
   line-height: 1;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .palette-tab-btn.is-active {

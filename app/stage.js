@@ -858,8 +858,26 @@ function pixiRemoveEntity(key) {
   if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
   if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
   if (record.transientTickers && record.transientTickers.size > 0) {
-    for (const tickerFn of record.transientTickers) {
-      pixiApp.ticker.remove(tickerFn);
+    for (const transient of record.transientTickers) {
+      if (typeof transient?.remove === "function") {
+        transient.remove();
+        continue;
+      }
+      if (typeof transient?.tickerFn === "function") {
+        if (typeof transient.tickerFn.destroy === "function") {
+          transient.tickerFn.destroy();
+        } else {
+          pixiApp.ticker.remove(transient.tickerFn);
+        }
+        continue;
+      }
+      if (typeof transient === "function") {
+        if (typeof transient.destroy === "function") {
+          transient.destroy();
+        } else {
+          pixiApp.ticker.remove(transient);
+        }
+      }
     }
     record.transientTickers.clear();
   }
