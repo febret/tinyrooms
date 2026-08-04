@@ -29,6 +29,11 @@ def _require_room_user():
     return user_obj, room
 
 
+def _emit_client_config(user_obj):
+    config = user_data.normalize_client_config(getattr(user_obj, "client_config", None))
+    emit("client_config", config, to=user_obj.sid)
+
+
 def _normalize_inventory_actions(raw_actions):
     if raw_actions is None:
         return []
@@ -170,7 +175,15 @@ def handle_login(data):
     session["username"] = username
     user_data.save_user_state(user_obj)
 
-    emit("login_success", {"username": username, "rest_token": user_obj.rest_token})
+    emit(
+        "login_success",
+        {
+            "username": username,
+            "rest_token": user_obj.rest_token,
+            "client_config": user_data.normalize_client_config(getattr(user_obj, "client_config", None)),
+        },
+    )
+    _emit_client_config(user_obj)
     _emit_inventory_update(user_obj)
     user_obj.update_status()
 
@@ -249,6 +262,42 @@ def handle_heartbeat(data):
         user_obj.skin_stale = False
     if user_obj.status_stale:
         user_obj.update_status()
+
+
+@server.socketio.on("set_client_config")
+def handle_set_client_config(data):
+    sid = request.sid  # type: ignore
+    user_obj = user.connected_users.get(sid)
+    if not user_obj:
+        emit("error", {"error": "not authenticated"})
+        return
+    if not isinstance(data, dict):
+        emit("error", {"error": "invalid client config payload"}, to=sid)
+        return
+
+    allowed_keys = {"show_own_chat_decorators", "show_text_bubbles", "color_theme"}
+    unknown = [key for key in data.keys() if key not in allowed_keys]
+    if unknown:
+        emit("error", {"error": f"unknown client config field(s): {', '.join(sorted(unknown))}"}, to=sid)
+        return
+    if "show_own_chat_decorators" in data and not isinstance(data.get("show_own_chat_decorators"), bool):
+        emit("error", {"error": "show_own_chat_decorators must be a boolean"}, to=sid)
+        return
+    if "show_text_bubbles" in data and not isinstance(data.get("show_text_bubbles"), bool):
+        emit("error", {"error": "show_text_bubbles must be a boolean"}, to=sid)
+        return
+    if "color_theme" in data:
+        theme_name = data.get("color_theme")
+        if not isinstance(theme_name, str) or theme_name not in user_data.CLIENT_COLOR_THEMES:
+            valid_themes = ", ".join(user_data.CLIENT_COLOR_THEMES)
+            emit("error", {"error": f"color_theme must be one of: {valid_themes}"}, to=sid)
+            return
+
+    current = user_data.normalize_client_config(getattr(user_obj, "client_config", None))
+    updated = user_data.normalize_client_config(data, base=current)
+    user_obj.client_config = updated
+    user_data.write_profile(user_obj.username, client_config=updated)
+    _emit_client_config(user_obj)
 
 
 @server.socketio.on("room_move_entity")

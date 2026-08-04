@@ -30,6 +30,9 @@ class User:
         self.skin_stale = True
         self.status_stale = True
         self.skin = "base"
+        self.client_config = user_data.normalize_client_config(
+            persisted_state.get("client_config") if isinstance(persisted_state, dict) else None
+        )
         # Load powers from persisted state
         if isinstance(persisted_state, dict):
             raw_powers = persisted_state.get("powers", [])
@@ -41,6 +44,9 @@ class User:
         self.bops: int = 0
         self.traits: list[str] = []
         self._load_gameplay_state(persisted_state)
+        # Ephemeral crafting context — not persisted
+        self.active_crafting_station_obj_id: str | None = None
+        self.active_crafting_station_thing_id: str | None = None
         self.join_world(world, persisted_state=persisted_state)
 
     def _load_gameplay_state(self, persisted_state: dict | None) -> None:
@@ -138,6 +144,11 @@ class User:
             sprite_repo=sprite_repo,
         )
     
+    def clear_crafting_context(self) -> None:
+        """Clear the active crafting station context."""
+        self.active_crafting_station_obj_id = None
+        self.active_crafting_station_thing_id = None
+
     def join_world(self, world, persisted_state=None):
         """Join the given world, restoring room/position when available."""
         self.world = world
@@ -230,4 +241,3 @@ def reload_skins(force_value=None):
 
 # Maps sid -> User instance
 connected_users = {}
-

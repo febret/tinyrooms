@@ -45,6 +45,7 @@ class SocketCaptureClient:
         "update_view",
         "inventory_update",
         "set_skin",
+        "client_config",
         "reload_styles",
         "reload_client",
         "update_status",
@@ -274,7 +275,7 @@ def _write_test_world_definitions(workspace: Path):
                     "background_mode": "stretch",
                     "theme": "home",
                 },
-                "init_things": ["test_statue"],
+                "init_things": ["test_statue", "test_workbench"],
                 "props": ["floor_rug", "standing_lamp"],
             },
         },
@@ -291,7 +292,72 @@ def _write_test_world_definitions(workspace: Path):
                 "icon": "img:images/test_object.png",
                 "inventory_action": ":use $0, :use $0",
                 "tags": ["item"],
-            }
+            },
+            # Crafting station
+            "test_workbench": {
+                "type": "object",
+                "label": "Test Workbench",
+                "description": "A crafting workbench used by integration tests.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+            },
+            # Raw material (input)
+            "test_wood": {
+                "type": "object",
+                "label": "Wood",
+                "description": "A piece of test wood.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+            },
+            # Recipe: always-available, no inputs required
+            "test_pebble": {
+                "type": "object",
+                "label": "Pebble",
+                "description": "A small crafted pebble.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+                "craftable_mode": "ALWAYS",
+                "craftable_level": 0,
+            },
+            # Recipe: station-gated, requires 1 test_wood, level 0
+            "test_plank": {
+                "type": "object",
+                "label": "Plank",
+                "description": "A crafted plank made at a workbench.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+                "craftable_mode": "test_workbench",
+                "craftable_level": 0,
+                "craftable_inputs": "test_wood:1",
+            },
+            # Recipe: level-gated (level 5 required) to test rejection
+            "test_gem": {
+                "type": "object",
+                "label": "Gem",
+                "description": "A high-level crafted gem.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+                "craftable_mode": "ALWAYS",
+                "craftable_level": 5,
+            },
+            # Recipe: stackable output
+            "test_coin": {
+                "type": "object",
+                "label": "Coin",
+                "description": "A stackable test coin.",
+                "img": "images/test_object.png",
+                "sprite": "images/test_object.png",
+                "icon": "img:images/test_object.png",
+                "stackable_size": 99,
+                "craftable_mode": "ALWAYS",
+                "craftable_level": 0,
+                "craftable_stack_size": 5,
+            },
         },
     )
     _write_yaml(
