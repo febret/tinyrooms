@@ -45,8 +45,31 @@ var pixiPropNodes = new Map();
 var pixiEditorOverlay = null;
 var roomPanelResizeObserver = null;
 var roomPanelResizeBound = false;
+var pixiCameraTicker = null;
+var pixiCameraState = {
+  x: 0,
+  y: 0,
+  targetX: 0,
+  targetY: 0,
+  scale: 1,
+  viewportW: 1,
+  viewportH: 1,
+  viewportWorldW: 1,
+  viewportWorldH: 1,
+  stageW: 1,
+  stageH: 1,
+  offsetX: 0,
+  offsetY: 0,
+  deadZoneX: 0,
+  deadZoneY: 0,
+  scrollableX: false,
+  scrollableY: false,
+};
 const ENTITY_MOVE_SPEED_PX_PER_SEC = 320;
 const ENTITY_MOVE_MIN_DURATION_MS = 40;
+const CAMERA_DEAD_ZONE_RATIO = 0.22;
+const CAMERA_MIN_DEAD_ZONE_PX = 36;
+const CAMERA_SMOOTHING = 0.22;
 
 function computeRoomCanvasFitSize(stageW, stageH) {
   const viewPanel = document.getElementById("viewPanel");
@@ -75,32 +98,169 @@ function computeRoomCanvasFitSize(stageW, stageH) {
 
 function updateEditorOverlayControlPositions() {
   if (!pixiEditorOverlay || !roomState.stage) return;
-  const stageW = getStageWidth(roomState.stage);
-  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
-  const scaleX = roomCanvas.clientWidth / stageW;
-  const scaleY = roomCanvas.clientHeight / stageH;
-  if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || scaleX <= 0 || scaleY <= 0) return;
   const controls = pixiEditorOverlay.querySelectorAll(".room-prop-controls");
   for (const control of controls) {
     const stageX = Number.parseFloat(control.dataset.stageX || "0");
     const stageY = Number.parseFloat(control.dataset.stageY || "0");
-    control.style.left = `${Math.round((stageX + 2) * scaleX)}px`;
-    control.style.top = `${Math.round(Math.max(0, stageY - 14) * scaleY)}px`;
+    const screenX = (stageX + 2 - pixiCameraState.x) * pixiCameraState.scale + pixiCameraState.offsetX;
+    const screenY = (Math.max(0, stageY - 14) - pixiCameraState.y) * pixiCameraState.scale + pixiCameraState.offsetY;
+    control.style.left = `${Math.round(screenX)}px`;
+    control.style.top = `${Math.round(screenY)}px`;
   }
 }
 
 function fitRoomCanvasToViewPanel() {
-  if (!roomCanvas || !roomState.stage) return;
+  if (!roomCanvas || !roomState.stage || !pixiApp) return;
   const stageW = getStageWidth(roomState.stage);
   const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
   const fit = computeRoomCanvasFitSize(stageW, stageH);
   roomCanvas.style.width = `${fit.width}px`;
   roomCanvas.style.height = `${fit.height}px`;
-  // Update roomstate.stage.scale based on the fit size vs the original stage size
-  pixiApp.stage.scale.set(Math.max(fit.width / stageW, fit.height / stageH));
-  // Resize the pixiApp stage to match the fit size (in pixels)
+  const fitScale = Math.min(fit.width / stageW, fit.height / stageH);
+  const appliedScale = fitScale > 1 ? fitScale : 1;
+  pixiCameraState.scale = appliedScale;
+  pixiApp.stage.scale.set(appliedScale, appliedScale);
   pixiApp.renderer.resize(fit.width, fit.height);
+  pixiRefreshCameraMetrics();
+  pixiUpdateCameraTarget(true);
+  pixiApplyCameraTransform();
+}
+
+function pixiRefreshCameraMetrics() {
+  if (!pixiApp || !roomState.stage) return;
+  const stageW = getStageWidth(roomState.stage);
+  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  const viewportW = Math.max(1, pixiApp.renderer.width || pixiApp.canvas.clientWidth || 1);
+  const viewportH = Math.max(1, pixiApp.renderer.height || pixiApp.canvas.clientHeight || 1);
+  const scale = Math.max(1, Number(pixiCameraState.scale) || 1);
+  const viewportWorldW = viewportW / scale;
+  const viewportWorldH = viewportH / scale;
+  const maxX = Math.max(0, stageW - viewportWorldW);
+  const maxY = Math.max(0, stageH - viewportWorldH);
+  pixiCameraState.viewportW = viewportW;
+  pixiCameraState.viewportH = viewportH;
+  pixiCameraState.viewportWorldW = viewportWorldW;
+  pixiCameraState.viewportWorldH = viewportWorldH;
+  pixiCameraState.stageW = stageW;
+  pixiCameraState.stageH = stageH;
+  pixiCameraState.scale = scale;
+  pixiCameraState.scrollableX = maxX > 0;
+  pixiCameraState.scrollableY = maxY > 0;
+  const deadZonePxX = Math.max(CAMERA_MIN_DEAD_ZONE_PX, viewportW * CAMERA_DEAD_ZONE_RATIO);
+  const deadZonePxY = Math.max(CAMERA_MIN_DEAD_ZONE_PX, viewportH * CAMERA_DEAD_ZONE_RATIO);
+  const deadZoneWorldX = deadZonePxX / scale;
+  const deadZoneWorldY = deadZonePxY / scale;
+  pixiCameraState.deadZoneX = Math.min(viewportWorldW * 0.5, Math.max(0, deadZoneWorldX));
+  pixiCameraState.deadZoneY = Math.min(viewportWorldH * 0.5, Math.max(0, deadZoneWorldY));
+  const scaledStageW = stageW * scale;
+  const scaledStageH = stageH * scale;
+  pixiCameraState.offsetX = pixiCameraState.scrollableX ? 0 : Math.max(0, (viewportW - scaledStageW) * 0.5);
+  pixiCameraState.offsetY = pixiCameraState.scrollableY ? 0 : Math.max(0, (viewportH - scaledStageH) * 0.5);
+  pixiCameraState.x = Math.min(maxX, Math.max(0, pixiCameraState.x));
+  pixiCameraState.y = Math.min(maxY, Math.max(0, pixiCameraState.y));
+  pixiCameraState.targetX = Math.min(maxX, Math.max(0, pixiCameraState.targetX));
+  pixiCameraState.targetY = Math.min(maxY, Math.max(0, pixiCameraState.targetY));
+}
+
+function pixiGetFocusPoint() {
+  const fallback = {
+    x: pixiCameraState.stageW * 0.5,
+    y: pixiCameraState.stageH * 0.5,
+  };
+  if (!myUsername) return fallback;
+  const record = pixiEntityNodes.get(`peep:${myUsername}`);
+  if (record) {
+    const x = Number.isFinite(record.logicalX) ? record.logicalX : null;
+    const y = Number.isFinite(record.logicalY) ? record.logicalY : null;
+    if (x != null && y != null) {
+      return { x, y };
+    }
+  }
+  const ownEntity = roomState.entities.get(`peep:${myUsername}`);
+  if (ownEntity?.position) {
+    return {
+      x: Number(ownEntity.position.x) || fallback.x,
+      y: Number(ownEntity.position.y) || fallback.y,
+    };
+  }
+  return fallback;
+}
+
+function pixiUpdateCameraTarget(forceSnap) {
+  pixiRefreshCameraMetrics();
+  const maxX = Math.max(0, pixiCameraState.stageW - pixiCameraState.viewportWorldW);
+  const maxY = Math.max(0, pixiCameraState.stageH - pixiCameraState.viewportWorldH);
+  if (!pixiCameraState.scrollableX && !pixiCameraState.scrollableY) {
+    pixiCameraState.targetX = 0;
+    pixiCameraState.targetY = 0;
+    if (forceSnap) {
+      pixiCameraState.x = 0;
+      pixiCameraState.y = 0;
+    }
+    return;
+  }
+  const focus = pixiGetFocusPoint();
+  const sourceX = forceSnap ? pixiCameraState.targetX : pixiCameraState.x;
+  const sourceY = forceSnap ? pixiCameraState.targetY : pixiCameraState.y;
+  let nextTargetX = sourceX;
+  let nextTargetY = sourceY;
+  if (pixiCameraState.scrollableX) {
+    const minVisibleX = sourceX + pixiCameraState.deadZoneX;
+    const maxVisibleX = sourceX + pixiCameraState.viewportWorldW - pixiCameraState.deadZoneX;
+    if (focus.x < minVisibleX) {
+      nextTargetX = focus.x - pixiCameraState.deadZoneX;
+    } else if (focus.x > maxVisibleX) {
+      nextTargetX = focus.x - (pixiCameraState.viewportWorldW - pixiCameraState.deadZoneX);
+    }
+    nextTargetX = Math.min(maxX, Math.max(0, nextTargetX));
+  } else {
+    nextTargetX = 0;
+  }
+  if (pixiCameraState.scrollableY) {
+    const minVisibleY = sourceY + pixiCameraState.deadZoneY;
+    const maxVisibleY = sourceY + pixiCameraState.viewportWorldH - pixiCameraState.deadZoneY;
+    if (focus.y < minVisibleY) {
+      nextTargetY = focus.y - pixiCameraState.deadZoneY;
+    } else if (focus.y > maxVisibleY) {
+      nextTargetY = focus.y - (pixiCameraState.viewportWorldH - pixiCameraState.deadZoneY);
+    }
+    nextTargetY = Math.min(maxY, Math.max(0, nextTargetY));
+  } else {
+    nextTargetY = 0;
+  }
+  pixiCameraState.targetX = nextTargetX;
+  pixiCameraState.targetY = nextTargetY;
+  if (forceSnap) {
+    pixiCameraState.x = nextTargetX;
+    pixiCameraState.y = nextTargetY;
+  }
+}
+
+function pixiApplyCameraTransform() {
+  if (!pixiBgContainer || !pixiPropsContainer || !pixiEntitiesContainer) return;
+  const worldOffsetX = pixiCameraState.offsetX - (pixiCameraState.x * pixiCameraState.scale);
+  const worldOffsetY = pixiCameraState.offsetY - (pixiCameraState.y * pixiCameraState.scale);
+  pixiBgContainer.x = worldOffsetX;
+  pixiBgContainer.y = worldOffsetY;
+  pixiPropsContainer.x = worldOffsetX;
+  pixiPropsContainer.y = worldOffsetY;
+  pixiEntitiesContainer.x = worldOffsetX;
+  pixiEntitiesContainer.y = worldOffsetY;
   updateEditorOverlayControlPositions();
+}
+
+function pixiTickCamera(ticker) {
+  pixiUpdateCameraTarget(false);
+  const lerpWeight = 1 - Math.pow(1 - CAMERA_SMOOTHING, Math.max(1, ticker.deltaMS / 16.667));
+  pixiCameraState.x += (pixiCameraState.targetX - pixiCameraState.x) * lerpWeight;
+  pixiCameraState.y += (pixiCameraState.targetY - pixiCameraState.y) * lerpWeight;
+  if (Math.abs(pixiCameraState.targetX - pixiCameraState.x) < 0.05) {
+    pixiCameraState.x = pixiCameraState.targetX;
+  }
+  if (Math.abs(pixiCameraState.targetY - pixiCameraState.y) < 0.05) {
+    pixiCameraState.y = pixiCameraState.targetY;
+  }
+  pixiApplyCameraTransform();
 }
 
 function bindRoomCanvasAutoFit() {
@@ -158,6 +318,13 @@ async function initPixiApp() {
   pixiEntitiesContainer.zIndex = 2;
   pixiEntitiesContainer.sortableChildren = true;
   pixiApp.stage.addChild(pixiEntitiesContainer);
+
+  if (!pixiCameraTicker) {
+    pixiCameraTicker = (ticker) => {
+      pixiTickCamera(ticker);
+    };
+    pixiApp.ticker.add(pixiCameraTicker);
+  }
 
   pixiAttachStageClickToMove();
   bindRoomCanvasAutoFit();
@@ -910,6 +1077,7 @@ function pixiSetEntitySelected(key, isSelected) {
 // ─── Stage coordinate math ────────────────────────────────────────────────────
 
 function getStagePoint(clientX, clientY, requireInside) {
+  if (!pixiApp || !pixiApp.canvas) return null;
   const rect = roomCanvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
 
@@ -917,22 +1085,18 @@ function getStagePoint(clientX, clientY, requireInside) {
     && clientY >= rect.top && clientY <= rect.bottom;
   if (requireInside && !isInside) return null;
 
-  const stage = roomState.stage;
-  const totalHeight = getStageTotalHeight(stage, roomState.cameraFloorHeight);
-  const x = Math.round((clientX - rect.left) * (getStageWidth(stage) / rect.width));
-  const y = Math.round((clientY - rect.top) * (totalHeight / rect.height));
-  return clampStagePoint(x, y, stage, totalHeight);
+  const pixiX = ((clientX - rect.left) / rect.width) * pixiApp.canvas.clientWidth;
+  const pixiY = ((clientY - rect.top) / rect.height) * pixiApp.canvas.clientHeight;
+  return getStagePointFromPixi(pixiX, pixiY);
 }
 
 // Convert PixiJS global canvas coordinates to room-space coordinates.
 function getStagePointFromPixi(pixiX, pixiY) {
   const stage = roomState.stage;
   const totalHeight = getStageTotalHeight(stage, roomState.cameraFloorHeight);
-  const canvasW = pixiApp.canvas.clientWidth;
-  const canvasH = pixiApp.canvas.clientHeight;
-
-  const x = Math.round(pixiX * (getStageWidth(stage) / canvasW));
-  const y = Math.round(pixiY * (totalHeight / canvasH));
+  const scale = Math.max(1, Number(pixiCameraState.scale) || 1);
+  const x = Math.round(((pixiX - pixiCameraState.offsetX) / scale) + pixiCameraState.x);
+  const y = Math.round(((pixiY - pixiCameraState.offsetY) / scale) + pixiCameraState.y);
   return clampStagePoint(x, y, stage, totalHeight);
 }
 
@@ -1138,9 +1302,10 @@ function setCameraFloorHeight(newFloorHeight) {
   }
   roomState.cameraFloorHeight = nextFloorH;
 
-  const totalH = bgH + nextFloorH;
-  if (pixiApp) pixiApp.renderer.resize(getStageWidth(stage), totalH);
   fitRoomCanvasToViewPanel();
+  pixiRefreshCameraMetrics();
+  pixiUpdateCameraTarget(true);
+  pixiApplyCameraTransform();
 
   pixiRenderBackground(roomState.backgroundPath);
   for (const entity of roomState.entities.values()) {
@@ -1181,9 +1346,11 @@ async function renderRoomStage(backgroundPath) {
   const stageW = getStageWidth(stage);
   const totalH = getStageTotalHeight(stage, roomState.cameraFloorHeight);
 
-  pixiApp.renderer.resize(stageW, totalH);
   pixiApp.stage.hitArea = new PIXI.Rectangle(0, 0, stageW, totalH);
   fitRoomCanvasToViewPanel();
+  pixiRefreshCameraMetrics();
+  pixiUpdateCameraTarget(true);
+  pixiApplyCameraTransform();
 
   await pixiRenderBackground(backgroundPath);
   await pixiRenderProps();
