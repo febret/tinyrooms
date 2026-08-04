@@ -36,7 +36,10 @@ Many commands take a `<target>` token:
 | `:self` | Show your username, room, and character description. |
 | `:claim room` | Claim the current room if it is unowned/claimable. |
 | `:use` | Prompt for a target (`Use what?`). |
-| `:use <target>` | Emit default feedback: `You use <target>.` |
+| `:use <target>` | Use a target. If the target is a crafting station, opens a recipe list in the activity panel and sets crafting context. Otherwise emits `You use <target>.` |
+| `:craft` | List craftable recipes for the current context (active crafting station or always-available) in the activity panel. |
+| `:craft <thing_id>` | Attempt to craft one instance of `<thing_id>`. |
+| `:craft <thing_id> <count>` | Attempt to craft `<count>` instances of `<thing_id>` in sequence. |
 
 ## Admin power (`admin`)
 

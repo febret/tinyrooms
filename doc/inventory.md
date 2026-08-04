@@ -92,3 +92,15 @@ Dragging an object entity to the inventory panel picks it up (`:pick @obj:<id>`)
 - An object must be in the current room (`room.objs`) to be picked up — objects in another room or in someone else's inventory cannot be targeted.
 - Carrying capacity is currently unlimited.
 - Objects in inventory are invisible on the room canvas (they receive a `room-object` remove broadcast on pickup) and reappear at the drop position on drop.
+
+## Crafting
+
+Crafted objects are created directly in the user's inventory (no room placement needed). The `:craft <thing_id>` command:
+
+1. Consumes required input objects from inventory (by `thing_id`).
+2. Creates output objects and places them in inventory with `location_id = "@<username>"`.
+3. Emits `inventory_update` to the crafting user.
+4. Persists world state.
+
+Crafted objects follow the same persistence lifecycle as picked-up objects. See [core-mechanics.md](core-mechanics.md#object-crafting) for full crafting rules.
+

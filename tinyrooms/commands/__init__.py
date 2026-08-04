@@ -332,6 +332,8 @@ def _cmd_go(user_obj: Any, args: list[str], world: Any) -> None:
     next_room = world.rooms[to]
     user_obj.room.remove_user(user_obj)
     next_room.add_user(user_obj)
+    if hasattr(user_obj, "clear_crafting_context"):
+        user_obj.clear_crafting_context()
     user_data.save_user_state(user_obj)
     emit("message", {"text": f"You go {way.label}."}, to=user_obj.sid)
     emit("message", {"text": f"{user_obj.label} leaves {way.label}."}, room=room.room_id, skip_sid=user_obj.sid)
@@ -467,11 +469,170 @@ def _cmd_use_missing_target(user_obj: Any, args: list[str], world: Any) -> None:
 
 @_cmd("use <target>")
 def _cmd_use(user_obj: Any, args: list[str], world: Any) -> None:
+    from .. import crafting as _crafting
+
     target = (args[0] if args else "").strip()
     if not target:
         emit("message", {"text": "Use what?"}, to=user_obj.sid)
         return
+
+    resolved_target, error = _resolve_action_target(user_obj, target)
+    if error or resolved_target is None:
+        emit("message", {"text": f"You use {target}."}, to=user_obj.sid)
+        return
+
+    if resolved_target["type"] in ("object", "inventory"):
+        obj = resolved_target["entity"]
+        thing_id = getattr(obj, "thing_id", None)
+        thing_def = world.thing_defs.get(thing_id, {}) if thing_id else {}
+
+        # Check if this object can act as a crafting station
+        has_station_recipes = any(
+            _crafting.recipe_available_in_context(tdef, thing_id)
+            for tdef in world.thing_defs.values()
+            if tdef.get("craftable_mode") and tdef.get("craftable_mode", "").upper() != "ALWAYS"
+        )
+
+        if thing_id and has_station_recipes:
+            # Set crafting station context on user
+            if hasattr(user_obj, "active_crafting_station_obj_id"):
+                user_obj.active_crafting_station_obj_id = obj.obj_id
+                user_obj.active_crafting_station_thing_id = thing_id
+            station_label = obj.label()
+            user_level = getattr(user_obj, "level", 0)
+            content = _crafting.build_recipe_panel_content(
+                world.thing_defs,
+                thing_id,
+                user_level,
+                user_obj.peep.inventory,
+                station_label=station_label,
+            )
+            _emit_panel(user_obj, f"Crafting: {station_label}", content)
+            return
+
     emit("message", {"text": f"You use {target}."}, to=user_obj.sid)
+
+
+# ---------------------------------------------------------------------------
+# Craft commands
+# ---------------------------------------------------------------------------
+
+def _get_crafting_station_context(user_obj: Any, world: Any) -> tuple[str | None, str | None]:
+    """Return (station_obj_id, station_thing_id) for the user's active crafting context.
+
+    Validates that the station object still exists in the current room; clears
+    the context if it has become stale.
+    """
+    obj_id = getattr(user_obj, "active_crafting_station_obj_id", None)
+    thing_id = getattr(user_obj, "active_crafting_station_thing_id", None)
+    if obj_id is None:
+        return None, None
+    room = user_obj.room
+    if room is None or obj_id not in room.objs:
+        if hasattr(user_obj, "clear_crafting_context"):
+            user_obj.clear_crafting_context()
+        return None, None
+    return obj_id, thing_id
+
+
+@_cmd("craft")
+def _cmd_craft_list(user_obj: Any, args: list[str], world: Any) -> None:
+    from .. import crafting as _crafting
+
+    _, station_thing_id = _get_crafting_station_context(user_obj, world)
+    user_level = getattr(user_obj, "level", 0)
+
+    station_label: str | None = None
+    station_obj_id = getattr(user_obj, "active_crafting_station_obj_id", None)
+    if station_obj_id and user_obj.room:
+        station_obj = user_obj.room.objs.get(station_obj_id)
+        if station_obj:
+            station_label = station_obj.label()
+
+    content = _crafting.build_recipe_panel_content(
+        world.thing_defs,
+        station_thing_id,
+        user_level,
+        user_obj.peep.inventory,
+        station_label=station_label,
+    )
+    title = f"Crafting: {station_label}" if station_label else "Crafting"
+    _emit_panel(user_obj, title, content)
+
+
+@_cmd("craft <thing_id>")
+def _cmd_craft_one(user_obj: Any, args: list[str], world: Any) -> None:
+    _do_craft(user_obj, args[0] if args else "", 1, world)
+
+
+@_cmd("craft <thing_id> <count>")
+def _cmd_craft_count(user_obj: Any, args: list[str], world: Any) -> None:
+    thing_id = args[0] if args else ""
+    try:
+        count = int(args[1]) if len(args) > 1 else 1
+    except (TypeError, ValueError):
+        _error_panel(user_obj, "craft: count must be a positive integer")
+        return
+    if count < 1:
+        _error_panel(user_obj, "craft: count must be at least 1")
+        return
+    _do_craft(user_obj, thing_id, count, world)
+
+
+def _do_craft(user_obj: Any, thing_id: str, count: int, world: Any) -> None:
+    from .. import crafting as _crafting, icons as _icons
+
+    if not thing_id:
+        _error_panel(user_obj, "Usage: :craft <thing_id>")
+        return
+
+    thing_def = world.thing_defs.get(thing_id)
+    if thing_def is None:
+        _error_panel(user_obj, f"craft: unknown thing '{thing_id}'")
+        return
+
+    _, station_thing_id = _get_crafting_station_context(user_obj, world)
+    user_level = getattr(user_obj, "level", 0)
+
+    results: list[str] = []
+    any_success = False
+
+    for attempt in range(count):
+        errors = _crafting.check_craft_availability(
+            thing_id,
+            thing_def,
+            world.thing_defs,
+            user_level,
+            station_thing_id,
+            user_obj.peep.inventory,
+        )
+        if errors:
+            results.append(f"Craft attempt {attempt + 1}/{count} blocked: {'; '.join(errors)}")
+            break
+
+        _crafting.consume_inputs(thing_def, user_obj.peep.inventory, world.objs)
+        outputs = _crafting.create_output_objects(
+            thing_id,
+            thing_def,
+            user_obj.username,
+            world.objs,
+            _icons,
+            world.root_path,
+        )
+        for obj in outputs:
+            user_obj.peep.inventory[obj.obj_id] = obj
+
+        output_count = _crafting.get_output_count(thing_def)
+        output_label = thing_def.get("label", thing_id)
+        count_str = f" ×{output_count}" if output_count > 1 else ""
+        results.append(f"Crafted: **{output_label}**{count_str}")
+        any_success = True
+
+    if any_success:
+        world.save_state(world.ws_id)
+        _emit_inventory_update(user_obj)
+
+    _emit_panel(user_obj, "Craft Result", "\n".join(results))
 
 
 # ---------------------------------------------------------------------------
