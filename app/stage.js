@@ -1188,6 +1188,14 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
     window.addEventListener("pointercancel", windowPointerCancelHandler, true);
   }
 
+  function _submitFinalPosition() {
+    if (!latestGlobalPointer) return;
+    const point = getStagePointFromPixi(latestGlobalPointer.x, latestGlobalPointer.y);
+    if (point) {
+      socket.emit("room_move_entity", _buildMoveEvent(entityType, entityId, point.x, point.y));
+    }
+  }
+
   function finalizeDrag(ev) {
     unbindWindowPointerEnd();
     if (dragging && entityType === "object" && myUsername) {
@@ -1211,6 +1219,7 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
         }
       }
     }
+    if (dragging) _submitFinalPosition();
     resetDragState();
   }
 
@@ -1233,14 +1242,7 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
   wrapper.on("globalpointermove", (ev) => {
     if (!dragging) return;
     updatePointer(ev.global.x, ev.global.y);
-    const point = getStagePointFromPixi(ev.global.x, ev.global.y);
-    if (!point) return;
-    _submitPixiMovePayload(entityType, entityId, point.x, point.y);
   });
-}
-
-function _submitPixiMovePayload(entityType, entityId, x, y) {
-  socket.emit("room_move_entity", _buildMoveEvent(entityType, entityId, x, y));
 }
 
 function _buildMoveEvent(entityType, entityId, x, y) {
