@@ -220,7 +220,7 @@ body[data-client-theme="forest"] {
 #overlayPanels {
   position: absolute;
   left: clamp(0.5rem, 2vw, 1rem);
-  bottom: clamp(0.5rem, 2vw, 0.8rem);
+  top: clamp(0.5rem, 2vw, 0.8rem);
   z-index: 30;
   display: flex;
   flex-direction: column;
