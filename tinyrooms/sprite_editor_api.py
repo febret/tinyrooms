@@ -65,7 +65,10 @@ def _yaml_path(scope: str, filename: str) -> Path:
 
 def _image_path(scope: str, filename: str) -> Path:
     repo = _get_repo()
-    root = repo.server_root_path if scope == "server" else repo.world_sprites_path
+    record = repo.get(scope, filename)
+    if record is not None and record.has_image and record.image_path is not None:
+        return record.image_path
+    root = repo.image_root_path
     for ext in asset_sets.IMAGE_EXTENSIONS:
         p = root / f"{filename}{ext}"
         if p.exists():

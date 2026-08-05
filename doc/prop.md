@@ -24,14 +24,14 @@ Props are loaded from two sources, with world-scope taking precedence on filenam
 
 Each prop set consists of:
 - A YAML definition file (e.g., `floor_rug.yaml`)
-- An image file in the **same directory** as the YAML (referenced by the `image` field)
+- An image file stored under `data/assets/sprites/` and referenced by the YAML `image` field
 
 ### YAML Schema
 
 ```yaml
 label: Optional label for this prop set
 description: Optional description for this prop set
-image: name_of_image_file.png  # image file in same directory as this YAML
+image: name_of_image_file.png  # image file under data/assets/sprites/
 background_color: "#optional-css-color"  # omit or leave empty for transparent
 props:
   prop_id:

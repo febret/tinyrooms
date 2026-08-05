@@ -1,7 +1,7 @@
 # Sprites
 Sprites are collections of images representing a character / object which include animations or multiple poses. Sprites are defined as an image file containing the sprite set, and a sprite definition yaml with information on sprites and frames for that image.
 
-The sprite image file and yaml file always must match (ie explosions.yaml will apply to aexplosions.png in the same directory)
+The YAML `image` field points at the sprite image file stored under `data/assets/sprites/` or the loaded world's shared `assets/sprites/` directory. The image filename no longer has to match the YAML filename.
 
 Characters (Users / Peeps) and Things / Objects use sprites as their display representation.
 
@@ -18,12 +18,13 @@ Implemented resolver behavior:
 - `<frame>` may be either a frame token (`NxM`) or an animation frame index (`0`, `1`, ... when an animation is selected).
 
 ## Sprite Definition
-Sprites are loaded from either data/sprites and the sprites directory of the loaded world. The sprites directory contains pairs of png images and yaml files with the sprite definitions for that image.
+Sprites are loaded from either `data/sprites/` and the sprites directory of the loaded world. Sprite images live separately under `data/assets/sprites/` and are referenced by the YAML `image` field.
 
 Example sprites.yaml
 ```
 label: Optional label for this sprite set
 description: Optional description for this sprite set
+image: sprite_set.png  # image file under data/assets/sprites/
 frame_width: width in pixels of a single sprite frame (all frames are the same size)
 frame_height: height of sprite frame
 scale: optional display scale multiplier (default 1.0)

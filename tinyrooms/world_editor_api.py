@@ -149,12 +149,14 @@ def _resolve_asset_url(asset_path: str) -> str:
 def _serialize_room(room) -> dict[str, Any]:
     stage = _normalized_stage(room.info.get("stage", {}), room.info.get("stage", {}))
     background = str(room.info.get("image") or room.info.get("img") or "").strip()
-    # Normalize bare filenames: legacy YAMLs often store just "bg.png" while the
-    # file actually lives in the world's images/ subdirectory.
+    # Normalize bare filenames to the world's asset directory.
     if background and "/" not in background and not background.startswith("http"):
         try:
             world_root = Path(active_world().root_path)
-            if not (world_root / background).exists() and (world_root / "images" / background).exists():
+            asset_background = world_root / "assets" / "images" / background
+            if asset_background.exists():
+                background = f"assets/images/{background}"
+            elif not (world_root / background).exists() and (world_root / "images" / background).exists():
                 background = f"images/{background}"
         except Exception:
             pass
@@ -214,9 +216,10 @@ def _list_available_images(world_root: Path) -> list[dict[str, str]]:
             if entry.is_file() and entry.suffix.lower() in _IMAGE_EXTS:
                 rel = entry.relative_to(world_root).as_posix()
                 _append("world", rel, entry)
-        world_images_dir = world_root / "images"
-        if world_images_dir.exists():
-            for entry in sorted(world_images_dir.rglob("*"), key=lambda item: item.as_posix()):
+        for images_dir in (world_root / "assets" / "images", world_root / "images"):
+            if not images_dir.exists():
+                continue
+            for entry in sorted(images_dir.rglob("*"), key=lambda item: item.as_posix()):
                 if entry.is_file() and entry.suffix.lower() in _IMAGE_EXTS:
                     rel = entry.relative_to(world_root).as_posix()
                     _append("world", rel, entry)

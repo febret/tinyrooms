@@ -14,12 +14,13 @@ def _write_png(path: Path):
 
 def test_sprite_editor_list_and_edit_lifecycle(http_client, server_runtime):
     world_sprite_dir = Path(server_runtime.workspace) / "data" / "worlds" / "home" / "sprites"
-    server_sprite_dir = Path(server_runtime.workspace) / "data" / "sprites"
-    _write_png(world_sprite_dir / "hero.png")
-    _write_png(server_sprite_dir / "hero.png")
+    asset_root = Path(server_runtime.workspace) / "data" / "assets" / "sprites"
+    _write_png(asset_root / "hero.png")
+    _write_png(asset_root / "hero_world.png")
     (world_sprite_dir / "hero.yaml").write_text(
         yaml.safe_dump(
             {
+                "image": "hero_world.png",
                 "frame_width": 16,
                 "frame_height": 16,
                 "sprites": {

@@ -8,9 +8,12 @@ props:
     frames:
     - - 339
       - 208
+    tags: []
   tree:
-    width: 49
+    width: 48
     height: 80
     frames:
     - - 384
       - 176
+    tags: []
+background_color: '#007575'

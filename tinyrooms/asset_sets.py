@@ -11,6 +11,7 @@ import yaml
 
 IMAGE_EXTENSIONS = (".png", ".gif", ".webp")
 YAML_EXTENSIONS = (".yaml", ".yml")
+DEFAULT_ASSET_IMAGES_PATH = Path(__file__).parent.parent / "data" / "assets" / "sprites"
 
 
 class SetRecord(Protocol):
@@ -63,26 +64,86 @@ def normalize_tags(value: Any, field_name: str, errors: list[str]) -> list[str]:
     return tags
 
 
-def discover_asset_set_files(root: Path) -> list[tuple[str, Path | None, Path | None]]:
-    if not root.exists():
-        return []
+def normalize_relative_asset_name(value: Any, field_name: str, errors: list[str], default: str | None = None) -> str | None:
+    """Normalize an asset path value to a relative, slash-separated string.
 
-    stems = {
-        item.stem
-        for item in root.iterdir()
-        if item.is_file() and item.suffix.lower() in {*IMAGE_EXTENSIONS, *YAML_EXTENSIONS}
-    }
-    discovered = []
-    for stem in sorted(stems):
-        image_path = next(
-            (candidate for ext in IMAGE_EXTENSIONS if (candidate := root / f"{stem}{ext}").exists()),
-            None,
+    Returns the original value for valid relative paths, rejects absolute paths and
+    parent-directory traversal, and falls back to the provided default otherwise.
+    """
+    if value is None:
+        return default
+    if not isinstance(value, str):
+        errors.append(f"{field_name} must be a string")
+        return default
+    normalized = value.strip().replace("\\", "/")
+    if not normalized:
+        return default
+    path = Path(normalized)
+    if path.is_absolute() or ".." in path.parts:
+        errors.append(f"{field_name} must be a relative path within the asset directory")
+        return default
+    return normalized
+
+
+def _load_yaml_mapping(path: Path) -> dict[str, Any] | None:
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    return loaded
+
+
+def _resolve_image_path(image_root: Path, image_value: Any, stem: str) -> Path | None:
+    candidates: list[Path] = []
+    normalized = normalize_relative_asset_name(image_value, "image", [], default=None)
+    if normalized:
+        rel = Path(normalized)
+        candidates.append(image_root / rel)
+        if rel.suffix == "":
+            candidates.extend(image_root / f"{normalized}{ext}" for ext in IMAGE_EXTENSIONS)
+    candidates.extend(image_root / f"{stem}{ext}" for ext in IMAGE_EXTENSIONS)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def discover_asset_set_files(
+    definitions_root: Path,
+    image_root: Path,
+    *,
+    include_orphan_images: bool = True,
+) -> list[tuple[str, Path | None, Path | None]]:
+    discovered: list[tuple[str, Path | None, Path | None]] = []
+    referenced_images: set[str] = set()
+
+    if definitions_root.exists():
+        yaml_files = sorted(
+            item
+            for item in definitions_root.iterdir()
+            if item.is_file() and item.suffix.lower() in YAML_EXTENSIONS
         )
-        yaml_path = next(
-            (candidate for ext in YAML_EXTENSIONS if (candidate := root / f"{stem}{ext}").exists()),
-            None,
+        for yaml_path in yaml_files:
+            loaded = _load_yaml_mapping(yaml_path)
+            image_value = loaded.get("image") if loaded is not None else None
+            image_path = _resolve_image_path(image_root, image_value, yaml_path.stem)
+            if image_path is not None:
+                referenced_images.add(image_path.resolve().as_posix())
+            discovered.append((yaml_path.stem, image_path, yaml_path))
+
+    if include_orphan_images and image_root.exists():
+        image_files = sorted(
+            item
+            for item in image_root.iterdir()
+            if item.is_file() and item.suffix.lower() in IMAGE_EXTENSIONS
         )
-        discovered.append((stem, image_path, yaml_path))
+        for image_path in image_files:
+            if image_path.resolve().as_posix() in referenced_images:
+                continue
+            discovered.append((image_path.stem, image_path, None))
+
     return discovered
 
 
@@ -101,10 +162,17 @@ def lookup_set_record(
 
 
 class AssetSetRepository(Generic[RecordT]):
-    def __init__(self, world_root_path: Path, server_root_path: Path, world_directory_name: str):
+    def __init__(
+        self,
+        world_root_path: Path,
+        server_root_path: Path,
+        world_directory_name: str,
+        image_root_path: Path | None = None,
+    ):
         self.world_root_path = Path(world_root_path)
         self.server_root_path = Path(server_root_path)
         self.world_assets_path = self.world_root_path / world_directory_name
+        self.image_root_path = Path(image_root_path) if image_root_path else DEFAULT_ASSET_IMAGES_PATH
         self._index: dict[tuple[str, str], RecordT] = {}
 
     def _load_record(
@@ -117,7 +185,11 @@ class AssetSetRepository(Generic[RecordT]):
         raise NotImplementedError
 
     def _scan_scope(self, scope: str, root: Path) -> None:
-        for stem, image_path, yaml_path in discover_asset_set_files(root):
+        for stem, image_path, yaml_path in discover_asset_set_files(
+            root,
+            self.image_root_path,
+            include_orphan_images=scope == "server",
+        ):
             self._index[(scope, stem)] = self._load_record(scope, stem, image_path, yaml_path)
 
     def reindex(self) -> None:

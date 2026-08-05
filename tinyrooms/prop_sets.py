@@ -45,6 +45,7 @@ class PropSet:
     filename: str
     image_path: Path
     yaml_path: Path
+    image: str
     label: str
     description: str
     background_color: str | None
@@ -143,6 +144,7 @@ def load_prop_set(scope: str, filename: str, image_path: Path, yaml_path: Path) 
         loaded = yaml.safe_load(handle) or {}
     if not isinstance(loaded, dict):
         raise PropValidationError("prop definition must be a mapping")
+    image = asset_sets.normalize_relative_asset_name(loaded.get("image"), "image", errors, default=image_path.name)
     props_raw = loaded.get("props", {})
     if not isinstance(props_raw, dict) or not props_raw:
         errors.append("props must be a non-empty mapping")
@@ -159,6 +161,7 @@ def load_prop_set(scope: str, filename: str, image_path: Path, yaml_path: Path) 
         filename=filename,
         image_path=image_path,
         yaml_path=yaml_path,
+        image=image or image_path.name,
         label=str(loaded.get("label", "") or ""),
         description=str(loaded.get("description", "") or ""),
         background_color=background_color,
@@ -278,7 +281,7 @@ def to_definition_dict(prop_set: PropSet) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "label": prop_set.label,
         "description": prop_set.description,
-        "image": prop_set.image_path.name,
+        "image": prop_set.image,
         "props": props_payload,
     }
     if prop_set.background_color is not None:
@@ -306,9 +309,14 @@ def write_definition_document(yaml_path: Path, definition: dict[str, Any]) -> No
 # ---------------------------------------------------------------------------
 
 class PropRepository(asset_sets.AssetSetRepository[PropSetRecord]):
-    def __init__(self, world_root_path: Path, server_root_path: Path | None = None):
+    def __init__(
+        self,
+        world_root_path: Path,
+        server_root_path: Path | None = None,
+        image_root_path: Path | None = None,
+    ):
         server_root = Path(server_root_path) if server_root_path else Path(__file__).parent.parent / "data" / "props"
-        super().__init__(world_root_path, server_root, "props")
+        super().__init__(world_root_path, server_root, "props", image_root_path=image_root_path)
 
     @property
     def world_props_path(self) -> Path:

@@ -57,6 +57,7 @@ class SpriteSet:
     filename: str
     image_path: Path
     yaml_path: Path
+    image: str
     frame_width: int
     frame_height: int
     scale: float
@@ -215,6 +216,7 @@ def load_sprite_set(scope: str, filename: str, image_path: Path, yaml_path: Path
         loaded = yaml.safe_load(handle) or {}
     if not isinstance(loaded, dict):
         raise SpriteValidationError("sprite definition must be a mapping")
+    image = asset_sets.normalize_relative_asset_name(loaded.get("image"), "image", errors, default=image_path.name)
     frame_width = asset_sets.validate_positive_int(loaded.get("frame_width"), "frame_width", errors)
     frame_height = asset_sets.validate_positive_int(loaded.get("frame_height"), "frame_height", errors)
     scale = _normalize_scale(loaded.get("scale"), errors)
@@ -234,6 +236,7 @@ def load_sprite_set(scope: str, filename: str, image_path: Path, yaml_path: Path
         filename=filename,
         image_path=image_path,
         yaml_path=yaml_path,
+        image=image or image_path.name,
         frame_width=frame_width,
         frame_height=frame_height,
         scale=scale,
@@ -300,9 +303,14 @@ def _selected_frame(
 
 
 class SpriteRepository(asset_sets.AssetSetRepository[SpriteSetRecord]):
-    def __init__(self, world_root_path: Path, server_root_path: Path | None = None):
+    def __init__(
+        self,
+        world_root_path: Path,
+        server_root_path: Path | None = None,
+        image_root_path: Path | None = None,
+    ):
         server_root = Path(server_root_path) if server_root_path else Path(__file__).parent.parent / "data" / "sprites"
-        super().__init__(world_root_path, server_root, "sprites")
+        super().__init__(world_root_path, server_root, "sprites", image_root_path=image_root_path)
 
     @property
     def world_sprites_path(self) -> Path:
@@ -407,6 +415,7 @@ def to_definition_dict(sprite_set: SpriteSet) -> dict[str, Any]:
         "frame_width": sprite_set.frame_width,
         "frame_height": sprite_set.frame_height,
         "scale": sprite_set.scale,
+        "image": sprite_set.image,
         "sprites": sprites_payload,
     }
     if sprite_set.background_color is not None:

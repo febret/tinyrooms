@@ -4,10 +4,7 @@ function resolveBackgroundUrl(backgroundPath) {
     return backgroundPath;
   }
   const normalized = String(backgroundPath).replace(/^\/+/, "");
-  if (normalized.startsWith("images/")) {
-    return "/world/" + normalized;
-  }
-  return "/world/images/" + normalized;
+  return "/world/" + normalized;
 }
 
 function resolveAssetUrl(assetPath) {

@@ -2,19 +2,22 @@ lucille:
   type: object
   label: Luseal 🦭
   description: a small and stinky seal plushie
-  img: images/seal.png
-  sprite: images/seal.png
-  icon: "img:images/seal.png"
+  img: assets/images/seal.png
+  sprite: assets/images/seal.png
+  icon: "img:assets/images/seal.png"
   tags: [item]
+  stackable_size: 5
+  craftable_mode: ALWAYS
+  craftable_level: 0
 
 
 bookshelf_white:
   type: object
   label: a white bookshelf 🔲
   description: a tall white bookshelf with many colourful books
-  img: images/cabinet_white.png
-  sprite: images/bookshelf_icon.png
-  icon: "img:images/bookshelf_icon.png"
+  img: assets/images/cabinet_white.png
+  sprite: assets/images/bookshelf_icon.png
+  icon: "img:assets/images/bookshelf_icon.png"
   tags: [container]
 
 
@@ -22,7 +25,104 @@ magic_orb:
   type: object
   label: a magic orb ✨
   description: a glowing orb that pulses with mysterious energy
-  img: images/magic_orb.gif
-  sprite: images/magic_orb.gif
-  icon: "img:images/magic_orb.gif"
+  img: assets/images/magic_orb.gif
+  sprite: assets/images/magic_orb.gif
+  icon: "img:assets/images/magic_orb.gif"
   tags: [item]
+  craftable_mode: magic_orb
+  craftable_level: 3
+  craftable_inputs: "moonstone_shard:5"
+
+
+# ---------------------------------------------------------------------------
+# Raw materials  (spawnable, used as crafting inputs)
+# ---------------------------------------------------------------------------
+
+moonstone_shard:
+  type: object
+  label: moonstone shard 🌙
+  description: >
+    A pale, cool fragment that fell from the magic orb. It hums faintly when
+    held up to candlelight.
+  img: assets/images/magic_orb.gif
+  sprite: assets/images/magic_orb.gif
+  icon: "img:assets/images/magic_orb.gif"
+  tags: [item]
+
+
+garden_herb:
+  type: object
+  label: garden herb 🌿
+  description: >
+    A fresh sprig picked from the garden. It smells of earth and rain and
+    carries a faint trace of magic.
+  img: assets/images/grass_floor.png
+  sprite: assets/images/grass_floor.png
+  icon: "img:assets/images/grass_floor.png"
+  tags: [item]
+
+
+# ---------------------------------------------------------------------------
+# Craftable outputs
+# ---------------------------------------------------------------------------
+
+herb_bundle:
+  type: object
+  label: herb bundle 🌾
+  description: >
+    Three herbs tied together with a bit of string. Stacks neatly and keeps
+    well. Useful for all kinds of infusions and charms.
+  img: assets/images/grass_floor.png
+  sprite: assets/images/grass_floor.png
+  icon: "img:assets/images/grass_floor.png"
+  tags: [item]
+  stackable_size: 99
+  craftable_mode: ALWAYS
+  craftable_level: 0
+  craftable_inputs: "garden_herb:3"
+  craftable_stack_size: 5
+
+
+shard_cluster:
+  type: object
+  label: shard cluster 💠
+  description: >
+    Two moonstone shards fused together at high heat. The merged fragment
+    glows more steadily than either piece alone.
+  img: assets/images/magic_orb.gif
+  sprite: assets/images/magic_orb.gif
+  icon: "img:assets/images/magic_orb.gif"
+  tags: [item]
+  craftable_mode: "magic_orb, bookshelf_white"
+  craftable_level: 0
+  craftable_inputs: "moonstone_shard:2"
+
+
+enchanted_seal:
+  type: object
+  label: enchanted seal ✨🦭
+  description: >
+    A seal plushie soaked in moonstone energy. Its eyes now glow with a pale
+    blue light. You feel strangely watched.
+  img: assets/images/seal.png
+  sprite: assets/images/seal.png
+  icon: "img:assets/images/seal.png"
+  tags: [item]
+  craftable_mode: magic_orb
+  craftable_level: 1
+  craftable_inputs: "lucille:1, moonstone_shard:2"
+
+
+arcane_scroll:
+  type: object
+  label: arcane scroll 📜
+  description: >
+    A scroll copied out by hand from the private library's oldest tomes.
+    The ink shimmers faintly and the parchment never seems to yellow.
+  img: assets/images/bookshelf_icon.png
+  sprite: assets/images/bookshelf_icon.png
+  icon: "img:assets/images/bookshelf_icon.png"
+  tags: [item]
+  craftable_mode: bookshelf_white
+  craftable_level: 2
+  craftable_inputs: "moonstone_shard:3"

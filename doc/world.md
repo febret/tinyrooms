@@ -11,7 +11,8 @@ A world lives under `data/worlds/<world_id>/`. The root directory contains:
 - `world.yaml` — top-level world metadata (name, description, and other world-level settings).
 - `rooms/` — one or more YAML files containing room and way definitions.
 - `things/` — one or more YAML files containing thing (object template) definitions.
-- `props/` — world-scoped prop sets (each set is a `.yaml` definition + matching image file).
+- `props/` — world-scoped prop sets (YAML definitions only; images live in `data/assets/sprites/`).
+- `assets/images/` — world background images and other world-local art assets.
 
 Server-level shared prop sets also live under `data/props/` and are available to all worlds.
 
@@ -26,7 +27,7 @@ room_id:
   type: room
   label: "The Playroom"
   description: "A cozy room with colourful toys."
-  image: playroom.png          # background image filename (relative to the world root)
+  image: assets/images/playroom.png  # background image path relative to the world root
   owner_id: alice              # optional; locks prop-editing to this user
   stage:
     type: basic                # "basic" or "standard" (default: basic)
@@ -191,7 +192,7 @@ Shown when a room is open in the canvas but no prop is selected. Fields:
 | Label | Text input | Display name shown to users. |
 | Description | Textarea | Short narrative description shown in the room header. |
 | Owner | Text input | Optional username. Leave empty for an unclaimed room. |
-| Background Image | Dropdown + preview | Lists all image files available in the world root and subdirectories. Selecting one updates the canvas preview immediately. A **Upload…** button allows adding a new image file. |
+| Background Image | Dropdown + preview | Lists all image files available in the world asset directories. Selecting one updates the canvas preview immediately. A **Upload…** button allows adding a new image file. |
 
 #### Stage Settings (sub-section of Room Properties)
 
@@ -328,4 +329,3 @@ Clicking **Create** adds the way entry, updates the `ways` list of the source ro
 | `Shift` + arrow | Nudge selected prop 8 px |
 | `Escape` | Cancel current tool / deselect |
 | `F` | Fit canvas to window |
-
