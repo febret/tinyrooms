@@ -408,6 +408,18 @@ def world_editor_page():
     return send_from_directory(str(_STATIC_FOLDER), "world-editor.html")
 
 
+@blueprint.route("/api/world-editor/keepalive")
+def we_keepalive():
+    """Lightweight ping used by the world editor to verify the token is still valid."""
+    if g := _guard():
+        return g
+    try:
+        _require_user()
+        return jsonify({"ok": True})
+    except PermissionError as exc:
+        return _err(str(exc), 401)
+
+
 @blueprint.route("/api/world-editor/state")
 def get_state():
     if g := _guard():

@@ -166,6 +166,9 @@ def handle_login(data):
     # Create User instance and store it
     user_obj = user.User(username, sid, active_world(), persisted_state=profile)
     user_obj.rest_token = secrets.token_urlsafe(24)
+    # Register token persistently so the world editor keeps working even after
+    # the WebSocket disconnects.
+    user.rest_token_registry[user_obj.rest_token] = username
     # Load saved skin from profile
     user_obj.skin = profile.get("skin") or 'base'
     user_obj.skin_stale = True

@@ -161,6 +161,10 @@ def _require_rest_user() -> str:
         for online_user in user.connected_users.values():
             if getattr(online_user, "rest_token", "") == token:
                 return online_user.username
+        # Fallback: token issued this server session but user's WebSocket has
+        # since disconnected (e.g. main client tab closed).
+        if token in user.rest_token_registry:
+            return user.rest_token_registry[token]
     username = session.get("username")
     if not username:
         raise PermissionError("not authenticated")

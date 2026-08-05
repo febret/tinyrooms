@@ -77,6 +77,7 @@ const WE = {
   libTagFilter: "",
   libAllTags: [],
   imgCache: new Map(),   // url -> Promise<HTMLImageElement>
+  sessionLost: false,    // true when server returns 401
 };
 
 // ---------------------------------------------------------------------------
@@ -86,7 +87,6 @@ const WE = {
 const $ = id => document.getElementById(id);
 
 const authTokenEl    = null;  // removed; login handled via Login button
-const btnReload      = $("btnReloadState");
 const loginStatusEl  = $("loginStatus");
 const tabRoom        = $("tabRoom");
 const tabMap         = $("tabMap");
@@ -148,9 +148,7 @@ async function apiFetch(method, path, body) {
   if (body !== undefined) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
   if (res.status === 401) {
-    WE.token = "";
-    WE.initialLoad = false;
-    localStorage.removeItem(TOKEN_KEY);
+    WE.sessionLost = true;
     loginStatusEl.textContent = "Session expired — please log in from the main client";
     loginStatusEl.style.color = "#f66";
     setStatus("Session expired. Please log in from the main client and return to this page.", true);
@@ -1689,13 +1687,35 @@ if (libraryTagFilter) {
   });
 }
 
-btnReload.addEventListener("click", () => {
-  if (!WE.token) {
-    setStatus("No session token found. Please log in from the main client first.", true);
-    return;
+// ---------------------------------------------------------------------------
+// Heartbeat — keeps the session alive and auto-recovers when the token is
+// renewed (e.g. after a server restart + re-login from the main client).
+// ---------------------------------------------------------------------------
+
+async function _heartbeatTick() {
+  // Pick up a fresh token if the main client has logged in since page load.
+  const latestToken = localStorage.getItem(TOKEN_KEY) || "";
+  if (latestToken && latestToken !== WE.token) {
+    WE.token = latestToken;
   }
-  loadState();
-});
+  if (!WE.token) return;
+
+  try {
+    await apiFetch("GET", "/api/world-editor/keepalive");
+    if (WE.sessionLost) {
+      // Token is valid again (e.g. user re-logged in from main client).
+      WE.sessionLost = false;
+      loginStatusEl.textContent = "";
+      loginStatusEl.style.color = "";
+      setStatus("Reconnected — reloading state…");
+      await loadState();
+    }
+  } catch {
+    // 401 is already handled by apiFetch; network errors are transient — just wait.
+  }
+}
+
+setInterval(_heartbeatTick, 30_000);
 
 // ---------------------------------------------------------------------------
 // Keyboard shortcuts

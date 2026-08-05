@@ -241,3 +241,7 @@ def reload_skins(force_value=None):
 
 # Maps sid -> User instance
 connected_users = {}
+
+# Maps rest_token -> username; persists beyond WebSocket lifetime so the
+# world editor stays authenticated even when the main client disconnects.
+rest_token_registry: dict[str, str] = {}
