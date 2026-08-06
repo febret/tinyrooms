@@ -1,10 +1,7 @@
 // ─── Stage math helpers ──────────────────────────────────────────────────────
 
 function getStageTotalHeight(stage, cameraFloorHeight) {
-  if (stage.type === 'standard') {
-    return getStageBackgroundHeight(stage) + getStageFloorHeight(cameraFloorHeight);
-  }
-  return Math.max(1, toStageNumber(stage.height, 1));
+  return getStageGeometry(stage, cameraFloorHeight).totalHeight;
 }
 
 // Depth-sort z-index for an entity on the standard stage floor.
@@ -29,6 +26,21 @@ function getStageFloorHeight(cameraFloorHeight) {
   return Math.max(0, toStageNumber(cameraFloorHeight, 0));
 }
 
+function getStageGeometry(stage, cameraFloorHeight) {
+  const width = getStageWidth(stage);
+  const backgroundHeight = getStageBackgroundHeight(stage);
+  const floorHeight = getStageFloorHeight(cameraFloorHeight);
+  const totalHeight = stage?.type === 'standard'
+    ? backgroundHeight + floorHeight
+    : Math.max(1, toStageNumber(stage?.height, 1));
+  return {
+    width,
+    backgroundHeight,
+    floorHeight,
+    totalHeight,
+  };
+}
+
 // ─── PixiJS globals ───────────────────────────────────────────────────────────
 
 var pixiApp = null;
@@ -37,7 +49,7 @@ var pixiPropsContainer = null;
 var pixiEntitiesContainer = null;
 var pixiTextureCache = new Map();
 var pixiTransparentTextureCache = new Map();
-// Per-entity: key → { wrapper, sprite, animTicker, decoratorTicker, moveTicker, moveTween, renderJson, isSelf, logicalX, logicalY, facingLeft }
+// Per-entity: key → { wrapper, visualContainer, sprite, animTicker, decoratorTicker, moveTicker, moveTween, renderJson, isSelf, logicalX, logicalY, facingLeft }
 var pixiEntityNodes = new Map();
 // Per-prop: propInstanceId → { sprite (wrapper Container), animTicker }
 var pixiPropNodes = new Map();
@@ -111,8 +123,7 @@ function updateEditorOverlayControlPositions() {
 
 function fitRoomCanvasToViewPanel() {
   if (!roomCanvas || !roomState.stage || !pixiApp) return;
-  const stageW = getStageWidth(roomState.stage);
-  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  const { width: stageW, totalHeight: stageH } = getStageGeometry(roomState.stage, roomState.cameraFloorHeight);
   const fit = computeRoomCanvasFitSize(stageW, stageH);
   roomCanvas.style.width = `${fit.width}px`;
   roomCanvas.style.height = `${fit.height}px`;
@@ -121,15 +132,12 @@ function fitRoomCanvasToViewPanel() {
   pixiCameraState.scale = appliedScale;
   pixiApp.stage.scale.set(appliedScale, appliedScale);
   pixiApp.renderer.resize(fit.width, fit.height);
-  pixiRefreshCameraMetrics();
-  pixiUpdateCameraTarget(true);
-  pixiApplyCameraTransform();
+  syncPixiCamera(true);
 }
 
 function pixiRefreshCameraMetrics() {
   if (!pixiApp || !roomState.stage) return;
-  const stageW = getStageWidth(roomState.stage);
-  const stageH = getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight) || 1;
+  const { width: stageW, totalHeight: stageH } = getStageGeometry(roomState.stage, roomState.cameraFloorHeight);
   const viewportW = Math.max(1, pixiApp.renderer.width || pixiApp.canvas.clientWidth || 1);
   const viewportH = Math.max(1, pixiApp.renderer.height || pixiApp.canvas.clientHeight || 1);
   const scale = Math.max(1, Number(pixiCameraState.scale) || 1);
@@ -160,6 +168,18 @@ function pixiRefreshCameraMetrics() {
   pixiCameraState.y = Math.min(maxY, Math.max(0, pixiCameraState.y));
   pixiCameraState.targetX = Math.min(maxX, Math.max(0, pixiCameraState.targetX));
   pixiCameraState.targetY = Math.min(maxY, Math.max(0, pixiCameraState.targetY));
+}
+
+function syncPixiCamera(forceSnap) {
+  pixiRefreshCameraMetrics();
+  pixiUpdateCameraTarget(forceSnap);
+  pixiApplyCameraTransform();
+}
+
+function syncPixiStageHitArea() {
+  if (!pixiApp || !roomState.stage) return;
+  const { width: stageW, totalHeight: stageH } = getStageGeometry(roomState.stage, roomState.cameraFloorHeight);
+  pixiApp.stage.hitArea = new PIXI.Rectangle(0, 0, stageW, stageH);
 }
 
 function pixiGetFocusPoint() {
@@ -240,12 +260,10 @@ function pixiApplyCameraTransform() {
   if (!pixiBgContainer || !pixiPropsContainer || !pixiEntitiesContainer) return;
   const worldOffsetX = pixiCameraState.offsetX - (pixiCameraState.x * pixiCameraState.scale);
   const worldOffsetY = pixiCameraState.offsetY - (pixiCameraState.y * pixiCameraState.scale);
-  pixiBgContainer.x = worldOffsetX;
-  pixiBgContainer.y = worldOffsetY;
-  pixiPropsContainer.x = worldOffsetX;
-  pixiPropsContainer.y = worldOffsetY;
-  pixiEntitiesContainer.x = worldOffsetX;
-  pixiEntitiesContainer.y = worldOffsetY;
+  for (const container of [pixiBgContainer, pixiPropsContainer, pixiEntitiesContainer]) {
+    container.x = worldOffsetX;
+    container.y = worldOffsetY;
+  }
   updateEditorOverlayControlPositions();
 }
 
@@ -401,23 +419,22 @@ async function pixiRenderBackground(backgroundPath) {
   pixiBgContainer.removeChildren();
 
   const stage = roomState.stage;
-  const totalH = getStageTotalHeight(stage, roomState.cameraFloorHeight);
-  const stageW = getStageWidth(stage);
+  const { width: stageW, backgroundHeight: bgH, floorHeight: floorH, totalHeight: totalH } = getStageGeometry(stage, roomState.cameraFloorHeight);
 
   if (backgroundPath) {
     const bgUrl = resolveBackgroundUrl(backgroundPath);
     const bgTex = await loadPixiTexture(bgUrl);
-    const bgH = stage.type === 'standard' ? getStageBackgroundHeight(stage) : totalH;
+    const bgRenderH = stage.type === 'standard' ? bgH : totalH;
 
     if (stage.background_mode === 'stretch' || stage.type !== 'standard') {
       const bg = new PIXI.Sprite(bgTex);
       bg.width = stageW;
-      bg.height = bgH;
+      bg.height = bgRenderH;
       bg.x = 0;
       bg.y = 0;
       pixiBgContainer.addChild(bg);
     } else {
-      const bg = new PIXI.TilingSprite({ texture: bgTex, width: stageW, height: bgH });
+      const bg = new PIXI.TilingSprite({ texture: bgTex, width: stageW, height: bgRenderH });
       bg.x = 0;
       bg.y = 0;
       pixiBgContainer.addChild(bg);
@@ -425,18 +442,16 @@ async function pixiRenderBackground(backgroundPath) {
   }
 
   if (stage.type === 'standard') {
-    const floorY = getStageBackgroundHeight(stage);
-    const floorH = getStageFloorHeight(roomState.cameraFloorHeight);
     if (stage.floor_image) {
       const floorUrl = resolveBackgroundUrl(stage.floor_image);
       const floorTex = await loadPixiTexture(floorUrl);
       const floor = new PIXI.TilingSprite({ texture: floorTex, width: stageW, height: floorH });
       floor.x = 0;
-      floor.y = floorY;
+      floor.y = bgH;
       pixiBgContainer.addChild(floor);
     } else {
       const floor = new PIXI.Graphics();
-      floor.rect(0, floorY, stageW, floorH).fill({ color: 0x000000, alpha: 0 });
+      floor.rect(0, bgH, stageW, floorH).fill({ color: 0x000000, alpha: 0 });
       pixiBgContainer.addChild(floor);
     }
   }
@@ -487,6 +502,32 @@ function createFrameAnimationTicker(sprite, frameTextures, intervalMs, animation
 
     sprite.texture = frameTextures[frameIndex];
   };
+}
+
+function pixiClearEntityTransientTickers(record) {
+  if (!record?.transientTickers || record.transientTickers.size === 0) return;
+  for (const transient of record.transientTickers) {
+    if (typeof transient?.remove === "function") {
+      transient.remove();
+      continue;
+    }
+    if (typeof transient?.tickerFn === "function") {
+      if (typeof transient.tickerFn.destroy === "function") {
+        transient.tickerFn.destroy();
+      } else {
+        pixiApp.ticker.remove(transient.tickerFn);
+      }
+      continue;
+    }
+    if (typeof transient === "function") {
+      if (typeof transient.destroy === "function") {
+        transient.destroy();
+      } else {
+        pixiApp.ticker.remove(transient);
+      }
+    }
+  }
+  record.transientTickers.clear();
 }
 
 function pointInBox(point, box) {
@@ -811,6 +852,86 @@ function pixiAttachPropDrag(wrapper, propInstanceId) {
 
 // ─── Entity rendering ─────────────────────────────────────────────────────────
 
+function pixiCreateEntityShadowBundle(entityType, sprite, spriteMeta, visualContainer) {
+  const floorShadow = new PIXI.Graphics({ label: "floorShadow" });
+
+  const updateShadowGeometry = () => {
+    const scaleX = Number.isFinite(sprite.scale?.x) ? sprite.scale.x : 1;
+    const scaleY = Number.isFinite(sprite.scale?.y) ? sprite.scale.y : 1;
+    const absScaleX = Math.abs(scaleX) || 1;
+    const absScaleY = Math.abs(scaleY) || 1;
+    const pivotX = Number.isFinite(sprite.pivot?.x) ? sprite.pivot.x : 0;
+    const pivotY = Number.isFinite(sprite.pivot?.y) ? sprite.pivot.y : 0;
+    const spriteX = Number.isFinite(sprite.x) ? sprite.x : 0;
+    const spriteY = Number.isFinite(sprite.y) ? sprite.y : 0;
+    const texW = Math.max(1, sprite.texture?.frame?.width || sprite.texture?.orig?.width || 1);
+    const texH = Math.max(1, sprite.texture?.frame?.height || sprite.texture?.orig?.height || 1);
+    const renderedW = texW * absScaleX;
+    const visualScaleX = Number.isFinite(visualContainer?.scale?.x) ? visualContainer.scale.x : 1;
+    const footOffsetX = (texW * 0.5 - pivotX) * scaleX;
+    const footOffsetY = (texH - pivotY) * scaleY;
+
+    // Anchor the floor shadow to the sprite's transformed bottom-center.
+    // This stays correct for scaled sprites and for custom pivot/origin offsets.
+    const centerX = visualScaleX * (spriteX + footOffsetX);
+    const floorY = spriteY + footOffsetY + (entityType === "peep" ? 1.2 : 0.9);
+    const halfWidthBase = renderedW * (entityType === "peep" ? 0.23 : 0.2);
+    const halfWidth = Math.max(7, Math.min(24, halfWidthBase));
+    const halfHeight = Math.max(2.8, Math.min(8, halfWidth * 0.34));
+    const alpha = entityType === "peep" ? 0.24 : 0.2;
+
+    floorShadow.clear();
+    floorShadow.ellipse(centerX, floorY, halfWidth, halfHeight).fill({ color: 0x000000, alpha });
+  };
+
+  let previousTexture = sprite.texture;
+  let previousScaleX = sprite.scale?.x || 1;
+  let previousScaleY = sprite.scale?.y || 1;
+  let previousPivotX = sprite.pivot?.x || 0;
+  let previousPivotY = sprite.pivot?.y || 0;
+  let previousX = sprite.x || 0;
+  let previousY = sprite.y || 0;
+  let previousVisualScaleX = Number.isFinite(visualContainer?.scale?.x) ? visualContainer.scale.x : 1;
+
+  const syncTicker = () => {
+    const nextTexture = sprite.texture;
+    const nextScaleX = sprite.scale?.x || 1;
+    const nextScaleY = sprite.scale?.y || 1;
+    const nextPivotX = sprite.pivot?.x || 0;
+    const nextPivotY = sprite.pivot?.y || 0;
+    const nextX = sprite.x || 0;
+    const nextY = sprite.y || 0;
+    const nextVisualScaleX = Number.isFinite(visualContainer?.scale?.x) ? visualContainer.scale.x : 1;
+    if (
+      nextTexture !== previousTexture ||
+      nextScaleX !== previousScaleX ||
+      nextScaleY !== previousScaleY ||
+      nextPivotX !== previousPivotX ||
+      nextPivotY !== previousPivotY ||
+      nextX !== previousX ||
+      nextY !== previousY ||
+      nextVisualScaleX !== previousVisualScaleX
+    ) {
+      previousTexture = nextTexture;
+      previousScaleX = nextScaleX;
+      previousScaleY = nextScaleY;
+      previousPivotX = nextPivotX;
+      previousPivotY = nextPivotY;
+      previousX = nextX;
+      previousY = nextY;
+      previousVisualScaleX = nextVisualScaleX;
+      updateShadowGeometry();
+    }
+  };
+
+  updateShadowGeometry();
+
+  return {
+    floorShadow,
+    syncTicker,
+  };
+}
+
 async function pixiCreateEntitySprite(entity) {
   const display = entity.display || {};
   const spriteMeta = display.sprite_meta || display.img_meta || null;
@@ -880,10 +1001,19 @@ async function pixiRenderForegroundEntity(entity) {
   if (!record) {
     const { sprite, animTicker } = await pixiCreateEntitySprite(entity);
     const wrapper = new PIXI.Container();
+    const visualContainer = new PIXI.Container();
     wrapper.eventMode = "static";
     wrapper.cursor = "pointer";
     if (animTicker) pixiApp.ticker.add(animTicker);
-    wrapper.addChild(sprite);
+    const shadowBundle = pixiCreateEntityShadowBundle(
+      entity.entity_type,
+      sprite,
+      entity.display?.sprite_meta || entity.display?.img_meta || null,
+      visualContainer,
+    );
+    wrapper.addChild(shadowBundle.floorShadow);
+    visualContainer.addChild(sprite);
+    wrapper.addChild(visualContainer);
 
     bindTargetInteractions(wrapper, () => ({
       type: entity.entity_type,
@@ -895,6 +1025,7 @@ async function pixiRenderForegroundEntity(entity) {
     pixiEntitiesContainer.addChild(wrapper);
     record = {
       wrapper,
+      visualContainer,
       sprite,
       animTicker,
       moveTicker: null,
@@ -907,6 +1038,10 @@ async function pixiRenderForegroundEntity(entity) {
       logicalY: targetY,
       facingLeft: false,
     };
+    if (shadowBundle.syncTicker) {
+      pixiApp.ticker.add(shadowBundle.syncTicker);
+      record.transientTickers.add(shadowBundle.syncTicker);
+    }
     const decoratorTicker = await pixiApplyDecoratorsToWrapper(
       wrapper,
       sprite,
@@ -936,10 +1071,25 @@ async function pixiRenderForegroundEntity(entity) {
     record.renderJson = nextRenderJson;
     if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
     if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
+    pixiClearEntityTransientTickers(record);
     wrapper.removeChildren();
     const { sprite, animTicker } = await pixiCreateEntitySprite(entity);
+    const visualContainer = new PIXI.Container();
     if (animTicker) pixiApp.ticker.add(animTicker);
-    wrapper.addChild(sprite);
+    const shadowBundle = pixiCreateEntityShadowBundle(
+      entity.entity_type,
+      sprite,
+      entity.display?.sprite_meta || entity.display?.img_meta || null,
+      visualContainer,
+    );
+    wrapper.addChild(shadowBundle.floorShadow);
+    visualContainer.addChild(sprite);
+    wrapper.addChild(visualContainer);
+    if (shadowBundle.syncTicker) {
+      pixiApp.ticker.add(shadowBundle.syncTicker);
+      record.transientTickers.add(shadowBundle.syncTicker);
+    }
+    record.visualContainer = visualContainer;
     record.sprite = sprite;
     record.animTicker = animTicker;
     const decoratorTicker = await pixiApplyDecoratorsToWrapper(
@@ -966,8 +1116,9 @@ async function pixiRenderForegroundEntity(entity) {
     } else if (deltaX > 0.5) {
       record.facingLeft = false;
     }
-    wrapper.scale.x = record.facingLeft ? -1 : 1;
-    wrapper.scale.y = 1;
+    const facingNode = record.visualContainer || wrapper;
+    facingNode.scale.x = record.facingLeft ? -1 : 1;
+    facingNode.scale.y = 1;
   };
 
   const setRenderPosition = (x, y) => {
@@ -1024,30 +1175,7 @@ function pixiRemoveEntity(key) {
   if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
   if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
   if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
-  if (record.transientTickers && record.transientTickers.size > 0) {
-    for (const transient of record.transientTickers) {
-      if (typeof transient?.remove === "function") {
-        transient.remove();
-        continue;
-      }
-      if (typeof transient?.tickerFn === "function") {
-        if (typeof transient.tickerFn.destroy === "function") {
-          transient.tickerFn.destroy();
-        } else {
-          pixiApp.ticker.remove(transient.tickerFn);
-        }
-        continue;
-      }
-      if (typeof transient === "function") {
-        if (typeof transient.destroy === "function") {
-          transient.destroy();
-        } else {
-          pixiApp.ticker.remove(transient);
-        }
-      }
-    }
-    record.transientTickers.clear();
-  }
+  pixiClearEntityTransientTickers(record);
   record.wrapper.destroy({ children: true });
   pixiEntityNodes.delete(key);
 }
@@ -1093,20 +1221,19 @@ function getStagePoint(clientX, clientY, requireInside) {
 // Convert PixiJS global canvas coordinates to room-space coordinates.
 function getStagePointFromPixi(pixiX, pixiY) {
   const stage = roomState.stage;
-  const totalHeight = getStageTotalHeight(stage, roomState.cameraFloorHeight);
+  const { width: stageW, backgroundHeight: bgH, floorHeight: floorH, totalHeight } = getStageGeometry(stage, roomState.cameraFloorHeight);
   const scale = Math.max(1, Number(pixiCameraState.scale) || 1);
   const x = Math.round(((pixiX - pixiCameraState.offsetX) / scale) + pixiCameraState.x);
   const y = Math.round(((pixiY - pixiCameraState.offsetY) / scale) + pixiCameraState.y);
-  return clampStagePoint(x, y, stage, totalHeight);
+  return clampStagePoint(x, y, stage.type === 'standard', stageW, bgH, floorH, totalHeight);
 }
 
-function clampStagePoint(x, y, stage, totalHeight) {
-  const clampedX = Math.min(getStageWidth(stage), Math.max(0, x));
+function clampStagePoint(x, y, isStandardStage, stageW, bgH, floorH, totalHeight) {
+  const clampedX = Math.min(stageW, Math.max(0, x));
   let clampedY = Math.min(totalHeight, Math.max(0, y));
-  if (stage.type === 'standard') {
-    const floorTop = getStageBackgroundHeight(stage);
-    const floorBottom = floorTop + getStageFloorHeight(roomState.cameraFloorHeight);
-    clampedY = Math.min(floorBottom, Math.max(floorTop, clampedY));
+  if (isStandardStage) {
+    const floorBottom = bgH + floorH;
+    clampedY = Math.min(floorBottom, Math.max(bgH, clampedY));
   }
   return { x: clampedX, y: clampedY };
 }
@@ -1126,11 +1253,7 @@ function getClientPointFromPixi(pixiX, pixiY) {
 
 function pixiAttachStageClickToMove() {
   pixiApp.stage.eventMode = "static";
-  pixiApp.stage.hitArea = new PIXI.Rectangle(
-    0, 0,
-    getStageWidth(roomState.stage),
-    getStageTotalHeight(roomState.stage, roomState.cameraFloorHeight),
-  );
+  syncPixiStageHitArea();
   pixiApp.stage.on("pointertap", (ev) => {
     if (roomEditor.enabled) return;
     if (!myUsername) return;
@@ -1248,10 +1371,11 @@ function pixiAttachEntityDrag(wrapper, entityType, entityId) {
 function _buildMoveEvent(entityType, entityId, x, y) {
   const moveEvent = { entity_type: entityType, entity_id: entityId, x, y };
   if (roomState.stage.type === "standard") {
+    const { backgroundHeight: bgH, floorHeight: floorH } = getStageGeometry(roomState.stage, roomState.cameraFloorHeight);
     moveEvent.z_order = computeStandardZOrder(
       y,
-      getStageBackgroundHeight(roomState.stage),
-      getStageFloorHeight(roomState.cameraFloorHeight),
+      bgH,
+      floorH,
     );
   }
   return moveEvent;
@@ -1305,9 +1429,7 @@ function setCameraFloorHeight(newFloorHeight) {
   roomState.cameraFloorHeight = nextFloorH;
 
   fitRoomCanvasToViewPanel();
-  pixiRefreshCameraMetrics();
-  pixiUpdateCameraTarget(true);
-  pixiApplyCameraTransform();
+  syncPixiStageHitArea();
 
   pixiRenderBackground(roomState.backgroundPath);
   for (const entity of roomState.entities.values()) {
@@ -1323,12 +1445,7 @@ function resetRoomEntityState() {
       if (record.animTicker) pixiApp.ticker.remove(record.animTicker);
       if (record.decoratorTicker) pixiApp.ticker.remove(record.decoratorTicker);
       if (record.moveTicker) pixiApp.ticker.remove(record.moveTicker);
-      if (record.transientTickers && record.transientTickers.size > 0) {
-        for (const tickerFn of record.transientTickers) {
-          pixiApp.ticker.remove(tickerFn);
-        }
-        record.transientTickers.clear();
-      }
+      pixiClearEntityTransientTickers(record);
       record.wrapper.destroy({ children: true });
     }
   }
@@ -1344,15 +1461,8 @@ function resetRoomEntityState() {
 async function renderRoomStage(backgroundPath) {
   await initPixiApp();
 
-  const stage = roomState.stage;
-  const stageW = getStageWidth(stage);
-  const totalH = getStageTotalHeight(stage, roomState.cameraFloorHeight);
-
-  pixiApp.stage.hitArea = new PIXI.Rectangle(0, 0, stageW, totalH);
+  syncPixiStageHitArea();
   fitRoomCanvasToViewPanel();
-  pixiRefreshCameraMetrics();
-  pixiUpdateCameraTarget(true);
-  pixiApplyCameraTransform();
 
   await pixiRenderBackground(backgroundPath);
   await pixiRenderProps();
