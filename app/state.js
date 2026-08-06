@@ -87,14 +87,18 @@ function clearMessagesFromStorage() {
 
 // Save/restore input state for reload
 function saveInputState() {
-  localStorage.setItem('tr_input', msgInput.value);
+  const currentInput = typeof msgInput !== 'undefined' ? msgInput : null;
+  if (!currentInput) return;
+  localStorage.setItem('tr_input', currentInput.value || '');
 }
 
 function loadInputState() {
+  const currentInput = typeof msgInput !== 'undefined' ? msgInput : null;
+  if (!currentInput) return;
   const savedInput = localStorage.getItem('tr_input');
   
   if (savedInput) {
-    msgInput.value = savedInput;
+    currentInput.value = savedInput;
     localStorage.removeItem('tr_input');
   }
 }
