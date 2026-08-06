@@ -1,6 +1,6 @@
 # tinyrooms
 
-`tinyrooms` is a small multiplayer text-world project built with Python, Flask, and Socket.IO. It combines a lightweight real-time server with a web client, persistent local user storage, and a YAML-driven world/action system.
+`tinyrooms` is a small multiplayer text-world project built with Python, Flask, and Socket.IO. One of its main goals is to serve as a teaching tool: the code is intentionally kept as simple and readable as possible, while still showing how a real-time multiplayer world works end to end. It combines a lightweight real-time server with a web client, persistent local user storage, and a YAML-driven world/action system.
 
 ## Features
 
@@ -11,6 +11,9 @@
 - **Persistent user spawn state** (world/room/x/y) restored on reconnect/login
 - **YAML-defined worlds** for rooms, ways, and things
 - **YAML-defined actions** for chat, emotes, and interactions
+- **In-browser customization tools** (world/room/prop/character editing workflows)
+- **Kid-friendly world design focus** so younger creators can build their own custom spaces
+- **Teaching-first code style** with straightforward patterns intended for learning and experimentation
 - **Live-reload style workflow** via the restart loop in `start.sh`
 - **Theme/skin support** in the web client
 - **Simple admin/dev console hooks** exposed in the server process
