@@ -1,9 +1,9 @@
 label: ''
 description: ''
-image: 20233_1194214085.png
 frame_width: 24
 frame_height: 32
-scale: 3.0
+scale: 2.0
+image: 20233_1194214085.png
 sprites:
   char_1:
     default_frame: '0x0'

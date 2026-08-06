@@ -1,9 +1,9 @@
 label: ''
 description: ''
-image: micio.png
 frame_width: 128
 frame_height: 128
-scale: 1.0
+scale: 0.5
+image: micio.png
 sprites:
   sprite_1:
     default_frame: '0x0'
