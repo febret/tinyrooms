@@ -4,6 +4,7 @@ Selenium UI tests — gameplay status bar.
 Tests verify that:
 - The four status bar elements are visible after login.
 - Juice and Kudos indicators are populated with content.
+- Connection, settings, and logout controls share one dropdown.
 - Clicking the juice/level button triggers an activity panel.
 """
 from __future__ import annotations
@@ -31,7 +32,7 @@ def test_status_bar_visible_after_login(client_runner, unique_username, register
     register_user(username, password)
 
     client_runner.run([
-        Login(username=username, ******
+        Login(username=username, password=password),
         WaitForElement(selector="#mainPage"),
         Wait(seconds=1.5),
         Screenshot(name="status_bar_visible"),
@@ -53,7 +54,7 @@ def test_status_name_shows_username(client_runner, unique_username, register_use
     register_user(username, password)
 
     client_runner.run([
-        Login(username=username, ******
+        Login(username=username, password=password),
         WaitForElement(selector="#mainPage"),
         Wait(seconds=1.5),
     ])
@@ -68,43 +69,90 @@ def test_status_name_shows_username(client_runner, unique_username, register_use
 
 
 def test_juice_indicator_populated(client_runner, unique_username, register_user):
-    """The juice indicator should show a numeric value after login."""
+    """The juice indicator should show a populated progress bar after login."""
     username = unique_username("ui_gpjuice")
     password = "testpass123"
     register_user(username, password)
 
     client_runner.run([
-        Login(username=username, ******
+        Login(username=username, password=password),
         WaitForElement(selector="#mainPage"),
         Wait(seconds=1.5),
     ])
 
     driver = client_runner.driver
-    juice_text = driver.find_element(By.ID, "statusJuiceText")
-    assert juice_text.is_displayed()
-    # Should contain the juice emoji and a number
-    text = juice_text.text
-    assert "🧃" in text, f"Expected 🧃 in juice indicator, got: {text!r}"
+    juice_progress = driver.find_element(By.ID, "statusJuiceProgress")
+    assert juice_progress.is_displayed()
+    assert float(juice_progress.get_attribute("max")) > 0
+    assert float(juice_progress.get_attribute("value")) >= 0
 
 
-def test_kudos_progress_visible(client_runner, unique_username, register_user):
-    """The Kudos progress bar element should be present."""
-    username = unique_username("ui_gpkudos")
+def test_account_menu_contains_connection_settings_and_logout(
+    client_runner, unique_username, register_user
+):
+    """The top-right menu should contain all connection and account controls."""
+    username = unique_username("ui_account_menu")
     password = "testpass123"
     register_user(username, password)
 
     client_runner.run([
-        Login(username=username, ******
+        Login(username=username, password=password),
         WaitForElement(selector="#mainPage"),
         Wait(seconds=1.5),
     ])
 
     driver = client_runner.driver
-    progress_el = driver.find_element(By.ID, "statusKudosProgress")
-    assert progress_el is not None
-    # max attribute should be set (from update_status)
-    max_val = progress_el.get_attribute("max")
-    assert max_val is not None and int(float(max_val)) > 0
+    assert not driver.find_elements(By.ID, "statusKudosProgress")
+
+    toggle = driver.find_element(By.ID, "statusMenuToggle")
+    toggle.click()
+
+    dropdown = driver.find_element(By.ID, "statusMenuDropdown")
+    assert dropdown.is_displayed()
+    assert driver.find_element(By.ID, "connectionStatusText").text == "Connected"
+    assert driver.find_element(By.ID, "statusConfig").is_displayed()
+    assert driver.find_element(By.ID, "btnLogout").is_displayed()
+
+
+def test_status_bar_fits_phone_portrait(client_runner, unique_username, register_user):
+    """The status bar and its open menu should fit a phone portrait viewport."""
+    username = unique_username("ui_status_portrait")
+    password = "testpass123"
+    register_user(username, password)
+
+    client_runner.run([
+        Login(username=username, password=password),
+        WaitForElement(selector="#mainPage"),
+        Wait(seconds=1.5),
+    ])
+
+    driver = client_runner.driver
+    driver.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1,
+        "mobile": True,
+    })
+
+    status_panel = driver.find_element(By.ID, "statusPanel")
+    assert driver.execute_script("return window.innerWidth") == 390
+    assert driver.execute_script(
+        "return document.documentElement.scrollWidth <= "
+        "document.documentElement.clientWidth"
+    )
+    assert driver.execute_script(
+        "return arguments[0].scrollWidth <= arguments[0].clientWidth", status_panel
+    )
+
+    driver.find_element(By.ID, "statusMenuToggle").click()
+    dropdown = driver.find_element(By.ID, "statusMenuDropdown")
+    dropdown_bounds = driver.execute_script(
+        "const rect = arguments[0].getBoundingClientRect(); "
+        "return {left: rect.left, right: rect.right};",
+        dropdown,
+    )
+    assert dropdown_bounds["left"] >= 0
+    assert dropdown_bounds["right"] <= 390
 
 
 def test_clicking_juice_opens_activity_panel(client_runner, unique_username, register_user):
@@ -114,7 +162,7 @@ def test_clicking_juice_opens_activity_panel(client_runner, unique_username, reg
     register_user(username, password)
 
     client_runner.run([
-        Login(username=username, ******
+        Login(username=username, password=password),
         WaitForElement(selector="#mainPage"),
         Wait(seconds=1.5),
     ])

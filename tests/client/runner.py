@@ -249,6 +249,10 @@ class ClientRunner:
 
     def _do_logout(self) -> None:
         WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "statusMenuToggle"))
+        )
+        self.driver.find_element(By.ID, "statusMenuToggle").click()
+        WebDriverWait(self.driver, 10).until(
             EC.element_to_be_clickable((By.ID, "btnLogout"))
         )
         self.driver.find_element(By.ID, "btnLogout").click()

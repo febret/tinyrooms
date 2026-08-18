@@ -4,3 +4,4 @@ __pycache__/
 doc/~$*
 data/users/***
 .plans/***
+tests/client/screenshots/**/*.actual.png
