@@ -865,6 +865,7 @@ function renderRoomProperties() {
   if (!room) return;
   const stage = room.stage || {};
   const isStandard = stage.type === "standard";
+  const isNovel = stage.type === "novel";
   const bgMatch = findImageChoice(room.background);
   const bgLabel = bgMatch
     ? (bgMatch.label || bgMatch.path)
@@ -891,8 +892,9 @@ function renderRoomProperties() {
       <div class="we-form-grid" style="margin-top:0.5rem">
         <label><span>Stage Type</span>
           <select id="rp-stagetype">
-            <option value="basic"${!isStandard?" selected":""}>Basic</option>
+            <option value="basic"${!isStandard && !isNovel?" selected":""}>Basic</option>
             <option value="standard"${isStandard?" selected":""}>Standard</option>
+            <option value="novel"${isNovel?" selected":""}>Novel</option>
           </select>
         </label>
         <label><span>Width (px)</span><input id="rp-width" type="number" value="${stage.width||400}"></label>
@@ -932,7 +934,7 @@ function renderRoomProperties() {
     const st = d.stage = d.stage || {};
     st.type  = stType;
     st.width = parseInt($("rp-width").value) || 400;
-    if (stType === "basic") {
+    if (stType === "basic" || stType === "novel") {
       st.height = parseInt($("rp-height")?.value) || 300;
       delete st.bg_height; delete st.floor_height; delete st.floor_image;
     } else {
@@ -1534,6 +1536,7 @@ function openNewRoomDialog() {
         <select id="nr-type">
           <option value="basic">Basic</option>
           <option value="standard">Standard</option>
+          <option value="novel">Novel</option>
         </select>
       </label>
       <label><span>Copy From (optional)</span>
@@ -1552,7 +1555,7 @@ async function createRoom() {
   setStatus("Creating room…");
   try {
     const body = { room_id: roomId, label, stage: { type: stType, width: 400 }, ...(copyFrom ? { copy_from: copyFrom } : {}) };
-    if (stType === "basic") body.stage.height = 300;
+    if (stType === "basic" || stType === "novel") body.stage.height = 300;
     else { body.stage.bg_height = 200; body.stage.floor_height = 100; }
     const data = await apiPost("/api/world-editor/rooms", body);
     WE.rooms.set(roomId, data.room);

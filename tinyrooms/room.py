@@ -114,20 +114,34 @@ class Room:
 
     def send_room_stage_view(self, user: User):
         stage_meta = self.info.get('stage', {})
+        stage_type = stage_meta.get('type', 'basic')
+        stage_payload = {
+            'type': stage_type,
+            'width': int(stage_meta.get('width', 400)),
+            'background_mode': stage_meta.get('background_mode', 'tile'),
+        }
+        
+        if stage_type == 'basic' or stage_type == 'novel':
+            stage_payload['height'] = int(stage_meta.get('height', 300))
+        else:  # standard
+            stage_payload['bg_height'] = int(stage_meta.get('bg_height', 200))
+            stage_payload['floor_height'] = int(stage_meta.get('floor_height', 100))
+            floor_image = stage_meta.get('floor_image', '')
+            if floor_image:
+                stage_payload['floor_image'] = floor_image
+        
+        # Optional fields that apply to all stage types
+        bounds = stage_meta.get('bounds', {})
+        if bounds:
+            stage_payload['bounds'] = bounds
+        theme = stage_meta.get('theme', '')
+        if theme:
+            stage_payload['theme'] = theme
+        
         emit('update_view', {
             'view': 'room-stage',
             'room_id': self.room_id,
-            'stage': {
-                'type':             stage_meta.get('type', 'basic'),
-                'width':            int(stage_meta.get('width', 400)),
-                'height':           int(stage_meta.get('height', 300)),
-                'bg_height':        int(stage_meta.get('bg_height', 200)),
-                'floor_height':     int(stage_meta.get('floor_height', 100)),
-                'background_mode':  stage_meta.get('background_mode', 'tile'),
-                'floor_image':      stage_meta.get('floor_image', ''),
-                'bounds':           stage_meta.get('bounds', {}),
-                'theme':            stage_meta.get('theme', ''),
-            },
+            'stage': stage_payload,
             'background': self.info.get('image') or self.info.get('img', ''),
             'props': [self._serialize_prop(prop) for prop in self.props.values()],
             'can_edit_props': self.can_user_edit_props(user),

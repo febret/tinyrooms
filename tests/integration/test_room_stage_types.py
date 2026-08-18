@@ -17,35 +17,41 @@ def _get_stage_payload(client):
 
 
 def test_room_stage_payload_contains_stage_type_fields(auth_socket_user):
-    """room-stage payload must include all stage type fields with correct types."""
+    """room-stage payload must include correct fields for its stage type."""
     user = auth_socket_user(prefix="it_stage_type")
     client = user["client"]
 
     stage_payload = _get_stage_payload(client)
     stage = stage_payload["stage"]
 
+    # All stage types must have type, width, and background_mode
     assert "type" in stage, "stage.type missing from room-stage payload"
-    assert "bg_height" in stage, "stage.bg_height missing"
-    assert "floor_height" in stage, "stage.floor_height missing"
-    assert "background_mode" in stage, "stage.background_mode missing"
-    assert "floor_image" in stage, "stage.floor_image missing"
-
-    # Type field must be one of the defined stage types
-    assert stage["type"] in {"basic", "standard"}, f"Unknown stage type: {stage['type']!r}"
-
-    # Numeric fields must be integers
-    assert isinstance(stage["bg_height"], int), "bg_height must be int"
-    assert isinstance(stage["floor_height"], int), "floor_height must be int"
-    assert stage["bg_height"] > 0, "bg_height must be positive"
-    assert stage["floor_height"] > 0, "floor_height must be positive"
-
+    assert "width" in stage, "stage.width missing from room-stage payload"
+    assert "background_mode" in stage, "stage.background_mode missing from room-stage payload"
+    
+    stage_type = stage["type"]
+    assert stage_type in {"basic", "standard", "novel"}, f"Unknown stage type: {stage_type!r}"
+    
     # background_mode must be a known value
     assert stage["background_mode"] in {"tile", "stretch"}, (
         f"Unknown background_mode: {stage['background_mode']!r}"
     )
-
-    # floor_image is a string (may be empty for basic rooms)
-    assert isinstance(stage["floor_image"], str)
+    
+    # basic and novel stage types use 'height'
+    if stage_type in {"basic", "novel"}:
+        assert "height" in stage, f"stage.height missing from {stage_type} stage payload"
+        assert isinstance(stage["height"], int), "height must be int"
+        assert stage["height"] > 0, "height must be positive"
+    
+    # standard stage type uses bg_height and floor_height
+    if stage_type == "standard":
+        assert "bg_height" in stage, "stage.bg_height missing from standard stage payload"
+        assert "floor_height" in stage, "stage.floor_height missing from standard stage payload"
+        assert isinstance(stage["bg_height"], int), "bg_height must be int"
+        assert isinstance(stage["floor_height"], int), "floor_height must be int"
+        assert stage["bg_height"] > 0, "bg_height must be positive"
+        assert stage["floor_height"] > 0, "floor_height must be positive"
+        assert isinstance(stage["floor_image"], str), "floor_image must be a string"
 
 
 def test_basic_room_stage_defaults(auth_socket_user):
@@ -92,3 +98,4 @@ def test_stage_type_fields_not_in_room_db(auth_socket_user, server_runtime):
             )
         except Exception:
             pass  # DB may use a different engine; skip gracefully
+

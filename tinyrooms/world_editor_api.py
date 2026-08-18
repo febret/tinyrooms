@@ -108,8 +108,8 @@ def _normalized_stage(stage: dict | None, existing: dict | None = None) -> dict[
     base = dict(existing or {})
     data = dict(stage or {})
     stage_type = str(data.get("type", base.get("type", "basic")) or "basic").strip().lower()
-    if stage_type not in {"basic", "standard"}:
-        raise ValueError("stage.type must be 'basic' or 'standard'")
+    if stage_type not in {"basic", "standard", "novel"}:
+        raise ValueError("stage.type must be 'basic', 'standard', or 'novel'")
     background_mode = str(
         data.get("background_mode", base.get("background_mode", "tile")) or "tile"
     ).strip().lower()
@@ -120,7 +120,7 @@ def _normalized_stage(stage: dict | None, existing: dict | None = None) -> dict[
         "width": _coerce_int(data.get("width", base.get("width", 400)), 400),
         "background_mode": background_mode,
     }
-    if stage_type == "basic":
+    if stage_type == "basic" or stage_type == "novel":
         out["height"] = _coerce_int(data.get("height", base.get("height", 300)), 300)
     else:
         out["bg_height"] = _coerce_int(data.get("bg_height", base.get("bg_height", 200)), 200)
