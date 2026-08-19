@@ -1,3 +1,6 @@
+from collections import deque
+import time
+
 from flask_socketio import emit, join_room, leave_room
 
 from . import decorators as decorator_module
@@ -23,6 +26,7 @@ class Room:
         self.description_override = None
         self.initialized = False
         self._z_counter = 10
+        self.room_chat = deque(maxlen=1000)
 
     def id(self):
         return f"@room:{self.room_id}"
@@ -97,6 +101,7 @@ class Room:
             self.send_room_object_update(user, obj, change_type='upsert', entity_type='object')
         for uname, peep in self.peeps.items():
             self.send_room_object_update(user, peep, change_type='upsert', entity_type='peep', owner_username=uname)
+        self.send_room_chat_history(user)
         self.send_room_exits_view(user)
 
     def send_header_view(self, user: User):
@@ -156,6 +161,35 @@ class Room:
                 'target_room_id': way.info.get('to', ''),
             })
         emit('update_view', {'view': 'room-exits', 'room_id': self.room_id, 'exits': exits}, to=user.sid, namespace='/')
+
+    def record_room_chat(self, speaker_entity_id, speaker_label, text, *, timestamp=None, dialog_eligible=True):
+        cleaned = str(text or '').strip()
+        if not cleaned:
+            return None
+        entity_id = str(speaker_entity_id) if speaker_entity_id is not None else ''
+        label = str(speaker_label) if speaker_label is not None else (entity_id or '')
+        entry = {
+            'entity_id': entity_id,
+            'label': label,
+            'text': cleaned,
+            'timestamp': int(timestamp if timestamp is not None else (time.time() * 1000)),
+            'is_dialog_eligible': bool(dialog_eligible),
+            # Backward-compatible aliases used by earlier client/server code.
+            'speaker_entity_id': entity_id,
+            'speaker_label': label,
+            'dialog_eligible': bool(dialog_eligible),
+        }
+        self.room_chat.append(entry)
+        return entry
+
+    def send_room_chat_history(self, user: User, limit: int = 25):
+        history = list(self.room_chat)[-limit:]
+        emit('room_chat_history', {'room_id': self.room_id, 'entries': history}, to=user.sid, namespace='/')
+
+    def broadcast_room_chat(self, entry):
+        if not entry:
+            return
+        emit('room_chat', {'room_id': self.room_id, 'entry': entry}, room=self.room_id, namespace='/')
 
     def send_room_object_update(self, user: User, entity, change_type='upsert', entity_type='object', owner_username=''):
         emit('update_view', {

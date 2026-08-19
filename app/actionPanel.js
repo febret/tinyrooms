@@ -323,6 +323,20 @@ function executeInventoryAction(commandsText, objId) {
   }
 }
 
+function openRoomChatHistory() {
+  const entries = Array.isArray(roomState.recentDialogs) ? roomState.recentDialogs : [];
+  if (!entries.length) {
+    setActivityPanelContent("Room Chat", "<div class='activity-panel-empty'>No spoken dialog yet.</div>", "room-chat");
+    return;
+  }
+  const lines = entries.map(entry => {
+    const speaker = escapeHtml(entry?.label || entry?.speaker_label || entry?.entity_id || entry?.speaker_entity_id || "someone");
+    const text = escapeHtml(entry?.text || "");
+    return `<div class="novel-room-chat-line"><span class="novel-room-chat-name">${speaker}</span><span class="novel-room-chat-text">${text}</span></div>`;
+  }).join("");
+  setActivityPanelContent("Room Chat", `<div class="novel-room-chat-history">${lines}</div>`, "room-chat");
+}
+
 function renderActionPalette() {
   actionPalette.innerHTML = "";
   const layout = document.createElement("div");
@@ -505,6 +519,9 @@ function getPaletteEntriesForTab(tabId) {
       entries.push({ label: "Camera Near", onClick: () => setCameraFloorHeight(200) });
       entries.push({ label: "Camera Mid", onClick: () => setCameraFloorHeight(100) });
       entries.push({ label: "Camera Far", onClick: () => setCameraFloorHeight(10) });
+    }
+    if (roomState.stage.type === 'novel') {
+      entries.push({ label: "Room Chat", onClick: () => openRoomChatHistory() });
     }
     return entries;
   }

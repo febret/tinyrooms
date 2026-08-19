@@ -530,6 +530,67 @@ function pixiClearEntityTransientTickers(record) {
   record.transientTickers.clear();
 }
 
+function ensureNovelPeepStrip() {
+  if (!roomCanvas) return null;
+  let strip = document.getElementById("novelPeepStrip");
+  if (!strip) {
+    strip = document.createElement("div");
+    strip.id = "novelPeepStrip";
+    strip.className = "novel-peep-strip";
+    roomCanvas.appendChild(strip);
+  }
+  return strip;
+}
+
+function renderNovelPeepStrip() {
+  if (!roomCanvas || !roomState || roomState.stage.type !== 'novel') {
+    const strip = document.getElementById("novelPeepStrip");
+    if (strip) strip.style.display = "none";
+    return;
+  }
+
+  const strip = ensureNovelPeepStrip();
+  if (!strip) return;
+  strip.style.display = "flex";
+
+  const recentBySpeaker = new Map();
+  for (const entry of roomState.recentDialogs || []) {
+    const isDialogEligible = Boolean(entry?.is_dialog_eligible ?? entry?.dialog_eligible ?? false);
+    if (!entry || !isDialogEligible || !entry.text) continue;
+    const key = entry.entity_id || entry.speaker_entity_id || entry.label || entry.speaker_label || "unknown";
+    const ts = Number(entry.timestamp) || 0;
+    if (!recentBySpeaker.has(key) || ts > recentBySpeaker.get(key).timestamp) {
+      recentBySpeaker.set(key, { ...entry, timestamp: ts });
+    }
+  }
+
+  const peeps = Array.from(roomState.entities.values())
+    .filter(entity => entity && entity.entity_type === 'peep')
+    .sort((a, b) => {
+      const aTs = recentBySpeaker.get(a.entity_id)?.timestamp || 0;
+      const bTs = recentBySpeaker.get(b.entity_id)?.timestamp || 0;
+      return bTs - aTs;
+    });
+
+  if (!peeps.length) {
+    strip.innerHTML = '<div class="novel-peep-card is-empty">No peeps here yet.</div>';
+    return;
+  }
+
+  strip.innerHTML = peeps.map(entity => {
+    const item = recentBySpeaker.get(entity.entity_id);
+    const label = entity.label || entity.entity_id || 'Peep';
+    const text = item ? item.text : 'Waiting for a reply...';
+    const cleanText = escapeHtml(String(text || '')).replace(/\n/g, '<br>');
+    return `
+      <div class="novel-peep-card">
+        <div class="novel-peep-name">${escapeHtml(label)}</div>
+        <div class="novel-peep-dialog">${cleanText}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 function pointInBox(point, box) {
   if (!point || !box) return false;
   return (
@@ -978,6 +1039,9 @@ async function pixiCreateEntitySprite(entity) {
 
 async function pixiRenderForegroundEntity(entity) {
   if (roomEditor.enabled) return;
+  if (roomState.stage.type === 'novel' && entity.entity_type === 'peep') {
+    return;
+  }
 
   const key = `${entity.entity_type}:${entity.entity_id}`;
   const targetX = entity.position?.x || 0;

@@ -33,6 +33,33 @@ from .types import ParsedEmote
 from . import text as _text
 
 
+def _record_room_chat_event(room_id: str, user_sid: str, user_label: str, text: str):
+    """Persist spoken dialog for room-scoped novel-room history."""
+    try:
+        from . import user as _user
+        from .world import active_world
+
+        active_room = active_world().rooms.get(room_id)
+        if active_room is None:
+            user_obj = _user.connected_users.get(user_sid)
+            active_room = getattr(user_obj, 'room', None)
+        if active_room is None:
+            return
+
+        speaker = _user.connected_users.get(user_sid)
+        speaker_entity_id = getattr(speaker, 'username', user_sid)
+        entry = active_room.record_room_chat(
+            speaker_entity_id,
+            user_label or getattr(speaker, 'label', speaker_entity_id),
+            text,
+            dialog_eligible=True,
+        )
+        if entry is not None:
+            active_room.broadcast_room_chat(entry)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Module-level emote registry
 # ---------------------------------------------------------------------------
@@ -189,6 +216,7 @@ def _execute_steps(
             if third_msg is not None:
                 _emit("message", {"text": third_msg},
                       room=room_id, skip_sid=user_sid, in_handler=in_handler)
+                _record_room_chat_event(room_id, user_sid, user_label, third_msg)
 
         elif stype == 'pause':
             time.sleep(step['seconds'])

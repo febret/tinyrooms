@@ -78,6 +78,7 @@ var roomState = {
   propLibrary: new Map(),
   propLibraryWorldId: null,
   exits: [],
+  recentDialogs: [],
 };
 var roomEditor = {
   enabled: false,
@@ -344,6 +345,35 @@ socket.on("message", data => {
   maybeAttachChatDecorator(formattedText);
 });
 
+socket.on("room_chat_history", data => {
+  const entries = Array.isArray(data && data.entries) ? data.entries : [];
+  roomState.recentDialogs = entries
+    .filter(entry => !!entry && !!entry.text)
+    .map(entry => ({
+      ...entry,
+      entity_id: entry.entity_id ?? entry.speaker_entity_id ?? entry.label ?? entry.speaker_label ?? "",
+      label: entry.label ?? entry.speaker_label ?? entry.entity_id ?? entry.speaker_entity_id ?? "",
+      is_dialog_eligible: entry.is_dialog_eligible ?? entry.dialog_eligible ?? false,
+    }))
+    .slice(-12);
+  renderNovelPeepStrip();
+});
+
+socket.on("room_chat", data => {
+  const entry = data && (data.entry || data);
+  if (!entry || !entry.text) return;
+  const normalized = {
+    ...entry,
+    entity_id: entry.entity_id ?? entry.speaker_entity_id ?? entry.label ?? entry.speaker_label ?? "",
+    label: entry.label ?? entry.speaker_label ?? entry.entity_id ?? entry.speaker_entity_id ?? "",
+    is_dialog_eligible: entry.is_dialog_eligible ?? entry.dialog_eligible ?? false,
+  };
+  const next = roomState.recentDialogs.filter(item => item && item.text);
+  next.push(normalized);
+  roomState.recentDialogs = next.slice(-12);
+  renderNovelPeepStrip();
+});
+
 socket.on("activity_panel", data => {
   const title = escapeHtml(data.title || "");
   const content = formatText(escapeHtml(data.content || ""));
@@ -468,6 +498,7 @@ function handleHeaderUpdate(data) {
   if (enteringRoom) {
     resetRoomEntityState();
     disableRoomEditMode();
+    roomState.recentDialogs = [];
   }
   roomState.roomId = nextRoomId;
   roomState.canEditProps = !!data.can_edit_props;
@@ -493,6 +524,9 @@ function handleRoomStageUpdate(data) {
     type: 'basic', width: 400, height: 300, bg_height: 200,
     floor_height: 100, background_mode: 'tile', floor_image: '',
   };
+  if (roomState.stage.type !== 'novel') {
+    roomState.recentDialogs = [];
+  }
   const nextFloorHeight = Number(roomState.stage.floor_height);
   roomState.cameraFloorHeight = Number.isFinite(nextFloorHeight) && nextFloorHeight > 0
     ? nextFloorHeight
@@ -513,6 +547,7 @@ function handleRoomStageUpdate(data) {
     ensurePropLibraryLoaded(false);
   }
   renderRoomStage(roomState.backgroundPath);
+  renderNovelPeepStrip();
 }
 
 function handleRoomObjectUpdate(data) {
@@ -521,10 +556,12 @@ function handleRoomObjectUpdate(data) {
   if (data.change === "remove") {
     roomState.entities.delete(key);
     pixiRemoveEntity(key);
+    renderNovelPeepStrip();
     return;
   }
   roomState.entities.set(key, entity);
   pixiRenderForegroundEntity(entity);
+  renderNovelPeepStrip();
 }
 
 function reloadStyle() {
