@@ -315,39 +315,118 @@ Bops are the standard in-game currency, used to buy card packs and other various
 in-game items. Users get a fixed amout of bops daily depending on their level
 Bop properties are defined in `data/core/bops.yaml`
 
+
+-------------------------------------------------------------------------------
+## Cards
+Cards are one of the central gameplay mechanics of tinyrooms and represent the 
+main way (together woth quick actions) for users to interact with a room, props
+and peeps. Tinyrooms comes with a set of basic cards but additional cards can be
+acquired through card packs. World can also define their own additional cards, but
+these cards cannot transfer across worlds (they are disabled if the user is not
+in the 'native' world that defined them).
+
+Cards can be:
+- emotes (emojis, animations or room effects)
+- skills
+- one-use items (ie the card is erased after use)
+- generic items, including weapons, valuables and junk
+- actions or other special definition cards.
+
+Card definition yamls and related assets are defined in the `data/cardsets` subdirectories
+and in the loaded world `cards` directory.
+
+
+-------------------------------------------------------------------------------
+## Status and Action Display
+[...]
+
+### Status Icons
+> TODO: Image of status icons on a peep
+[...]
+
+### Toasts
+![Toast after executing an Action](./images/action-toast.png)
+[...]
+
+### Counter Overlays
+[...]
+
+### Card Target Selection
+> TODO: mockup screen of card target selection
+[...]
+
+
 -------------------------------------------------------------------------------
 ## Room Design
-[...]
+Rooms are generally represented as game boards with a custom board background design
+(which for instance can be a picture or representation of the room environment).
+The board can be rotated in 3D inside the user client. 3D objects (called Props) 
+can be placed on the room board by the room owner/world designed. Props can just
+be used for aesthetic reasons (eg to add natural elements or buildings to the flat
+board), or they can be active game elements (when the props have a behavior script
+attached).
+
 
 ### Exits
-[...]
+Rooms are connected to each other through exits. Available exists are shown as
+quick actions when looking at the room (and are displayed by default when entering
+the room for the first time). Selecting the quick action to take a specific exit
+moves the user to that room. 
+
 
 ### Environment and Effects
-[...]
+Rooms can have both an enviroment defined on them, which affects how the room
+is displayed (for instance it is possible to apply visual effects like fog, night, etc)
+Rooms can also have status effects that affect all peeps in the room. Status effects
+are recalcutaned and applied on each room tick.
+
 
 ### Room Editing
-[...]
+Room owners can edit a room by using the `Edit Room` core card. In-game room 
+editing is more limited and allows the user to:
+- add / remove and edit the placement of props
+- add / remove room cards
+- modify other room properties like the enviroment display, room status effects etc.
 
 
 -------------------------------------------------------------------------------
 ## Props
-[...]
+Props are 3D objects placed on the room game board. They can be animated and 
+display various graphical effects, and they can be used both to enrich the game
+visuals and to serve as active pieces of gameplay. For instance a chest prop
+may be unlocked to reveal more cards, some props may require some cards to be 
+played on them to unlock quest progression, or some props may be used to represent
+challenges / enemies to fight in the room.
+
+Props are grouped into **propsets**: A propset is a directory containing a group
+of related prop definitions, their 3D models and any other assets they require.
+
+Worlds can also define their own custom props in the relative world `props` directory.
 
 ### Prop Display
-[...]
+Props are displayed as 3D models. Players cannot pick up or modify props (unless they
+are room owners and are editing the room), but they can otherwise interact with
+them by selecting them, inspecting them, executing quick actions (if defined for the prop)
+or playing cards on them.
 
 
 -------------------------------------------------------------------------------
 ## Worlds
-[...]
+Worlds are self-contained collections of rooms, peeps and cards that run on a tinyroom
+server. Each tinyrooms server runs a single world. Worlds are stored as a set of definition
+files which contain the initial room definitions, and a worldstate database, used to
+represent the dynamic, live state of the world (eg to store the position of peeps
+during gameplay, the status of props, room cards etc.)
+
 
 ### World Editor
 The world editor is available on the web server under url `world-editor`, when the
 world-editor feature is enabled. The world editor lets users fully build and
 modify the currently loaded world. Through the world editor users can:
 - create and delete rooms
-- edit all room aspects including the board picture, props, initial room cards etc.
- 
+- edit all room aspects including the board picture, props, initial room cards, etc.
+- edit room connections through exits
+- place, edit and delete NPC-based peeps 
 
 
 -------------------------------------------------------------------------------
@@ -387,42 +466,6 @@ in the dialog)
 
 
 -------------------------------------------------------------------------------
-## Status and Action Display
-[...]
-
-### Status Icons
-[...]
-
-### Toasts
-![Toast after executing an Action](./images/action-toast.png)
-[...]
-
-### Counter Overlays
-[...]
-
-### Card Target Selection
-[...]
-
-
--------------------------------------------------------------------------------
-## Cards
-[...]
-
-### Tags
-[...]
-
-### Card Rarity
-- rarer cards cost more juice
-[...]
-
-### Card Sets
-[...]
-
-### Card Details View
-[...]
-
-
--------------------------------------------------------------------------------
 ## The Journal
 [...]
 
@@ -439,11 +482,31 @@ in the dialog)
 
 
 -------------------------------------------------------------------------------
-## Administration
-[...]
+## Commands and Administration
+All user interaction (includign quick actions, card plays, chat messages, etc.)
+are sent to the server in the form of `command strings`. Commands generally start with a
+`:`.
 
 ### User Powers
-[...]
+Users can have one or more powers, that determine the set of commands they have access to:
+- admin: can send admin commands to the server from the client
+- realtor: can grant, remove, and modify ownership of rooms
+- builder: can modify any rooms regardless of ownership, can use the world editor and commands to create / remove rooms.
+- moderator: can control other users, including mute/kick them.
+- game-master: can control all gameplay aspects and rules.
 
-### Superuser Commands
-[...]
+### Command types
+- **Normal commands** start with `:` and run in-world (for example `:look`).
+- **Admin console commands** start with `/` and are forwarded to server console execution for users with `admin` power (except `/r` and `/k`, which are blocked from client use).
+
+Normal commands in the form `:cmd` can have different required permission levels
+(for instance a command to kick a player can only be executed if the user has `moderator` powers)
+
+## Target token formats
+
+Many commands take a `<target>` token:
+
+- `@obj:<obj_id>`: object (in room or your inventory, depending on command)
+- `@prop:<prop_instance_id>`: prop in current room
+- `@peep:<peep_id>` or `@<username>`: peep/user in current room
+- `@way:<way_id>`: room exit (for `:go`)
