@@ -1,0 +1,46 @@
+# Core cards
+emotes:
+  label: Emotes
+  description: Opens the Emotes selector
+  image: emotes.png
+inventory:
+  label: Inventory
+  description: Opens the Inventory
+  image: inventory.png
+journal:
+  label: Journal
+  description: Opens the Journal
+  image: journal.png
+skills:
+  label: Skills
+  description: Opens the Skills menu
+  image: skills.png
+room:
+  label: Room
+  description: Looks at the Room
+  image: room.png
+
+# Base emote cards
+smile:
+  label: Smile
+  description: Expresses a smile
+  image: smile.png
+sigh:
+  label: Sigh
+  description: Expresses a sigh
+  image: sigh.png
+goof:
+  label: Goof
+  description: Expresses a goof
+  image: goof.png
+growl:
+  label: Growl
+  description: Expresses a growl
+  image: growl.png
+
+
+# Base skill cards
+sturdy:
+  label: Sturdy
+  description: Increases physical resilience, Constitution +1
+  image: sturdy.png
