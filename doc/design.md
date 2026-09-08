@@ -1,5 +1,5 @@
 # Tinyrooms Design
-This documents described the design of tinyrooms, a multiplayer web-based game
+This documents describes the design of tinyrooms, a multiplayer web-based game
 where users can join and move across virtual rooms which are displayed as game
 boards in a 3D view.
 
@@ -16,6 +16,32 @@ extensions to the game.
 - **Learnability** the codebase should be easy to learn and follow. The codebase itself is a
 teaching tool for a game design class.
 
+-------------------------------------------------------------------------------
+## Users
+To join tinyrooms a user must create an account on the server. When connecting 
+to the server for the first time the user gets a simple login screen asking for
+username and password. This screen also has a `Create New Account` button.
+
+
+### Account Creation
+The create new account dialog asks the user for a unique username, password and
+a special passphrase set on server startup, which must be used to create new accounts.
+The passphrase is set using the `TRSERVER_NEW_ACCOUNT_PASSPHRASE` env variable.
+
+Once the user chooses a valid account name / password, they are taken to a 
+`Sticker Designer` page. The sticker designer lets the user customize how their 
+peep is displayed in game (in the Peeps List left sidebar). While more complex
+sticker designer will be available in the future, the current one lets users choose
+one of the pre-build stickers in `data/stickers`.
+
+> NOTE: The Sticker Designer is implementes as an **Activity**, see activity section.
+> During user creation this activity is shown in a full modal window like the normal
+> overlay window described in the Activity section
+
+
+### User data
+User account information is stored in the `users` directory (or the path set 
+in env var `TRSERVER_USERS_PATH`).
 
 -------------------------------------------------------------------------------
 ## UI
@@ -27,6 +53,7 @@ described below) or non-modal (like the activity window)
 
 > NOTE: In the screenshots below, red boxes with white test are labels/notes, they
 > are NOT part of the UI.
+
 
 ### Main Screen
 ![Main View, Favorite Core Cards, and Equipped Cards](./images/main-view.png)
@@ -40,11 +67,13 @@ boxes in the screenshot above):
 - The Quick Actions Bar (bottom, under look bar)
 - The Chat Bar (bottom, under quick action bar)
 
+
 #### The Stage
 The Stage is displayed in the middle of the game screen. A room is displayed as 
 a floor that can be freely rotated / zoomed by the user. The floor may have 
 3D objects and other features on it (Props). At minimum, rooms can have a different 
 floor texture, but other more complex room displays are also supported.
+
 
 #### The Peeps List
 The Peeps List shows the list of peeps in this room (both users and NPCs).
@@ -69,6 +98,7 @@ Clicking on the '>' Core card expands the core card list and stashes the equippe
 cards to the right
 ![Expanded Core Cards](./images/core-cards-expanded.jpg)
 
+
 #### The Look Bar
 The Look bar shows the name and description of the last selected entity (a peep,
 a card, a prop, etc.) Both name and description fit on a single line. If the 
@@ -78,6 +108,7 @@ a popup with the full entity description.
 The description bar is also used to display minor action feedback (eg, selecting
 'Use' on a health potion when in full health may replace the description with 
 `You don't need this`)
+
 
 #### The Quick Actions Bar
 The quick actions bar shows a list of actions that the user can take on the
@@ -91,6 +122,8 @@ the action category:
 - Dark Gray: disabled.
 - Yellow: cancel-type action (eg. exit conversation)
 - Red: negative-type action (eg. remove friend)0
+
+
 #### The Chat Bar
 The chat bar lets the user send chat messages or commands to the room. Commands
 are special chat messages starting with the `.` character.
@@ -337,28 +370,46 @@ and in the loaded world `cards` directory.
 
 
 -------------------------------------------------------------------------------
-## Status and Action Display
-[...]
+## Card Actions
+Cards can target props, peeps or the user. When cards target something other than the
+user, the UI indicates the user must select a target. Clicking/ touching a valid 
+target shows an animated line effect going from the card to the target. Touching the
+target again confirms the action.
 
-### Status Icons
-> TODO: Image of status icons on a peep
-[...]
+![Card target selection](./images/card-target.png)
 
-### Toasts
+### Action feedback
+Executing actions (quick actions or card actions) can show feedback to the user
+in different ways:
+- minor actions are only recorded in the action log as text
+- actions that affect a peep's counters are displayed as floating numbers above the
+peep
+- actions that affect the user's status, or other major actions are displayed as
+a toast on the top middle of the screen.
+
+Actions can also display other effects in the room that are visible to other users.
+> NOTE: Room effect actions share the same implementation as effect emotes. They
+> also play in a queue (ie successive effects in a room do no cancel previous 
+> ones, they all play in the order they are received on the server)
+
 ![Toast after executing an Action](./images/action-toast.png)
-[...]
 
-### Counter Overlays
-[...]
 
-### Card Target Selection
-> TODO: mockup screen of card target selection
-[...]
+-------------------------------------------------------------------------------
+## Peep Buffs and Status Icons
+![Status Icons displayed under a peep in the sidebar](./images/status-icons.png)
+
+Peeps can have one or more Buffs attached to them. Buffs are temporary effects
+that can alter any of the peep's stats, counters or counter max values (either 
+in absolute terms or as % changes).
+
+Buffs can also have optional status icons, which are displayed under the peep
+in the sidebar.
 
 
 -------------------------------------------------------------------------------
 ## Room Design
-Rooms are generally represented as game boards with a custom board background design
+Rooms are represented as game boards with a custom board background design
 (which for instance can be a picture or representation of the room environment).
 The board can be rotated in 3D inside the user client. 3D objects (called Props) 
 can be placed on the room board by the room owner/world designed. Props can just
@@ -459,26 +510,53 @@ in the dialog)
 
 -------------------------------------------------------------------------------
 ## Activities
-[...]
- 
-### Activity Implementation
-[...]
+Activities are minigames, puzzles and other additional side content that can be
+played on top of the normal room gameplay. A user can have at most one activity
+running at a time.
+
+Activities are displayed in a 2D window overlayed to the room. Modal overlay UIs like
+the inventory, journal etc. are always displayed on top of the activity window if
+one is running.
+
+The activity window can be dragger around, maximized and minimized. When 
+maximized the window covers the whole rom view without overlapping with the 
+peep sidebar and the bottom action / char bar. When minimized, only the window title bar
+is displayed. The bar flashes if the activity needs to notify the user.
+
+![Example Activity: minigame where the user moves a lazer pointer before a kitty catches it](./images/activity-lazor-rush.png)
 
 
 -------------------------------------------------------------------------------
 ## The Journal
-[...]
+Selecting the journal core card opens the journal. The journal lets the user see
+active and past **Tasks**, and **Memories**.
 
-### Quests
-[...]
+### Tasks
+![Journal Tasks view](./images/journal-tasks.png)
+
+Tasks are activites the user can complete. Some of them may include multi-step
+challenges. Tasks may also have memories associated to them, which can be recalled
+using the memories quick action after selecting a task. This opens the memory
+tab of the journal, filtered to only show memory entries tagged with this task.
 
 ### Memories
-[...]
+![Journal Memories view](./images/journal-memories.png)
 
+The memories journal view shows both information on user's progress and 
+all memories collected by the user, organized by month. Memories are short messages
+that are added to the journal during various game activities. For instance, important
+dialogs and events can be recorded here. Memories that are related to specific tasks
+(for instance collected hints or progress points) are also recorded here and have
+a unique tag that links them to their task.
 
--------------------------------------------------------------------------------
-## Friends
-[...]
+The Memories page has two sections, the calendar and the memory list. The calendar
+(at the top) lets the user choose a month, shows a calendar view with markers on
+days that indicate how many memories have been collected on that day, and shows
+information about progress for the user on that month (for instance, the number
+of tasks completed on the month, collected kudos, new friends etc).
+
+The bottom part of the memories page shows a scrollable list of memories for the 
+selected month.
 
 
 -------------------------------------------------------------------------------

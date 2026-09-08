@@ -1,0 +1,13 @@
+hub:
+  label: The Hub
+  description: Welcome to Tinyrooms!
+  board_type: basic
+  board_image: cobbles.png
+  board_image_style: tile
+
+playroom:
+  label: The Playroom
+  description: This place looks familiar...
+  board_type: basic
+  board_image: playroom.png
+  board_image_style: stretch

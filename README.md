@@ -29,3 +29,13 @@ Start the server using the `start-server.sh` script:
 Use `Ctrl-C` or `\q` to quit the server.
 Use `\r` to restart the server process.
 Use `\l` to reload all data/definitions without restarting the server process.Main View, Favorite Core Cards, and Equipped Cards
+
+
+## Directory Info
+- `app` contains the client-side browser app code.
+- `server` contains the server python code
+- `data` contains tinyrooms client/server data such as client assets, data 
+definition files, basic cards and peeps.
+- `doc` documentation and user guides.
+- `users` user data.
+- `worlds` world data.

@@ -1,0 +1,34 @@
+# Peep Level definitions
+0:
+  label: Guest
+1:
+  label: Novice
+2:
+  label: Student
+3:
+  label: Apprentice
+4:
+  label: Candidate
+5:
+  label: Adept
+6:
+  label: White Master
+7:
+  label: Green Master
+8:
+  label: Red Master
+9:
+  label: Black Master
+10:
+  label: Grand-Master
+11:
+  label: Hero
+12:
+  label: Super Hero
+13:
+  label: Legendary Hero
+14:
+  label: Titan
+15:
+  label: Ender
+

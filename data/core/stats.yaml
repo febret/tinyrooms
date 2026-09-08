@@ -1,0 +1,13 @@
+# Stat Definitions
+constitution:
+  label: Constitution
+  description: Determines the character's physical resilience and health.
+fanciness:
+  label: Fanciness
+  description: Determines the character's style and elegance.
+dexterity:
+  label: Dexterity
+  description: Determines the character's agility and coordination.
+charisma:
+  label: Charisma
+  description: Determines the character's social influence and charm.
