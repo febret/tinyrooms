@@ -1,34 +1,66 @@
 # Peep Level definitions
+# kudos_to_next: kudos needed to progress to the next level
+# max_equipped: maximum number of equipped cards at this level
 0:
   label: Guest
+  kudos_to_next: 1
+  max_equipped: 5
 1:
   label: Novice
+  kudos_to_next: 3
+  max_equipped: 5
 2:
   label: Student
+  kudos_to_next: 5
+  max_equipped: 6
 3:
   label: Apprentice
+  kudos_to_next: 8
+  max_equipped: 6
 4:
   label: Candidate
+  kudos_to_next: 12
+  max_equipped: 7
 5:
   label: Adept
+  kudos_to_next: 18
+  max_equipped: 7
 6:
   label: White Master
+  kudos_to_next: 25
+  max_equipped: 8
 7:
   label: Green Master
+  kudos_to_next: 35
+  max_equipped: 8
 8:
   label: Red Master
+  kudos_to_next: 50
+  max_equipped: 9
 9:
   label: Black Master
+  kudos_to_next: 70
+  max_equipped: 9
 10:
   label: Grand-Master
+  kudos_to_next: 95
+  max_equipped: 10
 11:
   label: Hero
+  kudos_to_next: 125
+  max_equipped: 10
 12:
   label: Super Hero
+  kudos_to_next: 160
+  max_equipped: 11
 13:
   label: Legendary Hero
+  kudos_to_next: 200
+  max_equipped: 11
 14:
   label: Titan
+  kudos_to_next: 250
+  max_equipped: 12
 15:
   label: Ender
-
+  max_equipped: 12

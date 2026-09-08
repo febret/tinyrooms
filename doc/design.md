@@ -48,7 +48,7 @@ in env var `TRSERVER_USERS_PATH`).
 The Tinyrooms UI is implemented as a single-page web app. Its primary screen
 displays a 3D room rendering in the center, users and NPCs on the left, and a
 primary interaction area in the bottom. Overlay UIs can be displayed on top of 
-the primary screen, either modal (like the inventory and room card screens 
+the primary screen, either modal (like the Inventory and Room View screens 
 described below) or non-modal (like the activity window)
 
 > NOTE: In the screenshots below, red boxes with white text are labels/notes, they
@@ -65,7 +65,7 @@ boxes in the screenshot above):
 - The Card View (bottom)
 - The Look Bar (bottom, under the Card View)
 - The Quick Actions Bar (bottom, under the Look Bar)
-- The Chat Bar (bottom, under quick action bar)
+- The Chat Bar (bottom, under the Quick Actions Bar)
 
 
 #### The Board
@@ -80,6 +80,12 @@ floor texture, but other more complex room displays are also supported.
 The Peeps List shows the list of peeps in this room (both users and NPCs).
 The user's own peep is displayed at the top left, slightly larger than the others.
 
+Users can **pin / unpin** peeps (through a quick action on a selected peep).
+Pinned peeps take precedence in the Peeps List ordering. When too many peeps are
+in the room to display individually, pinned peeps are still displayed
+individually, while unpinned peeps are collapsed into a single **peep group**
+entry that can be expanded to see the individual peeps.
+
 #### The Card View
 The Card View shows a list of cards, which represent actions the user can take.
 The Card View is split into core cards and equipped cards.
@@ -92,7 +98,8 @@ visible if the user owns the room) and other gameplay features (ie core cards ar
 
 **Equipped** cards are cards in the player's hand, chosen from their deck (i.e.,
 the inventory). Users can have a limited number of equipped cards, which depends on their
-level (starting limit: 5)
+level (starting limit: 5, specified per level in `data/core/levels.yaml` as
+`max_equipped`)
 
 By default only the user's three **favorite** core cards are visible. Users can
 choose which of the available core cards are their favorites (using the `Favorite`
@@ -115,7 +122,7 @@ The Look Bar is also used to display minor action feedback (eg, selecting
 
 
 #### The Quick Actions Bar
-The quick actions bar shows a list of actions that the user can take on the
+The Quick Actions Bar shows a list of actions that the user can take on the
 currently selected entity. These actions depend both on the target, user, etc and
 act as the equivalent of a 'context menu' for entities.
 
@@ -136,6 +143,13 @@ full list of commands available to the user (with a search bar and help text for
 each command)
 
 
+#### The Action Log
+The Action Log is a collapsible text panel that lists recent actions and events
+in the room (chat messages, action results, peeps entering / leaving, etc.) as
+scrolling text lines. It is hidden by default and can be toggled through the
+client settings (the `show_activity_log` client config option).
+
+
 ### The Room View
 ![The Room View](./images/room-view.png)
 
@@ -154,9 +168,9 @@ its name and short description in the Look Bar.
 
 ![Card Details View](./images/card-details.png)
 
-Selecting the `Inspect` quick action on a card shows the card details view.
+Selecting the `Inspect` quick action on a card shows the Card Details View.
 
-The card details view is shown as a popup with a book background, showing the following 
+The Card Details View is shown as a popup with a book background, showing the following 
 information on the selected card:
 - the card front and back on the popup top left and right corners respectively
 - the card rarity level on the bottom right corner.
@@ -172,7 +186,7 @@ left page.
 ### Emotes View
 ![Emotes View](./images/emotes-view.png)
 
-Selecting the Emotes core card opens the Emotes view. The Emotes view lets the
+Selecting the Emotes core card opens the Emotes View. The Emotes View lets the
 user play emote cards, which are cards that play visual effects, emojis and animations
 with no direct gameplay effect. 
 
@@ -218,26 +232,30 @@ A selected prop's 3D model is displayed (slowly spinning) above the Look Bar.
 
 #### Props Detail View
 ![Prop Details](./images/prop-details.png)
-Selecting `Inspect` on a prop opens the prop details view. In this view the user
+Selecting `Inspect` on a prop opens the Prop Details View. In this view the user
 can look at and rotate the 3D model for a prop.
 
 
 ### Skills View
 ![Skills](./images/skills.png)
 
-Selecting the Skills core card opens the skills view. The skills view allows 
+Selecting the Skills core card opens the Skills View. The Skills View allows 
 the user to place special skill cards into a skill grid.
 
 Skill cards provide permanent bonuses to the user. For instance, they can
 increase any of the user stats.
 
-Slots on the grid are enabled based on the user level (each level unlocks one 
-more slot). When clicking on a slot, the user can choose a skill card directly 
+Slots on the grid are enabled based on the user level: the number of unlocked
+slots equals the user level (a level 0 user has no slots unlocked; all 15 slots
+are unlocked at level 15). When clicking on a slot, the user can choose a skill card directly 
 from the inventory.
 
-Skill cards have three ranks (script kiddo, hacker and leet). Cards of a higher
+Skill cards have three ranks (Script Kiddo, Hacker and Leet). Cards of a higher
 rank cannot be placed in a lower rank slot. Each rank has 5 slots, and slots 
 are unlocked in order.
+
+> NOTE: The skills screenshot above shows "Level 1 – 1/2 available"; the
+> level-based slot rule described above takes precedence over the screenshot.
 
 
 ### The Inventory
@@ -253,9 +271,25 @@ select cards, inspect them, equip them etc.
 ### Self View
 ![Self View](./images/self-view.png)
 
-The self view core card opens the user self view. This view shows information 
+Selecting the `Self` quick action on the user's own peep (in the Peeps List)
+opens the Self View. This view shows information 
 about the user peep, including their status, level, stats and counters (see
 the gameplay section for more information on them)
+
+The `Swap Sticker` quick action (also available when the user's own peep is
+selected) reopens the Sticker Designer activity, letting the user change their
+peep sticker. Swapping stickers costs bops: the cost is defined in
+`data/core/bops.yaml` (`sticker_swap_cost`, default 10).
+
+
+### Friends
+Users can add other users as friends. The friends list is managed through a
+separate Friends panel, opened with the `Friends` quick action on the user's own
+peep. From the Friends panel the user can see their friends (including which
+ones are online), and remove friends. Friends can be added through the
+`Add Friend` quick action on another user's peep (the other user must accept the
+request). The friends list is stored in the user profile, and the journal
+monthly progress includes the number of new friends made in the month.
 
 
 ### UI Implementation Notes
@@ -282,7 +316,7 @@ Users have a level, which can be increased using Kudos. Kudos are gained
 primarily by completing tasks and quests in game, but there are other ways to gain them.
 
 When a user level increases, they can add more skills to their peep. Skills can 
-increase Stats (like constitution, smarts, etc.). 
+increase Stats (like Constitution, Charisma, etc.). 
 
 
 ### Stats
@@ -306,6 +340,10 @@ Some basic counters are:
 - **Cleanliness**: decreases depending on users, actions, when it goes to zero 
 the **Stinky** status is applied to the user
 
+Worlds and mods can define additional custom counters with their own gameplay
+meaning (for example, the **Concentration** counter shown in the Self View
+screenshot is a custom counter with no core-game meaning).
+
 > NOTE: The counter and status descriptions above are just an example of how 
 > these systems could work. Everything is customizable through the tinyrooms 
 > definition files and behaviors.
@@ -315,7 +353,9 @@ the **Stinky** status is applied to the user
 Kudos are one of the main "currencies" of the game. They are gained by completing
 quests or other important in-game tasks (they cannot just be bought), and they
 are spent to increase the user level. The exact number of kudos needed to progress
-to each level is specified in one of the tinyrooms definition files (`data/core/levels.yaml`)
+to each level is specified in one of the tinyrooms definition files (`data/core/levels.yaml`,
+as the per-level `kudos_to_next` field). The same file also defines the per-level
+equipped-card limit (`max_equipped`).
 
 
 ### Skills
@@ -326,11 +366,15 @@ counters, etc.
 
 
 ### Juice and Energy
-Juice is the "short-term currency" of the game. It is used to refill the Energy counter.
-Energy is spent for most actions by the user, and it recharges at a fixed rate determined
-by the user level, skills etc. The standard energy recharge rate is 1 / min and the 
-initial max energy for a level 1 user is 100. Various juice and energy properties are set
-in the `data/core/juice.yaml` definition file.
+Energy is spent for most actions by the user, and it recharges passively at a fixed
+rate determined by the user level, skills etc. The standard energy recharge rate is
+1 / min and the initial max energy for a level 1 user is 100. Various juice and
+energy properties are set in the `data/core/juice.yaml` definition file.
+
+**Juice** refers to consumable refills for the Energy counter: juice cards (like
+the `Juicy Drink` card) can be used to refill Energy faster than the passive
+recharge. Some cards can also grant temporary (daily) increases to the maximum
+Energy value, applied as buffs.
 
 When the Energy counter reaches 0, the user cannot perform any other energy-consuming action until
 the energy level is back to at least 10% of its maximum value. Peeps of users without 
@@ -372,6 +416,18 @@ Cards can be:
 Card definition yamls and related assets are defined in the `data/cardsets` subdirectories
 and in the loaded world `cards` directory.
 
+Each card has a **rarity** level, one of: Common, Uncommon, Rare, Epic and
+Legendary. Rarity determines how likely a card is to appear in card packs, and
+is displayed in the Card Details View.
+
+
+### Card Packs and Shops
+Card packs are bought (with bops) through shop interactions on props or merchant
+NPC peeps. Shops are implemented as **Activities** (see the Activities section):
+a prop or merchant peep can have a vending activity associated to it, launched
+through a quick action. Different vendor types can have different vending
+activities associated to them, rather than a single marketplace activity type.
+
 
 -------------------------------------------------------------------------------
 ## Card Actions
@@ -410,6 +466,20 @@ in absolute terms or as % changes).
 Buffs can also have optional status icons, which are displayed under the peep
 in the sidebar.
 
+### Statuses
+Statuses are named buffs defined in the `data/core/statuses.yaml` definition
+file. Each status defines a name, a status icon and its (de)buff effects, plus
+the condition that applies and clears it. Core examples:
+- **Sick**: applied when the Health counter reaches 0, cleared when Health is
+  restored above 0.
+- **Stinky**: applied when the Cleanliness counter reaches 0, cleared when
+  Cleanliness is restored above 0.
+- **Tired**: applied while the Energy counter is 0 (see **Juice and Energy**),
+  cleared when Energy is back to at least 10% of its maximum value.
+
+Active statuses are also listed in the Self View (eg "You are Stinky, Tired").
+Worlds and mods can define additional statuses.
+
 
 -------------------------------------------------------------------------------
 ## Room Design
@@ -434,6 +504,14 @@ Rooms can have an environment defined on them, which affects how the room
 is displayed (for instance it is possible to apply visual effects like fog, night, etc.)
 Rooms can also have status effects that affect all peeps in the room. Status effects
 are recalculated and applied on each room tick.
+
+
+### Room Ownership
+Rooms can be owned by users. Room owners can edit their room and pin room cards.
+How ownership is acquired is world-defined: worlds can grant rooms through
+realtor users, quest rewards, purchases or other custom mechanics. The core game
+only provides the ownership mechanism itself (tracked in the worldstate) and the
+realtor commands to grant, remove and modify ownership.
 
 
 ### Room Editing
@@ -470,8 +548,8 @@ or playing cards on them.
 Worlds are self-contained collections of rooms, peeps and cards that run on a tinyrooms
 server. Each tinyrooms server runs a single world. Worlds are stored as a set of definition
 files which contain the initial room definitions, and a worldstate database, used to
-represent the dynamic, live state of the world (eg to store the position of peeps
-during gameplay, the status of props, room cards etc.)
+represent the dynamic, live state of the world (eg to store which room each peep
+is in during gameplay, the status of props, room cards etc.)
 
 
 ### World Editor
@@ -490,8 +568,10 @@ Peeps are the tinyrooms implementation of active characters. Peeps can be either
 user-controlled or NPCs governed by **behavior scripts**.
 
 All peeps in a room are displayed in a vertical column on the left side of the
-game screen, overlaying the Board. Peeps are displayed as sprites overlayed on a 
-3D solid 'marker' that represents the peep as if it was a real board piece.  
+game screen (the Peeps List), overlaying the Board. Peeps are displayed as sprites
+overlayed on a 3D solid 'marker', styled as if the peep was a real board piece.
+Peeps do not appear on the Board itself and have no position inside a room: a
+peep's location is tracked at room granularity only.
 
 NPC Peeps are used to implement all types of non-player characters, from simple 
 creatures to merchants, quest givers, dialog characters and fully AI-controlled bots.
@@ -511,12 +591,27 @@ NPC Peeps can respond to actions by opening a dialog tree: dialogs are shown in
 the UI through the Look Bar (with quick actions used to choose the next action
 in the dialog)
 
+Dialog trees are defined declaratively in the peep definition yaml, as a set of
+dialog nodes: each node has the text to display in the Look Bar and a list of
+options (shown as quick actions) leading to other nodes or ending the dialog.
+Behavior scripts can trigger a dialog tree, and dialog nodes can call back into
+the behavior script for custom branching or side effects (eg starting a task,
+giving a card).
+
 
 -------------------------------------------------------------------------------
 ## Activities
 Activities are minigames, puzzles and other additional side content that can be
 played on top of the normal room gameplay. A user can have at most one activity
 running at a time.
+
+Activities can be launched in three ways:
+- through a prop: a quick action defined on a prop can start an activity (eg a
+  toy prop starting a minigame)
+- through a card: playing an activity card starts the associated activity
+- through a command: typing the activity launch command (eg `.play lazor-rush`)
+  in the chat bar. Starting an activity while another one is running closes the
+  current one (after user confirmation).
 
 Activities are displayed in a 2D window overlayed to the room. Modal overlay UIs like
 the inventory, journal etc. are always displayed on top of the activity window if
@@ -566,6 +661,10 @@ of tasks completed on the month, collected kudos, new friends etc).
 The bottom part of the memories page shows a scrollable list of memories for the 
 selected month.
 
+Users can also create memories manually: the `New Memory` quick action (shown
+while the Memories view is open) saves the current text in the chat bar as a
+memory for the current day.
+
 
 -------------------------------------------------------------------------------
 ## Commands and Administration
@@ -592,7 +691,7 @@ Normal commands in the form `.cmd` can have different required permission levels
 
 Many commands take a `<target>` token:
 
-- `@obj:<obj_id>`: object (in room or your inventory, depending on command)
+- `@card:<card_id>`: card (in room or your inventory, depending on command)
 - `@prop:<prop_instance_id>`: prop in current room
 - `@peep:<peep_id>` or `@<username>`: peep/user in current room
 - `@way:<way_id>`: room exit (for `.go`)

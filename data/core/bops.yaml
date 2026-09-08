@@ -1,2 +1,4 @@
 # Bop settings
 daily_bops_per_level: [1, 5, 10, 15, 20, 25, 30, 40, 50, 60, 100, 150, 200, 250, 300, 500]
+# Cost (in bops) to swap the peep sticker
+sticker_swap_cost: 10
