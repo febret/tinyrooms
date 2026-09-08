@@ -525,6 +525,10 @@ is displayed. The bar flashes if the activity needs to notify the user.
 
 ![Example Activity: minigame where the user moves a lazer pointer before a kitty catches it](./images/activity-lazor-rush.png)
 
+> NOTE: Activities are implemented and displayed inside iframes: the activity 
+> implementations are under the `activities` directory. Each activity runs in
+> its own iframe, and is served under a separate url.
+
 
 -------------------------------------------------------------------------------
 ## The Journal
