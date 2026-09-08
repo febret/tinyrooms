@@ -1,0 +1,8 @@
+portal:
+  label: A Glowing Portal
+  description: A mysterious glowing portal that leads to another world.
+  model: portal.glb
+dollhouse:
+  label: A Cute Dollhouse
+  description: A miniature dollhouse with intricate details.
+  model: dollhouse.glb

@@ -4,6 +4,19 @@ hub:
   board_type: basic
   board_image: cobbles.png
   board_image_style: tile
+  props:
+    portal0:
+      prop: portal
+      # x, y are board plane position (100 is full width/height), positize z is up
+      pos: [25, 50, 0]
+      rot: [0, 0, 0]
+      scale: 1
+      # actions are represented as an array of label/command pairs.
+      actions: [["Go across", ".go exit0"]]
+  exits:
+    exit0:
+      label: Go across the portal
+      target: playroom
 
 playroom:
   label: The Playroom
@@ -11,3 +24,18 @@ playroom:
   board_type: basic
   board_image: playroom.png
   board_image_style: stretch
+  props:
+    dollhouse0:
+      prop: dollhouse
+      pos: [50, 50, 0]
+      rot: [0, 0, 0]
+      scale: 1
+      # Cards contained by this prop (used for dispenser mode)
+      content: [world:tutorial:fancy-wallet, world:tutorial:ballet-shoes]
+      actions: [["Inspect", ".look dollhouse0"], ["Enter", ".go exit0"], ["Search", ".dispense @this"]]
+      behavior: dispenser
+
+  exits:
+    exit0:
+      label: Enter the dollhouse
+      target: hub

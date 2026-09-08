@@ -1,0 +1,48 @@
+ballet-shoes:
+  label: Ballet Shoes
+  description: Fancy ballet shoes
+  image: ballet-shoes.png
+fancy-wallet:
+  label: Fancy Wallet
+  description: A stylish fancy wallet
+  image: fancy-wallet.png
+hand-light:
+  label: Hand Light
+  description: A small, portable hand light
+  image: hand-light.png
+juicy-drink:
+  label: Juicy Drink
+  description: A refreshing juicy drink
+  image: juicy-drink.png
+lucille:
+  label: Lucille
+  description: A mysterious character named Lucille
+  image: lucille.png
+plastic-bag:
+  label: Plastic Bag
+  description: A simple plastic bag
+  image: plastic-bag.png
+poop-in-a-bag:
+  label: Poop in a Bag
+  description: A bag containing poop
+  image: poop-in-bag.png
+poop:
+  label: Poop
+  description: A piece of poop
+  image: poop.png
+pooper-scooper:
+  label: Pooper Scooper
+  description: A tool for scooping poop
+  image: pooper-scooper.png
+seal-plushie:
+  label: Seal Plushie
+  description: A cute seal plushie, not stinky at all.
+  image: seal-plushie.png
+tasty-toast:
+  label: Tasty Toast
+  description: A delicious piece of toast. Increases concentration.
+  image: tasty-toast.png
+tomato-sauce:
+  label: Tomato Sauce
+  description: A bottle of tomato sauce. Increases concentration.
+  image: tomato-sauce.png

@@ -1,5 +1,5 @@
 # Tinyrooms Design
-This documents describes the design of tinyrooms, a multiplayer web-based game
+This document describes the design of tinyrooms, a multiplayer web-based game
 where users can join and move across virtual rooms which are displayed as game
 boards in a 3D view.
 
@@ -8,12 +8,12 @@ which can be collected, bought and found throughout the game. Cards represent
 anything from items in the game, actions, skills, emotes and more.
 
 The core design principles of tinyrooms are:
-- **Simplicity**: the base game mechanics and interactions should be easy to graps.
+- **Simplicity**: the base game mechanics and interactions should be easy to grasp.
 Most items on the UI should be interactive and do something, encouraging user exploration.
-- **Modularity** this game is a sandbox. It is possible to add new worlds, card sets, NPC behaviors etc.
+- **Modularity**: this game is a sandbox. It is possible to add new worlds, card sets, NPC behaviors etc.
 the entire game system should be designed to make it possible for AI agents to easily build
 extensions to the game.
-- **Learnability** the codebase should be easy to learn and follow. The codebase itself is a
+- **Learnability**: the codebase should be easy to learn and follow. The codebase itself is a
 teaching tool for a game design class.
 
 -------------------------------------------------------------------------------
@@ -30,11 +30,11 @@ The passphrase is set using the `TRSERVER_NEW_ACCOUNT_PASSPHRASE` env variable.
 
 Once the user chooses a valid account name / password, they are taken to a 
 `Sticker Designer` page. The sticker designer lets the user customize how their 
-peep is displayed in game (in the Peeps List left sidebar). While more complex
+peep is displayed in game (in the Peeps List left sidebar). While a more complex
 sticker designer will be available in the future, the current one lets users choose
-one of the pre-build stickers in `data/stickers`.
+one of the pre-built stickers in `data/stickers`.
 
-> NOTE: The Sticker Designer is implementes as an **Activity**, see activity section.
+> NOTE: The Sticker Designer is implemented as an **Activity**, see activity section.
 > During user creation this activity is shown in a full modal window like the normal
 > overlay window described in the Activity section
 
@@ -51,25 +51,26 @@ primary interaction area in the bottom. Overlay UIs can be displayed on top of
 the primary screen, either modal (like the inventory and room card screens 
 described below) or non-modal (like the activity window)
 
-> NOTE: In the screenshots below, red boxes with white test are labels/notes, they
+> NOTE: In the screenshots below, red boxes with white text are labels/notes, they
 > are NOT part of the UI.
 
 
 ### Main Screen
 ![Main View, Favorite Core Cards, and Equipped Cards](./images/main-view.png)
 
-The Tinyrooms main screen has the folling main components (labeled with red 
+The Tinyrooms main screen has the following main components (labeled with red 
 boxes in the screenshot above):
-- The Stage (center)
+- The Board (center)
 - The Peeps List (left)
 - The Card View (bottom)
-- The Look Bar (bottom, under card view)
-- The Quick Actions Bar (bottom, under look bar)
+- The Look Bar (bottom, under the Card View)
+- The Quick Actions Bar (bottom, under the Look Bar)
 - The Chat Bar (bottom, under quick action bar)
 
 
-#### The Stage
-The Stage is displayed in the middle of the game screen. A room is displayed as 
+#### The Board
+The Board is displayed in the middle of the game screen (labeled "Room View" in
+the screenshot above). A room is displayed as 
 a floor that can be freely rotated / zoomed by the user. The floor may have 
 3D objects and other features on it (Props). At minimum, rooms can have a different 
 floor texture, but other more complex room displays are also supported.
@@ -79,33 +80,36 @@ floor texture, but other more complex room displays are also supported.
 The Peeps List shows the list of peeps in this room (both users and NPCs).
 The user's own peep is displayed at the top left, slightly larger than the others.
 
-#### The Cards List
-The Cards List shows a list of cards, which represent actions the user can take.
-The card list is split into core cards and equipped cards.
+#### The Card View
+The Card View shows a list of cards, which represent actions the user can take.
+The Card View is split into core cards and equipped cards.
 
-**Core** cards are diplayed on the left, and represent core gameplay actions or 
+**Core** cards are displayed on the left, and represent core gameplay actions or 
 submenus like checking the inventory or opening the list of available emotes. 
 The list of visible core cards can depend on the room (eg the edit room card is 
 visible if the user owns the room) and other gameplay features (ie core cards are
  enabled gradually in the tutorial world)
 
 **Equipped** cards are cards in the player's hand, chosen from their deck (i.e.,
-the inventory). Users can have a limited number of cards, which depends on their
+the inventory). Users can have a limited number of equipped cards, which depends on their
 level (starting limit: 5)
 
-By default only the first three core cards are visible.
-Clicking on the '>' Core card expands the core card list and stashes the equipped
-cards to the right
+By default only the user's three **favorite** core cards are visible. Users can
+choose which of the available core cards are their favorites (using the `Favorite`
+quick action on a selected core card). New users start with Room, Emotes and
+Inventory as favorites.
+Clicking on the '>' Core card expands the core card list (showing all available
+core cards) and stashes the equipped cards to the right
 ![Expanded Core Cards](./images/core-cards-expanded.jpg)
 
 
 #### The Look Bar
-The Look bar shows the name and description of the last selected entity (a peep,
+The Look Bar shows the name and description of the last selected entity (a peep,
 a card, a prop, etc.) Both name and description fit on a single line. If the 
-description is longer than that, overing the mouse on it (or touching it) shows
+description is longer than that, hovering the mouse on it (or touching it) shows
 a popup with the full entity description.
 
-The description bar is also used to display minor action feedback (eg, selecting
+The Look Bar is also used to display minor action feedback (eg, selecting
 'Use' on a health potion when in full health may replace the description with 
 `You don't need this`)
 
@@ -121,13 +125,13 @@ the action category:
 - Green: alternative (eg. room exits)
 - Dark Gray: disabled.
 - Yellow: cancel-type action (eg. exit conversation)
-- Red: negative-type action (eg. remove friend)0
+- Red: negative-type action (eg. remove friend)
 
 
 #### The Chat Bar
 The chat bar lets the user send chat messages or commands to the room. Commands
 are special chat messages starting with the `.` character.
-Thed `...` round icon on the left of the chat bar opens a popup menu with the 
+The `...` round icon on the left of the chat bar opens a popup menu with the 
 full list of commands available to the user (with a search bar and help text for
 each command)
 
@@ -135,24 +139,24 @@ each command)
 ### The Room View
 ![The Room View](./images/room-view.png)
 
-Selecting the Room Core Card opens the room view. The room view shows a list of
-all the cards that have been placed in the room. Users and peeps can add or remove
+Selecting the Room Core Card opens the Room View. The Room View shows a list of
+all the cards that have been placed in the room. Peeps (users and NPCs) can add or remove
 cards from the room at any time (this is like dropping / picking up items).
 
 A room owner may pin any of the room cards, indicating those cards cannot be picked up.
 
 
 ### Card Details View
-![Selected Card in the Room view](./images/selected-card.png)
+![Selected Card in the Room View](./images/selected-card.png)
 
 Selecting a Card (either in the Room View or in any other card display), shows
-its name and short description in the look bar.
+its name and short description in the Look Bar.
 
 ![Card Details View](./images/card-details.png)
 
-Selecting the `Inspect` quick action on a card shows the cards detail view.
+Selecting the `Inspect` quick action on a card shows the card details view.
 
-The card details is shows as a popup with a book background, showing the following 
+The card details view is shown as a popup with a book background, showing the following 
 information on the selected card:
 - the card front and back on the popup top left and right corners respectively
 - the card rarity level on the bottom right corner.
@@ -179,8 +183,8 @@ circle around the central buttons.
 The emote types are:
 - **Expressions**: simple expressions displayed as large emojis in speech bubbles
 (see below for a description of speech bubbles)
-- **Animations**: are short animated emojir / gifs, also displayed in speech bubbles.
-- **Effects**: are larger animations that affect the whole room. Animations are queued
+- **Animations**: are short animated emojis / GIFs, also displayed in speech bubbles.
+- **Effects**: are larger animations that affect the whole room. Effects are queued
 and played in submission order from the room users.
 
 
@@ -188,7 +192,7 @@ and played in submission order from the room users.
 ![Speech Bubbles](./images/speech-bubbles.png)
 
 Speech bubbles are displayed next to peeps / users on the left sidebar. They are used to
-display either chat messages from users or emotes (emojir/animations). Different
+display either chat messages from users or emotes (emojis/animations). Different
 bubble styles are available (like thinking, normal and spiky text bubbles): users
 can choose the bubble style for a chat message by adding `(.)`, `(!)` at the beginning
 of a message to use the thinking or spiky bubble styles.
@@ -196,7 +200,7 @@ of a message to use the thinking or spiky bubble styles.
 Speech bubbles remain visible on a client until a user touches / clicks on them.
 They disappear with a zoom/fade out animation. If a user sends more than one chat
 message, messages keep filling the bubble up to a pre-determined character limit,
-then they replace old messages. The bubble text fond also automatically adjust
+then they replace old messages. The bubble text font also automatically adjusts
 to fit longer messages.
 
 
@@ -204,12 +208,12 @@ to fit longer messages.
 ![Selected Peep](./images/selected-peep.png)
 Clicking on a peep/user on the sidebar selects it. Selected peeps have a glowing background
 and their name, short description and available quick actions are shown in the 
-look box and quick actions area. The sprite for the peep is also displayed 
-above the look box.
+Look Bar and Quick Actions Bar. The sprite for the peep is also displayed 
+above the Look Bar.
 
 ![Selected Prop](./images/selected-prop.png)
 It is also possible to select Props (i.e. 3D objects placed in the room). 
-A selected prop's 3D model is displayed (slowly spinning) above the look box.
+A selected prop's 3D model is displayed (slowly spinning) above the Look Bar.
 
 
 #### Props Detail View
@@ -249,13 +253,13 @@ select cards, inspect them, equip them etc.
 ### Self View
 ![Self View](./images/self-view.png)
 
-The self view core card open the user self view. This view shows information 
+The self view core card opens the user self view. This view shows information 
 about the user peep, including their status, level, stats and counters (see
 the gameplay section for more information on them)
 
 
 ### UI Implementation Notes
-The Room View is implemented with Three.js
+The Board is implemented with Three.js
 
 Both Quick actions and card actions are implemented as commands. It is possible
 to execute a card or quick actions by typing the appropriate command (starting 
@@ -264,7 +268,7 @@ with `.`) in the chat bar.
 
 -------------------------------------------------------------------------------
 ## Core Gameplay
-The following sections describe the main aspects of tinyrooms gameplay mecchanics.
+The following sections describe the main aspects of tinyrooms gameplay mechanics.
 
 Tinyrooms is a sandbox, without a set goal. All of tinyrooms' mechanics 
 are designed to be customizable to support different types of gameplay. 
@@ -298,7 +302,7 @@ of some stats (like Constitution setting max health), by the user level or other
 users' properties.
 Some basic counters are:
 - **Health**: when it goes to zero, the **Sick** status is applied to the user's peep
-- **Energy/Juice**: it is consumed by any action the user takes (see **Juice**)
+- **Energy**: it is consumed by most actions the user takes (see **Juice and Energy**)
 - **Cleanliness**: decreases depending on users, actions, when it goes to zero 
 the **Stinky** status is applied to the user
 
@@ -321,21 +325,21 @@ cards grant permanent bonuses to users, like increased stats, increased max valu
 counters, etc. 
 
 
-### Juice
-Juice is the "short-term currency" of the game. It is used to refill the Juice Counter.
-Juice is spent for most actions by the user, and it refills at a fixed rate determined
-by the user level, skills etc. The standard juice rechange rate is 1 / min and the 
-initial max juice for a level 1 user is 100. Various juice properties are set in the 
-`data/core/juice.yaml` definition file.
+### Juice and Energy
+Juice is the "short-term currency" of the game. It is used to refill the Energy counter.
+Energy is spent for most actions by the user, and it recharges at a fixed rate determined
+by the user level, skills etc. The standard energy recharge rate is 1 / min and the 
+initial max energy for a level 1 user is 100. Various juice and energy properties are set
+in the `data/core/juice.yaml` definition file.
 
-When use get <= 0, the user cannot perform any other juice-consuming action until
-juice level is back to at least 10% of its maximum value. Peeps of users without 
-juice are displayed grayed out in the left sidebar, to indicate that they are
+When the Energy counter reaches 0, the user cannot perform any other energy-consuming action until
+the energy level is back to at least 10% of its maximum value. Peeps of users without 
+energy are displayed grayed out in the left sidebar, to indicate that they are
 soft-disabled.
  
 
-#### Juice Costs
-These are indicative juice costs for some typical in-game actions:
+#### Energy Costs
+These are indicative energy costs for some typical in-game actions:
 - change room: 1
 - play card: 2
 - emote: 1
@@ -345,16 +349,16 @@ These are indicative juice costs for some typical in-game actions:
 
 ### Bops
 Bops are the standard in-game currency, used to buy card packs and other various
-in-game items. Users get a fixed amout of bops daily depending on their level
+in-game items. Users get a fixed amount of bops daily depending on their level.
 Bop properties are defined in `data/core/bops.yaml`
 
 
 -------------------------------------------------------------------------------
 ## Cards
 Cards are one of the central gameplay mechanics of tinyrooms and represent the 
-main way (together woth quick actions) for users to interact with a room, props
+main way (together with quick actions) for users to interact with a room, props
 and peeps. Tinyrooms comes with a set of basic cards but additional cards can be
-acquired through card packs. World can also define their own additional cards, but
+acquired through card packs. Worlds can also define their own additional cards, but
 these cards cannot transfer across worlds (they are disabled if the user is not
 in the 'native' world that defined them).
 
@@ -389,7 +393,7 @@ a toast on the top middle of the screen.
 
 Actions can also display other effects in the room that are visible to other users.
 > NOTE: Room effect actions share the same implementation as effect emotes. They
-> also play in a queue (ie successive effects in a room do no cancel previous 
+> also play in a queue (ie successive effects in a room do not cancel previous 
 > ones, they all play in the order they are received on the server)
 
 ![Toast after executing an Action](./images/action-toast.png)
@@ -412,24 +416,24 @@ in the sidebar.
 Rooms are represented as game boards with a custom board background design
 (which for instance can be a picture or representation of the room environment).
 The board can be rotated in 3D inside the user client. 3D objects (called Props) 
-can be placed on the room board by the room owner/world designed. Props can just
+can be placed on the room board by the room owner / world designer. Props can just
 be used for aesthetic reasons (eg to add natural elements or buildings to the flat
 board), or they can be active game elements (when the props have a behavior script
 attached).
 
 
 ### Exits
-Rooms are connected to each other through exits. Available exists are shown as
+Rooms are connected to each other through exits. Available exits are shown as
 quick actions when looking at the room (and are displayed by default when entering
 the room for the first time). Selecting the quick action to take a specific exit
 moves the user to that room. 
 
 
 ### Environment and Effects
-Rooms can have both an enviroment defined on them, which affects how the room
-is displayed (for instance it is possible to apply visual effects like fog, night, etc)
+Rooms can have an environment defined on them, which affects how the room
+is displayed (for instance it is possible to apply visual effects like fog, night, etc.)
 Rooms can also have status effects that affect all peeps in the room. Status effects
-are recalcutaned and applied on each room tick.
+are recalculated and applied on each room tick.
 
 
 ### Room Editing
@@ -437,7 +441,7 @@ Room owners can edit a room by using the `Edit Room` core card. In-game room
 editing is more limited and allows the user to:
 - add / remove and edit the placement of props
 - add / remove room cards
-- modify other room properties like the enviroment display, room status effects etc.
+- modify other room properties like the environment display, room status effects etc.
 
 
 -------------------------------------------------------------------------------
@@ -463,7 +467,7 @@ or playing cards on them.
 
 -------------------------------------------------------------------------------
 ## Worlds
-Worlds are self-contained collections of rooms, peeps and cards that run on a tinyroom
+Worlds are self-contained collections of rooms, peeps and cards that run on a tinyrooms
 server. Each tinyrooms server runs a single world. Worlds are stored as a set of definition
 files which contain the initial room definitions, and a worldstate database, used to
 represent the dynamic, live state of the world (eg to store the position of peeps
@@ -482,11 +486,11 @@ modify the currently loaded world. Through the world editor users can:
 
 -------------------------------------------------------------------------------
 ## Peeps
-Peeps are the tinyroom implementation of active characters. Peeps can be either
+Peeps are the tinyrooms implementation of active characters. Peeps can be either
 user-controlled or NPCs governed by **behavior scripts**.
 
 All peeps in a room are displayed in a vertical column on the left side of the
-game screen, overlaying the room view. Peeps are displayed as sprites overlayed on a 
+game screen, overlaying the Board. Peeps are displayed as sprites overlayed on a 
 3D solid 'marker' that represents the peep as if it was a real board piece.  
 
 NPC Peeps are used to implement all types of non-player characters, from simple 
@@ -504,7 +508,7 @@ custom logic for the following game events:
 
 ### Dialogs
 NPC Peeps can respond to actions by opening a dialog tree: dialogs are shown in
-the UI through the look box (with quick actions used to choose the next action
+the UI through the Look Bar (with quick actions used to choose the next action
 in the dialog)
 
 
@@ -518,9 +522,9 @@ Activities are displayed in a 2D window overlayed to the room. Modal overlay UIs
 the inventory, journal etc. are always displayed on top of the activity window if
 one is running.
 
-The activity window can be dragger around, maximized and minimized. When 
-maximized the window covers the whole rom view without overlapping with the 
-peep sidebar and the bottom action / char bar. When minimized, only the window title bar
+The activity window can be dragged around, maximized and minimized. When 
+maximized the window covers the whole Board without overlapping with the 
+peep sidebar and the bottom action / chat bars. When minimized, only the window title bar
 is displayed. The bar flashes if the activity needs to notify the user.
 
 ![Example Activity: minigame where the user moves a lazer pointer before a kitty catches it](./images/activity-lazor-rush.png)
@@ -538,7 +542,7 @@ active and past **Tasks**, and **Memories**.
 ### Tasks
 ![Journal Tasks view](./images/journal-tasks.png)
 
-Tasks are activites the user can complete. Some of them may include multi-step
+Tasks are objectives the user can complete. Some of them may include multi-step
 challenges. Tasks may also have memories associated to them, which can be recalled
 using the memories quick action after selecting a task. This opens the memory
 tab of the journal, filtered to only show memory entries tagged with this task.
@@ -565,9 +569,9 @@ selected month.
 
 -------------------------------------------------------------------------------
 ## Commands and Administration
-All user interaction (includign quick actions, card plays, chat messages, etc.)
+All user interaction (including quick actions, card plays, chat messages, etc.)
 are sent to the server in the form of `command strings`. Commands generally start with a
-`:`.
+`.`.
 
 ### User Powers
 Users can have one or more powers, that determine the set of commands they have access to:
@@ -578,17 +582,17 @@ Users can have one or more powers, that determine the set of commands they have 
 - game-master: can control all gameplay aspects and rules.
 
 ### Command types
-- **Normal commands** start with `:` and run in-world (for example `:look`).
-- **Admin console commands** start with `/` and are forwarded to server console execution for users with `admin` power (except `/r` and `/k`, which are blocked from client use).
+- **Normal commands** start with `.` and run in-world (for example `.look`).
+- **Admin console commands** start with `\` and are forwarded to server console execution for users with `admin` power (except `\r` and `\k`, which are blocked from client use).
 
-Normal commands in the form `:cmd` can have different required permission levels
+Normal commands in the form `.cmd` can have different required permission levels
 (for instance a command to kick a player can only be executed if the user has `moderator` powers)
 
-## Target token formats
+### Target token formats
 
 Many commands take a `<target>` token:
 
 - `@obj:<obj_id>`: object (in room or your inventory, depending on command)
 - `@prop:<prop_instance_id>`: prop in current room
 - `@peep:<peep_id>` or `@<username>`: peep/user in current room
-- `@way:<way_id>`: room exit (for `:go`)
+- `@way:<way_id>`: room exit (for `.go`)
