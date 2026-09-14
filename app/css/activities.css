@@ -1,0 +1,94 @@
+.activity-layer {
+  position: absolute;
+  inset: 0 0 var(--tray-height, 0px);
+  z-index: 20;
+  isolation: isolate;
+  pointer-events: none;
+}
+.activity-layer > .activity-window { pointer-events: auto; }
+.app-shell:not(.has-view):not(.has-details):has(.activity-window) .bubble-layer { z-index: 19; }
+.activity-window {
+  box-sizing: border-box;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 2px solid #030b0d;
+  border-radius: 14px;
+  background: #061a21;
+  color: #f7f5ed;
+  box-shadow: 0 10px 26px #0009, 0 0 0 1px #b96d344d;
+}
+.activity-titlebar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 50px;
+  gap: 8px;
+  padding: 2px 5px 2px 12px;
+  background: linear-gradient(#10100eed, #020606);
+  border-bottom: 1px solid #a1693859;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.activity-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; }
+.activity-title strong {
+  color: #ffbb88;
+  font-size: clamp(16px, 2vw, 24px);
+  line-height: 1.1;
+  text-shadow: 0 1px 3px #b45124;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-subtitle { color: #e1e8e5; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.activity-controls { display: flex; gap: 2px; flex: 0 0 auto; }
+.activity-controls button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid #547c8366;
+  border-radius: 50%;
+  background: #13333b;
+  color: white;
+  font: 22px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+.activity-controls .activity-close { background: radial-gradient(circle, #e8762b 0 47%, #713715 50% 57%, transparent 61%); border-color: transparent; font-weight: bold; }
+.activity-controls button:hover { filter: brightness(1.2); }
+.activity-window :focus-visible, .activity-window:focus-visible { outline: 3px solid #f4ce88; outline-offset: -3px; }
+.activity-body { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 0 5px 5px; }
+.activity-body iframe { display: block; width: 100%; height: 100%; border: 1px solid #285867; background: #071c24; }
+.activity-window [hidden] { display: none !important; }
+.activity-window.dragging .activity-titlebar { cursor: grabbing; }
+.activity-window.dragging iframe { pointer-events: none; }
+.activity-window.attention .activity-titlebar { animation: activity-attention 1s ease-in-out infinite alternate; }
+.activity-window.required .activity-titlebar, .activity-window.maximized:not(.minimized) .activity-titlebar { cursor: default; }
+.onboarding .activity-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: auto;
+  background: radial-gradient(ellipse at 50% 35%, #144351, #03141b 75%);
+  overflow: hidden;
+}
+.onboarding .activity-window.required { box-shadow: 0 18px 64px #0009, 0 0 0 1px #b58b54; }
+@keyframes activity-attention { to { background-color: #826024; box-shadow: inset 0 0 22px #f2b46b70; } }
+@media (max-width: 480px) {
+  .activity-titlebar { gap: 4px; padding-left: 8px; }
+  .activity-title { display: block; }
+  .activity-title strong, .activity-subtitle { display: block; }
+  .activity-subtitle { font-size: 11px; }
+  .activity-controls { gap: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-window.attention .activity-titlebar { animation: none; box-shadow: inset 0 0 0 2px #f2b46b; }
+}

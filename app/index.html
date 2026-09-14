@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#061923">
+    <title>Tinyrooms</title>
+    <link rel="icon" href="/assets/stickers/s1.png">
+    <link rel="stylesheet" href="/app/css/main.css">
+    <link rel="stylesheet" href="/app/css/cards.css">
+    <link rel="stylesheet" href="/app/css/activities.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/app/vendor/three/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app" class="app-shell" data-auth="booting">
+      <aside id="peeps-panel" class="sidebar" aria-label="Peeps in this room"></aside>
+      <main class="board-column">
+        <header class="topbar">
+          <p id="connection-status" class="connection-status" aria-live="polite"></p>
+          <details id="settings" class="settings">
+            <summary class="icon-button" aria-label="Settings" title="Settings">&#9881;</summary>
+            <nav id="top-actions" class="top-actions" aria-label="Settings"></nav>
+          </details>
+        </header>
+        <section class="board-frame" aria-label="Room board">
+          <canvas id="board-canvas" aria-label="Three-dimensional room. Drag to rotate; scroll or pinch to zoom."></canvas>
+          <div id="board-overlay" class="board-overlay" aria-live="polite"></div>
+          <div id="activity-layer" class="activity-layer"></div>
+          <div id="panel-layer" class="panel-layer"></div>
+          <div id="detail-layer" class="detail-layer"></div>
+        </section>
+        <section class="bottom-stack">
+          <section id="card-hand" class="card-hand" aria-label="Core and equipped cards"></section>
+          <div class="interaction-dock">
+            <section id="look-bar" class="look-bar" aria-label="Current selection" aria-live="polite"></section>
+            <section id="actions-bar" class="actions-bar" aria-label="Actions for current selection"></section>
+            <form id="chat-form" class="chat-bar">
+              <button id="command-button" type="button" class="icon-button" aria-label="Open command menu" title="Commands">...</button>
+              <input id="chat-input" name="chat" autocomplete="off" maxlength="240" placeholder="Chat or command" aria-label="Chat message or command">
+              <button type="submit" class="icon-button send-button" aria-label="Send message" title="Send">&#8599;</button>
+            </form>
+          </div>
+        </section>
+      </main>
+      <aside id="action-log" class="log-panel" aria-label="Action Log"></aside>
+      <div id="bubble-layer" class="bubble-layer"></div>
+      <div id="global-modal-layer" class="global-modal-layer"></div>
+      <div id="auth-layer" class="auth-layer"></div>
+      <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+    </div>
+    <script type="module" src="/app/js/ui.js"></script>
+  </body>
+</html>

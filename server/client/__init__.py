@@ -1,0 +1,1 @@
+"""Client-side logic ported to Python for behavior verification without a browser."""

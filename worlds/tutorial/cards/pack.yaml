@@ -1,0 +1,7 @@
+# pack definition
+label: Tinyrooms Tutorial Pack
+description: The basic set of tutorial cards.
+back_image: back.webp
+price: 10
+size: 3
+cards: [ballet-shoes, fancy-wallet, hand-light, juicy-drink, lucille, plastic-bag, poop-in-a-bag, poop, pooper-scooper, seal-plushie, tasty-toast, tomato-sauce]

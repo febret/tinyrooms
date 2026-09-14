@@ -1,0 +1,112 @@
+ballet-shoes:
+  label: Ballet Shoes
+  description: Ribbon-tied shoes. Charisma +1 and Fanciness +2 while equipped.
+  image: ballet-shoes.webp
+  type: item
+  rarity: Common
+  stack_limit: 1
+  one_use: false
+  passive: true
+  bonuses: {charisma: 1, fanciness: 2}
+fancy-wallet:
+  label: Fancy Wallet
+  description: A little golden clasp and room for dreams. A decorative collectible.
+  image: fancy-wallet.webp
+  decorative: true
+hand-light:
+  label: Hand Light
+  description: Use in the basement to light it for 30 minutes. One use.
+  image: hand-light.webp
+  type: item
+  stack_limit: 10
+  one_use: true
+  energy_cost: 0
+  target: room
+  effect: light
+  duration: 1800
+juicy-drink:
+  label: Juicy Drink
+  description: Restore 25 Energy, even when Tired. Free to use on yourself.
+  image: juicy-drink.webp
+  type: item
+  stack_limit: 10
+  one_use: true
+  energy_cost: 0
+  target: self
+  effect: energy
+  amount: 25
+  works_while_tired: true
+lucille:
+  label: Lucille
+  description: Lucille, a very distinguished seal plushie. Decorative; no effects.
+  image: lucille.webp
+  decorative: true
+plastic-bag:
+  label: Plastic Bag
+  description: A simple plastic bag
+  image: pastic-bag.webp
+  stack_limit: 10
+poop-in-a-bag:
+  label: Poop in a Bag
+  description: A bag containing poop
+  image: poop-in-bag.webp
+  stack_limit: 10
+poop:
+  label: Poop
+  description: A piece of poop
+  image: poop.webp
+  stack_limit: 10
+pooper-scooper:
+  label: Pooper Scooper
+  description: A reusable scoop for Molly's litter tray. Supplies are in the utility room.
+  image: pooper-scooper.webp
+  one_use: false
+  target: prop
+seal-plushie:
+  label: Seal Plushie
+  description: A cute seal plushie, not stinky at all.
+  image: seal-plushie.webp
+  decorative: true
+tasty-toast:
+  label: Tasty Toast
+  description: Restore 10 Health to yourself or another peep. Costs 2 Energy.
+  image: tasty-toast.webp
+  stack_limit: 10
+  one_use: true
+  energy_cost: 2
+  target: peep
+  effect: health
+  amount: 10
+tomato-sauce:
+  label: Tomato Sauce
+  description: Restore 25 Health to yourself or another peep. Costs 2 Energy.
+  image: tomato-sauce.webp
+  stack_limit: 10
+  one_use: true
+  energy_cost: 2
+  target: peep
+  effect: health
+  amount: 25
+
+house-key:
+  label: House Key
+  description: A brass sunflower key. Opens the front door in the foyer.
+  image: house-key.webp
+  type: item
+  rarity: Common
+  stack_limit: 1
+  one_use: false
+  quest: true
+  effect: unlock
+  target: prop
+vacuum-cleaner:
+  label: Vacuum Cleaner
+  description: A cheerful little vacuum for the basement centipedes. Reusable.
+  image: vacuum-cleaner.webp
+  type: item
+  rarity: Common
+  stack_limit: 1
+  one_use: false
+  quest: true
+  effect: vacuum
+  target: prop

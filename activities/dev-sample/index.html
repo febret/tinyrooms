@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tinyrooms Sample Activity</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <style>
+      .layout { display: grid; gap: 16px; }
+      .controls { display: flex; flex-wrap: wrap; gap: 10px; }
+      .statusbox { display: grid; gap: 8px; min-width: 0; padding: 16px; border-radius: 8px; border: 1px solid var(--line); background: #03181f; }
+      .statusbox code { font: 12px/1.5 Consolas, monospace; color: #d9eee8; overflow-wrap: anywhere; white-space: pre-wrap; }
+      .prompt { min-height: 44px; width: 100%; padding: 10px 12px; border-radius: 22px; border: 1px solid #2f869c; color: var(--ink); background: #020d12; }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="heading">
+        <div>
+          <div class="badge">Tinyrooms activity</div>
+          <h1 id="title">Development Activity</h1>
+        </div>
+      </header>
+      <section class="paper layout reveal">
+        <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+        <p>This sample activity exists for lifecycle, postMessage, window-drag, minimize, maximize, and attention-flow testing. It only talks to its host through the shared TinyActivity bridge.</p>
+        <div class="controls">
+          <button type="button" class="primary" id="notify">Flash title bar</button>
+          <button type="button" id="say">Send chat line</button>
+          <button type="button" id="celebrate">Celebrate</button>
+          <button type="button" class="quiet" id="countdown">Start 8s timer</button>
+        </div>
+        <label>
+          <span class="badge">Custom command</span>
+          <input class="prompt" id="command" value=".look" spellcheck="false">
+        </label>
+        <div class="controls">
+          <button type="button" id="run">Run command</button>
+        </div>
+        <section class="statusbox">
+          <h2>Latest state</h2>
+          <code id="state" role="status"></code>
+        </section>
+      </section>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./dev-sample.js"></script>
+  </body>
+</html>

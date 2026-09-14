@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sticker Designer</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <style>
+      .intro { display: grid; gap: 8px; margin-bottom: 18px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(108px, 100%), 1fr)); gap: 20px 12px; align-items: start; padding: 8px 0; }
+      .sticker { display: grid; justify-items: center; gap: 8px; padding: 8px 4px; border-radius: 10px; border: 1px solid transparent; background: none; box-shadow: none; color: inherit; }
+      .sticker[aria-pressed="true"] { border-color: #e4c99977; background: #74a9a315; box-shadow: 0 0 18px #64ced333; }
+      .sticker img { width: min(100%, 94px); aspect-ratio: .82; object-fit: contain; border-radius: 48% 48% 8px 8px; border: 3px solid #c6ad7e; border-bottom: 9px solid #a68b5c; background: linear-gradient(120deg, #fff7df, #d9caaa); padding: 12px 6px 8px; box-shadow: 2px 5px 3px #0007, inset 0 0 0 2px #fff8; transition: transform .15s, filter .15s; }
+      .sticker[aria-pressed="true"] img { filter: drop-shadow(0 0 6px #66dccc); transform: translateY(-3px) rotate(-3deg); }
+      .sticker strong { max-width: 100%; font-size: 13px; overflow-wrap: anywhere; }
+      .current { color: var(--gold); font-size: 11px; }
+      .summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 16px; }
+      .summary p { color: var(--muted); font-size: 14px; }
+      @media (max-width: 480px) { .summary { flex-direction: column; align-items: stretch; } }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="heading">
+        <div>
+          <div class="badge">Your tiny room marker</div>
+          <h1>Sticker Designer</h1>
+        </div>
+      </header>
+      <section class="paper reveal">
+        <div class="intro">
+          <h2>Make yourself at home.</h2>
+          <p class="muted">Choose the sticker that appears beside your peep in the room.</p>
+          <p class="muted smallprint connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+        </div>
+        <div class="grid" id="grid" role="group" aria-label="Choose your sticker"></div>
+        <div class="summary">
+          <p id="summary" role="status">Pick a sticker to continue.</p>
+          <div class="actions">
+            <button type="button" class="quiet" id="announce">Flash host bar</button>
+            <button type="button" class="primary" id="confirm" disabled>Confirm sticker</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./sticker-designer.js"></script>
+  </body>
+</html>

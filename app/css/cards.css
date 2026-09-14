@@ -1,0 +1,172 @@
+.game-card {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 132px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #fff;
+  box-shadow: 0 4px 9px #0009;
+  vertical-align: bottom;
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+}
+.game-card > img { display: block; width: 100%; height: auto; border-radius: inherit; }
+.game-card.selected { transform: translateY(-5px); box-shadow: 0 0 0 2px #8ac4db, 0 0 13px #83cde3b3; }
+.game-card.is-equipped { box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
+.game-card.is-equipped.selected { box-shadow: 0 0 0 2px #f0c88a, 0 0 14px #f0c88a99; }
+.game-card:active:not(:disabled) { transform: translateY(-5px); }
+.game-card:focus-visible { outline: 3px solid #d4f3ff; outline-offset: 4px; z-index: 3; }
+.card-badge { position: absolute; padding: 2px 6px; min-width: 22px; border-radius: 12px; background: #061016ec; color: #fff; border: 1px solid #c5d7d6; font-size: 13px; line-height: 18px; font-weight: bold; text-align: center; }
+.quantity-badge { right: -4px; bottom: -3px; }
+.pin-badge { left: -4px; top: -4px; color: #f2c68c; }
+.equipped-badge { right: -4px; top: -4px; color: #c7f092; }
+.card-hand-section { display: flex; align-items: flex-end; gap: 10px; min-width: 0; width: 100%; height: 100%; }
+.card-hand-strip { display: flex; align-items: flex-end; gap: 8px; min-width: 0; max-width: 100%; padding: 12px 5px 6px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #335469 transparent; pointer-events: auto; }
+.card-hand .game-card { width: 88px; }
+.card-hand .core-expand { width: 88px; margin-bottom: 6px; box-shadow: none; }
+.equipped-hand { display: flex; align-items: flex-end; gap: 8px; min-width: 0; overflow-x: auto; padding: 12px 5px 6px; pointer-events: auto; }
+.equipped-hand.stashed { margin-left: auto; flex-shrink: 0; width: 110px; }
+.equipped-hand.stashed .game-card:not(:first-child) { margin-left: -72px; }
+.panel-layer:not(:empty), .detail-layer:not(:empty) { background: none; isolation: isolate; }
+.panel-layer:not(:empty)::before, .detail-layer:not(:empty)::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 calc(-1 * var(--tray-height));
+  z-index: -1;
+  background: #0009;
+  pointer-events: none;
+}
+.detail-layer:not(:empty)::before { background: #0003; }
+.board-modal {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 28px clamp(16px, 5vw, 70px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: #f5f5f1;
+  pointer-events: auto;
+}
+.board-modal .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-shrink: 0; }
+.board-modal .modal-header > div { flex: 1; min-width: 0; }
+.board-modal .modal-header h2 { font-size: clamp(20px, 2.3vw, 28px); line-height: 1.25; overflow-wrap: anywhere; }
+.board-modal .modal-header h2 span { color: #f1ad7e; }
+.board-modal .modal-header p { margin-top: 6px; color: #bec8ce; line-height: 1.4; overflow-wrap: anywhere; }
+.board-modal .modal-header .inventory-balance { color: #e6c47f; }
+.board-modal .modal-header button { flex-shrink: 0; }
+.room-view .modal-header > div { text-align: center; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 24px; align-items: start; padding: 10px 6px 12px; }
+.cards-grid .game-card { width: 100%; max-width: 145px; justify-self: start; }
+.modal-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; padding-right: 6px; }
+.inventory-group { margin-bottom: 24px; }
+.inventory-group > header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.inventory-group > header span { font-size: 13px; color: #b7c3cd; }
+.inventory-group h3 { font-size: 18px; font-weight: normal; color: #f2bb8e; }
+.board-modal .empty-state { grid-column: 1 / -1; padding: 26px 4px; color: #c1cbd2; line-height: 1.5; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; line-height: 1.5; overflow-wrap: anywhere; }
+.profile-grid p { margin-top: 8px; }
+.self-view .modal-header h2 { text-align: center; }
+.profile-identity { display: grid; justify-items: center; gap: 12px; }
+.profile-sticker { width: 86px; height: 100px; object-fit: contain; filter: drop-shadow(0 3px 4px #0008); }
+.profile-level { padding: 6px 18px; border-radius: 24px; background: #424b50; font-size: 15px; }
+.profile-counters { display: flex; justify-content: center; gap: 28px; margin: 0; text-align: center; }
+.profile-counters dt { color: #b5bfc5; font-size: 14px; }
+.profile-counters dd { margin: 6px 0 0; color: #efbb88; font-size: 28px; }
+.profile-location { color: #b5bfc5; text-align: center; font-size: 14px; }
+.profile-location strong { color: #f3f3ef; }
+.detail-layer:not(:empty) { display: grid; place-items: center; padding: 12px; }
+.details-popup {
+  position: relative;
+  width: min(750px, 100%, calc((100dvh - var(--dock-height) - var(--tray-height) - 145px) * 1.52 + 36px));
+  max-height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 92px 18px 8px;
+  pointer-events: auto;
+  scrollbar-width: thin;
+}
+.details-close { position: absolute; top: 0; left: 50%; margin-left: -38px; z-index: 2; }
+.details-book {
+  position: relative;
+  height: clamp(300px, calc(100dvh - var(--dock-height) - var(--tray-height) - 145px), 455px);
+  min-height: clamp(300px, calc(100dvh - var(--dock-height) - var(--tray-height) - 145px), 455px);
+  padding: 36px 8% 48px;
+  background: url("/app/assets/inspect-card.png") center / 100% 100% no-repeat;
+  color: #151718;
+  filter: drop-shadow(0 9px 15px #0008);
+}
+.details-front, .details-back { position: absolute; top: -65px; width: 90px; height: auto; border-radius: 5px; box-shadow: 0 4px 6px #0008; }
+.details-front { left: -12px; }
+.details-back { right: -12px; }
+.details-page { width: 45%; height: 100%; padding-top: 8px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; overflow-wrap: anywhere; }
+.details-page h2 { text-align: center; margin: 0 0 24px; font-size: 23px; line-height: 1.2; }
+.details-page p { font-size: 16px; line-height: 1.45; }
+.details-metrics { font-size: 14px; line-height: 1.5; margin: 20px 0 0; }
+.details-metrics > div { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.details-metrics dt { font-weight: bold; }
+.details-metrics dd { margin: 0; }
+.details-book .rarity-pill { position: absolute; right: 5%; bottom: 5%; margin: 0; padding: 5px 14px; background: linear-gradient(#323435, #020202); color: #fff; box-shadow: 0 3px 6px #0007; border-radius: 10px; text-transform: uppercase; font-size: 14px; font-weight: bold; }
+@media (hover: hover) {
+  .game-card:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 0 0 2px #89c4d1, 0 0 15px #83cde399; z-index: 2; filter: brightness(1.08); }
+}
+@media (max-width: 780px), (orientation: portrait) {
+  .card-hand-section { gap: 5px; }
+  .card-hand-strip { gap: 5px; }
+  .card-hand .game-card { width: 64px; }
+  .card-hand .core-expand { width: 64px; }
+  .equipped-hand.stashed { width: 74px; }
+  .equipped-hand.stashed .game-card:not(:first-child) { margin-left: -52px; }
+  .board-modal { padding: 20px 14px; gap: 14px; }
+  .board-modal .modal-header { padding-top: 36px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 20px 12px; }
+  .cards-grid .game-card { max-width: 128px; }
+  .details-popup { width: min(650px, 100%); padding: 86px 10px 5px; }
+  .details-book { height: auto; padding: 38px 7% 54px; min-height: 420px; }
+  .details-front, .details-back { width: 74px; top: -57px; }
+  .details-front { left: 0; }
+  .details-back { right: 0; }
+  .details-page { width: 46%; height: auto; }
+  .details-page h2 { font-size: 19px; margin-bottom: 16px; }
+  .details-page p { font-size: 14px; }
+  .details-metrics { font-size: 13px; }
+}
+@media (max-width: 480px) {
+  .card-hand .game-card { width: 64px; }
+  .card-hand .core-expand { width: 64px; }
+  .card-hand-strip { gap: 4px; padding-inline: 3px; }
+  .equipped-hand { gap: 4px; padding-inline: 3px; }
+  .equipped-hand.stashed { width: 70px; }
+  .equipped-hand.stashed .game-card:not(:first-child) { margin-left: -52px; }
+  .card-badge { font-size: 11px; line-height: 16px; min-width: 18px; padding: 0 3px; }
+  .board-modal .modal-header { gap: 6px; }
+  .board-modal .modal-header button { padding-inline: 12px; }
+  .board-modal .modal-header p { font-size: 13px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 18px 12px; }
+  .profile-grid { grid-template-columns: 1fr; gap: 0; }
+  .detail-layer:not(:empty) { padding: 6px; }
+  .details-book { padding-inline: 11% 8%; background: none; isolation: isolate; }
+  /* Keep the supplied page edges while giving the text page more room on phones. */
+  .details-book::before, .details-book::after { content: ""; position: absolute; inset-block: 0; z-index: -1; background-image: url("/app/assets/inspect-card.png"); background-size: 200% 100%; background-repeat: no-repeat; pointer-events: none; }
+  .details-book::before { left: 0; width: 76%; background-position: left center; }
+  .details-book::after { right: 0; width: 24%; background-position: right center; }
+  .details-page { width: 72%; }
+  .details-page h2 { font-size: 19px; }
+  .details-page p { font-size: 15px; }
+  .details-metrics { font-size: 14px; }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .card-hand .game-card { width: 44px; }
+  .card-hand .core-expand { width: 44px; }
+  .card-hand-strip, .equipped-hand { padding-top: 7px; }
+  .board-modal { padding-block: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-card { transition: none; }
+}

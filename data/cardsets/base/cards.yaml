@@ -1,0 +1,130 @@
+# Core controls are never collectible or included in packs.
+emotes:
+  label: Emotes
+  description: Opens the Emotes selector
+  image: emotes.webp
+inventory:
+  label: Inventory
+  description: Opens the Inventory
+  image: inventory.webp
+journal:
+  label: Journal
+  description: Opens the Journal
+  image: journal.webp
+skills:
+  label: Skills
+  description: Opens the Skills menu
+  image: skills.webp
+room:
+  label: Room
+  description: Looks at the Room
+  image: room.webp
+
+# Base emote cards
+smile:
+  label: Smile
+  description: Expresses a smile
+  image: smile.webp
+sigh:
+  label: Sigh
+  description: Expresses a sigh
+  image: sigh.webp
+goof:
+  label: Goof
+  description: Expresses a goof
+  image: goof.webp
+growl:
+  label: Growl
+  description: Expresses a growl
+  image: growl.webp
+
+
+# Base skill cards
+sturdy:
+  label: Sturdy
+  description: Increases physical resilience, Constitution +1
+  image: sturdy.webp
+  type: skill
+  rank: Script Kiddo
+  rarity: Common
+  bonuses: {constitution: 1}
+
+nimble:
+  label: Nimble
+  description: Light on your feet. Dexterity +1 while slotted.
+  image: nimble.webp
+  type: skill
+  rank: Script Kiddo
+  rarity: Common
+  bonuses: {dexterity: 1}
+charming:
+  label: Charming
+  description: A little everyday warmth. Charisma +1 while slotted.
+  image: charming.webp
+  type: skill
+  rank: Script Kiddo
+  rarity: Common
+  bonuses: {charisma: 1}
+stylish:
+  label: Stylish
+  description: Make your own entrance. Fanciness +1 while slotted.
+  image: stylish.webp
+  type: skill
+  rank: Script Kiddo
+  rarity: Common
+  bonuses: {fanciness: 1}
+spirited:
+  label: Spirited
+  description: A little extra get-up-and-go. Maximum Energy +10 while slotted.
+  image: spirited.webp
+  type: skill
+  rank: Script Kiddo
+  rarity: Uncommon
+  bonuses: {max_energy: 10}
+wave:
+  label: Little Wave
+  description: An animated hello, made for sharing.
+  image: wave.webp
+  animation: wave.gif
+  type: emote
+  category: Animation
+  rarity: Common
+happy-dance:
+  label: Happy Dance
+  description: A tiny, looping victory dance.
+  image: happy-dance.webp
+  animation: happy-dance.gif
+  type: emote
+  category: Animation
+  rarity: Common
+heart:
+  label: Warm Heart
+  description: Send a hand-drawn heart floating into the room.
+  image: heart.webp
+  animation: heart.gif
+  type: emote
+  category: Animation
+  rarity: Common
+starlight:
+  label: Starlight
+  description: A room-wide shower of golden paper stars. Purely decorative.
+  image: starlight.webp
+  type: emote
+  category: Effects
+  effect: starlight
+  rarity: Uncommon
+self:
+  label: Self
+  description: Check your counters, claim daily Bops, and level up.
+  image: self.webp
+  type: core
+friends:
+  label: Friends
+  description: Keep in touch with peeps you meet.
+  image: friends.webp
+  type: core
+edit-room:
+  label: Edit Room
+  description: Arrange a room you own. Changes are shared.
+  image: edit-room.webp
+  type: core

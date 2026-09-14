@@ -1,0 +1,29 @@
+# Status Definitions
+# Statuses are named buffs automatically applied / cleared based on counter conditions.
+sick:
+  label: Sick
+  description: This peep is not feeling well.
+  icon: "🤒"
+  applied_when: { counter: health, at_or_below: 0 }
+  cleared_when: { counter: health, above: 0 }
+  effects:
+    stats:
+      dexterity: -1
+      constitution: -1
+stinky:
+  label: Stinky
+  description: This peep could really use a bath.
+  icon: "🐷"
+  applied_when: { counter: cleanliness, at_or_below: 0 }
+  cleared_when: { counter: cleanliness, above: 0 }
+  effects:
+    stats:
+      charisma: -1
+      fanciness: -1
+tired:
+  label: Tired
+  description: This peep is out of energy.
+  icon: "😪"
+  applied_when: { counter: energy, at_or_below: 0 }
+  cleared_when: { counter: energy, at_or_above_fraction: 0.1 }
+  effects: {}

@@ -1,0 +1,192 @@
+"""Card interaction and serialization helpers."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from server.content.cards import CardCatalog, CardDefinition, CORE_CARD_IDS
+from server.profiles import AccountRecord, InventoryStack, ProfileRepository
+from server.state.migrations import DatabaseHub
+from server.state.world_state import RoomCardStack, WorldStateRepository
+
+
+@dataclass(frozen=True, slots=True)
+class CardMutationResult:
+    """Outcome of a pickup or drop command."""
+
+    inventory: list[dict[str, object]]
+    room_event: dict[str, object]
+    room_seq: int
+
+
+class CardService:
+    """Own serialization and mutation of room/inventory card stacks."""
+
+    def __init__(
+        self,
+        hub: DatabaseHub,
+        profiles: ProfileRepository,
+        world_state: WorldStateRepository,
+        catalog: CardCatalog,
+        world_id: str,
+    ) -> None:
+        self._hub = hub
+        self._profiles = profiles
+        self._world_state = world_state
+        self._catalog = catalog
+        self._world_id = world_id
+
+    def definition(self, card_def_id: str) -> CardDefinition:
+        """Return a loaded card definition by ID."""
+
+        return self._catalog.cards[card_def_id]
+
+    def serialize_definition(self, definition: CardDefinition) -> dict[str, object]:
+        """Serialize a card definition for clients."""
+
+        asset_kind = "base" if definition.source != self._world_id else f"world/{self._world_id}/cards"
+        payload = {
+            "id": definition.id,
+            "label": definition.label,
+            "description": definition.description,
+            "type": definition.type,
+            "collectible": definition.collectible,
+            "decorative": definition.decorative,
+            "stack_limit": definition.stack_limit,
+            "one_use": definition.one_use,
+            "passive": definition.passive,
+            "image_url": f"/assets/{asset_kind}/{definition.image_name}",
+            "rarity": definition.rarity,
+            "target": definition.target,
+            "effect": definition.effect,
+            "amount": definition.amount,
+            "duration": definition.duration,
+            "category": definition.category,
+            "rank": definition.rank,
+            "bonuses": definition.bonuses,
+            "quest": definition.quest,
+        }
+        return payload
+
+    def serialize_inventory_stack(self, stack: InventoryStack) -> dict[str, object]:
+        """Serialize an inventory stack for the client."""
+
+        definition = self.definition(stack.card_def_id)
+        return {
+            "stack_id": stack.stack_id,
+            "scope": stack.scope,
+            "world_id": stack.world_id,
+            "quantity": stack.quantity,
+            "equipped": stack.equipped,
+            "pinned": stack.pinned,
+            "definition": self.serialize_definition(definition),
+            "quick_actions": [
+                {"label": "Look", "command": f".look @card:{stack.stack_id}"},
+                {"label": "Drop 1", "command": f".drop @card:{stack.stack_id} 1"},
+            ],
+        }
+
+    def serialize_room_stack(self, stack: RoomCardStack) -> dict[str, object]:
+        """Serialize a room card stack for the client."""
+
+        definition = self.definition(stack.card_def_id)
+        return {
+            "stack_id": stack.stack_id,
+            "quantity": stack.quantity,
+            "pinned": stack.pinned,
+            "position": [stack.pos_x, stack.pos_y, stack.pos_z],
+            "definition": self.serialize_definition(definition),
+            "quick_actions": [
+                {"label": "Look", "command": f".look @card:{stack.stack_id}"},
+                {"label": "Pick up 1", "command": f".pickup @card:{stack.stack_id} 1"},
+            ],
+        }
+
+    def list_inventory_payload(self, account_id: str) -> list[dict[str, object]]:
+        """Serialize all visible inventory for the current world."""
+
+        return [
+            self.serialize_inventory_stack(stack)
+            for stack in self._profiles.list_inventory(account_id, self._world_id)
+        ]
+
+    def pickup(self, account: AccountRecord, room_id: str, stack_id: str, quantity: int) -> CardMutationResult:
+        """Move cards from a room stack into inventory atomically."""
+
+        with self._hub.transaction() as connection:
+            stack, deleted, seq = self._world_state.take_room_card(
+                connection,
+                room_id=room_id,
+                stack_id=stack_id,
+                quantity=quantity,
+            )
+            definition = self.definition(stack.card_def_id)
+            created_stacks = self._profiles.add_inventory_card(
+                connection,
+                account_id=account.id,
+                world_id=self._world_id if definition.collectible else None,
+                card_def_id=stack.card_def_id,
+                quantity=quantity,
+                scope="world" if definition.collectible else "global",
+                stack_limit=definition.stack_limit,
+            )
+            inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
+        event = {
+            "type": "room.card.removed" if deleted else "room.card.updated",
+            "stack_id": stack.stack_id,
+            "room_id": room_id,
+            "quantity": 0 if deleted else stack.quantity - quantity,
+            "picked_up_by": account.username_display,
+            "inventory_stack_ids": [created_stack.stack_id for created_stack in created_stacks],
+        }
+        return CardMutationResult(
+            inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
+            room_event=event,
+            room_seq=seq,
+        )
+
+    def drop(
+        self,
+        account: AccountRecord,
+        room_id: str,
+        stack_id: str,
+        quantity: int,
+        pos: tuple[float, float, float],
+    ) -> CardMutationResult:
+        """Move cards from inventory into a room atomically."""
+
+        with self._hub.transaction() as connection:
+            inventory_stack, _deleted = self._profiles.remove_inventory_quantity(
+                connection,
+                account_id=account.id,
+                world_id=self._world_id,
+                stack_id=stack_id,
+                quantity=quantity,
+            )
+            room_stack, seq = self._world_state.add_room_card(
+                connection,
+                room_id=room_id,
+                card_def_id=inventory_stack.card_def_id,
+                quantity=quantity,
+                pos=pos,
+            )
+            inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
+        event = {
+            "type": "room.card.added",
+            "room_id": room_id,
+            "stack": self.serialize_room_stack(room_stack),
+            "dropped_by": account.username_display,
+        }
+        return CardMutationResult(
+            inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
+            room_event=event,
+            room_seq=seq,
+        )
+
+    def toggle_favorite(self, account: AccountRecord, card_id: str) -> dict[str, object]:
+        """Toggle a favorite core card and return the updated favorites payload."""
+
+        if card_id not in CORE_CARD_IDS:
+            raise ValueError("Only core cards can be favorited in Milestone 1.")
+        updated = self._profiles.toggle_favorite(account.id, card_id)
+        return {"favorites": list(updated.favorites)}

@@ -1,0 +1,100 @@
+portal:
+  label: A Glowing Portal
+  description: A familiar doorway, shimmering with possibilities.
+  model: portal.glb
+  decorative: false
+dollhouse:
+  label: A Cute Dollhouse
+  description: A whole home in miniature. Search once every ten minutes, or step right inside.
+  model: dollhouse.glb
+  decorative: false
+shower:
+  label: Sunflower Shower
+  description: A warm shower washes away grime and restores Cleanliness.
+  model: shower.glb
+  decorative: false
+litter-tray:
+  label: Molly's Litter Tray
+  description: A little chore. Bring a pooper scooper from the utility room.
+  model: litter-tray.glb
+  decorative: false
+locked-front-door:
+  label: The Front Door
+  description: The garden is just outside. The spare key is in the dark basement.
+  model: locked-front-door.glb
+  decorative: false
+keys-cabinet:
+  label: Spare Key Cabinet
+  description: A tiny brass key hangs on the sunflower hook.
+  model: keys-cabinet.glb
+  decorative: false
+centipedes:
+  label: House Centipedes
+  description: All those tiny feet! The utility-room vacuum will help.
+  model: centipedes.glb
+  decorative: false
+vacuum-stand:
+  label: Vacuum Corner
+  description: A trusty wheeled vacuum. Borrow it to tidy the basement.
+  model: vacuum-stand.glb
+  decorative: false
+supply-shelf:
+  label: Helpful Supplies
+  description: A personal starter kit, not a lucky draw. Scoop, bags, a light and a drink.
+  model: supply-shelf.glb
+  decorative: false
+kitchen-counter:
+  label: Breakfast Counter
+  description: A gingham runner, warm toast and a happy little kettle.
+  model: kitchen-counter.glb
+  decorative: true
+craft-workbench:
+  label: The Mending Table
+  description: Choose Craft, then select ingredient stacks from your Inventory. Poop plus Plastic Bag makes Poop in a Bag.
+  model: craft-workbench.glb
+  decorative: false
+sofa:
+  label: Marmalade Sofa
+  description: Soft corduroy, striped cushions, and room for a friend.
+  model: sofa.glb
+  decorative: true
+bed:
+  label: Patchwork Bed
+  description: A quilt stitched from the colors of the house.
+  model: bed.glb
+  decorative: true
+plant:
+  label: Little Monstera
+  description: Glossy leaves, a wonky terracotta pot, and one new shoot.
+  model: plant.glb
+  decorative: true
+bookshelf:
+  label: Story Shelf
+  description: Hand-bound books and a tiny keepsake house.
+  model: bookshelf.glb
+  decorative: true
+framed-picture:
+  label: A Sunny Picture
+  description: A hand-painted sun over a little blue hill.
+  model: framed-picture.glb
+  decorative: true
+rug:
+  label: Woven Flower Rug
+  description: A scalloped rug with a cheerful embroidered flower.
+  model: rug.glb
+  decorative: true
+lamp:
+  label: Reading Lamp
+  description: Warm light under a pleated marigold shade.
+  model: lamp.glb
+  decorative: true
+vending:
+  label: Pocket Card Shop
+  description: Base and Tutorial packs. Three cards for 10 Bops; unlimited stock.
+  model: vending.glb
+  decorative: false
+stairs:
+  label: Little House Stairs
+  description: Rounded wooden steps and a hand-painted banister.
+  model: stairs.glb
+  decorative: false

@@ -1,0 +1,56 @@
+molly:
+  label: Molly
+  description: A curious cat with a weakness for laser dots.
+  room: playroom
+  image: molly.png
+  script: molly.py
+  actions: [["Play", ".play molly"], ["Pet", ".pet molly"], ["Chat", ".talk molly"]]
+  dialog:
+    start:
+      text: Mrrp! The dollhouse is a whole home. Enter whenever you like; searching it is just a bonus.
+      choices:
+        - {label: "How do I play?", next: play}
+        - {label: "What is a skill?", next: skills}
+        - {label: "Where are the supplies?", next: supplies}
+    play:
+      text: Keep the red dot away from my paws. Starting costs 1 Energy. Last twenty seconds, then let me catch it!
+      choices: [{label: Back, next: start}]
+    skills:
+      text: Your first portal trip earns 1 Kudos. Level up in Self, then put Sturdy into a Script Kiddo slot in Skills.
+      choices: [{label: Back, next: start}]
+    supplies:
+      text: Enter the dollhouse, go to the kitchen, then the utility room. Tools there belong to your own task progress.
+      choices: [{label: Back, next: start}]
+caretaker:
+  label: Pip
+  description: A cheerful caretaker with paint on their overalls.
+  room: foyer
+  image: caretaker.png
+  script: caretaker.py
+  actions: [["Chat", ".talk caretaker"]]
+  dialog:
+    start:
+      text: Welcome in! Pick one small thing to try. Your Journal remembers the rest.
+      choices:
+        - {label: House chores, next: chores}
+        - {label: Cards and crafting, next: cards}
+        - {label: Meeting peeps, next: friends}
+        - {label: Make it my own, next: room}
+    chores:
+      text: Supplies and a vacuum are behind the kitchen. Clean the bathroom litter tray, light the basement, and vacuum the little bugs. The spare front-door key is downstairs.
+      choices: [{label: "And then?", next: clean}, {label: Back, next: start}]
+    clean:
+      text: Equip a Hand Light and use it in the basement; one lasts thirty minutes. Grab another from supplies if you need it. A bathroom shower restores your Cleanliness.
+      choices: [{label: Back, next: start}]
+    cards:
+      text: Room shows cards on the floor. Pick one up, equip it in Inventory, or drop it for someone else. Choose Craft at the kitchen table and select one Poop and one Plastic Bag from your Inventory.
+      choices: [{label: About packs, next: packs}, {label: Back, next: start}]
+    packs:
+      text: Claim daily Bops in Self. The Hub shop sells Base and Tutorial packs for 10 Bops. Three independent cards; duplicates are possible. Useful task tools never require a lucky pack.
+      choices: [{label: Back, next: start}]
+    friends:
+      text: Select a peep to pin them or add a friend. Emotes work without equipping. Pick up animated emotes in the sitting room and garden. Chat is a nice place to start.
+      choices: [{label: Back, next: start}]
+    room:
+      text: Finish the litter, centipedes and outside tasks to earn permission to arrange the bedroom. Edit Room lets you move, rotate and resize props. Shared changes are visible to everyone.
+      choices: [{label: Back, next: start}]

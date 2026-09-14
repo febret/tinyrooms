@@ -1,0 +1,6 @@
+bagged-poop:
+  label: Bag it neatly
+  description: Put one piece of poop into one plastic bag.
+  ingredients: {poop: 1, plastic-bag: 1}
+  output: {poop-in-a-bag: 1}
+  energy_cost: 0
