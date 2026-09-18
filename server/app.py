@@ -16,10 +16,11 @@ from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSoc
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from server.accounts import AccountConflictError, AccountService, AuthenticationError
+from server.accounts import AccountConflictError, AccountService, AuthenticationError, LoginResult
 from server.commands.core import CommandContext, CommandError, build_registry, dispatch_command
 from server.commands.parser import CommandParseError, parse_command
-from server.config import AppConfig, load_config
+from server.commands.registry import CommandRegistry
+from server.config import AppConfig, ConfigError, ensure_contained, load_config
 from server.connections import ConnectionRegistry, LiveConnection
 from server.content.cards import CardCatalog, ContentError, load_card_catalog
 from server.content.worlds import WorldDefinition, load_world_definition
@@ -29,6 +30,7 @@ from server.protocol import (
     ProtocolError,
     error_envelope,
     parse_client_message,
+    presence_leave_event,
     result_envelope,
     room_event_envelope,
     room_snapshot_envelope,
@@ -94,7 +96,7 @@ class RuntimeState:
     activities: ActivityService
     connections: ConnectionRegistry
     rooms: RoomService
-    registry: object
+    registry: CommandRegistry
 
 
 def _client_source_key(request: Request) -> str:
@@ -133,11 +135,10 @@ def _clear_session_cookies(response: Response) -> None:
 
 
 def _safe_path(root: Path, requested_path: str) -> Path:
-    resolved_root = root.resolve()
-    candidate = (resolved_root / requested_path).resolve()
-    if candidate == resolved_root or resolved_root in candidate.parents:
-        return candidate
-    raise HTTPException(status_code=404, detail="Not found.")
+    try:
+        return ensure_contained(root / requested_path, root, "asset")
+    except ConfigError as exc:
+        raise HTTPException(status_code=404, detail="Not found.") from exc
 
 
 def _render_fallback_activity(kind: str) -> HTMLResponse:
@@ -152,6 +153,18 @@ def _render_fallback_activity(kind: str) -> HTMLResponse:
 </body>
 </html>"""
     return HTMLResponse(body)
+
+
+def _auth_response(runtime: RuntimeState, result: LoginResult, account: AccountRecord) -> Response:
+    response = JSONResponse(
+        {
+            "ok": True,
+            "csrf_token": result.csrf_token,
+            "user": _serialize_account(runtime, account),
+        }
+    )
+    _set_session_cookies(response, token=result.session_token, csrf_token=result.csrf_token, expires_at=result.expires_at)
+    return response
 
 
 def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str, object]:
@@ -229,13 +242,12 @@ async def _handle_replaced_connection(
             runtime,
             room_id=replaced.room_id,
             seq=seq,
-            event={
-                "type": "presence.leave",
-                "room_id": replaced.room_id,
-                "account_id": replaced.account_id,
-                "username": replaced.username,
-                "reason": reason,
-            },
+            event=presence_leave_event(
+                account_id=replaced.account_id,
+                username=replaced.username,
+                room_id=replaced.room_id,
+                reason=reason,
+            ),
             exclude_account_id=replaced.account_id,
         )
     await runtime.connections.send_session_replaced(replaced, message)
@@ -265,7 +277,6 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         card_service=cards,
         activities=activities,
         world=world,
-        catalog=catalog,
     )
     registry = build_registry()
     return RuntimeState(
@@ -377,15 +388,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             payload.passphrase or "",
             _client_source_key(request),
         )
-        response = JSONResponse(
-            {
-                "ok": True,
-                "csrf_token": result.csrf_token,
-                "user": _serialize_account(runtime, result.account),
-            }
-        )
-        _set_session_cookies(response, token=result.session_token, csrf_token=result.csrf_token, expires_at=result.expires_at)
-        return response
+        return _auth_response(runtime, result, result.account)
 
     @app.post("/api/auth/login")
     async def login(request: Request, payload: AuthRequest) -> Response:
@@ -396,15 +399,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         replaced = await runtime.connections.get(account.id)
         if replaced is not None:
             await _handle_replaced_connection(runtime, replaced)
-        response = JSONResponse(
-            {
-                "ok": True,
-                "csrf_token": result.csrf_token,
-                "user": _serialize_account(runtime, account),
-            }
-        )
-        _set_session_cookies(response, token=result.session_token, csrf_token=result.csrf_token, expires_at=result.expires_at)
-        return response
+        return _auth_response(runtime, result, account)
 
     @app.post("/api/auth/logout")
     async def logout(request: Request) -> Response:
@@ -632,12 +627,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     runtime,
                     room_id=connection.room_id,
                     seq=leave_seq,
-                    event={
-                        "type": "presence.leave",
-                        "room_id": connection.room_id,
-                        "account_id": account.id,
-                        "username": account.username_display,
-                    },
+                    event=presence_leave_event(
+                        account_id=account.id,
+                        username=account.username_display,
+                        room_id=connection.room_id,
+                    ),
                     exclude_account_id=account.id,
                 )
                 runtime.activities.close(account.id)

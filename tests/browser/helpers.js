@@ -65,21 +65,6 @@ export async function travel(page, exit = "exit0", label = "The Playroom") {
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
 }
 
-export async function assertDock(page) {
-  const size = page.viewportSize();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
-  for (const selector of ["#chat-input", "#command-button", "#card-hand [data-core-id=room]", "#peeps-panel .self button"]) {
-    const element = page.locator(selector);
-    await expect(element).toBeVisible();
-    const box = await element.boundingBox();
-    expect(box.x, `${selector} left`).toBeGreaterThanOrEqual(0);
-    expect(box.y, `${selector} top`).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width, `${selector} right`).toBeLessThanOrEqual(size.width + 1);
-    expect(box.y + box.height, `${selector} bottom`).toBeLessThanOrEqual(size.height + 1);
-    expect(box.height, `${selector} touch height`).toBeGreaterThanOrEqual(44);
-  }
-}
-
 export async function bootstrap(page) {
   const response = await page.request.get("/api/bootstrap");
   expect(response.ok()).toBeTruthy();

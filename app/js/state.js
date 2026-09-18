@@ -45,29 +45,29 @@ function normalizeCardDefinition(definition) {
   };
 }
 
-function normalizeInventoryStack(stack) {
-  const definition = normalizeCardDefinition(stack?.definition);
+function normalizeStackBase(stack) {
   return {
     stackId: String(stack?.stack_id || ""),
-    scope: String(stack?.scope || ""),
-    worldId: stack?.world_id ? String(stack.world_id) : "",
     quantity: Number(stack?.quantity || 0),
-    equipped: Boolean(stack?.equipped),
     pinned: Boolean(stack?.pinned),
-    definition,
+    definition: normalizeCardDefinition(stack?.definition),
     quickActions: normalizeQuickActions(stack?.quick_actions),
   };
 }
 
-function normalizeRoomCard(stack) {
-  const definition = normalizeCardDefinition(stack?.definition);
+function normalizeInventoryStack(stack) {
   return {
-    stackId: String(stack?.stack_id || ""),
-    quantity: Number(stack?.quantity || 0),
-    pinned: Boolean(stack?.pinned),
+    ...normalizeStackBase(stack),
+    scope: String(stack?.scope || ""),
+    worldId: stack?.world_id ? String(stack.world_id) : "",
+    equipped: Boolean(stack?.equipped),
+  };
+}
+
+function normalizeRoomCard(stack) {
+  return {
+    ...normalizeStackBase(stack),
     position: Array.isArray(stack?.position) ? stack.position : [50, 50, 0],
-    definition,
-    quickActions: normalizeQuickActions(stack?.quick_actions),
   };
 }
 
@@ -99,32 +99,32 @@ function normalizeProp(prop) {
   };
 }
 
-function normalizeOccupant(occupant) {
+function normalizeActor(entity, { kind, labelSource }) {
   return {
-    id: String(occupant?.id || ""),
-    username: String(occupant?.username || occupant?.label || "Peep"),
-    kind: String(occupant?.kind || "user"),
-    label: String(occupant?.username || occupant?.label || "Peep"),
-    description: String(occupant?.description || ""),
-    stickerUrl: assetOrEmpty(occupant?.sticker_url || occupant?.image_url),
-    quickActions: normalizeQuickActions(occupant?.quick_actions),
+    id: String(entity?.id || ""),
+    username: labelSource,
+    kind,
+    label: labelSource,
+    description: String(entity?.description || ""),
+    stickerUrl: assetOrEmpty(entity?.sticker_url || entity?.image_url),
+    quickActions: normalizeQuickActions(entity?.quick_actions),
     bubble: null,
     bubbleDismissed: false,
   };
 }
 
+function normalizeOccupant(occupant) {
+  return normalizeActor(occupant, {
+    kind: String(occupant?.kind || "user"),
+    labelSource: String(occupant?.username || occupant?.label || "Peep"),
+  });
+}
+
 function normalizeNpc(npc) {
-  return {
-    id: String(npc?.id || ""),
-    username: String(npc?.label || npc?.id || "NPC"),
+  return normalizeActor(npc, {
     kind: String(npc?.kind || "npc"),
-    label: String(npc?.label || npc?.id || "NPC"),
-    description: String(npc?.description || ""),
-    stickerUrl: assetOrEmpty(npc?.image_url),
-    quickActions: normalizeQuickActions(npc?.quick_actions),
-    bubble: null,
-    bubbleDismissed: false,
-  };
+    labelSource: String(npc?.label || npc?.id || "NPC"),
+  });
 }
 
 function normalizeChatEntry(entry) {
@@ -152,7 +152,7 @@ function normalizeActivity(activity) {
   };
 }
 
-export function normalizeUser(user) {
+function normalizeUser(user) {
   if (!user) return null;
   return {
     id: String(user.id || ""),
@@ -174,7 +174,7 @@ export function normalizeUser(user) {
   };
 }
 
-export function normalizeRoom(room) {
+function normalizeRoom(room) {
   if (!room) return null;
   return {
     id: String(room.id || ""),
@@ -402,7 +402,7 @@ function dismissInvalidSelection(state) {
   return state;
 }
 
-export function createInitialState() {
+function createInitialState() {
   return {
     sessionChecked: false,
     loggedIn: false,
@@ -509,11 +509,12 @@ function reduce(state, action) {
   }
   if (action.type === "room-event") return dismissInvalidSelection(applyServerEvent(state, action.event));
   if (action.type === "session-replaced") {
+    const state = createInitialState();
     return {
-      ...createInitialState(),
+      ...state,
       sessionChecked: true,
       transport: { connected: false, status: "replaced", message: action.message || "This session was replaced elsewhere." },
-      ui: { ...createInitialState().ui, toasts: [toastRecord(action.message || "This session was replaced elsewhere.", "error")] },
+      ui: { ...state.ui, toasts: [toastRecord(action.message || "This session was replaced elsewhere.", "error")] },
     };
   }
   return state;

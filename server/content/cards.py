@@ -5,15 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-import yaml
 
+from server.content.common import ContentError, load_yaml_file, require_mapping
 
 CORE_CARD_IDS = frozenset({"room", "emotes", "inventory", "journal", "skills", "self", "friends", "edit-room"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart", "starlight"})
-
-
-class ContentError(ValueError):
-    """Raised when content definitions are malformed."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,17 +68,6 @@ class CardCatalog:
     packs: dict[str, PackDefinition]
 
 
-def _load_yaml_file(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
-
-
-def _require_mapping(payload: Any, path: Path) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise ContentError(f"{path} must contain a top-level mapping.")
-    return payload
-
-
 def _detect_type(card_id: str, raw_card: dict[str, Any]) -> str:
     if isinstance(raw_card.get("type"), str):
         return raw_card["type"]
@@ -94,7 +79,7 @@ def _detect_type(card_id: str, raw_card: dict[str, Any]) -> str:
 
 
 def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
-    payload = _require_mapping(_load_yaml_file(path), path)
+    payload = require_mapping(load_yaml_file(path), path)
     cards: dict[str, CardDefinition] = {}
     for card_id, raw_card in payload.items():
         if not isinstance(card_id, str) or not isinstance(raw_card, dict):
@@ -145,7 +130,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
 
 
 def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefinition], source: str) -> PackDefinition:
-    payload = _require_mapping(_load_yaml_file(path), path)
+    payload = require_mapping(load_yaml_file(path), path)
     label = str(payload.get("label", "")).strip()
     description = str(payload.get("description", "")).strip()
     if not label or not description:

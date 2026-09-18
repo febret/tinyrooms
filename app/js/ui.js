@@ -3,7 +3,7 @@ import { createActivityManager } from "./activities.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, describeSelection, selectionActions } from "./cards.js";
-import { COMMANDS, buildDropCommand, buildPickupCommand, chatToCommand } from "./commands.js";
+import { COMMANDS, buildQuantityCommand, chatToCommand } from "./commands.js";
 import { createDialogs } from "./dialogs.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
@@ -70,12 +70,16 @@ function connectSocket() {
   socket.connect();
 }
 
-async function syncLoggedInState(session) {
-  store.dispatch({ type: "session", loggedIn: session.logged_in, csrfToken: session.csrf_token || "", user: session.user || null });
-  if (!session.logged_in) return;
+async function refreshBootstrapAndConnect() {
   const bootstrap = await api.getBootstrap();
   store.dispatch({ type: "bootstrap", user: bootstrap.user });
   if (store.getState().user?.initialStickerComplete) connectSocket();
+}
+
+async function syncLoggedInState(session) {
+  store.dispatch({ type: "session", loggedIn: session.logged_in, csrfToken: session.csrf_token || "", user: session.user || null });
+  if (!session.logged_in) return;
+  await refreshBootstrapAndConnect();
 }
 
 async function loadApp() {
@@ -105,11 +109,8 @@ async function bridgeActivity(activity, type, payload = {}) {
 
 async function confirmSticker(sticker) {
   await api.confirmSticker(sticker);
-  const bootstrap = await api.getBootstrap();
-  store.dispatch({ type: "bootstrap", user: bootstrap.user });
+  await refreshBootstrapAndConnect();
   toast("Sticker confirmed.", "success");
-  if (store.getState().user?.initialStickerComplete) connectSocket();
-  return { message: "Sticker confirmed." };
 }
 
 async function openCommands() {
@@ -152,9 +153,7 @@ async function handleAction(action) {
   } else if (action.type === "quantity") {
     const quantity = await dialogs.quantity(action.intent, action.max);
     if (quantity === null) return;
-    const command = action.intent === "pickup"
-      ? buildPickupCommand(action.stackId, quantity) : buildDropCommand(action.stackId, quantity);
-    try { await sendCommand(command); } catch (error) { showError(error); }
+    try { await sendCommand(buildQuantityCommand(action.intent, action.stackId, quantity)); } catch (error) { showError(error); }
   }
 }
 
@@ -296,9 +295,7 @@ function renderAuth(state) {
     try {
       const response = state.auth.mode === "login" ? await api.login(payload) : await api.createAccount(payload);
       store.dispatch({ type: "session", loggedIn: true, csrfToken: response.csrf_token || api.getCsrfToken(), user: response.user });
-      const bootstrap = await api.getBootstrap();
-      store.dispatch({ type: "bootstrap", user: bootstrap.user });
-      if (store.getState().user?.initialStickerComplete) connectSocket();
+      await refreshBootstrapAndConnect();
     } catch (error) {
       store.dispatch({ type: "auth-busy", busy: false, error: error instanceof Error ? error.message : String(error) });
     }

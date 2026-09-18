@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from server.connections import ConnectionRegistry
-from server.content.cards import CardCatalog
-from server.content.worlds import PeepDefinition, QuickAction, RoomDefinition, WorldDefinition
+from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
 from server.profiles import AccountRecord, ProfileRepository
-from server.protocol import MAX_CHAT_SIZE
+from server.protocol import MAX_CHAT_SIZE, presence_enter_event, presence_leave_event
 from server.services.activities import ActivityService
 from server.services.cards import CardService
 from server.state.migrations import DatabaseHub
@@ -21,6 +20,7 @@ class NavigationResult:
 
     source_room_id: str
     destination_room_id: str
+    source_seq: int
     destination_seq: int
     destination_snapshot: dict[str, object]
     source_event: dict[str, object]
@@ -43,7 +43,6 @@ class RoomService:
         card_service: CardService,
         activities: ActivityService,
         world: WorldDefinition,
-        catalog: CardCatalog,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -52,7 +51,6 @@ class RoomService:
         self._card_service = card_service
         self._activities = activities
         self._world = world
-        self._catalog = catalog
 
     def current_room_for_account(self, account_id: str) -> str:
         """Return the remembered room for the given account."""
@@ -62,6 +60,31 @@ class RoomService:
         if remembered in self._world.rooms:
             return remembered
         return self._world.entry_room_id
+
+    @property
+    def world_id(self) -> str:
+        """Return the active world identifier."""
+
+        return self._world.id
+
+    def room_definition(self, room_id: str) -> RoomDefinition:
+        """Return the world definition for a room."""
+
+        return self._world.rooms[room_id]
+
+    def prop_definition(self, prop_id: str) -> PropDefinition:
+        """Return the world definition for a prop."""
+
+        return self._world.props[prop_id]
+
+    def room_peeps(self, room_id: str) -> list[dict[str, object]]:
+        """Serialize the NPC peeps present in a room."""
+
+        return self._room_peeps(room_id)
+
+    @staticmethod
+    def _exit_command(exit_id: str) -> str:
+        return f".go @way:{exit_id}"
 
     def _normalize_quick_action(
         self,
@@ -75,7 +98,7 @@ class RoomService:
                 exit_definition = room.exits[remainder]
                 if exit_definition.target_room_id not in self.MILESTONE_ROOM_IDS:
                     return None
-                command = f".go @way:{remainder}"
+                command = self._exit_command(remainder)
         if command.split(maxsplit=1)[0] not in {
             ".go",
             ".inspect",
@@ -144,11 +167,38 @@ class RoomService:
             ],
         }
 
+    def _serialize_exit(self, exit_definition: ExitDefinition) -> dict[str, object]:
+        return {
+            "id": exit_definition.id,
+            "label": exit_definition.label,
+            "target_room_id": exit_definition.target_room_id,
+            "locked": exit_definition.locked,
+            "requires_card_id": exit_definition.requires_card_id,
+            "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
+        }
+
+    def _serialize_prop(self, room: RoomDefinition, prop: PropInstanceDefinition) -> dict[str, object]:
+        prop_definition = self._world.props[prop.prop_id]
+        return {
+            "id": prop.id,
+            "prop_id": prop.prop_id,
+            "position": list(prop.pos),
+            "rotation": list(prop.rot),
+            "scale": prop.scale,
+            "behavior": prop.behavior,
+            "model_url": f"/assets/world/{self._world.id}/props/{prop_definition.model_name}",
+            "label": prop_definition.label,
+            "description": prop_definition.description,
+            "quick_actions": self._visible_prop_actions(room, prop.actions),
+        }
+
     async def build_snapshot(self, account: AccountRecord, room_id: str, *, note: str | None = None) -> dict[str, object]:
         """Build a coherent room snapshot for a specific account."""
 
         room = self._world.rooms[room_id]
         occupants = await self.room_occupants(room_id)
+        visible_definitions = self._visible_exits(room)
+        visible_exits = [self._serialize_exit(exit_definition) for exit_definition in visible_definitions]
         return {
             "id": room.id,
             "label": room.label,
@@ -161,32 +211,8 @@ class RoomService:
                 "dark": room.dark,
             },
             "metadata": {"note": note},
-            "exits": [
-                {
-                    "id": exit_definition.id,
-                    "label": exit_definition.label,
-                    "target_room_id": exit_definition.target_room_id,
-                    "locked": exit_definition.locked,
-                    "requires_card_id": exit_definition.requires_card_id,
-                    "quick_action": {"label": exit_definition.label, "command": f".go @way:{exit_definition.id}"},
-                }
-                for exit_definition in self._visible_exits(room)
-            ],
-            "props": [
-                {
-                    "id": prop.id,
-                    "prop_id": prop.prop_id,
-                    "position": list(prop.pos),
-                    "rotation": list(prop.rot),
-                    "scale": prop.scale,
-                    "behavior": prop.behavior,
-                    "model_url": f"/assets/world/{self._world.id}/props/{self._world.props[prop.prop_id].model_name}",
-                    "label": self._world.props[prop.prop_id].label,
-                    "description": self._world.props[prop.prop_id].description,
-                    "quick_actions": self._visible_prop_actions(room, prop.actions),
-                }
-                for prop in room.props.values()
-            ],
+            "exits": visible_exits,
+            "props": [self._serialize_prop(room, prop) for prop in room.props.values()],
             "occupants": occupants,
             "npcs": self._room_peeps(room_id),
             "room_cards": [self._card_service.serialize_room_stack(stack) for stack in self._world_state.list_room_cards(room_id)],
@@ -195,13 +221,7 @@ class RoomService:
             "favorites": list(account.favorites),
             "quick_actions": [
                 {"label": "Look around", "command": ".look"},
-                *[
-                    {
-                        "label": exit_definition.label,
-                        "command": f".go @way:{exit_definition.id}",
-                    }
-                    for exit_definition in self._visible_exits(room)
-                ],
+                *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],
             ],
         }
 
@@ -255,22 +275,20 @@ class RoomService:
         return NavigationResult(
             source_room_id=source_room_id,
             destination_room_id=destination_room.id,
+            source_seq=source_seq,
             destination_seq=destination_seq,
             destination_snapshot=snapshot,
-            source_event={
-                "type": "presence.leave",
-                "room_id": source_room_id,
-                "account_id": account.id,
-                "username": account.username_display,
-                "destination_room_id": destination_room.id,
-                "seq": source_seq,
-            },
-            destination_event={
-                "type": "presence.enter",
-                "room_id": destination_room.id,
-                "account_id": account.id,
-                "username": account.username_display,
-                "source_room_id": source_room_id,
-            },
+            source_event=presence_leave_event(
+                account_id=account.id,
+                username=account.username_display,
+                room_id=source_room_id,
+                destination_room_id=destination_room.id,
+            ),
+            destination_event=presence_enter_event(
+                account_id=account.id,
+                username=account.username_display,
+                room_id=destination_room.id,
+                source_room_id=source_room_id,
+            ),
             closed_activity=None if closed is None else self._activities.serialize(closed),
         )

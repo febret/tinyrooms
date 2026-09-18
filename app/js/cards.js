@@ -1,9 +1,7 @@
-import { buildDropCommand, buildFavoriteCommand, buildPickupCommand } from "./commands.js";
+import { CARD_BACK } from "./board.js";
+import { buildFavoriteCommand } from "./commands.js";
 import { CORE_CARDS, CORE_ORDER, findInventoryCard, findRoomCard, findSelectedEntity } from "./state.js";
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
-}
+import { escapeHtml } from "./presentation.js";
 
 function rarityLabel(definition) {
   return definition?.rarity || (definition?.type === "core" ? "Core" : definition?.type ? definition.type : "Card");
@@ -67,16 +65,41 @@ function bindCardButtons(root, onSelect, onAction) {
   });
 }
 
+function cardsGrid(stacks, scope, selection, emptyText) {
+  const kind = scope === "room" ? "room-card" : "inventory-card";
+  return `
+    <div class="cards-grid">
+      ${stacks.length
+        ? stacks.map(stack => tileMarkup(stack.definition, stack, selection.kind === kind && selection.id === stack.stackId, scope)).join("")
+        : `<div class="empty-state">${emptyText}</div>`}
+    </div>
+  `;
+}
+
 function inventorySection(state, title, predicate) {
   const stacks = state.room?.inventory?.filter(predicate) || [];
   return `
     <section class="inventory-group">
       <header><h3>${escapeHtml(title)}</h3><span>${stacks.length}</span></header>
-      <div class="cards-grid">
-        ${stacks.length
-          ? stacks.map(stack => tileMarkup(stack.definition, stack, state.selection.kind === "inventory-card" && state.selection.id === stack.stackId, "inventory")).join("")
-          : `<div class="empty-state">Nothing here yet.</div>`}
-      </div>
+      ${cardsGrid(stacks, "inventory", state.selection, "Nothing here yet.")}
+    </section>
+  `;
+}
+
+const PLACEHOLDER_VIEWS = {
+  skills: ["Skills", "Skill slots are not available yet."],
+  journal: ["Journal", "Tasks and memories are not available yet."],
+  friends: ["Friends", "Friend lists are not available yet."],
+};
+
+function modalShell({ extraClass = "", ariaLabel, title, subtitle = "", body }) {
+  return `
+    <section class="board-modal ${extraClass}" role="dialog" aria-modal="false" aria-label="${escapeHtml(ariaLabel)}">
+      <header class="modal-header">
+        <div><h2>${title}</h2>${subtitle}</div>
+        <button type="button" class="quiet" data-close-view="1">Close</button>
+      </header>
+      ${body}
     </section>
   `;
 }
@@ -85,79 +108,51 @@ function boardModal(state) {
   const view = state.views.main;
   if (!view || !state.room) return "";
   if (view === "room") {
-    return `
-      <section class="board-modal room-view" role="dialog" aria-modal="false" aria-label="Room View">
-        <header class="modal-header">
-          <div><h2>You see these in <span>${escapeHtml(state.room.label)}</span>:</h2><p>${escapeHtml(state.room.description)}</p></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
-        <div class="cards-grid">
-          ${state.room.roomCards.length
-            ? state.room.roomCards.map(stack => tileMarkup(stack.definition, stack, state.selection.kind === "room-card" && state.selection.id === stack.stackId, "room")).join("")
-            : `<div class="empty-state">No room cards are visible in this room.</div>`}
-        </div>
-      </section>
-    `;
+    return modalShell({
+      extraClass: "room-view",
+      ariaLabel: "Room View",
+      title: `You see these in <span>${escapeHtml(state.room.label)}</span>:`,
+      subtitle: `<p>${escapeHtml(state.room.description)}</p>`,
+      body: cardsGrid(state.room.roomCards, "room", state.selection, "No room cards are visible in this room."),
+    });
   }
   if (view === "inventory") {
-    return `
-      <section class="board-modal wide inventory-view" role="dialog" aria-modal="false" aria-label="Inventory">
-        <header class="modal-header">
-          <div><h2>Your Inventory</h2><p class="inventory-balance">${escapeHtml(state.user?.bops ?? 0)} Bops</p></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
+    return modalShell({
+      extraClass: "wide inventory-view",
+      ariaLabel: "Inventory",
+      title: "Your Inventory",
+      subtitle: `<p class="inventory-balance">${escapeHtml(state.user?.bops ?? 0)} Bops</p>`,
+      body: `
         <div class="modal-scroll">
           ${inventorySection(state, "Items", stack => stack.definition?.type !== "emote" && stack.definition?.type !== "skill")}
           ${inventorySection(state, "Emotes", stack => stack.definition?.type === "emote")}
           ${inventorySection(state, "Skills", stack => stack.definition?.type === "skill")}
         </div>
-      </section>
-    `;
+      `,
+    });
   }
   if (view === "emotes") {
-    return `
-      <section class="board-modal" role="dialog" aria-modal="false" aria-label="Emotes">
-        <header class="modal-header">
-          <div><h2>Your Emotes</h2></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
-        <div class="cards-grid">
-          ${state.room.inventory.filter(stack => stack.definition?.type === "emote").length
-            ? state.room.inventory.filter(stack => stack.definition?.type === "emote").map(stack => tileMarkup(stack.definition, stack, state.selection.kind === "inventory-card" && state.selection.id === stack.stackId, "inventory")).join("")
-            : `<div class="empty-state">You do not own any emotes yet.</div>`}
-        </div>
-      </section>
-    `;
+    const emotes = state.room.inventory.filter(stack => stack.definition?.type === "emote");
+    return modalShell({
+      ariaLabel: "Emotes",
+      title: "Your Emotes",
+      body: cardsGrid(emotes, "inventory", state.selection, "You do not own any emotes yet."),
+    });
   }
-  if (view === "skills") {
-    return `
-      <section class="board-modal" role="dialog" aria-modal="false" aria-label="Skills">
-        <header class="modal-header">
-          <div><h2>Your Skills</h2></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
-        <div class="empty-state">Skill slots are not available yet.</div>
-      </section>
-    `;
-  }
-  if (view === "journal") {
-    return `
-      <section class="board-modal" role="dialog" aria-modal="false" aria-label="Journal">
-        <header class="modal-header">
-          <div><h2>Your Journal</h2></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
-        <div class="empty-state">Tasks and memories are not available yet.</div>
-      </section>
-    `;
+  if (view in PLACEHOLDER_VIEWS) {
+    const [label, emptyText] = PLACEHOLDER_VIEWS[view];
+    return modalShell({
+      ariaLabel: label,
+      title: `Your ${label}`,
+      body: `<div class="empty-state">${emptyText}</div>`,
+    });
   }
   if (view === "self") {
-    return `
-      <section class="board-modal self-view" role="dialog" aria-modal="false" aria-label="Self">
-        <header class="modal-header">
-          <div><h2>${escapeHtml(state.user?.username || "You")}</h2></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
+    return modalShell({
+      extraClass: "self-view",
+      ariaLabel: "Self",
+      title: escapeHtml(state.user?.username || "You"),
+      body: `
         <div class="profile-identity">
           ${state.user?.stickerUrl ? `<img class="profile-sticker" src="${escapeHtml(state.user.stickerUrl)}" alt="${escapeHtml(state.user.username)}'s sticker">` : ""}
           <span class="profile-level">Level ${state.user?.level || 0}${state.user?.level === 0 ? " - Guest" : ""}</span>
@@ -168,19 +163,8 @@ function boardModal(state) {
           <div><dt>Energy</dt><dd>${state.user?.sharedEnergy || 0}</dd></div>
         </dl>
         <p class="profile-location">Remembered room: <strong>${escapeHtml(state.user?.rememberedRoom === state.room.id ? state.room.label : state.user?.rememberedRoom || state.room.label)}</strong></p>
-      </section>
-    `;
-  }
-  if (view === "friends") {
-    return `
-      <section class="board-modal" role="dialog" aria-modal="false" aria-label="Friends">
-        <header class="modal-header">
-          <div><h2>Your Friends</h2></div>
-          <button type="button" class="quiet" data-close-view="1">Close</button>
-        </header>
-        <div class="empty-state">Friend lists are not available yet.</div>
-      </section>
-    `;
+      `,
+    });
   }
   return "";
 }
@@ -195,7 +179,7 @@ function detailsModal(state) {
       <button type="button" class="quiet details-close" data-close-details="1" aria-label="Close card details">Close</button>
       <div class="details-book">
         <img class="details-front" src="${escapeHtml(stack.definition.imageUrl)}" alt="${escapeHtml(stack.definition.label)} card front">
-        <img class="details-back" src="${stack.definition.imageUrl.startsWith("/assets/world/") ? "/assets/world/tutorial/cards/back.webp" : "/assets/base/base-pack-back.webp"}" alt="Card back">
+        <img class="details-back" src="${stack.definition.imageUrl.startsWith("/assets/world/") ? CARD_BACK : "/assets/base/base-pack-back.webp"}" alt="Card back">
         <div class="details-page" tabindex="0" data-details-page="1" aria-label="Card information">
           <h2>${escapeHtml(stack.definition.label)}</h2>
           <p>${escapeHtml(longDescription(stack.definition))}</p>
@@ -324,5 +308,3 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
     },
   };
 }
-
-export { buildDropCommand, buildPickupCommand };

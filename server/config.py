@@ -10,14 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
-_KNOWN_FEATURES = frozenset(
-    {
-        "dev-sample-activity",
-        "dev_sample_activity",
-        "world-editor",
-        "world-server",
-    }
-)
+_KNOWN_FEATURES = frozenset({"dev-sample-activity", "dev_sample_activity"})
 
 
 class ConfigError(ValueError):
@@ -118,8 +111,6 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
 
     users_path = Path(values.get("TRSERVER_USERS_PATH", str(root / "users"))).expanduser()
     users_path.mkdir(parents=True, exist_ok=True)
-    if not users_path.is_dir():
-        raise ConfigError(f"TRSERVER_USERS_PATH must be a directory: {users_path}")
 
     world_value = values.get("TRSERVER_WORLD_PATH", str(root / "worlds" / "tutorial"))
     world_path = Path(world_value).expanduser()

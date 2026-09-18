@@ -21,17 +21,30 @@ def _connect(path: Path) -> sqlite3.Connection:
     return connection
 
 
-def migrate_profile_database(path: Path) -> None:
-    """Create or upgrade the profile database schema."""
+def _migrate(path: Path, *, target_version: int, error_label: str, steps: dict[int, str]) -> None:
+    """Bring the database at ``path`` up to ``target_version`` by running any pending ``steps`` in order."""
 
     connection = _connect(path)
     try:
         version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-        if version > PROFILE_SCHEMA_VERSION:
-            raise RuntimeError("Profile database is newer than this server supports.")
-        if version < 1:
-            connection.executescript(
-                """
+        if version > target_version:
+            raise RuntimeError(f"{error_label} database is newer than this server supports.")
+        for step_version in sorted(steps):
+            if version < step_version:
+                connection.executescript(steps[step_version])
+    finally:
+        connection.close()
+
+
+def migrate_profile_database(path: Path) -> None:
+    """Create or upgrade the profile database schema."""
+
+    _migrate(
+        path,
+        target_version=PROFILE_SCHEMA_VERSION,
+        error_label="Profile",
+        steps={
+            1: """
                 BEGIN;
                 CREATE TABLE IF NOT EXISTS accounts (
                     id TEXT PRIMARY KEY,
@@ -95,23 +108,20 @@ def migrate_profile_database(path: Path) -> None:
                 );
                 PRAGMA user_version = 1;
                 COMMIT;
-                """
-            )
-    finally:
-        connection.close()
+                """,
+        },
+    )
 
 
 def migrate_world_database(path: Path) -> None:
     """Create or upgrade the world-state database schema."""
 
-    connection = _connect(path)
-    try:
-        version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-        if version > WORLD_SCHEMA_VERSION:
-            raise RuntimeError("World database is newer than this server supports.")
-        if version < 1:
-            connection.executescript(
-                """
+    _migrate(
+        path,
+        target_version=WORLD_SCHEMA_VERSION,
+        error_label="World",
+        steps={
+            1: """
                 BEGIN;
                 CREATE TABLE IF NOT EXISTS rooms (
                     room_id TEXT PRIMARY KEY,
@@ -149,11 +159,8 @@ def migrate_world_database(path: Path) -> None:
                 );
                 PRAGMA user_version = 1;
                 COMMIT;
-                """
-            )
-        if version < 2:
-            connection.executescript(
-                """
+                """,
+            2: """
                 BEGIN;
                 CREATE TABLE IF NOT EXISTS initial_room_cards (
                     initial_key TEXT PRIMARY KEY,
@@ -165,10 +172,9 @@ def migrate_world_database(path: Path) -> None:
                 WHERE initial_key IS NOT NULL;
                 PRAGMA user_version = 2;
                 COMMIT;
-                """
-            )
-    finally:
-        connection.close()
+                """,
+        },
+    )
 
 
 class DatabaseHub:

@@ -19,9 +19,8 @@ from server.content.worlds import load_world_definition
 from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
 from server.state.migrations import DatabaseHub, migrate_profile_database, migrate_world_database
+from tests.common import REPO_ROOT
 
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_ORIGIN = "https://testserver:5000"
 TEST_PASSWORD = "password123!"
 
@@ -111,6 +110,13 @@ class RuntimeTestCase(unittest.TestCase):
             "session_token": response.cookies["tr_session"],
             "csrf_token": response.cookies["tr_csrf"],
         }
+
+    def create_ready_account(self, username: str) -> dict[str, str]:
+        """Create an account and confirm its initial sticker."""
+
+        credentials = self.create_account(username)
+        self.confirm_sticker(credentials)
+        return credentials
 
     def confirm_sticker(
         self,
@@ -292,8 +298,7 @@ class AccountLifecycleTests(RuntimeTestCase):
         self.assertEqual(missing_csrf.status_code, 403)
 
     def test_logout_immediately_revokes_open_websocket(self) -> None:
-        alice = self.create_account("alice")
-        self.confirm_sticker(alice)
+        alice = self.create_ready_account("alice")
         with self.client.websocket_connect(
             "/ws",
             headers=websocket_headers(
@@ -343,8 +348,7 @@ class AccountLifecycleTests(RuntimeTestCase):
         self.assertEqual(second["user"]["sticker"], "s1.png")
 
     def test_second_login_replaces_first_without_removing_new_connection(self) -> None:
-        alice = self.create_account("alice")
-        self.confirm_sticker(alice)
+        alice = self.create_ready_account("alice")
         with self.client.websocket_connect(
             "/ws",
             headers=websocket_headers(
@@ -384,10 +388,8 @@ class MultiplayerGameplayTests(RuntimeTestCase):
     """Cover presence, chat, navigation, cards, activities, and settings."""
 
     def test_two_clients_chat_and_navigate_in_sequence(self) -> None:
-        alice = self.create_account("alice")
-        bob = self.create_account("bob")
-        self.confirm_sticker(alice)
-        self.confirm_sticker(bob)
+        alice = self.create_ready_account("alice")
+        bob = self.create_ready_account("bob")
         with self.client.websocket_connect(
             "/ws",
             headers=websocket_headers(
@@ -437,8 +439,7 @@ class MultiplayerGameplayTests(RuntimeTestCase):
                 )
 
     def test_strict_room_scope_card_transfer_and_restart(self) -> None:
-        dana = self.create_account("dana")
-        self.confirm_sticker(dana)
+        dana = self.create_ready_account("dana")
         with self.client.websocket_connect(
             "/ws",
             headers=websocket_headers(
@@ -532,8 +533,7 @@ class MultiplayerGameplayTests(RuntimeTestCase):
         self.assertEqual(sorted(results), ["fail", "ok"])
 
     def test_activity_replacement_disconnect_and_persisted_setting(self) -> None:
-        carol = self.create_account("carol")
-        self.confirm_sticker(carol)
+        carol = self.create_ready_account("carol")
         with self.client.websocket_connect(
             "/ws",
             headers=websocket_headers(

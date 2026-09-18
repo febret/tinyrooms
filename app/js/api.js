@@ -45,17 +45,8 @@ async function requestJson(path, options = {}) {
   return body;
 }
 
-/** Normalize the small environment flags that the SPA cares about. */
-export function getEnvironment() {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    demo: params.get("demo") === "1",
-  };
-}
-
 /** Create the HTTP client for session, auth, stickers, bootstrap, and activity bridge calls. */
 export function createApiClient() {
-  const environment = getEnvironment();
   let csrfToken = "";
 
   function rememberCsrf(token) {
@@ -67,7 +58,6 @@ export function createApiClient() {
   }
 
   return {
-    environment,
     getCsrfToken() {
       return csrfToken;
     },
@@ -109,10 +99,11 @@ export function createApiClient() {
       return body;
     },
     async confirmSticker(sticker) {
+      const request = withJson({ sticker });
       const body = await requestJson(PATHS.confirmSticker, {
         method: "POST",
-        ...withJson({ sticker }),
-        headers: { ...withJson({ sticker }).headers, ...authHeaders() },
+        ...request,
+        headers: { ...request.headers, ...authHeaders() },
       });
       return body;
     },
@@ -120,11 +111,12 @@ export function createApiClient() {
       if (!activity?.bridgeUrl) {
         throw new Error("This activity cannot be bridged right now.");
       }
+      const request = withJson({ type, payload });
       return requestJson(activity.bridgeUrl, {
         method: "POST",
-        ...withJson({ type, payload }),
+        ...request,
         headers: {
-          ...withJson({ type, payload }).headers,
+          ...request.headers,
           ...authHeaders(),
         },
       });

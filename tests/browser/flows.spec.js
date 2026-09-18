@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures.js";
 import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createReadyAccount, openCore, travel } from "./helpers.js";
 
 test.describe("account onboarding", () => {
-  test.skip(({ isMobile }) => !isMobile, "Desktop software WebGL intermittently exceeds the 10-second test budget.");
+  test.slow();
 
   test("is mandatory, persists, and shows login errors", async ({ page, runtime }) => {
     const sockets = [];
@@ -41,7 +41,7 @@ test("core expansion exposes a favorited card", async ({ page, runtime }) => {
 });
 
 test.describe("room and inventory", () => {
-  test.skip(({ isMobile }) => !isMobile, "Desktop software WebGL exceeds the 10-second test budget.");
+  test.slow();
 
   test("support pickup and drop", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);

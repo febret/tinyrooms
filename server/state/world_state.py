@@ -152,17 +152,16 @@ class WorldStateRepository:
             )
         return seq
 
-    def advance_room_seq(self, connection: sqlite3.Connection, room_id: str, *, revision_delta: int = 0) -> int:
-        """Advance a room sequence, optionally incrementing revision."""
+    def advance_room_seq(self, connection: sqlite3.Connection, room_id: str) -> int:
+        """Advance the room sequence used for ordering room broadcasts."""
 
-        row = connection.execute("SELECT seq, revision FROM world.rooms WHERE room_id = ?", (room_id,)).fetchone()
+        row = connection.execute("SELECT seq FROM world.rooms WHERE room_id = ?", (room_id,)).fetchone()
         if row is None:
             raise ValueError("Unknown room.")
         seq = int(row["seq"]) + 1
-        revision = int(row["revision"]) + revision_delta
         connection.execute(
-            "UPDATE world.rooms SET seq = ?, revision = ? WHERE room_id = ?",
-            (seq, revision, room_id),
+            "UPDATE world.rooms SET seq = ? WHERE room_id = ?",
+            (seq, room_id),
         )
         return seq
 
@@ -199,7 +198,7 @@ class WorldStateRepository:
                 """,
                 (quantity, utc_now().isoformat(), stack_id),
             )
-        seq = self.advance_room_seq(connection, room_id, revision_delta=1)
+        seq = self.advance_room_seq(connection, room_id)
         return stack, deleted, seq
 
     def add_room_card(
@@ -225,6 +224,6 @@ class WorldStateRepository:
             """,
             (stack_id, room_id, card_def_id, quantity, pos[0], pos[1], pos[2], int(pinned), now, now),
         )
-        seq = self.advance_room_seq(connection, room_id, revision_delta=1)
+        seq = self.advance_room_seq(connection, room_id)
         row = connection.execute("SELECT * FROM world.room_cards WHERE stack_id = ?", (stack_id,)).fetchone()
         return self._stack_from_row(row), seq

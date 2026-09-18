@@ -72,6 +72,14 @@ class ConnectionRegistry:
             self._by_account[connection.account_id] = connection
             return replaced
 
+    def _discard_from_room(self, room_id: str, account_id: str) -> None:
+        room_members = self._rooms.get(room_id)
+        if room_members is None:
+            return
+        room_members.discard(account_id)
+        if not room_members:
+            self._rooms.pop(room_id, None)
+
     async def unregister(
         self,
         account_id: str,
@@ -87,11 +95,7 @@ class ConnectionRegistry:
                 return
             self._by_account.pop(account_id)
             if connection.room_id is not None:
-                room_members = self._rooms.get(connection.room_id)
-                if room_members is not None:
-                    room_members.discard(account_id)
-                    if not room_members:
-                        self._rooms.pop(connection.room_id, None)
+                self._discard_from_room(connection.room_id, account_id)
 
     async def set_room(self, account_id: str, room_id: str | None) -> None:
         """Update room membership for the given connection."""
@@ -104,11 +108,7 @@ class ConnectionRegistry:
             if previous_room == room_id:
                 return
             if previous_room is not None:
-                previous_members = self._rooms.get(previous_room)
-                if previous_members is not None:
-                    previous_members.discard(account_id)
-                    if not previous_members:
-                        self._rooms.pop(previous_room, None)
+                self._discard_from_room(previous_room, account_id)
             connection.room_id = room_id
             if room_id is not None:
                 self._rooms.setdefault(room_id, set()).add(account_id)
@@ -125,12 +125,6 @@ class ConnectionRegistry:
         async with self._lock:
             account_ids = list(self._rooms.get(room_id, set()))
             return [self._by_account[account_id] for account_id in account_ids if account_id in self._by_account]
-
-    async def all_users(self) -> list[LiveConnection]:
-        """List all live user connections."""
-
-        async with self._lock:
-            return list(self._by_account.values())
 
     async def send_session_replaced(
         self,

@@ -3,7 +3,7 @@ import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitContro
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import { boardPosition, boardSignature, disposeBoardTree, fitBoardCamera } from "./board-helpers.js";
 
-const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
+export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
 
 function material(color, extra = {}) {

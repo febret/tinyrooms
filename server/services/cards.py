@@ -68,39 +68,49 @@ class CardService:
         }
         return payload
 
+    def _serialize_stack_base(
+        self,
+        stack_id: str,
+        card_def_id: str,
+        quantity: int,
+        pinned: bool,
+        extra_action: dict[str, str],
+    ) -> dict[str, object]:
+        return {
+            "stack_id": stack_id,
+            "quantity": quantity,
+            "pinned": pinned,
+            "definition": self.serialize_definition(self.definition(card_def_id)),
+            "quick_actions": [{"label": "Look", "command": f".look @card:{stack_id}"}, extra_action],
+        }
+
     def serialize_inventory_stack(self, stack: InventoryStack) -> dict[str, object]:
         """Serialize an inventory stack for the client."""
 
-        definition = self.definition(stack.card_def_id)
-        return {
-            "stack_id": stack.stack_id,
-            "scope": stack.scope,
-            "world_id": stack.world_id,
-            "quantity": stack.quantity,
-            "equipped": stack.equipped,
-            "pinned": stack.pinned,
-            "definition": self.serialize_definition(definition),
-            "quick_actions": [
-                {"label": "Look", "command": f".look @card:{stack.stack_id}"},
-                {"label": "Drop 1", "command": f".drop @card:{stack.stack_id} 1"},
-            ],
-        }
+        payload = self._serialize_stack_base(
+            stack.stack_id,
+            stack.card_def_id,
+            stack.quantity,
+            stack.pinned,
+            {"label": "Drop 1", "command": f".drop @card:{stack.stack_id} 1"},
+        )
+        payload["scope"] = stack.scope
+        payload["world_id"] = stack.world_id
+        payload["equipped"] = stack.equipped
+        return payload
 
     def serialize_room_stack(self, stack: RoomCardStack) -> dict[str, object]:
         """Serialize a room card stack for the client."""
 
-        definition = self.definition(stack.card_def_id)
-        return {
-            "stack_id": stack.stack_id,
-            "quantity": stack.quantity,
-            "pinned": stack.pinned,
-            "position": [stack.pos_x, stack.pos_y, stack.pos_z],
-            "definition": self.serialize_definition(definition),
-            "quick_actions": [
-                {"label": "Look", "command": f".look @card:{stack.stack_id}"},
-                {"label": "Pick up 1", "command": f".pickup @card:{stack.stack_id} 1"},
-            ],
-        }
+        payload = self._serialize_stack_base(
+            stack.stack_id,
+            stack.card_def_id,
+            stack.quantity,
+            stack.pinned,
+            {"label": "Pick up 1", "command": f".pickup @card:{stack.stack_id} 1"},
+        )
+        payload["position"] = [stack.pos_x, stack.pos_y, stack.pos_z]
+        return payload
 
     def list_inventory_payload(self, account_id: str) -> list[dict[str, object]]:
         """Serialize all visible inventory for the current world."""

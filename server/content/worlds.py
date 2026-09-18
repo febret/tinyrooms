@@ -5,9 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-import yaml
 
-from server.content.cards import ContentError
+from server.content.common import ContentError, load_yaml_file, require_mapping
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,17 +115,6 @@ class WorldDefinition:
     peeps: dict[str, PeepDefinition]
 
 
-def _load_yaml_file(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
-
-
-def _require_mapping(payload: Any, path: Path) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise ContentError(f"{path} must contain a top-level mapping.")
-    return payload
-
-
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
     if raw_value is None:
         return ()
@@ -155,7 +143,7 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
     """Load the immutable world definition set from YAML."""
 
     world_file = world_path / "world.yaml"
-    world_payload = _require_mapping(_load_yaml_file(world_file), world_file)
+    world_payload = require_mapping(load_yaml_file(world_file), world_file)
     world_id = str(world_payload.get("id", "")).strip()
     entry_room_id = str(world_payload.get("entry_room", "")).strip()
     if not world_id or not entry_room_id:
@@ -164,9 +152,9 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
     props_file = world_path / "props" / "props.yaml"
     rooms_file = world_path / "rooms" / "rooms.yaml"
     peeps_file = world_path / "peeps" / "peeps.yaml"
-    props_payload = _require_mapping(_load_yaml_file(props_file), props_file)
-    rooms_payload = _require_mapping(_load_yaml_file(rooms_file), rooms_file)
-    peeps_payload = _require_mapping(_load_yaml_file(peeps_file), peeps_file)
+    props_payload = require_mapping(load_yaml_file(props_file), props_file)
+    rooms_payload = require_mapping(load_yaml_file(rooms_file), rooms_file)
+    peeps_payload = require_mapping(load_yaml_file(peeps_file), peeps_file)
 
     props: dict[str, PropDefinition] = {}
     for prop_id, raw_prop in props_payload.items():

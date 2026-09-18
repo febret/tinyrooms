@@ -357,14 +357,14 @@ export function createActivityManager({
     }
     if (event.data.type === "tinyrooms.activity.sticker.confirm") {
       try {
-        const result = await onStickerConfirm(String(event.data.sticker || ""));
+        await onStickerConfirm(String(event.data.sticker || ""));
         entry.iframe.contentWindow?.postMessage({
           type: "tinyrooms.host.result",
           activityId: entry.activity.id,
           requestId: event.data.requestId,
           ok: true,
-          message: result?.message || "Sticker confirmed.",
-          payload: result?.payload || null,
+          message: "Sticker confirmed.",
+          payload: null,
           state: hostPayload(getState(), getState().activities[0] || null),
         }, window.location.origin);
       } catch (error) {

@@ -115,3 +115,27 @@ def visible_rejection_event(code: str, message: str) -> dict[str, object]:
 
     return {"type": "visible.rejection", "code": code, "message": message}
 
+
+def presence_enter_event(*, account_id: str, username: str, room_id: str, source_room_id: str) -> dict[str, object]:
+    """Build the room presence-enter event payload."""
+
+    return {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username, "source_room_id": source_room_id}
+
+
+def presence_leave_event(
+    *,
+    account_id: str,
+    username: str,
+    room_id: str,
+    destination_room_id: str | None = None,
+    reason: str | None = None,
+) -> dict[str, object]:
+    """Build the room presence-leave event payload."""
+
+    event = {"type": "presence.leave", "room_id": room_id, "account_id": account_id, "username": username}
+    if destination_room_id is not None:
+        event["destination_room_id"] = destination_room_id
+    if reason is not None:
+        event["reason"] = reason
+    return event
+

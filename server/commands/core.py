@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from server.commands.parser import CommandParseError, ParsedCommand, parse_target
+from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
 from server.connections import LiveConnection
 from server.content.cards import CORE_CARD_IDS
-from server.content.worlds import ExitDefinition
+from server.content.worlds import ExitDefinition, PropDefinition, PropInstanceDefinition
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.activities import ActivityService
 from server.services.cards import CardService
@@ -84,6 +84,14 @@ def _describe_exit(exit_definition: ExitDefinition) -> dict[str, object]:
     }
 
 
+def _describe_prop(prop: PropInstanceDefinition, prop_definition: PropDefinition) -> dict[str, object]:
+    return {"kind": "prop", "id": prop.id, "label": prop_definition.label, "description": prop_definition.description}
+
+
+def _entity_outcome(message: str, entity: dict[str, object]) -> CommandOutcome:
+    return CommandOutcome(message=message, payload={"entity": entity})
+
+
 async def help_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     return CommandOutcome(
@@ -96,7 +104,7 @@ async def help_command(context: CommandContext, command: ParsedCommand) -> Comma
 
 async def say_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     room_id = _require_room_id(context)
-    message = command.args[0] if command.name == "say" and command.args else command.raw_text
+    message = command.args[0] if command.args else command.raw_text
     seq, event = context.rooms.say(context.account, room_id, message)
     return CommandOutcome(
         message="Message sent.",
@@ -106,7 +114,7 @@ async def say_command(context: CommandContext, command: ParsedCommand) -> Comman
 
 async def look_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     room_id = _require_room_id(context)
-    room = context.rooms._world.rooms[room_id]  # noqa: SLF001
+    room = context.rooms.room_definition(room_id)
     if not command.args:
         payload = {
             "entity": {
@@ -124,54 +132,41 @@ async def look_command(context: CommandContext, command: ParsedCommand) -> Comma
             exit_definition = room.exits.get(target.value)
             if exit_definition is None:
                 raise CommandError("That exit is not visible in this room.")
-            return CommandOutcome(message="Exit details loaded.", payload={"entity": _describe_exit(exit_definition)})
+            return _entity_outcome("Exit details loaded.", _describe_exit(exit_definition))
         if target.kind == "card":
             room_stack = next((stack for stack in context.world_state.list_room_cards(room_id) if stack.stack_id == target.value), None)
             if room_stack is not None:
                 definition = context.cards.definition(room_stack.card_def_id)
-                return CommandOutcome(message="Card details loaded.", payload={"entity": context.cards.serialize_definition(definition)})
-            inventory_stack = context.profiles.get_inventory_stack(context.account.id, context.rooms._world.id, target.value)  # noqa: SLF001
+                return _entity_outcome("Card details loaded.", context.cards.serialize_definition(definition))
+            inventory_stack = context.profiles.get_inventory_stack(context.account.id, context.rooms.world_id, target.value)
             if inventory_stack is None:
                 raise CommandError("That card is not visible right now.")
             definition = context.cards.definition(inventory_stack.card_def_id)
-            return CommandOutcome(message="Card details loaded.", payload={"entity": context.cards.serialize_definition(definition)})
+            return _entity_outcome("Card details loaded.", context.cards.serialize_definition(definition))
         if target.kind == "prop":
             prop = room.props.get(target.value)
             if prop is None:
                 raise CommandError("That prop is not in this room.")
-            prop_definition = context.rooms._world.props[prop.prop_id]  # noqa: SLF001
-            return CommandOutcome(
-                message="Prop details loaded.",
-                payload={
-                    "entity": {
-                        "kind": "prop",
-                        "id": prop.id,
-                        "label": prop_definition.label,
-                        "description": prop_definition.description,
-                    }
-                },
-            )
+            prop_definition = context.rooms.prop_definition(prop.prop_id)
+            return _entity_outcome("Prop details loaded.", _describe_prop(prop, prop_definition))
         if target.kind in {"peep", "username"}:
             for occupant in await context.rooms.room_occupants(room_id):
                 if target.kind == "peep" and occupant["id"] == target.value:
-                    return CommandOutcome(message="Peep details loaded.", payload={"entity": occupant})
+                    return _entity_outcome("Peep details loaded.", occupant)
                 if target.kind == "username" and str(occupant["username"]).casefold() == target.value.casefold():
-                    return CommandOutcome(message="Peep details loaded.", payload={"entity": occupant})
-            for peep in context.rooms._room_peeps(room_id):  # noqa: SLF001
+                    return _entity_outcome("Peep details loaded.", occupant)
+            for peep in context.rooms.room_peeps(room_id):
                 if target.kind == "peep" and peep["id"] == target.value:
-                    return CommandOutcome(message="Peep details loaded.", payload={"entity": peep})
+                    return _entity_outcome("Peep details loaded.", peep)
                 if target.kind == "username" and str(peep["label"]).casefold() == target.value.casefold():
-                    return CommandOutcome(message="Peep details loaded.", payload={"entity": peep})
+                    return _entity_outcome("Peep details loaded.", peep)
             raise CommandError("That peep is not in this room.")
     if target_token in room.exits:
-        return CommandOutcome(message="Exit details loaded.", payload={"entity": _describe_exit(room.exits[target_token])})
+        return _entity_outcome("Exit details loaded.", _describe_exit(room.exits[target_token]))
     if target_token in room.props:
         prop = room.props[target_token]
-        prop_definition = context.rooms._world.props[prop.prop_id]  # noqa: SLF001
-        return CommandOutcome(
-            message="Prop details loaded.",
-            payload={"entity": {"kind": "prop", "id": prop.id, "label": prop_definition.label, "description": prop_definition.description}},
-        )
+        prop_definition = context.rooms.prop_definition(prop.prop_id)
+        return _entity_outcome("Prop details loaded.", _describe_prop(prop, prop_definition))
     raise CommandError("That target is not visible right now.")
 
 
@@ -195,8 +190,8 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
     outcome.room_broadcasts.append(
         PendingRoomBroadcast(
             room_id=navigation.source_room_id,
-            seq=int(navigation.source_event["seq"]),
-            event={key: value for key, value in navigation.source_event.items() if key != "seq"},
+            seq=navigation.source_seq,
+            event=navigation.source_event,
         )
     )
     outcome.room_broadcasts.append(

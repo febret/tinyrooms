@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
 import time
 
 from server.config import AppConfig
@@ -19,7 +18,6 @@ class LoginResult:
     account: AccountRecord
     session_token: str
     csrf_token: str
-    generation: int
     expires_at: str
 
 
@@ -79,12 +77,11 @@ class AccountService:
             )
         except ValueError as exc:
             raise AccountConflictError(str(exc)) from exc
-        issued, generation = self._profiles.issue_session(account.id)
+        issued, _ = self._profiles.issue_session(account.id)
         return LoginResult(
             account=account,
             session_token=issued.token,
             csrf_token=issued.csrf_token,
-            generation=generation,
             expires_at=issued.expires_at.isoformat(),
         )
 
@@ -98,13 +95,12 @@ class AccountService:
         account = self._profiles.get_account_by_username(username)
         if account is None or not verify_password(password, account.password_hash):
             raise AuthenticationError("Incorrect username or password.")
-        issued, generation = self._profiles.issue_session(account.id)
+        issued, _ = self._profiles.issue_session(account.id)
         refreshed = self._profiles.get_account_by_id(account.id)
         return LoginResult(
             account=refreshed,
             session_token=issued.token,
             csrf_token=issued.csrf_token,
-            generation=generation,
             expires_at=issued.expires_at.isoformat(),
         )
 
@@ -122,14 +118,6 @@ class AccountService:
         self._profiles.touch_session(token)
         return session
 
-    def require_session(self, token: str | None) -> SessionRecord:
-        """Resolve an authenticated session or raise."""
-
-        session = self.authenticate(token)
-        if session is None:
-            raise AuthenticationError("You must be logged in.")
-        return session
-
     def logout(self, token: str | None) -> None:
         """Revoke a session token when present."""
 
@@ -143,11 +131,3 @@ class AccountService:
         if sticker_name not in available:
             raise ValueError("Unknown sticker selection.")
         return self._profiles.set_sticker(account_id, sticker_name)
-
-    def sticker_path(self, sticker_name: str) -> Path:
-        """Resolve a sticker asset path after validation."""
-
-        candidate = (self._config.stickers_path / sticker_name).resolve()
-        if candidate.parent != self._config.stickers_path.resolve() or not candidate.is_file():
-            raise ValueError("Unknown sticker asset.")
-        return candidate
