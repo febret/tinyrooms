@@ -517,8 +517,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         await runtime.connections.set_room(account.id, room_id)
         with runtime.hub.transaction() as sql_connection:
             join_seq = runtime.world_state.advance_room_seq(sql_connection, room_id)
-        snapshot = await runtime.rooms.build_snapshot(account, room_id)
-        await connection.send(room_snapshot_envelope(join_seq, snapshot))
+        snapshot, snapshot_seq = await runtime.rooms.build_snapshot_with_seq(account, room_id)
+        await connection.send(room_snapshot_envelope(snapshot_seq, snapshot))
         await _broadcast_room_event(
             runtime,
             room_id=room_id,
@@ -563,8 +563,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     await connection.close()
                     return
                 if envelope_type == "snapshot.request":
-                    refreshed_snapshot = await runtime.rooms.build_snapshot(current_account, connection.room_id or room_id)
-                    await connection.send(room_snapshot_envelope(runtime.world_state.get_room_seq(connection.room_id or room_id), refreshed_snapshot))
+                    refreshed_snapshot, refreshed_seq = await runtime.rooms.build_snapshot_with_seq(current_account, connection.room_id or room_id)
+                    await connection.send(room_snapshot_envelope(refreshed_seq, refreshed_snapshot))
                     continue
                 request_id = client_payload.request_id
                 try:

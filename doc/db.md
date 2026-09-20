@@ -15,14 +15,21 @@ Milestone 1 backend. The schema source of truth is
 There are no automatic migrations. `ensure_*` creates a missing (or
 zero-version) database from the current schema, then fails startup with a
 `RuntimeError` when an existing file has any other `user_version`, is missing
-expected tables, or has unexpected `room_cards` / `initial_room_cards`
-columns. Schema versions 1–2 of the world-state DB (which carried
+expected tables, or has unexpected columns (every table's column order is
+validated). Schema versions 1–2 of the world-state DB (which carried
 `room_cards.initial_key`) are therefore rejected: delete the stale file to
-recreate it or restore a compatible backup.
+recreate it or restore a compatible backup. `ensure_*` also applies
+`CREATE INDEX IF NOT EXISTS` for all indexes listed below, so pre-existing
+databases gain the newer indexes without a version bump. `CHECK` constraints
+(`quantity > 0`, boolean `IN (0, 1)`, `json_valid()` on JSON columns,
+non-negative counters/sequences) are enforced on newly created databases;
+older files keep relying on the matching Python-side validation.
 
 At runtime both files are accessed through a single shared connection,
 `server/state/migrations.py:DatabaseHub`, which opens the profile DB and
-`ATTACH`es the world DB as `world`. All repository SQL therefore addresses
+`ATTACH`es the world DB as `world`. Both databases run in WAL mode
+(`PRAGMA journal_mode = WAL` on `main` plus `PRAGMA world.journal_mode = WAL`
+after attach). All repository SQL therefore addresses
 world tables as `world.rooms`, `world.room_cards`, and so on. `DatabaseHub`
 exposes `locked()` for reads and `transaction()` (`BEGIN IMMEDIATE`, commit or
 rollback) for writes; multi-table mutations such as pickup/drop
@@ -36,7 +43,8 @@ inside one transaction spanning both databases.
 One row per registered user. Created by
 `server/profiles.py:ProfileRepository.create_account()` (called from
 `server/accounts.py:AccountService.create_account()`); read by
-`get_account_by_id()` / `get_account_by_username()`; mutated by `set_sticker()`,
+`get_account_by_id()` / `get_account_by_username()` / `get_accounts_by_ids()`
+(single-query batch used for room occupants); mutated by `set_sticker()`,
 `toggle_favorite()`, `set_show_activity_log()`, and `issue_session()` (bumps
 `active_session_generation`). Serialized to the client in
 `server/app.py:_serialize_account()`.
@@ -83,7 +91,7 @@ plaintext token lives in the `tr_session` HttpOnly cookie.
 | `generation` | INTEGER NOT NULL | Copy of `accounts.active_session_generation` at issue time; stale generations lose WS authority. |
 | `created_at` | TEXT NOT NULL | ISO issue timestamp. |
 | `expires_at` | TEXT NOT NULL | ISO expiry (`utc_now() + 14 days`, `DEFAULT_SESSION_DAYS`). |
-| `last_seen_at` | TEXT NOT NULL | ISO last-activity timestamp, bumped by `touch_session()` on each authenticated request. |
+| `last_seen_at` | TEXT NOT NULL | ISO last-activity timestamp, refreshed by `touch_session()` at most once per `SESSION_TOUCH_INTERVAL_SECONDS` (60s) to avoid a write transaction on every request. |
 
 ### 2.3 `profile_card_stacks`
 
@@ -95,7 +103,12 @@ and `drop()`. Serialized via `CardService.serialize_inventory_stack()`.
 
 Starter rows (`stack_id = 'global:<account_id>:<card_id>'`) are seeded at
 account creation; picked-up cards get `stack_id = 'inv:<uuid4>'` and are merged
-up to the definition `stack_limit`.
+up to the definition `stack_limit`. `add_inventory_card()` /
+`remove_inventory_quantity()` build their return values in Python instead of
+re-selecting each touched row; `pickup()` / `drop()` still re-list the full
+inventory once for the client payload. Besides `idx_profile_cards_owner`,
+`idx_profile_cards_lookup (account_id, card_def_id, scope)` covers the
+pickup-merge filter and the `.go` card-requirement scan.
 
 | Column | Type | Description |
 | --- | --- | --- |
@@ -123,7 +136,7 @@ Milestone 1 placeholders (defaults below) reserved for later milestones.
 | Column | Type | Description |
 | --- | --- | --- |
 | `account_id` | TEXT NOT NULL, PK part 1, FK → `accounts(id)` ON DELETE CASCADE | Owning account. |
-| `world_id` | TEXT NOT NULL, PK part 2 | World ID (e.g. tutorial world). Composite PK `(account_id, world_id)`. |
+| `world_id` | TEXT NOT NULL, PK part 2 | World ID (e.g. tutorial world). Composite PK `(account_id, world_id)`; `idx_world_profiles_world (world_id)` covers per-world scans. |
 | `remembered_room` | TEXT NULL | Last room the user occupied; WS connect resumes here if still in the world, else falls back to the entry room. |
 | `native_cards_json` | TEXT NOT NULL | JSON dict of world-native card state (Milestone 1: `'{}'`). |
 | `counters_json` | TEXT NOT NULL | JSON dict of world counters; seeded with `STARTING_WORLD_COUNTERS` (health/max_health, cleanliness/max_cleanliness, constitution, dexterity, charisma, fanciness). |
@@ -143,8 +156,13 @@ One row per room in the loaded world definition. Ensured by
 broadcast counter: every chat, pickup/drop, presence move, and navigation
 advances it via `advance_room_seq()` / `append_chat_message()` and the
 resulting `seq` is sent in `room.snapshot` / `room.event` envelopes
-(`server/protocol.py`, `server/app.py` WS loop). `chat_history_json` is read by
-`get_chat_history()` and included in snapshots (`RoomService.build_snapshot()`).
+(`server/protocol.py`, `server/app.py` WS loop). Snapshots are built by
+`RoomService.build_snapshot_with_seq()`, which reads occupants (one batched
+`get_accounts_by_ids()` query instead of N+1 lookups), room cards, chat
+history, sequence, and inventory under a single `DatabaseHub.locked()` hold so
+the snapshot cannot tear across concurrent writes; it returns the snapshot
+together with the sequence it is consistent with. `chat_history_json` is read by
+`get_chat_history()` / `read_room_view()` and included in snapshots.
 
 | Column | Type | Description |
 | --- | --- | --- |
@@ -165,7 +183,7 @@ room `seq` and broadcasting `room.card.added/updated/removed`
 | Column | Type | Description |
 | --- | --- | --- |
 | `stack_id` | TEXT PK | Stack ID: `room:<seed key>` for seeded stacks, `room:<uuid4>` for dropped cards. Referenced by `.pickup @card:<stack_id>` and `.look @card:<stack_id>`. |
-| `room_id` | TEXT NOT NULL FK → `rooms(room_id)` ON DELETE CASCADE | Containing room. Indexed via `idx_room_cards_room_id`. |
+| `room_id` | TEXT NOT NULL FK → `rooms(room_id)` ON DELETE CASCADE | Containing room. Indexed via `idx_room_cards_room_id` and `idx_room_cards_order (room_id, created_at, stack_id)`, which covers the snapshot `ORDER BY`. |
 | `card_def_id` | TEXT NOT NULL | Card definition ID from the catalog. |
 | `quantity` | INTEGER NOT NULL | Cards in this stack. |
 | `pos_x` / `pos_y` / `pos_z` | REAL NOT NULL | Board position triple; seeded from YAML `pos`, drops land at `(50, 50, 0)` (`core.py`). |

@@ -185,7 +185,7 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
         message=f"You moved to {navigation.destination_room_id}.",
         payload={"room_id": navigation.destination_room_id},
         snapshot=navigation.destination_snapshot,
-        snapshot_seq=navigation.destination_seq,
+        snapshot_seq=navigation.destination_snapshot_seq,
     )
     outcome.room_broadcasts.append(
         PendingRoomBroadcast(

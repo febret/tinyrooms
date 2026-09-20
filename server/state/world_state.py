@@ -119,6 +119,22 @@ class WorldStateRepository:
             row = connection.execute("SELECT seq FROM world.rooms WHERE room_id = ?", (room_id,)).fetchone()
         return 0 if row is None else int(row["seq"])
 
+    def read_room_view(self, room_id: str) -> tuple[int, list[RoomCardStack], list[dict[str, Any]]]:
+        """Return the room sequence, cards, and chat history from a single consistent read."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT seq, chat_history_json FROM world.rooms WHERE room_id = ?",
+                (room_id,),
+            ).fetchone()
+            if row is None:
+                return 0, [], []
+            card_rows = connection.execute(
+                "SELECT * FROM world.room_cards WHERE room_id = ? ORDER BY created_at, stack_id",
+                (room_id,),
+            ).fetchall()
+            return int(row["seq"]), [self._stack_from_row(card) for card in card_rows], list(json.loads(row["chat_history_json"]))
+
     def get_chat_history(self, room_id: str) -> list[dict[str, Any]]:
         """Return recent room chat history."""
 
@@ -222,5 +238,19 @@ class WorldStateRepository:
             (stack_id, room_id, card_def_id, quantity, pos[0], pos[1], pos[2], int(pinned), now, now),
         )
         seq = self.advance_room_seq(connection, room_id)
-        row = connection.execute("SELECT * FROM world.room_cards WHERE stack_id = ?", (stack_id,)).fetchone()
-        return self._stack_from_row(row), seq
+        return (
+            RoomCardStack(
+                stack_id=stack_id,
+                room_id=room_id,
+                card_def_id=card_def_id,
+                quantity=quantity,
+                pos_x=float(pos[0]),
+                pos_y=float(pos[1]),
+                pos_z=float(pos[2]),
+                scope="room",
+                pinned=pinned,
+                created_at=now,
+                updated_at=now,
+            ),
+            seq,
+        )

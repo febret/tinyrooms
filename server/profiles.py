@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 import json
 import sqlite3
 import uuid
@@ -30,6 +31,8 @@ STARTING_WORLD_COUNTERS = {
     "charisma": 1,
     "fanciness": 1,
 }
+
+SESSION_TOUCH_INTERVAL_SECONDS = 60.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +169,20 @@ class ProfileRepository:
         with self._hub.locked() as connection:
             row = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
         return None if row is None else self._account_from_row(row)
+
+    def get_accounts_by_ids(self, account_ids: list[str]) -> dict[str, AccountRecord]:
+        """Fetch multiple accounts by ID with a single query."""
+
+        unique_ids = list(dict.fromkeys(account_ids))
+        if not unique_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in unique_ids)
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                f"SELECT * FROM accounts WHERE id IN ({placeholders})",
+                unique_ids,
+            ).fetchall()
+        return {row["id"]: self._account_from_row(row) for row in rows}
 
     def get_account_by_username(self, username: str) -> AccountRecord | None:
         """Fetch an account by normalized username."""
@@ -319,12 +336,28 @@ class ProfileRepository:
             connection.execute("DELETE FROM sessions WHERE token_hash = ?", (hash_session_token(token),))
 
     def touch_session(self, token: str) -> None:
-        """Update the session last-seen time."""
+        """Update the session last-seen time, at most once per touch interval."""
 
+        token_hash = hash_session_token(token)
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT last_seen_at FROM sessions WHERE token_hash = ?",
+                (token_hash,),
+            ).fetchone()
+        if row is None:
+            return
+        now = utc_now()
+        try:
+            last_seen = datetime.fromisoformat(row["last_seen_at"])
+        except (ValueError, TypeError):
+            last_seen = None
+        if last_seen is not None and last_seen.tzinfo is not None:
+            if (now - last_seen).total_seconds() < SESSION_TOUCH_INTERVAL_SECONDS:
+                return
         with self._hub.transaction() as connection:
             connection.execute(
                 "UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?",
-                (utc_now().isoformat(), hash_session_token(token)),
+                (now.isoformat(), token_hash),
             )
 
     def session_generation_matches(self, account_id: str, generation: int) -> bool:
@@ -401,11 +434,20 @@ class ProfileRepository:
                 "UPDATE profile_card_stacks SET quantity = quantity + ?, updated_at = ? WHERE stack_id = ?",
                 (add_here, now, current.stack_id),
             )
-            updated = connection.execute(
-                "SELECT * FROM profile_card_stacks WHERE stack_id = ?",
-                (current.stack_id,),
-            ).fetchone()
-            updated_stacks.append(self._stack_from_row(updated))
+            updated_stacks.append(
+                InventoryStack(
+                    stack_id=current.stack_id,
+                    account_id=current.account_id,
+                    world_id=current.world_id,
+                    card_def_id=current.card_def_id,
+                    quantity=current.quantity + add_here,
+                    scope=current.scope,
+                    equipped=current.equipped,
+                    pinned=current.pinned,
+                    created_at=current.created_at,
+                    updated_at=now,
+                )
+            )
             remaining -= add_here
         while remaining > 0:
             add_here = min(remaining, stack_limit)
@@ -419,11 +461,20 @@ class ProfileRepository:
                 """,
                 (stack_id, account_id, world_id, card_def_id, add_here, scope, now, now),
             )
-            created = connection.execute(
-                "SELECT * FROM profile_card_stacks WHERE stack_id = ?",
-                (stack_id,),
-            ).fetchone()
-            updated_stacks.append(self._stack_from_row(created))
+            updated_stacks.append(
+                InventoryStack(
+                    stack_id=stack_id,
+                    account_id=account_id,
+                    world_id=world_id,
+                    card_def_id=card_def_id,
+                    quantity=add_here,
+                    scope=scope,
+                    equipped=False,
+                    pinned=False,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
             remaining -= add_here
         return updated_stacks
 
@@ -460,11 +511,21 @@ class ProfileRepository:
             "UPDATE profile_card_stacks SET quantity = quantity - ?, updated_at = ? WHERE stack_id = ?",
             (quantity, now, stack_id),
         )
-        updated = connection.execute(
-            "SELECT * FROM profile_card_stacks WHERE stack_id = ?",
-            (stack_id,),
-        ).fetchone()
-        return self._stack_from_row(updated), False
+        return (
+            InventoryStack(
+                stack_id=stack.stack_id,
+                account_id=stack.account_id,
+                world_id=stack.world_id,
+                card_def_id=stack.card_def_id,
+                quantity=stack.quantity - quantity,
+                scope=stack.scope,
+                equipped=stack.equipped,
+                pinned=stack.pinned,
+                created_at=stack.created_at,
+                updated_at=now,
+            ),
+            False,
+        )
 
     def get_world_profile(self, account_id: str, world_id: str) -> WorldProfileRecord | None:
         """Fetch the current world profile."""

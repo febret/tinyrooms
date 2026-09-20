@@ -23,6 +23,7 @@ class NavigationResult:
     source_seq: int
     destination_seq: int
     destination_snapshot: dict[str, object]
+    destination_snapshot_seq: int
     source_event: dict[str, object]
     destination_event: dict[str, object]
     closed_activity: dict[str, object] | None
@@ -129,9 +130,11 @@ class RoomService:
     async def room_occupants(self, room_id: str) -> list[dict[str, object]]:
         """Serialize connected users in a room."""
 
+        live_connections = await self._connections.list_room(room_id)
+        accounts = self._profiles.get_accounts_by_ids([connection.account_id for connection in live_connections])
         occupants: list[dict[str, object]] = []
-        for connection in await self._connections.list_room(room_id):
-            account = self._profiles.get_account_by_id(connection.account_id)
+        for connection in live_connections:
+            account = accounts.get(connection.account_id)
             if account is None:
                 continue
             occupants.append(
@@ -192,11 +195,32 @@ class RoomService:
             "quick_actions": self._visible_prop_actions(room, prop.actions),
         }
 
-    async def build_snapshot(self, account: AccountRecord, room_id: str, *, note: str | None = None) -> dict[str, object]:
-        """Build a coherent room snapshot for a specific account."""
+    async def build_snapshot_with_seq(
+        self, account: AccountRecord, room_id: str, *, note: str | None = None
+    ) -> tuple[dict[str, object], int]:
+        """Build a room snapshot and the sequence it is consistent with."""
 
         room = self._world.rooms[room_id]
-        occupants = await self.room_occupants(room_id)
+        live_connections = await self._connections.list_room(room_id)
+        occupant_ids = [connection.account_id for connection in live_connections]
+        with self._hub.locked():
+            occupant_accounts = self._profiles.get_accounts_by_ids(occupant_ids)
+            room_seq, room_cards, chat_history = self._world_state.read_room_view(room_id)
+            inventory = self._profiles.list_inventory(account.id, self._world.id)
+        occupants: list[dict[str, object]] = []
+        for connection in live_connections:
+            occupant = occupant_accounts.get(connection.account_id)
+            if occupant is None:
+                continue
+            occupants.append(
+                {
+                    "id": occupant.id,
+                    "username": occupant.username_display,
+                    "kind": "user",
+                    "sticker_url": f"/assets/stickers/{occupant.sticker}" if occupant.sticker else None,
+                    "quick_actions": [{"label": "Look", "command": f".look @{occupant.username_display}"}],
+                }
+            )
         visible_definitions = self._visible_exits(room)
         visible_exits = [self._serialize_exit(exit_definition) for exit_definition in visible_definitions]
         return {
@@ -215,15 +239,21 @@ class RoomService:
             "props": [self._serialize_prop(room, prop) for prop in room.props.values()],
             "occupants": occupants,
             "npcs": self._room_peeps(room_id),
-            "room_cards": [self._card_service.serialize_room_stack(stack) for stack in self._world_state.list_room_cards(room_id)],
-            "chat_history": self._world_state.get_chat_history(room_id),
-            "inventory": self._card_service.list_inventory_payload(account.id),
+            "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],
+            "chat_history": chat_history,
+            "inventory": [self._card_service.serialize_inventory_stack(stack) for stack in inventory],
             "favorites": list(account.favorites),
             "quick_actions": [
                 {"label": "Look around", "command": ".look"},
                 *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],
             ],
-        }
+        }, room_seq
+
+    async def build_snapshot(self, account: AccountRecord, room_id: str, *, note: str | None = None) -> dict[str, object]:
+        """Build a coherent room snapshot for a specific account."""
+
+        snapshot, _ = await self.build_snapshot_with_seq(account, room_id, note=note)
+        return snapshot
 
     def say(self, account: AccountRecord, room_id: str, raw_text: str) -> tuple[int, dict[str, object]]:
         """Persist a room chat message and return the broadcast event."""
@@ -271,13 +301,14 @@ class RoomService:
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
         closed = self._activities.close_if_room_bound(account.id, destination_room.id)
-        snapshot = await self.build_snapshot(account, destination_room.id)
+        snapshot, snapshot_seq = await self.build_snapshot_with_seq(account, destination_room.id)
         return NavigationResult(
             source_room_id=source_room_id,
             destination_room_id=destination_room.id,
             source_seq=source_seq,
             destination_seq=destination_seq,
             destination_snapshot=snapshot,
+            destination_snapshot_seq=snapshot_seq,
             source_event=presence_leave_event(
                 account_id=account.id,
                 username=account.username_display,
