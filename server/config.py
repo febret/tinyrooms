@@ -58,12 +58,19 @@ class AppConfig:
         return self.repo_root / "data" / "cardsets"
 
     @property
+    def is_wildcard_bind(self) -> bool:
+        """Return True when bound to all interfaces (LAN access)."""
+
+        return self.host in {"0.0.0.0", "::"}
+
+    @property
     def allowed_origins(self) -> tuple[str, ...]:
         """Return allowed browser origins for this server."""
 
-        hosts = {self.host}
-        if self.host in {"0.0.0.0", "::"}:
-            hosts.update({"127.0.0.1", "localhost"})
+        if self.is_wildcard_bind:
+            hosts = {"127.0.0.1", "localhost"}
+        else:
+            hosts = {self.host}
         if self.host == "127.0.0.1":
             hosts.add("localhost")
         if self.host == "localhost":

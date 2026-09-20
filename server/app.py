@@ -47,7 +47,7 @@ from server.security import (
 from server.services.activities import ActivityService
 from server.services.cards import CardService
 from server.services.rooms import RoomService
-from server.state.migrations import DatabaseHub, migrate_profile_database, migrate_world_database
+from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from server.state.world_state import WorldStateRepository
 
 
@@ -257,8 +257,8 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     """Create the loaded runtime state."""
 
     profile_db_path = config.users_path / "profiles.sqlite3"
-    migrate_profile_database(profile_db_path)
-    migrate_world_database(config.worldstate_path)
+    ensure_profile_database(profile_db_path)
+    ensure_world_database(config.worldstate_path)
     hub = DatabaseHub(profile_db_path, config.worldstate_path)
     catalog = load_card_catalog(config.cardsets_path, config.world_path)
     world = load_world_definition(config.world_path, set(catalog.cards))

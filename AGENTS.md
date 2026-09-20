@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 1, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows.
+Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 1, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows. See [doc/architecture.md](doc/architecture.md) for the technical architecture (components, source-file inventory, protocol, game flows).
 
 ## Tech Stack
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlparse
 import hashlib
 import hmac
 import secrets
@@ -153,8 +154,39 @@ def validate_origin(origin: str | None, config: AppConfig) -> None:
 
     if origin is None or not origin.strip():
         raise SecurityError("Missing Origin header.")
-    if origin not in config.allowed_origins:
-        raise SecurityError(f"Origin '{origin}' is not allowed.")
+    candidate = origin.strip()
+    if candidate in config.allowed_origins:
+        return
+    if config.is_wildcard_bind and _is_same_port_https_origin(candidate, config.port):
+        return
+    raise SecurityError(f"Origin '{origin}' is not allowed.")
+
+
+def _is_same_port_https_origin(candidate: str, port: int) -> bool:
+    """Check a wildcard-bind origin shares the server scheme and port."""
+
+    try:
+        parsed = urlparse(candidate)
+    except ValueError:
+        return False
+    if parsed.scheme != "https":
+        return False
+    if parsed.username or parsed.password:
+        return False
+    hostname = parsed.hostname
+    if hostname is None or not hostname.strip():
+        return False
+    if hostname in {"0.0.0.0", "::"}:
+        return False
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        return False
+    try:
+        origin_port = parsed.port
+    except ValueError:
+        return False
+    if origin_port is None:
+        return port == 443
+    return origin_port == port
 
 
 class RateLimiter:

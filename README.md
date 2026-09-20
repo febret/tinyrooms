@@ -3,7 +3,9 @@
 Tinyrooms is a multiplayer miniature-world game built with FastAPI, vanilla
 JavaScript, and Three.js. This repository currently implements the secure,
 persistent Milestone 1 vertical slice described in
-[doc/milestone-1.md](doc/milestone-1.md).
+[doc/milestone-1.md](doc/milestone-1.md). The technical architecture
+(components, source files, protocol, game flows) is documented in
+[doc/architecture.md](doc/architecture.md).
 
 ## Included
 
@@ -227,4 +229,5 @@ on-screen keyboard, safe areas, audio permissions, or two-finger gestures.
 - `data`: shared cards and sticker artwork.
 - `worlds/tutorial`: tutorial definitions and assets.
 - `tools`: reproducible browser dependency vendoring.
-- `doc`: design, milestone, and visual references.
+- `doc`: design, milestone, and visual references. Start with
+  [doc/architecture.md](doc/architecture.md) for the technical overview.

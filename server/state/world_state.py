@@ -27,7 +27,6 @@ class RoomCardStack:
     pos_z: float
     scope: str
     pinned: bool
-    initial_key: str | None
     created_at: str
     updated_at: str
 
@@ -49,7 +48,6 @@ class WorldStateRepository:
             pos_z=float(row["pos_z"]),
             scope=row["scope"],
             pinned=bool(row["pinned"]),
-            initial_key=row["initial_key"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -79,8 +77,8 @@ class WorldStateRepository:
                         """
                         INSERT OR IGNORE INTO world.room_cards (
                             stack_id, room_id, card_def_id, quantity, pos_x, pos_y, pos_z,
-                            scope, pinned, initial_key, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', 0, ?, ?, ?)
+                            scope, pinned, created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', 0, ?, ?)
                         """,
                         (
                             f"room:{initial_card.initial_key}",
@@ -90,7 +88,6 @@ class WorldStateRepository:
                             initial_card.pos[0],
                             initial_card.pos[1],
                             initial_card.pos[2],
-                            initial_card.initial_key,
                             now,
                             now,
                         ),
@@ -219,8 +216,8 @@ class WorldStateRepository:
             """
             INSERT INTO world.room_cards (
                 stack_id, room_id, card_def_id, quantity, pos_x, pos_y, pos_z,
-                scope, pinned, initial_key, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', ?, NULL, ?, ?)
+                scope, pinned, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', ?, ?, ?)
             """,
             (stack_id, room_id, card_def_id, quantity, pos[0], pos[1], pos[2], int(pinned), now, now),
         )

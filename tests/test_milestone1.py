@@ -18,7 +18,7 @@ from server.content.cards import ContentError, load_card_catalog
 from server.content.worlds import load_world_definition
 from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
-from server.state.migrations import DatabaseHub, migrate_profile_database, migrate_world_database
+from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from tests.common import REPO_ROOT
 
 TEST_ORIGIN = "https://testserver:5000"
@@ -225,8 +225,8 @@ class ContentPersistenceTests(unittest.TestCase):
             root = Path(temporary_directory)
             profile_db = root / "profiles.sqlite3"
             world_db = root / "world.sqlite3"
-            migrate_profile_database(profile_db)
-            migrate_world_database(world_db)
+            ensure_profile_database(profile_db)
+            ensure_world_database(world_db)
             hub = DatabaseHub(profile_db, world_db)
             try:
                 profiles = ProfileRepository(hub)

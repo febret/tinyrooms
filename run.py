@@ -66,6 +66,27 @@ def _load_certificate(cert_path: Path) -> x509.Certificate | None:
     return x509.load_pem_x509_certificate(cert_path.read_bytes())
 
 
+def _local_ip_strings() -> set[str]:
+    """Return non-loopback local IP addresses for wildcard-bind certificates."""
+
+    addresses: set[str] = set()
+    try:
+        for family, _, _, _, sockaddr in socket.getaddrinfo(socket.gethostname(), None):
+            host = sockaddr[0] if sockaddr else ""
+            if not host:
+                continue
+            try:
+                parsed = ip_address(host)
+            except ValueError:
+                continue
+            if parsed.is_loopback or parsed.is_unspecified or parsed.is_multicast:
+                continue
+            addresses.add(host)
+    except socket.gaierror:
+        pass
+    return addresses
+
+
 def ensure_self_signed_certificate(local_path: Path, host: str) -> tuple[Path, Path]:
     """Create or reuse a self-signed development certificate."""
 
@@ -88,7 +109,12 @@ def ensure_self_signed_certificate(local_path: Path, host: str) -> tuple[Path, P
         .not_valid_after(datetime.now(tz=UTC) + timedelta(days=14))
     )
     alt_names: list[x509.GeneralName] = [x509.DNSName("localhost")]
-    for value in {host, "127.0.0.1"}:
+    host_values = {host, "127.0.0.1"}
+    if host in {"0.0.0.0", "::"}:
+        host_values.update(_local_ip_strings())
+    for value in host_values:
+        if value in {"0.0.0.0", "::"}:
+            continue
         try:
             alt_names.append(x509.IPAddress(ip_address(value)))
         except ValueError:

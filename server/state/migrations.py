@@ -1,4 +1,4 @@
-"""SQLite schema migrations for profile and world-state databases."""
+"""SQLite schema initialization and validation for profile and world-state databases."""
 
 from __future__ import annotations
 
@@ -9,7 +9,136 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 1
-WORLD_SCHEMA_VERSION = 2
+WORLD_SCHEMA_VERSION = 3
+
+_PROFILE_SCHEMA_SQL = """
+BEGIN;
+CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    username_display TEXT NOT NULL,
+    username_key TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    sticker TEXT,
+    initial_sticker_complete INTEGER NOT NULL DEFAULT 0,
+    favorites_json TEXT NOT NULL,
+    level INTEGER NOT NULL DEFAULT 0,
+    kudos INTEGER NOT NULL DEFAULT 0,
+    bops INTEGER NOT NULL DEFAULT 10,
+    shared_energy INTEGER NOT NULL DEFAULT 80,
+    last_energy_at TEXT NOT NULL,
+    last_daily_claim TEXT,
+    friends_json TEXT NOT NULL,
+    pending_friends_json TEXT NOT NULL,
+    active_session_generation INTEGER NOT NULL DEFAULT 0,
+    show_activity_log INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    csrf_token TEXT NOT NULL,
+    generation INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id);
+CREATE TABLE IF NOT EXISTS profile_card_stacks (
+    stack_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    world_id TEXT,
+    card_def_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    scope TEXT NOT NULL,
+    equipped INTEGER NOT NULL DEFAULT 0,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id);
+CREATE TABLE IF NOT EXISTS world_profiles (
+    account_id TEXT NOT NULL,
+    world_id TEXT NOT NULL,
+    remembered_room TEXT,
+    native_cards_json TEXT NOT NULL,
+    counters_json TEXT NOT NULL,
+    buffs_json TEXT NOT NULL,
+    tasks_json TEXT NOT NULL,
+    memories_json TEXT NOT NULL,
+    ownership_json TEXT NOT NULL,
+    last_visit_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, world_id),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+PRAGMA user_version = 1;
+COMMIT;
+"""
+
+_WORLD_SCHEMA_SQL = """
+BEGIN;
+CREATE TABLE IF NOT EXISTS rooms (
+    room_id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL DEFAULT 0,
+    revision INTEGER NOT NULL DEFAULT 0,
+    chat_history_json TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS room_cards (
+    stack_id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    card_def_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    pos_x REAL NOT NULL,
+    pos_y REAL NOT NULL,
+    pos_z REAL NOT NULL,
+    scope TEXT NOT NULL DEFAULT 'room',
+    pinned INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
+CREATE TABLE IF NOT EXISTS prop_states (
+    room_id TEXT NOT NULL,
+    prop_instance_id TEXT NOT NULL,
+    state_json TEXT NOT NULL,
+    PRIMARY KEY (room_id, prop_instance_id),
+    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS room_owners (
+    room_id TEXT PRIMARY KEY,
+    owner_account_id TEXT NOT NULL,
+    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS initial_room_cards (
+    initial_key TEXT PRIMARY KEY,
+    seeded_at TEXT NOT NULL
+);
+PRAGMA user_version = 3;
+COMMIT;
+"""
+
+_PROFILE_TABLES = frozenset({"accounts", "sessions", "profile_card_stacks", "world_profiles"})
+
+_WORLD_TABLES = frozenset({"rooms", "room_cards", "prop_states", "room_owners", "initial_room_cards"})
+
+_ROOM_CARDS_COLUMNS = (
+    "stack_id",
+    "room_id",
+    "card_def_id",
+    "quantity",
+    "pos_x",
+    "pos_y",
+    "pos_z",
+    "scope",
+    "pinned",
+    "created_at",
+    "updated_at",
+)
+
+_INITIAL_ROOM_CARDS_COLUMNS = ("initial_key", "seeded_at")
 
 
 def _connect(path: Path) -> sqlite3.Connection:
@@ -21,158 +150,88 @@ def _connect(path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _migrate(path: Path, *, target_version: int, error_label: str, steps: dict[int, str]) -> None:
-    """Bring the database at ``path`` up to ``target_version`` by running any pending ``steps`` in order."""
+def _user_version(connection: sqlite3.Connection) -> int:
+    return int(connection.execute("PRAGMA user_version").fetchone()[0])
+
+
+def _table_names(connection: sqlite3.Connection) -> set[str]:
+    rows = connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+    return {str(row[0]) for row in rows}
+
+
+def _column_names(connection: sqlite3.Connection, table: str) -> list[str]:
+    return [str(row["name"]) for row in connection.execute(f'PRAGMA table_info("{table}")').fetchall()]
+
+
+def _ensure_database(
+    path: Path,
+    *,
+    expected_version: int,
+    error_label: str,
+    schema_sql: str,
+    expected_tables: frozenset[str],
+    column_specs: dict[str, tuple[str, ...]] | None = None,
+) -> None:
+    """Create *path* when empty, else fail unless its schema matches exactly."""
 
     connection = _connect(path)
     try:
-        version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-        if version > target_version:
-            raise RuntimeError(f"{error_label} database is newer than this server supports.")
-        for step_version in sorted(steps):
-            if version < step_version:
-                connection.executescript(steps[step_version])
+        version = _user_version(connection)
+        if version == 0:
+            connection.executescript(schema_sql)
+            return
+        if version != expected_version:
+            raise RuntimeError(
+                f"{error_label} database at {path} has schema version {version}, "
+                f"expected {expected_version}. This server does not migrate databases: "
+                "delete the file to recreate it (all data will be lost) "
+                "or restore a compatible backup."
+            )
+        missing = sorted(expected_tables - _table_names(connection))
+        if missing:
+            raise RuntimeError(
+                f"{error_label} database at {path} is incompatible: "
+                f"missing tables {missing}. This server does not migrate databases: "
+                "delete the file to recreate it (all data will be lost) "
+                "or restore a compatible backup."
+            )
+        for table, expected_columns in (column_specs or {}).items():
+            actual = _column_names(connection, table)
+            if list(actual) != list(expected_columns):
+                raise RuntimeError(
+                    f"{error_label} database at {path} is incompatible: "
+                    f'table "{table}" has columns {actual}, expected {list(expected_columns)}. '
+                    "This server does not migrate databases: delete the file to "
+                    "recreate it (all data will be lost) or restore a compatible backup."
+                )
     finally:
         connection.close()
 
 
-def migrate_profile_database(path: Path) -> None:
-    """Create or upgrade the profile database schema."""
+def ensure_profile_database(path: Path) -> None:
+    """Create or validate the profile database schema, failing on mismatch."""
 
-    _migrate(
+    _ensure_database(
         path,
-        target_version=PROFILE_SCHEMA_VERSION,
+        expected_version=PROFILE_SCHEMA_VERSION,
         error_label="Profile",
-        steps={
-            1: """
-                BEGIN;
-                CREATE TABLE IF NOT EXISTS accounts (
-                    id TEXT PRIMARY KEY,
-                    username_display TEXT NOT NULL,
-                    username_key TEXT NOT NULL UNIQUE,
-                    password_hash TEXT NOT NULL,
-                    sticker TEXT,
-                    initial_sticker_complete INTEGER NOT NULL DEFAULT 0,
-                    favorites_json TEXT NOT NULL,
-                    level INTEGER NOT NULL DEFAULT 0,
-                    kudos INTEGER NOT NULL DEFAULT 0,
-                    bops INTEGER NOT NULL DEFAULT 10,
-                    shared_energy INTEGER NOT NULL DEFAULT 80,
-                    last_energy_at TEXT NOT NULL,
-                    last_daily_claim TEXT,
-                    friends_json TEXT NOT NULL,
-                    pending_friends_json TEXT NOT NULL,
-                    active_session_generation INTEGER NOT NULL DEFAULT 0,
-                    show_activity_log INTEGER NOT NULL DEFAULT 0,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS sessions (
-                    token_hash TEXT PRIMARY KEY,
-                    account_id TEXT NOT NULL,
-                    csrf_token TEXT NOT NULL,
-                    generation INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    expires_at TEXT NOT NULL,
-                    last_seen_at TEXT NOT NULL,
-                    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-                );
-                CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id);
-                CREATE TABLE IF NOT EXISTS profile_card_stacks (
-                    stack_id TEXT PRIMARY KEY,
-                    account_id TEXT NOT NULL,
-                    world_id TEXT,
-                    card_def_id TEXT NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    scope TEXT NOT NULL,
-                    equipped INTEGER NOT NULL DEFAULT 0,
-                    pinned INTEGER NOT NULL DEFAULT 0,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-                );
-                CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id);
-                CREATE TABLE IF NOT EXISTS world_profiles (
-                    account_id TEXT NOT NULL,
-                    world_id TEXT NOT NULL,
-                    remembered_room TEXT,
-                    native_cards_json TEXT NOT NULL,
-                    counters_json TEXT NOT NULL,
-                    buffs_json TEXT NOT NULL,
-                    tasks_json TEXT NOT NULL,
-                    memories_json TEXT NOT NULL,
-                    ownership_json TEXT NOT NULL,
-                    last_visit_at TEXT NOT NULL,
-                    PRIMARY KEY (account_id, world_id),
-                    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-                );
-                PRAGMA user_version = 1;
-                COMMIT;
-                """,
-        },
+        schema_sql=_PROFILE_SCHEMA_SQL,
+        expected_tables=_PROFILE_TABLES,
     )
 
 
-def migrate_world_database(path: Path) -> None:
-    """Create or upgrade the world-state database schema."""
+def ensure_world_database(path: Path) -> None:
+    """Create or validate the world-state database schema, failing on mismatch."""
 
-    _migrate(
+    _ensure_database(
         path,
-        target_version=WORLD_SCHEMA_VERSION,
+        expected_version=WORLD_SCHEMA_VERSION,
         error_label="World",
-        steps={
-            1: """
-                BEGIN;
-                CREATE TABLE IF NOT EXISTS rooms (
-                    room_id TEXT PRIMARY KEY,
-                    seq INTEGER NOT NULL DEFAULT 0,
-                    revision INTEGER NOT NULL DEFAULT 0,
-                    chat_history_json TEXT NOT NULL DEFAULT '[]'
-                );
-                CREATE TABLE IF NOT EXISTS room_cards (
-                    stack_id TEXT PRIMARY KEY,
-                    room_id TEXT NOT NULL,
-                    card_def_id TEXT NOT NULL,
-                    quantity INTEGER NOT NULL,
-                    pos_x REAL NOT NULL,
-                    pos_y REAL NOT NULL,
-                    pos_z REAL NOT NULL,
-                    scope TEXT NOT NULL DEFAULT 'room',
-                    pinned INTEGER NOT NULL DEFAULT 0,
-                    initial_key TEXT UNIQUE,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
-                );
-                CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
-                CREATE TABLE IF NOT EXISTS prop_states (
-                    room_id TEXT NOT NULL,
-                    prop_instance_id TEXT NOT NULL,
-                    state_json TEXT NOT NULL,
-                    PRIMARY KEY (room_id, prop_instance_id),
-                    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
-                );
-                CREATE TABLE IF NOT EXISTS room_owners (
-                    room_id TEXT PRIMARY KEY,
-                    owner_account_id TEXT NOT NULL,
-                    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
-                );
-                PRAGMA user_version = 1;
-                COMMIT;
-                """,
-            2: """
-                BEGIN;
-                CREATE TABLE IF NOT EXISTS initial_room_cards (
-                    initial_key TEXT PRIMARY KEY,
-                    seeded_at TEXT NOT NULL
-                );
-                INSERT OR IGNORE INTO initial_room_cards (initial_key, seeded_at)
-                SELECT initial_key, created_at
-                FROM room_cards
-                WHERE initial_key IS NOT NULL;
-                PRAGMA user_version = 2;
-                COMMIT;
-                """,
+        schema_sql=_WORLD_SCHEMA_SQL,
+        expected_tables=_WORLD_TABLES,
+        column_specs={
+            "room_cards": _ROOM_CARDS_COLUMNS,
+            "initial_room_cards": _INITIAL_ROOM_CARDS_COLUMNS,
         },
     )
 
