@@ -47,6 +47,7 @@
   white-space: nowrap;
 }
 .activity-subtitle { color: #e1e8e5; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.activity-subtitle:empty { display: none; }
 .activity-controls { display: flex; gap: 2px; flex: 0 0 auto; }
 .activity-controls button {
   display: grid;

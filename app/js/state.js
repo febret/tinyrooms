@@ -302,6 +302,16 @@ function applyServerEvent(state, event) {
       },
     };
   }
+  if (event.type === "room.cards.reset" && Array.isArray(event.stacks)) {
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        roomCards: event.stacks.map(normalizeRoomCard),
+        chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.reset_by || "Someone"} reset the room.`)].slice(-50),
+      },
+    };
+  }
   if (event.type === "visible.rejection") {
     return {
       ...state,

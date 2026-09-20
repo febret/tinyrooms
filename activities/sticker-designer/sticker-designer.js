@@ -2,7 +2,6 @@ const Tiny = window.TinyActivity;
 const grid = document.querySelector("#grid");
 const summary = document.querySelector("#summary");
 const confirmButton = document.querySelector("#confirm");
-const announceButton = document.querySelector("#announce");
 const connection = document.querySelector("#connection");
 
 let state = null;
@@ -34,7 +33,7 @@ function render() {
     <button type="button" class="sticker" data-sticker="${Tiny.escape(sticker.name)}" aria-pressed="${sticker.name === selected}">
       <img src="${Tiny.escape(sticker.imageUrl)}" alt="${Tiny.escape(sticker.name)}">
       <strong>${Tiny.escape(sticker.name.replace(/\.png$/i, ""))}</strong>
-      <span class="current">${sticker.name === current ? "Current sticker" : sticker.name === selected ? "Selected" : "Choose this"}</span>
+      <span class="current">${sticker.name === current ? "Current sticker" : sticker.name === selected ? "Selected" : ""}</span>
     </button>
   `).join("");
   summary.textContent = current && selected === current
@@ -71,10 +70,6 @@ confirmButton.onclick = async () => {
     confirming = false;
     confirmButton.disabled = !selected;
   }
-};
-
-announceButton.onclick = () => {
-  Tiny.notify(selected ? `Ready to confirm ${selected}` : "Still choosing a sticker");
 };
 
 Tiny.subscribe(nextState => {

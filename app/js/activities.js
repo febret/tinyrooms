@@ -220,7 +220,7 @@ export function createActivityManager({
     entry.title.textContent = activity.title;
     entry.title.id = `activity-title-${++titleSequence}`;
     node.setAttribute("aria-labelledby", entry.title.id);
-    entry.subtitle.textContent = activity.roomBound ? "Room activity" : "Account activity";
+    entry.subtitle.textContent = activity.roomBound ? "Room activity" : "";
     updateControls(entry);
     const iframeControls = () => [...(entry.iframe.contentDocument?.querySelectorAll(
       'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
@@ -414,7 +414,7 @@ export function createActivityManager({
         const entry = windows.get(activity.id) || makeWindow(activity);
         entry.activity = activity;
         entry.title.textContent = activity.title;
-        entry.subtitle.textContent = activity.attention ? "Needs attention" : activity.roomBound ? "Room activity" : "Account activity";
+        entry.subtitle.textContent = activity.attention ? "Needs attention" : activity.roomBound ? "Room activity" : "";
         entry.node.classList.toggle("attention", Boolean(activity.attention));
         updateControls(entry);
         const nextUrl = new URL(activity.iframeUrl, window.location.origin).href;
