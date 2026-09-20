@@ -10,15 +10,16 @@ Milestone 1 backend. The schema source of truth is
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
 | Profile (user) DB | `<users_path>/profiles.sqlite3` | 1 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 3 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
+| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 4 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 There are no automatic migrations. `ensure_*` creates a missing (or
 zero-version) database from the current schema, then fails startup with a
 `RuntimeError` when an existing file has any other `user_version`, is missing
 expected tables, or has unexpected columns (every table's column order is
-validated). Schema versions 1–2 of the world-state DB (which carried
-`room_cards.initial_key`) are therefore rejected: delete the stale file to
-recreate it or restore a compatible backup. `ensure_*` also applies
+validated). World-state schema versions 1–3 (which carried
+`room_cards.initial_key` and/or the `initial_room_cards` ledger) are therefore
+rejected: delete the stale file to recreate it or restore a compatible
+backup. `ensure_*` also applies
 `CREATE INDEX IF NOT EXISTS` for all indexes listed below, so pre-existing
 databases gain the newer indexes without a version bump. `CHECK` constraints
 (`quantity > 0`, boolean `IN (0, 1)`, `json_valid()` on JSON columns,
@@ -151,8 +152,10 @@ Milestone 1 placeholders (defaults below) reserved for later milestones.
 ### 3.1 `rooms`
 
 One row per room in the loaded world definition. Ensured by
-`server/state/world_state.py:WorldStateRepository.initialize_world()` (one
-`INSERT OR IGNORE` per `world.rooms`). `seq` is the authoritative per-room
+`server/state/world_state.py:WorldStateRepository.initialize_world()`, which
+creates a row plus its seed cards only when the room is absent; rooms already
+present are left untouched, so YAML edits to an existing room's cards never
+re-seed implicitly (use `.reset_room` instead). `seq` is the authoritative per-room
 broadcast counter: every chat, pickup/drop, presence move, and navigation
 advances it via `advance_room_seq()` / `append_chat_message()` and the
 resulting `seq` is sent in `room.snapshot` / `room.event` envelopes
@@ -174,11 +177,14 @@ together with the sequence it is consistent with. `chat_history_json` is read by
 ### 3.2 `room_cards`
 
 Live card stacks lying in rooms. Seeded from `room.initial_cards` by
-`initialize_world()` (guarded by `initial_room_cards`, below); listed by
+`initialize_world()` when the room row is first created; listed by
 `list_room_cards()` for snapshots; mutated by `take_room_card()` (pickup) and
 `add_room_card()` (drop) inside `CardService` transactions, each advancing the
 room `seq` and broadcasting `room.card.added/updated/removed`
-(`server/services/cards.py`, `server/commands/core.py`).
+(`server/services/cards.py`, `server/commands/core.py`). `.reset_room`
+(`reset_room_cards()`) deletes every live stack in the caller's room —
+including player drops — re-inserts the YAML seeds, advances `seq`, and
+broadcasts `room.cards.reset`.
 
 | Column | Type | Description |
 | --- | --- | --- |
@@ -192,9 +198,12 @@ room `seq` and broadcasting `room.card.added/updated/removed`
 | `created_at` | TEXT NOT NULL | ISO creation timestamp; list ordering key. |
 | `updated_at` | TEXT NOT NULL | ISO last-quantity-change timestamp. |
 
-Seed identity lives only in `initial_room_cards` (below) plus the
-deterministic seeded `stack_id`; `room_cards` carries no `initial_key`
-column.
+Seeded stacks use a deterministic `stack_id` (`room:<seed key>`, where the
+seed key is `<room>:<index>:<card>` from the content loader in
+`server/content/worlds.py`); `room_cards` carries no `initial_key` column and
+there is no seed ledger table. Restart safety comes from the room-exists gate
+in `initialize_world()`: existing rooms are never re-seeded, so collected
+seeds stay collected and dropped cards stay dropped.
 
 ### 3.3 `prop_states`
 
@@ -220,15 +229,13 @@ Milestone 1). Schema is created alongside the other world tables per
 | `room_id` | TEXT PK, FK → `rooms(room_id)` ON DELETE CASCADE | Owned room. |
 | `owner_account_id` | TEXT NOT NULL | Owning `accounts.id`. |
 
-### 3.5 `initial_room_cards`
+### 3.5 Seed updates (no ledger table)
 
-Idempotency ledger for seeded room cards (`WORLD_SCHEMA_VERSION = 3`).
-`initialize_world()` skips any `initial_card.initial_key` already present
-here, so restarts never duplicate seeded stacks while newly added YAML
-content still gets overlaid. Seeded `room_cards` rows are recognized by
-their deterministic `stack_id` (`room:<initial_key>`), not by a column.
+There is intentionally no `initial_room_cards` ledger: `initialize_world()`
+seeds a room exactly once, at creation. Consequences:
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `initial_key` | TEXT PK | Stable seed key (`<room>:<index>:<card>`-style from the content loader in `server/content/worlds.py`). |
-| `seeded_at` | TEXT NOT NULL | ISO timestamp when the seed row was first inserted. |
+- Restarts never duplicate or respawn room cards.
+- Adding or editing YAML cards for an *existing* room has no effect until the
+  room is explicitly reset; adding a *new* room seeds it on next startup.
+- `.reset_room` is the explicit content-update path: it replaces the room's
+  live cards with the current YAML seeds (see §3.2).

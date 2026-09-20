@@ -9,7 +9,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 1
-WORLD_SCHEMA_VERSION = 3
+WORLD_SCHEMA_VERSION = 4
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -115,17 +115,13 @@ CREATE TABLE IF NOT EXISTS room_owners (
     owner_account_id TEXT NOT NULL,
     FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
 );
-CREATE TABLE IF NOT EXISTS initial_room_cards (
-    initial_key TEXT PRIMARY KEY,
-    seeded_at TEXT NOT NULL
-);
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
 COMMIT;
 """
 
 _PROFILE_TABLES = frozenset({"accounts", "sessions", "profile_card_stacks", "world_profiles"})
 
-_WORLD_TABLES = frozenset({"rooms", "room_cards", "prop_states", "room_owners", "initial_room_cards"})
+_WORLD_TABLES = frozenset({"rooms", "room_cards", "prop_states", "room_owners"})
 
 _ACCOUNTS_COLUMNS = (
     "id",
@@ -216,9 +212,6 @@ _ROOM_CARDS_COLUMNS = (
     "created_at",
     "updated_at",
 )
-
-_INITIAL_ROOM_CARDS_COLUMNS = ("initial_key", "seeded_at")
-
 
 def _connect(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
@@ -328,7 +321,6 @@ def ensure_world_database(path: Path) -> None:
             "room_cards": _ROOM_CARDS_COLUMNS,
             "prop_states": _PROP_STATES_COLUMNS,
             "room_owners": _ROOM_OWNERS_COLUMNS,
-            "initial_room_cards": _INITIAL_ROOM_CARDS_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",

@@ -238,6 +238,35 @@ async def drop_command(context: CommandContext, command: ParsedCommand) -> Comma
     )
 
 
+async def reset_room_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    # TODO(Milestone 2): restrict .reset_room to admins once user roles exist.
+    if command.args:
+        raise CommandError("Use '.reset_room' with no arguments from inside the room to reset.")
+    room_id = _require_room_id(context)
+    room = context.rooms.room_definition(room_id)
+    stacks, seq = context.world_state.reset_room_cards(room_id, room.initial_cards)
+    serialized = [context.cards.serialize_room_stack(stack) for stack in stacks]
+    snapshot = await context.rooms.build_snapshot(context.account, room_id)
+    return CommandOutcome(
+        message="Room reset to its defined state.",
+        payload={"room_cards": serialized},
+        room_broadcasts=[
+            PendingRoomBroadcast(
+                room_id=room_id,
+                seq=seq,
+                event={
+                    "type": "room.cards.reset",
+                    "room_id": room_id,
+                    "stacks": serialized,
+                    "reset_by": context.account.username_display,
+                },
+            )
+        ],
+        snapshot=snapshot,
+        snapshot_seq=seq,
+    )
+
+
 async def favorite_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if not command.args:
         raise CommandError("Choose a core card to favorite.")
@@ -340,6 +369,7 @@ def build_registry() -> CommandRegistry:
     registry.register("look", "Look at the room or a visible entity.", look_command)
     registry.register("pickup", "Pick up a room card stack quantity.", pickup_command)
     registry.register("play", "Open a room activity or developer sample activity.", play_command)
+    registry.register("reset_room", "Reset the current room's cards to the world definition.", reset_room_command)
     registry.register("say", "Send a room-scoped chat message.", say_command)
     registry.register(
         "settings",

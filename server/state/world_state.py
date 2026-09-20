@@ -8,7 +8,7 @@ from typing import Any
 import sqlite3
 import uuid
 
-from server.content.worlds import WorldDefinition
+from server.content.worlds import InitialRoomCard, WorldDefinition
 from server.protocol import MAX_HISTORY_MESSAGES
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
@@ -53,54 +53,88 @@ class WorldStateRepository:
         )
 
     def initialize_world(self, world: WorldDefinition) -> None:
-        """Ensure all persisted room rows exist and overlay initial cards."""
+        """Create missing rooms and seed their initial cards exactly once."""
 
         with self._hub.transaction() as connection:
             for room_id, room in world.rooms.items():
+                exists = connection.execute(
+                    "SELECT 1 FROM world.rooms WHERE room_id = ?",
+                    (room_id,),
+                ).fetchone()
+                if exists is not None:
+                    continue
                 connection.execute(
-                    "INSERT OR IGNORE INTO world.rooms (room_id, seq, revision, chat_history_json) VALUES (?, 0, 0, '[]')",
+                    "INSERT INTO world.rooms (room_id, seq, revision, chat_history_json) VALUES (?, 0, 0, '[]')",
                     (room_id,),
                 )
-                for initial_card in room.initial_cards:
-                    seeded = connection.execute(
-                        """
-                        SELECT 1
-                        FROM world.initial_room_cards
-                        WHERE initial_key = ?
-                        """,
-                        (initial_card.initial_key,),
-                    ).fetchone()
-                    if seeded is not None:
-                        continue
-                    now = utc_now().isoformat()
-                    connection.execute(
-                        """
-                        INSERT OR IGNORE INTO world.room_cards (
-                            stack_id, room_id, card_def_id, quantity, pos_x, pos_y, pos_z,
-                            scope, pinned, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', 0, ?, ?)
-                        """,
-                        (
-                            f"room:{initial_card.initial_key}",
-                            room_id,
-                            initial_card.card_id,
-                            initial_card.quantity,
-                            initial_card.pos[0],
-                            initial_card.pos[1],
-                            initial_card.pos[2],
-                            now,
-                            now,
-                        ),
-                    )
-                    connection.execute(
-                        """
-                        INSERT INTO world.initial_room_cards (
-                            initial_key,
-                            seeded_at
-                        ) VALUES (?, ?)
-                        """,
-                        (initial_card.initial_key, now),
-                    )
+                self._insert_seed_cards(connection, room_id, room.initial_cards)
+
+    def reset_room_cards(
+        self,
+        room_id: str,
+        initial_cards: tuple[InitialRoomCard, ...],
+    ) -> tuple[list[RoomCardStack], int]:
+        """Replace all live room cards with the definition seed cards."""
+
+        with self._hub.transaction() as connection:
+            row = connection.execute(
+                "SELECT 1 FROM world.rooms WHERE room_id = ?",
+                (room_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Unknown room.")
+            connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            stacks = self._insert_seed_cards(connection, room_id, initial_cards)
+            seq = self.advance_room_seq(connection, room_id)
+        return stacks, seq
+
+    @staticmethod
+    def _insert_seed_cards(
+        connection: sqlite3.Connection,
+        room_id: str,
+        initial_cards: tuple[InitialRoomCard, ...],
+    ) -> list[RoomCardStack]:
+        """Insert definition seed cards with deterministic stack IDs."""
+
+        now = utc_now().isoformat()
+        stacks: list[RoomCardStack] = []
+        for initial_card in initial_cards:
+            stack_id = f"room:{initial_card.initial_key}"
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO world.room_cards (
+                    stack_id, room_id, card_def_id, quantity, pos_x, pos_y, pos_z,
+                    scope, pinned, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', 0, ?, ?)
+                """,
+                (
+                    stack_id,
+                    room_id,
+                    initial_card.card_id,
+                    initial_card.quantity,
+                    initial_card.pos[0],
+                    initial_card.pos[1],
+                    initial_card.pos[2],
+                    now,
+                    now,
+                ),
+            )
+            stacks.append(
+                RoomCardStack(
+                    stack_id=stack_id,
+                    room_id=room_id,
+                    card_def_id=initial_card.card_id,
+                    quantity=initial_card.quantity,
+                    pos_x=float(initial_card.pos[0]),
+                    pos_y=float(initial_card.pos[1]),
+                    pos_z=float(initial_card.pos[2]),
+                    scope="room",
+                    pinned=False,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+        return stacks
 
     def list_room_cards(self, room_id: str) -> list[RoomCardStack]:
         """Return persisted room cards for a room."""

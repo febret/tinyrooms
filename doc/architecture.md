@@ -173,7 +173,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 
 | Command | Example | Effect |
 | --- | --- | --- |
-| `.help` | `.help` | Private `payload.commands:[{name, summary}]` (11 commands). |
+| `.help` | `.help` | Private `payload.commands:[{name, summary}]` (12 commands). |
 | `.look` / `.inspect` | `.look @card:<stack>` | Private `payload.entity`. No state change. |
 | `.go` | `.go @way:exit0` | Exit/lock/card + Milestone-1 room checks; updates `remembered_room`, moves WS room, closes room-bound activity; private dest snapshot + 2 broadcasts. |
 | `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; persists to bounded history; broadcasts `chat.message`. Empty / >280 chars rejected. |
@@ -183,6 +183,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.play` | `.play sample`, `.play molly replace` | Starts activity (`molly`→`lazor-rush` playroom-only; `sample`→`dev-sample` flag-gated; also `shop`/`crafting`); occupied without `replace` → reject; private `activity.started` (+`closed reason:replaced`). |
 | `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
 | `.settings` | `.settings action-log off` | Persists `show_activity_log`; `payload.{show_activity_log}`. |
+| `.reset_room` | `.reset_room` | Deletes all live cards in the current room and re-inserts the YAML seeds in one txn; private fresh snapshot + `room.cards.reset` broadcast. Open to anyone for now (TODO: admin-only once Milestone 2 roles exist). |
 
 Quick actions are server-provided (`Look`, `Pick up 1`, `Drop 1`, exit
 labels, `Look around`); the client never invents them.
