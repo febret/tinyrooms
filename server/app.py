@@ -23,6 +23,7 @@ from server.commands.registry import CommandRegistry
 from server.config import AppConfig, ConfigError, ensure_contained, load_config
 from server.connections import ConnectionRegistry, LiveConnection
 from server.content.cards import CardCatalog, ContentError, load_card_catalog
+from server.content.levels import load_equipped_caps
 from server.content.worlds import WorldDefinition, load_world_definition
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.protocol import (
@@ -261,6 +262,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     ensure_world_database(config.worldstate_path)
     hub = DatabaseHub(profile_db_path, config.worldstate_path)
     catalog = load_card_catalog(config.cardsets_path, config.world_path)
+    equipped_caps = load_equipped_caps(config.repo_root / "data" / "core")
     world = load_world_definition(config.world_path, set(catalog.cards))
     profiles = ProfileRepository(hub)
     world_state = WorldStateRepository(hub)
@@ -268,7 +270,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     accounts = AccountService(config, profiles, world.id, world.entry_room_id)
     activities = ActivityService(config)
     connections = ConnectionRegistry()
-    cards = CardService(hub, profiles, world_state, catalog, world.id)
+    cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps)
     rooms = RoomService(
         hub=hub,
         profiles=profiles,

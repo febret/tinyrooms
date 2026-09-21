@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from dataclasses import replace
 import shutil
 import threading
 import unittest
@@ -15,8 +16,10 @@ from server.app import create_app
 from server.commands.parser import CommandParseError, parse_command, parse_target
 from server.config import ConfigError, ensure_contained, load_config
 from server.content.cards import ContentError, load_card_catalog
+from server.content.levels import load_equipped_caps
 from server.content.worlds import load_world_definition
 from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
+from server.services.cards import should_auto_equip
 from server.security import hash_password, normalize_username, verify_password
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from tests.common import REPO_ROOT
@@ -545,6 +548,11 @@ class MultiplayerGameplayTests(RuntimeTestCase):
                 "fancy-wallet",
             )
             self.assertIn("fancy-wallet", inventory_ids)
+            picked = next(
+                stack for stack in snapshot["inventory"]
+                if stack["definition"]["id"] == "fancy-wallet"
+            )
+            self.assertTrue(picked["equipped"])
             self.assertFalse(
                 any(
                     stack["stack_id"] == room_card["stack_id"]
@@ -686,6 +694,123 @@ class MultiplayerGameplayTests(RuntimeTestCase):
         self.assertEqual(shared_css.status_code, 200)
         self.assertIn("text/css", shared_css.headers["content-type"])
         self.assertEqual(private_file.status_code, 404)
+
+
+class PickupAutoEquipTests(RuntimeTestCase):
+    """Picked-up cards occupy an equipped slot while the hand has space."""
+
+    def test_level_caps_load_from_core_content(self) -> None:
+        caps = load_equipped_caps(REPO_ROOT / "data" / "core")
+        self.assertEqual(caps[0], 5)
+        self.assertEqual(caps[2], 6)
+        self.assertEqual(caps[15], 12)
+
+    def test_type_gating_excludes_emotes_and_core(self) -> None:
+        runtime = self.client.app.state.runtime
+        self.assertTrue(should_auto_equip(runtime.catalog.cards["fancy-wallet"]))
+        self.assertTrue(should_auto_equip(runtime.catalog.cards["tasty-toast"]))
+        self.assertFalse(should_auto_equip(runtime.catalog.cards["wave"]))
+        core_definition = replace(runtime.catalog.cards["fancy-wallet"], type="core")
+        self.assertFalse(should_auto_equip(core_definition))
+
+    def test_pickup_equips_item_when_hand_has_space(self) -> None:
+        runtime = self.client.app.state.runtime
+        account = runtime.profiles.create_account(
+            "Equipper",
+            TEST_PASSWORD,
+            runtime.world.id,
+            runtime.world.entry_room_id,
+        )
+        stack = runtime.world_state.list_room_cards("playroom")[0]
+        result = runtime.cards.pickup(account, "playroom", stack.stack_id, 1)
+        picked = [
+            item for item in result.inventory
+            if item["definition"]["id"] == stack.card_def_id
+        ]
+        self.assertEqual(len(picked), 1)
+        self.assertTrue(picked[0]["equipped"])
+
+    def test_pickup_leaves_cards_unequipped_when_hand_is_full(self) -> None:
+        runtime = self.client.app.state.runtime
+        account = runtime.profiles.create_account(
+            "FullHand",
+            TEST_PASSWORD,
+            runtime.world.id,
+            runtime.world.entry_room_id,
+        )
+        with runtime.hub.transaction() as connection:
+            for card_id in (
+                "tasty-toast", "tomato-sauce", "juicy-drink", "plastic-bag", "pooper-scooper"
+            ):
+                created = runtime.profiles.add_inventory_card(
+                    connection,
+                    account_id=account.id,
+                    world_id=runtime.world.id,
+                    card_def_id=card_id,
+                    quantity=1,
+                    scope="world",
+                    stack_limit=10,
+                )
+                runtime.profiles.set_stack_equipped(
+                    connection,
+                    account_id=account.id,
+                    world_id=runtime.world.id,
+                    stack_id=created[0].stack_id,
+                    equipped=True,
+                )
+        stack = runtime.world_state.list_room_cards("playroom")[0]
+        result = runtime.cards.pickup(account, "playroom", stack.stack_id, 1)
+        picked = [
+            item for item in result.inventory
+            if item["definition"]["id"] == stack.card_def_id
+        ]
+        self.assertEqual(len(picked), 1)
+        self.assertFalse(picked[0]["equipped"])
+        self.assertEqual(sum(1 for item in result.inventory if item["equipped"]), 5)
+
+    def test_large_pickup_equips_only_one_stack(self) -> None:
+        runtime = self.client.app.state.runtime
+        account = runtime.profiles.create_account(
+            "BulkPicker",
+            TEST_PASSWORD,
+            runtime.world.id,
+            runtime.world.entry_room_id,
+        )
+        with runtime.hub.transaction() as connection:
+            room_stack, _ = runtime.world_state.add_room_card(
+                connection,
+                room_id="playroom",
+                card_def_id="juicy-drink",
+                quantity=25,
+                pos=(10.0, 10.0, 0.0),
+            )
+        result = runtime.cards.pickup(account, "playroom", room_stack.stack_id, 25)
+        picked = [
+            item for item in result.inventory
+            if item["definition"]["id"] == "juicy-drink"
+        ]
+        self.assertEqual(sorted(item["quantity"] for item in picked), [5, 10, 10])
+        self.assertEqual(sum(1 for item in picked if item["equipped"]), 1)
+
+    def test_emote_pickup_never_equips(self) -> None:
+        runtime = self.client.app.state.runtime
+        account = runtime.profiles.create_account(
+            "EmoteCollector",
+            TEST_PASSWORD,
+            runtime.world.id,
+            runtime.world.entry_room_id,
+        )
+        stack = next(
+            card for card in runtime.world_state.list_room_cards("living-room")
+            if card.card_def_id == "wave"
+        )
+        result = runtime.cards.pickup(account, "living-room", stack.stack_id, 1)
+        picked = [
+            item for item in result.inventory
+            if item["definition"]["id"] == "wave"
+        ]
+        self.assertEqual(len(picked), 1)
+        self.assertFalse(picked[0]["equipped"])
 
 
 if __name__ == "__main__":

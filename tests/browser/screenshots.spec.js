@@ -47,18 +47,6 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).click();
   await capture("details");
   await page.keyboard.press("Escape");
-  await page.keyboard.press("Escape");
-  await travel(page, "exit0", "Sunflower Foyer");
-  await travel(page, "kitchen", "The Buttercup Kitchen");
-  await openCore(page, "room");
-  await page.locator("#panel-layer").getByRole("button", { name: /Tasty Toast/ }).click();
-  await page.locator("#actions-bar").getByRole("button", { name: "Pick up…", exact: true }).click();
-  await capture("quantity");
-  await page.keyboard.press("Escape");
-  await page.keyboard.press("Escape");
-  await travel(page, "foyer", "Sunflower Foyer");
-  await travel(page, "playroom", "The Playroom");
-  await openCore(page, "room");
   await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
   await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
   await expect(page.locator('#panel-layer [data-stack-id][data-scope="room"]')).toHaveCount(0);

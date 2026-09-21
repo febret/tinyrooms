@@ -519,6 +519,27 @@ class ProfileRepository:
             remaining -= add_here
         return updated_stacks
 
+    def set_stack_equipped(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        account_id: str,
+        world_id: str,
+        stack_id: str,
+        equipped: bool,
+    ) -> None:
+        """Set the equipped flag on a visible inventory stack."""
+
+        cursor = connection.execute(
+            """
+            UPDATE profile_card_stacks SET equipped = ?, updated_at = ?
+            WHERE account_id = ? AND stack_id = ? AND (world_id IS NULL OR world_id = ?)
+            """,
+            (1 if equipped else 0, utc_now().isoformat(), account_id, stack_id, world_id),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("That card stack is not in your inventory.")
+
     def remove_inventory_quantity(
         self,
         connection: sqlite3.Connection,

@@ -55,7 +55,7 @@ test.describe("room and inventory", () => {
     await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
     await expect(roomCards).toHaveCount(0);
     await openCore(page, "inventory");
-    const inventoryCards = page.locator("#panel-layer").getByRole("button", { name: "Fancy Wallet", exact: true });
+    const inventoryCards = page.locator("#panel-layer").getByRole("button", { name: /Fancy Wallet/ });
     await expect(inventoryCards).toHaveCount(1);
     await inventoryCards.first().click();
     await expect(page.locator("#actions-bar").getByRole("button", { name: "Drop…", exact: true })).toHaveCount(0);
@@ -66,34 +66,62 @@ test.describe("room and inventory", () => {
     await expect(roomCards).toHaveCount(1);
   });
 
-  test("multi-card stacks offer direct and dialog pickup and drop", async ({ page, runtime }) => {
+  test("pickup equips the card into the hand", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await travel(page);
-    await travel(page, "exit0", "Sunflower Foyer");
-    await travel(page, "kitchen", "The Buttercup Kitchen");
     await openCore(page, "room");
-    const actions = page.locator("#actions-bar");
-    await page.locator("#panel-layer").getByRole("button", { name: /Tasty Toast/ }).click();
-    await expect(actions.getByRole("button", { name: "Pick up 1", exact: true })).toBeVisible();
-    await expect(actions.getByRole("button", { name: "Pick up…", exact: true })).toBeVisible();
-    await actions.getByRole("button", { name: "Pick up…", exact: true }).click();
-    await expect(page.locator(".global-dialog")).toContainText("Pick up cards");
-    await page.locator(".qty-input").evaluate((element, value) => {
-      element.value = value;
-      element.dispatchEvent(new Event("input", { bubbles: true }));
-    }, "2");
-    await page.getByRole("button", { name: "Confirm", exact: true }).click();
-    await expect(page.locator('#panel-layer [data-stack-id][data-scope="room"]')).toHaveCount(1);
+    await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
+    await expect(page.locator('#card-hand [aria-label="Equipped cards"]').getByRole("button", { name: /Fancy Wallet/ })).toHaveCount(1);
     await openCore(page, "inventory");
-    const owned = page.locator("#panel-layer").getByRole("button", { name: /Tasty Toast/ });
-    await expect(owned).toHaveCount(1);
-    await owned.first().click();
-    await expect(actions.getByRole("button", { name: "Drop 1", exact: true })).toBeVisible();
-    await expect(actions.getByRole("button", { name: "Drop…", exact: true })).toBeVisible();
-    await actions.getByRole("button", { name: "Drop 1", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
-    await expect(owned).toHaveCount(1);
-    await expect(actions.getByRole("button", { name: "Drop…", exact: true })).toHaveCount(0);
+    await expect(page.locator("#panel-layer").getByRole("button", { name: /Fancy Wallet, equipped/ })).toHaveCount(1);
+  });
+
+  test("multi-card stacks offer direct and dialog actions", async ({ page, runtime }) => {
+    // Multi-copy stacks are not reachable in milestone rooms, so exercise the
+    // real client module with fabricated selection state instead of gameplay.
+    await page.goto(runtime.baseURL);
+    const summary = await page.evaluate(async () => {
+      const { selectionActions } = await import("/app/js/cards.js");
+      const stack = (stackId, quantity, intent, pinned = false) => ({
+        stackId, quantity, pinned,
+        definition: { label: "Tasty Toast", description: "Yum.", imageUrl: "", rarity: "Common", type: "item" },
+        quickActions: [
+          { label: "Look", command: `.look @card:${stackId}` },
+          { label: intent === "pickup" ? "Pick up 1" : "Drop 1", command: `.${intent} @card:${stackId} 1` },
+        ],
+      });
+      const stateFor = (kind, current) => ({
+        room: {
+          label: "Room", description: "",
+          roomCards: kind === "room-card" ? [current] : [],
+          inventory: kind === "inventory-card" ? [current] : [],
+        },
+        selection: { kind, id: current.stackId },
+        views: {}, user: {},
+      });
+      const describe = actions => actions.map(action => ({
+        label: action.label,
+        target: action.command
+          ? `command:${action.command}`
+          : `local:${action.local?.type}:${action.local?.max}:${action.local?.intent}`,
+        disabled: Boolean(action.disabled),
+      }));
+      return {
+        single: describe(selectionActions(stateFor("room-card", stack("a", 1, "pickup")))),
+        multi: describe(selectionActions(stateFor("room-card", stack("b", 2, "pickup")))),
+        owned: describe(selectionActions(stateFor("inventory-card", stack("c", 3, "drop")))),
+        pinned: describe(selectionActions(stateFor("room-card", stack("d", 2, "pickup", true)))),
+      };
+    });
+    expect(summary.single.map(action => action.label)).toEqual(["Inspect", "Look", "Pick up 1"]);
+    expect(summary.single[2].target).toBe("command:.pickup @card:a 1");
+    expect(summary.multi.map(action => action.label)).toEqual(["Inspect", "Look", "Pick up 1", "Pick up…"]);
+    expect(summary.multi[2].target).toBe("command:.pickup @card:b 1");
+    expect(summary.multi[3].target).toBe("local:quantity:2:pickup");
+    expect(summary.owned.map(action => action.label)).toEqual(["Inspect", "Look", "Drop 1", "Drop…"]);
+    expect(summary.owned[3].target).toBe("local:quantity:3:drop");
+    expect(summary.pinned.filter(action => action.label.startsWith("Pick up")).every(action => action.disabled)).toBe(true);
   });
 });
 

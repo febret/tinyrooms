@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from server.content.cards import CardCatalog, CardDefinition, CORE_CARD_IDS
+from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
 from server.state.world_state import RoomCardStack, WorldStateRepository
@@ -19,6 +20,12 @@ class CardMutationResult:
     room_seq: int
 
 
+def should_auto_equip(definition: CardDefinition) -> bool:
+    """Return whether a picked-up card should occupy an equipped slot."""
+
+    return definition.type not in {"emote", "core"}
+
+
 class CardService:
     """Own serialization and mutation of room/inventory card stacks."""
 
@@ -29,12 +36,14 @@ class CardService:
         world_state: WorldStateRepository,
         catalog: CardCatalog,
         world_id: str,
+        equipped_caps: dict[int, int] | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._world_state = world_state
         self._catalog = catalog
         self._world_id = world_id
+        self._equipped_caps = equipped_caps or {}
 
     def definition(self, card_def_id: str) -> CardDefinition:
         """Return a loaded card definition by ID."""
@@ -141,6 +150,21 @@ class CardService:
                 stack_limit=definition.stack_limit,
             )
             inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
+            if should_auto_equip(definition):
+                equipped_count = sum(1 for item in inventory_rows if item.equipped)
+                if equipped_count < self._equipped_caps.get(account.level, DEFAULT_MAX_EQUIPPED):
+                    for created_stack in created_stacks:
+                        if created_stack.equipped:
+                            continue
+                        self._profiles.set_stack_equipped(
+                            connection,
+                            account_id=account.id,
+                            world_id=self._world_id,
+                            stack_id=created_stack.stack_id,
+                            equipped=True,
+                        )
+                        inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
+                        break
         event = {
             "type": "room.card.removed" if deleted else "room.card.updated",
             "stack_id": stack.stack_id,
