@@ -236,8 +236,12 @@ class ContentPersistenceTests(unittest.TestCase):
                     "tutorial",
                     "hub",
                 )
-                world_profile = profiles.get_world_profile(account.id, "tutorial")
-                self.assertEqual(world_profile.counters, STARTING_WORLD_COUNTERS)
+                user_profile = profiles.get_user_profile(account.id)
+                self.assertEqual(user_profile.counters, STARTING_WORLD_COUNTERS)
+                self.assertEqual(user_profile.last_world_id, "tutorial")
+                self.assertEqual(user_profile.remembered_room, "hub")
+                self.assertFalse(user_profile.show_activity_log)
+                self.assertIn("room", user_profile.favorites)
                 with hub.transaction() as connection:
                     created = profiles.add_inventory_card(
                         connection,
@@ -252,6 +256,18 @@ class ContentPersistenceTests(unittest.TestCase):
                     sorted(stack.quantity for stack in created),
                     [5, 10, 10],
                 )
+                ensured = profiles.ensure_user_profile(account.id, "other-world", "hub")
+                self.assertEqual(ensured.last_world_id, "other-world")
+                with hub.locked() as connection:
+                    rows = connection.execute(
+                        "SELECT COUNT(*) FROM user_profiles WHERE account_id = ?",
+                        (account.id,),
+                    ).fetchone()
+                self.assertEqual(int(rows[0]), 1)
+                toggled = profiles.toggle_favorite(account.id, "room")
+                self.assertNotIn("room", toggled.favorites)
+                shown = profiles.set_show_activity_log(account.id, True)
+                self.assertTrue(shown.show_activity_log)
             finally:
                 hub.close()
 
@@ -509,6 +525,9 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             runtime.world.entry_room_id,
         )
         stack = runtime.world_state.list_room_cards("playroom")[0]
+        self.assertEqual(len(stack.position), 3)
+        serialized = runtime.cards.serialize_room_stack(stack)
+        self.assertEqual(list(serialized["position"]), list(stack.position))
         barrier = threading.Barrier(2)
         results: list[str] = []
 
@@ -531,6 +550,48 @@ class MultiplayerGameplayTests(RuntimeTestCase):
         for thread in threads:
             thread.join()
         self.assertEqual(sorted(results), ["fail", "ok"])
+
+    def test_reset_room_restores_definition_seed_cards(self) -> None:
+        runtime = self.client.app.state.runtime
+        seed_ids = {
+            f"room:{card.initial_key}"
+            for card in runtime.world.rooms["playroom"].initial_cards
+        }
+        player = self.create_ready_account("resetter")
+        with self.client.websocket_connect(
+            "/ws",
+            headers=websocket_headers(
+                player["session_token"],
+                player["csrf_token"],
+            ),
+        ) as socket:
+            socket.receive_json()
+            self.assertTrue(self.command(socket, "go-1", ".go @way:exit0")["ok"])
+            playroom = socket.receive_json()["room"]
+            dropped_id = playroom["inventory"][0]["stack_id"]
+            self.assertTrue(
+                self.command(socket, "drop-1", f".drop @card:{dropped_id} 1")["ok"]
+            )
+            added = socket.receive_json()
+            self.assertEqual(added["type"], "room.event")
+            self.assertEqual(added["event"]["type"], "room.card.added")
+            self.assertNotIn(added["event"]["stack"]["stack_id"], seed_ids)
+            reset = self.command(socket, "reset-1", ".reset_room")
+            self.assertTrue(reset["ok"])
+            snapshot = socket.receive_json()
+            self.assertEqual(snapshot["type"], "room.snapshot")
+            self.assertEqual(
+                {stack["stack_id"] for stack in snapshot["room"]["room_cards"]},
+                seed_ids,
+            )
+            broadcast = socket.receive_json()
+            self.assertEqual(broadcast["type"], "room.event")
+            self.assertEqual(broadcast["event"]["type"], "room.cards.reset")
+            self.assertEqual(
+                {stack["stack_id"] for stack in broadcast["event"]["stacks"]},
+                seed_ids,
+            )
+            self.assertEqual(snapshot["seq"], broadcast["seq"])
 
     def test_activity_replacement_disconnect_and_persisted_setting(self) -> None:
         carol = self.create_ready_account("carol")

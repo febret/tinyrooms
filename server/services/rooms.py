@@ -56,7 +56,7 @@ class RoomService:
     def current_room_for_account(self, account_id: str) -> str:
         """Return the remembered room for the given account."""
 
-        profile = self._profiles.ensure_world_profile(account_id, self._world.id, self._world.entry_room_id)
+        profile = self._profiles.user_profile_for(account_id, self._world.id, self._world.entry_room_id)
         remembered = profile.remembered_room
         if remembered in self._world.rooms:
             return remembered
@@ -203,6 +203,7 @@ class RoomService:
         room = self._world.rooms[room_id]
         live_connections = await self._connections.list_room(room_id)
         occupant_ids = [connection.account_id for connection in live_connections]
+        user_profile = self._profiles.user_profile_for(account.id, self._world.id, room_id)
         with self._hub.locked():
             occupant_accounts = self._profiles.get_accounts_by_ids(occupant_ids)
             room_seq, room_cards, chat_history = self._world_state.read_room_view(room_id)
@@ -242,7 +243,7 @@ class RoomService:
             "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],
             "chat_history": chat_history,
             "inventory": [self._card_service.serialize_inventory_stack(stack) for stack in inventory],
-            "favorites": list(account.favorites),
+            "favorites": list(user_profile.favorites),
             "quick_actions": [
                 {"label": "Look around", "command": ".look"},
                 *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],

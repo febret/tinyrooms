@@ -168,7 +168,7 @@ def _auth_response(runtime: RuntimeState, result: LoginResult, account: AccountR
 
 
 def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str, object]:
-    world_profile = runtime.profiles.ensure_world_profile(account.id, runtime.world.id, runtime.world.entry_room_id)
+    user_profile = runtime.profiles.user_profile_for(account.id, runtime.world.id, runtime.world.entry_room_id)
     activity = runtime.activities.get(account.id)
     if not account.initial_sticker_complete:
         activity = runtime.activities.ensure_initial_sticker(account.id)
@@ -177,14 +177,14 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "username": account.username_display,
         "sticker": account.sticker,
         "initial_sticker_complete": account.initial_sticker_complete,
-        "favorites": list(account.favorites),
+        "favorites": list(user_profile.favorites),
         "level": account.level,
         "kudos": account.kudos,
         "bops": account.bops,
         "shared_energy": account.shared_energy,
-        "show_activity_log": account.show_activity_log,
+        "show_activity_log": user_profile.show_activity_log,
         "world_id": runtime.world.id,
-        "remembered_room": world_profile.remembered_room,
+        "remembered_room": user_profile.remembered_room,
         "inventory": runtime.cards.list_inventory_payload(account.id),
         "activity": runtime.activities.serialize(activity),
     }

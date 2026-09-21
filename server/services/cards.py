@@ -109,7 +109,7 @@ class CardService:
             stack.pinned,
             {"label": "Pick up 1", "command": f".pickup @card:{stack.stack_id} 1"},
         )
-        payload["position"] = [stack.pos_x, stack.pos_y, stack.pos_z]
+        payload["position"] = [stack.position[0], stack.position[1], stack.position[2]]
         return payload
 
     def list_inventory_payload(self, account_id: str) -> list[dict[str, object]]:

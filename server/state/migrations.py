@@ -8,8 +8,8 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 1
-WORLD_SCHEMA_VERSION = 4
+PROFILE_SCHEMA_VERSION = 2
+WORLD_SCHEMA_VERSION = 5
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -20,17 +20,13 @@ CREATE TABLE IF NOT EXISTS accounts (
     password_hash TEXT NOT NULL,
     sticker TEXT,
     initial_sticker_complete INTEGER NOT NULL DEFAULT 0 CHECK (initial_sticker_complete IN (0, 1)),
-    favorites_json TEXT NOT NULL CHECK (json_valid(favorites_json)),
     level INTEGER NOT NULL DEFAULT 0 CHECK (level >= 0),
     kudos INTEGER NOT NULL DEFAULT 0 CHECK (kudos >= 0),
     bops INTEGER NOT NULL DEFAULT 10 CHECK (bops >= 0),
     shared_energy INTEGER NOT NULL DEFAULT 80 CHECK (shared_energy >= 0),
     last_energy_at TEXT NOT NULL,
     last_daily_claim TEXT,
-    friends_json TEXT NOT NULL CHECK (json_valid(friends_json)),
-    pending_friends_json TEXT NOT NULL CHECK (json_valid(pending_friends_json)),
     active_session_generation INTEGER NOT NULL DEFAULT 0 CHECK (active_session_generation >= 0),
-    show_activity_log INTEGER NOT NULL DEFAULT 0 CHECK (show_activity_log IN (0, 1)),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -60,9 +56,9 @@ CREATE TABLE IF NOT EXISTS profile_card_stacks (
 );
 CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id);
 CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope);
-CREATE TABLE IF NOT EXISTS world_profiles (
-    account_id TEXT NOT NULL,
-    world_id TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS user_profiles (
+    account_id TEXT PRIMARY KEY,
+    last_world_id TEXT NOT NULL,
     remembered_room TEXT,
     native_cards_json TEXT NOT NULL CHECK (json_valid(native_cards_json)),
     counters_json TEXT NOT NULL CHECK (json_valid(counters_json)),
@@ -70,12 +66,11 @@ CREATE TABLE IF NOT EXISTS world_profiles (
     tasks_json TEXT NOT NULL CHECK (json_valid(tasks_json)),
     memories_json TEXT NOT NULL CHECK (json_valid(memories_json)),
     ownership_json TEXT NOT NULL CHECK (json_valid(ownership_json)),
+    profile_json TEXT NOT NULL CHECK (json_valid(profile_json)),
     last_visit_at TEXT NOT NULL,
-    PRIMARY KEY (account_id, world_id),
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_world_profiles_world ON world_profiles(world_id);
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 COMMIT;
 """
 
@@ -92,9 +87,7 @@ CREATE TABLE IF NOT EXISTS room_cards (
     room_id TEXT NOT NULL,
     card_def_id TEXT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
-    pos_x REAL NOT NULL,
-    pos_y REAL NOT NULL,
-    pos_z REAL NOT NULL,
+    position_json TEXT NOT NULL CHECK (json_valid(position_json)),
     scope TEXT NOT NULL DEFAULT 'room',
     pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
     created_at TEXT NOT NULL,
@@ -115,11 +108,11 @@ CREATE TABLE IF NOT EXISTS room_owners (
     owner_account_id TEXT NOT NULL,
     FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
 );
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;
 COMMIT;
 """
 
-_PROFILE_TABLES = frozenset({"accounts", "sessions", "profile_card_stacks", "world_profiles"})
+_PROFILE_TABLES = frozenset({"accounts", "sessions", "profile_card_stacks", "user_profiles"})
 
 _WORLD_TABLES = frozenset({"rooms", "room_cards", "prop_states", "room_owners"})
 
@@ -130,17 +123,13 @@ _ACCOUNTS_COLUMNS = (
     "password_hash",
     "sticker",
     "initial_sticker_complete",
-    "favorites_json",
     "level",
     "kudos",
     "bops",
     "shared_energy",
     "last_energy_at",
     "last_daily_claim",
-    "friends_json",
-    "pending_friends_json",
     "active_session_generation",
-    "show_activity_log",
     "created_at",
     "updated_at",
 )
@@ -168,9 +157,9 @@ _PROFILE_CARDS_COLUMNS = (
     "updated_at",
 )
 
-_WORLD_PROFILES_COLUMNS = (
+_USER_PROFILES_COLUMNS = (
     "account_id",
-    "world_id",
+    "last_world_id",
     "remembered_room",
     "native_cards_json",
     "counters_json",
@@ -178,6 +167,7 @@ _WORLD_PROFILES_COLUMNS = (
     "tasks_json",
     "memories_json",
     "ownership_json",
+    "profile_json",
     "last_visit_at",
 )
 
@@ -204,9 +194,7 @@ _ROOM_CARDS_COLUMNS = (
     "room_id",
     "card_def_id",
     "quantity",
-    "pos_x",
-    "pos_y",
-    "pos_z",
+    "position_json",
     "scope",
     "pinned",
     "created_at",
@@ -296,13 +284,12 @@ def ensure_profile_database(path: Path) -> None:
             "accounts": _ACCOUNTS_COLUMNS,
             "sessions": _SESSIONS_COLUMNS,
             "profile_card_stacks": _PROFILE_CARDS_COLUMNS,
-            "world_profiles": _WORLD_PROFILES_COLUMNS,
+            "user_profiles": _USER_PROFILES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",
-            "CREATE INDEX IF NOT EXISTS idx_world_profiles_world ON world_profiles(world_id)",
         ),
     )
 

@@ -10,7 +10,5 @@ if [[ -z "${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-}" ]]; then
   exit 1
 fi
 
-python -m pip install -r requirements.txt
-npm install
-npm run vendor
+# Run ./setup.sh once to install and bundle dependencies, then start the game.
 python run.py "$@"

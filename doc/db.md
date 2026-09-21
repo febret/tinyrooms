@@ -9,15 +9,17 @@ Milestone 1 backend. The schema source of truth is
 
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
-| Profile (user) DB | `<users_path>/profiles.sqlite3` | 1 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 4 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
+| Profile (user) DB | `<users_path>/profiles.sqlite3` | 2 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
+| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 5 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 There are no automatic migrations. `ensure_*` creates a missing (or
 zero-version) database from the current schema, then fails startup with a
 `RuntimeError` when an existing file has any other `user_version`, is missing
 expected tables, or has unexpected columns (every table's column order is
-validated). World-state schema versions 1–3 (which carried
-`room_cards.initial_key` and/or the `initial_room_cards` ledger) are therefore
+validated). Older `user_version`s — including profile schema 1 (with
+`accounts.favorites_json/friends_json/pending_friends_json/show_activity_log`
+and `world_profiles`) and world-state schemas 1–4 (with `room_cards.pos_x/y/z`,
+`initial_key`, and/or the `initial_room_cards` ledger) — are therefore
 rejected: delete the stale file to recreate it or restore a compatible
 backup. `ensure_*` also applies
 `CREATE INDEX IF NOT EXISTS` for all indexes listed below, so pre-existing
@@ -45,30 +47,31 @@ One row per registered user. Created by
 `server/profiles.py:ProfileRepository.create_account()` (called from
 `server/accounts.py:AccountService.create_account()`); read by
 `get_account_by_id()` / `get_account_by_username()` / `get_accounts_by_ids()`
-(single-query batch used for room occupants); mutated by `set_sticker()`,
-`toggle_favorite()`, `set_show_activity_log()`, and `issue_session()` (bumps
-`active_session_generation`). Serialized to the client in
-`server/app.py:_serialize_account()`.
+(single-query batch used for room occupants); mutated by `set_sticker()` and
+`issue_session()` (bumps `active_session_generation`). Favorites, friends,
+and Action Log visibility live in `user_profiles.profile_json` (mutated by
+`toggle_favorite()` / `set_show_activity_log()`). Serialized to the client in
+`server/app.py:_serialize_account()` (wire `favorites` / `show_activity_log`
+keys unchanged).
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `id` | TEXT PK | Account UUID (`uuid4`). Referenced by `sessions`, `profile_card_stacks`, `world_profiles`. |
+| `id` | TEXT PK | Account UUID (`uuid4`). Referenced by `sessions`, `profile_card_stacks`, `user_profiles`. |
 | `username_display` | TEXT NOT NULL | Username with original casing, shown in UI/presence. |
 | `username_key` | TEXT NOT NULL UNIQUE | Casefolded username for uniqueness/login lookup (`normalize_username()`). |
 | `password_hash` | TEXT NOT NULL | scrypt hash (`scrypt$n$r$p$salt$digest`), see `server/security.py:hash_password()` / `verify_password()`. |
 | `sticker` | TEXT NULL | Chosen sticker filename under `data/stickers`; NULL until confirmed. Set once by `set_sticker()`. |
 | `initial_sticker_complete` | INTEGER NOT NULL DEFAULT 0 | Boolean. Gates world entry (`/ws` closes `4403` until true). |
-| `favorites_json` | TEXT NOT NULL | JSON list of core-card IDs favorited via `.favorite` (`toggle_favorite()`). |
+| _(removed)_ `favorites_json` | — | Moved into `user_profiles.profile_json.favorites` (list of core-card IDs favorited via `.favorite`). |
 | `level` | INTEGER NOT NULL DEFAULT 0 | Progression level (Milestone 1: always 0 for new users; future use per `data/core/levels.yaml`). |
 | `kudos` | INTEGER NOT NULL DEFAULT 0 | Kudos balance (future level-up currency). |
 | `bops` | INTEGER NOT NULL DEFAULT 10 | Bops balance (future spendable currency). |
 | `shared_energy` | INTEGER NOT NULL DEFAULT 80 | Shared energy pool (future juice system, cf. `data/core/juice.yaml`). |
 | `last_energy_at` | TEXT NOT NULL | ISO timestamp of last energy update/recharge baseline. |
 | `last_daily_claim` | TEXT NULL | ISO timestamp/date of last daily Bops claim; NULL if never claimed. |
-| `friends_json` | TEXT NOT NULL | JSON list of friend account IDs/usernames (Milestone 1: `[]`). |
-| `pending_friends_json` | TEXT NOT NULL | JSON list of pending friend requests (Milestone 1: `[]`). |
+| _(removed)_ `friends_json` / `pending_friends_json` | — | Moved into `user_profiles.profile_json.friends` / `.pending_friends` (Milestone 1: `[]`). |
 | `active_session_generation` | INTEGER NOT NULL DEFAULT 0 | Incremented on every `issue_session()`; enforces one live gameplay session (old sockets get `session.replaced`). |
-| `show_activity_log` | INTEGER NOT NULL DEFAULT 0 | Boolean. Action Log visibility, toggled by `.settings action-log` (`set_show_activity_log()`). |
+| _(removed)_ `show_activity_log` | — | Moved into `user_profiles.profile_json.show_activity_log` (boolean, hidden by default; toggled by `.settings action-log`). |
 | `created_at` | TEXT NOT NULL | ISO creation timestamp. |
 | `updated_at` | TEXT NOT NULL | ISO last-update timestamp (bumped on sticker/favorite/settings/session changes). |
 
@@ -124,20 +127,22 @@ pickup-merge filter and the `.go` card-requirement scan.
 | `created_at` | TEXT NOT NULL | ISO creation timestamp; determines merge/fill and list ordering. |
 | `updated_at` | TEXT NOT NULL | ISO last-quantity-change timestamp. |
 
-### 2.4 `world_profiles`
+### 2.4 `user_profiles`
 
-One row per (account, world). Created by `create_account()` and lazily by
-`ensure_world_profile()`; read by `get_world_profile()` and
-`RoomService.current_room_for_account()`; `remembered_room`/`last_visit_at`
-updated by `set_remembered_room()` on every `.go` (`server/services/rooms.py`)
-and used for resume on WS connect and `/api/bootstrap`
-(`server/app.py:_serialize_account()`). The `*_json` gameplay blobs are
-Milestone 1 placeholders (defaults below) reserved for later milestones.
+One row per user (PK `account_id`). Created by `create_account()` and lazily
+by `ensure_user_profile()`; read by `get_user_profile()` and
+`RoomService.current_room_for_account()`; `last_world_id` / `remembered_room`
+/ `last_visit_at` updated by `set_remembered_room()` on every `.go`
+(`server/services/rooms.py`) and used for resume on WS connect and
+`/api/bootstrap` (`server/app.py:_serialize_account()`). Tasks, memories,
+ownership, and the remaining gameplay blobs are unified per user rather than
+per `(account, world)`. The `*_json` gameplay blobs are Milestone 1
+placeholders (defaults below) reserved for later milestones.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `account_id` | TEXT NOT NULL, PK part 1, FK → `accounts(id)` ON DELETE CASCADE | Owning account. |
-| `world_id` | TEXT NOT NULL, PK part 2 | World ID (e.g. tutorial world). Composite PK `(account_id, world_id)`; `idx_world_profiles_world (world_id)` covers per-world scans. |
+| `account_id` | TEXT PK, FK → `accounts(id)` ON DELETE CASCADE | Owning account; single row per user. |
+| `last_world_id` | TEXT NOT NULL | Last visited world (e.g. tutorial world). Set at signup; updated on world switch and every `.go`. |
 | `remembered_room` | TEXT NULL | Last room the user occupied; WS connect resumes here if still in the world, else falls back to the entry room. |
 | `native_cards_json` | TEXT NOT NULL | JSON dict of world-native card state (Milestone 1: `'{}'`). |
 | `counters_json` | TEXT NOT NULL | JSON dict of world counters; seeded with `STARTING_WORLD_COUNTERS` (health/max_health, cleanliness/max_cleanliness, constitution, dexterity, charisma, fanciness). |
@@ -145,6 +150,7 @@ Milestone 1 placeholders (defaults below) reserved for later milestones.
 | `tasks_json` | TEXT NOT NULL | JSON dict of quest/task state (Milestone 1: `'{}'`). |
 | `memories_json` | TEXT NOT NULL | JSON dict of memory flags (Milestone 1: `'{}'`). |
 | `ownership_json` | TEXT NOT NULL | JSON dict of ownership claims (Milestone 1: `'{}'`). |
+| `profile_json` | TEXT NOT NULL | JSON user profile: `{favorites[], friends[], pending_friends[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
 | `last_visit_at` | TEXT NOT NULL | ISO timestamp of last room change; updated together with `remembered_room`. |
 
 ## 3. World-state DB — `TRSERVER_WORLDSTATE_PATH`
@@ -192,7 +198,7 @@ broadcasts `room.cards.reset`.
 | `room_id` | TEXT NOT NULL FK → `rooms(room_id)` ON DELETE CASCADE | Containing room. Indexed via `idx_room_cards_room_id` and `idx_room_cards_order (room_id, created_at, stack_id)`, which covers the snapshot `ORDER BY`. |
 | `card_def_id` | TEXT NOT NULL | Card definition ID from the catalog. |
 | `quantity` | INTEGER NOT NULL | Cards in this stack. |
-| `pos_x` / `pos_y` / `pos_z` | REAL NOT NULL | Board position triple; seeded from YAML `pos`, drops land at `(50, 50, 0)` (`core.py`). |
+| `position_json` | TEXT NOT NULL | JSON board position triple `[x, y, z]`; seeded from YAML `pos`, drops land at `(50, 50, 0)` (`core.py`). Serialized as `position: [x, y, z]`. |
 | `scope` | TEXT NOT NULL DEFAULT `'room'` | Always `'room'` in Milestone 1; mirrors the inventory `scope` vocabulary. |
 | `pinned` | INTEGER NOT NULL DEFAULT 0 | Boolean. Pinned stacks reject `.pickup` (`take_room_card()`). |
 | `created_at` | TEXT NOT NULL | ISO creation timestamp; list ordering key. |

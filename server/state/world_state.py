@@ -14,6 +14,19 @@ from server.security import utc_now
 from server.state.migrations import DatabaseHub
 
 
+def _position_from_json(raw: str) -> tuple[float, float, float]:
+    try:
+        values = json.loads(raw)
+    except (ValueError, TypeError):
+        return (50.0, 50.0, 0.0)
+    if not isinstance(values, (list, tuple)) or len(values) != 3:
+        return (50.0, 50.0, 0.0)
+    try:
+        return (float(values[0]), float(values[1]), float(values[2]))
+    except (ValueError, TypeError):
+        return (50.0, 50.0, 0.0)
+
+
 @dataclass(frozen=True, slots=True)
 class RoomCardStack:
     """A persisted room card stack."""
@@ -22,9 +35,7 @@ class RoomCardStack:
     room_id: str
     card_def_id: str
     quantity: int
-    pos_x: float
-    pos_y: float
-    pos_z: float
+    position: tuple[float, float, float]
     scope: str
     pinned: bool
     created_at: str
@@ -43,9 +54,7 @@ class WorldStateRepository:
             room_id=row["room_id"],
             card_def_id=row["card_def_id"],
             quantity=int(row["quantity"]),
-            pos_x=float(row["pos_x"]),
-            pos_y=float(row["pos_y"]),
-            pos_z=float(row["pos_z"]),
+            position=_position_from_json(row["position_json"]),
             scope=row["scope"],
             pinned=bool(row["pinned"]),
             created_at=row["created_at"],
@@ -100,21 +109,24 @@ class WorldStateRepository:
         stacks: list[RoomCardStack] = []
         for initial_card in initial_cards:
             stack_id = f"room:{initial_card.initial_key}"
+            position = (
+                float(initial_card.pos[0]),
+                float(initial_card.pos[1]),
+                float(initial_card.pos[2]),
+            )
             connection.execute(
                 """
                 INSERT OR IGNORE INTO world.room_cards (
-                    stack_id, room_id, card_def_id, quantity, pos_x, pos_y, pos_z,
+                    stack_id, room_id, card_def_id, quantity, position_json,
                     scope, pinned, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', 0, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, 'room', 0, ?, ?)
                 """,
                 (
                     stack_id,
                     room_id,
                     initial_card.card_id,
                     initial_card.quantity,
-                    initial_card.pos[0],
-                    initial_card.pos[1],
-                    initial_card.pos[2],
+                    json.dumps(list(position)),
                     now,
                     now,
                 ),
@@ -125,9 +137,7 @@ class WorldStateRepository:
                     room_id=room_id,
                     card_def_id=initial_card.card_id,
                     quantity=initial_card.quantity,
-                    pos_x=float(initial_card.pos[0]),
-                    pos_y=float(initial_card.pos[1]),
-                    pos_z=float(initial_card.pos[2]),
+                    position=position,
                     scope="room",
                     pinned=False,
                     created_at=now,
@@ -262,14 +272,15 @@ class WorldStateRepository:
 
         stack_id = f"room:{uuid.uuid4()}"
         now = utc_now().isoformat()
+        position = (float(pos[0]), float(pos[1]), float(pos[2]))
         connection.execute(
             """
             INSERT INTO world.room_cards (
-                stack_id, room_id, card_def_id, quantity, pos_x, pos_y, pos_z,
+                stack_id, room_id, card_def_id, quantity, position_json,
                 scope, pinned, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'room', ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, 'room', ?, ?, ?)
             """,
-            (stack_id, room_id, card_def_id, quantity, pos[0], pos[1], pos[2], int(pinned), now, now),
+            (stack_id, room_id, card_def_id, quantity, json.dumps(list(position)), int(pinned), now, now),
         )
         seq = self.advance_room_seq(connection, room_id)
         return (
@@ -278,9 +289,7 @@ class WorldStateRepository:
                 room_id=room_id,
                 card_def_id=card_def_id,
                 quantity=quantity,
-                pos_x=float(pos[0]),
-                pos_y=float(pos[1]),
-                pos_z=float(pos[2]),
+                position=position,
                 scope="room",
                 pinned=pinned,
                 created_at=now,

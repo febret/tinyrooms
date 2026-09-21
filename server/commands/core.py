@@ -244,16 +244,15 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
         raise CommandError("Use '.reset_room' with no arguments from inside the room to reset.")
     room_id = _require_room_id(context)
     room = context.rooms.room_definition(room_id)
-    stacks, seq = context.world_state.reset_room_cards(room_id, room.initial_cards)
+    stacks, _seq = context.world_state.reset_room_cards(room_id, room.initial_cards)
     serialized = [context.cards.serialize_room_stack(stack) for stack in stacks]
-    snapshot = await context.rooms.build_snapshot(context.account, room_id)
+    snapshot, snapshot_seq = await context.rooms.build_snapshot_with_seq(context.account, room_id)
     return CommandOutcome(
         message="Room reset to its defined state.",
-        payload={"room_cards": serialized},
         room_broadcasts=[
             PendingRoomBroadcast(
                 room_id=room_id,
-                seq=seq,
+                seq=snapshot_seq,
                 event={
                     "type": "room.cards.reset",
                     "room_id": room_id,
@@ -263,7 +262,7 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
             )
         ],
         snapshot=snapshot,
-        snapshot_seq=seq,
+        snapshot_seq=snapshot_seq,
     )
 
 
@@ -291,13 +290,13 @@ async def settings_command(
     value = command.args[1].lower()
     if value not in {"on", "off"}:
         raise CommandError("Action Log setting must be 'on' or 'off'.")
-    account = context.profiles.set_show_activity_log(
+    user_profile = context.profiles.set_show_activity_log(
         context.account.id,
         value == "on",
     )
     return CommandOutcome(
         message=f"Action Log turned {value}.",
-        payload={"show_activity_log": account.show_activity_log},
+        payload={"show_activity_log": user_profile.show_activity_log},
     )
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 import json
@@ -35,6 +36,36 @@ STARTING_WORLD_COUNTERS = {
 SESSION_TOUCH_INTERVAL_SECONDS = 60.0
 
 
+def _default_profile() -> dict[str, object]:
+    return {
+        "favorites": list(STARTING_FAVORITES),
+        "friends": [],
+        "pending_friends": [],
+        "show_activity_log": False,
+        "ui_settings": {},
+    }
+
+
+def _normalize_profile(raw: object) -> dict[str, object]:
+    defaults = _default_profile()
+    if not isinstance(raw, dict):
+        return defaults
+    merged: dict[str, object] = dict(defaults)
+    for key, value in raw.items():
+        merged[key] = value
+    if not isinstance(merged.get("favorites"), list):
+        merged["favorites"] = list(STARTING_FAVORITES)
+    if not isinstance(merged.get("friends"), list):
+        merged["friends"] = []
+    if not isinstance(merged.get("pending_friends"), list):
+        merged["pending_friends"] = []
+    if not isinstance(merged.get("show_activity_log"), bool):
+        merged["show_activity_log"] = False
+    if not isinstance(merged.get("ui_settings"), dict):
+        merged["ui_settings"] = {}
+    return merged
+
+
 @dataclass(frozen=True, slots=True)
 class AccountRecord:
     """A stored account record."""
@@ -45,17 +76,13 @@ class AccountRecord:
     password_hash: str
     sticker: str | None
     initial_sticker_complete: bool
-    favorites: tuple[str, ...]
     level: int
     kudos: int
     bops: int
     shared_energy: int
     last_energy_at: str
     last_daily_claim: str | None
-    friends: tuple[str, ...]
-    pending_friends: tuple[str, ...]
     active_session_generation: int
-    show_activity_log: bool
     created_at: str
     updated_at: str
 
@@ -91,11 +118,11 @@ class InventoryStack:
 
 
 @dataclass(frozen=True, slots=True)
-class WorldProfileRecord:
-    """A persisted per-world profile row."""
+class UserProfileRecord:
+    """A persisted per-user profile row."""
 
     account_id: str
-    world_id: str
+    last_world_id: str
     remembered_room: str | None
     native_cards: dict[str, object]
     counters: dict[str, object]
@@ -103,7 +130,27 @@ class WorldProfileRecord:
     tasks: dict[str, object]
     memories: dict[str, object]
     ownership: dict[str, object]
+    profile: dict[str, object]
     last_visit_at: str
+
+    @property
+    def favorites(self) -> tuple[str, ...]:
+        raw = self.profile.get("favorites")
+        return tuple(raw) if isinstance(raw, list) else ()
+
+    @property
+    def friends(self) -> tuple[str, ...]:
+        raw = self.profile.get("friends")
+        return tuple(raw) if isinstance(raw, list) else ()
+
+    @property
+    def pending_friends(self) -> tuple[str, ...]:
+        raw = self.profile.get("pending_friends")
+        return tuple(raw) if isinstance(raw, list) else ()
+
+    @property
+    def show_activity_log(self) -> bool:
+        return bool(self.profile.get("show_activity_log", False))
 
 
 class ProfileRepository:
@@ -120,17 +167,13 @@ class ProfileRepository:
             password_hash=row["password_hash"],
             sticker=row["sticker"],
             initial_sticker_complete=bool(row["initial_sticker_complete"]),
-            favorites=tuple(json.loads(row["favorites_json"])),
             level=int(row["level"]),
             kudos=int(row["kudos"]),
             bops=int(row["bops"]),
             shared_energy=int(row["shared_energy"]),
             last_energy_at=row["last_energy_at"],
             last_daily_claim=row["last_daily_claim"],
-            friends=tuple(json.loads(row["friends_json"])),
-            pending_friends=tuple(json.loads(row["pending_friends_json"])),
             active_session_generation=int(row["active_session_generation"]),
-            show_activity_log=bool(row["show_activity_log"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -149,10 +192,10 @@ class ProfileRepository:
             updated_at=row["updated_at"],
         )
 
-    def _world_profile_from_row(self, row: sqlite3.Row) -> WorldProfileRecord:
-        return WorldProfileRecord(
+    def _user_profile_from_row(self, row: sqlite3.Row) -> UserProfileRecord:
+        return UserProfileRecord(
             account_id=row["account_id"],
-            world_id=row["world_id"],
+            last_world_id=row["last_world_id"],
             remembered_room=row["remembered_room"],
             native_cards=json.loads(row["native_cards_json"]),
             counters=json.loads(row["counters_json"]),
@@ -160,6 +203,7 @@ class ProfileRepository:
             tasks=json.loads(row["tasks_json"]),
             memories=json.loads(row["memories_json"]),
             ownership=json.loads(row["ownership_json"]),
+            profile=_normalize_profile(json.loads(row["profile_json"])),
             last_visit_at=row["last_visit_at"],
         )
 
@@ -210,21 +254,17 @@ class ProfileRepository:
                 """
                 INSERT INTO accounts (
                     id, username_display, username_key, password_hash, sticker,
-                    initial_sticker_complete, favorites_json, level, kudos, bops,
-                    shared_energy, last_energy_at, last_daily_claim, friends_json,
-                    pending_friends_json, active_session_generation, show_activity_log,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, NULL, 0, ?, 0, 0, 10, 80, ?, NULL, ?, ?, 0, 0, ?, ?)
+                    initial_sticker_complete, level, kudos, bops,
+                    shared_energy, last_energy_at, last_daily_claim,
+                    active_session_generation, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, NULL, 0, 0, 0, 10, 80, ?, NULL, 0, ?, ?)
                 """,
                 (
                     account_id,
                     display_name,
                     username_key,
                     password_digest,
-                    json.dumps(list(STARTING_FAVORITES)),
                     now,
-                    json.dumps([]),
-                    json.dumps([]),
                     now,
                     now,
                 ),
@@ -241,17 +281,18 @@ class ProfileRepository:
                 )
             connection.execute(
                 """
-                INSERT INTO world_profiles (
-                    account_id, world_id, remembered_room, native_cards_json,
+                INSERT INTO user_profiles (
+                    account_id, last_world_id, remembered_room, native_cards_json,
                     counters_json, buffs_json, tasks_json, memories_json,
-                    ownership_json, last_visit_at
-                ) VALUES (?, ?, ?, '{}', ?, '{}', '{}', '{}', '{}', ?)
+                    ownership_json, profile_json, last_visit_at
+                ) VALUES (?, ?, ?, '{}', ?, '{}', '{}', '{}', '{}', ?, ?)
                 """,
                 (
                     account_id,
                     world_id,
                     entry_room,
                     json.dumps(STARTING_WORLD_COUNTERS),
+                    json.dumps(_default_profile()),
                     now,
                 ),
             )
@@ -527,58 +568,80 @@ class ProfileRepository:
             False,
         )
 
-    def get_world_profile(self, account_id: str, world_id: str) -> WorldProfileRecord | None:
-        """Fetch the current world profile."""
+    def get_user_profile(self, account_id: str) -> UserProfileRecord | None:
+        """Fetch the single per-user profile row."""
 
         with self._hub.locked() as connection:
             row = connection.execute(
-                "SELECT * FROM world_profiles WHERE account_id = ? AND world_id = ?",
-                (account_id, world_id),
+                "SELECT * FROM user_profiles WHERE account_id = ?",
+                (account_id,),
             ).fetchone()
-        return None if row is None else self._world_profile_from_row(row)
+        return None if row is None else self._user_profile_from_row(row)
 
-    def ensure_world_profile(self, account_id: str, world_id: str, entry_room: str) -> WorldProfileRecord:
-        """Ensure a world-profile row exists and return it."""
+    def user_profile_for(self, account_id: str, world_id: str, entry_room: str) -> UserProfileRecord:
+        """Return the current profile, creating or refreshing it only when needed."""
+
+        profile = self.get_user_profile(account_id)
+        if profile is None or profile.last_world_id != world_id:
+            profile = self.ensure_user_profile(account_id, world_id, entry_room)
+        return profile
+
+    def ensure_user_profile(self, account_id: str, world_id: str, entry_room: str) -> UserProfileRecord:
+        """Ensure the single per-user profile row exists and return it."""
 
         now = utc_now().isoformat()
         with self._hub.transaction() as connection:
             row = connection.execute(
-                "SELECT * FROM world_profiles WHERE account_id = ? AND world_id = ?",
-                (account_id, world_id),
+                "SELECT * FROM user_profiles WHERE account_id = ?",
+                (account_id,),
             ).fetchone()
             if row is None:
                 connection.execute(
                     """
-                    INSERT INTO world_profiles (
-                        account_id, world_id, remembered_room, native_cards_json,
+                    INSERT INTO user_profiles (
+                        account_id, last_world_id, remembered_room, native_cards_json,
                         counters_json, buffs_json, tasks_json, memories_json,
-                        ownership_json, last_visit_at
-                    ) VALUES (?, ?, ?, '{}', ?, '{}', '{}', '{}', '{}', ?)
+                        ownership_json, profile_json, last_visit_at
+                    ) VALUES (?, ?, ?, '{}', ?, '{}', '{}', '{}', '{}', ?, ?)
                     """,
                     (
                         account_id,
                         world_id,
                         entry_room,
                         json.dumps(STARTING_WORLD_COUNTERS),
+                        json.dumps(_default_profile()),
                         now,
                     ),
                 )
                 row = connection.execute(
-                    "SELECT * FROM world_profiles WHERE account_id = ? AND world_id = ?",
-                    (account_id, world_id),
+                    "SELECT * FROM user_profiles WHERE account_id = ?",
+                    (account_id,),
                 ).fetchone()
-        return self._world_profile_from_row(row)
+            elif row["last_world_id"] != world_id:
+                connection.execute(
+                    """
+                    UPDATE user_profiles
+                    SET last_world_id = ?, remembered_room = ?, last_visit_at = ?
+                    WHERE account_id = ?
+                    """,
+                    (world_id, entry_room, now, account_id),
+                )
+                row = connection.execute(
+                    "SELECT * FROM user_profiles WHERE account_id = ?",
+                    (account_id,),
+                ).fetchone()
+        return self._user_profile_from_row(row)
 
     def set_remembered_room(self, connection: sqlite3.Connection, account_id: str, world_id: str, room_id: str) -> None:
-        """Persist the user's remembered room."""
+        """Persist the user's remembered room and last visited world."""
 
         connection.execute(
             """
-            UPDATE world_profiles
-            SET remembered_room = ?, last_visit_at = ?
-            WHERE account_id = ? AND world_id = ?
+            UPDATE user_profiles
+            SET last_world_id = ?, remembered_room = ?, last_visit_at = ?
+            WHERE account_id = ?
             """,
-            (room_id, utc_now().isoformat(), account_id, world_id),
+            (world_id, room_id, utc_now().isoformat(), account_id),
         )
 
     def set_sticker(self, account_id: str, sticker_name: str) -> AccountRecord:
@@ -605,48 +668,56 @@ class ProfileRepository:
             updated = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
         return self._account_from_row(updated)
 
-    def toggle_favorite(self, account_id: str, card_id: str) -> AccountRecord:
-        """Toggle a core-card favorite and return the updated account."""
+    def _update_profile_json(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        mutate: Callable[[dict[str, object]], None],
+    ) -> UserProfileRecord:
+        row = connection.execute(
+            "SELECT * FROM user_profiles WHERE account_id = ?",
+            (account_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("Unknown account.")
+        profile = _normalize_profile(json.loads(row["profile_json"]))
+        mutate(profile)
+        connection.execute(
+            "UPDATE user_profiles SET profile_json = ? WHERE account_id = ?",
+            (json.dumps(profile), account_id),
+        )
+        updated = connection.execute(
+            "SELECT * FROM user_profiles WHERE account_id = ?",
+            (account_id,),
+        ).fetchone()
+        return self._user_profile_from_row(updated)
 
-        now = utc_now().isoformat()
+    def toggle_favorite(self, account_id: str, card_id: str) -> UserProfileRecord:
+        """Toggle a core-card favorite and return the updated user profile."""
+
         with self._hub.transaction() as connection:
-            row = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
-            if row is None:
-                raise ValueError("Unknown account.")
-            account = self._account_from_row(row)
-            favorites = list(account.favorites)
-            if card_id in favorites:
-                favorites.remove(card_id)
-            else:
-                favorites.append(card_id)
-            connection.execute(
-                "UPDATE accounts SET favorites_json = ?, updated_at = ? WHERE id = ?",
-                (json.dumps(favorites), now, account_id),
-            )
-            updated = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
-        return self._account_from_row(updated)
+
+            def _toggle(profile: dict[str, object]) -> None:
+                raw = profile.get("favorites")
+                favorites = list(raw) if isinstance(raw, list) else []
+                if card_id in favorites:
+                    favorites.remove(card_id)
+                else:
+                    favorites.append(card_id)
+                profile["favorites"] = favorites
+
+            return self._update_profile_json(connection, account_id, _toggle)
 
     def set_show_activity_log(
         self,
         account_id: str,
         visible: bool,
-    ) -> AccountRecord:
-        """Persist Action Log visibility and return the updated account."""
+    ) -> UserProfileRecord:
+        """Persist Action Log visibility and return the updated user profile."""
 
-        now = utc_now().isoformat()
         with self._hub.transaction() as connection:
-            result = connection.execute(
-                """
-                UPDATE accounts
-                SET show_activity_log = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (int(visible), now, account_id),
-            )
-            if result.rowcount != 1:
-                raise ValueError("Unknown account.")
-            updated = connection.execute(
-                "SELECT * FROM accounts WHERE id = ?",
-                (account_id,),
-            ).fetchone()
-        return self._account_from_row(updated)
+
+            def _set_visible(profile: dict[str, object]) -> None:
+                profile["show_activity_log"] = bool(visible)
+
+            return self._update_profile_json(connection, account_id, _set_visible)

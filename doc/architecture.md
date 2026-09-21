@@ -109,7 +109,8 @@ this checkout.
 
 Serialized `user`: `{id, username, sticker, initial_sticker_complete,
 favorites[], level, kudos, bops, shared_energy, show_activity_log, world_id,
-remembered_room, inventory[], activity}`. New users: level 0 “Guest”,
+remembered_room, inventory[], activity}` (favorites/show_activity_log sourced
+from `user_profiles.profile_json`). New users: level 0 “Guest”,
 10 Bops, Smile/Sigh/Growl/Goof, favorites `[Room, Emotes, Inventory]`.
 Authenticated POSTs require `Origin` + `X-CSRF-Token == tr_csrf ==
 session.csrf_token`.
