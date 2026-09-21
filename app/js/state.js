@@ -95,6 +95,7 @@ function normalizeProp(prop) {
     scale: Number(prop?.scale || 1),
     behavior: String(prop?.behavior || ""),
     modelUrl: assetOrEmpty(prop?.model_url),
+    animation: typeof prop?.animation === "string" ? prop.animation : "",
     quickActions: normalizeQuickActions(prop?.quick_actions),
   };
 }

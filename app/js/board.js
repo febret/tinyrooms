@@ -5,6 +5,7 @@ import { boardPosition, boardSignature, disposeBoardTree, fitBoardCamera } from 
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
+const RANDOM_ANIMATION_PAUSE_MS = 1000;
 
 function material(color, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
@@ -97,6 +98,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
   scene.add(selectionRing);
   const loader = new GLTFLoader();
   const textureLoader = new THREE.TextureLoader();
+  const clock = new THREE.Clock();
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   const pointers = new Map();
@@ -181,6 +183,69 @@ export function createBoard({ canvas, overlay, onSelect }) {
     entry.pickables.push(object);
   }
 
+  function stopPropAnimations(entry) {
+    for (const timer of entry.animTimers || []) clearTimeout(timer);
+    if (entry.animTimers) entry.animTimers.length = 0;
+    for (const mixer of entry.mixers || []) mixer.stopAllAction();
+    if (entry.mixers) entry.mixers.length = 0;
+  }
+
+  function startLoopedClip(entry, model, clip) {
+    const mixer = new THREE.AnimationMixer(model);
+    mixer.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
+    entry.mixers.push(mixer);
+  }
+
+  function startRandomClips(entry, prop, model, clips) {
+    const mixer = new THREE.AnimationMixer(model);
+    entry.mixers.push(mixer);
+    let lastIndex = -1;
+    function pick() {
+      if (!isCurrent(entry)) return;
+      let index = Math.floor(Math.random() * clips.length);
+      if (clips.length > 1) {
+        while (index === lastIndex) index = Math.floor(Math.random() * clips.length);
+      }
+      lastIndex = index;
+      const action = mixer.clipAction(clips[index]);
+      action.reset();
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      const onFinished = event => {
+        if (event.action !== action) return;
+        mixer.removeEventListener("finished", onFinished);
+        if (!isCurrent(entry)) return;
+        entry.animTimers.push(setTimeout(pick, RANDOM_ANIMATION_PAUSE_MS));
+      };
+      mixer.addEventListener("finished", onFinished);
+      action.play();
+    }
+    pick();
+  }
+
+  function playPropAnimation(entry, prop, model, clips) {
+    const mode = typeof prop.animation === "string" ? prop.animation.trim() : "";
+    if (!mode) return;
+    if (!clips || !clips.length) {
+      console.warn(`Prop ${prop.id} requests animation "${mode}" but the model has no animations.`);
+      return;
+    }
+    if (mode === "auto") {
+      startLoopedClip(entry, model, clips[0]);
+      return;
+    }
+    if (mode === "random") {
+      startRandomClips(entry, prop, model, clips);
+      return;
+    }
+    const clip = clips.find(candidate => candidate.name === mode);
+    if (!clip) {
+      console.warn(`Prop ${prop.id} requests unknown animation "${mode}".`);
+      return;
+    }
+    startLoopedClip(entry, model, clip);
+  }
+
   function addProp(entry, prop) {
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
@@ -222,6 +287,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
       group.remove(placeholder);
       disposeBoardTree(placeholder);
       group.add(visual);
+      playPropAnimation(entry, prop, model, gltf.animations || []);
       entry.modelScenes.push(...(gltf.scenes || [model]));
       entry.pending -= 1;
       if (!userAdjusted) fit(true);
@@ -257,6 +323,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
 
   function clear() {
     if (!current) return;
+    stopPropAnimations(current);
     scene.remove(current.root);
     // Include non-default GLTF scenes; they can share materials with the active scene.
     disposeBoardTree([current.root, ...current.modelScenes]);
@@ -272,6 +339,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
     if (changedRoom) userAdjusted = false;
     const entry = {
       root: new THREE.Group(), revision, pickables: [], modelScenes: [],
+      mixers: [], animTimers: [],
       pending: 0, errors: new Set(), label: room.label,
     };
     current = entry;
@@ -363,6 +431,8 @@ export function createBoard({ canvas, overlay, onSelect }) {
   function animate() {
     if (disposed || renderFailed) return;
     try {
+      const delta = Math.min(clock.getDelta(), 0.1);
+      for (const mixer of current?.mixers || []) mixer.update(delta);
       if (!blocked) controls.update();
       renderer.render(scene, camera);
       frame = requestAnimationFrame(animate);
