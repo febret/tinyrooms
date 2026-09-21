@@ -87,7 +87,6 @@ test.describe("room and inventory", () => {
         stackId, quantity, pinned,
         definition: { label: "Tasty Toast", description: "Yum.", imageUrl: "", rarity: "Common", type: "item" },
         quickActions: [
-          { label: "Look", command: `.look @card:${stackId}` },
           { label: intent === "pickup" ? "Pick up 1" : "Drop 1", command: `.${intent} @card:${stackId} 1` },
         ],
       });
@@ -114,13 +113,13 @@ test.describe("room and inventory", () => {
         pinned: describe(selectionActions(stateFor("room-card", stack("d", 2, "pickup", true)))),
       };
     });
-    expect(summary.single.map(action => action.label)).toEqual(["Inspect", "Look", "Pick up 1"]);
-    expect(summary.single[2].target).toBe("command:.pickup @card:a 1");
-    expect(summary.multi.map(action => action.label)).toEqual(["Inspect", "Look", "Pick up 1", "Pick up…"]);
-    expect(summary.multi[2].target).toBe("command:.pickup @card:b 1");
-    expect(summary.multi[3].target).toBe("local:quantity:2:pickup");
-    expect(summary.owned.map(action => action.label)).toEqual(["Inspect", "Look", "Drop 1", "Drop…"]);
-    expect(summary.owned[3].target).toBe("local:quantity:3:drop");
+    expect(summary.single.map(action => action.label)).toEqual(["Inspect", "Pick up 1"]);
+    expect(summary.single[1].target).toBe("command:.pickup @card:a 1");
+    expect(summary.multi.map(action => action.label)).toEqual(["Inspect", "Pick up 1", "Pick up…"]);
+    expect(summary.multi[1].target).toBe("command:.pickup @card:b 1");
+    expect(summary.multi[2].target).toBe("local:quantity:2:pickup");
+    expect(summary.owned.map(action => action.label)).toEqual(["Inspect", "Drop 1", "Drop…"]);
+    expect(summary.owned[2].target).toBe("local:quantity:3:drop");
     expect(summary.pinned.filter(action => action.label.startsWith("Pick up")).every(action => action.disabled)).toBe(true);
   });
 });

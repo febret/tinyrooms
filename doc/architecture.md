@@ -249,7 +249,7 @@ error toast.
 ### 6.5 Card inspect / pickup / drop / favorites
 
 - Snapshot `room_cards[]` (`{stack_id, quantity, pinned, definition,
-  quick_actions:[Look, Pick up 1], position}`) and `inventory[]`
+  quick_actions:[Pick up 1], position}`) and `inventory[]`
   (`{…, scope, world_id, equipped}` + `Drop 1`).
 - Inspect (`Inspect` / `.look @card:<stack>`) is a pure read (front/back,
   rarity, descriptions).

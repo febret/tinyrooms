@@ -90,7 +90,7 @@ class CardService:
             "quantity": quantity,
             "pinned": pinned,
             "definition": self.serialize_definition(self.definition(card_def_id)),
-            "quick_actions": [{"label": "Look", "command": f".look @card:{stack_id}"}, extra_action],
+            "quick_actions": [extra_action],
         }
 
     def serialize_inventory_stack(self, stack: InventoryStack) -> dict[str, object]:
