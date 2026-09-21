@@ -326,7 +326,11 @@ export function createBoard({ canvas, overlay, onSelect }) {
     raycaster.setFromCamera(pointer, camera);
     let object = raycaster.intersectObjects(current?.pickables || [], true)[0]?.object;
     while (object && !object.userData.kind) object = object.parent;
-    if (object) onSelect({ kind: object.userData.kind, id: object.userData.id });
+    if (object) {
+      onSelect({ kind: object.userData.kind, id: object.userData.id });
+      return;
+    }
+    if (roomId) onSelect({ kind: "room", id: roomId });
   }
 
   function pointerCancel(event) {
