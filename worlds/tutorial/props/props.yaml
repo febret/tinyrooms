@@ -3,6 +3,7 @@ portal:
   description: A familiar doorway, shimmering with possibilities.
   model: portal.glb
   decorative: false
+  animation: auto
 dollhouse:
   label: A Cute Dollhouse
   description: A whole home in miniature. Search once every ten minutes, or step right inside.
