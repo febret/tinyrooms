@@ -97,6 +97,23 @@ test.describe("room and inventory", () => {
   });
 });
 
+test("hub portal prop requests its glb animation", async ({ page, runtime }) => {
+  const snapshots = [];
+  page.on("websocket", socket => socket.on("framereceived", ({ payload }) => {
+    try {
+      const envelope = JSON.parse(String(payload));
+      if (envelope.type === "room.snapshot" && envelope.room) snapshots.push(envelope);
+    } catch {
+      // Ignore non-JSON control frames.
+    }
+  }));
+  await createReadyAccount(page, runtime);
+  await expect.poll(() => snapshots.find(snapshot => snapshot.room?.id === "hub")).not.toBeUndefined();
+  const hub = snapshots.find(snapshot => snapshot.room?.id === "hub").room;
+  expect(hub.props.find(prop => prop.id === "portal0")?.animation).toBe("auto");
+  await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
+});
+
 test("overlay blocks board hit testing and command menu sends commands", async ({ page, runtime }) => {
   const sentCommands = [];
   page.on("websocket", socket => socket.on("framesent", ({ payload }) => {

@@ -220,6 +220,26 @@ class ContentPersistenceTests(unittest.TestCase):
             with self.assertRaises(ContentError):
                 load_world_definition(target, set(catalog.cards))
 
+    def test_prop_animation_loader_defaults_and_validation(self) -> None:
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
+        world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
+        self.assertEqual(world.props["portal"].animation, "auto")
+        self.assertEqual(world.rooms["hub"].props["portal0"].animation, "auto")
+        self.assertIsNone(world.props["plant"].animation)
+        self.assertIsNone(world.rooms["hub"].props["welcome-plant"].animation)
+        with TemporaryDirectory() as temporary_directory:
+            target = Path(temporary_directory) / "tutorial"
+            shutil.copytree(REPO_ROOT / "worlds" / "tutorial", target)
+            rooms_file = target / "rooms" / "rooms.yaml"
+            text = rooms_file.read_text(encoding="utf-8")
+            rooms_file.write_text(
+                text.replace("animation: auto", "animation: 42", 1),
+                encoding="utf-8",
+            )
+            copied = load_card_catalog(REPO_ROOT / "data" / "cardsets", target)
+            with self.assertRaises(ContentError):
+                load_world_definition(target, set(copied.cards))
+
     def test_inventory_stack_limit_and_world_defaults(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -402,6 +422,22 @@ class AccountLifecycleTests(RuntimeTestCase):
 
 class MultiplayerGameplayTests(RuntimeTestCase):
     """Cover presence, chat, navigation, cards, activities, and settings."""
+
+    def test_hub_snapshot_includes_portal_animation(self) -> None:
+        alice = self.create_ready_account("alice")
+        with self.client.websocket_connect(
+            "/ws",
+            headers=websocket_headers(
+                alice["session_token"],
+                alice["csrf_token"],
+            ),
+        ) as socket:
+            room = socket.receive_json()["room"]
+            self.assertEqual(room["id"], "hub")
+            portal = next(entry for entry in room["props"] if entry["id"] == "portal0")
+            self.assertEqual(portal["animation"], "auto")
+            plant = next(entry for entry in room["props"] if entry["id"] == "welcome-plant")
+            self.assertIsNone(plant["animation"])
 
     def test_two_clients_chat_and_navigate_in_sequence(self) -> None:
         alice = self.create_ready_account("alice")

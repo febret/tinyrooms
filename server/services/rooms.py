@@ -182,6 +182,7 @@ class RoomService:
 
     def _serialize_prop(self, room: RoomDefinition, prop: PropInstanceDefinition) -> dict[str, object]:
         prop_definition = self._world.props[prop.prop_id]
+        animation = prop.animation if prop.animation is not None else prop_definition.animation
         return {
             "id": prop.id,
             "prop_id": prop.prop_id,
@@ -192,6 +193,7 @@ class RoomService:
             "model_url": f"/assets/world/{self._world.id}/props/{prop_definition.model_name}",
             "label": prop_definition.label,
             "description": prop_definition.description,
+            "animation": animation,
             "quick_actions": self._visible_prop_actions(room, prop.actions),
         }
 

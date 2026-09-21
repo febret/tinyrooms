@@ -38,6 +38,7 @@ class PropDefinition:
     model_name: str
     model_path: Path
     decorative: bool
+    animation: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +56,7 @@ class PropInstanceDefinition:
     cooldown: int | None
     personal: bool
     recipes: tuple[str, ...]
+    animation: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,6 +141,15 @@ def _load_vec3(raw_value: Any, label: str) -> tuple[float, float, float]:
     return (float(raw_value[0]), float(raw_value[1]), float(raw_value[2]))
 
 
+def _load_animation(raw_value: Any, label: str) -> str | None:
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, str):
+        raise ContentError(f"{label} must be a string.")
+    text = raw_value.strip()
+    return text or None
+
+
 def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefinition:
     """Load the immutable world definition set from YAML."""
 
@@ -173,6 +184,7 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
             model_name=model_name,
             model_path=model_path,
             decorative=bool(raw_prop.get("decorative", False)),
+            animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
         )
 
     rooms: dict[str, RoomDefinition] = {}
@@ -211,6 +223,10 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
                 cooldown=int(raw_instance["cooldown"]) if "cooldown" in raw_instance else None,
                 personal=bool(raw_instance.get("personal", False)),
                 recipes=tuple(str(value) for value in raw_instance.get("recipes", []) or []),
+                animation=_load_animation(
+                    raw_instance.get("animation"),
+                    f"Room '{room_id}' prop '{prop_instance_id}' animation",
+                ),
             )
         raw_exits = raw_room.get("exits", {}) or {}
         if not isinstance(raw_exits, dict):
