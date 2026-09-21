@@ -239,16 +239,27 @@ export function selectionActions(state) {
     const quickActions = stack.quickActions || [];
     return [
       { label: "Inspect", local: { type: "open-details", stackId: stack.stackId }, tone: "primary" },
-      ...quickActions.map(action => {
+      ...quickActions.flatMap(action => {
         if (action.command.startsWith(`.${intent} `)) {
-          return {
-            label: isRoom ? "Pick up…" : "Drop…",
-            local: { type: "quantity", stackId: stack.stackId, max: stack.quantity, intent },
-            tone: isRoom ? "positive" : "negative",
-            disabled: (isRoom && stack.pinned) || stack.quantity < 1,
+          const disabled = (isRoom && stack.pinned) || stack.quantity < 1;
+          const tone = isRoom ? "positive" : "negative";
+          const direct = {
+            label: isRoom ? "Pick up 1" : "Drop 1",
+            command: action.command,
+            tone,
+            disabled,
           };
+          if (stack.quantity > 1) {
+            return [direct, {
+              label: isRoom ? "Pick up…" : "Drop…",
+              local: { type: "quantity", stackId: stack.stackId, max: stack.quantity, intent },
+              tone,
+              disabled,
+            }];
+          }
+          return [direct];
         }
-        return { ...action, tone: "neutral" };
+        return [{ ...action, tone: "neutral" }];
       }),
     ];
   }

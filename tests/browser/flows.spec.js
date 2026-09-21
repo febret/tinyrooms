@@ -50,18 +50,50 @@ test.describe("room and inventory", () => {
     const roomCards = page.locator('#panel-layer [data-stack-id][data-scope="room"]');
     await expect(roomCards).toHaveCount(1);
     await roomCards.first().click();
-    await page.locator("#actions-bar").getByRole("button", { name: /Pick up/ }).click();
-    await page.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect(page.locator("#actions-bar").getByRole("button", { name: "Pick up…", exact: true })).toHaveCount(0);
+    await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
     await expect(roomCards).toHaveCount(0);
     await openCore(page, "inventory");
     const inventoryCards = page.locator("#panel-layer").getByRole("button", { name: "Fancy Wallet", exact: true });
     await expect(inventoryCards).toHaveCount(1);
     await inventoryCards.first().click();
-    await page.locator("#actions-bar").getByRole("button", { name: /Drop/ }).click();
-    await page.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect(page.locator("#actions-bar").getByRole("button", { name: "Drop…", exact: true })).toHaveCount(0);
+    await page.locator("#actions-bar").getByRole("button", { name: "Drop 1", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
     await expect(inventoryCards).toHaveCount(0);
     await openCore(page, "room");
     await expect(roomCards).toHaveCount(1);
+  });
+
+  test("multi-card stacks offer direct and dialog pickup and drop", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await travel(page, "exit0", "Sunflower Foyer");
+    await travel(page, "kitchen", "The Buttercup Kitchen");
+    await openCore(page, "room");
+    const actions = page.locator("#actions-bar");
+    await page.locator("#panel-layer").getByRole("button", { name: /Tasty Toast/ }).click();
+    await expect(actions.getByRole("button", { name: "Pick up 1", exact: true })).toBeVisible();
+    await expect(actions.getByRole("button", { name: "Pick up…", exact: true })).toBeVisible();
+    await actions.getByRole("button", { name: "Pick up…", exact: true }).click();
+    await expect(page.locator(".global-dialog")).toContainText("Pick up cards");
+    await page.locator(".qty-input").evaluate((element, value) => {
+      element.value = value;
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    }, "2");
+    await page.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect(page.locator('#panel-layer [data-stack-id][data-scope="room"]')).toHaveCount(1);
+    await openCore(page, "inventory");
+    const owned = page.locator("#panel-layer").getByRole("button", { name: /Tasty Toast/ });
+    await expect(owned).toHaveCount(1);
+    await owned.first().click();
+    await expect(actions.getByRole("button", { name: "Drop 1", exact: true })).toBeVisible();
+    await expect(actions.getByRole("button", { name: "Drop…", exact: true })).toBeVisible();
+    await actions.getByRole("button", { name: "Drop 1", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
+    await expect(owned).toHaveCount(1);
+    await expect(actions.getByRole("button", { name: "Drop…", exact: true })).toHaveCount(0);
   });
 });
 

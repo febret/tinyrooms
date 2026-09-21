@@ -151,6 +151,10 @@ async function handleAction(action) {
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
   } else if (action.type === "quantity") {
+    if (Number(action.max || 0) <= 1) {
+      try { await sendCommand(buildQuantityCommand(action.intent, action.stackId, 1)); } catch (error) { showError(error); }
+      return;
+    }
     const quantity = await dialogs.quantity(action.intent, action.max);
     if (quantity === null) return;
     try { await sendCommand(buildQuantityCommand(action.intent, action.stackId, quantity)); } catch (error) { showError(error); }
