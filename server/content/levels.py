@@ -22,7 +22,10 @@ def load_equipped_caps(core_path: Path) -> dict[int, int]:
             raise ContentError(f"{path} has an invalid level '{raw_level}'.") from exc
         if not isinstance(raw_entry, dict):
             raise ContentError(f"{path} level {level} must define a mapping.")
-        cap = int(raw_entry.get("max_equipped", DEFAULT_MAX_EQUIPPED))
+        raw_cap = raw_entry.get("max_equipped", DEFAULT_MAX_EQUIPPED)
+        if isinstance(raw_cap, bool) or not isinstance(raw_cap, int):
+            raise ContentError(f"{path} level {level} has an invalid max_equipped {raw_cap!r}.")
+        cap = raw_cap
         if level < 0 or cap < 0:
             raise ContentError(f"{path} level {level} has an invalid max_equipped {cap}.")
         caps[level] = cap

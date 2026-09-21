@@ -6,7 +6,7 @@ hub:
   board_image_style: stretch
   palette: ["#ebcfaa", "#b97262", "#6faea4"]
   props:
-    portal0: {prop: portal, pos: [26, 42, 0], rot: [0, 0, 0], scale: 1.1, animation: auto, actions: [["Go across", ".go exit0"]]}
+    portal0: {prop: portal, pos: [26, 42, 0], rot: [0, 0, 0], scale: 1.1, actions: [["Go across", ".go exit0"]]}
     vending0: {prop: vending, pos: [77, 36, 0], rot: [0, -0.15, 0], scale: 1, behavior: shop, actions: [["Browse packs", ".shop"]]}
     welcome-plant: {prop: plant, pos: [13, 70, 0], scale: 0.8}
   exits:

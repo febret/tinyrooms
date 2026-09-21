@@ -196,7 +196,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
     entry.mixers.push(mixer);
   }
 
-  function startRandomClips(entry, prop, model, clips) {
+  function startRandomClips(entry, model, clips) {
     const mixer = new THREE.AnimationMixer(model);
     entry.mixers.push(mixer);
     let lastIndex = -1;
@@ -235,7 +235,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
       return;
     }
     if (mode === "random") {
-      startRandomClips(entry, prop, model, clips);
+      startRandomClips(entry, model, clips);
       return;
     }
     const clip = clips.find(candidate => candidate.name === mode);

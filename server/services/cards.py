@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from server.content.cards import CardCatalog, CardDefinition, CORE_CARD_IDS
 from server.content.levels import DEFAULT_MAX_EQUIPPED
@@ -163,7 +163,12 @@ class CardService:
                             stack_id=created_stack.stack_id,
                             equipped=True,
                         )
-                        inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
+                        inventory_rows = [
+                            replace(item, equipped=True)
+                            if item.stack_id == created_stack.stack_id
+                            else item
+                            for item in inventory_rows
+                        ]
                         break
         event = {
             "type": "room.card.removed" if deleted else "room.card.updated",

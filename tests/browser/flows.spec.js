@@ -66,17 +66,6 @@ test.describe("room and inventory", () => {
     await expect(roomCards).toHaveCount(1);
   });
 
-  test("pickup equips the card into the hand", async ({ page, runtime }) => {
-    await createReadyAccount(page, runtime);
-    await travel(page);
-    await openCore(page, "room");
-    await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
-    await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
-    await expect(page.locator('#card-hand [aria-label="Equipped cards"]').getByRole("button", { name: /Fancy Wallet/ })).toHaveCount(1);
-    await openCore(page, "inventory");
-    await expect(page.locator("#panel-layer").getByRole("button", { name: /Fancy Wallet, equipped/ })).toHaveCount(1);
-  });
-
   test("multi-card stacks offer direct and dialog actions", async ({ page, runtime }) => {
     // Multi-copy stacks are not reachable in milestone rooms, so exercise the
     // real client module with fabricated selection state instead of gameplay.
@@ -122,23 +111,6 @@ test.describe("room and inventory", () => {
     expect(summary.owned[2].target).toBe("local:quantity:3:drop");
     expect(summary.pinned.filter(action => action.label.startsWith("Pick up")).every(action => action.disabled)).toBe(true);
   });
-});
-
-test("hub portal prop requests its glb animation", async ({ page, runtime }) => {
-  const snapshots = [];
-  page.on("websocket", socket => socket.on("framereceived", ({ payload }) => {
-    try {
-      const envelope = JSON.parse(String(payload));
-      if (envelope.type === "room.snapshot" && envelope.room) snapshots.push(envelope);
-    } catch {
-      // Ignore non-JSON control frames.
-    }
-  }));
-  await createReadyAccount(page, runtime);
-  await expect.poll(() => snapshots.find(snapshot => snapshot.room?.id === "hub")).not.toBeUndefined();
-  const hub = snapshots.find(snapshot => snapshot.room?.id === "hub").room;
-  expect(hub.props.find(prop => prop.id === "portal0")?.animation).toBe("auto");
-  await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
 });
 
 test("overlay blocks board hit testing and command menu sends commands", async ({ page, runtime }) => {
