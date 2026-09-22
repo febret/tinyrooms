@@ -67,7 +67,7 @@ bed:
 plant:
   label: Little Monstera
   description: Glossy leaves, a wonky terracotta pot, and one new shoot.
-  model: plant.glb
+  model: quaternius_cc0-cactus-775.glb
   decorative: true
 bookshelf:
   label: Story Shelf

@@ -2,7 +2,7 @@ hub:
   label: The Hub
   description: A sunlit pocket plaza. Cross the glowing portal to begin.
   board_type: basic
-  board_image: hub.png
+  board_image: hub.jpg
   board_image_style: stretch
   palette: ["#ebcfaa", "#b97262", "#6faea4"]
   props:

@@ -28,9 +28,13 @@
 .card-hand-strip { display: flex; align-items: flex-end; gap: 8px; min-width: 0; max-width: 100%; padding: 12px 5px 6px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #335469 transparent; pointer-events: auto; }
 .card-hand .game-card { width: 88px; }
 .card-hand .core-expand { width: 88px; margin-bottom: 6px; box-shadow: none; }
-.equipped-hand { display: flex; align-items: flex-end; gap: 8px; min-width: 0; overflow-x: auto; padding: 12px 5px 6px; pointer-events: auto; }
-.equipped-hand.stashed { margin-left: auto; flex-shrink: 0; width: 110px; }
-.equipped-hand.stashed .game-card:not(:first-child) { margin-left: -72px; }
+.equipped-hand .game-card { width: 132px; }
+.card-hand-strip .game-card { box-shadow: none; border-radius: 0; }
+.card-hand-strip .game-card > img { border-radius: 0; }
+.card-hand-strip .game-card.selected { box-shadow: 0 0 0 2px #8ac4db, 0 0 13px #83cde3b3; }
+.equipped-hand { display: flex; align-items: flex-end; gap: 8px; min-width: 0; overflow-x: clip; padding: 12px 5px 6px; pointer-events: auto; }
+.equipped-hand.stashed { margin-left: auto; flex-shrink: 0; width: 165px; }
+.equipped-hand.stashed .game-card:not(:first-child) { margin-left: -108px; }
 .panel-layer:not(:empty), .detail-layer:not(:empty) { background: none; isolation: isolate; }
 .panel-layer:not(:empty)::before, .detail-layer:not(:empty)::before {
   content: "";
@@ -121,8 +125,9 @@
   .card-hand-strip { gap: 5px; }
   .card-hand .game-card { width: 64px; }
   .card-hand .core-expand { width: 64px; }
-  .equipped-hand.stashed { width: 74px; }
-  .equipped-hand.stashed .game-card:not(:first-child) { margin-left: -52px; }
+  .equipped-hand .game-card { width: 96px; }
+  .equipped-hand.stashed { width: 111px; }
+  .equipped-hand.stashed .game-card:not(:first-child) { margin-left: -78px; }
   .board-modal { padding: 20px 14px; gap: 14px; }
   .board-modal .modal-header { padding-top: 36px; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 20px 12px; }
@@ -140,10 +145,11 @@
 @media (max-width: 480px) {
   .card-hand .game-card { width: 64px; }
   .card-hand .core-expand { width: 64px; }
+  .equipped-hand .game-card { width: 96px; }
   .card-hand-strip { gap: 4px; padding-inline: 3px; }
   .equipped-hand { gap: 4px; padding-inline: 3px; }
-  .equipped-hand.stashed { width: 70px; }
-  .equipped-hand.stashed .game-card:not(:first-child) { margin-left: -52px; }
+  .equipped-hand.stashed { width: 105px; }
+  .equipped-hand.stashed .game-card:not(:first-child) { margin-left: -78px; }
   .card-badge { font-size: 11px; line-height: 16px; min-width: 18px; padding: 0 3px; }
   .board-modal .modal-header { gap: 6px; }
   .board-modal .modal-header button { padding-inline: 12px; }
@@ -164,6 +170,7 @@
 @media (max-height: 550px) and (orientation: landscape) {
   .card-hand .game-card { width: 44px; }
   .card-hand .core-expand { width: 44px; }
+  .equipped-hand .game-card { width: 66px; }
   .card-hand-strip, .equipped-hand { padding-top: 7px; }
   .board-modal { padding-block: 12px; }
 }

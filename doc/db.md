@@ -12,22 +12,6 @@ Milestone 1 backend. The schema source of truth is
 | Profile (user) DB | `<users_path>/profiles.sqlite3` | 2 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
 | World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 5 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
-There are no automatic migrations. `ensure_*` creates a missing (or
-zero-version) database from the current schema, then fails startup with a
-`RuntimeError` when an existing file has any other `user_version`, is missing
-expected tables, or has unexpected columns (every table's column order is
-validated). Older `user_version`s — including profile schema 1 (with
-`accounts.favorites_json/friends_json/pending_friends_json/show_activity_log`
-and `world_profiles`) and world-state schemas 1–4 (with `room_cards.pos_x/y/z`,
-`initial_key`, and/or the `initial_room_cards` ledger) — are therefore
-rejected: delete the stale file to recreate it or restore a compatible
-backup. `ensure_*` also applies
-`CREATE INDEX IF NOT EXISTS` for all indexes listed below, so pre-existing
-databases gain the newer indexes without a version bump. `CHECK` constraints
-(`quantity > 0`, boolean `IN (0, 1)`, `json_valid()` on JSON columns,
-non-negative counters/sequences) are enforced on newly created databases;
-older files keep relying on the matching Python-side validation.
-
 At runtime both files are accessed through a single shared connection,
 `server/state/migrations.py:DatabaseHub`, which opens the profile DB and
 `ATTACH`es the world DB as `world`. Both databases run in WAL mode
@@ -234,14 +218,3 @@ Milestone 1). Schema is created alongside the other world tables per
 | --- | --- | --- |
 | `room_id` | TEXT PK, FK → `rooms(room_id)` ON DELETE CASCADE | Owned room. |
 | `owner_account_id` | TEXT NOT NULL | Owning `accounts.id`. |
-
-### 3.5 Seed updates (no ledger table)
-
-There is intentionally no `initial_room_cards` ledger: `initialize_world()`
-seeds a room exactly once, at creation. Consequences:
-
-- Restarts never duplicate or respawn room cards.
-- Adding or editing YAML cards for an *existing* room has no effect until the
-  room is explicitly reset; adding a *new* room seeds it on next startup.
-- `.reset_room` is the explicit content-update path: it replaces the room's
-  live cards with the current YAML seeds (see §3.2).
