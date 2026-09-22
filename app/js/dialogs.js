@@ -58,13 +58,14 @@ export function createDialogs(layer) {
         }, () => resolve(false));
       });
     },
-    quantity(intent, max) {
+    quantity(intent, max, minimum = 1) {
+      const verb = intent === "pickup" ? "pick up" : intent === "split" ? "split off" : "drop";
       return new Promise(resolve => {
         open(`<section class="global-dialog compact" role="dialog" aria-modal="true" aria-labelledby="qty-title">
-          <h2 id="qty-title">${intent === "pickup" ? "Pick up cards" : "Drop cards"}</h2>
-          <p>Choose how many cards to ${intent === "pickup" ? "pick up" : "drop"}.</p>
-          <input class="qty-input" type="range" min="1" max="${max}" value="1" aria-label="Quantity">
-          <div class="qty-row"><output class="qty-output">1</output><span>of ${max}</span></div>
+          <h2 id="qty-title">${intent === "pickup" ? "Pick up cards" : intent === "split" ? "Split stack" : "Drop cards"}</h2>
+          <p>Choose how many cards to ${verb}.</p>
+          <input class="qty-input" type="range" min="${minimum}" max="${max}" value="${minimum}" aria-label="Quantity">
+          <div class="qty-row"><output class="qty-output">${minimum}</output><span>of ${max}</span></div>
           <div class="dialog-actions"><button type="button" class="cancel">Cancel</button>
           <button type="button" class="primary accept">Confirm</button></div></section>`,
         (shade, close, cancel) => {
@@ -73,6 +74,20 @@ export function createDialogs(layer) {
           shade.querySelector(".cancel").onclick = cancel;
           shade.querySelector(".accept").onclick = () => { close(); resolve(Number(input.value)); };
           input.focus();
+        }, () => resolve(null));
+      });
+    },
+    choose(title, options) {
+      return new Promise(resolve => {
+        open(`<section class="global-dialog" role="dialog" aria-modal="true" aria-labelledby="choose-title">
+          <h2 id="choose-title">${escapeHtml(title)}</h2>
+          <div class="choose-list">${options.map(option => `<button type="button" class="choose-row" data-choice="${escapeHtml(option.value)}">${escapeHtml(option.label)}</button>`).join("")}</div>
+          <div class="dialog-actions"><button type="button" class="cancel">Cancel</button></div></section>`,
+        (shade, close, cancel) => {
+          shade.querySelector(".cancel").onclick = cancel;
+          shade.querySelectorAll("[data-choice]").forEach(button => {
+            button.onclick = () => { close(); resolve(button.dataset.choice); };
+          });
         }, () => resolve(null));
       });
     },

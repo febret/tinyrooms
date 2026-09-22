@@ -2,40 +2,17 @@ import { CARD_BACK } from "./board.js";
 import { buildFavoriteCommand } from "./commands.js";
 import { findInventoryCard, findRoomCard, findSelectedEntity } from "./state.js";
 import { escapeHtml } from "./presentation.js";
-
-function rarityLabel(definition) {
-  return definition?.rarity || (definition?.type === "core" ? "Core" : definition?.type ? definition.type : "Card");
-}
-
-function longDescription(definition) {
-  const lines = [definition?.description || "No description available."];
-  if (definition?.category) lines.push(`${definition.category} emote.`);
-  if (definition?.rank) lines.push(`Rank: ${definition.rank}.`);
-  if (definition?.oneUse) lines.push("One use.");
-  if (definition?.passive) lines.push("Passive while equipped or slotted.");
-  if (definition?.target) lines.push(`Target: ${definition.target}.`);
-  if (definition?.effect) lines.push(`Effect: ${definition.effect}.`);
-  if (definition?.amount) lines.push(`Amount: ${definition.amount}.`);
-  if (definition?.duration) lines.push(`Duration: ${definition.duration} seconds.`);
-  if (definition?.bonuses && Object.keys(definition.bonuses).length) {
-    lines.push(`Bonuses: ${Object.entries(definition.bonuses).map(([key, value]) => `${key.replaceAll("_", " ")} ${value > 0 ? "+" : ""}${value}`).join(", ")}.`);
-  }
-  return lines.join(" ");
-}
-
-function tileMarkup(definition, stack, selected, scope) {
-  const label = `${definition.label}${stack.quantity > 1 ? `, ${stack.quantity} copies` : ""}${stack.pinned ? ", pinned" : ""}${stack.equipped ? ", equipped" : ""}`;
-  return `
-    <button type="button" class="game-card ${selected ? "selected" : ""} ${stack.equipped ? "is-equipped" : ""}"
-      data-stack-id="${escapeHtml(stack.stackId)}" data-scope="${scope}" aria-label="${escapeHtml(label)}"
-      aria-pressed="${selected}" title="${escapeHtml(`${definition.label} · ${rarityLabel(definition)}`)}">
-      <img src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
-      ${stack.quantity > 1 ? `<span class="card-badge quantity-badge" aria-hidden="true">×${escapeHtml(stack.quantity)}</span>` : ""}
-      ${stack.pinned ? '<span class="card-badge pin-badge" aria-hidden="true">◆</span>' : ""}
-      ${stack.equipped ? '<span class="card-badge equipped-badge" aria-hidden="true">✓</span>' : ""}
-    </button>
-  `;
-}
+import { longDescription, PLACEHOLDER_VIEWS, rarityLabel, tileMarkup } from "./views/view-helpers.js";
+import { roomView } from "./views/room-view.js";
+import { inventoryView } from "./views/inventory-view.js";
+import { emotesView } from "./views/emotes-view.js";
+import { skillsView } from "./views/skills-view.js";
+import { friendsView } from "./views/friends-view.js";
+import { selfView } from "./views/self-view.js";
+import { propDetailsView } from "./views/prop-details-view.js";
+import { journalView } from "./views/journal-view.js";
+import { editRoomView } from "./views/edit-room-view.js";
+import { placeholderView } from "./views/placeholder-view.js";
 
 function coreMarkup(definition, favorite, selected) {
   return `
@@ -48,6 +25,7 @@ function coreMarkup(definition, favorite, selected) {
 
 function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-stack-id]").forEach(button => {
+    if (button.dataset.skillSlot !== undefined) return;
     button.onclick = () => onSelect({
       kind: button.dataset.scope === "room" ? "room-card" : "inventory-card",
       id: button.dataset.stackId,
@@ -62,109 +40,48 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-close-details]").forEach(button => {
     button.onclick = () => onAction({ type: "close-details" });
   });
-}
-
-function cardsGrid(stacks, scope, selection, emptyText) {
-  const kind = scope === "room" ? "room-card" : "inventory-card";
-  return `
-    <div class="cards-grid">
-      ${stacks.length
-        ? stacks.map(stack => tileMarkup(stack.definition, stack, selection.kind === kind && selection.id === stack.stackId, scope)).join("")
-        : `<div class="empty-state">${emptyText}</div>`}
-    </div>
-  `;
-}
-
-function inventorySection(state, title, predicate) {
-  const stacks = state.room?.inventory?.filter(predicate) || [];
-  return `
-    <section class="inventory-group">
-      <header><h3>${escapeHtml(title)}</h3><span>${stacks.length}</span></header>
-      ${cardsGrid(stacks, "inventory", state.selection, "Nothing here yet.")}
-    </section>
-  `;
-}
-
-const PLACEHOLDER_VIEWS = {
-  skills: ["Skills", "Skill slots are not available yet."],
-  journal: ["Journal", "Tasks and memories are not available yet."],
-  friends: ["Friends", "Friend lists are not available yet."],
-};
-
-function modalShell({ extraClass = "", ariaLabel, title, subtitle = "", body }) {
-  return `
-    <section class="board-modal ${extraClass}" role="dialog" aria-modal="false" aria-label="${escapeHtml(ariaLabel)}">
-      <header class="modal-header">
-        <div><h2>${title}</h2>${subtitle}</div>
-        <button type="button" class="quiet" data-close-view="1">Close</button>
-      </header>
-      ${body}
-    </section>
-  `;
+  root.querySelectorAll("[data-skill-slot]").forEach(button => {
+    button.onclick = () => onAction({ type: "skill-slot", index: Number(button.dataset.skillSlot), stackId: button.dataset.stackId || "" });
+  });
+  root.querySelectorAll("[data-friend-action]").forEach(button => {
+    button.onclick = () => onAction({ type: "friend-action", action: button.dataset.friendAction, accountId: button.dataset.accountId });
+  });
+  root.querySelectorAll("[data-claim-bops]").forEach(button => {
+    button.onclick = () => onAction({ type: "claim-bops" });
+  });
+  root.querySelectorAll("[data-level-up]").forEach(button => {
+    button.onclick = () => onAction({ type: "level-up" });
+  });
+  root.querySelectorAll("[data-swap-sticker]").forEach(button => {
+    button.onclick = () => onAction({ type: "swap-sticker" });
+  });
+  root.querySelectorAll("[data-emote-category]").forEach(button => {
+    button.onclick = () => onAction({ type: "emote-category", category: button.dataset.emoteCategory });
+  });
+  root.querySelectorAll("[data-journal-tab]").forEach(button => {
+    button.onclick = () => onAction({ type: "journal-tab", tab: button.dataset.journalTab });
+  });
+  root.querySelectorAll("[data-journal-month]").forEach(button => {
+    button.onclick = () => onAction({ type: "journal-month", delta: Number(button.dataset.journalMonth) });
+  });
+  root.querySelectorAll("[data-prop-command]").forEach(button => {
+    button.onclick = () => onAction({ command: button.dataset.propCommand });
+  });
 }
 
 function boardModal(state) {
   const view = state.views.main;
   if (!view || !state.room) return "";
-  if (view === "room") {
-    return modalShell({
-      extraClass: "room-view",
-      ariaLabel: "Room View",
-      title: `You see these in <span>${escapeHtml(state.room.label)}</span>:`,
-      subtitle: `<p>${escapeHtml(state.room.description)}</p>`,
-      body: cardsGrid(state.room.roomCards, "room", state.selection, "No room cards are visible in this room."),
-    });
-  }
-  if (view === "inventory") {
-    return modalShell({
-      extraClass: "wide inventory-view",
-      ariaLabel: "Inventory",
-      title: "Your Inventory",
-      subtitle: `<p class="inventory-balance">${escapeHtml(state.user?.bops ?? 0)} Bops</p>`,
-      body: `
-        <div class="modal-scroll">
-          ${inventorySection(state, "Items", stack => stack.definition?.type !== "emote" && stack.definition?.type !== "skill")}
-          ${inventorySection(state, "Emotes", stack => stack.definition?.type === "emote")}
-          ${inventorySection(state, "Skills", stack => stack.definition?.type === "skill")}
-        </div>
-      `,
-    });
-  }
-  if (view === "emotes") {
-    const emotes = state.room.inventory.filter(stack => stack.definition?.type === "emote");
-    return modalShell({
-      ariaLabel: "Emotes",
-      title: "Your Emotes",
-      body: cardsGrid(emotes, "inventory", state.selection, "You do not own any emotes yet."),
-    });
-  }
-  if (view in PLACEHOLDER_VIEWS) {
-    const [label, emptyText] = PLACEHOLDER_VIEWS[view];
-    return modalShell({
-      ariaLabel: label,
-      title: `Your ${label}`,
-      body: `<div class="empty-state">${emptyText}</div>`,
-    });
-  }
-  if (view === "self") {
-    return modalShell({
-      extraClass: "self-view",
-      ariaLabel: "Self",
-      title: escapeHtml(state.user?.username || "You"),
-      body: `
-        <div class="profile-identity">
-          ${state.user?.stickerUrl ? `<img class="profile-sticker" src="${escapeHtml(state.user.stickerUrl)}" alt="${escapeHtml(state.user.username)}'s sticker">` : ""}
-          <span class="profile-level">Level ${state.user?.level || 0}${state.user?.level === 0 ? " - Guest" : ""}</span>
-        </div>
-        <dl class="profile-counters">
-          <div><dt>Bops</dt><dd>${state.user?.bops || 0}</dd></div>
-          <div><dt>Kudos</dt><dd>${state.user?.kudos || 0}</dd></div>
-          <div><dt>Energy</dt><dd>${state.user?.sharedEnergy || 0}</dd></div>
-        </dl>
-        <p class="profile-location">Remembered room: <strong>${escapeHtml(state.user?.rememberedRoom === state.room.id ? state.room.label : state.user?.rememberedRoom || state.room.label)}</strong></p>
-      `,
-    });
-  }
+  if (view === "room") return roomView(state);
+  if (view === "inventory") return inventoryView(state);
+  if (view === "emotes") return emotesView(state);
+  if (view === "skills") return skillsView(state);
+  if (view === "friends") return friendsView(state);
+  if (view === "self") return selfView(state);
+  if (view === "prop-details") return propDetailsView(state);
+  if (view === "journal") return journalView(state);
+  if (view === "edit-room") return editRoomView(state);
+  if (view in PLACEHOLDER_VIEWS) return placeholderView(view);
   return "";
 }
 
@@ -228,8 +145,27 @@ export function selectionActions(state) {
       { label: state.user?.favorites?.includes(state.selection.id) ? "Unfavorite" : "Favorite", command: buildFavoriteCommand(state.selection.id), tone: "positive" },
     ];
   }
-  if (state.selection.kind === "prop" || state.selection.kind === "peep") {
-    return findSelectedEntity(state)?.quickActions.map(action => ({ ...action, tone: "neutral" })) || [];
+  if (state.selection.kind === "prop") {
+    const prop = findSelectedEntity(state);
+    if (!prop) return [];
+    return [
+      { label: "Inspect", local: { type: "open-view", view: "prop-details" }, tone: "primary" },
+      ...prop.quickActions.map(action => ({ ...action, tone: "neutral" })),
+    ];
+  }
+  if (state.selection.kind === "peep") {
+    const peep = findSelectedEntity(state);
+    if (!peep) return [];
+    const actions = (peep.quickActions || []).map(action => ({ ...action, tone: "neutral" }));
+    if (state.user && peep.id === state.user.id) {
+      actions.unshift({ label: "Open Self", local: { type: "open-view", view: "self" }, tone: "primary" });
+      const pinned = (state.user.pinnedPeeps || []).includes(peep.id);
+      actions.push({ label: pinned ? "Unpin" : "Pin", command: `.pin_peep @peep:${peep.id}`, tone: "neutral" });
+      actions.push({ label: "Swap Sticker…", local: { type: "swap-sticker" }, tone: "positive" });
+    } else if (peep.kind === "user") {
+      actions.push({ label: "Add Friend", command: `.friend add @peep:${peep.id}`, tone: "positive" });
+    }
+    return actions;
   }
   if (state.selection.kind === "room-card" || state.selection.kind === "inventory-card") {
     const isRoom = state.selection.kind === "room-card";
@@ -237,7 +173,7 @@ export function selectionActions(state) {
     if (!stack) return [];
     const intent = isRoom ? "pickup" : "drop";
     const quickActions = stack.quickActions || [];
-    return [
+    const actions = [
       { label: "Inspect", local: { type: "open-details", stackId: stack.stackId }, tone: "primary" },
       ...quickActions.flatMap(action => {
         if (action.command.startsWith(`.${intent} `)) {
@@ -262,8 +198,44 @@ export function selectionActions(state) {
         return [{ ...action, tone: "neutral" }];
       }),
     ];
+    if (!isRoom) actions.push(...inventoryStackActions(stack));
+    return actions;
   }
   return [];
+}
+
+function inventoryStackActions(stack) {
+  const definition = stack.definition || {};
+  const actions = [];
+  const type = definition.type || "item";
+  if (type === "emote") {
+    actions.push({ label: "Play", command: `.emote @card:${stack.stackId}`, tone: "primary" });
+  } else if (type === "skill") {
+    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills" }, tone: "primary" });
+  } else if (type === "item" || type === "action") {
+    if (stack.equipped) {
+      if (!definition.passive && !definition.decorative) {
+        actions.push({ label: "Use", command: `.use @card:${stack.stackId}`, tone: "primary" });
+        if ((definition.target || "") === "peep") {
+          actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "positive" });
+        }
+      }
+      actions.push({ label: "Unequip", command: `.unequip @card:${stack.stackId}`, tone: "neutral" });
+    } else if (!definition.passive && !definition.decorative) {
+      actions.push({ label: "Equip", command: `.equip @card:${stack.stackId}`, tone: "positive" });
+    }
+  }
+  if ((definition.stackLimit || 1) > 1 && stack.quantity > 1) {
+    actions.push({
+      label: "Split…",
+      local: { type: "quantity", stackId: stack.stackId, max: stack.quantity - 1, intent: "split", minimum: 1 },
+      tone: "neutral",
+    });
+  }
+  if ((definition.stackLimit || 1) > 1) {
+    actions.push({ label: "Merge…", local: { type: "merge", stackId: stack.stackId }, tone: "neutral" });
+  }
+  return actions;
 }
 
 /** Render core cards, equipped/inventory previews, board-modal views, and card details. */

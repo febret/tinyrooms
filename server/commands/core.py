@@ -4,16 +4,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import math
+from collections.abc import Callable
 
 from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
 from server.connections import LiveConnection
 from server.content.cards import CORE_CARD_IDS
+from server.content.gameplay import GameplayContent
 from server.content.worlds import ExitDefinition, PropDefinition, PropInstanceDefinition
 from server.profiles import AccountRecord, ProfileRepository
+from server.services.actions import ActionsService
 from server.services.activities import ActivityService
 from server.services.cards import CardService
+from server.services.friends import FriendsService
+from server.services.inventory import InventoryService
+from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
+from server.services.shop import ShopService
+from server.services.stats import StatsService
 from server.state.world_state import WorldStateRepository
 
 
@@ -26,7 +34,6 @@ class PendingRoomBroadcast:
     """A room event waiting to be broadcast."""
 
     room_id: str
-    seq: int
     event: dict[str, object]
 
 
@@ -40,7 +47,6 @@ class CommandOutcome:
     private_events: list[dict[str, object]] = field(default_factory=list)
     room_broadcasts: list[PendingRoomBroadcast] = field(default_factory=list)
     snapshot: dict[str, object] | None = None
-    snapshot_seq: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +61,15 @@ class CommandContext:
     cards: CardService
     activities: ActivityService
     registry: CommandRegistry
+    stats: StatsService
+    inventory: InventoryService
+    progression: ProgressionService
+    actions: ActionsService
+    friends: FriendsService
+    shop: ShopService
+    content: GameplayContent
+    valid_stickers: frozenset[str]
+    serialize_user: Callable[[AccountRecord], dict[str, object]]
 
 
 def _parse_quantity(args: tuple[str, ...], index: int = 1) -> int:
@@ -125,10 +140,10 @@ async def help_command(context: CommandContext, command: ParsedCommand) -> Comma
 async def say_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     room_id = _require_room_id(context)
     message = command.args[0] if command.args else command.raw_text
-    seq, event = context.rooms.say(context.account, room_id, message)
+    event = context.rooms.say(context.account, room_id, message)
     return CommandOutcome(
         message="Message sent.",
-        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, seq=seq, event=event)],
+        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=event)],
     )
 
 
@@ -205,19 +220,16 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
         message=f"You moved to {navigation.destination_room_id}.",
         payload={"room_id": navigation.destination_room_id},
         snapshot=navigation.destination_snapshot,
-        snapshot_seq=navigation.destination_snapshot_seq,
     )
     outcome.room_broadcasts.append(
         PendingRoomBroadcast(
             room_id=navigation.source_room_id,
-            seq=navigation.source_seq,
             event=navigation.source_event,
         )
     )
     outcome.room_broadcasts.append(
         PendingRoomBroadcast(
             room_id=navigation.destination_room_id,
-            seq=navigation.destination_seq,
             event=navigation.destination_event,
         )
     )
@@ -238,7 +250,7 @@ async def pickup_command(context: CommandContext, command: ParsedCommand) -> Com
     return CommandOutcome(
         message="Card picked up.",
         payload={"inventory": mutation.inventory},
-        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, seq=mutation.room_seq, event=mutation.room_event)],
+        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=mutation.room_event)],
     )
 
 
@@ -255,7 +267,7 @@ async def drop_command(context: CommandContext, command: ParsedCommand) -> Comma
     return CommandOutcome(
         message="Card dropped.",
         payload={"inventory": mutation.inventory},
-        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, seq=mutation.room_seq, event=mutation.room_event)],
+        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=mutation.room_event)],
     )
 
 
@@ -265,15 +277,14 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
         raise CommandError("Use '.reset_room' with no arguments from inside the room to reset.")
     room_id = _require_room_id(context)
     room = context.rooms.room_definition(room_id)
-    stacks, _seq = context.world_state.reset_room_cards(room_id, room.initial_cards)
+    stacks = context.world_state.reset_room_cards(room_id, room.initial_cards)
     serialized = [context.cards.serialize_room_stack(stack) for stack in stacks]
-    snapshot, snapshot_seq = await context.rooms.build_snapshot_with_seq(context.account, room_id)
+    snapshot = await context.rooms.build_snapshot(context.account, room_id)
     return CommandOutcome(
         message="Room reset to its defined state.",
         room_broadcasts=[
             PendingRoomBroadcast(
                 room_id=room_id,
-                seq=snapshot_seq,
                 event={
                     "type": "room.cards.reset",
                     "room_id": room_id,
@@ -283,7 +294,6 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
             )
         ],
         snapshot=snapshot,
-        snapshot_seq=snapshot_seq,
     )
 
 
@@ -377,17 +387,28 @@ async def cancel_command(context: CommandContext, command: ParsedCommand) -> Com
 
 
 def build_registry() -> CommandRegistry:
-    """Build the Milestone 1 command registry."""
+    """Build the command registry."""
+
+    from server.commands import gameplay
 
     registry = CommandRegistry()
+    registry.register("buy_pack", "Buy and open a card pack.", gameplay.buy_pack_command)
     registry.register("cancel", "Close the active activity window.", cancel_command)
+    registry.register("claim_bops", "Claim today's Daily Bops allowance.", gameplay.claim_bops_command)
     registry.register("drop", "Drop a quantity from one of your inventory stacks.", drop_command)
+    registry.register("emote", "Play an owned emote card.", gameplay.emote_command)
+    registry.register("equip", "Equip an item or action stack.", gameplay.equip_command)
     registry.register("favorite", "Toggle a favorite core card.", favorite_command)
+    registry.register("friend", "Manage friends and friend requests.", gameplay.friend_command)
     registry.register("go", "Move through an exit in the current room.", go_command)
     registry.register("help", "Show the available commands.", help_command)
     registry.register("inspect", "Inspect a visible room entity.", inspect_command)
+    registry.register("level_up", "Spend Kudos to reach the next level.", gameplay.level_up_command)
     registry.register("look", "Look at the room or a visible entity.", look_command)
+    registry.register("merge", "Merge two stacks of the same card.", gameplay.merge_command)
+    registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command)
     registry.register("pickup", "Pick up a room card stack quantity.", pickup_command)
+    registry.register("pin_peep", "Pin or unpin a peep in your sidebar.", gameplay.pin_peep_command)
     registry.register("play", "Open a room activity or developer sample activity.", play_command)
     registry.register("reset_room", "Reset the current room's cards to the world definition.", reset_room_command)
     registry.register("say", "Send a room-scoped chat message.", say_command)
@@ -396,6 +417,13 @@ def build_registry() -> CommandRegistry:
         "Change a persisted client setting.",
         settings_command,
     )
+    registry.register("shop", "Open the card-pack shop activity.", gameplay.shop_command)
+    registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command)
+    registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command)
+    registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command)
+    registry.register("unequip", "Unequip an item or action stack.", gameplay.unequip_command)
+    registry.register("unskill", "Remove a skill from a slot.", gameplay.unskill_command)
+    registry.register("use", "Use an equipped item or action card.", gameplay.use_command)
     return registry
 
 

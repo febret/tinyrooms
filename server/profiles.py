@@ -41,6 +41,11 @@ def _default_profile() -> dict[str, object]:
         "favorites": list(STARTING_FAVORITES),
         "friends": [],
         "pending_friends": [],
+        "friend_requests_sent": [],
+        "friend_requests_received": [],
+        "pinned_peeps": [],
+        "skills": [],
+        "statuses": [],
         "show_activity_log": False,
         "ui_settings": {},
     }
@@ -59,6 +64,16 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["friends"] = []
     if not isinstance(merged.get("pending_friends"), list):
         merged["pending_friends"] = []
+    if not isinstance(merged.get("friend_requests_sent"), list):
+        merged["friend_requests_sent"] = []
+    if not isinstance(merged.get("friend_requests_received"), list):
+        merged["friend_requests_received"] = []
+    if not isinstance(merged.get("pinned_peeps"), list):
+        merged["pinned_peeps"] = []
+    if not isinstance(merged.get("skills"), list):
+        merged["skills"] = []
+    if not isinstance(merged.get("statuses"), list):
+        merged["statuses"] = []
     if not isinstance(merged.get("show_activity_log"), bool):
         merged["show_activity_log"] = False
     if not isinstance(merged.get("ui_settings"), dict):
@@ -79,7 +94,7 @@ class AccountRecord:
     level: int
     kudos: int
     bops: int
-    shared_energy: int
+    shared_energy: float
     last_energy_at: str
     last_daily_claim: str | None
     active_session_generation: int
@@ -152,6 +167,25 @@ class UserProfileRecord:
     def show_activity_log(self) -> bool:
         return bool(self.profile.get("show_activity_log", False))
 
+    @property
+    def pinned_peeps(self) -> tuple[str, ...]:
+        raw = self.profile.get("pinned_peeps")
+        return tuple(raw) if isinstance(raw, list) else ()
+
+    @property
+    def skills(self) -> tuple[str | None, ...]:
+        raw = self.profile.get("skills")
+        if not isinstance(raw, list):
+            return ()
+        return tuple(str(entry) if isinstance(entry, str) else None for entry in raw)
+
+    @property
+    def active_statuses(self) -> tuple[str, ...]:
+        raw = self.profile.get("statuses")
+        if not isinstance(raw, list):
+            return ()
+        return tuple(str(entry) for entry in raw)
+
 
 class ProfileRepository:
     """Repository for account, session, inventory, and world-profile data."""
@@ -170,7 +204,7 @@ class ProfileRepository:
             level=int(row["level"]),
             kudos=int(row["kudos"]),
             bops=int(row["bops"]),
-            shared_energy=int(row["shared_energy"]),
+            shared_energy=float(row["shared_energy"]),
             last_energy_at=row["last_energy_at"],
             last_daily_claim=row["last_daily_claim"],
             active_session_generation=int(row["active_session_generation"]),
@@ -540,6 +574,79 @@ class ProfileRepository:
         if cursor.rowcount != 1:
             raise ValueError("That card stack is not in your inventory.")
 
+    def create_inventory_stack(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        account_id: str,
+        world_id: str | None,
+        card_def_id: str,
+        quantity: int,
+        scope: str,
+        equipped: bool = False,
+        stack_limit: int | None = None,
+    ) -> InventoryStack:
+        """Insert a brand-new inventory stack without merging into existing ones."""
+
+        now = utc_now().isoformat()
+        stack_id = f"inv:{uuid.uuid4()}"
+        connection.execute(
+            """
+            INSERT INTO profile_card_stacks (
+                stack_id, account_id, world_id, card_def_id, quantity, scope,
+                equipped, pinned, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            """,
+            (
+                stack_id,
+                account_id,
+                world_id,
+                card_def_id,
+                quantity,
+                scope,
+                1 if equipped else 0,
+                now,
+                now,
+            ),
+        )
+        return InventoryStack(
+            stack_id=stack_id,
+            account_id=account_id,
+            world_id=world_id,
+            card_def_id=card_def_id,
+            quantity=quantity,
+            scope=scope,
+            equipped=equipped,
+            pinned=False,
+            created_at=now,
+            updated_at=now,
+        )
+
+    def set_stack_quantity(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        account_id: str,
+        stack_id: str,
+        quantity: int,
+    ) -> None:
+        """Set an absolute quantity on an owned stack, deleting it at zero."""
+
+        if quantity < 0:
+            raise ValueError("Stack quantity cannot be negative.")
+        if quantity == 0:
+            connection.execute(
+                "DELETE FROM profile_card_stacks WHERE account_id = ? AND stack_id = ?",
+                (account_id, stack_id),
+            )
+            return
+        cursor = connection.execute(
+            "UPDATE profile_card_stacks SET quantity = ?, updated_at = ? WHERE account_id = ? AND stack_id = ?",
+            (quantity, utc_now().isoformat(), account_id, stack_id),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("That card stack is not in your inventory.")
+
     def remove_inventory_quantity(
         self,
         connection: sqlite3.Connection,
@@ -664,6 +771,87 @@ class ProfileRepository:
             """,
             (world_id, room_id, utc_now().isoformat(), account_id),
         )
+
+    def update_account_progress(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        *,
+        level: int,
+        kudos: int,
+        bops: int,
+        energy: float,
+        last_energy_at: str,
+        last_daily_claim: str | None,
+    ) -> AccountRecord:
+        """Persist shared account progression fields inside a transaction."""
+
+        connection.execute(
+            """
+            UPDATE accounts
+            SET level = ?, kudos = ?, bops = ?, shared_energy = ?, last_energy_at = ?,
+                last_daily_claim = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                int(level),
+                int(kudos),
+                int(bops),
+                float(energy),
+                last_energy_at,
+                last_daily_claim,
+                utc_now().isoformat(),
+                account_id,
+            ),
+        )
+        row = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+        return self._account_from_row(row)
+
+    def write_counters(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        counters: dict[str, object],
+    ) -> None:
+        """Persist the world-scoped counter values for a user."""
+
+        connection.execute(
+            "UPDATE user_profiles SET counters_json = ? WHERE account_id = ?",
+            (json.dumps(counters), account_id),
+        )
+
+    def write_buffs(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        buffs: list[dict[str, object]],
+    ) -> None:
+        """Persist active buff instances for a user."""
+
+        connection.execute(
+            "UPDATE user_profiles SET buffs_json = ? WHERE account_id = ?",
+            (json.dumps(buffs), account_id),
+        )
+
+    def update_profile(
+        self,
+        account_id: str,
+        mutate: Callable[[dict[str, object]], None],
+    ) -> UserProfileRecord:
+        """Apply a mutation to the free-form profile JSON and return the result."""
+
+        with self._hub.transaction() as connection:
+            return self._update_profile_json(connection, account_id, mutate)
+
+    def update_profile_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        mutate: Callable[[dict[str, object]], None],
+    ) -> UserProfileRecord:
+        """Apply a profile JSON mutation inside an existing transaction."""
+
+        return self._update_profile_json(connection, account_id, mutate)
 
     def set_sticker(self, account_id: str, sticker_name: str) -> AccountRecord:
         """Persist the user's initial sticker choice."""

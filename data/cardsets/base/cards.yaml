@@ -135,6 +135,7 @@ edit-room:
   description: Arrange a room you own. Changes are shared.
   image: edit-room-icon.png
   type: core
+  order: 8
 arrow-left:
   label: Collapse
   description: Collapse the core card strip.

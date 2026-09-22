@@ -1,0 +1,18 @@
+.heading { align-items: center; }
+.balance { padding: 8px 14px; border-radius: 999px; background: #e4be75; color: #1b1206; font-weight: 700; }
+.lede { color: var(--muted, #9fb7bd); }
+.pack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 12px; }
+.pack-card { display: grid; gap: 8px; padding: 14px; border-radius: 12px; border: 1px solid var(--line, #29505d); background: #03181f; text-align: center; }
+.pack-card h3 { margin: 0; }
+.pack-card p { margin: 0; font-size: 13px; color: var(--muted, #9fb7bd); }
+.pack-art { height: 150px; border-radius: 10px; background-size: cover; background-position: center; background-color: #0a2b36; }
+.pack-meta { font-weight: 700; color: #e4be75 !important; }
+.reveal { position: fixed; inset: 0; display: grid; place-items: start center; overflow: auto; padding: 12px; background: #03181fdd; z-index: 10; }
+.reveal[hidden] { display: none; }
+.reveal-panel { background: #08222c; border: 1px solid #2f869c; border-radius: 16px; padding: 20px; max-width: min(680px, 92vw); max-height: calc(100% - 24px); overflow: auto; text-align: center; }
+.reveal-cards { display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px; margin: 12px 0; }
+.reveal-card { margin: 0; flex: 0 1 120px; min-width: 0; }
+.reveal-card img { width: 100%; border-radius: 8px; box-shadow: 0 8px 18px #0008; }
+.reveal-card figcaption { font-size: 12px; margin-top: 6px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.confirm-actions .quiet { background: #0a2b36; color: var(--ink, #e8f4f0); }

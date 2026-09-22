@@ -141,6 +141,7 @@ h3 { font-size: 18px; }
 }
 .card-hand button { pointer-events: auto; }
 .interaction-dock {
+  position: relative;
   height: var(--dock-height);
   display: grid;
   grid-template-rows: 44px 44px 44px;
@@ -155,6 +156,9 @@ h3 { font-size: 18px; }
 .look-description, .look-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .look-description { color: var(--ink); font-size: 17px; padding: 0; border: 0; border-radius: 0; min-height: 44px; min-width: 44px; background: none; box-shadow: none; text-align: left; }
 .look-preview { position: absolute; bottom: calc(100% + 14px); left: 4px; width: 90px; height: 115px; object-fit: contain; filter: drop-shadow(0 0 5px #8acb87); pointer-events: none; }
+.look-preview-layer { position: absolute; right: 12px; bottom: calc(100% + var(--tray-height) + 8px); width: 124px; height: 124px; pointer-events: none; }
+.look-preview-layer:empty { display: none; }
+.look-preview-3d { width: 100%; height: 100%; filter: drop-shadow(0 0 6px #8acb87); }
 .actions-bar { display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .actions-bar button { flex-shrink: 0; font-size: 15px; }
 .actions-bar .neutral { background: linear-gradient(#2b7898, #075174); }
@@ -283,6 +287,7 @@ h3 { font-size: 18px; }
   .look-name { font-size: 18px; }
   .look-description { font-size: 14px; }
   .look-preview { width: 54px; height: 68px; bottom: calc(var(--tray-height) + 56px); }
+  .look-preview-layer { width: 84px; height: 84px; right: 8px; }
   .actions-bar { gap: 6px; }
   .actions-bar button { padding: 7px 14px; font-size: 14px; }
   .topbar { top: 8px; right: 8px; }

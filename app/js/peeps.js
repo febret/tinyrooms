@@ -24,17 +24,30 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSou
   function render(state) {
     latest = state;
     const peeps = state.room ? [...state.room.occupants, ...state.room.npcs] : [];
+    const pinned = new Set(state.user?.pinnedPeeps || []);
     const self = peeps.filter(peep => peep.id === state.user?.id);
     const others = peeps.filter(peep => peep.id !== state.user?.id);
-    const shown = [...self, ...(expanded ? others : others.slice(0, 4))];
-    const markup = `<div class="peep-list">${shown.map(peep => `
-      <article class="peep-chip ${peep.id === state.user?.id ? "self" : ""} ${state.selection.kind === "peep" && state.selection.id === peep.id ? "selected" : ""}">
+    const pinnedOthers = others.filter(peep => pinned.has(peep.id));
+    const unpinnedOthers = others.filter(peep => !pinned.has(peep.id));
+    const shownUnpinned = expanded ? unpinnedOthers : unpinnedOthers.slice(0, 4);
+    const shown = [...self, ...pinnedOthers, ...shownUnpinned];
+    const definitions = state.user?.statusDefinitions || {};
+    const markup = `<div class="peep-list">${shown.map(peep => {
+      const statuses = peep.statuses || [];
+      const tired = statuses.includes("tired");
+      return `
+      <article class="peep-chip ${peep.id === state.user?.id ? "self" : ""} ${pinned.has(peep.id) ? "pinned" : ""} ${tired ? "tired" : ""} ${state.selection.kind === "peep" && state.selection.id === peep.id ? "selected" : ""}">
         <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
           <span class="peep-marker"><img src="${escapeHtml(peep.stickerUrl || "/assets/stickers/s1.png")}" alt=""></span>
           <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
+          ${statuses.length ? `<span class="peep-statuses">${statuses.map(id => {
+            const definition = definitions[id];
+            return `<span class="status-icon" title="${escapeHtml(definition?.label || id)}">${escapeHtml(definition?.icon || "•")}</span>`;
+          }).join("")}</span>` : ""}
         </button>
-      </article>`).join("")}</div>
-      ${others.length > 4 ? `<button type="button" class="quiet peeps-toggle" aria-expanded="${expanded}">${expanded ? "Show fewer" : `+${others.length - 4} peeps`}</button>` : ""}`;
+      </article>`;
+    }).join("")}</div>
+      ${unpinnedOthers.length > 4 ? `<button type="button" class="quiet peeps-toggle" aria-expanded="${expanded}">${expanded ? "Show fewer" : `+${unpinnedOthers.length - 4} peeps`}</button>` : ""}`;
     if (updateMarkup(panel, markup)) {
       panel.querySelectorAll("[data-peep-id]").forEach(button => {
         button.onclick = () => { onSelect({ kind: "peep", id: button.dataset.peepId }); onSound(); };

@@ -9,6 +9,7 @@ import html
 import json
 import logging
 import mimetypes
+import random
 import time
 import uuid
 
@@ -23,7 +24,7 @@ from server.commands.registry import CommandRegistry
 from server.config import AppConfig, ConfigError, ensure_contained, load_config
 from server.connections import ConnectionRegistry, LiveConnection
 from server.content.cards import CardCatalog, ContentError, load_card_catalog
-from server.content.levels import load_equipped_caps
+from server.content.gameplay import GameplayContent, load_gameplay_content
 from server.content.worlds import WorldDefinition, load_world_definition
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.protocol import (
@@ -46,8 +47,14 @@ from server.security import (
     validate_origin,
 )
 from server.services.activities import ActivityService
+from server.services.actions import ActionsService
 from server.services.cards import CardService
+from server.services.friends import FriendsService
+from server.services.inventory import InventoryService
+from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
+from server.services.shop import ShopService
+from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from server.state.world_state import WorldStateRepository
 
@@ -89,6 +96,7 @@ class RuntimeState:
     config: AppConfig
     hub: DatabaseHub
     catalog: CardCatalog
+    content: GameplayContent
     world: WorldDefinition
     profiles: ProfileRepository
     world_state: WorldStateRepository
@@ -98,6 +106,12 @@ class RuntimeState:
     connections: ConnectionRegistry
     rooms: RoomService
     registry: CommandRegistry
+    stats: StatsService
+    inventory: InventoryService
+    progression: ProgressionService
+    actions: ActionsService
+    friends: FriendsService
+    shop: ShopService
 
 
 def _client_source_key(request: Request) -> str:
@@ -173,6 +187,10 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
     activity = runtime.activities.get(account.id)
     if not account.initial_sticker_complete:
         activity = runtime.activities.ensure_initial_sticker(account.id)
+    snapshot = runtime.stats.snapshot(account.id)
+    level_definition = runtime.content.levels.get(account.level)
+    skills = runtime.progression.skill_slots(account, user_profile)
+    friends = runtime.friends.serialize(account.id)
     return {
         "id": account.id,
         "username": account.username_display,
@@ -180,9 +198,40 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "initial_sticker_complete": account.initial_sticker_complete,
         "favorites": list(user_profile.favorites),
         "level": account.level,
+        "level_label": level_definition.label,
         "kudos": account.kudos,
+        "kudos_to_next": level_definition.kudos_to_next,
+        "max_equipped": level_definition.max_equipped,
         "bops": account.bops,
-        "shared_energy": account.shared_energy,
+        "shared_energy": snapshot.energy,
+        "counters": snapshot.payload(),
+        "stats": snapshot.effective.stats,
+        "statuses": list(snapshot.statuses),
+        "status_definitions": {
+            status_id: {
+                "label": definition.label,
+                "description": definition.description,
+                "icon": definition.icon,
+            }
+            for status_id, definition in runtime.content.statuses.items()
+        },
+        "skills": [
+            {"index": slot.index, "rank": slot.rank, "unlocked": slot.unlocked, "stack_id": slot.stack_id}
+            for slot in skills
+        ],
+        "pinned_peeps": list(user_profile.pinned_peeps),
+        "friends": friends.as_dict(),
+        "packs": [
+            {
+                "id": preview.id,
+                "label": preview.label,
+                "description": preview.description,
+                "price": preview.price,
+                "size": preview.size,
+                "back_image_url": preview.back_image_url,
+            }
+            for preview in runtime.shop.packs()
+        ],
         "show_activity_log": user_profile.show_activity_log,
         "world_id": runtime.world.id,
         "remembered_room": user_profile.remembered_room,
@@ -220,14 +269,13 @@ async def _broadcast_room_event(
     runtime: RuntimeState,
     *,
     room_id: str,
-    seq: int,
     event: dict[str, object],
     exclude_account_id: str | None = None,
 ) -> None:
     for connection in await runtime.connections.list_room(room_id):
         if exclude_account_id is not None and connection.account_id == exclude_account_id:
             continue
-        await connection.send(room_event_envelope(seq, event))
+        await connection.send(room_event_envelope(event))
 
 
 async def _handle_replaced_connection(
@@ -238,12 +286,9 @@ async def _handle_replaced_connection(
     message: str = "Your session was replaced by a newer login.",
 ) -> None:
     if replaced.room_id is not None:
-        with runtime.hub.transaction() as connection:
-            seq = runtime.world_state.advance_room_seq(connection, replaced.room_id)
         await _broadcast_room_event(
             runtime,
             room_id=replaced.room_id,
-            seq=seq,
             event=presence_leave_event(
                 account_id=replaced.account_id,
                 username=replaced.username,
@@ -263,7 +308,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     ensure_world_database(config.worldstate_path)
     hub = DatabaseHub(profile_db_path, config.worldstate_path)
     catalog = load_card_catalog(config.cardsets_path, config.world_path)
-    equipped_caps = load_equipped_caps(config.repo_root / "data" / "core")
+    content = load_gameplay_content(config.repo_root / "data" / "core")
     world = load_world_definition(config.world_path, set(catalog.cards))
     profiles = ProfileRepository(hub)
     world_state = WorldStateRepository(hub)
@@ -271,7 +316,21 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     accounts = AccountService(config, profiles, world.id, world.entry_room_id)
     activities = ActivityService(config)
     connections = ConnectionRegistry()
+    equipped_caps = {level: definition.max_equipped for level, definition in content.levels.levels.items()}
     cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps)
+    stats = StatsService(hub, profiles, catalog, content, world.id)
+    inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
+    progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
+    actions = ActionsService(hub, profiles, stats, catalog, world.id)
+    friends = FriendsService(hub, profiles, is_online=connections.is_online)
+    shop = ShopService(
+        hub,
+        profiles,
+        catalog,
+        content,
+        world.id,
+        rng=random.Random(config.pack_seed) if config.pack_seed is not None else None,
+    )
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -280,12 +339,14 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         card_service=cards,
         activities=activities,
         world=world,
+        stats=stats,
     )
     registry = build_registry()
     return RuntimeState(
         config=config,
         hub=hub,
         catalog=catalog,
+        content=content,
         world=world,
         profiles=profiles,
         world_state=world_state,
@@ -295,6 +356,12 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         connections=connections,
         rooms=rooms,
         registry=registry,
+        stats=stats,
+        inventory=inventory,
+        progression=progression,
+        actions=actions,
+        friends=friends,
+        shop=shop,
     )
 
 
@@ -518,14 +585,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             await _handle_replaced_connection(runtime, replaced)
         room_id = runtime.rooms.current_room_for_account(account.id)
         await runtime.connections.set_room(account.id, room_id)
-        with runtime.hub.transaction() as sql_connection:
-            join_seq = runtime.world_state.advance_room_seq(sql_connection, room_id)
-        snapshot, snapshot_seq = await runtime.rooms.build_snapshot_with_seq(account, room_id)
-        await connection.send(room_snapshot_envelope(snapshot_seq, snapshot))
+        snapshot = await runtime.rooms.build_snapshot(account, room_id)
+        await connection.send(room_snapshot_envelope(snapshot))
         await _broadcast_room_event(
             runtime,
             room_id=room_id,
-            seq=join_seq,
             event={
                 "type": "presence.enter",
                 "room_id": room_id,
@@ -566,8 +630,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     await connection.close()
                     return
                 if envelope_type == "snapshot.request":
-                    refreshed_snapshot, refreshed_seq = await runtime.rooms.build_snapshot_with_seq(current_account, connection.room_id or room_id)
-                    await connection.send(room_snapshot_envelope(refreshed_seq, refreshed_snapshot))
+                    refreshed_snapshot = await runtime.rooms.build_snapshot(current_account, connection.room_id or room_id)
+                    await connection.send(room_snapshot_envelope(refreshed_snapshot))
                     continue
                 request_id = client_payload.request_id
                 try:
@@ -587,6 +651,15 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         cards=runtime.cards,
                         activities=runtime.activities,
                         registry=runtime.registry,
+                        stats=runtime.stats,
+                        inventory=runtime.inventory,
+                        progression=runtime.progression,
+                        actions=runtime.actions,
+                        friends=runtime.friends,
+                        shop=runtime.shop,
+                        content=runtime.content,
+                        valid_stickers=frozenset(runtime.accounts.list_stickers()),
+                        serialize_user=lambda account: _serialize_account(runtime, account),
                     )
                     outcome = await dispatch_command(context, parsed_command)
                 except (CommandParseError, CommandError, ValueError) as exc:
@@ -610,26 +683,22 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         events=outcome.private_events,
                     )
                 )
-                if outcome.snapshot is not None and outcome.snapshot_seq is not None:
-                    await connection.send(room_snapshot_envelope(outcome.snapshot_seq, outcome.snapshot))
+                if outcome.snapshot is not None:
+                    await connection.send(room_snapshot_envelope(outcome.snapshot))
                 for pending in outcome.room_broadcasts:
                     exclude = connection.account_id if pending.event.get("type") == "presence.enter" else None
                     await _broadcast_room_event(
                         runtime,
                         room_id=pending.room_id,
-                        seq=pending.seq,
                         event=pending.event,
                         exclude_account_id=exclude,
                     )
         except WebSocketDisconnect:
             active = await runtime.connections.get(account.id)
             if active is connection and connection.room_id is not None:
-                with runtime.hub.transaction() as sql_connection:
-                    leave_seq = runtime.world_state.advance_room_seq(sql_connection, connection.room_id)
                 await _broadcast_room_event(
                     runtime,
                     room_id=connection.room_id,
-                    seq=leave_seq,
                     event=presence_leave_event(
                         account_id=account.id,
                         username=account.username_display,

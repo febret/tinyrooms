@@ -119,6 +119,11 @@ class ConnectionRegistry:
         async with self._lock:
             return self._by_account.get(account_id)
 
+    def is_online(self, account_id: str) -> bool:
+        """Return whether an account currently has a live connection."""
+
+        return account_id in self._by_account
+
     async def list_room(self, room_id: str) -> list[LiveConnection]:
         """List live connections currently in a room."""
 

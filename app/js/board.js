@@ -303,6 +303,8 @@ export function createBoard({ canvas, overlay, onSelect }) {
   }
 
   function playPropAnimation(entry, prop, model, clips) {
+    // Respect reduced-motion preferences; also keeps rendered frames deterministic.
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const mode = typeof prop.animation === "string" ? prop.animation.trim() : "";
     if (!mode) return;
     if (!clips || !clips.length) {
@@ -349,16 +351,10 @@ export function createBoard({ canvas, overlay, onSelect }) {
         fail(entry, `${prop.label} model has no usable geometry`);
         return;
       }
-      const size = bounds.getSize(new THREE.Vector3());
-      // Imported models have different authoring units; normalize their presentation
-      // inside the authoritative instance transform, as in the reference board.
-      const kind = prop.propId || "";
-      const desired = /sofa|bed|dollhouse/.test(kind) ? 3
-        : /rug/.test(kind) ? 2.8 : /shelf|shower|counter|door|portal/.test(kind) ? 2.5 : 1.8;
-      const scale = desired / Math.max(size.x, size.y, size.z, 0.01);
+      // The server sends the combined definition + instance scale, applied by `group`;
+      // here we only ground the model so its base rests on the floor.
       const visual = new THREE.Group();
-      visual.scale.setScalar(scale);
-      visual.position.y = -bounds.min.y * scale;
+      visual.position.y = -bounds.min.y;
       visual.add(model);
       model.traverse(node => {
         if (node.isMesh) node.castShadow = node.receiveShadow = true;

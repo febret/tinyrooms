@@ -20,10 +20,7 @@ class NavigationResult:
 
     source_room_id: str
     destination_room_id: str
-    source_seq: int
-    destination_seq: int
     destination_snapshot: dict[str, object]
-    destination_snapshot_seq: int
     source_event: dict[str, object]
     destination_event: dict[str, object]
     closed_activity: dict[str, object] | None
@@ -32,7 +29,7 @@ class NavigationResult:
 class RoomService:
     """Authoritative room state assembly and mutations."""
 
-    MILESTONE_ROOM_IDS = frozenset({"hub", "playroom"})
+    ROOM_CHANGE_ENERGY_COST = 1
 
     def __init__(
         self,
@@ -44,6 +41,7 @@ class RoomService:
         card_service: CardService,
         activities: ActivityService,
         world: WorldDefinition,
+        stats=None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -52,6 +50,7 @@ class RoomService:
         self._card_service = card_service
         self._activities = activities
         self._world = world
+        self._stats = stats
 
     def current_room_for_account(self, account_id: str) -> str:
         """Return the remembered room for the given account."""
@@ -96,25 +95,19 @@ class RoomService:
         if command.startswith(".go "):
             remainder = command[4:].strip()
             if remainder in room.exits:
-                exit_definition = room.exits[remainder]
-                if exit_definition.target_room_id not in self.MILESTONE_ROOM_IDS:
-                    return None
                 command = self._exit_command(remainder)
         if command.split(maxsplit=1)[0] not in {
             ".go",
             ".inspect",
             ".look",
             ".play",
+            ".shop",
         }:
             return None
         return {"label": action.label, "command": command}
 
     def _visible_exits(self, room: RoomDefinition) -> list[ExitDefinition]:
-        return [
-            exit_definition
-            for exit_definition in room.exits.values()
-            if exit_definition.target_room_id in self.MILESTONE_ROOM_IDS
-        ]
+        return list(room.exits.values())
 
     def _visible_prop_actions(
         self,
@@ -143,7 +136,10 @@ class RoomService:
                     "username": account.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
-                    "quick_actions": [{"label": "Look", "command": f".look @{account.username_display}"}],
+                    "quick_actions": [
+                        {"label": "Look", "command": f".look @{account.username_display}"},
+                        {"label": "Add Friend", "command": f".friend add @peep:{account.id}"},
+                    ],
                 }
             )
         return occupants
@@ -188,7 +184,7 @@ class RoomService:
             "prop_id": prop.prop_id,
             "position": list(prop.pos),
             "rotation": list(prop.rot),
-            "scale": prop.scale,
+            "scale": prop.scale * prop_definition.scale,
             "behavior": prop.behavior,
             "model_url": f"/assets/world/{self._world.id}/props/{prop_definition.model_name}",
             "label": prop_definition.label,
@@ -197,10 +193,10 @@ class RoomService:
             "quick_actions": self._visible_prop_actions(room, prop.actions),
         }
 
-    async def build_snapshot_with_seq(
+    async def build_snapshot(
         self, account: AccountRecord, room_id: str, *, note: str | None = None
-    ) -> tuple[dict[str, object], int]:
-        """Build a room snapshot and the sequence it is consistent with."""
+    ) -> dict[str, object]:
+        """Build a coherent room snapshot for a specific account."""
 
         room = self._world.rooms[room_id]
         live_connections = await self._connections.list_room(room_id)
@@ -208,20 +204,26 @@ class RoomService:
         user_profile = self._profiles.user_profile_for(account.id, self._world.id, room_id)
         with self._hub.locked():
             occupant_accounts = self._profiles.get_accounts_by_ids(occupant_ids)
-            room_seq, room_cards, chat_history = self._world_state.read_room_view(room_id)
+            room_cards, chat_history = self._world_state.read_room_view(room_id)
             inventory = self._profiles.list_inventory(account.id, self._world.id)
         occupants: list[dict[str, object]] = []
         for connection in live_connections:
             occupant = occupant_accounts.get(connection.account_id)
             if occupant is None:
                 continue
+            counters = self._stats.snapshot(occupant.id).payload() if self._stats is not None else None
             occupants.append(
                 {
                     "id": occupant.id,
                     "username": occupant.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{occupant.sticker}" if occupant.sticker else None,
-                    "quick_actions": [{"label": "Look", "command": f".look @{occupant.username_display}"}],
+                    "statuses": list(counters["statuses"]) if counters else [],
+                    "counters": counters,
+                    "quick_actions": [
+                        {"label": "Look", "command": f".look @{occupant.username_display}"},
+                        {"label": "Add Friend", "command": f".friend add @peep:{occupant.id}"},
+                    ],
                 }
             )
         visible_definitions = self._visible_exits(room)
@@ -250,16 +252,10 @@ class RoomService:
                 {"label": "Look around", "command": ".look"},
                 *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],
             ],
-        }, room_seq
+        }
 
-    async def build_snapshot(self, account: AccountRecord, room_id: str, *, note: str | None = None) -> dict[str, object]:
-        """Build a coherent room snapshot for a specific account."""
-
-        snapshot, _ = await self.build_snapshot_with_seq(account, room_id, note=note)
-        return snapshot
-
-    def say(self, account: AccountRecord, room_id: str, raw_text: str) -> tuple[int, dict[str, object]]:
-        """Persist a room chat message and return the broadcast event."""
+    def say(self, account: AccountRecord, room_id: str, raw_text: str) -> dict[str, object]:
+        """Record an in-memory room chat message and return the broadcast event."""
 
         style = "normal"
         text = raw_text.strip()
@@ -279,8 +275,8 @@ class RoomService:
             "style": style,
             "text": text,
         }
-        seq = self._world_state.append_chat_message(room_id, entry)
-        return seq, {"type": "chat.message", "room_id": room_id, **entry}
+        self._world_state.append_chat_message(room_id, entry)
+        return {"type": "chat.message", "room_id": room_id, **entry}
 
     async def navigate(self, account: AccountRecord, source_room_id: str, exit_id: str) -> NavigationResult:
         """Move a connected user between rooms and return ordered room events."""
@@ -289,29 +285,24 @@ class RoomService:
         if exit_id not in source_room.exits:
             raise ValueError("That exit is not available from this room.")
         exit_definition = source_room.exits[exit_id]
-        if exit_definition.target_room_id not in self.MILESTONE_ROOM_IDS:
-            raise ValueError("That destination is not available in Milestone 1.")
         destination_room = self._world.rooms[exit_definition.target_room_id]
         if exit_definition.locked:
-            raise ValueError("That way is locked in this milestone build.")
+            raise ValueError("That way is locked.")
         if exit_definition.requires_card_id is not None:
             inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world.id)}
             if exit_definition.requires_card_id not in inventory_ids:
                 raise ValueError(f"You need {exit_definition.requires_card_id} to go that way.")
         with self._hub.transaction() as connection:
-            source_seq = self._world_state.advance_room_seq(connection, source_room_id)
-            destination_seq = self._world_state.advance_room_seq(connection, destination_room.id)
+            if self._stats is not None and self.ROOM_CHANGE_ENERGY_COST:
+                self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
         closed = self._activities.close_if_room_bound(account.id, destination_room.id)
-        snapshot, snapshot_seq = await self.build_snapshot_with_seq(account, destination_room.id)
+        snapshot = await self.build_snapshot(account, destination_room.id)
         return NavigationResult(
             source_room_id=source_room_id,
             destination_room_id=destination_room.id,
-            source_seq=source_seq,
-            destination_seq=destination_seq,
             destination_snapshot=snapshot,
-            destination_snapshot_seq=snapshot_seq,
             source_event=presence_leave_event(
                 account_id=account.id,
                 username=account.username_display,

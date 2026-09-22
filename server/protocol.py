@@ -86,16 +86,16 @@ def result_envelope(
     return envelope
 
 
-def room_snapshot_envelope(seq: int, room: dict[str, object]) -> dict[str, object]:
+def room_snapshot_envelope(room: dict[str, object]) -> dict[str, object]:
     """Build a full room snapshot envelope."""
 
-    return {"v": PROTOCOL_VERSION, "type": "room.snapshot", "seq": seq, "room": room}
+    return {"v": PROTOCOL_VERSION, "type": "room.snapshot", "room": room}
 
 
-def room_event_envelope(seq: int, event: dict[str, object]) -> dict[str, object]:
+def room_event_envelope(event: dict[str, object]) -> dict[str, object]:
     """Build a room event envelope."""
 
-    return {"v": PROTOCOL_VERSION, "type": "room.event", "seq": seq, "event": event}
+    return {"v": PROTOCOL_VERSION, "type": "room.event", "event": event}
 
 
 def session_replaced_envelope(message: str) -> dict[str, object]:

@@ -13,7 +13,6 @@ function requestId() {
 /** Connect to /ws, route envelopes, and resolve one promise per command request_id. */
 export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessionReplaced, onErrorEnvelope, onResult }) {
   let socket = null;
-  let currentRoomSeq = 0;
   const pending = new Map();
 
   function status(transport) {
@@ -49,7 +48,6 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
         status({ connected: true, status: "connected", message: "Connected." });
       };
       socket.onclose = event => {
-        currentRoomSeq = 0;
         clearPending("The room connection closed.");
         const message = event.code === 4403
           ? "World entry is blocked until your sticker is confirmed."
@@ -64,18 +62,10 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
       socket.onmessage = event => {
         const envelope = JSON.parse(String(event.data || "{}"));
         if (envelope.type === "room.snapshot") {
-          currentRoomSeq = Number(envelope.seq || 0);
           onSnapshot?.(envelope);
           return;
         }
         if (envelope.type === "room.event") {
-          const incomingSeq = Number(envelope.seq || 0);
-          if (currentRoomSeq && incomingSeq !== currentRoomSeq + 1) {
-            currentRoomSeq = incomingSeq;
-            this.requestSnapshot();
-            return;
-          }
-          currentRoomSeq = incomingSeq;
           onRoomEvent?.(envelope);
           return;
         }

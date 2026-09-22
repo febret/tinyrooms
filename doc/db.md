@@ -9,15 +9,15 @@ Milestone 1 backend. The schema source of truth is
 
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
-| Profile (user) DB | `<users_path>/profiles.sqlite3` | 2 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 5 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
+| Profile (user) DB | `<users_path>/profiles.sqlite3` | 3 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
+| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 6 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 At runtime both files are accessed through a single shared connection,
 `server/state/migrations.py:DatabaseHub`, which opens the profile DB and
 `ATTACH`es the world DB as `world`. Both databases run in WAL mode
 (`PRAGMA journal_mode = WAL` on `main` plus `PRAGMA world.journal_mode = WAL`
 after attach). All repository SQL therefore addresses
-world tables as `world.rooms`, `world.room_cards`, and so on. `DatabaseHub`
+world tables as `world.room_cards`, `world.room_states`, and so on. `DatabaseHub`
 exposes `locked()` for reads and `transaction()` (`BEGIN IMMEDIATE`, commit or
 rollback) for writes; multi-table mutations such as pickup/drop
 (`server/services/cards.py`) and navigation (`server/services/rooms.py`) run
@@ -137,49 +137,73 @@ placeholders (defaults below) reserved for later milestones.
 | `profile_json` | TEXT NOT NULL | JSON user profile: `{favorites[], friends[], pending_friends[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
 | `last_visit_at` | TEXT NOT NULL | ISO timestamp of last room change; updated together with `remembered_room`. |
 
+### 2.5 `reward_ledger`
+
+Idempotency log guaranteeing that one-time rewards (kudos and/or cards) are
+granted **exactly once** per account. Written and read by
+`server/services/progression.py:ProgressionService` (`reward_once()`,
+`grant_kudos()` with a `ledger_key`, `has_reward()`, and the shared `_grant()`
+insert). The check and insert happen inside the same transaction as the balance
+update (`_grant()`), so a duplicate key returns `False` without re-granting;
+`has_reward()` offers a pre-check. Callers pass a stable key such as
+`task:portal` or `seed:<index>:<card>` (`tools/seed_review_account.py`).
+Note this table lives in the profile DB (not the world DB) so rewards are
+unified per account across worlds; `world_id` records where each grant occurred.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `ledger_key` | TEXT PK (composite) | Caller-supplied reward identity (e.g. `task:portal`). Unique per account, not globally. |
+| `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Rewarded account. Indexed via `idx_reward_ledger_owner`. |
+| `world_id` | TEXT NOT NULL | World active at grant time (informational). Part of `idx_reward_ledger_owner`. |
+| `kind` | TEXT NOT NULL | Reward category (`reward`, `kudos`, `seed`, …); not constrained. |
+| `payload_json` | TEXT NOT NULL CHECK `json_valid` | JSON grant details: `{"kudos": int, "cards": [card_id, …]}`. |
+| `created_at` | TEXT NOT NULL | ISO grant timestamp. |
+
 ## 3. World-state DB — `TRSERVER_WORLDSTATE_PATH`
 
-### 3.1 `rooms`
+The world-state DB persists durable, shared room content: live card stacks
+(`room_cards`) and per-room metadata (`room_states`). Chat history and broadcast
+ordering are **not** persisted — `WorldStateRepository` keeps chat history in
+memory, so it is lost on server restart. Because a single server process owns a
+world, room operations are already serialized in-process and no per-room
+sequence counter is needed.
 
-One row per room in the loaded world definition. Ensured by
-`server/state/world_state.py:WorldStateRepository.initialize_world()`, which
-creates a row plus its seed cards only when the room is absent; rooms already
-present are left untouched, so YAML edits to an existing room's cards never
-re-seed implicitly (use `.reset_room` instead). `seq` is the authoritative per-room
-broadcast counter: every chat, pickup/drop, presence move, and navigation
-advances it via `advance_room_seq()` / `append_chat_message()` and the
-resulting `seq` is sent in `room.snapshot` / `room.event` envelopes
-(`server/protocol.py`, `server/app.py` WS loop). Snapshots are built by
-`RoomService.build_snapshot_with_seq()`, which reads occupants (one batched
-`get_accounts_by_ids()` query instead of N+1 lookups), room cards, chat
-history, sequence, and inventory under a single `DatabaseHub.locked()` hold so
-the snapshot cannot tear across concurrent writes; it returns the snapshot
-together with the sequence it is consistent with. `chat_history_json` is read by
-`get_chat_history()` / `read_room_view()` and included in snapshots.
+Old world-state databases are not migrated; this build requires a fresh
+world-state DB (`WORLD_SCHEMA_VERSION = 6`).
+
+### 3.1 `room_states`
+
+One row per room, created by
+`server/state/world_state.py:WorldStateRepository.initialize_world()`. The
+`initialized` flag controls YAML seeding: a room with `initialized = 0` (missing
+row, fresh database, or a manually cleared flag) has its live cards deleted and
+its YAML seed cards re-inserted on the next server start; a room with
+`initialized = 1` is left untouched, so collected seeds stay collected and
+dropped cards stay dropped across restarts. This replaces the former
+room-exists gate that lived in the removed `rooms` table.
 
 | Column | Type | Description |
 | --- | --- | --- |
 | `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (Milestone 1 playable: `hub`, `playroom`). |
-| `seq` | INTEGER NOT NULL DEFAULT 0 | Monotonic per-room sequence for ordering broadcasts; clients re-request a snapshot on gap. |
-| `revision` | INTEGER NOT NULL DEFAULT 0 | Reserved revision counter for future definition/layout edits; always 0 in Milestone 1. |
-| `chat_history_json` | TEXT NOT NULL DEFAULT `'[]'` | JSON list of recent `{speaker_id, speaker, style, text}` entries; appended by `RoomService.say()` via `append_chat_message()` and capped at `MAX_HISTORY_MESSAGES` (50). |
+| `initialized` | INTEGER NOT NULL DEFAULT 0 | `0` = reseed cards from YAML on next server start; `1` = leave the room's live cards alone. |
+| `owner_account_id` | TEXT NULL | Reserved for future room ownership (merges the former `room_owners` placeholder; unused). |
+| `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Reserved JSON blob for future dynamic prop state (merges the former `prop_states` placeholder; unused). |
 
 ### 3.2 `room_cards`
 
 Live card stacks lying in rooms. Seeded from `room.initial_cards` by
-`initialize_world()` when the room row is first created; listed by
-`list_room_cards()` for snapshots; mutated by `take_room_card()` (pickup) and
-`add_room_card()` (drop) inside `CardService` transactions, each advancing the
-room `seq` and broadcasting `room.card.added/updated/removed`
-(`server/services/cards.py`, `server/commands/core.py`). `.reset_room`
-(`reset_room_cards()`) deletes every live stack in the caller's room —
-including player drops — re-inserts the YAML seeds, advances `seq`, and
-broadcasts `room.cards.reset`.
+`initialize_world()` (uninitialized room) or `reset_room_cards()` (`.reset_room`);
+listed by `list_room_cards()` for snapshots; mutated by `take_room_card()`
+(pickup) and `add_room_card()` (drop) inside `CardService` transactions, each
+broadcasting `room.card.added/updated/removed` (`server/services/cards.py`,
+`server/commands/core.py`). `.reset_room` (`reset_room_cards()`) deletes every
+live stack in the caller's room — including player drops — re-inserts the YAML
+seeds, sets `room_states.initialized = 1`, and broadcasts `room.cards.reset`.
 
 | Column | Type | Description |
 | --- | --- | --- |
 | `stack_id` | TEXT PK | Stack ID: `room:<seed key>` for seeded stacks, `room:<uuid4>` for dropped cards. Referenced by `.pickup @card:<stack_id>` and `.look @card:<stack_id>`. |
-| `room_id` | TEXT NOT NULL FK → `rooms(room_id)` ON DELETE CASCADE | Containing room. Indexed via `idx_room_cards_room_id` and `idx_room_cards_order (room_id, created_at, stack_id)`, which covers the snapshot `ORDER BY`. |
+| `room_id` | TEXT NOT NULL | Containing room. Indexed via `idx_room_cards_room_id` and `idx_room_cards_order (room_id, created_at, stack_id)`, which covers the snapshot `ORDER BY`. |
 | `card_def_id` | TEXT NOT NULL | Card definition ID from the catalog. |
 | `quantity` | INTEGER NOT NULL | Cards in this stack. |
 | `position_json` | TEXT NOT NULL | JSON board position triple `[x, y, z]`; seeded from YAML `pos`, drops land at `(50, 50, 0)` (`core.py`). Serialized as `position: [x, y, z]`. |
@@ -191,30 +215,13 @@ broadcasts `room.cards.reset`.
 Seeded stacks use a deterministic `stack_id` (`room:<seed key>`, where the
 seed key is `<room>:<index>:<card>` from the content loader in
 `server/content/worlds.py`); `room_cards` carries no `initial_key` column and
-there is no seed ledger table. Restart safety comes from the room-exists gate
-in `initialize_world()`: existing rooms are never re-seeded, so collected
+there is no seed ledger table. Restart safety comes from
+`room_states.initialized`: only rooms flagged `0` are re-seeded, so collected
 seeds stay collected and dropped cards stay dropped.
 
-### 3.3 `prop_states`
+### 3.3 In-memory room state (not persisted)
 
-Placeholder for future dynamic prop state (Milestone 1 renders props purely
-from YAML in `RoomService._serialize_prop()`; no code reads or writes this
-table yet). Schema is created alongside the other world
-tables per `doc/milestone-1.md` §4 ("prop state placeholders").
-
-| Column | Type | Description |
-| --- | --- | --- |
-| `room_id` | TEXT NOT NULL, PK part 1, FK → `rooms(room_id)` ON DELETE CASCADE | Room containing the prop instance. |
-| `prop_instance_id` | TEXT NOT NULL, PK part 2 | Prop instance ID within the room. Composite PK `(room_id, prop_instance_id)`. |
-| `state_json` | TEXT NOT NULL | JSON blob of dynamic prop state (unused in Milestone 1). |
-
-### 3.4 `room_owners`
-
-Placeholder for future room ownership (no code reads or writes this table in
-Milestone 1). Schema is created alongside the other world tables per
-`doc/milestone-1.md` §4 ("room ownership").
-
-| Column | Type | Description |
-| --- | --- | --- |
-| `room_id` | TEXT PK, FK → `rooms(room_id)` ON DELETE CASCADE | Owned room. |
-| `owner_account_id` | TEXT NOT NULL | Owning `accounts.id`. |
+`WorldStateRepository` holds room chat history in a process-local dict, capped at
+`MAX_HISTORY_MESSAGES` (50) entries of `{speaker_id, speaker, style, text}`.
+`RoomService.say()` appends via `append_chat_message()`; snapshots include it via
+`read_room_view()`. It is intentionally lost on server restart.

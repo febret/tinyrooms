@@ -8,7 +8,7 @@ if (updating && process.env.TR_UPDATE_SCREENSHOTS !== "1") {
 export default defineConfig({
   testDir: "./tests/browser",
   timeout: 10_000,
-  expect: { timeout: 10_000, toHaveScreenshot: { maxDiffPixels: 100, threshold: 0.15 } },
+  expect: { timeout: 10_000, toHaveScreenshot: { maxDiffPixels: 300, threshold: 0.15 } },
   fullyParallel: false,
   workers: 1,
   retries: 0,

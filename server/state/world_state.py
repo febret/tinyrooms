@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import threading
 from typing import Any
 import sqlite3
 import uuid
@@ -43,10 +44,12 @@ class RoomCardStack:
 
 
 class WorldStateRepository:
-    """Repository for shared room state and room sequences."""
+    """Repository for shared room state, cards, and in-memory chat history."""
 
     def __init__(self, hub: DatabaseHub) -> None:
         self._hub = hub
+        self._chat_history: dict[str, list[dict[str, Any]]] = {}
+        self._chat_lock = threading.Lock()
 
     def _stack_from_row(self, row: sqlite3.Row) -> RoomCardStack:
         return RoomCardStack(
@@ -61,41 +64,53 @@ class WorldStateRepository:
             updated_at=row["updated_at"],
         )
 
+    @staticmethod
+    def _mark_room_initialized(connection: sqlite3.Connection, room_id: str) -> None:
+        row = connection.execute(
+            "SELECT 1 FROM world.room_states WHERE room_id = ?",
+            (room_id,),
+        ).fetchone()
+        if row is None:
+            connection.execute(
+                """
+                INSERT INTO world.room_states (room_id, initialized, owner_account_id, props_json)
+                VALUES (?, 1, NULL, '{}')
+                """,
+                (room_id,),
+            )
+        else:
+            connection.execute(
+                "UPDATE world.room_states SET initialized = 1 WHERE room_id = ?",
+                (room_id,),
+            )
+
     def initialize_world(self, world: WorldDefinition) -> None:
-        """Create missing rooms and seed their initial cards exactly once."""
+        """Seed any room whose definition has not been loaded into the world yet."""
 
         with self._hub.transaction() as connection:
             for room_id, room in world.rooms.items():
-                exists = connection.execute(
-                    "SELECT 1 FROM world.rooms WHERE room_id = ?",
+                row = connection.execute(
+                    "SELECT initialized FROM world.room_states WHERE room_id = ?",
                     (room_id,),
                 ).fetchone()
-                if exists is not None:
+                if row is not None and int(row["initialized"]) == 1:
                     continue
-                connection.execute(
-                    "INSERT INTO world.rooms (room_id, seq, revision, chat_history_json) VALUES (?, 0, 0, '[]')",
-                    (room_id,),
-                )
+                connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
                 self._insert_seed_cards(connection, room_id, room.initial_cards)
+                self._mark_room_initialized(connection, room_id)
 
     def reset_room_cards(
         self,
         room_id: str,
         initial_cards: tuple[InitialRoomCard, ...],
-    ) -> tuple[list[RoomCardStack], int]:
+    ) -> list[RoomCardStack]:
         """Replace all live room cards with the definition seed cards."""
 
         with self._hub.transaction() as connection:
-            row = connection.execute(
-                "SELECT 1 FROM world.rooms WHERE room_id = ?",
-                (room_id,),
-            ).fetchone()
-            if row is None:
-                raise ValueError("Unknown room.")
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
             stacks = self._insert_seed_cards(connection, room_id, initial_cards)
-            seq = self.advance_room_seq(connection, room_id)
-        return stacks, seq
+            self._mark_room_initialized(connection, room_id)
+        return stacks
 
     @staticmethod
     def _insert_seed_cards(
@@ -156,71 +171,33 @@ class WorldStateRepository:
             ).fetchall()
         return [self._stack_from_row(row) for row in rows]
 
-    def get_room_seq(self, room_id: str) -> int:
-        """Return the current room sequence."""
+    def read_room_view(self, room_id: str) -> tuple[list[RoomCardStack], list[dict[str, Any]]]:
+        """Return the room cards and in-memory chat history."""
 
         with self._hub.locked() as connection:
-            row = connection.execute("SELECT seq FROM world.rooms WHERE room_id = ?", (room_id,)).fetchone()
-        return 0 if row is None else int(row["seq"])
-
-    def read_room_view(self, room_id: str) -> tuple[int, list[RoomCardStack], list[dict[str, Any]]]:
-        """Return the room sequence, cards, and chat history from a single consistent read."""
-
-        with self._hub.locked() as connection:
-            row = connection.execute(
-                "SELECT seq, chat_history_json FROM world.rooms WHERE room_id = ?",
-                (room_id,),
-            ).fetchone()
-            if row is None:
-                return 0, [], []
             card_rows = connection.execute(
                 "SELECT * FROM world.room_cards WHERE room_id = ? ORDER BY created_at, stack_id",
                 (room_id,),
             ).fetchall()
-            return int(row["seq"]), [self._stack_from_row(card) for card in card_rows], list(json.loads(row["chat_history_json"]))
+        cards = [self._stack_from_row(card) for card in card_rows]
+        return cards, self.get_chat_history(room_id)
 
     def get_chat_history(self, room_id: str) -> list[dict[str, Any]]:
-        """Return recent room chat history."""
+        """Return the in-memory chat history for a room.
 
-        with self._hub.locked() as connection:
-            row = connection.execute(
-                "SELECT chat_history_json FROM world.rooms WHERE room_id = ?",
-                (room_id,),
-            ).fetchone()
-        return [] if row is None else list(json.loads(row["chat_history_json"]))
+        Chat history is process-local and intentionally lost on server restart.
+        """
 
-    def append_chat_message(self, room_id: str, entry: dict[str, Any]) -> int:
-        """Persist a room chat message and advance the room sequence."""
+        with self._chat_lock:
+            return list(self._chat_history.get(room_id, []))
 
-        with self._hub.transaction() as connection:
-            row = connection.execute(
-                "SELECT chat_history_json, seq FROM world.rooms WHERE room_id = ?",
-                (room_id,),
-            ).fetchone()
-            if row is None:
-                raise ValueError("Unknown room.")
-            history = list(json.loads(row["chat_history_json"]))
+    def append_chat_message(self, room_id: str, entry: dict[str, Any]) -> None:
+        """Append an in-memory room chat message, capped at the history limit."""
+
+        with self._chat_lock:
+            history = self._chat_history.setdefault(room_id, [])
             history.append(entry)
-            history = history[-MAX_HISTORY_MESSAGES:]
-            seq = int(row["seq"]) + 1
-            connection.execute(
-                "UPDATE world.rooms SET seq = ?, chat_history_json = ? WHERE room_id = ?",
-                (seq, json.dumps(history), room_id),
-            )
-        return seq
-
-    def advance_room_seq(self, connection: sqlite3.Connection, room_id: str) -> int:
-        """Advance the room sequence used for ordering room broadcasts."""
-
-        row = connection.execute("SELECT seq FROM world.rooms WHERE room_id = ?", (room_id,)).fetchone()
-        if row is None:
-            raise ValueError("Unknown room.")
-        seq = int(row["seq"]) + 1
-        connection.execute(
-            "UPDATE world.rooms SET seq = ? WHERE room_id = ?",
-            (seq, room_id),
-        )
-        return seq
+            del history[:-MAX_HISTORY_MESSAGES]
 
     def take_room_card(
         self,
@@ -229,7 +206,7 @@ class WorldStateRepository:
         room_id: str,
         stack_id: str,
         quantity: int,
-    ) -> tuple[RoomCardStack, bool, int]:
+    ) -> tuple[RoomCardStack, bool]:
         """Remove quantity from a room stack and return the prior stack state."""
 
         row = connection.execute(
@@ -255,8 +232,7 @@ class WorldStateRepository:
                 """,
                 (quantity, utc_now().isoformat(), stack_id),
             )
-        seq = self.advance_room_seq(connection, room_id)
-        return stack, deleted, seq
+        return stack, deleted
 
     def add_room_card(
         self,
@@ -267,8 +243,8 @@ class WorldStateRepository:
         quantity: int,
         pos: tuple[float, float, float],
         pinned: bool = False,
-    ) -> tuple[RoomCardStack, int]:
-        """Create a new room card stack and advance the room sequence."""
+    ) -> RoomCardStack:
+        """Create a new room card stack."""
 
         stack_id = f"room:{uuid.uuid4()}"
         now = utc_now().isoformat()
@@ -282,18 +258,14 @@ class WorldStateRepository:
             """,
             (stack_id, room_id, card_def_id, quantity, json.dumps(list(position)), int(pinned), now, now),
         )
-        seq = self.advance_room_seq(connection, room_id)
-        return (
-            RoomCardStack(
-                stack_id=stack_id,
-                room_id=room_id,
-                card_def_id=card_def_id,
-                quantity=quantity,
-                position=position,
-                scope="room",
-                pinned=pinned,
-                created_at=now,
-                updated_at=now,
-            ),
-            seq,
+        return RoomCardStack(
+            stack_id=stack_id,
+            room_id=room_id,
+            card_def_id=card_def_id,
+            quantity=quantity,
+            position=position,
+            scope="room",
+            pinned=pinned,
+            created_at=now,
+            updated_at=now,
         )

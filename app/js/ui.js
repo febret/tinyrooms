@@ -8,6 +8,7 @@ import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
+import { createPropViewerManager } from "./prop-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
 
@@ -23,6 +24,11 @@ const chatInput = $("#chat-input");
 const settings = $("#settings");
 const dialogs = createDialogs($("#global-modal-layer"));
 const timedToasts = new Set();
+const consumedFeedback = new Set();
+const feedbackLayer = document.createElement("div");
+feedbackLayer.id = "feedback-layer";
+feedbackLayer.setAttribute("aria-live", "polite");
+root.append(feedbackLayer);
 let socket = null;
 let paletteClose = null;
 let paletteShade = null;
@@ -55,7 +61,7 @@ function connectSocket() {
   socket = createSocketClient({
     onStatus(transport) { store.dispatch({ type: "transport", transport }); },
     onSnapshot(envelope) {
-      store.dispatch({ type: "snapshot", room: { ...envelope.room, seq: envelope.seq } });
+      store.dispatch({ type: "snapshot", room: envelope.room });
       if (envelope.room?.metadata?.note) toast(envelope.room.metadata.note);
     },
     onRoomEvent(envelope) {
@@ -128,11 +134,19 @@ function renderLook(state) {
   const preview = state.selection.kind === "peep" && description.imageUrl
     ? `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">` : "";
   const look = $("#look-bar");
-  if (!updateMarkup(look, `${preview}<div class="look-copy">
+  if (updateMarkup(look, `${preview}<div class="look-copy">
     <strong class="look-name" title="${escapeHtml(description.title)}">${escapeHtml(description.title)}</strong>
     <button type="button" class="look-description" data-focus-key="description" title="${escapeHtml(description.description)}" aria-label="Read full description">${escapeHtml(description.description)}</button>
-    </div>`)) return;
-  look.querySelector("button").onclick = () => dialogs.description(description.title, description.description);
+    </div>`)) {
+    look.querySelector("button").onclick = () => dialogs.description(description.title, description.description);
+  }
+  const selectedProp = state.selection.kind === "prop"
+    ? state.room?.props.find(prop => prop.id === state.selection.id)
+    : null;
+  const previewMarkup = selectedProp?.modelUrl
+    ? `<canvas class="look-preview-3d" data-prop-model="${escapeHtml(selectedProp.modelUrl)}" data-prop-scale="${escapeHtml(selectedProp.scale)}" aria-label="${escapeHtml(selectedProp.label)} model preview"></canvas>`
+    : "";
+  updateMarkup($("#look-preview-layer"), previewMarkup);
 }
 
 async function handleAction(action) {
@@ -154,17 +168,115 @@ async function handleAction(action) {
     store.dispatch({ type: action.type });
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
+  } else if (action.type === "start-targeting") {
+    store.dispatch({ type: "start-targeting", stackId: action.stackId, label: action.label });
+    playTone("flip");
+  } else if (action.type === "cancel-targeting") {
+    store.dispatch({ type: "cancel-targeting" });
+  } else if (action.type === "emote-category") {
+    store.dispatch({ type: "emote-category", category: action.category });
+  } else if (action.type === "journal-tab") {
+    store.dispatch({ type: "journal-tab", tab: action.tab });
+  } else if (action.type === "journal-month") {
+    store.dispatch({ type: "journal-month", delta: action.delta });
+  } else if (action.type === "claim-bops") {
+    try { await sendCommand(".claim_bops"); } catch (error) { showError(error); }
+  } else if (action.type === "level-up") {
+    try { await sendCommand(".level_up"); } catch (error) { showError(error); }
+  } else if (action.type === "friend-action") {
+    try { await sendCommand(`.friend ${action.action} @peep:${action.accountId}`); } catch (error) { showError(error); }
+  } else if (action.type === "skill-slot") {
+    const state = store.getState();
+    if (action.stackId) {
+      try { await sendCommand(`.skill @card:${action.stackId} ${action.index}`); } catch (error) { showError(error); }
+    } else {
+      const selected = state.selection.kind === "inventory-card" ? state.selection.id : null;
+      const stack = selected && state.user?.inventory?.find(entry => entry.stackId === selected);
+      if (stack && stack.definition?.type === "skill") {
+        try { await sendCommand(`.skill @card:${stack.stackId} ${action.index}`); } catch (error) { showError(error); }
+      } else {
+        toast("Select a skill card in your Inventory first.", "info");
+      }
+    }
+  } else if (action.type === "merge") {
+    await mergeStack(action.stackId);
+  } else if (action.type === "swap-sticker") {
+    await openStickerSwap();
   } else if (action.type === "quantity") {
-    const quantity = await dialogs.quantity(action.intent, action.max);
+    const quantity = await dialogs.quantity(action.intent, action.max, action.minimum || 1);
     if (quantity === null) return;
     if (action.intent === "pickup") cardMotion.animatePickup(action.stackId);
-    try { await sendCommand(buildQuantityCommand(action.intent, action.stackId, quantity)); } catch (error) { showError(error); }
+    const command = action.intent === "split"
+      ? `.split @card:${action.stackId} ${quantity}`
+      : buildQuantityCommand(action.intent, action.stackId, quantity);
+    try { await sendCommand(command); } catch (error) { showError(error); }
   }
 }
 
+async function mergeStack(stackId) {
+  const state = store.getState();
+  const stack = state.user?.inventory?.find(entry => entry.stackId === stackId);
+  if (!stack) return;
+  const candidates = (state.user?.inventory || []).filter(entry =>
+    entry.stackId !== stackId
+    && entry.definition?.id === stack.definition?.id
+    && entry.quantity < (stack.definition?.stackLimit || 1)
+  );
+  if (!candidates.length) {
+    toast("No other stack of that card has room to merge into.", "info");
+    return;
+  }
+  let destination = candidates[0];
+  if (candidates.length > 1) {
+    const choice = await dialogs.choose("Merge into which stack?", candidates.map(entry => ({
+      value: entry.stackId,
+      label: `${entry.definition.label} ×${entry.quantity}`,
+    })));
+    if (!choice) return;
+    destination = candidates.find(entry => entry.stackId === choice) || candidates[0];
+  }
+  try { await sendCommand(`.merge @card:${stackId} @card:${destination.stackId}`); } catch (error) { showError(error); }
+}
+
+async function openStickerSwap() {
+  const state = store.getState();
+  const stickers = state.stickers || [];
+  const current = state.user?.sticker || "";
+  const cost = 10;
+  await dialogs.open(
+    `<section class="global-dialog sticker-swap" role="dialog" aria-modal="true" aria-labelledby="sticker-swap-title">
+      <h2 id="sticker-swap-title">Swap Sticker</h2>
+      <p>Choose a new sticker. Confirming a different sticker costs ${cost} Bops; keeping the current one is free.</p>
+      <div class="sticker-grid">${stickers.map(entry => {
+        const name = String(entry?.name || "");
+        const imageUrl = entry?.image_url || `/assets/stickers/${name}`;
+        return `<button type="button" class="sticker-choice ${name === current ? "current" : ""}" data-sticker="${escapeHtml(name)}"><img src="${escapeHtml(imageUrl)}" alt=""></button>`;
+      }).join("")}</div>
+      <div class="dialog-actions"><button type="button" class="quiet cancel-swap">Cancel</button></div>
+    </section>`,
+    (shade, close, cancel) => {
+      shade.querySelector(".cancel-swap").onclick = cancel;
+      shade.querySelectorAll("[data-sticker]").forEach(button => {
+        button.onclick = async () => {
+          const chosen = button.dataset.sticker;
+          close();
+          try { await sendCommand(`.swap_sticker ${chosen}`); } catch (error) { showError(error); }
+        };
+      });
+    },
+  );
+}
+
 function renderActions(state) {
-  const actions = selectionActions(state);
   const bar = $("#actions-bar");
+  if (state.ui.targeting) {
+    const markup = `<span class="targeting-hint">Choose a target for ${escapeHtml(state.ui.targeting.label)}</span>
+      <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
+    if (!updateMarkup(bar, markup)) return;
+    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } });
+    return;
+  }
+  const actions = selectionActions(state);
   const markup = actions.length ? actions.map((action, index) => {
     const tone = action.label === "Inspect" || action.label.startsWith("Open") ? "neutral" : action.label === "Close" ? "cancel" : action.tone || "neutral";
     return `<button type="button" class="${tone}" data-action-index="${index}" data-focus-key="${escapeHtml(action.command || action.label)}" ${action.disabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>`;
@@ -322,9 +434,54 @@ function renderToasts(state) {
   }
 }
 
+function renderFeedback(state) {
+  const numbers = state.ui.floatingNumbers || [];
+  const effects = state.ui.effects || [];
+  const markup = [
+    ...numbers.map(number => `<span class="floating-number ${number.amount >= 0 ? "gain" : "loss"}" data-float-id="${escapeHtml(number.id)}">${number.amount >= 0 ? "+" : ""}${Math.round(number.amount)} ${escapeHtml(number.kind)}</span>`),
+    ...effects.map(effect => `<span class="room-effect" data-effect-id="${escapeHtml(effect.id)}" data-effect="${escapeHtml(effect.effect)}"></span>`),
+  ].join("");
+  updateMarkup(feedbackLayer, markup);
+  const bounds = $("#peeps-panel").getBoundingClientRect();
+  for (const number of numbers) {
+    const node = feedbackLayer.querySelector(`[data-float-id="${CSS.escape(number.id)}"]`);
+    if (!node) continue;
+    const marker = [...$("#peeps-panel").querySelectorAll("[data-peep-id]")].find(element => element.dataset.peepId === number.targetId);
+    const rect = marker ? marker.getBoundingClientRect() : { top: bounds.top + 40, right: bounds.right };
+    node.style.top = `${Math.max(8, rect.top)}px`;
+    node.style.left = `${Math.min(window.innerWidth - 90, (rect.right || bounds.right) + 6)}px`;
+  }
+  for (const number of numbers) {
+    if (consumedFeedback.has(`n:${number.id}`)) continue;
+    consumedFeedback.add(`n:${number.id}`);
+    setTimeout(() => {
+      consumedFeedback.delete(`n:${number.id}`);
+      store.dispatch({ type: "consume-floating", id: number.id });
+    }, state.ui.reducedMotion ? 200 : 1500);
+  }
+  for (const effect of effects) {
+    if (consumedFeedback.has(`e:${effect.id}`)) continue;
+    consumedFeedback.add(`e:${effect.id}`);
+    playTone("success");
+    setTimeout(() => {
+      consumedFeedback.delete(`e:${effect.id}`);
+      store.dispatch({ type: "consume-effect", id: effect.id });
+    }, state.ui.reducedMotion ? 200 : 1800);
+  }
+}
+
 const peeps = createPeepsView({
   panel: $("#peeps-panel"), bubbleLayer: $("#bubble-layer"),
-  onSelect: selection => store.dispatch({ type: "select", selection }),
+  onSelect: selection => {
+    const state = store.getState();
+    if (state.ui.targeting && selection.kind === "peep") {
+      const stackId = state.ui.targeting.stackId;
+      store.dispatch({ type: "cancel-targeting" });
+      void sendCommand(`.use @card:${stackId} @peep:${selection.id}`).catch(showError);
+      return;
+    }
+    store.dispatch({ type: "select", selection });
+  },
   onDismiss: id => store.dispatch({ type: "dismiss-bubble", id }),
   onSound: () => playTone("flip"),
 });
@@ -332,7 +489,7 @@ const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
   onSelect(selection) {
     const state = store.getState();
-    if (state.views.main || state.views.details || dialogs.active || !state.user?.initialStickerComplete) return;
+    if (state.views.main || state.views.details || state.ui.targeting || dialogs.active || !state.user?.initialStickerComplete) return;
     store.dispatch({ type: "select", selection });
     playTone("flip");
   },
@@ -342,6 +499,7 @@ const cards = createCardsView({
   onSelect(selection) { store.dispatch({ type: "select", selection }); playTone("flip"); },
   onAction: action => { void handleAction(action); },
 });
+const propViewers = createPropViewerManager();
 const cardMotion = createCardMotion({
   board,
   handRoot: $("#card-hand"),
@@ -367,6 +525,7 @@ async function render(state) {
   root.classList.toggle("onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   root.classList.toggle("has-view", Boolean(state.views.main));
   root.classList.toggle("has-details", Boolean(state.views.details));
+  root.classList.toggle("targeting", Boolean(state.ui.targeting));
   $("#board-canvas").inert = !state.loggedIn || Boolean(state.views.main || state.views.details);
   panelLayer.inert = Boolean(state.views.details);
   activityLayer.inert = Boolean(state.views.main || state.views.details);
@@ -379,7 +538,11 @@ async function render(state) {
   renderTopBar(state);
   renderAuth(state);
   renderToasts(state);
+  renderFeedback(state);
   cards.render(state);
+  propViewers.sync($("#look-preview-layer"), state.ui.reducedMotion);
+  propViewers.sync(panelLayer, state.ui.reducedMotion);
+  propViewers.sync(detailLayer, state.ui.reducedMotion);
   if (!dialogs.active) {
     if (state.views.details && previousDetails !== state.views.details) {
       detailLayer.querySelector("[data-close-details]")?.focus({ preventScroll: true });
@@ -420,9 +583,10 @@ document.addEventListener("pointerdown", event => {
 });
 document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
+  const state = store.getState();
+  if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
-  const state = store.getState();
   if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });

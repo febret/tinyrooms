@@ -8,8 +8,8 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 2
-WORLD_SCHEMA_VERSION = 5
+PROFILE_SCHEMA_VERSION = 3
+WORLD_SCHEMA_VERSION = 6
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -70,18 +70,32 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     last_visit_at TEXT NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
-PRAGMA user_version = 2;
+CREATE TABLE IF NOT EXISTS reward_ledger (
+    ledger_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    world_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (ledger_key, account_id),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id);
+CREATE TABLE IF NOT EXISTS pack_purchases (
+    operation_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    pack_id TEXT NOT NULL,
+    results_json TEXT NOT NULL CHECK (json_valid(results_json)),
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
+PRAGMA user_version = 3;
 COMMIT;
 """
 
 _WORLD_SCHEMA_SQL = """
 BEGIN;
-CREATE TABLE IF NOT EXISTS rooms (
-    room_id TEXT PRIMARY KEY,
-    seq INTEGER NOT NULL DEFAULT 0 CHECK (seq >= 0),
-    revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
-    chat_history_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(chat_history_json))
-);
 CREATE TABLE IF NOT EXISTS room_cards (
     stack_id TEXT PRIMARY KEY,
     room_id TEXT NOT NULL,
@@ -91,30 +105,70 @@ CREATE TABLE IF NOT EXISTS room_cards (
     scope TEXT NOT NULL DEFAULT 'room',
     pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+    updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id);
-CREATE TABLE IF NOT EXISTS prop_states (
-    room_id TEXT NOT NULL,
-    prop_instance_id TEXT NOT NULL,
-    state_json TEXT NOT NULL CHECK (json_valid(state_json)),
-    PRIMARY KEY (room_id, prop_instance_id),
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS room_owners (
+CREATE TABLE IF NOT EXISTS room_states (
     room_id TEXT PRIMARY KEY,
-    owner_account_id TEXT NOT NULL,
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+    initialized INTEGER NOT NULL DEFAULT 0 CHECK (initialized IN (0, 1)),
+    owner_account_id TEXT,
+    props_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(props_json))
 );
-PRAGMA user_version = 5;
+PRAGMA user_version = 6;
 COMMIT;
 """
 
-_PROFILE_TABLES = frozenset({"accounts", "sessions", "profile_card_stacks", "user_profiles"})
+_PROFILE_TABLES = frozenset(
+    {"accounts", "sessions", "profile_card_stacks", "user_profiles", "reward_ledger", "pack_purchases"}
+)
 
-_WORLD_TABLES = frozenset({"rooms", "room_cards", "prop_states", "room_owners"})
+_WORLD_TABLES = frozenset({"room_cards", "room_states"})
+
+_PROFILE_MIGRATIONS: dict[int, str] = {
+    3: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS reward_ledger (
+        ledger_key TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (ledger_key, account_id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id);
+    CREATE TABLE IF NOT EXISTS pack_purchases (
+        operation_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        pack_id TEXT NOT NULL,
+        results_json TEXT NOT NULL CHECK (json_valid(results_json)),
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
+    PRAGMA user_version = 3;
+    COMMIT;
+    """,
+}
+
+_REWARD_LEDGER_COLUMNS = (
+    "ledger_key",
+    "account_id",
+    "world_id",
+    "kind",
+    "payload_json",
+    "created_at",
+)
+
+_PACK_PURCHASES_COLUMNS = (
+    "operation_id",
+    "account_id",
+    "pack_id",
+    "results_json",
+    "created_at",
+)
 
 _ACCOUNTS_COLUMNS = (
     "id",
@@ -171,22 +225,11 @@ _USER_PROFILES_COLUMNS = (
     "last_visit_at",
 )
 
-_ROOMS_COLUMNS = (
+_ROOM_STATES_COLUMNS = (
     "room_id",
-    "seq",
-    "revision",
-    "chat_history_json",
-)
-
-_PROP_STATES_COLUMNS = (
-    "room_id",
-    "prop_instance_id",
-    "state_json",
-)
-
-_ROOM_OWNERS_COLUMNS = (
-    "room_id",
+    "initialized",
     "owner_account_id",
+    "props_json",
 )
 
 _ROOM_CARDS_COLUMNS = (
@@ -232,8 +275,14 @@ def _ensure_database(
     expected_tables: frozenset[str],
     column_specs: dict[str, tuple[str, ...]] | None = None,
     extra_indexes: tuple[str, ...] = (),
+    migrations: dict[int, str] | None = None,
 ) -> None:
-    """Create *path* when empty, else fail unless its schema matches exactly."""
+    """Create *path* when empty, migrate forward, or fail on an unknown version.
+
+    Existing databases at a supported older version are upgraded in place with
+    additive migrations so accounts and world state survive Milestone upgrades.
+    Databases newer than this build are rejected rather than downgraded.
+    """
 
     connection = _connect(path)
     try:
@@ -241,20 +290,30 @@ def _ensure_database(
         if version == 0:
             connection.executescript(schema_sql)
             return
-        if version != expected_version:
+        if version > expected_version:
             raise RuntimeError(
                 f"{error_label} database at {path} has schema version {version}, "
-                f"expected {expected_version}. This server does not migrate databases: "
-                "delete the file to recreate it (all data will be lost) "
-                "or restore a compatible backup."
+                f"newer than this build supports ({expected_version}). "
+                "Restore a matching backup or start this build against a fresh database."
             )
+        steps = migrations or {}
+        while version < expected_version:
+            next_version = version + 1
+            script = steps.get(next_version)
+            if script is None:
+                raise RuntimeError(
+                    f"{error_label} database at {path} has schema version {version} but no "
+                    f"migration to {next_version} is available. Restore a compatible backup "
+                    "or start this build against a fresh database."
+                )
+            connection.executescript(script)
+            version = _user_version(connection)
         missing = sorted(expected_tables - _table_names(connection))
         if missing:
             raise RuntimeError(
                 f"{error_label} database at {path} is incompatible: "
-                f"missing tables {missing}. This server does not migrate databases: "
-                "delete the file to recreate it (all data will be lost) "
-                "or restore a compatible backup."
+                f"missing tables {missing}. Restore a compatible backup or start this "
+                "build against a fresh database."
             )
         for table, expected_columns in (column_specs or {}).items():
             actual = _column_names(connection, table)
@@ -262,8 +321,7 @@ def _ensure_database(
                 raise RuntimeError(
                     f"{error_label} database at {path} is incompatible: "
                     f'table "{table}" has columns {actual}, expected {list(expected_columns)}. '
-                    "This server does not migrate databases: delete the file to "
-                    "recreate it (all data will be lost) or restore a compatible backup."
+                    "Restore a compatible backup or start this build against a fresh database."
                 )
         for index_sql in extra_indexes:
             connection.execute(index_sql)
@@ -285,12 +343,17 @@ def ensure_profile_database(path: Path) -> None:
             "sessions": _SESSIONS_COLUMNS,
             "profile_card_stacks": _PROFILE_CARDS_COLUMNS,
             "user_profiles": _USER_PROFILES_COLUMNS,
+            "reward_ledger": _REWARD_LEDGER_COLUMNS,
+            "pack_purchases": _PACK_PURCHASES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",
+            "CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id)",
+            "CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id)",
         ),
+        migrations=_PROFILE_MIGRATIONS,
     )
 
 
@@ -304,10 +367,8 @@ def ensure_world_database(path: Path) -> None:
         schema_sql=_WORLD_SCHEMA_SQL,
         expected_tables=_WORLD_TABLES,
         column_specs={
-            "rooms": _ROOMS_COLUMNS,
             "room_cards": _ROOM_CARDS_COLUMNS,
-            "prop_states": _PROP_STATES_COLUMNS,
-            "room_owners": _ROOM_OWNERS_COLUMNS,
+            "room_states": _ROOM_STATES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",

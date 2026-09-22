@@ -28,7 +28,7 @@ class CardDefinition:
     passive: bool
     decorative: bool
     bonuses: dict[str, int]
-    energy_cost: int
+    energy_cost: int | None
     target: str | None
     effect: str | None
     amount: int | None
@@ -123,7 +123,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             passive=bool(raw_card.get("passive", False)),
             decorative=bool(raw_card.get("decorative", False)),
             bonuses=bonuses,
-            energy_cost=int(raw_card.get("energy_cost", 0)),
+            energy_cost=int(raw_card["energy_cost"]) if "energy_cost" in raw_card else None,
             target=str(raw_card["target"]) if "target" in raw_card else None,
             effect=str(raw_card["effect"]) if "effect" in raw_card else None,
             amount=int(raw_card["amount"]) if "amount" in raw_card else None,

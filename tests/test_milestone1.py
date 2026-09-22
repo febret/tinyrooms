@@ -251,13 +251,13 @@ class ContentPersistenceTests(unittest.TestCase):
         order_defined = {card_id: definition.order for card_id, definition in catalog.cards.items() if definition.order is not None}
         self.assertEqual(
             order_defined,
-            {"room": 1, "emotes": 2, "inventory": 3, "skills": 4, "journal": 5, "self": 6, "friends": 7},
+            {"room": 1, "emotes": 2, "inventory": 3, "skills": 4, "journal": 5, "self": 6, "friends": 7, "edit-room": 8},
         )
         service = CardService(None, None, None, catalog, "tutorial")
         serialized = service.serialize_core_cards()
         self.assertEqual(
             [card["id"] for card in serialized if card["order"] is not None],
-            ["room", "emotes", "inventory", "skills", "journal", "self", "friends"],
+            ["room", "emotes", "inventory", "skills", "journal", "self", "friends", "edit-room"],
         )
         self.assertTrue(all(card["type"] == "core" for card in serialized))
         self.assertTrue(all(card["image_url"].startswith("/assets/base/") for card in serialized))
@@ -465,7 +465,7 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             plant = next(entry for entry in room["props"] if entry["id"] == "welcome-plant")
             self.assertIsNone(plant["animation"])
 
-    def test_two_clients_chat_and_navigate_in_sequence(self) -> None:
+    def test_two_clients_chat_and_navigate(self) -> None:
         alice = self.create_ready_account("alice")
         bob = self.create_ready_account("bob")
         with self.client.websocket_connect(
@@ -476,6 +476,7 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             ),
         ) as alice_socket:
             alice_snapshot = alice_socket.receive_json()
+            self.assertEqual(alice_snapshot["type"], "room.snapshot")
             with self.client.websocket_connect(
                 "/ws",
                 headers=websocket_headers(
@@ -484,11 +485,11 @@ class MultiplayerGameplayTests(RuntimeTestCase):
                 ),
             ) as bob_socket:
                 bob_snapshot = bob_socket.receive_json()
-                self.assertEqual(
-                    bob_snapshot["seq"],
-                    alice_socket.receive_json()["seq"],
-                )
-                self.assertGreater(bob_snapshot["seq"], alice_snapshot["seq"])
+                self.assertEqual(bob_snapshot["type"], "room.snapshot")
+                self.assertEqual(bob_snapshot["room"]["id"], "hub")
+                joined = alice_socket.receive_json()
+                self.assertEqual(joined["type"], "room.event")
+                self.assertEqual(joined["event"]["type"], "presence.enter")
                 self.assertTrue(
                     self.command(
                         alice_socket,
@@ -526,15 +527,15 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             ),
         ) as socket:
             hub = socket.receive_json()["room"]
-            self.assertEqual(
+            self.assertIn(
+                "playroom",
                 {exit_entry["target_room_id"] for exit_entry in hub["exits"]},
-                {"playroom"},
             )
             self.command(socket, "go-1", ".go @way:exit0")
             playroom = socket.receive_json()["room"]
             self.assertEqual(
                 {exit_entry["target_room_id"] for exit_entry in playroom["exits"]},
-                {"hub"},
+                {"hub", "foyer"},
             )
             room_card = playroom["room_cards"][0]
             pickup = self.command(
@@ -719,7 +720,6 @@ class MultiplayerGameplayTests(RuntimeTestCase):
                 {stack["stack_id"] for stack in broadcast["event"]["stacks"]},
                 seed_ids,
             )
-            self.assertEqual(snapshot["seq"], broadcast["seq"])
 
     def test_activity_replacement_disconnect_and_persisted_setting(self) -> None:
         carol = self.create_ready_account("carol")

@@ -100,6 +100,20 @@ function normalizeProp(prop) {
   };
 }
 
+function normalizeCounters(counters) {
+  if (!counters || typeof counters !== "object") return null;
+  return {
+    health: Number(counters.health || 0),
+    energy: Number(counters.energy || 0),
+    cleanliness: Number(counters.cleanliness || 0),
+    maxHealth: Number(counters.max_health || 0),
+    maxEnergy: Number(counters.max_energy || 0),
+    maxCleanliness: Number(counters.max_cleanliness || 0),
+    stats: counters.stats && typeof counters.stats === "object" ? { ...counters.stats } : {},
+    statuses: Array.isArray(counters.statuses) ? [...counters.statuses] : [],
+  };
+}
+
 function normalizeActor(entity, { kind, labelSource }) {
   return {
     id: String(entity?.id || ""),
@@ -109,6 +123,9 @@ function normalizeActor(entity, { kind, labelSource }) {
     description: String(entity?.description || ""),
     stickerUrl: assetOrEmpty(entity?.sticker_url || entity?.image_url),
     quickActions: normalizeQuickActions(entity?.quick_actions),
+    statuses: Array.isArray(entity?.statuses) ? [...entity.statuses] : [],
+    counters: normalizeCounters(entity?.counters),
+    pinned: Boolean(entity?.pinned),
     bubble: null,
     bubbleDismissed: false,
   };
@@ -174,9 +191,38 @@ function normalizeUser(user) {
     activity: normalizeActivity(user.activity),
     showActivityLog: Boolean(user.show_activity_log),
     level: Number(user.level || 0),
+    levelLabel: String(user.level_label || ""),
     kudos: Number(user.kudos || 0),
+    kudosToNext: typeof user.kudos_to_next === "number" ? user.kudos_to_next : null,
+    maxEquipped: Number(user.max_equipped || 5),
     bops: Number(user.bops || 0),
     sharedEnergy: Number(user.shared_energy || 0),
+    counters: normalizeCounters(user.counters) || { health: 0, energy: 0, cleanliness: 0, maxHealth: 0, maxEnergy: 0, maxCleanliness: 0, stats: {}, statuses: [] },
+    stats: user.stats && typeof user.stats === "object" ? { ...user.stats } : {},
+    statuses: Array.isArray(user.statuses) ? [...user.statuses] : [],
+    statusDefinitions: user.status_definitions && typeof user.status_definitions === "object" ? { ...user.status_definitions } : {},
+    skills: Array.isArray(user.skills) ? user.skills.map(slot => ({
+      index: Number(slot.index || 0),
+      rank: String(slot.rank || ""),
+      unlocked: Boolean(slot.unlocked),
+      stackId: slot.stack_id ? String(slot.stack_id) : null,
+    })) : [],
+    pinnedPeeps: Array.isArray(user.pinned_peeps) ? [...user.pinned_peeps] : [],
+    friends: user.friends && typeof user.friends === "object"
+      ? {
+          friends: Array.isArray(user.friends.friends) ? [...user.friends.friends] : [],
+          incoming: Array.isArray(user.friends.incoming) ? [...user.friends.incoming] : [],
+          outgoing: Array.isArray(user.friends.outgoing) ? [...user.friends.outgoing] : [],
+        }
+      : { friends: [], incoming: [], outgoing: [] },
+    packs: Array.isArray(user.packs) ? user.packs.map(pack => ({
+      id: String(pack.id || ""),
+      label: String(pack.label || ""),
+      description: String(pack.description || ""),
+      price: Number(pack.price || 0),
+      size: Number(pack.size || 0),
+      backImageUrl: assetOrEmpty(pack.back_image_url),
+    })) : [],
     worldId: String(user.world_id || ""),
     rememberedRoom: String(user.remembered_room || ""),
     canEnterWorld: user.can_enter_world !== false,
@@ -206,7 +252,6 @@ function normalizeRoom(room) {
     inventory: Array.isArray(room.inventory) ? room.inventory.map(normalizeInventoryStack) : [],
     favorites: Array.isArray(room.favorites) ? [...room.favorites] : [],
     quickActions: normalizeQuickActions(room.quick_actions),
-    seq: Number(room.seq || 0),
   };
 }
 
@@ -234,8 +279,86 @@ function asSystemHistory(text) {
   return { id: crypto.randomUUID(), kind: "system", speaker: "", speakerId: "", style: "normal", text };
 }
 
+function updatePeepCounters(peeps, targetId, event) {
+  return peeps.map(peep => {
+    if (peep.id !== targetId) return peep;
+    const counters = {
+      ...(peep.counters || {}),
+      health: Number(event.health ?? peep.counters?.health ?? 0),
+      energy: Number(event.energy ?? peep.counters?.energy ?? 0),
+      maxHealth: Number(event.max_health ?? peep.counters?.maxHealth ?? 0),
+      maxEnergy: Number(event.max_energy ?? peep.counters?.maxEnergy ?? 0),
+      statuses: Array.isArray(event.statuses) ? [...event.statuses] : (peep.counters?.statuses || []),
+    };
+    return {
+      ...peep,
+      counters,
+      statuses: Array.isArray(event.statuses) ? [...event.statuses] : peep.statuses,
+    };
+  });
+}
+
+function pushFloating(state, entry) {
+  return { ...state.ui, floatingNumbers: [...state.ui.floatingNumbers, entry].slice(-8) };
+}
+
+function appendLog(state, text) {
+  return { ...state.ui, actionLog: [...state.ui.actionLog, { id: crypto.randomUUID(), text }].slice(-40) };
+}
+
 function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
+  if (event.type === "counter.updated") {
+    const targetId = String(event.target_id || "");
+    const amount = Number(event.health_delta || 0) || Number(event.energy_delta || 0);
+    const kind = Number(event.health_delta || 0) ? "health" : "energy";
+    const entry = {
+      id: crypto.randomUUID(),
+      targetId,
+      label: String(event.target_label || ""),
+      amount,
+      kind,
+    };
+    const withCounters = {
+      ...state,
+      room: {
+        ...state.room,
+        occupants: updatePeepCounters(state.room.occupants, targetId, event),
+        npcs: updatePeepCounters(state.room.npcs, targetId, event),
+      },
+      ui: pushFloating(state, entry),
+    };
+    return { ...withCounters, ui: appendLog(withCounters, `${event.target_label} ${amount >= 0 ? "+" : ""}${amount} ${kind}`) };
+  }
+  if (event.type === "emote.bubble") {
+    const bubble = event.bubble || {};
+    const updatedOccupants = applyBubble(state.room.occupants, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"));
+    const updatedNpcs = applyBubble(state.room.npcs, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"));
+    return {
+      ...state,
+      room: { ...state.room, occupants: updatedOccupants, npcs: updatedNpcs },
+      ui: appendLog(state, `${event.source} used ${bubble.text || "an emote"}.`),
+    };
+  }
+  if (event.type === "effect.queued") {
+    return {
+      ...state,
+      ui: {
+        ...state.ui,
+        effects: [...state.ui.effects, {
+          id: crypto.randomUUID(),
+          effect: String(event.effect || ""),
+          source: String(event.source || ""),
+        }].slice(-6),
+      },
+    };
+  }
+  if (event.type === "toast") {
+    return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(event.text, event.tone || "info")] } };
+  }
+  if (event.type === "action.log") {
+    return { ...state, ui: appendLog(state, String(event.text || "")) };
+  }
   if (event.type === "chat.message") {
     const updatedOccupants = applyBubble(state.room.occupants, String(event.speaker_id || ""), event.speaker, String(event.text || ""), String(event.style || "normal"));
     const updatedNpcs = applyBubble(state.room.npcs, String(event.speaker_id || ""), event.speaker, String(event.text || ""), String(event.style || "normal"));
@@ -339,6 +462,49 @@ function applyServerEvent(state, event) {
 function mergeResultPayload(state, payload) {
   if (!payload) return state;
   let next = state;
+  if (payload.user) {
+    const user = normalizeUser(payload.user);
+    next = { ...next, user, ui: { ...next.ui, actionLogVisible: Boolean(user?.showActivityLog) || next.ui.actionLogVisible } };
+  }
+  if (payload.counters) {
+    const counters = normalizeCounters(payload.counters);
+    if (counters && next.user) {
+      next = {
+        ...next,
+        user: {
+          ...next.user,
+          counters,
+          stats: counters.stats,
+          statuses: counters.statuses,
+          sharedEnergy: counters.energy,
+        },
+      };
+    }
+  }
+  if (Array.isArray(payload.pinned_peeps)) {
+    next = { ...next, user: next.user ? { ...next.user, pinnedPeeps: [...payload.pinned_peeps] } : next.user };
+  }
+  if (Array.isArray(payload.packs)) {
+    next = {
+      ...next,
+      user: next.user
+        ? {
+            ...next.user,
+            packs: payload.packs.map(pack => ({
+              id: String(pack.id || ""),
+              label: String(pack.label || ""),
+              description: String(pack.description || ""),
+              price: Number(pack.price || 0),
+              size: Number(pack.size || 0),
+              backImageUrl: assetOrEmpty(pack.back_image_url),
+            })),
+          }
+        : next.user,
+    };
+  }
+  if (payload.purchase) {
+    next = { ...next, lastReveal: payload.purchase };
+  }
   if (Array.isArray(payload.commands)) {
     next = {
       ...next,
@@ -420,9 +586,10 @@ function createInitialState() {
     activities: [],
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, details: null, commandPalette: false, coreExpanded: false },
-    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [] },
+    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], actionLog: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, targeting: null },
     commandCatalog: [],
     describedEntity: null,
+    lastReveal: null,
   };
 }
 
@@ -462,13 +629,20 @@ function reduce(state, action) {
   if (action.type === "transport") return { ...state, transport: { ...state.transport, ...action.transport } };
   if (action.type === "stickers") return { ...state, stickers: Array.isArray(action.stickers) ? [...action.stickers] : [] };
   if (action.type === "select") return { ...state, selection: action.selection };
-  if (action.type === "open-view") return { ...state, selection: { kind: "core", id: action.view }, views: { ...state.views, main: action.view, details: null } };
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null } };
+  if (action.type === "open-view") return { ...state, selection: { kind: "core", id: action.view }, views: { ...state.views, main: action.view, details: null }, ui: { ...state.ui, targeting: null } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
+  if (action.type === "emote-category") return { ...state, ui: { ...state.ui, emoteCategory: action.category } };
+  if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab } };
+  if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
+  if (action.type === "start-targeting") return { ...state, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: { stackId: action.stackId, label: action.label } } };
+  if (action.type === "cancel-targeting") return { ...state, ui: { ...state.ui, targeting: null } };
   if (action.type === "toggle-core") return { ...state, views: { ...state.views, coreExpanded: !state.views.coreExpanded } };
   if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
   if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
   if (action.type === "dismiss-toast") return { ...state, ui: { ...state.ui, toasts: state.ui.toasts.filter(toast => toast.id !== action.id) } };
+  if (action.type === "consume-effect") return { ...state, ui: { ...state.ui, effects: state.ui.effects.filter(effect => effect.id !== action.id) } };
+  if (action.type === "consume-floating") return { ...state, ui: { ...state.ui, floatingNumbers: state.ui.floatingNumbers.filter(number => number.id !== action.id) } };
   if (action.type === "toast") return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(action.message, action.tone)] } };
   if (action.type === "toggle-log") return { ...state, ui: { ...state.ui, actionLogVisible: !state.ui.actionLogVisible } };
   if (action.type === "toggle-sound") return { ...state, ui: { ...state.ui, soundEnabled: !state.ui.soundEnabled } };
@@ -495,6 +669,7 @@ function reduce(state, action) {
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, details: null },
+      ui: sameRoom ? state.ui : { ...state.ui, targeting: null },
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory, favorites: room?.favorites || state.user.favorites } : state.user,
     };
     return dismissInvalidSelection(next);

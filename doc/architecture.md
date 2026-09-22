@@ -48,8 +48,8 @@ Key design decisions:
   counter; old socket gets `session.replaced`).
 - Mandatory initial Sticker Designer activity gates world entry
   (`initial_sticker_complete`, WS close `4403` until confirmed).
-- Sequenced room broadcasts: per-room monotonic `seq` in SQLite; clients
-  track `currentRoomSeq` and re-request a snapshot on gap.
+- In-process room ordering: one server process owns a world, so room
+  operations are serialized by the event loop; no per-room sequence counter.
 - Feature flags via `TRSERVER_FEATURES` (currently `dev_sample_activity`).
 - Milestone 1 playable rooms are `hub` + `playroom`; other tutorial rooms
   load/validate as content but `.go` there is rejected.
@@ -57,7 +57,8 @@ Key design decisions:
 Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 (required), `HOST` (`127.0.0.1`), `PORT` (`5000`), `USERS_PATH` (`users`),
 `WORLD_PATH` (`worlds/tutorial`), `WORLDSTATE_PATH`
-(`.local/worldstate.sqlite3`), `FEATURES`, `TIMEZONE` (`UTC`).
+(`.local/worldstate.sqlite3`), `FEATURES`, `PACK_SEED` (optional; seeds
+card-pack draws, unset uses system randomness), `TIMEZONE` (`UTC`).
 
 ## 2. Component guide
 
@@ -75,7 +76,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop, core favorites. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
-| Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room state (seq, chat, room cards). |
+| Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
 | Browser UI | `app/` | Shell (`index.html`), styles, 14 JS modules, vendored Three.js. |
 | Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
 | Shared data | `data/` | Core tuning YAML, base card set + art, sticker choices. |
@@ -131,29 +132,28 @@ re-auth on generation mismatch (one gameplay session per account).
 | `type` | Fields |
 | --- | --- |
 | `command` | `{v:1, type:"command", request_id: str (non-empty, ≤80), command: str (non-empty, ≤1024)}` — raw command string, e.g. `.go @way:exit0`. One private `result` per `request_id` (`Date.now()-rand` on the client). |
-| `snapshot.request` | `{v:1, type:"snapshot.request"}` — sent by client on seq gap. |
+| `snapshot.request` | `{v:1, type:"snapshot.request"}` — sent by client on reconnect/presence change or manual refresh. |
 
 ### 4.2 Server → client
 
 | `type` | Fields |
 | --- | --- |
-| `room.snapshot` | `{v:1, type:"room.snapshot", seq: int, room: {...}}` — full state, replaces render. |
-| `room.event` | `{v:1, type:"room.event", seq: int, event: {...}}` — incremental broadcast. |
+| `room.snapshot` | `{v:1, type:"room.snapshot", room: {...}}` — full state, replaces render. |
+| `room.event` | `{v:1, type:"room.event", event: {...}}` — incremental broadcast. |
 | `result` | `{v:1, type:"result", request_id, ok: bool, events: [...private], code?, message?, payload?}` — per-command ack. |
 | `session.replaced` | `{v:1, type:"session.replaced", message}` — forced sign-out. |
 | `error` | `{v:1, type:"error", code, message}` — protocol-level, no disconnect. |
 
-### 4.3 Sequencing / ack
+### 4.3 Ordering / ack
 
 - Strict envelope `v==1`, else `protocol_error`.
-- Room-scoped monotonic `seq` (`advance_room_seq` per room, SQLite txn).
-  Join: advance → private snapshot → broadcast `presence.enter` to others.
-  `.go`: two seqs (source + dest), private dest snapshot + `presence.leave`
-  (old) + `presence.enter` (new). Chat/pickup/drop: one seq + broadcast.
-- Client tracks `currentRoomSeq`; on `room.event` with
-  `seq != current+1` it adopts the incoming seq, sends
-  `snapshot.request`, and drops the event; server replies with a fresh
-  snapshot.
+- Room broadcasts are ordered in-process (no sequence counter). Join: private
+  `room.snapshot` → broadcast `presence.enter` to others. `.go`: private dest
+  snapshot + `presence.leave` (old) + `presence.enter` (new). Chat/pickup/drop:
+  one broadcast.
+- The client sends `snapshot.request` when it needs a fresh snapshot (on
+  reconnect, after a presence change, or on manual refresh); the server replies
+  with a full `room.snapshot`.
 - Ack: `pending: Map<request_id → {resolve, reject}>`; `result.ok`
   resolves, else rejects. Malformed JSON/version/type → `error` envelope,
   connection stays open. Send path: `asyncio.Queue(128)`; full raises.
@@ -180,7 +180,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.help` | `.help` | Private `payload.commands:[{name, summary}]` (12 commands). |
 | `.look` / `.inspect` | `.look @card:<stack>` | Private `payload.entity`. No state change. |
 | `.go` | `.go @way:exit0` | Exit/lock/card + Milestone-1 room checks; updates `remembered_room`, moves WS room, closes room-bound activity; private dest snapshot + 2 broadcasts. |
-| `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; persists to bounded history; broadcasts `chat.message`. Empty / >280 chars rejected. |
+| `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; appends to in-memory bounded history (lost on restart); broadcasts `chat.message`. Empty / >280 chars rejected. |
 | `.pickup` | `.pickup @card:<stack> 2` | Atomic room→inventory txn; private `payload.inventory`; broadcasts `room.card.updated/removed`. Pinned rejected; concurrent same-stack is single-winner. |
 | `.drop` | `.drop @card:<stack> 1 62 71 0` | Atomic inventory→room txn; optional trailing `x y z` floor coordinates (percent x/y, elevation z; clamped, defaults `50 50 0`); broadcasts `room.card.added`. |
 | `.favorite` | `.favorite @card:journal` | Core-card-only toggle; `payload.favorites`. |
@@ -228,17 +228,17 @@ labels, `Look around`); the client never invents them.
 ### 6.3 Room enter / travel / presence
 
 1. WS connect → `current_room_for_account` (`remembered_room` if still in
-   world, else `hub`) → `set_room` → private `room.snapshot(seq)` →
+   world, else `hub`) → `set_room` → private `room.snapshot` →
    broadcast `presence.enter` to others.
 2. Tutorial edges: `hub --exit0--> playroom`,
    `playroom --hub--> hub` (plus non-Milestone `playroom→foyer`, filtered).
 3. `.go @way:exit0`: mover gets the dest snapshot; old room sees
    `presence.leave{…, destination_room_id}`; new room sees
    `presence.enter{…, source_room_id}`; room-bound activities auto-close
-   (`reason:room_changed`). Two clients observe join/leave/chat in seq
-   order.
-4. Restart/resume: `remembered_room` + inventory persist (e.g. picking up
-   `fancy-wallet` in playroom survives a server restart).
+   (`reason:room_changed`). Two clients observe join/leave/chat in order.
+4. Restart/resume: `remembered_room`, inventory, and room cards persist (e.g.
+   picking up `fancy-wallet` in playroom survives a server restart); room chat
+   history does not.
 
 ### 6.4 Chat
 

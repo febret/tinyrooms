@@ -17,13 +17,12 @@ class CardMutationResult:
 
     inventory: list[dict[str, object]]
     room_event: dict[str, object]
-    room_seq: int
 
 
 def should_auto_equip(definition: CardDefinition) -> bool:
     """Return whether a picked-up card should occupy an equipped slot."""
 
-    return definition.type not in {"emote", "core"}
+    return definition.type not in {"emote", "core", "skill"}
 
 
 class CardService:
@@ -157,7 +156,7 @@ class CardService:
         """Move cards from a room stack into inventory atomically."""
 
         with self._hub.transaction() as connection:
-            stack, deleted, seq = self._world_state.take_room_card(
+            stack, deleted = self._world_state.take_room_card(
                 connection,
                 room_id=room_id,
                 stack_id=stack_id,
@@ -205,7 +204,6 @@ class CardService:
         return CardMutationResult(
             inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
             room_event=event,
-            room_seq=seq,
         )
 
     def drop(
@@ -226,7 +224,7 @@ class CardService:
                 stack_id=stack_id,
                 quantity=quantity,
             )
-            room_stack, seq = self._world_state.add_room_card(
+            room_stack = self._world_state.add_room_card(
                 connection,
                 room_id=room_id,
                 card_def_id=inventory_stack.card_def_id,
@@ -243,7 +241,6 @@ class CardService:
         return CardMutationResult(
             inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
             room_event=event,
-            room_seq=seq,
         )
 
     def toggle_favorite(self, account: AccountRecord, card_id: str) -> dict[str, object]:

@@ -59,6 +59,18 @@ export async function openCore(page, id) {
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
+// Click across the floor until a prop (not the room) is selected; returns whether one was found.
+export async function selectFirstProp(page) {
+  const box = await page.locator("#board-canvas").boundingBox();
+  for (let fy = 0.05; fy <= 0.95; fy += 0.06) {
+    for (let fx = 0.05; fx <= 0.95; fx += 0.06) {
+      await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+      if (await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).count()) return true;
+    }
+  }
+  return false;
+}
+
 export async function travel(page, exit = "exit0", label = "The Playroom") {
   await command(page, `.go @way:${exit}`);
   await expect(page.locator("#look-bar")).toContainText(label);
@@ -74,6 +86,10 @@ export async function bootstrap(page) {
 export async function settleArtwork(page, { allowToasts = false } = {}) {
   if (await page.locator("#peeps-panel .self").count()) {
     await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+  }
+  const pendingModels = page.locator("canvas[data-prop-model]:not([data-model-ready='true']):not([data-model-error='true'])");
+  if (await pendingModels.count()) {
+    await expect(pendingModels).toHaveCount(0, { timeout: 20_000 });
   }
   for (const frame of page.frames()) {
     await frame.evaluate(async () => {

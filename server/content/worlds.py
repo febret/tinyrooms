@@ -42,6 +42,7 @@ class PropDefinition:
     model_path: Path
     decorative: bool
     animation: str | None
+    scale: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +181,10 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
         model_path = (props_file.parent / model_name).resolve()
         if not model_path.is_file():
             raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
+        raw_scale = raw_prop.get("scale", 1.0)
+        if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
+            raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
+        scale = float(raw_scale)
         props[prop_id] = PropDefinition(
             id=prop_id,
             label=str(raw_prop.get("label", "")).strip(),
@@ -188,6 +193,7 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
             model_path=model_path,
             decorative=bool(raw_prop.get("decorative", False)),
             animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
+            scale=scale,
         )
 
     rooms: dict[str, RoomDefinition] = {}
