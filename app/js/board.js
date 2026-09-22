@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { boardPosition, boardSignature, disposeBoardTree, fitBoardCamera } from "./board-helpers.js";
+import { boardImageRepeat, boardPosition, boardSignature, disposeBoardTree, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
@@ -34,7 +34,7 @@ function makeFloor(root, board) {
   box(root, [12.5, 0.12, 10.5], [0, -0.08, 0], material("#a76e38"));
   box(root, [12.12, 0.07, 10.12], [0, -0.005, 0], material("#bca076"));
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(12.05, 10.05),
+    new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_HEIGHT),
     material(board.palette?.[0] || "#d4be94"),
   );
   floor.rotation.x = -Math.PI / 2;
@@ -42,6 +42,16 @@ function makeFloor(root, board) {
   floor.receiveShadow = true;
   root.add(floor);
   return floor;
+}
+
+/** Apply the room's board image style by wrapping and repeating the floor texture. */
+function applyFloorImageStyle(map, style) {
+  const repeat = boardImageRepeat(style, map.image?.width, map.image?.height);
+  if (!repeat) return;
+  map.wrapS = repeat.wrapWidth ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+  map.wrapT = repeat.wrapHeight ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+  map.repeat.set(repeat.repeatX, repeat.repeatY);
+  map.needsUpdate = true;
 }
 
 function unavailableMarker(parent) {
@@ -417,6 +427,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
     const board = room.board || {};
     const floor = makeFloor(entry.root, board);
     texture(entry, board.imageUrl, "floor artwork", map => {
+      applyFloorImageStyle(map, board.imageStyle);
       floor.material.map = map;
       floor.material.color.set("#ffffff");
       floor.material.needsUpdate = true;

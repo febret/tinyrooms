@@ -9,6 +9,9 @@ from typing import Any
 from server.content.common import ContentError, load_yaml_file, require_mapping
 
 
+BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
+
+
 @dataclass(frozen=True, slots=True)
 class QuickAction:
     """A server-provided quick action template."""
@@ -197,6 +200,12 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
         board_image_path = (rooms_file.parent / board_image_name).resolve()
         if not board_image_path.is_file():
             raise ContentError(f"Room '{room_id}' references missing board image '{board_image_name}'.")
+        board_image_style = str(raw_room.get("board_image_style", "stretch")).strip() or "stretch"
+        if board_image_style not in BOARD_IMAGE_STYLES:
+            raise ContentError(
+                f"Room '{room_id}' has unknown board_image_style '{board_image_style}'. "
+                f"Expected one of {', '.join(sorted(BOARD_IMAGE_STYLES))}."
+            )
         raw_props = raw_room.get("props", {}) or {}
         if not isinstance(raw_props, dict):
             raise ContentError(f"Room '{room_id}' props must be a mapping.")
@@ -270,7 +279,7 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
             board_type=str(raw_room.get("board_type", "basic")).strip(),
             board_image_name=board_image_name,
             board_image_path=board_image_path,
-            board_image_style=str(raw_room.get("board_image_style", "stretch")).strip(),
+            board_image_style=board_image_style,
             palette=tuple(str(value) for value in raw_room.get("palette", []) or []),
             dark=bool(raw_room.get("dark", False)),
             props=room_props,

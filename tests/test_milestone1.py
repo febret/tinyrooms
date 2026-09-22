@@ -229,6 +229,23 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertIsNone(world.props["plant"].animation)
         self.assertIsNone(world.rooms["hub"].props["welcome-plant"].animation)
 
+    def test_board_image_style_loader_validation(self) -> None:
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
+        world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
+        self.assertEqual(world.rooms["hub"].board_image_style, "stretch")
+        self.assertEqual(world.rooms["playroom"].board_image_style, "tile")
+        with TemporaryDirectory() as temporary_directory:
+            target = Path(temporary_directory) / "tutorial"
+            shutil.copytree(REPO_ROOT / "worlds" / "tutorial", target)
+            rooms_file = target / "rooms" / "rooms.yaml"
+            text = rooms_file.read_text(encoding="utf-8")
+            rooms_file.write_text(
+                text.replace("board_image_style: tile", "board_image_style: bogus", 1),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ContentError):
+                load_world_definition(target, set(catalog.cards))
+
     def test_core_card_order_is_loaded_and_sorted(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
         order_defined = {card_id: definition.order for card_id, definition in catalog.cards.items() if definition.order is not None}

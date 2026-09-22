@@ -1,5 +1,33 @@
 import * as THREE from "three";
 
+export const FLOOR_WIDTH = 12.05;
+export const FLOOR_HEIGHT = 10.05;
+
+const FLOOR_REFERENCE_PX = 768;
+const BOARD_IMAGE_AXES = new Map([
+  ["tile", [true, true]],
+  ["tile-w", [true, false]],
+  ["tile-h", [false, true]],
+]);
+
+/**
+ * Resolve texture wrapping and repeat for a board image style. Tiled axes repeat at the
+ * reference density of a 768px board image; `tile-w`/`tile-h` leave the other axis stretched.
+ */
+export function boardImageRepeat(style, imageWidth, imageHeight) {
+  const axes = BOARD_IMAGE_AXES.get(style);
+  const width = Number(imageWidth) || 0;
+  const height = Number(imageHeight) || 0;
+  if (!axes || !width || !height) return null;
+  const worldPerPixel = FLOOR_WIDTH / FLOOR_REFERENCE_PX;
+  return {
+    wrapWidth: axes[0],
+    wrapHeight: axes[1],
+    repeatX: axes[0] ? FLOOR_WIDTH / (width * worldPerPixel) : 1,
+    repeatY: axes[1] ? FLOOR_HEIGHT / (height * worldPerPixel) : 1,
+  };
+}
+
 /** Convert authoritative [horizontal %, depth %, elevation] into board-space XYZ. */
 export function boardPosition([x = 50, y = 50, z = 0] = []) {
   return [(x - 50) * 0.105, z * 0.1, (y - 50) * 0.085];
