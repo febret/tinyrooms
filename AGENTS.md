@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 1, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows. See [doc/architecture.md](doc/architecture.md) for the technical architecture (components, source-file inventory, protocol, game flows).
+Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 2, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows plus the gameplay systems (stats/counters, inventory, skills, friends, shop, and the reward ledger). See [doc/architecture.md](doc/architecture.md) for the technical architecture (components, source-file inventory, protocol, game flows).
 
 ## Tech Stack
 
@@ -59,7 +59,6 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_WORLD_PATH` | No | `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
 | `TRSERVER_FEATURES` | No | _(none)_ |
-| `TRSERVER_PACK_SEED` | No | _(unset)_ |
 | `TRSERVER_TIMEZONE` | No | `UTC` |
 
 ## Testing
@@ -110,7 +109,7 @@ Browser harness settings (from `playwright.config.js`):
 
 ## Writing New Tests
 
-1. **Python**: Add a module under `tests/` following the patterns in `test_milestone1.py`. Use `unittest.TestCase`; no external test framework.
+1. **Python**: Add a module under `tests/` using `unittest.TestCase`; no external test framework. Service tests should subclass `tests/common.py:ServiceTestCase` for an isolated profile/world database and shared content.
 2. **Client logic**: Port applicable modules from `app/js/` to `server/client/` and add matching tests under `tests/client/`, using `unittest.TestCase`. Name files `test_*.py`.
 3. **Browser functional**: Edit `tests/browser/flows.spec.js`. Tests should use semantic selectors or stable IDs rather than pixel coordinates. Each test owns a fresh server fixture via helpers in `fixtures.js`.
 4. **Visual screenshots**: Add to `tests/browser/screenshots.spec.js` when capturing rendered board/UI states matters. Baselines live in `tests/browser/baselines/`. Always review before committing.
@@ -118,7 +117,7 @@ Browser harness settings (from `playwright.config.js`):
 ## Key Design Decisions
 
 - **Authoritative server**: All world state lives in SQLite on the server. The client is a pure renderer + input dispatcher.
-- **Sequenced WebSocket commands**: Server assigns monotonically increasing versions; clients acknowledge by sequence number to catch drops/reorders.
+- **In-process room ordering**: A single server process owns a world, so room broadcasts are ordered by the event loop; there is no per-room sequence counter. Command results are matched to clients by `request_id`.
 - **Invitation-gated accounts**: `TRSERVER_NEW_ACCOUNT_PASSPHRASE` controls who can register. Changing it after accounts exist has no effect on existing users.
 - **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, etc.). Never ship enabled-by-default dev features to production.
 - **Hot-reload disabled in prod**: A separate production launch path (not yet implemented) would use a different certificate and disable self-signed cert generation.

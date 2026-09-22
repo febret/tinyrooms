@@ -100,6 +100,17 @@ function normalizeProp(prop) {
   };
 }
 
+function normalizePack(pack) {
+  return {
+    id: String(pack?.id || ""),
+    label: String(pack?.label || ""),
+    description: String(pack?.description || ""),
+    price: Number(pack?.price || 0),
+    size: Number(pack?.size || 0),
+    backImageUrl: assetOrEmpty(pack?.back_image_url),
+  };
+}
+
 function normalizeCounters(counters) {
   if (!counters || typeof counters !== "object") return null;
   return {
@@ -194,8 +205,8 @@ function normalizeUser(user) {
     levelLabel: String(user.level_label || ""),
     kudos: Number(user.kudos || 0),
     kudosToNext: typeof user.kudos_to_next === "number" ? user.kudos_to_next : null,
-    maxEquipped: Number(user.max_equipped || 5),
     bops: Number(user.bops || 0),
+    stickerSwapCost: Number(user.sticker_swap_cost || 0),
     sharedEnergy: Number(user.shared_energy || 0),
     counters: normalizeCounters(user.counters) || { health: 0, energy: 0, cleanliness: 0, maxHealth: 0, maxEnergy: 0, maxCleanliness: 0, stats: {}, statuses: [] },
     stats: user.stats && typeof user.stats === "object" ? { ...user.stats } : {},
@@ -215,14 +226,7 @@ function normalizeUser(user) {
           outgoing: Array.isArray(user.friends.outgoing) ? [...user.friends.outgoing] : [],
         }
       : { friends: [], incoming: [], outgoing: [] },
-    packs: Array.isArray(user.packs) ? user.packs.map(pack => ({
-      id: String(pack.id || ""),
-      label: String(pack.label || ""),
-      description: String(pack.description || ""),
-      price: Number(pack.price || 0),
-      size: Number(pack.size || 0),
-      backImageUrl: assetOrEmpty(pack.back_image_url),
-    })) : [],
+    packs: Array.isArray(user.packs) ? user.packs.map(normalizePack) : [],
     worldId: String(user.world_id || ""),
     rememberedRoom: String(user.remembered_room || ""),
     canEnterWorld: user.can_enter_world !== false,
@@ -302,10 +306,6 @@ function pushFloating(state, entry) {
   return { ...state.ui, floatingNumbers: [...state.ui.floatingNumbers, entry].slice(-8) };
 }
 
-function appendLog(state, text) {
-  return { ...state.ui, actionLog: [...state.ui.actionLog, { id: crypto.randomUUID(), text }].slice(-40) };
-}
-
 function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
   if (event.type === "counter.updated") {
@@ -328,7 +328,7 @@ function applyServerEvent(state, event) {
       },
       ui: pushFloating(state, entry),
     };
-    return { ...withCounters, ui: appendLog(withCounters, `${event.target_label} ${amount >= 0 ? "+" : ""}${amount} ${kind}`) };
+    return withCounters;
   }
   if (event.type === "emote.bubble") {
     const bubble = event.bubble || {};
@@ -337,7 +337,6 @@ function applyServerEvent(state, event) {
     return {
       ...state,
       room: { ...state.room, occupants: updatedOccupants, npcs: updatedNpcs },
-      ui: appendLog(state, `${event.source} used ${bubble.text || "an emote"}.`),
     };
   }
   if (event.type === "effect.queued") {
@@ -357,7 +356,7 @@ function applyServerEvent(state, event) {
     return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(event.text, event.tone || "info")] } };
   }
   if (event.type === "action.log") {
-    return { ...state, ui: appendLog(state, String(event.text || "")) };
+    return state;
   }
   if (event.type === "chat.message") {
     const updatedOccupants = applyBubble(state.room.occupants, String(event.speaker_id || ""), event.speaker, String(event.text || ""), String(event.style || "normal"));
@@ -487,23 +486,10 @@ function mergeResultPayload(state, payload) {
   if (Array.isArray(payload.packs)) {
     next = {
       ...next,
-      user: next.user
-        ? {
-            ...next.user,
-            packs: payload.packs.map(pack => ({
-              id: String(pack.id || ""),
-              label: String(pack.label || ""),
-              description: String(pack.description || ""),
-              price: Number(pack.price || 0),
-              size: Number(pack.size || 0),
-              backImageUrl: assetOrEmpty(pack.back_image_url),
-            })),
-          }
+          user: next.user
+        ? { ...next.user, packs: payload.packs.map(normalizePack) }
         : next.user,
     };
-  }
-  if (payload.purchase) {
-    next = { ...next, lastReveal: payload.purchase };
   }
   if (Array.isArray(payload.commands)) {
     next = {
@@ -585,11 +571,10 @@ function createInitialState() {
     stickers: [],
     activities: [],
     selection: { kind: "none", id: "" },
-    views: { auth: true, main: null, details: null, commandPalette: false, coreExpanded: false },
-    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], actionLog: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, targeting: null },
+    views: { auth: true, main: null, details: null, commandPalette: false, coreExpanded: false, propId: null, skillStackId: null },
+    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, targeting: null },
     commandCatalog: [],
     describedEntity: null,
-    lastReveal: null,
   };
 }
 
@@ -629,7 +614,20 @@ function reduce(state, action) {
   if (action.type === "transport") return { ...state, transport: { ...state.transport, ...action.transport } };
   if (action.type === "stickers") return { ...state, stickers: Array.isArray(action.stickers) ? [...action.stickers] : [] };
   if (action.type === "select") return { ...state, selection: action.selection };
-  if (action.type === "open-view") return { ...state, selection: { kind: "core", id: action.view }, views: { ...state.views, main: action.view, details: null }, ui: { ...state.ui, targeting: null } };
+  if (action.type === "open-view") {
+    return {
+      ...state,
+      selection: { kind: "core", id: action.view },
+      views: {
+        ...state.views,
+        main: action.view,
+        details: null,
+        propId: action.view === "prop-details" ? action.propId || null : null,
+        skillStackId: action.view === "skills" ? action.stackId || null : null,
+      },
+      ui: { ...state.ui, targeting: null },
+    };
+  }
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
   if (action.type === "emote-category") return { ...state, ui: { ...state.ui, emoteCategory: action.category } };
   if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab } };

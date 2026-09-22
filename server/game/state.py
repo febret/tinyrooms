@@ -82,8 +82,8 @@ def _base_maxima(
     content: GameplayContent,
     level: int,
     modifiers: Sequence[Modifier],
-) -> tuple[int, int, int, int]:
-    """Return (max_health, max_energy, max_cleanliness, effective_constitution)."""
+) -> tuple[int, int, int]:
+    """Return (max_health, max_energy, max_cleanliness)."""
 
     constitution = effective_value(1, modifiers_for(modifiers, "constitution"), minimum=0)
     max_health_base = max(BASE_HEALTH, BASE_HEALTH * constitution)
@@ -98,7 +98,7 @@ def _base_maxima(
         modifiers_for(modifiers, MAX_CLEANLINESS_TARGET),
         minimum=1,
     )
-    return max_health, max_energy, max_cleanliness, constitution
+    return max_health, max_energy, max_cleanliness
 
 
 def compute_effective_state(
@@ -132,7 +132,7 @@ def compute_effective_state(
     stats = {
         stat: effective_value(1, modifiers_for(all_modifiers, stat), minimum=0) for stat in STAT_TARGETS
     }
-    max_health, max_energy, max_cleanliness, _ = _base_maxima(content, level, all_modifiers)
+    max_health, max_energy, max_cleanliness = _base_maxima(content, level, all_modifiers)
     return EffectivePeepState(
         stats=stats,
         max_health=max_health,
@@ -140,24 +140,3 @@ def compute_effective_state(
         max_cleanliness=max_cleanliness,
         statuses=statuses,
     )
-
-
-def default_counters(
-    content: GameplayContent,
-    level: int = 0,
-    statuses: Sequence[str] = (),
-    modifiers: Sequence[Modifier] = (),
-) -> dict[str, float]:
-    """Return starting current counters at full effective maximums."""
-
-    state = compute_effective_state(
-        content,
-        level=level,
-        counters={"health": 1, "energy": 1, "cleanliness": 1},
-        previous_statuses=statuses,
-        modifiers=modifiers,
-    )
-    return {
-        "health": float(state.max_health),
-        "cleanliness": float(state.max_cleanliness),
-    }

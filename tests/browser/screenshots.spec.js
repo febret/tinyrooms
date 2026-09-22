@@ -2,18 +2,9 @@ import { test, expect } from "./fixtures.js";
 import { command, confirmSticker, createAccount, createReadyAccount, openCore, selectFirstProp, settleArtwork, travel } from "./helpers.js";
 
 // Run explicitly with npm run test:visual. Missing baselines fail, never auto-pass.
-const BASE_NAMES = [
-  "auth", "onboarding", "main", "expanded-core", "playroom-main", "room", "details",
-  "inventory", "peep", "bubble-speech", "bubble-thought", "bubble-spiky",
-  "emotes", "skills", "journal", "self", "friends", "activity", "error-toast",
-];
-const ADDITION_NAMES = [
-  "edit-room", "selected-prop", "prop-details", "swap-sticker", "targeting", "shop", "shop-reveal",
-];
-
-function requestedFor(owned) {
+function requestedFor() {
   const requested = new Set((process.env.TR_VISUAL_ONLY || "").split(",").map(name => name.trim()).filter(Boolean));
-  return { requested, remaining: new Set([...requested].filter(name => owned.includes(name))) };
+  return { requested, remaining: new Set(requested) };
 }
 
 // Freeze wall-clock display only; keep native timers/RAF and the WebGL compositor.
@@ -66,7 +57,7 @@ async function pinActivityWindows(page) {
 
 test("reference matrix: auth, onboarding, main, room, details, inventory, peep, bubbles, activity", async ({ page, runtime }, testInfo) => {
   test.setTimeout(240_000);
-  const { requested, remaining } = requestedFor(BASE_NAMES);
+  const { requested, remaining } = requestedFor();
   await freezeClock(page);
   await page.goto(runtime.baseURL);
   await expect(page.getByRole("button", { name: "Enter Tinyrooms" })).toBeVisible();
@@ -125,7 +116,7 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
 
 test("milestone 2 additions: edit room, prop details, swap sticker, targeting, shop", async ({ page, runtime }, testInfo) => {
   test.setTimeout(240_000);
-  const { requested, remaining } = requestedFor(ADDITION_NAMES);
+  const { requested, remaining } = requestedFor();
   await freezeClock(page);
   await createReadyAccount(page, runtime);
 
@@ -171,10 +162,10 @@ test("milestone 2 additions: edit room, prop details, swap sticker, targeting, s
   await shopFrame.locator(".pack-card").filter({ hasText: "Base Pack" }).getByRole("button", { name: "Buy" }).click();
   await expect(shopFrame.locator("#confirm")).toBeVisible();
   await shopFrame.locator("#confirm-ok").click();
+  // The reveal contents are randomly drawn, so the layout is covered by flows.spec.js
+  // rather than a pixel baseline.
   await expect(shopFrame.locator("#reveal")).toBeVisible();
   await expect(shopFrame.locator(".reveal-card")).toHaveCount(3);
-  await pinActivityWindows(page);
-  await capture(page, testInfo, requested, remaining, "shop-reveal");
 
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });

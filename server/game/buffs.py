@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from server.game.modifiers import Modifier
 
 TIMED = "timed"
 DAILY = "daily"
-BUFF_KINDS = (TIMED, DAILY)
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,12 +74,6 @@ def expire(instances: Sequence[BuffInstance], now: datetime) -> list[BuffInstanc
     return [instance for instance in instances if instance.expires_at > now]
 
 
-def is_expired(instance: BuffInstance, now: datetime) -> bool:
-    """Return whether a buff instance has expired."""
-
-    return instance.expires_at <= now
-
-
 def apply_buff(
     instances: Sequence[BuffInstance],
     incoming: BuffInstance,
@@ -107,15 +100,3 @@ def active_modifiers(instances: Sequence[BuffInstance], now: datetime) -> tuple[
     for instance in expire(instances, now):
         modifiers.extend(instance.modifiers)
     return tuple(modifiers)
-
-
-def daily_expiry(now: datetime, timezone_offset: timedelta = timedelta(0)) -> datetime:
-    """Return the next game-day midnight after *now*.
-
-    The game calendar defaults to UTC; *timezone_offset* shifts the boundary for
-    cooperating servers configured to another zone.
-    """
-
-    local = now + timezone_offset
-    next_midnight = (local + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return next_midnight - timezone_offset

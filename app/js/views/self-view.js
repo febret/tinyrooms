@@ -10,8 +10,8 @@ export function selfView(state) {
   return modalShell({
     extraClass: "self-view",
     ariaLabel: "Self",
-    title: escapeHtml(state.user?.username || "You"),
-    subtitle: `<p>Level ${state.user?.level || 0} · ${escapeHtml(state.user?.levelLabel || "Guest")}</p>`,
+    title: state.user?.username || "You",
+    subtitleHtml: `<p>Level ${state.user?.level || 0} · ${escapeHtml(state.user?.levelLabel || "Guest")}</p>`,
     body: `
       <div class="modal-scroll">
         <div class="profile-identity">

@@ -8,6 +8,9 @@ if (updating && process.env.TR_UPDATE_SCREENSHOTS !== "1") {
 export default defineConfig({
   testDir: "./tests/browser",
   timeout: 10_000,
+  // maxDiffPixels tolerates small, stable rendering differences in the animated
+  // SVG/WebGL shader background. Tighter thresholds (e.g. 100) fail on that
+  // noise rather than on real UI changes, so keep this deliberately loose.
   expect: { timeout: 10_000, toHaveScreenshot: { maxDiffPixels: 300, threshold: 0.15 } },
   fullyParallel: false,
   workers: 1,

@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from server.content.cards import CardCatalog
+from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
 from server.content.gameplay import LevelTable
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
+from server.services.cards import require_definition, require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
-
-NON_EQUIP_TYPES = frozenset({"emote", "core", "skill"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,11 +39,8 @@ class InventoryService:
         self._levels = levels
         self._world_id = world_id
 
-    def _definition(self, card_def_id: str):
-        definition = self._catalog.cards.get(card_def_id)
-        if definition is None:
-            raise ValueError(f"Unknown card '{card_def_id}'.")
-        return definition
+    def _definition(self, card_def_id: str) -> CardDefinition:
+        return require_definition(self._catalog, card_def_id)
 
     def _equipped_count(self, account_id: str) -> int:
         return sum(
@@ -52,10 +48,7 @@ class InventoryService:
         )
 
     def _stack(self, account_id: str, stack_id: str) -> InventoryStack:
-        stack = self._profiles.get_inventory_stack(account_id, self._world_id, stack_id)
-        if stack is None:
-            raise ValueError("That card stack is not in your inventory.")
-        return stack
+        return require_inventory_stack(self._profiles, self._world_id, account_id, stack_id)
 
     def equip(self, account: AccountRecord, stack_id: str) -> InventoryMutation:
         """Equip an item/action stack when a slot is free."""

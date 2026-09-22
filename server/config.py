@@ -32,7 +32,6 @@ class AppConfig:
     timezone: ZoneInfo
     host: str
     port: int
-    pack_seed: int | None = None
 
     @property
     def app_path(self) -> Path:
@@ -157,14 +156,6 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if not 1 <= port <= 65535:
         raise ConfigError(f"TRSERVER_PORT must be between 1 and 65535, got {port}.")
 
-    pack_seed: int | None = None
-    seed_raw = values.get("TRSERVER_PACK_SEED", "").strip()
-    if seed_raw:
-        try:
-            pack_seed = int(seed_raw)
-        except ValueError as exc:
-            raise ConfigError(f"TRSERVER_PACK_SEED must be an integer, got '{seed_raw}'.") from exc
-
     return AppConfig(
         repo_root=root,
         local_path=local_path,
@@ -177,5 +168,4 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         timezone=timezone,
         host=host,
         port=port,
-        pack_seed=pack_seed,
     )

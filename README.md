@@ -35,7 +35,6 @@ the port on trusted networks.
 | `TRSERVER_WORLD_PATH` | Loaded definitions; defaults to `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | Live SQLite state; defaults to `.local/worldstate.sqlite3` |
 | `TRSERVER_FEATURES` | Optional flags such as `dev_sample_activity` |
-| `TRSERVER_PACK_SEED` | Optional integer seed for card-pack draws; unset uses system randomness. Browser tests pin it for deterministic pulls. |
 | `TRSERVER_TIMEZONE` | Game timezone; defaults to `UTC` |
 | `TRSERVER_HOST` | Listener address; defaults to `127.0.0.1` |
 | `TRSERVER_PORT` | HTTPS port; defaults to `5000` |

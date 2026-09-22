@@ -10,6 +10,7 @@ from server.content.cards import CardCatalog, CardDefinition, PackDefinition
 from server.content.gameplay import GameplayContent
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.security import utc_now
+from server.services.cards import grant_card_to_inventory
 from server.state.migrations import DatabaseHub
 
 DEFAULT_RARITY_WEIGHTS = {
@@ -31,6 +32,18 @@ class PackPreview:
     price: int
     size: int
     back_image_url: str
+
+    def as_dict(self) -> dict[str, object]:
+        """Serialize the preview for the client."""
+
+        return {
+            "id": self.id,
+            "label": self.label,
+            "description": self.description,
+            "price": self.price,
+            "size": self.size,
+            "back_image_url": self.back_image_url,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,7 +106,7 @@ class ShopService:
         present = {self._effective_rarity(definition) for definition in definitions}
         weights = {
             rarity: DEFAULT_RARITY_WEIGHTS[rarity]
-            for rarity in present
+            for rarity in sorted(present)
             if DEFAULT_RARITY_WEIGHTS.get(rarity, 0.0) > 0
         }
         total = sum(weights.values())
@@ -160,28 +173,19 @@ class ShopService:
             draws = self.draw(pack, self._rng)
             granted: list[InventoryStack] = []
             for definition in draws:
-                scope = "world" if definition.source == self._world_id else "global"
-                world_id = self._world_id if scope == "world" else None
                 granted.extend(
-                    self._profiles.add_inventory_card(
+                    grant_card_to_inventory(
+                        self._profiles,
                         connection,
                         account_id=account.id,
-                        world_id=world_id,
-                        card_def_id=definition.id,
-                        quantity=1,
-                        scope=scope,
-                        stack_limit=definition.stack_limit,
+                        definition=definition,
+                        world_id=self._world_id,
                     )
                 )
-            updated = self._profiles.update_account_progress(
+            updated = self._profiles.update_progress(
                 connection,
-                account.id,
-                level=current.level,
-                kudos=current.kudos,
+                current,
                 bops=current.bops - pack.price,
-                energy=current.shared_energy,
-                last_energy_at=current.last_energy_at,
-                last_daily_claim=current.last_daily_claim,
             )
             connection.execute(
                 """
@@ -223,14 +227,9 @@ class ShopService:
                 "UPDATE accounts SET sticker = ?, updated_at = ? WHERE id = ?",
                 (sticker_name, utc_now().isoformat(), account.id),
             )
-            updated = self._profiles.update_account_progress(
+            updated = self._profiles.update_progress(
                 connection,
-                account.id,
-                level=current.level,
-                kudos=current.kudos,
+                current,
                 bops=current.bops - cost,
-                energy=current.shared_energy,
-                last_energy_at=current.last_energy_at,
-                last_daily_claim=current.last_daily_claim,
             )
         return updated

@@ -36,7 +36,7 @@ export function journalView(state) {
       extraClass: "journal-view",
       ariaLabel: "Journal",
       title: "Your Journal",
-      subtitle: `<div class="journal-tabs"><button type="button" class="${tab === "Tasks" ? "selected" : ""}" data-journal-tab="Tasks">Tasks</button><button type="button" class="selected" data-journal-tab="Memories">Memories</button></div>`,
+      subtitleHtml: `<div class="journal-tabs"><button type="button" class="${tab === "Tasks" ? "selected" : ""}" data-journal-tab="Tasks">Tasks</button><button type="button" class="selected" data-journal-tab="Memories">Memories</button></div>`,
       body: `
         <div class="modal-scroll">
           ${calendarMarkup(monthDate)}
@@ -49,7 +49,7 @@ export function journalView(state) {
     extraClass: "journal-view",
     ariaLabel: "Journal",
     title: "Your Journal",
-    subtitle: `<div class="journal-tabs"><button type="button" class="selected" data-journal-tab="Tasks">Tasks</button><button type="button" class="${tab === "Memories" ? "selected" : ""}" data-journal-tab="Memories">Memories</button></div>`,
+    subtitleHtml: `<div class="journal-tabs"><button type="button" class="selected" data-journal-tab="Tasks">Tasks</button><button type="button" class="${tab === "Memories" ? "selected" : ""}" data-journal-tab="Memories">Memories</button></div>`,
     body: `
       <div class="modal-scroll">
         <section class="task-list">

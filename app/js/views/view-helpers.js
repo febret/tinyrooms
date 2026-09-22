@@ -55,11 +55,13 @@ export function inventorySection(state, title, predicate) {
   `;
 }
 
-export function modalShell({ extraClass = "", ariaLabel, title, subtitle = "", body }) {
+export function modalShell({ extraClass = "", ariaLabel, title = "", titleHtml = null, subtitle = "", subtitleHtml = null, body }) {
+  const heading = titleHtml === null ? escapeHtml(title) : titleHtml;
+  const subheading = subtitleHtml === null ? (subtitle ? `<p>${escapeHtml(subtitle)}</p>` : "") : subtitleHtml;
   return `
     <section class="board-modal ${extraClass}" role="dialog" aria-modal="false" aria-label="${escapeHtml(ariaLabel)}">
       <header class="modal-header">
-        <div><h2>${title}</h2>${subtitle}</div>
+        <div><h2>${heading}</h2>${subheading}</div>
         <button type="button" class="quiet" data-close-view="1">Close</button>
       </header>
       ${body}
@@ -67,12 +69,16 @@ export function modalShell({ extraClass = "", ariaLabel, title, subtitle = "", b
   `;
 }
 
-export function statusIconsMarkup(statuses, definitions) {
-  if (!statuses?.length) return "";
-  return `<span class="status-icons">${statuses.map(id => {
+export function statusIconMarkup(statuses, definitions) {
+  return statuses.map(id => {
     const definition = definitions?.[id];
     return `<span class="status-icon" title="${escapeHtml(definition?.label || id)}">${escapeHtml(definition?.icon || "•")}</span>`;
-  }).join("")}</span>`;
+  }).join("");
+}
+
+export function statusIconsMarkup(statuses, definitions) {
+  if (!statuses?.length) return "";
+  return `<span class="status-icons">${statusIconMarkup(statuses, definitions)}</span>`;
 }
 
 export function counterBar(label, value, maximum) {
@@ -86,8 +92,4 @@ export function counterBar(label, value, maximum) {
   `;
 }
 
-export const PLACEHOLDER_VIEWS = {
-  skills: ["Skills", "Skill slots are not available yet."],
-  journal: ["Journal", "Tasks and memories are not available yet."],
-  friends: ["Friends", "Friend lists are not available yet."],
-};
+

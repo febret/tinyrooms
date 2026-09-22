@@ -40,7 +40,6 @@ def _default_profile() -> dict[str, object]:
     return {
         "favorites": list(STARTING_FAVORITES),
         "friends": [],
-        "pending_friends": [],
         "friend_requests_sent": [],
         "friend_requests_received": [],
         "pinned_peeps": [],
@@ -62,8 +61,6 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["favorites"] = list(STARTING_FAVORITES)
     if not isinstance(merged.get("friends"), list):
         merged["friends"] = []
-    if not isinstance(merged.get("pending_friends"), list):
-        merged["pending_friends"] = []
     if not isinstance(merged.get("friend_requests_sent"), list):
         merged["friend_requests_sent"] = []
     if not isinstance(merged.get("friend_requests_received"), list):
@@ -156,11 +153,6 @@ class UserProfileRecord:
     @property
     def friends(self) -> tuple[str, ...]:
         raw = self.profile.get("friends")
-        return tuple(raw) if isinstance(raw, list) else ()
-
-    @property
-    def pending_friends(self) -> tuple[str, ...]:
-        raw = self.profile.get("pending_friends")
         return tuple(raw) if isinstance(raw, list) else ()
 
     @property
@@ -584,7 +576,6 @@ class ProfileRepository:
         quantity: int,
         scope: str,
         equipped: bool = False,
-        stack_limit: int | None = None,
     ) -> InventoryStack:
         """Insert a brand-new inventory stack without merging into existing ones."""
 
@@ -807,6 +798,31 @@ class ProfileRepository:
         row = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
         return self._account_from_row(row)
 
+    def update_progress(
+        self,
+        connection: sqlite3.Connection,
+        account: AccountRecord,
+        *,
+        level: int | None = None,
+        kudos: int | None = None,
+        bops: int | None = None,
+        energy: float | None = None,
+        last_energy_at: str | None = None,
+        last_daily_claim: str | None = None,
+    ) -> AccountRecord:
+        """Persist progression fields, keeping the account's current value for omitted fields."""
+
+        return self.update_account_progress(
+            connection,
+            account.id,
+            level=account.level if level is None else level,
+            kudos=account.kudos if kudos is None else kudos,
+            bops=account.bops if bops is None else bops,
+            energy=account.shared_energy if energy is None else energy,
+            last_energy_at=account.last_energy_at if last_energy_at is None else last_energy_at,
+            last_daily_claim=account.last_daily_claim if last_daily_claim is None else last_daily_claim,
+        )
+
     def write_counters(
         self,
         connection: sqlite3.Connection,
@@ -830,7 +846,7 @@ class ProfileRepository:
 
         connection.execute(
             "UPDATE user_profiles SET buffs_json = ? WHERE account_id = ?",
-            (json.dumps(buffs), account_id),
+            (json.dumps({"instances": buffs}), account_id),
         )
 
     def update_profile(

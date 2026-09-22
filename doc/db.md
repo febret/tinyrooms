@@ -53,7 +53,7 @@ keys unchanged).
 | `shared_energy` | INTEGER NOT NULL DEFAULT 80 | Shared energy pool (future juice system, cf. `data/core/juice.yaml`). |
 | `last_energy_at` | TEXT NOT NULL | ISO timestamp of last energy update/recharge baseline. |
 | `last_daily_claim` | TEXT NULL | ISO timestamp/date of last daily Bops claim; NULL if never claimed. |
-| _(removed)_ `friends_json` / `pending_friends_json` | — | Moved into `user_profiles.profile_json.friends` / `.pending_friends` (Milestone 1: `[]`). |
+| _(removed)_ `friends_json` / `pending_friends_json` | — | Moved into `user_profiles.profile_json.friends` (Milestone 1: `[]`). |
 | `active_session_generation` | INTEGER NOT NULL DEFAULT 0 | Incremented on every `issue_session()`; enforces one live gameplay session (old sockets get `session.replaced`). |
 | _(removed)_ `show_activity_log` | — | Moved into `user_profiles.profile_json.show_activity_log` (boolean, hidden by default; toggled by `.settings action-log`). |
 | `created_at` | TEXT NOT NULL | ISO creation timestamp. |
@@ -130,23 +130,22 @@ placeholders (defaults below) reserved for later milestones.
 | `remembered_room` | TEXT NULL | Last room the user occupied; WS connect resumes here if still in the world, else falls back to the entry room. |
 | `native_cards_json` | TEXT NOT NULL | JSON dict of world-native card state (Milestone 1: `'{}'`). |
 | `counters_json` | TEXT NOT NULL | JSON dict of world counters; seeded with `STARTING_WORLD_COUNTERS` (health/max_health, cleanliness/max_cleanliness, constitution, dexterity, charisma, fanciness). |
-| `buffs_json` | TEXT NOT NULL | JSON dict of active buffs (Milestone 1: `'{}'`). |
+| `buffs_json` | TEXT NOT NULL | JSON dict of active buffs: `{"instances": [BuffInstance payloads]}` (`server/game/buffs.py`), empty `'{}'` until a buff is applied. |
 | `tasks_json` | TEXT NOT NULL | JSON dict of quest/task state (Milestone 1: `'{}'`). |
 | `memories_json` | TEXT NOT NULL | JSON dict of memory flags (Milestone 1: `'{}'`). |
 | `ownership_json` | TEXT NOT NULL | JSON dict of ownership claims (Milestone 1: `'{}'`). |
-| `profile_json` | TEXT NOT NULL | JSON user profile: `{favorites[], friends[], pending_friends[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
+| `profile_json` | TEXT NOT NULL | JSON user profile: `{favorites[], friends[], friend_requests_sent[], friend_requests_received[], pinned_peeps[], skills[], statuses[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
 | `last_visit_at` | TEXT NOT NULL | ISO timestamp of last room change; updated together with `remembered_room`. |
 
 ### 2.5 `reward_ledger`
 
 Idempotency log guaranteeing that one-time rewards (kudos and/or cards) are
 granted **exactly once** per account. Written and read by
-`server/services/progression.py:ProgressionService` (`reward_once()`,
-`grant_kudos()` with a `ledger_key`, `has_reward()`, and the shared `_grant()`
-insert). The check and insert happen inside the same transaction as the balance
-update (`_grant()`), so a duplicate key returns `False` without re-granting;
-`has_reward()` offers a pre-check. Callers pass a stable key such as
-`task:portal` or `seed:<index>:<card>` (`tools/seed_review_account.py`).
+`server/services/progression.py:ProgressionService` (`reward_once()` and the
+shared `_grant()` insert). The check and insert happen inside the same
+transaction as the balance update (`_grant()`), so a duplicate key returns
+`False` without re-granting. Callers pass a stable key such as `task:portal`
+or `seed:<index>:<card>` (`tools/seed_review_account.py`).
 Note this table lives in the profile DB (not the world DB) so rewards are
 unified per account across worlds; `world_id` records where each grant occurred.
 
@@ -156,7 +155,7 @@ unified per account across worlds; `world_id` records where each grant occurred.
 | `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Rewarded account. Indexed via `idx_reward_ledger_owner`. |
 | `world_id` | TEXT NOT NULL | World active at grant time (informational). Part of `idx_reward_ledger_owner`. |
 | `kind` | TEXT NOT NULL | Reward category (`reward`, `kudos`, `seed`, …); not constrained. |
-| `payload_json` | TEXT NOT NULL CHECK `json_valid` | JSON grant details: `{"kudos": int, "cards": [card_id, …]}`. |
+| `payload_json` | TEXT NOT NULL CHECK `json_valid` | Placeholder for a future milestone: records grant details `{"kudos": int, "cards": [card_id, …]}` but is currently write-only (no reader), reserved for reward auditing/replay. |
 | `created_at` | TEXT NOT NULL | ISO grant timestamp. |
 
 ## 3. World-state DB — `TRSERVER_WORLDSTATE_PATH`
@@ -186,8 +185,8 @@ room-exists gate that lived in the removed `rooms` table.
 | --- | --- | --- |
 | `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (Milestone 1 playable: `hub`, `playroom`). |
 | `initialized` | INTEGER NOT NULL DEFAULT 0 | `0` = reseed cards from YAML on next server start; `1` = leave the room's live cards alone. |
-| `owner_account_id` | TEXT NULL | Reserved for future room ownership (merges the former `room_owners` placeholder; unused). |
-| `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Reserved JSON blob for future dynamic prop state (merges the former `prop_states` placeholder; unused). |
+| `owner_account_id` | TEXT NULL | Placeholder for a future milestone: reserved for room ownership (merges the former `room_owners` placeholder; currently written as NULL and never read). |
+| `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Placeholder for a future milestone: reserved JSON blob for dynamic prop state (merges the former `prop_states` placeholder; currently written as `'{}'` and never read). |
 
 ### 3.2 `room_cards`
 

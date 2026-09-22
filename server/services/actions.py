@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from server.content.cards import CardCatalog, CardDefinition
+from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
+from server.services.cards import require_definition, require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
@@ -14,7 +15,6 @@ EMOTE_COSTS = {"Expression": 1, "Animation": 3, "Effects": 5}
 HEALTH_EFFECT = "health"
 ENERGY_EFFECT = "energy"
 SUPPORTED_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT})
-PASSIVE_FLAGS = frozenset({"passive", "decorative"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,16 +65,10 @@ class ActionsService:
         self._world_id = world_id
 
     def _definition(self, card_def_id: str) -> CardDefinition:
-        definition = self._catalog.cards.get(card_def_id)
-        if definition is None:
-            raise ValueError(f"Unknown card '{card_def_id}'.")
-        return definition
+        return require_definition(self._catalog, card_def_id)
 
     def _stack(self, account_id: str, stack_id: str) -> InventoryStack:
-        stack = self._profiles.get_inventory_stack(account_id, self._world_id, stack_id)
-        if stack is None:
-            raise ValueError("That card stack is not in your inventory.")
-        return stack
+        return require_inventory_stack(self._profiles, self._world_id, account_id, stack_id)
 
     def energy_cost(self, definition: CardDefinition) -> int:
         """Return the Energy cost of playing a card."""
@@ -88,7 +82,7 @@ class ActionsService:
     def can_use(self, definition: CardDefinition) -> bool:
         """Return whether a card has an active Use action in this milestone."""
 
-        if definition.type in {"core", "emote", "skill"}:
+        if definition.type in NON_EQUIP_TYPES:
             return False
         if definition.passive or definition.decorative:
             return False

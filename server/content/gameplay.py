@@ -7,9 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
-
-STAT_TARGETS = ("constitution", "dexterity", "charisma", "fanciness")
-MAX_LEVEL = 15
+from server.game.modifiers import STAT_TARGETS
 
 
 @dataclass(frozen=True, slots=True)

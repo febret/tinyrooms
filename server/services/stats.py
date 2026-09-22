@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import sqlite3
 
-from server.content.cards import CardCatalog
+from server.content.cards import NON_EQUIP_TYPES, CardCatalog
 from server.content.gameplay import GameplayContent
 from server.game.buffs import BuffInstance, active_modifiers, expire
 from server.game.modifiers import Modifier, bonuses_to_modifiers, clamp_counter
@@ -17,7 +17,6 @@ from server.state.migrations import DatabaseHub
 
 BASE_HEALTH_FALLBACK = 50.0
 BASE_CLEANLINESS_FALLBACK = 100.0
-NON_EQUIP_TYPES = frozenset({"emote", "core", "skill"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,17 +206,12 @@ class StatsService:
         health = clamp_counter(counters["health"], state.max_health)
         cleanliness = clamp_counter(counters["cleanliness"], state.max_cleanliness)
         if energy != account.shared_energy or last_energy_at != account.last_energy_at:
-            self._profiles.update_account_progress(
+            account = self._profiles.update_progress(
                 connection,
-                account_id,
-                level=account.level,
-                kudos=account.kudos,
-                bops=account.bops,
+                account,
                 energy=energy,
                 last_energy_at=last_energy_at,
-                last_daily_claim=account.last_daily_claim,
             )
-            account = self._profiles.get_account_by_id(account_id) or account
         if health != counters["health"] or cleanliness != counters["cleanliness"]:
             self._profiles.write_counters(connection, account_id, {"health": health, "cleanliness": cleanliness})
         if tuple(state.statuses) != profile.active_statuses:
@@ -245,6 +239,28 @@ class StatsService:
 
         return self.reconcile(account_id)
 
+    def view(self, account_id: str) -> PeepSnapshot:
+        """Return a reconciled snapshot without persisting anything."""
+
+        with self._hub.locked() as connection:
+            account = self._profiles.get_account_by_id(account_id)
+            profile = self._profiles.get_user_profile(account_id)
+            if account is None or profile is None:
+                raise ValueError("Unknown account.")
+            now = utc_now()
+            energy, _last_energy_at = self._recharge_energy(account, profile, now)
+            state = self.compute_state(account, profile, now=now, energy=energy)
+            counters = normalize_counters(profile.counters)
+            health = clamp_counter(counters["health"], state.max_health)
+            cleanliness = clamp_counter(counters["cleanliness"], state.max_cleanliness)
+        return PeepSnapshot(
+            account=account,
+            effective=state,
+            health=health,
+            energy=energy,
+            cleanliness=cleanliness,
+        )
+
     def reconcile_in_transaction(self, connection: sqlite3.Connection, account_id: str) -> PeepSnapshot:
         """Reconcile Energy and statuses inside a caller-owned transaction."""
 
@@ -268,18 +284,6 @@ class StatsService:
             )
             energy = clamp_counter(snapshot.energy + energy_delta, snapshot.effective.max_energy)
             return self._persist_counters(connection, snapshot, health, energy, cleanliness)
-
-    def spend_energy(
-        self,
-        account_id: str,
-        amount: float,
-        *,
-        allow_while_tired: bool = False,
-    ) -> PeepSnapshot:
-        """Charge Energy transactionally, rejecting without cost when unaffordable."""
-
-        with self._hub.transaction() as connection:
-            return self._charge_energy(connection, account_id, amount, allow_while_tired=allow_while_tired)
 
     def charge_in_transaction(
         self,
@@ -355,15 +359,11 @@ class StatsService:
         self._profiles.write_counters(
             connection, snapshot.account.id, {"health": health, "cleanliness": cleanliness}
         )
-        self._profiles.update_account_progress(
+        self._profiles.update_progress(
             connection,
-            snapshot.account.id,
-            level=snapshot.account.level,
-            kudos=snapshot.account.kudos,
-            bops=snapshot.account.bops,
+            snapshot.account,
             energy=energy,
-            last_energy_at=now.isoformat(),
-            last_daily_claim=snapshot.account.last_daily_claim,
+            last_energy_at=snapshot.account.last_energy_at,
         )
         if tuple(state.statuses) != profile.active_statuses:
             self._profiles.update_profile_in_transaction(

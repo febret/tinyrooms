@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
 from server.commands.parser import ParsedCommand, parse_target
 from server.services.actions import ActionResult
 
 VALID_FRIEND_ACTIONS = {"add", "accept", "decline", "cancel", "remove"}
+MAX_PINNED_PEEPS = 25
 
 
 def _require_card_target(command: ParsedCommand, index: int = 0) -> str:
@@ -20,10 +22,8 @@ def _require_card_target(command: ParsedCommand, index: int = 0) -> str:
     return target.value
 
 
-async def _resolve_target(context, token: str | None):
+async def _resolve_target(context: CommandContext, token: str | None) -> tuple[str | None, str, bool]:
     """Resolve a target token to (account_id, label, is_npc)."""
-
-    from server.commands.core import CommandError
 
     if token is None or token.lower() in {"self", "@self"}:
         return context.account.id, context.account.username_display, False
@@ -46,9 +46,7 @@ async def _resolve_target(context, token: str | None):
     raise CommandError("That peep is not in this room.")
 
 
-def _counter_events(context, result: ActionResult) -> list:
-    from server.commands.core import PendingRoomBroadcast
-
+def _counter_events(context: CommandContext, result: ActionResult) -> list[PendingRoomBroadcast]:
     room_id = context.connection.room_id
     if room_id is None:
         return []
@@ -75,7 +73,7 @@ def _counter_events(context, result: ActionResult) -> list:
     return broadcasts
 
 
-def _action_feedback(context, result: ActionResult) -> list[dict[str, object]]:
+def _action_feedback(context: CommandContext, result: ActionResult) -> list[dict[str, object]]:
     events: list[dict[str, object]] = [
         {"type": "action.log", "text": result.message, "source": context.account.username_display}
     ]
@@ -92,14 +90,12 @@ def _action_feedback(context, result: ActionResult) -> list[dict[str, object]]:
     return events
 
 
-def _user_payload(context) -> dict[str, object]:
-    account = context.profiles.get_account_by_id(context.account.id)
+def _user_payload(context: CommandContext) -> dict[str, object]:
+    account = context.profiles.get_account_by_id(context.account.id) or context.account
     return context.serialize_user(account)
 
 
-async def use_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome
-
+async def use_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     target_token = command.args[1] if len(command.args) > 1 else None
     target_id, target_label, target_is_npc = await _resolve_target(context, target_token)
@@ -121,9 +117,7 @@ async def use_command(context, command: ParsedCommand):
     )
 
 
-async def emote_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome, PendingRoomBroadcast
-
+async def emote_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     result = context.actions.use_emote(context.account, stack_id=stack_id)
     room_id = context.connection.room_id
@@ -163,9 +157,7 @@ async def emote_command(context, command: ParsedCommand):
     )
 
 
-async def equip_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome
-
+async def equip_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     mutation = context.inventory.equip(context.account, stack_id)
     return CommandOutcome(
@@ -177,9 +169,7 @@ async def equip_command(context, command: ParsedCommand):
     )
 
 
-async def unequip_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome
-
+async def unequip_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     mutation = context.inventory.unequip(context.account, stack_id)
     return CommandOutcome(
@@ -191,9 +181,7 @@ async def unequip_command(context, command: ParsedCommand):
     )
 
 
-async def split_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def split_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     if len(command.args) < 2:
         raise CommandError("Choose how many copies to split off.")
@@ -211,9 +199,7 @@ async def split_command(context, command: ParsedCommand):
     )
 
 
-async def merge_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def merge_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     source_id = _require_card_target(command, 0)
     destination_id = _require_card_target(command, 1)
     quantity = None
@@ -232,9 +218,7 @@ async def merge_command(context, command: ParsedCommand):
     )
 
 
-async def skill_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def skill_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     if len(command.args) < 2:
         raise CommandError("Choose a skill slot index.")
@@ -246,9 +230,7 @@ async def skill_command(context, command: ParsedCommand):
     return CommandOutcome(message="Skill slotted.", payload={"user": _user_payload(context), "counters": snapshot.payload()})
 
 
-async def unskill_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def unskill_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if not command.args:
         raise CommandError("Choose a skill slot index to clear.")
     try:
@@ -259,9 +241,7 @@ async def unskill_command(context, command: ParsedCommand):
     return CommandOutcome(message="Skill removed.", payload={"user": _user_payload(context), "counters": snapshot.payload()})
 
 
-async def level_up_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome
-
+async def level_up_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     result = context.progression.level_up(context.account)
     return CommandOutcome(
@@ -271,9 +251,7 @@ async def level_up_command(context, command: ParsedCommand):
     )
 
 
-async def claim_bops_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome
-
+async def claim_bops_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     amount, _account = context.progression.claim_daily_bops(context.account)
     return CommandOutcome(
@@ -283,9 +261,7 @@ async def claim_bops_command(context, command: ParsedCommand):
     )
 
 
-async def buy_pack_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def buy_pack_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if len(command.args) < 2:
         raise CommandError("Use '.buy_pack <pack> <operation_id>'.")
     token = command.args[0]
@@ -310,9 +286,7 @@ async def buy_pack_command(context, command: ParsedCommand):
     )
 
 
-async def shop_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def shop_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     room_id = context.connection.room_id
     if room_id is None:
@@ -339,9 +313,7 @@ async def shop_command(context, command: ParsedCommand):
     )
 
 
-async def friend_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def friend_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if len(command.args) < 2:
         raise CommandError("Use '.friend <add|accept|decline|cancel|remove> <peep>'.")
     action = command.args[0].lower()
@@ -376,13 +348,14 @@ async def friend_command(context, command: ParsedCommand):
     return CommandOutcome(message=message, payload={"user": _user_payload(context)})
 
 
-async def pin_peep_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def pin_peep_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if not command.args:
         raise CommandError("Choose a peep to pin or unpin.")
     token = command.args[0]
     parsed = parse_target(token) if token.startswith("@") else None
+    if parsed is not None and parsed.kind == "peep":
+        if context.profiles.get_account_by_id(parsed.value) is None:
+            raise CommandError("That peep could not be found.")
     peep_id = parsed.value if parsed else token
     mode = command.args[1].lower() if len(command.args) > 1 else "toggle"
     if mode not in {"toggle", "on", "off"}:
@@ -400,6 +373,8 @@ async def pin_peep_command(context, command: ParsedCommand):
             pinned.remove(peep_id)
         else:
             pinned.append(peep_id)
+        if len(pinned) > MAX_PINNED_PEEPS:
+            raise ValueError(f"You can pin at most {MAX_PINNED_PEEPS} peeps.")
         data["pinned_peeps"] = pinned
 
     profile = context.profiles.update_profile(context.account.id, mutate)
@@ -409,9 +384,7 @@ async def pin_peep_command(context, command: ParsedCommand):
     )
 
 
-async def swap_sticker_command(context, command: ParsedCommand):
-    from server.commands.core import CommandError, CommandOutcome
-
+async def swap_sticker_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if not command.args:
         raise CommandError("Choose a sticker to swap to.")
     token = command.args[0]
@@ -423,23 +396,9 @@ async def swap_sticker_command(context, command: ParsedCommand):
     )
 
 
-async def packs_command(context, command: ParsedCommand):
-    from server.commands.core import CommandOutcome
-
+async def packs_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     return CommandOutcome(
         message="Pack list loaded.",
-        payload={
-            "packs": [
-                {
-                    "id": preview.id,
-                    "label": preview.label,
-                    "description": preview.description,
-                    "price": preview.price,
-                    "size": preview.size,
-                    "back_image_url": preview.back_image_url,
-                }
-                for preview in context.shop.packs()
-            ]
-        },
+        payload={"packs": [preview.as_dict() for preview in context.shop.packs()]},
     )

@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from server.profiles import AccountRecord, ProfileRepository, UserProfileRecord
 from server.state.migrations import DatabaseHub
 
+MAX_FRIENDS = 100
+MAX_PENDING_REQUESTS = 100
+
 
 @dataclass(frozen=True, slots=True)
 class FriendView:
@@ -79,6 +82,12 @@ class FriendsService:
         with self._hub.transaction() as connection:
             actor = self._profile(account.id)
             other = self._profile(target.id)
+            if len(actor.friends) >= MAX_FRIENDS:
+                raise ValueError("Your friends list is full.")
+            if len(_list_key(actor.profile, "friend_requests_sent")) >= MAX_PENDING_REQUESTS:
+                raise ValueError("You have too many pending friend requests.")
+            if len(_list_key(other.profile, "friend_requests_received")) >= MAX_PENDING_REQUESTS:
+                raise ValueError("That peep has too many pending friend requests.")
             if target.id in actor.friends:
                 raise ValueError(f"{target.username_display} is already your friend.")
             if target.id in actor.profile.get("friend_requests_sent", []):
@@ -141,6 +150,10 @@ class FriendsService:
             profile = self._profile(account.id)
             if requester_id not in _list_key(profile.profile, "friend_requests_received"):
                 raise ValueError("There is no pending request from that peep.")
+            if len(profile.friends) >= MAX_FRIENDS:
+                raise ValueError("Your friends list is full.")
+            if len(self._profile(requester_id).friends) >= MAX_FRIENDS:
+                raise ValueError("That peep's friends list is full.")
             self._accept(connection, account.id, requester_id)
 
     def decline_request(self, account: AccountRecord, requester_id: str) -> None:

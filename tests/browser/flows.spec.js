@@ -252,6 +252,35 @@ test.describe("core milestone 2 views", () => {
     await expect(panel.getByRole("button", { name: "Animation", exact: true })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Effects", exact: true })).toBeVisible();
   });
+
+  test("prop Inspect and skill Slot actions carry the selected identity", async ({ page, runtime }) => {
+    await page.goto(runtime.baseURL);
+    const summary = await page.evaluate(async () => {
+      const { selectionActions } = await import("/app/js/cards.js");
+      const prop = { id: "portal0", label: "Portal", description: "", modelUrl: "/assets/portal.glb", scale: 1, quickActions: [] };
+      const skill = {
+        stackId: "inv:skill", quantity: 1, pinned: false, equipped: false,
+        definition: { label: "Sturdy", type: "skill", imageUrl: "", rarity: "Common" },
+        quickActions: [],
+      };
+      const propActions = selectionActions({
+        room: { props: [prop], roomCards: [], inventory: [] },
+        selection: { kind: "prop", id: "portal0" },
+        views: {}, user: {},
+      });
+      const skillActions = selectionActions({
+        room: { props: [], roomCards: [], inventory: [skill] },
+        selection: { kind: "inventory-card", id: "inv:skill" },
+        views: {}, user: {},
+      });
+      return {
+        prop: propActions.find(action => action.label === "Inspect")?.local,
+        slot: skillActions.find(action => action.label === "Slot…")?.local,
+      };
+    });
+    expect(summary.prop).toEqual({ type: "open-view", view: "prop-details", propId: "portal0" });
+    expect(summary.slot).toEqual({ type: "open-view", view: "skills", stackId: "inv:skill" });
+  });
 });
 
 test.describe("milestone 2 activities and targeting", () => {
@@ -310,12 +339,15 @@ test.describe("milestone 2 polish: prop viewer and journal calendar", () => {
   test("selecting a prop shows a model preview and the details viewer orbits", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     expect(await selectFirstProp(page), "A Hub prop must be selectable").toBe(true);
-    await expect(page.locator("#look-preview-layer canvas.look-preview-3d")).toBeVisible();
-    await expect(page.locator("#look-preview-layer canvas.look-preview-3d")).toHaveAttribute("data-model-ready", "true", { timeout: 20_000 });
+    const lookCanvas = page.locator("#look-preview-layer canvas.look-preview-3d");
+    await expect(lookCanvas).toBeVisible();
+    await expect(lookCanvas).toHaveAttribute("data-model-ready", "true", { timeout: 20_000 });
+    const selectedModel = await lookCanvas.getAttribute("data-prop-model");
+    expect(selectedModel, "The selected prop must publish its model URL").toBeTruthy();
     await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).click();
     const canvas = page.locator("#panel-layer canvas.prop-preview-canvas");
     await expect(canvas).toBeVisible();
-    await expect(canvas).toHaveAttribute("data-prop-model", /\.glb$/);
+    await expect(canvas).toHaveAttribute("data-prop-model", selectedModel);
     const box = await canvas.boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();

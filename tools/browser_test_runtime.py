@@ -40,7 +40,6 @@ def main() -> None:
             "TRSERVER_TIMEZONE": "UTC",
             "TRSERVER_HOST": "127.0.0.1",
             "TRSERVER_PORT": str(port),
-            "TRSERVER_PACK_SEED": "20260115",
         }, repo_root=ROOT)
         config = replace(config, local_path=directory)
         cert, key = ensure_self_signed_certificate(directory, "127.0.0.1")

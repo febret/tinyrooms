@@ -10,6 +10,7 @@ from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import MAX_CHAT_SIZE, presence_enter_event, presence_leave_event
 from server.services.activities import ActivityService
 from server.services.cards import CardService
+from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 from server.state.world_state import WorldStateRepository
 
@@ -41,7 +42,7 @@ class RoomService:
         card_service: CardService,
         activities: ActivityService,
         world: WorldDefinition,
-        stats=None,
+        stats: StatsService,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -136,13 +137,17 @@ class RoomService:
                     "username": account.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
-                    "quick_actions": [
-                        {"label": "Look", "command": f".look @{account.username_display}"},
-                        {"label": "Add Friend", "command": f".friend add @peep:{account.id}"},
-                    ],
+                    "quick_actions": self._user_quick_actions(account),
                 }
             )
         return occupants
+
+    @staticmethod
+    def _user_quick_actions(account: AccountRecord) -> list[dict[str, object]]:
+        return [
+            {"label": "Look", "command": f".look @{account.username_display}"},
+            {"label": "Add Friend", "command": f".friend add @peep:{account.id}"},
+        ]
 
     def _room_peeps(self, room_id: str) -> list[dict[str, object]]:
         peeps: list[dict[str, object]] = []
@@ -211,19 +216,16 @@ class RoomService:
             occupant = occupant_accounts.get(connection.account_id)
             if occupant is None:
                 continue
-            counters = self._stats.snapshot(occupant.id).payload() if self._stats is not None else None
+            counters = self._stats.view(occupant.id).payload()
             occupants.append(
                 {
                     "id": occupant.id,
                     "username": occupant.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{occupant.sticker}" if occupant.sticker else None,
-                    "statuses": list(counters["statuses"]) if counters else [],
+                    "statuses": list(counters["statuses"]),
                     "counters": counters,
-                    "quick_actions": [
-                        {"label": "Look", "command": f".look @{occupant.username_display}"},
-                        {"label": "Add Friend", "command": f".friend add @peep:{occupant.id}"},
-                    ],
+                    "quick_actions": self._user_quick_actions(occupant),
                 }
             )
         visible_definitions = self._visible_exits(room)
@@ -293,7 +295,7 @@ class RoomService:
             if exit_definition.requires_card_id not in inventory_ids:
                 raise ValueError(f"You need {exit_definition.requires_card_id} to go that way.")
         with self._hub.transaction() as connection:
-            if self._stats is not None and self.ROOM_CHANGE_ENERGY_COST:
+            if self.ROOM_CHANGE_ENERGY_COST:
                 self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)

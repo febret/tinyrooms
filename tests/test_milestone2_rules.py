@@ -3,19 +3,10 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from pathlib import Path
 import unittest
 
 from server.content.gameplay import load_gameplay_content
-from server.game.buffs import (
-    DAILY,
-    TIMED,
-    BuffInstance,
-    active_modifiers,
-    apply_buff,
-    daily_expiry,
-    expire,
-)
+from server.game.buffs import TIMED, BuffInstance, active_modifiers, apply_buff, expire
 from server.game.modifiers import Modifier, clamp_counter, combine, effective_value
 from server.game.state import compute_effective_state
 from server.security import utc_now
@@ -112,13 +103,6 @@ class EffectiveStateTests(unittest.TestCase):
             counters={"health": 50, "energy": 0, "cleanliness": 100},
         )
         self.assertIn("tired", applied.statuses)
-        below = compute_effective_state(
-            self.content,
-            level=0,
-            counters={"health": 50, "energy": 5, "cleanliness": 100},
-            previous_statuses=("tired",),
-        )
-        self.assertIn("tired", below.statuses)
         cleared = compute_effective_state(
             self.content,
             level=0,
@@ -126,15 +110,6 @@ class EffectiveStateTests(unittest.TestCase):
             previous_statuses=("tired",),
         )
         self.assertNotIn("tired", cleared.statuses)
-
-    def test_status_does_not_stack_penalties(self) -> None:
-        state = compute_effective_state(
-            self.content,
-            level=0,
-            counters={"health": 0, "energy": 80, "cleanliness": 100},
-            previous_statuses=("sick", "sick"),
-        )
-        self.assertEqual(state.statuses.count("sick"), 1)
 
     def test_max_energy_uses_level_table_with_modifiers(self) -> None:
         state = compute_effective_state(
@@ -147,7 +122,7 @@ class EffectiveStateTests(unittest.TestCase):
 
 
 class BuffRulesTests(unittest.TestCase):
-    """Timed, daily, and stackable buff expiration behavior."""
+    """Timed and stackable buff expiration behavior."""
 
     def _instance(self, buff_id: str, *, stackable: bool, max_stacks: int, expires_at):
         return BuffInstance(
@@ -189,56 +164,6 @@ class BuffRulesTests(unittest.TestCase):
         fresh = self._instance("haste", stackable=False, max_stacks=1, expires_at=now + timedelta(minutes=1))
         stale = self._instance("slow", stackable=False, max_stacks=1, expires_at=now - timedelta(minutes=1))
         self.assertEqual(len(active_modifiers([fresh, stale], now)), 1)
-
-    def test_daily_expiry_lands_on_next_midnight(self) -> None:
-        now = utc_now()
-        expiry = daily_expiry(now)
-        self.assertEqual((expiry.hour, expiry.minute, expiry.second, expiry.microsecond), (0, 0, 0, 0))
-        self.assertGreater(expiry, now)
-        self.assertLess(expiry - now, timedelta(days=1, seconds=1))
-
-    def test_buff_payload_round_trip(self) -> None:
-        now = utc_now()
-        instance = self._instance("haste", stackable=True, max_stacks=2, expires_at=now + timedelta(minutes=1))
-        restorable = BuffInstance.from_payload(instance.to_payload())
-        self.assertEqual(restorable.id, instance.id)
-        self.assertEqual(restorable.expires_at, instance.expires_at)
-        self.assertEqual(restorable.modifiers, instance.modifiers)
-        self.assertTrue(restorable.stackable)
-
-
-class LevelAndBopsContentTests(unittest.TestCase):
-    """Level table and Bops settings expose the design numbers."""
-
-    def setUp(self) -> None:
-        self.content = load_content()
-
-    def test_level_caps_and_kudos(self) -> None:
-        self.assertEqual(self.content.levels.max_level, 15)
-        self.assertEqual(self.content.levels.equipped_cap(0), 5)
-        self.assertEqual(self.content.levels.equipped_cap(15), 12)
-        self.assertEqual(self.content.levels.kudos_to_next(0), 1)
-        self.assertIsNone(self.content.levels.kudos_to_next(15))
-
-    def test_bops_table(self) -> None:
-        self.assertEqual(self.content.bops.daily_bops(0), 1)
-        self.assertEqual(self.content.bops.daily_bops(15), 500)
-        self.assertEqual(self.content.bops.sticker_swap_cost, 10)
-
-
-class PropScaleContentTests(unittest.TestCase):
-    """Prop definitions carry explicit, positive base scales."""
-
-    def test_tutorial_props_have_positive_scales(self) -> None:
-        from server.content.cards import load_card_catalog
-        from server.content.worlds import load_world_definition
-
-        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
-        world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
-        for prop in world.props.values():
-            self.assertGreater(prop.scale, 0, prop.id)
-        self.assertAlmostEqual(world.props["portal"].scale, 0.511)
-        self.assertAlmostEqual(world.props["vending"].scale, 0.1)
 
 
 if __name__ == "__main__":

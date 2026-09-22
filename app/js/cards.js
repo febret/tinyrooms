@@ -1,8 +1,16 @@
 import { CARD_BACK } from "./board.js";
-import { buildFavoriteCommand } from "./commands.js";
+import {
+  buildEmoteCommand,
+  buildEquipCommand,
+  buildFavoriteCommand,
+  buildFriendCommand,
+  buildPinCommand,
+  buildUnequipCommand,
+  buildUseCommand,
+} from "./commands.js";
 import { findInventoryCard, findRoomCard, findSelectedEntity } from "./state.js";
 import { escapeHtml } from "./presentation.js";
-import { longDescription, PLACEHOLDER_VIEWS, rarityLabel, tileMarkup } from "./views/view-helpers.js";
+import { longDescription, rarityLabel, tileMarkup } from "./views/view-helpers.js";
 import { roomView } from "./views/room-view.js";
 import { inventoryView } from "./views/inventory-view.js";
 import { emotesView } from "./views/emotes-view.js";
@@ -12,11 +20,10 @@ import { selfView } from "./views/self-view.js";
 import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
 import { editRoomView } from "./views/edit-room-view.js";
-import { placeholderView } from "./views/placeholder-view.js";
 
 function coreMarkup(definition, favorite, selected) {
   return `
-    <button type="button" class="game-card core ${selected ? "selected" : ""}" data-core-id="${definition.id}"
+    <button type="button" class="game-card core ${selected ? "selected" : ""}" data-core-id="${escapeHtml(definition.id)}"
       aria-label="${escapeHtml(definition.label)}${favorite ? ", favorite" : ""}" aria-pressed="${selected}" title="${escapeHtml(definition.label)}">
       <img src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
     </button>
@@ -80,8 +87,7 @@ function boardModal(state) {
   if (view === "self") return selfView(state);
   if (view === "prop-details") return propDetailsView(state);
   if (view === "journal") return journalView(state);
-  if (view === "edit-room") return editRoomView(state);
-  if (view in PLACEHOLDER_VIEWS) return placeholderView(view);
+  if (view === "edit-room") return editRoomView();
   return "";
 }
 
@@ -149,7 +155,7 @@ export function selectionActions(state) {
     const prop = findSelectedEntity(state);
     if (!prop) return [];
     return [
-      { label: "Inspect", local: { type: "open-view", view: "prop-details" }, tone: "primary" },
+      { label: "Inspect", local: { type: "open-view", view: "prop-details", propId: prop.id }, tone: "primary" },
       ...prop.quickActions.map(action => ({ ...action, tone: "neutral" })),
     ];
   }
@@ -160,10 +166,10 @@ export function selectionActions(state) {
     if (state.user && peep.id === state.user.id) {
       actions.unshift({ label: "Open Self", local: { type: "open-view", view: "self" }, tone: "primary" });
       const pinned = (state.user.pinnedPeeps || []).includes(peep.id);
-      actions.push({ label: pinned ? "Unpin" : "Pin", command: `.pin_peep @peep:${peep.id}`, tone: "neutral" });
+      actions.push({ label: pinned ? "Unpin" : "Pin", command: buildPinCommand(peep.id), tone: "neutral" });
       actions.push({ label: "Swap Sticker…", local: { type: "swap-sticker" }, tone: "positive" });
     } else if (peep.kind === "user") {
-      actions.push({ label: "Add Friend", command: `.friend add @peep:${peep.id}`, tone: "positive" });
+      actions.push({ label: "Add Friend", command: buildFriendCommand("add", peep.id), tone: "positive" });
     }
     return actions;
   }
@@ -209,20 +215,20 @@ function inventoryStackActions(stack) {
   const actions = [];
   const type = definition.type || "item";
   if (type === "emote") {
-    actions.push({ label: "Play", command: `.emote @card:${stack.stackId}`, tone: "primary" });
+    actions.push({ label: "Play", command: buildEmoteCommand(stack.stackId), tone: "primary" });
   } else if (type === "skill") {
-    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills" }, tone: "primary" });
+    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary" });
   } else if (type === "item" || type === "action") {
     if (stack.equipped) {
       if (!definition.passive && !definition.decorative) {
-        actions.push({ label: "Use", command: `.use @card:${stack.stackId}`, tone: "primary" });
+        actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
         if ((definition.target || "") === "peep") {
           actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "positive" });
         }
       }
-      actions.push({ label: "Unequip", command: `.unequip @card:${stack.stackId}`, tone: "neutral" });
+      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });
     } else if (!definition.passive && !definition.decorative) {
-      actions.push({ label: "Equip", command: `.equip @card:${stack.stackId}`, tone: "positive" });
+      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive" });
     }
   }
   if ((definition.stackLimit || 1) > 1 && stack.quantity > 1) {

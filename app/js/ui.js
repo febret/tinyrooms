@@ -3,7 +3,17 @@ import { createActivityManager } from "./activities.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, describeSelection, selectionActions } from "./cards.js";
-import { COMMANDS, buildQuantityCommand, chatToCommand } from "./commands.js";
+import {
+  COMMANDS,
+  buildFriendCommand,
+  buildMergeCommand,
+  buildQuantityCommand,
+  buildSkillCommand,
+  buildSplitCommand,
+  buildSwapStickerCommand,
+  buildUnskillCommand,
+  chatToCommand,
+} from "./commands.js";
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
 import { createPeepsView } from "./peeps.js";
@@ -162,7 +172,12 @@ async function handleAction(action) {
   }
   if (action.type === "open-view" || action.type === "core-toggle") {
     const view = action.view || action.id;
-    store.dispatch({ type: store.getState().views.main === view ? "close-view" : "open-view", view });
+    store.dispatch({
+      type: store.getState().views.main === view ? "close-view" : "open-view",
+      view,
+      propId: action.propId,
+      stackId: action.stackId,
+    });
     playTone("flip");
   } else if (["close-view", "close-details", "toggle-core"].includes(action.type)) {
     store.dispatch({ type: action.type });
@@ -184,18 +199,17 @@ async function handleAction(action) {
   } else if (action.type === "level-up") {
     try { await sendCommand(".level_up"); } catch (error) { showError(error); }
   } else if (action.type === "friend-action") {
-    try { await sendCommand(`.friend ${action.action} @peep:${action.accountId}`); } catch (error) { showError(error); }
+    try { await sendCommand(buildFriendCommand(action.action, action.accountId)); } catch (error) { showError(error); }
   } else if (action.type === "skill-slot") {
     const state = store.getState();
     if (action.stackId) {
-      try { await sendCommand(`.skill @card:${action.stackId} ${action.index}`); } catch (error) { showError(error); }
+      try { await sendCommand(buildUnskillCommand(action.index)); } catch (error) { showError(error); }
     } else {
-      const selected = state.selection.kind === "inventory-card" ? state.selection.id : null;
-      const stack = selected && state.user?.inventory?.find(entry => entry.stackId === selected);
-      if (stack && stack.definition?.type === "skill") {
-        try { await sendCommand(`.skill @card:${stack.stackId} ${action.index}`); } catch (error) { showError(error); }
+      const pending = state.views.skillStackId || (state.selection.kind === "inventory-card" ? state.selection.id : null);
+      if (pending) {
+        try { await sendCommand(buildSkillCommand(pending, action.index)); } catch (error) { showError(error); }
       } else {
-        toast("Select a skill card in your Inventory first.", "info");
+        toast("Open a skill card in your Inventory and choose Slot… first.", "info");
       }
     }
   } else if (action.type === "merge") {
@@ -207,7 +221,7 @@ async function handleAction(action) {
     if (quantity === null) return;
     if (action.intent === "pickup") cardMotion.animatePickup(action.stackId);
     const command = action.intent === "split"
-      ? `.split @card:${action.stackId} ${quantity}`
+      ? buildSplitCommand(action.stackId, quantity)
       : buildQuantityCommand(action.intent, action.stackId, quantity);
     try { await sendCommand(command); } catch (error) { showError(error); }
   }
@@ -235,14 +249,14 @@ async function mergeStack(stackId) {
     if (!choice) return;
     destination = candidates.find(entry => entry.stackId === choice) || candidates[0];
   }
-  try { await sendCommand(`.merge @card:${stackId} @card:${destination.stackId}`); } catch (error) { showError(error); }
+  try { await sendCommand(buildMergeCommand(stackId, destination.stackId)); } catch (error) { showError(error); }
 }
 
 async function openStickerSwap() {
   const state = store.getState();
   const stickers = state.stickers || [];
   const current = state.user?.sticker || "";
-  const cost = 10;
+  const cost = state.user?.stickerSwapCost ?? 0;
   await dialogs.open(
     `<section class="global-dialog sticker-swap" role="dialog" aria-modal="true" aria-labelledby="sticker-swap-title">
       <h2 id="sticker-swap-title">Swap Sticker</h2>
@@ -260,7 +274,7 @@ async function openStickerSwap() {
         button.onclick = async () => {
           const chosen = button.dataset.sticker;
           close();
-          try { await sendCommand(`.swap_sticker ${chosen}`); } catch (error) { showError(error); }
+          try { await sendCommand(buildSwapStickerCommand(chosen)); } catch (error) { showError(error); }
         };
       });
     },
@@ -439,7 +453,7 @@ function renderFeedback(state) {
   const effects = state.ui.effects || [];
   const markup = [
     ...numbers.map(number => `<span class="floating-number ${number.amount >= 0 ? "gain" : "loss"}" data-float-id="${escapeHtml(number.id)}">${number.amount >= 0 ? "+" : ""}${Math.round(number.amount)} ${escapeHtml(number.kind)}</span>`),
-    ...effects.map(effect => `<span class="room-effect" data-effect-id="${escapeHtml(effect.id)}" data-effect="${escapeHtml(effect.effect)}"></span>`),
+    ...effects.map(effect => `<span class="room-effect" data-effect-id="${escapeHtml(effect.id)}"></span>`),
   ].join("");
   updateMarkup(feedbackLayer, markup);
   const bounds = $("#peeps-panel").getBoundingClientRect();

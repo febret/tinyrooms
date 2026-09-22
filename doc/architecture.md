@@ -23,7 +23,7 @@ Tinyrooms is a multiplayer miniature-world game:
 - **Content**: human-readable YAML under `worlds/` and `data/`, validated by
   loaders in `server/content/`.
 - **Transport**: HTTPS JSON API for accounts/session/bootstrap/stickers/
-  activities plus one sequenced JSON WebSocket (`/ws`) per logged-in client
+  activities plus one ordered JSON WebSocket (`/ws`) per logged-in client
   for commands, snapshots, and room events.
 - **Runtime topology** (single process):
 
@@ -51,14 +51,14 @@ Key design decisions:
 - In-process room ordering: one server process owns a world, so room
   operations are serialized by the event loop; no per-room sequence counter.
 - Feature flags via `TRSERVER_FEATURES` (currently `dev_sample_activity`).
-- Milestone 1 playable rooms are `hub` + `playroom`; other tutorial rooms
-  load/validate as content but `.go` there is rejected.
+- All rooms in the loaded world definition are reachable; `.go` validates the
+  exit, its lock, and any required card (the Milestone 1 room allowlist was
+  removed in Milestone 2).
 
 Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 (required), `HOST` (`127.0.0.1`), `PORT` (`5000`), `USERS_PATH` (`users`),
 `WORLD_PATH` (`worlds/tutorial`), `WORLDSTATE_PATH`
-(`.local/worldstate.sqlite3`), `FEATURES`, `PACK_SEED` (optional; seeds
-card-pack draws, unset uses system randomness), `TIMEZONE` (`UTC`).
+(`.local/worldstate.sqlite3`), `FEATURES`, `TIMEZONE` (`UTC`).
 
 ## 2. Component guide
 

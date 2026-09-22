@@ -1,4 +1,5 @@
 import { escapeHtml, updateMarkup } from "./presentation.js";
+import { statusIconMarkup } from "./views/view-helpers.js";
 
 /** Render room-granularity peep standees and anchored, dismissible chat bubbles. */
 export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSound }) {
@@ -40,10 +41,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSou
         <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
           <span class="peep-marker"><img src="${escapeHtml(peep.stickerUrl || "/assets/stickers/s1.png")}" alt=""></span>
           <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
-          ${statuses.length ? `<span class="peep-statuses">${statuses.map(id => {
-            const definition = definitions[id];
-            return `<span class="status-icon" title="${escapeHtml(definition?.label || id)}">${escapeHtml(definition?.icon || "•")}</span>`;
-          }).join("")}</span>` : ""}
+          ${statuses.length ? `<span class="peep-statuses">${statusIconMarkup(statuses, definitions)}</span>` : ""}
         </button>
       </article>`;
     }).join("")}</div>

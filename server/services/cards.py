@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import sqlite3
 
-from server.content.cards import CardCatalog, CardDefinition, CORE_CARD_IDS
+from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition, CORE_CARD_IDS
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
@@ -19,10 +20,55 @@ class CardMutationResult:
     room_event: dict[str, object]
 
 
+def require_definition(catalog: CardCatalog, card_def_id: str) -> CardDefinition:
+    """Return a loaded card definition, rejecting unknown ids."""
+
+    definition = catalog.cards.get(card_def_id)
+    if definition is None:
+        raise ValueError(f"Unknown card '{card_def_id}'.")
+    return definition
+
+
+def require_inventory_stack(
+    profiles: ProfileRepository,
+    world_id: str,
+    account_id: str,
+    stack_id: str,
+) -> InventoryStack:
+    """Return an owned inventory stack, rejecting unknown ids."""
+
+    stack = profiles.get_inventory_stack(account_id, world_id, stack_id)
+    if stack is None:
+        raise ValueError("That card stack is not in your inventory.")
+    return stack
+
+
+def grant_card_to_inventory(
+    profiles: ProfileRepository,
+    connection: sqlite3.Connection,
+    *,
+    account_id: str,
+    definition: CardDefinition,
+    world_id: str,
+) -> list[InventoryStack]:
+    """Add one copy of a collectible, scoping world cards to the active world."""
+
+    scope = "world" if definition.source == world_id else "global"
+    return profiles.add_inventory_card(
+        connection,
+        account_id=account_id,
+        world_id=world_id if scope == "world" else None,
+        card_def_id=definition.id,
+        quantity=1,
+        scope=scope,
+        stack_limit=definition.stack_limit,
+    )
+
+
 def should_auto_equip(definition: CardDefinition) -> bool:
     """Return whether a picked-up card should occupy an equipped slot."""
 
-    return definition.type not in {"emote", "core", "skill"}
+    return definition.type not in NON_EQUIP_TYPES
 
 
 class CardService:

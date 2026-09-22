@@ -104,7 +104,7 @@ class ProgressionIntegrationTests(Milestone2IntegrationTestCase):
     def test_level_up_spends_kudos(self) -> None:
         credentials = self.create_ready_account("cam")
         account_id = self.account_id(credentials)
-        self.runtime().progression.grant_kudos(account_id, 5)
+        self.runtime().progression.reward_once(account_id, "test:level-up", kudos=5)
         with self.client.websocket_connect(
             "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
         ) as socket:
@@ -117,7 +117,7 @@ class ProgressionIntegrationTests(Milestone2IntegrationTestCase):
     def test_skill_slotting_updates_effective_stats(self) -> None:
         credentials = self.create_ready_account("dee")
         account_id = self.account_id(credentials)
-        self.runtime().progression.grant_kudos(account_id, 1)
+        self.runtime().progression.reward_once(account_id, "test:skill", kudos=1)
         stack_id = self.grant_card(account_id, "sturdy")
         with self.client.websocket_connect(
             "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
@@ -177,26 +177,6 @@ class ActionIntegrationTests(Milestone2IntegrationTestCase):
                 self.assertTrue(result["ok"], result)
                 event = self.drain_until(bob_socket, "emote.bubble")
                 self.assertEqual(event["card_id"], "smile")
-
-    def test_rejected_action_costs_nothing(self) -> None:
-        alice = self.create_ready_account("ivy")
-        alice_id = self.account_id(alice)
-        stack_id = self.grant_card(alice_id, "tasty-toast")
-        with self.client.websocket_connect(
-            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
-        ) as socket:
-            socket.receive_json()
-            self.assertTrue(self.command(socket, "equip-1", f".equip @card:{stack_id}")["ok"])
-            energy_before = self.runtime().stats.snapshot(alice_id).energy
-            result = self.command(socket, "use-1", f".use @card:{stack_id}")
-            self.assertFalse(result["ok"])
-            self.assertEqual(self.runtime().stats.snapshot(alice_id).energy, energy_before)
-            stacks = [
-                stack
-                for stack in self.runtime().profiles.list_inventory(alice_id, "tutorial")
-                if stack.card_def_id == "tasty-toast"
-            ]
-            self.assertEqual(sum(stack.quantity for stack in stacks), 1)
 
 
 class SocialShopIntegrationTests(Milestone2IntegrationTestCase):

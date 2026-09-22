@@ -48,3 +48,48 @@ export function buildQuantityCommand(intent, stackId, quantity) {
   const verb = intent === "pickup" ? "pickup" : "drop";
   return `.${verb} @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
 }
+
+/** Slot or clear a skill card, and manage equipment and social commands. */
+export function buildSkillCommand(stackId, slotIndex) {
+  return `.skill @card:${stackId} ${Number(slotIndex)}`;
+}
+
+export function buildUnskillCommand(slotIndex) {
+  return `.unskill ${Number(slotIndex)}`;
+}
+
+export function buildFriendCommand(action, accountId) {
+  return `.friend ${action} @peep:${accountId}`;
+}
+
+export function buildPinCommand(peepId, mode) {
+  return `.pin_peep @peep:${peepId}${mode ? ` ${mode}` : ""}`;
+}
+
+export function buildUseCommand(stackId) {
+  return `.use @card:${stackId}`;
+}
+
+export function buildEmoteCommand(stackId) {
+  return `.emote @card:${stackId}`;
+}
+
+export function buildEquipCommand(stackId) {
+  return `.equip @card:${stackId}`;
+}
+
+export function buildUnequipCommand(stackId) {
+  return `.unequip @card:${stackId}`;
+}
+
+export function buildSwapStickerCommand(sticker) {
+  return `.swap_sticker ${sticker}`;
+}
+
+export function buildSplitCommand(stackId, quantity) {
+  return `.split @card:${stackId} ${Number(quantity)}`;
+}
+
+export function buildMergeCommand(sourceId, destinationId) {
+  return `.merge @card:${sourceId} @card:${destinationId}`;
+}

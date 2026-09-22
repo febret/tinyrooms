@@ -10,6 +10,7 @@ from server.content.common import ContentError, load_yaml_file, require_mapping
 
 CORE_CARD_IDS = frozenset({"room", "emotes", "inventory", "journal", "skills", "self", "friends", "edit-room"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart", "starlight"})
+NON_EQUIP_TYPES = frozenset({"emote", "core", "skill"})
 
 
 @dataclass(frozen=True, slots=True)

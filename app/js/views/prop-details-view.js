@@ -2,13 +2,13 @@ import { escapeHtml } from "../presentation.js";
 import { modalShell } from "./view-helpers.js";
 
 export function propDetailsView(state) {
-  const prop = state.room?.props.find(entry => entry.id === state.selection.id) || state.room?.props[0];
+  const prop = (state.views?.propId ? state.room?.props.find(entry => entry.id === state.views.propId) : null) || state.room?.props[0];
   if (!prop) return modalShell({ ariaLabel: "Prop Details", title: "Prop Details", body: '<div class="empty-state">No prop selected.</div>' });
   return modalShell({
     extraClass: "prop-details-view",
     ariaLabel: "Prop Details",
-    title: escapeHtml(prop.label),
-    subtitle: `<p>${escapeHtml(prop.description)}</p>`,
+    title: prop.label,
+    subtitleHtml: `<p>${escapeHtml(prop.description)}</p>`,
     body: `
       <div class="prop-details-body">
         <canvas class="prop-preview-canvas" data-prop-model="${escapeHtml(prop.modelUrl || "")}" data-prop-scale="${escapeHtml(prop.scale)}" data-prop-interactive="true" aria-label="${escapeHtml(prop.label)} model. Drag to rotate."></canvas>

@@ -9,7 +9,7 @@ import html
 import json
 import logging
 import mimetypes
-import random
+import sqlite3
 import time
 import uuid
 
@@ -18,7 +18,8 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from server.accounts import AccountConflictError, AccountService, AuthenticationError, LoginResult
-from server.commands.core import CommandContext, CommandError, build_registry, dispatch_command
+from server.commands.core import build_registry, dispatch_command
+from server.commands.outcomes import CommandContext, CommandError
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
 from server.config import AppConfig, ConfigError, ensure_contained, load_config
@@ -187,7 +188,7 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
     activity = runtime.activities.get(account.id)
     if not account.initial_sticker_complete:
         activity = runtime.activities.ensure_initial_sticker(account.id)
-    snapshot = runtime.stats.snapshot(account.id)
+    snapshot = runtime.stats.view(account.id)
     level_definition = runtime.content.levels.get(account.level)
     skills = runtime.progression.skill_slots(account, user_profile)
     friends = runtime.friends.serialize(account.id)
@@ -203,6 +204,7 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "kudos_to_next": level_definition.kudos_to_next,
         "max_equipped": level_definition.max_equipped,
         "bops": account.bops,
+        "sticker_swap_cost": runtime.content.bops.sticker_swap_cost,
         "shared_energy": snapshot.energy,
         "counters": snapshot.payload(),
         "stats": snapshot.effective.stats,
@@ -221,17 +223,7 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         ],
         "pinned_peeps": list(user_profile.pinned_peeps),
         "friends": friends.as_dict(),
-        "packs": [
-            {
-                "id": preview.id,
-                "label": preview.label,
-                "description": preview.description,
-                "price": preview.price,
-                "size": preview.size,
-                "back_image_url": preview.back_image_url,
-            }
-            for preview in runtime.shop.packs()
-        ],
+        "packs": [preview.as_dict() for preview in runtime.shop.packs()],
         "show_activity_log": user_profile.show_activity_log,
         "world_id": runtime.world.id,
         "remembered_room": user_profile.remembered_room,
@@ -323,14 +315,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
     actions = ActionsService(hub, profiles, stats, catalog, world.id)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
-    shop = ShopService(
-        hub,
-        profiles,
-        catalog,
-        content,
-        world.id,
-        rng=random.Random(config.pack_seed) if config.pack_seed is not None else None,
-    )
+    shop = ShopService(hub, profiles, catalog, content, world.id)
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -662,7 +647,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         serialize_user=lambda account: _serialize_account(runtime, account),
                     )
                     outcome = await dispatch_command(context, parsed_command)
-                except (CommandParseError, CommandError, ValueError) as exc:
+                except (CommandParseError, CommandError, ValueError, sqlite3.IntegrityError) as exc:
                     await connection.send(
                         result_envelope(
                             request_id,

@@ -21,12 +21,15 @@
     const node = document.createElement("article");
     node.className = "pack-card";
     node.innerHTML = `
-      <div class="pack-art" style="background-image:url('${TinyActivity.escape(pack.backImageUrl || "")}')"></div>
+      <div class="pack-art"></div>
       <h3>${TinyActivity.escape(pack.label)}</h3>
       <p>${TinyActivity.escape(pack.description || "")}</p>
       <p class="pack-meta">${pack.size} cards · ${pack.price} Bops</p>
       <button type="button" class="primary buy">Buy</button>
     `;
+    const art = node.querySelector(".pack-art");
+    const background = TinyActivity.image(pack.backImageUrl || "");
+    if (background) art.style.backgroundImage = `url("${background}")`;
     node.querySelector(".buy").onclick = () => askConfirm(pack);
     return node;
   }

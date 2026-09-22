@@ -82,11 +82,12 @@ CREATE TABLE IF NOT EXISTS reward_ledger (
 );
 CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id);
 CREATE TABLE IF NOT EXISTS pack_purchases (
-    operation_id TEXT PRIMARY KEY,
+    operation_id TEXT NOT NULL,
     account_id TEXT NOT NULL,
     pack_id TEXT NOT NULL,
     results_json TEXT NOT NULL CHECK (json_valid(results_json)),
     created_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, operation_id),
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
@@ -140,11 +141,12 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     );
     CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id);
     CREATE TABLE IF NOT EXISTS pack_purchases (
-        operation_id TEXT PRIMARY KEY,
+        operation_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
         pack_id TEXT NOT NULL,
         results_json TEXT NOT NULL CHECK (json_valid(results_json)),
         created_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, operation_id),
         FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
