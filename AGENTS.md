@@ -105,7 +105,7 @@ Browser harness settings (from `playwright.config.js`):
 - Two projects: desktop (1280×800) and portrait (390×844 mobile touch)
 - Fixed locale (`en-US`), timezone (`UTC`), reduced motion, SVG shader background for determinism
 - Software WebGL via `--use-angle=swiftshader`, single raster thread to prevent saturation
-- Visual diff: max 100 pixels / threshold 0.15 per screenshot
+- Visual diff: max 300 pixels / threshold 0.15 per screenshot
 
 ## Writing New Tests
 

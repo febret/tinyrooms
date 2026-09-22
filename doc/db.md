@@ -1,7 +1,7 @@
 # Tinyrooms — Database Reference
 
 This document describes the SQLite schemas for the two databases used by the
-Milestone 1 backend. The schema source of truth is
+Milestone 2 backend. The schema source of truth is
 `server/state/migrations.py`; the runtime access layer is
 `server/profiles.py` (profile DB) and `server/state/world_state.py` (world DB).
 
@@ -158,6 +158,25 @@ unified per account across worlds; `world_id` records where each grant occurred.
 | `payload_json` | TEXT NOT NULL CHECK `json_valid` | Placeholder for a future milestone: records grant details `{"kudos": int, "cards": [card_id, …]}` but is currently write-only (no reader), reserved for reward auditing/replay. |
 | `created_at` | TEXT NOT NULL | ISO grant timestamp. |
 
+### 2.6 `pack_purchases`
+
+Idempotency log guaranteeing that a card-pack purchase is charged and its
+results granted **exactly once** per `(account_id, operation_id)`. Written and
+read by `server/services/shop.py:ShopService.purchase()`; the replay lookup, the
+Bops debit, the card grants, and the insert all run inside a single
+`DatabaseHub.transaction()`. A repeated `operation_id` returns the stored draw
+(`replayed = True`, `bops_spent = 0`) without mutating balances or inventory.
+Like `reward_ledger`, this table lives in the profile DB, so purchases are
+unified per account across worlds.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `operation_id` | TEXT PK (composite) | Client-supplied purchase identity from `.buy_pack <pack> <operation_id>` (1–80 chars). Unique per account, not globally. |
+| `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Purchasing account. Indexed via `idx_pack_purchases_owner`. |
+| `pack_id` | TEXT NOT NULL | Pack definition ID from the catalog (`server/content/cards.py`). |
+| `results_json` | TEXT NOT NULL CHECK `json_valid` | Ordered JSON list of drawn `card_def_id`s, replayed on a duplicate `operation_id`. |
+| `created_at` | TEXT NOT NULL | ISO purchase timestamp. |
+
 ## 3. World-state DB — `TRSERVER_WORLDSTATE_PATH`
 
 The world-state DB persists durable, shared room content: live card stacks
@@ -183,7 +202,7 @@ room-exists gate that lived in the removed `rooms` table.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (Milestone 1 playable: `hub`, `playroom`). |
+| `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (every room in the loaded world definition is reachable). |
 | `initialized` | INTEGER NOT NULL DEFAULT 0 | `0` = reseed cards from YAML on next server start; `1` = leave the room's live cards alone. |
 | `owner_account_id` | TEXT NULL | Placeholder for a future milestone: reserved for room ownership (merges the former `room_owners` placeholder; currently written as NULL and never read). |
 | `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Placeholder for a future milestone: reserved JSON blob for dynamic prop state (merges the former `prop_states` placeholder; currently written as `'{}'` and never read). |

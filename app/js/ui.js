@@ -405,9 +405,9 @@ function renderAuth(state) {
   if (state.loggedIn) { authLayer.innerHTML = ""; return; }
   authLayer.innerHTML = `<section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
     <header><h1 id="auth-title">Tinyrooms</h1><p>A little world. A place for you.</p></header>
-    <div class="auth-tabs">
-      <button type="button" class="${state.auth.mode === "login" ? "primary" : "quiet"}" data-auth-mode="login">Login</button>
-      <button type="button" class="${state.auth.mode === "create" ? "primary" : "quiet"}" data-auth-mode="create">Create New Account</button>
+    <div class="auth-tabs" role="group" aria-label="Choose login or account creation">
+      <button type="button" class="auth-tab" aria-pressed="${state.auth.mode === "login"}" data-auth-mode="login">Login</button>
+      <button type="button" class="auth-tab" aria-pressed="${state.auth.mode === "create"}" data-auth-mode="create">Create New Account</button>
     </div>
     <form class="auth-form">
       <label>Username<input name="username" autocomplete="username" minlength="3" maxlength="24" required></label>

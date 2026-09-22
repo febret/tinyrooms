@@ -674,12 +674,14 @@ function reduce(state, action) {
   }
   if (action.type === "result") {
     let next = mergeResultPayload(state, action.payload);
+    const priorToastIds = new Set(next.ui.toasts.map(item => item.id));
     for (const event of action.events || []) next = applyServerEvent(next, event);
+    const announcedByEvent = next.ui.toasts.some(item => !priorToastIds.has(item.id));
     if (action.message && next.room && next.room.chatHistory.at(-1)?.text !== action.message) {
       next = { ...next, room: { ...next.room, chatHistory: [...next.room.chatHistory, asSystemHistory(action.message)].slice(-50) } };
     }
     const quietAcknowledgement = /^\.(?:say|help|look|settings)(?:\s|$)/.test(action.command || "");
-    if (action.ok && action.message && !quietAcknowledgement) next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "success")] } };
+    if (action.ok && action.message && !quietAcknowledgement && !announcedByEvent) next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "success")] } };
     if (!action.ok && action.message && !next.ui.toasts.some(item => item.tone === "error" && item.message === action.message)) {
       next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "error")] } };
     }
