@@ -1,4 +1,3 @@
-const CORE_ORDER = ["room", "emotes", "inventory", "skills", "journal", "self", "friends"];
 const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia === "function"
   ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
   : false;
@@ -155,6 +154,9 @@ function normalizeActivity(activity) {
 
 function normalizeUser(user) {
   if (!user) return null;
+  const normalizedCore = (Array.isArray(user.core_cards) ? user.core_cards : [])
+    .map(normalizeCardDefinition)
+    .filter(definition => definition && definition.id);
   return {
     id: String(user.id || ""),
     username: String(user.username || "Guest"),
@@ -163,6 +165,8 @@ function normalizeUser(user) {
     initialStickerComplete: Boolean(user.initial_sticker_complete),
     favorites: Array.isArray(user.favorites) ? [...user.favorites] : [],
     inventory: Array.isArray(user.inventory) ? user.inventory.map(normalizeInventoryStack) : [],
+    coreCards: Object.fromEntries(normalizedCore.map(definition => [definition.id, definition])),
+    coreOrder: normalizedCore.map(definition => definition.id),
     activity: normalizeActivity(user.activity),
     showActivityLog: Boolean(user.show_activity_log),
     level: Number(user.level || 0),
@@ -201,20 +205,6 @@ function normalizeRoom(room) {
     seq: Number(room.seq || 0),
   };
 }
-
-function coreCard(id, label, description, imageName) {
-  return { id, label, description, type: "core", imageUrl: `/assets/base/${imageName}` };
-}
-
-export const CORE_CARDS = {
-  room: coreCard("room", "Room", "List the cards placed in the current room.", "room.webp"),
-  inventory: coreCard("inventory", "Inventory", "Browse the cards you own in this world.", "inventory.webp"),
-  emotes: coreCard("emotes", "Emotes", "See expression and animation cards you own.", "emotes.webp"),
-  skills: coreCard("skills", "Skills", "Your skill collection. Skill slots are not available yet.", "skills.webp"),
-  journal: coreCard("journal", "Journal", "A place for your tasks and memories. Coming in a later milestone.", "journal.webp"),
-  self: coreCard("self", "Self", "Check your current counters, Bops, and Kudos.", "self.webp"),
-  friends: coreCard("friends", "Friends", "A place to keep in touch. Friend lists are not available yet.", "friends.webp"),
-};
 
 function toastRecord(message, tone = "info") {
   return { id: crypto.randomUUID(), message: String(message || ""), tone };
@@ -564,12 +554,10 @@ export function findInventoryCard(state, stackId) {
 export function findSelectedEntity(state) {
   if (!state.room) return null;
   if (state.selection.kind === "room") return state.room;
-  if (state.selection.kind === "core") return CORE_CARDS[state.selection.id] || null;
+  if (state.selection.kind === "core") return state.user?.coreCards?.[state.selection.id] || null;
   if (state.selection.kind === "room-card") return findRoomCard(state, state.selection.id);
   if (state.selection.kind === "inventory-card") return findInventoryCard(state, state.selection.id);
   if (state.selection.kind === "prop") return state.room.props.find(prop => prop.id === state.selection.id) || null;
   if (state.selection.kind === "peep") return [...state.room.occupants, ...state.room.npcs].find(peep => peep.id === state.selection.id) || null;
   return null;
 }
-
-export { CORE_ORDER };

@@ -187,6 +187,7 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "world_id": runtime.world.id,
         "remembered_room": user_profile.remembered_room,
         "inventory": runtime.cards.list_inventory_payload(account.id),
+        "core_cards": runtime.cards.serialize_core_cards(),
         "activity": runtime.activities.serialize(activity),
     }
 

@@ -18,6 +18,7 @@ from server.content.cards import ContentError, load_card_catalog
 from server.content.worlds import load_world_definition
 from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
+from server.services.cards import CardService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from tests.common import REPO_ROOT
 
@@ -227,6 +228,19 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertIsNone(world.rooms["hub"].props["portal0"].animation)
         self.assertIsNone(world.props["plant"].animation)
         self.assertIsNone(world.rooms["hub"].props["welcome-plant"].animation)
+
+    def test_core_card_order_is_loaded_and_sorted(self) -> None:
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
+        order_defined = {card_id: definition.order for card_id, definition in catalog.cards.items() if definition.order is not None}
+        self.assertEqual(
+            order_defined,
+            {"room": 1, "emotes": 2, "inventory": 3, "skills": 4, "journal": 5, "self": 6, "friends": 7},
+        )
+        service = CardService(None, None, None, catalog, "tutorial")
+        serialized = service.serialize_core_cards()
+        self.assertEqual([card["id"] for card in serialized], ["room", "emotes", "inventory", "skills", "journal", "self", "friends"])
+        self.assertTrue(all(card["type"] == "core" for card in serialized))
+        self.assertTrue(all(card["image_url"].startswith("/assets/base/") for card in serialized))
 
     def test_inventory_stack_limit_and_world_defaults(self) -> None:
         with TemporaryDirectory() as temporary_directory:

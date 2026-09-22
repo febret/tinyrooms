@@ -36,6 +36,7 @@ class CardDefinition:
     category: str | None
     rank: str | None
     quest: bool
+    order: int | None
     source: str
 
     @property
@@ -103,13 +104,19 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
         if not isinstance(bonuses_raw, dict):
             raise ContentError(f"Card '{card_id}' bonuses must be a mapping.")
         bonuses = {str(name): int(value) for name, value in bonuses_raw.items()}
+        card_type = _detect_type(card_id, raw_card)
+        order = int(raw_card["order"]) if "order" in raw_card else None
+        if order is not None and order < 1:
+            raise ContentError(f"Card '{card_id}' has invalid order {order}.")
+        if order is not None and card_type != "core":
+            raise ContentError(f"Card '{card_id}' can only define order when it is a core card.")
         cards[card_id] = CardDefinition(
             id=card_id,
             label=label,
             description=description,
             image_name=image_name,
             image_path=image_path,
-            type=_detect_type(card_id, raw_card),
+            type=card_type,
             rarity=str(raw_card["rarity"]) if "rarity" in raw_card else None,
             stack_limit=stack_limit,
             one_use=bool(raw_card.get("one_use", False)),
@@ -124,6 +131,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             category=str(raw_card["category"]) if "category" in raw_card else None,
             rank=str(raw_card["rank"]) if "rank" in raw_card else None,
             quest=bool(raw_card.get("quest", False)),
+            order=order,
             source=source,
         )
     return cards

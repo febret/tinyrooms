@@ -2,23 +2,28 @@
 emotes:
   label: Emotes
   description: Opens the Emotes selector
-  image: emotes.webp
+  image: emotes-icon.png
+  order: 2
 inventory:
   label: Inventory
   description: Opens the Inventory
-  image: inventory.webp
+  image: inventory-icon.png
+  order: 3
 journal:
   label: Journal
   description: Opens the Journal
-  image: journal.webp
+  image: journal-icon.png
+  order: 5
 skills:
   label: Skills
   description: Opens the Skills menu
-  image: skills.webp
+  image: skills-icon.png
+  order: 4
 room:
   label: Room
   description: Looks at the Room
-  image: room.webp
+  image: room-icon.png
+  order: 1
 
 # Base emote cards
 smile:
@@ -116,15 +121,17 @@ starlight:
 self:
   label: Self
   description: Check your counters, claim daily Bops, and level up.
-  image: self.webp
+  image: self-icon.png
   type: core
+  order: 6
 friends:
   label: Friends
   description: Keep in touch with peeps you meet.
-  image: friends.webp
+  image: friends-icon.png
   type: core
+  order: 7
 edit-room:
   label: Edit Room
   description: Arrange a room you own. Changes are shared.
-  image: edit-room.webp
+  image: edit-room-icon.png
   type: core

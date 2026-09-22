@@ -109,9 +109,11 @@ this checkout.
 
 Serialized `user`: `{id, username, sticker, initial_sticker_complete,
 favorites[], level, kudos, bops, shared_energy, show_activity_log, world_id,
-remembered_room, inventory[], activity}` (favorites/show_activity_log sourced
-from `user_profiles.profile_json`). New users: level 0 “Guest”,
-10 Bops, Smile/Sigh/Growl/Goof, favorites `[Room, Emotes, Inventory]`.
+remembered_room, inventory[], core_cards[], activity}` (favorites/
+show_activity_log sourced from `user_profiles.profile_json`; `core_cards` are
+the hand-strip core card definitions serialized in their cards.yaml `order`).
+New users: level 0 “Guest”, 10 Bops, Smile/Sigh/Growl/Goof, favorites `[Room,
+Emotes, Inventory]`.
 Authenticated POSTs require `Origin` + `X-CSRF-Token == tr_csrf ==
 session.csrf_token`.
 

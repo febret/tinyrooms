@@ -1,6 +1,6 @@
 import { CARD_BACK } from "./board.js";
 import { buildFavoriteCommand } from "./commands.js";
-import { CORE_CARDS, CORE_ORDER, findInventoryCard, findRoomCard, findSelectedEntity } from "./state.js";
+import { findInventoryCard, findRoomCard, findSelectedEntity } from "./state.js";
 import { escapeHtml } from "./presentation.js";
 
 function rarityLabel(definition) {
@@ -37,10 +37,9 @@ function tileMarkup(definition, stack, selected, scope) {
   `;
 }
 
-function coreMarkup(id, favorite, selected) {
-  const definition = CORE_CARDS[id];
+function coreMarkup(definition, favorite, selected) {
   return `
-    <button type="button" class="game-card core ${selected ? "selected" : ""}" data-core-id="${id}"
+    <button type="button" class="game-card core ${selected ? "selected" : ""}" data-core-id="${definition.id}"
       aria-label="${escapeHtml(definition.label)}${favorite ? ", favorite" : ""}" aria-pressed="${selected}" title="${escapeHtml(definition.label)}">
       <img src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
     </button>
@@ -222,9 +221,10 @@ export function selectionActions(state) {
     ];
   }
   if (state.selection.kind === "core") {
-    if (!CORE_CARDS[state.selection.id]) return [];
+    const definition = state.user?.coreCards?.[state.selection.id];
+    if (!definition) return [];
     return [
-      { label: state.views.main === state.selection.id ? "Close" : `Open ${CORE_CARDS[state.selection.id].label}`, local: { type: "open-view", view: state.selection.id }, tone: "primary" },
+      { label: state.views.main === state.selection.id ? "Close" : `Open ${definition.label}`, local: { type: "open-view", view: state.selection.id }, tone: "primary" },
       { label: state.user?.favorites?.includes(state.selection.id) ? "Unfavorite" : "Favorite", command: buildFavoriteCommand(state.selection.id), tone: "positive" },
     ];
   }
@@ -292,15 +292,17 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
   }
   return {
     render(state) {
-      const favorites = [...new Set(state.user?.favorites || [])].filter(id => CORE_ORDER.includes(id));
+      const coreCards = state.user?.coreCards || {};
+      const coreOrder = state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards);
+      const favorites = [...new Set(state.user?.favorites || [])].filter(id => coreOrder.includes(id));
       const visibleCore = state.views.coreExpanded
-        ? CORE_ORDER
+        ? coreOrder
         : favorites;
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
       const handChanged = update(handRoot, `
         <div class="card-hand-section ${state.views.coreExpanded ? "expanded" : ""}">
           <div class="card-hand-strip" role="group" aria-label="Core cards">
-            ${visibleCore.map(id => coreMarkup(id, favorites.includes(id), state.views.main === id || state.selection.kind === "core" && state.selection.id === id)).join("")}
+            ${visibleCore.map(id => coreMarkup(coreCards[id], favorites.includes(id), state.views.main === id || state.selection.kind === "core" && state.selection.id === id)).join("")}
           </div>
           <button type="button" class="game-card core-expand" data-core-expand="1" aria-label="${state.views.coreExpanded ? "Collapse core cards" : "Expand core cards"}" aria-expanded="${state.views.coreExpanded}">
             <img src="/assets/base/arrow-${state.views.coreExpanded ? "left" : "right"}.webp" alt="">
