@@ -66,6 +66,36 @@ test.describe("room and inventory", () => {
     await expect(roomCards).toHaveCount(1);
   });
 
+  test("dragging from the equipped hand drops a card at the pointer", async ({ page, runtime }) => {
+    const sentCommands = [];
+    page.on("websocket", socket => socket.on("framesent", ({ payload }) => {
+      const envelope = JSON.parse(String(payload));
+      if (envelope.type === "command") sentCommands.push(envelope.command);
+    }));
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await openCore(page, "room");
+    const roomCards = page.locator('#panel-layer [data-stack-id][data-scope="room"]');
+    await expect(roomCards).toHaveCount(1);
+    await roomCards.first().click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
+    await expect(roomCards).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+    const tile = page.locator(".equipped-hand [data-stack-id]").first();
+    await expect(tile).toBeVisible();
+    const tileBox = await tile.boundingBox();
+    const boardBox = await page.locator("#board-canvas").boundingBox();
+    await page.mouse.move(tileBox.x + tileBox.width / 2, tileBox.y + tileBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(boardBox.x + boardBox.width * 0.35, boardBox.y + boardBox.height * 0.45, { steps: 10 });
+    await page.mouse.up();
+    await expect.poll(() => sentCommands.filter(command => command.startsWith(".drop ")).at(-1))
+      .toMatch(/^\.drop @card:\S+ 1 \d+\.\d{2} \d+\.\d{2} \d+\.\d{2}$/);
+    await openCore(page, "room");
+    await expect(roomCards).toHaveCount(1);
+  });
+
   test("multi-card stacks offer direct and dialog actions", async ({ page, runtime }) => {
     // Multi-copy stacks are not reachable in milestone rooms, so exercise the
     // real client module with fabricated selection state instead of gameplay.

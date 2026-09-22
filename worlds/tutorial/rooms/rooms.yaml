@@ -16,7 +16,7 @@ playroom:
   description: Molly keeps watch over a dollhouse. Pet, chat, or play a round of Lazor Rush.
   board_type: basic
   board_image: playroom.png
-  board_image_style: stretch
+  board_image_style: tile
   palette: ["#e4d5b5", "#de958a", "#88ada9"]
   props:
     dollhouse0:

@@ -92,7 +92,7 @@ lamp:
 vending:
   label: Pocket Card Shop
   description: Base and Tutorial packs. Three cards for 10 Bops; unlimited stock.
-  model: vending.glb
+  model: lesiakower-vending-1586.glb
   decorative: false
 stairs:
   label: Little House Stairs

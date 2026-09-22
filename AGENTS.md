@@ -125,7 +125,7 @@ Browser harness settings (from `playwright.config.js`):
 ## Modifying World Content
 
 1. Edit YAML files under `worlds/<world>/` or `data/`. Validated by loaders in `server/content/worlds.py` and `server/content/cards.py`.
-2. After changes, run browser tests against the modified world: `npm run test:browser -- -g "<test name>"`. Visual regressions must be manually reviewed.
+2. After changes, run browser tests against the modified world: `npm run test:browser -- -g "<test name>"`.
 3. Never modify checked-in visual baselines to mask content bugs. Regenerate visuals only when the change is intentional and matches design docs.
 
 ## Before You Commit / PR
