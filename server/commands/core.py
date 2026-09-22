@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
@@ -66,6 +67,25 @@ def _parse_quantity(args: tuple[str, ...], index: int = 1) -> int:
     if quantity < 1:
         raise CommandError("Quantity must be at least 1.")
     return quantity
+
+
+def _parse_drop_position(args: tuple[str, ...]) -> tuple[float, float, float]:
+    coordinates = [50.0, 50.0, 0.0]
+    for index in range(3):
+        argument_index = 2 + index
+        if len(args) <= argument_index:
+            break
+        try:
+            coordinates[index] = float(args[argument_index])
+        except ValueError as exc:
+            raise CommandError("Drop position coordinates must be numbers.") from exc
+    if not all(math.isfinite(value) for value in coordinates):
+        raise CommandError("Drop position coordinates must be finite numbers.")
+    return (
+        min(100.0, max(0.0, coordinates[0])),
+        min(100.0, max(0.0, coordinates[1])),
+        min(50.0, max(0.0, coordinates[2])),
+    )
 
 
 def _require_room_id(context: CommandContext) -> str:
@@ -230,7 +250,8 @@ async def drop_command(context: CommandContext, command: ParsedCommand) -> Comma
     if target is None or target.kind != "card":
         raise CommandError("Drop requires a @card target.")
     quantity = _parse_quantity(command.args)
-    mutation = context.cards.drop(context.account, room_id, target.value, quantity, pos=(50.0, 50.0, 0.0))
+    position = _parse_drop_position(command.args)
+    mutation = context.cards.drop(context.account, room_id, target.value, quantity, pos=position)
     return CommandOutcome(
         message="Card dropped.",
         payload={"inventory": mutation.inventory},

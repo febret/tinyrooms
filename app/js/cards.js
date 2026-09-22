@@ -299,13 +299,14 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
         ? coreOrder
         : favorites;
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
+      const expandIcon = state.views.coreExpanded ? coreCards["arrow-left"]?.imageUrl : coreCards["arrow-right"]?.imageUrl;
       const handChanged = update(handRoot, `
         <div class="card-hand-section ${state.views.coreExpanded ? "expanded" : ""}">
           <div class="card-hand-strip" role="group" aria-label="Core cards">
             ${visibleCore.map(id => coreMarkup(coreCards[id], favorites.includes(id), state.views.main === id || state.selection.kind === "core" && state.selection.id === id)).join("")}
           </div>
           <button type="button" class="game-card core-expand" data-core-expand="1" aria-label="${state.views.coreExpanded ? "Collapse core cards" : "Expand core cards"}" aria-expanded="${state.views.coreExpanded}">
-            <img src="/assets/base/arrow-${state.views.coreExpanded ? "left" : "right"}.webp" alt="">
+            ${expandIcon ? `<img src="${escapeHtml(expandIcon)}" alt="">` : ""}
           </button>
           ${equipped.length ? `<div class="equipped-hand ${state.views.coreExpanded ? "stashed" : ""}" role="group" aria-label="Equipped cards">
             ${equipped.map(stack => tileMarkup(stack.definition, stack, state.selection.kind === "inventory-card" && state.selection.id === stack.stackId, "inventory")).join("")}

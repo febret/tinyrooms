@@ -6,6 +6,16 @@ import { boardPosition, boardSignature, disposeBoardTree, fitBoardCamera } from 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
 const RANDOM_ANIMATION_PAUSE_MS = 1000;
+const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP);
+
+/** Convert a world-space point on the floor back into an authoritative [x%, y%, z] position. */
+function boardPositionFromWorld(point) {
+  return [
+    Math.min(100, Math.max(0, point.x / 0.105 + 50)),
+    Math.min(100, Math.max(0, point.z / 0.085 + 50)),
+    0,
+  ];
+}
 
 function material(color, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
@@ -96,6 +106,13 @@ export function createBoard({ canvas, overlay, onSelect }) {
   selectionRing.rotation.x = -Math.PI / 2;
   selectionRing.visible = false;
   scene.add(selectionRing);
+  const dropHint = new THREE.Mesh(
+    new THREE.TorusGeometry(0.5, 0.035, 8, 48),
+    new THREE.MeshBasicMaterial({ color: "#a6e87a", depthWrite: false, transparent: true, opacity: 0.85 }),
+  );
+  dropHint.rotation.x = -Math.PI / 2;
+  dropHint.visible = false;
+  scene.add(dropHint);
   const loader = new GLTFLoader();
   const textureLoader = new THREE.TextureLoader();
   const clock = new THREE.Clock();
@@ -150,6 +167,58 @@ export function createBoard({ canvas, overlay, onSelect }) {
     fitBoardCamera(camera, controls, current.root, {
       resetDirection, width, height, bottomInset: width < height ? trayHeight : 0,
     });
+  }
+
+  function canvasBounds() {
+    const bounds = canvas.getBoundingClientRect();
+    return bounds.width && bounds.height ? bounds : null;
+  }
+
+  function screenToBoardPosition(clientX, clientY) {
+    if (disposed || renderFailed || !current || blocked) return null;
+    const bounds = canvasBounds();
+    if (!bounds) return null;
+    if (clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) return null;
+    pointer.set(
+      (clientX - bounds.left) / bounds.width * 2 - 1,
+      -(clientY - bounds.top) / bounds.height * 2 + 1,
+    );
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
+    if (!hit) return null;
+    const projected = hit.clone().project(camera);
+    return {
+      position: boardPositionFromWorld(hit),
+      screen: {
+        x: (projected.x + 1) / 2 * bounds.width + bounds.left,
+        y: (1 - projected.y) / 2 * bounds.height + bounds.top,
+      },
+    };
+  }
+
+  function projectPositionToScreen(position) {
+    if (disposed || !current || !Array.isArray(position)) return null;
+    const bounds = canvasBounds();
+    if (!bounds) return null;
+    const world = new THREE.Vector3(...boardPosition(position));
+    world.y += TOP;
+    const projected = world.project(camera);
+    if (!Number.isFinite(projected.x) || projected.z > 1) return null;
+    return {
+      x: (projected.x + 1) / 2 * bounds.width + bounds.left,
+      y: (1 - projected.y) / 2 * bounds.height + bounds.top,
+    };
+  }
+
+  function setDropHint(position) {
+    if (!position || disposed || blocked) {
+      dropHint.visible = false;
+      return;
+    }
+    const world = new THREE.Vector3(...boardPosition(position));
+    world.y += TOP + 0.012;
+    dropHint.position.copy(world);
+    dropHint.visible = true;
   }
 
   function texture(entry, url, label, apply) {
@@ -329,6 +398,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
     disposeBoardTree([current.root, ...current.modelScenes]);
     current = null;
     selectionRing.visible = false;
+    dropHint.visible = false;
   }
 
   function rebuild(room) {
@@ -474,6 +544,12 @@ export function createBoard({ canvas, overlay, onSelect }) {
       }
       updateSelection();
     },
+    /** Map a screen point to the authoritative floor position and projected screen point. */
+    screenToBoardPosition,
+    /** Project an authoritative [x%, y%, z] position into canvas screen coordinates. */
+    projectPositionToScreen,
+    /** Show or clear the floor marker used as a drag drop target. */
+    setDropHint,
     /** Release geometry, materials, textures, controls, listeners, and late-loading assets. */
     dispose() {
       if (disposed) return;
@@ -491,6 +567,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
       canvas.removeEventListener("webglcontextlost", contextLost);
       clear();
       disposeBoardTree(selectionRing);
+      disposeBoardTree(dropHint);
       sunlight.shadow.dispose();
       renderer.dispose();
     },

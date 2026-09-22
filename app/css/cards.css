@@ -167,6 +167,12 @@
   .card-hand-strip, .equipped-hand { padding-top: 7px; }
   .board-modal { padding-block: 12px; }
 }
+.card-motion-layer { position: fixed; inset: 0; z-index: 95; pointer-events: none; }
+.card-flight, .card-drag-ghost { position: fixed; border-radius: 6px; pointer-events: none; object-fit: cover; }
+.card-flight { box-shadow: 0 8px 18px #0008; will-change: transform, opacity; }
+.card-drag-ghost { transform: translate(-50%, -50%); box-shadow: 0 10px 22px #0009; opacity: .92; }
+body.card-dragging { cursor: grabbing; user-select: none; }
+body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
   .game-card { transition: none; }
 }

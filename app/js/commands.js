@@ -5,7 +5,7 @@ export const COMMANDS = [
   { name: ".say <text>", summary: "Speak in the room." },
   { name: ".inspect @card:<id>", summary: "Inspect a prop or card." },
   { name: ".pickup @card:<stack> <qty>", summary: "Pick up a room stack quantity." },
-  { name: ".drop @card:<stack> <qty>", summary: "Drop an owned stack quantity." },
+  { name: ".drop @card:<stack> <qty> [x y z]", summary: "Drop an owned stack quantity, optionally at a board position." },
   { name: ".favorite @card:<id>", summary: "Toggle a favorite core card." },
   { name: ".play <activity>", summary: "Open a room or account activity." },
   { name: ".cancel", summary: "Cancel targeting or a pending interaction." },

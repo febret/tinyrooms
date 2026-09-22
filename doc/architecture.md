@@ -76,7 +76,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop, core favorites. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
 | Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room state (seq, chat, room cards). |
-| Browser UI | `app/` | Shell (`index.html`), styles, 13 JS modules, vendored Three.js. |
+| Browser UI | `app/` | Shell (`index.html`), styles, 14 JS modules, vendored Three.js. |
 | Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
 | Shared data | `data/` | Core tuning YAML, base card set + art, sticker choices. |
 | Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes + art/models. |
@@ -111,7 +111,8 @@ Serialized `user`: `{id, username, sticker, initial_sticker_complete,
 favorites[], level, kudos, bops, shared_energy, show_activity_log, world_id,
 remembered_room, inventory[], core_cards[], activity}` (favorites/
 show_activity_log sourced from `user_profiles.profile_json`; `core_cards` are
-the hand-strip core card definitions serialized in their cards.yaml `order`).
+the core card definitions (hand cards first in their cards.yaml `order`,
+followed by unordered core UI chrome such as the expand/collapse arrows).
 New users: level 0 “Guest”, 10 Bops, Smile/Sigh/Growl/Goof, favorites `[Room,
 Emotes, Inventory]`.
 Authenticated POSTs require `Origin` + `X-CSRF-Token == tr_csrf ==
@@ -181,7 +182,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.go` | `.go @way:exit0` | Exit/lock/card + Milestone-1 room checks; updates `remembered_room`, moves WS room, closes room-bound activity; private dest snapshot + 2 broadcasts. |
 | `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; persists to bounded history; broadcasts `chat.message`. Empty / >280 chars rejected. |
 | `.pickup` | `.pickup @card:<stack> 2` | Atomic room→inventory txn; private `payload.inventory`; broadcasts `room.card.updated/removed`. Pinned rejected; concurrent same-stack is single-winner. |
-| `.drop` | `.drop @card:<stack> 1` | Atomic inventory→room txn (pos `(50,50,0)`); broadcasts `room.card.added`. |
+| `.drop` | `.drop @card:<stack> 1 62 71 0` | Atomic inventory→room txn; optional trailing `x y z` floor coordinates (percent x/y, elevation z; clamped, defaults `50 50 0`); broadcasts `room.card.added`. |
 | `.favorite` | `.favorite @card:journal` | Core-card-only toggle; `payload.favorites`. |
 | `.play` | `.play sample`, `.play molly replace` | Starts activity (`molly`→`lazor-rush` playroom-only; `sample`→`dev-sample` flag-gated; also `shop`/`crafting`); occupied without `replace` → reject; private `activity.started` (+`closed reason:replaced`). |
 | `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
@@ -258,9 +259,13 @@ error toast.
 - Pickup (Room view → `Pick up` → qty dialog → `.pickup @card:<stack> n`)
   → private `payload.inventory` + broadcast updated/removed. Pinned stacks
   reject.
-- Drop (Inventory view → `Drop` → `.drop @card:<stack> n`) → broadcast
-  `room.card.added`. Starter Smile/Sigh/Growl/Goof + 10 Bops only; core
-  cards are non-transferable.
+- Drop (Inventory view → `Drop` → `.drop @card:<stack> n`, or dragging an
+  equipped hand tile onto the board) → broadcast `room.card.added` with the
+  persisted `position`. `app/js/drag.js` raycasts the pointer onto the floor
+  plane (`board.screenToBoardPosition`), shows a drop marker, sends the
+  trailing `x y z`, and plays a DOM card-flight animation; pick-up from the
+  board/Room view plays the reverse flight. Starter Smile/Sigh/Growl/Goof +
+  10 Bops only; core cards are non-transferable.
 - Favorites (expand core `>` → select → `Favorite` /
   `.favorite @card:journal`) → `payload.favorites`, visible via
   `/api/bootstrap`. Escape priority: targeting → popup → main view.

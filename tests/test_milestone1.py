@@ -238,9 +238,16 @@ class ContentPersistenceTests(unittest.TestCase):
         )
         service = CardService(None, None, None, catalog, "tutorial")
         serialized = service.serialize_core_cards()
-        self.assertEqual([card["id"] for card in serialized], ["room", "emotes", "inventory", "skills", "journal", "self", "friends"])
+        self.assertEqual(
+            [card["id"] for card in serialized if card["order"] is not None],
+            ["room", "emotes", "inventory", "skills", "journal", "self", "friends"],
+        )
         self.assertTrue(all(card["type"] == "core" for card in serialized))
         self.assertTrue(all(card["image_url"].startswith("/assets/base/") for card in serialized))
+        arrows = {card["id"]: card for card in serialized if card["id"] in {"arrow-left", "arrow-right"}}
+        self.assertEqual(set(arrows), {"arrow-left", "arrow-right"})
+        self.assertEqual(arrows["arrow-left"]["image_url"], "/assets/base/arrow-left-icon.png")
+        self.assertEqual(arrows["arrow-right"]["image_url"], "/assets/base/arrow-right-icon.png")
 
     def test_inventory_stack_limit_and_world_defaults(self) -> None:
         with TemporaryDirectory() as temporary_directory:
@@ -593,6 +600,67 @@ class MultiplayerGameplayTests(RuntimeTestCase):
         for thread in threads:
             thread.join()
         self.assertEqual(sorted(results), ["fail", "ok"])
+
+    def test_drop_uses_requested_position_and_clamps_coordinates(self) -> None:
+        player = self.create_ready_account("planter")
+        runtime = self.client.app.state.runtime
+        with self.client.websocket_connect(
+            "/ws",
+            headers=websocket_headers(
+                player["session_token"],
+                player["csrf_token"],
+            ),
+        ) as socket:
+            socket.receive_json()
+            self.assertTrue(self.command(socket, "go-1", ".go @way:exit0")["ok"])
+            playroom = socket.receive_json()["room"]
+            room_card = playroom["room_cards"][0]
+            pickup = self.command(
+                socket,
+                "pickup-1",
+                f".pickup @card:{room_card['stack_id']} 1",
+            )
+            self.assertTrue(pickup["ok"])
+            socket.receive_json()
+            picked_stack_id = next(
+                stack["stack_id"]
+                for stack in pickup["payload"]["inventory"]
+                if stack["definition"]["id"] == room_card["definition"]["id"]
+            )
+            dropped = self.command(
+                socket,
+                "drop-1",
+                f".drop @card:{picked_stack_id} 1 23.5 67.25 0",
+            )
+            self.assertTrue(dropped["ok"])
+            added = socket.receive_json()
+            self.assertEqual(added["event"]["type"], "room.card.added")
+            self.assertEqual(
+                added["event"]["stack"]["position"],
+                [23.5, 67.25, 0.0],
+            )
+            persisted = next(
+                stack
+                for stack in runtime.world_state.list_room_cards("playroom")
+                if stack.stack_id == added["event"]["stack"]["stack_id"]
+            )
+            self.assertEqual(tuple(persisted.position), (23.5, 67.25, 0.0))
+            smile_stack_id = next(
+                stack["stack_id"]
+                for stack in playroom["inventory"]
+                if stack["definition"]["id"] == "smile"
+            )
+            clamped = self.command(
+                socket,
+                "drop-2",
+                f".drop @card:{smile_stack_id} 1 250 -10 999",
+            )
+            self.assertTrue(clamped["ok"])
+            clamped_added = socket.receive_json()
+            self.assertEqual(
+                clamped_added["event"]["stack"]["position"],
+                [100.0, 0.0, 50.0],
+            )
 
     def test_reset_room_restores_definition_seed_cards(self) -> None:
         runtime = self.client.app.state.runtime

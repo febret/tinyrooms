@@ -41,6 +41,7 @@ function normalizeCardDefinition(definition) {
     rank: String(definition.rank || ""),
     bonuses: definition.bonuses || {},
     quest: Boolean(definition.quest),
+    order: typeof definition.order === "number" ? definition.order : null,
   };
 }
 
@@ -166,7 +167,10 @@ function normalizeUser(user) {
     favorites: Array.isArray(user.favorites) ? [...user.favorites] : [],
     inventory: Array.isArray(user.inventory) ? user.inventory.map(normalizeInventoryStack) : [],
     coreCards: Object.fromEntries(normalizedCore.map(definition => [definition.id, definition])),
-    coreOrder: normalizedCore.map(definition => definition.id),
+    coreOrder: normalizedCore
+      .filter(definition => definition.order !== null)
+      .sort((left, right) => left.order - right.order)
+      .map(definition => definition.id),
     activity: normalizeActivity(user.activity),
     showActivityLog: Boolean(user.show_activity_log),
     level: Number(user.level || 0),

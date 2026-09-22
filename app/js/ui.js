@@ -5,6 +5,7 @@ import { createBoard } from "./board.js";
 import { createCardsView, describeSelection, selectionActions } from "./cards.js";
 import { COMMANDS, buildQuantityCommand, chatToCommand } from "./commands.js";
 import { createDialogs } from "./dialogs.js";
+import { createCardMotion } from "./drag.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createSocketClient } from "./socket.js";
@@ -139,7 +140,10 @@ async function handleAction(action) {
   playTone("tap");
   if (action.local) action = action.local;
   if (action.command) {
-    try { await sendCommand(action.command); } catch (error) { showError(error); }
+    try {
+      cardMotion.animatePickupCommand(action.command);
+      await sendCommand(action.command);
+    } catch (error) { showError(error); }
     return;
   }
   if (action.type === "open-view" || action.type === "core-toggle") {
@@ -153,6 +157,7 @@ async function handleAction(action) {
   } else if (action.type === "quantity") {
     const quantity = await dialogs.quantity(action.intent, action.max);
     if (quantity === null) return;
+    if (action.intent === "pickup") cardMotion.animatePickup(action.stackId);
     try { await sendCommand(buildQuantityCommand(action.intent, action.stackId, quantity)); } catch (error) { showError(error); }
   }
 }
@@ -336,6 +341,13 @@ const cards = createCardsView({
   handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer,
   onSelect(selection) { store.dispatch({ type: "select", selection }); playTone("flip"); },
   onAction: action => { void handleAction(action); },
+});
+const cardMotion = createCardMotion({
+  board,
+  handRoot: $("#card-hand"),
+  getState: () => store.getState(),
+  sendCommand,
+  onError: showError,
 });
 const activities = createActivityManager({
   layer: activityLayer, getState: () => store.getState(),

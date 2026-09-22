@@ -78,18 +78,27 @@ class CardService:
         return payload
 
     def serialize_core_cards(self) -> list[dict[str, object]]:
-        """Serialize hand-strip core card definitions in their authored order."""
+        """Serialize core card definitions, hand cards first in authored order."""
 
+        ordered = sorted(
+            (
+                definition
+                for definition in self._catalog.cards.values()
+                if definition.type == "core" and definition.order is not None
+            ),
+            key=lambda definition: definition.order,
+        )
+        unordered = sorted(
+            (
+                definition
+                for definition in self._catalog.cards.values()
+                if definition.type == "core" and definition.order is None
+            ),
+            key=lambda definition: definition.id,
+        )
         return [
-            self.serialize_definition(definition)
-            for definition in sorted(
-                (
-                    definition
-                    for definition in self._catalog.cards.values()
-                    if definition.type == "core" and definition.order is not None
-                ),
-                key=lambda definition: definition.order,
-            )
+            {**self.serialize_definition(definition), "order": definition.order}
+            for definition in (*ordered, *unordered)
         ]
 
     def _serialize_stack_base(
