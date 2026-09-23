@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.conditions import StatusCondition, parse_status_condition
 from server.game.modifiers import STAT_TARGETS
 
 
@@ -17,27 +17,6 @@ class StatDefinition:
     id: str
     label: str
     description: str
-
-
-@dataclass(frozen=True, slots=True)
-class StatusCondition:
-    """A single counter predicate that applies or clears a status."""
-
-    counter: str
-    at_or_below: float | None = None
-    at_or_above_fraction: float | None = None
-    above: float | None = None
-
-    def matches(self, value: float, maximum: float | None = None) -> bool:
-        """Return whether *value* satisfies this condition."""
-
-        if self.at_or_below is not None and value <= self.at_or_below:
-            return True
-        if self.above is not None and value > self.above:
-            return True
-        if self.at_or_above_fraction is not None and maximum is not None:
-            return value >= maximum * self.at_or_above_fraction
-        return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,28 +123,6 @@ def _load_stats(path: Path) -> dict[str, StatDefinition]:
     return stats
 
 
-def _parse_condition(raw: Any, status_id: str, path: Path) -> StatusCondition:
-    if not isinstance(raw, dict):
-        raise ContentError(f"Status '{status_id}' condition must be a mapping in {path}.")
-    counter = str(raw.get("counter", "")).strip()
-    if not counter:
-        raise ContentError(f"Status '{status_id}' condition is missing a counter.")
-    at_or_below = raw.get("at_or_below")
-    above = raw.get("above")
-    at_or_above_fraction = raw.get("at_or_above_fraction")
-    provided = [value for value in (at_or_below, above, at_or_above_fraction) if value is not None]
-    if len(provided) != 1:
-        raise ContentError(f"Status '{status_id}' condition must define exactly one comparison.")
-    return StatusCondition(
-        counter=counter,
-        at_or_below=float(at_or_below) if at_or_below is not None else None,
-        at_or_above_fraction=(
-            float(at_or_above_fraction) if at_or_above_fraction is not None else None
-        ),
-        above=float(above) if above is not None else None,
-    )
-
-
 def _load_statuses(path: Path) -> dict[str, StatusDefinition]:
     payload = require_mapping(load_yaml_file(path), path)
     statuses: dict[str, StatusDefinition] = {}
@@ -188,8 +145,12 @@ def _load_statuses(path: Path) -> dict[str, StatusDefinition]:
             label=label,
             description=description,
             icon=str(raw.get("icon", "")),
-            applied_when=_parse_condition(raw.get("applied_when"), status_id, path),
-            cleared_when=_parse_condition(raw.get("cleared_when"), status_id, path),
+            applied_when=parse_status_condition(
+                raw.get("applied_when"), f"Status '{status_id}' condition", required=True
+            ),
+            cleared_when=parse_status_condition(
+                raw.get("cleared_when"), f"Status '{status_id}' condition", required=True
+            ),
             stat_effects=stat_effects,
         )
     return statuses

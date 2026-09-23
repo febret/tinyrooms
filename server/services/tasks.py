@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone as datetime_timezone
 import json
 import logging
 import sqlite3
@@ -12,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from server.content.gameplay import GameplayContent
 from server.content.tasks import TaskDefinition, TaskReward, TaskStep
+from server.game_time import game_date, today_in
 from server.profiles import ProfileRepository
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
@@ -115,18 +115,10 @@ class TaskService:
         self._memories = memories
 
     def _local_date(self, iso_timestamp: str | None) -> str:
-        if not iso_timestamp:
-            return ""
-        try:
-            parsed = datetime.fromisoformat(iso_timestamp)
-        except (TypeError, ValueError):
-            return ""
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=datetime_timezone.utc)
-        return parsed.astimezone(self._timezone).date().isoformat()
+        return game_date(iso_timestamp, self._timezone)
 
     def _today(self) -> str:
-        return utc_now().astimezone(self._timezone).date().isoformat()
+        return today_in(self._timezone)
 
     def _ledger_key(self, definition: TaskDefinition, game_day: str) -> str:
         base = f"task:{definition.id}"
@@ -137,7 +129,7 @@ class TaskService:
         for entry in definition.participants:
             if entry == "room" or entry == "personal":
                 continue
-            account = self._profiles.get_account_by_username(entry) or self._profiles.get_account_by_id(entry)
+            account = self._profiles.resolve_account(entry)
             if account is not None:
                 account_ids.add(account.id)
         return account_ids
@@ -215,6 +207,7 @@ class TaskService:
                 scope = excluded.scope,
                 status = excluded.status,
                 steps_json = excluded.steps_json,
+                started_at = excluded.started_at,
                 completed_at = excluded.completed_at,
                 definition_revision = excluded.definition_revision,
                 reward_operation_id = excluded.reward_operation_id,
@@ -475,25 +468,35 @@ class TaskService:
     def start(self, account_id: str, task_id: str) -> dict[str, object] | None:
         """Start a task lazily; starting an already-active task is a no-op."""
 
+        with self._hub.transaction() as connection:
+            return self.start_in_transaction(connection, account_id, task_id)
+
+    def start_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        task_id: str,
+    ) -> dict[str, object] | None:
+        """Start a task inside a caller-owned transaction."""
+
         definition = self._definitions.get(task_id)
         if definition is None or self._profiles.get_account_by_id(account_id) is None:
             return None
-        with self._hub.transaction() as connection:
-            row = self._load_row(connection, account_id, task_id)
-            state = self._prepare_state(connection, account_id, definition, row)
-            if state is None:
-                return self.view(account_id, task_id)
-            if row is None or str(row["status"]) != "active":
-                self._write_row(
-                    connection,
-                    account_id,
-                    definition,
-                    state["steps"],
-                    str(state["status"]),
-                    str(state["started_at"]),
-                    None,
-                    None,
-                )
+        row = self._load_row(connection, account_id, task_id)
+        state = self._prepare_state(connection, account_id, definition, row)
+        if state is None:
+            return self.view(account_id, task_id)
+        if row is None or str(row["status"]) != "active":
+            self._write_row(
+                connection,
+                account_id,
+                definition,
+                state["steps"],
+                str(state["status"]),
+                str(state["started_at"]),
+                None,
+                None,
+            )
         return self.view(account_id, task_id)
 
     def record(

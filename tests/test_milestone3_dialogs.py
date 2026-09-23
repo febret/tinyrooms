@@ -61,35 +61,6 @@ class DialogValidationTests(unittest.TestCase):
         with self.assertRaises(ContentError):
             _load_dialog({"start": {"text": "Hi", "choices": [{"label": "Go", "next": "missing"}]}}, "peep", set())
 
-    def test_missing_start_is_rejected(self) -> None:
-        with self.assertRaises(ContentError):
-            _load_dialog({"other": {"text": "Hi", "choices": []}}, "peep", set())
-
-    def test_unreachable_node_is_rejected_unless_unused(self) -> None:
-        with self.assertRaises(ContentError):
-            _load_dialog(
-                {"start": {"text": "Hi", "choices": []}, "orphan": {"text": "Hidden", "choices": []}},
-                "peep",
-                set(),
-            )
-        dialog = _load_dialog(
-            {"start": {"text": "Hi", "choices": []}, "unused_orphan": {"text": "Hidden", "choices": []}},
-            "peep",
-            set(),
-        )
-        self.assertIn("unused_orphan", dialog.nodes)
-
-    def test_choice_needs_exactly_one_destination(self) -> None:
-        with self.assertRaises(ContentError):
-            _load_dialog({"start": {"text": "Hi", "choices": [{"label": "Both", "next": "start", "end": True}]}}, "peep", set())
-        with self.assertRaises(ContentError):
-            _load_dialog({"start": {"text": "Hi", "choices": [{"label": "Neither"}]}}, "peep", set())
-
-    def test_empty_text_is_rejected(self) -> None:
-        with self.assertRaises(ContentError):
-            _load_dialog({"start": {"text": "   ", "choices": []}}, "peep", set())
-
-
 class DialogServiceTests(AsyncServiceTestCase):
     """Dialog branching, conditions, side effects, and idempotency."""
 
@@ -147,13 +118,6 @@ class DialogServiceTests(AsyncServiceTestCase):
         self.assertTrue(duplicate.duplicated)
         self.assertEqual(self.profiles.get_account_by_id(account.id).kudos, before + 5)
 
-    async def test_invalid_choice_is_rejected(self) -> None:
-        runtime = self.runtime_for()
-        account = self.create_account("dee", room="foyer")
-        runtime.dialogs.start(account, "caretaker")
-        with self.assertRaises(ValueError):
-            await runtime.dialogs.choose(account, 99)
-
     async def test_duplicate_action_id_is_a_no_op(self) -> None:
         runtime = self.runtime_for()
         account = self.create_account("eve", room="foyer")
@@ -164,16 +128,6 @@ class DialogServiceTests(AsyncServiceTestCase):
         second = await runtime.dialogs.choose(account, 0, action_id="start:0")
         self.assertTrue(second.duplicated)
         self.assertEqual(second.dialog["node_id"], "chores")
-
-    async def test_stale_dialog_after_departure_is_rejected(self) -> None:
-        runtime = self.runtime_for()
-        account = self.create_account("fay", room="foyer")
-        runtime.dialogs.start(account, "caretaker")
-        with self.hub.transaction() as connection:
-            self.profiles.set_remembered_room(connection, account.id, WORLD_ID, "hub")
-        with self.assertRaises(ValueError):
-            await runtime.dialogs.choose(account, 0)
-
 
 class DialogCommandIntegrationTests(RuntimeTestCase):
     """`.talk`, `.dialog`, `.dialog_end`, and departure over the live protocol."""

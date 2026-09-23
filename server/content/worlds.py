@@ -13,7 +13,7 @@ from server.content.activities import (
     merge_activity_definitions,
 )
 from server.content.common import ContentError, load_yaml_file, require_mapping
-from server.content.gameplay import StatusCondition
+from server.content.conditions import StatusCondition, parse_status_condition
 from server.content.tasks import TaskDefinition, load_task_definitions
 
 
@@ -201,27 +201,8 @@ def _load_animation(raw_value: Any, label: str) -> str | None:
 
 
 def _parse_dialog_condition(raw_value: Any, peep_id: str, node_id: str, index: int) -> StatusCondition | None:
-    if raw_value is None:
-        return None
-    if not isinstance(raw_value, dict):
-        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when' must be a mapping.")
-    counter = str(raw_value.get("counter", "")).strip()
-    if not counter:
-        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when' is missing a counter.")
-    at_or_below = raw_value.get("at_or_below")
-    above = raw_value.get("above")
-    at_or_above_fraction = raw_value.get("at_or_above_fraction")
-    provided = [value for value in (at_or_below, above, at_or_above_fraction) if value is not None]
-    if len(provided) != 1:
-        raise ContentError(
-            f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when' must define exactly one comparison."
-        )
-    return StatusCondition(
-        counter=counter,
-        at_or_below=float(at_or_below) if at_or_below is not None else None,
-        at_or_above_fraction=float(at_or_above_fraction) if at_or_above_fraction is not None else None,
-        above=float(above) if above is not None else None,
-    )
+    label = f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when'"
+    return parse_status_condition(raw_value, label)
 
 
 def _parse_dialog_choice(

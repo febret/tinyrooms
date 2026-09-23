@@ -21,11 +21,13 @@ class RoomTicker:
         *,
         dispatcher: BehaviorDispatcher,
         world: WorldDefinition,
+        connections: object | None = None,
         interval: float = 1.0,
         logger: logging.Logger | None = None,
     ) -> None:
         self._dispatcher = dispatcher
         self._world = world
+        self._connections = connections
         self._interval = float(interval)
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -56,9 +58,11 @@ class RoomTicker:
             raise
 
     async def run_once(self, room_id: str) -> None:
-        """Dispatch a single tick for *room_id*, skipping when one is running."""
+        """Dispatch a single tick for *room_id*, skipping empty or busy rooms."""
 
         if room_id in self._running:
+            return
+        if self._connections is not None and not await self._connections.list_room(room_id):
             return
         self._running.add(room_id)
         try:

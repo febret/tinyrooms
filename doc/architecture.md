@@ -72,7 +72,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Protocol | `server/protocol.py` | WS envelope constants, validation, and serializer helpers. |
 | Live connections | `server/connections.py` | In-memory WS registry, per-account queue, room membership, session replacement. |
 | Commands | `server/commands/` | `.`-command/chat/`\admin` parser, name→handler registry, 11 core handlers + dispatcher. |
-| Content loaders | `server/content/` | Strict YAML loading for cards/packs and world/rooms/props/peeps. |
+| Content loaders | `server/content/` | Strict YAML loading for cards/packs, world/rooms/props/peeps, and activity launch definitions. |
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
@@ -181,7 +181,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; appends to in-memory bounded history (lost on restart); broadcasts `chat.message`. Empty / >280 chars rejected. |
 | `.pickup` | `.pickup @card:<stack> 2` | Atomic room→inventory txn; private `payload.inventory`; broadcasts `room.card.updated/removed`. Pinned rejected; concurrent same-stack is single-winner. |
 | `.drop` | `.drop @card:<stack> 1 62 71 0` | Atomic inventory→room txn; optional trailing `x y z` floor coordinates (percent x/y, elevation z; clamped, defaults `50 50 0`); broadcasts `room.card.added`. |
-| `.play` | `.play sample`, `.play molly replace` | Starts activity (`molly`→`lazor-rush` playroom-only; `sample`→`dev-sample` flag-gated; also `shop`/`crafting`); occupied without `replace` → reject; private `activity.started` (+`closed reason:replaced`). |
+| `.play` | `.play sample`, `.play molly replace` | Resolves the target against room peeps/props (a peep/prop may declare an `activity`) and the merged core/world activity catalog (`data/core/activities.yaml` + `worlds/<world>/activities.yaml`); feature-gated definitions reject when the flag is off; occupied without `replace` → reject; private `activity.started` (+`closed reason:replaced`). |
 | `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
 | `.settings` | `.settings action-log off` | Persists `show_activity_log`; `payload.{show_activity_log}`. |
 | `.reset_room` | `.reset_room` | Deletes all live cards in the current room and re-inserts the YAML seeds in one txn; private fresh snapshot + `room.cards.reset` broadcast. Open to anyone for now (TODO: admin-only once Milestone 2 roles exist). |
@@ -274,9 +274,13 @@ error toast.
 
 Server: one session/account
 `{id, kind, title, iframe_url, bridge_url, room_bound, room_id, attention}`.
-`.play` kinds: `molly→lazor-rush` (playroom-only), `lazor-rush|shop|
-crafting`, `sample→dev-sample` (flag-gated). `start` rejects when occupied
-unless `replace`; `close`, `close_if_room_bound` (on `.go`/logout/
+`.play` targets are resolved data-drivenly: a peep or prop in the current room
+may declare an `activity` (room-bound, e.g. Molly→`lazor-rush`), otherwise the
+target is matched by id or alias against the merged activity catalog
+(`data/core/activities.yaml` and `worlds/<world>/activities.yaml`, loaded by
+`server/content/activities.py`). Definitions supply `title`, `room_bound`,
+optional `rooms` allowlist, and an optional `feature` flag. `start` rejects when
+occupied unless `replace`; `close`, `close_if_room_bound` (on `.go`/logout/
 disconnect), `mark_attention`. Host iframe
 `/activities/<kind>/?session_id=…` with the §5.4 bridge; window chrome
 (drag/arrow-keys, minimize/maximize/close, z-order); mandatory sticker

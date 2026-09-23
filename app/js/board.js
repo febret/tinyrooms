@@ -453,23 +453,35 @@ export function createBoard({ canvas, overlay, onSelect }) {
     if (selectionObject === record.group) selectionObject = null;
   }
 
-  function syncProps(entry, room) {
+  /** Reconcile a record map against authoritative items, recreating on model-key change. */
+  function syncRecords(map, items, handlers) {
     const seen = new Set();
-    for (const prop of room.props || []) {
-      seen.add(prop.id);
-      const record = entry.props.get(prop.id);
+    for (const item of items) {
+      const key = handlers.keyOf(item);
+      seen.add(key);
+      const record = map.get(key);
       if (!record) {
-        addProp(entry, prop);
-      } else if (record.modelKey !== propModelKey(prop)) {
-        removeProp(entry, prop.id);
-        addProp(entry, prop);
+        handlers.create(item);
+      } else if (record.modelKey !== handlers.modelKeyOf(item)) {
+        handlers.remove(key);
+        handlers.create(item);
       } else {
-        updateProp(entry, record, prop);
+        handlers.update(record, item);
       }
     }
-    for (const id of [...entry.props.keys()]) {
-      if (!seen.has(id)) removeProp(entry, id);
+    for (const key of [...map.keys()]) {
+      if (!seen.has(key)) handlers.remove(key);
     }
+  }
+
+  function syncProps(entry, room) {
+    syncRecords(entry.props, room.props || [], {
+      keyOf: prop => prop.id,
+      modelKeyOf: propModelKey,
+      create: prop => addProp(entry, prop),
+      update: (record, prop) => updateProp(entry, record, prop),
+      remove: id => removeProp(entry, id),
+    });
   }
 
   function addCard(entry, card) {
@@ -514,22 +526,13 @@ export function createBoard({ canvas, overlay, onSelect }) {
   }
 
   function syncCards(entry, room) {
-    const seen = new Set();
-    for (const card of room.roomCards || []) {
-      seen.add(card.stackId);
-      const record = entry.cards.get(card.stackId);
-      if (!record) {
-        addCard(entry, card);
-      } else if (record.modelKey !== cardModelKey(card)) {
-        removeCard(entry, card.stackId);
-        addCard(entry, card);
-      } else {
-        updateCard(record, card);
-      }
-    }
-    for (const id of [...entry.cards.keys()]) {
-      if (!seen.has(id)) removeCard(entry, id);
-    }
+    syncRecords(entry.cards, room.roomCards || [], {
+      keyOf: card => card.stackId,
+      modelKeyOf: cardModelKey,
+      create: card => addCard(entry, card),
+      update: (record, card) => updateCard(record, card),
+      remove: id => removeCard(entry, id),
+    });
   }
 
   /** Replace the floor only when the board artwork or palette actually changes. */

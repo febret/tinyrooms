@@ -258,6 +258,11 @@ class ProfileRepository:
             row = connection.execute("SELECT * FROM accounts WHERE username_key = ?", (username_key,)).fetchone()
         return None if row is None else self._account_from_row(row)
 
+    def resolve_account(self, identifier: str) -> AccountRecord | None:
+        """Fetch an account by ID first, then by normalized username."""
+
+        return self.get_account_by_id(identifier) or self.get_account_by_username(identifier)
+
     def create_account(self, username: str, password: str, world_id: str, entry_room: str) -> AccountRecord:
         """Create an account with default starting state."""
 

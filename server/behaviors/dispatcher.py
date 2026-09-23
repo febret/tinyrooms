@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, time as datetime_time, timedelta
@@ -70,6 +71,9 @@ class BehaviorDispatcher:
         self._tasks = tasks
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self.erroring: set[str] = set()
+        self._lock: asyncio.Lock | None = None
+        self._world_view_cache: dict[str, object] = self._build_world_view()
+        self._room_view_cache: dict[str, dict[str, object]] = {}
 
     def _log(self, event: str, **fields: object) -> None:
         self._logger.info(json.dumps({"event": event, **fields}, separators=(",", ":"), default=str))
@@ -163,34 +167,44 @@ class BehaviorDispatcher:
         )
 
     def _room_view(self, room_id: str | None) -> dict[str, object]:
-        room = self._world.rooms.get(room_id or "")
+        key = room_id or ""
+        cached = self._room_view_cache.get(key)
+        if cached is not None:
+            return cached
+        room = self._world.rooms.get(key)
         if room is None:
-            return {"id": room_id, "label": "", "props": [], "peeps": [], "exits": []}
-        return {
-            "id": room.id,
-            "label": room.label,
-            "props": [
-                {
-                    "id": prop.id,
-                    "prop_id": prop.prop_id,
-                    "behavior": prop.behavior,
-                    "label": self._world.props[prop.prop_id].label,
-                }
-                for prop in room.props.values()
-            ],
-            "peeps": [
-                {"id": peep.id, "label": peep.label}
-                for peep in self._world.peeps.values()
-                if peep.room_id == room.id
-            ],
-            "exits": [
-                {"id": exit_definition.id, "label": exit_definition.label, "target_room_id": exit_definition.target_room_id}
-                for exit_definition in room.exits.values()
-            ],
-        }
+            view: dict[str, object] = {"id": room_id, "label": "", "props": [], "peeps": [], "exits": []}
+        else:
+            view = {
+                "id": room.id,
+                "label": room.label,
+                "props": [
+                    {
+                        "id": prop.id,
+                        "prop_id": prop.prop_id,
+                        "behavior": prop.behavior,
+                        "label": self._world.props[prop.prop_id].label,
+                    }
+                    for prop in room.props.values()
+                ],
+                "peeps": [
+                    {"id": peep.id, "label": peep.label}
+                    for peep in self._world.peeps.values()
+                    if peep.room_id == room.id
+                ],
+                "exits": [
+                    {"id": exit_definition.id, "label": exit_definition.label, "target_room_id": exit_definition.target_room_id}
+                    for exit_definition in room.exits.values()
+                ],
+            }
+        self._room_view_cache[key] = view
+        return view
+
+    def _build_world_view(self) -> dict[str, object]:
+        return {"id": self._world.id, "label": self._world.label}
 
     def _world_view(self) -> dict[str, object]:
-        return {"id": self._world.id, "label": self._world.label}
+        return self._world_view_cache
 
     def _account_for(self, payload: Mapping[str, object], context: BehaviorContext) -> str | None:
         account_id = payload.get("target_account_id")
@@ -201,9 +215,19 @@ class BehaviorDispatcher:
         return None
 
     async def dispatch(self, event: BehaviorEvent, *, extra: Mapping[str, object] | None = None) -> BehaviorResult:
-        """Deliver *event* to its scripts and apply the resulting intents."""
+        """Deliver *event* to its scripts and apply the resulting intents.
+
+        Dispatches are serialized so a handler that awaits can never interleave
+        with another event mutating the same per-instance behavior state.
+        """
 
         del extra
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        async with self._lock:
+            return await self._dispatch(event)
+
+    async def _dispatch(self, event: BehaviorEvent) -> BehaviorResult:
         result = BehaviorResult()
         self._record_task_event(event)
         contexts: list[tuple[BehaviorAttachment, BehaviorContext]] = []
@@ -572,7 +596,7 @@ class BehaviorDispatcher:
             self._log("behavior.intent.skipped", kind="request_move", reason="invalid")
             return
         self._profiles.set_remembered_room(connection, account_id, self._world.id, room_id)
-        deferred.append(self._connections.set_room(account_id, room_id))
+        deferred.append(lambda: self._connections.set_room(account_id, room_id))
 
     def _apply_set_environment(self, connection: sqlite3.Connection, payload: Mapping[str, object]) -> None:
         instance_id = payload.get("target_instance_id")

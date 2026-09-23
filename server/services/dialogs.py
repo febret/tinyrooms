@@ -49,6 +49,7 @@ class DialogService:
         catalog: CardCatalog,
         progression: object,
         world: WorldDefinition,
+        tasks: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -56,6 +57,7 @@ class DialogService:
         self._catalog = catalog
         self._progression = progression
         self._world = world
+        self._tasks = tasks
         self._dispatcher: object | None = None
         self._active: dict[str, ActiveDialog] = {}
 
@@ -194,7 +196,15 @@ class DialogService:
                     world_id=self._world.id,
                 )
         if choice.start_task is not None:
-            result.events.append({"type": "task.started", "task_id": choice.start_task, "account_id": account.id})
+            if self._tasks is not None:
+                self._tasks.start_in_transaction(connection, account.id, choice.start_task)
+                result.events.append(
+                    {"type": "task.updated", "tasks": self._tasks.view_payload(account.id), "account_id": account.id}
+                )
+            else:
+                result.events.append(
+                    {"type": "task.started", "task_id": choice.start_task, "account_id": account.id}
+                )
 
     async def choose(
         self,
@@ -251,7 +261,7 @@ class DialogService:
                         revision=current.revision + 1,
                     )
         result.duplicated = duplicated
-        if not duplicated and choice is not None and choice.script and self._dispatcher is not None:
+        if not duplicated and choice is not None and self._dispatcher is not None:
             event = BehaviorEvent(
                 type="dialog_action",
                 actor=PeepRef(kind="user", peep_id=None, account_id=account.id),

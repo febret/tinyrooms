@@ -289,6 +289,7 @@ async def dialog_command(context: CommandContext, command: ParsedCommand) -> Com
     result = await context.dialogs.choose(context.account, index)
     outcome = CommandOutcome(message="Conversation updated.", payload={"dialog": result.dialog})
     _merge_behavior(outcome, result.behavior_result)
+    outcome.private_events.extend(result.events)
     return outcome
 
 

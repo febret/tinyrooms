@@ -222,6 +222,31 @@ class ContentPersistenceTests(unittest.TestCase):
             with self.assertRaises(ContentError):
                 load_world_definition(target, set(catalog.cards))
 
+    def test_activity_catalog_and_launch_declarations_load(self) -> None:
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
+        self.assertEqual(world.peeps["molly"].activity, "lazor-rush")
+        self.assertEqual(world.rooms["hub"].props["vending0"].activity, "shop")
+        self.assertEqual(world.rooms["kitchen"].props["workbench0"].activity, "crafting")
+        self.assertEqual(world.activities["lazor-rush"].title, "Lazor Rush")
+        self.assertTrue(world.activities["lazor-rush"].room_bound)
+        self.assertEqual(world.activities["dev-sample"].aliases, ("sample",))
+        self.assertEqual(world.activities["dev-sample"].required_feature, "dev_sample_activity")
+        self.assertFalse(world.activities["sticker-designer"].room_bound)
+
+    def test_world_loader_rejects_unknown_activity_reference(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            target = Path(temporary_directory) / "tutorial"
+            shutil.copytree(REPO_ROOT / "worlds" / "tutorial", target)
+            peeps_file = target / "peeps" / "peeps.yaml"
+            text = peeps_file.read_text(encoding="utf-8")
+            peeps_file.write_text(
+                text.replace("activity: lazor-rush", "activity: bogus", 1),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ContentError):
+                load_test_world(target)
+
     def test_prop_animation_loader_defaults_and_validation(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
@@ -763,6 +788,33 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             ),
         )
         self.assertTrue(session.json()["user"]["show_activity_log"])
+
+    def test_play_resolves_peep_and_catalog_activities(self) -> None:
+        erin = self.create_ready_account("erin")
+        with self.client.websocket_connect(
+            "/ws",
+            headers=websocket_headers(
+                erin["session_token"],
+                erin["csrf_token"],
+            ),
+        ) as socket:
+            socket.receive_json()
+            rejected = self.command(socket, "play-1", ".play molly")
+            self.assertFalse(rejected["ok"])
+            opened = self.command(socket, "play-2", ".play lazor-rush")
+            self.assertTrue(opened["ok"])
+            activity = opened["payload"]["activity"]
+            self.assertEqual(activity["kind"], "lazor-rush")
+            self.assertTrue(activity["room_bound"])
+            self.assertEqual(activity["room_id"], "hub")
+            self.assertTrue(self.command(socket, "go-1", ".go @way:exit0")["ok"])
+            self.assertEqual(socket.receive_json()["room"]["id"], "playroom")
+            molly = self.command(socket, "play-3", ".play molly replace")
+            self.assertTrue(molly["ok"])
+            activity = molly["payload"]["activity"]
+            self.assertEqual(activity["kind"], "lazor-rush")
+            self.assertEqual(activity["title"], "Lazor Rush")
+            self.assertEqual(activity["room_id"], "playroom")
 
     def test_static_app_and_activity_assets_are_explicitly_served(self) -> None:
         index = self.client.get("/")

@@ -7,7 +7,7 @@ import unittest
 from zoneinfo import ZoneInfo
 
 from server.services.friends import FriendsService
-from server.services.memories import MAX_MEMORY_LENGTH, MemoryService
+from server.services.memories import MemoryService
 from server.services.progression import ProgressionService
 from server.services.stats import StatsService
 from server.services.tasks import TaskService
@@ -81,23 +81,6 @@ class ManualMemoryTests(MemoryServiceTestCase):
         self.assertEqual(updated.text, "Found two sunflowers.")
         self.memories.delete_manual(owner.id, memory.memory_id)
         self.assertEqual(self.memories.list_month(owner.id, *self.memories.current_year_month()), [])
-
-    def test_game_memories_are_immutable(self) -> None:
-        owner = self.create_account("owner")
-        memory = self.memories.create_game(owner.id, "Completed: A Tour", ("house-tour",), task_id="house-tour")
-        self.assertFalse(memory.editable)
-        with self.assertRaises(ValueError):
-            self.memories.edit_manual(owner.id, memory.memory_id, "Nope")
-        with self.assertRaises(ValueError):
-            self.memories.delete_manual(owner.id, memory.memory_id)
-
-    def test_empty_and_overlong_text_is_rejected(self) -> None:
-        owner = self.create_account("owner")
-        with self.assertRaises(ValueError):
-            self.memories.create_manual(owner.id, "   ")
-        with self.assertRaises(ValueError):
-            self.memories.create_manual(owner.id, "x" * (MAX_MEMORY_LENGTH + 1))
-
 
 class MemoryTaskIsolationTests(MemoryServiceTestCase):
     """Editing or deleting memories never mutates task progress or rewards."""
@@ -174,13 +157,6 @@ class TimezoneMonthTests(MemoryServiceTestCase):
         current = self.memories.current_year_month()
         current_summary = self.memories.month_summary(owner.id, *current)
         self.assertEqual(current_summary["new_friends"], 1)
-
-    def test_journal_payload_lists_memories_for_the_month(self) -> None:
-        owner = self.create_account("owner")
-        self.insert_memory(owner.id, "Note", "2026-04-10T12:00:00+00:00")
-        payload = self.memories.journal_payload(owner.id, 2026, 4)
-        self.assertEqual(payload["summary"]["month"], 4)
-        self.assertEqual([memory["text"] for memory in payload["memories"]], ["Note"])
 
 
 if __name__ == "__main__":

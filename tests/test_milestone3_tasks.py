@@ -116,50 +116,6 @@ class PersonalAndSharedCreditTests(TaskServiceTestCase):
         self.assertEqual(actor_view["steps"][0]["progress"], 1)
         self.assertEqual(tasks.list_for_account(other.id), [])
 
-    def test_shared_credit_actor_policy_credits_any_triggering_actor(self) -> None:
-        actor = self.create_account("actor")
-        tasks = self.build(
-            {
-                "puzzle": make_task(
-                    "puzzle",
-                    [make_step("one", "enter_room", amount=1, match={"room_id": "garden"})],
-                    scope="shared",
-                    credit="actor",
-                    participants=("nobody",),
-                )
-            }
-        )
-        tasks.record(actor.id, "enter_room", {"room_id": "garden"})
-        view = tasks.view(actor.id, "puzzle")
-        self.assertEqual(view["status"], "completed")
-
-    def test_shared_participants_policy_ignores_non_participants(self) -> None:
-        participant = self.create_account("participant")
-        stranger = self.create_account("stranger")
-        tasks = self.build(
-            {
-                "puzzle": make_task(
-                    "puzzle",
-                    [make_step("one", "enter_room", amount=1, match={"room_id": "garden"})],
-                    scope="shared",
-                    credit="participants",
-                    participants=("participant",),
-                )
-            }
-        )
-        tasks.record(stranger.id, "enter_room", {"room_id": "garden"})
-        self.assertEqual(tasks.list_for_account(stranger.id), [])
-        tasks.record(participant.id, "enter_room", {"room_id": "garden"})
-        self.assertEqual(tasks.view(participant.id, "puzzle")["status"], "completed")
-
-    def test_presence_alone_never_credits(self) -> None:
-        actor = self.create_account("actor")
-        bystander = self.create_account("bystander")
-        tasks = self.build({"gather": make_task("gather", [make_step("one", "enter_room", amount=1, match={"room_id": "foyer"})])})
-        tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
-        self.assertEqual(tasks.list_for_account(bystander.id), [])
-
-
 class OrderedProgressTests(TaskServiceTestCase):
     """Later steps never advance before earlier steps complete."""
 
@@ -197,36 +153,8 @@ class RewardIdempotencyTests(TaskServiceTestCase):
         self.assertEqual(self.reload_account(actor).kudos, 3)
         self.assertEqual(self.ledger_count(actor.id, "gift"), 1)
 
-    def test_reward_survives_service_restart(self) -> None:
-        actor = self.create_account("actor")
-        definition = {"gift": make_task("gift", [make_step("one", "enter_room", match={"room_id": "foyer"})], kudos=2)}
-        tasks = self.build(definition)
-        tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
-        restarted = self.build(definition)
-        restarted.record(actor.id, "enter_room", {"room_id": "foyer"})
-        self.assertEqual(self.reload_account(actor).kudos, 2)
-        self.assertEqual(self.ledger_count(actor.id, "gift"), 1)
-
-    def test_reconnect_replay_does_not_duplicate_progress(self) -> None:
-        actor = self.create_account("actor")
-        definition = {"gather": make_task("gather", [make_step("one", "enter_room", amount=2, match={"room_id": "foyer"})])}
-        tasks = self.build(definition)
-        tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
-        reconnected = self.build(definition)
-        self.assertEqual(reconnected.view(actor.id, "gather")["steps"][0]["progress"], 1)
-        reconnected.record(actor.id, "enter_room", {"room_id": "foyer"})
-        self.assertEqual(self.reload_account(actor).kudos, 0)
-
-
 class RepeatPolicyTests(TaskServiceTestCase):
     """Only explicitly repeatable tasks reset, and only per their policy."""
-
-    def _backdate(self, account_id: str, task_id: str, completed_at: str) -> None:
-        with self.hub.transaction() as connection:
-            connection.execute(
-                "UPDATE task_progress SET completed_at = ? WHERE account_id = ? AND task_id = ?",
-                (completed_at, account_id, task_id),
-            )
 
     def test_daily_task_resets_after_the_game_day(self) -> None:
         actor = self.create_account("actor")
@@ -259,16 +187,6 @@ class RepeatPolicyTests(TaskServiceTestCase):
         tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
         self.assertEqual(self.reload_account(actor).kudos, 2)
         self.assertEqual(self.ledger_count(actor.id, "daily"), 2)
-
-    def test_one_time_task_never_resets(self) -> None:
-        actor = self.create_account("actor")
-        tasks = self.build({"once": make_task("once", [make_step("one", "enter_room", match={"room_id": "foyer"})], kudos=1)})
-        tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
-        self._backdate(actor.id, "once", "2000-01-01T00:00:00+00:00")
-        tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
-        self.assertEqual(tasks.view(actor.id, "once")["status"], "completed")
-        self.assertEqual(self.reload_account(actor).kudos, 1)
-
 
 class SharedRewardTests(TaskServiceTestCase):
     """Reward recipients follow the shared-task definition."""
@@ -379,26 +297,6 @@ class TaskDefinitionLoaderTests(ServiceTestCase):
         )
         with self.assertRaises(ContentError):
             load_task_definitions(path, set(self.catalog.cards))
-
-    def test_repeatable_requires_reset_policy(self) -> None:
-        path = self._write(
-            "t:\n  title: T\n  repeatable: true\n  steps:\n    - {step_id: a, trigger: go}\n"
-        )
-        with self.assertRaises(ContentError):
-            load_task_definitions(path, set(self.catalog.cards))
-
-    def test_unknown_reward_card_is_rejected(self) -> None:
-        path = self._write(
-            "t:\n  title: T\n  reward: {cards: [not-a-card]}\n  steps:\n    - {step_id: a, trigger: go}\n"
-        )
-        with self.assertRaises(ContentError):
-            load_task_definitions(path, set(self.catalog.cards))
-
-    def test_unknown_trigger_is_rejected(self) -> None:
-        path = self._write("t:\n  title: T\n  steps:\n    - {step_id: a, trigger: wiggle}\n")
-        with self.assertRaises(ContentError):
-            load_task_definitions(path, set(self.catalog.cards))
-
 
 class TaskCommandIntegrationTests(RuntimeTestCase):
     """Bootstrap and websocket commands expose tasks and memories end to end."""

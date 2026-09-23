@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone as datetime_timezone
 import json
 import sqlite3
 import uuid
 from zoneinfo import ZoneInfo
 
+from server.game_time import current_game_month, game_date, game_month
 from server.profiles import ProfileRepository
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
@@ -65,28 +65,17 @@ class MemoryService:
     def local_date_of(self, iso_timestamp: str) -> str:
         """Return the configured-timezone game date for a stored UTC timestamp."""
 
-        try:
-            parsed = datetime.fromisoformat(iso_timestamp)
-        except (TypeError, ValueError):
-            return ""
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=datetime_timezone.utc)
-        return parsed.astimezone(self._timezone).date().isoformat()
+        return game_date(iso_timestamp, self._timezone)
 
     def local_month_of(self, iso_timestamp: str) -> tuple[int, int] | None:
         """Return the configured-timezone (year, month) for a stored timestamp."""
 
-        local = self.local_date_of(iso_timestamp)
-        if not local:
-            return None
-        year, month, _ = local.split("-")
-        return int(year), int(month)
+        return game_month(iso_timestamp, self._timezone)
 
     def current_year_month(self) -> tuple[int, int]:
         """Return the current game (year, month) in the configured timezone."""
 
-        now = utc_now().astimezone(self._timezone)
-        return now.year, now.month
+        return current_game_month(self._timezone)
 
     @staticmethod
     def _row_to_view(row: sqlite3.Row, local_date: str) -> MemoryView:
@@ -227,6 +216,7 @@ class MemoryService:
                 "SELECT * FROM memories WHERE account_id = ? AND world_id = ? ORDER BY created_at, memory_id",
                 (account_id, self._world_id),
             ).fetchall()
+        # TODO: filter by a stored local_date column once memory volume justifies it.
         views = [self._view_for(row) for row in rows]
         return [view for view in views if view.local_date[:7] == f"{year:04d}-{month:02d}"]
 

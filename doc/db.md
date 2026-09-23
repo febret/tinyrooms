@@ -9,8 +9,8 @@ Milestone 2 backend. The schema source of truth is
 
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
-| Profile (user) DB | `<users_path>/profiles.sqlite3` | 3 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 6 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
+| Profile (user) DB | `<users_path>/profiles.sqlite3` | 5 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
+| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 7 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 At runtime both files are accessed through a single shared connection,
 `server/state/migrations.py:DatabaseHub`, which opens the profile DB and
@@ -181,6 +181,49 @@ unified per account across worlds.
 | `results_json` | TEXT NOT NULL CHECK `json_valid` | Ordered JSON list of drawn `card_def_id`s, replayed on a duplicate `operation_id`. |
 | `created_at` | TEXT NOT NULL | ISO purchase timestamp. |
 
+### 2.7 `task_progress`
+
+One row per `(account_id, task_id)` for every task a user has started. Owned by
+`server/services/tasks.py:TaskService` (started lazily by `start()` /
+`start_in_transaction()`, advanced by `record()` / `advance_step()`). `steps_json`
+stores ordered `[{step_id, progress}]`; completion grants its reward through
+`reward_ledger` (`ledger_key = "task:<id>"`, or `"task:<id>:<game_day>"` for
+repeatable tasks) exactly once and writes game memories. `definition_revision`
+lets an edited task definition reset a stale row; repeatable tasks reset only
+per `reset_policy` (currently `daily`, using the configured timezone).
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `account_id` / `task_id` | TEXT PK (composite), FK → `accounts(id)` | Owning account and authored task ID. |
+| `world_id` | TEXT NOT NULL | World the task belongs to; indexed via `idx_task_progress_owner`. |
+| `scope` | TEXT NOT NULL | `personal` or `shared`. |
+| `status` | TEXT NOT NULL | `active` or `completed`. |
+| `steps_json` | TEXT NOT NULL CHECK `json_valid` | Ordered per-step progress. |
+| `started_at` / `completed_at` | TEXT | ISO timestamps; `completed_at` is NULL while active. |
+| `definition_revision` | INTEGER NOT NULL DEFAULT 0 | Revision the stored progress was written against. |
+| `reward_operation_id` | TEXT NULL | Ledger key of the granted reward (audit/replay). |
+| `shared_owner_id` | TEXT NULL | World ID for shared tasks; NULL for personal. |
+
+### 2.8 `memories`
+
+Journal entries. Game memories are immutable (`editable = 0`) and written by
+`TaskService`; manual memories (`editable = 1`, `source_type = 'manual'`) are
+created/edited/deleted only by their owner through `server/services/memories.py:MemoryService`.
+Month grouping and summaries use the configured timezone.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `memory_id` | TEXT PK | `mem:<uuid4>`. |
+| `account_id` | TEXT NOT NULL FK → `accounts(id)` ON DELETE CASCADE | Owning account; indexed via `idx_memories_owner`. |
+| `world_id` | TEXT NOT NULL | World the memory belongs to. |
+| `author` | TEXT NOT NULL | Display name captured at write time. |
+| `source_type` | TEXT NOT NULL | `game` or `manual`. |
+| `text` | TEXT NOT NULL | Memory body. |
+| `tags_json` | TEXT NOT NULL CHECK `json_valid` | Tag list (includes `task:<id>` for task memories); indexed via `idx_memories_task`. |
+| `task_id` | TEXT NULL | Owning task for game memories. |
+| `created_at` | TEXT NOT NULL | ISO timestamp. |
+| `editable` | INTEGER NOT NULL DEFAULT 0 | Boolean; only manual memories are editable. |
+
 ## 3. World-state DB — `TRSERVER_WORLDSTATE_PATH`
 
 The world-state DB persists durable, shared room content: live card stacks
@@ -190,8 +233,9 @@ memory, so it is lost on server restart. Because a single server process owns a
 world, room operations are already serialized in-process and no per-room
 sequence counter is needed.
 
-Old world-state databases are not migrated; this build requires a fresh
-world-state DB (`WORLD_SCHEMA_VERSION = 6`).
+World-state databases at an older supported version are migrated forward
+additively; a fresh DB is required only for versions newer than this build
+(`WORLD_SCHEMA_VERSION = 7`).
 
 ### 3.1 `room_states`
 
@@ -241,7 +285,21 @@ there is no seed ledger table. Restart safety comes from
 `room_states.initialized`: only rooms flagged `0` are re-seeded, so collected
 seeds stay collected and dropped cards stay dropped.
 
-### 3.3 In-memory room state (not persisted)
+### 3.3 `behavior_state`
+
+Per-instance state for trusted behavior scripts, keyed by `(namespace,
+instance_id)` (`namespace` is `peep` or `prop`). Read and written by
+`server/behaviors/dispatcher.py:BehaviorDispatcher` inside the intent
+transaction; scripts never touch the database directly. State survives server
+restarts so counters and prop environment values persist.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `namespace` / `instance_id` | TEXT PK (composite) | Owning entity kind and ID. |
+| `state_json` | TEXT NOT NULL CHECK `json_valid` | Script-managed JSON state. |
+| `updated_at` | TEXT NOT NULL | ISO last-write timestamp. |
+
+### 3.4 In-memory room state (not persisted)
 
 `WorldStateRepository` holds room chat history in a process-local dict, capped at
 `MAX_HISTORY_MESSAGES` (50) entries of `{speaker_id, speaker, style, text}`.

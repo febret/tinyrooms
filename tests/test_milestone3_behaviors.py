@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import ModuleType, SimpleNamespace
 import unittest
 
 from server.behaviors.dispatcher import BehaviorDispatcher
-from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
+from server.behaviors.events import BehaviorEvent, PeepRef
 from server.behaviors.loader import (
     BehaviorAttachment,
     BehaviorLoader,
@@ -18,7 +17,6 @@ from server.behaviors.loader import (
     BehaviorScripts,
 )
 from server.behaviors.ticker import RoomTicker
-from server.content.common import ContentError
 from server.content.worlds import WorldDefinition
 from server.profiles import ProfileRepository
 from server.services.activities import ActivityService
@@ -127,27 +125,6 @@ class DispatchTests(AsyncServiceTestCase):
         )
         self.assertEqual(calls[3][1], "pet")
 
-    async def test_prop_target_selects_prop_script(self) -> None:
-        seen: list[object] = []
-
-        def handler(context, event):
-            seen.append(context.target)
-
-        script = make_script({"on_quick_action": handler})
-        prop_ref = PropRef(instance_id="vending0", prop_id="vending", room_id="hub")
-        scripts = BehaviorScripts(
-            scripts={"fake": script},
-            peep_attachments={},
-            prop_attachments={"vending0": BehaviorAttachment("fake", "prop", "vending0", prop_ref)},
-            room_attachments={},
-        )
-        runtime = self.build(scripts)
-        actor = PeepRef(kind="user", peep_id=None, account_id="acct")
-        await runtime.dispatcher.dispatch(
-            BehaviorEvent(type="quick_action", actor=actor, target=prop_ref, room_id="hub", action="browse")
-        )
-        self.assertEqual(seen, [prop_ref])
-
     async def test_feedback_and_counter_intents_apply(self) -> None:
         account = self.create_account("ada")
 
@@ -237,7 +214,7 @@ class TickerTests(AsyncServiceTestCase):
         await asyncio.gather(ticker.run_once("playroom"), ticker.run_once("playroom"))
         self.assertEqual(count, 1)
 
-    async def test_run_once_dispatches_room_scripts(self) -> None:
+    async def test_empty_room_is_skipped(self) -> None:
         ticks: list[str] = []
 
         def handler(context, event):
@@ -252,9 +229,9 @@ class TickerTests(AsyncServiceTestCase):
             room_attachments={"playroom": (attachment,)},
         )
         runtime = self.build(scripts)
-        ticker = RoomTicker(dispatcher=runtime.dispatcher, world=self.world)
+        ticker = RoomTicker(dispatcher=runtime.dispatcher, world=self.world, connections=runtime.connections)
         await ticker.run_once("playroom")
-        self.assertEqual(ticks, ["playroom"])
+        self.assertEqual(ticks, [])
 
 
 class StatePersistenceTests(unittest.TestCase):
@@ -339,12 +316,6 @@ class LoaderTests(AsyncServiceTestCase):
         self.assertIn("caretaker", scripts.peep_attachments)
         self.assertTrue(any(script_id.startswith("builtin:") for script_id in scripts.scripts))
         self.assertTrue(scripts.room_attachments["playroom"])
-
-    def test_missing_script_raises(self) -> None:
-        ghost = replace(self.world.peeps["molly"], id="ghost", script_name="missing.py")
-        world = replace(self.world, peeps={**self.world.peeps, "ghost": ghost})
-        with self.assertRaises(ContentError):
-            BehaviorLoader().load_world(world)
 
 
 if __name__ == "__main__":

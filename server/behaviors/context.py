@@ -154,11 +154,13 @@ class BehaviorContext:
 
         self._append("request_move", {"room_id": str(room_id)})
 
-    def set_environment(self, key: str, value: object) -> None:
+    def set_environment(self, key: str, value: object, *, target: PropRef | None = None) -> None:
         """Queue a persistent prop environment update (Phase C stub)."""
 
+        resolved = target if target is not None else self.target
         payload: dict[str, object] = {"key": str(key), "value": value}
-        payload.update(_target_payload(self._resolve(self.target)))
+        if isinstance(resolved, PropRef):
+            payload.update(_target_payload(resolved))
         self._append("set_environment", payload)
 
     def prop_state(self, key: str, default: object = None) -> object:

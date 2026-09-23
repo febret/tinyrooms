@@ -388,6 +388,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         catalog=catalog,
         progression=progression,
         world=world,
+        tasks=tasks,
     )
     scripts = BehaviorLoader().load_world(world)
     behaviors = BehaviorDispatcher(
@@ -406,7 +407,12 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)
     rooms.attach_dialogs(dialogs)
-    ticker = RoomTicker(dispatcher=behaviors, world=world, interval=config.tick_seconds)
+    ticker = RoomTicker(
+        dispatcher=behaviors,
+        world=world,
+        connections=connections,
+        interval=config.tick_seconds,
+    )
     return RuntimeState(
         config=config,
         hub=hub,

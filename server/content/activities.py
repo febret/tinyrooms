@@ -60,7 +60,7 @@ def load_activity_definitions(
         aliases = _load_string_list(raw.get("aliases"), f"Activity '{activity_id}' aliases", path)
         rooms = _load_string_list(raw.get("rooms"), f"Activity '{activity_id}' rooms", path)
         for room_id in rooms:
-            if room_id not in known_rooms:
+            if known_rooms and room_id not in known_rooms:
                 raise ContentError(f"Activity '{activity_id}' references unknown room '{room_id}'.")
         required_feature = raw.get("feature")
         if required_feature is not None:

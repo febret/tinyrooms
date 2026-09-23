@@ -55,30 +55,19 @@ Read for context (do not modify yet):
 Bump **profile** schema 3 → 4 and **world** schema 6 → 7 in
 `server/state/migrations.py`.
 
-Profile fresh-schema additions (also add to `_PROFILE_TABLES` and column specs):
+Dialog sessions are intentionally **in-memory** (one active dialog per account,
+owned by `DialogService`), so Phase A adds no profile tables. Profile migration
+`4` is a version bump only:
 
 ```sql
-CREATE TABLE IF NOT EXISTS active_dialogs (
-    account_id TEXT PRIMARY KEY,
-    world_id TEXT NOT NULL,
-    peep_id TEXT NOT NULL,
-    node_id TEXT NOT NULL,
-    revision INTEGER NOT NULL DEFAULT 0,
-    state_json TEXT NOT NULL CHECK (json_valid(state_json)),
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS dialog_actions (
-    account_id TEXT NOT NULL,
-    peep_id TEXT NOT NULL,
-    action_id TEXT NOT NULL,
-    world_id TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    PRIMARY KEY (account_id, peep_id, action_id),
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_dialog_actions_owner ON dialog_actions(account_id);
+BEGIN;
+PRAGMA user_version = 4;
+COMMIT;
 ```
+
+Dialog-action idempotency is provided by the existing `reward_ledger`
+(`ledger_key = "dialog:<peep>:<action>"`), not a dedicated `dialog_actions`
+table.
 
 World fresh-schema addition (also add to `_WORLD_TABLES` and column specs):
 
@@ -92,12 +81,12 @@ CREATE TABLE IF NOT EXISTS behavior_state (
 );
 ```
 
-Add `_PROFILE_MIGRATIONS[4]` and a new `_WORLD_MIGRATIONS` dict with entry `7`
-that create the tables above and set `PRAGMA user_version` to the new value.
-`ensure_world_database` currently passes no `migrations=`; add
-`migrations=_WORLD_MIGRATIONS`. Update `PROFILE_SCHEMA_VERSION = 4`,
-`WORLD_SCHEMA_VERSION = 7`, the `_*_COLUMNS` tuples, and the `column_specs`
-passed by both `ensure_*_database` functions.
+Add `_PROFILE_MIGRATIONS[4]` (version bump only) and a new `_WORLD_MIGRATIONS`
+dict with entry `7` that creates the `behavior_state` table and sets
+`PRAGMA user_version` to the new value. `ensure_world_database` currently passes
+no `migrations=`; add `migrations=_WORLD_MIGRATIONS`. Update
+`PROFILE_SCHEMA_VERSION = 4`, `WORLD_SCHEMA_VERSION = 7`, the `_*_COLUMNS`
+tuples, and the `column_specs` passed by both `ensure_*_database` functions.
 
 ### 3.2 Dialog content validation
 
@@ -173,8 +162,8 @@ actor. Expose `context.prop_state(key, default=None)` reading `self.state`.
 **`ticker.py`** — `RoomTicker`:
 - One asyncio task per room, interval `config.tick_seconds` (default 1.0).
 - Overlap guard: skip a tick for a room whose previous tick is still running.
-- Skip offline users (only dispatch for connected connections in the room;
-  NPCs always tick).
+- Skip rooms with no connected users; a room with at least one live connection
+  dispatches its room scripts.
 - Started in `create_runtime`/lifespan start and cancelled on shutdown; expose
   `start()`, `stop()`, `run_once(room_id)` for tests.
 
@@ -187,20 +176,20 @@ implementations arrive in Phase C; keep this file small.
 
 Create `server/services/dialogs.py` — `DialogService`:
 - `start(account, peep_id, node_id=None) -> ActiveDialog`: validates the peep is
-  present in the account's current room and the node exists; upserts
-  `active_dialogs` (one row per account, replacing any previous dialog).
+  present in the account's current room and the node exists; replaces any
+  previous in-memory dialog for the account.
 - `view(account_id) -> ActiveDialog | None`.
 - `choose(account, choice_index_or_action_id, *, action_id: str) -> DialogResult`:
   - Revalidate active dialog, peep presence, node, and each choice's `when`
     condition; reject on any mismatch.
-  - Idempotency: insert `(account_id, peep_id, action_id)` into
-    `dialog_actions`; a duplicate returns the stored node and applies no side
+  - Idempotency: the choice's `ledger_key = "dialog:<peep>:<action>"` is checked
+    in `reward_ledger`; a duplicate returns the stored node and applies no side
     effects. Side effect + node transition happen in the same transaction.
   - Side effects: optional `script`/`action` callback dispatched as a
     `dialog_action` behavior event; optional declarative side effects
     (`give_card`, `start_task`, `grant`) resolved through services.
-  - On `end: true`, delete the row.
-- `end(account_id, reason)`: deletes the active dialog.
+  - On `end: true`, clear the active dialog.
+- `end(account_id, reason)`: clears the active dialog.
 - Serialize `{peep_id, node_id, text, choices:[{label, index, action_id, disabled}]}`.
 - Register `DialogService` in `server/app.py:create_runtime` / `RuntimeState` and
   in `CommandContext` (`server/commands/outcomes.py`).

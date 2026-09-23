@@ -202,16 +202,8 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     """,
     4: """
     BEGIN;
-    CREATE TABLE IF NOT EXISTS active_dialogs (
-        account_id TEXT PRIMARY KEY,
-        world_id TEXT NOT NULL,
-        peep_id TEXT NOT NULL,
-        node_id TEXT NOT NULL,
-        revision INTEGER NOT NULL DEFAULT 0,
-        state_json TEXT NOT NULL CHECK (json_valid(state_json)),
-        updated_at TEXT NOT NULL,
-        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-    );
+    PRAGMA user_version = 4;
+    COMMIT;
     """,
     5: """
     BEGIN;
@@ -436,7 +428,7 @@ def _ensure_database(
         version = _user_version(connection)
         if version == 0:
             connection.executescript(schema_sql)
-            return
+            version = _user_version(connection)
         if version > expected_version:
             raise RuntimeError(
                 f"{error_label} database at {path} has schema version {version}, "
