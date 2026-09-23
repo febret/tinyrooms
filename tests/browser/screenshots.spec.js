@@ -122,7 +122,7 @@ test("milestone 3 room editing: the editor panel", async ({ page, runtime }, tes
   await freezeClock(page);
   await createEditorAccount(page, runtime, "editor");
   await openEditRoom(page);
-  await page.locator('#panel-layer [data-edit-add="plant"]').click();
+  await page.locator('#editor-dock [data-edit-add="plant"]').click();
   await capture(page, testInfo, requested, remaining, "edit-room");
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });

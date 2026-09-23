@@ -98,7 +98,7 @@ export async function openEditRoom(page) {
     await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
     if (await action.count()) {
       await action.click();
-      const panel = page.locator("#panel-layer .edit-room-view");
+      const panel = page.locator("#editor-dock .edit-room-view");
       await expect(panel).toBeVisible();
       await expect(panel).toContainText("Add a prop");
       return panel;

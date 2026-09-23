@@ -375,56 +375,36 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 }
 .prompt-input { width: 100%; margin: 8px 0; padding: 8px; border-radius: 6px; border: 1px solid var(--line, #29505d); background: #0a1d26; color: #f5f5f1; }
 
-/* Milestone 3 Phase E: room-owner editor */
-.panel-layer:has(.edit-room-view) { pointer-events: none; inset: 0; z-index: 50; }
-.panel-layer:has(.edit-room-view)::before { background: none; }
-.edit-room-view {
-  width: min(380px, 94vw);
-  height: 100%;
-  margin-right: auto;
-  padding: 18px 16px calc(72px + env(safe-area-inset-bottom, 0px));
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 14px;
-  overflow: auto;
-  background: linear-gradient(160deg, #102430, #08151d 72%);
-  border-right: 1px solid #2b4652;
-  box-shadow: 10px 0 26px #0009;
-  pointer-events: auto;
-}
-.edit-room-view > * { width: 100%; max-width: none; }
-.edit-room-view .modal-header h2 { font-size: 22px; }
-.editor-body { display: flex; flex-direction: column; gap: 16px; }
-.editor-section h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #f2bb8e; margin-bottom: 8px; }
-.editor-library { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
-.editor-library-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border-radius: 8px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; font-size: 12px; line-height: 1.2; text-align: center; }
-.editor-library-item:hover { border-color: #8fd6ff; }
-.editor-thumb { width: 100%; height: 62px; display: block; }
-.editor-selection .editor-meta { color: #9fb7bd; font-size: 13px; margin-bottom: 8px; }
-.editor-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.editor-buttons button { padding: 6px 12px; border-radius: 7px; border: 1px solid #2b4652; background: #10222b; color: #f5f5f1; font-size: 13px; }
-.editor-buttons button.negative { border-color: #7a4040; color: #f0b8b8; }
-.editor-palette { display: flex; gap: 10px; flex-wrap: wrap; }
-.editor-color, .editor-style { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9fb7bd; }
-.editor-color input { width: 44px; height: 28px; border: 1px solid #2b4652; background: none; padding: 0; }
-.editor-style select { padding: 6px 8px; border-radius: 6px; border: 1px solid #2b4652; background: #0a1d26; color: #f5f5f1; }
-.editor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid #1d3642; }
-.editor-history { display: flex; gap: 8px; }
-.editor-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #9fb7bd; }
-.editor-status { flex: 1 1 100%; font-size: 12px; color: #9fb7bd; min-height: 1em; }
-.editor-conflict { padding: 10px; border-radius: 8px; border: 1px solid #7a5a2a; background: #2a2113; color: #f2d9a8; font-size: 13px; }
-.editor-conflict p { margin-bottom: 8px; }
+/* Milestone 3 Phase E: room-owner editor, docked over the interaction panel */
+.editor-dock { display: none; height: var(--dock-height); pointer-events: auto; background: linear-gradient(#02090cef, #030b0e); border-top: 1px solid #1d3642; }
+.app-shell.editing { --dock-height: calc(204px + env(safe-area-inset-bottom, 0px)); }
+.app-shell.editing .editor-dock { display: block; }
+.app-shell.editing .interaction-dock { display: none; }
 @media (max-width: 780px), (orientation: portrait) {
-  .edit-room-view {
-    position: absolute;
-    inset: 0 0 auto 0;
-    width: 100%;
-    height: auto;
-    max-height: 56%;
-    margin-right: 0;
-    border-right: none;
-    border-bottom: 1px solid #2b4652;
-    box-shadow: 0 12px 26px #0009;
-  }
-  .editor-thumb { height: 52px; }
+  .app-shell.editing { --dock-height: calc(188px + env(safe-area-inset-bottom, 0px)); }
 }
+.edit-room-view.editor-dock-panel { display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); overflow: hidden; color: #f5f5f1; }
+.edit-room-view.editor-dock-panel.locked-state { align-items: center; justify-content: center; }
+.editor-dock-header { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+.editor-dock-header strong { color: #f2b489; font-size: 15px; white-space: nowrap; }
+.editor-dock-header button { flex-shrink: 0; }
+.editor-status { font-size: 12px; color: #9fb7bd; white-space: nowrap; flex: 1 1 auto; text-align: right; }
+.editor-dock-body { display: flex; align-items: stretch; gap: 16px; flex: 1; min-height: 0; overflow-x: auto; overscroll-behavior: contain; padding-bottom: 2px; }
+.editor-dock-body .editor-section { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; }
+.editor-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #f2bb8e; margin-bottom: 4px; white-space: nowrap; }
+.editor-library { display: flex; gap: 8px; overflow-x: auto; }
+.editor-library-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; border-radius: 8px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; font-size: 11px; line-height: 1.1; text-align: center; width: 72px; flex: 0 0 auto; }
+.editor-library-item:hover { border-color: #8fd6ff; }
+.editor-thumb { width: 58px; height: 58px; display: block; object-fit: contain; }
+.editor-selection { min-width: 200px; }
+.editor-selection .editor-meta { color: #9fb7bd; font-size: 12px; margin-bottom: 6px; white-space: nowrap; }
+.editor-buttons { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.editor-buttons button { padding: 4px 10px; border-radius: 7px; border: 1px solid #2b4652; background: #10222b; color: #f5f5f1; font-size: 12px; }
+.editor-buttons button.negative { border-color: #7a4040; color: #f0b8b8; }
+.editor-palette { display: flex; gap: 8px; }
+.editor-color input { width: 40px; height: 26px; border: 1px solid #2b4652; background: none; padding: 0; }
+.editor-style { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9fb7bd; margin-top: 6px; }
+.editor-style select { padding: 4px 6px; border-radius: 6px; border: 1px solid #2b4652; background: #0a1d26; color: #f5f5f1; }
+.editor-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #9fb7bd; white-space: nowrap; flex-shrink: 0; }
+.editor-conflict { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid #7a5a2a; background: #2a2113; color: #f2d9a8; font-size: 12px; }
+.editor-conflict button { flex-shrink: 0; }

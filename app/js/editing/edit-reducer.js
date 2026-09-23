@@ -96,6 +96,7 @@ export function editorBoardProps(editor) {
       description: entry?.description || "",
       animation: "",
       quickActions: [],
+      ghost: false,
     };
   });
 }

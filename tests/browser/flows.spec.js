@@ -669,6 +669,37 @@ test.describe("milestone 3 room editing", () => {
     await expect(panel.locator("canvas.editor-thumb")).toHaveCount(0);
   });
 
+  test("editor keeps the board orbitable on empty space", async ({ page, runtime, isMobile }) => {
+    test.skip(Boolean(isMobile), "Pointer orbit check runs on desktop; portrait has the visual capture.");
+    await createEditorAccount(page, runtime, "editor");
+    await openEditRoom(page);
+    const canvas = page.locator("#board-canvas");
+    await expect(canvas).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+    const before = await canvas.screenshot();
+    const box = await canvas.boundingBox();
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.12);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.64, box.y + box.height * 0.18, { steps: 8 });
+    await page.mouse.up();
+    const after = await canvas.screenshot();
+    expect(Buffer.compare(before, after)).not.toBe(0);
+  });
+
+  test("environment palette edits mark the draft dirty", async ({ page, runtime, isMobile }) => {
+    test.skip(Boolean(isMobile), "Palette input interaction runs on desktop.");
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    const input = panel.locator('[data-edit-palette="0"]');
+    const before = await input.inputValue();
+    const next = before.toLowerCase() === "#112233" ? "#223344" : "#112233";
+    await input.evaluate((node, value) => {
+      node.value = value;
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+    }, next);
+    await expect(panel.locator(".editor-status")).toContainText("Unsaved changes");
+    await expect(panel.locator('[data-edit-palette="0"]')).toHaveValue(next);
+  });
+
   test("editor adds, transforms, snaps, and undoes a decorative prop", async ({ page, runtime, isMobile }) => {
     test.skip(Boolean(isMobile), "Editor pointer flow is covered on desktop; portrait has a visual capture.");
     await createEditorAccount(page, runtime, "editor");

@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { boardPosition } from "../board-helpers.js";
 
 const BASE_SCALE = 0.6;
 const GIZMO_HEIGHT = 0.06;
@@ -39,10 +38,8 @@ export function createGizmo() {
   return {
     group,
     pickables: [ring, scaleCube],
-    setTarget(position, scale) {
-      const world = new THREE.Vector3(...boardPosition(position));
-      world.y += GIZMO_HEIGHT;
-      group.position.copy(world);
+    setTarget(worldPosition, scale) {
+      group.position.set(worldPosition[0], worldPosition[1] + GIZMO_HEIGHT, worldPosition[2]);
       const factor = Math.max(0.5, Math.min(2, Number(scale) || 1));
       group.scale.setScalar(factor);
     },

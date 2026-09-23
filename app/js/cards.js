@@ -98,7 +98,8 @@ function bindCardButtons(root, onSelect, onAction) {
     input.onchange = () => onAction({ type: "edit-snap", which: input.dataset.editSnap, value: input.checked });
   });
   root.querySelectorAll("[data-edit-palette]").forEach(input => {
-    input.oninput = () => onAction({ type: "edit-palette", index: Number(input.dataset.editPalette), value: input.value });
+    // Commit on `change` (picker dismissed) so re-rendering never closes it mid-pick.
+    input.onchange = () => onAction({ type: "edit-palette", index: Number(input.dataset.editPalette), value: input.value });
   });
   root.querySelectorAll("[data-edit-style]").forEach(select => {
     select.onchange = () => onAction({ type: "edit-style", value: select.value });
@@ -116,7 +117,6 @@ function boardModal(state) {
   if (view === "self") return selfView(state);
   if (view === "prop-details") return propDetailsView(state);
   if (view === "journal") return journalView(state);
-  if (view === "edit-room") return editRoomView(state);
   return "";
 }
 
@@ -318,7 +318,7 @@ function inventoryStackActions(stack) {
 }
 
 /** Render core cards, equipped/inventory previews, board-modal views, and card details. */
-export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onAction }) {
+export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
   const rendered = new WeakMap();
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
@@ -326,7 +326,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
     const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .details-popup, .details-page, .card-hand-strip, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .editor-dock-body, .journal-page-inner, .details-popup, .details-page, .card-hand-strip, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -358,6 +358,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
       `);
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
+      if (editorRoot) update(editorRoot, state.editor ? editRoomView(state) : "");
     },
   };
 }

@@ -31,6 +31,7 @@ const $ = selector => document.querySelector(selector);
 const root = $("#app");
 const panelLayer = $("#panel-layer");
 const detailLayer = $("#detail-layer");
+const editorRoot = $("#editor-dock");
 const activityLayer = $("#activity-layer");
 const authLayer = $("#auth-layer");
 const chatInput = $("#chat-input");
@@ -213,6 +214,7 @@ function applyEditorPalette(index, value) {
   const current = editor.environment.palette || state.room?.board?.palette || [];
   const colors = [...current];
   while (colors.length < 3) colors.push("#d4be94");
+  if (String(colors[index] || "").toLowerCase() === String(value).toLowerCase()) return;
   colors[index] = value;
   store.dispatch({ type: "editor-env", key: "palette", value: colors });
 }
@@ -758,7 +760,7 @@ const board = createBoard({
   onEditScale(factor) { store.dispatch({ type: "editor-scale", factor }); },
 });
 const cards = createCardsView({
-  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer,
+  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
   onSelect(selection) { store.dispatch({ type: "select", selection }); playTone("flip"); },
   onAction: action => { void handleAction(action); },
 });
@@ -789,6 +791,7 @@ async function render(state) {
   root.classList.toggle("onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   root.classList.toggle("has-view", Boolean(state.views.main));
   root.classList.toggle("has-details", Boolean(state.views.details));
+  root.classList.toggle("editing", Boolean(state.editor));
   root.classList.toggle("targeting", Boolean(state.ui.targeting));
   $("#board-canvas").inert = !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details);
   panelLayer.inert = Boolean(state.views.details);
@@ -808,7 +811,7 @@ async function render(state) {
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
   propViewers.sync(detailLayer, state.ui.reducedMotion);
-  thumbnails.sync(panelLayer);
+  thumbnails.sync(editorRoot);
   if (!dialogs.active) {
     if (state.views.details && previousDetails !== state.views.details) {
       detailLayer.querySelector("[data-close-details]")?.focus({ preventScroll: true });
@@ -836,7 +839,7 @@ async function render(state) {
       room: {
         ...state.room,
         props: [
-          ...state.room.props.filter(prop => !editableIds.has(prop.propId)),
+          ...state.room.props.filter(prop => !editableIds.has(prop.propId)).map(prop => ({ ...prop, ghost: true })),
           ...editorBoardProps(state.editor),
         ],
         board: {

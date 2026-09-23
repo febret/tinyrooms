@@ -45,6 +45,9 @@ function material(color, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
 }
 
+/** Flat gray stand-in used to mark gameplay props that the editor cannot change. */
+const GHOST_MATERIAL = new THREE.MeshStandardMaterial({ color: "#7f8a8f", roughness: 0.95, metalness: 0 });
+
 function box(parent, dimensions, position, materials) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...dimensions), materials);
   mesh.position.set(...position);
@@ -125,6 +128,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   controls.maxPolarAngle = Math.PI / 2.25;
   controls.minDistance = 7;
   controls.maxDistance = 100;
+  // Left-drag orbits and the wheel/pinch zooms in every mode; prop dragging
+  // suppresses the controls for the duration of the gesture instead.
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
+  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
   scene.add(new THREE.HemisphereLight("#fff2d5", "#496e69", 1.45));
   const sunlight = new THREE.DirectionalLight("#ffe6bb", 2);
   sunlight.position.set(-5, 12, 7);
@@ -171,8 +178,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let selectionObject = null;
   let editEnabled = false;
   let editSelectionId = null;
+  let editSelectionObject = null;
   let editGesture = null;
   let editDrag = null;
+  let orbitSuppressed = false;
   let reducedMotion = false;
   let userAdjusted = false;
   let width = 0;
@@ -207,11 +216,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       selectionRing.visible = true;
       break;
     }
-    const editObject = editEnabled && editSelectionId
+    editSelectionObject = editEnabled && editSelectionId
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
       : null;
-    if (editObject) {
-      gizmo.setTarget(editObject.position.toArray(), editObject.scale.x);
+    if (editSelectionObject) {
+      gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x);
       gizmo.setVisible(true);
     } else {
       gizmo.setVisible(false);
@@ -383,6 +392,24 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (reducedMotion) record.group.position.copy(record.target);
   }
 
+  /** Swap a loaded model's materials for the gray ghost look, or restore the originals. */
+  function setGhosted(record, ghosted) {
+    if (!record.model || record.ghosted === ghosted) return;
+    record.ghosted = ghosted;
+    if (ghosted) {
+      record.materials = [];
+      record.model.traverse(node => {
+        if (node.isMesh && node.material) {
+          record.materials.push([node, node.material]);
+          node.material = GHOST_MATERIAL;
+        }
+      });
+    } else if (record.materials) {
+      for (const [node, original] of record.materials) node.material = original;
+      record.materials = null;
+    }
+  }
+
   function addProp(entry, prop) {
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
@@ -391,7 +418,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     const record = {
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
       model: null, clips: [], animation: prop.animation || "", mixers: [], animTimers: [], scenes: [],
-      target: group.position.clone(),
+      target: group.position.clone(), ghosted: false, materials: null,
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
@@ -428,6 +455,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       record.model = model;
       record.clips = gltf.animations || [];
       record.scenes = gltf.scenes || [model];
+      setGhosted(record, Boolean(record.prop.ghost));
       playPropAnimation(entry, record, record.prop, model, record.clips);
       entry.modelScenes.push(...record.scenes);
       entry.pending -= 1;
@@ -445,6 +473,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     record.prop = prop;
     record.group.rotation.set(...(prop.rotation || [0, 0, 0]));
     record.group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
+    setGhosted(record, Boolean(prop.ghost));
     setRecordTarget(record, prop.position);
     if ((prop.animation || "") !== record.animation) {
       record.animation = prop.animation || "";
@@ -579,6 +608,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     disposeBoardTree([current.root, ...current.modelScenes]);
     current = null;
     selectionObject = null;
+    editSelectionObject = null;
     selectionRing.visible = false;
     dropHint.visible = false;
     gizmo.setVisible(false);
@@ -655,17 +685,29 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return object && object.userData.kind === "prop" ? object.userData.id : null;
   }
 
+  function suppressOrbit() {
+    orbitSuppressed = true;
+    controls.enabled = false;
+  }
+
+  function releaseOrbit() {
+    orbitSuppressed = false;
+    controls.enabled = !blocked && !renderFailed;
+  }
+
   function pointerDown(event) {
     if (blocked || event.button !== 0) return;
     if (editEnabled) {
       const mode = pickEditMode(event);
       if (mode) {
         editGesture = { mode, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
+        suppressOrbit();
         return;
       }
       const propId = pickPropId(event);
       editDrag = { id: propId, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
       if (propId) {
+        suppressOrbit();
         onEditSelect?.(propId);
         onEditBegin?.();
       }
@@ -700,6 +742,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (editGesture && editGesture.pointerId === event.pointerId) {
         const gesture = editGesture;
         editGesture = null;
+        releaseOrbit();
         if (!gesture.moved && gesture.mode === "rotate") onEditRotate?.(15);
         else if (!gesture.moved && gesture.mode === "scale") onEditScale?.(1.15);
         return;
@@ -707,6 +750,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (editDrag && editDrag.pointerId === event.pointerId) {
         const drag = editDrag;
         editDrag = null;
+        releaseOrbit();
         if (!drag.moved && !drag.id) onEditSelect?.(null);
         return;
       }
@@ -729,6 +773,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function pointerCancel(event) {
     editGesture = null;
     editDrag = null;
+    releaseOrbit();
     pointers.delete(event.pointerId);
     gestureMoved = true;
   }
@@ -788,6 +833,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
           selectionObject.position.z,
         );
       }
+      if (editSelectionObject) {
+        gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x);
+      }
       if (!blocked) controls.update();
       renderer.render(scene, camera);
       frame = requestAnimationFrame(animate);
@@ -810,14 +858,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       const blockingView = Boolean(modalView && modalView !== "edit-room");
       blocked = Boolean(blockingView || state.views?.details || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
-      controls.enabled = !blocked && !renderFailed;
-      if (editEnabled && !blocked) {
-        controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
-        controls.touches = { ONE: null, TWO: THREE.TOUCH.DOLLY_ROTATE };
-      } else {
-        controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
-        controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-      }
+      controls.enabled = !blocked && !renderFailed && !orbitSuppressed;
       if (blocked) {
         pointers.clear();
         gestureMoved = true;
@@ -851,6 +892,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       const active = Boolean(editGesture || editDrag);
       editGesture = null;
       editDrag = null;
+      releaseOrbit();
       return active;
     },
     /** Release geometry, materials, textures, controls, listeners, and late-loading assets. */
@@ -870,6 +912,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       canvas.removeEventListener("webglcontextlost", contextLost);
       clear();
       gizmo.dispose();
+      GHOST_MATERIAL.dispose();
       disposeBoardTree(selectionRing);
       disposeBoardTree(dropHint);
       sunlight.shadow.dispose();
