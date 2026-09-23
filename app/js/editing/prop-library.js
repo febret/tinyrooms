@@ -12,8 +12,8 @@ export function libraryMarkup(editor) {
         <button type="button" class="editor-library-item" role="listitem"
           data-edit-add="${escapeHtml(entry.propId)}" aria-label="Add ${escapeHtml(entry.label)}"
           title="${escapeHtml(entry.label)}">
-          <canvas class="editor-thumb" data-prop-model="${escapeHtml(entry.modelUrl)}"
-            data-prop-scale="${escapeHtml(entry.baseScale)}" aria-hidden="true"></canvas>
+          <img class="editor-thumb" data-thumb-model="${escapeHtml(entry.modelUrl)}"
+            data-thumb-scale="${escapeHtml(entry.baseScale)}" alt="" aria-hidden="true">
           <span>${escapeHtml(entry.label)}</span>
         </button>
       `).join("")}

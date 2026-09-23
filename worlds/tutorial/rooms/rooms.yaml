@@ -5,6 +5,7 @@ hub:
   board_image: hub.jpg
   board_image_style: stretch
   palette: ["#ebcfaa", "#b97262", "#6faea4"]
+  editor: {environment: [palette, board_image_style]}
   props:
     portal0: {prop: portal, pos: [26, 42, 0], rot: [0, 0, 0], scale: 1.1, actions: [["Go across", ".go exit0"]]}
     vending0: {prop: vending, pos: [77, 36, 0], rot: [0, -0.15, 0], scale: 1, behavior: shop, activity: shop, actions: [["Browse packs", ".shop"]]}
@@ -18,6 +19,7 @@ playroom:
   board_image: playroom.png
   board_image_style: tile
   palette: ["#e4d5b5", "#de958a", "#88ada9"]
+  editor: {environment: [palette, board_image_style]}
   props:
     dollhouse0:
       prop: dollhouse
@@ -42,6 +44,7 @@ foyer:
   board_image: foyer.png
   board_image_style: stretch
   palette: ["#efdbaf", "#81aa94", "#ce7958"]
+  editor: {environment: [palette, board_image_style]}
   props:
     front-door0: {prop: locked-front-door, pos: [51, 16, 0], scale: 1, behavior: locked-door, actions: [["Unlock front door", ".unlock"]]}
     upstairs0: {prop: stairs, pos: [83, 38, 0], scale: 0.95, actions: [["Up to bedroom", ".go bedroom"]]}
@@ -60,6 +63,7 @@ kitchen:
   board_image: kitchen.png
   board_image_style: stretch
   palette: ["#eee6c9", "#efb65d", "#789f96"]
+  editor: {environment: [palette, board_image_style]}
   props:
     breakfast0: {prop: kitchen-counter, pos: [45, 22, 0], scale: 1.3}
     kitchen-plant: {prop: plant, pos: [83, 33, 0], scale: 0.75}
@@ -78,6 +82,7 @@ bathroom:
   board_image: bathroom.png
   board_image_style: stretch
   palette: ["#c9e0d1", "#f6edcf", "#cf8a91"]
+  editor: {environment: [palette, board_image_style]}
   props:
     shower0: {prop: shower, pos: [27, 27, 0], scale: 1.1, behavior: shower, actions: [["Take a shower", ".shower"]]}
     litter0: {prop: litter-tray, pos: [73, 62, 0], scale: 1.15, behavior: litter, actions: [["Clean litter tray", ".clean"]]}
@@ -92,6 +97,7 @@ living-room:
   board_image: living-room.png
   board_image_style: stretch
   palette: ["#d8af82", "#cb7764", "#6d9698"]
+  editor: {environment: [palette, board_image_style]}
   props:
     sofa0: {prop: sofa, pos: [48, 28, 0], scale: 1.3}
     reading-lamp: {prop: lamp, pos: [80, 30, 0], scale: 1}
@@ -110,6 +116,7 @@ bedroom:
   board_image: bedroom.png
   board_image_style: stretch
   palette: ["#b7c8cd", "#edc6a0", "#c48a9b"]
+  editor: {environment: [palette, board_image_style]}
   props:
     bed0: {prop: bed, pos: [36, 31, 0], scale: 1.3}
     bedside-lamp: {prop: lamp, pos: [72, 28, 0], scale: 0.85}
@@ -127,6 +134,7 @@ utility:
   board_image: utility.png
   board_image_style: stretch
   palette: ["#e1cfac", "#88a59e", "#d49062"]
+  editor: {environment: [palette, board_image_style]}
   props:
     supplies0:
       prop: supply-shelf
@@ -149,6 +157,7 @@ basement:
   board_image: basement.png
   board_image_style: stretch
   palette: ["#627681", "#d5b57f", "#708e87"]
+  editor: {environment: [palette, board_image_style]}
   dark: true
   props:
     key0: {prop: keys-cabinet, pos: [28, 24, 0], scale: 1.1, behavior: key, actions: [["Take spare key", ".take-key"]]}
@@ -163,6 +172,7 @@ garden:
   board_image: garden.png
   board_image_style: stretch
   palette: ["#9eb783", "#eed19c", "#d78584"]
+  editor: {environment: [palette, board_image_style]}
   props:
     garden-plant0: {prop: plant, pos: [23, 24, 0], scale: 1.3}
     garden-plant1: {prop: plant, pos: [80, 65, 0], scale: 1.5}

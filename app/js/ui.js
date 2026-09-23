@@ -18,6 +18,7 @@ import {
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
 import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
+import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
@@ -762,6 +763,7 @@ const cards = createCardsView({
   onAction: action => { void handleAction(action); },
 });
 const propViewers = createPropViewerManager();
+const thumbnails = createThumbnailManager();
 const cardMotion = createCardMotion({
   board,
   handRoot: $("#card-hand"),
@@ -806,6 +808,7 @@ async function render(state) {
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
   propViewers.sync(detailLayer, state.ui.reducedMotion);
+  thumbnails.sync(panelLayer);
   if (!dialogs.active) {
     if (state.views.details && previousDetails !== state.views.details) {
       detailLayer.querySelector("[data-close-details]")?.focus({ preventScroll: true });

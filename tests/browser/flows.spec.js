@@ -664,6 +664,9 @@ test.describe("milestone 3 room editing", () => {
     await createReadyAccount(page, runtime, "siteadmin");
     const panel = await openEditRoom(page);
     await expect(panel).toContainText("Add a prop");
+    // Library tiles are static images, never per-tile WebGL contexts.
+    await expect(panel.locator("img.editor-thumb")).toHaveCount(1);
+    await expect(panel.locator("canvas.editor-thumb")).toHaveCount(0);
   });
 
   test("editor adds, transforms, snaps, and undoes a decorative prop", async ({ page, runtime, isMobile }) => {
@@ -676,6 +679,10 @@ test.describe("milestone 3 room editing", () => {
     await panel.locator('[data-edit-add="plant"]').click();
     await expect(meta).toContainText("Position 50, 50");
     await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+    await page.evaluate(() => {
+      window.__contextLost = 0;
+      document.querySelector("#board-canvas").addEventListener("webglcontextlost", () => { window.__contextLost += 1; });
+    });
 
     const afterDrag = await dragProp(page, panel, "Position 50, 50", { x: 140, y: 70 });
     await expect(meta).not.toContainText("Position 50, 50");
@@ -705,6 +712,9 @@ test.describe("milestone 3 room editing", () => {
     const beforeFine = await meta.textContent();
     await page.keyboard.press("ArrowRight");
     await expect(meta).not.toHaveText(beforeFine);
+
+    // Dragging must not churn WebGL contexts and evict the room board.
+    expect(await page.evaluate(() => window.__contextLost)).toBe(0);
   });
 
   test("closing the editor with unsaved changes asks for confirmation", async ({ page, runtime }) => {

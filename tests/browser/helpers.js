@@ -173,6 +173,10 @@ export async function settleArtwork(page, { allowToasts = false } = {}) {
   if (await pendingModels.count()) {
     await expect(pendingModels).toHaveCount(0, { timeout: 20_000 });
   }
+  const pendingThumbnails = page.locator("img[data-thumb-model]:not([data-thumb-ready='true']):not([data-thumb-error='true'])");
+  if (await pendingThumbnails.count()) {
+    await expect(pendingThumbnails).toHaveCount(0, { timeout: 20_000 });
+  }
   for (const frame of page.frames()) {
     await frame.evaluate(async () => {
       await document.fonts.ready;
