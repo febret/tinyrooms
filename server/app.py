@@ -67,12 +67,13 @@ from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.progression import ProgressionService
+from server.services.room_layout import RoomLayoutService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
 from server.services.tasks import TaskService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
-from server.state.world_state import WorldStateRepository
+from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 
 
 LOGGER = logging.getLogger("tinyrooms.server")
@@ -105,6 +106,13 @@ class ActivityBridgeRequest(BaseModel):
     payload: dict[str, object] = Field(default_factory=dict)
 
 
+class LayoutSaveRequest(BaseModel):
+    """Room layout save request payload."""
+
+    base_revision: int = Field(ge=0)
+    patch: dict[str, object] = Field(default_factory=dict)
+
+
 @dataclass(slots=True)
 class RuntimeState:
     """Shared application runtime state."""
@@ -135,6 +143,7 @@ class RuntimeState:
     audit: AuditService
     ownership: OwnershipService
     environment: EnvironmentService
+    layout: RoomLayoutService
     auras: AuraService
     dispensers: DispenserService
     crafting: CraftingService
@@ -389,6 +398,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     environment = EnvironmentService(hub, world, world_state)
+    layout = RoomLayoutService(hub, world, world_state, ownership, environment)
     auras = AuraService(hub, stats, world)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
@@ -405,6 +415,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         command_verbs=frozenset(f".{spec.name}" for spec in registry.list()),
         environment=environment,
         auras=auras,
+        layout=layout,
     )
     dialogs = DialogService(
         hub=hub,
@@ -476,6 +487,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         audit=audit,
         ownership=ownership,
         environment=environment,
+        layout=layout,
         auras=auras,
         dispensers=dispensers,
         crafting=crafting,
@@ -630,6 +642,40 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         payload = _serialize_account(runtime, account)
         payload["can_enter_world"] = bool(account.initial_sticker_complete)
         return {"ok": True, "user": payload}
+
+    @app.get("/api/rooms/{room_id}/layout")
+    async def get_room_layout(request: Request, room_id: str) -> dict[str, object]:
+        runtime = _get_runtime(request)
+        session = _require_session(runtime, request)
+        if room_id not in runtime.world.rooms:
+            raise HTTPException(status_code=404, detail="Room not found.")
+        account = runtime.profiles.get_account_by_id(session.account_id)
+        return {"ok": True, "layout": runtime.layout.view(account, room_id)}
+
+    @app.post("/api/rooms/{room_id}/layout")
+    async def save_room_layout(request: Request, room_id: str, payload: LayoutSaveRequest) -> Response:
+        runtime = _get_runtime(request)
+        session = _require_session(runtime, request)
+        _enforce_authenticated_post(runtime, request, session)
+        if room_id not in runtime.world.rooms:
+            raise HTTPException(status_code=404, detail="Room not found.")
+        account = runtime.profiles.get_account_by_id(session.account_id)
+        try:
+            update = runtime.layout.save(account, room_id, payload.base_revision, payload.patch)
+        except LayoutRevisionConflict as exc:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "ok": False,
+                    "code": "revision_conflict",
+                    "message": str(exc),
+                    "layout": runtime.layout.view(account, room_id),
+                },
+            )
+        except ValueError as exc:
+            return _json_error(400, "layout_rejected", str(exc))
+        await _broadcast_room_event(runtime, room_id=room_id, event=update.event())
+        return JSONResponse(content={"ok": True, "layout": runtime.layout.view(account, room_id)})
 
     @app.get("/api/activities/current")
     async def current_activity(request: Request) -> dict[str, object]:
@@ -931,13 +977,13 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Sticker asset not found.")
 
-    @app.get("/assets/base/{filename}")
-    async def base_asset(filename: str, request: Request) -> Response:
+    @app.get("/assets/{cardset}/{filename}")
+    async def cardset_asset(cardset: str, filename: str, request: Request) -> Response:
         runtime = _get_runtime(request)
-        candidate = _safe_path(runtime.config.cardsets_path / "base", filename)
+        candidate = _safe_path(runtime.config.cardsets_path / cardset, filename)
         if candidate.is_file():
             return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="Base asset not found.")
+        raise HTTPException(status_code=404, detail="Cardset asset not found.")
 
     @app.get("/assets/world/{world_id}/{bucket}/{filename}")
     async def world_asset(world_id: str, bucket: str, filename: str, request: Request) -> Response:

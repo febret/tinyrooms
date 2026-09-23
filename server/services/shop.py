@@ -85,7 +85,7 @@ class ShopService:
 
         previews: list[PackPreview] = []
         for pack in self._catalog.packs.values():
-            asset_kind = "base" if pack.source != self._world_id else f"world/{self._world_id}/cards"
+            asset_kind = pack.source if pack.source != self._world_id else f"world/{self._world_id}/cards"
             previews.append(
                 PackPreview(
                     id=pack.id,

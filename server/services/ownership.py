@@ -95,8 +95,13 @@ class OwnershipService:
         self._profiles.write_ownership(connection, account_id, ownership)
 
     def can_edit(self, account: AccountRecord, room_id: str) -> bool:
-        """Return whether an account may edit a room's decorative layout."""
+        """Return whether an account may edit a room's decorative layout.
+
+        Room owners and the builder power may edit; admins may edit any room.
+        """
 
         if self.owner_of(room_id) == account.id:
             return True
-        return bool(self._has_power(account.id, "builder"))
+        return bool(
+            self._has_power(account.id, "builder") or self._has_power(account.id, "admin")
+        )

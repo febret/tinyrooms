@@ -61,6 +61,7 @@ kitchen-counter:
   description: A gingham runner, warm toast and a happy little kettle.
   model: kitchen-counter.glb
   decorative: true
+  editable: true
   scale: 1.214
 craft-workbench:
   label: The Mending Table
@@ -73,46 +74,53 @@ sofa:
   description: Soft corduroy, striped cushions, and room for a friend.
   model: sofa.glb
   decorative: true
+  editable: true
   scale: 1.546
 bed:
   label: Patchwork Bed
   description: A quilt stitched from the colors of the house.
   model: bed.glb
   decorative: true
+  editable: true
   scale: 1.389
 plant:
   label: Little Monstera
   description: Glossy leaves, a wonky terracotta pot, and one new shoot.
   model: quaternius_cc0-cactus-775.glb
   decorative: true
+  editable: true
   scale: 0.76
 bookshelf:
   label: Story Shelf
   description: Hand-bound books and a tiny keepsake house.
   model: bookshelf.glb
   decorative: true
+  editable: true
   scale: 1.405
 framed-picture:
   label: A Sunny Picture
   description: A hand-painted sun over a little blue hill.
   model: framed-picture.glb
   decorative: true
+  editable: true
   scale: 1.593
 rug:
   label: Woven Flower Rug
   description: A scalloped rug with a cheerful embroidered flower.
   model: rug.glb
   decorative: true
+  editable: true
   scale: 1.366
 lamp:
   label: Reading Lamp
   description: Warm light under a pleated marigold shade.
   model: lamp.glb
   decorative: true
+  editable: true
   scale: 1.065
 vending:
   label: Pocket Card Shop
-  description: Base and Tutorial packs. Three cards for 10 Bops; unlimited stock.
+  description: Base, Tutorial and Memebase packs. Three cards for 10 Bops; unlimited stock.
   model: lesiakower-vending-1586.glb
   decorative: false
   scale: 0.1

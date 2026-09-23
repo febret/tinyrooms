@@ -20,6 +20,7 @@ from server.game.modifiers import MODIFIER_TARGETS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
+EDITOR_ENVIRONMENT_KEYS = frozenset({"palette", "board_image_style"})
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 
 
@@ -54,6 +55,9 @@ class PropDefinition:
     decorative: bool
     animation: str | None
     scale: float
+    editable: bool = False
+    editor_scale_min: float = 0.25
+    editor_scale_max: float = 4.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +118,7 @@ class RoomDefinition:
     exits: dict[str, ExitDefinition]
     initial_cards: tuple[InitialRoomCard, ...]
     aura: tuple[AuraDefinition, ...] = ()
+    editor_environment: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -257,6 +262,26 @@ def _load_aura(raw_value: Any, room_id: str) -> tuple[AuraDefinition, ...]:
             )
         )
     return tuple(auras)
+
+
+def _load_editor_environment(raw_value: Any, room_id: str) -> tuple[str, ...]:
+    if raw_value is None:
+        return ()
+    if not isinstance(raw_value, dict):
+        raise ContentError(f"Room '{room_id}' editor must be a mapping.")
+    raw_keys = raw_value.get("environment", []) or []
+    if not isinstance(raw_keys, list):
+        raise ContentError(f"Room '{room_id}' editor.environment must be a list.")
+    keys: list[str] = []
+    for key in raw_keys:
+        if not isinstance(key, str) or key not in EDITOR_ENVIRONMENT_KEYS:
+            raise ContentError(
+                f"Room '{room_id}' editor.environment has unknown key '{key}'. "
+                f"Expected one of {', '.join(sorted(EDITOR_ENVIRONMENT_KEYS))}."
+            )
+        if key not in keys:
+            keys.append(key)
+    return tuple(keys)
 
 
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
@@ -421,15 +446,26 @@ def load_world_definition(
         if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
             raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
         scale = float(raw_scale)
+        decorative = bool(raw_prop.get("decorative", False))
+        editable = bool(raw_prop.get("editable", False))
+        if editable and not decorative:
+            raise ContentError(f"Prop '{prop_id}' is editable but not decorative.")
+        editor_scale_min = float(raw_prop.get("editor_scale_min", 0.25))
+        editor_scale_max = float(raw_prop.get("editor_scale_max", 4.0))
+        if editor_scale_min <= 0 or editor_scale_max < editor_scale_min:
+            raise ContentError(f"Prop '{prop_id}' has invalid editor scale bounds.")
         props[prop_id] = PropDefinition(
             id=prop_id,
             label=str(raw_prop.get("label", "")).strip(),
             description=str(raw_prop.get("description", "")).strip(),
             model_name=model_name,
             model_path=model_path,
-            decorative=bool(raw_prop.get("decorative", False)),
+            decorative=decorative,
             animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
             scale=scale,
+            editable=editable,
+            editor_scale_min=editor_scale_min,
+            editor_scale_max=editor_scale_max,
         )
 
     rooms: dict[str, RoomDefinition] = {}
@@ -534,6 +570,7 @@ def load_world_definition(
             exits=room_exits,
             initial_cards=tuple(room_cards),
             aura=_load_aura(raw_room.get("aura"), room_id),
+            editor_environment=_load_editor_environment(raw_room.get("editor"), room_id),
         )
 
     if entry_room_id not in rooms:

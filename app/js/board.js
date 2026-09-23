@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import { boardImageRepeat, boardPosition, disposeBoardTree, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
+import { createGizmo } from "./editing/gizmo.js";
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
@@ -93,7 +94,7 @@ function unavailableMarker(parent) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect }) {
+export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -151,6 +152,8 @@ export function createBoard({ canvas, overlay, onSelect }) {
   dropHint.rotation.x = -Math.PI / 2;
   dropHint.visible = false;
   scene.add(dropHint);
+  const gizmo = createGizmo();
+  scene.add(gizmo.group);
   const loader = new GLTFLoader();
   const textureLoader = new THREE.TextureLoader();
   const clock = new THREE.Clock();
@@ -166,6 +169,10 @@ export function createBoard({ canvas, overlay, onSelect }) {
   let roomId = "";
   let selection = null;
   let selectionObject = null;
+  let editEnabled = false;
+  let editSelectionId = null;
+  let editGesture = null;
+  let editDrag = null;
   let reducedMotion = false;
   let userAdjusted = false;
   let width = 0;
@@ -199,6 +206,15 @@ export function createBoard({ canvas, overlay, onSelect }) {
       selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
       selectionRing.visible = true;
       break;
+    }
+    const editObject = editEnabled && editSelectionId
+      ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
+      : null;
+    if (editObject) {
+      gizmo.setTarget(editObject.position.toArray(), editObject.scale.x);
+      gizmo.setVisible(true);
+    } else {
+      gizmo.setVisible(false);
     }
   }
 
@@ -565,6 +581,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
     selectionObject = null;
     selectionRing.visible = false;
     dropHint.visible = false;
+    gizmo.setVisible(false);
   }
 
   function rebuild(room) {
@@ -609,27 +626,97 @@ export function createBoard({ canvas, overlay, onSelect }) {
     fit(!userAdjusted);
   }
 
+  function setRayFromEvent(event) {
+    const bounds = canvas.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return false;
+    pointer.set(
+      (event.clientX - bounds.left) / bounds.width * 2 - 1,
+      -(event.clientY - bounds.top) / bounds.height * 2 + 1,
+    );
+    raycaster.setFromCamera(pointer, camera);
+    return true;
+  }
+
+  function pickEditMode(event) {
+    if (!gizmo.group.visible || !setRayFromEvent(event)) return null;
+    const hit = raycaster.intersectObjects(gizmo.pickables, true)[0];
+    if (!hit) return null;
+    let object = hit.object;
+    while (object && !object.userData.editMode) object = object.parent;
+    return object ? object.userData.editMode : null;
+  }
+
+  function pickPropId(event) {
+    if (!setRayFromEvent(event)) return null;
+    const hit = raycaster.intersectObjects(current?.pickables || [], true)[0];
+    if (!hit) return null;
+    let object = hit.object;
+    while (object && !object.userData.kind) object = object.parent;
+    return object && object.userData.kind === "prop" ? object.userData.id : null;
+  }
+
   function pointerDown(event) {
     if (blocked || event.button !== 0) return;
+    if (editEnabled) {
+      const mode = pickEditMode(event);
+      if (mode) {
+        editGesture = { mode, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
+        return;
+      }
+      const propId = pickPropId(event);
+      editDrag = { id: propId, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
+      if (propId) {
+        onEditSelect?.(propId);
+        onEditBegin?.();
+      }
+      return;
+    }
     if (!pointers.size) gestureMoved = false;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.size > 1) gestureMoved = true;
   }
 
   function pointerMove(event) {
+    if (editEnabled) {
+      if (editGesture && editGesture.pointerId === event.pointerId) {
+        if (Math.hypot(event.clientX - editGesture.startX, event.clientY - editGesture.startY) > 6) editGesture.moved = true;
+        return;
+      }
+      if (editDrag && editDrag.pointerId === event.pointerId) {
+        if (Math.hypot(event.clientX - editDrag.startX, event.clientY - editDrag.startY) > 4) editDrag.moved = true;
+        if (editDrag.moved && editDrag.id) {
+          const point = screenToBoardPosition(event.clientX, event.clientY);
+          if (point) onEditTransform?.({ id: editDrag.id, position: point.position });
+        }
+        return;
+      }
+    }
     const start = pointers.get(event.pointerId);
     if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) gestureMoved = true;
   }
 
   function pointerUp(event) {
+    if (editEnabled) {
+      if (editGesture && editGesture.pointerId === event.pointerId) {
+        const gesture = editGesture;
+        editGesture = null;
+        if (!gesture.moved && gesture.mode === "rotate") onEditRotate?.(15);
+        else if (!gesture.moved && gesture.mode === "scale") onEditScale?.(1.15);
+        return;
+      }
+      if (editDrag && editDrag.pointerId === event.pointerId) {
+        const drag = editDrag;
+        editDrag = null;
+        if (!drag.moved && !drag.id) onEditSelect?.(null);
+        return;
+      }
+      return;
+    }
     const start = pointers.get(event.pointerId);
     pointers.delete(event.pointerId);
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
-    const bounds = canvas.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) return;
-    pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
-    raycaster.setFromCamera(pointer, camera);
+    if (!setRayFromEvent(event)) return;
     let object = raycaster.intersectObjects(current?.pickables || [], true)[0]?.object;
     while (object && !object.userData.kind) object = object.parent;
     if (object) {
@@ -640,6 +727,8 @@ export function createBoard({ canvas, overlay, onSelect }) {
   }
 
   function pointerCancel(event) {
+    editGesture = null;
+    editDrag = null;
     pointers.delete(event.pointerId);
     gestureMoved = true;
   }
@@ -715,9 +804,20 @@ export function createBoard({ canvas, overlay, onSelect }) {
       selection = state.selection;
       reducedMotion = Boolean(state.ui?.reducedMotion);
       controls.enableDamping = !state.ui?.reducedMotion;
-      blocked = Boolean(state.views?.main || state.views?.details || state.views?.auth
+      editEnabled = Boolean(state.editing);
+      editSelectionId = editEnabled ? (state.editSelection || null) : null;
+      const modalView = state.views?.main;
+      const blockingView = Boolean(modalView && modalView !== "edit-room");
+      blocked = Boolean(blockingView || state.views?.details || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
       controls.enabled = !blocked && !renderFailed;
+      if (editEnabled && !blocked) {
+        controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+        controls.touches = { ONE: null, TWO: THREE.TOUCH.DOLLY_ROTATE };
+      } else {
+        controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
+        controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+      }
       if (blocked) {
         pointers.clear();
         gestureMoved = true;
@@ -746,6 +846,13 @@ export function createBoard({ canvas, overlay, onSelect }) {
     projectPositionToScreen,
     /** Show or clear the floor marker used as a drag drop target. */
     setDropHint,
+    /** Cancel an in-progress edit gesture; returns true when one was active. */
+    cancelEditGesture() {
+      const active = Boolean(editGesture || editDrag);
+      editGesture = null;
+      editDrag = null;
+      return active;
+    },
     /** Release geometry, materials, textures, controls, listeners, and late-loading assets. */
     dispose() {
       if (disposed) return;
@@ -762,6 +869,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
       canvas.removeEventListener("pointercancel", pointerCancel);
       canvas.removeEventListener("webglcontextlost", contextLost);
       clear();
+      gizmo.dispose();
       disposeBoardTree(selectionRing);
       disposeBoardTree(dropHint);
       sunlight.shadow.dispose();

@@ -17,6 +17,7 @@ import {
 } from "./commands.js";
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
+import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
@@ -143,6 +144,140 @@ async function confirmSticker(sticker) {
   toast("Sticker confirmed.", "success");
 }
 
+function closeEditor() {
+  store.dispatch({ type: "editor-close" });
+  store.dispatch({ type: "close-view" });
+}
+
+async function confirmCloseEditor() {
+  const accepted = await dialogs.confirm(
+    "Discard unsaved changes?",
+    "Your room layout changes have not been saved.",
+    "Discard",
+  );
+  if (accepted) closeEditor();
+}
+
+async function openRoomEditor() {
+  const roomId = store.getState().room?.id;
+  if (!roomId) return;
+  try {
+    const layout = await api.getRoomLayout(roomId);
+    if (layout) store.dispatch({ type: "editor-open", view: layout });
+    else toast("The room layout could not be loaded.", "error");
+  } catch (error) {
+    showError(error);
+  }
+}
+
+function editorPatch(editor) {
+  return {
+    props: editor.props.map(instance => ({
+      id: instance.id,
+      prop_id: instance.propId,
+      position: instance.position,
+      rotation: instance.rotation,
+      scale: instance.scale,
+    })),
+    environment: editor.environment,
+  };
+}
+
+async function saveRoomEditor() {
+  const editor = store.getState().editor;
+  if (!editor) return;
+  store.dispatch({ type: "editor-status", message: "Saving…", error: "" });
+  try {
+    const result = await api.saveRoomLayout(editor.roomId, {
+      base_revision: editor.baseRevision,
+      patch: editorPatch(editor),
+    });
+    if (result.conflict) {
+      store.dispatch({ type: "editor-conflict", layout: result.layout });
+      toast(result.message, "error");
+      return;
+    }
+    store.dispatch({ type: "editor-saved", view: result.layout });
+    toast("Layout saved.", "success");
+  } catch (error) {
+    store.dispatch({ type: "editor-status", message: "", error: error instanceof Error ? error.message : String(error) });
+    showError(error);
+  }
+}
+
+function applyEditorPalette(index, value) {
+  const state = store.getState();
+  const editor = state.editor;
+  if (!editor) return;
+  const current = editor.environment.palette || state.room?.board?.palette || [];
+  const colors = [...current];
+  while (colors.length < 3) colors.push("#d4be94");
+  colors[index] = value;
+  store.dispatch({ type: "editor-env", key: "palette", value: colors });
+}
+
+async function applyEditorAction(action) {
+  const state = store.getState();
+  if (!state.editor) return;
+  switch (action.action) {
+    case "undo":
+      store.dispatch({ type: "editor-undo" });
+      break;
+    case "redo":
+      store.dispatch({ type: "editor-redo" });
+      break;
+    case "remove":
+      if (state.editor.selectedId) store.dispatch({ type: "editor-remove", id: state.editor.selectedId });
+      break;
+    case "rotate":
+      store.dispatch({ type: "editor-rotate", delta: action.delta || 15 });
+      break;
+    case "scale":
+      store.dispatch({ type: "editor-scale", factor: action.factor || 1.15 });
+      break;
+    case "save":
+      await saveRoomEditor();
+      break;
+    case "reload":
+      if (state.editor.conflict) store.dispatch({ type: "editor-saved", view: state.editor.conflict });
+      break;
+    case "reapply":
+      if (state.editor.conflict) {
+        store.dispatch({ type: "editor-rebase", revision: state.editor.conflict.revision });
+        await saveRoomEditor();
+      }
+      break;
+  }
+}
+
+function handleEditorKey(event) {
+  const state = store.getState();
+  const editor = state.editor;
+  if (!editor) return false;
+  const step = editor.snapPosition ? 5 : 1;
+  const moves = {
+    ArrowLeft: [-step, 0],
+    ArrowRight: [step, 0],
+    ArrowUp: [0, -step],
+    ArrowDown: [0, step],
+  };
+  if (moves[event.key]) {
+    const [dx, dy] = moves[event.key];
+    store.dispatch({ type: "editor-nudge", dx, dy });
+    return true;
+  }
+  if (event.key === "[" || event.key === "]") {
+    store.dispatch({ type: "editor-rotate", delta: event.key === "]" ? 15 : -15 });
+    return true;
+  }
+  if (event.key === "+" || event.key === "=" || event.key === "-" || event.key === "_") {
+    const factor = event.key === "-" || event.key === "_" ? 1 / 1.15 : 1.15;
+    store.dispatch({ type: "editor-scale", factor });
+    return true;
+  }
+  return false;
+}
+
 async function openCommands() {
   playTone("tap");
   settings.open = false;
@@ -188,19 +323,37 @@ async function handleAction(action) {
   }
   if (action.type === "open-view" || action.type === "core-toggle") {
     const view = action.view || action.id;
+    const closing = store.getState().views.main === view;
     store.dispatch({
-      type: store.getState().views.main === view ? "close-view" : "open-view",
+      type: closing ? "close-view" : "open-view",
       view,
       propId: action.propId,
       stackId: action.stackId,
     });
     playTone("flip");
+    if (!closing && view === "edit-room") await openRoomEditor();
     if (view === "journal") {
       await refreshTasks();
       if (store.getState().ui.journalTab === "Memories") await refreshJournalMonth();
     }
   } else if (["close-view", "close-details"].includes(action.type)) {
+    const state = store.getState();
+    if (action.type === "close-view" && state.views.main === "edit-room" && state.editor) {
+      if (state.editor.dirty) { await confirmCloseEditor(); return; }
+      closeEditor();
+      return;
+    }
     store.dispatch({ type: action.type });
+  } else if (action.type === "edit-add") {
+    store.dispatch({ type: "editor-add", propId: action.propId });
+  } else if (action.type === "edit-snap") {
+    store.dispatch({ type: "editor-snap", which: action.which, value: action.value });
+  } else if (action.type === "edit-palette") {
+    applyEditorPalette(action.index, action.value);
+  } else if (action.type === "edit-style") {
+    store.dispatch({ type: "editor-env", key: "board_image_style", value: action.value });
+  } else if (action.type === "edit-action") {
+    await applyEditorAction(action);
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
   } else if (action.type === "start-targeting") {
@@ -597,6 +750,11 @@ const board = createBoard({
     store.dispatch({ type: "select", selection });
     playTone("flip");
   },
+  onEditSelect(id) { store.dispatch({ type: "editor-select", id }); },
+  onEditBegin() { store.dispatch({ type: "editor-begin" }); },
+  onEditTransform({ id, position }) { store.dispatch({ type: "editor-transform", id, position }); },
+  onEditRotate(delta) { store.dispatch({ type: "editor-rotate", delta }); },
+  onEditScale(factor) { store.dispatch({ type: "editor-scale", factor }); },
 });
 const cards = createCardsView({
   handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer,
@@ -630,7 +788,7 @@ async function render(state) {
   root.classList.toggle("has-view", Boolean(state.views.main));
   root.classList.toggle("has-details", Boolean(state.views.details));
   root.classList.toggle("targeting", Boolean(state.ui.targeting));
-  $("#board-canvas").inert = !state.loggedIn || Boolean(state.views.main || state.views.details);
+  $("#board-canvas").inert = !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details);
   panelLayer.inert = Boolean(state.views.details);
   activityLayer.inert = Boolean(state.views.main || state.views.details);
   $(".bottom-stack").inert = !state.loggedIn || !state.user?.initialStickerComplete;
@@ -665,7 +823,28 @@ async function render(state) {
   // Iframes must not wait for room textures/models to finish loading.
   await activities.sync(state.activities);
   if (revision !== renderRevision) return;
-  await board.render(state);
+  let boardState = state;
+  if (state.editor && state.views.main === "edit-room" && state.room) {
+    const editableIds = editablePropIds(state.editor);
+    boardState = {
+      ...state,
+      editing: true,
+      editSelection: state.editor.selectedId,
+      room: {
+        ...state.room,
+        props: [
+          ...state.room.props.filter(prop => !editableIds.has(prop.propId)),
+          ...editorBoardProps(state.editor),
+        ],
+        board: {
+          ...state.room.board,
+          palette: state.editor.environment.palette || state.room.board.palette,
+          imageStyle: state.editor.environment.board_image_style || state.room.board.imageStyle,
+        },
+      },
+    };
+  }
+  await board.render(boardState);
 }
 
 $("#command-button").onclick = openCommands;
@@ -687,8 +866,20 @@ document.addEventListener("pointerdown", event => {
   if (settings.open && !settings.contains(event.target)) settings.open = false;
 });
 document.addEventListener("keydown", event => {
-  if (event.key !== "Escape") return;
   const state = store.getState();
+  const tag = event.target?.tagName;
+  const typing = tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
+  if (!typing && state.editor && state.views.main === "edit-room" && !dialogs.active) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      if (board.cancelEditGesture()) { store.dispatch({ type: "editor-undo" }); return; }
+      if (state.editor.dirty) { void confirmCloseEditor(); return; }
+      closeEditor();
+      return;
+    }
+    if (handleEditorKey(event)) { event.preventDefault(); return; }
+  }
+  if (event.key !== "Escape") return;
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }

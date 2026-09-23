@@ -139,7 +139,7 @@ class CardService:
     def serialize_definition(self, definition: CardDefinition) -> dict[str, object]:
         """Serialize a card definition for clients."""
 
-        asset_kind = "base" if definition.source != self._world_id else f"world/{self._world_id}/cards"
+        asset_kind = definition.source if definition.source != self._world_id else f"world/{self._world_id}/cards"
         payload = {
             "id": definition.id,
             "label": definition.label,

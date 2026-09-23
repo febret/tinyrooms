@@ -51,6 +51,7 @@ class RoomService:
         command_verbs: frozenset[str] | None = None,
         environment: object | None = None,
         auras: object | None = None,
+        layout: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -65,6 +66,7 @@ class RoomService:
         self._dialogs: object | None = None
         self._environment = environment
         self._auras = auras
+        self._layout = layout
 
     def attach_dispatcher(self, dispatcher: object) -> None:
         """Wire the behavior dispatcher used for navigation events."""
@@ -146,12 +148,18 @@ class RoomService:
             if self._environment.is_exit_enabled(room.id, exit_definition.id)
         ]
 
-    def _visible_props(self, room: RoomDefinition) -> list[PropInstanceDefinition]:
-        if self._environment is None:
+    def _effective_props(self, room: RoomDefinition) -> list[PropInstanceDefinition]:
+        if self._layout is None:
             return list(room.props.values())
+        return self._layout.effective_props(room.id)
+
+    def _visible_props(self, room: RoomDefinition) -> list[PropInstanceDefinition]:
+        props = self._effective_props(room)
+        if self._environment is None:
+            return props
         return [
             prop
-            for prop in room.props.values()
+            for prop in props
             if self._environment.is_prop_visible(room.id, prop.id)
         ]
 
@@ -282,6 +290,16 @@ class RoomService:
             environment, environment_revision = self._environment.snapshot(room_id)
         lighting = environment.get("lighting")
         dark = lighting == "dark" if lighting in {"normal", "dark"} else room.dark
+        board_palette = list(room.palette)
+        board_style = room.board_image_style
+        layout_revision = environment_revision
+        can_edit_room = room_id in user_profile.owned_rooms
+        if self._layout is not None:
+            effective_board = self._layout.effective_board(room_id)
+            board_palette = list(effective_board.get("palette") or room.palette)
+            board_style = str(effective_board.get("board_image_style") or room.board_image_style)
+            layout_revision = self._layout.revision(room_id)
+            can_edit_room = self._layout.can_edit(account, room_id)
         return {
             "id": room.id,
             "label": room.label,
@@ -289,8 +307,8 @@ class RoomService:
             "board": {
                 "type": room.board_type,
                 "image_url": f"/assets/world/{self._world.id}/rooms/{room.board_image_name}",
-                "image_style": room.board_image_style,
-                "palette": list(room.palette),
+                "image_style": board_style,
+                "palette": board_palette,
                 "dark": dark,
             },
             "metadata": {"note": note},
@@ -304,6 +322,8 @@ class RoomService:
             "chat_history": chat_history,
             "inventory": [self._card_service.serialize_inventory_stack(stack) for stack in inventory],
             "editable": room_id in user_profile.owned_rooms,
+            "layout_revision": layout_revision,
+            "can_edit_room": can_edit_room,
             "dialog": self._dialog_payload(account.id),
             "quick_actions": [
                 *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],

@@ -83,6 +83,26 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-prop-command]").forEach(button => {
     button.onclick = () => onAction({ command: button.dataset.propCommand });
   });
+  root.querySelectorAll("[data-edit-add]").forEach(button => {
+    button.onclick = () => onAction({ type: "edit-add", propId: button.dataset.editAdd });
+  });
+  root.querySelectorAll("[data-edit-action]").forEach(button => {
+    button.onclick = () => onAction({
+      type: "edit-action",
+      action: button.dataset.editAction,
+      delta: Number(button.dataset.editDelta || 0),
+      factor: Number(button.dataset.editFactor || 1),
+    });
+  });
+  root.querySelectorAll("[data-edit-snap]").forEach(input => {
+    input.onchange = () => onAction({ type: "edit-snap", which: input.dataset.editSnap, value: input.checked });
+  });
+  root.querySelectorAll("[data-edit-palette]").forEach(input => {
+    input.oninput = () => onAction({ type: "edit-palette", index: Number(input.dataset.editPalette), value: input.value });
+  });
+  root.querySelectorAll("[data-edit-style]").forEach(select => {
+    select.onchange = () => onAction({ type: "edit-style", value: select.value });
+  });
 }
 
 function boardModal(state) {
@@ -180,7 +200,7 @@ export function selectionActions(state) {
   if (state.selection.kind === "room") {
     return [
       { label: "Open Room View", local: { type: "open-view", view: "room" }, tone: "primary" },
-      ...(state.room.editable
+      ...(state.room.canEditRoom
         ? [{ label: "Edit Room", local: { type: "open-view", view: "edit-room" }, tone: "neutral" }]
         : []),
       ...state.room.quickActions.map(action => ({

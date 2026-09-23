@@ -28,6 +28,10 @@ def _position_from_json(raw: str) -> tuple[float, float, float]:
         return (50.0, 50.0, 0.0)
 
 
+class LayoutRevisionConflict(ValueError):
+    """Raised when a layout save is based on a stale revision."""
+
+
 @dataclass(frozen=True, slots=True)
 class RoomCardStack:
     """A persisted room card stack."""
@@ -98,6 +102,7 @@ class WorldStateRepository:
                 connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
                 self._insert_seed_cards(connection, room_id, room.initial_cards)
                 self._mark_room_initialized(connection, room_id)
+                self._seed_room_layout(connection, room_id, room, world)
 
     def reset_room_cards(
         self,
@@ -111,6 +116,31 @@ class WorldStateRepository:
             stacks = self._insert_seed_cards(connection, room_id, initial_cards)
             self._mark_room_initialized(connection, room_id)
         return stacks
+
+    @staticmethod
+    def _seed_room_layout(
+        connection: sqlite3.Connection,
+        room_id: str,
+        room,
+        world: WorldDefinition,
+    ) -> None:
+        """Seed the editable prop instances from the room definition."""
+
+        props = [
+            {
+                "id": instance.id,
+                "prop_id": instance.prop_id,
+                "position": list(instance.pos),
+                "rotation": list(instance.rot),
+                "scale": float(instance.scale),
+            }
+            for instance in room.props.values()
+            if world.props[instance.prop_id].editable
+        ]
+        connection.execute(
+            "UPDATE world.room_states SET props_json = ? WHERE room_id = ?",
+            (json.dumps(props), room_id),
+        )
 
     @staticmethod
     def _insert_seed_cards(
@@ -218,6 +248,59 @@ class WorldStateRepository:
         )
         if cursor.rowcount != 1:
             raise ValueError("That room is not initialized.")
+
+    def read_room_layout(self, room_id: str) -> dict[str, Any]:
+        """Return a room's live prop layout and revision.
+
+        ``props`` is ``None`` until the room has a saved layout, letting callers
+        fall back to the YAML definition.
+        """
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT props_json, layout_revision FROM world.room_states WHERE room_id = ?",
+                (room_id,),
+            ).fetchone()
+        if row is None:
+            return {"revision": 0, "props": None}
+        try:
+            parsed = json.loads(row["props_json"])
+        except (TypeError, ValueError):
+            parsed = None
+        return {
+            "revision": int(row["layout_revision"]),
+            "props": parsed if isinstance(parsed, list) else None,
+        }
+
+    def write_room_layout(
+        self,
+        connection: sqlite3.Connection,
+        room_id: str,
+        props: list[dict[str, Any]],
+        environment: dict[str, Any],
+        *,
+        expected_revision: int,
+    ) -> int:
+        """Compare-and-swap a room's layout, environment, and revision."""
+
+        new_revision = int(expected_revision) + 1
+        cursor = connection.execute(
+            """
+            UPDATE world.room_states
+            SET props_json = ?, environment_json = ?, layout_revision = ?
+            WHERE room_id = ? AND layout_revision = ?
+            """,
+            (
+                json.dumps(props),
+                json.dumps(environment),
+                new_revision,
+                room_id,
+                int(expected_revision),
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise LayoutRevisionConflict("The room layout changed since you loaded it.")
+        return new_revision
 
     def get_chat_history(self, room_id: str) -> list[dict[str, Any]]:
         """Return the in-memory chat history for a room.

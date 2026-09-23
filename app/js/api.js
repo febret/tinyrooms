@@ -107,6 +107,27 @@ export function createApiClient() {
       });
       return body;
     },
+    async getRoomLayout(roomId) {
+      const body = await requestJson(`/api/rooms/${encodeURIComponent(roomId)}/layout`);
+      return body.layout || null;
+    },
+    async saveRoomLayout(roomId, payload) {
+      const request = withJson(payload);
+      const response = await fetch(`/api/rooms/${encodeURIComponent(roomId)}/layout`, {
+        method: "POST",
+        credentials: "include",
+        ...request,
+        headers: { ...request.headers, ...authHeaders() },
+      });
+      const body = await parseJson(response);
+      if (response.status === 409) {
+        return { conflict: true, layout: body.layout || null, message: errorMessage(body, "The room layout changed since you loaded it.") };
+      }
+      if (!response.ok || body?.ok === false) {
+        throw new Error(errorMessage(body, `${response.status} ${response.statusText}`.trim()));
+      }
+      return { conflict: false, layout: body.layout || null };
+    },
     async bridgeActivity(activity, type, payload = {}) {
       if (!activity?.bridgeUrl) {
         throw new Error("This activity cannot be bridged right now.");

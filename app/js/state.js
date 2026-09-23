@@ -1,3 +1,5 @@
+import { editorReducer } from "./editing/edit-reducer.js";
+
 const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia === "function"
   ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
   : false;
@@ -349,6 +351,8 @@ function normalizeRoom(room) {
     chatHistory: Array.isArray(room.chat_history) ? room.chat_history.map(normalizeChatEntry) : [],
     inventory: Array.isArray(room.inventory) ? room.inventory.map(normalizeInventoryStack) : [],
     editable: Boolean(room.editable),
+    canEditRoom: Boolean(room.can_edit_room),
+    layoutRevision: Number(room.layout_revision || 0),
     dialog: normalizeDialog(room.dialog),
     quickActions: normalizeQuickActions(room.quick_actions),
   };
@@ -505,6 +509,24 @@ function applyServerEvent(state, event) {
         environment,
         environmentRevision: revision,
         board: { ...state.room.board, dark },
+      },
+    };
+  }
+  if (event.type === "room.layout.updated") {
+    const revision = Number(event.revision || 0);
+    if (revision <= Number(state.room.layoutRevision || 0)) return state;
+    const environment = event.environment && typeof event.environment === "object" ? event.environment : {};
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        layoutRevision: revision,
+        props: Array.isArray(event.props) ? event.props.map(normalizeProp) : state.room.props,
+        board: {
+          ...state.room.board,
+          palette: Array.isArray(environment.palette) ? [...environment.palette] : state.room.board.palette,
+          imageStyle: environment.board_image_style ? String(environment.board_image_style) : state.room.board.imageStyle,
+        },
       },
     };
   }
@@ -710,10 +732,14 @@ function createInitialState() {
     ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null },
     commandCatalog: [],
     describedEntity: null,
+    editor: null,
   };
 }
 
 function reduce(state, action) {
+  if (typeof action.type === "string" && action.type.startsWith("editor-")) {
+    return editorReducer(state, action);
+  }
   if (action.type === "session") {
     const user = normalizeUser(action.user);
     return {
@@ -730,6 +756,7 @@ function reduce(state, action) {
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
       commandCatalog: action.loggedIn ? state.commandCatalog : [],
       describedEntity: null,
+      editor: action.loggedIn ? state.editor : null,
     };
   }
   if (action.type === "bootstrap") {
@@ -802,6 +829,7 @@ function reduce(state, action) {
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, details: null },
       ui: sameRoom ? state.ui : { ...state.ui, targeting: null },
+      editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };
     return dismissInvalidSelection(next);
