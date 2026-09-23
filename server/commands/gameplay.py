@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from server.behaviors.events import BehaviorEvent, PeepRef
+from server.commands.activity_launch import resolve_activity, start_activity
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
 from server.commands.parser import ParsedCommand, parse_target
 from server.services.actions import ActionResult
@@ -314,26 +315,8 @@ async def shop_command(context: CommandContext, command: ParsedCommand) -> Comma
     room_id = context.connection.room_id
     if room_id is None:
         raise CommandError("You are not currently in a room.")
-    try:
-        session, replaced = context.activities.start(
-            account_id=context.account.id,
-            kind="shop",
-            title="Card Shop",
-            room_bound=True,
-            room_id=room_id,
-            replace_existing=False,
-        )
-    except ValueError as exc:
-        raise CommandError(f"{exc} Retry with '.play shop replace' to replace it.") from exc
-    private_events = []
-    if replaced is not None:
-        private_events.append({"type": "activity.closed", "activity": context.activities.serialize(replaced), "reason": "replaced"})
-    private_events.append({"type": "activity.started", "activity": context.activities.serialize(session)})
-    return CommandOutcome(
-        message="Card Shop opened.",
-        payload={"activity": context.activities.serialize(session)},
-        private_events=private_events,
-    )
+    resolved = resolve_activity(context, room_id, "shop")
+    return start_activity(context, resolved, room_id=room_id, replace_existing=False)
 
 
 async def friend_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

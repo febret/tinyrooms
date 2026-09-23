@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
-_KNOWN_FEATURES = frozenset({"dev-sample-activity", "dev_sample_activity"})
+KNOWN_FEATURES = frozenset({"dev-sample-activity", "dev_sample_activity"})
 
 
 class ConfigError(ValueError):
@@ -89,7 +89,7 @@ def parse_features(raw_value: str) -> frozenset[str]:
             continue
         if not _FEATURE_PATTERN.match(feature):
             raise ConfigError(f"Invalid feature flag '{feature}'.")
-        if feature not in _KNOWN_FEATURES:
+        if feature not in KNOWN_FEATURES:
             raise ConfigError(f"Unsupported feature flag '{feature}'.")
         features.add(feature)
     return frozenset(features)

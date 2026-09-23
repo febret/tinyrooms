@@ -32,12 +32,12 @@ class ActivityService:
         self._lock = threading.RLock()
         self._sessions: dict[str, ActivitySession] = {}
 
-    @property
-    def developer_sample_enabled(self) -> bool:
-        """Return whether the development-only sample activity is enabled."""
+    def feature_enabled(self, feature: str) -> bool:
+        """Return whether a feature flag is enabled, normalizing separators."""
 
-        return bool(
-            {"dev_sample_activity", "dev-sample-activity"} & self._config.features
+        normalized = feature.replace("-", "_")
+        return any(
+            enabled.replace("-", "_") == normalized for enabled in self._config.features
         )
 
     def _make_session(

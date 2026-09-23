@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from server.commands.registry import CommandRegistry
 from server.connections import LiveConnection
 from server.content.gameplay import GameplayContent
+from server.content.worlds import WorldDefinition
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.actions import ActionsService
 from server.services.activities import ActivityService
@@ -67,6 +68,7 @@ class CommandContext:
     friends: FriendsService
     shop: ShopService
     content: GameplayContent
+    world: WorldDefinition
     valid_stickers: frozenset[str]
     serialize_user: Callable[[AccountRecord], dict[str, object]]
     behaviors: object

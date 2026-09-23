@@ -19,14 +19,14 @@ from server.behaviors.loader import (
 )
 from server.behaviors.ticker import RoomTicker
 from server.content.common import ContentError
-from server.content.worlds import WorldDefinition, load_world_definition
+from server.content.worlds import WorldDefinition
 from server.profiles import ProfileRepository
 from server.services.activities import ActivityService
 from server.services.dialogs import DialogService
 from server.services.progression import ProgressionService
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
-from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase
+from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase, load_test_world
 
 
 class FakeConnections:
@@ -59,7 +59,7 @@ class AsyncServiceTestCase(ServiceTestCase, unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(self.catalog.cards))
+        self.world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(self.catalog.cards))
 
     def build(self, scripts: BehaviorScripts):
         """Construct a dispatcher and dialog service around the fixture world."""
@@ -270,7 +270,7 @@ class StatePersistenceTests(unittest.TestCase):
             from server.content.cards import load_card_catalog
 
             catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / WORLD_ID)
-            world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
+            world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
             hub = DatabaseHub(profile_path, world_path)
             try:
                 result = self._run_tick(hub, world)

@@ -18,6 +18,29 @@ WORLD_ID = "tutorial"
 ENTRY_ROOM = "hub"
 
 
+def load_test_world(world_path: Path, card_ids: set[str] | None = None):
+    """Load a world definition with the checked-in core activity catalog applied."""
+
+    from server.config import KNOWN_FEATURES
+    from server.content.activities import load_activity_definitions
+    from server.content.worlds import load_world_definition
+
+    if card_ids is None:
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", world_path)
+        card_ids = set(catalog.cards)
+    core_activities = load_activity_definitions(
+        REPO_ROOT / "data" / "core" / "activities.yaml",
+        source="core",
+        known_features=KNOWN_FEATURES,
+    )
+    return load_world_definition(
+        world_path,
+        card_ids,
+        core_activities=core_activities,
+        known_features=KNOWN_FEATURES,
+    )
+
+
 class ServiceTestCase(unittest.TestCase):
     """Provide isolated profile/world databases and shared content for service tests."""
 

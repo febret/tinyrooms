@@ -11,14 +11,13 @@ from server.behaviors.events import BehaviorEvent, PeepRef
 from server.behaviors.loader import BehaviorAttachment, BehaviorScript, BehaviorScripts
 from server.content.common import ContentError
 from server.content.tasks import TaskDefinition, TaskReward, TaskStep, load_task_definitions
-from server.content.worlds import load_world_definition
 from server.services.activities import ActivityService
 from server.services.dialogs import DialogService
 from server.services.memories import MemoryService
 from server.services.progression import ProgressionService
 from server.services.stats import StatsService
 from server.services.tasks import TaskService
-from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase
+from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase, load_test_world
 from tests.test_milestone1 import RuntimeTestCase, websocket_headers
 
 
@@ -301,7 +300,7 @@ class DispatcherTaskIntentTests(TaskServiceTestCase, unittest.IsolatedAsyncioTes
     """Behavior intents start tasks and advance explicit steps."""
 
     def _build_dispatcher(self, tasks, scripts):
-        world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(self.catalog.cards))
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(self.catalog.cards))
         dialogs = DialogService(
             hub=self.hub,
             profiles=self.profiles,

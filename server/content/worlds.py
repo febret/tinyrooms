@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from server.content.activities import (
+    ActivityDefinition,
+    load_activity_definitions,
+    merge_activity_definitions,
+)
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.gameplay import StatusCondition
 from server.content.tasks import TaskDefinition, load_task_definitions
@@ -63,6 +69,7 @@ class PropInstanceDefinition:
     personal: bool
     recipes: tuple[str, ...]
     animation: str | None
+    activity: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,6 +147,7 @@ class PeepDefinition:
     script_name: str | None
     actions: tuple[QuickAction, ...]
     dialog: DialogDefinition | None
+    activity: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +163,7 @@ class WorldDefinition:
     props: dict[str, PropDefinition]
     rooms: dict[str, RoomDefinition]
     peeps: dict[str, PeepDefinition]
+    activities: dict[str, ActivityDefinition] = field(default_factory=dict)
     tasks: dict[str, TaskDefinition] = field(default_factory=dict)
 
 
@@ -301,7 +310,13 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
     return DialogDefinition(start_node_id="start", nodes=nodes)
 
 
-def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefinition:
+def load_world_definition(
+    world_path: Path,
+    card_ids: set[str],
+    *,
+    core_activities: Mapping[str, ActivityDefinition] | None = None,
+    known_features: frozenset[str] = frozenset(),
+) -> WorldDefinition:
     """Load the immutable world definition set from YAML."""
 
     world_file = world_path / "world.yaml"
@@ -389,6 +404,7 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
                     raw_instance.get("animation"),
                     f"Room '{room_id}' prop '{prop_instance_id}' animation",
                 ),
+                activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
             )
         raw_exits = raw_room.get("exits", {}) or {}
         if not isinstance(raw_exits, dict):
@@ -471,7 +487,25 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
             script_name=str(raw_peep["script"]) if "script" in raw_peep else None,
             actions=_load_actions(raw_peep.get("actions")),
             dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids),
+            activity=str(raw_peep["activity"]).strip() if raw_peep.get("activity") else None,
         )
+
+    world_activities = load_activity_definitions(
+        world_path / "activities.yaml",
+        source=world_id,
+        known_rooms=frozenset(rooms),
+        known_features=known_features,
+    )
+    activities = merge_activity_definitions(core_activities or {}, world_activities)
+    for room in rooms.values():
+        for prop in room.props.values():
+            if prop.activity and prop.activity not in activities:
+                raise ContentError(
+                    f"Room '{room.id}' prop '{prop.id}' references unknown activity '{prop.activity}'."
+                )
+    for peep in peeps.values():
+        if peep.activity and peep.activity not in activities:
+            raise ContentError(f"Peep '{peep.id}' references unknown activity '{peep.activity}'.")
 
     return WorldDefinition(
         id=world_id,
@@ -483,5 +517,6 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
         props=props,
         rooms=rooms,
         peeps=peeps,
+        activities=activities,
         tasks=load_task_definitions(world_path, card_ids),
     )

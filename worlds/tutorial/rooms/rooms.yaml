@@ -7,7 +7,7 @@ hub:
   palette: ["#ebcfaa", "#b97262", "#6faea4"]
   props:
     portal0: {prop: portal, pos: [26, 42, 0], rot: [0, 0, 0], scale: 1.1, actions: [["Go across", ".go exit0"]]}
-    vending0: {prop: vending, pos: [77, 36, 0], rot: [0, -0.15, 0], scale: 1, behavior: shop, actions: [["Browse packs", ".shop"]]}
+    vending0: {prop: vending, pos: [77, 36, 0], rot: [0, -0.15, 0], scale: 1, behavior: shop, activity: shop, actions: [["Browse packs", ".shop"]]}
     welcome-plant: {prop: plant, pos: [13, 70, 0], scale: 0.8}
   exits:
     exit0: {label: Cross the portal, target: playroom}
@@ -63,7 +63,7 @@ kitchen:
   props:
     breakfast0: {prop: kitchen-counter, pos: [45, 22, 0], scale: 1.3}
     kitchen-plant: {prop: plant, pos: [83, 33, 0], scale: 0.75}
-    workbench0: {prop: craft-workbench, pos: [25, 69, 0], scale: 1, behavior: crafting, recipes: [bagged-poop], actions: [["Craft", ".play crafting"], ["Crafting help", ".look workbench0"]]}
+    workbench0: {prop: craft-workbench, pos: [25, 69, 0], scale: 1, behavior: crafting, activity: crafting, recipes: [bagged-poop], actions: [["Craft", ".play crafting"], ["Crafting help", ".look workbench0"]]}
   cards:
     - {card: tasty-toast, quantity: 2, pos: [59, 56, 0]}
     - {card: tomato-sauce, quantity: 1, pos: [70, 66, 0]}

@@ -21,7 +21,7 @@ from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
 from server.services.cards import CardService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
-from tests.common import REPO_ROOT
+from tests.common import REPO_ROOT, load_test_world
 
 TEST_ORIGIN = "https://testserver:5000"
 TEST_PASSWORD = "password123!"
@@ -224,7 +224,7 @@ class ContentPersistenceTests(unittest.TestCase):
 
     def test_prop_animation_loader_defaults_and_validation(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
-        world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
         self.assertEqual(world.props["portal"].animation, "auto")
         self.assertIsNone(world.rooms["hub"].props["portal0"].animation)
         self.assertIsNone(world.props["plant"].animation)
@@ -232,7 +232,7 @@ class ContentPersistenceTests(unittest.TestCase):
 
     def test_board_image_style_loader_validation(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
-        world = load_world_definition(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
         self.assertEqual(world.rooms["hub"].board_image_style, "stretch")
         self.assertEqual(world.rooms["playroom"].board_image_style, "tile")
         with TemporaryDirectory() as temporary_directory:

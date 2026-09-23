@@ -4,6 +4,7 @@ molly:
   room: playroom
   image: molly.png
   script: molly.py
+  activity: lazor-rush
   actions: [["Play", ".play molly"], ["Pet", ".act pet @peep:molly"], ["Chat", ".talk molly"]]
   dialog:
     start:

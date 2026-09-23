@@ -26,8 +26,9 @@ from server.commands.core import build_registry, dispatch_command
 from server.commands.outcomes import CommandContext, CommandError
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
-from server.config import AppConfig, ConfigError, ensure_contained, load_config
+from server.config import AppConfig, ConfigError, KNOWN_FEATURES, ensure_contained, load_config
 from server.connections import ConnectionRegistry, LiveConnection
+from server.content.activities import load_activity_definitions
 from server.content.cards import CardCatalog, ContentError, load_card_catalog
 from server.content.gameplay import GameplayContent, load_gameplay_content
 from server.content.worlds import WorldDefinition, load_world_definition
@@ -331,7 +332,17 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     hub = DatabaseHub(profile_db_path, config.worldstate_path)
     catalog = load_card_catalog(config.cardsets_path, config.world_path)
     content = load_gameplay_content(config.repo_root / "data" / "core")
-    world = load_world_definition(config.world_path, set(catalog.cards))
+    core_activities = load_activity_definitions(
+        config.repo_root / "data" / "core" / "activities.yaml",
+        source="core",
+        known_features=KNOWN_FEATURES,
+    )
+    world = load_world_definition(
+        config.world_path,
+        set(catalog.cards),
+        core_activities=core_activities,
+        known_features=KNOWN_FEATURES,
+    )
     profiles = ProfileRepository(hub)
     world_state = WorldStateRepository(hub)
     world_state.initialize_world(world)
@@ -730,6 +741,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         friends=runtime.friends,
                         shop=runtime.shop,
                         content=runtime.content,
+                        world=runtime.world,
                         valid_stickers=frozenset(runtime.accounts.list_stickers()),
                         serialize_user=lambda account: _serialize_account(runtime, account),
                         behaviors=runtime.behaviors,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
+from server.commands.activity_launch import resolve_activity, start_activity
 from server.commands.outcomes import (
     CommandContext,
     CommandError,
@@ -379,42 +380,14 @@ async def play_command(context: CommandContext, command: ParsedCommand) -> Comma
     room_id = _require_room_id(context)
     if not command.args:
         raise CommandError("Choose an activity to play.")
-    target = command.args[0].lower()
+    target = command.args[0]
     replace_existing = any(arg.lower() in {"replace", "--replace"} for arg in command.args[1:])
-    if target == "molly":
-        if room_id != "playroom":
-            raise CommandError("Molly is only available in the Playroom.")
-        kind = "lazor-rush"
-        title = "Lazor Rush"
-    elif target in {"lazor-rush", "shop", "crafting"}:
-        kind = target
-        title = target.replace("-", " ").title()
-    elif target == "sample":
-        if not context.activities.developer_sample_enabled:
-            raise CommandError("The developer sample activity is not enabled.")
-        kind = "dev-sample"
-        title = "Sample Activity"
-    else:
-        raise CommandError("Unknown activity.")
-    try:
-        session, replaced = context.activities.start(
-            account_id=context.account.id,
-            kind=kind,
-            title=title,
-            room_bound=kind != "sticker-designer",
-            room_id=room_id,
-            replace_existing=replace_existing,
-        )
-    except ValueError as exc:
-        raise CommandError(f"{exc} Retry with '.play {target} replace' to replace it.") from exc
-    private_events = []
-    if replaced is not None:
-        private_events.append({"type": "activity.closed", "activity": context.activities.serialize(replaced), "reason": "replaced"})
-    private_events.append({"type": "activity.started", "activity": context.activities.serialize(session)})
-    return CommandOutcome(
-        message=f"{title} opened.",
-        payload={"activity": context.activities.serialize(session)},
-        private_events=private_events,
+    resolved = resolve_activity(context, room_id, target)
+    return start_activity(
+        context,
+        resolved,
+        room_id=room_id,
+        replace_existing=replace_existing,
     )
 
 
