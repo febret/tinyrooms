@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.gameplay import StatusCondition
+from server.content.tasks import TaskDefinition, load_task_definitions
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
@@ -92,6 +94,40 @@ class RoomDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class DialogChoice:
+    """One authored dialog option and its declarative effects."""
+
+    index: int
+    label: str
+    action_id: str
+    next_node_id: str | None
+    end: bool
+    when: StatusCondition | None
+    script: str | None
+    action: str | None
+    give_card: str | None
+    start_task: str | None
+    grant: int
+
+
+@dataclass(frozen=True, slots=True)
+class DialogNode:
+    """A single authored dialog node with its ordered choices."""
+
+    id: str
+    text: str
+    choices: tuple[DialogChoice, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class DialogDefinition:
+    """A validated declarative dialog tree."""
+
+    start_node_id: str
+    nodes: dict[str, DialogNode]
+
+
+@dataclass(frozen=True, slots=True)
 class PeepDefinition:
     """An immutable NPC definition."""
 
@@ -103,7 +139,7 @@ class PeepDefinition:
     image_path: Path
     script_name: str | None
     actions: tuple[QuickAction, ...]
-    dialog: dict[str, object]
+    dialog: DialogDefinition | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +155,7 @@ class WorldDefinition:
     props: dict[str, PropDefinition]
     rooms: dict[str, RoomDefinition]
     peeps: dict[str, PeepDefinition]
+    tasks: dict[str, TaskDefinition] = field(default_factory=dict)
 
 
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
@@ -152,6 +189,116 @@ def _load_animation(raw_value: Any, label: str) -> str | None:
         raise ContentError(f"{label} must be a string.")
     text = raw_value.strip()
     return text or None
+
+
+def _parse_dialog_condition(raw_value: Any, peep_id: str, node_id: str, index: int) -> StatusCondition | None:
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, dict):
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when' must be a mapping.")
+    counter = str(raw_value.get("counter", "")).strip()
+    if not counter:
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when' is missing a counter.")
+    at_or_below = raw_value.get("at_or_below")
+    above = raw_value.get("above")
+    at_or_above_fraction = raw_value.get("at_or_above_fraction")
+    provided = [value for value in (at_or_below, above, at_or_above_fraction) if value is not None]
+    if len(provided) != 1:
+        raise ContentError(
+            f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'when' must define exactly one comparison."
+        )
+    return StatusCondition(
+        counter=counter,
+        at_or_below=float(at_or_below) if at_or_below is not None else None,
+        at_or_above_fraction=float(at_or_above_fraction) if at_or_above_fraction is not None else None,
+        above=float(above) if above is not None else None,
+    )
+
+
+def _parse_dialog_choice(
+    raw_choice: Any,
+    *,
+    peep_id: str,
+    node_id: str,
+    index: int,
+    card_ids: set[str],
+) -> DialogChoice:
+    if not isinstance(raw_choice, dict):
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} must be a mapping.")
+    label = str(raw_choice.get("label", "")).strip()
+    if not label:
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} must define a label.")
+    raw_next = raw_choice.get("next")
+    has_end = raw_choice.get("end") is True
+    if (raw_next is None) == (not has_end):
+        raise ContentError(
+            f"Peep '{peep_id}' dialog node '{node_id}' choice {index} must define exactly one of 'next' or 'end: true'."
+        )
+    next_node_id = str(raw_next).strip() if raw_next is not None else None
+    if next_node_id is not None and not next_node_id:
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} has an empty 'next'.")
+    give_card = str(raw_choice["give_card"]).strip() if raw_choice.get("give_card") is not None else None
+    if give_card is not None and give_card not in card_ids:
+        raise ContentError(f"Peep '{peep_id}' dialog choice '{give_card}' references an unknown card.")
+    raw_grant = raw_choice.get("grant")
+    if raw_grant is not None and (isinstance(raw_grant, bool) or not isinstance(raw_grant, int)):
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'grant' must be an integer.")
+    return DialogChoice(
+        index=index,
+        label=label,
+        action_id=f"{node_id}:{index}",
+        next_node_id=next_node_id,
+        end=has_end,
+        when=_parse_dialog_condition(raw_choice.get("when"), peep_id, node_id, index),
+        script=str(raw_choice["script"]).strip() if raw_choice.get("script") is not None else None,
+        action=str(raw_choice["action"]).strip() if raw_choice.get("action") is not None else None,
+        give_card=give_card,
+        start_task=str(raw_choice["start_task"]).strip() if raw_choice.get("start_task") is not None else None,
+        grant=int(raw_grant) if raw_grant is not None else 0,
+    )
+
+
+def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefinition | None:
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, dict) or not raw_value:
+        raise ContentError(f"Peep '{peep_id}' dialog must be a non-empty mapping.")
+    nodes: dict[str, DialogNode] = {}
+    for node_id, raw_node in raw_value.items():
+        if not isinstance(node_id, str) or not isinstance(raw_node, dict):
+            raise ContentError(f"Peep '{peep_id}' has an invalid dialog node entry.")
+        text = str(raw_node.get("text", "")).strip()
+        if not text:
+            raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' must define non-empty text.")
+        raw_choices = raw_node.get("choices", []) or []
+        if not isinstance(raw_choices, list):
+            raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choices must be a list.")
+        choices = tuple(
+            _parse_dialog_choice(raw_choice, peep_id=peep_id, node_id=node_id, index=index, card_ids=card_ids)
+            for index, raw_choice in enumerate(raw_choices)
+        )
+        nodes[node_id] = DialogNode(id=node_id, text=text, choices=choices)
+    if "start" not in nodes:
+        raise ContentError(f"Peep '{peep_id}' dialog must define a 'start' node.")
+    for node in nodes.values():
+        for choice in node.choices:
+            if choice.next_node_id is not None and choice.next_node_id not in nodes:
+                raise ContentError(
+                    f"Peep '{peep_id}' dialog node '{node.id}' choice '{choice.label}' "
+                    f"targets missing node '{choice.next_node_id}'."
+                )
+    reachable = {"start"}
+    frontier = ["start"]
+    while frontier:
+        current = nodes[frontier.pop()]
+        for choice in current.choices:
+            if choice.next_node_id is not None and choice.next_node_id not in reachable:
+                reachable.add(choice.next_node_id)
+                frontier.append(choice.next_node_id)
+    unreachable = sorted(node_id for node_id in nodes if node_id not in reachable and not node_id.startswith("unused_"))
+    if unreachable:
+        raise ContentError(f"Peep '{peep_id}' dialog has unreachable nodes {unreachable}.")
+    return DialogDefinition(start_node_id="start", nodes=nodes)
 
 
 def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefinition:
@@ -323,7 +470,7 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
             image_path=image_path,
             script_name=str(raw_peep["script"]) if "script" in raw_peep else None,
             actions=_load_actions(raw_peep.get("actions")),
-            dialog=dict(raw_peep.get("dialog", {}) or {}),
+            dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids),
         )
 
     return WorldDefinition(
@@ -336,4 +483,5 @@ def load_world_definition(world_path: Path, card_ids: set[str]) -> WorldDefiniti
         props=props,
         rooms=rooms,
         peeps=peeps,
+        tasks=load_task_definitions(world_path, card_ids),
     )

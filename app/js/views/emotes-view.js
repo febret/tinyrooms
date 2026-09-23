@@ -16,7 +16,7 @@ export function emotesView(state) {
       <div class="emote-radial" role="group" aria-label="Emote categories">
         ${categories.map(name => `<button type="button" class="emote-category ${name === category ? "selected" : ""}" data-emote-category="${name}">${name}</button>`).join("")}
       </div>
-      ${cardsGrid(visible, "inventory", state.selection, `You do not own any ${category.toLowerCase()} emotes yet.`)}
+      ${cardsGrid(visible, "emote", state.selection, `You do not own any ${category.toLowerCase()} emotes yet.`)}
     `,
   });
 }

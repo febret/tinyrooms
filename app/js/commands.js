@@ -21,7 +21,6 @@ export const COMMANDS = [
   { name: ".pin_peep @peep:<id> [on|off]", summary: "Pin or unpin a peep in your sidebar." },
   { name: ".swap_sticker <sticker>", summary: "Swap your peep sticker for Bops." },
   { name: ".shop", summary: "Open the card-pack shop." },
-  { name: ".favorite @card:<id>", summary: "Toggle a favorite core card." },
   { name: ".play <activity>", summary: "Open a room or account activity." },
   { name: ".cancel", summary: "Cancel targeting or a pending interaction." },
 ];
@@ -36,11 +35,6 @@ export function chatToCommand(input) {
   const text = String(input || "").trim();
   if (!text) return "";
   return text.startsWith(".") || text.startsWith("\\") ? text : `.say ${quote(text)}`;
-}
-
-/** Build a `.favorite` command for a core or stack card identifier. */
-export function buildFavoriteCommand(cardId) {
-  return `.favorite @card:${cardId}`;
 }
 
 /** Build a pickup/drop command from a quantity-dialog intent. */

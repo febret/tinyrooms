@@ -1,6 +1,11 @@
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { statusIconMarkup } from "./views/view-helpers.js";
 
+function bubbleKey(peep) {
+  const bubble = peep?.bubble;
+  return bubble ? `${bubble.text || ""}\u0000${bubble.imageUrl || ""}` : "";
+}
+
 /** Render room-granularity peep standees and anchored, dismissible chat bubbles. */
 export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSound }) {
   let expanded = false;
@@ -70,20 +75,35 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSou
         bubble.onclick = () => {
           if (dismissing.has(peep.id)) return;
           dismissing.add(peep.id);
-          const dismissedText = bubble.textContent;
+          const dismissedKey = bubble.dataset.bubbleKey;
           bubble.classList.add("dismissing");
           setTimeout(() => {
             dismissing.delete(peep.id);
             const current = [...(latest.room?.occupants || []), ...(latest.room?.npcs || [])].find(item => item.id === peep.id);
-            if (current?.bubble?.text === dismissedText) onDismiss(peep.id);
+            if (bubbleKey(current) === dismissedKey) onDismiss(peep.id);
             else render(latest);
           }, state.ui.reducedMotion ? 0 : 180);
         };
       }
       const style = peep.bubble.style === "thinking" ? "thought" : peep.bubble.style === "spiky" ? "spiky" : "speech";
-      bubble.className = `bubble ${style} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
-      bubble.querySelector(".bubble-text").textContent = peep.bubble.text;
-      bubble.setAttribute("aria-label", `${peep.label}: ${peep.bubble.text}. Dismiss message`);
+      const hasImage = Boolean(peep.bubble.imageUrl);
+      let image = bubble.querySelector(".bubble-image");
+      if (hasImage && !image) {
+        image = document.createElement("img");
+        image.className = "bubble-image";
+        image.alt = "";
+        image.draggable = false;
+        bubble.append(image);
+      } else if (!hasImage && image) {
+        image.remove();
+        image = null;
+      }
+      bubble.dataset.bubbleKey = bubbleKey(peep);
+      const emoteClass = hasImage ? ` emote emote-${peep.bubble.style}` : "";
+      bubble.className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
+      bubble.querySelector(".bubble-text").textContent = hasImage ? "" : peep.bubble.text;
+      if (image) image.src = peep.bubble.imageUrl;
+      bubble.setAttribute("aria-label", `${peep.label}: ${hasImage ? `${peep.bubble.text} emote` : peep.bubble.text}. Dismiss message`);
     }
     for (const [id, bubble] of bubbles) {
       if (!visibleIds.has(id)) { bubble.remove(); bubbles.delete(id); dismissing.delete(id); }

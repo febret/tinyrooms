@@ -4,7 +4,7 @@ molly:
   room: playroom
   image: molly.png
   script: molly.py
-  actions: [["Play", ".play molly"], ["Pet", ".pet molly"], ["Chat", ".talk molly"]]
+  actions: [["Play", ".play molly"], ["Pet", ".act pet @peep:molly"], ["Chat", ".talk molly"]]
   dialog:
     start:
       text: Mrrp! The dollhouse is a whole home. Enter whenever you like; searching it is just a bonus.

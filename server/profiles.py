@@ -21,7 +21,6 @@ from server.state.migrations import DatabaseHub
 
 
 STARTING_GLOBAL_CARDS = ("smile", "sigh", "growl", "goof")
-STARTING_FAVORITES = ("room", "emotes", "inventory")
 STARTING_WORLD_COUNTERS = {
     "health": 50,
     "max_health": 50,
@@ -38,7 +37,6 @@ SESSION_TOUCH_INTERVAL_SECONDS = 60.0
 
 def _default_profile() -> dict[str, object]:
     return {
-        "favorites": list(STARTING_FAVORITES),
         "friends": [],
         "friend_requests_sent": [],
         "friend_requests_received": [],
@@ -57,8 +55,6 @@ def _normalize_profile(raw: object) -> dict[str, object]:
     merged: dict[str, object] = dict(defaults)
     for key, value in raw.items():
         merged[key] = value
-    if not isinstance(merged.get("favorites"), list):
-        merged["favorites"] = list(STARTING_FAVORITES)
     if not isinstance(merged.get("friends"), list):
         merged["friends"] = []
     if not isinstance(merged.get("friend_requests_sent"), list):
@@ -146,9 +142,9 @@ class UserProfileRecord:
     last_visit_at: str
 
     @property
-    def favorites(self) -> tuple[str, ...]:
-        raw = self.profile.get("favorites")
-        return tuple(raw) if isinstance(raw, list) else ()
+    def owned_rooms(self) -> tuple[str, ...]:
+        raw = self.ownership.get("rooms")
+        return tuple(str(room_id) for room_id in raw) if isinstance(raw, list) else ()
 
     @property
     def friends(self) -> tuple[str, ...]:
@@ -916,22 +912,6 @@ class ProfileRepository:
             (account_id,),
         ).fetchone()
         return self._user_profile_from_row(updated)
-
-    def toggle_favorite(self, account_id: str, card_id: str) -> UserProfileRecord:
-        """Toggle a core-card favorite and return the updated user profile."""
-
-        with self._hub.transaction() as connection:
-
-            def _toggle(profile: dict[str, object]) -> None:
-                raw = profile.get("favorites")
-                favorites = list(raw) if isinstance(raw, list) else []
-                if card_id in favorites:
-                    favorites.remove(card_id)
-                else:
-                    favorites.append(card_id)
-                profile["favorites"] = favorites
-
-            return self._update_profile_json(connection, account_id, _toggle)
 
     def set_show_activity_log(
         self,

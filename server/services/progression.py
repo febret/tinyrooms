@@ -208,17 +208,58 @@ class ProgressionService:
         ledger_key: str,
         kind: str,
     ) -> bool:
-        now = utc_now()
         with self._hub.transaction() as connection:
+            return self.grant_in_transaction(
+                connection,
+                account_id,
+                kudos=kudos,
+                cards=cards,
+                ledger_key=ledger_key,
+                kind=kind,
+            )
+
+    def has_ledger_entry(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        ledger_key: str,
+    ) -> bool:
+        """Return whether an idempotent ledger entry already exists."""
+
+        row = connection.execute(
+            "SELECT 1 FROM reward_ledger WHERE ledger_key = ? AND account_id = ?",
+            (ledger_key, account_id),
+        ).fetchone()
+        return row is not None
+
+    def grant_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        *,
+        kudos: int = 0,
+        cards: tuple[str, ...] | list[str] = (),
+        ledger_key: str | None = None,
+        kind: str = "reward",
+    ) -> bool:
+        """Apply an idempotent grant inside a caller-owned transaction.
+
+        When *ledger_key* is omitted the grant always applies and is not
+        recorded; callers needing idempotency must supply a stable key.
+        """
+
+        now = utc_now()
+        if ledger_key is not None:
             existing = connection.execute(
                 "SELECT 1 FROM reward_ledger WHERE ledger_key = ? AND account_id = ?",
                 (ledger_key, account_id),
             ).fetchone()
             if existing is not None:
                 return False
-            account = self._profiles.get_account_by_id(account_id)
-            if account is None:
-                raise ValueError("Unknown account.")
+        account = self._profiles.get_account_by_id(account_id)
+        if account is None:
+            raise ValueError("Unknown account.")
+        if ledger_key is not None:
             connection.execute(
                 """
                 INSERT INTO reward_ledger (ledger_key, account_id, world_id, kind, payload_json, created_at)
@@ -233,8 +274,9 @@ class ProgressionService:
                     now.isoformat(),
                 ),
             )
-            for card_id in cards:
-                self._grant_card(connection, account_id, card_id)
+        for card_id in cards:
+            self._grant_card(connection, account_id, card_id)
+        if kudos:
             self._profiles.update_progress(
                 connection,
                 account,

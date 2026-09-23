@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createReadyAccount, openCore, selectFirstProp, travel } from "./helpers.js";
+import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createReadyAccount, openCore, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, travel } from "./helpers.js";
 
 test.describe("account onboarding", () => {
   test.slow();
@@ -27,17 +27,15 @@ test.describe("account onboarding", () => {
   });
 });
 
-test("core expansion exposes a favorited card", async ({ page, runtime }) => {
+test("all core cards are always visible without an expander", async ({ page, runtime }) => {
   await createReadyAccount(page, runtime);
-  await page.locator("#card-hand [data-core-expand]").click();
-  await expect(page.locator("#card-hand [data-core-id]")).toHaveCount(8);
+  await expect(page.locator("#card-hand [data-core-id]")).toHaveCount(3);
+  await expect(page.locator("#card-hand [data-core-expand]")).toHaveCount(0);
+  for (const id of ["emotes", "inventory", "journal"]) {
+    await expect(page.locator(`#card-hand [data-core-id="${id}"]`)).toBeVisible();
+  }
   await openCore(page, "journal");
-  const favorite = page.locator("#actions-bar").getByRole("button", { name: "Favorite", exact: true });
-  await favorite.click();
-  await expect.poll(async () => (await bootstrap(page)).user.favorites).toContain("journal");
-  await page.keyboard.press("Escape");
-  await page.locator("#card-hand [data-core-expand]").click();
-  await expect(page.locator('#card-hand [data-core-id="journal"]')).toBeVisible();
+  await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 });
 
 test.describe("room and inventory", () => {
@@ -46,7 +44,7 @@ test.describe("room and inventory", () => {
   test("support pickup and drop", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await travel(page);
-    await openCore(page, "room");
+    await openRoomView(page);
     const roomCards = page.locator('#panel-layer [data-stack-id][data-scope="room"]');
     await expect(roomCards).toHaveCount(1);
     await roomCards.first().click();
@@ -62,7 +60,7 @@ test.describe("room and inventory", () => {
     await page.locator("#actions-bar").getByRole("button", { name: "Drop 1", exact: true }).click();
     await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
     await expect(inventoryCards).toHaveCount(0);
-    await openCore(page, "room");
+    await openRoomView(page);
     await expect(roomCards).toHaveCount(1);
   });
 
@@ -74,7 +72,7 @@ test.describe("room and inventory", () => {
     }));
     await createReadyAccount(page, runtime);
     await travel(page);
-    await openCore(page, "room");
+    await openRoomView(page);
     const roomCards = page.locator('#panel-layer [data-stack-id][data-scope="room"]');
     await expect(roomCards).toHaveCount(1);
     await roomCards.first().click();
@@ -92,7 +90,7 @@ test.describe("room and inventory", () => {
     await page.mouse.up();
     await expect.poll(() => sentCommands.filter(command => command.startsWith(".drop ")).at(-1))
       .toMatch(/^\.drop @card:\S+ 1 \d+\.\d{2} \d+\.\d{2} \d+\.\d{2}$/);
-    await openCore(page, "room");
+    await openRoomView(page);
     await expect(roomCards).toHaveCount(1);
   });
 
@@ -194,7 +192,7 @@ test.describe("core milestone 2 views", () => {
 
   test("self view shows progression and counters", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
-    await openCore(page, "self");
+    await openSelf(page);
     const panel = page.locator("#panel-layer [role=dialog]");
     await expect(panel).toContainText("Level 0");
     await expect(panel).toContainText("Guest");
@@ -214,28 +212,50 @@ test.describe("core milestone 2 views", () => {
 
   test("skills view renders fifteen locked slots at level zero", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
-    await openCore(page, "skills");
+    await openSkills(page);
     const panel = page.locator("#panel-layer [role=dialog]");
     await expect(panel.locator(".skill-slot")).toHaveCount(15);
     await expect(panel.locator(".skill-slot.locked")).toHaveCount(15);
   });
 
-  test("friends, journal, and edit room show intentional states", async ({ page, runtime }) => {
+  test("friends and journal show intentional states", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
-    await openCore(page, "friends");
+    await openFriends(page);
     await expect(page.locator("#panel-layer")).toContainText("No friends yet");
     await openCore(page, "journal");
     const journal = page.locator("#panel-layer [role=dialog]");
     await expect(journal.getByRole("button", { name: "Tasks", exact: true })).toBeVisible();
     await journal.getByRole("button", { name: "Memories", exact: true }).click();
-    await expect(journal).toContainText("No memories yet");
-    await openCore(page, "edit-room");
-    await expect(page.locator("#panel-layer")).toContainText("do not have permission");
+    await expect(journal).toContainText("No memories this month");
+  });
+
+  test("edit room is offered only for rooms the user owns", async ({ page, runtime }) => {
+    await page.goto(runtime.baseURL);
+    const summary = await page.evaluate(async () => {
+      const { selectionActions } = await import("/app/js/cards.js");
+      const { editRoomView } = await import("/app/js/views/edit-room-view.js");
+      const room = { id: "bedroom", label: "Bedroom", description: "", props: [], roomCards: [], inventory: [], quickActions: [], editable: true };
+      const labels = editable => selectionActions({
+        room: { ...room, editable },
+        selection: { kind: "room", id: "bedroom" },
+        views: {}, user: {},
+      }).map(action => action.label);
+      return {
+        owned: labels(true),
+        locked: labels(false),
+        ownedView: editRoomView({ room }).includes("coming soon"),
+        lockedView: editRoomView({ room: { ...room, editable: false } }).includes("do not have permission"),
+      };
+    });
+    expect(summary.owned).toContain("Edit Room");
+    expect(summary.locked).not.toContain("Edit Room");
+    expect(summary.ownedView).toBe(true);
+    expect(summary.lockedView).toBe(true);
   });
 
   test("swap sticker dialog opens from self view", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
-    await openCore(page, "self");
+    await openSelf(page);
     await page.locator("#panel-layer").getByRole("button", { name: "Swap Sticker…", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Swap Sticker" });
     await expect(dialog).toBeVisible();
@@ -251,6 +271,17 @@ test.describe("core milestone 2 views", () => {
     await expect(panel.getByRole("button", { name: "Expression", exact: true })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Animation", exact: true })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Effects", exact: true })).toBeVisible();
+  });
+
+  test("playing an emote shows an emoji bubble and no toast", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await openCore(page, "emotes");
+    await page.locator("#panel-layer").getByRole("button", { name: "Smile", exact: true }).click();
+    await expect(page.locator("#panel-layer [role=dialog]")).toHaveCount(0);
+    const bubble = page.locator("#bubble-layer .bubble.emote");
+    await expect(bubble).toBeVisible();
+    await expect(bubble.locator("img.bubble-image")).toHaveAttribute("src", /smile\.webp$/);
+    expect(await page.locator("#toast-stack .toast").count()).toBe(0);
   });
 
   test("prop Inspect and skill Slot actions carry the selected identity", async ({ page, runtime }) => {
@@ -312,7 +343,7 @@ test.describe("milestone 2 activities and targeting", () => {
     await expect(page.locator("#look-bar")).toContainText("Sunflower Foyer");
     await command(page, ".go @way:kitchen");
     await expect(page.locator("#look-bar")).toContainText("The Buttercup Kitchen");
-    await openCore(page, "room");
+    await openRoomView(page);
     await page.locator("#panel-layer").getByRole("button", { name: /Tomato Sauce/ }).click();
     await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
     await openCore(page, "inventory");
@@ -333,13 +364,66 @@ test.describe("milestone 2 activities and targeting", () => {
   });
 });
 
+test.describe("milestone 3 dialogs", () => {
+  test.slow();
+
+  test("talk, choose an option, and exit a declarative dialog", async ({ page, runtime }) => {
+    const sentCommands = [];
+    page.on("websocket", socket => socket.on("framesent", ({ payload }) => {
+      const envelope = JSON.parse(String(payload));
+      if (envelope.type === "command") sentCommands.push(envelope.command);
+    }));
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".talk molly");
+    await expect(page.locator("#look-bar")).toContainText("Mrrp!");
+    const exit = page.locator("#actions-bar").getByRole("button", { name: "Exit Conversation", exact: true });
+    await expect(exit).toBeVisible();
+    const choices = page.locator("#actions-bar button").filter({ hasNotText: "Exit Conversation" });
+    await expect(choices.first()).toBeVisible();
+    await choices.first().click();
+    await expect(page.locator("#look-bar")).not.toContainText("Mrrp!");
+    await expect(exit).toBeVisible();
+    await exit.click();
+    await expect(exit).toHaveCount(0);
+    expect(sentCommands).toContain(".talk molly");
+    expect(sentCommands.some(item => item.startsWith(".dialog "))).toBe(true);
+    expect(sentCommands).toContain(".dialog_end");
+  });
+});
+
+test.describe("milestone 3 journal", () => {
+  test.slow();
+
+  test("shows real tasks and round-trips a manual memory", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".go @way:exit0");
+    await expect(page.locator("#look-bar")).toContainText("Sunflower Foyer");
+    await openCore(page, "journal");
+    const journal = page.locator("#panel-layer [role=dialog]");
+    await expect(journal).toContainText("A Tour of the Little House");
+    await journal.locator('[data-task-id="house-tour"]').click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Memories", exact: true }).click();
+    await expect(journal.locator(".memory-filter")).toBeVisible();
+    await expect(journal.locator(".memory-list")).toContainText("Step through the dollhouse");
+    await journal.getByRole("button", { name: "Memories", exact: true }).click();
+    await expect(journal.locator(".memory-filter")).toHaveCount(0);
+    await page.locator("#chat-input").fill("Browser memory");
+    await page.locator("#actions-bar").getByRole("button", { name: "New Memory", exact: true }).click();
+    await expect(journal.locator(".memory-list")).toContainText("Browser memory");
+    await expect(journal.locator(".memory-entry.manual").first().getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+    await expect.poll(async () => journal.locator(".cal-cell.has-memories").count()).toBeGreaterThan(0);
+  });
+});
+
 test.describe("milestone 2 polish: prop viewer and journal calendar", () => {
   test.slow();
 
   test("selecting a prop shows a model preview and the details viewer orbits", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     expect(await selectFirstProp(page), "A Hub prop must be selectable").toBe(true);
-    const lookCanvas = page.locator("#look-preview-layer canvas.look-preview-3d");
+    const lookCanvas = page.locator("#look-bar canvas.look-preview-3d");
     await expect(lookCanvas).toBeVisible();
     await expect(lookCanvas).toHaveAttribute("data-model-ready", "true", { timeout: 20_000 });
     const selectedModel = await lookCanvas.getAttribute("data-prop-model");

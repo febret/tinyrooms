@@ -33,15 +33,6 @@ export function boardPosition([x = 50, y = 50, z = 0] = []) {
   return [(x - 50) * 0.105, z * 0.1, (y - 50) * 0.085];
 }
 
-/** Identify visual layout changes only; chat, occupants, actions, and selection are excluded. */
-export function boardSignature(room) {
-  return JSON.stringify([
-    room.id, room.label, room.board,
-    (room.props || []).map(prop => [prop.id, prop.propId, prop.label, prop.position, prop.rotation, prop.scale, prop.modelUrl, prop.animation]),
-    (room.roomCards || []).map(card => [card.stackId, card.position, card.definition?.label, card.definition?.imageUrl]),
-  ]);
-}
-
 /** Dispose each owned GPU resource once, including GLTF ImageBitmaps and shared materials. */
 export function disposeBoardTree(roots) {
   const geometries = new Set();

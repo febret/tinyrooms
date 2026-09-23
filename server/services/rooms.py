@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
 from server.profiles import AccountRecord, ProfileRepository
@@ -13,6 +14,9 @@ from server.services.cards import CardService
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 from server.state.world_state import WorldStateRepository
+
+
+BASE_QUICK_COMMANDS = frozenset({".go", ".inspect", ".look", ".play", ".shop"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +29,7 @@ class NavigationResult:
     source_event: dict[str, object]
     destination_event: dict[str, object]
     closed_activity: dict[str, object] | None
+    behavior_results: list[object] = field(default_factory=list)
 
 
 class RoomService:
@@ -43,6 +48,7 @@ class RoomService:
         activities: ActivityService,
         world: WorldDefinition,
         stats: StatsService,
+        command_verbs: frozenset[str] | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -52,6 +58,19 @@ class RoomService:
         self._activities = activities
         self._world = world
         self._stats = stats
+        self._allowed_verbs = set(command_verbs or ()) | BASE_QUICK_COMMANDS
+        self._behaviors: object | None = None
+        self._dialogs: object | None = None
+
+    def attach_dispatcher(self, dispatcher: object) -> None:
+        """Wire the behavior dispatcher used for navigation events."""
+
+        self._behaviors = dispatcher
+
+    def attach_dialogs(self, dialogs: object) -> None:
+        """Wire the dialog service used to cancel dialogs on departure."""
+
+        self._dialogs = dialogs
 
     def current_room_for_account(self, account_id: str) -> str:
         """Return the remembered room for the given account."""
@@ -97,13 +116,7 @@ class RoomService:
             remainder = command[4:].strip()
             if remainder in room.exits:
                 command = self._exit_command(remainder)
-        if command.split(maxsplit=1)[0] not in {
-            ".go",
-            ".inspect",
-            ".look",
-            ".play",
-            ".shop",
-        }:
+        if command.split(maxsplit=1)[0] not in self._allowed_verbs:
             return None
         return {"label": action.label, "command": command}
 
@@ -158,17 +171,18 @@ class RoomService:
         return peeps
 
     def serialize_npc(self, peep: PeepDefinition) -> dict[str, object]:
-        """Serialize a static NPC definition."""
+        """Serialize a static NPC definition with its authored actions."""
 
+        room = self._world.rooms.get(peep.room_id)
+        quick_actions = self._visible_prop_actions(room, peep.actions) if room is not None else []
+        quick_actions.append({"label": "Look", "command": f".look @peep:{peep.id}"})
         return {
             "id": peep.id,
             "kind": "npc",
             "label": peep.label,
             "description": peep.description,
             "image_url": f"/assets/world/{self._world.id}/peeps/{peep.image_name}",
-            "quick_actions": [
-                {"label": "Look", "command": f".look @peep:{peep.id}"}
-            ],
+            "quick_actions": quick_actions,
         }
 
     def _serialize_exit(self, exit_definition: ExitDefinition) -> dict[str, object]:
@@ -249,12 +263,17 @@ class RoomService:
             "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],
             "chat_history": chat_history,
             "inventory": [self._card_service.serialize_inventory_stack(stack) for stack in inventory],
-            "favorites": list(user_profile.favorites),
+            "editable": room_id in user_profile.owned_rooms,
+            "dialog": self._dialog_payload(account.id),
             "quick_actions": [
-                {"label": "Look around", "command": ".look"},
                 *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],
             ],
         }
+
+    def _dialog_payload(self, account_id: str) -> dict[str, object] | None:
+        if self._dialogs is None:
+            return None
+        return self._dialogs.serialize(self._dialogs.view(account_id))
 
     def say(self, account: AccountRecord, room_id: str, raw_text: str) -> dict[str, object]:
         """Record an in-memory room chat message and return the broadcast event."""
@@ -294,12 +313,41 @@ class RoomService:
             inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world.id)}
             if exit_definition.requires_card_id not in inventory_ids:
                 raise ValueError(f"You need {exit_definition.requires_card_id} to go that way.")
+        behavior_results: list[object] = []
+        if self._behaviors is not None:
+            behavior_results.append(
+                await self._behaviors.dispatch(
+                    BehaviorEvent(
+                        type="leave",
+                        actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+                        target=None,
+                        room_id=source_room_id,
+                        action=None,
+                        data={"destination_room_id": destination_room.id},
+                    )
+                )
+            )
+        if self._dialogs is not None:
+            self._dialogs.end(account.id, "room_changed")
         with self._hub.transaction() as connection:
             if self.ROOM_CHANGE_ENERGY_COST:
                 self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
         closed = self._activities.close_if_room_bound(account.id, destination_room.id)
+        if self._behaviors is not None:
+            behavior_results.append(
+                await self._behaviors.dispatch(
+                    BehaviorEvent(
+                        type="enter",
+                        actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+                        target=None,
+                        room_id=destination_room.id,
+                        action=None,
+                        data={"source_room_id": source_room_id},
+                    )
+                )
+            )
         snapshot = await self.build_snapshot(account, destination_room.id)
         return NavigationResult(
             source_room_id=source_room_id,
@@ -318,4 +366,5 @@ class RoomService:
                 source_room_id=source_room_id,
             ),
             closed_activity=None if closed is None else self._activities.serialize(closed),
+            behavior_results=behavior_results,
         )

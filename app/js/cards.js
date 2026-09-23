@@ -2,13 +2,12 @@ import { CARD_BACK } from "./board.js";
 import {
   buildEmoteCommand,
   buildEquipCommand,
-  buildFavoriteCommand,
   buildFriendCommand,
   buildPinCommand,
   buildUnequipCommand,
   buildUseCommand,
 } from "./commands.js";
-import { findInventoryCard, findRoomCard, findSelectedEntity } from "./state.js";
+import { findInventoryCard, findRoomCard, findSelectedEntity, findTask } from "./state.js";
 import { escapeHtml } from "./presentation.js";
 import { longDescription, rarityLabel, tileMarkup } from "./views/view-helpers.js";
 import { roomView } from "./views/room-view.js";
@@ -21,10 +20,10 @@ import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
 import { editRoomView } from "./views/edit-room-view.js";
 
-function coreMarkup(definition, favorite, selected) {
+function coreMarkup(definition, selected) {
   return `
     <button type="button" class="game-card core ${selected ? "selected" : ""}" data-core-id="${escapeHtml(definition.id)}"
-      aria-label="${escapeHtml(definition.label)}${favorite ? ", favorite" : ""}" aria-pressed="${selected}" title="${escapeHtml(definition.label)}">
+      aria-label="${escapeHtml(definition.label)}" aria-pressed="${selected}" title="${escapeHtml(definition.label)}">
       <img src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
     </button>
   `;
@@ -33,6 +32,10 @@ function coreMarkup(definition, favorite, selected) {
 function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-stack-id]").forEach(button => {
     if (button.dataset.skillSlot !== undefined) return;
+    if (button.dataset.scope === "emote") {
+      button.onclick = () => onAction({ type: "play-emote", stackId: button.dataset.stackId });
+      return;
+    }
     button.onclick = () => onSelect({
       kind: button.dataset.scope === "room" ? "room-card" : "inventory-card",
       id: button.dataset.stackId,
@@ -71,6 +74,12 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-journal-month]").forEach(button => {
     button.onclick = () => onAction({ type: "journal-month", delta: Number(button.dataset.journalMonth) });
   });
+  root.querySelectorAll("[data-task-id]").forEach(button => {
+    button.onclick = () => onSelect({ kind: "task", id: button.dataset.taskId });
+  });
+  root.querySelectorAll("[data-memory-action]").forEach(button => {
+    button.onclick = () => onAction({ type: "memory-action", action: button.dataset.memoryAction, memoryId: button.dataset.memoryId });
+  });
   root.querySelectorAll("[data-prop-command]").forEach(button => {
     button.onclick = () => onAction({ command: button.dataset.propCommand });
   });
@@ -87,7 +96,7 @@ function boardModal(state) {
   if (view === "self") return selfView(state);
   if (view === "prop-details") return propDetailsView(state);
   if (view === "journal") return journalView(state);
-  if (view === "edit-room") return editRoomView();
+  if (view === "edit-room") return editRoomView(state);
   return "";
 }
 
@@ -122,21 +131,58 @@ function detailsModal(state) {
 export function describeSelection(state) {
   if (!state.room) return { tag: "Tinyrooms", title: "Sign in", description: "Create an account or log in to enter the world.", imageUrl: "" };
   const selected = findSelectedEntity(state);
+  const dialog = state.room.dialog;
+  if (dialog && state.selection.kind === "peep" && selected?.id === dialog.peepId) {
+    return { tag: "Conversation", title: dialog.peepLabel || selected.label, description: dialog.text, imageUrl: selected.stickerUrl };
+  }
   if (!selected || state.selection.kind === "room") {
     return { tag: "Room", title: state.room.label, description: state.room.description || state.room.note || "Current room.", imageUrl: state.room.board.imageUrl };
   }
-  if (state.selection.kind === "core") return { tag: "Core", title: selected.label, description: state.selection.id === "journal" ? "Your tasks and memories. Not available yet." : selected.description, imageUrl: selected.imageUrl };
+  if (state.selection.kind === "core") return { tag: "Core", title: selected.label, description: state.selection.id === "journal" ? "Your tasks and memories." : selected.description, imageUrl: selected.imageUrl };
+  if (state.selection.kind === "task") {
+    const done = selected.steps.filter(step => step.complete).length;
+    return { tag: selected.scope === "shared" ? "Shared Task" : "Task", title: selected.title, description: selected.description || `${done} of ${selected.steps.length} steps complete.`, imageUrl: "" };
+  }
   if (state.selection.kind === "room-card" || state.selection.kind === "inventory-card") return { tag: rarityLabel(selected.definition), title: selected.definition.label, description: selected.definition.description, imageUrl: selected.definition.imageUrl };
   if (state.selection.kind === "prop") return { tag: "Prop", title: selected.label, description: selected.description, imageUrl: "" };
   if (state.selection.kind === "peep") return { tag: selected.kind === "npc" ? "NPC" : "Peep", title: selected.label, description: selected.description || "A peep in this room.", imageUrl: selected.stickerUrl };
   return { tag: "Selection", title: "Tinyrooms", description: "", imageUrl: "" };
 }
 
+export function dialogActions(state) {
+  const dialog = state.room?.dialog;
+  if (!dialog) return [];
+  return [
+    ...dialog.choices.map(choice => ({
+      label: choice.label,
+      command: `.dialog ${choice.index}`,
+      tone: choice.disabled ? "neutral" : "primary",
+      disabled: choice.disabled,
+    })),
+    { label: "Exit Conversation", command: ".dialog_end", tone: "cancel" },
+  ];
+}
+
 export function selectionActions(state) {
   if (!state.room) return [];
+  const dialog = state.room.dialog;
+  if (dialog && state.selection.kind === "peep" && state.selection.id === dialog.peepId) {
+    return dialogActions(state);
+  }
+  if (state.views.main === "journal") {
+    const actions = [];
+    const task = state.selection.kind === "task" ? findTask(state, state.selection.id) : null;
+    if (task) actions.push({ label: "Memories", local: { type: "journal-task-memories", taskId: task.id }, tone: "primary" });
+    if (state.ui.journalTab === "Memories") actions.push({ label: "New Memory", local: { type: "new-memory" }, tone: "positive" });
+    actions.push({ label: "Close", local: { type: "close-view" }, tone: "cancel" });
+    return actions;
+  }
   if (state.selection.kind === "room") {
     return [
       { label: "Open Room View", local: { type: "open-view", view: "room" }, tone: "primary" },
+      ...(state.room.editable
+        ? [{ label: "Edit Room", local: { type: "open-view", view: "edit-room" }, tone: "neutral" }]
+        : []),
       ...state.room.quickActions.map(action => ({
         ...action,
         tone: action.command.startsWith(".go ") ? "positive" : "neutral",
@@ -145,10 +191,13 @@ export function selectionActions(state) {
   }
   if (state.selection.kind === "core") {
     const definition = state.user?.coreCards?.[state.selection.id];
-    if (!definition) return [];
+    if (!definition) {
+      return state.views.main === state.selection.id
+        ? [{ label: "Close", local: { type: "close-view" }, tone: "cancel" }]
+        : [];
+    }
     return [
       { label: state.views.main === state.selection.id ? "Close" : `Open ${definition.label}`, local: { type: "open-view", view: state.selection.id }, tone: "primary" },
-      { label: state.user?.favorites?.includes(state.selection.id) ? "Unfavorite" : "Favorite", command: buildFavoriteCommand(state.selection.id), tone: "positive" },
     ];
   }
   if (state.selection.kind === "prop") {
@@ -164,7 +213,11 @@ export function selectionActions(state) {
     if (!peep) return [];
     const actions = (peep.quickActions || []).map(action => ({ ...action, tone: "neutral" }));
     if (state.user && peep.id === state.user.id) {
-      actions.unshift({ label: "Open Self", local: { type: "open-view", view: "self" }, tone: "primary" });
+      actions.unshift(
+        { label: "Open Self", local: { type: "open-view", view: "self" }, tone: "primary" },
+        { label: "Friends", local: { type: "open-view", view: "friends" }, tone: "neutral" },
+        { label: "Skills", local: { type: "open-view", view: "skills" }, tone: "neutral", icon: "/assets/base/skills-icon.png" },
+      );
       const pinned = (state.user.pinnedPeeps || []).includes(peep.id);
       actions.push({ label: pinned ? "Unpin" : "Pin", command: buildPinCommand(peep.id), tone: "neutral" });
       actions.push({ label: "Swap Sticker…", local: { type: "swap-sticker" }, tone: "positive" });
@@ -250,7 +303,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["stackId", "coreId", "coreExpand", "closeView", "closeDetails", "detailsPage"]
+    const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const scrollSelector = ".modal-scroll, .board-modal, .details-popup, .details-page, .card-hand-strip, .equipped-hand";
@@ -272,31 +325,19 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
     render(state) {
       const coreCards = state.user?.coreCards || {};
       const coreOrder = state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards);
-      const favorites = [...new Set(state.user?.favorites || [])].filter(id => coreOrder.includes(id));
-      const visibleCore = state.views.coreExpanded
-        ? coreOrder
-        : favorites;
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
-      const expandIcon = state.views.coreExpanded ? coreCards["arrow-left"]?.imageUrl : coreCards["arrow-right"]?.imageUrl;
-      const handChanged = update(handRoot, `
-        <div class="card-hand-section ${state.views.coreExpanded ? "expanded" : ""}">
+      update(handRoot, `
+        <div class="card-hand-section">
           <div class="card-hand-strip" role="group" aria-label="Core cards">
-            ${visibleCore.map(id => coreMarkup(coreCards[id], favorites.includes(id), state.views.main === id || state.selection.kind === "core" && state.selection.id === id)).join("")}
+            ${coreOrder.map(id => coreMarkup(coreCards[id], state.views.main === id || state.selection.kind === "core" && state.selection.id === id)).join("")}
           </div>
-          <button type="button" class="game-card core-expand" data-core-expand="1" aria-label="${state.views.coreExpanded ? "Collapse core cards" : "Expand core cards"}" aria-expanded="${state.views.coreExpanded}">
-            ${expandIcon ? `<img src="${escapeHtml(expandIcon)}" alt="">` : ""}
-          </button>
-          ${equipped.length ? `<div class="equipped-hand ${state.views.coreExpanded ? "stashed" : ""}" role="group" aria-label="Equipped cards">
+          ${equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards">
             ${equipped.map(stack => tileMarkup(stack.definition, stack, state.selection.kind === "inventory-card" && state.selection.id === stack.stackId, "inventory")).join("")}
           </div>` : ""}
         </div>
       `);
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
-      if (handChanged) {
-        const expand = handRoot.querySelector("[data-core-expand]");
-        if (expand) expand.onclick = () => onAction({ type: "toggle-core" });
-      }
     },
   };
 }

@@ -91,6 +91,22 @@ export function createDialogs(layer) {
         }, () => resolve(null));
       });
     },
+    prompt(title, initial = "", acceptLabel = "Save") {
+      return new Promise(resolve => {
+        open(`<section class="global-dialog" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+          <h2 id="prompt-title">${escapeHtml(title)}</h2>
+          <input class="prompt-input" type="text" maxlength="280" value="${escapeHtml(initial)}" aria-label="${escapeHtml(title)}">
+          <div class="dialog-actions"><button type="button" class="cancel">Cancel</button>
+          <button type="button" class="primary accept">${escapeHtml(acceptLabel)}</button></div></section>`,
+        (shade, close, cancel) => {
+          const input = shade.querySelector(".prompt-input");
+          shade.querySelector(".cancel").onclick = cancel;
+          shade.querySelector(".accept").onclick = () => { close(); resolve(input.value); };
+          input.focus();
+          input.select();
+        }, () => resolve(null));
+      });
+    },
     description(title, text) {
       open(`<section class="global-dialog" role="dialog" aria-modal="true" aria-labelledby="description-title">
         <h2 id="description-title">${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p>

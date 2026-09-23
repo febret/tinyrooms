@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from server.profiles import AccountRecord, ProfileRepository, UserProfileRecord
+from server.security import utc_now
 from server.state.migrations import DatabaseHub
 
 MAX_FRIENDS = 100
@@ -127,6 +128,11 @@ class FriendsService:
             profile["friend_requests_received"] = [
                 entry for entry in _list_key(profile, "friend_requests_received") if entry != other_id
             ]
+            added = profile.get("friend_added_at")
+            if not isinstance(added, dict):
+                added = {}
+            added.setdefault(other_id, utc_now().isoformat())
+            profile["friend_added_at"] = added
 
         def link_second(profile: dict[str, object]) -> None:
             friends = _list_key(profile, "friends")
@@ -139,6 +145,11 @@ class FriendsService:
             profile["friend_requests_received"] = [
                 entry for entry in _list_key(profile, "friend_requests_received") if entry != account_id
             ]
+            added = profile.get("friend_added_at")
+            if not isinstance(added, dict):
+                added = {}
+            added.setdefault(account_id, utc_now().isoformat())
+            profile["friend_added_at"] = added
 
         self._mutate(connection, account_id, link_first)
         self._mutate(connection, other_id, link_second)

@@ -8,7 +8,7 @@ from typing import Any
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
 
-CORE_CARD_IDS = frozenset({"room", "emotes", "inventory", "journal", "skills", "self", "friends", "edit-room"})
+CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart", "starlight"})
 NON_EQUIP_TYPES = frozenset({"emote", "core", "skill"})
 
@@ -22,6 +22,7 @@ class CardDefinition:
     description: str
     image_name: str
     image_path: Path
+    animation_name: str | None
     type: str
     rarity: str | None
     stack_limit: int
@@ -94,6 +95,11 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
         image_path = (path.parent / image_name).resolve()
         if not image_path.is_file():
             raise ContentError(f"Card '{card_id}' references missing image '{image_name}'.")
+        animation_name = str(raw_card.get("animation", "")).strip() or None
+        if animation_name is not None:
+            animation_path = (path.parent / animation_name).resolve()
+            if not animation_path.is_file():
+                raise ContentError(f"Card '{card_id}' references missing animation '{animation_name}'.")
         label = str(raw_card.get("label", "")).strip()
         description = str(raw_card.get("description", "")).strip()
         if not label or not description:
@@ -117,6 +123,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             description=description,
             image_name=image_name,
             image_path=image_path,
+            animation_name=animation_name,
             type=card_type,
             rarity=str(raw_card["rarity"]) if "rarity" in raw_card else None,
             stack_limit=stack_limit,

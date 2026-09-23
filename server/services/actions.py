@@ -243,4 +243,5 @@ class ActionsService:
 
     def _emote_image_url(self, definition: CardDefinition) -> str:
         asset_kind = "base" if definition.source != self._world_id else f"world/{self._world_id}/cards"
-        return f"/assets/{asset_kind}/{definition.image_name}"
+        file_name = definition.animation_name or definition.image_name
+        return f"/assets/{asset_kind}/{file_name}"

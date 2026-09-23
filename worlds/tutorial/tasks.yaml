@@ -1,0 +1,50 @@
+# Tutorial tasks. Progress is personal by default; each task grants its reward
+# exactly once when every ordered step is complete.
+house-tour:
+  title: A Tour of the Little House
+  description: Meet Pip, find the utility room, and make it out to the garden.
+  scope: personal
+  revision: 1
+  memory_tags: [house-tour]
+  reward:
+    kudos: 2
+    cards: [seal-plushie]
+  steps:
+    - step_id: enter-foyer
+      trigger: enter_room
+      match: {room_id: foyer}
+      title: Step through the dollhouse into the foyer
+      memory_tag: tour-start
+    - step_id: meet-pip
+      trigger: dialog_action
+      match: {peep_id: caretaker}
+      title: Ask Pip how to begin
+      memory_tag: met-pip
+    - step_id: find-utility
+      trigger: enter_room
+      match: {room_id: utility}
+      title: Find the utility room
+    - step_id: reach-garden
+      trigger: enter_room
+      match: {room_id: garden}
+      title: Make it out to the garden
+      memory_tag: outside
+meet-molly:
+  title: A Word with Molly
+  description: Chat with the playroom cat and share a Tasty Toast.
+  scope: personal
+  revision: 1
+  memory_tags: [molly]
+  reward:
+    kudos: 1
+  steps:
+    - step_id: say-hello
+      trigger: dialog_action
+      match: {peep_id: molly}
+      title: Chat with Molly in the playroom
+      memory_tag: molly-hello
+    - step_id: share-toast
+      trigger: card_play
+      match: {card_id: tasty-toast}
+      title: Share a Tasty Toast
+      memory_tag: molly-toast

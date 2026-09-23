@@ -10,6 +10,7 @@
   --shadow: 0 8px 24px #0008;
   --sidebar-width: 128px;
   --tray-height: 152px;
+  --equipped-card-width: 132px;
   --dock-height: calc(156px + env(safe-area-inset-bottom, 0px));
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
 }
@@ -156,11 +157,11 @@ h3 { font-size: 18px; }
 .look-description, .look-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .look-description { color: var(--ink); font-size: 17px; padding: 0; border: 0; border-radius: 0; min-height: 44px; min-width: 44px; background: none; box-shadow: none; text-align: left; }
 .look-preview { position: absolute; bottom: calc(100% + 14px); left: 4px; width: 90px; height: 115px; object-fit: contain; filter: drop-shadow(0 0 5px #8acb87); pointer-events: none; }
-.look-preview-layer { position: absolute; right: 12px; bottom: calc(100% + var(--tray-height) + 8px); width: 124px; height: 124px; pointer-events: none; }
-.look-preview-layer:empty { display: none; }
-.look-preview-3d { width: 100%; height: 100%; filter: drop-shadow(0 0 6px #8acb87); }
+.look-preview-3d { width: 124px; height: 124px; }
 .actions-bar { display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .actions-bar button { flex-shrink: 0; font-size: 15px; }
+.actions-bar button.icon-action { padding: 0; }
+.actions-bar button.icon-action img { width: 26px; height: 26px; object-fit: contain; pointer-events: none; }
 .actions-bar .neutral { background: linear-gradient(#2b7898, #075174); }
 .actions-empty { color: var(--muted); font-size: 13px; }
 .chat-bar { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
@@ -226,6 +227,10 @@ h3 { font-size: 18px; }
 .bubble.thought::before { width: 10px; height: 10px; border-radius: 50%; border: 0; background: #bcc1c3; box-shadow: -12px 4px 0 -2px #bcc1c3; left: -12px; }
 .bubble.spiky { border-radius: 3px; border-width: 3px; border-color: #d7b190; outline: 2px solid #123744; clip-path: polygon(0 9%,7% 12%,5% 0,20% 5%,30% 0,45% 5%,58% 0,72% 5%,89% 0,88% 10%,100% 7%,96% 30%,100% 48%,96% 69%,100% 93%,90% 90%,91% 100%,72% 95%,57% 100%,43% 96%,28% 100%,13% 95%,3% 100%,5% 84%,0 78%,4% 58%,0 40%,4% 23%); padding: 18px 22px; }
 .bubble.long { font-size: 14px; }
+.bubble.emote { width: 96px; height: 96px; padding: 0; overflow: hidden; display: grid; place-items: center; }
+.bubble.emote .bubble-text { display: none; }
+.bubble-image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+.bubble.emote-expression .bubble-image { transform: scale(3.6); transform-origin: 50% 24%; }
 .bubble.dismissing { animation: bubble-out .18s ease-in forwards; pointer-events: none; }
 .log-panel { display: none; position: absolute; right: 12px; bottom: calc(var(--dock-height) + var(--tray-height) + 12px); width: min(320px, calc(100% - var(--sidebar-width) - 20px)); max-height: min(280px, 45dvh); z-index: 44; background: #050c14f5; border: 1px solid #415c70; border-radius: 9px; overflow: hidden; }
 .log-open .log-panel { display: flex; flex-direction: column; }
@@ -296,18 +301,19 @@ h3 { font-size: 18px; }
   .peep-name { font-size: 12px; }
   .peeps-toggle { padding: 4px; }
   .board-frame { right: 4px; }
-  .card-hand { padding-left: 8px; gap: 8px; }
+  .card-hand { padding-left: 96px; gap: 8px; }
   .interaction-dock { padding-left: 6px; padding-right: 6px; }
   .look-copy { gap: 8px; }
   .look-name { font-size: 18px; }
   .look-description { font-size: 14px; }
   .look-preview { width: 54px; height: 68px; bottom: calc(var(--tray-height) + 56px); }
-  .look-preview-layer { width: 84px; height: 84px; right: 8px; }
+  .look-preview-3d { width: 84px; height: 84px; }
   .actions-bar { gap: 6px; }
   .actions-bar button { padding: 7px 14px; font-size: 14px; }
   .topbar { top: 8px; right: 8px; }
   .board-overlay { font-size: 11px; top: 58px; max-width: 95%; }
   .bubble { max-width: min(220px, calc(100vw - var(--sidebar-width) - 12px)); }
+  .bubble.emote { width: 72px; height: 72px; }
   .auth-layer { padding: 14px; }
   .auth-card { padding: 24px; }
   .global-shade { padding: 12px; }

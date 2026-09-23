@@ -178,6 +178,19 @@ class ActionIntegrationTests(Milestone2IntegrationTestCase):
                 event = self.drain_until(bob_socket, "emote.bubble")
                 self.assertEqual(event["card_id"], "smile")
 
+    def test_animation_emote_broadcasts_gif_bubble(self) -> None:
+        alice = self.create_ready_account("mio")
+        stack_id = self.grant_card(self.account_id(alice), "wave")
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            result = self.command(socket, "emote-wave", f".emote @card:{stack_id}")
+            self.assertTrue(result["ok"], result)
+            event = self.drain_until(socket, "emote.bubble")
+            self.assertEqual(event["card_id"], "wave")
+            self.assertTrue(event["bubble"]["image_url"].endswith("wave.gif"))
+
 
 class SocialShopIntegrationTests(Milestone2IntegrationTestCase):
     """Friends, packs, sticker swaps, and stack commands."""

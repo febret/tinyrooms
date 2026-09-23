@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import shutil
@@ -251,20 +252,17 @@ class ContentPersistenceTests(unittest.TestCase):
         order_defined = {card_id: definition.order for card_id, definition in catalog.cards.items() if definition.order is not None}
         self.assertEqual(
             order_defined,
-            {"room": 1, "emotes": 2, "inventory": 3, "skills": 4, "journal": 5, "self": 6, "friends": 7, "edit-room": 8},
+            {"emotes": 2, "inventory": 3, "journal": 5},
         )
         service = CardService(None, None, None, catalog, "tutorial")
         serialized = service.serialize_core_cards()
         self.assertEqual(
-            [card["id"] for card in serialized if card["order"] is not None],
-            ["room", "emotes", "inventory", "skills", "journal", "self", "friends", "edit-room"],
+            [card["id"] for card in serialized],
+            ["emotes", "inventory", "journal"],
         )
         self.assertTrue(all(card["type"] == "core" for card in serialized))
         self.assertTrue(all(card["image_url"].startswith("/assets/base/") for card in serialized))
-        arrows = {card["id"]: card for card in serialized if card["id"] in {"arrow-left", "arrow-right"}}
-        self.assertEqual(set(arrows), {"arrow-left", "arrow-right"})
-        self.assertEqual(arrows["arrow-left"]["image_url"], "/assets/base/arrow-left-icon.png")
-        self.assertEqual(arrows["arrow-right"]["image_url"], "/assets/base/arrow-right-icon.png")
+        self.assertFalse(any(card["id"] in {"self", "friends", "edit-room", "arrow-left", "arrow-right"} for card in serialized))
 
     def test_inventory_stack_limit_and_world_defaults(self) -> None:
         with TemporaryDirectory() as temporary_directory:
@@ -287,7 +285,8 @@ class ContentPersistenceTests(unittest.TestCase):
                 self.assertEqual(user_profile.last_world_id, "tutorial")
                 self.assertEqual(user_profile.remembered_room, "hub")
                 self.assertFalse(user_profile.show_activity_log)
-                self.assertIn("room", user_profile.favorites)
+                self.assertEqual(user_profile.owned_rooms, ())
+                self.assertEqual(replace(user_profile, ownership={"rooms": ["bedroom"]}).owned_rooms, ("bedroom",))
                 with hub.transaction() as connection:
                     created = profiles.add_inventory_card(
                         connection,
@@ -310,8 +309,6 @@ class ContentPersistenceTests(unittest.TestCase):
                         (account.id,),
                     ).fetchone()
                 self.assertEqual(int(rows[0]), 1)
-                toggled = profiles.toggle_favorite(account.id, "room")
-                self.assertNotIn("room", toggled.favorites)
                 shown = profiles.set_show_activity_log(account.id, True)
                 self.assertTrue(shown.show_activity_log)
             finally:

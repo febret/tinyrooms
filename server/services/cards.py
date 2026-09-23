@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 import sqlite3
 
-from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition, CORE_CARD_IDS
+from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
@@ -123,27 +123,19 @@ class CardService:
         return payload
 
     def serialize_core_cards(self) -> list[dict[str, object]]:
-        """Serialize core card definitions, hand cards first in authored order."""
+        """Serialize core card definitions in authored order."""
 
         ordered = sorted(
             (
                 definition
                 for definition in self._catalog.cards.values()
-                if definition.type == "core" and definition.order is not None
+                if definition.type == "core"
             ),
-            key=lambda definition: definition.order,
-        )
-        unordered = sorted(
-            (
-                definition
-                for definition in self._catalog.cards.values()
-                if definition.type == "core" and definition.order is None
-            ),
-            key=lambda definition: definition.id,
+            key=lambda definition: definition.order if definition.order is not None else 0,
         )
         return [
             {**self.serialize_definition(definition), "order": definition.order}
-            for definition in (*ordered, *unordered)
+            for definition in ordered
         ]
 
     def _serialize_stack_base(
@@ -288,11 +280,3 @@ class CardService:
             inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
             room_event=event,
         )
-
-    def toggle_favorite(self, account: AccountRecord, card_id: str) -> dict[str, object]:
-        """Toggle a favorite core card and return the updated favorites payload."""
-
-        if card_id not in CORE_CARD_IDS:
-            raise ValueError("Only core cards can be favorited in Milestone 1.")
-        updated = self._profiles.toggle_favorite(account.id, card_id)
-        return {"favorites": list(updated.favorites)}

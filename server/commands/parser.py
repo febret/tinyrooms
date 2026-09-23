@@ -41,6 +41,8 @@ def parse_target(token: str) -> ParsedTarget:
         return ParsedTarget(kind="prop", value=raw[6:], raw=raw)
     if raw.startswith("@peep:"):
         return ParsedTarget(kind="peep", value=raw[6:], raw=raw)
+    if raw.startswith("@memory:"):
+        return ParsedTarget(kind="memory", value=raw[8:], raw=raw)
     if raw.startswith("@way:"):
         return ParsedTarget(kind="way", value=raw[5:], raw=raw)
     return ParsedTarget(kind="username", value=raw[1:], raw=raw)

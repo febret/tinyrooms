@@ -8,8 +8,8 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 3
-WORLD_SCHEMA_VERSION = 6
+PROFILE_SCHEMA_VERSION = 5
+WORLD_SCHEMA_VERSION = 7
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -91,7 +91,38 @@ CREATE TABLE IF NOT EXISTS pack_purchases (
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
-PRAGMA user_version = 3;
+CREATE TABLE IF NOT EXISTS task_progress (
+    account_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    world_id TEXT NOT NULL,
+    scope TEXT NOT NULL CHECK (scope IN ('personal', 'shared')),
+    status TEXT NOT NULL CHECK (status IN ('active', 'completed')),
+    steps_json TEXT NOT NULL CHECK (json_valid(steps_json)),
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    definition_revision INTEGER NOT NULL DEFAULT 0,
+    reward_operation_id TEXT,
+    shared_owner_id TEXT,
+    PRIMARY KEY (account_id, task_id),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id);
+CREATE TABLE IF NOT EXISTS memories (
+    memory_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    world_id TEXT NOT NULL,
+    author TEXT NOT NULL,
+    source_type TEXT NOT NULL CHECK (source_type IN ('game', 'manual')),
+    text TEXT NOT NULL,
+    tags_json TEXT NOT NULL CHECK (json_valid(tags_json)),
+    task_id TEXT,
+    created_at TEXT NOT NULL,
+    editable INTEGER NOT NULL DEFAULT 0 CHECK (editable IN (0, 1)),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id);
+PRAGMA user_version = 5;
 COMMIT;
 """
 
@@ -116,15 +147,31 @@ CREATE TABLE IF NOT EXISTS room_states (
     owner_account_id TEXT,
     props_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(props_json))
 );
-PRAGMA user_version = 6;
+CREATE TABLE IF NOT EXISTS behavior_state (
+    namespace TEXT NOT NULL,
+    instance_id TEXT NOT NULL,
+    state_json TEXT NOT NULL CHECK (json_valid(state_json)),
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (namespace, instance_id)
+);
+PRAGMA user_version = 7;
 COMMIT;
 """
 
 _PROFILE_TABLES = frozenset(
-    {"accounts", "sessions", "profile_card_stacks", "user_profiles", "reward_ledger", "pack_purchases"}
+    {
+        "accounts",
+        "sessions",
+        "profile_card_stacks",
+        "user_profiles",
+        "reward_ledger",
+        "pack_purchases",
+        "task_progress",
+        "memories",
+    }
 )
 
-_WORLD_TABLES = frozenset({"room_cards", "room_states"})
+_WORLD_TABLES = frozenset({"room_cards", "room_states", "behavior_state"})
 
 _PROFILE_MIGRATIONS: dict[int, str] = {
     3: """
@@ -153,6 +200,70 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 3;
     COMMIT;
     """,
+    4: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS active_dialogs (
+        account_id TEXT PRIMARY KEY,
+        world_id TEXT NOT NULL,
+        peep_id TEXT NOT NULL,
+        node_id TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0,
+        state_json TEXT NOT NULL CHECK (json_valid(state_json)),
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    """,
+    5: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS task_progress (
+        account_id TEXT NOT NULL,
+        task_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        scope TEXT NOT NULL CHECK (scope IN ('personal', 'shared')),
+        status TEXT NOT NULL CHECK (status IN ('active', 'completed')),
+        steps_json TEXT NOT NULL CHECK (json_valid(steps_json)),
+        started_at TEXT NOT NULL,
+        completed_at TEXT,
+        definition_revision INTEGER NOT NULL DEFAULT 0,
+        reward_operation_id TEXT,
+        shared_owner_id TEXT,
+        PRIMARY KEY (account_id, task_id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id);
+    CREATE TABLE IF NOT EXISTS memories (
+        memory_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        author TEXT NOT NULL,
+        source_type TEXT NOT NULL CHECK (source_type IN ('game', 'manual')),
+        text TEXT NOT NULL,
+        tags_json TEXT NOT NULL CHECK (json_valid(tags_json)),
+        task_id TEXT,
+        created_at TEXT NOT NULL,
+        editable INTEGER NOT NULL DEFAULT 0 CHECK (editable IN (0, 1)),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id);
+    PRAGMA user_version = 5;
+    COMMIT;
+    """,
+}
+
+_WORLD_MIGRATIONS: dict[int, str] = {
+    7: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS behavior_state (
+        namespace TEXT NOT NULL,
+        instance_id TEXT NOT NULL,
+        state_json TEXT NOT NULL CHECK (json_valid(state_json)),
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (namespace, instance_id)
+    );
+    PRAGMA user_version = 7;
+    COMMIT;
+    """,
 }
 
 _REWARD_LEDGER_COLUMNS = (
@@ -170,6 +281,33 @@ _PACK_PURCHASES_COLUMNS = (
     "pack_id",
     "results_json",
     "created_at",
+)
+
+_TASK_PROGRESS_COLUMNS = (
+    "account_id",
+    "task_id",
+    "world_id",
+    "scope",
+    "status",
+    "steps_json",
+    "started_at",
+    "completed_at",
+    "definition_revision",
+    "reward_operation_id",
+    "shared_owner_id",
+)
+
+_MEMORIES_COLUMNS = (
+    "memory_id",
+    "account_id",
+    "world_id",
+    "author",
+    "source_type",
+    "text",
+    "tags_json",
+    "task_id",
+    "created_at",
+    "editable",
 )
 
 _ACCOUNTS_COLUMNS = (
@@ -232,6 +370,13 @@ _ROOM_STATES_COLUMNS = (
     "initialized",
     "owner_account_id",
     "props_json",
+)
+
+_BEHAVIOR_STATE_COLUMNS = (
+    "namespace",
+    "instance_id",
+    "state_json",
+    "updated_at",
 )
 
 _ROOM_CARDS_COLUMNS = (
@@ -347,6 +492,8 @@ def ensure_profile_database(path: Path) -> None:
             "user_profiles": _USER_PROFILES_COLUMNS,
             "reward_ledger": _REWARD_LEDGER_COLUMNS,
             "pack_purchases": _PACK_PURCHASES_COLUMNS,
+            "task_progress": _TASK_PROGRESS_COLUMNS,
+            "memories": _MEMORIES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
@@ -354,6 +501,9 @@ def ensure_profile_database(path: Path) -> None:
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",
             "CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id)",
+            "CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id)",
+            "CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id)",
         ),
         migrations=_PROFILE_MIGRATIONS,
     )
@@ -371,11 +521,13 @@ def ensure_world_database(path: Path) -> None:
         column_specs={
             "room_cards": _ROOM_CARDS_COLUMNS,
             "room_states": _ROOM_STATES_COLUMNS,
+            "behavior_state": _BEHAVIOR_STATE_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",
             "CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id)",
         ),
+        migrations=_WORLD_MIGRATIONS,
     )
 
 

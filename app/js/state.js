@@ -181,6 +181,95 @@ function normalizeActivity(activity) {
   };
 }
 
+function normalizeDialog(dialog) {
+  if (!dialog) return null;
+  return {
+    peepId: String(dialog.peep_id || ""),
+    peepLabel: String(dialog.peep_label || ""),
+    nodeId: String(dialog.node_id || ""),
+    revision: Number(dialog.revision || 0),
+    text: String(dialog.text || ""),
+    choices: Array.isArray(dialog.choices)
+      ? dialog.choices.map(choice => ({
+          label: String(choice.label || ""),
+          index: Number(choice.index || 0),
+          actionId: String(choice.action_id || ""),
+          disabled: Boolean(choice.disabled),
+        }))
+      : [],
+  };
+}
+
+function normalizeTaskStep(step) {
+  return {
+    stepId: String(step?.step_id || ""),
+    title: String(step?.title || ""),
+    trigger: String(step?.trigger || ""),
+    amount: Number(step?.amount || 1),
+    progress: Number(step?.progress || 0),
+    complete: Boolean(step?.complete),
+    memoryTag: step?.memory_tag ? String(step.memory_tag) : "",
+  };
+}
+
+function normalizeTask(task) {
+  if (!task) return null;
+  return {
+    id: String(task.id || ""),
+    scope: String(task.scope || "personal"),
+    title: String(task.title || "Task"),
+    description: String(task.description || ""),
+    status: String(task.status || "active"),
+    revision: Number(task.revision || 1),
+    reward: {
+      kudos: Number(task.reward?.kudos || 0),
+      cards: Array.isArray(task.reward?.cards) ? task.reward.cards.map(String) : [],
+    },
+    memoryTags: Array.isArray(task.memory_tags) ? task.memory_tags.map(String) : [],
+    repeatable: Boolean(task.repeatable),
+    resetPolicy: task.reset_policy ? String(task.reset_policy) : "",
+    startedAt: String(task.started_at || ""),
+    completedAt: task.completed_at ? String(task.completed_at) : "",
+    steps: Array.isArray(task.steps) ? task.steps.map(normalizeTaskStep) : [],
+  };
+}
+
+function normalizeTasks(tasks) {
+  const active = Array.isArray(tasks?.active) ? tasks.active.map(normalizeTask).filter(Boolean) : [];
+  const completed = Array.isArray(tasks?.completed) ? tasks.completed.map(normalizeTask).filter(Boolean) : [];
+  return { active, completed };
+}
+
+function normalizeMemory(memory) {
+  return {
+    memoryId: String(memory?.memory_id || ""),
+    author: String(memory?.author || ""),
+    sourceType: String(memory?.source_type || "game"),
+    text: String(memory?.text || ""),
+    tags: Array.isArray(memory?.tags) ? memory.tags.map(String) : [],
+    taskId: memory?.task_id ? String(memory.task_id) : "",
+    createdAt: String(memory?.created_at || ""),
+    editable: Boolean(memory?.editable),
+    localDate: String(memory?.local_date || ""),
+  };
+}
+
+function normalizeJournal(journal) {
+  const summary = journal?.summary && typeof journal.summary === "object" ? journal.summary : {};
+  return {
+    summary: {
+      year: Number(summary.year || 0),
+      month: Number(summary.month || 0),
+      dayCounts: summary.day_counts && typeof summary.day_counts === "object" ? { ...summary.day_counts } : {},
+      memoryCount: Number(summary.memory_count || 0),
+      tasksCompleted: Number(summary.tasks_completed || 0),
+      kudos: Number(summary.kudos || 0),
+      newFriends: Number(summary.new_friends || 0),
+    },
+    memories: Array.isArray(journal?.memories) ? journal.memories.map(normalizeMemory) : [],
+  };
+}
+
 function normalizeUser(user) {
   if (!user) return null;
   const normalizedCore = (Array.isArray(user.core_cards) ? user.core_cards : [])
@@ -192,7 +281,6 @@ function normalizeUser(user) {
     sticker: String(user.sticker || ""),
     stickerUrl: user.sticker ? `/assets/stickers/${user.sticker}` : "",
     initialStickerComplete: Boolean(user.initial_sticker_complete),
-    favorites: Array.isArray(user.favorites) ? [...user.favorites] : [],
     inventory: Array.isArray(user.inventory) ? user.inventory.map(normalizeInventoryStack) : [],
     coreCards: Object.fromEntries(normalizedCore.map(definition => [definition.id, definition])),
     coreOrder: normalizedCore
@@ -227,6 +315,8 @@ function normalizeUser(user) {
         }
       : { friends: [], incoming: [], outgoing: [] },
     packs: Array.isArray(user.packs) ? user.packs.map(normalizePack) : [],
+    tasks: normalizeTasks(user.tasks),
+    journal: normalizeJournal(user.journal),
     worldId: String(user.world_id || ""),
     rememberedRoom: String(user.remembered_room || ""),
     canEnterWorld: user.can_enter_world !== false,
@@ -254,7 +344,8 @@ function normalizeRoom(room) {
     roomCards: Array.isArray(room.room_cards) ? room.room_cards.map(normalizeRoomCard) : [],
     chatHistory: Array.isArray(room.chat_history) ? room.chat_history.map(normalizeChatEntry) : [],
     inventory: Array.isArray(room.inventory) ? room.inventory.map(normalizeInventoryStack) : [],
-    favorites: Array.isArray(room.favorites) ? [...room.favorites] : [],
+    editable: Boolean(room.editable),
+    dialog: normalizeDialog(room.dialog),
     quickActions: normalizeQuickActions(room.quick_actions),
   };
 }
@@ -263,11 +354,19 @@ function toastRecord(message, tone = "info") {
   return { id: crypto.randomUUID(), message: String(message || ""), tone };
 }
 
-function applyBubble(peeps, key, label, text, style) {
+function applyBubble(peeps, key, label, text, style, imageUrl = "") {
+  const url = String(imageUrl || "");
   return peeps.map(peep => {
     const match = peep.id === key || peep.username.toLowerCase() === String(label || "").toLowerCase();
     if (!match) return peep;
-    const combined = peep.bubble && !peep.bubbleDismissed
+    if (url) {
+      return {
+        ...peep,
+        bubble: { text: String(text || ""), style, imageUrl: url },
+        bubbleDismissed: false,
+      };
+    }
+    const combined = peep.bubble && !peep.bubbleDismissed && !peep.bubble.imageUrl
       ? `${peep.bubble.text}\n${text}`
       : text;
     const trimmed = combined.length > BUBBLE_LIMIT ? combined.slice(combined.length - BUBBLE_LIMIT) : combined;
@@ -332,8 +431,8 @@ function applyServerEvent(state, event) {
   }
   if (event.type === "emote.bubble") {
     const bubble = event.bubble || {};
-    const updatedOccupants = applyBubble(state.room.occupants, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"));
-    const updatedNpcs = applyBubble(state.room.npcs, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"));
+    const updatedOccupants = applyBubble(state.room.occupants, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"), String(bubble.image_url || ""));
+    const updatedNpcs = applyBubble(state.room.npcs, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"), String(bubble.image_url || ""));
     return {
       ...state,
       room: { ...state.room, occupants: updatedOccupants, npcs: updatedNpcs },
@@ -436,6 +535,9 @@ function applyServerEvent(state, event) {
       room: { ...state.room, chatHistory: [...state.room.chatHistory, asSystemHistory(event.message)].slice(-50) },
     };
   }
+  if (event.type === "dialog.updated") {
+    return { ...state, room: { ...state.room, dialog: normalizeDialog(event.dialog) } };
+  }
   if (event.type === "activity.started") {
     const activity = normalizeActivity(event.activity);
     return {
@@ -454,6 +556,9 @@ function applyServerEvent(state, event) {
         chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.activity?.title || "Activity"} closed.`)].slice(-50),
       },
     };
+  }
+  if (event.type === "task.updated" && event.tasks) {
+    return { ...state, user: state.user ? { ...state.user, tasks: normalizeTasks(event.tasks) } : state.user };
   }
   return state;
 }
@@ -491,6 +596,12 @@ function mergeResultPayload(state, payload) {
         : next.user,
     };
   }
+  if (payload.tasks) {
+    next = { ...next, user: next.user ? { ...next.user, tasks: normalizeTasks(payload.tasks) } : next.user };
+  }
+  if (payload.journal) {
+    next = { ...next, user: next.user ? { ...next.user, journal: normalizeJournal(payload.journal) } : next.user };
+  }
   if (Array.isArray(payload.commands)) {
     next = {
       ...next,
@@ -508,14 +619,6 @@ function mergeResultPayload(state, payload) {
       room: next.room ? { ...next.room, inventory } : next.room,
     };
   }
-  if (Array.isArray(payload.favorites)) {
-    const favorites = [...payload.favorites];
-    next = {
-      ...next,
-      user: next.user ? { ...next.user, favorites } : next.user,
-      room: next.room ? { ...next.room, favorites } : next.room,
-    };
-  }
   if (typeof payload.show_activity_log === "boolean") {
     next = {
       ...next,
@@ -531,6 +634,12 @@ function mergeResultPayload(state, payload) {
       ...next,
       user: next.user ? { ...next.user, activity } : next.user,
       activities: activity ? [activity] : [],
+    };
+  }
+  if ("dialog" in payload) {
+    next = {
+      ...next,
+      room: next.room ? { ...next.room, dialog: normalizeDialog(payload.dialog) } : next.room,
     };
   }
   if (payload.entity) {
@@ -571,8 +680,8 @@ function createInitialState() {
     stickers: [],
     activities: [],
     selection: { kind: "none", id: "" },
-    views: { auth: true, main: null, details: null, commandPalette: false, coreExpanded: false, propId: null, skillStackId: null },
-    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, targeting: null },
+    views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null },
+    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null },
     commandCatalog: [],
     describedEntity: null,
   };
@@ -590,7 +699,7 @@ function reduce(state, action) {
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
       ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled },
-      views: { auth: !action.loggedIn, main: null, details: null, commandPalette: false, coreExpanded: false },
+      views: { auth: !action.loggedIn, main: null, details: null, commandPalette: false },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
       commandCatalog: action.loggedIn ? state.commandCatalog : [],
@@ -630,11 +739,10 @@ function reduce(state, action) {
   }
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
   if (action.type === "emote-category") return { ...state, ui: { ...state.ui, emoteCategory: action.category } };
-  if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab } };
+  if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "start-targeting") return { ...state, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: { stackId: action.stackId, label: action.label } } };
   if (action.type === "cancel-targeting") return { ...state, ui: { ...state.ui, targeting: null } };
-  if (action.type === "toggle-core") return { ...state, views: { ...state.views, coreExpanded: !state.views.coreExpanded } };
   if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
   if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
@@ -668,7 +776,7 @@ function reduce(state, action) {
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, details: null },
       ui: sameRoom ? state.ui : { ...state.ui, targeting: null },
-      user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory, favorites: room?.favorites || state.user.favorites } : state.user,
+      user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };
     return dismissInvalidSelection(next);
   }
@@ -680,7 +788,7 @@ function reduce(state, action) {
     if (action.message && next.room && next.room.chatHistory.at(-1)?.text !== action.message) {
       next = { ...next, room: { ...next.room, chatHistory: [...next.room.chatHistory, asSystemHistory(action.message)].slice(-50) } };
     }
-    const quietAcknowledgement = /^\.(?:say|help|look|settings)(?:\s|$)/.test(action.command || "");
+    const quietAcknowledgement = /^\.(?:say|help|look|settings|tasks|task|memories|emote)(?:\s|$)/.test(action.command || "");
     if (action.ok && action.message && !quietAcknowledgement && !announcedByEvent) next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "success")] } };
     if (!action.ok && action.message && !next.ui.toasts.some(item => item.tone === "error" && item.message === action.message)) {
       next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "error")] } };
@@ -734,9 +842,18 @@ export function findSelectedEntity(state) {
   if (!state.room) return null;
   if (state.selection.kind === "room") return state.room;
   if (state.selection.kind === "core") return state.user?.coreCards?.[state.selection.id] || null;
+  if (state.selection.kind === "task") return findTask(state, state.selection.id);
   if (state.selection.kind === "room-card") return findRoomCard(state, state.selection.id);
   if (state.selection.kind === "inventory-card") return findInventoryCard(state, state.selection.id);
   if (state.selection.kind === "prop") return state.room.props.find(prop => prop.id === state.selection.id) || null;
   if (state.selection.kind === "peep") return [...state.room.occupants, ...state.room.npcs].find(peep => peep.id === state.selection.id) || null;
   return null;
+}
+
+export function findTask(state, taskId) {
+  const tasks = state.user?.tasks;
+  if (!tasks) return null;
+  return (tasks.active || []).find(task => task.id === taskId)
+    || (tasks.completed || []).find(task => task.id === taskId)
+    || null;
 }

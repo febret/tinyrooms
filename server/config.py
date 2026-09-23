@@ -32,6 +32,7 @@ class AppConfig:
     timezone: ZoneInfo
     host: str
     port: int
+    tick_seconds: float = 1.0
 
     @property
     def app_path(self) -> Path:
@@ -156,6 +157,14 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if not 1 <= port <= 65535:
         raise ConfigError(f"TRSERVER_PORT must be between 1 and 65535, got {port}.")
 
+    tick_raw = values.get("TRSERVER_TICK_SECONDS", "1.0").strip()
+    try:
+        tick_seconds = float(tick_raw)
+    except ValueError as exc:
+        raise ConfigError(f"TRSERVER_TICK_SECONDS must be a number, got '{tick_raw}'.") from exc
+    if tick_seconds <= 0:
+        raise ConfigError(f"TRSERVER_TICK_SECONDS must be positive, got {tick_seconds}.")
+
     return AppConfig(
         repo_root=root,
         local_path=local_path,
@@ -168,4 +177,5 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         timezone=timezone,
         host=host,
         port=port,
+        tick_seconds=tick_seconds,
     )

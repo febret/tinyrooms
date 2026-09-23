@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 
+from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.commands.outcomes import (
     CommandContext,
     CommandError,
@@ -12,7 +13,6 @@ from server.commands.outcomes import (
 )
 from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
-from server.content.cards import CORE_CARD_IDS
 from server.content.worlds import ExitDefinition, PropDefinition, PropInstanceDefinition
 
 
@@ -69,6 +69,45 @@ def _describe_prop(prop: PropInstanceDefinition, prop_definition: PropDefinition
 
 def _entity_outcome(message: str, entity: dict[str, object]) -> CommandOutcome:
     return CommandOutcome(message=message, payload={"entity": entity})
+
+
+def _merge_behavior(outcome: CommandOutcome, result: object | None) -> None:
+    if result is None:
+        return
+    outcome.private_events.extend(getattr(result, "private_events", []))
+    outcome.room_broadcasts.extend(getattr(result, "room_broadcasts", []))
+    for message in getattr(result, "messages", []):
+        if message and not outcome.message:
+            outcome.message = message
+
+
+async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
+    room_id = _require_room_id(context)
+    parsed = parse_target(token) if token.startswith("@") else None
+    kind = parsed.kind if parsed else "username"
+    value = parsed.value if parsed else token
+    for peep in context.rooms.room_peeps(room_id):
+        if (kind == "peep" and peep["id"] == value) or (
+            kind == "username" and str(peep["label"]).casefold() == value.casefold()
+        ):
+            return PeepRef(kind="npc", peep_id=str(peep["id"]), account_id=None)
+    for occupant in await context.rooms.room_occupants(room_id):
+        if (kind == "peep" and occupant["id"] == value) or (
+            kind == "username" and str(occupant["username"]).casefold() == value.casefold()
+        ):
+            return PeepRef(kind="user", peep_id=None, account_id=str(occupant["id"]))
+    raise CommandError("That peep is not in this room.")
+
+
+async def _resolve_action_target(context: CommandContext, token: str) -> PeepRef | PropRef:
+    parsed = parse_target(token) if token.startswith("@") else None
+    if parsed is not None and parsed.kind == "prop":
+        room_id = _require_room_id(context)
+        prop = context.rooms.room_definition(room_id).props.get(parsed.value)
+        if prop is None:
+            raise CommandError("That prop is not in this room.")
+        return PropRef(instance_id=prop.id, prop_id=prop.prop_id, room_id=room_id)
+    return await _resolve_peep_ref(context, token)
 
 
 async def help_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
@@ -160,6 +199,11 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
     exit_token = command.args[0]
     exit_id = parse_target(exit_token).value if exit_token.startswith("@") else exit_token
     navigation = await context.rooms.navigate(context.account, room_id, exit_id)
+    context.tasks.record(
+        context.account.id,
+        "go",
+        {"exit_id": exit_id, "room_id": navigation.destination_room_id},
+    )
     outcome = CommandOutcome(
         message=f"You moved to {navigation.destination_room_id}.",
         payload={"room_id": navigation.destination_room_id},
@@ -179,7 +223,78 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
     )
     if navigation.closed_activity is not None:
         outcome.private_events.append({"type": "activity.closed", "activity": navigation.closed_activity, "reason": "room_changed"})
+    for behavior in navigation.behavior_results:
+        _merge_behavior(outcome, behavior)
     return outcome
+
+
+async def talk_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    room_id = _require_room_id(context)
+    if not command.args:
+        raise CommandError("Choose a peep to talk to.")
+    ref = await _resolve_peep_ref(context, command.args[0])
+    if ref.kind != "npc" or not ref.peep_id:
+        raise CommandError("That peep has nothing to say.")
+    context.dialogs.start(context.account, ref.peep_id)
+    behavior = await context.behaviors.dispatch(
+        BehaviorEvent(
+            type="quick_action",
+            actor=PeepRef(kind="user", peep_id=None, account_id=context.account.id),
+            target=ref,
+            room_id=room_id,
+            action="talk",
+            data={},
+        )
+    )
+    outcome = CommandOutcome(
+        message="Conversation started.",
+        payload={"dialog": context.dialogs.serialize(context.dialogs.view(context.account.id))},
+    )
+    _merge_behavior(outcome, behavior)
+    return outcome
+
+async def act_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    room_id = _require_room_id(context)
+    if len(command.args) < 2:
+        raise CommandError("Use '.act <action> <target>'.")
+    action = command.args[0].strip().lower()
+    if not action:
+        raise CommandError("Choose an action to perform.")
+    target = await _resolve_action_target(context, command.args[1])
+    behavior = await context.behaviors.dispatch(
+        BehaviorEvent(
+            type="quick_action",
+            actor=PeepRef(kind="user", peep_id=None, account_id=context.account.id),
+            target=target,
+            room_id=room_id,
+            action=action,
+            data={},
+        )
+    )
+    outcome = CommandOutcome()
+    _merge_behavior(outcome, behavior)
+    if not outcome.message:
+        outcome.message = f"You {action}."
+    return outcome
+
+
+async def dialog_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    if not command.args:
+        raise CommandError("Choose a dialog option.")
+    try:
+        index = int(command.args[0])
+    except ValueError as exc:
+        raise CommandError("Dialog choice must be an index.") from exc
+    result = await context.dialogs.choose(context.account, index)
+    outcome = CommandOutcome(message="Conversation updated.", payload={"dialog": result.dialog})
+    _merge_behavior(outcome, result.behavior_result)
+    return outcome
+
+
+async def dialog_end_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    del command
+    context.dialogs.end(context.account.id, "user")
+    return CommandOutcome(message="Conversation ended.", payload={"dialog": None})
 
 
 async def pickup_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
@@ -239,21 +354,6 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
         ],
         snapshot=snapshot,
     )
-
-
-async def favorite_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    if not command.args:
-        raise CommandError("Choose a core card to favorite.")
-    target = command.args[0]
-    if target.startswith("@"):
-        parsed = parse_target(target)
-        if parsed.kind != "card":
-            raise CommandError("Favorite expects a core card ID.")
-        target = parsed.value
-    if target not in CORE_CARD_IDS:
-        raise CommandError("Only core cards can be favorited in Milestone 1.")
-    payload = context.cards.toggle_favorite(context.account, target)
-    return CommandOutcome(message="Favorites updated.", payload=payload)
 
 
 async def settings_command(
@@ -330,25 +430,117 @@ async def cancel_command(context: CommandContext, command: ParsedCommand) -> Com
     )
 
 
+def _memory_text(command: ParsedCommand) -> str:
+    parts = command.raw_text.split(maxsplit=1)
+    return parts[1].strip() if len(parts) > 1 else ""
+
+
+def _memory_target(command: ParsedCommand) -> str:
+    if not command.args:
+        raise CommandError("Choose a memory with @memory:<id>.")
+    target = parse_target(command.args[0])
+    if target.kind != "memory":
+        raise CommandError("Memory targets must use @memory:<id>.")
+    return target.value
+
+
+async def tasks_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    del command
+    return CommandOutcome(
+        message="Task list loaded.",
+        payload={"tasks": context.tasks.view_payload(context.account.id)},
+    )
+
+
+async def task_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    if not command.args:
+        raise CommandError("Choose a task with '.task <task_id>'.")
+    token = command.args[0]
+    task_id = parse_target(token).value if token.startswith("@") else token
+    view = context.tasks.view(context.account.id, task_id)
+    if view is None:
+        raise CommandError("That task is not available.")
+    return CommandOutcome(
+        message=f"{view['title']} loaded.",
+        payload={"task": view, "tasks": context.tasks.view_payload(context.account.id)},
+    )
+
+
+async def memories_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    if command.args and len(command.args) != 2:
+        raise CommandError("Use '.memories' or '.memories <year> <month>'.")
+    if command.args:
+        try:
+            year = int(command.args[0])
+            month = int(command.args[1])
+        except ValueError as exc:
+            raise CommandError("Year and month must be integers.") from exc
+        if not 1 <= month <= 12:
+            raise CommandError("Month must be between 1 and 12.")
+    else:
+        year, month = context.memories.current_year_month()
+    journal = context.memories.journal_payload(context.account.id, year, month)
+    return CommandOutcome(message="Memories loaded.", payload={"journal": journal})
+
+
+async def memory_new_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    memory = context.memories.create_manual(context.account.id, _memory_text(command))
+    year, month = context.memories.local_month_of(memory.created_at) or context.memories.current_year_month()
+    return CommandOutcome(
+        message="Memory saved.",
+        payload={"journal": context.memories.journal_payload(context.account.id, year, month)},
+        private_events=[{"type": "toast", "tone": "success", "text": "Memory saved."}],
+    )
+
+
+async def memory_edit_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    memory_id = _memory_target(command)
+    cursor = command.raw_text.find(command.args[0])
+    text = command.raw_text[cursor + len(command.args[0]):].strip()
+    memory = context.memories.edit_manual(context.account.id, memory_id, text)
+    year, month = context.memories.local_month_of(memory.created_at) or context.memories.current_year_month()
+    return CommandOutcome(
+        message="Memory updated.",
+        payload={"journal": context.memories.journal_payload(context.account.id, year, month)},
+    )
+
+
+async def memory_delete_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    memory_id = _memory_target(command)
+    context.memories.delete_manual(context.account.id, memory_id)
+    year, month = context.memories.current_year_month()
+    return CommandOutcome(
+        message="Memory deleted.",
+        payload={"journal": context.memories.journal_payload(context.account.id, year, month)},
+        private_events=[{"type": "toast", "tone": "success", "text": "Memory deleted."}],
+    )
+
+
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
     from server.commands import gameplay
 
     registry = CommandRegistry()
+    registry.register("act", "Dispatch a quick action to a target peep or prop.", act_command)
     registry.register("buy_pack", "Buy and open a card pack.", gameplay.buy_pack_command)
     registry.register("cancel", "Close the active activity window.", cancel_command)
     registry.register("claim_bops", "Claim today's Daily Bops allowance.", gameplay.claim_bops_command)
+    registry.register("dialog", "Choose a declarative dialog option.", dialog_command)
+    registry.register("dialog_end", "End the current conversation.", dialog_end_command)
     registry.register("drop", "Drop a quantity from one of your inventory stacks.", drop_command)
     registry.register("emote", "Play an owned emote card.", gameplay.emote_command)
     registry.register("equip", "Equip an item or action stack.", gameplay.equip_command)
-    registry.register("favorite", "Toggle a favorite core card.", favorite_command)
     registry.register("friend", "Manage friends and friend requests.", gameplay.friend_command)
     registry.register("go", "Move through an exit in the current room.", go_command)
     registry.register("help", "Show the available commands.", help_command)
     registry.register("inspect", "Inspect a visible room entity.", inspect_command)
     registry.register("level_up", "Spend Kudos to reach the next level.", gameplay.level_up_command)
     registry.register("look", "Look at the room or a visible entity.", look_command)
+    registry.register("memory_delete", "Delete one of your manual memories.", memory_delete_command)
+    registry.register("memory_edit", "Edit one of your manual memories.", memory_edit_command)
+    registry.register("memory_new", "Save the chat bar text as a memory.", memory_new_command)
+    registry.register("memories", "List a month of journal memories.", memories_command)
     registry.register("merge", "Merge two stacks of the same card.", gameplay.merge_command)
     registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command)
     registry.register("pickup", "Pick up a room card stack quantity.", pickup_command)
@@ -365,6 +557,9 @@ def build_registry() -> CommandRegistry:
     registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command)
     registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command)
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command)
+    registry.register("talk", "Talk to a peep and open its dialog.", talk_command)
+    registry.register("task", "View one journal task.", task_command)
+    registry.register("tasks", "List journal tasks.", tasks_command)
     registry.register("unequip", "Unequip an item or action stack.", gameplay.unequip_command)
     registry.register("unskill", "Remove a skill from a slot.", gameplay.unskill_command)
     registry.register("use", "Use an equipped item or action card.", gameplay.use_command)

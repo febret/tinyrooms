@@ -1,10 +1,10 @@
 """Flavor-only hooks for Molly; the server owns activity and reward validation."""
 
+from __future__ import annotations
 
-def on_action(context, action, **kwargs):
-    """Handle petting as flavor only; defer play and dialog to the server."""
-    if action == "pet":
-        text = "Molly leans into your hand and purrs like a tiny motor."
-        context.emit("npc", text, peep="molly")
-        return text
-    return None
+
+def on_quick_action(context, event):
+    """React to petting with flavor; defer play and dialog to the server."""
+
+    if event.action == "pet":
+        context.feedback("Molly leans into your hand and purrs like a tiny motor.")

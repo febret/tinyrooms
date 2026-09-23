@@ -47,7 +47,7 @@ the [implementation brief](./prompt.md), not in this reusable gameplay design.
 - **NPC**: a peep not controlled by a user.
 - **Board**: the central 3D room scene, including its floor and props.
 - **Room View**: the overlay listing cards placed in the current room, opened
-  using the Room core card.
+  from the selected room's `Open Room View` quick action.
 - **Inventory**: all cards owned by a user, including equipped cards.
 - **Equipped cards**: owned item or action card stacks selected for active use in
   the Card View. Each stack uses one equipped-card slot, regardless of its size.
@@ -175,7 +175,7 @@ that view closed. Activity windows retain their own explicit Close control.
 
 
 ### Main Screen
-![Main View, Favorite Core Cards, and Equipped Cards](./images/main-view.png)
+![Main View, Core Cards, and Equipped Cards](./images/main-view.png)
 
 The Tinyrooms main screen has the following main components (labeled with red 
 boxes in the screenshot above):
@@ -214,23 +214,20 @@ The Card View is split into core cards and equipped cards.
 submenus like checking the inventory or opening the list of available emotes.
 They are non-collectible controls: they do not appear in card packs, cannot be
 dropped or traded, and use no equipment slots.
-Core card availability can depend on permissions and the room (e.g., Edit Room
-requires permission to edit that room). Room, Inventory, Emotes, Skills, and
-Journal are available from the start in the tutorial. The tutorial teaches these
-views gradually rather than locking them; Skills initially has no unlocked slots.
+Core card availability can depend on permissions and the room. Inventory,
+Emotes, and Journal are available from the start in the tutorial and are always
+displayed in a fixed order. Room View and Skills are opened from quick actions
+rather than core cards. The tutorial teaches these views gradually rather than
+locking them; Skills initially has no unlocked slots.
 
 **Equipped** item and action stacks are displayed beside the core cards. Their
 capacity, eligibility, and passive bonuses follow the [Equipment](#equipment)
 rules. Skills use a separate grid; owned emotes are available through Emotes View
 without equipping.
 
-By default, only the user's three **favorite** core cards are visible. Users can
-choose which of the available core cards are their favorites (using the `Favorite`
-quick action on a selected core card). New users start with Room, Emotes and
-Inventory as favorites.
-Clicking the `>` control expands the core card list (showing all available
-core cards) and stashes the equipped cards to the right.
-![Expanded Core Cards](./images/core-cards-expanded.jpg)
+The user's own peep offers `Open Self`, `Friends`, and `Skills` quick actions. A
+room the user owns offers an `Edit Room` quick action, which opens the
+room-editing view; a selected room offers `Open Room View`.
 
 
 #### The Look Bar
@@ -277,9 +274,9 @@ client settings.
 ### The Room View
 ![The Room View](./images/room-view.png)
 
-Selecting the Room core card opens the Room View, listing cards placed in the
-room. Peeps can add or remove cards through drop and pickup interactions,
-subject to the ownership, pinning, and skill-slot rules below.
+Selecting the room and choosing `Open Room View` opens the Room View, listing
+cards placed in the room. Peeps can add or remove cards through drop and pickup
+interactions, subject to the ownership, pinning, and skill-slot rules below.
 
 The room owner and other users authorized to edit the room can pin or unpin room
 card stacks. Pinning applies to the whole stack and prevents everyone, including
@@ -382,8 +379,9 @@ can look at and rotate the 3D model for a prop.
 ### Skills View
 ![Skills](./images/skills.png)
 
-Selecting the Skills core card opens the Skills View. The Skills View allows 
-the user to place special skill cards into a skill grid.
+Selecting the user's own peep and choosing the `Skills` quick action opens the
+Skills View. The Skills View allows the user to place special skill cards into a
+skill grid.
 
 Selecting a slot lets the user choose a skill card from Inventory. Slot
 availability, rank eligibility, bonuses, and removal follow the [Skills](#skills)

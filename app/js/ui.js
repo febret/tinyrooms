@@ -2,9 +2,10 @@ import { createApiClient } from "./api.js";
 import { createActivityManager } from "./activities.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
-import { createCardsView, describeSelection, selectionActions } from "./cards.js";
+import { createCardsView, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import {
   COMMANDS,
+  buildEmoteCommand,
   buildFriendCommand,
   buildMergeCommand,
   buildQuantityCommand,
@@ -140,23 +141,26 @@ async function openCommands() {
 }
 
 function renderLook(state) {
-  const description = describeSelection(state);
-  const preview = state.selection.kind === "peep" && description.imageUrl
+  const dialog = state.room?.dialog;
+  const selectedPeep = dialog ? state.room?.npcs?.find(peep => peep.id === dialog.peepId) : null;
+  const description = dialog
+    ? { tag: "Conversation", title: dialog.peepLabel || selectedPeep?.label || "Conversation", description: dialog.text, imageUrl: selectedPeep?.stickerUrl || "" }
+    : describeSelection(state);
+  const peepPreview = (state.selection.kind === "peep" || dialog) && description.imageUrl
     ? `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">` : "";
+  const selectedProp = state.selection.kind === "prop"
+    ? state.room?.props.find(prop => prop.id === state.selection.id)
+    : null;
+  const propPreview = selectedProp?.modelUrl
+    ? `<canvas class="look-preview look-preview-3d" data-prop-model="${escapeHtml(selectedProp.modelUrl)}" data-prop-scale="${escapeHtml(selectedProp.scale)}" aria-hidden="true"></canvas>`
+    : "";
   const look = $("#look-bar");
-  if (updateMarkup(look, `${preview}<div class="look-copy">
+  if (updateMarkup(look, `${peepPreview}${propPreview}<div class="look-copy">
     <strong class="look-name" title="${escapeHtml(description.title)}">${escapeHtml(description.title)}</strong>
     <button type="button" class="look-description" data-focus-key="description" title="${escapeHtml(description.description)}" aria-label="Read full description">${escapeHtml(description.description)}</button>
     </div>`)) {
     look.querySelector("button").onclick = () => dialogs.description(description.title, description.description);
   }
-  const selectedProp = state.selection.kind === "prop"
-    ? state.room?.props.find(prop => prop.id === state.selection.id)
-    : null;
-  const previewMarkup = selectedProp?.modelUrl
-    ? `<canvas class="look-preview-3d" data-prop-model="${escapeHtml(selectedProp.modelUrl)}" data-prop-scale="${escapeHtml(selectedProp.scale)}" aria-label="${escapeHtml(selectedProp.label)} model preview"></canvas>`
-    : "";
-  updateMarkup($("#look-preview-layer"), previewMarkup);
 }
 
 async function handleAction(action) {
@@ -179,7 +183,11 @@ async function handleAction(action) {
       stackId: action.stackId,
     });
     playTone("flip");
-  } else if (["close-view", "close-details", "toggle-core"].includes(action.type)) {
+    if (view === "journal") {
+      await refreshTasks();
+      if (store.getState().ui.journalTab === "Memories") await refreshJournalMonth();
+    }
+  } else if (["close-view", "close-details"].includes(action.type)) {
     store.dispatch({ type: action.type });
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
@@ -190,10 +198,31 @@ async function handleAction(action) {
     store.dispatch({ type: "cancel-targeting" });
   } else if (action.type === "emote-category") {
     store.dispatch({ type: "emote-category", category: action.category });
+  } else if (action.type === "play-emote") {
+    store.dispatch({ type: "close-view" });
+    try { await sendCommand(buildEmoteCommand(action.stackId)); } catch (error) { showError(error); }
   } else if (action.type === "journal-tab") {
-    store.dispatch({ type: "journal-tab", tab: action.tab });
+    store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
+    await refreshTasks();
+    if (action.tab === "Memories") await refreshJournalMonth();
   } else if (action.type === "journal-month") {
     store.dispatch({ type: "journal-month", delta: action.delta });
+    await refreshJournalMonth();
+  } else if (action.type === "journal-task-memories") {
+    store.dispatch({ type: "journal-tab", tab: "Memories", tag: action.taskId });
+    await refreshJournalMonth();
+  } else if (action.type === "new-memory") {
+    const text = chatInput.value.trim();
+    if (!text) {
+      toast("Type a memory in the chat bar first.", "info");
+      return;
+    }
+    try {
+      await sendCommand(`.memory_new ${text}`);
+      if (chatInput.value.trim() === text) chatInput.value = "";
+    } catch (error) { showError(error); }
+  } else if (action.type === "memory-action") {
+    await handleMemoryAction(action);
   } else if (action.type === "claim-bops") {
     try { await sendCommand(".claim_bops"); } catch (error) { showError(error); }
   } else if (action.type === "level-up") {
@@ -224,6 +253,40 @@ async function handleAction(action) {
       ? buildSplitCommand(action.stackId, quantity)
       : buildQuantityCommand(action.intent, action.stackId, quantity);
     try { await sendCommand(command); } catch (error) { showError(error); }
+  }
+}
+
+async function refreshTasks() {
+  try {
+    await sendCommand(".tasks");
+  } catch (error) { showError(error); }
+}
+
+async function refreshJournalMonth() {
+  const offset = Number(store.getState().ui.journalMonthOffset || 0);
+  const now = new Date();
+  const monthDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  try {
+    await sendCommand(`.memories ${monthDate.getFullYear()} ${monthDate.getMonth() + 1}`);
+  } catch (error) { showError(error); }
+}
+
+async function handleMemoryAction(action) {
+  const state = store.getState();
+  const memory = (state.user?.journal?.memories || []).find(entry => entry.memoryId === action.memoryId);
+  if (!memory) return;
+  if (action.action === "delete") {
+    const accepted = await dialogs.confirm("Delete this memory?", "This removes only your own manual memory.", "Delete");
+    if (!accepted) return;
+    try { await sendCommand(`.memory_delete @memory:${memory.memoryId}`); } catch (error) { showError(error); }
+    return;
+  }
+  if (action.action === "edit") {
+    const text = await dialogs.prompt("Edit memory", memory.text);
+    if (text === null) return;
+    const cleaned = String(text).trim();
+    if (!cleaned || cleaned === memory.text) return;
+    try { await sendCommand(`.memory_edit @memory:${memory.memoryId} ${cleaned}`); } catch (error) { showError(error); }
   }
 }
 
@@ -290,14 +353,22 @@ function renderActions(state) {
     bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } });
     return;
   }
-  const actions = selectionActions(state);
+  const actions = state.room?.dialog ? dialogActions(state) : selectionActions(state);
   const markup = actions.length ? actions.map((action, index) => {
     const tone = action.label === "Inspect" || action.label.startsWith("Open") ? "neutral" : action.label === "Close" ? "cancel" : action.tone || "neutral";
-    return `<button type="button" class="${tone}" data-action-index="${index}" data-focus-key="${escapeHtml(action.command || action.label)}" ${action.disabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>`;
+    const label = escapeHtml(action.label);
+    const className = action.icon ? `${tone} icon-action` : tone;
+    const accessible = action.icon ? ` aria-label="${label}" title="${label}"` : "";
+    const content = action.icon ? `<img src="${escapeHtml(action.icon)}" alt="">` : label;
+    return `<button type="button" class="${className}" data-action-index="${index}" data-focus-key="${escapeHtml(action.command || action.label)}"${accessible} ${action.disabled ? "disabled" : ""}>${content}</button>`;
   }).join("") : `<span class="actions-empty">${state.room ? "Select a card or peep to see its actions." : "Welcome to Tinyrooms."}</span>`;
   if (!updateMarkup(bar, markup)) return;
   bar.querySelectorAll("button").forEach(button => {
-    button.onclick = () => { void handleAction(selectionActions(store.getState())[Number(button.dataset.actionIndex)]); };
+    button.onclick = () => {
+      const current = store.getState();
+      const currentActions = current.room?.dialog ? dialogActions(current) : selectionActions(current);
+      void handleAction(currentActions[Number(button.dataset.actionIndex)]);
+    };
   });
 }
 
@@ -554,7 +625,7 @@ async function render(state) {
   renderToasts(state);
   renderFeedback(state);
   cards.render(state);
-  propViewers.sync($("#look-preview-layer"), state.ui.reducedMotion);
+  propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
   propViewers.sync(detailLayer, state.ui.reducedMotion);
   if (!dialogs.active) {

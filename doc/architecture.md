@@ -74,7 +74,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Commands | `server/commands/` | `.`-command/chat/`\admin` parser, name→handler registry, 11 core handlers + dispatcher. |
 | Content loaders | `server/content/` | Strict YAML loading for cards/packs and world/rooms/props/peeps. |
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
-| Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop, core favorites. |
+| Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
 | Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
 | Browser UI | `app/` | Shell (`index.html`), styles, 14 JS modules, vendored Three.js. |
@@ -109,13 +109,11 @@ this checkout.
 | `GET` | `/assets/stickers/{file}`, `/assets/base/{file}`, `/assets/world/{world}/{cards\|rooms\|props\|peeps}/{file}` | Art serving; traversal → 404. |
 
 Serialized `user`: `{id, username, sticker, initial_sticker_complete,
-favorites[], level, kudos, bops, shared_energy, show_activity_log, world_id,
-remembered_room, inventory[], core_cards[], activity}` (favorites/
-show_activity_log sourced from `user_profiles.profile_json`; `core_cards` are
-the core card definitions (hand cards first in their cards.yaml `order`,
-followed by unordered core UI chrome such as the expand/collapse arrows).
-New users: level 0 “Guest”, 10 Bops, Smile/Sigh/Growl/Goof, favorites `[Room,
-Emotes, Inventory]`.
+owned_rooms[], level, kudos, bops, shared_energy, show_activity_log, world_id,
+remembered_room, inventory[], core_cards[], activity}` (`owned_rooms`/
+`show_activity_log` sourced from `user_profiles`; `core_cards` are the
+Room/Emotes/Inventory/Skills/Journal definitions in their cards.yaml `order`).
+New users: level 0 “Guest”, 10 Bops, Smile/Sigh/Growl/Goof, no owned rooms.
 Authenticated POSTs require `Origin` + `X-CSRF-Token == tr_csrf ==
 session.csrf_token`.
 
@@ -183,14 +181,14 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; appends to in-memory bounded history (lost on restart); broadcasts `chat.message`. Empty / >280 chars rejected. |
 | `.pickup` | `.pickup @card:<stack> 2` | Atomic room→inventory txn; private `payload.inventory`; broadcasts `room.card.updated/removed`. Pinned rejected; concurrent same-stack is single-winner. |
 | `.drop` | `.drop @card:<stack> 1 62 71 0` | Atomic inventory→room txn; optional trailing `x y z` floor coordinates (percent x/y, elevation z; clamped, defaults `50 50 0`); broadcasts `room.card.added`. |
-| `.favorite` | `.favorite @card:journal` | Core-card-only toggle; `payload.favorites`. |
 | `.play` | `.play sample`, `.play molly replace` | Starts activity (`molly`→`lazor-rush` playroom-only; `sample`→`dev-sample` flag-gated; also `shop`/`crafting`); occupied without `replace` → reject; private `activity.started` (+`closed reason:replaced`). |
 | `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
 | `.settings` | `.settings action-log off` | Persists `show_activity_log`; `payload.{show_activity_log}`. |
 | `.reset_room` | `.reset_room` | Deletes all live cards in the current room and re-inserts the YAML seeds in one txn; private fresh snapshot + `room.cards.reset` broadcast. Open to anyone for now (TODO: admin-only once Milestone 2 roles exist). |
 
 Quick actions are server-provided (`Look`, `Pick up 1`, `Drop 1`, exit
-labels, `Look around`); the client never invents them.
+labels); the client only adds local view shortcuts such as
+`Open Self`, `Friends`, `Skills`, and the ownership-gated `Edit Room`.
 
 ## 6. Main game flows
 
@@ -249,7 +247,7 @@ beside peeps (styles normal/thinking/spiky; click dismisses; capped list);
 inserts verbs verbatim (not wrapped in `.say`); rejections surface as an
 error toast.
 
-### 6.5 Card inspect / pickup / drop / favorites
+### 6.5 Card inspect / pickup / drop
 
 - Snapshot `room_cards[]` (`{stack_id, quantity, pinned, definition,
   quick_actions:[Pick up 1], position}`) and `inventory[]`
@@ -266,9 +264,11 @@ error toast.
   trailing `x y z`, and plays a DOM card-flight animation; pick-up from the
   board/Room view plays the reverse flight. Starter Smile/Sigh/Growl/Goof +
   10 Bops only; core cards are non-transferable.
-- Favorites (expand core `>` → select → `Favorite` /
-  `.favorite @card:journal`) → `payload.favorites`, visible via
-  `/api/bootstrap`. Escape priority: targeting → popup → main view.
+- Core cards are always visible in a fixed authored order (Room, Emotes,
+  Inventory, Skills, Journal); there is no expander or favorites strip. Each
+  room snapshot carries `editable` derived from the account's owned rooms; the
+  Room selection offers `Edit Room` only when it is true. Escape priority:
+  targeting → popup → main view.
 
 ### 6.6 Activity window lifecycle
 

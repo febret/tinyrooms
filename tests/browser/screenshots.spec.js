@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { command, confirmSticker, createAccount, createReadyAccount, openCore, selectFirstProp, settleArtwork, travel } from "./helpers.js";
+import { command, confirmSticker, createAccount, createReadyAccount, openCore, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, settleArtwork, travel } from "./helpers.js";
 
 // Run explicitly with npm run test:visual. Missing baselines fail, never auto-pass.
 function requestedFor() {
@@ -68,12 +68,9 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   await confirmSticker(page);
   await expect(page.getByRole("button", { name: "Select sunbeam", exact: true })).toBeVisible();
   await capture(page, testInfo, requested, remaining, "main");
-  await page.locator("#card-hand [data-core-expand]").click();
-  await capture(page, testInfo, requested, remaining, "expanded-core");
-  await page.locator("#card-hand [data-core-expand]").click();
   await travel(page);
   await capture(page, testInfo, requested, remaining, "playroom-main");
-  await openCore(page, "room");
+  await openRoomView(page);
   await capture(page, testInfo, requested, remaining, "room");
   await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
   await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).click();
@@ -94,13 +91,18 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   }
   await page.locator("#bubble-layer .bubble").click();
   await expect(page.locator("#bubble-layer .bubble")).toHaveCount(0);
-  for (const id of ["emotes", "skills", "journal", "self", "friends"]) {
+  for (const id of ["emotes", "journal"]) {
     await openCore(page, id);
     await capture(page, testInfo, requested, remaining, id);
     await page.keyboard.press("Escape");
   }
-  if (await page.locator("#card-hand [data-core-expand]").getAttribute("aria-expanded") === "true") {
-    await page.locator("#card-hand [data-core-expand]").click();
+  await openSkills(page);
+  await capture(page, testInfo, requested, remaining, "skills");
+  await page.keyboard.press("Escape");
+  for (const [id, open] of [["self", openSelf], ["friends", openFriends]]) {
+    await open(page);
+    await capture(page, testInfo, requested, remaining, id);
+    await page.keyboard.press("Escape");
   }
   await command(page, ".play sample");
   await expect(page.frameLocator('iframe[src*="dev-sample"]').locator("#state")).toContainText("sunbeam");
@@ -114,15 +116,11 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });
 
-test("milestone 2 additions: edit room, prop details, swap sticker, targeting, shop", async ({ page, runtime }, testInfo) => {
+test("milestone 2 additions: prop details, swap sticker, targeting, shop", async ({ page, runtime }, testInfo) => {
   test.setTimeout(240_000);
   const { requested, remaining } = requestedFor();
   await freezeClock(page);
   await createReadyAccount(page, runtime);
-
-  await openCore(page, "edit-room");
-  await capture(page, testInfo, requested, remaining, "edit-room");
-  await page.keyboard.press("Escape");
 
   expect(await selectFirstProp(page), "At least one interactive prop must be selectable on the Hub board").toBe(true);
   await capture(page, testInfo, requested, remaining, "selected-prop");
@@ -131,7 +129,7 @@ test("milestone 2 additions: edit room, prop details, swap sticker, targeting, s
   await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
 
-  await openCore(page, "self");
+  await openSelf(page);
   await page.locator("#panel-layer").getByRole("button", { name: "Swap Sticker…", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Swap Sticker" })).toBeVisible();
   await capture(page, testInfo, requested, remaining, "swap-sticker");
@@ -140,7 +138,7 @@ test("milestone 2 additions: edit room, prop details, swap sticker, targeting, s
   await gotoRoom(page, "exit0", "The Playroom");
   await gotoRoom(page, "exit0", "Sunflower Foyer");
   await gotoRoom(page, "kitchen", "The Buttercup Kitchen");
-  await openCore(page, "room");
+  await openRoomView(page);
   await page.locator("#panel-layer").getByRole("button", { name: /Tomato Sauce/ }).click();
   await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
   await openCore(page, "inventory");

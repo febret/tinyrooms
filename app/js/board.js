@@ -1,11 +1,34 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { boardImageRepeat, boardPosition, boardSignature, disposeBoardTree, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
+import { boardImageRepeat, boardPosition, disposeBoardTree, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
 const RANDOM_ANIMATION_PAUSE_MS = 1000;
+const PROP_MOVE_SMOOTHING = 9;
+
+/** Key that captures everything about a prop that requires re-creating its model. */
+function propModelKey(prop) {
+  return JSON.stringify([prop.propId, prop.modelUrl, prop.label]);
+}
+
+/** Identity of a room card's rendered artwork; position and quantity are handled separately. */
+function cardModelKey(card) {
+  return String(card.definition?.imageUrl || "");
+}
+
+/** Stable key for an authoritative position triple so unchanged snapshots never restart a tween. */
+function positionKey(position) {
+  return `${position?.[0] ?? 50},${position?.[1] ?? 50},${position?.[2] ?? 0}`;
+}
+
+/** Convert an authoritative position into its board-space target, resting on the floor. */
+function targetPosition(position) {
+  const target = new THREE.Vector3(...boardPosition(position));
+  target.y += TOP;
+  return target;
+}
 const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP);
 
 /** Convert a world-space point on the floor back into an authoritative [x%, y%, z] position. */
@@ -29,10 +52,11 @@ function box(parent, dimensions, position, materials) {
   return mesh;
 }
 
-function makeFloor(root, board) {
-  box(root, [12.45, 0.35, 10.45], [0, -0.24, 0], material("#62422d"));
-  box(root, [12.5, 0.12, 10.5], [0, -0.08, 0], material("#a76e38"));
-  box(root, [12.12, 0.07, 10.12], [0, -0.005, 0], material("#bca076"));
+function makeFloor(board) {
+  const group = new THREE.Group();
+  box(group, [12.45, 0.35, 10.45], [0, -0.24, 0], material("#62422d"));
+  box(group, [12.5, 0.12, 10.5], [0, -0.08, 0], material("#a76e38"));
+  box(group, [12.12, 0.07, 10.12], [0, -0.005, 0], material("#bca076"));
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_HEIGHT),
     material(board.palette?.[0] || "#d4be94"),
@@ -40,8 +64,12 @@ function makeFloor(root, board) {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = TOP;
   floor.receiveShadow = true;
-  root.add(floor);
-  return floor;
+  group.add(floor);
+  return { group, floor };
+}
+
+function floorKey(board) {
+  return JSON.stringify([board.type, board.imageUrl, board.imageStyle, board.palette, board.dark]);
 }
 
 /** Apply the room's board image style by wrapping and repeating the floor texture. */
@@ -135,9 +163,10 @@ export function createBoard({ canvas, overlay, onSelect }) {
   let renderFailed = false;
   let revision = 0;
   let current = null;
-  let signature = "";
   let roomId = "";
   let selection = null;
+  let selectionObject = null;
+  let reducedMotion = false;
   let userAdjusted = false;
   let width = 0;
   let height = 0;
@@ -163,8 +192,10 @@ export function createBoard({ canvas, overlay, onSelect }) {
 
   function updateSelection() {
     selectionRing.visible = false;
+    selectionObject = null;
     for (const object of current?.pickables || []) {
       if (object.userData.kind !== selection?.kind || object.userData.id !== selection?.id) continue;
+      selectionObject = object;
       selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
       selectionRing.visible = true;
       break;
@@ -262,25 +293,25 @@ export function createBoard({ canvas, overlay, onSelect }) {
     entry.pickables.push(object);
   }
 
-  function stopPropAnimations(entry) {
-    for (const timer of entry.animTimers || []) clearTimeout(timer);
-    if (entry.animTimers) entry.animTimers.length = 0;
-    for (const mixer of entry.mixers || []) mixer.stopAllAction();
-    if (entry.mixers) entry.mixers.length = 0;
+  function stopRecordAnimations(record) {
+    for (const timer of record.animTimers) clearTimeout(timer);
+    record.animTimers.length = 0;
+    for (const mixer of record.mixers) mixer.stopAllAction();
+    record.mixers.length = 0;
   }
 
-  function startLoopedClip(entry, model, clip) {
+  function startLoopedClip(record, model, clip) {
     const mixer = new THREE.AnimationMixer(model);
     mixer.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
-    entry.mixers.push(mixer);
+    record.mixers.push(mixer);
   }
 
-  function startRandomClips(entry, model, clips) {
+  function startRandomClips(entry, record, model, clips) {
     const mixer = new THREE.AnimationMixer(model);
-    entry.mixers.push(mixer);
+    record.mixers.push(mixer);
     let lastIndex = -1;
     function pick() {
-      if (!isCurrent(entry)) return;
+      if (!isCurrent(entry) || entry.props.get(record.id) !== record) return;
       let index = Math.floor(Math.random() * clips.length);
       if (clips.length > 1) {
         while (index === lastIndex) index = Math.floor(Math.random() * clips.length);
@@ -293,8 +324,8 @@ export function createBoard({ canvas, overlay, onSelect }) {
       const onFinished = event => {
         if (event.action !== action) return;
         mixer.removeEventListener("finished", onFinished);
-        if (!isCurrent(entry)) return;
-        entry.animTimers.push(setTimeout(pick, RANDOM_ANIMATION_PAUSE_MS));
+        if (!isCurrent(entry) || entry.props.get(record.id) !== record) return;
+        record.animTimers.push(setTimeout(pick, RANDOM_ANIMATION_PAUSE_MS));
       };
       mixer.addEventListener("finished", onFinished);
       action.play();
@@ -302,7 +333,7 @@ export function createBoard({ canvas, overlay, onSelect }) {
     pick();
   }
 
-  function playPropAnimation(entry, prop, model, clips) {
+  function playPropAnimation(entry, record, prop, model, clips) {
     // Respect reduced-motion preferences; also keeps rendered frames deterministic.
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const mode = typeof prop.animation === "string" ? prop.animation.trim() : "";
@@ -312,11 +343,11 @@ export function createBoard({ canvas, overlay, onSelect }) {
       return;
     }
     if (mode === "auto") {
-      startLoopedClip(entry, model, clips[0]);
+      startLoopedClip(record, model, clips[0]);
       return;
     }
     if (mode === "random") {
-      startRandomClips(entry, model, clips);
+      startRandomClips(entry, record, model, clips);
       return;
     }
     const clip = clips.find(candidate => candidate.name === mode);
@@ -324,7 +355,16 @@ export function createBoard({ canvas, overlay, onSelect }) {
       console.warn(`Prop ${prop.id} requests unknown animation "${mode}".`);
       return;
     }
-    startLoopedClip(entry, model, clip);
+    startLoopedClip(record, model, clip);
+  }
+
+  /** Point a record at its authoritative position, tweening there unless motion is reduced. */
+  function setRecordTarget(record, position) {
+    const key = positionKey(position);
+    if (record.positionKey === key) return;
+    record.positionKey = key;
+    record.target = targetPosition(position);
+    if (reducedMotion) record.group.position.copy(record.target);
   }
 
   function addProp(entry, prop) {
@@ -332,6 +372,12 @@ export function createBoard({ canvas, overlay, onSelect }) {
     register(entry, group, "prop", prop.id, prop.position);
     group.rotation.set(...(prop.rotation || [0, 0, 0]));
     group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
+    const record = {
+      id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
+      model: null, clips: [], animation: prop.animation || "", mixers: [], animTimers: [], scenes: [],
+      target: group.position.clone(),
+    };
+    entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
     if (!prop.modelUrl) {
       fail(entry, `${prop.label} model is missing`);
@@ -339,7 +385,8 @@ export function createBoard({ canvas, overlay, onSelect }) {
     }
     entry.pending += 1;
     loader.load(prop.modelUrl, gltf => {
-      if (!isCurrent(entry)) {
+      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) {
+        entry.pending -= 1;
         disposeBoardTree(gltf.scenes || [gltf.scene]);
         return;
       }
@@ -362,22 +409,76 @@ export function createBoard({ canvas, overlay, onSelect }) {
       group.remove(placeholder);
       disposeBoardTree(placeholder);
       group.add(visual);
-      playPropAnimation(entry, prop, model, gltf.animations || []);
-      entry.modelScenes.push(...(gltf.scenes || [model]));
+      record.model = model;
+      record.clips = gltf.animations || [];
+      record.scenes = gltf.scenes || [model];
+      playPropAnimation(entry, record, record.prop, model, record.clips);
+      entry.modelScenes.push(...record.scenes);
       entry.pending -= 1;
       if (!userAdjusted) fit(true);
       updateSelection();
       status(entry);
     }, undefined, () => {
-      if (!isCurrent(entry)) return;
       entry.pending -= 1;
+      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) return;
       fail(entry, `Could not load ${prop.label} model`);
     });
+  }
+
+  function updateProp(entry, record, prop) {
+    record.prop = prop;
+    record.group.rotation.set(...(prop.rotation || [0, 0, 0]));
+    record.group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
+    setRecordTarget(record, prop.position);
+    if ((prop.animation || "") !== record.animation) {
+      record.animation = prop.animation || "";
+      stopRecordAnimations(record);
+      if (record.model) playPropAnimation(entry, record, prop, record.model, record.clips);
+    }
+  }
+
+  function removeProp(entry, id) {
+    const record = entry.props.get(id);
+    if (!record) return;
+    stopRecordAnimations(record);
+    entry.root.remove(record.group);
+    for (const scene of record.scenes) {
+      const index = entry.modelScenes.indexOf(scene);
+      if (index >= 0) entry.modelScenes.splice(index, 1);
+    }
+    disposeBoardTree([record.group, ...record.scenes]);
+    const index = entry.pickables.indexOf(record.group);
+    if (index >= 0) entry.pickables.splice(index, 1);
+    entry.props.delete(id);
+    if (selectionObject === record.group) selectionObject = null;
+  }
+
+  function syncProps(entry, room) {
+    const seen = new Set();
+    for (const prop of room.props || []) {
+      seen.add(prop.id);
+      const record = entry.props.get(prop.id);
+      if (!record) {
+        addProp(entry, prop);
+      } else if (record.modelKey !== propModelKey(prop)) {
+        removeProp(entry, prop.id);
+        addProp(entry, prop);
+      } else {
+        updateProp(entry, record, prop);
+      }
+    }
+    for (const id of [...entry.props.keys()]) {
+      if (!seen.has(id)) removeProp(entry, id);
+    }
   }
 
   function addCard(entry, card) {
     const group = new THREE.Group();
     register(entry, group, "room-card", card.stackId, card.position);
+    entry.cards.set(card.stackId, {
+      id: card.stackId, group, card, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
+      target: group.position.clone(),
+    });
     const edge = material("#d5b887");
     const front = material("#fff7e3");
     const back = material("#193e55");
@@ -396,13 +497,69 @@ export function createBoard({ canvas, overlay, onSelect }) {
     });
   }
 
+  function updateCard(record, card) {
+    record.card = card;
+    setRecordTarget(record, card.position);
+  }
+
+  function removeCard(entry, id) {
+    const record = entry.cards.get(id);
+    if (!record) return;
+    entry.root.remove(record.group);
+    disposeBoardTree(record.group);
+    const index = entry.pickables.indexOf(record.group);
+    if (index >= 0) entry.pickables.splice(index, 1);
+    entry.cards.delete(id);
+    if (selectionObject === record.group) selectionObject = null;
+  }
+
+  function syncCards(entry, room) {
+    const seen = new Set();
+    for (const card of room.roomCards || []) {
+      seen.add(card.stackId);
+      const record = entry.cards.get(card.stackId);
+      if (!record) {
+        addCard(entry, card);
+      } else if (record.modelKey !== cardModelKey(card)) {
+        removeCard(entry, card.stackId);
+        addCard(entry, card);
+      } else {
+        updateCard(record, card);
+      }
+    }
+    for (const id of [...entry.cards.keys()]) {
+      if (!seen.has(id)) removeCard(entry, id);
+    }
+  }
+
+  /** Replace the floor only when the board artwork or palette actually changes. */
+  function applyFloor(entry, room) {
+    const board = room.board || {};
+    const key = floorKey(board);
+    if (entry.floor && entry.floor.key === key) return;
+    if (entry.floor) {
+      entry.root.remove(entry.floor.group);
+      disposeBoardTree(entry.floor.group);
+    }
+    const { group, floor } = makeFloor(board);
+    entry.root.add(group);
+    entry.floor = { group, floor, key };
+    texture(entry, board.imageUrl, "floor artwork", map => {
+      applyFloorImageStyle(map, board.imageStyle);
+      floor.material.map = map;
+      floor.material.color.set("#ffffff");
+      floor.material.needsUpdate = true;
+    });
+  }
+
   function clear() {
     if (!current) return;
-    stopPropAnimations(current);
+    for (const record of current.props.values()) stopRecordAnimations(record);
     scene.remove(current.root);
     // Include non-default GLTF scenes; they can share materials with the active scene.
     disposeBoardTree([current.root, ...current.modelScenes]);
     current = null;
+    selectionObject = null;
     selectionRing.visible = false;
     dropHint.visible = false;
   }
@@ -410,27 +567,28 @@ export function createBoard({ canvas, overlay, onSelect }) {
   function rebuild(room) {
     revision += 1;
     clear();
-    const changedRoom = roomId !== room.id;
     roomId = room.id;
-    if (changedRoom) userAdjusted = false;
+    userAdjusted = false;
     const entry = {
       root: new THREE.Group(), revision, pickables: [], modelScenes: [],
-      mixers: [], animTimers: [],
+      props: new Map(), cards: new Map(), floor: null,
       pending: 0, errors: new Set(), label: room.label,
     };
     current = entry;
     scene.add(entry.root);
-    const board = room.board || {};
-    const floor = makeFloor(entry.root, board);
-    texture(entry, board.imageUrl, "floor artwork", map => {
-      applyFloorImageStyle(map, board.imageStyle);
-      floor.material.map = map;
-      floor.material.color.set("#ffffff");
-      floor.material.needsUpdate = true;
-    });
-    for (const prop of room.props || []) addProp(entry, prop);
-    for (const card of room.roomCards || []) addCard(entry, card);
+    applyFloor(entry, room);
+    syncProps(entry, room);
+    syncCards(entry, room);
     if (!userAdjusted) fit(true);
+    status(entry);
+  }
+
+  function syncRoom(room) {
+    const entry = current;
+    entry.label = room.label;
+    applyFloor(entry, room);
+    syncProps(entry, room);
+    syncCards(entry, room);
     status(entry);
   }
 
@@ -505,11 +663,39 @@ export function createBoard({ canvas, overlay, onSelect }) {
   const observer = new ResizeObserver(resize);
   observer.observe(canvas.parentElement);
   resize();
+  /** Ease each record toward its authoritative position; snaps instantly when motion is reduced. */
+  function advanceRecords(records, delta) {
+    const alpha = 1 - Math.exp(-delta * PROP_MOVE_SMOOTHING);
+    for (const record of records) {
+      const target = record.target;
+      if (!target || record.group.position.equals(target)) continue;
+      if (reducedMotion) {
+        record.group.position.copy(target);
+      } else {
+        record.group.position.lerp(target, alpha);
+        if (record.group.position.distanceToSquared(target) < 1e-6) record.group.position.copy(target);
+      }
+    }
+  }
+
   function animate() {
     if (disposed || renderFailed) return;
     try {
       const delta = Math.min(clock.getDelta(), 0.1);
-      for (const mixer of current?.mixers || []) mixer.update(delta);
+      if (current) {
+        for (const record of current.props.values()) {
+          for (const mixer of record.mixers) mixer.update(delta);
+        }
+        advanceRecords(current.props.values(), delta);
+        advanceRecords(current.cards.values(), delta);
+      }
+      if (selectionRing.visible && selectionObject) {
+        selectionRing.position.set(
+          selectionObject.position.x,
+          selectionObject.position.y + 0.06,
+          selectionObject.position.z,
+        );
+      }
       if (!blocked) controls.update();
       renderer.render(scene, camera);
       frame = requestAnimationFrame(animate);
@@ -520,10 +706,11 @@ export function createBoard({ canvas, overlay, onSelect }) {
   animate();
 
   return {
-    /** Apply normalized server state without rebuilding for chat, peeps, or selection changes. */
+    /** Diff normalized server state into the scene: only changed floor/props/cards are touched. */
     async render(state) {
       if (disposed) return;
       selection = state.selection;
+      reducedMotion = Boolean(state.ui?.reducedMotion);
       controls.enableDamping = !state.ui?.reducedMotion;
       blocked = Boolean(state.views?.main || state.views?.details || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
@@ -535,7 +722,6 @@ export function createBoard({ canvas, overlay, onSelect }) {
       if (!state.room) {
         revision += 1;
         clear();
-        signature = "";
         roomId = "";
         canvas.dataset.boardReady = "false";
         if (!renderFailed) {
@@ -544,10 +730,10 @@ export function createBoard({ canvas, overlay, onSelect }) {
         }
         return;
       }
-      const nextSignature = boardSignature(state.room);
-      if (nextSignature !== signature) {
-        signature = nextSignature;
+      if (!current || roomId !== state.room.id) {
         rebuild(state.room);
+      } else {
+        syncRoom(state.room);
       }
       updateSelection();
     },

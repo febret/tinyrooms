@@ -14,16 +14,6 @@ journal:
   description: Opens the Journal
   image: journal-icon.png
   order: 5
-skills:
-  label: Skills
-  description: Opens the Skills menu
-  image: skills-icon.png
-  order: 4
-room:
-  label: Room
-  description: Looks at the Room
-  image: room-icon.png
-  order: 1
 
 # Base emote cards
 smile:
@@ -118,31 +108,3 @@ starlight:
   category: Effects
   effect: starlight
   rarity: Uncommon
-self:
-  label: Self
-  description: Check your counters, claim daily Bops, and level up.
-  image: self-icon.png
-  type: core
-  order: 6
-friends:
-  label: Friends
-  description: Keep in touch with peeps you meet.
-  image: friends-icon.png
-  type: core
-  order: 7
-edit-room:
-  label: Edit Room
-  description: Arrange a room you own. Changes are shared.
-  image: edit-room-icon.png
-  type: core
-  order: 8
-arrow-left:
-  label: Collapse
-  description: Collapse the core card strip.
-  image: arrow-left-icon.png
-  type: core
-arrow-right:
-  label: Expand
-  description: Expand the core card strip.
-  image: arrow-right-icon.png
-  type: core

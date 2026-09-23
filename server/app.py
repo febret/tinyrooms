@@ -18,6 +18,10 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from server.accounts import AccountConflictError, AccountService, AuthenticationError, LoginResult
+from server.behaviors.dispatcher import BehaviorDispatcher
+from server.behaviors.events import BehaviorEvent, PeepRef
+from server.behaviors.loader import BehaviorLoader
+from server.behaviors.ticker import RoomTicker
 from server.commands.core import build_registry, dispatch_command
 from server.commands.outcomes import CommandContext, CommandError
 from server.commands.parser import CommandParseError, parse_command
@@ -50,12 +54,15 @@ from server.security import (
 from server.services.activities import ActivityService
 from server.services.actions import ActionsService
 from server.services.cards import CardService
+from server.services.dialogs import DialogService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
+from server.services.memories import MemoryService
 from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
+from server.services.tasks import TaskService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from server.state.world_state import WorldStateRepository
 
@@ -113,6 +120,11 @@ class RuntimeState:
     actions: ActionsService
     friends: FriendsService
     shop: ShopService
+    dialogs: DialogService
+    tasks: TaskService
+    memories: MemoryService
+    behaviors: BehaviorDispatcher
+    ticker: RoomTicker
 
 
 def _client_source_key(request: Request) -> str:
@@ -197,7 +209,7 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "username": account.username_display,
         "sticker": account.sticker,
         "initial_sticker_complete": account.initial_sticker_complete,
-        "favorites": list(user_profile.favorites),
+        "owned_rooms": list(user_profile.owned_rooms),
         "level": account.level,
         "level_label": level_definition.label,
         "kudos": account.kudos,
@@ -230,6 +242,8 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "inventory": runtime.cards.list_inventory_payload(account.id),
         "core_cards": runtime.cards.serialize_core_cards(),
         "activity": runtime.activities.serialize(activity),
+        "tasks": runtime.tasks.view_payload(account.id),
+        "journal": runtime.memories.journal_payload(account.id),
     }
 
 
@@ -268,6 +282,22 @@ async def _broadcast_room_event(
         if exclude_account_id is not None and connection.account_id == exclude_account_id:
             continue
         await connection.send(room_event_envelope(event))
+
+
+async def _deliver_behavior_result(runtime: RuntimeState, result: object | None) -> None:
+    """Broadcast room events and route private events produced by behaviors."""
+
+    if result is None:
+        return
+    for pending in getattr(result, "room_broadcasts", []):
+        await _broadcast_room_event(runtime, room_id=pending.room_id, event=pending.event)
+    for event in getattr(result, "private_events", []):
+        account_id = event.get("account_id")
+        if not isinstance(account_id, str):
+            continue
+        target = await runtime.connections.get(account_id)
+        if target is not None:
+            await target.send(room_event_envelope(event))
 
 
 async def _handle_replaced_connection(
@@ -313,9 +343,22 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     stats = StatsService(hub, profiles, catalog, content, world.id)
     inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
     progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
+    memories = MemoryService(hub, profiles, world.id, config.timezone)
+    tasks = TaskService(
+        hub,
+        profiles,
+        stats,
+        progression,
+        content,
+        world.id,
+        world.tasks,
+        config.timezone,
+        memories=memories,
+    )
     actions = ActionsService(hub, profiles, stats, catalog, world.id)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
     shop = ShopService(hub, profiles, catalog, content, world.id)
+    registry = build_registry()
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -325,8 +368,34 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         activities=activities,
         world=world,
         stats=stats,
+        command_verbs=frozenset(f".{spec.name}" for spec in registry.list()),
     )
-    registry = build_registry()
+    dialogs = DialogService(
+        hub=hub,
+        profiles=profiles,
+        stats=stats,
+        catalog=catalog,
+        progression=progression,
+        world=world,
+    )
+    scripts = BehaviorLoader().load_world(world)
+    behaviors = BehaviorDispatcher(
+        hub=hub,
+        profiles=profiles,
+        stats=stats,
+        progression=progression,
+        activities=activities,
+        catalog=catalog,
+        dialogs=dialogs,
+        connections=connections,
+        scripts=scripts,
+        world=world,
+        tasks=tasks,
+    )
+    dialogs.attach_dispatcher(behaviors)
+    rooms.attach_dispatcher(behaviors)
+    rooms.attach_dialogs(dialogs)
+    ticker = RoomTicker(dispatcher=behaviors, world=world, interval=config.tick_seconds)
     return RuntimeState(
         config=config,
         hub=hub,
@@ -347,6 +416,11 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         actions=actions,
         friends=friends,
         shop=shop,
+        dialogs=dialogs,
+        tasks=tasks,
+        memories=memories,
+        behaviors=behaviors,
+        ticker=ticker,
     )
 
 
@@ -359,9 +433,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         runtime = create_runtime(loaded_config)
         app.state.runtime = runtime
+        runtime.ticker.start()
         try:
             yield
         finally:
+            runtime.ticker.stop()
             runtime.hub.close()
 
     app = FastAPI(title="Tinyrooms Server", version="1.0.0", lifespan=lifespan)
@@ -583,6 +659,17 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             },
             exclude_account_id=account.id,
         )
+        enter_result = await runtime.behaviors.dispatch(
+            BehaviorEvent(
+                type="enter",
+                actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+                target=None,
+                room_id=room_id,
+                action=None,
+                data={"source_room_id": None},
+            )
+        )
+        await _deliver_behavior_result(runtime, enter_result)
         try:
             while True:
                 raw_text = await websocket.receive_text()
@@ -645,6 +732,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         content=runtime.content,
                         valid_stickers=frozenset(runtime.accounts.list_stickers()),
                         serialize_user=lambda account: _serialize_account(runtime, account),
+                        behaviors=runtime.behaviors,
+                        dialogs=runtime.dialogs,
+                        tasks=runtime.tasks,
+                        memories=runtime.memories,
                     )
                     outcome = await dispatch_command(context, parsed_command)
                 except (CommandParseError, CommandError, ValueError, sqlite3.IntegrityError) as exc:
@@ -692,6 +783,18 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     exclude_account_id=account.id,
                 )
                 runtime.activities.close(account.id)
+                runtime.dialogs.end(account.id, "disconnected")
+                leave_result = await runtime.behaviors.dispatch(
+                    BehaviorEvent(
+                        type="leave",
+                        actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+                        target=None,
+                        room_id=connection.room_id,
+                        action=None,
+                        data={"destination_room_id": None},
+                    )
+                )
+                await _deliver_behavior_result(runtime, leave_result)
             await runtime.connections.unregister(account.id, connection)
             _log_event(
                 "websocket.disconnected",

@@ -50,13 +50,50 @@ export async function command(page, text) {
   await expect(page.locator("#chat-input")).toHaveValue("", { timeout: 20_000 });
 }
 
-export async function openCore(page, id) {
+async function closeOverlays(page) {
   if (await page.locator("#detail-layer [role=dialog]").count()) await page.keyboard.press("Escape");
   if (await page.locator("#panel-layer [role=dialog]").count()) await page.keyboard.press("Escape");
-  const card = page.locator(`#card-hand [data-core-id="${id}"]`);
-  if (!await card.count()) await page.locator("#card-hand [data-core-expand]").click();
-  await card.click();
+}
+
+export async function openCore(page, id) {
+  await closeOverlays(page);
+  await page.locator(`#card-hand [data-core-id="${id}"]`).click();
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
+}
+
+// Select the room by clicking an empty board point, then open Room View from its quick actions.
+export async function openRoomView(page) {
+  await closeOverlays(page);
+  const box = await page.locator("#board-canvas").boundingBox();
+  const action = page.locator("#actions-bar").getByRole("button", { name: "Open Room View", exact: true });
+  for (const [fx, fy] of [[0.5, 0.06], [0.5, 0.94], [0.08, 0.5], [0.92, 0.5], [0.5, 0.5]]) {
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    if (await action.count()) {
+      await action.click();
+      await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
+      return;
+    }
+  }
+  throw new Error("Could not open Room View: no board point selected the room.");
+}
+
+async function openPeepAction(page, label) {
+  await closeOverlays(page);
+  await page.locator("#peeps-panel .peep-chip.self [data-peep-id]").click();
+  await page.locator("#actions-bar").getByRole("button", { name: label, exact: true }).click();
+  await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
+}
+
+export async function openSelf(page) {
+  await openPeepAction(page, "Open Self");
+}
+
+export async function openFriends(page) {
+  await openPeepAction(page, "Friends");
+}
+
+export async function openSkills(page) {
+  await openPeepAction(page, "Skills");
 }
 
 // Click across the floor until a prop (not the room) is selected; returns whether one was found.

@@ -12,12 +12,15 @@ from server.profiles import AccountRecord, ProfileRepository
 from server.services.actions import ActionsService
 from server.services.activities import ActivityService
 from server.services.cards import CardService
+from server.services.dialogs import DialogService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
+from server.services.memories import MemoryService
 from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
+from server.services.tasks import TaskService
 from server.state.world_state import WorldStateRepository
 
 
@@ -66,3 +69,7 @@ class CommandContext:
     content: GameplayContent
     valid_stickers: frozenset[str]
     serialize_user: Callable[[AccountRecord], dict[str, object]]
+    behaviors: object
+    dialogs: DialogService
+    tasks: TaskService
+    memories: MemoryService

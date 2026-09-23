@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
 from server.commands.parser import ParsedCommand, parse_target
 from server.services.actions import ActionResult
@@ -22,11 +23,11 @@ def _require_card_target(command: ParsedCommand, index: int = 0) -> str:
     return target.value
 
 
-async def _resolve_target(context: CommandContext, token: str | None) -> tuple[str | None, str, bool]:
-    """Resolve a target token to (account_id, label, is_npc)."""
+async def _resolve_target(context: CommandContext, token: str | None) -> tuple[str | None, str, bool, str | None]:
+    """Resolve a target token to (account_id, label, is_npc, peep_id)."""
 
     if token is None or token.lower() in {"self", "@self"}:
-        return context.account.id, context.account.username_display, False
+        return context.account.id, context.account.username_display, False, None
     room_id = context.connection.room_id
     if room_id is None:
         raise CommandError("You are not currently in a room.")
@@ -35,14 +36,14 @@ async def _resolve_target(context: CommandContext, token: str | None) -> tuple[s
     value = parsed.value if parsed else token
     for occupant in await context.rooms.room_occupants(room_id):
         if kind == "peep" and occupant["id"] == value:
-            return occupant["id"], str(occupant["username"]), False
+            return occupant["id"], str(occupant["username"]), False, None
         if kind == "username" and str(occupant["username"]).casefold() == value.casefold():
-            return occupant["id"], str(occupant["username"]), False
+            return occupant["id"], str(occupant["username"]), False, None
     for peep in context.rooms.room_peeps(room_id):
         if kind == "peep" and peep["id"] == value:
-            return None, str(peep["label"]), True
+            return None, str(peep["label"]), True, str(peep["id"])
         if kind == "username" and str(peep["label"]).casefold() == value.casefold():
-            return None, str(peep["label"]), True
+            return None, str(peep["label"]), True, str(peep["id"])
     raise CommandError("That peep is not in this room.")
 
 
@@ -98,7 +99,7 @@ def _user_payload(context: CommandContext) -> dict[str, object]:
 async def use_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     target_token = command.args[1] if len(command.args) > 1 else None
-    target_id, target_label, target_is_npc = await _resolve_target(context, target_token)
+    target_id, target_label, target_is_npc, target_peep_id = await _resolve_target(context, target_token)
     result = context.actions.use_card(
         context.account,
         stack_id=stack_id,
@@ -106,7 +107,25 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         target_label=target_label,
         target_is_npc=target_is_npc,
     )
-    return CommandOutcome(
+    behavior = None
+    if target_token is not None:
+        room_id = context.connection.room_id
+        target_ref = (
+            PeepRef(kind="npc", peep_id=target_peep_id, account_id=None)
+            if target_is_npc
+            else PeepRef(kind="user", peep_id=None, account_id=target_id)
+        )
+        behavior = await context.behaviors.dispatch(
+            BehaviorEvent(
+                type="card_play",
+                actor=PeepRef(kind="user", peep_id=None, account_id=context.account.id),
+                target=target_ref,
+                room_id=room_id,
+                action="use",
+                data={"card_id": result.card_id, "stack_id": stack_id, "target_label": target_label},
+            )
+        )
+    outcome = CommandOutcome(
         message=result.message,
         payload={
             "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.inventory],
@@ -115,6 +134,10 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         private_events=_action_feedback(context, result),
         room_broadcasts=_counter_events(context, result),
     )
+    if behavior is not None:
+        outcome.private_events.extend(getattr(behavior, "private_events", []))
+        outcome.room_broadcasts.extend(getattr(behavior, "room_broadcasts", []))
+    return outcome
 
 
 async def emote_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

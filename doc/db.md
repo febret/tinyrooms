@@ -32,11 +32,11 @@ One row per registered user. Created by
 `server/accounts.py:AccountService.create_account()`); read by
 `get_account_by_id()` / `get_account_by_username()` / `get_accounts_by_ids()`
 (single-query batch used for room occupants); mutated by `set_sticker()` and
-`issue_session()` (bumps `active_session_generation`). Favorites, friends,
-and Action Log visibility live in `user_profiles.profile_json` (mutated by
-`toggle_favorite()` / `set_show_activity_log()`). Serialized to the client in
-`server/app.py:_serialize_account()` (wire `favorites` / `show_activity_log`
-keys unchanged).
+`issue_session()` (bumps `active_session_generation`). Friends, and Action Log
+visibility live in `user_profiles.profile_json` (mutated by
+`set_show_activity_log()`); owned rooms live in `user_profiles.ownership_json`.
+Serialized to the client in `server/app.py:_serialize_account()` (wire
+`owned_rooms` / `show_activity_log` keys).
 
 | Column | Type | Description |
 | --- | --- | --- |
@@ -46,7 +46,7 @@ keys unchanged).
 | `password_hash` | TEXT NOT NULL | scrypt hash (`scrypt$n$r$p$salt$digest`), see `server/security.py:hash_password()` / `verify_password()`. |
 | `sticker` | TEXT NULL | Chosen sticker filename under `data/stickers`; NULL until confirmed. Set once by `set_sticker()`. |
 | `initial_sticker_complete` | INTEGER NOT NULL DEFAULT 0 | Boolean. Gates world entry (`/ws` closes `4403` until true). |
-| _(removed)_ `favorites_json` | — | Moved into `user_profiles.profile_json.favorites` (list of core-card IDs favorited via `.favorite`). |
+| _(removed)_ `favorites_json` | — | Core-card favorites were removed; all core cards are always visible. |
 | `level` | INTEGER NOT NULL DEFAULT 0 | Progression level (Milestone 1: always 0 for new users; future use per `data/core/levels.yaml`). |
 | `kudos` | INTEGER NOT NULL DEFAULT 0 | Kudos balance (future level-up currency). |
 | `bops` | INTEGER NOT NULL DEFAULT 10 | Bops balance (future spendable currency). |
@@ -57,7 +57,7 @@ keys unchanged).
 | `active_session_generation` | INTEGER NOT NULL DEFAULT 0 | Incremented on every `issue_session()`; enforces one live gameplay session (old sockets get `session.replaced`). |
 | _(removed)_ `show_activity_log` | — | Moved into `user_profiles.profile_json.show_activity_log` (boolean, hidden by default; toggled by `.settings action-log`). |
 | `created_at` | TEXT NOT NULL | ISO creation timestamp. |
-| `updated_at` | TEXT NOT NULL | ISO last-update timestamp (bumped on sticker/favorite/settings/session changes). |
+| `updated_at` | TEXT NOT NULL | ISO last-update timestamp (bumped on sticker/settings/session changes). |
 
 ### 2.2 `sessions`
 
@@ -133,8 +133,8 @@ placeholders (defaults below) reserved for later milestones.
 | `buffs_json` | TEXT NOT NULL | JSON dict of active buffs: `{"instances": [BuffInstance payloads]}` (`server/game/buffs.py`), empty `'{}'` until a buff is applied. |
 | `tasks_json` | TEXT NOT NULL | JSON dict of quest/task state (Milestone 1: `'{}'`). |
 | `memories_json` | TEXT NOT NULL | JSON dict of memory flags (Milestone 1: `'{}'`). |
-| `ownership_json` | TEXT NOT NULL | JSON dict of ownership claims (Milestone 1: `'{}'`). |
-| `profile_json` | TEXT NOT NULL | JSON user profile: `{favorites[], friends[], friend_requests_sent[], friend_requests_received[], pinned_peeps[], skills[], statuses[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
+| `ownership_json` | TEXT NOT NULL | JSON dict of ownership claims: `{"rooms": [room_id, ...]}`. Drives the per-user `editable` flag on room snapshots. Empty `'{}'` until a realtor/task grants ownership (not yet wired). |
+| `profile_json` | TEXT NOT NULL | JSON user profile: `{friends[], friend_requests_sent[], friend_requests_received[], pinned_peeps[], skills[], statuses[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
 | `last_visit_at` | TEXT NOT NULL | ISO timestamp of last room change; updated together with `remembered_room`. |
 
 ### 2.5 `reward_ledger`
@@ -145,7 +145,11 @@ granted **exactly once** per account. Written and read by
 shared `_grant()` insert). The check and insert happen inside the same
 transaction as the balance update (`_grant()`), so a duplicate key returns
 `False` without re-granting. Callers pass a stable key such as `task:portal`
-or `seed:<index>:<card>` (`tools/seed_review_account.py`).
+or `seed:<index>:<card>` (`tools/seed_review_account.py`). Dialog choices also
+use this ledger for idempotency: `DialogService.choose()` claims a
+`dialog:<peep_id>:<action_id>` key so a replayed choice applies no side
+effects, and `ProgressionService.has_ledger_entry()` reads the key without
+writing.
 Note this table lives in the profile DB (not the world DB) so rewards are
 unified per account across worlds; `world_id` records where each grant occurred.
 
