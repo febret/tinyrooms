@@ -456,3 +456,29 @@ test.describe("milestone 2 polish: prop viewer and journal calendar", () => {
     await expect(calendar.locator(".cal-header strong")).toHaveText(label);
   });
 });
+
+test.describe("milestone 3 crafting", () => {
+  test.slow();
+
+  test("crafting activity previews a recipe and requires ingredients", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".go @way:exit0");
+    await expect(page.locator("#look-bar")).toContainText("Sunflower Foyer");
+    await command(page, ".go @way:kitchen");
+    await expect(page.locator("#look-bar")).toContainText("The Buttercup Kitchen");
+    await command(page, ".craft @prop:workbench0");
+    const activity = page.locator(".activity-window");
+    await expect(activity).toBeVisible();
+    const frame = page.frameLocator('iframe[src*="crafting"]');
+    await expect(frame.locator(".recipe-button")).toHaveCount(1);
+    await expect(frame.locator(".recipe-button")).toContainText("Bag it neatly");
+    await frame.locator(".recipe-button").click();
+    await expect(frame.locator("#detail h2")).toHaveText("Bag it neatly");
+    await expect(frame.locator(".ingredient")).toHaveCount(2);
+    await expect(frame.locator(".ingredient .empty")).toHaveCount(2);
+    await expect(frame.locator("#confirm")).toBeDisabled();
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(activity).toHaveCount(0);
+  });
+});

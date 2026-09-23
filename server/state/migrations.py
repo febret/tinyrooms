@@ -8,8 +8,8 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 5
-WORLD_SCHEMA_VERSION = 7
+PROFILE_SCHEMA_VERSION = 10
+WORLD_SCHEMA_VERSION = 8
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -28,7 +28,10 @@ CREATE TABLE IF NOT EXISTS accounts (
     last_daily_claim TEXT,
     active_session_generation INTEGER NOT NULL DEFAULT 0 CHECK (active_session_generation >= 0),
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    powers TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(powers)),
+    muted_until TEXT,
+    muted_by TEXT
 );
 CREATE TABLE IF NOT EXISTS sessions (
     token_hash TEXT PRIMARY KEY,
@@ -122,7 +125,18 @@ CREATE TABLE IF NOT EXISTS memories (
 );
 CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id);
-PRAGMA user_version = 5;
+CREATE TABLE IF NOT EXISTS audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    world_id TEXT NOT NULL,
+    actor_account_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target TEXT,
+    result TEXT NOT NULL,
+    detail_json TEXT NOT NULL CHECK (json_valid(detail_json)),
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
+PRAGMA user_version = 10;
 COMMIT;
 """
 
@@ -145,7 +159,9 @@ CREATE TABLE IF NOT EXISTS room_states (
     room_id TEXT PRIMARY KEY,
     initialized INTEGER NOT NULL DEFAULT 0 CHECK (initialized IN (0, 1)),
     owner_account_id TEXT,
-    props_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(props_json))
+    props_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(props_json)),
+    environment_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(environment_json)),
+    layout_revision INTEGER NOT NULL DEFAULT 0 CHECK (layout_revision >= 0)
 );
 CREATE TABLE IF NOT EXISTS behavior_state (
     namespace TEXT NOT NULL,
@@ -154,7 +170,7 @@ CREATE TABLE IF NOT EXISTS behavior_state (
     updated_at TEXT NOT NULL,
     PRIMARY KEY (namespace, instance_id)
 );
-PRAGMA user_version = 7;
+PRAGMA user_version = 8;
 COMMIT;
 """
 
@@ -168,6 +184,7 @@ _PROFILE_TABLES = frozenset(
         "pack_purchases",
         "task_progress",
         "memories",
+        "audit_log",
     }
 )
 
@@ -241,6 +258,86 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 5;
     COMMIT;
     """,
+    6: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS craft_operations (
+        account_id TEXT NOT NULL,
+        operation_id TEXT NOT NULL,
+        recipe_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        results_json TEXT NOT NULL CHECK (json_valid(results_json)),
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, operation_id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    PRAGMA user_version = 6;
+    COMMIT;
+    """,
+    7: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS account_powers (
+        account_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        power TEXT NOT NULL,
+        granted_by TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, world_id, power),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS moderation_state (
+        account_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        muted_until TEXT,
+        muted_by TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, world_id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS audit_log (
+        audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        world_id TEXT NOT NULL,
+        actor_account_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        target TEXT,
+        result TEXT NOT NULL,
+        detail_json TEXT NOT NULL CHECK (json_valid(detail_json)),
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
+    PRAGMA user_version = 7;
+    COMMIT;
+    """,
+    8: """
+    BEGIN;
+    ALTER TABLE accounts ADD COLUMN powers TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(powers));
+    UPDATE accounts
+    SET powers = COALESCE((
+        SELECT json_group_array(power)
+        FROM (SELECT DISTINCT power FROM account_powers WHERE account_powers.account_id = accounts.id)
+    ), '[]')
+    WHERE id IN (SELECT account_id FROM account_powers);
+    DROP TABLE IF EXISTS account_powers;
+    PRAGMA user_version = 8;
+    COMMIT;
+    """,
+    9: """
+    BEGIN;
+    ALTER TABLE accounts ADD COLUMN muted_until TEXT;
+    ALTER TABLE accounts ADD COLUMN muted_by TEXT;
+    UPDATE accounts
+    SET muted_until = (SELECT muted_until FROM moderation_state WHERE moderation_state.account_id = accounts.id),
+        muted_by = (SELECT muted_by FROM moderation_state WHERE moderation_state.account_id = accounts.id)
+    WHERE id IN (SELECT account_id FROM moderation_state);
+    DROP TABLE IF EXISTS moderation_state;
+    PRAGMA user_version = 9;
+    COMMIT;
+    """,
+    10: """
+    BEGIN;
+    DROP TABLE IF EXISTS craft_operations;
+    PRAGMA user_version = 10;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -254,6 +351,13 @@ _WORLD_MIGRATIONS: dict[int, str] = {
         PRIMARY KEY (namespace, instance_id)
     );
     PRAGMA user_version = 7;
+    COMMIT;
+    """,
+    8: """
+    BEGIN;
+    ALTER TABLE room_states ADD COLUMN environment_json TEXT NOT NULL DEFAULT '{}';
+    ALTER TABLE room_states ADD COLUMN layout_revision INTEGER NOT NULL DEFAULT 0;
+    PRAGMA user_version = 8;
     COMMIT;
     """,
 }
@@ -302,6 +406,17 @@ _MEMORIES_COLUMNS = (
     "editable",
 )
 
+_AUDIT_LOG_COLUMNS = (
+    "audit_id",
+    "world_id",
+    "actor_account_id",
+    "action",
+    "target",
+    "result",
+    "detail_json",
+    "created_at",
+)
+
 _ACCOUNTS_COLUMNS = (
     "id",
     "username_display",
@@ -318,6 +433,9 @@ _ACCOUNTS_COLUMNS = (
     "active_session_generation",
     "created_at",
     "updated_at",
+    "powers",
+    "muted_until",
+    "muted_by",
 )
 
 _SESSIONS_COLUMNS = (
@@ -362,6 +480,8 @@ _ROOM_STATES_COLUMNS = (
     "initialized",
     "owner_account_id",
     "props_json",
+    "environment_json",
+    "layout_revision",
 )
 
 _BEHAVIOR_STATE_COLUMNS = (
@@ -486,6 +606,7 @@ def ensure_profile_database(path: Path) -> None:
             "pack_purchases": _PACK_PURCHASES_COLUMNS,
             "task_progress": _TASK_PROGRESS_COLUMNS,
             "memories": _MEMORIES_COLUMNS,
+            "audit_log": _AUDIT_LOG_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
@@ -496,6 +617,7 @@ def ensure_profile_database(path: Path) -> None:
             "CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at)",
             "CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id)",
+            "CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at)",
         ),
         migrations=_PROFILE_MIGRATIONS,
     )

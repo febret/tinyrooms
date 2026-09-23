@@ -306,7 +306,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, onSelect, onA
     const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .details-popup, .details-page, .card-hand-strip, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .details-popup, .details-page, .card-hand-strip, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;

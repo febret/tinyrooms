@@ -227,7 +227,7 @@ Provide separate `/world-editor` and `/card-database` applications:
 
 ### Props, crafting, and editing
 
-- Shared dispenser cooldown across users/restart and weighted deterministic draw.
+- Shared dispenser cooldown across users (in-memory, reset on restart) and weighted deterministic draw.
 - Craft source-stack selection, equipped count/bonus update, invalid recipe
   rollback, and concurrent craft protection.
 - Room aura enter/leave idempotency and independent timed consequences.

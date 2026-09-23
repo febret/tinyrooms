@@ -56,6 +56,7 @@ class BehaviorDispatcher:
         scripts: BehaviorScripts,
         world: WorldDefinition,
         tasks: object | None = None,
+        environment: object | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         self._hub = hub
@@ -69,6 +70,7 @@ class BehaviorDispatcher:
         self._scripts = scripts
         self._world = world
         self._tasks = tasks
+        self._environment = environment
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self.erroring: set[str] = set()
         self._lock: asyncio.Lock | None = None
@@ -320,7 +322,7 @@ class BehaviorDispatcher:
         elif kind == "request_move":
             self._apply_request_move(connection, payload, context, deferred)
         elif kind == "set_environment":
-            self._apply_set_environment(connection, payload)
+            self._apply_set_environment(connection, payload, context, event, result)
         else:
             self._log("behavior.intent.unknown", kind=kind)
 
@@ -598,30 +600,30 @@ class BehaviorDispatcher:
         self._profiles.set_remembered_room(connection, account_id, self._world.id, room_id)
         deferred.append(lambda: self._connections.set_room(account_id, room_id))
 
-    def _apply_set_environment(self, connection: sqlite3.Connection, payload: Mapping[str, object]) -> None:
-        instance_id = payload.get("target_instance_id")
-        if not isinstance(instance_id, str) or not instance_id:
-            self._log("behavior.intent.skipped", kind="set_environment", reason="no_target")
+    def _apply_set_environment(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        if self._environment is None:
+            self._log("behavior.intent.skipped", kind="set_environment", reason="no_service")
             return
-        row = connection.execute(
-            "SELECT state_json FROM world.behavior_state WHERE namespace = 'prop' AND instance_id = ?",
-            (instance_id,),
-        ).fetchone()
-        state: dict[str, object] = {}
-        if row is not None:
-            try:
-                loaded = json.loads(row["state_json"])
-                if isinstance(loaded, dict):
-                    state = loaded
-            except (TypeError, ValueError):
-                state = {}
-        environment = state.get("environment")
-        if not isinstance(environment, dict):
-            environment = {}
-            state["environment"] = environment
-        environment[str(payload.get("key", ""))] = payload.get("value")
-        self._save_state(
-            connection,
-            BehaviorAttachment(script_id="environment", namespace="prop", instance_id=instance_id, ref=None),
-            state,
-        )
+        room_id = event.room_id
+        if not isinstance(room_id, str) or not room_id:
+            room_id = payload.get("target_room_id")
+        if not isinstance(room_id, str) or not room_id:
+            self._log("behavior.intent.skipped", kind="set_environment", reason="no_room")
+            return
+        key = str(payload.get("key", ""))
+        if not key:
+            self._log("behavior.intent.skipped", kind="set_environment", reason="no_key")
+            return
+        try:
+            update = self._environment.set_in_transaction(connection, room_id, {key: payload.get("value")})
+        except ValueError as exc:
+            self._log("behavior.intent.skipped", kind="set_environment", error=str(exc))
+            return
+        result.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event=update.event()))

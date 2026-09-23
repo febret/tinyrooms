@@ -178,6 +178,7 @@ function normalizeActivity(activity) {
     roomBound: Boolean(activity.room_bound),
     roomId: activity.room_id ? String(activity.room_id) : "",
     attention: Boolean(activity.attention),
+    config: activity.config && typeof activity.config === "object" ? activity.config : {},
   };
 }
 
@@ -300,6 +301,7 @@ function normalizeUser(user) {
     stats: user.stats && typeof user.stats === "object" ? { ...user.stats } : {},
     statuses: Array.isArray(user.statuses) ? [...user.statuses] : [],
     statusDefinitions: user.status_definitions && typeof user.status_definitions === "object" ? { ...user.status_definitions } : {},
+    powers: Array.isArray(user.powers) ? user.powers.map(power => String(power)) : [],
     skills: Array.isArray(user.skills) ? user.skills.map(slot => ({
       index: Number(slot.index || 0),
       rank: String(slot.rank || ""),
@@ -607,7 +609,14 @@ function mergeResultPayload(state, payload) {
       ...next,
       commandCatalog: payload.commands.map(item => {
         const name = String(item.name || "");
-        return { name: name.startsWith(".") || name.startsWith("\\") ? name : `.${name}`, summary: String(item.summary || "") };
+        return {
+          name: name.startsWith(".") || name.startsWith("\\") ? name : `.${name}`,
+          summary: String(item.summary || ""),
+          usage: String(item.usage || ""),
+          power: item.power ? String(item.power) : null,
+          help: String(item.help || item.summary || ""),
+          allowed: item.allowed !== false,
+        };
       }),
     };
   }
@@ -785,11 +794,10 @@ function reduce(state, action) {
     const priorToastIds = new Set(next.ui.toasts.map(item => item.id));
     for (const event of action.events || []) next = applyServerEvent(next, event);
     const announcedByEvent = next.ui.toasts.some(item => !priorToastIds.has(item.id));
-    if (action.message && next.room && next.room.chatHistory.at(-1)?.text !== action.message) {
+    if (action.log !== false && action.message && next.room && next.room.chatHistory.at(-1)?.text !== action.message) {
       next = { ...next, room: { ...next.room, chatHistory: [...next.room.chatHistory, asSystemHistory(action.message)].slice(-50) } };
     }
-    const quietAcknowledgement = /^\.(?:say|help|look|settings|tasks|task|memories|emote)(?:\s|$)/.test(action.command || "");
-    if (action.ok && action.message && !quietAcknowledgement && !announcedByEvent) next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "success")] } };
+    if (action.ok && action.toast !== false && action.message && !announcedByEvent) next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "success")] } };
     if (!action.ok && action.message && !next.ui.toasts.some(item => item.tone === "error" && item.message === action.message)) {
       next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "error")] } };
     }

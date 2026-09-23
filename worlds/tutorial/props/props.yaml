@@ -52,7 +52,7 @@ vacuum-stand:
   scale: 1.229
 supply-shelf:
   label: Helpful Supplies
-  description: A personal starter kit, not a lucky draw. Scoop, bags, a light and a drink.
+  description: A recharging dispenser of housekeeping tools. Take a pooper scooper or a plastic bag.
   model: supply-shelf.glb
   decorative: false
   scale: 1.464

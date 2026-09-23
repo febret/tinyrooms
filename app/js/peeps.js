@@ -87,6 +87,8 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSou
       }
       const style = peep.bubble.style === "thinking" ? "thought" : peep.bubble.style === "spiky" ? "spiky" : "speech";
       const hasImage = Boolean(peep.bubble.imageUrl);
+      const nextKey = bubbleKey(peep);
+      const bubbleChanged = bubble.dataset.bubbleKey !== nextKey;
       let image = bubble.querySelector(".bubble-image");
       if (hasImage && !image) {
         image = document.createElement("img");
@@ -98,11 +100,16 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onSou
         image.remove();
         image = null;
       }
-      bubble.dataset.bubbleKey = bubbleKey(peep);
+      bubble.dataset.bubbleKey = nextKey;
       const emoteClass = hasImage ? ` emote emote-${peep.bubble.style}` : "";
       bubble.className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
       bubble.querySelector(".bubble-text").textContent = hasImage ? "" : peep.bubble.text;
       if (image) image.src = peep.bubble.imageUrl;
+      if (hasImage && bubbleChanged) {
+        bubble.style.animation = "none";
+        void bubble.offsetWidth;
+        bubble.style.animation = "";
+      }
       bubble.setAttribute("aria-label", `${peep.label}: ${hasImage ? `${peep.bubble.text} emote` : peep.bubble.text}. Dismiss message`);
     }
     for (const [id, bubble] of bubbles) {

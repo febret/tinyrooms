@@ -67,8 +67,14 @@ def result_envelope(
     message: str | None = None,
     payload: dict[str, object] | None = None,
     events: list[dict[str, object]] | None = None,
+    toast: bool = True,
+    log: bool = True,
 ) -> dict[str, object]:
-    """Build a private command result envelope."""
+    """Build a private command result envelope.
+
+    ``toast`` and ``log`` are only serialized when disabled, so clients default
+    to showing the acknowledgement in both places.
+    """
 
     envelope: dict[str, object] = {
         "v": PROTOCOL_VERSION,
@@ -83,6 +89,10 @@ def result_envelope(
         envelope["message"] = message
     if payload is not None:
         envelope["payload"] = payload
+    if not toast:
+        envelope["toast"] = False
+    if not log:
+        envelope["log"] = False
     return envelope
 
 

@@ -54,6 +54,13 @@ def _require_room_id(context: CommandContext) -> str:
     return context.connection.room_id
 
 
+def require_power(context: CommandContext, power: str) -> None:
+    """Raise when the acting account lacks a world-local power."""
+
+    if not context.powers.has_power(context.account.id, power):
+        raise CommandError(f"You do not have the {power} power here.")
+
+
 def _describe_exit(exit_definition: ExitDefinition) -> dict[str, object]:
     return {
         "kind": "exit",
@@ -88,10 +95,12 @@ async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
     kind = parsed.kind if parsed else "username"
     value = parsed.value if parsed else token
     for peep in context.rooms.room_peeps(room_id):
-        if (kind == "peep" and peep["id"] == value) or (
-            kind == "username" and str(peep["label"]).casefold() == value.casefold()
+        peep_id = str(peep["id"])
+        if (kind == "peep" and peep_id == value) or (
+            kind == "username"
+            and (str(peep["label"]).casefold() == value.casefold() or peep_id == value)
         ):
-            return PeepRef(kind="npc", peep_id=str(peep["id"]), account_id=None)
+            return PeepRef(kind="npc", peep_id=peep_id, account_id=None)
     for occupant in await context.rooms.room_occupants(room_id):
         if (kind == "peep" and occupant["id"] == value) or (
             kind == "username" and str(occupant["username"]).casefold() == value.casefold()
@@ -113,15 +122,24 @@ async def _resolve_action_target(context: CommandContext, token: str) -> PeepRef
 
 async def help_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
-    return CommandOutcome(
-        message="Command list loaded.",
-        payload={
-            "commands": [{"name": spec.name, "summary": spec.summary} for spec in context.registry.list()]
-        },
-    )
+    powers = context.powers.effective(context.account)
+    commands = [
+        {
+            "name": spec.name,
+            "summary": spec.summary,
+            "usage": spec.usage,
+            "power": spec.power,
+            "help": spec.help,
+            "allowed": spec.power is None or spec.power in powers,
+        }
+        for spec in context.registry.list()
+    ]
+    return CommandOutcome(message="Command list loaded.", payload={"commands": commands})
 
 
 async def say_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    if context.powers.is_muted(context.account.id):
+        raise CommandError("You are muted and cannot chat right now.")
     room_id = _require_room_id(context)
     message = command.args[0] if command.args else command.raw_text
     event = context.rooms.say(context.account, room_id, message)
@@ -493,50 +511,155 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import gameplay
+    from server.commands import gameplay, privileged, props
 
     registry = CommandRegistry()
-    registry.register("act", "Dispatch a quick action to a target peep or prop.", act_command)
-    registry.register("buy_pack", "Buy and open a card pack.", gameplay.buy_pack_command)
-    registry.register("cancel", "Close the active activity window.", cancel_command)
-    registry.register("claim_bops", "Claim today's Daily Bops allowance.", gameplay.claim_bops_command)
-    registry.register("dialog", "Choose a declarative dialog option.", dialog_command)
-    registry.register("dialog_end", "End the current conversation.", dialog_end_command)
-    registry.register("drop", "Drop a quantity from one of your inventory stacks.", drop_command)
-    registry.register("emote", "Play an owned emote card.", gameplay.emote_command)
-    registry.register("equip", "Equip an item or action stack.", gameplay.equip_command)
-    registry.register("friend", "Manage friends and friend requests.", gameplay.friend_command)
-    registry.register("go", "Move through an exit in the current room.", go_command)
-    registry.register("help", "Show the available commands.", help_command)
-    registry.register("inspect", "Inspect a visible room entity.", inspect_command)
-    registry.register("level_up", "Spend Kudos to reach the next level.", gameplay.level_up_command)
-    registry.register("look", "Look at the room or a visible entity.", look_command)
-    registry.register("memory_delete", "Delete one of your manual memories.", memory_delete_command)
-    registry.register("memory_edit", "Edit one of your manual memories.", memory_edit_command)
-    registry.register("memory_new", "Save the chat bar text as a memory.", memory_new_command)
-    registry.register("memories", "List a month of journal memories.", memories_command)
-    registry.register("merge", "Merge two stacks of the same card.", gameplay.merge_command)
-    registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command)
-    registry.register("pickup", "Pick up a room card stack quantity.", pickup_command)
-    registry.register("pin_peep", "Pin or unpin a peep in your sidebar.", gameplay.pin_peep_command)
-    registry.register("play", "Open a room activity or developer sample activity.", play_command)
-    registry.register("reset_room", "Reset the current room's cards to the world definition.", reset_room_command)
-    registry.register("say", "Send a room-scoped chat message.", say_command)
+    registry.register(
+        "act",
+        "Dispatch a quick action to a target peep or prop.",
+        act_command,
+        usage=".act <action> <peep|@prop:<id>>",
+        help="Perform an authored quick action such as petting or searching a prop.",
+    )
+    registry.register(
+        "builder",
+        "Grant builder power or list editable rooms.",
+        privileged.builder_command,
+        usage=".builder <grant|revoke|rooms> [@peep]",
+        help="Admins grant or revoke the builder power; builders list rooms with owners and revisions.",
+    )
+    registry.register(
+        "buy_pack",
+        "Buy and open a card pack.",
+        gameplay.buy_pack_command,
+        usage=".buy_pack <pack_id> <operation_id>",
+        help="Spend Bops to open a pack. The operation id makes purchases idempotent.",
+    )
+    registry.register("cancel", "Close the active activity window.", cancel_command, usage=".cancel")
+    registry.register(
+        "claim_bops",
+        "Claim today's Daily Bops allowance.",
+        gameplay.claim_bops_command,
+        usage=".claim_bops",
+    )
+    registry.register(
+        "craft",
+        "Open the crafting activity for a crafting-station prop.",
+        props.craft_command,
+        usage=".craft @prop:<instance_id>",
+        help="Open a crafting station bound to its recipes.",
+    )
+    registry.register(
+        "craft_make",
+        "Execute a craft with explicit ingredient stack selections.",
+        props.craft_make_command,
+        usage=".craft_make <recipe_id> <stack_id>:<quantity> ...",
+    )
+    registry.register(
+        "craft_preview",
+        "Preview a recipe and eligible ingredient stacks.",
+        props.craft_preview_command,
+        usage=".craft_preview <recipe_id>",
+    )
+    registry.register("dialog", "Choose a declarative dialog option.", dialog_command, usage=".dialog <index>")
+    registry.register("dialog_end", "End the current conversation.", dialog_end_command, usage=".dialog_end")
+    registry.register(
+        "dispense",
+        "Take a card from a dispenser prop.",
+        props.dispense_command,
+        usage=".dispense @prop:<instance_id>",
+        help="Dispense a card from a prop's shared, recharging contents.",
+    )
+    registry.register(
+        "drop",
+        "Drop a quantity from one of your inventory stacks.",
+        drop_command,
+        usage=".drop @card:<stack_id> [quantity] [x y z]",
+    )
+    registry.register("emote", "Play an owned emote card.", gameplay.emote_command, usage=".emote @card:<stack_id>", toast=False)
+    registry.register("equip", "Equip an item or action stack.", gameplay.equip_command, usage=".equip @card:<stack_id>")
+    registry.register(
+        "friend",
+        "Manage friends and friend requests.",
+        gameplay.friend_command,
+        usage=".friend <add|accept|decline|cancel|remove> <peep>",
+    )
+    registry.register(
+        "gm",
+        "Game-master gameplay and state commands.",
+        privileged.gm_command,
+        usage=".gm <give|setcounter|buff|kudos|environment> ...",
+        power="game-master",
+        help="Grant cards, set counters, apply buffs, grant Kudos, or change room environment state.",
+    )
+    registry.register("go", "Move through an exit in the current room.", go_command, usage=".go @way:<exit_id>")
+    registry.register("help", "Show the available commands.", help_command, usage=".help", toast=False, log=False)
+    registry.register("inspect", "Inspect a visible room entity.", inspect_command, usage=".inspect [target]", toast=False, log=False)
+    registry.register("kick", "Disconnect a peep from the room.", privileged.kick_command, usage=".kick @peep [reason]", power="moderator")
+    registry.register(
+        "level_up",
+        "Spend Kudos to reach the next level.",
+        gameplay.level_up_command,
+        usage=".level_up",
+    )
+    registry.register("look", "Look at the room or a visible entity.", look_command, usage=".look [target]", toast=False, log=False)
+    registry.register(
+        "memory_delete",
+        "Delete one of your manual memories.",
+        memory_delete_command,
+        usage=".memory_delete @memory:<id>",
+    )
+    registry.register(
+        "memory_edit",
+        "Edit one of your manual memories.",
+        memory_edit_command,
+        usage=".memory_edit @memory:<id> <text>",
+    )
+    registry.register("memory_new", "Save the chat bar text as a memory.", memory_new_command, usage=".memory_new <text>")
+    registry.register("memories", "List a month of journal memories.", memories_command, usage=".memories [year month]", toast=False, log=False)
+    registry.register("merge", "Merge two stacks of the same card.", gameplay.merge_command, usage=".merge @card:<from> @card:<to> [quantity]")
+    registry.register("mute", "Mute a peep's chat.", privileged.mute_command, usage=".mute @peep <minutes>", power="moderator")
+    registry.register("own", "Manage room ownership.", privileged.own_command, usage=".own <grant|remove|modify|show> <room_id> [@peep]", power="realtor")
+    registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command, usage=".packs")
+    registry.register("pickup", "Pick up a room card stack quantity.", pickup_command, usage=".pickup @card:<stack_id> [quantity]")
+    registry.register(
+        "pin_peep",
+        "Pin or unpin a peep in your sidebar.",
+        gameplay.pin_peep_command,
+        usage=".pin_peep <peep> [on|off]",
+    )
+    registry.register(
+        "play",
+        "Open a room activity or developer sample activity.",
+        play_command,
+        usage=".play <activity> [replace]",
+    )
+    registry.register(
+        "reset_room",
+        "Reset the current room's cards to the world definition.",
+        reset_room_command,
+        usage=".reset_room",
+    )
+    registry.register("say", "Send a room-scoped chat message.", say_command, usage=".say <text>", toast=False, log=False)
     registry.register(
         "settings",
         "Change a persisted client setting.",
         settings_command,
+        usage=".settings action-log <on|off>",
+        toast=False,
+        log=False,
     )
-    registry.register("shop", "Open the card-pack shop activity.", gameplay.shop_command)
-    registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command)
-    registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command)
-    registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command)
-    registry.register("talk", "Talk to a peep and open its dialog.", talk_command)
-    registry.register("task", "View one journal task.", task_command)
-    registry.register("tasks", "List journal tasks.", tasks_command)
-    registry.register("unequip", "Unequip an item or action stack.", gameplay.unequip_command)
-    registry.register("unskill", "Remove a skill from a slot.", gameplay.unskill_command)
-    registry.register("use", "Use an equipped item or action card.", gameplay.use_command)
+    registry.register("shop", "Open the card-pack shop activity.", gameplay.shop_command, usage=".shop")
+    registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command, usage=".skill @card:<stack_id> <slot>")
+    registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command, usage=".split @card:<stack_id> <quantity>")
+    registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")
+    registry.register("talk", "Talk to a peep and open its dialog.", talk_command, usage=".talk <peep>", toast=False, log=False)
+    registry.register("task", "View one journal task.", task_command, usage=".task <task_id>", toast=False, log=False)
+    registry.register("tasks", "List journal tasks.", tasks_command, usage=".tasks", toast=False, log=False)
+    registry.register("unequip", "Unequip an item or action stack.", gameplay.unequip_command, usage=".unequip @card:<stack_id>")
+    registry.register("unmute", "Remove a peep's mute.", privileged.unmute_command, usage=".unmute @peep", power="moderator")
+    registry.register("unskill", "Remove a skill from a slot.", gameplay.unskill_command, usage=".unskill <slot>")
+    registry.register("use", "Use an equipped item or action card.", gameplay.use_command, usage=".use @card:<stack_id> [target]")
     return registry
 
 
@@ -544,8 +667,23 @@ async def dispatch_command(context: CommandContext, command: ParsedCommand) -> C
     """Dispatch a parsed normal command through the registry."""
 
     if command.kind == "admin":
-        raise CommandError("Admin console commands are reserved and not enabled yet.")
+        from server.commands.admin import dispatch_admin
+
+        return await dispatch_admin(context, command)
     spec = context.registry.get(command.name)
     if spec is None:
         raise CommandError(f"Unknown command '.{command.name}'.")
-    return await spec.handler(context, command)
+    if spec.power is not None and not context.powers.has_power(context.account.id, spec.power):
+        context.audit.safe_record(
+            context.account.id,
+            f"command.{spec.name}",
+            None,
+            "rejected",
+            {"reason": "no_power", "power": spec.power},
+        )
+        raise CommandError(f"You do not have the {spec.power} power here.")
+    outcome = await spec.handler(context, command)
+    if isinstance(outcome, CommandOutcome):
+        outcome.toast = spec.toast
+        outcome.log = spec.log
+    return outcome

@@ -67,6 +67,13 @@ function showError(error) {
   toast(message, "error");
 }
 
+function playJournalOpen() {
+  const book = panelLayer.querySelector(".journal-book");
+  if (!book) return;
+  book.classList.add("journal-opening");
+  book.addEventListener("animationend", () => book.classList.remove("journal-opening"), { once: true });
+}
+
 function connectSocket() {
   socket?.disconnect();
   socket = createSocketClient({
@@ -82,7 +89,7 @@ function connectSocket() {
     onSessionReplaced(envelope) { store.dispatch({ type: "session-replaced", message: envelope.message }); },
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
     onResult(envelope) {
-      store.dispatch({ type: "result", ok: envelope.ok, message: envelope.message, payload: envelope.payload, events: envelope.events, command: envelope.command });
+      store.dispatch({ type: "result", ok: envelope.ok, message: envelope.message, payload: envelope.payload, events: envelope.events, toast: envelope.toast, log: envelope.log });
     },
   });
   socket.connect();
@@ -448,9 +455,15 @@ function renderCommandPalette(state) {
     }, () => store.dispatch({ type: "command-palette", open: false }));
   }
   const catalog = state.commandCatalog.length ? state.commandCatalog : COMMANDS;
-  const filtered = catalog.filter(command => `${command.name} ${command.summary}`.toLowerCase().includes(commandSearch.toLowerCase()));
+  const powers = new Set(state.user?.powers || []);
+  const visible = catalog.filter(command => !command.power || powers.has(command.power));
+  const filtered = visible.filter(command => `${command.name} ${command.summary} ${command.usage || ""} ${command.help || ""}`.toLowerCase().includes(commandSearch.toLowerCase()));
   const list = paletteShade.querySelector(".command-list");
-  if (!updateMarkup(list, filtered.map(command => `<button type="button" class="command-row" data-command="${escapeHtml(command.name)}"><strong>${escapeHtml(command.name)}</strong><span>${escapeHtml(command.summary)}</span></button>`).join("") || `<p class="empty-state">No matching commands.</p>`)) return;
+  if (!updateMarkup(list, filtered.map(command => {
+    const usage = command.usage && command.usage !== command.name ? `<code>${escapeHtml(command.usage)}</code>` : "";
+    const power = command.power ? `<em class="command-power">${escapeHtml(command.power)}</em>` : "";
+    return `<button type="button" class="command-row" data-command="${escapeHtml(command.name)}" data-focus-key="${escapeHtml(command.name)}"><strong>${escapeHtml(command.name)}${power}</strong><span>${escapeHtml(command.summary)}</span>${usage}</button>`;
+  }).join("") || `<p class="empty-state">No matching commands.</p>`)) return;
   list.querySelectorAll("button").forEach(button => {
     button.onclick = () => {
       chatInput.value = button.dataset.command;
@@ -625,6 +638,7 @@ async function render(state) {
   renderToasts(state);
   renderFeedback(state);
   cards.render(state);
+  if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
   propViewers.sync(detailLayer, state.ui.reducedMotion);

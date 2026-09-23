@@ -137,11 +137,67 @@ class StatsService:
                     continue
         return instances
 
+    def _source_modifiers(self, profile: UserProfileRecord) -> tuple[Modifier, ...]:
+        raw = profile.buffs.get("sources") if isinstance(profile.buffs, dict) else None
+        if not isinstance(raw, dict):
+            return ()
+        modifiers: list[Modifier] = []
+        for entries in raw.values():
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if not isinstance(entry, dict) or not entry.get("target"):
+                    continue
+                try:
+                    modifiers.append(
+                        Modifier(
+                            target=str(entry.get("target")),
+                            flat=float(entry.get("flat", 0.0)),
+                            percent=float(entry.get("percent", 0.0)),
+                        )
+                    )
+                except ValueError:
+                    continue
+        return tuple(modifiers)
+
     def collect_modifiers(self, account_id: str, profile: UserProfileRecord, now: datetime) -> tuple[Modifier, ...]:
-        """Combine equipment, slotted skills, and active buffs into modifiers."""
+        """Combine equipment, slotted skills, active buffs, and source auras."""
 
         instances = expire(self._buff_instances(profile), now)
-        return (*self._card_modifiers(account_id, profile), *active_modifiers(instances, now))
+        return (
+            *self._card_modifiers(account_id, profile),
+            *active_modifiers(instances, now),
+            *self._source_modifiers(profile),
+        )
+
+    def apply_source(self, account_id: str, source: str, modifiers: tuple[Modifier, ...]) -> PeepSnapshot:
+        """Replace a named source's modifier contribution and reconcile."""
+
+        payload = [
+            {"target": modifier.target, "flat": modifier.flat, "percent": modifier.percent}
+            for modifier in modifiers
+        ]
+        with self._hub.transaction() as connection:
+            self._reconcile(connection, account_id, now=utc_now())
+            self._profiles.write_buff_sources(connection, account_id, {source: payload})
+            return self._reconcile(connection, account_id, now=utc_now())
+
+    def remove_source(self, account_id: str, source: str) -> PeepSnapshot:
+        """Remove a named source's modifier contribution and reconcile."""
+
+        with self._hub.transaction() as connection:
+            self._reconcile(connection, account_id, now=utc_now())
+            self._profiles.write_buff_sources(connection, account_id, {source: None})
+            return self._reconcile(connection, account_id, now=utc_now())
+
+    def has_source(self, account_id: str, source: str) -> bool:
+        """Return whether a named source currently contributes modifiers."""
+
+        profile = self._profiles.get_user_profile(account_id)
+        if profile is None or not isinstance(profile.buffs, dict):
+            return False
+        raw = profile.buffs.get("sources")
+        return isinstance(raw, dict) and source in raw
 
     def compute_state(
         self,

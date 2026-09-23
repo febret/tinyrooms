@@ -182,6 +182,43 @@ class WorldStateRepository:
         cards = [self._stack_from_row(card) for card in card_rows]
         return cards, self.get_chat_history(room_id)
 
+    def read_room_environment(self, room_id: str) -> tuple[dict[str, Any], int]:
+        """Return a room's persisted environment and layout revision."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT environment_json, layout_revision FROM world.room_states WHERE room_id = ?",
+                (room_id,),
+            ).fetchone()
+        if row is None:
+            return {}, 0
+        try:
+            environment = json.loads(row["environment_json"])
+        except (TypeError, ValueError):
+            environment = {}
+        return (environment if isinstance(environment, dict) else {}), int(row["layout_revision"])
+
+    def write_room_environment(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        room_id: str,
+        environment: dict[str, Any],
+        revision: int,
+    ) -> None:
+        """Persist a room's environment and layout revision."""
+
+        cursor = connection.execute(
+            """
+            UPDATE world.room_states
+            SET environment_json = ?, layout_revision = ?
+            WHERE room_id = ?
+            """,
+            (json.dumps(environment), int(revision), room_id),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("That room is not initialized.")
+
     def get_chat_history(self, room_id: str) -> list[dict[str, Any]]:
         """Return the in-memory chat history for a room.
 

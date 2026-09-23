@@ -45,12 +45,25 @@ export function tasksMarkup(state) {
     + taskGroup("Completed", tasks.completed, "No completed tasks yet.", selectedId);
 }
 
-function calendarMarkup(monthDate, dayCounts, summaryText) {
+function journalMonth(state) {
+  const journal = state.user?.journal || { summary: {}, memories: [] };
+  const summary = journal.summary || {};
+  const offset = Number(state.ui.journalMonthOffset || 0);
+  const now = new Date();
+  const monthDate = summary.year && summary.month
+    ? new Date(summary.year, summary.month - 1, 1)
+    : new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  return { journal, summary, monthDate };
+}
+
+export function calendarMarkup(state) {
+  const { summary, monthDate } = journalMonth(state);
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
   const label = monthDate.toLocaleString("en-US", { month: "long", year: "numeric" });
   const startDay = new Date(year, month, 1).getDay();
   const dayCount = new Date(year, month + 1, 0).getDate();
+  const dayCounts = summary.dayCounts || {};
   const cells = [];
   for (let index = 0; index < startDay; index += 1) cells.push('<span class="cal-cell empty" aria-hidden="true"></span>');
   for (let day = 1; day <= dayCount; day += 1) {
@@ -58,6 +71,7 @@ function calendarMarkup(monthDate, dayCounts, summaryText) {
     const count = Number(dayCounts[key] || 0);
     cells.push(`<span class="cal-cell ${count ? "has-memories" : ""}" aria-label="Day ${day}, ${count} memories"><span class="cal-day">${day}</span>${count ? `<span class="cal-count">${count}</span>` : ""}</span>`);
   }
+  const summaryText = `${summary.tasksCompleted || 0} tasks completed · ${summary.kudos || 0} Kudos · ${summary.newFriends || 0} new friends this month`;
   return `
     <div class="journal-calendar">
       <header class="cal-header">
@@ -88,25 +102,18 @@ function memoryMarkup(memory) {
 }
 
 export function memoriesMarkup(state) {
-  const journal = state.user?.journal || { summary: {}, memories: [] };
-  const summary = journal.summary || {};
-  const offset = Number(state.ui.journalMonthOffset || 0);
-  const now = new Date();
-  const monthDate = summary.year && summary.month
-    ? new Date(summary.year, summary.month - 1, 1)
-    : new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const { journal } = journalMonth(state);
   const filter = state.ui.journalTagFilter || "";
   const memories = filter
     ? journal.memories.filter(memory => memory.tags.includes(`task:${filter}`))
     : journal.memories;
-  const summaryText = `${summary.tasksCompleted || 0} tasks completed · ${summary.kudos || 0} Kudos · ${summary.newFriends || 0} new friends this month`;
   const filterBanner = filter
     ? `<p class="memory-filter">Showing memories for task <strong>${escapeHtml(filter)}</strong></p>`
     : "";
   return `
-    ${calendarMarkup(monthDate, summary.dayCounts || {}, summaryText)}
     <section class="memory-list">
       <h3>Memories <span class="memory-count">${memories.length}</span></h3>
+      <img class="journal-flourish" src="/app/assets/journal-flourish.svg" alt="" aria-hidden="true">
       ${filterBanner}
       ${memories.length
         ? memories.map(memoryMarkup).join("")

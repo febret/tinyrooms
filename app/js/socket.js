@@ -80,7 +80,7 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
           return;
         }
         if (envelope.type === "result") {
-          onResult?.({ ...envelope, command: pending.get(envelope.request_id)?.command || "" });
+          onResult?.(envelope);
           settlePending(envelope);
         }
       };
@@ -104,7 +104,7 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
     sendCommand(command) {
       const id = requestId();
       return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject, command });
+        pending.set(id, { resolve, reject });
         try {
           sendJson({ v: 1, type: "command", request_id: id, command });
         } catch (error) {

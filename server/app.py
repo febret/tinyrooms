@@ -54,11 +54,18 @@ from server.security import (
 )
 from server.services.activities import ActivityService
 from server.services.actions import ActionsService
+from server.services.audit import AuditService
+from server.services.auras import AuraService
 from server.services.cards import CardService
+from server.services.crafting import CraftingService
 from server.services.dialogs import DialogService
+from server.services.dispensers import DispenserService
+from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
+from server.services.ownership import OwnershipService
+from server.services.powers import PowersService
 from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
@@ -124,6 +131,13 @@ class RuntimeState:
     dialogs: DialogService
     tasks: TaskService
     memories: MemoryService
+    powers: PowersService
+    audit: AuditService
+    ownership: OwnershipService
+    environment: EnvironmentService
+    auras: AuraService
+    dispensers: DispenserService
+    crafting: CraftingService
     behaviors: BehaviorDispatcher
     ticker: RoomTicker
 
@@ -245,6 +259,7 @@ def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[st
         "activity": runtime.activities.serialize(activity),
         "tasks": runtime.tasks.view_payload(account.id),
         "journal": runtime.memories.journal_payload(account.id),
+        "powers": sorted(runtime.powers.effective(account)),
     }
 
 
@@ -309,6 +324,7 @@ async def _handle_replaced_connection(
     message: str = "Your session was replaced by a newer login.",
 ) -> None:
     if replaced.room_id is not None:
+        runtime.auras.leave(replaced.account_id, replaced.room_id)
         await _broadcast_room_event(
             runtime,
             room_id=replaced.room_id,
@@ -369,6 +385,13 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     actions = ActionsService(hub, profiles, stats, catalog, world.id)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
     shop = ShopService(hub, profiles, catalog, content, world.id)
+    audit = AuditService(hub, world.id)
+    powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
+    ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
+    environment = EnvironmentService(hub, world, world_state)
+    auras = AuraService(hub, stats, world)
+    dispensers = DispenserService(hub, profiles, catalog, world)
+    crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
     registry = build_registry()
     rooms = RoomService(
         hub=hub,
@@ -380,6 +403,8 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         world=world,
         stats=stats,
         command_verbs=frozenset(f".{spec.name}" for spec in registry.list()),
+        environment=environment,
+        auras=auras,
     )
     dialogs = DialogService(
         hub=hub,
@@ -403,17 +428,28 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         scripts=scripts,
         world=world,
         tasks=tasks,
+        environment=environment,
     )
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)
     rooms.attach_dialogs(dialogs)
+    runtime_holder: dict[str, RuntimeState] = {}
+
+    async def _deliver_tick_result(result: object) -> None:
+        runtime = runtime_holder.get("runtime")
+        if runtime is not None:
+            await _deliver_behavior_result(runtime, result)
+
     ticker = RoomTicker(
         dispatcher=behaviors,
         world=world,
         connections=connections,
+        environment=environment,
+        auras=auras,
+        on_result=_deliver_tick_result,
         interval=config.tick_seconds,
     )
-    return RuntimeState(
+    runtime = RuntimeState(
         config=config,
         hub=hub,
         catalog=catalog,
@@ -436,9 +472,18 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         dialogs=dialogs,
         tasks=tasks,
         memories=memories,
+        powers=powers,
+        audit=audit,
+        ownership=ownership,
+        environment=environment,
+        auras=auras,
+        dispensers=dispensers,
+        crafting=crafting,
         behaviors=behaviors,
         ticker=ticker,
     )
+    runtime_holder["runtime"] = runtime
+    return runtime
 
 
 def create_app(config: AppConfig | None = None) -> FastAPI:
@@ -663,6 +708,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             await _handle_replaced_connection(runtime, replaced)
         room_id = runtime.rooms.current_room_for_account(account.id)
         await runtime.connections.set_room(account.id, room_id)
+        runtime.auras.enter(account.id, room_id)
         snapshot = await runtime.rooms.build_snapshot(account, room_id)
         await connection.send(room_snapshot_envelope(snapshot))
         await _broadcast_room_event(
@@ -754,6 +800,14 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         dialogs=runtime.dialogs,
                         tasks=runtime.tasks,
                         memories=runtime.memories,
+                        powers=runtime.powers,
+                        ownership=runtime.ownership,
+                        environment=runtime.environment,
+                        audit=runtime.audit,
+                        connections=runtime.connections,
+                        dispensers=runtime.dispensers,
+                        crafting=runtime.crafting,
+                        recipes=runtime.world.recipes,
                     )
                     outcome = await dispatch_command(context, parsed_command)
                 except (CommandParseError, CommandError, ValueError, sqlite3.IntegrityError) as exc:
@@ -775,6 +829,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         message=outcome.message,
                         payload=outcome.payload,
                         events=outcome.private_events,
+                        toast=outcome.toast,
+                        log=outcome.log,
                     )
                 )
                 if outcome.snapshot is not None:
@@ -790,6 +846,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         except WebSocketDisconnect:
             active = await runtime.connections.get(account.id)
             if active is connection and connection.room_id is not None:
+                runtime.auras.leave(account.id, connection.room_id)
                 await _broadcast_room_event(
                     runtime,
                     room_id=connection.room_id,

@@ -298,8 +298,8 @@ Automate isolated black-box scenarios against real HTTPS servers:
 7. Friend request with one user offline and monthly Journal aggregation.
 8. Bedroom ownership -> constrained edit -> second-client live update.
 9. Two-user concurrency at dispenser, shared props, room cards, and task credit.
-10. Restart during active timed light/buff/cooldown and verify elapsed-time
-    recovery/expiry.
+10. Restart during active timed light/buff and verify elapsed-time
+    recovery/expiry (the dispenser cooldown instead resets on restart).
 11. Desktop and phone playthrough with screenshots at every major view.
 12. Trusted cross-world round trip preserving shared state and restoring native
     tutorial cards on return.

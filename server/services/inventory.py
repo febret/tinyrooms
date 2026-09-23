@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
 from server.content.gameplay import LevelTable
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
-from server.services.cards import require_definition, require_inventory_stack
+from server.services.cards import grant_card_to_inventory, require_definition, require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
@@ -49,6 +49,23 @@ class InventoryService:
 
     def _stack(self, account_id: str, stack_id: str) -> InventoryStack:
         return require_inventory_stack(self._profiles, self._world_id, account_id, stack_id)
+
+    def grant(self, account: AccountRecord, card_id: str, quantity: int = 1) -> InventoryMutation:
+        """Grant copies of a card directly to an account's inventory."""
+
+        definition = self._definition(card_id)
+        if quantity < 1:
+            raise ValueError("Quantity must be at least 1.")
+        with self._hub.transaction() as connection:
+            for _ in range(quantity):
+                grant_card_to_inventory(
+                    self._profiles,
+                    connection,
+                    account_id=account.id,
+                    definition=definition,
+                    world_id=self._world_id,
+                )
+            return self._finish(connection, account.id)
 
     def equip(self, account: AccountRecord, stack_id: str) -> InventoryMutation:
         """Equip an item/action stack when a slot is free."""

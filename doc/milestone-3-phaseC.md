@@ -7,7 +7,7 @@
 ## 1. What this phase delivers
 
 Reusable built-in prop behaviors: unlimited weighted **dispensers** with a shared
-persistent cooldown, **crafting stations** with validate-before-consume stack
+in-memory cooldown (reset on restart), **crafting stations** with validate-before-consume stack
 selection, **room auras** applied only while present, persistent **environment
 state** gating visibility/lighting/exits/actions with one revisioned broadcast,
 and a centralized **room ownership** service.
@@ -44,7 +44,8 @@ Out of scope: powers/auth commands (D), room-owner editing UI (E), world editor
 - Imports grouped stdlib / third-party / `server.*`.
 - No `localStorage`/`sessionStorage`; no direct client-side value creation.
 - All timers persist as UTC instants and count elapsed time across restart and
-  while nobody is connected.
+  while nobody is connected, except the dispenser recharge cooldown, which is
+  held in memory and resets on server restart.
 - Tests: `python -m unittest discover -s tests -v`.
 
 ## 3. Work
@@ -52,18 +53,6 @@ Out of scope: powers/auth commands (D), room-owner editing UI (E), world editor
 ### 3.1 Schema
 
 Bump **world** schema 7 → 8 and **profile** schema 5 → 6.
-
-World fresh-schema additions (also `_WORLD_TABLES`, column specs,
-`_WORLD_MIGRATIONS[8]`):
-
-```sql
-CREATE TABLE IF NOT EXISTS prop_cooldowns (
-    namespace TEXT NOT NULL,
-    instance_id TEXT NOT NULL,
-    ready_at TEXT NOT NULL,
-    PRIMARY KEY (namespace, instance_id)
-);
-```
 
 Room state columns added to `room_states` (fresh schema plus
 `ALTER TABLE room_states ADD COLUMN ...` in the migration):
@@ -73,21 +62,10 @@ environment_json TEXT NOT NULL DEFAULT '{}'
 layout_revision  INTEGER NOT NULL DEFAULT 0
 ```
 
-Profile fresh-schema addition (`_PROFILE_TABLES`, column specs,
-`_PROFILE_MIGRATIONS[6]`):
-
-```sql
-CREATE TABLE IF NOT EXISTS craft_operations (
-    account_id TEXT NOT NULL,
-    operation_id TEXT NOT NULL,
-    recipe_id TEXT NOT NULL,
-    world_id TEXT NOT NULL,
-    results_json TEXT NOT NULL CHECK (json_valid(results_json)),
-    created_at TEXT NOT NULL,
-    PRIMARY KEY (account_id, operation_id),
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-```
+No profile schema change is needed. Crafting is stateless: it consumes
+ingredients, grants outputs, and charges energy in one transaction, but does not
+record operations. (An earlier `craft_operations` idempotency table was removed
+in profile schema 10.)
 
 ### 3.2 Recipe content
 
@@ -106,15 +84,16 @@ Add to `server/behaviors/builtin.py` (or a new
 `server/services/dispensers.py`) a `DispenserService`:
 - `dispense(account, room_id, prop_instance_id) -> DispenseResult`.
 - Validate the prop's `behavior == "dispenser"` and its `content` card list.
-- Enforce one shared cooldown per prop: read `prop_cooldowns[(world_id, instance_id)]`;
-  `ready_at` absent means ready. On rejection return `remaining_seconds`; no cost.
-- Weighted selection: prop YAML may define `weights: {card_id: number}`; when
+- Enforce one shared cooldown per prop: read the in-memory `(world_id, instance_id)`
+  entry; absent means ready. On rejection return `remaining_seconds`; no cost.
+- Weighted selection: prop YAML may define `draw_weight: {card_id: number}`; when
   absent every listed card is equally weighted. Use deterministic RNG injection
   (`random.Random`) so tests can seed it.
 - Grant directly to the activating account's inventory via
   `grant_card_to_inventory` using normal stacking rules.
-- Set `ready_at = now + cooldown` (default 600s) in the same transaction.
-- A newly placed prop with no row is ready.
+- Set the in-memory `ready_at = now + cooldown` (default 600s) in the same
+  transaction. The cooldown resets on server restart.
+- A newly placed prop with no entry is ready.
 Commands: `.dispense @prop:<instance_id>` (and a `.dispense <instance_id>`
 short form for authored quick actions). Authored dispenser action `.dispense
 dollhouse0` becomes valid.
@@ -128,23 +107,21 @@ inventory, stats, catalog, content, recipes, world_id)`:
   account's eligible source stacks (`stack_id`, `quantity`, `equipped`) from
   inventory. Equipped stacks are shown but only used when explicitly selected;
   slotted skill stacks are excluded.
-- `craft(account, room_id, prop_instance_id, recipe_id, selections, operation_id)`:
-  - Idempotency: `craft_operations[(account_id, operation_id)]`; a duplicate
-    returns the stored results without consuming or granting.
+- `craft(account, room_id, prop_instance_id, recipe_id, selections)`:
   - Validate the prop is a crafting station exposing the recipe.
   - Validate every selection references an eligible stack with enough quantity;
     reject the whole craft on any mismatch.
   - Consume all ingredients, grant the output to inventory, charge
-    `energy_cost` via `StatsService`, update affected equipped-stack bonuses,
-    and record the operation **in one transaction**. Nothing is consumed when the
-    craft is invalid.
+    `energy_cost` via `StatsService`, and update affected equipped-stack
+    bonuses **in one transaction**. Nothing is consumed when the craft is
+    invalid.
 - Guard concurrent crafts with the existing `DatabaseHub.transaction()`
   (`BEGIN IMMEDIATE`) and re-read stacks inside the transaction.
 Commands:
 - `.craft @prop:<instance_id>` — open the crafting activity bound to the prop
   (activity `config` carries the prop and recipe list).
 - `.craft_preview <recipe_id>` — preview for the activity's bound prop.
-- `.craft_make <recipe_id> <operation_id> <stack_id>:<quantity> ...` — execute.
+- `.craft_make <recipe_id> <stack_id>:<quantity> ...` — execute.
 Extend the activity bridge command path as needed; keep the service API the
 contract and commands thin wrappers.
 
@@ -205,7 +182,7 @@ Phase D.
 
 Create `tests/test_milestone3_props.py` and `tests/test_milestone3_crafting.py`
 (subclass `tests/common.py:ServiceTestCase`). Cover:
-- Shared dispenser cooldown across two users and across a hub reopen; remaining
+- Shared dispenser cooldown across two users, reset on hub reopen; remaining
   time on rejection; new prop is ready; deterministic weighted draw with a seeded
   RNG; direct-to-inventory grant with correct stacking.
 - Craft source-stack selection (including an explicitly selected equipped stack),
@@ -227,7 +204,7 @@ npm run test:browser
 
 Definition of done:
 - [ ] A dispenser attempt during cooldown rejects with remaining time and no cost.
-- [ ] Cooldown survives restart and counts elapsed stopped/serverless time.
+- [ ] Cooldown resets on server restart and rejects with remaining time while active.
 - [ ] Invalid crafts consume nothing; duplicate operations never double-grant.
 - [ ] Auras never stack and clear on departure.
 - [ ] Environment changes broadcast one revisioned update and gate the room.

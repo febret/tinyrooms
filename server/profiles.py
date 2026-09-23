@@ -837,17 +837,68 @@ class ProfileRepository:
             (json.dumps(counters), account_id),
         )
 
+    def _read_buffs_json(self, connection: sqlite3.Connection, account_id: str) -> dict[str, object]:
+        row = connection.execute(
+            "SELECT buffs_json FROM user_profiles WHERE account_id = ?",
+            (account_id,),
+        ).fetchone()
+        if row is None:
+            return {}
+        try:
+            data = json.loads(row["buffs_json"])
+        except (TypeError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
     def write_buffs(
         self,
         connection: sqlite3.Connection,
         account_id: str,
         buffs: list[dict[str, object]],
     ) -> None:
-        """Persist active buff instances for a user."""
+        """Persist active buff instances, preserving source auras."""
 
+        data = self._read_buffs_json(connection, account_id)
+        data["instances"] = buffs
         connection.execute(
             "UPDATE user_profiles SET buffs_json = ? WHERE account_id = ?",
-            (json.dumps({"instances": buffs}), account_id),
+            (json.dumps(data), account_id),
+        )
+
+    def write_buff_sources(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        updates: dict[str, list[dict[str, object]] | None],
+    ) -> None:
+        """Set or clear named source modifier contributions, preserving buff instances."""
+
+        data = self._read_buffs_json(connection, account_id)
+        sources = data.get("sources")
+        if not isinstance(sources, dict):
+            sources = {}
+        for source, payload in updates.items():
+            if payload is None:
+                sources.pop(source, None)
+            else:
+                sources[source] = payload
+        data["sources"] = sources
+        connection.execute(
+            "UPDATE user_profiles SET buffs_json = ? WHERE account_id = ?",
+            (json.dumps(data), account_id),
+        )
+
+    def write_ownership(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        ownership: dict[str, object],
+    ) -> None:
+        """Persist the world-scoped ownership claims for a user."""
+
+        connection.execute(
+            "UPDATE user_profiles SET ownership_json = ? WHERE account_id = ?",
+            (json.dumps(ownership), account_id),
         )
 
     def update_profile(

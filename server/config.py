@@ -28,6 +28,7 @@ class AppConfig:
     worldstate_path: Path
     new_account_passphrase: str
     features: frozenset[str]
+    bootstrap_admins: frozenset[str]
     timezone_name: str
     timezone: ZoneInfo
     host: str
@@ -138,6 +139,11 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     feature_value = values.get("TRSERVER_FEATURES", "")
     features = parse_features(feature_value)
 
+    admin_value = values.get("TRSERVER_ADMINS", "")
+    bootstrap_admins = frozenset(
+        entry.strip().casefold() for entry in admin_value.split(",") if entry.strip()
+    )
+
     timezone_name = values.get("TRSERVER_TIMEZONE", "UTC").strip()
     if not timezone_name:
         raise ConfigError("TRSERVER_TIMEZONE must be set.")
@@ -173,6 +179,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         worldstate_path=worldstate_path.resolve(),
         new_account_passphrase=passphrase,
         features=features,
+        bootstrap_admins=bootstrap_admins,
         timezone_name=timezone_name,
         timezone=timezone,
         host=host,

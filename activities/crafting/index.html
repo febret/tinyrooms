@@ -2,11 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="refresh" content="0; url=../dev-sample/index.html?template=crafting">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crafting</title>
+    <title>Tinyrooms Crafting</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="/activities/crafting/crafting.css">
   </head>
   <body>
-    <p>Redirecting to the Milestone 1 activity shell… <a href="../dev-sample/index.html?template=crafting">Continue</a></p>
+    <main class="shell">
+      <header class="heading">
+        <div>
+          <div class="badge">Tinyrooms activity</div>
+          <h1 id="title">Crafting</h1>
+        </div>
+        <div class="energy" id="energy" aria-live="polite">— Energy</div>
+      </header>
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+      <section class="paper">
+        <p class="lede">Choose a recipe, then pick which ingredient stacks to use. Ingredients are only consumed when the craft succeeds.</p>
+        <div class="craft-layout">
+          <div class="recipe-list" id="recipes" role="listbox" aria-label="Recipes"></div>
+          <div class="recipe-detail" id="detail">
+            <p class="empty">Choose a recipe to begin.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div class="result" id="result" hidden>
+      <div class="result-panel" role="dialog" aria-modal="true" aria-label="Craft result">
+        <h2 id="result-title">Crafted!</h2>
+        <div class="result-cards" id="result-cards"></div>
+        <button type="button" class="primary" id="result-close">Continue</button>
+      </div>
+    </div>
+    <script src="/activities/shared.js"></script>
+    <script src="/activities/crafting/crafting.js"></script>
   </body>
-  </html>
+</html>

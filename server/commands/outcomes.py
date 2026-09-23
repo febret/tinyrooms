@@ -11,12 +11,20 @@ from server.content.gameplay import GameplayContent
 from server.content.worlds import WorldDefinition
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.actions import ActionsService
+from server.connections import ConnectionRegistry
+from server.content.recipes import RecipeDefinition
 from server.services.activities import ActivityService
+from server.services.audit import AuditService
 from server.services.cards import CardService
+from server.services.crafting import CraftingService
 from server.services.dialogs import DialogService
+from server.services.dispensers import DispenserService
+from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
+from server.services.ownership import OwnershipService
+from server.services.powers import PowersService
 from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
@@ -47,6 +55,8 @@ class CommandOutcome:
     private_events: list[dict[str, object]] = field(default_factory=list)
     room_broadcasts: list[PendingRoomBroadcast] = field(default_factory=list)
     snapshot: dict[str, object] | None = None
+    toast: bool = True
+    log: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,3 +85,11 @@ class CommandContext:
     dialogs: DialogService
     tasks: TaskService
     memories: MemoryService
+    powers: PowersService
+    ownership: OwnershipService
+    environment: EnvironmentService
+    audit: AuditService
+    connections: ConnectionRegistry
+    dispensers: DispenserService
+    crafting: CraftingService
+    recipes: dict[str, RecipeDefinition]

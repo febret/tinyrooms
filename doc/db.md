@@ -9,8 +9,8 @@ Milestone 2 backend. The schema source of truth is
 
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
-| Profile (user) DB | `<users_path>/profiles.sqlite3` | 5 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 7 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
+| Profile (user) DB | `<users_path>/profiles.sqlite3` | 8 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
+| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 8 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 At runtime both files are accessed through a single shared connection,
 `server/state/migrations.py:DatabaseHub`, which opens the profile DB and
@@ -58,6 +58,9 @@ Serialized to the client in `server/app.py:_serialize_account()` (wire
 | _(removed)_ `show_activity_log` | — | Moved into `user_profiles.profile_json.show_activity_log` (boolean, hidden by default; toggled by `.settings action-log`). |
 | `created_at` | TEXT NOT NULL | ISO creation timestamp. |
 | `updated_at` | TEXT NOT NULL | ISO last-update timestamp (bumped on sticker/settings/session changes). |
+| `powers` | TEXT NOT NULL DEFAULT '[]' | JSON array of granted power names (`admin`, `realtor`, `builder`, `moderator`, `game-master`). Written by `server/services/powers.py:PowersService.grant()` / `revoke()`; each change is recorded in `audit_log`. |
+| `muted_until` | TEXT NULL | ISO mute-expiry timestamp; NULL when not muted. Written by `PowersService.mute()` / `unmute()`. |
+| `muted_by` | TEXT NULL | Account id of the moderator who applied the current mute. |
 
 ### 2.2 `sessions`
 
@@ -235,7 +238,7 @@ sequence counter is needed.
 
 World-state databases at an older supported version are migrated forward
 additively; a fresh DB is required only for versions newer than this build
-(`WORLD_SCHEMA_VERSION = 7`).
+(`WORLD_SCHEMA_VERSION = 8`).
 
 ### 3.1 `room_states`
 
@@ -299,9 +302,15 @@ restarts so counters and prop environment values persist.
 | `state_json` | TEXT NOT NULL CHECK `json_valid` | Script-managed JSON state. |
 | `updated_at` | TEXT NOT NULL | ISO last-write timestamp. |
 
-### 3.4 In-memory room state (not persisted)
+### 3.4 In-memory state (not persisted)
 
 `WorldStateRepository` holds room chat history in a process-local dict, capped at
 `MAX_HISTORY_MESSAGES` (50) entries of `{speaker_id, speaker, style, text}`.
 `RoomService.say()` appends via `append_chat_message()`; snapshots include it via
 `read_room_view()`. It is intentionally lost on server restart.
+
+`DispenserService` keeps each dispenser prop's recharge instant in a process-local
+dict keyed by `(world_id, instance_id)` (`server/services/dispensers.py`). It is
+deliberately not persisted, so every dispenser starts ready after a server
+restart. (The former `prop_cooldowns` world table was removed; an older database
+may still contain it, unused.)

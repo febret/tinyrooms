@@ -13,7 +13,7 @@ from server.security import utc_now
 from server.services.cards import grant_card_to_inventory
 from server.state.migrations import DatabaseHub
 
-DEFAULT_RARITY_WEIGHTS = {
+DEFAULT_RARITY_DRAW_WEIGHTS = {
     "Common": 70.0,
     "Uncommon": 20.0,
     "Rare": 8.0,
@@ -102,23 +102,14 @@ class ShopService:
         return definition.rarity or "Common"
 
     def _pick_rarity(self, pack: PackDefinition, rng: random.Random) -> str:
-        definitions = [self._catalog.cards[card_id] for card_id in pack.cards]
-        present = {self._effective_rarity(definition) for definition in definitions}
-        weights = {
-            rarity: DEFAULT_RARITY_WEIGHTS[rarity]
-            for rarity in sorted(present)
-            if DEFAULT_RARITY_WEIGHTS.get(rarity, 0.0) > 0
-        }
-        total = sum(weights.values())
-        if total <= 0:
+        present = {self._effective_rarity(self._catalog.cards[card_id]) for card_id in pack.cards}
+        candidates = [
+            rarity for rarity in sorted(present) if DEFAULT_RARITY_DRAW_WEIGHTS.get(rarity, 0.0) > 0
+        ]
+        if not candidates:
             return sorted(present)[0]
-        roll = rng.random() * total
-        cumulative = 0.0
-        for rarity, weight in weights.items():
-            cumulative += weight
-            if roll < cumulative:
-                return rarity
-        return list(weights)[-1]
+        weights = [DEFAULT_RARITY_DRAW_WEIGHTS[rarity] for rarity in candidates]
+        return rng.choices(candidates, weights=weights, k=1)[0]
 
     def draw(self, pack: PackDefinition, rng: random.Random | None = None) -> list[CardDefinition]:
         """Draw one pack's independent card results."""

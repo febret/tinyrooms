@@ -14,10 +14,13 @@ from server.content.activities import (
 )
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.conditions import StatusCondition, parse_status_condition
+from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.tasks import TaskDefinition, load_task_definitions
+from server.game.modifiers import MODIFIER_TARGETS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
+POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +73,18 @@ class PropInstanceDefinition:
     recipes: tuple[str, ...]
     animation: str | None
     activity: str | None
+    draw_weight: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class AuraDefinition:
+    """A room-scoped modifier or named buff applied while present."""
+
+    stat: str | None = None
+    delta: float = 0.0
+    buff_id: str | None = None
+    duration_seconds: float | None = None
+    daily: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +113,7 @@ class RoomDefinition:
     props: dict[str, PropInstanceDefinition]
     exits: dict[str, ExitDefinition]
     initial_cards: tuple[InitialRoomCard, ...]
+    aura: tuple[AuraDefinition, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +181,82 @@ class WorldDefinition:
     peeps: dict[str, PeepDefinition]
     activities: dict[str, ActivityDefinition] = field(default_factory=dict)
     tasks: dict[str, TaskDefinition] = field(default_factory=dict)
+    powers: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
+
+
+def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str, ...]]:
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, dict):
+        raise ContentError(f"{world_file} powers must be a mapping of username to power list.")
+    powers: dict[str, tuple[str, ...]] = {}
+    for username, raw_powers in raw_value.items():
+        if not isinstance(username, str) or not username.strip():
+            raise ContentError(f"{world_file} powers contains an empty username entry.")
+        if not isinstance(raw_powers, list):
+            raise ContentError(f"{world_file} powers for '{username}' must be a list.")
+        granted: list[str] = []
+        for power in raw_powers:
+            if not isinstance(power, str) or power not in POWER_NAMES:
+                raise ContentError(
+                    f"{world_file} powers for '{username}' has unknown power '{power}'. "
+                    f"Expected one of {', '.join(POWER_NAMES)}."
+                )
+            if power not in granted:
+                granted.append(power)
+        powers[username.strip().casefold()] = tuple(granted)
+    return powers
+
+
+def _load_draw_weight(raw_value: Any, prop_instance_id: str, card_ids: set[str]) -> dict[str, float]:
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, dict):
+        raise ContentError(f"Prop '{prop_instance_id}' draw_weight must be a mapping.")
+    draw_weight: dict[str, float] = {}
+    for card_id, weight in raw_value.items():
+        if not isinstance(card_id, str) or card_id not in card_ids:
+            raise ContentError(f"Prop '{prop_instance_id}' draw_weight references unknown card '{card_id}'.")
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or float(weight) < 0:
+            raise ContentError(f"Prop '{prop_instance_id}' draw_weight for '{card_id}' must be a non-negative number.")
+        draw_weight[card_id] = float(weight)
+    return draw_weight
+
+
+def _load_aura(raw_value: Any, room_id: str) -> tuple[AuraDefinition, ...]:
+    if raw_value is None:
+        return ()
+    if not isinstance(raw_value, list):
+        raise ContentError(f"Room '{room_id}' aura must be a list.")
+    auras: list[AuraDefinition] = []
+    for index, entry in enumerate(raw_value):
+        if not isinstance(entry, dict):
+            raise ContentError(f"Room '{room_id}' aura entry {index} must be a mapping.")
+        raw_stat = entry.get("stat")
+        stat = str(raw_stat).strip() if raw_stat is not None else None
+        if stat is not None and stat not in MODIFIER_TARGETS:
+            raise ContentError(f"Room '{room_id}' aura entry {index} has unknown stat '{stat}'.")
+        raw_delta = entry.get("delta", entry.get("amount", 0))
+        if isinstance(raw_delta, bool) or not isinstance(raw_delta, (int, float)):
+            raise ContentError(f"Room '{room_id}' aura entry {index} delta must be a number.")
+        raw_buff = entry.get("buff")
+        buff_id = str(raw_buff).strip() if raw_buff is not None else None
+        if stat is None and buff_id is None:
+            raise ContentError(f"Room '{room_id}' aura entry {index} must define a stat or a buff.")
+        raw_duration = entry.get("duration")
+        if raw_duration is not None and (isinstance(raw_duration, bool) or not isinstance(raw_duration, (int, float))):
+            raise ContentError(f"Room '{room_id}' aura entry {index} duration must be a number.")
+        auras.append(
+            AuraDefinition(
+                stat=stat,
+                delta=float(raw_delta),
+                buff_id=buff_id,
+                duration_seconds=float(raw_duration) if raw_duration is not None else None,
+                daily=bool(entry.get("daily", False)),
+            )
+        )
+    return tuple(auras)
 
 
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
@@ -313,6 +405,7 @@ def load_world_definition(
     props_payload = require_mapping(load_yaml_file(props_file), props_file)
     rooms_payload = require_mapping(load_yaml_file(rooms_file), rooms_file)
     peeps_payload = require_mapping(load_yaml_file(peeps_file), peeps_file)
+    recipes = load_recipes(world_path, card_ids)
 
     props: dict[str, PropDefinition] = {}
     for prop_id, raw_prop in props_payload.items():
@@ -369,6 +462,10 @@ def load_world_definition(
             for card_id in content:
                 if card_id not in card_ids:
                     raise ContentError(f"Prop '{prop_instance_id}' references unknown card '{card_id}'.")
+            instance_recipes = tuple(str(value) for value in raw_instance.get("recipes", []) or [])
+            for recipe_id in instance_recipes:
+                if recipe_id not in recipes:
+                    raise ContentError(f"Prop '{prop_instance_id}' references unknown recipe '{recipe_id}'.")
             room_props[prop_instance_id] = PropInstanceDefinition(
                 id=prop_instance_id,
                 prop_id=prop_id,
@@ -380,12 +477,13 @@ def load_world_definition(
                 content=content,
                 cooldown=int(raw_instance["cooldown"]) if "cooldown" in raw_instance else None,
                 personal=bool(raw_instance.get("personal", False)),
-                recipes=tuple(str(value) for value in raw_instance.get("recipes", []) or []),
+                recipes=instance_recipes,
                 animation=_load_animation(
                     raw_instance.get("animation"),
                     f"Room '{room_id}' prop '{prop_instance_id}' animation",
                 ),
                 activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
+                draw_weight=_load_draw_weight(raw_instance.get("draw_weight"), prop_instance_id, card_ids),
             )
         raw_exits = raw_room.get("exits", {}) or {}
         if not isinstance(raw_exits, dict):
@@ -435,6 +533,7 @@ def load_world_definition(
             props=room_props,
             exits=room_exits,
             initial_cards=tuple(room_cards),
+            aura=_load_aura(raw_room.get("aura"), room_id),
         )
 
     if entry_room_id not in rooms:
@@ -500,4 +599,6 @@ def load_world_definition(
         peeps=peeps,
         activities=activities,
         tasks=load_task_definitions(world_path, card_ids),
+        powers=_load_world_powers(world_payload.get("powers"), world_file),
+        recipes=recipes,
     )

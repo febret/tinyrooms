@@ -40,6 +40,7 @@ this phase completes.
 - Imports grouped stdlib / third-party / `server.*`.
 - Command paths and UI paths must call the **same service methods and permission
   checks**; never duplicate authorization logic.
+  
 - Never infer admin from account creation order. Never `eval`/`exec` arbitrary
   user input.
 - Tests: `python -m unittest discover -s tests -v`.
@@ -52,24 +53,6 @@ Bump **profile** schema 6 → 7. Fresh-schema additions (`_PROFILE_TABLES`,
 column specs, `_PROFILE_MIGRATIONS[7]`):
 
 ```sql
-CREATE TABLE IF NOT EXISTS account_powers (
-    account_id TEXT NOT NULL,
-    world_id TEXT NOT NULL,
-    power TEXT NOT NULL,
-    granted_by TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    PRIMARY KEY (account_id, world_id, power),
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS moderation_state (
-    account_id TEXT NOT NULL,
-    world_id TEXT NOT NULL,
-    muted_until TEXT,
-    muted_by TEXT,
-    updated_at TEXT NOT NULL,
-    PRIMARY KEY (account_id, world_id),
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-);
 CREATE TABLE IF NOT EXISTS audit_log (
     audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
     world_id TEXT NOT NULL,
@@ -83,6 +66,12 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
 ```
 
+Powers and moderation are stored on the `accounts` row rather than in dedicated
+tables: `powers TEXT NOT NULL DEFAULT '[]'` (JSON array) plus `muted_until` /
+`muted_by`. Schema 8 migrates any `account_powers` rows into `accounts.powers`
+and drops that table; schema 9 does the same for `moderation_state`. Every grant,
+revoke, mute, and unmute is recorded in `audit_log`.
+
 ### 3.2 Power source
 
 - Add `powers:` to `world.yaml` as a mapping `username -> [power, ...]`; validate
@@ -94,11 +83,11 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at
   bootstrap_admins)`:
   - `POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")`.
   - `effective(account) -> frozenset[str]` = world.yaml map ∪ bootstrap admins ∪
-    `account_powers` DB grants.
+    `accounts.powers` grants.
   - `has_power(account_id, power) -> bool`.
   - `grant(actor_id, target_account_id, power)` / `revoke(actor_id, target_account_id, power)`
-    writing `account_powers`; both write an audit entry.
-  - `is_muted(account_id) -> bool` from `moderation_state.muted_until > now`.
+    updating `accounts.powers`; both write an audit entry.
+  - `is_muted(account_id) -> bool` from `accounts.muted_until > now`.
   - `mute(actor_id, target_account_id, minutes)` / `unmute(actor_id, target_account_id)`.
 - `_serialize_account` adds `"powers": sorted(powers.effective(account))`.
 - `CommandContext` gains `powers: PowersService`, `ownership`, `environment`,

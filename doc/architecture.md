@@ -138,7 +138,7 @@ re-auth on generation mismatch (one gameplay session per account).
 | --- | --- |
 | `room.snapshot` | `{v:1, type:"room.snapshot", room: {...}}` — full state, replaces render. |
 | `room.event` | `{v:1, type:"room.event", event: {...}}` — incremental broadcast. |
-| `result` | `{v:1, type:"result", request_id, ok: bool, events: [...private], code?, message?, payload?}` — per-command ack. |
+| `result` | `{v:1, type:"result", request_id, ok: bool, events: [...private], code?, message?, payload?, toast?, log?}` — per-command ack. `toast`/`log` appear only when `false`: the command's generic `message` is then suppressed as a top-center toast and/or an Action Log line (purely user-facing commands set both). |
 | `session.replaced` | `{v:1, type:"session.replaced", message}` — forced sign-out. |
 | `error` | `{v:1, type:"error", code, message}` — protocol-level, no disconnect. |
 

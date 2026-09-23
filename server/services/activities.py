@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 import threading
 import uuid
 
@@ -22,6 +22,7 @@ class ActivitySession:
     room_id: str | None
     bridge_url: str
     attention: bool = False
+    config: dict[str, object] = field(default_factory=dict)
 
 
 class ActivityService:
@@ -48,6 +49,7 @@ class ActivityService:
         title: str,
         room_bound: bool,
         room_id: str | None,
+        config: dict[str, object] | None = None,
     ) -> ActivitySession:
         activity_id = str(uuid.uuid4())
         return ActivitySession(
@@ -59,6 +61,7 @@ class ActivityService:
             room_bound=room_bound,
             room_id=room_id,
             bridge_url=f"/api/activities/{activity_id}/bridge",
+            config=dict(config or {}),
         )
 
     def get(self, account_id: str) -> ActivitySession | None:
@@ -93,6 +96,7 @@ class ActivityService:
         room_bound: bool,
         room_id: str | None,
         replace_existing: bool = False,
+        config: dict[str, object] | None = None,
     ) -> tuple[ActivitySession, ActivitySession | None]:
         """Start an activity, optionally replacing the current one."""
 
@@ -108,6 +112,7 @@ class ActivityService:
                 title=title,
                 room_bound=room_bound,
                 room_id=room_id,
+                config=config,
             )
             self._sessions[account_id] = session
             return session, current
@@ -154,4 +159,5 @@ class ActivityService:
             "room_bound": activity.room_bound,
             "room_id": activity.room_id,
             "attention": activity.attention,
+            "config": dict(activity.config),
         }

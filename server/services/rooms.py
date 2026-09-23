@@ -49,6 +49,8 @@ class RoomService:
         world: WorldDefinition,
         stats: StatsService,
         command_verbs: frozenset[str] | None = None,
+        environment: object | None = None,
+        auras: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -61,6 +63,8 @@ class RoomService:
         self._allowed_verbs = set(command_verbs or ()) | BASE_QUICK_COMMANDS
         self._behaviors: object | None = None
         self._dialogs: object | None = None
+        self._environment = environment
+        self._auras = auras
 
     def attach_dispatcher(self, dispatcher: object) -> None:
         """Wire the behavior dispatcher used for navigation events."""
@@ -80,6 +84,12 @@ class RoomService:
         if remembered in self._world.rooms:
             return remembered
         return self._world.entry_room_id
+
+    @property
+    def world(self) -> WorldDefinition:
+        """Return the loaded world definition."""
+
+        return self._world
 
     @property
     def world_id(self) -> str:
@@ -106,6 +116,11 @@ class RoomService:
     def _exit_command(exit_id: str) -> str:
         return f".go @way:{exit_id}"
 
+    def _action_enabled(self, room_id: str, command: str) -> bool:
+        if self._environment is None:
+            return True
+        return bool(self._environment.is_action_enabled(room_id, command.split(maxsplit=1)[0]))
+
     def _normalize_quick_action(
         self,
         room: RoomDefinition,
@@ -118,10 +133,27 @@ class RoomService:
                 command = self._exit_command(remainder)
         if command.split(maxsplit=1)[0] not in self._allowed_verbs:
             return None
+        if not self._action_enabled(room.id, command):
+            return None
         return {"label": action.label, "command": command}
 
     def _visible_exits(self, room: RoomDefinition) -> list[ExitDefinition]:
-        return list(room.exits.values())
+        if self._environment is None:
+            return list(room.exits.values())
+        return [
+            exit_definition
+            for exit_definition in room.exits.values()
+            if self._environment.is_exit_enabled(room.id, exit_definition.id)
+        ]
+
+    def _visible_props(self, room: RoomDefinition) -> list[PropInstanceDefinition]:
+        if self._environment is None:
+            return list(room.props.values())
+        return [
+            prop
+            for prop in room.props.values()
+            if self._environment.is_prop_visible(room.id, prop.id)
+        ]
 
     def _visible_prop_actions(
         self,
@@ -244,6 +276,10 @@ class RoomService:
             )
         visible_definitions = self._visible_exits(room)
         visible_exits = [self._serialize_exit(exit_definition) for exit_definition in visible_definitions]
+        environment = self._environment.get(room_id) if self._environment is not None else {}
+        dark = room.dark
+        if self._environment is not None:
+            dark = self._environment.lighting(room_id) == "dark"
         return {
             "id": room.id,
             "label": room.label,
@@ -253,11 +289,12 @@ class RoomService:
                 "image_url": f"/assets/world/{self._world.id}/rooms/{room.board_image_name}",
                 "image_style": room.board_image_style,
                 "palette": list(room.palette),
-                "dark": room.dark,
+                "dark": dark,
             },
             "metadata": {"note": note},
+            "environment": environment,
             "exits": visible_exits,
-            "props": [self._serialize_prop(room, prop) for prop in room.props.values()],
+            "props": [self._serialize_prop(room, prop) for prop in self._visible_props(room)],
             "occupants": occupants,
             "npcs": self._room_peeps(room_id),
             "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],
@@ -329,11 +366,15 @@ class RoomService:
             )
         if self._dialogs is not None:
             self._dialogs.end(account.id, "room_changed")
+        if self._auras is not None:
+            self._auras.leave(account.id, source_room_id)
         with self._hub.transaction() as connection:
             if self.ROOM_CHANGE_ENERGY_COST:
                 self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
+        if self._auras is not None:
+            self._auras.enter(account.id, destination_room.id)
         closed = self._activities.close_if_room_bound(account.id, destination_room.id)
         if self._behaviors is not None:
             behavior_results.append(

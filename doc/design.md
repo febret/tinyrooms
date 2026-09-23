@@ -919,14 +919,15 @@ dispense randomly chooses a card from the prop's defined contents; dispensing
 does not permanently deplete that list.
 One copy is given directly to the activating user's inventory rather than
 placed in the room.
-Selection weights may be defined for the contents; without explicit weights,
-each listed card has an equal chance. Each dispense is an independent selection.
+Draw weights may be defined for the contents (`draw_weight: {card_id: number}`);
+without explicit draw weights, each listed card has an equal chance. Each
+dispense is an independent selection.
 
 After dispensing, a recharge timer prevents another dispense until it expires.
 The default recharge duration is 10 minutes of real time. Each dispenser prop
 has one shared timer for all users, not a separate timer per user.
-A newly placed dispenser starts ready. Recharge state survives server restarts,
-and elapsed time counts even while nobody is connected or the server is stopped.
+A newly placed dispenser starts ready. Recharge state is held in memory and
+resets on server restart, so every dispenser starts ready again after a restart.
 Dispensing costs 0 Energy by default; worlds may configure a different cost.
 An attempt during recharge is rejected without cost and shows the remaining wait.
 
