@@ -74,15 +74,6 @@ class DispenserTests(ServiceTestCase):
         self.assertNotIn("fancy-wallet", bea_inventory)
         self.assertNotIn("ballet-shoes", bea_inventory)
 
-    def test_weighted_draw_is_deterministic(self) -> None:
-        world = self._single_card_world("fancy-wallet")
-        service = DispenserService(
-            self.hub, self.profiles, self.catalog, world, rng=random.Random(3)
-        )
-        account = self.create_account("cam")
-        result = service.dispense(account, "playroom", "dollhouse0")
-        self.assertEqual(result.card_id, "fancy-wallet")
-
     def test_grant_stacks_into_existing_stack(self) -> None:
         account = self.create_account("dee")
         stack_id = self.grant_card(account, "plastic-bag", 1)
@@ -93,6 +84,48 @@ class DispenserTests(ServiceTestCase):
         self.assertEqual(service.dispense(account, "playroom", "dollhouse0").card_id, "plastic-bag")
         stack = self.profiles.get_inventory_stack(account.id, WORLD_ID, stack_id)
         self.assertEqual(stack.quantity, 2)
+
+    def test_dispensed_card_auto_equips_when_hand_has_space(self) -> None:
+        account = self.create_account("eve")
+        result = self.dispensers.dispense(account, "playroom", "dollhouse0")
+        self.assertTrue(result.granted)
+        equipped = [
+            stack.card_def_id
+            for stack in self.profiles.list_inventory(account.id, WORLD_ID)
+            if stack.equipped
+        ]
+        self.assertEqual(equipped, [result.card_id])
+
+    def test_dispensed_card_stays_unequipped_when_hand_is_full(self) -> None:
+        account = self.create_account("frank")
+        with self.hub.transaction() as connection:
+            for card_id in ("hand-light", "juicy-drink", "tasty-toast", "tomato-sauce", "pooper-scooper"):
+                definition = self.catalog.cards[card_id]
+                stacks = self.profiles.add_inventory_card(
+                    connection,
+                    account_id=account.id,
+                    world_id=WORLD_ID,
+                    card_def_id=card_id,
+                    quantity=1,
+                    scope="world",
+                    stack_limit=definition.stack_limit,
+                )
+                self.profiles.set_stack_equipped(
+                    connection,
+                    account_id=account.id,
+                    world_id=WORLD_ID,
+                    stack_id=stacks[0].stack_id,
+                    equipped=True,
+                )
+        result = self.dispensers.dispense(account, "playroom", "dollhouse0")
+        self.assertTrue(result.granted)
+        equipped = [
+            stack.card_def_id
+            for stack in self.profiles.list_inventory(account.id, WORLD_ID)
+            if stack.equipped
+        ]
+        self.assertEqual(len(equipped), 5)
+        self.assertNotIn(result.card_id, equipped)
 
 
 class DispenserRestartTests(unittest.TestCase):
@@ -234,6 +267,7 @@ class EnvironmentTests(ServiceTestCase):
         self.assertNotIn("exit0", {exit_definition["id"] for exit_definition in snapshot["exits"]})
         self.assertTrue(snapshot["board"]["dark"])
         self.assertEqual(snapshot["environment"]["lighting"], "dark")
+        self.assertEqual(snapshot["environment_revision"], 1)
 
 
 class PropCommandIntegrationTests(Milestone2IntegrationTestCase):

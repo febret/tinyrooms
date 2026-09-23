@@ -84,7 +84,12 @@ function connectSocket() {
     },
     onRoomEvent(envelope) {
       store.dispatch({ type: "room-event", event: envelope.event });
-      if (["presence.enter", "presence.leave"].includes(envelope.event?.type)) socket?.requestSnapshot();
+      if (["presence.enter", "presence.leave"].includes(envelope.event?.type)) {
+        peeps.noteMove(envelope.event);
+        socket?.requestSnapshot();
+      } else if (envelope.event?.type === "room.environment") {
+        socket?.requestSnapshot();
+      }
     },
     onSessionReplaced(envelope) { store.dispatch({ type: "session-replaced", message: envelope.message }); },
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
@@ -581,6 +586,7 @@ const peeps = createPeepsView({
     store.dispatch({ type: "select", selection });
   },
   onDismiss: id => store.dispatch({ type: "dismiss-bubble", id }),
+  onMove: command => { if (command) void sendCommand(command).catch(showError); },
   onSound: () => playTone("flip"),
 });
 const board = createBoard({

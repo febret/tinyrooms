@@ -126,10 +126,20 @@ def visible_rejection_event(code: str, message: str) -> dict[str, object]:
     return {"type": "visible.rejection", "code": code, "message": message}
 
 
-def presence_enter_event(*, account_id: str, username: str, room_id: str, source_room_id: str) -> dict[str, object]:
+def presence_enter_event(
+    *,
+    account_id: str,
+    username: str,
+    room_id: str,
+    source_room_id: str,
+    source_room_label: str | None = None,
+) -> dict[str, object]:
     """Build the room presence-enter event payload."""
 
-    return {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username, "source_room_id": source_room_id}
+    event = {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username, "source_room_id": source_room_id}
+    if source_room_label is not None:
+        event["source_room_label"] = source_room_label
+    return event
 
 
 def presence_leave_event(
@@ -138,6 +148,7 @@ def presence_leave_event(
     username: str,
     room_id: str,
     destination_room_id: str | None = None,
+    direction: str | None = None,
     reason: str | None = None,
 ) -> dict[str, object]:
     """Build the room presence-leave event payload."""
@@ -145,6 +156,8 @@ def presence_leave_event(
     event = {"type": "presence.leave", "room_id": room_id, "account_id": account_id, "username": username}
     if destination_room_id is not None:
         event["destination_room_id"] = destination_room_id
+    if direction is not None:
+        event["direction"] = direction
     if reason is not None:
         event["reason"] = reason
     return event

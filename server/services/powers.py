@@ -42,8 +42,6 @@ class PowersService:
     recorded in the audit log.
     """
 
-    POWER_NAMES = POWER_NAMES
-
     def __init__(
         self,
         hub: DatabaseHub,
@@ -137,15 +135,7 @@ class PowersService:
     def is_muted(self, account_id: str) -> bool:
         """Return whether the account is currently muted."""
 
-        with self._hub.locked() as connection:
-            row = connection.execute(
-                "SELECT muted_until FROM accounts WHERE id = ?",
-                (account_id,),
-            ).fetchone()
-        if row is None:
-            return False
-        muted_until = _parse_timestamp(row["muted_until"])
-        return muted_until is not None and muted_until > utc_now()
+        return self.mute_until(account_id) is not None
 
     def mute_until(self, account_id: str) -> datetime | None:
         """Return the mute expiry instant, if the account is muted."""

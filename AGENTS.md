@@ -59,6 +59,7 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_WORLD_PATH` | No | `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
 | `TRSERVER_FEATURES` | No | _(none)_ |
+| `TRSERVER_ADMINS` | No | _(none)_ |
 | `TRSERVER_TIMEZONE` | No | `UTC` |
 
 ## Testing

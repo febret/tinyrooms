@@ -70,7 +70,7 @@ async def _admin_status(context: CommandContext) -> CommandOutcome:
         payload={
             "world_id": context.rooms.world_id,
             "rooms": len(context.rooms.world.rooms),
-            "online": len(online),
+            "online_in_room": len(online),
             "account_id": context.account.id,
         },
     )

@@ -49,8 +49,9 @@ this phase completes.
 
 ### 3.1 Schema
 
-Bump **profile** schema 6 → 7. Fresh-schema additions (`_PROFILE_TABLES`,
-column specs, `_PROFILE_MIGRATIONS[7]`):
+Bump **profile** schema 5 → 6. Fresh-schema additions (`_PROFILE_TABLES`,
+column specs, `_PROFILE_MIGRATIONS[6]`): the `accounts` columns `powers`,
+`muted_until`, and `muted_by`, plus:
 
 ```sql
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -68,8 +69,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at
 
 Powers and moderation are stored on the `accounts` row rather than in dedicated
 tables: `powers TEXT NOT NULL DEFAULT '[]'` (JSON array) plus `muted_until` /
-`muted_by`. Schema 8 migrates any `account_powers` rows into `accounts.powers`
-and drops that table; schema 9 does the same for `moderation_state`. Every grant,
+`muted_by`. The single schema 5 → 6 migration adds those columns and creates
+`audit_log`; no separate power or moderation tables are created. Every grant,
 revoke, mute, and unmute is recorded in `audit_log`.
 
 ### 3.2 Power source

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -154,7 +153,7 @@ class MigrationTests(unittest.TestCase):
 class Milestone3MigrationTests(unittest.TestCase):
     """Phase C/D additions upgrade the current schema versions in place."""
 
-    def test_profile_v6_migrates_to_power_tables(self) -> None:
+    def test_profile_v5_migrates_powers_and_audit(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "profiles.sqlite3"
             ensure_profile_database(path)
@@ -162,13 +161,11 @@ class Milestone3MigrationTests(unittest.TestCase):
             connection.executescript(
                 """
                 BEGIN;
-                DROP TABLE IF EXISTS account_powers;
-                DROP TABLE IF EXISTS moderation_state;
                 DROP TABLE IF EXISTS audit_log;
                 ALTER TABLE accounts DROP COLUMN powers;
                 ALTER TABLE accounts DROP COLUMN muted_until;
                 ALTER TABLE accounts DROP COLUMN muted_by;
-                PRAGMA user_version = 6;
+                PRAGMA user_version = 5;
                 COMMIT;
                 """
             )
@@ -179,87 +176,14 @@ class Milestone3MigrationTests(unittest.TestCase):
             connection = sqlite3.connect(path)
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], PROFILE_SCHEMA_VERSION)
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            self.assertIn("audit_log", tables)
             self.assertNotIn("account_powers", tables)
             self.assertNotIn("moderation_state", tables)
             self.assertNotIn("craft_operations", tables)
-            self.assertIn("audit_log", tables)
             columns = [row[1] for row in connection.execute("PRAGMA table_info(accounts)")]
             self.assertIn("powers", columns)
             self.assertIn("muted_until", columns)
             self.assertIn("muted_by", columns)
-            connection.close()
-
-    def test_profile_v7_migrates_powers_and_moderation_into_accounts(self) -> None:
-        with TemporaryDirectory() as temporary_directory:
-            path = Path(temporary_directory) / "profiles.sqlite3"
-            ensure_profile_database(path)
-            connection = sqlite3.connect(path)
-            connection.executescript(
-                """
-                BEGIN;
-                ALTER TABLE accounts DROP COLUMN powers;
-                ALTER TABLE accounts DROP COLUMN muted_until;
-                ALTER TABLE accounts DROP COLUMN muted_by;
-                CREATE TABLE account_powers (
-                    account_id TEXT NOT NULL,
-                    world_id TEXT NOT NULL,
-                    power TEXT NOT NULL,
-                    granted_by TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    PRIMARY KEY (account_id, world_id, power)
-                );
-                CREATE TABLE moderation_state (
-                    account_id TEXT NOT NULL,
-                    world_id TEXT NOT NULL,
-                    muted_until TEXT,
-                    muted_by TEXT,
-                    updated_at TEXT NOT NULL,
-                    PRIMARY KEY (account_id, world_id)
-                );
-                PRAGMA user_version = 7;
-                COMMIT;
-                """
-            )
-            connection.execute(
-                """
-                INSERT INTO accounts (
-                    id, username_display, username_key, password_hash, sticker,
-                    initial_sticker_complete, level, kudos, bops, shared_energy,
-                    last_energy_at, last_daily_claim, active_session_generation,
-                    created_at, updated_at
-                ) VALUES ('a1', 'Ada', 'ada', 'hash', NULL, 1, 0, 0, 10, 80,
-                    '2024-01-01T00:00:00+00:00', NULL, 0,
-                    '2024-01-01T00:00:00+00:00', '2024-01-01T00:00:00+00:00')
-                """
-            )
-            connection.execute(
-                """
-                INSERT INTO account_powers (account_id, world_id, power, granted_by, created_at)
-                VALUES ('a1', 'tutorial', 'realtor', 'a1', '2024-01-01T00:00:00+00:00')
-                """
-            )
-            connection.execute(
-                """
-                INSERT INTO moderation_state (account_id, world_id, muted_until, muted_by, updated_at)
-                VALUES ('a1', 'tutorial', '2030-01-01T00:00:00+00:00', 'a1', '2024-01-01T00:00:00+00:00')
-                """
-            )
-            connection.commit()
-            connection.close()
-
-            ensure_profile_database(path)
-
-            connection = sqlite3.connect(path)
-            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], PROFILE_SCHEMA_VERSION)
-            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            self.assertNotIn("account_powers", tables)
-            self.assertNotIn("moderation_state", tables)
-            row = connection.execute(
-                "SELECT powers, muted_until, muted_by FROM accounts WHERE id = 'a1'"
-            ).fetchone()
-            self.assertEqual(json.loads(row[0]), ["realtor"])
-            self.assertEqual(row[1], "2030-01-01T00:00:00+00:00")
-            self.assertEqual(row[2], "a1")
             connection.close()
 
     def test_world_v7_migrates_to_environment(self) -> None:
@@ -270,7 +194,6 @@ class Milestone3MigrationTests(unittest.TestCase):
             connection.executescript(
                 """
                 BEGIN;
-                DROP TABLE IF EXISTS prop_cooldowns;
                 ALTER TABLE room_states DROP COLUMN environment_json;
                 ALTER TABLE room_states DROP COLUMN layout_revision;
                 PRAGMA user_version = 7;
@@ -283,8 +206,6 @@ class Milestone3MigrationTests(unittest.TestCase):
 
             connection = sqlite3.connect(path)
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], WORLD_SCHEMA_VERSION)
-            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            self.assertNotIn("prop_cooldowns", tables)
             columns = [row[1] for row in connection.execute("PRAGMA table_info(room_states)")]
             self.assertIn("environment_json", columns)
             self.assertIn("layout_revision", columns)

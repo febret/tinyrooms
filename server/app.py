@@ -390,7 +390,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     environment = EnvironmentService(hub, world, world_state)
     auras = AuraService(hub, stats, world)
-    dispensers = DispenserService(hub, profiles, catalog, world)
+    dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
     registry = build_registry()
     rooms = RoomService(

@@ -12,7 +12,7 @@ from server.content.worlds import PropInstanceDefinition, WorldDefinition
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.services.cards import grant_card_to_inventory
 from server.services.inventory import InventoryService
-from server.services.stats import PeepSnapshot, StatsService
+from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 
 
@@ -64,7 +64,6 @@ class CraftResult:
     label: str
     outputs: tuple[OutputPreview, ...]
     stacks: tuple[InventoryStack, ...] = field(default_factory=tuple)
-    snapshot: PeepSnapshot | None = None
 
 
 class CraftingService:
@@ -178,9 +177,9 @@ class CraftingService:
                     world_id=self._world_id,
                 )
             if recipe.energy_cost:
-                snapshot = self._stats.charge_in_transaction(connection, account.id, recipe.energy_cost)
+                self._stats.charge_in_transaction(connection, account.id, recipe.energy_cost)
             else:
-                snapshot = self._stats.reconcile_in_transaction(connection, account.id)
+                self._stats.reconcile_in_transaction(connection, account.id)
             outputs = tuple(
                 OutputPreview(
                     card_id=item.card_id,
@@ -190,7 +189,7 @@ class CraftingService:
                 for item in recipe.output
             )
             stacks = tuple(self._profiles.list_inventory(account.id, self._world_id))
-        return CraftResult(recipe_id=recipe.id, label=recipe.label, outputs=outputs, stacks=stacks, snapshot=snapshot)
+        return CraftResult(recipe_id=recipe.id, label=recipe.label, outputs=outputs, stacks=stacks)
 
     def _consume(
         self,

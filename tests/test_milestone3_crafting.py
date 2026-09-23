@@ -90,7 +90,7 @@ class CraftPreviewTests(CraftingTestCase):
 
 
 class CraftExecutionTests(CraftingTestCase):
-    """Crafts consume, grant, and record atomically and idempotently."""
+    """Crafts consume, grant, and charge atomically."""
 
     def test_craft_consumes_and_grants(self) -> None:
         account = self.create_account("dee")

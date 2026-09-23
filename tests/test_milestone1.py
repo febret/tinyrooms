@@ -523,21 +523,36 @@ class MultiplayerGameplayTests(RuntimeTestCase):
                 bob_chat = bob_socket.receive_json()
                 self.assertEqual(alice_chat["event"]["style"], "spiky")
                 self.assertEqual(bob_chat["event"]["text"], "hello hub")
-                self.assertTrue(
-                    self.command(
-                        alice_socket,
-                        "go-1",
-                        ".go @way:exit0",
-                    )["ok"]
+                go_result = self.command(
+                    alice_socket,
+                    "go-1",
+                    ".go @way:exit0",
                 )
+                self.assertTrue(go_result["ok"])
+                self.assertIs(go_result.get("toast"), False)
                 self.assertEqual(
                     alice_socket.receive_json()["room"]["id"],
                     "playroom",
                 )
-                self.assertEqual(
-                    bob_socket.receive_json()["event"]["type"],
-                    "presence.leave",
+                leave_event = bob_socket.receive_json()["event"]
+                self.assertEqual(leave_event["type"], "presence.leave")
+                self.assertEqual(leave_event["direction"], "Cross the portal")
+                self.assertEqual(leave_event["destination_room_id"], "playroom")
+                self.assertTrue(
+                    self.command(
+                        alice_socket,
+                        "go-2",
+                        ".go @way:hub",
+                    )["ok"]
                 )
+                self.assertEqual(
+                    alice_socket.receive_json()["room"]["id"],
+                    "hub",
+                )
+                enter_event = bob_socket.receive_json()["event"]
+                self.assertEqual(enter_event["type"], "presence.enter")
+                self.assertEqual(enter_event["source_room_id"], "playroom")
+                self.assertEqual(enter_event["source_room_label"], "The Playroom")
 
     def test_strict_room_scope_card_transfer_and_restart(self) -> None:
         dana = self.create_ready_account("dana")

@@ -276,10 +276,12 @@ class RoomService:
             )
         visible_definitions = self._visible_exits(room)
         visible_exits = [self._serialize_exit(exit_definition) for exit_definition in visible_definitions]
-        environment = self._environment.get(room_id) if self._environment is not None else {}
-        dark = room.dark
+        environment: dict[str, object] = {}
+        environment_revision = 0
         if self._environment is not None:
-            dark = self._environment.lighting(room_id) == "dark"
+            environment, environment_revision = self._environment.snapshot(room_id)
+        lighting = environment.get("lighting")
+        dark = lighting == "dark" if lighting in {"normal", "dark"} else room.dark
         return {
             "id": room.id,
             "label": room.label,
@@ -293,6 +295,7 @@ class RoomService:
             },
             "metadata": {"note": note},
             "environment": environment,
+            "environment_revision": environment_revision,
             "exits": visible_exits,
             "props": [self._serialize_prop(room, prop) for prop in self._visible_props(room)],
             "occupants": occupants,
@@ -399,12 +402,14 @@ class RoomService:
                 username=account.username_display,
                 room_id=source_room_id,
                 destination_room_id=destination_room.id,
+                direction=exit_definition.label,
             ),
             destination_event=presence_enter_event(
                 account_id=account.id,
                 username=account.username_display,
                 room_id=destination_room.id,
                 source_room_id=source_room_id,
+                source_room_label=source_room.label,
             ),
             closed_activity=None if closed is None else self._activities.serialize(closed),
             behavior_results=behavior_results,

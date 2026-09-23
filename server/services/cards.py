@@ -71,6 +71,47 @@ def should_auto_equip(definition: CardDefinition) -> bool:
     return definition.type not in NON_EQUIP_TYPES
 
 
+def auto_equip_new_stacks(
+    profiles: ProfileRepository,
+    connection: sqlite3.Connection,
+    *,
+    account_id: str,
+    world_id: str,
+    definition: CardDefinition,
+    created_stacks: list[InventoryStack],
+    equipped_cap: int,
+) -> list[InventoryStack]:
+    """Equip one newly received stack when the equipped hand has room.
+
+    Called by room pickups and dispenser draws. Admin/GM grants and crafted
+    outputs intentionally leave new stacks unequipped.
+
+    Returns the account's visible inventory stacks after any equip change.
+    """
+
+    inventory_rows = profiles.list_inventory(account_id, world_id)
+    if not should_auto_equip(definition):
+        return inventory_rows
+    if sum(1 for item in inventory_rows if item.equipped) >= equipped_cap:
+        return inventory_rows
+    for created_stack in created_stacks:
+        if created_stack.equipped:
+            continue
+        profiles.set_stack_equipped(
+            connection,
+            account_id=account_id,
+            world_id=world_id,
+            stack_id=created_stack.stack_id,
+            equipped=True,
+        )
+        inventory_rows = [
+            replace(item, equipped=True) if item.stack_id == created_stack.stack_id else item
+            for item in inventory_rows
+        ]
+        break
+    return inventory_rows
+
+
 class CardService:
     """Own serialization and mutation of room/inventory card stacks."""
 
@@ -210,27 +251,15 @@ class CardService:
                 scope="world" if definition.collectible else "global",
                 stack_limit=definition.stack_limit,
             )
-            inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
-            if should_auto_equip(definition):
-                equipped_count = sum(1 for item in inventory_rows if item.equipped)
-                if equipped_count < self._equipped_caps.get(account.level, DEFAULT_MAX_EQUIPPED):
-                    for created_stack in created_stacks:
-                        if created_stack.equipped:
-                            continue
-                        self._profiles.set_stack_equipped(
-                            connection,
-                            account_id=account.id,
-                            world_id=self._world_id,
-                            stack_id=created_stack.stack_id,
-                            equipped=True,
-                        )
-                        inventory_rows = [
-                            replace(item, equipped=True)
-                            if item.stack_id == created_stack.stack_id
-                            else item
-                            for item in inventory_rows
-                        ]
-                        break
+            inventory_rows = auto_equip_new_stacks(
+                self._profiles,
+                connection,
+                account_id=account.id,
+                world_id=self._world_id,
+                definition=definition,
+                created_stacks=created_stacks,
+                equipped_cap=self._equipped_caps.get(account.level, DEFAULT_MAX_EQUIPPED),
+            )
         event = {
             "type": "room.card.removed" if deleted else "room.card.updated",
             "stack_id": stack.stack_id,

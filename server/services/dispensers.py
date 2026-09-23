@@ -7,10 +7,11 @@ from datetime import datetime, timedelta
 import random
 
 from server.content.cards import CardCatalog
+from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.content.worlds import PropInstanceDefinition, WorldDefinition
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.security import utc_now
-from server.services.cards import grant_card_to_inventory
+from server.services.cards import auto_equip_new_stacks, grant_card_to_inventory
 from server.state.migrations import DatabaseHub
 
 
@@ -39,12 +40,14 @@ class DispenserService:
         catalog: CardCatalog,
         world: WorldDefinition,
         rng: random.Random | None = None,
+        equipped_caps: dict[int, int] | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._catalog = catalog
         self._world = world
         self._rng = rng or random.Random()
+        self._equipped_caps = equipped_caps or {}
         self._cooldowns: dict[tuple[str, str], datetime] = {}
 
     def _prop(self, room_id: str, prop_instance_id: str) -> PropInstanceDefinition:
@@ -86,12 +89,21 @@ class DispenserService:
             definition = self._catalog.cards.get(card_id)
             if definition is None:
                 raise ValueError(f"Unknown dispenser card '{card_id}'.")
-            grant_card_to_inventory(
+            created_stacks = grant_card_to_inventory(
                 self._profiles,
                 connection,
                 account_id=account.id,
                 definition=definition,
                 world_id=self._world.id,
+            )
+            auto_equip_new_stacks(
+                self._profiles,
+                connection,
+                account_id=account.id,
+                world_id=self._world.id,
+                definition=definition,
+                created_stacks=created_stacks,
+                equipped_cap=self._equipped_caps.get(account.level, DEFAULT_MAX_EQUIPPED),
             )
             next_ready = now + timedelta(seconds=max(0, int(cooldown)))
             self._cooldowns[key] = next_ready

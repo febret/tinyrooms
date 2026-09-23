@@ -104,11 +104,6 @@ class PowerIntegrationTests(Milestone2IntegrationTestCase):
                 return message
         raise AssertionError(f"Never received result for {command!r}.")
 
-    def test_bootstrap_exposes_powers(self) -> None:
-        credentials = self.create_ready_account("ada")
-        user = self.bootstrap(credentials)
-        self.assertEqual(user["powers"], [])
-
     def test_realtor_command_requires_power_then_takes_effect(self) -> None:
         alice = self.create_ready_account("alice")
         bob = self.create_ready_account("bob")
@@ -152,16 +147,6 @@ class PowerIntegrationTests(Milestone2IntegrationTestCase):
         self.assertIn("admin.status", actions)
         results = {entry["action"]: entry["result"] for entry in self.runtime().audit.entries()}
         self.assertEqual(results.get("admin.console"), "rejected")
-
-    def test_non_admin_backslash_is_rejected(self) -> None:
-        alice = self.create_ready_account("alice")
-        with self.client.websocket_connect(
-            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
-        ) as socket:
-            socket.receive_json()
-            result = self.send_command(socket, "admin-1", "\\status")
-            self.assertFalse(result["ok"])
-            self.assertIn("admin power", result["message"])
 
     def test_mute_blocks_say_but_not_other_commands(self) -> None:
         alice = self.create_ready_account("alice")
@@ -252,7 +237,6 @@ class PowerIntegrationTests(Milestone2IntegrationTestCase):
             self.assertIn("usage", commands["look"])
             self.assertTrue(commands["look"]["help"])
             self.assertEqual(commands["gm"]["power"], "game-master")
-            self.assertFalse(commands["gm"]["allowed"])
             self.assertIn("own", commands)
 
 

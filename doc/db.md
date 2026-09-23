@@ -9,7 +9,7 @@ Milestone 2 backend. The schema source of truth is
 
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
-| Profile (user) DB | `<users_path>/profiles.sqlite3` | 8 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
+| Profile (user) DB | `<users_path>/profiles.sqlite3` | 6 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
 | World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 8 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 At runtime both files are accessed through a single shared connection,

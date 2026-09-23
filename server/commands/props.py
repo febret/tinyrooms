@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
+from server.commands.core import require_room_id
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome
 from server.commands.parser import ParsedCommand, parse_target
+from server.profiles import InventoryStack
 from server.services.crafting import CraftPreview, CraftResult
-
-
-def _require_room_id(context: CommandContext) -> str:
-    if context.connection.room_id is None:
-        raise CommandError("You are not currently in a room.")
-    return context.connection.room_id
 
 
 def _prop_instance_id(token: str) -> str:
@@ -71,12 +67,27 @@ def _serialize_result(result: CraftResult) -> dict[str, object]:
     }
 
 
+def _mutation_payload(
+    context: CommandContext,
+    stacks: tuple[InventoryStack, ...],
+    **extra: object,
+) -> dict[str, object]:
+    """Build the shared inventory + refreshed-user payload for a mutation."""
+
+    account = context.profiles.get_account_by_id(context.account.id) or context.account
+    return {
+        "inventory": [context.cards.serialize_inventory_stack(stack) for stack in stacks],
+        "user": context.serialize_user(account),
+        **extra,
+    }
+
+
 async def dispense_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     """Attempt to take a card from a dispenser prop."""
 
     if not command.args:
         raise CommandError("Choose a dispenser to use.")
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     prop_instance_id = _prop_instance_id(command.args[0])
     result = context.dispensers.dispense(context.account, room_id, prop_instance_id)
     if not result.granted:
@@ -84,11 +95,11 @@ async def dispense_command(context: CommandContext, command: ParsedCommand) -> C
         raise CommandError(f"That dispenser is recharging for another {remaining}s.")
     return CommandOutcome(
         message=f"Received {result.label}.",
-        payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.stacks],
-            "user": context.serialize_user(context.profiles.get_account_by_id(context.account.id) or context.account),
-            "dispense": {"card_id": result.card_id, "label": result.label, "ready_at": result.ready_at},
-        },
+        payload=_mutation_payload(
+            context,
+            result.stacks,
+            dispense={"card_id": result.card_id, "label": result.label, "ready_at": result.ready_at},
+        ),
         private_events=[{"type": "toast", "tone": "success", "text": f"You received {result.label}."}],
     )
 
@@ -98,7 +109,7 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
 
     if not command.args:
         raise CommandError("Choose a crafting station.")
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     prop_instance_id = _prop_instance_id(command.args[0])
     prop = context.rooms.room_definition(room_id).props.get(prop_instance_id)
     if prop is None:
@@ -177,10 +188,6 @@ async def craft_make_command(context: CommandContext, command: ParsedCommand) ->
     )
     return CommandOutcome(
         message=f"Crafted {result.label or recipe_id}.",
-        payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.stacks],
-            "user": context.serialize_user(context.profiles.get_account_by_id(context.account.id) or context.account),
-            "craft": _serialize_result(result),
-        },
+        payload=_mutation_payload(context, result.stacks, craft=_serialize_result(result)),
         private_events=[{"type": "toast", "tone": "success", "text": f"Crafted {result.label or recipe_id}."}],
     )

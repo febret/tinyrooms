@@ -8,7 +8,7 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 10
+PROFILE_SCHEMA_VERSION = 6
 WORLD_SCHEMA_VERSION = 8
 
 _PROFILE_SCHEMA_SQL = """
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-PRAGMA user_version = 10;
+PRAGMA user_version = 6;
 COMMIT;
 """
 
@@ -260,39 +260,9 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     """,
     6: """
     BEGIN;
-    CREATE TABLE IF NOT EXISTS craft_operations (
-        account_id TEXT NOT NULL,
-        operation_id TEXT NOT NULL,
-        recipe_id TEXT NOT NULL,
-        world_id TEXT NOT NULL,
-        results_json TEXT NOT NULL CHECK (json_valid(results_json)),
-        created_at TEXT NOT NULL,
-        PRIMARY KEY (account_id, operation_id),
-        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-    );
-    PRAGMA user_version = 6;
-    COMMIT;
-    """,
-    7: """
-    BEGIN;
-    CREATE TABLE IF NOT EXISTS account_powers (
-        account_id TEXT NOT NULL,
-        world_id TEXT NOT NULL,
-        power TEXT NOT NULL,
-        granted_by TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        PRIMARY KEY (account_id, world_id, power),
-        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS moderation_state (
-        account_id TEXT NOT NULL,
-        world_id TEXT NOT NULL,
-        muted_until TEXT,
-        muted_by TEXT,
-        updated_at TEXT NOT NULL,
-        PRIMARY KEY (account_id, world_id),
-        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-    );
+    ALTER TABLE accounts ADD COLUMN powers TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(powers));
+    ALTER TABLE accounts ADD COLUMN muted_until TEXT;
+    ALTER TABLE accounts ADD COLUMN muted_by TEXT;
     CREATE TABLE IF NOT EXISTS audit_log (
         audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
         world_id TEXT NOT NULL,
@@ -304,38 +274,7 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
         created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-    PRAGMA user_version = 7;
-    COMMIT;
-    """,
-    8: """
-    BEGIN;
-    ALTER TABLE accounts ADD COLUMN powers TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(powers));
-    UPDATE accounts
-    SET powers = COALESCE((
-        SELECT json_group_array(power)
-        FROM (SELECT DISTINCT power FROM account_powers WHERE account_powers.account_id = accounts.id)
-    ), '[]')
-    WHERE id IN (SELECT account_id FROM account_powers);
-    DROP TABLE IF EXISTS account_powers;
-    PRAGMA user_version = 8;
-    COMMIT;
-    """,
-    9: """
-    BEGIN;
-    ALTER TABLE accounts ADD COLUMN muted_until TEXT;
-    ALTER TABLE accounts ADD COLUMN muted_by TEXT;
-    UPDATE accounts
-    SET muted_until = (SELECT muted_until FROM moderation_state WHERE moderation_state.account_id = accounts.id),
-        muted_by = (SELECT muted_by FROM moderation_state WHERE moderation_state.account_id = accounts.id)
-    WHERE id IN (SELECT account_id FROM moderation_state);
-    DROP TABLE IF EXISTS moderation_state;
-    PRAGMA user_version = 9;
-    COMMIT;
-    """,
-    10: """
-    BEGIN;
-    DROP TABLE IF EXISTS craft_operations;
-    PRAGMA user_version = 10;
+    PRAGMA user_version = 6;
     COMMIT;
     """,
 }

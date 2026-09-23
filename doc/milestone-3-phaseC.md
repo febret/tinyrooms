@@ -52,7 +52,9 @@ Out of scope: powers/auth commands (D), room-owner editing UI (E), world editor
 
 ### 3.1 Schema
 
-Bump **world** schema 7 → 8 and **profile** schema 5 → 6.
+Bump **world** schema 7 → 8. No profile schema change is needed: crafting is
+stateless, consuming ingredients, granting outputs, and charging energy in one
+transaction without recording operations.
 
 Room state columns added to `room_states` (fresh schema plus
 `ALTER TABLE room_states ADD COLUMN ...` in the migration):
@@ -64,8 +66,7 @@ layout_revision  INTEGER NOT NULL DEFAULT 0
 
 No profile schema change is needed. Crafting is stateless: it consumes
 ingredients, grants outputs, and charges energy in one transaction, but does not
-record operations. (An earlier `craft_operations` idempotency table was removed
-in profile schema 10.)
+record operations.
 
 ### 3.2 Recipe content
 
@@ -187,7 +188,7 @@ Create `tests/test_milestone3_props.py` and `tests/test_milestone3_crafting.py`
   RNG; direct-to-inventory grant with correct stacking.
 - Craft source-stack selection (including an explicitly selected equipped stack),
   equipped count/bonus update on consume, invalid recipe rollback (nothing
-  consumed), duplicate `operation_id` replay, and concurrent-craft protection.
+  consumed), and concurrent-craft protection.
 - Aura enter/leave idempotency (repeat ticks do not stack) and independent timed
   buffs/counters.
 - Environment visibility/lighting/exit/action gating, revisioned broadcast, and
@@ -205,7 +206,7 @@ npm run test:browser
 Definition of done:
 - [ ] A dispenser attempt during cooldown rejects with remaining time and no cost.
 - [ ] Cooldown resets on server restart and rejects with remaining time while active.
-- [ ] Invalid crafts consume nothing; duplicate operations never double-grant.
+- [ ] Invalid crafts consume nothing.
 - [ ] Auras never stack and clear on departure.
 - [ ] Environment changes broadcast one revisioned update and gate the room.
 - [ ] Every file under 1200 lines; existing tests pass.

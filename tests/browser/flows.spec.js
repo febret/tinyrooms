@@ -457,6 +457,48 @@ test.describe("milestone 2 polish: prop viewer and journal calendar", () => {
   });
 });
 
+test.describe("multiplayer peep movement", () => {
+  test.slow();
+
+  test("moving between rooms does not raise a moved-to toast", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await command(page, ".go @way:exit0");
+    await expect(page.locator("#look-bar")).toContainText("The Playroom");
+    await expect(page.locator("#toast-stack .toast").filter({ hasText: /moved to/i })).toHaveCount(0);
+  });
+
+  test("shows move bubbles for leaving and arriving peeps and follows an exit", async ({ page, browser, runtime }) => {
+    test.setTimeout(60_000);
+    await createReadyAccount(page, runtime, "alice");
+    const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1280, height: 800 } });
+    try {
+      const bobPage = await context.newPage();
+      await createReadyAccount(bobPage, runtime, "bob");
+      await expect(page.locator("#peeps-panel [data-peep-id]").filter({ hasText: "bob" })).toBeVisible();
+
+      await command(bobPage, ".go @way:exit0");
+      await expect(bobPage.locator("#look-bar")).toContainText("The Playroom");
+
+      const departed = page.locator(".bubble.move").filter({ hasText: /bob went/i });
+      await expect(departed).toBeVisible();
+      await expect(departed).toHaveClass(/actionable/);
+      await expect(departed).toContainText(/cross the portal/i);
+
+      await command(bobPage, ".go @way:hub");
+      await expect(bobPage.locator("#look-bar")).toContainText("The Hub");
+
+      const arrived = page.locator(".bubble.move").filter({ hasText: /bob came from/i });
+      await expect(arrived).toBeVisible();
+      await expect(arrived).toContainText("The Playroom");
+
+      await arrived.click();
+      await expect(page.locator("#look-bar")).toContainText("The Playroom");
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 test.describe("milestone 3 crafting", () => {
   test.slow();
 

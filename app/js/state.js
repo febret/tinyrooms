@@ -339,6 +339,8 @@ function normalizeRoom(room) {
       dark: Boolean(room.board?.dark),
     },
     note: String(room.metadata?.note || ""),
+    environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
+    environmentRevision: Number(room.environment_revision || 0),
     exits: Array.isArray(room.exits) ? room.exits.map(normalizeExit) : [],
     props: Array.isArray(room.props) ? room.props.map(normalizeProp) : [],
     occupants: Array.isArray(room.occupants) ? room.occupants.map(normalizeOccupant) : [],
@@ -490,6 +492,22 @@ function applyServerEvent(state, event) {
       },
     };
   }
+  if (event.type === "room.environment") {
+    const revision = Number(event.revision || 0);
+    if (revision <= Number(state.room.environmentRevision || 0)) return state;
+    const environment = event.environment && typeof event.environment === "object" ? { ...event.environment } : {};
+    const lighting = environment.lighting;
+    const dark = lighting === "dark" ? true : lighting === "normal" ? false : state.room.board.dark;
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        environment,
+        environmentRevision: revision,
+        board: { ...state.room.board, dark },
+      },
+    };
+  }
   if (event.type === "room.card.added" && event.stack) {
     return {
       ...state,
@@ -615,7 +633,6 @@ function mergeResultPayload(state, payload) {
           usage: String(item.usage || ""),
           power: item.power ? String(item.power) : null,
           help: String(item.help || item.summary || ""),
-          allowed: item.allowed !== false,
         };
       }),
     };

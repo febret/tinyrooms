@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 import logging
+import sqlite3
 
 from server.behaviors.dispatcher import BehaviorDispatcher
 from server.behaviors.events import BehaviorEvent, PeepRef
@@ -102,7 +103,7 @@ class RoomTicker:
                 continue
             try:
                 self._auras.enter(account_id, room_id)
-            except Exception as exc:  # noqa: BLE001 - an aura failure must not stop the loop
+            except (ValueError, sqlite3.Error) as exc:
                 self._logger.warning("aura.enter failed for %s: %s", account_id, exc)
 
     def _expire_environment(self, room_id: str, result: object) -> None:

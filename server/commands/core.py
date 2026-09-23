@@ -48,17 +48,10 @@ def _parse_drop_position(args: tuple[str, ...]) -> tuple[float, float, float]:
     )
 
 
-def _require_room_id(context: CommandContext) -> str:
+def require_room_id(context: CommandContext) -> str:
     if context.connection.room_id is None:
         raise CommandError("You are not currently in a room.")
     return context.connection.room_id
-
-
-def require_power(context: CommandContext, power: str) -> None:
-    """Raise when the acting account lacks a world-local power."""
-
-    if not context.powers.has_power(context.account.id, power):
-        raise CommandError(f"You do not have the {power} power here.")
 
 
 def _describe_exit(exit_definition: ExitDefinition) -> dict[str, object]:
@@ -90,7 +83,7 @@ def _merge_behavior(outcome: CommandOutcome, result: object | None) -> None:
 
 
 async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     parsed = parse_target(token) if token.startswith("@") else None
     kind = parsed.kind if parsed else "username"
     value = parsed.value if parsed else token
@@ -112,7 +105,7 @@ async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
 async def _resolve_action_target(context: CommandContext, token: str) -> PeepRef | PropRef:
     parsed = parse_target(token) if token.startswith("@") else None
     if parsed is not None and parsed.kind == "prop":
-        room_id = _require_room_id(context)
+        room_id = require_room_id(context)
         prop = context.rooms.room_definition(room_id).props.get(parsed.value)
         if prop is None:
             raise CommandError("That prop is not in this room.")
@@ -122,7 +115,6 @@ async def _resolve_action_target(context: CommandContext, token: str) -> PeepRef
 
 async def help_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
-    powers = context.powers.effective(context.account)
     commands = [
         {
             "name": spec.name,
@@ -130,7 +122,6 @@ async def help_command(context: CommandContext, command: ParsedCommand) -> Comma
             "usage": spec.usage,
             "power": spec.power,
             "help": spec.help,
-            "allowed": spec.power is None or spec.power in powers,
         }
         for spec in context.registry.list()
     ]
@@ -140,7 +131,7 @@ async def help_command(context: CommandContext, command: ParsedCommand) -> Comma
 async def say_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if context.powers.is_muted(context.account.id):
         raise CommandError("You are muted and cannot chat right now.")
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     message = command.args[0] if command.args else command.raw_text
     event = context.rooms.say(context.account, room_id, message)
     return CommandOutcome(
@@ -150,7 +141,7 @@ async def say_command(context: CommandContext, command: ParsedCommand) -> Comman
 
 
 async def look_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     room = context.rooms.room_definition(room_id)
     if not command.args:
         payload = {
@@ -212,7 +203,7 @@ async def inspect_command(context: CommandContext, command: ParsedCommand) -> Co
 
 
 async def go_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     if not command.args:
         raise CommandError("Choose an exit to use.")
     exit_token = command.args[0]
@@ -248,7 +239,7 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
 
 
 async def talk_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     if not command.args:
         raise CommandError("Choose a peep to talk to.")
     ref = await _resolve_peep_ref(context, command.args[0])
@@ -273,7 +264,7 @@ async def talk_command(context: CommandContext, command: ParsedCommand) -> Comma
     return outcome
 
 async def act_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     if len(command.args) < 2:
         raise CommandError("Use '.act <action> <target>'.")
     action = command.args[0].strip().lower()
@@ -318,7 +309,7 @@ async def dialog_end_command(context: CommandContext, command: ParsedCommand) ->
 
 
 async def pickup_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     if not command.args:
         raise CommandError("Choose a room card to pick up.")
     target = parse_target(command.args[0]) if command.args[0].startswith("@") else None
@@ -334,7 +325,7 @@ async def pickup_command(context: CommandContext, command: ParsedCommand) -> Com
 
 
 async def drop_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     if not command.args:
         raise CommandError("Choose an inventory card to drop.")
     target = parse_target(command.args[0]) if command.args[0].startswith("@") else None
@@ -354,7 +345,7 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
     # TODO(Milestone 2): restrict .reset_room to admins once user roles exist.
     if command.args:
         raise CommandError("Use '.reset_room' with no arguments from inside the room to reset.")
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     room = context.rooms.room_definition(room_id)
     stacks = context.world_state.reset_room_cards(room_id, room.initial_cards)
     serialized = [context.cards.serialize_room_stack(stack) for stack in stacks]
@@ -396,7 +387,7 @@ async def settings_command(
 
 
 async def play_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    room_id = _require_room_id(context)
+    room_id = require_room_id(context)
     if not command.args:
         raise CommandError("Choose an activity to play.")
     target = command.args[0]
@@ -592,7 +583,7 @@ def build_registry() -> CommandRegistry:
         power="game-master",
         help="Grant cards, set counters, apply buffs, grant Kudos, or change room environment state.",
     )
-    registry.register("go", "Move through an exit in the current room.", go_command, usage=".go @way:<exit_id>")
+    registry.register("go", "Move through an exit in the current room.", go_command, usage=".go @way:<exit_id>", toast=False)
     registry.register("help", "Show the available commands.", help_command, usage=".help", toast=False, log=False)
     registry.register("inspect", "Inspect a visible room entity.", inspect_command, usage=".inspect [target]", toast=False, log=False)
     registry.register("kick", "Disconnect a peep from the room.", privileged.kick_command, usage=".kick @peep [reason]", power="moderator")

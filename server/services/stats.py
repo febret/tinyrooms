@@ -178,7 +178,6 @@ class StatsService:
             for modifier in modifiers
         ]
         with self._hub.transaction() as connection:
-            self._reconcile(connection, account_id, now=utc_now())
             self._profiles.write_buff_sources(connection, account_id, {source: payload})
             return self._reconcile(connection, account_id, now=utc_now())
 
@@ -186,7 +185,6 @@ class StatsService:
         """Remove a named source's modifier contribution and reconcile."""
 
         with self._hub.transaction() as connection:
-            self._reconcile(connection, account_id, now=utc_now())
             self._profiles.write_buff_sources(connection, account_id, {source: None})
             return self._reconcile(connection, account_id, now=utc_now())
 

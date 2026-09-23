@@ -62,6 +62,11 @@ class EnvironmentService:
         environment, _revision = self._world_state.read_room_environment(room_id)
         return environment
 
+    def snapshot(self, room_id: str) -> tuple[dict[str, object], int]:
+        """Return the persisted environment and layout revision in one read."""
+
+        return self._world_state.read_room_environment(room_id)
+
     def revision(self, room_id: str) -> int:
         """Return the current layout revision for a room."""
 
