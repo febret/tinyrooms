@@ -1,0 +1,7 @@
+# pack definition
+label: Tinyrooms Memebase Pack
+description: A stash of animated internet emotes for the room.
+back_image: memebase-pack-back.webp
+price: 10
+size: 3
+cards: [beach-day, cherry-cat, bitaroo-blaze, tina-uhh, troll-dance, masked-laugh, ok-hamster, troll-problem, pixel-hamster, grumpy-munchkin]
