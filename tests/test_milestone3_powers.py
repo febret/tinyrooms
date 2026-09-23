@@ -75,6 +75,13 @@ class PowerServiceTests(ServiceTestCase):
         self.assertTrue(ownership.can_edit(account, "hub"))
         self.assertIn("hub", self.profiles.get_user_profile(account.id).owned_rooms)
 
+    def test_ownership_can_edit_includes_admin(self) -> None:
+        admin_powers = PowersService(self.hub, self.profiles, self.world, frozenset({"root"}), self.audit)
+        admin = self.create_account("root")
+        ownership = OwnershipService(self.hub, self.profiles, self.world_state, self.world, admin_powers.has_power)
+        self.assertIn("admin", admin_powers.effective(admin))
+        self.assertTrue(ownership.can_edit(admin, "hub"))
+
 
 class BootstrapAdminTests(Milestone2IntegrationTestCase):
     """TRSERVER_ADMINS grants admin without inferring it from creation order."""

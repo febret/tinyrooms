@@ -26,6 +26,18 @@ TUTORIAL_PACK_CARDS = {
     "tasty-toast",
     "tomato-sauce",
 }
+MEMEBASE_PACK_CARDS = {
+    "beach-day",
+    "cherry-cat",
+    "bitaroo-blaze",
+    "tina-uhh",
+    "troll-dance",
+    "masked-laugh",
+    "ok-hamster",
+    "troll-problem",
+    "pixel-hamster",
+    "grumpy-munchkin",
+}
 
 
 class SocialShopTestCase(ServiceTestCase):
@@ -51,10 +63,13 @@ class PackCatalogTests(SocialShopTestCase):
         self.assertEqual(previews["base"].size, 3)
         self.assertEqual(previews["tutorial"].price, 10)
         self.assertEqual(previews["tutorial"].size, 3)
+        self.assertEqual(previews["memebase"].price, 10)
+        self.assertEqual(previews["memebase"].size, 3)
 
     def test_exact_pack_catalogs(self) -> None:
         self.assertEqual(set(self.catalog.packs["base"].cards), BASE_PACK_CARDS)
         self.assertEqual(set(self.catalog.packs["tutorial"].cards), TUTORIAL_PACK_CARDS)
+        self.assertEqual(set(self.catalog.packs["memebase"].cards), MEMEBASE_PACK_CARDS)
 
     def test_base_pack_draws_only_common_members(self) -> None:
         draws = self.shop.draw(self.catalog.packs["base"])
@@ -82,6 +97,14 @@ class PurchaseTests(SocialShopTestCase):
         self.assertFalse(result.replayed)
         after = {stack.stack_id for stack in self.profiles.list_inventory(self.alice.id, WORLD_ID)}
         self.assertTrue(after - before)
+
+    def test_memebase_purchase_grants_animation_emotes(self) -> None:
+        self.set_progress(self.alice, bops=50)
+        result = self.shop.purchase(self.reload_account(self.alice), "memebase", "op-meme")
+        self.assertEqual(result.bops_spent, 10)
+        self.assertEqual(len(result.cards), 3)
+        for definition in result.cards:
+            self.assertEqual(definition.category, "Animation")
 
     def test_replay_same_operation_does_not_charge_or_duplicate(self) -> None:
         self.set_progress(self.alice, bops=50)

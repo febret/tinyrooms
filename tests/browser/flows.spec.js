@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createReadyAccount, openCore, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, travel } from "./helpers.js";
+import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, travel } from "./helpers.js";
 
 test.describe("account onboarding", () => {
   test.slow();
@@ -229,28 +229,34 @@ test.describe("core milestone 2 views", () => {
     await expect(journal).toContainText("No memories this month");
   });
 
-  test("edit room is offered only for rooms the user owns", async ({ page, runtime }) => {
+  test("edit room is offered only for rooms the user can edit", async ({ page, runtime }) => {
     await page.goto(runtime.baseURL);
     const summary = await page.evaluate(async () => {
       const { selectionActions } = await import("/app/js/cards.js");
       const { editRoomView } = await import("/app/js/views/edit-room-view.js");
-      const room = { id: "bedroom", label: "Bedroom", description: "", props: [], roomCards: [], inventory: [], quickActions: [], editable: true };
-      const labels = editable => selectionActions({
-        room: { ...room, editable },
+      const { normalizeEditorView } = await import("/app/js/editing/edit-reducer.js");
+      const room = { id: "bedroom", label: "Bedroom", description: "", props: [], roomCards: [], inventory: [], quickActions: [], board: { palette: [], imageStyle: "" } };
+      const labels = canEdit => selectionActions({
+        room: { ...room, canEditRoom: canEdit },
         selection: { kind: "room", id: "bedroom" },
         views: {}, user: {},
       }).map(action => action.label);
+      const editor = normalizeEditorView({
+        room_id: "bedroom", revision: 3, can_edit: true, props: [],
+        library: [{ prop_id: "plant", label: "Little Monstera", model_url: "/x.glb", base_scale: 1 }],
+        environment_whitelist: ["palette"], environment: {},
+      });
       return {
         owned: labels(true),
         locked: labels(false),
-        ownedView: editRoomView({ room }).includes("coming soon"),
-        lockedView: editRoomView({ room: { ...room, editable: false } }).includes("do not have permission"),
+        lockedView: editRoomView({ room: { ...room, canEditRoom: false } }).includes("do not have permission"),
+        editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Add a prop"),
       };
     });
     expect(summary.owned).toContain("Edit Room");
     expect(summary.locked).not.toContain("Edit Room");
-    expect(summary.ownedView).toBe(true);
     expect(summary.lockedView).toBe(true);
+    expect(summary.editorView).toBe(true);
   });
 
   test("swap sticker dialog opens from self view", async ({ page, runtime }) => {
@@ -282,6 +288,35 @@ test.describe("core milestone 2 views", () => {
     await expect(bubble).toBeVisible();
     await expect(bubble.locator("img.bubble-image")).toHaveAttribute("src", /smile\.webp$/);
     expect(await page.locator("#toast-stack .toast").count()).toBe(0);
+  });
+
+  test("playing an animation emote shows a gif bubble sized to the animation", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await command(page, ".shop");
+    const shopFrame = page.frameLocator('iframe[src*="shop"]');
+    await shopFrame.locator(".pack-card").filter({ hasText: "Memebase Pack" }).getByRole("button", { name: "Buy" }).click();
+    await expect(shopFrame.locator("#confirm")).toBeVisible();
+    await shopFrame.locator("#confirm-ok").click();
+    await expect(shopFrame.locator(".reveal-card")).toHaveCount(3);
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(page.locator(".activity-window")).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+    await openCore(page, "emotes");
+    const panel = page.locator("#panel-layer [role=dialog]");
+    await panel.getByRole("button", { name: "Animation", exact: true }).click();
+    const card = panel.locator(".game-card").first();
+    await expect(card).toBeVisible();
+    await card.click();
+    await expect(panel).toHaveCount(0);
+    const image = page.locator("#bubble-layer .bubble.emote-animation img.bubble-image");
+    await expect(image).toHaveAttribute("src", /^\/assets\/memebase\//);
+    await expect(image).toBeVisible();
+    const box = await image.boundingBox();
+    expect(box.width).toBeGreaterThan(40);
+    expect(box.height).toBeGreaterThan(40);
+    expect(box.width).toBeLessThanOrEqual(160);
+    expect(box.height).toBeLessThanOrEqual(160);
   });
 
   test("prop Inspect and skill Slot actions carry the selected identity", async ({ page, runtime }) => {
@@ -323,7 +358,7 @@ test.describe("milestone 2 activities and targeting", () => {
     const activity = page.locator(".activity-window");
     await expect(activity).toBeVisible();
     const frame = page.frameLocator('iframe[src*="shop"]');
-    await expect(frame.locator(".pack-card")).toHaveCount(2);
+    await expect(frame.locator(".pack-card")).toHaveCount(3);
     await expect(frame.locator("#balance")).toContainText("10 Bops");
     await frame.locator(".pack-card").filter({ hasText: "Base Pack" }).getByRole("button", { name: "Buy" }).click();
     await expect(frame.locator("#confirm")).toBeVisible();
@@ -522,5 +557,212 @@ test.describe("milestone 3 crafting", () => {
     await expect(frame.locator("#confirm")).toBeDisabled();
     await page.getByRole("button", { name: "Close activity" }).click();
     await expect(activity).toHaveCount(0);
+  });
+});
+
+async function findEditorProp(page, panel, expected) {
+  const box = await page.locator("#board-canvas").boundingBox();
+  // Deselect first so a hit can only be the prop body, never a visible gizmo handle.
+  await page.mouse.click(box.x + box.width * 0.95, box.y + box.height * 0.9);
+  const candidates = [];
+  for (let fy = 0.25; fy <= 0.8; fy += 0.03) {
+    for (let fx = 0.38; fx <= 0.85; fx += 0.03) {
+      candidates.push([fx, fy, Math.hypot(fx - 0.55, fy - 0.42)]);
+    }
+  }
+  candidates.sort((left, right) => left[2] - right[2]);
+  const metaLocator = panel.locator(".editor-meta");
+  for (const [fx, fy] of candidates) {
+    const x = box.x + box.width * fx;
+    const y = box.y + box.height * fy;
+    await page.mouse.click(x, y);
+    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
+    if (text?.includes(expected)) return { x, y };
+  }
+  throw new Error(`Could not locate prop at ${expected} on the board.`);
+}
+
+async function dragProp(page, panel, expected, delta, { touch = false } = {}) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const point = await findEditorProp(page, panel, expected);
+    const target = { x: point.x + delta.x, y: point.y + delta.y };
+    if (touch) {
+      await touchDrag(page, point, target);
+    } else {
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.down();
+      await page.mouse.move(target.x, target.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    const metaLocator = panel.locator(".editor-meta");
+    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
+    if (text && !text.includes(expected)) return text;
+  }
+  throw new Error(`Drag did not move the prop from ${expected}.`);
+}
+
+async function touchDrag(page, from, to) {
+  const client = await page.context().newCDPSession(page);
+  const point = (x, y) => [{ x, y, radiusX: 2, radiusY: 2, force: 1, id: 1 }];
+  await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+  try {
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from.x, from.y) });
+    for (let step = 1; step <= 6; step += 1) {
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: point(from.x + (to.x - from.x) * step / 6, from.y + (to.y - from.y) * step / 6),
+      });
+    }
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  } finally {
+    await client.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+    await client.detach();
+  }
+}
+
+test.describe("milestone 3 room editing", () => {
+  test.slow();
+  test.setTimeout(60_000);
+
+  test("editor store round-trips add, undo, redo, and dirty state", async ({ page, runtime }) => {
+    await page.goto(runtime.baseURL);
+    const result = await page.evaluate(async () => {
+      const { editorReducer, selectedInstance } = await import("/app/js/editing/edit-reducer.js");
+      let state = { editor: null };
+      state = editorReducer(state, {
+        type: "editor-open",
+        view: {
+          room_id: "hub", revision: 2, can_edit: true, props: [],
+          library: [{ prop_id: "plant", label: "Plant", base_scale: 1, scale_min: 0.25, scale_max: 4 }],
+          environment_whitelist: ["palette"], environment: {},
+        },
+      });
+      state = editorReducer(state, { type: "editor-add", propId: "plant" });
+      const added = state.editor.props.length;
+      const id = state.editor.selectedId;
+      state = editorReducer(state, { type: "editor-nudge", dx: 5, dy: 5 });
+      const moved = selectedInstance(state.editor).position;
+      state = editorReducer(state, { type: "editor-undo" });
+      const undone = selectedInstance(state.editor).position;
+      state = editorReducer(state, { type: "editor-redo" });
+      const redone = selectedInstance(state.editor).position;
+      state = editorReducer(state, { type: "editor-env", key: "palette", value: ["#111111", "#222222", "#333333"] });
+      const dirty = state.editor.dirty;
+      state = editorReducer(state, { type: "editor-close" });
+      return { added, id, moved, undone, redone, dirty, closed: state.editor };
+    });
+    expect(result.added).toBe(1);
+    expect(result.id).toMatch(/^custom:/);
+    expect(result.moved).toEqual([55, 55, 0]);
+    expect(result.undone).toEqual([50, 50, 0]);
+    expect(result.redone).toEqual([55, 55, 0]);
+    expect(result.dirty).toBe(true);
+    expect(result.closed).toBeNull();
+  });
+
+  test("admins see the Edit Room action without ownership", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime, "siteadmin");
+    const panel = await openEditRoom(page);
+    await expect(panel).toContainText("Add a prop");
+  });
+
+  test("editor adds, transforms, snaps, and undoes a decorative prop", async ({ page, runtime, isMobile }) => {
+    test.skip(Boolean(isMobile), "Editor pointer flow is covered on desktop; portrait has a visual capture.");
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    await expect(panel.locator(".editor-library-item")).toHaveCount(1);
+    const meta = panel.locator(".editor-meta");
+
+    await panel.locator('[data-edit-add="plant"]').click();
+    await expect(meta).toContainText("Position 50, 50");
+    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+
+    const afterDrag = await dragProp(page, panel, "Position 50, 50", { x: 140, y: 70 });
+    await expect(meta).not.toContainText("Position 50, 50");
+    const position = /Position \d+, \d+/.exec(afterDrag || "")?.[0];
+
+    // Touch drag moves the same prop again.
+    const afterTouch = await dragProp(page, panel, position, { x: -70, y: 35 }, { touch: true });
+    await expect(meta).not.toHaveText(afterDrag);
+    expect(afterTouch).not.toBe(afterDrag);
+
+    // Keyboard nudge with position snapping.
+    const beforeNudge = await meta.textContent();
+    await page.keyboard.press("ArrowRight");
+    await expect(meta).not.toHaveText(beforeNudge);
+
+    await panel.getByRole("button", { name: "Rotate +15°", exact: true }).click();
+    await expect(meta).toContainText("Rotation 15°");
+    await panel.getByRole("button", { name: "Larger", exact: true }).click();
+    await expect(meta).not.toContainText("Scale 1.00");
+
+    const beforeUndo = await meta.textContent();
+    await panel.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(meta).not.toHaveText(beforeUndo);
+
+    // Turning snapping off allows fine nudges.
+    await panel.locator('[data-edit-snap="position"]').uncheck();
+    const beforeFine = await meta.textContent();
+    await page.keyboard.press("ArrowRight");
+    await expect(meta).not.toHaveText(beforeFine);
+  });
+
+  test("closing the editor with unsaved changes asks for confirmation", async ({ page, runtime }) => {
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    await panel.locator('[data-edit-add="plant"]').click();
+    await page.keyboard.press("Escape");
+    const dialog = page.locator("#global-modal-layer [role=dialog]");
+    await expect(dialog).toContainText("Discard unsaved changes?");
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(panel).toBeVisible();
+  });
+
+  test("saving the editor updates a second client in the room", async ({ browser, page, runtime }) => {
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    await panel.locator('[data-edit-add="plant"]').click();
+
+    const viewerContext = await browser.newContext({ ignoreHTTPSErrors: true, reducedMotion: "reduce" });
+    const events = [];
+    const viewerPage = await viewerContext.newPage();
+    viewerPage.on("websocket", socket => socket.on("framereceived", frame => {
+      try {
+        const data = JSON.parse(frame.payload);
+        if (data.type === "room.event" && data.event?.type === "room.layout.updated") events.push(data.event);
+      } catch {
+        // Ignore non-JSON frames.
+      }
+    }));
+    try {
+      await createReadyAccount(viewerPage, runtime, "viewer");
+      await panel.getByRole("button", { name: "Save layout", exact: true }).click();
+      await expect(page.locator("#toast-stack")).toContainText("Layout saved.");
+      await expect.poll(() => events.length, { timeout: 15_000 }).toBeGreaterThan(0);
+      expect(events[0].props.length).toBeGreaterThan(1);
+    } finally {
+      await viewerContext.close();
+    }
+  });
+
+  test("editor surfaces a stale revision and can reapply", async ({ page, runtime }) => {
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    await panel.locator('[data-edit-add="plant"]').click();
+
+    const origin = new URL(runtime.baseURL).origin;
+    const csrf = await page.evaluate(() => document.cookie.split("; ").find(cookie => cookie.startsWith("tr_csrf="))?.slice("tr_csrf=".length));
+    const current = await (await page.request.get(`${runtime.baseURL}/api/rooms/hub/layout`)).json();
+    const external = await page.request.post(`${runtime.baseURL}/api/rooms/hub/layout`, {
+      data: { base_revision: current.layout.revision, patch: { props: current.layout.props } },
+      headers: { Origin: origin, "X-CSRF-Token": csrf },
+    });
+    expect(external.ok(), await external.text()).toBeTruthy();
+
+    await panel.getByRole("button", { name: "Save layout", exact: true }).click();
+    await expect(panel.locator(".editor-conflict")).toBeVisible();
+    await panel.getByRole("button", { name: "Reapply my changes", exact: true }).click();
+    await expect(page.locator("#toast-stack")).toContainText("Layout saved.");
+    await expect(panel.locator(".editor-conflict")).toHaveCount(0);
   });
 });

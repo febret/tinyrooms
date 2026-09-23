@@ -83,7 +83,7 @@ class BootstrapPayloadTests(Milestone2IntegrationTestCase):
         self.assertEqual(len(user["skills"]), 15)
         self.assertEqual(user["friends"]["friends"], [])
         pack_ids = {pack["id"] for pack in user["packs"]}
-        self.assertEqual(pack_ids, {"base", "tutorial"})
+        self.assertEqual(pack_ids, {"base", "tutorial", "memebase"})
 
 
 class ProgressionIntegrationTests(Milestone2IntegrationTestCase):
@@ -314,7 +314,7 @@ class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
             self.assertTrue(result["ok"], result)
             self.assertEqual(result["payload"]["activity"]["kind"], "shop")
             packs = self.command(socket, "packs-1", ".packs")
-            self.assertEqual({pack["id"] for pack in packs["payload"]["packs"]}, {"base", "tutorial"})
+            self.assertEqual({pack["id"] for pack in packs["payload"]["packs"]}, {"base", "tutorial", "memebase"})
 
     def test_prop_quick_action_shop_is_visible_in_hub(self) -> None:
         alice = self.create_ready_account("sue")

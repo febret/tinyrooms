@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { command, confirmSticker, createAccount, createReadyAccount, openCore, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, settleArtwork, travel } from "./helpers.js";
+import { command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, settleArtwork, travel } from "./helpers.js";
 
 // Run explicitly with npm run test:visual. Missing baselines fail, never auto-pass.
 function requestedFor() {
@@ -116,6 +116,17 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });
 
+test("milestone 3 room editing: the editor panel", async ({ page, runtime }, testInfo) => {
+  test.setTimeout(240_000);
+  const { requested, remaining } = requestedFor();
+  await freezeClock(page);
+  await createEditorAccount(page, runtime, "editor");
+  await openEditRoom(page);
+  await page.locator('#panel-layer [data-edit-add="plant"]').click();
+  await capture(page, testInfo, requested, remaining, "edit-room");
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
 test("milestone 2 additions: prop details, swap sticker, targeting, shop", async ({ page, runtime }, testInfo) => {
   test.setTimeout(240_000);
   const { requested, remaining } = requestedFor();
@@ -154,7 +165,7 @@ test("milestone 2 additions: prop details, swap sticker, targeting, shop", async
 
   await command(page, ".shop");
   const shopFrame = page.frameLocator('iframe[src*="shop"]');
-  await expect(shopFrame.locator(".pack-card")).toHaveCount(2);
+  await expect(shopFrame.locator(".pack-card")).toHaveCount(3);
   await pinActivityWindows(page);
   await capture(page, testInfo, requested, remaining, "shop");
   await shopFrame.locator(".pack-card").filter({ hasText: "Base Pack" }).getByRole("button", { name: "Buy" }).click();

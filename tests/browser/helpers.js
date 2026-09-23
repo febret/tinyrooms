@@ -50,7 +50,7 @@ export async function command(page, text) {
   await expect(page.locator("#chat-input")).toHaveValue("", { timeout: 20_000 });
 }
 
-async function closeOverlays(page) {
+export async function closeOverlays(page) {
   if (await page.locator("#detail-layer [role=dialog]").count()) await page.keyboard.press("Escape");
   if (await page.locator("#panel-layer [role=dialog]").count()) await page.keyboard.press("Escape");
 }
@@ -62,6 +62,51 @@ export async function openCore(page, id) {
 }
 
 // Select the room by clicking an empty board point, then open Room View from its quick actions.
+// Create an account and grant it builder power through the bootstrap admin.
+export async function createEditorAccount(page, runtime, username = "editor") {
+  const origin = new URL(runtime.baseURL).origin;
+  const created = await page.request.post(`${runtime.baseURL}/api/auth/create`, {
+    data: { username, password: PASSWORD, passphrase: runtime.invitation },
+    headers: { Origin: origin },
+  });
+  expect(created.ok(), await created.text()).toBeTruthy();
+  const { csrf_token: csrfToken } = await created.json();
+  const confirmed = await page.request.post(`${runtime.baseURL}/api/stickers/confirm`, {
+    data: { sticker: "s1.png" },
+    headers: { Origin: origin, "X-CSRF-Token": csrfToken },
+  });
+  expect(confirmed.ok(), await confirmed.text()).toBeTruthy();
+  const context = await page.context().browser().newContext({ ignoreHTTPSErrors: true });
+  try {
+    const adminPage = await context.newPage();
+    await createReadyAccount(adminPage, runtime, "siteadmin");
+    await command(adminPage, `.builder grant @${username}`);
+  } finally {
+    await context.close();
+  }
+  await page.goto(runtime.baseURL);
+  await expect(page.getByRole("button", { name: `Select ${username}`, exact: true })).toBeVisible();
+  await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
+}
+
+// Select the room by clicking an empty board point, then open the editor.
+export async function openEditRoom(page) {
+  await closeOverlays(page);
+  const box = await page.locator("#board-canvas").boundingBox();
+  const action = page.locator("#actions-bar").getByRole("button", { name: "Edit Room", exact: true });
+  for (const [fx, fy] of [[0.5, 0.06], [0.5, 0.94], [0.08, 0.5], [0.92, 0.5], [0.5, 0.5]]) {
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    if (await action.count()) {
+      await action.click();
+      const panel = page.locator("#panel-layer .edit-room-view");
+      await expect(panel).toBeVisible();
+      await expect(panel).toContainText("Add a prop");
+      return panel;
+    }
+  }
+  throw new Error("Could not open Edit Room: no board point selected the room.");
+}
+
 export async function openRoomView(page) {
   await closeOverlays(page);
   const box = await page.locator("#board-canvas").boundingBox();
