@@ -52,6 +52,7 @@ class RuntimeTestCase(unittest.TestCase):
     """Provide an isolated app, profile directory, and world-state database."""
 
     features = "dev_sample_activity"
+    world_path: Path | None = None
 
     def setUp(self) -> None:
         self.temporary_directory = TemporaryDirectory()
@@ -60,7 +61,7 @@ class RuntimeTestCase(unittest.TestCase):
             env={
                 "TRSERVER_NEW_ACCOUNT_PASSPHRASE": "open-sesame",
                 "TRSERVER_USERS_PATH": str(self.runtime_path / "users"),
-                "TRSERVER_WORLD_PATH": str(REPO_ROOT / "worlds" / "tutorial"),
+                "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
                 "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
                 "TRSERVER_FEATURES": self.features,
                 "TRSERVER_MODS": "infinite-bedrooms",

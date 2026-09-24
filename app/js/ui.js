@@ -35,6 +35,7 @@ const root = $("#app");
 const panelLayer = $("#panel-layer");
 const detailLayer = $("#detail-layer");
 const editorRoot = $("#editor-dock");
+const shopRoot = $("#shop-dock");
 const activityLayer = $("#activity-layer");
 const authLayer = $("#auth-layer");
 const chatInput = $("#chat-input");
@@ -350,6 +351,13 @@ async function handleAction(action) {
       return;
     }
     store.dispatch({ type: action.type });
+  } else if (action.type === "open-shop") {
+    store.dispatch({ type: "close-view" });
+    store.dispatch({ type: "shop-open" });
+  } else if (action.type === "shop-close") {
+    store.dispatch({ type: "shop-close" });
+  } else if (action.type === "buy-pack") {
+    await buyPack(action.packId);
   } else if (action.type === "edit-add") {
     store.dispatch({ type: "editor-add", propId: action.propId });
   } else if (action.type === "edit-snap") {
@@ -542,6 +550,54 @@ async function openStickerSwap() {
           try { await sendCommand(buildSwapStickerCommand(chosen)); } catch (error) { showError(error); }
         };
       });
+    },
+  );
+}
+
+function findPack(state, packId) {
+  return (state.user?.packs || []).find(pack => pack.id === packId) || null;
+}
+
+function operationId() {
+  return `pack-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function buyPack(packId) {
+  const state = store.getState();
+  const pack = findPack(state, packId);
+  if (!pack) return;
+  const bops = Number(state.user?.bops ?? 0);
+  if (bops < pack.price) {
+    toast(`You need ${pack.price - bops} more Bops for that pack.`, "error");
+    return;
+  }
+  const accepted = await dialogs.confirm(
+    `Buy ${pack.label}?`,
+    `Spend ${pack.price} Bops to open ${pack.size} cards?`,
+    "Buy",
+  );
+  if (!accepted) return;
+  try {
+    const envelope = await sendCommand(`.buy_pack ${pack.id} ${operationId()}`);
+    const purchase = envelope?.payload?.purchase;
+    if (purchase) revealPack(purchase.cards || []);
+  } catch (error) { showError(error); }
+}
+
+function revealPack(cards) {
+  playTone("success");
+  dialogs.open(
+    `<section class="global-dialog pack-reveal" role="dialog" aria-modal="true" aria-labelledby="pack-reveal-title">
+      <h2 id="pack-reveal-title">Your ${escapeHtml(cards.length)} cards</h2>
+      <div class="pack-reveal-cards">${cards.map(card => `
+        <figure class="pack-reveal-card"><img src="${escapeHtml(card.image_url)}" alt="${escapeHtml(card.label)}"><figcaption>${escapeHtml(card.label)}</figcaption></figure>
+      `).join("")}</div>
+      <div class="dialog-actions"><button type="button" class="primary pack-reveal-close">Continue</button></div>
+    </section>`,
+    (shade, close) => {
+      const button = shade.querySelector(".pack-reveal-close");
+      button.onclick = close;
+      button.focus({ preventScroll: true });
     },
   );
 }
@@ -794,7 +850,7 @@ const board = createBoard({
   onEditScale(factor) { store.dispatch({ type: "editor-scale", factor }); },
 });
 const cards = createCardsView({
-  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
+  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"), shopRoot,
   onSelect(selection) {
     const detailsOpen = Boolean(store.getState().views.details);
     store.dispatch({ type: "select", selection });
@@ -836,6 +892,7 @@ async function render(state) {
   root.classList.toggle("has-view", Boolean(state.views.main));
   root.classList.toggle("has-details", Boolean(state.views.details));
   root.classList.toggle("editing", Boolean(state.editor));
+  root.classList.toggle("shopping", Boolean(state.shop));
   root.classList.toggle("targeting", Boolean(state.ui.targeting));
   $("#board-canvas").inert = !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details);
   panelLayer.inert = Boolean(state.views.details);
@@ -934,7 +991,8 @@ document.addEventListener("keydown", event => {
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
-  if (state.views.details) store.dispatch({ type: "close-details" });
+  if (state.shop) store.dispatch({ type: "shop-close" });
+  else if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });
 store.subscribe(state => { void render(state).catch(showError); });

@@ -308,6 +308,7 @@ class CardService:
                 card_def_id=inventory_stack.card_def_id,
                 quantity=quantity,
                 pos=pos,
+                placed_by_account_id=account.id,
             )
             inventory_rows = self._profiles.list_inventory(account.id, self._world_id)
         event = {

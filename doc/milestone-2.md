@@ -164,7 +164,7 @@ buffs, and statuses so every UI and action sees identical results.
 - Provide all four starting Expressions and render the supplied GIF-based
   animation assets.
 
-### 7. Card packs and shop activity
+### 7. Card packs and shop UI
 
 - Load pack definitions from shared and world card directories.
 - Implement default rarity weights Common 70, Uncommon 20, Rare 8, Epic 1.8,
@@ -172,7 +172,7 @@ buffs, and statuses so every UI and action sees identical results.
   within the selected rarity. Allow duplicates and independent draws.
 - The Base and Tutorial packs cost 10 Bops and contain 3 draws with the exact
   catalogs in [planning-hints.md](./planning-hints.md).
-- The shop activity shows only pack name, price, and card count before purchase.
+- The shop dock shows only pack name, price, and card count before purchase.
   Require confirmation; insufficient funds changes nothing.
 - Charge and persist granted results in one transaction before reveal. Use an
   operation ID so retry/reconnect cannot reroll or duplicate a purchase.

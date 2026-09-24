@@ -581,6 +581,15 @@ function applyServerEvent(state, event) {
   if (event.type === "dialog.updated") {
     return { ...state, room: { ...state.room, dialog: normalizeDialog(event.dialog) } };
   }
+  if (event.type === "shop.open") {
+    return {
+      ...state,
+      editor: null,
+      shop: true,
+      views: { ...state.views, main: null, details: null },
+      ui: { ...state.ui, targeting: null },
+    };
+  }
   if (event.type === "activity.started") {
     const activity = normalizeActivity(event.activity);
     return {
@@ -734,6 +743,7 @@ function createInitialState() {
     commandCatalog: [],
     describedEntity: null,
     editor: null,
+    shop: false,
   };
 }
 
@@ -758,6 +768,7 @@ function reduce(state, action) {
       commandCatalog: action.loggedIn ? state.commandCatalog : [],
       describedEntity: null,
       editor: action.loggedIn ? state.editor : null,
+      shop: false,
     };
   }
   if (action.type === "bootstrap") {
@@ -780,6 +791,7 @@ function reduce(state, action) {
   if (action.type === "open-view") {
     return {
       ...state,
+      shop: false,
       selection: { kind: "core", id: action.view },
       views: {
         ...state.views,
@@ -792,6 +804,8 @@ function reduce(state, action) {
     };
   }
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
+  if (action.type === "shop-open") return { ...state, editor: null, shop: true, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
+  if (action.type === "shop-close") return { ...state, shop: false };
   if (action.type === "emote-category") return { ...state, ui: { ...state.ui, emoteCategory: action.category } };
   if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };

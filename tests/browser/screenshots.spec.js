@@ -45,16 +45,6 @@ async function gotoRoom(page, way, label) {
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
 }
 
-// Pin floating activity windows so captures do not depend on topbar/height settling.
-async function pinActivityWindows(page) {
-  await page.evaluate(() => {
-    document.querySelectorAll(".activity-window").forEach((node, index) => {
-      node.style.left = `${40 + index * 16}px`;
-      node.style.top = `${40 + index * 16}px`;
-    });
-  });
-}
-
 test("reference matrix: auth, onboarding, main, room, details, inventory, peep, bubbles, activity", async ({ page, runtime }, testInfo) => {
   test.setTimeout(240_000);
   const { requested, remaining } = requestedFor();
@@ -164,17 +154,34 @@ test("milestone 2 additions: prop details, swap sticker, targeting, shop", async
   await page.keyboard.press("Escape");
 
   await command(page, ".shop");
-  const shopFrame = page.frameLocator('iframe[src*="shop"]');
-  await expect(shopFrame.locator(".pack-card")).toHaveCount(3);
-  await pinActivityWindows(page);
+  const shop = page.locator("#shop-dock");
+  await expect(shop.locator(".shop-pack")).toHaveCount(3);
   await capture(page, testInfo, requested, remaining, "shop");
-  await shopFrame.locator(".pack-card").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
-  await expect(shopFrame.locator("#confirm")).toBeVisible();
-  await shopFrame.locator("#confirm-ok").click();
+  await shop.locator(".shop-pack").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
+  const confirm = page.locator(".global-dialog");
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole("button", { name: "Buy", exact: true }).click();
   // The reveal contents are randomly drawn, so the layout is covered by flows.spec.js
   // rather than a pixel baseline.
-  await expect(shopFrame.locator("#reveal")).toBeVisible();
-  await expect(shopFrame.locator(".reveal-card")).toHaveCount(3);
+  await expect(page.locator(".pack-reveal")).toBeVisible();
+  await expect(page.locator(".pack-reveal-card")).toHaveCount(3);
+
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
+test("milestone 3 phase F: world editor and card database", async ({ page, runtime }, testInfo) => {
+  test.setTimeout(240_000);
+  const { requested, remaining } = requestedFor();
+  await freezeClock(page);
+  await createEditorAccount(page, runtime, "curator");
+
+  await page.goto(`${runtime.baseURL}/world-editor/`);
+  await expect(page.locator("#we-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+  await capture(page, testInfo, requested, remaining, "world-editor");
+
+  await page.goto(`${runtime.baseURL}/card-database/`);
+  await expect(page.locator(".card-tile").first()).toBeVisible();
+  await capture(page, testInfo, requested, remaining, "card-database");
 
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });

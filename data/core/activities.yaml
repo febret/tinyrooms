@@ -1,9 +1,6 @@
 sticker-designer:
   title: Sticker Designer
   room_bound: false
-shop:
-  title: Card Shop
-  room_bound: true
 crafting:
   title: Crafting
   room_bound: true

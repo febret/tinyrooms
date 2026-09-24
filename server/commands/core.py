@@ -654,7 +654,7 @@ def build_registry() -> CommandRegistry:
         toast=False,
         log=False,
     )
-    registry.register("shop", "Open the card-pack shop activity.", gameplay.shop_command, usage=".shop")
+    registry.register("shop", "Open the card-pack shop.", gameplay.shop_command, usage=".shop")
     registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command, usage=".skill @card:<stack_id> <slot>")
     registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command, usage=".split @card:<stack_id> <quantity>")
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")

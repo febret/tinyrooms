@@ -371,13 +371,16 @@ test.describe("core milestone 2 views", () => {
   test("playing an animation emote shows a gif bubble sized to the animation", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await command(page, ".shop");
-    const shopFrame = page.frameLocator('iframe[src*="shop"]');
-    await shopFrame.locator(".pack-card").filter({ hasText: "Memebase Pack" }).getByRole("button", { name: "Buy" }).click();
-    await expect(shopFrame.locator("#confirm")).toBeVisible();
-    await shopFrame.locator("#confirm-ok").click();
-    await expect(shopFrame.locator(".reveal-card")).toHaveCount(3);
-    await page.getByRole("button", { name: "Close activity" }).click();
-    await expect(page.locator(".activity-window")).toHaveCount(0);
+    const shop = page.locator("#shop-dock");
+    await expect(shop.locator(".shop-pack")).toHaveCount(3);
+    await shop.locator(".shop-pack").filter({ hasText: "Memebase Pack" }).getByRole("button", { name: "Buy" }).click();
+    const confirm = page.locator(".global-dialog");
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Buy", exact: true }).click();
+    await expect(page.locator(".pack-reveal-card")).toHaveCount(3);
+    await page.locator(".pack-reveal-close").click();
+    await shop.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(shop).toBeHidden();
     await page.reload();
     await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
     await openCore(page, "emotes");
@@ -402,30 +405,32 @@ test.describe("core milestone 2 views", () => {
 test.describe("milestone 2 activities and targeting", () => {
   test.slow();
 
-  test("shop activity lists packs and reveals committed cards", async ({ page, runtime }) => {
+  test("shop dock lists packs and reveals committed cards", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await command(page, ".shop");
-    const activity = page.locator(".activity-window");
-    await expect(activity).toBeVisible();
-    const frame = page.frameLocator('iframe[src*="shop"]');
-    await expect(frame.locator(".pack-card")).toHaveCount(3);
-    await expect(frame.locator("#balance")).toContainText("10 Bops");
-    await frame.locator(".pack-card").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
-    await expect(frame.locator("#confirm")).toBeVisible();
-    await frame.locator("#confirm-ok").click();
-    await expect(frame.locator("#reveal")).toBeVisible();
-    await expect(frame.locator(".reveal-card")).toHaveCount(3);
-    await frame.locator("#reveal-close").click();
-    await expect(frame.locator("#reveal")).toBeHidden();
-    await expect(frame.locator("#balance")).toContainText("0 Bops");
+    const shop = page.locator("#shop-dock");
+    await expect(shop).toBeVisible();
+    await expect(shop.locator(".shop-pack")).toHaveCount(3);
+    await expect(shop.locator(".shop-balance")).toContainText("10 Bops");
+    await shop.locator(".shop-pack").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
+    const confirm = page.locator(".global-dialog");
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Buy", exact: true }).click();
+    await expect(page.locator(".pack-reveal")).toBeVisible();
+    await expect(page.locator(".pack-reveal-card")).toHaveCount(3);
+    await page.locator(".pack-reveal-close").click();
+    await expect(page.locator(".pack-reveal")).toHaveCount(0);
+    await expect(shop.locator(".shop-balance")).toContainText("0 Bops");
   });
 
-  test("inventory Card Shop button opens the shop activity", async ({ page, runtime }) => {
+  test("inventory Card Shop button opens the shop dock", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await openCore(page, "inventory");
     await page.locator("#panel-layer").getByRole("button", { name: "Card Shop", exact: true }).click();
-    const frame = page.frameLocator('iframe[src*="shop"]');
-    await expect(frame.locator(".pack-card")).toHaveCount(3);
+    await expect(page.locator("#panel-layer [role=dialog]")).toHaveCount(0);
+    const shop = page.locator("#shop-dock");
+    await expect(shop).toBeVisible();
+    await expect(shop.locator(".shop-pack")).toHaveCount(3);
   });
 
   test("selling a card from the inventory credits Bops", async ({ page, runtime }) => {
@@ -925,3 +930,46 @@ test.describe("bedrooms and doors", () => {
   });
 });
 
+
+test.describe("world editor and card database", () => {
+  test.slow();
+  test.setTimeout(60_000);
+
+  test("draft, validate, preview, and publish a world", async ({ page, runtime }) => {
+    await createEditorAccount(page, runtime, "worldsmith");
+    await page.goto(`${runtime.baseURL}/world-editor/`);
+    await expect(page.locator("#we-toolbar")).toContainText("World Editor");
+    await expect(page.locator("#we-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+
+    await page.locator(".room-item", { hasText: "The Hub" }).click();
+    const label = page.locator('input[data-room-field="label"]');
+    await expect(label).toHaveValue("The Hub");
+    await label.fill("Edited Hub");
+    await label.blur();
+    await expect(page.locator(".dirty-marker")).toContainText("Unsaved changes");
+
+    await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+    await expect(page.locator("#we-toast")).toContainText("saved", { timeout: 20_000 });
+
+    await page.getByRole("button", { name: "Validate", exact: true }).click();
+    await expect(page.locator("#we-validation")).toContainText("No validation errors");
+
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Stop preview", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Stop preview", exact: true }).click();
+
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await expect(page.locator("#we-toast")).toContainText("Published revision 1", { timeout: 20_000 });
+  });
+
+  test("card database lists cards, packs, and recipes", async ({ page, runtime }) => {
+    await createEditorAccount(page, runtime, "cardcat");
+    await page.goto(`${runtime.baseURL}/card-database/`);
+    await expect(page.locator(".card-tile").first()).toBeVisible();
+    await expect(page.locator(".cdb-section").filter({ hasText: "Packs" })).toBeVisible();
+    await expect(page.locator(".cdb-section").filter({ hasText: "Recipes" })).toBeVisible();
+
+    await page.locator("#cdb-search").fill("tasty");
+    await expect(page.locator(".card-tile", { hasText: "Tasty Toast" })).toHaveCount(1);
+  });
+});

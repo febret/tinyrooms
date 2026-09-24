@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from server.behaviors.events import BehaviorEvent, PeepRef
-from server.commands.activity_launch import resolve_activity, start_activity
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
 from server.commands.parser import ParsedCommand, parse_target
 from server.services.actions import ActionResult
@@ -348,11 +347,15 @@ async def buy_pack_command(context: CommandContext, command: ParsedCommand) -> C
 
 async def shop_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
-    room_id = context.connection.room_id
-    if room_id is None:
+    if context.connection.room_id is None:
         raise CommandError("You are not currently in a room.")
-    resolved = resolve_activity(context, room_id, "shop")
-    return start_activity(context, resolved, room_id=room_id, replace_existing=False)
+    return CommandOutcome(
+        message=None,
+        payload={},
+        private_events=[{"type": "shop.open"}],
+        toast=False,
+        log=False,
+    )
 
 
 async def friend_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

@@ -19,6 +19,7 @@ import { selfView } from "./views/self-view.js";
 import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
 import { editRoomView } from "./views/edit-room-view.js";
+import { shopView } from "./views/shop-view.js";
 
 function coreMarkup(definition, selected) {
   return `
@@ -60,7 +61,13 @@ function bindCardButtons(root, onSelect, onAction) {
     button.onclick = () => onAction({ type: "claim-bops" });
   });
   root.querySelectorAll("[data-open-shop]").forEach(button => {
-    button.onclick = () => onAction({ command: ".shop" });
+    button.onclick = () => onAction({ type: "open-shop" });
+  });
+  root.querySelectorAll("[data-close-shop]").forEach(button => {
+    button.onclick = () => onAction({ type: "shop-close" });
+  });
+  root.querySelectorAll("[data-buy-pack]").forEach(button => {
+    button.onclick = () => onAction({ type: "buy-pack", packId: button.dataset.buyPack });
   });
   root.querySelectorAll("[data-auto-merge]").forEach(button => {
     button.onclick = () => onAction({ command: ".merge_all" });
@@ -345,7 +352,7 @@ function inventoryStackActions(stack) {
 }
 
 /** Render core cards, equipped/inventory previews, board-modal views, and card details. */
-export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
+export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, shopRoot, onSelect, onAction }) {
   const rendered = new WeakMap();
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
@@ -353,7 +360,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, o
     const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .editor-dock-body, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .editor-dock-body, .shop-dock-body, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -386,6 +393,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, o
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
       if (editorRoot) update(editorRoot, state.editor ? editRoomView(state) : "");
+      if (shopRoot) update(shopRoot, state.shop ? shopView(state) : "");
     },
   };
 }

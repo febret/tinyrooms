@@ -713,11 +713,15 @@ eligible-card list or draw probabilities.
 Buying requires explicit confirmation of the Bops price and costs no Energy.
 Insufficient Bops reject the purchase without spending resources or granting cards.
 
-Card packs are bought with Bops through the Card Shop activity, which is opened
-from a button in the Inventory. Shops are [Activities](#activities):
-a prop or merchant peep can have a vending activity associated to it, launched
-through a quick action. Different vendor types can have different vending
-activities associated to them, rather than a single marketplace activity type.
+Card packs are bought with Bops through the Card Shop, a docked panel that
+replaces the look bar, quick action bar, and chat box while open — the same
+swap the room editor uses. It is opened from a button in the Inventory, and the
+`.shop` command emits a `shop.open` client event that opens it as well. Packs
+are listed from the bootstrap payload; purchases use the idempotent
+`.buy_pack <pack> <operation_id>` command and the reveal is presentation-only
+after the server commits. Other, room-bound vendor interactions can still use
+[Activities](#activities): a prop or merchant peep can have a vending activity
+associated to it, launched through a quick action.
 
 
 -------------------------------------------------------------------------------
@@ -1030,8 +1034,9 @@ Activities are minigames, puzzles and other additional side content that can be
 played on top of the normal room gameplay. A user can have at most one activity
 running at a time.
 
-The initial release includes Sticker Designer, Lazor Rush, a basic card-pack
-shop activity, and a basic crafting-station activity. Specialized shop or crafting
+The initial release includes Sticker Designer, Lazor Rush, and a basic
+crafting-station activity. The Card Shop is not an activity; it is a docked UI
+opened from the Inventory or the `.shop` command. Specialized shop or crafting
 variants are extension capabilities, not additional required activities.
 
 Activities can be launched through these contexts:
@@ -1039,7 +1044,7 @@ Activities can be launched through these contexts:
   toy prop starting a minigame)
 - through a card: playing an activity card starts the associated activity
 - through an NPC: a quick action can start an activity, such as Molly's Play
-  action or a merchant's shop
+  action or a merchant's vending minigame
 - through an account/profile flow: initial sticker selection or Swap Sticker
 - through a command: typing the activity launch command (e.g., `.play lazor-rush`)
   in the chat bar.

@@ -289,7 +289,7 @@ class SocialShopIntegrationTests(Milestone2IntegrationTestCase):
 
 
 class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
-    """Room-change Energy cost and the shop activity."""
+    """Room-change Energy cost and the shop UI."""
 
     def test_room_change_costs_one_energy(self) -> None:
         alice = self.create_ready_account("quin")
@@ -304,7 +304,7 @@ class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
         after = self.runtime().stats.snapshot(alice_id).energy
         self.assertAlmostEqual(before - after, 1, delta=0.2)
 
-    def test_shop_command_opens_activity(self) -> None:
+    def test_shop_command_opens_shop_ui(self) -> None:
         alice = self.create_ready_account("rae")
         with self.client.websocket_connect(
             "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
@@ -312,7 +312,8 @@ class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
             socket.receive_json()
             result = self.command(socket, "shop-1", ".shop")
             self.assertTrue(result["ok"], result)
-            self.assertEqual(result["payload"]["activity"]["kind"], "shop")
+            self.assertIsNone(result["payload"].get("activity"))
+            self.assertIn({"type": "shop.open"}, result["events"])
             packs = self.command(socket, "packs-1", ".packs")
             self.assertEqual({pack["id"] for pack in packs["payload"]["packs"]}, {"base", "tutorial", "memebase"})
 

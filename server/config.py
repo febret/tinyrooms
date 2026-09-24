@@ -11,7 +11,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _MOD_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
-KNOWN_FEATURES = frozenset({"dev-sample-activity", "dev_sample_activity"})
+KNOWN_FEATURES = frozenset(
+    {
+        "dev-sample-activity",
+        "dev_sample_activity",
+        "world-editor",
+        "card-database",
+    }
+)
 
 
 class ConfigError(ValueError):
@@ -24,6 +31,8 @@ class AppConfig:
 
     repo_root: Path
     local_path: Path
+    drafts_path: Path
+    revisions_path: Path
     users_path: Path
     world_path: Path
     worldstate_path: Path
@@ -139,6 +148,10 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     root = Path(repo_root or Path(__file__).resolve().parent.parent).resolve()
     local_path = root / ".local"
     local_path.mkdir(parents=True, exist_ok=True)
+    drafts_path = local_path / "drafts"
+    drafts_path.mkdir(parents=True, exist_ok=True)
+    revisions_path = local_path / "revisions"
+    revisions_path.mkdir(parents=True, exist_ok=True)
 
     passphrase = values.get("TRSERVER_NEW_ACCOUNT_PASSPHRASE", "").strip()
     if not passphrase:
@@ -205,6 +218,8 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     return AppConfig(
         repo_root=root,
         local_path=local_path,
+        drafts_path=drafts_path,
+        revisions_path=revisions_path,
         users_path=users_path.resolve(),
         world_path=world_path.resolve(),
         worldstate_path=worldstate_path.resolve(),
