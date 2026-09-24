@@ -95,3 +95,4 @@ class CommandContext:
     dispensers: DispenserService
     crafting: CraftingService
     recipes: dict[str, RecipeDefinition]
+    mods: dict[str, object]

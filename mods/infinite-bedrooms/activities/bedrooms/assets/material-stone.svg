@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Stone finish">
+  <g fill="#00000022">
+    <circle cx="28" cy="34" r="3"/><circle cx="48" cy="26" r="2.4"/><circle cx="68" cy="40" r="3.2"/>
+    <circle cx="38" cy="60" r="2.2"/><circle cx="60" cy="66" r="3"/><circle cx="78" cy="58" r="2.4"/>
+    <circle cx="26" cy="92" r="2.6"/><circle cx="50" cy="100" r="3.4"/><circle cx="72" cy="94" r="2.2"/>
+    <circle cx="34" cy="124" r="3"/><circle cx="62" cy="132" r="2.6"/><circle cx="80" cy="118" r="2.4"/>
+  </g>
+  <g fill="#ffffff1a">
+    <circle cx="42" cy="44" r="1.6"/><circle cx="70" cy="78" r="1.8"/><circle cx="30" cy="110" r="1.6"/>
+    <circle cx="56" cy="146" r="1.8"/><circle cx="46" cy="88" r="1.4"/>
+  </g>
+</svg>

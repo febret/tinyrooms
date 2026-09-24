@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" role="img" aria-label="Corridor floor">
+  <rect width="120" height="200" fill="#6b5844"/>
+  <g stroke="#5a4936" stroke-width="3">
+    <path d="M0 50H120M0 100H120M0 150H120"/>
+  </g>
+  <g stroke="#7c6852" stroke-width="1.5">
+    <path d="M30 0V50M90 50V100M40 100V150M100 150V200M20 0V50M70 50V100M10 100V150M60 150V200"/>
+  </g>
+</svg>

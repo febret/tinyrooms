@@ -214,8 +214,8 @@ export function createActivityManager({
       maximized: false,
       left: 28 + windows.size * 14,
       top: 24 + windows.size * 14,
-      width: activity.kind === "sticker-designer" ? 760 : 560,
-      height: activity.kind === "sticker-designer" ? 600 : 420,
+      width: activity.kind === "sticker-designer" ? 760 : activity.kind === "bedrooms" ? 720 : 560,
+      height: activity.kind === "sticker-designer" ? 600 : activity.kind === "bedrooms" ? 520 : 420,
     };
     entry.title.textContent = activity.title;
     entry.title.id = `activity-title-${++titleSequence}`;

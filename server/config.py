@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_MOD_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 KNOWN_FEATURES = frozenset({"dev-sample-activity", "dev_sample_activity"})
 
 
@@ -34,6 +35,8 @@ class AppConfig:
     host: str
     port: int
     tick_seconds: float = 1.0
+    mods: frozenset[str] = frozenset()
+    mods_path: Path | None = None
 
     @property
     def app_path(self) -> Path:
@@ -58,6 +61,12 @@ class AppConfig:
         """Return the global cardsets directory."""
 
         return self.repo_root / "data" / "cardsets"
+
+    @property
+    def propsets_path(self) -> Path:
+        """Return the global propsets directory."""
+
+        return self.repo_root / "data" / "propsets"
 
     @property
     def is_wildcard_bind(self) -> bool:
@@ -94,6 +103,23 @@ def parse_features(raw_value: str) -> frozenset[str]:
             raise ConfigError(f"Unsupported feature flag '{feature}'.")
         features.add(feature)
     return frozenset(features)
+
+
+def parse_mods(raw_value: str) -> frozenset[str]:
+    """Parse a comma-separated mod list; ``*`` selects every installed mod."""
+
+    mods: set[str] = set()
+    for item in raw_value.split(","):
+        mod = item.strip()
+        if not mod:
+            continue
+        if mod == "*":
+            mods.add("*")
+            continue
+        if not _MOD_PATTERN.match(mod):
+            raise ConfigError(f"Invalid mod name '{mod}'.")
+        mods.add(mod)
+    return frozenset(mods)
 
 
 def ensure_contained(path: Path, root: Path, label: str) -> Path:
@@ -171,6 +197,11 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if tick_seconds <= 0:
         raise ConfigError(f"TRSERVER_TICK_SECONDS must be positive, got {tick_seconds}.")
 
+    mods = parse_mods(values.get("TRSERVER_MODS", ""))
+    mods_path = Path(values.get("TRSERVER_MODS_PATH", str(root / "mods"))).expanduser().resolve()
+    if mods and not mods_path.is_dir():
+        raise ConfigError(f"TRSERVER_MODS_PATH does not exist: {mods_path}")
+
     return AppConfig(
         repo_root=root,
         local_path=local_path,
@@ -185,4 +216,6 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         host=host,
         port=port,
         tick_seconds=tick_seconds,
+        mods=mods,
+        mods_path=mods_path,
     )

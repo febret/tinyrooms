@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Bedrooms</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./bedrooms.css">
+  </head>
+  <body>
+    <main class="shell bedrooms-shell">
+      <header class="bedrooms-top">
+        <div class="bedrooms-heading">
+          <h1 class="heading">The Bedrooms</h1>
+          <p class="muted smallprint connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+        </div>
+        <div class="bedrooms-actions">
+          <span class="bops" id="bops" aria-live="polite"></span>
+          <button type="button" class="quiet small" id="my-door" hidden>My door</button>
+          <button type="button" class="primary small" id="get-door" hidden>Get a door</button>
+        </div>
+      </header>
+
+      <div class="corridor" id="corridor" role="region" aria-label="Bedroom corridor" tabindex="0">
+        <div class="corridor-track" id="track"></div>
+      </div>
+      <p class="hint muted" id="hint">Scroll or drag along the corridor. A door opens a peep's room.</p>
+
+      <div class="dialog-shade" id="designer" hidden>
+        <section class="paper designer reveal" role="dialog" aria-modal="true" aria-labelledby="designer-title">
+          <header class="designer-head">
+            <h2 id="designer-title">Design your door</h2>
+            <button type="button" class="quiet small" id="designer-close" aria-label="Close designer">✕</button>
+          </header>
+          <div class="designer-body">
+            <div class="designer-preview" id="preview" aria-hidden="true"></div>
+            <div class="designer-controls" id="controls"></div>
+          </div>
+          <footer class="designer-foot">
+            <label class="lock-toggle">
+              <input type="checkbox" id="lock">
+              <span>Lock my door</span>
+            </label>
+            <div class="actions">
+              <button type="button" class="primary" id="designer-save">Save door</button>
+            </div>
+          </footer>
+        </section>
+      </div>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./bedrooms.js"></script>
+  </body>
+</html>

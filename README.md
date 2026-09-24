@@ -35,10 +35,22 @@ the port on trusted networks.
 | `TRSERVER_WORLD_PATH` | Loaded definitions; defaults to `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | Live SQLite state; defaults to `.local/worldstate.sqlite3` |
 | `TRSERVER_FEATURES` | Optional flags such as `dev_sample_activity` |
+| `TRSERVER_MODS` | Comma-separated mod names to load, or `*` for every installed mod |
+| `TRSERVER_MODS_PATH` | Mod search directory; defaults to `mods` |
 | `TRSERVER_ADMINS` | Comma-separated usernames bootstrapped with the `admin` power |
 | `TRSERVER_TIMEZONE` | Game timezone; defaults to `UTC` |
 | `TRSERVER_HOST` | Listener address; defaults to `127.0.0.1` |
 | `TRSERVER_PORT` | HTTPS port; defaults to `5000` |
+
+## Mods
+
+Server mods live under `mods/` (override with `TRSERVER_MODS_PATH`). A mod is a
+directory containing a `mod.yaml` manifest that may contribute world content
+(`content/`), a props set (`props/`), activity iframes (`activities/`), and
+Python behaviour through an entrypoint (`mod.py`) exposing `register(api)`.
+Enable mods with `TRSERVER_MODS` (comma-separated names, or `*` for every
+installed mod). Worlds declare the mods they need with `requires_mods` in
+`world.yaml`; the tutorial world requires `infinite-bedrooms`.
 
 ## Verification
 

@@ -32,6 +32,7 @@ from server.content.activities import load_activity_definitions
 from server.content.cards import CardCatalog, ContentError, load_card_catalog
 from server.content.gameplay import GameplayContent, load_gameplay_content
 from server.content.worlds import WorldDefinition, load_world_definition
+from server.mods import ModDefinition, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.protocol import (
     PROTOCOL_VERSION,
@@ -147,6 +148,8 @@ class RuntimeState:
     environment: EnvironmentService
     layout: RoomLayoutService
     auras: AuraService
+    mods: dict[str, object]
+    mod_definitions: tuple[ModDefinition, ...]
     dispensers: DispenserService
     crafting: CraftingService
     behaviors: BehaviorDispatcher
@@ -193,6 +196,18 @@ def _safe_path(root: Path, requested_path: str) -> Path:
         return ensure_contained(root / requested_path, root, "asset")
     except ConfigError as exc:
         raise HTTPException(status_code=404, detail="Not found.") from exc
+
+
+def _activity_roots(runtime: RuntimeState) -> tuple[Path, ...]:
+    """Return core and mod activity roots in search order."""
+
+    return (runtime.config.activities_path, *(mod.activities_path for mod in runtime.mod_definitions))
+
+
+def _propset_roots(runtime: RuntimeState) -> tuple[Path, ...]:
+    """Return core propset roots in search order."""
+
+    return (runtime.config.propsets_path,)
 
 
 def _render_fallback_activity(kind: str) -> HTMLResponse:
@@ -359,20 +374,24 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     hub = DatabaseHub(profile_db_path, config.worldstate_path)
     catalog = load_card_catalog(config.cardsets_path, config.world_path)
     content = load_gameplay_content(config.repo_root / "data" / "core")
+    mods = load_mods(config)
     core_activities = load_activity_definitions(
         config.repo_root / "data" / "core" / "activities.yaml",
         source="core",
         known_features=KNOWN_FEATURES,
     )
+    activities_catalog = {**core_activities, **mods.activity_definitions}
     world = load_world_definition(
         config.world_path,
         set(catalog.cards),
-        core_activities=core_activities,
+        core_activities=activities_catalog,
         known_features=KNOWN_FEATURES,
+        propsets_root=config.propsets_path,
+        mod_props=mods.mod_props(),
+        enabled_mods=mods.ids,
     )
     profiles = ProfileRepository(hub)
     world_state = WorldStateRepository(hub)
-    world_state.initialize_world(world)
     accounts = AccountService(config, profiles, world.id, world.entry_room_id)
     activities = ActivityService(config)
     connections = ConnectionRegistry()
@@ -406,6 +425,17 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
     registry = build_registry()
+    for spec in mods.command_specs():
+        registry.register(
+            spec["name"],
+            spec["summary"],
+            spec["handler"],
+            usage=spec["usage"],
+            power=spec["power"],
+            help=spec["help"],
+            toast=spec["toast"],
+            log=spec["log"],
+        )
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -493,11 +523,21 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         environment=environment,
         layout=layout,
         auras=auras,
+        mods={},
+        mod_definitions=mods.definitions,
         dispensers=dispensers,
         crafting=crafting,
         behaviors=behaviors,
         ticker=ticker,
     )
+    for mod_id, factory in mods.state_factories():
+        runtime.mods[mod_id] = factory(runtime)
+    for state in runtime.mods.values():
+        prepare = getattr(state, "prepare", None)
+        if prepare is not None:
+            prepare()
+    world_state.initialize_world(world)
+    rooms.attach_mod_states(runtime.mods.values())
     runtime_holder["runtime"] = runtime
     return runtime
 
@@ -856,6 +896,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         environment=runtime.environment,
                         audit=runtime.audit,
                         connections=runtime.connections,
+                        mods=runtime.mods,
                         dispensers=runtime.dispensers,
                         crafting=runtime.crafting,
                         recipes=runtime.world.recipes,
@@ -951,9 +992,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     @app.get("/activities/{activity_name}/")
     async def activity_index(activity_name: str, request: Request) -> Response:
         runtime = _get_runtime(request)
-        candidate = runtime.config.activities_path / activity_name / "index.html"
-        if candidate.is_file():
-            return FileResponse(candidate)
+        for root in _activity_roots(runtime):
+            candidate = _safe_path(root / activity_name, "index.html")
+            if candidate.is_file():
+                return FileResponse(candidate)
         return _render_fallback_activity(activity_name)
 
     @app.get("/activities/{filename}")
@@ -967,11 +1009,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     @app.get("/activities/{activity_name}/{requested_path:path}")
     async def activity_files(activity_name: str, requested_path: str, request: Request) -> Response:
         runtime = _get_runtime(request)
-        root = runtime.config.activities_path / activity_name
-        candidate = _safe_path(root, requested_path)
-        if candidate.is_file():
-            media_type, _ = mimetypes.guess_type(candidate.name)
-            return FileResponse(candidate, media_type=media_type)
+        for root in _activity_roots(runtime):
+            candidate = _safe_path(root / activity_name, requested_path)
+            if candidate.is_file():
+                media_type, _ = mimetypes.guess_type(candidate.name)
+                return FileResponse(candidate, media_type=media_type)
         raise HTTPException(status_code=404, detail="Activity file not found.")
 
     @app.get("/assets/stickers/{filename}")
@@ -989,6 +1031,26 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         if candidate.is_file():
             return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Cardset asset not found.")
+
+    @app.get("/assets/propsets/{propset}/{filename}")
+    async def propset_asset(propset: str, filename: str, request: Request) -> Response:
+        runtime = _get_runtime(request)
+        for root in _propset_roots(runtime):
+            candidate = _safe_path(root / propset, filename)
+            if candidate.is_file():
+                return FileResponse(candidate)
+        raise HTTPException(status_code=404, detail="Propset asset not found.")
+
+    @app.get("/assets/mods/{mod_id}/props/{filename}")
+    async def mod_prop_asset(mod_id: str, filename: str, request: Request) -> Response:
+        runtime = _get_runtime(request)
+        for mod in runtime.mod_definitions:
+            if mod.id != mod_id:
+                continue
+            candidate = _safe_path(mod.props_path, filename)
+            if candidate.is_file():
+                return FileResponse(candidate)
+        raise HTTPException(status_code=404, detail="Mod prop asset not found.")
 
     @app.get("/assets/world/{world_id}/{bucket}/{filename}")
     async def world_asset(world_id: str, bucket: str, filename: str, request: Request) -> Response:

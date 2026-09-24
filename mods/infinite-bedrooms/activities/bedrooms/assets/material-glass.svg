@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Glass finish">
+  <path d="M12 160 L88 10 L88 44 L46 160 Z" fill="#ffffff33"/>
+  <path d="M12 118 L58 10 L70 10 L24 160 Z" fill="#ffffff22"/>
+  <rect x="12" y="10" width="76" height="150" rx="3" fill="none" stroke="#ffffff44" stroke-width="2"/>
+</svg>

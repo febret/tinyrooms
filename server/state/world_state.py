@@ -15,6 +15,9 @@ from server.security import utc_now
 from server.state.migrations import DatabaseHub
 
 
+PLAYER_ROOM_PREFIX = "bedroom:"
+
+
 def _position_from_json(raw: str) -> tuple[float, float, float]:
     try:
         values = json.loads(raw)
@@ -47,6 +50,19 @@ class RoomCardStack:
     updated_at: str
 
 
+@dataclass(frozen=True, slots=True)
+class PlayerRoomRecord:
+    """A persisted per-player bedroom, backed by a ``room_states`` row.
+
+    ``door`` carries both the lock state and the validated customization:
+    ``{"style": {...}, "locked": bool}``.
+    """
+
+    room_id: str
+    owner_account_id: str
+    door: dict[str, Any]
+
+
 class WorldStateRepository:
     """Repository for shared room state, cards, and in-memory chat history."""
 
@@ -67,6 +83,86 @@ class WorldStateRepository:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
+
+    def _player_room_from_row(self, row: sqlite3.Row) -> PlayerRoomRecord:
+        try:
+            door = json.loads(row["door_json"])
+        except (TypeError, ValueError):
+            door = {}
+        return PlayerRoomRecord(
+            room_id=row["room_id"],
+            owner_account_id=row["owner_account_id"],
+            door=door if isinstance(door, dict) else {},
+        )
+
+    def list_player_rooms(self) -> list[PlayerRoomRecord]:
+        """Return every persisted player room in creation order."""
+
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                "SELECT * FROM world.room_states WHERE room_id LIKE ? ORDER BY rowid",
+                (f"{PLAYER_ROOM_PREFIX}%",),
+            ).fetchall()
+        return [self._player_room_from_row(row) for row in rows]
+
+    def get_player_room(self, room_id: str) -> PlayerRoomRecord | None:
+        """Return a player room by its room id."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT * FROM world.room_states WHERE room_id = ? AND room_id LIKE ?",
+                (room_id, f"{PLAYER_ROOM_PREFIX}%"),
+            ).fetchone()
+        return None if row is None else self._player_room_from_row(row)
+
+    def get_player_room_for_account(self, account_id: str) -> PlayerRoomRecord | None:
+        """Return the player room owned by an account, if any."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT * FROM world.room_states WHERE owner_account_id = ? AND room_id LIKE ? "
+                "ORDER BY rowid LIMIT 1",
+                (account_id, f"{PLAYER_ROOM_PREFIX}%"),
+            ).fetchone()
+        return None if row is None else self._player_room_from_row(row)
+
+    def insert_player_room(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        room_id: str,
+        owner_account_id: str,
+        door: dict[str, Any],
+    ) -> PlayerRoomRecord:
+        """Create or claim the ``room_states`` row for a player room."""
+
+        connection.execute(
+            """
+            INSERT INTO world.room_states (room_id, initialized, owner_account_id, props_json, door_json)
+            VALUES (?, 0, ?, '{}', ?)
+            ON CONFLICT(room_id) DO UPDATE SET
+                owner_account_id = excluded.owner_account_id,
+                door_json = excluded.door_json
+            """,
+            (room_id, owner_account_id, json.dumps(door)),
+        )
+        return PlayerRoomRecord(room_id=room_id, owner_account_id=owner_account_id, door=door)
+
+    def update_player_room(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        room_id: str,
+        door: dict[str, Any],
+    ) -> None:
+        """Update a player room's door customization and lock state."""
+
+        cursor = connection.execute(
+            "UPDATE world.room_states SET door_json = ? WHERE room_id = ? AND room_id LIKE ?",
+            (json.dumps(door), room_id, f"{PLAYER_ROOM_PREFIX}%"),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("That bedroom no longer exists.")
 
     @staticmethod
     def _mark_room_initialized(connection: sqlite3.Connection, room_id: str) -> None:
@@ -93,6 +189,8 @@ class WorldStateRepository:
 
         with self._hub.transaction() as connection:
             for room_id, room in world.rooms.items():
+                if room.template:
+                    continue
                 row = connection.execute(
                     "SELECT initialized FROM world.room_states WHERE room_id = ?",
                     (room_id,),
@@ -116,6 +214,15 @@ class WorldStateRepository:
             stacks = self._insert_seed_cards(connection, room_id, initial_cards)
             self._mark_room_initialized(connection, room_id)
         return stacks
+
+    def seed_player_room(self, room_id: str, room, world: WorldDefinition) -> None:
+        """Initialize a dynamically created room from its definition."""
+
+        with self._hub.transaction() as connection:
+            connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            self._insert_seed_cards(connection, room_id, room.initial_cards)
+            self._mark_room_initialized(connection, room_id)
+            self._seed_room_layout(connection, room_id, room, world)
 
     @staticmethod
     def _seed_room_layout(

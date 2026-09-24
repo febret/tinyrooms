@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
-from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
+from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import MAX_CHAT_SIZE, presence_enter_event, presence_leave_event
 from server.services.activities import ActivityService
@@ -67,11 +67,17 @@ class RoomService:
         self._environment = environment
         self._auras = auras
         self._layout = layout
+        self._mod_states: list[object] = []
 
     def attach_dispatcher(self, dispatcher: object) -> None:
         """Wire the behavior dispatcher used for navigation events."""
 
         self._behaviors = dispatcher
+
+    def attach_mod_states(self, states: object) -> None:
+        """Wire mod runtime state objects that contribute per-account prop actions."""
+
+        self._mod_states = list(states)
 
     def attach_dialogs(self, dialogs: object) -> None:
         """Wire the dialog service used to cancel dialogs on departure."""
@@ -235,9 +241,17 @@ class RoomService:
             "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
         }
 
-    def _serialize_prop(self, room: RoomDefinition, prop: PropInstanceDefinition) -> dict[str, object]:
+    def _serialize_prop(self, account: AccountRecord, room: RoomDefinition, prop: PropInstanceDefinition) -> dict[str, object]:
         prop_definition = self._world.props[prop.prop_id]
         animation = prop.animation if prop.animation is not None else prop_definition.animation
+        quick_actions = self._visible_prop_actions(room, prop.actions)
+        for state in self._mod_states:
+            personal_actions = getattr(state, "personal_actions", None)
+            if personal_actions is None:
+                continue
+            personal = personal_actions(account, prop)
+            if personal:
+                quick_actions = quick_actions + self._visible_prop_actions(room, tuple(personal))
         return {
             "id": prop.id,
             "prop_id": prop.prop_id,
@@ -245,11 +259,11 @@ class RoomService:
             "rotation": list(prop.rot),
             "scale": prop.scale * prop_definition.scale,
             "behavior": prop.behavior,
-            "model_url": f"/assets/world/{self._world.id}/props/{prop_definition.model_name}",
+            "model_url": prop_model_url(self._world.id, prop_definition),
             "label": prop_definition.label,
             "description": prop_definition.description,
             "animation": animation,
-            "quick_actions": self._visible_prop_actions(room, prop.actions),
+            "quick_actions": quick_actions,
         }
 
     async def build_snapshot(
@@ -315,7 +329,7 @@ class RoomService:
             "environment": environment,
             "environment_revision": environment_revision,
             "exits": visible_exits,
-            "props": [self._serialize_prop(room, prop) for prop in self._visible_props(room)],
+            "props": [self._serialize_prop(account, room, prop) for prop in self._visible_props(room)],
             "occupants": occupants,
             "npcs": self._room_peeps(room_id),
             "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],
@@ -373,6 +387,45 @@ class RoomService:
             inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world.id)}
             if exit_definition.requires_card_id not in inventory_ids:
                 raise ValueError(f"You need {exit_definition.requires_card_id} to go that way.")
+        return await self._move(
+            account,
+            source_room=source_room,
+            destination_room=destination_room,
+            direction=exit_definition.label,
+        )
+
+    async def enter_room(
+        self,
+        account: AccountRecord,
+        source_room_id: str,
+        destination_room_id: str,
+        *,
+        direction: str = "a doorway",
+    ) -> NavigationResult:
+        """Move a connected user to an explicit room without an authored exit."""
+
+        source_room = self._world.rooms[source_room_id]
+        destination_room = self._world.rooms.get(destination_room_id)
+        if destination_room is None:
+            raise ValueError("That room does not exist.")
+        return await self._move(
+            account,
+            source_room=source_room,
+            destination_room=destination_room,
+            direction=direction,
+        )
+
+    async def _move(
+        self,
+        account: AccountRecord,
+        *,
+        source_room: RoomDefinition,
+        destination_room: RoomDefinition,
+        direction: str,
+    ) -> NavigationResult:
+        """Perform a room change and return ordered room events."""
+
+        source_room_id = source_room.id
         behavior_results: list[object] = []
         if self._behaviors is not None:
             behavior_results.append(
@@ -422,7 +475,7 @@ class RoomService:
                 username=account.username_display,
                 room_id=source_room_id,
                 destination_room_id=destination_room.id,
-                direction=exit_definition.label,
+                direction=direction,
             ),
             destination_event=presence_enter_event(
                 account_id=account.id,

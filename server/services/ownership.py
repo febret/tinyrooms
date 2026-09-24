@@ -61,12 +61,21 @@ class OwnershipService:
             raise ValueError("That room does not exist.")
         if self._profiles.get_account_by_id(account_id) is None:
             raise ValueError("That account does not exist.")
-        previous = self.owner_of(room_id)
         with self._hub.transaction() as connection:
-            self._write_owner(connection, room_id, account_id)
-            self._set_mirror(connection, account_id, room_id, owned=True)
-            if previous is not None and previous != account_id:
-                self._set_mirror(connection, previous, room_id, owned=False)
+            self.grant_in_transaction(connection, room_id, account_id)
+
+    def grant_in_transaction(self, connection, room_id: str, account_id: str) -> None:
+        """Assign ownership using an existing transaction connection."""
+
+        if room_id not in self._world.rooms:
+            raise ValueError("That room does not exist.")
+        if self._profiles.get_account_by_id(account_id) is None:
+            raise ValueError("That account does not exist.")
+        previous = self.owner_of(room_id)
+        self._write_owner(connection, room_id, account_id)
+        self._set_mirror(connection, account_id, room_id, owned=True)
+        if previous is not None and previous != account_id:
+            self._set_mirror(connection, previous, room_id, owned=False)
 
     def revoke(self, room_id: str) -> None:
         """Clear ownership for a room."""

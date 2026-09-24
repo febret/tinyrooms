@@ -1,0 +1,4 @@
+bedrooms:
+  title: The Bedrooms
+  room_bound: true
+  rooms: [hub]

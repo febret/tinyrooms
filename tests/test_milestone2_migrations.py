@@ -196,6 +196,7 @@ class Milestone3MigrationTests(unittest.TestCase):
                 BEGIN;
                 ALTER TABLE room_states DROP COLUMN environment_json;
                 ALTER TABLE room_states DROP COLUMN layout_revision;
+                ALTER TABLE room_states DROP COLUMN door_json;
                 PRAGMA user_version = 7;
                 COMMIT;
                 """
@@ -209,6 +210,7 @@ class Milestone3MigrationTests(unittest.TestCase):
             columns = [row[1] for row in connection.execute("PRAGMA table_info(room_states)")]
             self.assertIn("environment_json", columns)
             self.assertIn("layout_revision", columns)
+            self.assertIn("door_json", columns)
             connection.close()
 
 

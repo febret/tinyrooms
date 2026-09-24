@@ -58,7 +58,8 @@ Key design decisions:
 Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 (required), `HOST` (`127.0.0.1`), `PORT` (`5000`), `USERS_PATH` (`users`),
 `WORLD_PATH` (`worlds/tutorial`), `WORLDSTATE_PATH`
-(`.local/worldstate.sqlite3`), `FEATURES`, `TIMEZONE` (`UTC`).
+(`.local/worldstate.sqlite3`), `FEATURES`, `MODS` (comma-separated names or `*`),
+`MODS_PATH` (`mods`), `TIMEZONE` (`UTC`).
 
 ## 2. Component guide
 
@@ -73,13 +74,15 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Live connections | `server/connections.py` | In-memory WS registry, per-account queue, room membership, session replacement. |
 | Commands | `server/commands/` | `.`-command/chat/`\admin` parser, name→handler registry, 11 core handlers + dispatcher. |
 | Content loaders | `server/content/` | Strict YAML loading for cards/packs, world/rooms/props/peeps, and activity launch definitions. |
+| Mod loader | `server/mods.py` | Discovers `mods/<id>/mod.yaml`, validates `TRSERVER_MODS`, merges mod content/props/activities, registers mod commands + runtime state. |
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
+| Bedroom mod | `mods/infinite-bedrooms/` | Player-room purchase/materialization, door locking, customization, access checks, and the Bedrooms activity. |
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
 | Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
 | Browser UI | `app/` | Shell (`index.html`), styles, 14 JS modules, vendored Three.js. |
 | Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
-| Shared data | `data/` | Core tuning YAML, base card set + art, sticker choices. |
+| Shared data | `data/` | Core tuning YAML, base card set + art, sticker choices, door catalog. |
 | Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes + art/models. |
 | Tests | `tests/` | Python `unittest` (server/integration/static) + Playwright browser specs. |
 | Tooling | `tools/`, root configs | Browser-test server, dep vendoring, Playwright/npm config. |
@@ -87,6 +90,26 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 `server/client/` and `tests/client/` are referenced in `AGENTS.md` as the
 future home of browser-free ports of `app/js/` logic, but do not exist yet in
 this checkout.
+
+### 2.1 Mods
+
+A mod is a self-contained directory under the mods path (default `mods/`) with a
+`mod.yaml` manifest. `TRSERVER_MODS` selects mods by name or `*` (all);
+`TRSERVER_MODS_PATH` overrides the search root. Mods may contribute:
+
+- `content/activities.yaml` — merged into the activity catalog.
+- `props/props.yaml` (+ models) — a single props set, like a world; merged into
+  the world's props and served from `/assets/mods/<id>/props/…`.
+- `activities/<name>/` — served from `/activities/<name>/…`.
+- `mod.py` — a `register(api)` entrypoint that registers `.` commands and a
+  runtime state factory. State objects land in `RuntimeState.mods` /
+  `CommandContext.mods`; a state exposing `personal_actions(account, prop)`
+  contributes per-account prop quick actions. `prepare()` runs before world
+  seeding.
+
+Worlds declare required mods via `requires_mods` in `world.yaml`; startup fails
+with a clear error if a required mod is not enabled. The tutorial world requires
+`infinite-bedrooms`.
 
 ## 3. HTTP API (`server/app.py`, `app/js/api.js:PATHS`)
 
@@ -107,6 +130,8 @@ this checkout.
 | `GET` | `/app/{path}` | Static app files (path-contained). |
 | `GET` | `/activities/{name}/`, `/activities/{name}/{path}`, `/activities/shared.js\|shared.css` | Activity hosting (fallback page outside Milestone 1). |
 | `GET` | `/assets/stickers/{file}`, `/assets/base/{file}`, `/assets/world/{world}/{cards\|rooms\|props\|peeps}/{file}` | Art serving; traversal → 404. |
+| `GET` | `/assets/propsets/{propset}/{file}` | Global propset model serving (mirrors cardsets). |
+| `GET` | `/assets/mods/{mod_id}/props/{file}` | Mod props-set model serving (like world props). |
 
 Serialized `user`: `{id, username, sticker, initial_sticker_complete,
 owned_rooms[], level, kudos, bops, shared_energy, show_activity_log, world_id,
@@ -185,6 +210,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
 | `.settings` | `.settings action-log off` | Persists `show_activity_log`; `payload.{show_activity_log}`. |
 | `.reset_room` | `.reset_room` | Deletes all live cards in the current room and re-inserts the YAML seeds in one txn; private fresh snapshot + `room.cards.reset` broadcast. Open to anyone for now (TODO: admin-only once Milestone 2 roles exist). |
+| `.door` | `.door buy`, `.door design color cobalt tag_text "Home"`, `.door lock on`, `.door enter bedroom:<id>` | Bedrooms door family (provided by the `infinite-bedrooms` mod): `list` (activity data), `buy` (10 Bops, one per account), `design` (validated customization), `lock on\|off`, and `enter` (access-checked move to a player bedroom). |
 
 Quick actions are server-provided (`Look`, `Pick up 1`, `Drop 1`, exit
 labels); the client only adds local view shortcuts such as
@@ -287,6 +313,32 @@ disconnect), `mark_attention`. Host iframe
 variant hides controls + traps focus/inert. `closed` is also appended to
 private result events for `.play replace`/`.cancel`/nav so the store clears
 `activities[]`.
+
+### 6.7 Player bedrooms and the Bedrooms corridor
+
+1. The tutorial hub's `archway0` prop (`archway.glb` from the mod's `props/`
+   set) offers `.play bedrooms`, a room-bound activity defined in the
+   `infinite-bedrooms` mod (`mods/infinite-bedrooms/content/activities.yaml`).
+   Once the viewer owns a bedroom, `BedroomService.personal_actions()` adds a
+   `Go to Bedroom` quick action (`.door enter bedroom:<account>`) to that same
+   prop in their snapshot.
+2. `mods/infinite-bedrooms/activities/bedrooms/` renders a client-side
+   "infinite" corridor of doors and calls `.door list` for the door catalog,
+   cost, and existing doors.
+3. `.door buy` spends 10 Bops, claims a `world.room_states` row for
+   `bedroom:<account_id>` (owner + `door_json`, one per account), grants
+   ownership through `OwnershipService`, and materializes a clone of the
+   `player-bedroom` template room from the world's `rooms.yaml` into
+   `world.rooms`.
+4. `.door design` validates the five dimensions against the mod's
+   `content/doors.yaml`; `.door lock on|off` toggles owner-only access.
+5. `.door enter <room_id>` checks `BedroomService.require_entry` (locked doors
+   reject non-owners) and moves the user with `RoomService.enter_room()`, which
+   shares the room-change path with `.go` (energy cost, `remembered_room`,
+   presence events, room-bound activity close).
+6. Player rooms are materialized on startup by `BedroomService.prepare()`
+   (the mod's `prepare` hook) before `initialize_world()` seeds them, so
+   persisted rooms survive restarts.
 
 ## 7. Testing architecture
 

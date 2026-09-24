@@ -14,14 +14,14 @@ from starlette.websockets import WebSocketDisconnect
 
 from server.app import create_app
 from server.commands.parser import CommandParseError, parse_command, parse_target
-from server.config import ConfigError, ensure_contained, load_config
+from server.config import ConfigError, KNOWN_FEATURES, ensure_contained, load_config
 from server.content.cards import ContentError, load_card_catalog
 from server.content.worlds import load_world_definition
 from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
 from server.services.cards import CardService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
-from tests.common import REPO_ROOT, load_test_world
+from tests.common import REPO_ROOT, load_test_world, load_world_activities, load_world_mod_props, load_world_propsets
 
 TEST_ORIGIN = "https://testserver:5000"
 TEST_PASSWORD = "password123!"
@@ -63,6 +63,7 @@ class RuntimeTestCase(unittest.TestCase):
                 "TRSERVER_WORLD_PATH": str(REPO_ROOT / "worlds" / "tutorial"),
                 "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
                 "TRSERVER_FEATURES": self.features,
+                "TRSERVER_MODS": "infinite-bedrooms",
                 "TRSERVER_TIMEZONE": "UTC",
                 "TRSERVER_HOST": "testserver",
                 "TRSERVER_PORT": "5000",
@@ -220,7 +221,14 @@ class ContentPersistenceTests(unittest.TestCase):
             )
             catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", target)
             with self.assertRaises(ContentError):
-                load_world_definition(target, set(catalog.cards))
+                load_world_definition(
+                    target,
+                    set(catalog.cards),
+                    core_activities=load_world_activities(),
+                    known_features=KNOWN_FEATURES,
+                    propsets_root=load_world_propsets(),
+                    mod_props=load_world_mod_props(),
+                )
 
     def test_activity_catalog_and_launch_declarations_load(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
@@ -269,7 +277,14 @@ class ContentPersistenceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with self.assertRaises(ContentError):
-                load_world_definition(target, set(catalog.cards))
+                load_world_definition(
+                    target,
+                    set(catalog.cards),
+                    core_activities=load_world_activities(),
+                    known_features=KNOWN_FEATURES,
+                    propsets_root=load_world_propsets(),
+                    mod_props=load_world_mod_props(),
+                )
 
     def test_core_card_order_is_loaded_and_sorted(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")

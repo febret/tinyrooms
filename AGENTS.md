@@ -43,6 +43,7 @@ npm ci
 npm run vendor
 $env:TRSERVER_NEW_ACCOUNT_PASSPHRASE = "choose-an-invitation"
 $env:TRSERVER_FEATURES = "dev_sample_activity"
+$env:TRSERVER_MODS = "*"
 python run.py
 ```
 
@@ -59,6 +60,8 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_WORLD_PATH` | No | `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
 | `TRSERVER_FEATURES` | No | _(none)_ |
+| `TRSERVER_MODS` | No | _(none)_ — comma-separated names or `*` |
+| `TRSERVER_MODS_PATH` | No | `mods` |
 | `TRSERVER_ADMINS` | No | _(none)_ |
 | `TRSERVER_TIMEZONE` | No | `UTC` |
 

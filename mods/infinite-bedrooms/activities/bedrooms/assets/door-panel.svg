@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Door panel">
+  <rect x="12" y="10" width="76" height="150" rx="3" fill="currentColor"/>
+  <rect x="20" y="22" width="60" height="48" rx="2" fill="#00000022"/>
+  <rect x="20" y="84" width="60" height="64" rx="2" fill="#00000022"/>
+  <rect x="12" y="10" width="76" height="150" rx="3" fill="none" stroke="#00000033" stroke-width="2"/>
+  <rect x="20" y="22" width="60" height="48" rx="2" fill="none" stroke="#ffffff22" stroke-width="1.5"/>
+  <rect x="20" y="84" width="60" height="64" rx="2" fill="none" stroke="#ffffff22" stroke-width="1.5"/>
+</svg>

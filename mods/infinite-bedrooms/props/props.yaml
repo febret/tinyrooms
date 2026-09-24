@@ -1,0 +1,8 @@
+# Mod props, merged into the tutorial world like world props.
+# Models live beside this file; the set is served at /assets/mods/infinite-bedrooms/props/.
+archway:
+  label: The Stone Archway
+  description: A mossy stone archway. Step through to the Bedrooms corridor.
+  model: archway.glb
+  decorative: false
+  scale: 1.0

@@ -9,6 +9,7 @@ hub:
   props:
     portal0: {prop: portal, pos: [26, 42, 0], rot: [0, 0, 0], scale: 1.1, actions: [["Go across", ".go exit0"]]}
     welcome-plant: {prop: plant, pos: [13, 70, 0], scale: 0.8}
+    archway0: {prop: archway, pos: [72, 50, 0], rot: [0, 0, 0], scale: 1, activity: bedrooms, actions: [["Enter the Bedrooms", ".play bedrooms"]]}
   exits:
     exit0: {label: Cross the portal, target: playroom}
 playroom:
@@ -126,6 +127,22 @@ bedroom:
   exits:
     foyer: {label: Downstairs to the foyer, target: foyer}
     bathroom: {label: Into the bathroom, target: bathroom}
+player-bedroom:
+  label: A Player Bedroom
+  description: A quiet little room of your very own. Make it home.
+  board_type: basic
+  board_image: bedroom.png
+  board_image_style: stretch
+  palette: ["#b7c8cd", "#edc6a0", "#c48a9b"]
+  editor: {environment: [palette, board_image_style]}
+  template: true
+  props:
+    bed0: {prop: bed, pos: [36, 31, 0], scale: 1.3}
+    bedside-lamp: {prop: lamp, pos: [72, 28, 0], scale: 0.85}
+    bedroom-picture: {prop: framed-picture, pos: [79, 60, 0], scale: 0.9}
+    quilt-rug: {prop: rug, pos: [35, 73, 0], scale: 1.15}
+  exits:
+    hub: {label: Back to the Hub, target: hub}
 utility:
   label: The Helpful Utility
   description: A recharging supply shelf. Dispense a scoop or a plastic bag before tackling the house chores.

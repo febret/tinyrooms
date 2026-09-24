@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" role="img" aria-label="Corridor wall">
+  <rect width="120" height="200" fill="#3c4a50"/>
+  <g fill="#46555c">
+    <rect x="4" y="8" width="52" height="20" rx="2"/>
+    <rect x="62" y="8" width="52" height="20" rx="2"/>
+    <rect x="4" y="34" width="36" height="20" rx="2"/>
+    <rect x="46" y="34" width="68" height="20" rx="2"/>
+    <rect x="4" y="60" width="60" height="20" rx="2"/>
+    <rect x="70" y="60" width="44" height="20" rx="2"/>
+    <rect x="4" y="86" width="44" height="20" rx="2"/>
+    <rect x="54" y="86" width="60" height="20" rx="2"/>
+    <rect x="4" y="112" width="56" height="20" rx="2"/>
+    <rect x="66" y="112" width="48" height="20" rx="2"/>
+    <rect x="4" y="138" width="40" height="20" rx="2"/>
+    <rect x="50" y="138" width="64" height="20" rx="2"/>
+    <rect x="4" y="164" width="64" height="20" rx="2"/>
+    <rect x="74" y="164" width="40" height="20" rx="2"/>
+  </g>
+  <rect width="120" height="200" fill="none" stroke="#2c373c" stroke-width="4"/>
+</svg>

@@ -1,0 +1,47 @@
+# Door customization catalog for the Bedrooms activity.
+# `cost` is the one-time Bops price for a player's door.
+cost: 10
+tag:
+  max_length: 16
+  pattern: "[A-Za-z0-9 .,'!?-]+"
+dimensions:
+  color:
+    label: Door Color
+    kind: choice
+    options:
+      - {id: crimson, label: Crimson, value: "#c0392b"}
+      - {id: cobalt, label: Cobalt, value: "#2f6fb0"}
+      - {id: moss, label: Moss, value: "#4a8f5b"}
+      - {id: amber, label: Amber, value: "#d59a3a"}
+      - {id: plum, label: Plum, value: "#7b4a86"}
+  material:
+    label: Material
+    kind: choice
+    options:
+      - {id: plain, label: Plain, asset: /activities/bedrooms/assets/material-plain.svg}
+      - {id: wood, label: Wood, asset: /activities/bedrooms/assets/material-wood.svg}
+      - {id: stone, label: Stone, asset: /activities/bedrooms/assets/material-stone.svg}
+      - {id: metal, label: Metal, asset: /activities/bedrooms/assets/material-metal.svg}
+      - {id: glass, label: Glass, asset: /activities/bedrooms/assets/material-glass.svg}
+  handle:
+    label: Handle
+    kind: choice
+    options:
+      - {id: knob, label: Round Knob, asset: /activities/bedrooms/assets/handle-knob.svg}
+      - {id: lever, label: Lever, asset: /activities/bedrooms/assets/handle-lever.svg}
+      - {id: ring, label: Ring, asset: /activities/bedrooms/assets/handle-ring.svg}
+      - {id: bar, label: Bar, asset: /activities/bedrooms/assets/handle-bar.svg}
+      - {id: none, label: None, asset: /activities/bedrooms/assets/handle-none.svg}
+  tag_color:
+    label: Tag Color
+    kind: choice
+    options:
+      - {id: cream, label: Cream, value: "#f4e6c8"}
+      - {id: gold, label: Gold, value: "#e0b352"}
+      - {id: rose, label: Rose, value: "#d98a9a"}
+      - {id: mint, label: Mint, value: "#9fd3b8"}
+      - {id: slate, label: Slate, value: "#8fa3ad"}
+  tag_text:
+    label: Tag Text
+    kind: text
+    max_length: 16

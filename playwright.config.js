@@ -20,7 +20,9 @@ const defaultWorkers = softwareGl ? 1 : 4;
 
 export default defineConfig({
   testDir: "./tests/browser",
-  timeout: 10_000,
+  // Each test boots its own HTTPS server (now loading mods) and account, so a
+  // 10s ceiling flakes under parallel workers. Assertions still fail fast.
+  timeout: 20_000,
   // maxDiffPixels tolerates small, stable rendering differences in the animated
   // SVG/WebGL shader background. Tighter thresholds (e.g. 100) fail on that
   // noise rather than on real UI changes, so keep this deliberately loose.

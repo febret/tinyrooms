@@ -13,6 +13,7 @@ from server.content.worlds import (
     PropInstanceDefinition,
     RoomDefinition,
     WorldDefinition,
+    prop_model_url,
 )
 from server.profiles import AccountRecord
 from server.services.environment import EnvironmentService
@@ -159,7 +160,7 @@ class RoomLayoutService:
             "rotation": list(instance.rot),
             "scale": instance.scale * definition.scale,
             "behavior": instance.behavior,
-            "model_url": f"/assets/world/{self._world.id}/props/{definition.model_name}",
+            "model_url": prop_model_url(self._world.id, definition),
             "label": definition.label,
             "description": definition.description,
             "animation": animation,
@@ -171,7 +172,7 @@ class RoomLayoutService:
             "prop_id": definition.id,
             "label": definition.label,
             "description": definition.description,
-            "model_url": f"/assets/world/{self._world.id}/props/{definition.model_name}",
+            "model_url": prop_model_url(self._world.id, definition),
             "base_scale": definition.scale,
             "scale_min": definition.editor_scale_min,
             "scale_max": definition.editor_scale_max,

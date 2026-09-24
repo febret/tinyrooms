@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Round knob handle">
+  <rect x="75" y="76" width="3" height="16" rx="1.5" fill="#9d853a"/>
+  <circle cx="81" cy="84" r="7" fill="#c9a94e" stroke="#8a7433" stroke-width="1.5"/>
+  <circle cx="79" cy="82" r="2.2" fill="#f0dfa0"/>
+</svg>

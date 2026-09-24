@@ -10,7 +10,7 @@ Milestone 2 backend. The schema source of truth is
 | Database | File | Schema version | Initialization entrypoint |
 | --- | --- | --- | --- |
 | Profile (user) DB | `<users_path>/profiles.sqlite3` | 6 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 8 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
+| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 10 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
 
 At runtime both files are accessed through a single shared connection,
 `server/state/migrations.py:DatabaseHub`, which opens the profile DB and
@@ -238,7 +238,7 @@ sequence counter is needed.
 
 World-state databases at an older supported version are migrated forward
 additively; a fresh DB is required only for versions newer than this build
-(`WORLD_SCHEMA_VERSION = 8`).
+(`WORLD_SCHEMA_VERSION = 10`).
 
 ### 3.1 `room_states`
 
@@ -253,10 +253,20 @@ room-exists gate that lived in the removed `rooms` table.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (every room in the loaded world definition is reachable). |
+| `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (every room in the loaded world definition is reachable, including materialized player bedrooms). |
 | `initialized` | INTEGER NOT NULL DEFAULT 0 | `0` = reseed cards from YAML on next server start; `1` = leave the room's live cards alone. |
-| `owner_account_id` | TEXT NULL | Placeholder for a future milestone: reserved for room ownership (merges the former `room_owners` placeholder; currently written as NULL and never read). |
-| `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Placeholder for a future milestone: reserved JSON blob for dynamic prop state (merges the former `prop_states` placeholder; currently written as `'{}'` and never read). |
+| `owner_account_id` | TEXT NULL | Owning account ID; written by `OwnershipService.grant/revoke` and read by `owner_of()` / `can_edit()` for room-owner editing and player bedrooms. |
+| `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Live editable prop layout; seeded from the YAML definition and compare-and-swap saved by `RoomLayoutService`. |
+| `environment_json` | TEXT NOT NULL DEFAULT `'{}'` | Persisted visual/gameplay environment overrides; read and written by `EnvironmentService` and `RoomLayoutService`. |
+| `layout_revision` | INTEGER NOT NULL DEFAULT 0 | Monotonic layout revision used for optimistic-concurrency saves. |
+| `door_json` | TEXT NOT NULL DEFAULT `'{}'` | Player-bedroom door state `{"style": {...}, "locked": bool}`, written by the `infinite-bedrooms` mod. Empty for ordinary rooms. |
+
+Player bedrooms reuse this table: a room whose `room_id` starts with
+`bedroom:` is a player bedroom (`owner_account_id` is the owner, `door_json`
+holds the lock and customization). The partial unique index
+`idx_room_states_player_owner` enforces one bedroom per account. Earlier
+releases stored these in a separate `player_rooms` table, which world schema 10
+folds back into `room_states`.
 
 ### 3.2 `room_cards`
 

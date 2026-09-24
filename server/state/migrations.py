@@ -9,7 +9,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 6
-WORLD_SCHEMA_VERSION = 8
+WORLD_SCHEMA_VERSION = 10
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -161,7 +161,8 @@ CREATE TABLE IF NOT EXISTS room_states (
     owner_account_id TEXT,
     props_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(props_json)),
     environment_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(environment_json)),
-    layout_revision INTEGER NOT NULL DEFAULT 0 CHECK (layout_revision >= 0)
+    layout_revision INTEGER NOT NULL DEFAULT 0 CHECK (layout_revision >= 0),
+    door_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(door_json))
 );
 CREATE TABLE IF NOT EXISTS behavior_state (
     namespace TEXT NOT NULL,
@@ -170,7 +171,7 @@ CREATE TABLE IF NOT EXISTS behavior_state (
     updated_at TEXT NOT NULL,
     PRIMARY KEY (namespace, instance_id)
 );
-PRAGMA user_version = 8;
+PRAGMA user_version = 10;
 COMMIT;
 """
 
@@ -299,6 +300,17 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 8;
     COMMIT;
     """,
+    9: """
+    BEGIN;
+    PRAGMA user_version = 9;
+    COMMIT;
+    """,
+    10: """
+    BEGIN;
+    ALTER TABLE room_states ADD COLUMN door_json TEXT NOT NULL DEFAULT '{}';
+    PRAGMA user_version = 10;
+    COMMIT;
+    """,
 }
 
 _REWARD_LEDGER_COLUMNS = (
@@ -421,6 +433,7 @@ _ROOM_STATES_COLUMNS = (
     "props_json",
     "environment_json",
     "layout_revision",
+    "door_json",
 )
 
 _BEHAVIOR_STATE_COLUMNS = (
@@ -579,6 +592,8 @@ def ensure_world_database(path: Path) -> None:
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",
             "CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_room_states_player_owner "
+            "ON room_states(owner_account_id) WHERE room_id LIKE 'bedroom:%'",
         ),
         migrations=_WORLD_MIGRATIONS,
     )

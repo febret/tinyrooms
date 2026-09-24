@@ -37,6 +37,7 @@ def main() -> None:
             "TRSERVER_WORLDSTATE_PATH": str(directory / "worldstate.sqlite3"),
             "TRSERVER_WORLD_PATH": str(ROOT / "worlds" / "tutorial"),
             "TRSERVER_FEATURES": "dev_sample_activity",
+            "TRSERVER_MODS": "*",
             "TRSERVER_ADMINS": "siteadmin",
             "TRSERVER_TIMEZONE": "UTC",
             "TRSERVER_HOST": "127.0.0.1",

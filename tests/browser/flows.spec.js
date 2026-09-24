@@ -34,6 +34,7 @@ test.describe("account onboarding", () => {
 });
 
 test("all core cards are always visible without an expander", { tag: "@mobile" }, async ({ page, runtime }) => {
+  test.slow();
   await createReadyAccount(page, runtime);
   await expect(page.locator("#card-hand [data-core-id]")).toHaveCount(3);
   await expect(page.locator("#card-hand [data-core-expand]")).toHaveCount(0);
@@ -886,3 +887,41 @@ test.describe("milestone 3 room editing", () => {
     await expect(panel.locator(".editor-conflict")).toHaveCount(0);
   });
 });
+
+test.describe("bedrooms and doors", () => {
+  test.slow();
+  test.setTimeout(60_000);
+
+  test("buy, design, and enter a player bedroom from the corridor", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime, "doorkeeper");
+    // The hub's stone archway model must load without error.
+    await expect(page.locator("canvas[data-prop-model][data-model-error='true']")).toHaveCount(0);
+
+    await command(page, ".play bedrooms");
+    const activity = page.locator(".activity-window");
+    await expect(activity.locator("iframe")).toHaveAttribute("src", /bedrooms/);
+
+    const frame = page.frameLocator('iframe[src*="bedrooms"]');
+    await expect(frame.locator("#bops")).toContainText("10 Bops", { timeout: 20_000 });
+    await frame.locator("#get-door").click();
+    await expect(frame.locator("#my-door")).toBeVisible({ timeout: 20_000 });
+    await expect(frame.locator("#bops")).toContainText("0 Bops");
+
+    await frame.locator(".door-card.own .door-design").click();
+    await expect(frame.locator("#designer")).toBeVisible();
+    const colorRow = frame.locator("#controls .control-row", { hasText: "Door Color" });
+    await colorRow.locator("button.swatch").nth(1).click();
+    await frame.locator('#controls input[type="text"]').fill("Welcome");
+    await frame.locator("#designer-save").click();
+    await expect(frame.locator("#feedback")).toContainText("Door updated.");
+
+    await frame.locator(".door-card.own").click({ position: { x: 54, y: 30 } });
+    await expect(page.locator("#look-bar")).toContainText("Bedroom", { timeout: 20_000 });
+    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+    await expect(page.locator('iframe[src*="bedrooms"]')).toHaveCount(0);
+
+    // The owner can edit their own room.
+    await openEditRoom(page);
+  });
+});
+

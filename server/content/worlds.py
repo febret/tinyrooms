@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -58,6 +58,8 @@ class PropDefinition:
     editable: bool = False
     editor_scale_min: float = 0.25
     editor_scale_max: float = 4.0
+    source: str = ""
+    source_kind: str = "world"
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +121,7 @@ class RoomDefinition:
     initial_cards: tuple[InitialRoomCard, ...]
     aura: tuple[AuraDefinition, ...] = ()
     editor_environment: tuple[str, ...] = ()
+    template: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +191,17 @@ class WorldDefinition:
     tasks: dict[str, TaskDefinition] = field(default_factory=dict)
     powers: dict[str, tuple[str, ...]] = field(default_factory=dict)
     recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
+    requires_mods: tuple[str, ...] = ()
+
+
+def prop_model_url(world_id: str, definition: PropDefinition) -> str:
+    """Return the served URL for a prop model from a world, propset, or mod."""
+
+    if definition.source_kind == "mod":
+        return f"/assets/mods/{definition.source}/props/{definition.model_name}"
+    if definition.source_kind == "propset":
+        return f"/assets/propsets/{definition.source}/{definition.model_name}"
+    return f"/assets/world/{world_id}/props/{definition.model_name}"
 
 
 def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str, ...]]:
@@ -408,38 +422,18 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
     return DialogDefinition(start_node_id="start", nodes=nodes)
 
 
-def load_world_definition(
-    world_path: Path,
-    card_ids: set[str],
-    *,
-    core_activities: Mapping[str, ActivityDefinition] | None = None,
-    known_features: frozenset[str] = frozenset(),
-) -> WorldDefinition:
-    """Load the immutable world definition set from YAML."""
+def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -> dict[str, PropDefinition]:
+    """Load prop definitions from one props.yaml, resolving models beside it."""
 
-    world_file = world_path / "world.yaml"
-    world_payload = require_mapping(load_yaml_file(world_file), world_file)
-    world_id = str(world_payload.get("id", "")).strip()
-    entry_room_id = str(world_payload.get("entry_room", "")).strip()
-    if not world_id or not entry_room_id:
-        raise ContentError("world.yaml must define id and entry_room.")
-
-    props_file = world_path / "props" / "props.yaml"
-    rooms_file = world_path / "rooms" / "rooms.yaml"
-    peeps_file = world_path / "peeps" / "peeps.yaml"
-    props_payload = require_mapping(load_yaml_file(props_file), props_file)
-    rooms_payload = require_mapping(load_yaml_file(rooms_file), rooms_file)
-    peeps_payload = require_mapping(load_yaml_file(peeps_file), peeps_file)
-    recipes = load_recipes(world_path, card_ids)
-
+    props_payload = require_mapping(load_yaml_file(path), path)
     props: dict[str, PropDefinition] = {}
     for prop_id, raw_prop in props_payload.items():
         if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
-            raise ContentError(f"{props_file} contains an invalid prop entry.")
+            raise ContentError(f"{path} contains an invalid prop entry.")
         model_name = str(raw_prop.get("model", "")).strip()
         if not model_name:
             raise ContentError(f"Prop '{prop_id}' is missing its model.")
-        model_path = (props_file.parent / model_name).resolve()
+        model_path = (path.parent / model_name).resolve()
         if not model_path.is_file():
             raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
         raw_scale = raw_prop.get("scale", 1.0)
@@ -466,7 +460,70 @@ def load_world_definition(
             editable=editable,
             editor_scale_min=editor_scale_min,
             editor_scale_max=editor_scale_max,
+            source=source,
+            source_kind=source_kind,
         )
+    return props
+
+
+def load_world_definition(
+    world_path: Path,
+    card_ids: set[str],
+    *,
+    core_activities: Mapping[str, ActivityDefinition] | None = None,
+    known_features: frozenset[str] = frozenset(),
+    propsets_root: Path | Sequence[Path] | None = None,
+    mod_props: Sequence[tuple[str, Path]] | None = None,
+    enabled_mods: frozenset[str] | None = None,
+) -> WorldDefinition:
+    """Load the immutable world definition set from YAML."""
+
+    world_file = world_path / "world.yaml"
+    world_payload = require_mapping(load_yaml_file(world_file), world_file)
+    world_id = str(world_payload.get("id", "")).strip()
+    entry_room_id = str(world_payload.get("entry_room", "")).strip()
+    if not world_id or not entry_room_id:
+        raise ContentError("world.yaml must define id and entry_room.")
+    requires_mods = tuple(str(entry).strip() for entry in world_payload.get("requires_mods", []) or [])
+    if enabled_mods is not None:
+        missing_mods = sorted(set(requires_mods) - set(enabled_mods))
+        if missing_mods:
+            raise ContentError(
+                f"World '{world_id}' requires mod(s) {missing_mods}; enable them via TRSERVER_MODS."
+            )
+
+    props_file = world_path / "props" / "props.yaml"
+    rooms_file = world_path / "rooms" / "rooms.yaml"
+    peeps_file = world_path / "peeps" / "peeps.yaml"
+    rooms_payload = require_mapping(load_yaml_file(rooms_file), rooms_file)
+    peeps_payload = require_mapping(load_yaml_file(peeps_file), peeps_file)
+    recipes = load_recipes(world_path, card_ids)
+
+    props: dict[str, PropDefinition] = {}
+    propset_roots: list[Path] = []
+    if propsets_root is not None:
+        if isinstance(propsets_root, (str, Path)):
+            propset_roots.append(Path(propsets_root))
+        else:
+            propset_roots.extend(Path(root) for root in propsets_root)
+    for root in propset_roots:
+        for propset_file in sorted(root.glob("*/props.yaml")):
+            for prop_id, definition in _load_props_from_file(propset_file, propset_file.parent.name, "propset").items():
+                if prop_id in props:
+                    raise ContentError(f"Duplicate prop id '{prop_id}'.")
+                props[prop_id] = definition
+    for mod_id, props_dir in mod_props or ():
+        mod_props_file = Path(props_dir) / "props.yaml"
+        if not mod_props_file.is_file():
+            continue
+        for prop_id, definition in _load_props_from_file(mod_props_file, mod_id, "mod").items():
+            if prop_id in props:
+                raise ContentError(f"Duplicate prop id '{prop_id}'.")
+            props[prop_id] = definition
+    for prop_id, definition in _load_props_from_file(props_file, world_id, "world").items():
+        if prop_id in props:
+            raise ContentError(f"Duplicate prop id '{prop_id}'.")
+        props[prop_id] = definition
 
     rooms: dict[str, RoomDefinition] = {}
     for room_id, raw_room in rooms_payload.items():
@@ -571,6 +628,7 @@ def load_world_definition(
             initial_cards=tuple(room_cards),
             aura=_load_aura(raw_room.get("aura"), room_id),
             editor_environment=_load_editor_environment(raw_room.get("editor"), room_id),
+            template=bool(raw_room.get("template", False)),
         )
 
     if entry_room_id not in rooms:
@@ -638,4 +696,5 @@ def load_world_definition(
         tasks=load_task_definitions(world_path, card_ids),
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,
+        requires_mods=requires_mods,
     )
