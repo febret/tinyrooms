@@ -114,7 +114,7 @@ export function createActivityManager({
     const availableWidth = Math.max(0, frame.width - margin * 2);
     const availableHeight = Math.max(0, frame.height - topMargin - margin);
     const expanded = entry.maximized && !entry.minimized;
-    const width = Math.min(entry.required ? 820 : entry.width, availableWidth);
+    const width = Math.min(entry.required ? 900 : entry.width, availableWidth);
     entry.node.style.width = `${expanded ? availableWidth : width}px`;
     const titleHeight = (entry.titleBar.getBoundingClientRect().height || 50) + entry.node.offsetHeight - entry.node.clientHeight;
     const height = Math.min(entry.minimized ? titleHeight : entry.height, availableHeight);
@@ -214,8 +214,8 @@ export function createActivityManager({
       maximized: false,
       left: 28 + windows.size * 14,
       top: 24 + windows.size * 14,
-      width: activity.kind === "sticker-designer" ? 760 : activity.kind === "bedrooms" ? 720 : activity.kind === "lazor-rush" ? 780 : 560,
-      height: activity.kind === "sticker-designer" ? 600 : activity.kind === "bedrooms" ? 520 : activity.kind === "lazor-rush" ? 600 : 420,
+      width: activity.kind === "sticker-designer" ? 880 : activity.kind === "bedrooms" ? 720 : activity.kind === "lazor-rush" ? 780 : 560,
+      height: activity.kind === "sticker-designer" ? 640 : activity.kind === "bedrooms" ? 520 : activity.kind === "lazor-rush" ? 600 : 420,
     };
     entry.title.textContent = activity.title;
     entry.title.id = `activity-title-${++titleSequence}`;
@@ -389,7 +389,10 @@ export function createActivityManager({
     }
     if (event.data.type === "tinyrooms.activity.sticker.confirm") {
       try {
-        await onStickerConfirm(String(event.data.sticker || ""));
+        const selection = { sticker: String(event.data.sticker || "") };
+        if (typeof event.data.image === "string" && event.data.image) selection.image = event.data.image;
+        if (event.data.design && typeof event.data.design === "object") selection.design = event.data.design;
+        await onStickerConfirm(selection);
         entry.iframe.contentWindow?.postMessage({
           type: "tinyrooms.host.result",
           activityId: entry.activity.id,

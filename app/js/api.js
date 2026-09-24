@@ -98,8 +98,9 @@ export function createApiClient() {
       csrfToken = "";
       return body;
     },
-    async confirmSticker(sticker) {
-      const request = withJson({ sticker });
+    async confirmSticker(selection) {
+      const payload = typeof selection === "string" ? { sticker: selection } : (selection || {});
+      const request = withJson(payload);
       const body = await requestJson(PATHS.confirmSticker, {
         method: "POST",
         ...request,

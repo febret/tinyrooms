@@ -85,6 +85,12 @@ from server.services.room_layout import RoomLayoutService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
+from server.services.stickers import (
+    custom_sticker_name,
+    decode_png_data_url,
+    normalize_design,
+    write_custom_sticker,
+)
 from server.services.tasks import TaskService
 from server.services.world_editor import WorldEditorService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
@@ -109,9 +115,15 @@ class AuthRequest(BaseModel):
 
 
 class StickerConfirmRequest(BaseModel):
-    """Sticker confirmation request payload."""
+    """Sticker confirmation request payload.
 
-    sticker: str
+    A preset choice sends ``sticker``. A custom render sends ``image`` (a PNG
+    data URL) plus ``design`` (the recipe used to re-edit the sticker).
+    """
+
+    sticker: str | None = None
+    image: str | None = None
+    design: dict[str, object] | None = None
 
 
 class ActivityBridgeRequest(BaseModel):
@@ -706,7 +718,44 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         runtime = _get_runtime(request)
         session = _require_session(runtime, request)
         _enforce_authenticated_post(runtime, request, session)
-        account = runtime.accounts.confirm_initial_sticker(session.account_id, payload.sticker)
+        account = runtime.profiles.get_account_by_id(session.account_id)
+        if account is None:
+            raise HTTPException(status_code=401, detail="Session expired.")
+        try:
+            if payload.image is not None:
+                if payload.design is None:
+                    raise ValueError("A custom sticker requires a design.")
+                design_json = normalize_design(payload.design)
+                png_bytes = decode_png_data_url(payload.image)
+                filename = custom_sticker_name(account.id)
+                if account.initial_sticker_complete:
+                    account = runtime.shop.swap_sticker(
+                        account,
+                        filename,
+                        set(runtime.accounts.list_stickers()),
+                        sticker_design=design_json,
+                    )
+                    write_custom_sticker(runtime.config.custom_stickers_path, filename, png_bytes)
+                else:
+                    account = runtime.accounts.confirm_custom_sticker(
+                        account.id,
+                        png_bytes,
+                        design_json,
+                    )
+            else:
+                filename = (payload.sticker or "").strip()
+                if not filename:
+                    raise ValueError("Choose a sticker.")
+                if account.initial_sticker_complete:
+                    account = runtime.shop.swap_sticker(
+                        account,
+                        filename,
+                        set(runtime.accounts.list_stickers()),
+                    )
+                else:
+                    account = runtime.accounts.confirm_initial_sticker(account.id, filename)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         runtime.activities.close(session.account_id)
         return {"ok": True, "user": _serialize_account(runtime, account)}
 
@@ -1025,9 +1074,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     @app.get("/assets/stickers/{filename}")
     async def sticker_asset(filename: str, request: Request) -> Response:
         runtime = _get_runtime(request)
-        candidate = _safe_path(runtime.config.stickers_path, filename)
-        if candidate.is_file():
-            return FileResponse(candidate)
+        for root in (runtime.config.stickers_path, runtime.config.custom_stickers_path):
+            candidate = _safe_path(root, filename)
+            if candidate.is_file():
+                return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Sticker asset not found.")
 
     @app.get("/assets/{cardset}/{filename}")

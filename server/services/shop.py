@@ -11,6 +11,7 @@ from server.content.gameplay import GameplayContent
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.security import utc_now
 from server.services.cards import grant_card_to_inventory
+from server.services.stickers import sticker_identity
 from server.state.migrations import DatabaseHub
 
 DEFAULT_RARITY_DRAW_WEIGHTS = {
@@ -200,23 +201,35 @@ class ShopService:
                 replayed=False,
             )
 
-    def swap_sticker(self, account: AccountRecord, sticker_name: str, valid_stickers: set[str]) -> AccountRecord:
-        """Charge for and persist a sticker swap, free when unchanged."""
+    def swap_sticker(
+        self,
+        account: AccountRecord,
+        sticker_name: str,
+        valid_stickers: set[str],
+        *,
+        sticker_design: str | None = None,
+    ) -> AccountRecord:
+        """Charge for and persist a sticker swap, free when unchanged.
 
-        if sticker_name not in valid_stickers:
+        A custom render passes its canonical design string; its ``sticker_name``
+        is server-derived and therefore exempt from the preset whitelist.
+        """
+
+        if sticker_design is None and sticker_name not in valid_stickers:
             raise ValueError("That sticker does not exist.")
         cost = self._content.bops.sticker_swap_cost
+        target_identity = sticker_identity(sticker_name, sticker_design)
         with self._hub.transaction() as connection:
             current = self._profiles.get_account_by_id(account.id)
             if current is None:
                 raise ValueError("Unknown account.")
-            if current.sticker == sticker_name:
+            if sticker_identity(current.sticker, current.sticker_design) == target_identity:
                 return current
             if current.bops < cost:
                 raise ValueError(f"You need {cost - current.bops} more Bops to swap your sticker.")
             connection.execute(
-                "UPDATE accounts SET sticker = ?, updated_at = ? WHERE id = ?",
-                (sticker_name, utc_now().isoformat(), account.id),
+                "UPDATE accounts SET sticker = ?, sticker_design = ?, updated_at = ? WHERE id = ?",
+                (sticker_name, sticker_design, utc_now().isoformat(), account.id),
             )
             updated = self._profiles.update_progress(
                 connection,

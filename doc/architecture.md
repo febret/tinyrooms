@@ -82,7 +82,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
 | Browser UI | `app/` | Shell (`index.html`), styles, 14 JS modules, vendored Three.js. |
 | Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
-| Shared data | `data/` | Core tuning YAML, base card set + art, sticker choices, door catalog. |
+| Shared data | `data/` | Core tuning YAML, base card set + art, preset sticker choices, door catalog. Rendered custom stickers live under `TRSERVER_CUSTOM_STICKERS_PATH` (`.local/stickers`). |
 | Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes + art/models. |
 | Tests | `tests/` | Python `unittest` (server/integration/static) + Playwright browser specs. |
 | Tooling | `tools/`, root configs | Browser-test server, dep vendoring, Playwright/npm config. |
@@ -123,7 +123,7 @@ with a clear error if a required mod is not enabled. The tutorial world requires
 | `POST` | `/api/auth/create` | `{username, password, passphrase?}`; passphrase-gated, `Origin`-checked; sets `tr_session` + `tr_csrf`; returns `{ok, csrf_token, user}`. |
 | `POST` | `/api/auth/login` | Same minus passphrase; evicts old WS with `session.replaced`. |
 | `POST` | `/api/auth/logout` | Cookie + `Origin` + `X-CSRF-Token`; closes activity, revokes session, pushes `session.replaced`, clears cookies. |
-| `POST` | `/api/stickers/confirm` | `{sticker}`; idempotent first-free confirm; closes sticker activity; returns `{ok, user}`. |
+| `POST` | `/api/stickers/confirm` | `{sticker}` for a preset, or `{image, design}` for a custom render; first confirm is free, later confirms are charged swaps when the sticker changes; closes sticker activity; returns `{ok, user}`. |
 | `GET` | `/api/bootstrap` | Cookie auth (no CSRF); `{ok, user: {…, can_enter_world}}`. |
 | `GET` | `/api/activities/current` | `{ok, activity\|null}`; forces sticker activity when incomplete. |
 | `GET` | `/api/activities/{activity_id}` | Serialized activity or 404 on id mismatch. |
@@ -131,11 +131,11 @@ with a clear error if a required mod is not enabled. The tutorial world requires
 | `GET` | `/` | `app/index.html` or fallback text. |
 | `GET` | `/app/{path}` | Static app files (path-contained). |
 | `GET` | `/activities/{name}/`, `/activities/{name}/{path}`, `/activities/shared.js\|shared.css` | Activity hosting (fallback page outside Milestone 1). |
-| `GET` | `/assets/stickers/{file}`, `/assets/base/{file}`, `/assets/world/{world}/{cards\|rooms\|props\|peeps}/{file}` | Art serving; traversal → 404. |
+| `GET` | `/assets/stickers/{file}`, `/assets/base/{file}`, `/assets/world/{world}/{cards\|rooms\|props\|peeps}/{file}` | Art serving; traversal → 404. `{file}` resolves against `data/stickers`, then the per-account custom renders under `TRSERVER_CUSTOM_STICKERS_PATH`. |
 | `GET` | `/assets/propsets/{propset}/{file}` | Global propset model serving (mirrors cardsets). |
 | `GET` | `/assets/mods/{mod_id}/props/{file}` | Mod props-set model serving (like world props). |
 
-Serialized `user`: `{id, username, sticker, initial_sticker_complete,
+Serialized `user`: `{id, username, sticker, sticker_design, initial_sticker_complete,
 owned_rooms[], level, kudos, bops, shared_energy, show_activity_log, world_id,
 remembered_room, inventory[], core_cards[], activity}` (`owned_rooms`/
 `show_activity_log` sourced from `user_profiles`; `core_cards` are the
@@ -242,14 +242,19 @@ labels); the client only adds local view shortcuts such as
    `{kind:"sticker-designer", iframe_url:"/activities/sticker-designer/?session_id=<uuid>",
    room_bound:false}`. Client opens a required modal iframe; chat is inert,
    `Escape` cannot dismiss, no WS is opened yet.
-2. Choices come from `GET /api/stickers`, never hardcoded.
+2. Preset choices come from `GET /api/stickers`, never hardcoded. The
+   `Design your own` mode composes original SVG parts (`activities/sticker-designer/parts/`)
+   on a canvas and exports a PNG plus a JSON `design` recipe.
 3. Interruption: every login re-ensures the designer; `/ws` closes `4403`
    until confirmed.
 4. Confirm: guest `postMessage sticker.confirm` → host
-   `POST /api/stickers/confirm {sticker}` (idempotent) → activity closed,
-   `user{sticker, initial_sticker_complete:true}` → modal removed, chat
-   enabled. Later “Swap Sticker” reopens the same kind as a cancellable
-   non-modal.
+   `POST /api/stickers/confirm` with either `{sticker}` or `{image, design}` →
+   activity closed, `user{sticker, sticker_design, initial_sticker_complete:true}`
+   → modal removed, chat enabled. Custom renders are validated and written to
+   `TRSERVER_CUSTOM_STICKERS_PATH` under a server-derived `custom-<account>.png`.
+   Later “Swap Sticker” reopens the same kind as a cancellable non-modal, and its
+   dialog offers `Design a Custom Sticker…` for re-editing; a changed sticker is
+   charged the configured Bops swap cost.
 
 ### 6.3 Room enter / travel / presence
 

@@ -9,6 +9,7 @@ import time
 from server.config import AppConfig
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.security import RateLimiter, SecurityError, normalize_username, validate_password, verify_password
+from server.services.stickers import custom_sticker_name, write_custom_sticker
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,3 +132,15 @@ class AccountService:
         if sticker_name not in available:
             raise ValueError("Unknown sticker selection.")
         return self._profiles.set_sticker(account_id, sticker_name)
+
+    def confirm_custom_sticker(
+        self,
+        account_id: str,
+        png_bytes: bytes,
+        design_json: str,
+    ) -> AccountRecord:
+        """Persist a custom sticker render and its design recipe as the initial choice."""
+
+        filename = custom_sticker_name(account_id)
+        write_custom_sticker(self._config.custom_stickers_path, filename, png_bytes)
+        return self._profiles.set_sticker(account_id, filename, design_json)

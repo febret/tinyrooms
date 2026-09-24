@@ -30,7 +30,7 @@ teaching tool for a game design class.
 ### Initial Release Scope
 The initial implementation plan covers all core systems described in this
 document. Features explicitly identified as future work are excluded from the
-initial release, including the more complex Sticker Designer.
+initial release. The layered custom Sticker Designer is included.
 
 Support for custom worlds and mods is an extension capability, not a requirement
 to invent unlimited additional content. The content included with the initial
@@ -95,9 +95,13 @@ a special passphrase set on server startup, which must be used to create new acc
 
 Once the user chooses valid credentials, they are taken to the
 `Sticker Designer`. The Sticker Designer lets the user customize how their
-peep is displayed in game (in the Peeps List left sidebar). While a more complex
-sticker designer will be available in the future, the current one lets users choose
-one of the pre-built stickers in `data/stickers`.
+peep is displayed in game (in the Peeps List left sidebar). It has two modes:
+`Preset stickers`, which offers the pre-built stickers in `data/stickers`, and
+`Design your own`, a layered editor where the user combines a sticker body, hair,
+shoes, a back accessory, and face decorations, each drawn from an original
+vector part set, with a palette (and optional custom color) per element. Custom
+designs are rendered to an image, stored per account, and can be re-opened from
+the editor later.
 
 Choosing the first sticker during account creation is free.
 Once valid credentials are created, the account is retained even if sticker
@@ -438,6 +442,12 @@ designer, cancelling, or confirming the current sticker does not spend Bops.
 Later Swap Sticker visits use a cancellable, ordinary non-modal activity window.
 Swap Sticker is globally accessible within the user's current world rather
 than tied to a room prop or NPC.
+
+The Swap Sticker dialog also offers `Design a Custom Sticker…`, which reopens the
+Sticker Designer activity in its custom mode so the user can create or revise a
+layered design. A previously saved custom design is loaded for editing, and the
+usual Bops charge applies only when the confirmed sticker actually differs from
+the current one.
 
 
 ### Friends

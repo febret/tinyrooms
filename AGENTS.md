@@ -59,6 +59,7 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_USERS_PATH` | No | `users` |
 | `TRSERVER_WORLD_PATH` | No | `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
+| `TRSERVER_CUSTOM_STICKERS_PATH` | No | `.local/stickers` |
 | `TRSERVER_FEATURES` | No | _(none)_ |
 | `TRSERVER_MODS` | No | _(none)_ — comma-separated names or `*` |
 | `TRSERVER_MODS_PATH` | No | `mods` |

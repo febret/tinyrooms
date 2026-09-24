@@ -5,44 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sticker Designer</title>
     <link rel="stylesheet" href="/activities/shared.css">
-    <style>
-      html, body { height: 100%; }
-      body { min-height: 0; }
-      .shell { height: 100dvh; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px 0; }
-      .paper { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
-      .connection { min-height: 0; margin: 0; font-size: 12px; }
-      .connection:empty { display: none; }
-      .grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding: 4px 2px; align-content: start; }
-      .sticker { display: grid; justify-items: center; gap: 2px; padding: 3px 2px; border-radius: 8px; border: 1px solid transparent; background: none; box-shadow: none; color: inherit; min-height: 0; }
-      .sticker[aria-pressed="true"] { border-color: #e4c99977; background: #74a9a315; box-shadow: 0 0 12px #64ced333; }
-      .sticker img { width: min(100%, 64px); aspect-ratio: .82; object-fit: contain; border-radius: 48% 48% 6px 6px; border: 2px solid #c6ad7e; border-bottom: 5px solid #a68b5c; background: linear-gradient(120deg, #fff7df, #d9caaa); padding: 6px 3px 4px; box-shadow: 1px 3px 2px #0007, inset 0 0 0 2px #fff8; transition: transform .15s, filter .15s; }
-      .sticker[aria-pressed="true"] img { filter: drop-shadow(0 0 6px #66dccc); transform: translateY(-2px) rotate(-3deg); }
-      .sticker strong { max-width: 100%; font-size: 11px; font-weight: 400; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .current { color: var(--gold); font-size: 10px; line-height: 1.2; min-height: 12px; }
-      .current:empty { display: block; visibility: hidden; }
-      .summary { flex: 0 0 auto; position: sticky; bottom: 0; display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 2px 8px; background: radial-gradient(ellipse at top, #10333f, #04171d); }
-      .summary p { color: var(--muted); font-size: 12px; }
-      .summary .actions { margin-left: auto; }
-      @media (max-width: 480px) {
-        .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
-        .sticker img { width: min(100%, 52px); }
-        .summary { flex-direction: row; align-items: center; }
-        .summary p { font-size: 11px; }
-      }
-    </style>
+    <link rel="stylesheet" href="./sticker-designer.css">
   </head>
   <body>
-    <main class="shell">
-      <section class="paper reveal">
-        <p class="muted smallprint connection" id="connection" role="status">Waiting for Tinyrooms…</p>
-        <div class="grid" id="grid" role="group" aria-label="Choose your sticker"></div>
-        <div class="summary">
-          <p id="summary" role="status">Pick a sticker to continue.</p>
-          <div class="actions">
-            <button type="button" class="primary" id="confirm" disabled>Confirm sticker</button>
+    <main class="shell editor-shell">
+      <p class="muted smallprint connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+      <div class="editor-tabs" id="mode-tabs" role="tablist" aria-label="Sticker designer mode">
+        <button type="button" class="tab" data-mode="presets" role="tab" aria-selected="true">Preset stickers</button>
+        <button type="button" class="tab" data-mode="custom" role="tab" aria-selected="false">Design your own</button>
+      </div>
+
+      <section class="editor-pane presets-pane" id="presets-pane" role="tabpanel" aria-label="Preset stickers">
+        <div class="grid" id="grid" role="group" aria-label="Choose a sticker"></div>
+      </section>
+
+      <section class="editor-pane custom-pane" id="custom-pane" role="tabpanel" aria-label="Design your own sticker" hidden>
+        <div class="preview-col">
+          <div class="preview-frame">
+            <canvas id="preview" width="360" height="396" aria-label="Sticker preview"></canvas>
           </div>
+          <div class="preview-actions">
+            <button type="button" class="quiet small" id="randomize">Surprise me</button>
+            <button type="button" class="quiet small" id="reset-design">Start over</button>
+          </div>
+          <div class="starter-row" id="starters" aria-label="Starter designs"></div>
+        </div>
+        <div class="controls-col">
+          <div class="cat-tabs" id="cat-tabs" role="tablist" aria-label="Sticker parts"></div>
+          <div class="part-grid" id="part-grid" role="group" aria-label="Choose a part"></div>
+          <div class="palettes" id="palettes" aria-label="Colors"></div>
         </div>
       </section>
+
+      <div class="summary">
+        <p id="summary" role="status">Pick a sticker to continue.</p>
+        <div class="actions">
+          <button type="button" class="primary" id="confirm">Confirm sticker</button>
+        </div>
+      </div>
     </main>
     <script src="/activities/shared.js"></script>
     <script type="module" src="./sticker-designer.js"></script>

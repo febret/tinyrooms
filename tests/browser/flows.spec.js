@@ -9,6 +9,9 @@ test.beforeEach(({ isMobile }, testInfo) => {
 
 test.describe("account onboarding", () => {
   test.slow();
+  // Account creation and the sticker designer do enough work that a busy
+  // parallel worker can briefly miss Playwright's 10s actionability window.
+  test.use({ actionTimeout: 30_000 });
 
   test("is mandatory, persists, and shows login errors", { tag: "@mobile" }, async ({ page, runtime }) => {
     const sockets = [];
@@ -30,6 +33,24 @@ test.describe("account onboarding", () => {
     await page.getByRole("button", { name: "Enter Tinyrooms" }).click();
     await expect(page.getByRole("button", { name: "Select sunbeam", exact: true })).toBeVisible();
     await expect(page.locator(".activity-window")).toHaveCount(0);
+  });
+
+  test("supports designing a custom sticker during onboarding", { tag: "@mobile" }, async ({ page, runtime }) => {
+    await createAccount(page, runtime, "painter", false);
+    const frame = page.frameLocator('iframe[src*="sticker-designer"]');
+    await frame.locator('[data-mode="custom"]').click();
+    await expect(frame.locator("#preview")).toBeVisible();
+    await frame.locator('[data-category="hair"]').click();
+    await frame.locator('[data-part="hair-curly"]').click();
+    await frame.locator('[data-category="face"]').click();
+    await frame.locator('[data-part="face-eyes"]').click();
+    await frame.locator("#confirm").click();
+    await expect(page.locator('iframe[src*="sticker-designer"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Select painter", exact: true })).toBeVisible();
+    const user = (await bootstrap(page)).user;
+    expect(user.sticker).toMatch(/^custom-.*\.png$/);
+    expect(user.sticker_design.hair).toBe("hair-curly");
+    await expect(page.locator('.peep-marker img[src*="/assets/stickers/custom-"]').first()).toBeVisible();
   });
 });
 
@@ -336,6 +357,20 @@ test.describe("core milestone 2 views", () => {
     await expect(dialog.locator(".sticker-choice")).toHaveCount(21);
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
+  });
+
+  test("swap sticker dialog can reopen the custom designer", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await openSelf(page);
+    await page.locator("#panel-layer").getByRole("button", { name: "Swap Sticker…", exact: true }).click();
+    await page.getByRole("dialog", { name: "Swap Sticker" }).getByRole("button", { name: "Design a Custom Sticker…", exact: true }).click();
+    const window = page.locator(".activity-window");
+    await expect(window).toBeVisible();
+    await expect(window.locator("iframe")).toHaveAttribute("src", /sticker-designer/);
+    const frame = page.frameLocator('iframe[src*="sticker-designer"]');
+    await expect(frame.locator("#confirm")).toBeEnabled();
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(window).toHaveCount(0);
   });
 
   test("emotes view exposes expression, animation, and effects categories", async ({ page, runtime }) => {

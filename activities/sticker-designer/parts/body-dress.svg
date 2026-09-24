@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M88 126 L88 150 L112 150 L112 126 Z" fill="{{skin}}"/>
+    <rect x="84" y="190" width="15" height="26" rx="7" fill="{{skin}}"/>
+    <rect x="101" y="190" width="15" height="26" rx="7" fill="{{skin}}"/>
+    <path d="M100 24 C62 24 48 56 48 86 C48 118 70 140 100 140 C130 140 152 118 152 86 C152 56 138 24 100 24 Z" fill="{{skin}}"/>
+    <path d="M70 140 C70 135 84 131 100 131 C116 131 130 135 130 140 L126 164 C142 182 146 194 140 206 C120 214 80 214 60 206 C54 194 58 182 74 164 Z" fill="{{shirt}}"/>
+    <path d="M64 152 C58 156 56 164 57 170 L72 170 C73 162 76 155 80 150 Z" fill="{{shirt}}"/>
+    <path d="M136 152 C142 156 144 164 143 170 L128 170 C127 162 124 155 120 150 Z" fill="{{shirt}}"/>
+    <circle cx="64" cy="176" r="9" fill="{{skin}}"/>
+    <circle cx="136" cy="176" r="9" fill="{{skin}}"/>
+    <path d="M74 164 C84 172 116 172 126 164" fill="none" stroke="{{shirtDark}}"/>
+  </g>
+</svg>

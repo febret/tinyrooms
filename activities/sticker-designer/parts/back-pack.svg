@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="72" y="140" width="56" height="54" rx="14" fill="{{accent}}"/>
+    <path d="M100 140 L100 194" fill="none" stroke="{{accentDark}}"/>
+    <rect x="82" y="160" width="36" height="20" rx="6" fill="{{accentDark}}"/>
+    <path d="M78 142 C74 130 80 122 90 120" fill="none" stroke="{{accentDark}}"/>
+    <path d="M122 142 C126 130 120 122 110 120" fill="none" stroke="{{accentDark}}"/>
+  </g>
+</svg>

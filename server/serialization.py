@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from server.profiles import AccountRecord
+from server.services.stickers import decode_design
 
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "id": account.id,
         "username": account.username_display,
         "sticker": account.sticker,
+        "sticker_design": decode_design(account.sticker_design),
         "initial_sticker_complete": account.initial_sticker_complete,
         "owned_rooms": list(user_profile.owned_rooms),
         "level": account.level,

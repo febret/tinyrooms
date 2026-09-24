@@ -69,6 +69,7 @@ class AppConfig:
     users_path: Path
     world_path: Path
     worldstate_path: Path
+    custom_stickers_path: Path
     new_account_passphrase: str
     features: frozenset[str]
     bootstrap_admins: frozenset[str]
@@ -205,6 +206,12 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if worldstate_path.exists() and worldstate_path.is_dir():
         raise ConfigError(f"TRSERVER_WORLDSTATE_PATH must be a file path: {worldstate_path}")
 
+    custom_stickers_value = values.get("TRSERVER_CUSTOM_STICKERS_PATH", str(local_path / "stickers"))
+    custom_stickers_path = Path(custom_stickers_value).expanduser()
+    custom_stickers_path.mkdir(parents=True, exist_ok=True)
+    if custom_stickers_path.exists() and not custom_stickers_path.is_dir():
+        raise ConfigError(f"TRSERVER_CUSTOM_STICKERS_PATH must be a directory: {custom_stickers_path}")
+
     feature_value = values.get("TRSERVER_FEATURES", "")
     features = parse_features(feature_value)
 
@@ -262,6 +269,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         users_path=users_path.resolve(),
         world_path=world_path.resolve(),
         worldstate_path=worldstate_path.resolve(),
+        custom_stickers_path=custom_stickers_path.resolve(),
         new_account_passphrase=passphrase,
         features=features,
         bootstrap_admins=bootstrap_admins,

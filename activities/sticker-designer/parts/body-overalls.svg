@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M88 126 L88 150 L112 150 L112 126 Z" fill="{{skin}}"/>
+    <rect x="56" y="148" width="16" height="42" rx="8" fill="{{skin}}"/>
+    <rect x="128" y="148" width="16" height="42" rx="8" fill="{{skin}}"/>
+    <path d="M100 24 C62 24 48 56 48 86 C48 118 70 140 100 140 C130 140 152 118 152 86 C152 56 138 24 100 24 Z" fill="{{skin}}"/>
+    <path d="M74 142 C74 136 86 132 100 132 C114 132 126 136 126 142 L128 182 C128 188 114 192 100 192 C86 192 72 188 72 182 Z" fill="{{shirt}}"/>
+    <path d="M74 140 C66 143 61 151 59 159 L75 163 C77 155 78 148 80 143 Z" fill="{{shirt}}"/>
+    <path d="M126 140 C134 143 139 151 141 159 L125 163 C123 155 122 148 120 143 Z" fill="{{shirt}}"/>
+    <rect x="80" y="156" width="40" height="34" rx="4" fill="{{pants}}"/>
+    <path d="M84 156 L88 134 L96 134 L94 156 Z" fill="{{pants}}"/>
+    <path d="M116 156 L112 134 L104 134 L106 156 Z" fill="{{pants}}"/>
+    <path d="M80 172 L120 172" fill="none" stroke="{{pantsDark}}"/>
+    <circle cx="86" cy="166" r="2.4" fill="{{accent}}"/>
+    <circle cx="114" cy="166" r="2.4" fill="{{accent}}"/>
+    <circle cx="64" cy="188" r="9" fill="{{skin}}"/>
+    <circle cx="136" cy="188" r="9" fill="{{skin}}"/>
+    <rect x="82" y="186" width="17" height="30" rx="5" fill="{{pants}}"/>
+    <rect x="101" y="186" width="17" height="30" rx="5" fill="{{pants}}"/>
+  </g>
+</svg>

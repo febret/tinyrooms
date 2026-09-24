@@ -8,7 +8,7 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 6
+PROFILE_SCHEMA_VERSION = 7
 WORLD_SCHEMA_VERSION = 12
 
 _PROFILE_SCHEMA_SQL = """
@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     updated_at TEXT NOT NULL,
     powers TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(powers)),
     muted_until TEXT,
-    muted_by TEXT
+    muted_by TEXT,
+    sticker_design TEXT
 );
 CREATE TABLE IF NOT EXISTS sessions (
     token_hash TEXT PRIMARY KEY,
@@ -136,7 +137,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-PRAGMA user_version = 6;
+PRAGMA user_version = 7;
 COMMIT;
 """
 
@@ -291,6 +292,12 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 6;
     COMMIT;
     """,
+    7: """
+    BEGIN;
+    ALTER TABLE accounts ADD COLUMN sticker_design TEXT;
+    PRAGMA user_version = 7;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -423,6 +430,7 @@ _ACCOUNTS_COLUMNS = (
     "powers",
     "muted_until",
     "muted_by",
+    "sticker_design",
 )
 
 _SESSIONS_COLUMNS = (

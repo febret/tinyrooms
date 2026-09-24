@@ -54,8 +54,13 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   await expect(page.getByRole("button", { name: "Enter Tinyrooms" })).toBeVisible();
   await capture(page, testInfo, requested, remaining, "auth");
   await createAccount(page, runtime, "sunbeam", false);
-  await expect(page.frameLocator('iframe[src*="sticker-designer"]').locator("#confirm")).toBeEnabled();
+  const designerFrame = page.frameLocator('iframe[src*="sticker-designer"]');
+  await expect(designerFrame.locator("#confirm")).toBeEnabled();
   await capture(page, testInfo, requested, remaining, "onboarding");
+  await designerFrame.locator('[data-mode="custom"]').click();
+  await expect(designerFrame.locator("body[data-sticker-ready='true']")).toBeVisible();
+  await capture(page, testInfo, requested, remaining, "onboarding-custom");
+  await designerFrame.locator('[data-mode="presets"]').click();
   await confirmSticker(page);
   await expect(page.getByRole("button", { name: "Select sunbeam", exact: true })).toBeVisible();
   await capture(page, testInfo, requested, remaining, "main");

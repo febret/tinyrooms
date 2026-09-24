@@ -285,6 +285,14 @@ function normalizeUser(user) {
     username: String(user.username || "Guest"),
     sticker: String(user.sticker || ""),
     stickerUrl: user.sticker ? `/assets/stickers/${user.sticker}` : "",
+    stickerDesign: user.sticker_design && typeof user.sticker_design === "object"
+      ? {
+          ...user.sticker_design,
+          colors: user.sticker_design.colors && typeof user.sticker_design.colors === "object"
+            ? { ...user.sticker_design.colors }
+            : {},
+        }
+      : null,
     initialStickerComplete: Boolean(user.initial_sticker_complete),
     inventory: Array.isArray(user.inventory) ? user.inventory.map(normalizeInventoryStack) : [],
     coreCards: Object.fromEntries(normalizedCore.map(definition => [definition.id, definition])),

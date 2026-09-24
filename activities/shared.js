@@ -124,8 +124,12 @@
     return request("tinyrooms.activity.result", { result: outcome || null });
   }
 
-  function confirmSticker(sticker) {
-    return request("tinyrooms.activity.sticker.confirm", { sticker: String(sticker || "") });
+  function confirmSticker(selection) {
+    const payload = typeof selection === "string" ? { sticker: selection } : (selection || {});
+    const message = { sticker: String(payload.sticker || "") };
+    if (typeof payload.image === "string" && payload.image) message.image = payload.image;
+    if (payload.design && typeof payload.design === "object") message.design = payload.design;
+    return request("tinyrooms.activity.sticker.confirm", message);
   }
 
   function notify(message) {

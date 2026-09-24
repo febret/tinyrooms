@@ -167,8 +167,8 @@ async function bridgeActivity(activity, type, payload = {}) {
   return response;
 }
 
-async function confirmSticker(sticker) {
-  await api.confirmSticker(sticker);
+async function confirmSticker(selection) {
+  await api.confirmSticker(selection);
   await refreshBootstrapAndConnect();
   toast("Sticker confirmed.", "success");
 }
@@ -568,10 +568,17 @@ async function openStickerSwap() {
         const imageUrl = entry?.image_url || `/assets/stickers/${name}`;
         return `<button type="button" class="sticker-choice ${name === current ? "current" : ""}" data-sticker="${escapeHtml(name)}"><img src="${escapeHtml(imageUrl)}" alt=""></button>`;
       }).join("")}</div>
-      <div class="dialog-actions"><button type="button" class="quiet cancel-swap">Cancel</button></div>
+      <div class="dialog-actions">
+        <button type="button" class="quiet design-custom-sticker">Design a Custom Sticker…</button>
+        <button type="button" class="quiet cancel-swap">Cancel</button>
+      </div>
     </section>`,
     (shade, close, cancel) => {
       shade.querySelector(".cancel-swap").onclick = cancel;
+      shade.querySelector(".design-custom-sticker").onclick = async () => {
+        close();
+        try { await sendCommand(".play sticker-designer replace"); } catch (error) { showError(error); }
+      };
       shade.querySelectorAll("[data-sticker]").forEach(button => {
         button.onclick = async () => {
           const chosen = button.dataset.sticker;

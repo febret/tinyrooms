@@ -34,6 +34,7 @@ the port on trusted networks.
 | `TRSERVER_USERS_PATH` | Profile directory; defaults to `users` |
 | `TRSERVER_WORLD_PATH` | Loaded definitions; defaults to `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | Live SQLite state; defaults to `.local/worldstate.sqlite3` |
+| `TRSERVER_CUSTOM_STICKERS_PATH` | Rendered custom peep stickers; defaults to `.local/stickers` |
 | `TRSERVER_FEATURES` | Optional flags such as `dev_sample_activity` |
 | `TRSERVER_MODS` | Comma-separated mod names to load, or `*` for every installed mod |
 | `TRSERVER_MODS_PATH` | Mod search directory; defaults to `mods` |

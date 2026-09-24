@@ -165,6 +165,7 @@ class Milestone3MigrationTests(unittest.TestCase):
                 ALTER TABLE accounts DROP COLUMN powers;
                 ALTER TABLE accounts DROP COLUMN muted_until;
                 ALTER TABLE accounts DROP COLUMN muted_by;
+                ALTER TABLE accounts DROP COLUMN sticker_design;
                 PRAGMA user_version = 5;
                 COMMIT;
                 """

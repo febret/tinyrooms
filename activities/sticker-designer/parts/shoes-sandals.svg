@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M78 210 L100 210 L102 215 C102 216 101 217 99 217 L81 217 C79 217 78 216 78 214 Z" fill="{{shoes}}"/>
+    <path d="M122 210 L100 210 L98 215 C98 216 99 217 101 217 L119 217 C121 217 122 216 122 214 Z" fill="{{shoes}}"/>
+    <path d="M80 210 C84 203 92 202 98 207" fill="none" stroke="{{shoes}}"/>
+    <path d="M120 210 C116 203 108 202 102 207" fill="none" stroke="{{shoes}}"/>
+    <circle cx="86" cy="212" r="3.4" fill="{{skin}}"/>
+    <circle cx="94" cy="212" r="3.4" fill="{{skin}}"/>
+    <circle cx="114" cy="212" r="3.4" fill="{{skin}}"/>
+    <circle cx="106" cy="212" r="3.4" fill="{{skin}}"/>
+  </g>
+</svg>

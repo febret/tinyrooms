@@ -85,6 +85,7 @@ class AccountRecord:
     username_key: str
     password_hash: str
     sticker: str | None
+    sticker_design: str | None
     initial_sticker_complete: bool
     level: int
     kudos: int
@@ -190,6 +191,7 @@ class ProfileRepository:
             username_key=row["username_key"],
             password_hash=row["password_hash"],
             sticker=row["sticker"],
+            sticker_design=row["sticker_design"],
             initial_sticker_complete=bool(row["initial_sticker_complete"]),
             level=int(row["level"]),
             kudos=int(row["kudos"]),
@@ -1013,8 +1015,13 @@ class ProfileRepository:
 
         return self._update_profile_json(connection, account_id, mutate)
 
-    def set_sticker(self, account_id: str, sticker_name: str) -> AccountRecord:
-        """Persist the user's initial sticker choice."""
+    def set_sticker(
+        self,
+        account_id: str,
+        sticker_name: str,
+        sticker_design: str | None = None,
+    ) -> AccountRecord:
+        """Persist the user's initial sticker choice, optionally a custom design."""
 
         now = utc_now().isoformat()
         with self._hub.transaction() as connection:
@@ -1029,10 +1036,10 @@ class ProfileRepository:
             connection.execute(
                 """
                 UPDATE accounts
-                SET sticker = ?, initial_sticker_complete = 1, updated_at = ?
+                SET sticker = ?, sticker_design = ?, initial_sticker_complete = 1, updated_at = ?
                 WHERE id = ?
                 """,
-                (sticker_name, now, account_id),
+                (sticker_name, sticker_design, now, account_id),
             )
             updated = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
         return self._account_from_row(updated)
