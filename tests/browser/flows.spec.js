@@ -962,6 +962,35 @@ test.describe("world editor and card database", () => {
     await expect(page.locator("#we-toast")).toContainText("Published revision 1", { timeout: 20_000 });
   });
 
+  test("room canvas reuses the in-game prop editor", async ({ page, runtime }) => {
+    await createEditorAccount(page, runtime, "roomsmith");
+    await page.goto(`${runtime.baseURL}/world-editor/`);
+    await expect(page.locator("#we-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+
+    const box = await page.locator("#we-canvas").boundingBox();
+    let found = null;
+    for (let fy = 0.1; fy <= 0.9 && !found; fy += 0.08) {
+      for (let fx = 0.1; fx <= 0.9; fx += 0.08) {
+        await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+        if (await page.locator("#we-properties .properties-head").filter({ hasText: "Prop ·" }).count()) {
+          found = { x: box.x + box.width * fx, y: box.y + box.height * fy };
+          break;
+        }
+      }
+    }
+    expect(found, "expected a prop to be selectable in the scene").not.toBeNull();
+
+    const xInput = page.locator('input[data-instance-field="pos.0"]');
+    await expect(xInput).toBeVisible();
+    const before = await xInput.inputValue();
+    await page.mouse.move(found.x, found.y);
+    await page.mouse.down();
+    await page.mouse.move(found.x + 48, found.y + 24, { steps: 6 });
+    await page.mouse.up();
+    await expect(page.locator(".dirty-marker")).toContainText("Unsaved changes");
+    await expect(xInput).not.toHaveValue(before);
+  });
+
   test("card database lists cards, packs, and recipes", async ({ page, runtime }) => {
     await createEditorAccount(page, runtime, "cardcat");
     await page.goto(`${runtime.baseURL}/card-database/`);

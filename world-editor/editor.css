@@ -512,6 +512,20 @@ button.quiet {
   gap: 0.5rem;
 }
 
+.modal-rooms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.modal-rooms code {
+  color: var(--gold);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.05rem 0.35rem;
+}
+
 .empty-state,
 .note {
   color: var(--muted);

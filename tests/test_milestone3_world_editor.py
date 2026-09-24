@@ -22,7 +22,6 @@ from server.services.world_editor import (
     PublishValidationError,
     WorldEditorService,
 )
-from server.services.world_reconcile import reconcile as reconcile_world
 from server.state.world_state import WorldStateRepository
 from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase, load_test_world
 from tests.test_milestone1 import (

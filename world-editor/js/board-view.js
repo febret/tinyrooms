@@ -51,11 +51,22 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
 }
 
 export function createBoardView({ canvas, overlay, onSelect, onBegin, onTransform, onRotate, onScale }) {
+  let activeRoomId = null;
+  const selectProp = instanceId => {
+    if (instanceId) onSelect({ kind: "prop", id: activeRoomId, sub: instanceId });
+    else onSelect({ kind: "room", id: activeRoomId });
+  };
   const board = createBoard({
     canvas,
     overlay,
-    onSelect: selection => onSelect(selection),
-    onEditSelect: id => onSelect(id ? { kind: "prop", id } : { kind: "room", id: null }),
+    onSelect: selection => {
+      if (selection.kind === "prop" && !selection.sub) {
+        selectProp(selection.id);
+        return;
+      }
+      onSelect(selection);
+    },
+    onEditSelect: selectProp,
     onEditBegin: () => onBegin(),
     onEditTransform: payload => onTransform(payload),
     onEditRotate: delta => onRotate(delta),
@@ -64,14 +75,15 @@ export function createBoardView({ canvas, overlay, onSelect, onBegin, onTransfor
 
   return {
     render({ draft, catalog, worldId, roomId, selection, editing = true }) {
+      activeRoomId = roomId;
       const room = buildBoardRoom(draft, catalog, roomId, worldId);
       board.render({
         room,
         selection: null,
         ui: { reducedMotion: true },
         editing,
-        editSelection: selection?.kind === "prop" ? selection.id : null,
-        views: { main: true, details: false, auth: false, commandPalette: false },
+        editSelection: selection?.kind === "prop" ? selection.sub : null,
+        views: { main: editing ? "edit-room" : null, details: false, auth: false, commandPalette: false },
         user: { initialStickerComplete: true },
       });
     },

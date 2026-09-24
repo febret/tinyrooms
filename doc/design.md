@@ -993,8 +993,9 @@ currently loaded world. Through the World Editor they can:
 
 Edits do not affect the running world until an explicit `Publish` action.
 Publishing updates the live world while preserving unrelated inventories, task
-progress, and room-card ownership. Destructive changes require confirmation and
-must not silently delete users' possessions.
+progress, and room-card ownership. Destructive changes (deleting rooms, exits, or
+props) require a single explicit confirmation; deleted rooms drop their orphaned
+room card stacks, and other live state is repaired lazily.
 
 
 -------------------------------------------------------------------------------

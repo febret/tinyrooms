@@ -43,10 +43,7 @@ const elements = {
 const boardView = createBoardView({
   canvas: document.getElementById("we-canvas"),
   overlay: document.getElementById("we-overlay"),
-  onSelect: selection => {
-    if (selection.kind === "prop" && selection.id) store.select({ kind: "prop", id: selection.id });
-    else store.select({ kind: "room", id: currentRoomId() });
-  },
+  onSelect: selection => store.select(selection),
   onBegin: () => store.beginGesture(),
   onTransform: payload => updateInstance(instance => {
     instance.pos = [payload.position[0], payload.position[1], instance.pos?.[2] ?? 0];
