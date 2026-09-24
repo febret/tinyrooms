@@ -5,6 +5,10 @@ if (updating && process.env.TR_UPDATE_SCREENSHOTS !== "1") {
   throw new Error("Baseline updates require TR_UPDATE_SCREENSHOTS=1 and manual reference review.");
 }
 
+// Visual capture stays serial so SwiftShader rendering is deterministic. Functional
+// flows are isolated per test (own server, users, database) and run in parallel.
+const visualRun = process.argv.some(value => value.includes("screenshots.spec.js"));
+
 export default defineConfig({
   testDir: "./tests/browser",
   timeout: 10_000,
@@ -12,8 +16,11 @@ export default defineConfig({
   // SVG/WebGL shader background. Tighter thresholds (e.g. 100) fail on that
   // noise rather than on real UI changes, so keep this deliberately loose.
   expect: { timeout: 10_000, toHaveScreenshot: { maxDiffPixels: 300, threshold: 0.15 } },
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: !visualRun,
+  // Functional flows are isolated per test, so CI can run them in parallel. Local
+  // developer machines are often GPU/CPU constrained; serial is faster there.
+  // Override with TR_BROWSER_WORKERS=<n>.
+  workers: visualRun ? 1 : Number(process.env.TR_BROWSER_WORKERS || (process.env.CI ? 4 : 1)),
   retries: 0,
   forbidOnly: !!process.env.CI,
   outputDir: ".test-results",
@@ -34,10 +41,8 @@ export default defineConfig({
     screenshot: "only-on-failure",
     launchOptions: {
       args: [
-        "--use-angle=swiftshader",
-        "--enable-unsafe-swiftshader",
-        "--num-raster-threads=1",
-        "--renderer-process-limit=2",
+        "--use-angle=d3d11",
+        "--ignore-gpu-blocklist",
       ],
     },
   },
