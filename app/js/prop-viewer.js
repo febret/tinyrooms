@@ -1,54 +1,16 @@
 import * as THREE from "three";
-import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import { disposeBoardTree } from "./board-helpers.js";
+import { createViewerStage } from "./viewer-stage.js";
 
 const loader = new GLTFLoader();
-const AUTO_ROTATION_SPEED = 0.6;
 
 /** Create one small WebGL model viewer bound to a canvas. */
 function createModelViewer({ canvas, modelUrl, scale, interactive, reducedMotion }) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 200);
-  const pivot = new THREE.Group();
-  scene.add(pivot);
-  scene.add(new THREE.HemisphereLight("#fff2d5", "#496e69", 1.5));
-  const key = new THREE.DirectionalLight("#fff4de", 1.7);
-  key.position.set(4, 7, 6);
-  scene.add(key);
-  const fill = new THREE.DirectionalLight("#bcd9ff", 0.7);
-  fill.position.set(-5, 3, -4);
-  scene.add(fill);
-
-  let controls = null;
-  if (interactive) {
-    controls = new OrbitControls(camera, canvas);
-    controls.enablePan = false;
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.12;
-    controls.minDistance = 1.4;
-    controls.maxDistance = 14;
-  }
+  const stage = createViewerStage({ canvas, interactive });
 
   let disposed = false;
   let modelScenes = [];
-  let displayWidth = 2;
-  let displayHeight = 1.8;
-
-  function frameObject() {
-    const center = displayHeight * 0.5;
-    const radius = Math.max(displayWidth, displayHeight, 0.5);
-    camera.position.set(radius * 1.05, center + displayHeight * 0.35, radius * 1.5);
-    camera.lookAt(0, center, 0);
-    if (controls) {
-      controls.target.set(0, center, 0);
-      controls.minDistance = radius * 0.7;
-      controls.maxDistance = radius * 6;
-      controls.update();
-    }
-  }
 
   function loadModel() {
     loader.load(modelUrl, gltf => {
@@ -63,8 +25,8 @@ function createModelViewer({ canvas, modelUrl, scale, interactive, reducedMotion
         return;
       }
       const size = bounds.getSize(new THREE.Vector3()).multiplyScalar(scale);
-      displayWidth = Math.max(size.x, size.z, 0.5);
-      displayHeight = Math.max(size.y, 0.5);
+      const displayWidth = Math.max(size.x, size.z, 0.5);
+      const displayHeight = Math.max(size.y, 0.5);
       const center = bounds.getCenter(new THREE.Vector3());
       const visual = new THREE.Group();
       visual.scale.setScalar(scale);
@@ -73,47 +35,30 @@ function createModelViewer({ canvas, modelUrl, scale, interactive, reducedMotion
       model.traverse(node => {
         if (node.isMesh) node.castShadow = node.receiveShadow = false;
       });
-      pivot.add(visual);
+      stage.pivot.add(visual);
       modelScenes = gltf.scenes || [model];
-      frameObject();
-      resize();
+      stage.addDisposable(...modelScenes);
+      stage.frame(displayWidth, displayHeight);
+      stage.resize();
       canvas.dataset.modelReady = "true";
-      renderer.render(scene, camera);
+      stage.renderFrame(0, false);
     }, undefined, () => {
       canvas.dataset.modelError = "true";
     });
   }
 
-  function resize() {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    if (!width || !height) return;
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }
-
-  const observer = new ResizeObserver(resize);
-  observer.observe(canvas);
-  resize();
   loadModel();
 
   return {
     modelUrl,
     scale,
     render(delta) {
-      if (disposed) return;
-      if (!interactive && !reducedMotion) pivot.rotation.y += delta * AUTO_ROTATION_SPEED;
-      else if (interactive) controls?.update();
-      renderer.render(scene, camera);
+      stage.renderFrame(delta, !interactive && !reducedMotion);
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      observer.disconnect();
-      controls?.dispose();
-      disposeBoardTree([pivot, ...modelScenes]);
-      renderer.dispose();
+      stage.dispose();
     },
   };
 }

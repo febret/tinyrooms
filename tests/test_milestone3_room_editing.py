@@ -174,13 +174,11 @@ class RoomLayoutServiceTests(ServiceTestCase):
         owner = self.owner()
         initial = {prop.id for prop in self.layout.effective_props("hub")}
         self.assertIn("portal0", initial)
-        self.assertIn("vending0", initial)
         self.assertIn("welcome-plant", initial)
         base = self.layout.view(owner, "hub")["revision"]
         self.layout.save(owner, "hub", base, {"props": []})
         remaining = {prop.id for prop in self.layout.effective_props("hub")}
         self.assertIn("portal0", remaining)
-        self.assertIn("vending0", remaining)
         self.assertNotIn("welcome-plant", remaining)
 
     def test_view_library_exposes_only_approved_props(self) -> None:

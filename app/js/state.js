@@ -43,6 +43,7 @@ function normalizeCardDefinition(definition) {
     rank: String(definition.rank || ""),
     bonuses: definition.bonuses || {},
     quest: Boolean(definition.quest),
+    sellPrice: typeof definition.sell_price === "number" ? definition.sell_price : null,
     order: typeof definition.order === "number" ? definition.order : null,
   };
 }

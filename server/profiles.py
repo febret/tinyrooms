@@ -485,8 +485,8 @@ class ProfileRepository:
             """
             SELECT * FROM profile_card_stacks
             WHERE account_id = ? AND card_def_id = ? AND COALESCE(world_id, '') = COALESCE(?, '')
-              AND scope = ? AND equipped = 0 AND pinned = 0
-            ORDER BY created_at, stack_id
+              AND scope = ? AND pinned = 0
+            ORDER BY equipped DESC, created_at, stack_id
             """,
             (account_id, card_def_id, world_id, scope),
         ).fetchall()

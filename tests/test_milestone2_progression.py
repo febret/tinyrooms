@@ -168,6 +168,32 @@ class InventoryRuleTests(ProgressionTestCase):
         snapshot = self.inventory.unequip(self._reload(), stack_id).snapshot
         self.assertEqual(snapshot.effective.stats["fanciness"], 1)
 
+    def test_duplicate_emotes_stack_into_one_stack(self) -> None:
+        self.grant_card(self.account, "wave", 2, scope="global")
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "wave"]
+        self.assertEqual(len(stacks), 1)
+        self.assertEqual(stacks[0].quantity, 2)
+
+    def test_duplicate_skills_stack_into_one_stack(self) -> None:
+        self.grant_card(self.account, "sturdy", 3, scope="global")
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "sturdy"]
+        self.assertEqual(len(stacks), 1)
+        self.assertEqual(stacks[0].quantity, 3)
+
+    def test_duplicate_items_merge_into_equipped_stack(self) -> None:
+        stack_id = self.grant_card(self.account, "juicy-drink", 1)
+        self.inventory.equip(self._reload(), stack_id)
+        self.grant_card(self.account, "juicy-drink", 1)
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "juicy-drink"]
+        self.assertEqual(len(stacks), 1)
+        self.assertEqual(stacks[0].quantity, 2)
+        self.assertTrue(stacks[0].equipped)
+
+    def test_unique_quest_items_do_not_stack(self) -> None:
+        self.grant_card(self.account, "house-key", 2)
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "house-key"]
+        self.assertEqual(len(stacks), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

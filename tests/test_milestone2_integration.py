@@ -316,14 +316,44 @@ class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
             packs = self.command(socket, "packs-1", ".packs")
             self.assertEqual({pack["id"] for pack in packs["payload"]["packs"]}, {"base", "tutorial", "memebase"})
 
-    def test_prop_quick_action_shop_is_visible_in_hub(self) -> None:
+    def test_hub_has_no_shop_prop(self) -> None:
         alice = self.create_ready_account("sue")
         with self.client.websocket_connect(
             "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
         ) as socket:
             room = socket.receive_json()["room"]
-            vending = next(prop for prop in room["props"] if prop["behavior"] == "shop")
-            self.assertIn(".shop", [action["command"] for action in vending["quick_actions"]])
+            self.assertFalse(any(prop["behavior"] == "shop" for prop in room["props"]))
+
+
+class SellIntegrationTests(Milestone2IntegrationTestCase):
+    """Selling cards over the command protocol."""
+
+    def test_sell_card_credits_bops_and_updates_inventory(self) -> None:
+        alice = self.create_ready_account("val")
+        account_id = self.account_id(alice)
+        stack_id = self.grant_card(account_id, "juicy-drink", 2)
+        self.set_bops(account_id, 5)
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            result = self.command(socket, "sell-1", f".sell @card:{stack_id} 1")
+            self.assertTrue(result["ok"], result)
+            self.assertEqual(result["payload"]["user"]["bops"], 6)
+            sold = next(stack for stack in result["payload"]["inventory"] if stack["stack_id"] == stack_id)
+            self.assertEqual(sold["quantity"], 1)
+            self.assertEqual(sold["definition"]["sell_price"], 1)
+
+    def test_sell_rejects_quest_card(self) -> None:
+        alice = self.create_ready_account("wade")
+        account_id = self.account_id(alice)
+        stack_id = self.grant_card(account_id, "house-key", 1)
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            result = self.command(socket, "sell-2", f".sell @card:{stack_id} 1")
+            self.assertFalse(result["ok"])
 
 
 if __name__ == "__main__":

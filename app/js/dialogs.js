@@ -59,10 +59,12 @@ export function createDialogs(layer) {
       });
     },
     quantity(intent, max, minimum = 1) {
-      const verb = intent === "pickup" ? "pick up" : intent === "split" ? "split off" : "drop";
+      const verbs = { pickup: "pick up", split: "split off", sell: "sell", drop: "drop" };
+      const titles = { pickup: "Pick up cards", split: "Split stack", sell: "Sell cards", drop: "Drop cards" };
+      const verb = verbs[intent] || "drop";
       return new Promise(resolve => {
         open(`<section class="global-dialog compact" role="dialog" aria-modal="true" aria-labelledby="qty-title">
-          <h2 id="qty-title">${intent === "pickup" ? "Pick up cards" : intent === "split" ? "Split stack" : "Drop cards"}</h2>
+          <h2 id="qty-title">${titles[intent] || "Drop cards"}</h2>
           <p>Choose how many cards to ${verb}.</p>
           <input class="qty-input" type="range" min="${minimum}" max="${max}" value="${minimum}" aria-label="Quantity">
           <div class="qty-row"><output class="qty-output">${minimum}</output><span>of ${max}</span></div>

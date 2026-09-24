@@ -204,7 +204,7 @@ class DialogCommandIntegrationTests(RuntimeTestCase):
             "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
         ) as socket:
             socket.receive_json()
-            result = self.command(socket, "act-prop-1", ".act browse @prop:vending0")
+            result = self.command(socket, "act-prop-1", ".act browse @prop:portal0")
             self.assertTrue(result["ok"], result)
             self.assertEqual(result["message"], "You browse.")
 

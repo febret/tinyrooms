@@ -242,6 +242,25 @@ async def merge_command(context: CommandContext, command: ParsedCommand) -> Comm
     )
 
 
+async def sell_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    stack_id = _require_card_target(command)
+    quantity = 1
+    if len(command.args) > 1:
+        try:
+            quantity = int(command.args[1])
+        except ValueError as exc:
+            raise CommandError("Sell quantity must be an integer.") from exc
+    result = context.pricing.sell(context.account, stack_id, quantity)
+    return CommandOutcome(
+        message=f"Sold {result.quantity}× {result.definition.label} for {result.bops_gained} Bops.",
+        payload={
+            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.stacks],
+            "user": _user_payload(context),
+        },
+        private_events=[{"type": "toast", "tone": "success", "text": f"+{result.bops_gained} Bops"}],
+    )
+
+
 async def skill_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     if len(command.args) < 2:

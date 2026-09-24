@@ -96,6 +96,21 @@ class BopsSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class SellSettings:
+    """Runtime card sell values keyed by rarity."""
+
+    rarity_values: dict[str, int]
+    default: int
+
+    def value_for(self, rarity: str | None) -> int:
+        """Return the sell value for a rarity, falling back to the default."""
+
+        if rarity is not None and rarity in self.rarity_values:
+            return self.rarity_values[rarity]
+        return self.default
+
+
+@dataclass(frozen=True, slots=True)
 class GameplayContent:
     """All loaded core gameplay definitions."""
 
@@ -104,6 +119,7 @@ class GameplayContent:
     juice: JuiceSettings
     levels: LevelTable
     bops: BopsSettings
+    card_prices: SellSettings
 
 
 def _load_stats(path: Path) -> dict[str, StatDefinition]:
@@ -231,12 +247,29 @@ def _load_bops(path: Path) -> BopsSettings:
     return BopsSettings(daily_bops_per_level=values, sticker_swap_cost=cost)
 
 
+def _load_card_prices(path: Path) -> SellSettings:
+    payload = require_mapping(load_yaml_file(path), path)
+    raw_values = payload.get("rarity_values", {}) or {}
+    if not isinstance(raw_values, dict) or not raw_values:
+        raise ContentError(f"{path} must define a non-empty rarity_values mapping.")
+    rarity_values: dict[str, int] = {}
+    for rarity, value in raw_values.items():
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ContentError(f"{path} has an invalid value for rarity '{rarity}'.")
+        rarity_values[str(rarity)] = value
+    default = payload.get("default")
+    if isinstance(default, bool) or not isinstance(default, int) or default < 0:
+        raise ContentError(f"{path} has an invalid default {default!r}.")
+    return SellSettings(rarity_values=rarity_values, default=default)
+
+
 def load_gameplay_content(core_path: Path) -> GameplayContent:
     """Load and validate all core gameplay settings from a content directory."""
 
     juice = _load_juice(core_path / "juice.yaml")
     levels = _load_levels(core_path / "levels.yaml")
     bops = _load_bops(core_path / "bops.yaml")
+    card_prices = _load_card_prices(core_path / "card_prices.yaml")
     expected_levels = levels.max_level + 1
     if len(juice.max_energy_per_level) < expected_levels:
         raise ContentError(
@@ -254,4 +287,5 @@ def load_gameplay_content(core_path: Path) -> GameplayContent:
         juice=juice,
         levels=levels,
         bops=bops,
+        card_prices=card_prices,
     )

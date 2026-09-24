@@ -1,0 +1,9 @@
+# Card sell values in Bops, keyed by rarity.
+# Cards without a rarity (or with an unknown one) fall back to `default`.
+rarity_values:
+  Common: 1
+  Uncommon: 2
+  Rare: 5
+  Epic: 15
+  Legendary: 40
+default: 1

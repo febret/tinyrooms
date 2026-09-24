@@ -11,6 +11,8 @@ from server.content.common import ContentError, load_yaml_file, require_mapping
 CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart", "starlight"})
 NON_EQUIP_TYPES = frozenset({"emote", "core", "skill"})
+STACKABLE_TYPES = frozenset({"item", "emote", "skill"})
+DEFAULT_STACKABLE_LIMIT = 99
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,14 +106,18 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
         description = str(raw_card.get("description", "")).strip()
         if not label or not description:
             raise ContentError(f"Card '{card_id}' must define label and description.")
-        stack_limit = int(raw_card.get("stack_limit", 1))
+        card_type = _detect_type(card_id, raw_card)
+        raw_stack_limit = raw_card.get("stack_limit")
+        if raw_stack_limit is None:
+            stack_limit = DEFAULT_STACKABLE_LIMIT if card_type in STACKABLE_TYPES else 1
+        else:
+            stack_limit = int(raw_stack_limit)
         if stack_limit < 1:
             raise ContentError(f"Card '{card_id}' has invalid stack_limit {stack_limit}.")
         bonuses_raw = raw_card.get("bonuses", {}) or {}
         if not isinstance(bonuses_raw, dict):
             raise ContentError(f"Card '{card_id}' bonuses must be a mapping.")
         bonuses = {str(name): int(value) for name, value in bonuses_raw.items()}
-        card_type = _detect_type(card_id, raw_card)
         order = int(raw_card["order"]) if "order" in raw_card else None
         if order is not None and order < 1:
             raise ContentError(f"Card '{card_id}' has invalid order {order}.")

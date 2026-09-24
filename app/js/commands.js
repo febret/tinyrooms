@@ -17,6 +17,7 @@ export const COMMANDS = [
   { name: ".level_up", summary: "Spend Kudos to reach the next level." },
   { name: ".claim_bops", summary: "Claim today's Daily Bops." },
   { name: ".buy_pack <pack> <operation_id>", summary: "Buy and open a card pack." },
+  { name: ".sell @card:<stack> <qty>", summary: "Sell owned cards for Bops." },
   { name: ".friend <add|accept|decline|cancel|remove> <peep>", summary: "Manage friends." },
   { name: ".pin_peep @peep:<id> [on|off]", summary: "Pin or unpin a peep in your sidebar." },
   { name: ".swap_sticker <sticker>", summary: "Swap your peep sticker for Bops." },
@@ -86,4 +87,8 @@ export function buildSplitCommand(stackId, quantity) {
 
 export function buildMergeCommand(sourceId, destinationId) {
   return `.merge @card:${sourceId} @card:${destinationId}`;
+}
+
+export function buildSellCommand(stackId, quantity = 1) {
+  return `.sell @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
 }

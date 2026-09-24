@@ -226,7 +226,6 @@ class ContentPersistenceTests(unittest.TestCase):
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
         self.assertEqual(world.peeps["molly"].activity, "lazor-rush")
-        self.assertEqual(world.rooms["hub"].props["vending0"].activity, "shop")
         self.assertEqual(world.rooms["kitchen"].props["workbench0"].activity, "crafting")
         self.assertEqual(world.activities["lazor-rush"].title, "Lazor Rush")
         self.assertTrue(world.activities["lazor-rush"].room_bound)
@@ -288,6 +287,15 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertTrue(all(card["type"] == "core" for card in serialized))
         self.assertTrue(all(card["image_url"].startswith("/assets/base/") for card in serialized))
         self.assertFalse(any(card["id"] in {"self", "friends", "edit-room", "arrow-left", "arrow-right"} for card in serialized))
+
+    def test_stackable_types_default_to_a_shared_limit(self) -> None:
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
+        self.assertEqual(catalog.cards["smile"].stack_limit, 99)
+        self.assertEqual(catalog.cards["sturdy"].stack_limit, 99)
+        self.assertEqual(catalog.cards["juicy-drink"].stack_limit, 10)
+        self.assertEqual(catalog.cards["house-key"].stack_limit, 1)
+        self.assertEqual(catalog.cards["ballet-shoes"].stack_limit, 1)
+        self.assertEqual(catalog.cards["emotes"].stack_limit, 1)
 
     def test_inventory_stack_limit_and_world_defaults(self) -> None:
         with TemporaryDirectory() as temporary_directory:

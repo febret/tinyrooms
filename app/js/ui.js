@@ -9,6 +9,7 @@ import {
   buildFriendCommand,
   buildMergeCommand,
   buildQuantityCommand,
+  buildSellCommand,
   buildSkillCommand,
   buildSplitCommand,
   buildSwapStickerCommand,
@@ -22,6 +23,7 @@ import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
+import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
 
@@ -411,6 +413,21 @@ async function handleAction(action) {
     }
   } else if (action.type === "merge") {
     await mergeStack(action.stackId);
+  } else if (action.type === "sell") {
+    let quantity = action.quantity || 1;
+    if (action.max) {
+      const chosen = await dialogs.quantity("sell", action.max, 1);
+      if (chosen === null) return;
+      quantity = chosen;
+    }
+    const total = (action.unit || 0) * quantity;
+    const accepted = await dialogs.confirm(
+      `Sell ${quantity}× ${action.label}?`,
+      `You will receive ${total} Bops.`,
+      "Sell",
+    );
+    if (!accepted) return;
+    try { await sendCommand(buildSellCommand(action.stackId, quantity)); } catch (error) { showError(error); }
   } else if (action.type === "swap-sticker") {
     await openStickerSwap();
   } else if (action.type === "quantity") {
@@ -765,6 +782,7 @@ const cards = createCardsView({
   onAction: action => { void handleAction(action); },
 });
 const propViewers = createPropViewerManager();
+const cardViewers = createCardViewerManager();
 const thumbnails = createThumbnailManager();
 const cardMotion = createCardMotion({
   board,
@@ -811,6 +829,7 @@ async function render(state) {
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
   propViewers.sync(detailLayer, state.ui.reducedMotion);
+  cardViewers.sync(detailLayer, state.ui.reducedMotion);
   thumbnails.sync(editorRoot);
   if (!dialogs.active) {
     if (state.views.details && previousDetails !== state.views.details) {

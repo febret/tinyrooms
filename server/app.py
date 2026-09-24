@@ -66,6 +66,7 @@ from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
+from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.room_layout import RoomLayoutService
 from server.services.rooms import RoomService
@@ -136,6 +137,7 @@ class RuntimeState:
     actions: ActionsService
     friends: FriendsService
     shop: ShopService
+    pricing: CardPricingService
     dialogs: DialogService
     tasks: TaskService
     memories: MemoryService
@@ -375,7 +377,8 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     activities = ActivityService(config)
     connections = ConnectionRegistry()
     equipped_caps = {level: definition.max_equipped for level, definition in content.levels.levels.items()}
-    cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps)
+    pricing = CardPricingService(hub, profiles, catalog, content, world.id)
+    cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps, pricing)
     stats = StatsService(hub, profiles, catalog, content, world.id)
     inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
     progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
@@ -480,6 +483,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         actions=actions,
         friends=friends,
         shop=shop,
+        pricing=pricing,
         dialogs=dialogs,
         tasks=tasks,
         memories=memories,
@@ -838,6 +842,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         actions=runtime.actions,
                         friends=runtime.friends,
                         shop=runtime.shop,
+                        pricing=runtime.pricing,
                         content=runtime.content,
                         world=runtime.world,
                         valid_stickers=frozenset(runtime.accounts.list_stickers()),

@@ -396,6 +396,24 @@ test.describe("milestone 2 activities and targeting", () => {
     await expect(frame.locator("#balance")).toContainText("0 Bops");
   });
 
+  test("inventory Card Shop button opens the shop activity", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await openCore(page, "inventory");
+    await page.locator("#panel-layer").getByRole("button", { name: "Card Shop", exact: true }).click();
+    const frame = page.frameLocator('iframe[src*="shop"]');
+    await expect(frame.locator(".pack-card")).toHaveCount(3);
+  });
+
+  test("selling a card from the inventory credits Bops", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await openCore(page, "inventory");
+    const panel = page.locator("#panel-layer [role=dialog]");
+    await panel.getByRole("button", { name: "Smile", exact: true }).click();
+    await page.locator("#actions-bar").getByRole("button", { name: /^Sell 1/ }).click();
+    await page.locator(".global-dialog").getByRole("button", { name: "Sell", exact: true }).click();
+    await expect.poll(async () => (await bootstrap(page)).user.bops).toBe(11);
+  });
+
   test("targeting a healing card previews, cancels, and rejects full health", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await command(page, ".go @way:exit0");
@@ -501,6 +519,27 @@ test.describe("milestone 2 polish: prop viewer and journal calendar", () => {
     await expect(canvas).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator("#panel-layer canvas.prop-preview-canvas")).toHaveCount(0);
+  });
+
+  test("inspecting a card opens a two-panel view with a rotatable 3D card", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await openRoomView(page);
+    await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).click();
+    const canvas = page.locator("#detail-layer canvas.card-preview-canvas");
+    await expect(canvas).toBeVisible();
+    await expect(canvas).toHaveAttribute("data-card-ready", "true", { timeout: 20_000 });
+    await expect(canvas).toHaveAttribute("data-card-front", /assets/);
+    const box = await canvas.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(canvas).toBeVisible();
+    await expect(page.locator("#detail-layer .card-view-info")).toContainText("Quantity");
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#detail-layer canvas.card-preview-canvas")).toHaveCount(0);
   });
 
   test("journal memories shows a calendar with month navigation", async ({ page, runtime }) => {

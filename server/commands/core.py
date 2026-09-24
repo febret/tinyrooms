@@ -633,6 +633,13 @@ def build_registry() -> CommandRegistry:
     )
     registry.register("say", "Send a room-scoped chat message.", say_command, usage=".say <text>", toast=False, log=False)
     registry.register(
+        "sell",
+        "Sell copies of an owned card stack for Bops.",
+        gameplay.sell_command,
+        usage=".sell @card:<stack_id> [quantity]",
+        help="Sell collectible cards from your inventory at their rarity value.",
+    )
+    registry.register(
         "settings",
         "Change a persisted client setting.",
         settings_command,

@@ -59,6 +59,9 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-claim-bops]").forEach(button => {
     button.onclick = () => onAction({ type: "claim-bops" });
   });
+  root.querySelectorAll("[data-open-shop]").forEach(button => {
+    button.onclick = () => onAction({ command: ".shop" });
+  });
   root.querySelectorAll("[data-level-up]").forEach(button => {
     button.onclick = () => onAction({ type: "level-up" });
   });
@@ -125,24 +128,31 @@ function detailsModal(state) {
   const inventoryCard = findInventoryCard(state, state.views.details);
   const stack = roomCard || inventoryCard;
   if (!stack) return "";
+  const definition = stack.definition;
+  const backUrl = definition.imageUrl.startsWith("/assets/world/") ? CARD_BACK : "/assets/base/base-pack-back.webp";
   return `
-    <section class="details-popup" role="dialog" aria-modal="false" aria-label="Card Details: ${escapeHtml(stack.definition.label)}">
-      <button type="button" class="quiet details-close" data-close-details="1" aria-label="Close card details">Close</button>
-      <div class="details-book">
-        <img class="details-front" src="${escapeHtml(stack.definition.imageUrl)}" alt="${escapeHtml(stack.definition.label)} card front">
-        <img class="details-back" src="${stack.definition.imageUrl.startsWith("/assets/world/") ? CARD_BACK : "/assets/base/base-pack-back.webp"}" alt="Card back">
-        <div class="details-page" tabindex="0" data-details-page="1" aria-label="Card information">
-          <h2>${escapeHtml(stack.definition.label)}</h2>
-          <p>${escapeHtml(longDescription(stack.definition))}</p>
-          <dl class="details-metrics">
-            <div><dt>Quantity</dt><dd>${escapeHtml(stack.quantity)}</dd></div>
-            <div><dt>Stack limit</dt><dd>${escapeHtml(stack.definition.stackLimit || 1)}</dd></div>
-            ${stack.scope ? `<div><dt>Scope</dt><dd>${escapeHtml(stack.scope)}</dd></div>` : ""}
-            <div><dt>Pinned</dt><dd>${stack.pinned ? "Yes" : "No"}</dd></div>
-            ${inventoryCard ? `<div><dt>Equipped</dt><dd>${stack.equipped ? "Yes" : "No"}</dd></div>` : ""}
-          </dl>
-        </div>
-        <p class="rarity-pill">${escapeHtml(rarityLabel(stack.definition))}</p>
+    <section class="card-view" role="dialog" aria-modal="false" aria-label="Card Details: ${escapeHtml(definition.label)}">
+      <button type="button" class="quiet card-view-close" data-close-details="1" aria-label="Close card details">Close</button>
+      <div class="card-view-panels">
+        <section class="card-view-panel card-view-panel-left" aria-label="Card preview">
+          <canvas class="card-preview-canvas" data-card-front="${escapeHtml(definition.imageUrl)}" data-card-back="${escapeHtml(backUrl)}"
+            data-card-interactive="true" aria-label="${escapeHtml(definition.label)} card. Drag to rotate."></canvas>
+        </section>
+        <div class="card-view-spine" aria-hidden="true"></div>
+        <section class="card-view-panel card-view-panel-right" aria-label="Card information">
+          <div class="card-view-info" tabindex="0" data-details-page="1">
+            <h2>${escapeHtml(definition.label)}</h2>
+            <p>${escapeHtml(longDescription(definition))}</p>
+            <dl class="details-metrics">
+              <div><dt>Quantity</dt><dd>${escapeHtml(stack.quantity)}</dd></div>
+              <div><dt>Stack limit</dt><dd>${escapeHtml(definition.stackLimit || 1)}</dd></div>
+              ${stack.scope ? `<div><dt>Scope</dt><dd>${escapeHtml(stack.scope)}</dd></div>` : ""}
+              <div><dt>Pinned</dt><dd>${stack.pinned ? "Yes" : "No"}</dd></div>
+              ${inventoryCard ? `<div><dt>Equipped</dt><dd>${stack.equipped ? "Yes" : "No"}</dd></div>` : ""}
+            </dl>
+            <p class="rarity-pill">${escapeHtml(rarityLabel(definition))}</p>
+          </div>
+        </section>
       </div>
     </section>
   `;
@@ -314,6 +324,20 @@ function inventoryStackActions(stack) {
   if ((definition.stackLimit || 1) > 1) {
     actions.push({ label: "Merge…", local: { type: "merge", stackId: stack.stackId }, tone: "neutral" });
   }
+  if (definition.sellPrice != null) {
+    actions.push({
+      label: `Sell 1 (${definition.sellPrice} Bops)`,
+      local: { type: "sell", stackId: stack.stackId, quantity: 1, unit: definition.sellPrice, label: definition.label },
+      tone: "positive",
+    });
+    if (stack.quantity > 1) {
+      actions.push({
+        label: "Sell…",
+        local: { type: "sell", stackId: stack.stackId, max: stack.quantity, unit: definition.sellPrice, label: definition.label },
+        tone: "positive",
+      });
+    }
+  }
   return actions;
 }
 
@@ -326,7 +350,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, o
     const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .editor-dock-body, .journal-page-inner, .details-popup, .details-page, .card-hand-strip, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .editor-dock-body, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;

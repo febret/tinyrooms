@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import sqlite3
+from typing import TYPE_CHECKING
 
 from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
 from server.state.world_state import RoomCardStack, WorldStateRepository
+
+if TYPE_CHECKING:
+    from server.services.pricing import CardPricingService
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +127,7 @@ class CardService:
         catalog: CardCatalog,
         world_id: str,
         equipped_caps: dict[int, int] | None = None,
+        pricing: CardPricingService | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -130,6 +135,7 @@ class CardService:
         self._catalog = catalog
         self._world_id = world_id
         self._equipped_caps = equipped_caps or {}
+        self._pricing = pricing
 
     def definition(self, card_def_id: str) -> CardDefinition:
         """Return a loaded card definition by ID."""
@@ -160,6 +166,11 @@ class CardService:
             "rank": definition.rank,
             "bonuses": definition.bonuses,
             "quest": definition.quest,
+            "sell_price": (
+                self._pricing.sell_value(definition)
+                if self._pricing is not None and self._pricing.is_sellable(definition)
+                else None
+            ),
         }
         return payload
 

@@ -25,6 +25,7 @@ from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
+from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
@@ -77,6 +78,7 @@ class CommandContext:
     actions: ActionsService
     friends: FriendsService
     shop: ShopService
+    pricing: CardPricingService
     content: GameplayContent
     world: WorldDefinition
     valid_stickers: frozenset[str]

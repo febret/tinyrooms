@@ -689,9 +689,11 @@ equipped stack. When its count reaches zero, the stack is gone and its slot is f
 
 
 ### Card Packs and Shops
-The initial basic shop sells card packs only. It does not sell individual cards
-or buy cards back from users. Card-value text in screenshots is illustrative and
-does not imply a resale system.
+The initial basic shop sells card packs only; it does not sell individual cards.
+Players can sell collectible cards from the Inventory for Bops, at a value
+derived from the card's rarity and defined in `data/core/card_prices.yaml`.
+Core and quest cards cannot be sold. Card-value text in screenshots is
+illustrative; the authored price table is authoritative.
 
 The standard pack contains 3 independently drawn card copies, with duplicates
 allowed. Each pack defines its price and may define a different size.
@@ -711,8 +713,8 @@ eligible-card list or draw probabilities.
 Buying requires explicit confirmation of the Bops price and costs no Energy.
 Insufficient Bops reject the purchase without spending resources or granting cards.
 
-Card packs are bought with Bops through shop interactions on props or merchant
-NPCs. Shops are [Activities](#activities):
+Card packs are bought with Bops through the Card Shop activity, which is opened
+from a button in the Inventory. Shops are [Activities](#activities):
 a prop or merchant peep can have a vending activity associated to it, launched
 through a quick action. Different vendor types can have different vending
 activities associated to them, rather than a single marketplace activity type.
