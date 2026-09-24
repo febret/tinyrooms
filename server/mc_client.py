@@ -109,7 +109,11 @@ class McClient:
         }
 
     async def heartbeat(self) -> dict[str, object] | None:
-        """POST one heartbeat; no-op until registered."""
+        """POST one heartbeat; no-op until registered.
+
+        A rejection for an unknown instance (for example after a mission-control
+        restart) clears the stored id so the run loop re-registers.
+        """
 
         if not self._instance_id:
             return None
@@ -120,7 +124,11 @@ class McClient:
             headers={"X-MC-Token": self._token},
         )
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        if isinstance(data, dict) and data.get("ok") is False:
+            _log("mc.heartbeat_rejected", instance_id=self._instance_id, code=data.get("code"))
+            self._instance_id = None
+        return data
 
     async def register_with_backoff(self) -> bool:
         """Attempt registration with bounded exponential backoff."""
@@ -134,26 +142,31 @@ class McClient:
                 _log("mc.register_failed", attempt=attempt, error=type(exc).__name__)
                 if attempt == MAX_REGISTER_ATTEMPTS:
                     return False
-                try:
-                    await asyncio.wait_for(self._stop.wait(), timeout=delay)
+                if await self._pause(delay):
                     return False
-                except TimeoutError:
-                    pass
                 delay = min(delay * 2, 30.0)
         return False
 
-    async def run(self) -> None:
-        """Register, then heartbeat until stopped."""
+    async def _pause(self, timeout: float) -> bool:
+        """Wait up to *timeout* seconds; return True if stop was requested."""
 
-        registered = await self.register_with_backoff()
-        if not registered:
-            _log("mc.register_gave_up")
+        try:
+            await asyncio.wait_for(self._stop.wait(), timeout=timeout)
+            return True
+        except TimeoutError:
+            return False
+
+    async def run(self) -> None:
+        """Register (re-registering on failure), then heartbeat until stopped."""
+
         while not self._stop.is_set():
-            try:
-                await asyncio.wait_for(self._stop.wait(), timeout=self._heartbeat_seconds)
+            if not self._instance_id:
+                if not await self.register_with_backoff():
+                    if await self._pause(self._heartbeat_seconds):
+                        return
+                    continue
+            if await self._pause(self._heartbeat_seconds):
                 return
-            except TimeoutError:
-                pass
             try:
                 await self.heartbeat()
             except Exception as exc:  # noqa: BLE001 - never break gameplay

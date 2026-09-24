@@ -19,7 +19,7 @@ from cryptography.x509.oid import NameOID
 import uvicorn
 
 from server.app import create_app
-from server.config import ConfigError, load_config
+from server.config import ConfigError, load_config, selects_mission_control
 from server.mission_control.app import create_mc_app
 from server.mission_control.config import load_mc_config
 
@@ -31,12 +31,7 @@ FORCED_EXIT_TIMEOUT_SECONDS = 1.9
 def is_mission_control(env: dict[str, str]) -> bool:
     """Return True when the feature set selects the mission-control server."""
 
-    raw = env.get("TRSERVER_FEATURES", "")
-    return any(
-        part.strip().lower().replace("_", "-") == "mission-control"
-        for part in raw.split(",")
-        if part.strip()
-    )
+    return selects_mission_control(env.get("TRSERVER_FEATURES", ""))
 
 
 class BoundedShutdownServer(uvicorn.Server):

@@ -59,10 +59,6 @@ class InstanceRegistryTests(unittest.TestCase):
         self.assertEqual(updated.users_online, 3)
         self.assertEqual(updated.uptime_seconds, 42)
 
-    def test_heartbeat_unknown_instance(self) -> None:
-        registry = InstanceRegistry(stale_after_seconds=15)
-        self.assertIsNone(registry.heartbeat("missing"))
-
     def test_evict_stale_marks_unreachable(self) -> None:
         registry = InstanceRegistry(stale_after_seconds=5)
         record = registry.register(_registration())

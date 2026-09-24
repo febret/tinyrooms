@@ -36,7 +36,7 @@ from server.content.bundle import WorldBundle, load_world_bundle
 from server.content.cards import CardCatalog, ContentError
 from server.content.gameplay import GameplayContent
 from server.content.worlds import WorldDefinition
-from server.logging_ring import install_log_ring
+from server.logging_ring import install_log_ring, remove_log_ring
 from server.mc_api import router as mc_router
 from server.mc_client import McClient
 from server.mods import ModDefinition, LoadedMods, load_mods
@@ -586,6 +586,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             runtime.ticker.stop()
             if mc_client is not None:
                 await mc_client.stop()
+            if app.state.log_ring is not None:
+                remove_log_ring(app.state.log_ring)
             runtime.hub.close()
 
     app = FastAPI(title="Tinyrooms Server", version="1.0.0", lifespan=lifespan)

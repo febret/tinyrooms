@@ -56,15 +56,32 @@ class UserManager:
         """List account summaries, optionally filtered by username or id."""
 
         accounts = self._profiles.search_accounts(query, limit=limit)
-        return [self._summary(account) for account in accounts]
+        return self._summaries(accounts)
 
-    def _summary(self, account: AccountRecord) -> dict[str, object]:
-        profile = self._profiles.get_user_profile(account.id)
+    def _summaries(self, accounts: list[AccountRecord]) -> list[dict[str, object]]:
+        if not accounts:
+            return []
+        account_ids = [account.id for account in accounts]
+        placeholders = ", ".join("?" for _ in account_ids)
+        powers: dict[str, list[str]] = {}
+        last_visits: dict[str, str | None] = {}
         with self._hub.locked() as connection:
-            row = connection.execute(
-                "SELECT powers FROM accounts WHERE id = ?",
-                (account.id,),
-            ).fetchone()
+            for row in connection.execute(
+                f"SELECT id, powers FROM accounts WHERE id IN ({placeholders})",
+                account_ids,
+            ):
+                powers[row["id"]] = _parse_powers(row["powers"])
+            for row in connection.execute(
+                f"SELECT account_id, last_visit_at FROM user_profiles WHERE account_id IN ({placeholders})",
+                account_ids,
+            ):
+                last_visits[row["account_id"]] = row["last_visit_at"]
+        return [
+            self._summary(account, powers=powers.get(account.id, []), last_visit_at=last_visits.get(account.id))
+            for account in accounts
+        ]
+
+    def _summary(self, account: AccountRecord, *, powers: list[str], last_visit_at: str | None) -> dict[str, object]:
         return {
             "id": account.id,
             "username": account.username_display,
@@ -74,8 +91,8 @@ class UserManager:
             "sticker": account.sticker,
             "initial_sticker_complete": account.initial_sticker_complete,
             "created_at": account.created_at,
-            "last_visit_at": None if profile is None else profile.last_visit_at,
-            "powers": _parse_powers(row["powers"]) if row is not None else [],
+            "last_visit_at": last_visit_at,
+            "powers": powers,
         }
 
     def detail(self, account_id: str) -> dict[str, object] | None:
@@ -186,7 +203,9 @@ class UserManager:
         changed = sorted(set(fields))
         self._audit.record(actor, "user.edit", target=account_id, result="ok", detail={"fields": changed})
         updated = self._profiles.get_account_by_id(account_id)
-        return self._summary(updated)
+        if updated is None:
+            raise ValueError("Unknown account.")
+        return self._summaries([updated])[0]
 
 
 def _as_int(value: object, label: str) -> int:

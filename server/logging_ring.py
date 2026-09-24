@@ -38,3 +38,9 @@ def install_log_ring(limit: int = 1000) -> LogRingHandler:
     handler = LogRingHandler(limit=limit)
     logging.getLogger().addHandler(handler)
     return handler
+
+
+def remove_log_ring(handler: LogRingHandler) -> None:
+    """Detach a ring handler from the root logger."""
+
+    logging.getLogger().removeHandler(handler)

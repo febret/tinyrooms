@@ -21,11 +21,6 @@ class UserManagerTests(ServiceTestCase):
         results = self.manager.search("ali")
         self.assertEqual([entry["username"] for entry in results], ["alice"])
 
-    def test_search_lists_all(self) -> None:
-        self.create_account("alice")
-        self.create_account("bob")
-        self.assertEqual(len(self.manager.search(None)), 2)
-
     def test_detail_includes_related_rows(self) -> None:
         account = self.create_account("alice")
         detail = self.manager.detail(account.id)

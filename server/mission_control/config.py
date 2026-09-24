@@ -8,15 +8,12 @@ import os
 import secrets
 
 from server.config import (
+    MC_FEATURE_ALIASES,
     ConfigError,
     compute_allowed_origins,
     parse_bool,
     parse_features,
 )
-
-
-MC_FEATURE = "mission-control"
-MC_FEATURE_ALIASES = frozenset({"mission-control", "mission_control"})
 
 
 @dataclass(frozen=True, slots=True)

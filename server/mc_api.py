@@ -19,7 +19,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from server.broadcast import broadcast_room_event
-from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.commands.context import build_command_context
 from server.commands.core import dispatch_command
 from server.commands.outcomes import CommandError
@@ -32,8 +31,6 @@ from server.version import BUILD_VERSION, schema_versions
 
 LOGGER = logging.getLogger("tinyrooms.mc")
 router = APIRouter(prefix="/api/mc")
-
-MC_CAPABILITIES = tuple(f"admin.{name}" for name in ALLOWED_ADMIN_COMMANDS)
 
 
 class CommandPayload(BaseModel):
@@ -61,6 +58,7 @@ def _require_token(request: Request) -> None:
     presented = request.headers.get("x-mc-token")
     if not expected or not presented or not hmac.compare_digest(expected, presented):
         LOGGER.warning(json.dumps({"event": "mc.token_rejected", "path": request.url.path}))
+        runtime.audit.safe_record("mission-control", "mc.token_rejected", None, "denied", {"path": request.url.path})
         raise HTTPException(status_code=403, detail="Invalid mission-control token.")
 
 

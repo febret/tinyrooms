@@ -11,16 +11,27 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _MOD_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+MC_FEATURE_ALIASES = frozenset({"mission-control", "mission_control"})
 KNOWN_FEATURES = frozenset(
     {
         "dev-sample-activity",
         "dev_sample_activity",
         "world-editor",
         "card-database",
-        "mission-control",
-        "mission_control",
+        *MC_FEATURE_ALIASES,
     }
 )
+
+
+def selects_mission_control(raw_value: str) -> bool:
+    """Return True when a raw feature list contains a mission-control alias."""
+
+    normalized = {
+        part.strip().lower().replace("_", "-")
+        for part in raw_value.split(",")
+        if part.strip()
+    }
+    return "mission-control" in normalized
 
 
 def compute_allowed_origins(host: str, port: int) -> tuple[str, ...]:

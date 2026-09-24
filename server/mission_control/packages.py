@@ -12,7 +12,7 @@ import tempfile
 import zipfile
 
 from server.config import KNOWN_FEATURES
-from server.content.activities import load_activity_definitions
+from server.content.activities import ActivityDefinition, load_activity_definitions
 from server.content.cards import ContentError, load_card_catalog
 from server.content.common import load_yaml_file
 from server.content.worlds import load_propset, load_world_definition
@@ -67,6 +67,9 @@ class PackageManager:
         self._audit = audit
         self._disabled: set[tuple[str, str]] = set()
         self._records: dict[tuple[str, str], PackageRecord] = {}
+        self._world_content_cache: tuple[
+            dict[str, ActivityDefinition], tuple[tuple[str, Path], ...], frozenset[str]
+        ] | None = None
 
     @property
     def worlds_root(self) -> Path:
@@ -154,18 +157,26 @@ class PackageManager:
             return "error", [f"{type(exc).__name__}: {exc}"]
         return "ok", []
 
+    def _world_content(self) -> tuple[dict[str, ActivityDefinition], tuple[tuple[str, Path], ...], frozenset[str]]:
+        """Return cached core+mod activity content shared by every world."""
+
+        if self._world_content_cache is None:
+            core = load_activity_definitions(
+                self._config.repo_root / "data" / "core" / "activities.yaml",
+                source="core",
+                known_features=KNOWN_FEATURES,
+            )
+            mods = discover_mods(self._config.repo_root / "mods")
+            merged = {**core, **load_mod_activity_definitions(mods.values(), known_features=KNOWN_FEATURES)}
+            mod_props = tuple(
+                (mod.id, mod.props_path) for mod in mods.values() if (mod.props_path / "props.yaml").is_file()
+            )
+            self._world_content_cache = (merged, mod_props, frozenset(mods))
+        return self._world_content_cache
+
     def _validate_world(self, package_dir: Path) -> None:
         catalog = load_card_catalog(self.cardsets_root, package_dir)
-        core = load_activity_definitions(
-            self._config.repo_root / "data" / "core" / "activities.yaml",
-            source="core",
-            known_features=KNOWN_FEATURES,
-        )
-        mods = discover_mods(self._config.repo_root / "mods")
-        merged = {**core, **load_mod_activity_definitions(mods.values(), known_features=KNOWN_FEATURES)}
-        mod_props = tuple(
-            (mod.id, mod.props_path) for mod in mods.values() if (mod.props_path / "props.yaml").is_file()
-        )
+        merged, mod_props, enabled_mods = self._world_content()
         load_world_definition(
             package_dir,
             set(catalog.cards),
@@ -173,7 +184,7 @@ class PackageManager:
             known_features=KNOWN_FEATURES,
             propsets_root=self.propsets_root,
             mod_props=mod_props,
-            enabled_mods=frozenset(mods),
+            enabled_mods=enabled_mods,
         )
 
     def _validate_cardset(self, package_dir: Path) -> None:

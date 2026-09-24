@@ -15,7 +15,8 @@ from pydantic import BaseModel
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
-from server.mission_control.registry import STATUS_RUNNING, STATUS_UNREACHABLE
+from server.mission_control.packages import MAX_UPLOAD_BYTES
+from server.mission_control.registry import EXTERNAL, SPAWNED, STATUS_RUNNING, STATUS_STOPPED, STATUS_UNREACHABLE
 from server.security import RateLimitError, require_matching_csrf, validate_origin
 from server.version import BUILD_VERSION
 
@@ -97,6 +98,7 @@ def _require_token(request: Request) -> None:
     presented = request.headers.get("x-mc-token")
     if not presented or not hmac.compare_digest(runtime.config.token, presented):
         LOGGER.warning(json.dumps({"event": "mc.token_rejected", "path": request.url.path}))
+        runtime.audit.record("unknown", "mc.token_rejected", result="denied", detail={"path": request.url.path})
         raise HTTPException(status_code=403, detail="Invalid mission-control token.")
 
 
@@ -111,16 +113,23 @@ def _require_operator(request: Request) -> McSession:
 def _enforce_post(request: Request, session: McSession) -> None:
     runtime = _runtime(request)
     validate_origin(request.headers.get("origin"), runtime.config)
-    csrf_cookie = request.cookies.get(MC_CSRF_COOKIE)
-    if csrf_cookie is None:
-        raise HTTPException(status_code=403, detail="Missing CSRF cookie.")
     require_matching_csrf(session.csrf_token, request.headers.get("x-csrf-token"))
-    require_matching_csrf(session.csrf_token, csrf_cookie)
 
 
 def _client_key(request: Request) -> str:
     client = request.client
     return "unknown" if client is None else client.host
+
+
+async def _read_upload(request: Request, limit: int) -> bytes:
+    """Buffer a request body, aborting as soon as it exceeds *limit*."""
+
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > limit:
+            raise ValueError(f"Package exceeds the {limit // (1024 * 1024)} MB limit.")
+    return bytes(body)
 
 
 async def _world_call(
@@ -196,7 +205,7 @@ async def fleet_deregister(request: Request, payload: DeregisterPayload) -> dict
 
     _require_token(request)
     runtime = _runtime(request)
-    runtime.registry.set_status(payload.instance_id, "stopped")
+    runtime.registry.set_status(payload.instance_id, STATUS_STOPPED)
     return {"ok": True}
 
 
@@ -269,7 +278,7 @@ async def list_servers(request: Request) -> dict[str, object]:
         "total": len(servers),
         "running": sum(1 for item in servers if item["status"] == STATUS_RUNNING),
         "unreachable": sum(1 for item in servers if item["status"] == STATUS_UNREACHABLE),
-        "external": sum(1 for item in servers if item["source"] == "external"),
+        "external": sum(1 for item in servers if item["source"] == EXTERNAL),
     }
     return {"ok": True, "servers": servers, "summary": summary}
 
@@ -314,7 +323,7 @@ async def server_detail(request: Request, instance_id: str) -> dict[str, object]
         raise HTTPException(status_code=404, detail="Instance not found.")
     detail = runtime.registry.snapshot(record)
     detail["stats"] = record.stats_cache
-    detail["log_source"] = "process" if record.source == "spawned" else "poll"
+    detail["log_source"] = "process" if record.source == SPAWNED else "poll"
     if record.status == STATUS_RUNNING:
         try:
             stats = await _world_call(runtime, record.endpoint, "GET", "/api/mc/stats")
@@ -337,11 +346,11 @@ async def stop_server(request: Request, instance_id: str) -> dict[str, object]:
     record = runtime.registry.get(instance_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Instance not found.")
-    if record.source == "spawned":
+    if record.source == SPAWNED:
         runtime.supervisor.stop(instance_id)
     else:
         await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown", json_body={"actor": runtime.config.actor})
-        runtime.registry.set_status(instance_id, "stopped")
+        runtime.registry.set_status(instance_id, STATUS_STOPPED)
     runtime.audit.record("operator", "instance.stop", target=instance_id)
     return {"ok": True}
 
@@ -356,7 +365,7 @@ async def restart_server(request: Request, instance_id: str) -> dict[str, object
     record = runtime.registry.get(instance_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Instance not found.")
-    if record.source == "spawned":
+    if record.source == SPAWNED:
         restarted = runtime.supervisor.restart(instance_id)
         runtime.audit.record("operator", "instance.restart", target=instance_id)
         return {"ok": True, "server": None if restarted is None else runtime.registry.snapshot(restarted)}
@@ -374,7 +383,7 @@ async def server_logs(request: Request, instance_id: str, limit: int = 200) -> d
     record = runtime.registry.get(instance_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Instance not found.")
-    if record.source == "spawned":
+    if record.source == SPAWNED:
         return {"ok": True, "source": "process", "lines": runtime.registry.logs(instance_id, limit)}
     try:
         payload = await _world_call(runtime, record.endpoint, "GET", f"/api/mc/logs?limit={limit}")
@@ -483,7 +492,10 @@ async def upload_package(request: Request, kind: str) -> dict[str, object]:
     runtime = _runtime(request)
     session = _require_operator(request)
     _enforce_post(request, session)
-    data = await request.body()
+    try:
+        data = await _read_upload(request, MAX_UPLOAD_BYTES)
+    except ValueError as exc:
+        return _json_error(413, "package_too_large", str(exc))
     try:
         record = runtime.packages.install(kind, data, actor="operator")
     except ValueError as exc:

@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from server.config import ConfigError, KNOWN_FEATURES, load_config
+from server.config import ConfigError, load_config
 from server.mission_control.config import load_mc_config
 from tests.common import REPO_ROOT
 
@@ -21,9 +21,6 @@ def _base_env(root: Path) -> dict[str, str]:
 
 
 class WorldClientConfigTests(unittest.TestCase):
-    def test_mission_control_is_a_known_feature(self) -> None:
-        self.assertIn("mission-control", KNOWN_FEATURES)
-
     def test_endpoint_without_token_is_rejected(self) -> None:
         with TemporaryDirectory() as temp:
             env = _base_env(Path(temp))

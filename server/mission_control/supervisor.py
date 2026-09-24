@@ -11,6 +11,7 @@ import sys
 import threading
 import uuid
 
+from server.config import selects_mission_control
 from server.mission_control.audit import McAuditLog
 from server.mission_control.config import MCConfig
 from server.mission_control.registry import STATUS_STOPPED, InstanceRecord, InstanceRegistry
@@ -22,6 +23,16 @@ def allocate_port(host: str = "127.0.0.1") -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind((host, 0))
         return int(sock.getsockname()[1])
+
+
+def sanitize_child_features(raw: str) -> str:
+    """Drop mission-control aliases so a spawned child stays a world server."""
+
+    return ",".join(
+        part.strip()
+        for part in raw.split(",")
+        if part.strip() and not selects_mission_control(part)
+    )
 
 
 class Supervisor:
@@ -118,20 +129,20 @@ class Supervisor:
         mods: str | None,
     ) -> dict[str, str]:
         env = dict(os.environ)
+        for key in [existing for existing in env if existing.startswith("TRSERVER_MC_")]:
+            env.pop(key, None)
         env["TRSERVER_WORLD_PATH"] = str(world_path)
         env["TRSERVER_WORLDSTATE_PATH"] = str(worldstate_path)
         env["TRSERVER_USERS_PATH"] = str(users_path)
         env["TRSERVER_HOST"] = host
         env["TRSERVER_PORT"] = str(port)
         env["TRSERVER_NEW_ACCOUNT_PASSPHRASE"] = self._config.new_account_passphrase
+        env["TRSERVER_FEATURES"] = sanitize_child_features(features)
+        env["TRSERVER_ADMINS"] = admins
+        env["TRSERVER_MODS"] = mods if mods is not None else self._config.mods
         env["TRSERVER_MC_ENDPOINT"] = f"{self._config.host}:{self._config.port}"
         env["TRSERVER_MC_TOKEN"] = self._config.token
         env["TRSERVER_MC_NAME"] = name
-        env["TRSERVER_MODS"] = mods if mods is not None else self._config.mods
-        if features:
-            env["TRSERVER_FEATURES"] = features
-        if admins:
-            env["TRSERVER_ADMINS"] = admins
         if self._config.ca_file is not None:
             env["TRSERVER_MC_CA_FILE"] = str(self._config.ca_file)
         if self._config.ca_file is None or self._config.insecure_tls:

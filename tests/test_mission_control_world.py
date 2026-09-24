@@ -16,7 +16,6 @@ from starlette.testclient import TestClient
 from server.app import create_app
 from server.config import load_config
 from server.mc_client import McClient
-from server.mc_api import MC_CAPABILITIES
 from tests.common import REPO_ROOT
 
 
@@ -85,6 +84,18 @@ class McClientTests(unittest.TestCase):
             registered = asyncio.run(client.register_with_backoff())
         self.assertFalse(registered)
 
+    def test_unknown_instance_clears_registration(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path.endswith("/register"):
+                return httpx.Response(200, json={"ok": True, "instance_id": "mc-1", "heartbeat_seconds": 5})
+            return httpx.Response(200, json={"ok": False, "code": "unknown_instance"})
+
+        client = _client_with(handler)
+        asyncio.run(client.register())
+        self.assertEqual(client.instance_id, "mc-1")
+        asyncio.run(client.heartbeat())
+        self.assertIsNone(client.instance_id)
+
 
 class WorldMcApiTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -128,9 +139,6 @@ class WorldMcApiTests(unittest.TestCase):
         self.assertEqual(payload["world"]["id"], "tutorial")
         self.assertIn("schema", payload)
         self.assertIn("counters", payload)
-
-    def test_capabilities_cover_admin_commands(self) -> None:
-        self.assertIn("admin.status", MC_CAPABILITIES)
 
     def test_command_unknown_actor(self) -> None:
         response = self.client.post(
