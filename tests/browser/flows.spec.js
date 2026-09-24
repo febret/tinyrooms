@@ -542,6 +542,32 @@ test.describe("milestone 2 polish: prop viewer and journal calendar", () => {
     await expect(page.locator("#detail-layer canvas.card-preview-canvas")).toHaveCount(0);
   });
 
+  test("clicking another hand card retargets the open card view", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await openRoomView(page);
+    await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await command(page, ".go @way:exit0");
+    await expect(page.locator("#look-bar")).toContainText("Sunflower Foyer");
+    await command(page, ".go @way:kitchen");
+    await expect(page.locator("#look-bar")).toContainText("The Buttercup Kitchen");
+    await openRoomView(page);
+    await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
+    await page.keyboard.press("Escape");
+    const hand = page.locator(".equipped-hand [data-stack-id]");
+    await expect(hand).toHaveCount(2);
+    await hand.first().click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).click();
+    const title = page.locator("#detail-layer .card-view-info h2");
+    await expect(title).toBeVisible();
+    const firstTitle = await title.textContent();
+    await hand.nth(1).click();
+    await expect(title).not.toHaveText(firstTitle);
+  });
+
   test("journal memories shows a calendar with month navigation", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await openCore(page, "journal");

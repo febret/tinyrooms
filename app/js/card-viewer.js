@@ -3,7 +3,7 @@ import { createViewerStage } from "./viewer-stage.js";
 
 const CARD_WIDTH = 0.62;
 const CARD_HEIGHT = 0.88;
-const CARD_DEPTH = 0.02;
+const CARD_DEPTH = 0.005;
 const textureLoader = new THREE.TextureLoader();
 
 /** Create one rotatable WebGL card viewer bound to a canvas showing front and back art. */

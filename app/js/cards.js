@@ -62,6 +62,9 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-open-shop]").forEach(button => {
     button.onclick = () => onAction({ command: ".shop" });
   });
+  root.querySelectorAll("[data-auto-merge]").forEach(button => {
+    button.onclick = () => onAction({ command: ".merge_all" });
+  });
   root.querySelectorAll("[data-level-up]").forEach(button => {
     button.onclick = () => onAction({ type: "level-up" });
   });

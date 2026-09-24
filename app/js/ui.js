@@ -778,7 +778,16 @@ const board = createBoard({
 });
 const cards = createCardsView({
   handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
-  onSelect(selection) { store.dispatch({ type: "select", selection }); playTone("flip"); },
+  onSelect(selection) {
+    const detailsOpen = Boolean(store.getState().views.details);
+    store.dispatch({ type: "select", selection });
+    // While the card view is open, clicking another card retargets it instead of
+    // leaving the old card on screen.
+    if (detailsOpen && (selection.kind === "room-card" || selection.kind === "inventory-card")) {
+      store.dispatch({ type: "open-details", stackId: selection.id });
+    }
+    playTone("flip");
+  },
   onAction: action => { void handleAction(action); },
 });
 const propViewers = createPropViewerManager();

@@ -356,5 +356,40 @@ class SellIntegrationTests(Milestone2IntegrationTestCase):
             self.assertFalse(result["ok"])
 
 
+class MergeAllIntegrationTests(Milestone2IntegrationTestCase):
+    """Consolidating duplicate stacks over the command protocol."""
+
+    def test_merge_all_consolidates_duplicate_stacks(self) -> None:
+        alice = self.create_ready_account("xen")
+        account_id = self.account_id(alice)
+        runtime = self.runtime()
+        with runtime.hub.transaction() as connection:
+            runtime.profiles.create_inventory_stack(
+                connection,
+                account_id=account_id,
+                world_id=runtime.world.id,
+                card_def_id="juicy-drink",
+                quantity=4,
+                scope="world",
+            )
+            runtime.profiles.create_inventory_stack(
+                connection,
+                account_id=account_id,
+                world_id=runtime.world.id,
+                card_def_id="juicy-drink",
+                quantity=3,
+                scope="world",
+            )
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            result = self.command(socket, "merge-all-1", ".merge_all")
+            self.assertTrue(result["ok"], result)
+            stacks = [stack for stack in result["payload"]["inventory"] if stack["definition"]["id"] == "juicy-drink"]
+            self.assertEqual(len(stacks), 1)
+            self.assertEqual(stacks[0]["quantity"], 7)
+
+
 if __name__ == "__main__":
     unittest.main()

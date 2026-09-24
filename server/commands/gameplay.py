@@ -242,6 +242,18 @@ async def merge_command(context: CommandContext, command: ParsedCommand) -> Comm
     )
 
 
+async def merge_all_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    del command
+    mutation = context.inventory.auto_merge(context.account)
+    return CommandOutcome(
+        message="Stacks merged.",
+        payload={
+            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in mutation.stacks],
+            "user": _user_payload(context),
+        },
+    )
+
+
 async def sell_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     quantity = 1

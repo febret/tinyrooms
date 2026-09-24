@@ -609,6 +609,13 @@ def build_registry() -> CommandRegistry:
     registry.register("memory_new", "Save the chat bar text as a memory.", memory_new_command, usage=".memory_new <text>")
     registry.register("memories", "List a month of journal memories.", memories_command, usage=".memories [year month]", toast=False, log=False)
     registry.register("merge", "Merge two stacks of the same card.", gameplay.merge_command, usage=".merge @card:<from> @card:<to> [quantity]")
+    registry.register(
+        "merge_all",
+        "Merge every mergeable stack of each identical card.",
+        gameplay.merge_all_command,
+        usage=".merge_all",
+        help="Consolidate duplicate inventory stacks up to each card's stack limit.",
+    )
     registry.register("mute", "Mute a peep's chat.", privileged.mute_command, usage=".mute @peep <minutes>", power="moderator")
     registry.register("own", "Manage room ownership.", privileged.own_command, usage=".own <grant|remove|modify|show> <room_id> [@peep]", power="realtor")
     registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command, usage=".packs")

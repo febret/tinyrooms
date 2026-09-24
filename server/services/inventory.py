@@ -172,6 +172,55 @@ class InventoryService:
             )
             return self._finish(connection, account.id)
 
+    def auto_merge(self, account: AccountRecord) -> InventoryMutation:
+        """Consolidate identical, freely movable stacks into as few stacks as possible.
+
+        Pinned and slotted stacks are left untouched so quest pins and skill-slot
+        references stay valid.
+        """
+
+        with self._hub.transaction() as connection:
+            stacks = self._profiles.list_inventory(account.id, self._world_id)
+            profile = self._profiles.get_user_profile(account.id)
+            slotted = {entry for entry in (profile.skills if profile else []) if entry}
+            groups: dict[tuple[str, str | None, str], list[InventoryStack]] = {}
+            for stack in stacks:
+                groups.setdefault((stack.card_def_id, stack.world_id, stack.scope), []).append(stack)
+            for group in groups.values():
+                definition = self._definition(group[0].card_def_id)
+                limit = definition.stack_limit
+                movable = [
+                    stack
+                    for stack in group
+                    if not stack.pinned and stack.stack_id not in slotted
+                ]
+                if limit <= 1 or len(movable) <= 1:
+                    continue
+                movable.sort(key=lambda stack: (not stack.equipped, stack.created_at, stack.stack_id))
+                quantities = {stack.stack_id: stack.quantity for stack in group}
+                for index, destination in enumerate(movable):
+                    space = limit - quantities[destination.stack_id]
+                    for source in movable[index + 1:]:
+                        if space <= 0:
+                            break
+                        available = quantities[source.stack_id]
+                        if available <= 0:
+                            continue
+                        moved = min(available, space)
+                        quantities[source.stack_id] -= moved
+                        quantities[destination.stack_id] += moved
+                        space -= moved
+                for stack in movable:
+                    new_quantity = quantities[stack.stack_id]
+                    if new_quantity != stack.quantity:
+                        self._profiles.set_stack_quantity(
+                            connection,
+                            account_id=account.id,
+                            stack_id=stack.stack_id,
+                            quantity=new_quantity,
+                        )
+            return self._finish(connection, account.id)
+
     def _finish(self, connection, account_id: str) -> InventoryMutation:
         stacks = self._profiles.list_inventory(account_id, self._world_id)
         snapshot = self._stats.reconcile_in_transaction(connection, account_id)

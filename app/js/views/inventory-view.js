@@ -6,7 +6,7 @@ export function inventoryView(state) {
     extraClass: "wide inventory-view",
     ariaLabel: "Inventory",
     title: "Your Inventory",
-    subtitleHtml: `<p class="inventory-balance">${escapeHtml(state.user?.bops ?? 0)} Bops <button type="button" class="positive" data-claim-bops="1">Claim Daily Bops</button> <button type="button" class="primary" data-open-shop="1">Card Shop</button></p>`,
+    subtitleHtml: `<p class="inventory-balance">${escapeHtml(state.user?.bops ?? 0)} Bops <button type="button" class="positive" data-claim-bops="1">Claim Daily Bops</button> <button type="button" class="primary" data-open-shop="1">Card Shop</button> <button type="button" class="neutral" data-auto-merge="1">Auto Merge</button></p>`,
     body: `
       <div class="modal-scroll">
         ${inventorySection(state, "Items", stack => stack.definition?.type !== "emote" && stack.definition?.type !== "skill")}

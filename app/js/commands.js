@@ -12,6 +12,7 @@ export const COMMANDS = [
   { name: ".emote @card:<id>", summary: "Play an owned emote." },
   { name: ".split @card:<stack> <qty>", summary: "Split a stack into a new unequipped stack." },
   { name: ".merge @card:<src> @card:<dst> [qty]", summary: "Merge two stacks of the same card." },
+  { name: ".merge_all", summary: "Merge all identical inventory stacks." },
   { name: ".skill @card:<stack> <slot>", summary: "Slot a skill card into an unlocked slot." },
   { name: ".unskill <slot>", summary: "Remove a skill from a slot." },
   { name: ".level_up", summary: "Spend Kudos to reach the next level." },
@@ -91,4 +92,8 @@ export function buildMergeCommand(sourceId, destinationId) {
 
 export function buildSellCommand(stackId, quantity = 1) {
   return `.sell @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
+}
+
+export function buildMergeAllCommand() {
+  return ".merge_all";
 }

@@ -194,6 +194,35 @@ class InventoryRuleTests(ProgressionTestCase):
         stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "house-key"]
         self.assertEqual(len(stacks), 2)
 
+    def test_auto_merge_consolidates_identical_stacks(self) -> None:
+        for quantity in (8, 5, 7):
+            self.create_stack(self.account, "juicy-drink", quantity)
+        self.inventory.auto_merge(self._reload())
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "juicy-drink"]
+        self.assertEqual(sorted(stack.quantity for stack in stacks), [10, 10])
+
+    def test_auto_merge_fills_equipped_stack_first(self) -> None:
+        first = self.create_stack(self.account, "juicy-drink", 2).stack_id
+        self.inventory.equip(self._reload(), first)
+        self.create_stack(self.account, "juicy-drink", 3)
+        self.create_stack(self.account, "juicy-drink", 4)
+        self.inventory.auto_merge(self._reload())
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "juicy-drink"]
+        self.assertEqual(len(stacks), 1)
+        self.assertEqual(stacks[0].quantity, 9)
+        self.assertTrue(stacks[0].equipped)
+
+    def test_auto_merge_leaves_slotted_skills_alone(self) -> None:
+        self.set_progress(self.account, level=1)
+        slotted = self.grant_card(self.account, "sturdy", 1, scope="global")
+        self.progression.slot_skill(self._reload(), 0, slotted)
+        self.create_stack(self.account, "sturdy", 1, scope="global")
+        self.inventory.auto_merge(self._reload())
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "sturdy"]
+        self.assertEqual(len(stacks), 2)
+        kept = next(stack for stack in stacks if stack.stack_id == slotted)
+        self.assertEqual(kept.quantity, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
