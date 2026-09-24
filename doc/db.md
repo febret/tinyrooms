@@ -264,9 +264,7 @@ room-exists gate that lived in the removed `rooms` table.
 Player bedrooms reuse this table: a room whose `room_id` starts with
 `bedroom:` is a player bedroom (`owner_account_id` is the owner, `door_json`
 holds the lock and customization). The partial unique index
-`idx_room_states_player_owner` enforces one bedroom per account. Earlier
-releases stored these in a separate `player_rooms` table, which world schema 10
-folds back into `room_states`.
+`idx_room_states_player_owner` enforces one bedroom per account.
 
 ### 3.2 `room_cards`
 
