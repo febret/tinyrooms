@@ -22,7 +22,7 @@ from server.services.world_editor import (
     PublishValidationError,
     WorldEditorService,
 )
-from server.services.world_reconcile import WorldReconciler
+from server.services.world_reconcile import reconcile as reconcile_world
 from server.state.world_state import WorldStateRepository
 from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase, load_test_world
 from tests.test_milestone1 import (
@@ -58,9 +58,6 @@ def remove_room(draft: dict, room_id: str) -> None:
                 del room["exits"][exit_id]
     if draft.get("world", {}).get("entry_room") == room_id:
         draft["world"]["entry_room"] = next(iter(draft["rooms"]))
-    ownership = draft.get("world", {}).get("ownership")
-    if isinstance(ownership, dict):
-        ownership.pop(room_id, None)
 
 
 class WorldEditorServiceTestCase(ServiceTestCase):
@@ -95,7 +92,6 @@ class WorldEditorServiceTestCase(ServiceTestCase):
             self.config,
             self.hub,
             self.world_state,
-            self.profiles,
             self.audit,
             self.loaded_mods,
         )
@@ -103,18 +99,12 @@ class WorldEditorServiceTestCase(ServiceTestCase):
     def draft(self) -> dict:
         return self.service.load_draft()
 
-    def publish(self, draft: dict, confirmations: frozenset[str] = frozenset()):
+    def publish(self, draft: dict, confirm: bool = False):
         return self.service.publish(
             draft,
             actor_account_id="test-actor",
-            confirmations=confirmations,
+            confirm=confirm,
         )
-
-    def reconcile(self, old_world, confirmations: frozenset[str] = frozenset()):
-        new_world = load_test_world(self.world_root)
-        catalog = load_card_catalog(self.config.cardsets_path, self.world_root)
-        reconciler = WorldReconciler(self.hub, self.profiles, self.world_state, catalog)
-        return reconciler.reconcile(old_world, new_world, confirmations=confirmations)
 
 
 class DraftLifecycleTests(WorldEditorServiceTestCase):
@@ -206,10 +196,10 @@ class PublishTests(WorldEditorServiceTestCase):
         remove_room(draft, "garden")
         with self.assertRaises(PublishConfirmationRequired) as context:
             self.publish(draft)
-        tokens = {change.token for change in context.exception.changes}
-        self.assertIn("deleted_room:garden:", tokens)
+        self.assertIn("garden", context.exception.rooms)
+        self.assertTrue(any(change.room_id == "garden" for change in context.exception.changes))
 
-    def test_confirmed_deletion_moves_occupants_and_returns_cards(self) -> None:
+    def test_confirmed_deletion_removes_orphaned_room_cards(self) -> None:
         account = self.create_account("mover")
         with self.hub.transaction() as connection:
             self.profiles.set_remembered_room(connection, account.id, WORLD_ID, "garden")
@@ -223,20 +213,20 @@ class PublishTests(WorldEditorServiceTestCase):
             )
         draft = self.draft()
         remove_room(draft, "garden")
-        result = self.publish(draft, confirmations=frozenset({"deleted_room:garden:"}))
+        with self.assertRaises(PublishConfirmationRequired):
+            self.publish(draft)
+
+        result = self.publish(draft, confirm=True)
         self.assertGreaterEqual(result.revision, 1)
+        self.assertGreaterEqual(result.reconciled.removed_card_stacks, 1)
+        self.assertIn("garden", result.reconciled.deleted_rooms)
 
-        old_world = self.world
-        reconciled = self.reconcile(old_world, confirmations=frozenset({"deleted_room:garden:"}))
-        self.assertIn("garden", reconciled.deleted_rooms)
-        self.assertGreaterEqual(reconciled.returned_cards, 1)
-
-        refreshed = self.profiles.get_account_by_id(account.id)
-        profile = self.profiles.user_profile_for(account.id, WORLD_ID, "hub")
-        self.assertEqual(profile.remembered_room, "hub")
+        self.assertEqual(self.world_state.list_room_cards("garden"), [])
         inventory = self.profiles.list_inventory(account.id, WORLD_ID)
-        self.assertTrue(any(stack.card_def_id == "tasty-toast" for stack in inventory))
-        self.assertIsNotNone(refreshed)
+        self.assertFalse(any(stack.card_def_id == "tasty-toast" for stack in inventory))
+        # Occupancy is repaired lazily by the room service, not during publish.
+        profile = self.profiles.user_profile_for(account.id, WORLD_ID, "garden")
+        self.assertEqual(profile.remembered_room, "garden")
 
 
 class ReconciliationTests(WorldEditorServiceTestCase):
@@ -258,7 +248,6 @@ class ReconciliationTests(WorldEditorServiceTestCase):
         draft = self.draft()
         draft["rooms"]["hub"]["label"] = "Hub Renamed"
         self.publish(draft)
-        self.reconcile(self.world)
 
         refreshed = self.profiles.get_account_by_id(account.id)
         self.assertEqual(refreshed.level, 3)
@@ -268,17 +257,15 @@ class ReconciliationTests(WorldEditorServiceTestCase):
         remaining = self.world_state.list_room_cards("playroom")
         self.assertTrue(any(stack.card_def_id == "tomato-sauce" for stack in remaining))
 
-    def test_deleted_prop_with_live_state_needs_confirmation(self) -> None:
-        from server.services.environment import EnvironmentService
-
-        environment = EnvironmentService(self.hub, self.world, self.world_state)
-        environment.set("hub", {"hidden_props": {"welcome-plant": True}})
+    def test_removed_prop_requires_confirmation(self) -> None:
         draft = self.draft()
         del draft["rooms"]["hub"]["props"]["welcome-plant"]
         with self.assertRaises(PublishConfirmationRequired) as context:
             self.publish(draft)
-        tokens = {change.token for change in context.exception.changes}
-        self.assertIn("removed_prop:hub:welcome-plant", tokens)
+        self.assertTrue(
+            any(change.kind == "removed_prop" and change.room_id == "hub" for change in context.exception.changes)
+        )
+        self.publish(draft, confirm=True)
 
 
 class CardDatabaseTests(WorldEditorServiceTestCase):
@@ -336,7 +323,7 @@ class WorldEditorHttpTests(RuntimeTestCase):
         draft_response = self.client.get("/api/world-editor/draft", cookies=cookies)
         self.assertEqual(draft_response.status_code, 200, draft_response.text)
         draft = draft_response.json()["draft"]
-        self.assertIn("world_id", draft_response.json())
+        self.assertEqual(draft_response.json()["world_key"], WORLD_ID)
         self.assertTrue(draft_response.json()["catalog"]["props"])
 
         draft["rooms"]["hub"]["label"] = "HTTP Hub"
@@ -359,7 +346,7 @@ class WorldEditorHttpTests(RuntimeTestCase):
 
         publish = self.client.post(
             "/api/world-editor/publish",
-            json={"draft": draft, "confirmations": []},
+            json={"draft": draft},
             cookies=cookies,
             headers=headers,
         )
@@ -375,12 +362,22 @@ class WorldEditorHttpTests(RuntimeTestCase):
         remove_room(draft, "garden")
         publish = self.client.post(
             "/api/world-editor/publish",
-            json={"draft": draft, "confirmations": []},
+            json={"draft": draft},
             cookies=cookies,
             headers=headers,
         )
         self.assertEqual(publish.status_code, 409, publish.text)
         self.assertEqual(publish.json()["code"], "confirmation_required")
+        self.assertIn("garden", publish.json()["rooms"])
+
+        confirmed = self.client.post(
+            "/api/world-editor/publish",
+            json={"draft": draft, "confirm": True},
+            cookies=cookies,
+            headers=headers,
+        )
+        self.assertEqual(confirmed.status_code, 200, confirmed.text)
+        self.assertNotIn("garden", self._runtime().world.rooms)
 
     def test_card_database_is_read_only(self) -> None:
         credentials = self._builder_account("builder3")

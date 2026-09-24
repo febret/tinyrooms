@@ -1,0 +1,170 @@
+:root {
+  --bg: #061923;
+  --ink: #f3f3ef;
+  --muted: #b5bfc5;
+  --gold: #efbb88;
+  --line: #ffffff26;
+  --panel: #081720;
+  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.cdb-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.cdb-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.cdb-header h1 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+#cdb-search {
+  background: #0b1a23;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  min-width: 220px;
+}
+
+.cdb-section {
+  margin-bottom: 1.5rem;
+}
+
+.cdb-section h2 {
+  font-size: 1rem;
+  color: var(--gold);
+  margin: 0 0 0.5rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.card-tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.card-tile img {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  background: #00000033;
+  border-radius: 8px;
+}
+
+.card-tile h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.card-tile p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.badge {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.badge.scope-world {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.badge.rarity {
+  color: var(--ink);
+}
+
+.detail-line {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.detail-line code {
+  color: var(--ink);
+}
+
+.pack-list,
+.recipe-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+
+.pack-card,
+.recipe-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+
+.error-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.error-list li {
+  font-size: 0.8rem;
+  color: #ffd0c6;
+}
+
+.cdb-status {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 560px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .card-tile img {
+    height: 100px;
+  }
+}

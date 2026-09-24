@@ -36,6 +36,7 @@ async function capture(page, testInfo, requested, remaining, name, options) {
   await testInfo.attach(`${name} candidate (requires design review)`, { path: candidate, contentType: "image/png" });
   await expect.soft(page).toHaveScreenshot(`${name}.png`, {
     animations: "disabled", caret: "hide",
+    ...(options?.mask ? { mask: options.mask } : {}),
   });
 }
 
@@ -177,11 +178,29 @@ test("milestone 3 phase F: world editor and card database", async ({ page, runti
 
   await page.goto(`${runtime.baseURL}/world-editor/`);
   await expect(page.locator("#we-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
-  await capture(page, testInfo, requested, remaining, "world-editor");
+  // The live WebGL board renders nondeterministically under SwiftShader; its
+  // behavior is covered by flows.spec.js, so mask the canvas pixels here.
+  await capture(page, testInfo, requested, remaining, "world-editor", { mask: [page.locator("#we-canvas")] });
 
   await page.goto(`${runtime.baseURL}/card-database/`);
   await expect(page.locator(".card-tile").first()).toBeVisible();
   await capture(page, testInfo, requested, remaining, "card-database");
+
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
+test("milestone 3 phase G: lazor rush ready state", async ({ page, runtime }, testInfo) => {
+  test.setTimeout(240_000);
+  const { requested, remaining } = requestedFor();
+  await freezeClock(page);
+  await createReadyAccount(page, runtime);
+  await travel(page);
+  await command(page, ".play molly");
+  const frame = page.frameLocator('iframe[src*="lazor-rush"]');
+  await expect(frame.locator("#start")).toBeVisible();
+  await expect(frame.locator("#overlay-title")).toHaveText("Lazor Rush");
+  await expect(frame.locator("#stage")).toHaveAttribute("data-molly-ready", "true");
+  await capture(page, testInfo, requested, remaining, "lazor-rush");
 
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });

@@ -9,7 +9,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 6
-WORLD_SCHEMA_VERSION = 10
+WORLD_SCHEMA_VERSION = 12
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -151,7 +151,8 @@ CREATE TABLE IF NOT EXISTS room_cards (
     scope TEXT NOT NULL DEFAULT 'room',
     pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    placed_by_account_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id);
@@ -171,7 +172,19 @@ CREATE TABLE IF NOT EXISTS behavior_state (
     updated_at TEXT NOT NULL,
     PRIMARY KEY (namespace, instance_id)
 );
-PRAGMA user_version = 10;
+CREATE TABLE IF NOT EXISTS world_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS activity_records (
+    account_id TEXT NOT NULL,
+    activity_kind TEXT NOT NULL,
+    best_seconds REAL NOT NULL CHECK (best_seconds >= 0),
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, activity_kind)
+);
+CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind);
+PRAGMA user_version = 12;
 COMMIT;
 """
 
@@ -189,7 +202,7 @@ _PROFILE_TABLES = frozenset(
     }
 )
 
-_WORLD_TABLES = frozenset({"room_cards", "room_states", "behavior_state"})
+_WORLD_TABLES = frozenset({"room_cards", "room_states", "behavior_state", "world_meta", "activity_records"})
 
 _PROFILE_MIGRATIONS: dict[int, str] = {
     3: """
@@ -309,6 +322,29 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     BEGIN;
     ALTER TABLE room_states ADD COLUMN door_json TEXT NOT NULL DEFAULT '{}';
     PRAGMA user_version = 10;
+    COMMIT;
+    """,
+    11: """
+    BEGIN;
+    ALTER TABLE room_cards ADD COLUMN placed_by_account_id TEXT;
+    CREATE TABLE IF NOT EXISTS world_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+    PRAGMA user_version = 11;
+    COMMIT;
+    """,
+    12: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS activity_records (
+        account_id TEXT NOT NULL,
+        activity_kind TEXT NOT NULL,
+        best_seconds REAL NOT NULL CHECK (best_seconds >= 0),
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, activity_kind)
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind);
+    PRAGMA user_version = 12;
     COMMIT;
     """,
 }
@@ -453,7 +489,16 @@ _ROOM_CARDS_COLUMNS = (
     "pinned",
     "created_at",
     "updated_at",
+    "placed_by_account_id",
 )
+
+_ACTIVITY_RECORDS_COLUMNS = (
+    "account_id",
+    "activity_kind",
+    "best_seconds",
+    "updated_at",
+)
+
 
 def _connect(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
@@ -588,12 +633,14 @@ def ensure_world_database(path: Path) -> None:
             "room_cards": _ROOM_CARDS_COLUMNS,
             "room_states": _ROOM_STATES_COLUMNS,
             "behavior_state": _BEHAVIOR_STATE_COLUMNS,
+            "activity_records": _ACTIVITY_RECORDS_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",
             "CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_room_states_player_owner "
             "ON room_states(owner_account_id) WHERE room_id LIKE 'bedroom:%'",
+            "CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind)",
         ),
         migrations=_WORLD_MIGRATIONS,
     )

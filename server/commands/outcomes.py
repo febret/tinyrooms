@@ -14,6 +14,7 @@ from server.services.actions import ActionsService
 from server.connections import ConnectionRegistry
 from server.content.recipes import RecipeDefinition
 from server.services.activities import ActivityService
+from server.services.activity_results import ActivityResultService
 from server.services.audit import AuditService
 from server.services.cards import CardService
 from server.services.crafting import CraftingService
@@ -71,6 +72,7 @@ class CommandContext:
     rooms: RoomService
     cards: CardService
     activities: ActivityService
+    activity_results: ActivityResultService
     registry: CommandRegistry
     stats: StatsService
     inventory: InventoryService

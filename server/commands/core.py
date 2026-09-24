@@ -502,7 +502,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import gameplay, privileged, props
+    from server.commands import activity_hooks, gameplay, privileged, props
 
     registry = CommandRegistry()
     registry.register(
@@ -511,6 +511,24 @@ def build_registry() -> CommandRegistry:
         act_command,
         usage=".act <action> <peep|@prop:<id>>",
         help="Perform an authored quick action such as petting or searching a prop.",
+    )
+    registry.register(
+        "activity_records",
+        "Show personal and world records for an activity.",
+        activity_hooks.activity_records_command,
+        usage=".activity_records <kind>",
+        toast=False,
+        log=False,
+        help="Reads the shared record table; only captured completed rounds count.",
+    )
+    registry.register(
+        "activity_start",
+        "Start a paid round for the open activity.",
+        activity_hooks.activity_start_command,
+        usage=".activity_start",
+        toast=False,
+        log=False,
+        help="Charges the open activity's start cost for the new round.",
     )
     registry.register(
         "builder",

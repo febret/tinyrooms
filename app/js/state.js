@@ -181,6 +181,7 @@ function normalizeActivity(activity) {
     roomBound: Boolean(activity.room_bound),
     roomId: activity.room_id ? String(activity.room_id) : "",
     attention: Boolean(activity.attention),
+    token: String(activity.token || ""),
     config: activity.config && typeof activity.config === "object" ? activity.config : {},
   };
 }

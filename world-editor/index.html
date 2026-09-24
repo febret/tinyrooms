@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#061923">
+    <title>World Editor · Tinyrooms</title>
+    <link rel="icon" href="/assets/stickers/s1.png">
+    <link rel="stylesheet" href="/world-editor/editor.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/app/vendor/three/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="we-app" class="we-shell">
+      <header id="we-toolbar" class="we-toolbar" aria-label="World Editor toolbar"></header>
+      <div class="we-body">
+        <aside id="we-rooms" class="we-rooms" aria-label="Rooms"></aside>
+        <main class="we-stage">
+          <nav id="we-tabs" class="we-tabs" aria-label="Editor views"></nav>
+          <section id="we-board-pane" class="we-board-pane" aria-label="Room board">
+            <div class="board-frame">
+              <canvas id="we-canvas" aria-label="Three-dimensional room preview"></canvas>
+              <div id="we-overlay" class="board-overlay" aria-live="polite"></div>
+            </div>
+          </section>
+          <section id="we-map-pane" class="we-map-pane" hidden aria-label="World map"></section>
+          <section id="we-systems-pane" class="we-systems-pane" hidden aria-label="Content editors"></section>
+        </main>
+        <aside id="we-properties" class="we-properties" aria-label="Properties"></aside>
+      </div>
+      <footer id="we-validation" class="we-validation" aria-label="Validation results"></footer>
+      <div id="we-modal" class="we-modal"></div>
+      <p id="we-toast" class="we-toast" aria-live="polite"></p>
+    </div>
+    <script type="module" src="/world-editor/js/app.js"></script>
+  </body>
+</html>

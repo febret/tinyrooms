@@ -432,3 +432,33 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 .editor-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #9fb7bd; white-space: nowrap; flex-shrink: 0; }
 .editor-conflict { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid #7a5a2a; background: #2a2113; color: #f2d9a8; font-size: 12px; }
 .editor-conflict button { flex-shrink: 0; }
+
+/* Milestone 2: card shop, a docked panel that replaces the interaction panel like the editor. */
+.shop-dock { display: none; height: var(--dock-height); pointer-events: auto; background: linear-gradient(#02090cef, #030b0e); border-top: 1px solid #1d3642; }
+.app-shell.shopping { --dock-height: calc(232px + env(safe-area-inset-bottom, 0px)); }
+.app-shell.shopping .shop-dock { display: block; }
+.app-shell.shopping .interaction-dock { display: none; }
+@media (max-width: 780px), (orientation: portrait) {
+  .app-shell.shopping { --dock-height: calc(210px + env(safe-area-inset-bottom, 0px)); }
+}
+.shop-view.editor-dock-panel { display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); overflow: hidden; color: #f5f5f1; }
+.shop-dock-header { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+.shop-dock-header strong { color: #f2b489; font-size: 15px; white-space: nowrap; }
+.shop-balance { padding: 3px 12px; border-radius: 999px; background: #e4be75; color: #1b1206; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.shop-lede { color: #9fb7bd; font-size: 12px; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shop-dock-header button { flex-shrink: 0; }
+.shop-dock-body { flex: 1; min-height: 0; overflow-x: auto; overscroll-behavior: contain; padding-bottom: 2px; }
+.shop-packs { display: flex; align-items: stretch; gap: 10px; height: 100%; }
+.shop-pack { display: flex; flex-direction: column; gap: 4px; width: 172px; flex: 0 0 auto; padding: 8px; border-radius: 10px; border: 1px solid #29505d; background: #03181f; text-align: center; }
+.shop-pack-art { height: 72px; border-radius: 8px; background-size: cover; background-position: center; background-color: #0a2b36; flex-shrink: 0; }
+.shop-pack-copy { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.shop-pack-copy p { margin: 0; }
+.shop-pack-copy strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shop-pack-description { font-size: 11px; color: #9fb7bd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shop-pack-meta { font-weight: 700; color: #e4be75; font-size: 12px; }
+.shop-pack button { margin-top: auto; flex-shrink: 0; }
+.pack-reveal { max-width: min(640px, 92vw); text-align: center; }
+.pack-reveal-cards { display: flex; flex-wrap: nowrap; justify-content: center; gap: 10px; margin: 12px 0; overflow-x: auto; }
+.pack-reveal-card { margin: 0; flex: 0 1 130px; min-width: 0; }
+.pack-reveal-card img { width: 100%; border-radius: 8px; box-shadow: 0 8px 18px #0008; }
+.pack-reveal-card figcaption { font-size: 12px; margin-top: 6px; }

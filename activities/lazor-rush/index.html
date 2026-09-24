@@ -2,11 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="refresh" content="0; url=../dev-sample/index.html?template=lazor-rush">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lazor Rush</title>
+    <title>Tinyrooms Lazor Rush</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="/activities/lazor-rush/lazor-rush.css">
   </head>
-  <body>
-    <p>Redirecting to the Milestone 1 activity shell… <a href="../dev-sample/index.html?template=lazor-rush">Continue</a></p>
+  <body class="rush-body">
+    <main class="rush-stage">
+      <canvas id="stage" aria-label="Lazor Rush play area" data-molly-ready="false"></canvas>
+      <div class="rush-hud">
+        <div class="rush-stat"><span class="label">Time</span><strong id="timer">0.0s</strong></div>
+        <div class="rush-stat"><span class="label">Best</span><strong id="personal-best">—</strong></div>
+        <div class="rush-stat"><span class="label">World</span><strong id="world-best">—</strong></div>
+        <div class="rush-stat"><span class="label">Energy</span><strong id="energy">—</strong></div>
+      </div>
+      <p class="connection" id="connection" role="status"></p>
+      <div class="rush-overlay" id="overlay">
+        <div class="rush-card">
+          <p class="rush-title" id="overlay-title">Lazor Rush</p>
+          <p class="rush-message" id="overlay-message">Keep the laser away from Molly. Start costs 1 Energy.</p>
+          <button type="button" class="primary" id="start">Start</button>
+        </div>
+      </div>
+      <div class="rush-scanlines" aria-hidden="true"></div>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="/activities/lazor-rush/lazor-rush.js"></script>
   </body>
-  </html>
+</html>

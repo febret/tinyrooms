@@ -197,6 +197,9 @@ class Milestone3MigrationTests(unittest.TestCase):
                 ALTER TABLE room_states DROP COLUMN environment_json;
                 ALTER TABLE room_states DROP COLUMN layout_revision;
                 ALTER TABLE room_states DROP COLUMN door_json;
+                ALTER TABLE room_cards DROP COLUMN placed_by_account_id;
+                DROP TABLE IF EXISTS world_meta;
+                DROP TABLE IF EXISTS activity_records;
                 PRAGMA user_version = 7;
                 COMMIT;
                 """
@@ -211,6 +214,11 @@ class Milestone3MigrationTests(unittest.TestCase):
             self.assertIn("environment_json", columns)
             self.assertIn("layout_revision", columns)
             self.assertIn("door_json", columns)
+            card_columns = [row[1] for row in connection.execute("PRAGMA table_info(room_cards)")]
+            self.assertIn("placed_by_account_id", card_columns)
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            self.assertIn("world_meta", tables)
+            self.assertIn("activity_records", tables)
             connection.close()
 
 

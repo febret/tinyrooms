@@ -48,6 +48,7 @@ class RoomCardStack:
     pinned: bool
     created_at: str
     updated_at: str
+    placed_by_account_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +83,7 @@ class WorldStateRepository:
             pinned=bool(row["pinned"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+            placed_by_account_id=row["placed_by_account_id"],
         )
 
     def _player_room_from_row(self, row: sqlite3.Row) -> PlayerRoomRecord:
@@ -308,6 +310,46 @@ class WorldStateRepository:
             ).fetchall()
         return [self._stack_from_row(row) for row in rows]
 
+    def list_room_cards_all(self) -> list[RoomCardStack]:
+        """Return every persisted room card stack across all rooms."""
+
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                "SELECT * FROM world.room_cards ORDER BY room_id, created_at, stack_id"
+            ).fetchall()
+        return [self._stack_from_row(row) for row in rows]
+
+    def delete_room_cards(self, connection: sqlite3.Connection, room_id: str) -> None:
+        """Delete every live card stack in a room."""
+
+        connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+
+    def delete_room_state(self, connection: sqlite3.Connection, room_id: str) -> None:
+        """Delete a room's live state row, if present."""
+
+        connection.execute("DELETE FROM world.room_states WHERE room_id = ?", (room_id,))
+
+    def read_world_meta(self, key: str) -> str | None:
+        """Return a world metadata value, or None when unset."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT value FROM world.world_meta WHERE key = ?",
+                (key,),
+            ).fetchone()
+        return None if row is None else str(row["value"])
+
+    def write_world_meta(self, connection: sqlite3.Connection, key: str, value: str) -> None:
+        """Upsert a world metadata value."""
+
+        connection.execute(
+            """
+            INSERT INTO world.world_meta (key, value) VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """,
+            (key, value),
+        )
+
     def read_room_view(self, room_id: str) -> tuple[list[RoomCardStack], list[dict[str, Any]]]:
         """Return the room cards and in-memory chat history."""
 
@@ -470,6 +512,7 @@ class WorldStateRepository:
         quantity: int,
         pos: tuple[float, float, float],
         pinned: bool = False,
+        placed_by_account_id: str | None = None,
     ) -> RoomCardStack:
         """Create a new room card stack."""
 
@@ -480,10 +523,20 @@ class WorldStateRepository:
             """
             INSERT INTO world.room_cards (
                 stack_id, room_id, card_def_id, quantity, position_json,
-                scope, pinned, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, 'room', ?, ?, ?)
+                scope, pinned, created_at, updated_at, placed_by_account_id
+            ) VALUES (?, ?, ?, ?, ?, 'room', ?, ?, ?, ?)
             """,
-            (stack_id, room_id, card_def_id, quantity, json.dumps(list(position)), int(pinned), now, now),
+            (
+                stack_id,
+                room_id,
+                card_def_id,
+                quantity,
+                json.dumps(list(position)),
+                int(pinned),
+                now,
+                now,
+                placed_by_account_id,
+            ),
         )
         return RoomCardStack(
             stack_id=stack_id,
@@ -495,4 +548,5 @@ class WorldStateRepository:
             pinned=pinned,
             created_at=now,
             updated_at=now,
+            placed_by_account_id=placed_by_account_id,
         )

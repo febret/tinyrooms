@@ -73,6 +73,11 @@ def start_activity(
             room_bound=resolved.room_bound,
             room_id=room_id if resolved.room_bound else None,
             replace_existing=replace_existing,
+            config={
+                "start_cost": definition.start_cost,
+                "record": definition.record,
+                "min_completed_round": definition.min_completed_round,
+            },
         )
     except ValueError as exc:
         raise CommandError(

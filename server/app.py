@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 import html
 import json
@@ -26,14 +27,17 @@ from server.commands.core import build_registry, dispatch_command
 from server.commands.outcomes import CommandContext, CommandError
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
-from server.config import AppConfig, ConfigError, KNOWN_FEATURES, ensure_contained, load_config
+from server.config import AppConfig, ConfigError, ensure_contained, load_config
 from server.connections import ConnectionRegistry, LiveConnection
-from server.content.activities import load_activity_definitions
-from server.content.cards import CardCatalog, ContentError, load_card_catalog
-from server.content.gameplay import GameplayContent, load_gameplay_content
-from server.content.worlds import WorldDefinition, load_world_definition
-from server.mods import ModDefinition, load_mods
+from server.content.bundle import WorldBundle, load_world_bundle
+from server.content.cards import CardCatalog, ContentError
+from server.content.gameplay import GameplayContent
+from server.content.worlds import WorldDefinition
+from server.mods import ModDefinition, LoadedMods, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
+from server.routes import card_database as card_database_routes
+from server.routes import world_editor as world_editor_routes
+from server.routes.activity_bridge import handle_activity_result
 from server.protocol import (
     PROTOCOL_VERSION,
     ProtocolError,
@@ -54,9 +58,11 @@ from server.security import (
     validate_origin,
 )
 from server.services.activities import ActivityService
+from server.services.activity_results import ActivityResultService
 from server.services.actions import ActionsService
 from server.services.audit import AuditService
 from server.services.auras import AuraService
+from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
 from server.services.crafting import CraftingService
 from server.services.dialogs import DialogService
@@ -74,6 +80,7 @@ from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
 from server.services.tasks import TaskService
+from server.services.world_editor import WorldEditorService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 
@@ -129,6 +136,7 @@ class RuntimeState:
     accounts: AccountService
     cards: CardService
     activities: ActivityService
+    activity_results: ActivityResultService
     connections: ConnectionRegistry
     rooms: RoomService
     registry: CommandRegistry
@@ -154,6 +162,74 @@ class RuntimeState:
     crafting: CraftingService
     behaviors: BehaviorDispatcher
     ticker: RoomTicker
+    loaded_mods: object | None = None
+    mutation_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+    def editor_service(self) -> WorldEditorService:
+        """Return a World Editor service bound to this runtime."""
+
+        return WorldEditorService(
+            self.config,
+            self.hub,
+            self.world_state,
+            self.audit,
+            self.loaded_mods,
+        )
+
+    def card_database_service(self) -> CardDatabaseService:
+        """Return a Card Database service bound to the active world."""
+
+        return CardDatabaseService(
+            self.catalog,
+            self.world.recipes,
+            self.world.id,
+            self.world.root_path,
+        )
+
+    async def reload_world(self) -> None:
+        """Swap in the published world without rewriting unrelated live state.
+
+        Publishing already removed rows orphaned by deleted rooms and seeded new
+        rooms. This only rebuilds the service graph and broadcasts a reload so
+        connected clients refresh their snapshots. The running process is mutated
+        in place so existing websocket handlers keep the same RuntimeState.
+        """
+
+        async with self.mutation_lock:
+            old_world = self.world
+            bundle = load_world_bundle(self.config, self.loaded_mods, self.config.world_path)
+            self.ticker.stop()
+            rebuilt = _build_runtime(
+                self.config,
+                hub=self.hub,
+                loaded_mods=self.loaded_mods,
+                bundle=bundle,
+                connections=self.connections,
+                profiles=self.profiles,
+                world_state=self.world_state,
+            )
+            for runtime_field in fields(RuntimeState):
+                if runtime_field.name in {
+                    "config",
+                    "hub",
+                    "profiles",
+                    "world_state",
+                    "connections",
+                    "mutation_lock",
+                }:
+                    continue
+                setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
+            self.ticker.start()
+            await self._broadcast_world_reloaded(old_world)
+
+    async def _broadcast_world_reloaded(self, old_world: WorldDefinition) -> None:
+        event = {
+            "type": "world.reloaded",
+            "world_id": self.world.id,
+            "revision": self.world_state.read_world_meta("published_revision"),
+        }
+        for room_id in set(old_world.rooms) | set(self.world.rooms):
+            await _broadcast_room_event(self, room_id=room_id, event=event)
 
 
 def _client_source_key(request: Request) -> str:
@@ -372,29 +448,34 @@ def create_runtime(config: AppConfig) -> RuntimeState:
     ensure_profile_database(profile_db_path)
     ensure_world_database(config.worldstate_path)
     hub = DatabaseHub(profile_db_path, config.worldstate_path)
-    catalog = load_card_catalog(config.cardsets_path, config.world_path)
-    content = load_gameplay_content(config.repo_root / "data" / "core")
-    mods = load_mods(config)
-    core_activities = load_activity_definitions(
-        config.repo_root / "data" / "core" / "activities.yaml",
-        source="core",
-        known_features=KNOWN_FEATURES,
-    )
-    activities_catalog = {**core_activities, **mods.activity_definitions}
-    world = load_world_definition(
-        config.world_path,
-        set(catalog.cards),
-        core_activities=activities_catalog,
-        known_features=KNOWN_FEATURES,
-        propsets_root=config.propsets_path,
-        mod_props=mods.mod_props(),
-        enabled_mods=mods.ids,
-    )
-    profiles = ProfileRepository(hub)
-    world_state = WorldStateRepository(hub)
+    loaded_mods = load_mods(config)
+    return _build_runtime(config, hub=hub, loaded_mods=loaded_mods)
+
+
+def _build_runtime(
+    config: AppConfig,
+    *,
+    hub: DatabaseHub,
+    loaded_mods: LoadedMods,
+    bundle: WorldBundle | None = None,
+    connections: ConnectionRegistry | None = None,
+    profiles: ProfileRepository | None = None,
+    world_state: WorldStateRepository | None = None,
+    initialize: bool = True,
+) -> RuntimeState:
+    """Build the full runtime service graph for an already-open hub."""
+
+    if bundle is None:
+        bundle = load_world_bundle(config, loaded_mods, config.world_path)
+    catalog = bundle.catalog
+    content = bundle.content
+    world = bundle.world
+    mods = loaded_mods
+    profiles = profiles or ProfileRepository(hub)
+    world_state = world_state or WorldStateRepository(hub)
     accounts = AccountService(config, profiles, world.id, world.entry_room_id)
     activities = ActivityService(config)
-    connections = ConnectionRegistry()
+    connections = connections or ConnectionRegistry()
     equipped_caps = {level: definition.max_equipped for level, definition in content.levels.levels.items()}
     pricing = CardPricingService(hub, profiles, catalog, content, world.id)
     cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps, pricing)
@@ -412,6 +493,9 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         world.tasks,
         config.timezone,
         memories=memories,
+    )
+    activity_results = ActivityResultService(
+        hub, profiles, stats, progression, tasks, world.id, world.activities
     )
     actions = ActionsService(hub, profiles, stats, catalog, world.id)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
@@ -504,6 +588,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         accounts=accounts,
         cards=cards,
         activities=activities,
+        activity_results=activity_results,
         connections=connections,
         rooms=rooms,
         registry=registry,
@@ -529,6 +614,7 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         crafting=crafting,
         behaviors=behaviors,
         ticker=ticker,
+        loaded_mods=loaded_mods,
     )
     for mod_id, factory in mods.state_factories():
         runtime.mods[mod_id] = factory(runtime)
@@ -536,7 +622,8 @@ def create_runtime(config: AppConfig) -> RuntimeState:
         prepare = getattr(state, "prepare", None)
         if prepare is not None:
             prepare()
-    world_state.initialize_world(world)
+    if initialize:
+        world_state.initialize_world(world)
     rooms.attach_mod_states(runtime.mods.values())
     runtime_holder["runtime"] = runtime
     return runtime
@@ -748,8 +835,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         activity = runtime.activities.get(session.account_id)
         if activity is None or activity.id != activity_id:
             raise HTTPException(status_code=404, detail="Activity not found.")
-        if payload.type not in {"activity.ready", "activity.attention", "activity.cancel", "activity.complete"}:
+        if payload.type not in {"activity.ready", "activity.attention", "activity.cancel", "activity.complete", "activity.result"}:
             raise HTTPException(status_code=400, detail="Unsupported activity bridge message type.")
+        if payload.type == "activity.result":
+            return handle_activity_result(runtime, session, activity, dict(payload.payload))
         if payload.type == "activity.attention":
             updated = runtime.activities.mark_attention(session.account_id)
             return {"ok": True, "activity": runtime.activities.serialize(updated)}
@@ -875,6 +964,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         rooms=runtime.rooms,
                         cards=runtime.cards,
                         activities=runtime.activities,
+                        activity_results=runtime.activity_results,
                         registry=runtime.registry,
                         stats=runtime.stats,
                         inventory=runtime.inventory,
@@ -1062,4 +1152,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="World asset not found.")
 
+    app.include_router(world_editor_routes.router)
+    app.include_router(card_database_routes.router)
     return app

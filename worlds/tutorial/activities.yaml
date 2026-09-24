@@ -1,3 +1,6 @@
 lazor-rush:
   title: Lazor Rush
   room_bound: true
+  start_cost: 1
+  record: true
+  min_completed_round: 0

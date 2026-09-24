@@ -214,8 +214,8 @@ export function createActivityManager({
       maximized: false,
       left: 28 + windows.size * 14,
       top: 24 + windows.size * 14,
-      width: activity.kind === "sticker-designer" ? 760 : activity.kind === "bedrooms" ? 720 : 560,
-      height: activity.kind === "sticker-designer" ? 600 : activity.kind === "bedrooms" ? 520 : 420,
+      width: activity.kind === "sticker-designer" ? 760 : activity.kind === "bedrooms" ? 720 : activity.kind === "lazor-rush" ? 780 : 560,
+      height: activity.kind === "sticker-designer" ? 600 : activity.kind === "bedrooms" ? 520 : activity.kind === "lazor-rush" ? 600 : 420,
     };
     entry.title.textContent = activity.title;
     entry.title.id = `activity-title-${++titleSequence}`;
@@ -340,6 +340,38 @@ export function createActivityManager({
           ok: true,
           message: result?.message || "Done.",
           payload: result?.payload || null,
+          state: hostPayload(getState(), entry.activity),
+        }, window.location.origin);
+      } catch (error) {
+        entry.iframe.contentWindow?.postMessage({
+          type: "tinyrooms.host.result",
+          activityId: entry.activity.id,
+          requestId: event.data.requestId,
+          ok: false,
+          message: error instanceof Error ? error.message : String(error),
+          payload: null,
+          state: hostPayload(getState(), entry.activity),
+        }, window.location.origin);
+      }
+      return;
+    }
+    if (event.data.type === "tinyrooms.activity.result") {
+      try {
+        const response = await onActivityBridge(entry.activity, "activity.result", {
+          result: event.data.result,
+          token: entry.activity.token,
+        });
+        entry.iframe.contentWindow?.postMessage({
+          type: "tinyrooms.host.result",
+          activityId: entry.activity.id,
+          requestId: event.data.requestId,
+          ok: true,
+          message: "Result recorded.",
+          payload: {
+            records: response.records || null,
+            recorded: Boolean(response.recorded),
+            seconds: response.seconds ?? null,
+          },
           state: hostPayload(getState(), entry.activity),
         }, window.location.origin);
       } catch (error) {

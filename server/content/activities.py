@@ -20,6 +20,9 @@ class ActivityDefinition:
     rooms: tuple[str, ...]
     required_feature: str | None
     source: str
+    start_cost: int = 0
+    record: bool = False
+    min_completed_round: float = 0.0
 
 
 def _load_string_list(raw_value: Any, label: str, path: Path) -> tuple[str, ...]:
@@ -71,6 +74,17 @@ def load_activity_definitions(
                 raise ContentError(
                     f"Activity '{activity_id}' references unknown feature '{required_feature}'."
                 )
+        raw_cost = raw.get("start_cost", 0)
+        if isinstance(raw_cost, bool) or not isinstance(raw_cost, int) or raw_cost < 0:
+            raise ContentError(f"Activity '{activity_id}' start_cost must be a non-negative integer.")
+        raw_record = raw.get("record", False)
+        if not isinstance(raw_record, bool):
+            raise ContentError(f"Activity '{activity_id}' record must be a boolean.")
+        raw_min = raw.get("min_completed_round", 0)
+        if isinstance(raw_min, bool) or not isinstance(raw_min, (int, float)) or raw_min < 0:
+            raise ContentError(
+                f"Activity '{activity_id}' min_completed_round must be a non-negative number."
+            )
         definitions[activity_id] = ActivityDefinition(
             id=activity_id,
             title=title,
@@ -79,6 +93,9 @@ def load_activity_definitions(
             rooms=rooms,
             required_feature=required_feature,
             source=source,
+            start_cost=int(raw_cost),
+            record=raw_record,
+            min_completed_round=float(raw_min),
         )
     return definitions
 

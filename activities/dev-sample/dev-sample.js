@@ -9,7 +9,6 @@ const TITLES = {
   "dev-sample": "Development Activity",
   "lazor-rush": "Lazor Rush Preview",
   "crafting": "Crafting Preview",
-  "shop": "Shop Preview",
 };
 
 title.textContent = TITLES[template] || "Development Activity";

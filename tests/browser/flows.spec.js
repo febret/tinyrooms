@@ -966,10 +966,83 @@ test.describe("world editor and card database", () => {
     await createEditorAccount(page, runtime, "cardcat");
     await page.goto(`${runtime.baseURL}/card-database/`);
     await expect(page.locator(".card-tile").first()).toBeVisible();
-    await expect(page.locator(".cdb-section").filter({ hasText: "Packs" })).toBeVisible();
-    await expect(page.locator(".cdb-section").filter({ hasText: "Recipes" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Packs", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();
 
     await page.locator("#cdb-search").fill("tasty");
     await expect(page.locator(".card-tile", { hasText: "Tasty Toast" })).toHaveCount(1);
+  });
+});
+
+
+test.describe("milestone 3 lazor rush", () => {
+  test.slow();
+
+  test("plays a round with the mouse and records a personal best", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".play molly");
+    const activity = page.locator(".activity-window");
+    await expect(activity).toBeVisible();
+    const frame = page.frameLocator('iframe[src*="lazor-rush"]');
+    const stage = frame.locator("#stage");
+    await expect(stage).toBeVisible();
+    await frame.locator("#start").click();
+    await expect(frame.locator("#overlay")).toBeHidden();
+    const box = await stage.boundingBox();
+    await stage.hover({ position: { x: box.width * 0.86, y: box.height * 0.18 } });
+    await expect(frame.locator("#overlay-title")).toHaveText("Caught!", { timeout: 20_000 });
+    await expect(frame.locator("#personal-best")).not.toHaveText("—");
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(activity).toHaveCount(0);
+  });
+
+  test("keeps the round running while minimized", { tag: "@mobile" }, async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".play molly");
+    const frame = page.frameLocator('iframe[src*="lazor-rush"]');
+    await expect(frame.locator("#start")).toBeVisible();
+    await frame.locator("#start").click();
+    await expect(frame.locator("#overlay")).toBeHidden();
+    await page.getByRole("button", { name: "Minimize activity" }).click();
+    await page.waitForTimeout(4000);
+    await page.getByRole("button", { name: /Restore activity|Minimize activity/ }).click();
+    await expect(frame.locator("#overlay-title")).toHaveText("Caught!", { timeout: 20_000 });
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(page.locator(".activity-window")).toHaveCount(0);
+  });
+
+  test("keeps the round running while covered by another view", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".play molly");
+    const frame = page.frameLocator('iframe[src*="lazor-rush"]');
+    await expect(frame.locator("#start")).toBeVisible();
+    await frame.locator("#start").click();
+    await expect(frame.locator("#overlay")).toBeHidden();
+    await openCore(page, "journal");
+    await page.waitForTimeout(3500);
+    await page.keyboard.press("Escape");
+    await expect(frame.locator("#overlay-title")).toHaveText("Caught!", { timeout: 20_000 });
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(page.locator(".activity-window")).toHaveCount(0);
+  });
+
+  test("touch drag leads the laser", { tag: "@mobile" }, async ({ page, runtime, isMobile }) => {
+    test.skip(!isMobile, "Touch flow is portrait-only.");
+    await createReadyAccount(page, runtime);
+    await travel(page);
+    await command(page, ".play molly");
+    const frame = page.frameLocator('iframe[src*="lazor-rush"]');
+    await expect(frame.locator("#start")).toBeVisible();
+    await frame.locator("#start").click();
+    await expect(frame.locator("#overlay")).toBeHidden();
+    const stage = frame.locator("#stage");
+    const box = await stage.boundingBox();
+    await stage.tap({ position: { x: box.width * 0.86, y: box.height * 0.18 } });
+    await expect(frame.locator("#overlay-title")).toHaveText("Caught!", { timeout: 20_000 });
+    await page.getByRole("button", { name: "Close activity" }).click();
+    await expect(page.locator(".activity-window")).toHaveCount(0);
   });
 });

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+import hashlib
+import hmac
+import secrets
 import threading
 import uuid
 
@@ -21,8 +24,16 @@ class ActivitySession:
     room_bound: bool
     room_id: str | None
     bridge_url: str
+    secret: str
     attention: bool = False
     config: dict[str, object] = field(default_factory=dict)
+
+    @property
+    def token(self) -> str:
+        """Return the HMAC signature that signs this session's results."""
+
+        payload = f"{self.account_id}:{self.id}:{self.kind}"
+        return hmac.new(self.secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 class ActivityService:
@@ -61,6 +72,7 @@ class ActivityService:
             room_bound=room_bound,
             room_id=room_id,
             bridge_url=f"/api/activities/{activity_id}/bridge",
+            secret=secrets.token_urlsafe(32),
             config=dict(config or {}),
         )
 
@@ -159,5 +171,6 @@ class ActivityService:
             "room_bound": activity.room_bound,
             "room_id": activity.room_id,
             "attention": activity.attention,
+            "token": activity.token,
             "config": dict(activity.config),
         }

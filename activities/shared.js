@@ -120,6 +120,10 @@
     return request("tinyrooms.activity.command", { command: String(commandText || "") });
   }
 
+  function result({ result: outcome } = {}) {
+    return request("tinyrooms.activity.result", { result: outcome || null });
+  }
+
   function confirmSticker(sticker) {
     return request("tinyrooms.activity.sticker.confirm", { sticker: String(sticker || "") });
   }
@@ -182,6 +186,7 @@
     celebrate,
     subscribe,
     command,
+    result,
     confirmSticker,
     notify,
     close,

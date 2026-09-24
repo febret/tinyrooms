@@ -192,7 +192,6 @@ class WorldDefinition:
     powers: dict[str, tuple[str, ...]] = field(default_factory=dict)
     recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
     requires_mods: tuple[str, ...] = ()
-    ownership: dict[str, str] = field(default_factory=dict)
 
 
 def prop_model_url(world_id: str, definition: PropDefinition) -> str:
@@ -227,29 +226,6 @@ def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str,
                 granted.append(power)
         powers[username.strip().casefold()] = tuple(granted)
     return powers
-
-
-def _load_world_ownership(
-    raw_value: Any,
-    world_file: Path,
-    room_ids: frozenset[str],
-) -> dict[str, str]:
-    """Load optional per-room default owner usernames from world.yaml."""
-
-    if raw_value is None:
-        return {}
-    if not isinstance(raw_value, dict):
-        raise ContentError(f"{world_file} ownership must be a mapping of room id to username.")
-    ownership: dict[str, str] = {}
-    for room_id, username in raw_value.items():
-        if not isinstance(room_id, str) or not room_id.strip():
-            raise ContentError(f"{world_file} ownership contains an empty room id.")
-        if room_id not in room_ids:
-            raise ContentError(f"{world_file} ownership references unknown room '{room_id}'.")
-        if not isinstance(username, str) or not username.strip():
-            raise ContentError(f"{world_file} ownership for '{room_id}' must be a username.")
-        ownership[room_id] = username.strip()
-    return ownership
 
 
 def _load_draw_weight(raw_value: Any, prop_instance_id: str, card_ids: set[str]) -> dict[str, float]:
@@ -721,7 +697,4 @@ def load_world_definition(
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,
         requires_mods=requires_mods,
-        ownership=_load_world_ownership(
-            world_payload.get("ownership"), world_file, frozenset(rooms)
-        ),
     )
