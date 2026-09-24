@@ -168,7 +168,7 @@ test("milestone 2 additions: prop details, swap sticker, targeting, shop", async
   await expect(shopFrame.locator(".pack-card")).toHaveCount(3);
   await pinActivityWindows(page);
   await capture(page, testInfo, requested, remaining, "shop");
-  await shopFrame.locator(".pack-card").filter({ hasText: "Base Pack" }).getByRole("button", { name: "Buy" }).click();
+  await shopFrame.locator(".pack-card").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
   await expect(shopFrame.locator("#confirm")).toBeVisible();
   await shopFrame.locator("#confirm-ok").click();
   // The reveal contents are randomly drawn, so the layout is covered by flows.spec.js

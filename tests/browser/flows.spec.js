@@ -1,10 +1,16 @@
 import { test, expect } from "./fixtures.js";
 import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, travel } from "./helpers.js";
 
+// Functional flows run on desktop only; portrait layout is covered by the visual
+// baselines. Tag genuinely mobile-sensitive flows with { tag: "@mobile" }.
+test.beforeEach(({ isMobile }, testInfo) => {
+  test.skip(Boolean(isMobile) && !testInfo.tags.includes("@mobile"), "Desktop-only flow; portrait is covered by test:visual.");
+});
+
 test.describe("account onboarding", () => {
   test.slow();
 
-  test("is mandatory, persists, and shows login errors", async ({ page, runtime }) => {
+  test("is mandatory, persists, and shows login errors", { tag: "@mobile" }, async ({ page, runtime }) => {
     const sockets = [];
     page.on("websocket", socket => sockets.push(socket));
     await createAccount(page, runtime, "sunbeam", false);
@@ -27,7 +33,7 @@ test.describe("account onboarding", () => {
   });
 });
 
-test("all core cards are always visible without an expander", async ({ page, runtime }) => {
+test("all core cards are always visible without an expander", { tag: "@mobile" }, async ({ page, runtime }) => {
   await createReadyAccount(page, runtime);
   await expect(page.locator("#card-hand [data-core-id]")).toHaveCount(3);
   await expect(page.locator("#card-hand [data-core-expand]")).toHaveCount(0);
@@ -41,7 +47,7 @@ test("all core cards are always visible without an expander", async ({ page, run
 test.describe("room and inventory", () => {
   test.slow();
 
-  test("support pickup and drop", async ({ page, runtime }) => {
+  test("support pickup and drop", { tag: "@mobile" }, async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await travel(page);
     await openRoomView(page);
@@ -93,55 +99,9 @@ test.describe("room and inventory", () => {
     await openRoomView(page);
     await expect(roomCards).toHaveCount(1);
   });
-
-  test("multi-card stacks offer direct and dialog actions", async ({ page, runtime }) => {
-    // Multi-copy stacks are not reachable in milestone rooms, so exercise the
-    // real client module with fabricated selection state instead of gameplay.
-    await page.goto(runtime.baseURL);
-    const summary = await page.evaluate(async () => {
-      const { selectionActions } = await import("/app/js/cards.js");
-      const stack = (stackId, quantity, intent, pinned = false) => ({
-        stackId, quantity, pinned,
-        definition: { label: "Tasty Toast", description: "Yum.", imageUrl: "", rarity: "Common", type: "item" },
-        quickActions: [
-          { label: intent === "pickup" ? "Pick up 1" : "Drop 1", command: `.${intent} @card:${stackId} 1` },
-        ],
-      });
-      const stateFor = (kind, current) => ({
-        room: {
-          label: "Room", description: "",
-          roomCards: kind === "room-card" ? [current] : [],
-          inventory: kind === "inventory-card" ? [current] : [],
-        },
-        selection: { kind, id: current.stackId },
-        views: {}, user: {},
-      });
-      const describe = actions => actions.map(action => ({
-        label: action.label,
-        target: action.command
-          ? `command:${action.command}`
-          : `local:${action.local?.type}:${action.local?.max}:${action.local?.intent}`,
-        disabled: Boolean(action.disabled),
-      }));
-      return {
-        single: describe(selectionActions(stateFor("room-card", stack("a", 1, "pickup")))),
-        multi: describe(selectionActions(stateFor("room-card", stack("b", 2, "pickup")))),
-        owned: describe(selectionActions(stateFor("inventory-card", stack("c", 3, "drop")))),
-        pinned: describe(selectionActions(stateFor("room-card", stack("d", 2, "pickup", true)))),
-      };
-    });
-    expect(summary.single.map(action => action.label)).toEqual(["Inspect", "Pick up 1"]);
-    expect(summary.single[1].target).toBe("command:.pickup @card:a 1");
-    expect(summary.multi.map(action => action.label)).toEqual(["Inspect", "Pick up 1", "Pick up…"]);
-    expect(summary.multi[1].target).toBe("command:.pickup @card:b 1");
-    expect(summary.multi[2].target).toBe("local:quantity:2:pickup");
-    expect(summary.owned.map(action => action.label)).toEqual(["Inspect", "Drop 1", "Drop…", "Equip"]);
-    expect(summary.owned[2].target).toBe("local:quantity:3:drop");
-    expect(summary.pinned.filter(action => action.label.startsWith("Pick up")).every(action => action.disabled)).toBe(true);
-  });
 });
 
-test("overlay blocks board hit testing and command menu sends commands", async ({ page, runtime }) => {
+test("overlay blocks board hit testing and command menu sends commands", { tag: "@mobile" }, async ({ page, runtime }) => {
   const sentCommands = [];
   page.on("websocket", socket => socket.on("framesent", ({ payload }) => {
     const envelope = JSON.parse(String(payload));
@@ -165,7 +125,7 @@ test("overlay blocks board hit testing and command menu sends commands", async (
   await expect(page.locator("#toast-stack .error").first()).toBeVisible();
 });
 
-test("sample activity bridges chat and supports minimize, maximize, close", async ({ page, runtime }) => {
+test("sample activity bridges chat and supports minimize, maximize, close", { tag: "@mobile" }, async ({ page, runtime }) => {
   await createReadyAccount(page, runtime);
   await command(page, ".play sample");
   const activity = page.locator(".activity-window");
@@ -185,6 +145,130 @@ test("sample activity bridges chat and supports minimize, maximize, close", asyn
   await expect(activity).toHaveClass(/maximized/);
   await page.getByRole("button", { name: "Close activity" }).click();
   await expect(activity).toHaveCount(0);
+});
+
+test.describe("client module logic", () => {
+  test("card and editor modules expose expected actions and store transitions", async ({ page, runtime }) => {
+    await page.goto(runtime.baseURL);
+    const summary = await page.evaluate(async () => {
+      const { selectionActions } = await import("/app/js/cards.js");
+      const { editRoomView } = await import("/app/js/views/edit-room-view.js");
+      const { normalizeEditorView, editorReducer, selectedInstance } = await import("/app/js/editing/edit-reducer.js");
+
+      const stack = (stackId, quantity, intent, pinned = false) => ({
+        stackId, quantity, pinned,
+        definition: { label: "Tasty Toast", description: "Yum.", imageUrl: "", rarity: "Common", type: "item" },
+        quickActions: [
+          { label: intent === "pickup" ? "Pick up 1" : "Drop 1", command: `.${intent} @card:${stackId} 1` },
+        ],
+      });
+      const stateFor = (kind, current) => ({
+        room: {
+          label: "Room", description: "",
+          roomCards: kind === "room-card" ? [current] : [],
+          inventory: kind === "inventory-card" ? [current] : [],
+        },
+        selection: { kind, id: current.stackId },
+        views: {}, user: {},
+      });
+      const describe = actions => actions.map(action => ({
+        label: action.label,
+        target: action.command
+          ? `command:${action.command}`
+          : `local:${action.local?.type}:${action.local?.max}:${action.local?.intent}`,
+        disabled: Boolean(action.disabled),
+      }));
+
+      const room = { id: "bedroom", label: "Bedroom", description: "", props: [], roomCards: [], inventory: [], quickActions: [], board: { palette: [], imageStyle: "" } };
+      const editLabels = canEdit => selectionActions({
+        room: { ...room, canEditRoom: canEdit },
+        selection: { kind: "room", id: "bedroom" },
+        views: {}, user: {},
+      }).map(action => action.label);
+      const editor = normalizeEditorView({
+        room_id: "bedroom", revision: 3, can_edit: true, props: [],
+        library: [{ prop_id: "plant", label: "Little Monstera", model_url: "/x.glb", base_scale: 1 }],
+        environment_whitelist: ["palette"], environment: {},
+      });
+
+      const prop = { id: "portal0", label: "Portal", description: "", modelUrl: "/assets/portal.glb", scale: 1, quickActions: [] };
+      const skill = {
+        stackId: "inv:skill", quantity: 1, pinned: false, equipped: false,
+        definition: { label: "Sturdy", type: "skill", imageUrl: "", rarity: "Common" },
+        quickActions: [],
+      };
+      const propActions = selectionActions({
+        room: { props: [prop], roomCards: [], inventory: [] },
+        selection: { kind: "prop", id: "portal0" },
+        views: {}, user: {},
+      });
+      const skillActions = selectionActions({
+        room: { props: [], roomCards: [], inventory: [skill] },
+        selection: { kind: "inventory-card", id: "inv:skill" },
+        views: {}, user: {},
+      });
+
+      let state = { editor: null };
+      state = editorReducer(state, {
+        type: "editor-open",
+        view: {
+          room_id: "hub", revision: 2, can_edit: true, props: [],
+          library: [{ prop_id: "plant", label: "Plant", base_scale: 1, scale_min: 0.25, scale_max: 4 }],
+          environment_whitelist: ["palette"], environment: {},
+        },
+      });
+      state = editorReducer(state, { type: "editor-add", propId: "plant" });
+      const added = state.editor.props.length;
+      const id = state.editor.selectedId;
+      state = editorReducer(state, { type: "editor-nudge", dx: 5, dy: 5 });
+      const moved = selectedInstance(state.editor).position;
+      state = editorReducer(state, { type: "editor-undo" });
+      const undone = selectedInstance(state.editor).position;
+      state = editorReducer(state, { type: "editor-redo" });
+      const redone = selectedInstance(state.editor).position;
+      state = editorReducer(state, { type: "editor-env", key: "palette", value: ["#111111", "#222222", "#333333"] });
+      const dirty = state.editor.dirty;
+      state = editorReducer(state, { type: "editor-close" });
+
+      return {
+        single: describe(selectionActions(stateFor("room-card", stack("a", 1, "pickup")))),
+        multi: describe(selectionActions(stateFor("room-card", stack("b", 2, "pickup")))),
+        owned: describe(selectionActions(stateFor("inventory-card", stack("c", 3, "drop")))),
+        pinned: describe(selectionActions(stateFor("room-card", stack("d", 2, "pickup", true)))),
+        edit: {
+          owned: editLabels(true),
+          locked: editLabels(false),
+          lockedView: editRoomView({ room: { ...room, canEditRoom: false } }).includes("do not have permission"),
+          editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Add a prop"),
+        },
+        prop: propActions.find(action => action.label === "Inspect")?.local,
+        slot: skillActions.find(action => action.label === "Slot…")?.local,
+        store: { added, id, moved, undone, redone, dirty, closed: state.editor },
+      };
+    });
+
+    expect(summary.single.map(action => action.label)).toEqual(["Inspect", "Pick up 1"]);
+    expect(summary.single[1].target).toBe("command:.pickup @card:a 1");
+    expect(summary.multi.map(action => action.label)).toEqual(["Inspect", "Pick up 1", "Pick up…"]);
+    expect(summary.multi[1].target).toBe("command:.pickup @card:b 1");
+    expect(summary.multi[2].target).toBe("local:quantity:2:pickup");
+    expect(summary.owned.map(action => action.label)).toEqual(["Inspect", "Drop 1", "Drop…", "Equip"]);
+    expect(summary.owned[2].target).toBe("local:quantity:3:drop");
+    expect(summary.pinned.filter(action => action.label.startsWith("Pick up")).every(action => action.disabled)).toBe(true);
+    expect(summary.edit.owned).toContain("Edit Room");
+    expect(summary.edit.locked).not.toContain("Edit Room");
+    expect(summary.edit.lockedView).toBe(true);
+    expect(summary.edit.editorView).toBe(true);
+    expect(summary.prop).toEqual({ type: "open-view", view: "prop-details", propId: "portal0" });
+    expect(summary.slot).toEqual({ type: "open-view", view: "skills", stackId: "inv:skill" });
+    expect(summary.store.added).toBe(1);
+    expect(summary.store.id).toMatch(/^custom:/);
+    expect(summary.store.moved).toEqual([55, 55, 0]);
+    expect(summary.store.undone).toEqual([50, 50, 0]);
+    expect(summary.store.redone).toEqual([55, 55, 0]);
+    expect(summary.store.dirty).toBe(true);
+    expect(summary.store.closed).toBeNull();
+  });
 });
 
 test.describe("core milestone 2 views", () => {
@@ -227,36 +311,6 @@ test.describe("core milestone 2 views", () => {
     await expect(journal.getByRole("button", { name: "Tasks", exact: true })).toBeVisible();
     await journal.getByRole("button", { name: "Memories", exact: true }).click();
     await expect(journal).toContainText("No memories this month");
-  });
-
-  test("edit room is offered only for rooms the user can edit", async ({ page, runtime }) => {
-    await page.goto(runtime.baseURL);
-    const summary = await page.evaluate(async () => {
-      const { selectionActions } = await import("/app/js/cards.js");
-      const { editRoomView } = await import("/app/js/views/edit-room-view.js");
-      const { normalizeEditorView } = await import("/app/js/editing/edit-reducer.js");
-      const room = { id: "bedroom", label: "Bedroom", description: "", props: [], roomCards: [], inventory: [], quickActions: [], board: { palette: [], imageStyle: "" } };
-      const labels = canEdit => selectionActions({
-        room: { ...room, canEditRoom: canEdit },
-        selection: { kind: "room", id: "bedroom" },
-        views: {}, user: {},
-      }).map(action => action.label);
-      const editor = normalizeEditorView({
-        room_id: "bedroom", revision: 3, can_edit: true, props: [],
-        library: [{ prop_id: "plant", label: "Little Monstera", model_url: "/x.glb", base_scale: 1 }],
-        environment_whitelist: ["palette"], environment: {},
-      });
-      return {
-        owned: labels(true),
-        locked: labels(false),
-        lockedView: editRoomView({ room: { ...room, canEditRoom: false } }).includes("do not have permission"),
-        editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Add a prop"),
-      };
-    });
-    expect(summary.owned).toContain("Edit Room");
-    expect(summary.locked).not.toContain("Edit Room");
-    expect(summary.lockedView).toBe(true);
-    expect(summary.editorView).toBe(true);
   });
 
   test("swap sticker dialog opens from self view", async ({ page, runtime }) => {
@@ -319,34 +373,6 @@ test.describe("core milestone 2 views", () => {
     expect(box.height).toBeLessThanOrEqual(160);
   });
 
-  test("prop Inspect and skill Slot actions carry the selected identity", async ({ page, runtime }) => {
-    await page.goto(runtime.baseURL);
-    const summary = await page.evaluate(async () => {
-      const { selectionActions } = await import("/app/js/cards.js");
-      const prop = { id: "portal0", label: "Portal", description: "", modelUrl: "/assets/portal.glb", scale: 1, quickActions: [] };
-      const skill = {
-        stackId: "inv:skill", quantity: 1, pinned: false, equipped: false,
-        definition: { label: "Sturdy", type: "skill", imageUrl: "", rarity: "Common" },
-        quickActions: [],
-      };
-      const propActions = selectionActions({
-        room: { props: [prop], roomCards: [], inventory: [] },
-        selection: { kind: "prop", id: "portal0" },
-        views: {}, user: {},
-      });
-      const skillActions = selectionActions({
-        room: { props: [], roomCards: [], inventory: [skill] },
-        selection: { kind: "inventory-card", id: "inv:skill" },
-        views: {}, user: {},
-      });
-      return {
-        prop: propActions.find(action => action.label === "Inspect")?.local,
-        slot: skillActions.find(action => action.label === "Slot…")?.local,
-      };
-    });
-    expect(summary.prop).toEqual({ type: "open-view", view: "prop-details", propId: "portal0" });
-    expect(summary.slot).toEqual({ type: "open-view", view: "skills", stackId: "inv:skill" });
-  });
 });
 
 test.describe("milestone 2 activities and targeting", () => {
@@ -360,7 +386,7 @@ test.describe("milestone 2 activities and targeting", () => {
     const frame = page.frameLocator('iframe[src*="shop"]');
     await expect(frame.locator(".pack-card")).toHaveCount(3);
     await expect(frame.locator("#balance")).toContainText("10 Bops");
-    await frame.locator(".pack-card").filter({ hasText: "Base Pack" }).getByRole("button", { name: "Buy" }).click();
+    await frame.locator(".pack-card").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
     await expect(frame.locator("#confirm")).toBeVisible();
     await frame.locator("#confirm-ok").click();
     await expect(frame.locator("#reveal")).toBeVisible();
@@ -623,42 +649,6 @@ async function touchDrag(page, from, to) {
 test.describe("milestone 3 room editing", () => {
   test.slow();
   test.setTimeout(60_000);
-
-  test("editor store round-trips add, undo, redo, and dirty state", async ({ page, runtime }) => {
-    await page.goto(runtime.baseURL);
-    const result = await page.evaluate(async () => {
-      const { editorReducer, selectedInstance } = await import("/app/js/editing/edit-reducer.js");
-      let state = { editor: null };
-      state = editorReducer(state, {
-        type: "editor-open",
-        view: {
-          room_id: "hub", revision: 2, can_edit: true, props: [],
-          library: [{ prop_id: "plant", label: "Plant", base_scale: 1, scale_min: 0.25, scale_max: 4 }],
-          environment_whitelist: ["palette"], environment: {},
-        },
-      });
-      state = editorReducer(state, { type: "editor-add", propId: "plant" });
-      const added = state.editor.props.length;
-      const id = state.editor.selectedId;
-      state = editorReducer(state, { type: "editor-nudge", dx: 5, dy: 5 });
-      const moved = selectedInstance(state.editor).position;
-      state = editorReducer(state, { type: "editor-undo" });
-      const undone = selectedInstance(state.editor).position;
-      state = editorReducer(state, { type: "editor-redo" });
-      const redone = selectedInstance(state.editor).position;
-      state = editorReducer(state, { type: "editor-env", key: "palette", value: ["#111111", "#222222", "#333333"] });
-      const dirty = state.editor.dirty;
-      state = editorReducer(state, { type: "editor-close" });
-      return { added, id, moved, undone, redone, dirty, closed: state.editor };
-    });
-    expect(result.added).toBe(1);
-    expect(result.id).toMatch(/^custom:/);
-    expect(result.moved).toEqual([55, 55, 0]);
-    expect(result.undone).toEqual([50, 50, 0]);
-    expect(result.redone).toEqual([55, 55, 0]);
-    expect(result.dirty).toBe(true);
-    expect(result.closed).toBeNull();
-  });
 
   test("admins see the Edit Room action without ownership", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime, "siteadmin");

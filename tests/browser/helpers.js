@@ -18,7 +18,7 @@ export async function createAccount(page, runtime, username = "sunbeam", confirm
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
 }
 
-export async function createReadyAccount(page, runtime, username = "sunbeam") {
+async function provisionAccount(page, runtime, username) {
   const origin = new URL(runtime.baseURL).origin;
   const created = await page.request.post(`${runtime.baseURL}/api/auth/create`, {
     data: { username, password: PASSWORD, passphrase: runtime.invitation },
@@ -31,6 +31,19 @@ export async function createReadyAccount(page, runtime, username = "sunbeam") {
     headers: { Origin: origin, "X-CSRF-Token": csrfToken },
   });
   expect(confirmed.ok(), await confirmed.text()).toBeTruthy();
+}
+
+async function loginAccount(page, runtime, username) {
+  const origin = new URL(runtime.baseURL).origin;
+  const response = await page.request.post(`${runtime.baseURL}/api/auth/login`, {
+    data: { username, password: PASSWORD },
+    headers: { Origin: origin },
+  });
+  expect(response.ok(), await response.text()).toBeTruthy();
+}
+
+export async function createReadyAccount(page, runtime, username = "sunbeam") {
+  await provisionAccount(page, runtime, username);
   await page.goto(runtime.baseURL);
   await expect(page.getByRole("button", { name: `Select ${username}`, exact: true })).toBeVisible();
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
@@ -61,29 +74,16 @@ export async function openCore(page, id) {
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
-// Select the room by clicking an empty board point, then open Room View from its quick actions.
 // Create an account and grant it builder power through the bootstrap admin.
+// One browser context is reused: boot as siteadmin, run the grant, then sign
+// back in as the editor. This avoids the cost of a second context and app boot.
 export async function createEditorAccount(page, runtime, username = "editor") {
-  const origin = new URL(runtime.baseURL).origin;
-  const created = await page.request.post(`${runtime.baseURL}/api/auth/create`, {
-    data: { username, password: PASSWORD, passphrase: runtime.invitation },
-    headers: { Origin: origin },
-  });
-  expect(created.ok(), await created.text()).toBeTruthy();
-  const { csrf_token: csrfToken } = await created.json();
-  const confirmed = await page.request.post(`${runtime.baseURL}/api/stickers/confirm`, {
-    data: { sticker: "s1.png" },
-    headers: { Origin: origin, "X-CSRF-Token": csrfToken },
-  });
-  expect(confirmed.ok(), await confirmed.text()).toBeTruthy();
-  const context = await page.context().browser().newContext({ ignoreHTTPSErrors: true });
-  try {
-    const adminPage = await context.newPage();
-    await createReadyAccount(adminPage, runtime, "siteadmin");
-    await command(adminPage, `.builder grant @${username}`);
-  } finally {
-    await context.close();
-  }
+  await provisionAccount(page, runtime, username);
+  await provisionAccount(page, runtime, "siteadmin");
+  await loginAccount(page, runtime, "siteadmin");
+  await page.goto(runtime.baseURL);
+  await command(page, `.builder grant @${username}`);
+  await loginAccount(page, runtime, username);
   await page.goto(runtime.baseURL);
   await expect(page.getByRole("button", { name: `Select ${username}`, exact: true })).toBeVisible();
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
