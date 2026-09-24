@@ -114,6 +114,12 @@ def session_replaced_envelope(message: str) -> dict[str, object]:
     return {"v": PROTOCOL_VERSION, "type": "session.replaced", "message": message}
 
 
+def profile_resync_envelope(revision: int) -> dict[str, object]:
+    """Build a profile-resync envelope instructing clients to refresh."""
+
+    return {"v": PROTOCOL_VERSION, "type": "profile.resync", "revision": revision}
+
+
 def error_envelope(code: str, message: str) -> dict[str, object]:
     """Build a protocol-level error envelope."""
 

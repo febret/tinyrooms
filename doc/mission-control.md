@@ -41,7 +41,7 @@ sandbox for untrusted code. It runs on a trusted host/network.
 
 | Term | Meaning |
 | --- | --- |
-| **MC server** | The mission-control process (`run_mission_control.py`), serving the UI and the fleet API. |
+| **MC server** | The mission-control process (`run.py` when `TRSERVER_FEATURES` includes `mission-control`), serving the UI and the fleet API. |
 | **World server** | An ordinary Tinyrooms process (`run.py` / `server/app.py`) serving one world and one worldstate DB. |
 | **Instance** | One managed world-server process, whether spawned by MC or self-registered. |
 | **Package** | An installable content bundle: a world definition, a cardset, or a propset. |
@@ -113,7 +113,7 @@ New first-party code (each file under the 1200-line rule):
 
 | Path | Responsibility |
 | --- | --- |
-| `run_mission_control.py` | HTTPS launcher for the MC server (cert reuse, uvicorn bootstrap, bounded shutdown). |
+| `run.py` | Single HTTPS launcher; selects the MC server when `TRSERVER_FEATURES` includes `mission-control` (cert reuse, uvicorn bootstrap, bounded shutdown). |
 | `server/mission_control/config.py` | MC env parsing/validation (`MCConfig`). |
 | `server/mission_control/app.py` | FastAPI assembly: UI routes, UI API, auth middleware, static serving. |
 | `server/mission_control/registry.py` | In-memory instance registry, heartbeat tracking, staleness eviction. |
@@ -460,7 +460,7 @@ Follow existing harness patterns.
 
 | Phase | Scope |
 | --- | --- |
-| **A** | `mission-control` feature flag + `KNOWN_FEATURES`; `MCConfig`; `run_mission_control.py`; MC app skeleton, passphrase auth, static UI shell with three tabs. |
+| **A** | `mission-control` feature flag + `KNOWN_FEATURES`; `MCConfig`; `run.py` mode selection; MC app skeleton, passphrase auth, static UI shell with three tabs. |
 | **B** | World-side `mc_client.py` + `mc_api.py` (register/heartbeat/stats/logs/command); MC registry + heartbeat/staleness; instance list view. |
 | **C** | Server Manager drilldown: log capture/polling, admin console, start/stop/restart, spawn supervisor, optional worldstate selection. |
 | **D** | Package Manager: content scan, inventory view, zip upload/validate/install, enable/disable/delete; introduce `data/propsets/` loader support. |

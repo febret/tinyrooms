@@ -59,6 +59,7 @@ class UIPresentationTests(unittest.TestCase):
             REPO_ROOT / "activities",
             REPO_ROOT / "tests",
             REPO_ROOT / "tools",
+            REPO_ROOT / "mission-control",
         ]
         oversized: list[str] = []
         for root in roots:

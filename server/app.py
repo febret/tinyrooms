@@ -23,8 +23,11 @@ from server.behaviors.dispatcher import BehaviorDispatcher
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.behaviors.loader import BehaviorLoader
 from server.behaviors.ticker import RoomTicker
+from server.broadcast import broadcast_room_event as _broadcast_room_event
+from server.broadcast import deliver_behavior_result as _deliver_behavior_result
+from server.commands.context import build_command_context
 from server.commands.core import build_registry, dispatch_command
-from server.commands.outcomes import CommandContext, CommandError
+from server.commands.outcomes import CommandError
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
 from server.config import AppConfig, ConfigError, ensure_contained, load_config
@@ -33,8 +36,12 @@ from server.content.bundle import WorldBundle, load_world_bundle
 from server.content.cards import CardCatalog, ContentError
 from server.content.gameplay import GameplayContent
 from server.content.worlds import WorldDefinition
+from server.logging_ring import install_log_ring
+from server.mc_api import router as mc_router
+from server.mc_client import McClient
 from server.mods import ModDefinition, LoadedMods, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
+from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
 from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
@@ -45,7 +52,6 @@ from server.protocol import (
     parse_client_message,
     presence_leave_event,
     result_envelope,
-    room_event_envelope,
     room_snapshot_envelope,
     visible_rejection_event,
 )
@@ -162,6 +168,8 @@ class RuntimeState:
     crafting: CraftingService
     behaviors: BehaviorDispatcher
     ticker: RoomTicker
+    started_at: float = field(default_factory=time.time)
+    profile_revision: int = 0
     loaded_mods: object | None = None
     mutation_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
@@ -321,59 +329,6 @@ def _auth_response(runtime: RuntimeState, result: LoginResult, account: AccountR
     return response
 
 
-def _serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str, object]:
-    user_profile = runtime.profiles.user_profile_for(account.id, runtime.world.id, runtime.world.entry_room_id)
-    activity = runtime.activities.get(account.id)
-    if not account.initial_sticker_complete:
-        activity = runtime.activities.ensure_initial_sticker(account.id)
-    snapshot = runtime.stats.view(account.id)
-    level_definition = runtime.content.levels.get(account.level)
-    skills = runtime.progression.skill_slots(account, user_profile)
-    friends = runtime.friends.serialize(account.id)
-    return {
-        "id": account.id,
-        "username": account.username_display,
-        "sticker": account.sticker,
-        "initial_sticker_complete": account.initial_sticker_complete,
-        "owned_rooms": list(user_profile.owned_rooms),
-        "level": account.level,
-        "level_label": level_definition.label,
-        "kudos": account.kudos,
-        "kudos_to_next": level_definition.kudos_to_next,
-        "max_equipped": level_definition.max_equipped,
-        "bops": account.bops,
-        "sticker_swap_cost": runtime.content.bops.sticker_swap_cost,
-        "shared_energy": snapshot.energy,
-        "counters": snapshot.payload(),
-        "stats": snapshot.effective.stats,
-        "statuses": list(snapshot.statuses),
-        "status_definitions": {
-            status_id: {
-                "label": definition.label,
-                "description": definition.description,
-                "icon": definition.icon,
-            }
-            for status_id, definition in runtime.content.statuses.items()
-        },
-        "skills": [
-            {"index": slot.index, "rank": slot.rank, "unlocked": slot.unlocked, "stack_id": slot.stack_id}
-            for slot in skills
-        ],
-        "pinned_peeps": list(user_profile.pinned_peeps),
-        "friends": friends.as_dict(),
-        "packs": [preview.as_dict() for preview in runtime.shop.packs()],
-        "show_activity_log": user_profile.show_activity_log,
-        "world_id": runtime.world.id,
-        "remembered_room": user_profile.remembered_room,
-        "inventory": runtime.cards.list_inventory_payload(account.id),
-        "core_cards": runtime.cards.serialize_core_cards(),
-        "activity": runtime.activities.serialize(activity),
-        "tasks": runtime.tasks.view_payload(account.id),
-        "journal": runtime.memories.journal_payload(account.id),
-        "powers": sorted(runtime.powers.effective(account)),
-    }
-
-
 def _get_runtime(request: Request) -> RuntimeState:
     return request.app.state.runtime
 
@@ -396,35 +351,6 @@ def _enforce_authenticated_post(runtime: RuntimeState, request: Request, session
         raise HTTPException(status_code=403, detail="Missing CSRF cookie.")
     require_matching_csrf(session.csrf_token, request.headers.get("x-csrf-token"))
     require_matching_csrf(session.csrf_token, csrf_cookie)
-
-
-async def _broadcast_room_event(
-    runtime: RuntimeState,
-    *,
-    room_id: str,
-    event: dict[str, object],
-    exclude_account_id: str | None = None,
-) -> None:
-    for connection in await runtime.connections.list_room(room_id):
-        if exclude_account_id is not None and connection.account_id == exclude_account_id:
-            continue
-        await connection.send(room_event_envelope(event))
-
-
-async def _deliver_behavior_result(runtime: RuntimeState, result: object | None) -> None:
-    """Broadcast room events and route private events produced by behaviors."""
-
-    if result is None:
-        return
-    for pending in getattr(result, "room_broadcasts", []):
-        await _broadcast_room_event(runtime, room_id=pending.room_id, event=pending.event)
-    for event in getattr(result, "private_events", []):
-        account_id = event.get("account_id")
-        if not isinstance(account_id, str):
-            continue
-        target = await runtime.connections.get(account_id)
-        if target is not None:
-            await target.send(room_event_envelope(event))
 
 
 async def _handle_replaced_connection(
@@ -647,11 +573,19 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         runtime = create_runtime(loaded_config)
         app.state.runtime = runtime
+        app.state.log_ring = None
+        mc_client: McClient | None = None
+        if loaded_config.mc_endpoint:
+            app.state.log_ring = install_log_ring()
+            mc_client = McClient(runtime)
+            mc_client.start()
         runtime.ticker.start()
         try:
             yield
         finally:
             runtime.ticker.stop()
+            if mc_client is not None:
+                await mc_client.stop()
             runtime.hub.close()
 
     app = FastAPI(title="Tinyrooms Server", version="1.0.0", lifespan=lifespan)
@@ -965,40 +899,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                         account_id=account.id,
                         command=parsed_command.name,
                     )
-                    context = CommandContext(
+                    context = build_command_context(
+                        runtime,
                         account=current_account,
                         connection=connection,
-                        profiles=runtime.profiles,
-                        world_state=runtime.world_state,
-                        rooms=runtime.rooms,
-                        cards=runtime.cards,
-                        activities=runtime.activities,
-                        activity_results=runtime.activity_results,
-                        registry=runtime.registry,
-                        stats=runtime.stats,
-                        inventory=runtime.inventory,
-                        progression=runtime.progression,
-                        actions=runtime.actions,
-                        friends=runtime.friends,
-                        shop=runtime.shop,
-                        pricing=runtime.pricing,
-                        content=runtime.content,
-                        world=runtime.world,
-                        valid_stickers=frozenset(runtime.accounts.list_stickers()),
                         serialize_user=lambda account: _serialize_account(runtime, account),
-                        behaviors=runtime.behaviors,
-                        dialogs=runtime.dialogs,
-                        tasks=runtime.tasks,
-                        memories=runtime.memories,
-                        powers=runtime.powers,
-                        ownership=runtime.ownership,
-                        environment=runtime.environment,
-                        audit=runtime.audit,
-                        connections=runtime.connections,
-                        mods=runtime.mods,
-                        dispensers=runtime.dispensers,
-                        crafting=runtime.crafting,
-                        recipes=runtime.world.recipes,
                     )
                     outcome = await dispatch_command(context, parsed_command)
                 except (CommandParseError, CommandError, ValueError, sqlite3.IntegrityError) as exc:
@@ -1163,4 +1068,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
+    if loaded_config.mc_endpoint:
+        app.include_router(mc_router)
     return app

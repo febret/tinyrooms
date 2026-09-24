@@ -41,6 +41,54 @@ the port on trusted networks.
 | `TRSERVER_TIMEZONE` | Game timezone; defaults to `UTC` |
 | `TRSERVER_HOST` | Listener address; defaults to `127.0.0.1` |
 | `TRSERVER_PORT` | HTTPS port; defaults to `5000` |
+| `TRSERVER_MC_ENDPOINT` | `host:port` of the mission-control server; enables the world's `/api/mc/*` client |
+| `TRSERVER_MC_TOKEN` | Shared secret for the mission-control channel (required with `TRSERVER_MC_ENDPOINT`) |
+| `TRSERVER_MC_NAME` | Display name for this instance; defaults to `world_id@host:port` |
+| `TRSERVER_MC_CA_FILE` | PEM CA bundle used to verify the mission-control server certificate |
+| `TRSERVER_MC_INSECURE_TLS` | Dev-only: skip mission-control certificate verification |
+
+## Mission Control
+
+Mission control is an optional operations server for managing a fleet of world
+servers and the shared profile database. See
+[doc/mission-control.md](doc/mission-control.md) for the full specification.
+
+There is a single entry point: `run.py` launches mission control instead of the
+world server when `TRSERVER_FEATURES` includes `mission-control`.
+
+```powershell
+$env:TRSERVER_FEATURES = "mission-control"
+$env:TRSERVER_MC_PASSPHRASE = "operator-passphrase"
+$env:TRSERVER_MC_TOKEN = "shared-secret"
+python run.py
+```
+
+On Linux/macOS the same works through `start.sh`, which supplies local
+development defaults for the passphrase and token:
+
+```bash
+TRSERVER_FEATURES=mission-control ./start.sh
+```
+
+Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
+passphrase. Mission control serves HTTPS with the same self-signed certificate
+helper as the game server (reusing `.local/cert.pem` / `key.pem`).
+
+| Variable | Purpose |
+| --- | --- |
+| `TRSERVER_FEATURES` | Must include `mission-control` |
+| `TRSERVER_MC_PASSPHRASE` | Required operator login passphrase |
+| `TRSERVER_MC_TOKEN` | Required shared secret for the MC ↔ world channel |
+| `TRSERVER_MC_HOST` | Listener address; defaults to `127.0.0.1` |
+| `TRSERVER_MC_PORT` | HTTPS port; defaults to `8001` |
+| `TRSERVER_MC_USERS_PATH` | Profile DB directory to manage; defaults to `users` |
+| `TRSERVER_MC_INSTANCES_PATH` | Runtime dirs for MC-spawned servers; defaults to `.local/mc-instances` |
+| `TRSERVER_MC_VERSIONS_PATH` | Extra server checkouts to inventory; defaults to `.local/mc-versions` |
+| `TRSERVER_MC_CA_FILE` | PEM CA bundle used to verify world-server TLS |
+| `TRSERVER_MC_INSECURE_TLS` | Dev-only: skip world-server cert verification |
+| `TRSERVER_MC_HEARTBEAT_SECONDS` | Expected heartbeat interval; defaults to `5` |
+| `TRSERVER_MC_ACTOR` | World username used as the admin-console actor; defaults to `mission-control` |
+| `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE` | Invitation used for MC-spawned worlds; generated when unset |
 
 ## Mods
 

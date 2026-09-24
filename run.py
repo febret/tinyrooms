@@ -20,10 +20,23 @@ import uvicorn
 
 from server.app import create_app
 from server.config import ConfigError, load_config
+from server.mission_control.app import create_mc_app
+from server.mission_control.config import load_mc_config
 
 
 GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 1
 FORCED_EXIT_TIMEOUT_SECONDS = 1.9
+
+
+def is_mission_control(env: dict[str, str]) -> bool:
+    """Return True when the feature set selects the mission-control server."""
+
+    raw = env.get("TRSERVER_FEATURES", "")
+    return any(
+        part.strip().lower().replace("_", "-") == "mission-control"
+        for part in raw.split(",")
+        if part.strip()
+    )
 
 
 class BoundedShutdownServer(uvicorn.Server):
@@ -147,13 +160,25 @@ def main() -> int:
     """Run the HTTPS development server."""
 
     args = parse_args()
+    env_values = dict(os.environ)
+    mission_control = is_mission_control(env_values)
     try:
-        env_values = dict(os.environ)
-        if args.host:
-            env_values["TRSERVER_HOST"] = args.host
-        if args.port:
-            env_values["TRSERVER_PORT"] = str(args.port)
-        config = load_config(env=env_values)
+        if mission_control:
+            if args.host:
+                env_values["TRSERVER_MC_HOST"] = args.host
+            if args.port:
+                env_values["TRSERVER_MC_PORT"] = str(args.port)
+            config = load_mc_config(env=env_values)
+            app = create_mc_app(config)
+            local_path = config.repo_root / ".local"
+        else:
+            if args.host:
+                env_values["TRSERVER_HOST"] = args.host
+            if args.port:
+                env_values["TRSERVER_PORT"] = str(args.port)
+            config = load_config(env=env_values)
+            app = create_app(config)
+            local_path = config.local_path
     except ConfigError as exc:
         raise SystemExit(f"Configuration error: {exc}") from exc
 
@@ -161,9 +186,9 @@ def main() -> int:
         cert_path = Path(args.certfile)
         key_path = Path(args.keyfile)
     else:
-        cert_path, key_path = ensure_self_signed_certificate(config.local_path, config.host)
+        cert_path, key_path = ensure_self_signed_certificate(local_path, config.host)
     server = BoundedShutdownServer(uvicorn.Config(
-        create_app(config),
+        app,
         host=config.host,
         port=config.port,
         ssl_certfile=str(cert_path),

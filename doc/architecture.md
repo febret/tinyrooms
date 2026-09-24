@@ -86,6 +86,8 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes + art/models. |
 | Tests | `tests/` | Python `unittest` (server/integration/static) + Playwright browser specs. |
 | Tooling | `tools/`, root configs | Browser-test server, dep vendoring, Playwright/npm config. |
+| Mission control | `server/mission_control/` | Optional fleet operations server (launched by `run.py` when `TRSERVER_FEATURES` includes `mission-control`): instance registry/supervisor, package manager, user manager, operator auth + UI. See `doc/mission-control.md`. |
+| MC world client | `server/mc_client.py`, `server/mc_api.py` | Outbound register/heartbeat plus the token-gated `/api/mc/*` admin endpoints on a world server. |
 
 `server/client/` and `tests/client/` are referenced in `AGENTS.md` as the
 future home of browser-free ports of `app/js/` logic, but do not exist yet in

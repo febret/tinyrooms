@@ -17,8 +17,30 @@ KNOWN_FEATURES = frozenset(
         "dev_sample_activity",
         "world-editor",
         "card-database",
+        "mission-control",
+        "mission_control",
     }
 )
+
+
+def compute_allowed_origins(host: str, port: int) -> tuple[str, ...]:
+    """Return allowed browser origins for a listener address and port."""
+
+    if host in {"0.0.0.0", "::"}:
+        hosts = {"127.0.0.1", "localhost"}
+    else:
+        hosts = {host}
+    if host == "127.0.0.1":
+        hosts.add("localhost")
+    if host == "localhost":
+        hosts.add("127.0.0.1")
+    return tuple(sorted(f"https://{candidate}:{port}" for candidate in hosts))
+
+
+def parse_bool(raw_value: str) -> bool:
+    """Parse a loose environment boolean flag."""
+
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 class ConfigError(ValueError):
@@ -46,6 +68,11 @@ class AppConfig:
     tick_seconds: float = 1.0
     mods: frozenset[str] = frozenset()
     mods_path: Path | None = None
+    mc_endpoint: str | None = None
+    mc_token: str | None = None
+    mc_name: str | None = None
+    mc_ca_file: Path | None = None
+    mc_insecure_tls: bool = False
 
     @property
     def app_path(self) -> Path:
@@ -87,15 +114,7 @@ class AppConfig:
     def allowed_origins(self) -> tuple[str, ...]:
         """Return allowed browser origins for this server."""
 
-        if self.is_wildcard_bind:
-            hosts = {"127.0.0.1", "localhost"}
-        else:
-            hosts = {self.host}
-        if self.host == "127.0.0.1":
-            hosts.add("localhost")
-        if self.host == "localhost":
-            hosts.add("127.0.0.1")
-        return tuple(sorted(f"https://{host}:{self.port}" for host in hosts))
+        return compute_allowed_origins(self.host, self.port)
 
 
 def parse_features(raw_value: str) -> frozenset[str]:
@@ -215,6 +234,15 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if mods and not mods_path.is_dir():
         raise ConfigError(f"TRSERVER_MODS_PATH does not exist: {mods_path}")
 
+    mc_endpoint = values.get("TRSERVER_MC_ENDPOINT", "").strip() or None
+    mc_token = values.get("TRSERVER_MC_TOKEN", "").strip() or None
+    mc_name = values.get("TRSERVER_MC_NAME", "").strip() or None
+    if mc_endpoint is not None and mc_token is None:
+        raise ConfigError("TRSERVER_MC_TOKEN must be set when TRSERVER_MC_ENDPOINT is set.")
+    mc_ca_raw = values.get("TRSERVER_MC_CA_FILE", "").strip()
+    mc_ca_file = Path(mc_ca_raw).expanduser().resolve() if mc_ca_raw else None
+    mc_insecure_tls = parse_bool(values.get("TRSERVER_MC_INSECURE_TLS", "0"))
+
     return AppConfig(
         repo_root=root,
         local_path=local_path,
@@ -233,4 +261,9 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         tick_seconds=tick_seconds,
         mods=mods,
         mods_path=mods_path,
+        mc_endpoint=mc_endpoint,
+        mc_token=mc_token,
+        mc_name=mc_name,
+        mc_ca_file=mc_ca_file,
+        mc_insecure_tls=mc_insecure_tls,
     )

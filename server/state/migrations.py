@@ -649,10 +649,11 @@ def ensure_world_database(path: Path) -> None:
 class DatabaseHub:
     """Shared attached SQLite connection used by runtime repositories."""
 
-    def __init__(self, profile_path: Path, world_path: Path) -> None:
+    def __init__(self, profile_path: Path, world_path: Path | None = None) -> None:
         self._connection = _connect(profile_path)
-        self._connection.execute("ATTACH DATABASE ? AS world", (str(world_path),))
-        self._connection.execute("PRAGMA world.journal_mode = WAL")
+        if world_path is not None:
+            self._connection.execute("ATTACH DATABASE ? AS world", (str(world_path),))
+            self._connection.execute("PRAGMA world.journal_mode = WAL")
         self._lock = threading.RLock()
 
     @contextmanager

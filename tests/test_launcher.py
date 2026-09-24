@@ -17,7 +17,22 @@ from run import (
     FORCED_EXIT_TIMEOUT_SECONDS,
     GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS,
     ensure_self_signed_certificate,
+    is_mission_control,
 )
+
+
+class LaunchModeTests(unittest.TestCase):
+    """Verify the single launcher selects the mission-control server."""
+
+    def test_mission_control_feature_selects_mc(self) -> None:
+        self.assertTrue(is_mission_control({"TRSERVER_FEATURES": "mission-control"}))
+        self.assertTrue(is_mission_control({"TRSERVER_FEATURES": "dev_sample_activity,mission_control"}))
+        self.assertTrue(is_mission_control({"TRSERVER_FEATURES": "MISSION-CONTROL"}))
+
+    def test_world_features_do_not_select_mc(self) -> None:
+        self.assertFalse(is_mission_control({"TRSERVER_FEATURES": "dev_sample_activity,world-editor"}))
+        self.assertFalse(is_mission_control({"TRSERVER_FEATURES": ""}))
+        self.assertFalse(is_mission_control({}))
 
 
 class LauncherTests(unittest.TestCase):

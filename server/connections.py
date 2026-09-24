@@ -56,6 +56,26 @@ class LiveConnection:
         await self.websocket.close()
 
 
+@dataclass(slots=True)
+class SyntheticConnection:
+    """A connection stand-in for out-of-band command dispatch (mission control).
+
+    Handlers read ``account_id``/``username``/``generation``/``room_id``; the
+    send/close methods are no-ops because there is no live socket.
+    """
+
+    account_id: str
+    username: str
+    generation: int = 0
+    room_id: str | None = None
+
+    async def send(self, payload: dict[str, object]) -> None:  # noqa: ARG002
+        return None
+
+    async def close(self) -> None:
+        return None
+
+
 class ConnectionRegistry:
     """Tracks active users and room membership."""
 
@@ -123,6 +143,24 @@ class ConnectionRegistry:
         """Return whether an account currently has a live connection."""
 
         return account_id in self._by_account
+
+    def list_all(self) -> list[LiveConnection]:
+        """Return every live connection."""
+
+        return list(self._by_account.values())
+
+    async def broadcast(self, payload: dict[str, object]) -> int:
+        """Send a payload to every live connection and return the count sent."""
+
+        connections = self.list_all()
+        sent = 0
+        for connection in connections:
+            try:
+                await connection.send(payload)
+            except RuntimeError:
+                continue
+            sent += 1
+        return sent
 
     async def list_room(self, room_id: str) -> list[LiveConnection]:
         """List live connections currently in a room."""

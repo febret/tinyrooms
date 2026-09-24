@@ -466,6 +466,15 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
     return props
 
 
+def load_propset(propset_path: Path) -> dict[str, PropDefinition]:
+    """Load a shared propset directory's ``props.yaml`` definitions."""
+
+    props_file = propset_path / "props.yaml"
+    if not props_file.is_file():
+        raise ContentError(f"Propset is missing props.yaml: {propset_path}")
+    return _load_props_from_file(props_file, propset_path.name, source_kind="propset")
+
+
 def load_world_definition(
     world_path: Path,
     card_ids: set[str],

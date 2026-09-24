@@ -11,7 +11,7 @@ function requestId() {
 }
 
 /** Connect to /ws, route envelopes, and resolve one promise per command request_id. */
-export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessionReplaced, onErrorEnvelope, onResult }) {
+export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessionReplaced, onProfileResync, onErrorEnvelope, onResult }) {
   let socket = null;
   const pending = new Map();
 
@@ -67,6 +67,10 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
         }
         if (envelope.type === "room.event") {
           onRoomEvent?.(envelope);
+          return;
+        }
+        if (envelope.type === "profile.resync") {
+          onProfileResync?.(envelope);
           return;
         }
         if (envelope.type === "session.replaced") {

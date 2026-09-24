@@ -64,6 +64,19 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_MODS_PATH` | No | `mods` |
 | `TRSERVER_ADMINS` | No | _(none)_ |
 | `TRSERVER_TIMEZONE` | No | `UTC` |
+| `TRSERVER_MC_ENDPOINT` | No | _(none)_ — enables the world-side `/api/mc/*` client |
+| `TRSERVER_MC_TOKEN` | Yes* | — — required when `TRSERVER_MC_ENDPOINT` is set |
+| `TRSERVER_MC_NAME` | No | `world_id@host:port` |
+| `TRSERVER_MC_CA_FILE` | No | _(none)_ |
+| `TRSERVER_MC_INSECURE_TLS` | No | `0` |
+
+\* Mission-control server only (see [doc/mission-control.md](doc/mission-control.md)):
+`TRSERVER_MC_PASSPHRASE` and `TRSERVER_MC_TOKEN` are required; `TRSERVER_FEATURES`
+must include `mission-control`. Additional MC vars: `TRSERVER_MC_HOST` (`127.0.0.1`),
+`TRSERVER_MC_PORT` (`8001`), `TRSERVER_MC_USERS_PATH` (`users`),
+`TRSERVER_MC_INSTANCES_PATH` (`.local/mc-instances`), `TRSERVER_MC_VERSIONS_PATH`
+(`.local/mc-versions`), `TRSERVER_MC_HEARTBEAT_SECONDS` (`5`),
+`TRSERVER_MC_ACTOR` (`mission-control`), `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE`.
 
 ## Testing
 

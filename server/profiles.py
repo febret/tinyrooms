@@ -34,6 +34,8 @@ STARTING_WORLD_COUNTERS = {
 
 SESSION_TOUCH_INTERVAL_SECONDS = 60.0
 
+_UNSET = object()
+
 
 def _default_profile() -> dict[str, object]:
     return {
@@ -262,6 +264,96 @@ class ProfileRepository:
         """Fetch an account by ID first, then by normalized username."""
 
         return self.get_account_by_id(identifier) or self.get_account_by_username(identifier)
+
+    def search_accounts(self, query: str | None = None, *, limit: int = 50) -> list[AccountRecord]:
+        """List accounts, optionally filtered by case-insensitive username or id."""
+
+        with self._hub.locked() as connection:
+            if query and query.strip():
+                raw = query.strip()
+                rows = connection.execute(
+                    """
+                    SELECT * FROM accounts
+                    WHERE username_key LIKE ? OR id = ?
+                    ORDER BY username_key
+                    LIMIT ?
+                    """,
+                    (f"%{raw.casefold()}%", raw, limit),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM accounts ORDER BY username_key LIMIT ?",
+                    (limit,),
+                ).fetchall()
+        return [self._account_from_row(row) for row in rows]
+
+    def admin_update_account(
+        self,
+        account_id: str,
+        *,
+        level: int | None = None,
+        kudos: int | None = None,
+        bops: int | None = None,
+        shared_energy: float | None = None,
+        sticker: object = _UNSET,
+        initial_sticker_complete: bool | None = None,
+        muted_until: object = _UNSET,
+        muted_by: object = _UNSET,
+    ) -> AccountRecord:
+        """Apply privileged account edits in one transaction (mission control)."""
+
+        now = utc_now().isoformat()
+        with self._hub.transaction() as connection:
+            row = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+            if row is None:
+                raise ValueError("Unknown account.")
+            assignments: list[str] = []
+            params: list[object] = []
+
+            def assign(column: str, value: object) -> None:
+                assignments.append(f"{column} = ?")
+                params.append(value)
+
+            if level is not None:
+                assign("level", int(level))
+            if kudos is not None:
+                assign("kudos", int(kudos))
+            if bops is not None:
+                assign("bops", int(bops))
+            if shared_energy is not None:
+                assign("shared_energy", float(shared_energy))
+            if sticker is not _UNSET:
+                assign("sticker", sticker)
+            if initial_sticker_complete is not None:
+                assign("initial_sticker_complete", 1 if initial_sticker_complete else 0)
+            if muted_until is not _UNSET:
+                assign("muted_until", muted_until)
+            if muted_by is not _UNSET:
+                assign("muted_by", muted_by)
+            if not assignments:
+                return self._account_from_row(row)
+            assign("updated_at", now)
+            params.append(account_id)
+            connection.execute(
+                f"UPDATE accounts SET {', '.join(assignments)} WHERE id = ?",
+                params,
+            )
+            updated = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+        return self._account_from_row(updated)
+
+    def admin_set_powers(self, account_id: str, powers: list[str]) -> AccountRecord:
+        """Replace the granted powers array for an account (mission control)."""
+
+        with self._hub.transaction() as connection:
+            row = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+            if row is None:
+                raise ValueError("Unknown account.")
+            connection.execute(
+                "UPDATE accounts SET powers = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(sorted(set(powers))), utc_now().isoformat(), account_id),
+            )
+            updated = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
+        return self._account_from_row(updated)
 
     def create_account(self, username: str, password: str, world_id: str, entry_room: str) -> AccountRecord:
         """Create an account with default starting state."""

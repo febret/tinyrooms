@@ -103,6 +103,14 @@ function connectSocket() {
       }
     },
     onSessionReplaced(envelope) { store.dispatch({ type: "session-replaced", message: envelope.message }); },
+    onProfileResync() {
+      api.getBootstrap()
+        .then(bootstrap => {
+          store.dispatch({ type: "bootstrap", user: bootstrap.user });
+          toast("Profile data refreshed.");
+        })
+        .catch(() => {});
+    },
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
     onResult(envelope) {
       const events = Array.isArray(envelope.events) ? envelope.events : [];
