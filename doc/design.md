@@ -993,9 +993,11 @@ currently loaded world. Through the World Editor they can:
 
 Edits do not affect the running world until an explicit `Publish` action.
 Publishing updates the live world while preserving unrelated inventories, task
-progress, and room-card ownership. Destructive changes (deleting rooms, exits, or
-props) require a single explicit confirmation; deleted rooms drop their orphaned
-room card stacks, and other live state is repaired lazily.
+progress, and room-card ownership. Deleting a room requires a single explicit
+confirmation; a deleted room drops its orphaned room card stacks. Surviving rooms
+are seed-only: once a room has been initialized, later definition edits to its
+props, initial cards, or environment do not overwrite its live state, which is
+repaired lazily.
 
 
 -------------------------------------------------------------------------------

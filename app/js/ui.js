@@ -90,6 +90,10 @@ function connectSocket() {
       if (envelope.room?.metadata?.note) toast(envelope.room.metadata.note);
     },
     onRoomEvent(envelope) {
+      if (envelope.event?.type === "shop.open") {
+        void openShop();
+        return;
+      }
       store.dispatch({ type: "room-event", event: envelope.event });
       if (["presence.enter", "presence.leave"].includes(envelope.event?.type)) {
         peeps.noteMove(envelope.event);
@@ -101,7 +105,18 @@ function connectSocket() {
     onSessionReplaced(envelope) { store.dispatch({ type: "session-replaced", message: envelope.message }); },
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
     onResult(envelope) {
-      store.dispatch({ type: "result", ok: envelope.ok, message: envelope.message, payload: envelope.payload, events: envelope.events, toast: envelope.toast, log: envelope.log });
+      const events = Array.isArray(envelope.events) ? envelope.events : [];
+      const shopOpen = events.some(event => event?.type === "shop.open");
+      store.dispatch({
+        type: "result",
+        ok: envelope.ok,
+        message: envelope.message,
+        payload: envelope.payload,
+        events: shopOpen ? events.filter(event => event?.type !== "shop.open") : events,
+        toast: envelope.toast,
+        log: envelope.log,
+      });
+      if (shopOpen) void openShop();
     },
   });
   socket.connect();
@@ -162,6 +177,13 @@ async function confirmCloseEditor() {
     "Discard",
   );
   if (accepted) closeEditor();
+  return accepted;
+}
+
+async function openShop() {
+  const state = store.getState();
+  if (state.views.main === "edit-room" && state.editor?.dirty && !(await confirmCloseEditor())) return;
+  store.dispatch({ type: "shop-open" });
 }
 
 async function openRoomEditor() {
@@ -352,8 +374,7 @@ async function handleAction(action) {
     }
     store.dispatch({ type: action.type });
   } else if (action.type === "open-shop") {
-    store.dispatch({ type: "close-view" });
-    store.dispatch({ type: "shop-open" });
+    await openShop();
   } else if (action.type === "shop-close") {
     store.dispatch({ type: "shop-close" });
   } else if (action.type === "buy-pack") {

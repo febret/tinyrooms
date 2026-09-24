@@ -40,14 +40,19 @@ class CommandRegistry:
         help: str = "",
         toast: bool = True,
         log: bool = True,
+        override: bool = False,
     ) -> None:
         """Register a named command with searchable metadata.
 
         ``toast`` and ``log`` control whether a successful command's generic
         acknowledgement message becomes a transient toast and/or a room activity
         log line. Purely user-facing commands that change nothing in the world
-        set both to ``False``.
+        set both to ``False``. Registering a name that already exists raises
+        unless ``override`` is set, so mods cannot silently shadow core commands.
         """
+
+        if name in self._commands and not override:
+            raise ValueError(f"Command '{name}' is already registered.")
 
         self._commands[name] = CommandSpec(
             name=name,

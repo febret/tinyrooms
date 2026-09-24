@@ -99,8 +99,10 @@ Create `server/services/world_editor.py` — `WorldEditorService(...)`:
   validation errors for the Card Database.
 - `publish(draft, *, confirm) -> PublishResult`:
   - Fail if `validate` reports errors.
-  - Require a single explicit confirmation when the draft removes rooms, exits,
-    or props. Report the affected room ids so the client can confirm once.
+  - Require a single explicit confirmation only when the draft deletes rooms.
+    Report the affected room ids so the client can confirm once. Surviving rooms
+    are seed-only, so removed exits/props are definition-only edits that need no
+    live-state confirmation.
   - Write all YAML files atomically: stage into a temp directory, back up the
     current files, then move the staged files into `worlds/<world>/` with
     `os.replace`. Record `revisions_path/<world_id>/<revision>/` containing the

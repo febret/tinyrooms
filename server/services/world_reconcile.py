@@ -2,9 +2,11 @@
 
 Publishing replaces definition files. Reconciliation is intentionally minimal:
 deleted rooms have their orphaned live rows removed, and newly defined or
-uninitialized rooms are seeded. Inventories, progress, ownership, and occupancy
-are not rewritten. A remembered room that no longer exists is coerced to the
-entry room lazily by the room service, so occupants need no eager repair.
+uninitialized rooms are seeded. Surviving rooms are seed-only: once a room has
+been initialized, later definition edits (props, seed cards, environment) do not
+overwrite its live state. Inventories, progress, ownership, and occupancy are not
+rewritten. A remembered room that no longer exists is coerced to the entry room
+lazily by the room service, so occupants need no eager repair.
 """
 
 from __future__ import annotations
@@ -54,8 +56,10 @@ def destructive_changes(
 ) -> list[DestructiveChange]:
     """Return the definition removals a publish would apply.
 
-    Deleted rooms are the only change with live-state consequences; removed
-    exits and props are reported so authors can confirm them before saving.
+    Only deleted rooms have live-state consequences: their orphaned card stacks
+    and state rows are dropped. Removed exits and props in surviving rooms are
+    definition-only edits; the editor treats surviving rooms as seed-only, so
+    they do not touch or require confirmation against live state.
     """
 
     changes: list[DestructiveChange] = []
@@ -67,25 +71,6 @@ def destructive_changes(
                 summary=f"Delete room '{old_world.rooms[room_id].label or room_id}'.",
             )
         )
-    for room_id in sorted(set(old_world.rooms) & set(new_world.rooms)):
-        old_room = old_world.rooms[room_id]
-        new_room = new_world.rooms[room_id]
-        for exit_id in sorted(set(old_room.exits) - set(new_room.exits)):
-            changes.append(
-                DestructiveChange(
-                    kind="removed_exit",
-                    room_id=room_id,
-                    summary=f"Remove exit '{exit_id}' from '{room_id}'.",
-                )
-            )
-        for instance_id in sorted(set(old_room.props) - set(new_room.props)):
-            changes.append(
-                DestructiveChange(
-                    kind="removed_prop",
-                    room_id=room_id,
-                    summary=f"Remove prop '{instance_id}' from '{room_id}'.",
-                )
-            )
     return changes
 
 

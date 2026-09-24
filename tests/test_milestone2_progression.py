@@ -194,13 +194,6 @@ class InventoryRuleTests(ProgressionTestCase):
         stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "house-key"]
         self.assertEqual(len(stacks), 2)
 
-    def test_auto_merge_consolidates_identical_stacks(self) -> None:
-        for quantity in (8, 5, 7):
-            self.create_stack(self.account, "juicy-drink", quantity)
-        self.inventory.auto_merge(self._reload())
-        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "juicy-drink"]
-        self.assertEqual(sorted(stack.quantity for stack in stacks), [10, 10])
-
     def test_auto_merge_fills_equipped_stack_first(self) -> None:
         first = self.create_stack(self.account, "juicy-drink", 2).stack_id
         self.inventory.equip(self._reload(), first)

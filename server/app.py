@@ -196,31 +196,40 @@ class RuntimeState:
         """
 
         async with self.mutation_lock:
-            old_world = self.world
-            bundle = load_world_bundle(self.config, self.loaded_mods, self.config.world_path)
-            self.ticker.stop()
-            rebuilt = _build_runtime(
-                self.config,
-                hub=self.hub,
-                loaded_mods=self.loaded_mods,
-                bundle=bundle,
-                connections=self.connections,
-                profiles=self.profiles,
-                world_state=self.world_state,
-            )
-            for runtime_field in fields(RuntimeState):
-                if runtime_field.name in {
-                    "config",
-                    "hub",
-                    "profiles",
-                    "world_state",
-                    "connections",
-                    "mutation_lock",
-                }:
-                    continue
-                setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
-            self.ticker.start()
-            await self._broadcast_world_reloaded(old_world)
+            await self._apply_world_reload()
+
+    async def _apply_world_reload(self) -> None:
+        """Rebuild the service graph and broadcast a reload.
+
+        Callers must already hold ``mutation_lock`` so a publish and its reload
+        are applied as one serialized critical section.
+        """
+
+        old_world = self.world
+        bundle = load_world_bundle(self.config, self.loaded_mods, self.config.world_path)
+        self.ticker.stop()
+        rebuilt = _build_runtime(
+            self.config,
+            hub=self.hub,
+            loaded_mods=self.loaded_mods,
+            bundle=bundle,
+            connections=self.connections,
+            profiles=self.profiles,
+            world_state=self.world_state,
+        )
+        for runtime_field in fields(RuntimeState):
+            if runtime_field.name in {
+                "config",
+                "hub",
+                "profiles",
+                "world_state",
+                "connections",
+                "mutation_lock",
+            }:
+                continue
+            setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
+        self.ticker.start()
+        await self._broadcast_world_reloaded(old_world)
 
     async def _broadcast_world_reloaded(self, old_world: WorldDefinition) -> None:
         event = {
@@ -1083,7 +1092,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     async def activity_index(activity_name: str, request: Request) -> Response:
         runtime = _get_runtime(request)
         for root in _activity_roots(runtime):
-            candidate = _safe_path(root / activity_name, "index.html")
+            candidate = _safe_path(root, f"{activity_name}/index.html")
             if candidate.is_file():
                 return FileResponse(candidate)
         return _render_fallback_activity(activity_name)
@@ -1100,7 +1109,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     async def activity_files(activity_name: str, requested_path: str, request: Request) -> Response:
         runtime = _get_runtime(request)
         for root in _activity_roots(runtime):
-            candidate = _safe_path(root / activity_name, requested_path)
+            candidate = _safe_path(root, f"{activity_name}/{requested_path}")
             if candidate.is_file():
                 media_type, _ = mimetypes.guess_type(candidate.name)
                 return FileResponse(candidate, media_type=media_type)
@@ -1117,7 +1126,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     @app.get("/assets/{cardset}/{filename}")
     async def cardset_asset(cardset: str, filename: str, request: Request) -> Response:
         runtime = _get_runtime(request)
-        candidate = _safe_path(runtime.config.cardsets_path / cardset, filename)
+        candidate = _safe_path(runtime.config.cardsets_path, f"{cardset}/{filename}")
         if candidate.is_file():
             return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Cardset asset not found.")
@@ -1126,7 +1135,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     async def propset_asset(propset: str, filename: str, request: Request) -> Response:
         runtime = _get_runtime(request)
         for root in _propset_roots(runtime):
-            candidate = _safe_path(root / propset, filename)
+            candidate = _safe_path(root, f"{propset}/{filename}")
             if candidate.is_file():
                 return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Propset asset not found.")
@@ -1147,7 +1156,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         runtime = _get_runtime(request)
         if world_id != runtime.world.id or bucket not in {"cards", "rooms", "props", "peeps"}:
             raise HTTPException(status_code=404, detail="World asset not found.")
-        candidate = _safe_path(runtime.world.root_path / bucket, filename)
+        candidate = _safe_path(runtime.world.root_path, f"{bucket}/{filename}")
         if candidate.is_file():
             return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="World asset not found.")

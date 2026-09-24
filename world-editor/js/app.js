@@ -64,11 +64,6 @@ function currentRoomId() {
   return Object.keys(store.state.draft?.rooms || {})[0] || null;
 }
 
-function currentInstance() {
-  const { selection, draft } = store.state;
-  return draft?.rooms?.[selection.id]?.props?.[selection.sub] || null;
-}
-
 function updateInstance(mutator, undoable = true) {
   const { selection } = store.state;
   store.update(draft => {
@@ -212,6 +207,7 @@ function handleChange(target) {
   if (dataset.roomId !== undefined) return renameRoom(target.value.trim());
   if (dataset.roomField !== undefined) return changeRoomField(dataset.roomField, target);
   if (dataset.roomEditorEnv !== undefined) return changeRoomEnvironment(dataset.roomEditorEnv, target.checked);
+  if (dataset.envKey !== undefined) return changeRoomEnvironment(dataset.envKey, target.checked, dataset.envRoom);
   if (dataset.cardField !== undefined) return changeCardField(dataset.cardField, target);
   if (dataset.exitField !== undefined) return changeExitField(dataset.exitField, target);
   if (dataset.instanceField !== undefined) return changeInstanceField(dataset.instanceField, target);
@@ -257,8 +253,7 @@ function changeRoomField(fieldName, target) {
   });
 }
 
-function changeRoomEnvironment(key, enabled) {
-  const roomId = store.state.selection.id;
+function changeRoomEnvironment(key, enabled, roomId = store.state.selection.id) {
   store.update(draft => {
     const room = draft.rooms?.[roomId];
     if (!room) return;
@@ -436,7 +431,6 @@ function handleClick(target) {
     const [roomId, exitId] = dataset.mapExit.split(":");
     return store.select({ kind: "exit", id: roomId, sub: exitId });
   }
-  if (dataset.envRoom !== undefined) return undefined;
   if (dataset.confirmPublish !== undefined) return confirmPublish();
   if (dataset.cancelPublish !== undefined) {
     pendingConfirm = null;
@@ -476,7 +470,7 @@ function deleteRoom(roomId) {
         if (exit.target === roomId) delete room.exits[exitId];
       }
     }
-    if (draft.world.entry_room === roomId) draft.world.entry_room = firstRoomId() || "";
+    if (draft.world.entry_room === roomId) draft.world.entry_room = Object.keys(draft.rooms)[0] || "";
   });
   store.select({ kind: "room", id: firstRoomId() });
 }

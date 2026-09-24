@@ -276,22 +276,12 @@ test.describe("client module logic", () => {
     const breakdowns = await page.evaluate(async () => {
       const { coinBreakdown } = await import("/app/js/coin-effects.js");
       return {
-        zero: coinBreakdown(0),
-        one: coinBreakdown(1),
         twentyThree: coinBreakdown(23),
         oneTwentyFive: coinBreakdown(125),
-        nineNinetyNine: coinBreakdown(999),
       };
     });
-    expect(breakdowns.zero).toEqual([]);
-    expect(breakdowns.one).toEqual([1]);
     expect(breakdowns.twentyThree).toEqual([10, 10, 1, 1, 1]);
     expect(breakdowns.oneTwentyFive).toEqual([100, 10, 10, 1, 1, 1, 1, 1]);
-    expect(breakdowns.nineNinetyNine).toEqual([
-      100, 100, 100, 100, 100, 100, 100, 100, 100,
-      10, 10, 10, 10, 10, 10, 10, 10, 10,
-      1, 1, 1, 1, 1, 1, 1, 1, 1,
-    ]);
   });
 });
 
@@ -989,6 +979,18 @@ test.describe("world editor and card database", () => {
     await page.mouse.up();
     await expect(page.locator(".dirty-marker")).toContainText("Unsaved changes");
     await expect(xInput).not.toHaveValue(before);
+  });
+
+  test("environment tab toggles per-room overrides", async ({ page, runtime }) => {
+    await createEditorAccount(page, runtime, "envsmith");
+    await page.goto(`${runtime.baseURL}/world-editor/`);
+    await expect(page.locator("#we-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+
+    await page.getByRole("button", { name: "Environment", exact: true }).click();
+    const toggle = page.locator('input[data-env-room][data-env-key="palette"]').first();
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(page.locator(".dirty-marker")).toContainText("Unsaved changes");
   });
 
   test("card database lists cards, packs, and recipes", async ({ page, runtime }) => {

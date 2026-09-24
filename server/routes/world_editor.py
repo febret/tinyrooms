@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
@@ -189,32 +190,34 @@ async def publish_draft(request: Request, payload: PublishPayload) -> JSONRespon
     session = require_session(runtime, request)
     enforce_authenticated_post(runtime, request, session)
     service = runtime.editor_service()
-    try:
-        result = service.publish(
-            payload.draft,
-            actor_account_id=session.account_id,
-            confirm=payload.confirm,
-        )
-    except PublishConfirmationRequired as exc:
-        return JSONResponse(
-            status_code=409,
-            content={
-                "ok": False,
-                "code": "confirmation_required",
-                "message": str(exc),
-                "rooms": exc.rooms,
-                "changes": [change.to_payload() for change in exc.changes],
-            },
-        )
-    except PublishValidationError as exc:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "code": "validation_failed", "errors": _issue_payloads(exc.errors)},
-        )
-    except DraftValidationError as exc:
-        return JSONResponse(
-            status_code=400,
-            content={"ok": False, "code": "draft_invalid", "errors": _issue_payloads(exc.issues)},
-        )
-    await runtime.reload_world()
+    async with runtime.mutation_lock:
+        try:
+            result = await run_in_threadpool(
+                service.publish,
+                payload.draft,
+                actor_account_id=session.account_id,
+                confirm=payload.confirm,
+            )
+        except PublishConfirmationRequired as exc:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "ok": False,
+                    "code": "confirmation_required",
+                    "message": str(exc),
+                    "rooms": exc.rooms,
+                    "changes": [change.to_payload() for change in exc.changes],
+                },
+            )
+        except PublishValidationError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "code": "validation_failed", "errors": _issue_payloads(exc.errors)},
+            )
+        except DraftValidationError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "code": "draft_invalid", "errors": _issue_payloads(exc.issues)},
+            )
+        await runtime._apply_world_reload()
     return JSONResponse(content={"ok": True, "result": result.to_payload()})

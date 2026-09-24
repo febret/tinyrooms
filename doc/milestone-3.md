@@ -152,8 +152,10 @@ Provide separate `/world-editor` and `/card-database` applications:
   reconciles live state.
 - Reconciliation preserves user inventories, progress, ownership, and unrelated
   live room cards. Deleted rooms require an explicit confirmation; their orphaned
-  room card stacks are then removed. Occupants and other live state are repaired
-  lazily rather than eagerly rewritten.
+  room card stacks are then removed. Surviving rooms are seed-only, so later edits
+  to an initialized room's props, initial cards, or environment do not overwrite
+  its live state. Occupants and other live state are repaired lazily rather than
+  eagerly rewritten.
 - Card Database lists shared/world definitions, artwork, source scope, type,
   rarity, generated details, packs, recipes, and reference/validation errors.
   It never edits inventory or grants cards.

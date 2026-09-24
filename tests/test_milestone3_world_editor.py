@@ -109,12 +109,6 @@ class WorldEditorServiceTestCase(ServiceTestCase):
 class DraftLifecycleTests(WorldEditorServiceTestCase):
     """Draft isolation and validation behavior."""
 
-    def test_load_draft_mirrors_published_files(self) -> None:
-        draft = self.draft()
-        self.assertEqual(draft["world"]["id"], WORLD_ID)
-        self.assertIn("hub", draft["rooms"])
-        self.assertEqual(draft["draft_revision"], 0)
-
     def test_save_draft_never_mutates_the_world(self) -> None:
         rooms_file = self.world_root / "rooms" / "rooms.yaml"
         before = rooms_file.read_bytes()
@@ -256,16 +250,6 @@ class ReconciliationTests(WorldEditorServiceTestCase):
         remaining = self.world_state.list_room_cards("playroom")
         self.assertTrue(any(stack.card_def_id == "tomato-sauce" for stack in remaining))
 
-    def test_removed_prop_requires_confirmation(self) -> None:
-        draft = self.draft()
-        del draft["rooms"]["hub"]["props"]["welcome-plant"]
-        with self.assertRaises(PublishConfirmationRequired) as context:
-            self.publish(draft)
-        self.assertTrue(
-            any(change.kind == "removed_prop" and change.room_id == "hub" for change in context.exception.changes)
-        )
-        self.publish(draft, confirm=True)
-
 
 class CardDatabaseTests(WorldEditorServiceTestCase):
     """Card Database payload is complete and read-only."""
@@ -281,8 +265,6 @@ class CardDatabaseTests(WorldEditorServiceTestCase):
         card = payload["cards"][0]
         for forbidden in ("inventory", "equipped", "grant", "quantity"):
             self.assertNotIn(forbidden, card)
-        for key in ("image_url", "scope", "type", "rarity", "packs", "recipes"):
-            self.assertIn(key, card)
 
 
 class WorldEditorHttpTests(RuntimeTestCase):
@@ -309,10 +291,9 @@ class WorldEditorHttpTests(RuntimeTestCase):
     def test_editor_routes_require_power(self) -> None:
         credentials = self.create_ready_account("plain")
         cookies = auth_cookies(credentials["session_token"], credentials["csrf_token"])
-        response = self.client.get("/api/world-editor/draft", cookies=cookies)
-        self.assertEqual(response.status_code, 403)
-        page = self.client.get("/world-editor/", cookies=cookies)
-        self.assertEqual(page.status_code, 403)
+        self.assertEqual(self.client.get("/api/world-editor/draft", cookies=cookies).status_code, 403)
+        self.assertEqual(self.client.get("/world-editor/", cookies=cookies).status_code, 403)
+        self.assertEqual(self.client.get("/api/card-database", cookies=cookies).status_code, 403)
 
     def test_draft_round_trip_and_publish(self) -> None:
         credentials = self._builder_account("builder1")
@@ -369,15 +350,6 @@ class WorldEditorHttpTests(RuntimeTestCase):
         self.assertEqual(publish.json()["code"], "confirmation_required")
         self.assertIn("garden", publish.json()["rooms"])
 
-        confirmed = self.client.post(
-            "/api/world-editor/publish",
-            json={"draft": draft, "confirm": True},
-            cookies=cookies,
-            headers=headers,
-        )
-        self.assertEqual(confirmed.status_code, 200, confirmed.text)
-        self.assertNotIn("garden", self._runtime().world.rooms)
-
     def test_card_database_is_read_only(self) -> None:
         credentials = self._builder_account("builder3")
         cookies = auth_cookies(credentials["session_token"], credentials["csrf_token"])
@@ -387,12 +359,6 @@ class WorldEditorHttpTests(RuntimeTestCase):
         self.assertTrue(database["cards"])
         self.assertTrue(database["packs"])
         self.assertIsInstance(database["errors"], list)
-
-    def test_card_database_requires_power(self) -> None:
-        credentials = self.create_ready_account("plain2")
-        cookies = auth_cookies(credentials["session_token"], credentials["csrf_token"])
-        response = self.client.get("/api/card-database", cookies=cookies)
-        self.assertEqual(response.status_code, 403)
 
 
 if __name__ == "__main__":

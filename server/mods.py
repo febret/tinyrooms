@@ -39,6 +39,7 @@ class ModDefinition:
     path: Path
     requires: tuple[str, ...] = ()
     entrypoint: str = "mod.py"
+    entrypoint_explicit: bool = False
 
     @property
     def activities_path(self) -> Path:
@@ -81,6 +82,8 @@ class ModAPI:
     ) -> None:
         """Register a ``.`` command contributed by the mod."""
 
+        if any(spec["name"] == name for spec in self._commands):
+            raise ValueError(f"Mod '{self.mod.id}' registers command '{name}' more than once.")
         self._commands.append(
             {
                 "name": name,
@@ -187,6 +190,7 @@ def _load_manifest(manifest: Path) -> ModDefinition:
         path=manifest.parent.resolve(),
         requires=tuple(requires),
         entrypoint=entrypoint,
+        entrypoint_explicit="entrypoint" in payload,
     )
 
 
@@ -204,18 +208,26 @@ def resolve_mods(config: AppConfig) -> tuple[ModDefinition, ...]:
     if missing:
         raise ConfigError(f"Unknown mod(s) {missing} in {config.mods_path}.")
     resolved: dict[str, ModDefinition] = {}
-    pending = list(selected)
-    while pending:
-        mod_id = pending.pop()
+    order: list[str] = []
+
+    def visit(mod_id: str, active: set[str]) -> None:
         if mod_id in resolved:
-            continue
+            return
+        if mod_id in active:
+            raise ConfigError(f"Mod dependency cycle detected at '{mod_id}'.")
         mod = available[mod_id]
-        resolved[mod_id] = mod
+        active.add(mod_id)
         for required in mod.requires:
             if required not in available:
                 raise ConfigError(f"Mod '{mod_id}' requires missing mod '{required}'.")
-            pending.append(required)
-    return tuple(resolved[mod_id] for mod_id in sorted(resolved))
+            visit(required, active)
+        active.discard(mod_id)
+        resolved[mod_id] = mod
+        order.append(mod_id)
+
+    for mod_id in sorted(selected):
+        visit(mod_id, set())
+    return tuple(resolved[mod_id] for mod_id in order)
 
 
 def load_mod_module(mod: ModDefinition) -> types.ModuleType:
@@ -258,11 +270,16 @@ def load_mods(config: AppConfig) -> LoadedMods:
     apis: list[ModAPI] = []
     for mod in definitions:
         api = ModAPI(mod)
-        if (mod.path / mod.entrypoint).is_file():
+        entrypoint = mod.path / mod.entrypoint
+        if entrypoint.is_file():
             module = load_mod_module(mod)
             register = getattr(module, "register", None)
             if register is not None:
                 register(api)
+        elif mod.entrypoint_explicit:
+            raise ConfigError(
+                f"Mod '{mod.id}' declares entrypoint '{mod.entrypoint}' but it does not exist."
+            )
         apis.append(api)
     return LoadedMods(
         definitions=definitions,

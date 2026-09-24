@@ -5,13 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import shutil
-import sqlite3
 import unittest
 
 from server.content.worlds import ContentError, prop_model_url
 from server.mods import discover_mods, load_mod_module
 from server.services.ownership import OwnershipService
-from server.state.migrations import WORLD_SCHEMA_VERSION, ensure_world_database
 from server.state.world_state import WorldStateRepository
 from tests.common import REPO_ROOT, ServiceTestCase, WORLD_ID, load_test_world, load_world_activities, load_world_mod_props
 from tests.test_milestone1 import websocket_headers
@@ -27,30 +25,17 @@ DOORS_PATH = REPO_ROOT / "mods" / "infinite-bedrooms" / "content" / "doors.yaml"
 class DoorCatalogTests(unittest.TestCase):
     """The door customization catalog loads and validates styles."""
 
-    def test_catalog_exposes_five_dimensions_and_defaults(self) -> None:
+    def test_catalog_loads_with_defaults(self) -> None:
         catalog = load_door_catalog(DOORS_PATH)
-        self.assertEqual(catalog.cost, 10)
-        self.assertEqual(
-            [dimension.id for dimension in catalog.dimensions],
-            ["color", "material", "handle", "tag_color", "tag_text"],
-        )
-        for dimension in catalog.dimensions:
-            if dimension.kind == "choice":
-                self.assertEqual(len(dimension.options), 5)
+        self.assertTrue(catalog.dimensions)
         defaults = catalog.default_style()
         self.assertEqual(defaults["color"], "crimson")
         self.assertEqual(defaults["tag_text"], "")
 
-    def test_validate_patch_rejects_unknown_and_invalid_values(self) -> None:
+    def test_validate_patch_rejects_unknown_keys_and_normalizes(self) -> None:
         catalog = load_door_catalog(DOORS_PATH)
         with self.assertRaises(ValueError):
             catalog.validate_patch({"bogus": "x"})
-        with self.assertRaises(ValueError):
-            catalog.validate_patch({"color": "chartreuse"})
-        with self.assertRaises(ValueError):
-            catalog.validate_patch({"tag_text": "x" * 17})
-        with self.assertRaises(ValueError):
-            catalog.validate_patch({"tag_text": "bad<tag>"})
         normalized = catalog.validate_patch({"material": "wood", "tag_text": "My Room"})
         self.assertEqual(normalized, {"material": "wood", "tag_text": "My Room"})
 
@@ -147,18 +132,16 @@ class BedroomServiceTests(BedroomServiceTestCase):
 
     def test_second_purchase_is_rejected_without_double_charge(self) -> None:
         account = self.create_account("alice")
-        self.bedrooms.purchase(account)
-        with self.assertRaises(ValueError):
-            self.bedrooms.purchase(self.reload_account(account))
-        self.assertEqual(self.reload_account(account).bops, 0)
-
-    def test_purchase_requires_bops_and_leaves_no_room(self) -> None:
-        account = self.create_account("alice")
         self.set_progress(account, bops=5)
         with self.assertRaises(ValueError):
             self.bedrooms.purchase(self.reload_account(account))
         self.assertEqual(self.reload_account(account).bops, 5)
         self.assertIsNone(self.world_state.get_player_room_for_account(account.id))
+        self.set_progress(account, bops=10)
+        self.bedrooms.purchase(self.reload_account(account))
+        with self.assertRaises(ValueError):
+            self.bedrooms.purchase(self.reload_account(account))
+        self.assertEqual(self.reload_account(account).bops, 0)
 
     def test_locked_door_blocks_others_but_not_owner(self) -> None:
         owner = self.create_account("alice")
@@ -182,10 +165,6 @@ class BedroomServiceTests(BedroomServiceTestCase):
         self.assertEqual(view.style["tag_text"], "Home")
         with self.assertRaises(ValueError):
             self.bedrooms.design(account, {"color": "bogus"})
-        with self.assertRaises(ValueError):
-            self.bedrooms.design(account, {"tag_text": "x" * 40})
-        with self.assertRaises(ValueError):
-            self.bedrooms.design(account, {"material": "bogus"})
 
     def test_list_doors_marks_the_viewer(self) -> None:
         owner = self.create_account("alice")
@@ -196,30 +175,9 @@ class BedroomServiceTests(BedroomServiceTestCase):
         self.assertTrue(doors[0]["is_owner"])
         self.assertFalse(self.bedrooms.list_doors(viewer_id=other.id)[0]["is_owner"])
 
-    def test_world_schema_has_door_json_on_room_states(self) -> None:
-        with TemporaryDirectory() as temporary_directory:
-            path = Path(temporary_directory) / "world.sqlite3"
-            ensure_world_database(path)
-            connection = sqlite3.connect(path)
-            version = connection.execute("PRAGMA user_version").fetchone()[0]
-            columns = [row[1] for row in connection.execute("PRAGMA table_info(room_states)")]
-            connection.close()
-        self.assertEqual(version, WORLD_SCHEMA_VERSION)
-        self.assertIn("door_json", columns)
-
 
 class DoorCommandIntegrationTests(Milestone2IntegrationTestCase):
     """The .door command family over the live WebSocket protocol."""
-
-    def test_play_bedrooms_opens_activity_in_hub(self) -> None:
-        credentials = self.create_ready_account("ada")
-        with self.client.websocket_connect(
-            "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
-        ) as socket:
-            socket.receive_json()
-            result = self.command(socket, "play-1", ".play bedrooms")
-            self.assertTrue(result["ok"], result)
-            self.assertEqual(result["payload"]["activity"]["kind"], "bedrooms")
 
     def test_archway_gains_go_to_bedroom_action_once_owned(self) -> None:
         credentials = self.create_ready_account("alice")

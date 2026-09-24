@@ -867,6 +867,15 @@ class MultiplayerGameplayTests(RuntimeTestCase):
         self.assertIn("text/css", shared_css.headers["content-type"])
         self.assertEqual(private_file.status_code, 404)
 
+    def test_asset_routes_reject_path_traversal(self) -> None:
+        for url in (
+            "/activities/%2e%2e/server/config.py",
+            "/activities/%2e%2e/.local/worldstate.sqlite3",
+            "/app/%2e%2e/server/config.py",
+        ):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 404, url)
+
 
 class PickupAutoEquipTests(RuntimeTestCase):
     """Picked-up cards occupy an equipped slot while the hand has space."""
