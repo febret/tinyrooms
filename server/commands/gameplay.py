@@ -266,10 +266,15 @@ async def sell_command(context: CommandContext, command: ParsedCommand) -> Comma
     return CommandOutcome(
         message=f"Sold {result.quantity}× {result.definition.label} for {result.bops_gained} Bops.",
         payload={
+            "sale": {
+                "card_id": result.definition.id,
+                "quantity": result.quantity,
+                "bops_gained": result.bops_gained,
+            },
             "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.stacks],
             "user": _user_payload(context),
         },
-        private_events=[{"type": "toast", "tone": "success", "text": f"+{result.bops_gained} Bops"}],
+        private_events=[{"type": "toast", "tone": "success", "text": f"+{result.bops_gained} Bops", "silent": True}],
     )
 
 

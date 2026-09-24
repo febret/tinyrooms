@@ -359,8 +359,8 @@ function normalizeRoom(room) {
   };
 }
 
-function toastRecord(message, tone = "info") {
-  return { id: crypto.randomUUID(), message: String(message || ""), tone };
+function toastRecord(message, tone = "info", silent = false) {
+  return { id: crypto.randomUUID(), message: String(message || ""), tone, silent: Boolean(silent) };
 }
 
 function applyBubble(peeps, key, label, text, style, imageUrl = "") {
@@ -461,7 +461,7 @@ function applyServerEvent(state, event) {
     };
   }
   if (event.type === "toast") {
-    return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(event.text, event.tone || "info")] } };
+    return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(event.text, event.tone || "info", event.silent)] } };
   }
   if (event.type === "action.log") {
     return state;

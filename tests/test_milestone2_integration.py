@@ -340,6 +340,14 @@ class SellIntegrationTests(Milestone2IntegrationTestCase):
             result = self.command(socket, "sell-1", f".sell @card:{stack_id} 1")
             self.assertTrue(result["ok"], result)
             self.assertEqual(result["payload"]["user"]["bops"], 6)
+            self.assertEqual(
+                result["payload"]["sale"],
+                {"card_id": "juicy-drink", "quantity": 1, "bops_gained": 1},
+            )
+            self.assertIn(
+                {"type": "toast", "tone": "success", "text": "+1 Bops", "silent": True},
+                result["events"],
+            )
             sold = next(stack for stack in result["payload"]["inventory"] if stack["stack_id"] == stack_id)
             self.assertEqual(sold["quantity"], 1)
             self.assertEqual(sold["definition"]["sell_price"], 1)

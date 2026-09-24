@@ -186,6 +186,20 @@
 .card-flight, .card-drag-ghost { position: fixed; border-radius: 6px; pointer-events: none; object-fit: cover; }
 .card-flight { box-shadow: 0 8px 18px #0008; will-change: transform, opacity; }
 .card-drag-ghost { transform: translate(-50%, -50%); box-shadow: 0 10px 22px #0009; opacity: .92; }
+.coin-motion-layer { position: fixed; inset: 0; z-index: 96; pointer-events: none; }
+.coin {
+  position: fixed; left: 0; top: 0;
+  display: grid; place-items: center;
+  border-radius: 50%; border: 2px solid #b9821f;
+  background: radial-gradient(circle at 34% 30%, #fff3b0 0%, #ffd75e 34%, #e8a92c 68%, #a96f13 100%);
+  color: #6b4708; font-weight: 800; line-height: 1;
+  text-shadow: 0 1px 0 #fff4b8;
+  box-shadow: 0 3px 6px #0006, inset 0 0 0 2px #ffe487, inset 0 -3px 5px #b9821f88;
+  will-change: transform, opacity;
+}
+.coin-1 { width: 32px; height: 32px; font-size: 9px; border-width: 2px; }
+.coin-10 { width: 64px; height: 64px; font-size: 11px; border-width: 5px; box-shadow: 0 4px 8px #0007, inset 0 0 0 3px #ffe487, inset 0 0 0 5px #b9821f88, inset 0 -4px 6px #a96f13aa; }
+.coin-100 { width: 92px; height: 92px; font-size: 14px; border-width: 8px; box-shadow: 0 5px 10px #0008, inset 0 0 0 4px #ffe487, inset 0 0 0 7px #b9821f88, inset 0 -5px 8px #a96f13aa; }
 body.card-dragging { cursor: grabbing; user-select: none; }
 body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {

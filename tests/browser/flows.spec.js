@@ -269,6 +269,29 @@ test.describe("client module logic", () => {
     expect(summary.store.dirty).toBe(true);
     expect(summary.store.closed).toBeNull();
   });
+
+  test("coin effects break Bops into 100/10/1 denominations", async ({ page, runtime }) => {
+    await page.goto(runtime.baseURL);
+    const breakdowns = await page.evaluate(async () => {
+      const { coinBreakdown } = await import("/app/js/coin-effects.js");
+      return {
+        zero: coinBreakdown(0),
+        one: coinBreakdown(1),
+        twentyThree: coinBreakdown(23),
+        oneTwentyFive: coinBreakdown(125),
+        nineNinetyNine: coinBreakdown(999),
+      };
+    });
+    expect(breakdowns.zero).toEqual([]);
+    expect(breakdowns.one).toEqual([1]);
+    expect(breakdowns.twentyThree).toEqual([10, 10, 1, 1, 1]);
+    expect(breakdowns.oneTwentyFive).toEqual([100, 10, 10, 1, 1, 1, 1, 1]);
+    expect(breakdowns.nineNinetyNine).toEqual([
+      100, 100, 100, 100, 100, 100, 100, 100, 100,
+      10, 10, 10, 10, 10, 10, 10, 10, 10,
+      1, 1, 1, 1, 1, 1, 1, 1, 1,
+    ]);
+  });
 });
 
 test.describe("core milestone 2 views", () => {
@@ -411,6 +434,7 @@ test.describe("milestone 2 activities and targeting", () => {
     await panel.getByRole("button", { name: "Smile", exact: true }).click();
     await page.locator("#actions-bar").getByRole("button", { name: /^Sell 1/ }).click();
     await page.locator(".global-dialog").getByRole("button", { name: "Sell", exact: true }).click();
+    await expect(page.locator(".coin-motion-layer")).toHaveAttribute("data-last-coins", "1");
     await expect.poll(async () => (await bootstrap(page)).user.bops).toBe(11);
   });
 

@@ -3,6 +3,7 @@ import { createActivityManager } from "./activities.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, describeSelection, dialogActions, selectionActions } from "./cards.js";
+import { flyCoinReward } from "./coin-effects.js";
 import {
   COMMANDS,
   buildEmoteCommand,
@@ -317,8 +318,8 @@ function renderLook(state) {
 
 async function handleAction(action) {
   if (!action) return;
-  playTone("tap");
   if (action.local) action = action.local;
+  if (action.type !== "sell") playTone("tap");
   if (action.command) {
     try {
       cardMotion.animatePickupCommand(action.command);
@@ -427,7 +428,23 @@ async function handleAction(action) {
       "Sell",
     );
     if (!accepted) return;
-    try { await sendCommand(buildSellCommand(action.stackId, quantity)); } catch (error) { showError(error); }
+    const sourceTile = document.querySelector(`#panel-layer [data-stack-id="${CSS.escape(action.stackId)}"]`);
+    const from = sourceTile ? sourceTile.getBoundingClientRect() : null;
+    try {
+      const envelope = await sendCommand(buildSellCommand(action.stackId, quantity));
+      const gained = Number(envelope?.payload?.sale?.bops_gained || 0);
+      if (gained > 0) {
+        const target = document.querySelector("#peeps-panel .peep-chip.self .peep-marker")
+          || document.querySelector("#peeps-panel .peep-chip.self");
+        playTone("coin");
+        flyCoinReward({
+          from: from || { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+          to: target,
+          bops: gained,
+          reducedMotion: store.getState().ui.reducedMotion,
+        });
+      }
+    } catch (error) { showError(error); }
   } else if (action.type === "swap-sticker") {
     await openStickerSwap();
   } else if (action.type === "quantity") {
@@ -702,7 +719,7 @@ function renderToasts(state) {
   for (const item of state.ui.toasts) {
     if (timedToasts.has(item.id)) continue;
     timedToasts.add(item.id);
-    playTone(item.tone === "error" ? "error" : item.tone === "success" ? "success" : "tap");
+    if (!item.silent) playTone(item.tone === "error" ? "error" : item.tone === "success" ? "success" : "tap");
     setTimeout(() => {
       timedToasts.delete(item.id);
       store.dispatch({ type: "dismiss-toast", id: item.id });
