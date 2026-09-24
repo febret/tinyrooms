@@ -126,7 +126,7 @@ h3 { font-size: 18px; }
 }
 .board-overlay:empty { display: none; }
 .panel-layer, .detail-layer, .activity-layer { position: absolute; inset: 0 0 var(--tray-height); pointer-events: none; }
-.activity-layer { z-index: 20; }
+.activity-layer { z-index: 36; }
 .panel-layer { z-index: 30; }
 .detail-layer { z-index: 35; }
 .panel-layer:not(:empty), .detail-layer:not(:empty) { pointer-events: auto; }

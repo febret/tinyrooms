@@ -1,7 +1,7 @@
 .activity-layer {
   position: absolute;
   inset: 0 0 var(--tray-height, 0px);
-  z-index: 20;
+  z-index: 36;
   isolation: isolate;
   pointer-events: none;
 }

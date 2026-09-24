@@ -839,7 +839,7 @@ async function render(state) {
   root.classList.toggle("targeting", Boolean(state.ui.targeting));
   $("#board-canvas").inert = !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details);
   panelLayer.inert = Boolean(state.views.details);
-  activityLayer.inert = Boolean(state.views.main || state.views.details);
+  activityLayer.inert = false;
   $(".bottom-stack").inert = !state.loggedIn || !state.user?.initialStickerComplete;
   settings.inert = !state.loggedIn || !state.user?.initialStickerComplete;
   peeps.render(state);
