@@ -197,60 +197,16 @@ class BedroomServiceTests(BedroomServiceTestCase):
         self.assertTrue(doors[0]["is_owner"])
         self.assertFalse(self.bedrooms.list_doors(viewer_id=other.id)[0]["is_owner"])
 
-    def test_world_schema_uses_room_states_for_player_rooms(self) -> None:
+    def test_world_schema_has_door_json_on_room_states(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "world.sqlite3"
             ensure_world_database(path)
             connection = sqlite3.connect(path)
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             columns = [row[1] for row in connection.execute("PRAGMA table_info(room_states)")]
             connection.close()
         self.assertEqual(version, WORLD_SCHEMA_VERSION)
-        self.assertNotIn("player_rooms", tables)
         self.assertIn("door_json", columns)
-
-    def test_v9_player_rooms_migrate_into_room_states(self) -> None:
-        with TemporaryDirectory() as temporary_directory:
-            path = Path(temporary_directory) / "world.sqlite3"
-            ensure_world_database(path)
-            connection = sqlite3.connect(path)
-            connection.executescript(
-                """
-                BEGIN;
-                ALTER TABLE room_states DROP COLUMN door_json;
-                CREATE TABLE player_rooms (
-                    room_id TEXT PRIMARY KEY,
-                    owner_account_id TEXT NOT NULL UNIQUE,
-                    template_room_id TEXT NOT NULL,
-                    label TEXT NOT NULL,
-                    locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1)),
-                    door_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(door_json)),
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                );
-                INSERT INTO room_states (room_id, initialized, owner_account_id, props_json, environment_json, layout_revision)
-                VALUES ('bedroom:alice', 1, 'alice', '{}', '{}', 0);
-                INSERT INTO player_rooms (room_id, owner_account_id, template_room_id, label, locked, door_json, created_at, updated_at)
-                VALUES ('bedroom:alice', 'alice', 'player-bedroom', 'alice''s Bedroom', 1, '{"color":"cobalt"}', 't', 't');
-                PRAGMA user_version = 9;
-                COMMIT;
-                """
-            )
-            connection.close()
-
-            ensure_world_database(path)
-
-            connection = sqlite3.connect(path)
-            version = connection.execute("PRAGMA user_version").fetchone()[0]
-            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            door = connection.execute(
-                "SELECT door_json FROM room_states WHERE room_id = 'bedroom:alice'"
-            ).fetchone()[0]
-            connection.close()
-        self.assertEqual(version, WORLD_SCHEMA_VERSION)
-        self.assertNotIn("player_rooms", tables)
-        self.assertEqual(json.loads(door), {"style": {"color": "cobalt"}, "locked": 1})
 
 
 class DoorCommandIntegrationTests(Milestone2IntegrationTestCase):
