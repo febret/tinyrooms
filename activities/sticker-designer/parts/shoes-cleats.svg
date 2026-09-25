@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M76 204 C76 199 82 196 89 196 L97 196 C104 196 108 200 109 206 L110 211 L76 211 Z" fill="{{shoes}}"/>
+    <path d="M124 204 C124 199 118 196 111 196 L103 196 C96 196 92 200 91 206 L90 211 L124 211 Z" fill="{{shoes}}"/>
+    <path d="M76 208 L110 208 L110 212 L76 212 Z" fill="{{shoesDark}}"/>
+    <path d="M124 208 L90 208 L90 212 L124 212 Z" fill="{{shoesDark}}"/>
+    <path d="M82 199 L96 199 M104 199 L118 199" fill="none" stroke="{{shoesDark}}"/>
+    <path d="M80 212 L80 217 M92 212 L92 217 M104 212 L104 217 M116 212 L116 217" fill="none" stroke="{{shoesDark}}" stroke-width="2.4"/>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="2.8" stroke-linejoin="round">
+    <path d="M62 96 C58 116 62 134 78 142 C86 146 114 146 122 142 C138 134 142 116 138 96 C134 108 130 114 124 116 C122 128 112 134 100 134 C88 134 78 128 76 116 C70 114 66 108 62 96 Z" fill="{{face}}"/>
+    <path d="M88 112 C92 110 108 110 112 112" fill="none" stroke="{{face}}" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

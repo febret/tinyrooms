@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M88 126 L88 150 L112 150 L112 126 Z" fill="{{skin}}"/>
+    <path d="M68 128 C64 98 80 78 100 78 C120 78 136 98 132 128 C126 114 114 106 100 106 C86 106 74 114 68 128 Z" fill="{{shirt}}"/>
+    <path d="M100 24 C62 24 48 56 48 86 C48 118 70 140 100 140 C130 140 152 118 152 86 C152 56 138 24 100 24 Z" fill="{{skin}}"/>
+    <rect x="54" y="150" width="18" height="46" rx="8" fill="{{shirt}}"/>
+    <rect x="128" y="150" width="18" height="46" rx="8" fill="{{shirt}}"/>
+    <circle cx="63" cy="196" r="9" fill="{{skin}}"/>
+    <circle cx="137" cy="196" r="9" fill="{{skin}}"/>
+    <rect x="82" y="192" width="17" height="24" rx="6" fill="{{pants}}"/>
+    <rect x="101" y="192" width="17" height="24" rx="6" fill="{{pants}}"/>
+    <path d="M72 142 C72 136 84 132 100 132 C116 132 128 136 128 142 L132 200 C132 206 116 210 100 210 C84 210 68 206 68 200 Z" fill="{{shirt}}"/>
+    <path d="M100 132 L100 208" fill="none" stroke="{{shirtDark}}" stroke-width="2.4"/>
+    <circle cx="94" cy="156" r="3" fill="{{accentDark}}"/>
+    <circle cx="94" cy="176" r="3" fill="{{accentDark}}"/>
+    <circle cx="94" cy="196" r="3" fill="{{accentDark}}"/>
+    <rect x="70" y="184" width="60" height="10" fill="{{accent}}"/>
+  </g>
+</svg>

@@ -244,7 +244,8 @@ labels); the client only adds local view shortcuts such as
    `Escape` cannot dismiss, no WS is opened yet.
 2. Preset choices come from `GET /api/stickers`, never hardcoded. The
    `Design your own` mode composes original SVG parts (`activities/sticker-designer/parts/`)
-   on a canvas and exports a PNG plus a JSON `design` recipe.
+   — body, hair, shoes, back accessory, eyes, mouth, and face decorations — on a
+   canvas and exports a PNG plus a JSON `design` recipe.
 3. Interruption: every login re-ensures the designer; `/ws` closes `4403`
    until confirmed.
 4. Confirm: guest `postMessage sticker.confirm` → host

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round">
+    <path d="M70 96 C74 86 90 86 94 96 C90 106 74 106 70 96 Z" fill="{{face}}"/>
+    <path d="M106 96 C110 86 126 86 130 96 C126 106 110 106 106 96 Z" fill="{{face}}"/>
+    <ellipse cx="82" cy="96" rx="2" ry="6.5" fill="#241a12" stroke="none"/>
+    <ellipse cx="118" cy="96" rx="2" ry="6.5" fill="#241a12" stroke="none"/>
+  </g>
+</svg>

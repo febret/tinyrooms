@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M74 134 C54 116 36 118 28 134 C40 146 60 150 74 146 Z" fill="{{accent}}"/>
+    <path d="M72 148 C52 142 36 150 34 166 C48 174 66 170 74 160 Z" fill="{{accentDark}}"/>
+    <path d="M126 134 C146 116 164 118 172 134 C160 146 140 150 126 146 Z" fill="{{accent}}"/>
+    <path d="M128 148 C148 142 164 150 166 166 C152 174 134 170 126 160 Z" fill="{{accentDark}}"/>
+    <path d="M60 138 L40 128 M60 156 L44 160 M140 138 L160 128 M140 156 L156 160" fill="none" stroke="{{accentDark}}"/>
+  </g>
+</svg>

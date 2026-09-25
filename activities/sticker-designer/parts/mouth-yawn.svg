@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3">
+    <ellipse cx="100" cy="123" rx="12" ry="15" fill="#241a12"/>
+    <path d="M92 134 C96 140 104 140 108 134 Z" fill="{{face}}"/>
+  </g>
+</svg>

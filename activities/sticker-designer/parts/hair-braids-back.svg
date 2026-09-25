@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M58 118 C50 104 46 86 50 70 C58 48 80 34 100 34 C122 34 144 50 150 74 C152 90 150 104 142 118 L132 104 C138 94 140 82 136 72 C130 56 116 48 100 48 C84 48 70 56 64 72 C60 82 62 94 68 104 Z" fill="{{hair}}"/>
+    <path d="M52 106 C46 128 46 154 52 176 L66 170 C62 150 62 128 64 110 Z" fill="{{hair}}"/>
+    <path d="M148 106 C154 128 154 154 148 176 L134 170 C138 150 138 128 136 110 Z" fill="{{hair}}"/>
+    <path d="M54 120 L64 126 M54 138 L64 144 M54 156 L64 162 M146 120 L136 126 M146 138 L136 144 M146 156 L136 162" fill="none" stroke="{{hairDark}}"/>
+  </g>
+</svg>

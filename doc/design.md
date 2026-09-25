@@ -98,10 +98,10 @@ Once the user chooses valid credentials, they are taken to the
 peep is displayed in game (in the Peeps List left sidebar). It has two modes:
 `Preset stickers`, which offers the pre-built stickers in `data/stickers`, and
 `Design your own`, a layered editor where the user combines a sticker body, hair,
-shoes, a back accessory, and face decorations, each drawn from an original
-vector part set, with a palette (and optional custom color) per element. Custom
-designs are rendered to an image, stored per account, and can be re-opened from
-the editor later.
+shoes, a back accessory, eyes, a mouth, and face decorations, each drawn from an
+original vector part set, with a palette (and optional custom color) per element.
+Custom designs are rendered to an image, stored per account, and can be
+re-opened from the editor later.
 
 Choosing the first sticker during account creation is free.
 Once valid credentials are created, the account is retained even if sticker

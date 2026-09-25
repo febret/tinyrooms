@@ -18,6 +18,8 @@ DESIGN = {
     "shoes": "shoes-sneakers",
     "back": "back-none",
     "face": "face-none",
+    "eyes": "eyes-dots",
+    "mouth": "mouth-smile",
     "colors": {
         "skin": "#fbe9d7",
         "skinDark": "#e4c6a8",

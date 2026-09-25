@@ -30,7 +30,7 @@ _PART_ID_PATTERN = re.compile(r"^[a-z0-9_-]{1,40}$")
 _COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 _DESIGN_VERSION = 1
-_PART_SLOTS = ("body", "hair", "shoes", "back", "face")
+_PART_SLOTS = ("body", "hair", "shoes", "back", "face", "eyes", "mouth")
 _COLOR_SLOTS = (
     "skin",
     "skinDark",
