@@ -135,15 +135,20 @@ class RoomService:
         action: QuickAction,
     ) -> dict[str, object] | None:
         command = action.command
+        is_default = action.default
         if command.startswith(".go "):
             remainder = command[4:].strip()
             if remainder in room.exits:
                 command = self._exit_command(remainder)
+                is_default = True
         if command.split(maxsplit=1)[0] not in self._allowed_verbs:
             return None
         if not self._action_enabled(room.id, command):
             return None
-        return {"label": action.label, "command": command}
+        normalized: dict[str, object] = {"label": action.label, "command": command}
+        if is_default:
+            normalized["default"] = True
+        return normalized
 
     def _visible_exits(self, room: RoomDefinition) -> list[ExitDefinition]:
         if self._environment is None:

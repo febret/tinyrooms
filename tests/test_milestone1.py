@@ -263,6 +263,15 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertIsNone(world.props["plant"].animation)
         self.assertIsNone(world.rooms["hub"].props["welcome-plant"].animation)
 
+    def test_quick_action_default_flag_loader(self) -> None:
+        from server.content.worlds import _load_actions
+
+        actions = _load_actions([["Go across", ".go exit0"], ["Chat", ".talk molly", True]])
+        self.assertFalse(actions[0].default)
+        self.assertTrue(actions[1].default)
+        with self.assertRaises(ContentError):
+            _load_actions([["Go across", ".go exit0", "yes"]])
+
     def test_props_config_scale_adjust_multiplies_file_scale(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             target = Path(temporary_directory) / "tutorial"
@@ -568,6 +577,12 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             self.assertEqual(room["id"], "hub")
             portal = next(entry for entry in room["props"] if entry["id"] == "portal0")
             self.assertEqual(portal["animation"], "auto")
+            portal_action = next(action for action in portal["quick_actions"] if action["label"] == "Go across")
+            self.assertEqual(portal_action["command"], ".go @way:exit0")
+            self.assertIs(portal_action["default"], True)
+            archway = next(entry for entry in room["props"] if entry["id"] == "archway0")
+            archway_action = next(action for action in archway["quick_actions"] if action["label"] == "Enter the Bedrooms")
+            self.assertNotIn("default", archway_action)
             plant = next(entry for entry in room["props"] if entry["id"] == "welcome-plant")
             self.assertIsNone(plant["animation"])
 

@@ -305,6 +305,10 @@ export function selectionActions(state) {
   return [];
 }
 
+export function defaultSelectionAction(state) {
+  return selectionActions(state).find(action => action.default === true) || null;
+}
+
 function inventoryStackActions(stack) {
   const definition = stack.definition || {};
   const actions = [];

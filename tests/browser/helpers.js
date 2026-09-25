@@ -153,6 +153,20 @@ export async function selectFirstProp(page) {
   return false;
 }
 
+// Click across the floor until the prop with the given label is selected; returns its point.
+export async function findPropByLabel(page, label) {
+  const box = await page.locator("#board-canvas").boundingBox();
+  for (let fy = 0.05; fy <= 0.95; fy += 0.05) {
+    for (let fx = 0.05; fx <= 0.95; fx += 0.05) {
+      const point = { x: box.x + box.width * fx, y: box.y + box.height * fy };
+      await page.mouse.click(point.x, point.y);
+      const name = await page.locator("#look-bar .look-name").textContent();
+      if (name?.trim() === label) return point;
+    }
+  }
+  throw new Error(`Could not find prop "${label}" on the board.`);
+}
+
 export async function travel(page, exit = "exit0", label = "The Playroom") {
   await command(page, `.go @way:${exit}`);
   await expect(page.locator("#look-bar")).toContainText(label);

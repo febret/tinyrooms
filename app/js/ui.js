@@ -2,7 +2,7 @@ import { createApiClient } from "./api.js";
 import { createActivityManager } from "./activities.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
-import { createCardsView, describeSelection, dialogActions, selectionActions } from "./cards.js";
+import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import { flyCoinReward } from "./coin-effects.js";
 import {
   COMMANDS,
@@ -914,6 +914,19 @@ function renderFeedback(state) {
   }
 }
 
+// Clicking an already-selected entity fires its default quick action, if any.
+function activateSelection(selection) {
+  const state = store.getState();
+  const same = selection.kind !== "none"
+    && state.selection.kind === selection.kind
+    && state.selection.id === selection.id;
+  if (!same) return false;
+  const action = defaultSelectionAction(state);
+  if (!action) return false;
+  void handleAction(action);
+  return true;
+}
+
 const peeps = createPeepsView({
   panel: $("#peeps-panel"), bubbleLayer: $("#bubble-layer"),
   onSelect: selection => {
@@ -924,6 +937,7 @@ const peeps = createPeepsView({
       void sendCommand(`.use @card:${stackId} @peep:${selection.id}`).catch(showError);
       return;
     }
+    if (activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
   },
   onDismiss: id => store.dispatch({ type: "dismiss-bubble", id }),
@@ -935,6 +949,7 @@ const board = createBoard({
   onSelect(selection) {
     const state = store.getState();
     if (state.views.main || state.views.details || state.ui.targeting || dialogs.active || !state.user?.initialStickerComplete) return;
+    if (activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
     playTone("flip");
   },
@@ -947,6 +962,7 @@ const board = createBoard({
 const cards = createCardsView({
   handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"), shopRoot,
   onSelect(selection) {
+    if (activateSelection(selection)) return;
     const detailsOpen = Boolean(store.getState().views.details);
     store.dispatch({ type: "select", selection });
     // While the card view is open, clicking another card retargets it instead of

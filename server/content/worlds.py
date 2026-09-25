@@ -21,6 +21,7 @@ from server.game.modifiers import MODIFIER_TARGETS
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
 EDITOR_ENVIRONMENT_KEYS = frozenset({"palette", "board_image_style"})
+PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 DEFAULT_PROP_PRICE = 5
 FREE_PROPSET_SOURCES = frozenset({"base"})
@@ -32,6 +33,7 @@ class QuickAction:
 
     label: str
     command: str
+    default: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -310,12 +312,15 @@ def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
         raise ContentError("Actions must be a list.")
     actions: list[QuickAction] = []
     for entry in raw_value:
-        if not isinstance(entry, list) or len(entry) != 2:
-            raise ContentError("Each action must be a [label, command] pair.")
-        label, command = entry
+        if not isinstance(entry, list) or len(entry) not in (2, 3):
+            raise ContentError("Each action must be a [label, command] or [label, command, default] list.")
+        label, command = entry[0], entry[1]
         if not isinstance(label, str) or not isinstance(command, str):
             raise ContentError("Action label and command must be strings.")
-        actions.append(QuickAction(label=label.strip(), command=command.strip()))
+        is_default = entry[2] if len(entry) == 3 else False
+        if not isinstance(is_default, bool):
+            raise ContentError("Action default flag must be a boolean.")
+        actions.append(QuickAction(label=label.strip(), command=command.strip(), default=is_default))
     return tuple(actions)
 
 
@@ -427,12 +432,28 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
     return DialogDefinition(start_node_id="start", nodes=nodes)
 
 
+def _load_props_scale_adjust(raw_config: Any, path: Path) -> float:
+    """Read the reserved CONFIG block's optional file-wide scale multiplier."""
+
+    if raw_config is None:
+        return 1.0
+    if not isinstance(raw_config, dict):
+        raise ContentError(f"{path} CONFIG must be a mapping.")
+    raw_adjust = raw_config.get("scale_adjust", 1.0)
+    if isinstance(raw_adjust, bool) or not isinstance(raw_adjust, (int, float)) or float(raw_adjust) <= 0:
+        raise ContentError(f"{path} CONFIG scale_adjust has an invalid value {raw_adjust!r}.")
+    return float(raw_adjust)
+
+
 def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -> dict[str, PropDefinition]:
     """Load prop definitions from one props.yaml, resolving models beside it."""
 
     props_payload = require_mapping(load_yaml_file(path), path)
+    scale_adjust = _load_props_scale_adjust(props_payload.get(PROPS_CONFIG_KEY), path)
     props: dict[str, PropDefinition] = {}
     for prop_id, raw_prop in props_payload.items():
+        if prop_id == PROPS_CONFIG_KEY:
+            continue
         if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
             raise ContentError(f"{path} contains an invalid prop entry.")
         model_name = str(raw_prop.get("model", "")).strip()
@@ -444,7 +465,7 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
         raw_scale = raw_prop.get("scale", 1.0)
         if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
             raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
-        scale = float(raw_scale)
+        scale = float(raw_scale) * scale_adjust
         decorative = bool(raw_prop.get("decorative", False))
         editable = bool(raw_prop.get("editable", False))
         if editable and not decorative:

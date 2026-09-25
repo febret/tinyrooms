@@ -1,6 +1,11 @@
 # Prop definitions.
 # scale: base model scale from model units into world units. The room instance
 #        `scale` in rooms.yaml multiplies this value.
+# CONFIG: reserved key for file-wide settings (never loaded as a prop).
+#         `scale_adjust` multiplies every prop's `scale` in this file.
+#         Example:
+#         CONFIG:
+#           scale_adjust: 1.0
 portal:
   label: A Glowing Portal
   description: A familiar doorway, shimmering with possibilities.

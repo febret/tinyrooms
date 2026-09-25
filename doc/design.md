@@ -373,6 +373,13 @@ above the Look Bar.
 It is also possible to select Props (i.e. 3D objects placed in the room). 
 A selected prop's 3D model is displayed (slowly spinning) above the Look Bar.
 
+Selecting an already-selected peep, prop or card immediately performs that entity's
+*default quick action*, if it has one. A quick action is the default when it is
+authored with `default: true`, or when it is a `.go` action pointing at one of the
+room's exits. This makes exit props such as the Hub portal usable with a double
+click: the first click selects the portal and shows its `Go across` action, and the
+second click takes the exit.
+
 
 #### Prop Details View
 ![Prop Details](./images/prop-details.png)

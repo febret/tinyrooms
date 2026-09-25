@@ -17,7 +17,7 @@ function normalizeQuickActions(actions) {
   return Array.isArray(actions)
     ? actions
         .filter(action => action && typeof action.command === "string" && typeof action.label === "string")
-        .map(action => ({ label: action.label, command: action.command }))
+        .map(action => (action.default ? { label: action.label, command: action.command, default: true } : { label: action.label, command: action.command }))
     : [];
 }
 

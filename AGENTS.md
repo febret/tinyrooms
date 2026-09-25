@@ -140,6 +140,7 @@ Browser harness settings (from `playwright.config.js`):
 - **Invitation-gated accounts**: `TRSERVER_NEW_ACCOUNT_PASSPHRASE` controls who can register. Changing it after accounts exist has no effect on existing users.
 - **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, etc.). Never ship enabled-by-default dev features to production.
 - **Hot-reload disabled in prod**: A separate production launch path (not yet implemented) would use a different certificate and disable self-signed cert generation.
+- **Modern browser floor**: The client is ES modules plus ES2020 syntax and an import map (Chrome/Edge 89+, Samsung Internet 15+, Firefox 108+, Safari 16.4+). `app/js/boot-guard.js` is a plain ES5 classic script that runs before the module entry; on unsupported engines it renders a diagnostic overlay (engine/JS capability/error details) instead of a blank page. Keep it ES5-only — `tests/test_ui_presentation.py` rejects modern syntax in that file.
 
 ## Modifying World Content
 

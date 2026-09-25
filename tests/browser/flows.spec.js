@@ -177,7 +177,7 @@ test.describe("client module logic", () => {
   test("card and editor modules expose expected actions and store transitions", async ({ page, runtime }) => {
     await page.goto(runtime.baseURL);
     const summary = await page.evaluate(async () => {
-      const { selectionActions } = await import("/app/js/cards.js");
+      const { defaultSelectionAction, selectionActions } = await import("/app/js/cards.js");
       const { editRoomView } = await import("/app/js/views/edit-room-view.js");
       const { normalizeEditorView, editorReducer, selectedInstance } = await import("/app/js/editing/edit-reducer.js");
 
@@ -228,6 +228,20 @@ test.describe("client module logic", () => {
         selection: { kind: "prop", id: "portal0" },
         views: {}, user: {},
       });
+      const defaultProp = {
+        id: "portal1", label: "Portal", description: "", modelUrl: "", scale: 1,
+        quickActions: [{ label: "Go across", command: ".go @way:exit0", default: true }],
+      };
+      const defaultAction = defaultSelectionAction({
+        room: { props: [defaultProp], roomCards: [], inventory: [] },
+        selection: { kind: "prop", id: "portal1" },
+        views: {}, user: {},
+      });
+      const noDefaultAction = defaultSelectionAction({
+        room: { props: [prop], roomCards: [], inventory: [] },
+        selection: { kind: "prop", id: "portal0" },
+        views: {}, user: {},
+      });
       const skillActions = selectionActions({
         room: { props: [], roomCards: [], inventory: [skill] },
         selection: { kind: "inventory-card", id: "inv:skill" },
@@ -268,6 +282,8 @@ test.describe("client module logic", () => {
           editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Prop Shop"),
         },
         prop: propActions.find(action => action.label === "Inspect")?.local,
+        defaultAction: defaultAction ? { label: defaultAction.label, command: defaultAction.command } : null,
+        noDefaultAction,
         slot: skillActions.find(action => action.label === "Slot…")?.local,
         store: { added, id, moved, undone, redone, dirty, closed: state.editor },
       };
@@ -286,6 +302,8 @@ test.describe("client module logic", () => {
     expect(summary.edit.lockedView).toBe(true);
     expect(summary.edit.editorView).toBe(true);
     expect(summary.prop).toEqual({ type: "open-view", view: "prop-details", propId: "portal0" });
+    expect(summary.defaultAction).toEqual({ label: "Go across", command: ".go @way:exit0" });
+    expect(summary.noDefaultAction).toBeNull();
     expect(summary.slot).toEqual({ type: "open-view", view: "skills", stackId: "inv:skill" });
     expect(summary.store.added).toBe(1);
     expect(summary.store.id).toMatch(/^custom:/);

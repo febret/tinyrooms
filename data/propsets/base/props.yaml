@@ -2,6 +2,11 @@
 # Models generated with the bake pipeline live beside this file and are served
 # at /assets/propsets/base/<model>. Props are decorative + editable, so owners
 # can add, move, and scale them from the room editor.
+# CONFIG: reserved key for file-wide settings (never loaded as a prop).
+#         `scale_adjust` multiplies every prop's `scale` in this file.
+#         Example:
+#         CONFIG:
+#           scale_adjust: 1.0
 
 # --- Chairs and couches -----------------------------------------------------
 mustard-armchair:

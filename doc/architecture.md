@@ -115,6 +115,14 @@ Worlds declare required mods via `requires_mods` in `world.yaml`; startup fails
 with a clear error if a required mod is not enabled. The tutorial world requires
 `infinite-bedrooms`.
 
+### 2.2 Props files
+
+Every `props.yaml` (world, propset, or mod) is a mapping of prop id to prop
+definition. A reserved `CONFIG` key holds file-wide settings and is never loaded
+as a prop. Its optional `scale_adjust` (default `1.0`) multiplies the `scale` of
+every prop in that file; the per-prop value still scales with the room instance
+`scale`. Unknown `CONFIG` keys are ignored.
+
 ## 3. HTTP API (`server/app.py`, `app/js/api.js:PATHS`)
 
 | Method | Path | Purpose |
