@@ -11,7 +11,7 @@ function requestId() {
 }
 
 /** Connect to /ws, route envelopes, and resolve one promise per command request_id. */
-export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessionReplaced, onProfileResync, onErrorEnvelope, onResult }) {
+export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onRtcSignal, onSessionReplaced, onProfileResync, onErrorEnvelope, onResult }) {
   let socket = null;
   const pending = new Map();
 
@@ -69,6 +69,10 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
           onRoomEvent?.(envelope);
           return;
         }
+        if (envelope.type === "rtc.signal") {
+          onRtcSignal?.(envelope);
+          return;
+        }
         if (envelope.type === "profile.resync") {
           onProfileResync?.(envelope);
           return;
@@ -104,6 +108,12 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onSessio
       } catch {
         // Ignore refresh attempts while disconnected.
       }
+    },
+    sendRtcPresence(enabled) {
+      return sendJson({ v: 1, type: "rtc.presence", enabled: Boolean(enabled) });
+    },
+    sendRtcSignal(to, signal) {
+      return sendJson({ v: 1, type: "rtc.signal", to, signal });
     },
     sendCommand(command) {
       const id = requestId();

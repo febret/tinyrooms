@@ -59,7 +59,8 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 (required), `HOST` (`127.0.0.1`), `PORT` (`5000`), `USERS_PATH` (`users`),
 `WORLD_PATH` (`worlds/tutorial`), `WORLDSTATE_PATH`
 (`.local/worldstate.sqlite3`), `FEATURES`, `MODS` (comma-separated names or `*`),
-`MODS_PATH` (`mods`), `TIMEZONE` (`UTC`).
+`MODS_PATH` (`mods`), `STUN_URLS` (`stun:stun.l.google.com:19302`),
+`TIMEZONE` (`UTC`).
 
 ## 2. Component guide
 
@@ -79,8 +80,9 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Bedroom mod | `mods/infinite-bedrooms/` | Player-room purchase/materialization, door locking, customization, access checks, and the Bedrooms activity. |
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
+| Audio chat | `server/services/rtc.py` | Room-scoped audio presence plus same-room WebRTC signaling relay and rate limiting. |
 | Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
-| Browser UI | `app/` | Shell (`index.html`), styles, 14 JS modules, vendored Three.js. |
+| Browser UI | `app/` | Shell (`index.html`), styles, vanilla ES-module JS, vendored Three.js. Includes `app/js/voice.js` for P2P audio. |
 | Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
 | Shared data | `data/` | Core tuning YAML, base card set + art, preset sticker choices, door catalog. Rendered custom stickers live under `TRSERVER_CUSTOM_STICKERS_PATH` (`.local/stickers`). |
 | Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes + art/models. |
@@ -158,6 +160,8 @@ re-auth on generation mismatch (one gameplay session per account).
 | --- | --- |
 | `command` | `{v:1, type:"command", request_id: str (non-empty, ≤80), command: str (non-empty, ≤1024)}` — raw command string, e.g. `.go @way:exit0`. One private `result` per `request_id` (`Date.now()-rand` on the client). |
 | `snapshot.request` | `{v:1, type:"snapshot.request"}` — sent by client on reconnect/presence change or manual refresh. |
+| `rtc.presence` | `{v:1, type:"rtc.presence", enabled: bool}` — announces audio chat on/off; server records it on the connection and broadcasts a `presence.audio` room event. |
+| `rtc.signal` | `{v:1, type:"rtc.signal", to: account_id, signal: {kind: offer\|answer\|candidate\|bye, …}}` — relayed to one same-room audio peer; `offer`/`answer` carry `sdp`, `candidate` carries `candidate`/`sdp_mid`/`sdp_m_line_index`. |
 
 ### 4.2 Server → client
 
@@ -167,6 +171,7 @@ re-auth on generation mismatch (one gameplay session per account).
 | `room.event` | `{v:1, type:"room.event", event: {...}}` — incremental broadcast. |
 | `result` | `{v:1, type:"result", request_id, ok: bool, events: [...private], code?, message?, payload?, toast?, log?}` — per-command ack. `toast`/`log` appear only when `false`: the command's generic `message` is then suppressed as a top-center toast and/or an Action Log line (purely user-facing commands set both). |
 | `session.replaced` | `{v:1, type:"session.replaced", message}` — forced sign-out. |
+| `rtc.signal` | `{v:1, type:"rtc.signal", from: account_id, from_username, signal: {...}}` — a peer's relayed signaling payload. |
 | `error` | `{v:1, type:"error", code, message}` — protocol-level, no disconnect. |
 
 ### 4.3 Ordering / ack
@@ -347,6 +352,27 @@ private result events for `.play replace`/`.cancel`/nav so the store clears
 6. Player rooms are materialized on startup by `BedroomService.prepare()`
    (the mod's `prepare` hook) before `initialize_world()` seeds them, so
    persisted rooms survive restarts.
+
+### 6.8 Peer audio chat
+
+1. `GET /api/bootstrap` returns `rtc.ice_servers` (from
+   `TRSERVER_STUN_URLS`); the client configures `app/js/voice.js` with them.
+2. The settings menu offers `Enable Audio Chat`; the click gesture calls
+   `getUserMedia({audio})`, then sends `rtc.presence {enabled:true}`. The
+   server flags the connection and broadcasts `presence.audio
+   {account_id, enabled}` to the room (the room snapshot's occupants carry
+   `audio_enabled`). Toggling off or disconnecting clears it.
+3. Clients reconcile the room's audio-enabled occupants: the peer with the
+   lexicographically smaller account id creates the offer, avoiding glare.
+   SDP/ICE are relayed through `rtc.signal`; the server only forwards between
+   connections that are in the same room and audio-enabled (rate-limited,
+   never logged). Media flows directly over WebRTC (DTLS-SRTP); remote tracks
+   play from hidden `<audio>` elements unlocked by the enable gesture.
+4. Audio survives room changes: the flag lives on the connection, so
+   `.go` / `.door enter` keeps it and the client re-reconciles against the new
+   room (dropping old peers via `presence.leave`, offering to new ones). Because
+   the flag is per-connection and in-memory, a browser refresh or a new login
+   (which replaces the connection) starts with audio disabled.
 
 ## 7. Testing architecture
 

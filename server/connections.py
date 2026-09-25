@@ -20,6 +20,7 @@ class LiveConnection:
     username: str
     generation: int
     room_id: str | None = None
+    audio_enabled: bool = False
     queue: asyncio.Queue[dict[str, object] | None] = field(default_factory=lambda: asyncio.Queue(MAX_SEND_QUEUE))
     sender_task: asyncio.Task[None] | None = None
 
@@ -138,6 +139,28 @@ class ConnectionRegistry:
 
         async with self._lock:
             return self._by_account.get(account_id)
+
+    async def set_audio(self, account_id: str, enabled: bool) -> None:
+        """Update the audio chat flag for a live connection."""
+
+        async with self._lock:
+            connection = self._by_account.get(account_id)
+            if connection is not None:
+                connection.audio_enabled = enabled
+
+    async def count_audio(self, room_id: str, *, exclude_account_id: str | None = None) -> int:
+        """Count connections with audio chat enabled in a room."""
+
+        async with self._lock:
+            account_ids = self._rooms.get(room_id, set())
+            count = 0
+            for account_id in account_ids:
+                if account_id == exclude_account_id:
+                    continue
+                connection = self._by_account.get(account_id)
+                if connection is not None and connection.audio_enabled:
+                    count += 1
+            return count
 
     def is_online(self, account_id: str) -> bool:
         """Return whether an account currently has a live connection."""

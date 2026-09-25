@@ -11,6 +11,9 @@ MAX_COMMAND_SIZE = 1024
 MAX_CHAT_SIZE = 280
 MAX_HISTORY_MESSAGES = 50
 MAX_SEND_QUEUE = 128
+MAX_SIGNAL_SIZE = 65536
+MAX_ACCOUNT_ID_SIZE = 64
+RTC_SIGNAL_KINDS = frozenset({"offer", "answer", "candidate", "bye"})
 
 
 class ProtocolError(ValueError):
@@ -25,6 +28,21 @@ class ClientCommandEnvelope:
     command: str
 
 
+@dataclass(frozen=True, slots=True)
+class ClientRtcPresenceEnvelope:
+    """A validated audio chat presence toggle."""
+
+    enabled: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ClientRtcSignalEnvelope:
+    """A validated WebRTC signaling payload addressed at one peer."""
+
+    to: str
+    signal: dict[str, object]
+
+
 def _require_string(payload: dict[str, object], key: str, limit: int) -> str:
     value = payload.get(key)
     if not isinstance(value, str):
@@ -37,7 +55,51 @@ def _require_string(payload: dict[str, object], key: str, limit: int) -> str:
     return text
 
 
-def parse_client_message(raw_text: str) -> tuple[str, ClientCommandEnvelope | None]:
+def _require_optional_string(payload: dict[str, object], key: str, limit: int) -> str:
+    value = payload.get(key)
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ProtocolError(f"'{key}' must be a string.")
+    if len(value) > limit:
+        raise ProtocolError(f"'{key}' exceeds maximum length {limit}.")
+    return value
+
+
+def _validate_rtc_signal(signal: object) -> dict[str, object]:
+    if not isinstance(signal, dict):
+        raise ProtocolError("'signal' must be an object.")
+    kind = signal.get("kind")
+    if not isinstance(kind, str) or kind not in RTC_SIGNAL_KINDS:
+        raise ProtocolError("'signal.kind' must be one of offer, answer, candidate, bye.")
+    if kind in {"offer", "answer"}:
+        description = signal.get("sdp")
+        if not isinstance(description, str) or not description:
+            raise ProtocolError("'signal.sdp' must be a non-empty string.")
+        if len(description) > MAX_SIGNAL_SIZE:
+            raise ProtocolError("'signal.sdp' is too large.")
+        return {"kind": kind, "sdp": description}
+    if kind == "candidate":
+        candidate = signal.get("candidate")
+        if not isinstance(candidate, str):
+            raise ProtocolError("'signal.candidate' must be a string.")
+        if len(candidate) > MAX_SIGNAL_SIZE:
+            raise ProtocolError("'signal.candidate' is too large.")
+        return {
+            "kind": kind,
+            "candidate": candidate,
+            "sdp_mid": _require_optional_string(signal, "sdp_mid", 64),
+            "sdp_m_line_index": signal.get("sdp_m_line_index") if isinstance(signal.get("sdp_m_line_index"), int) else 0,
+        }
+    return {"kind": kind}
+
+
+ParsedClientPayload = (
+    ClientCommandEnvelope | ClientRtcPresenceEnvelope | ClientRtcSignalEnvelope | None
+)
+
+
+def parse_client_message(raw_text: str) -> tuple[str, ParsedClientPayload]:
     """Parse a raw WebSocket message and return its type and payload."""
 
     try:
@@ -56,6 +118,17 @@ def parse_client_message(raw_text: str) -> tuple[str, ClientCommandEnvelope | No
         return envelope_type, ClientCommandEnvelope(request_id=request_id, command=command)
     if envelope_type == "snapshot.request":
         return envelope_type, None
+    if envelope_type == "rtc.presence":
+        enabled = payload.get("enabled")
+        if not isinstance(enabled, bool):
+            raise ProtocolError("'enabled' must be a boolean.")
+        return envelope_type, ClientRtcPresenceEnvelope(enabled=enabled)
+    if envelope_type == "rtc.signal":
+        if len(raw_text) > MAX_SIGNAL_SIZE:
+            raise ProtocolError("RTC signal envelope is too large.")
+        target = _require_string(payload, "to", MAX_ACCOUNT_ID_SIZE)
+        signal = _validate_rtc_signal(payload.get("signal"))
+        return envelope_type, ClientRtcSignalEnvelope(to=target, signal=signal)
     raise ProtocolError(f"Unsupported envelope type '{envelope_type}'.")
 
 
@@ -112,6 +185,41 @@ def session_replaced_envelope(message: str) -> dict[str, object]:
     """Build a forced sign-out envelope."""
 
     return {"v": PROTOCOL_VERSION, "type": "session.replaced", "message": message}
+
+
+def rtc_signal_envelope(
+    *,
+    from_account_id: str,
+    from_username: str,
+    signal: dict[str, object],
+) -> dict[str, object]:
+    """Build a relayed WebRTC signaling envelope."""
+
+    return {
+        "v": PROTOCOL_VERSION,
+        "type": "rtc.signal",
+        "from": from_account_id,
+        "from_username": from_username,
+        "signal": signal,
+    }
+
+
+def presence_audio_event(
+    *,
+    account_id: str,
+    username: str,
+    room_id: str,
+    enabled: bool,
+) -> dict[str, object]:
+    """Build the room event that announces an audio chat toggle."""
+
+    return {
+        "type": "presence.audio",
+        "room_id": room_id,
+        "account_id": account_id,
+        "username": username,
+        "enabled": enabled,
+    }
 
 
 def profile_resync_envelope(revision: int) -> dict[str, object]:

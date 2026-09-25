@@ -15,6 +15,12 @@ const softwareGl = glMode === "swiftshader";
 const glArgs = softwareGl
   ? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--num-raster-threads=1", "--renderer-process-limit=2"]
   : [`--use-angle=${glMode}`, "--ignore-gpu-blocklist"];
+// Fake media lets audio chat tests acquire a synthetic microphone without a
+// physical device or a permission prompt.
+const mediaArgs = [
+  "--use-fake-device-for-media-stream",
+  "--use-fake-ui-for-media-stream",
+];
 // Software rendering is CPU-bound and does not parallelize well; GPU rendering does.
 const defaultWorkers = softwareGl ? 1 : 4;
 
@@ -49,8 +55,9 @@ export default defineConfig({
     deviceScaleFactor: 1,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    permissions: ["microphone"],
     launchOptions: {
-      args: glArgs,
+      args: [...glArgs, ...mediaArgs],
     },
   },
   projects: [

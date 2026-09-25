@@ -177,7 +177,7 @@ export async function settleArtwork(page, { allowToasts = false } = {}) {
   if (await pendingCards.count()) {
     await expect(pendingCards).toHaveCount(0, { timeout: 20_000 });
   }
-  const pendingThumbnails = page.locator("img[data-thumb-model]:not([data-thumb-ready='true']):not([data-thumb-error='true'])");
+  const pendingThumbnails = page.locator("img[data-thumb-model]:visible:not([data-thumb-ready='true']):not([data-thumb-error='true'])");
   if (await pendingThumbnails.count()) {
     await expect(pendingThumbnails).toHaveCount(0, { timeout: 20_000 });
   }

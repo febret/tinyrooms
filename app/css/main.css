@@ -167,6 +167,16 @@ h3 { font-size: 18px; }
 .chat-bar { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
 .chat-bar input { width: 100%; border: 1px solid #2373a0; border-radius: 25px; background: #010508; color: #fff; padding: 0 15px; font-size: 16px; }
 .chat-bar input::placeholder { color: #77919f; }
+.talk-button { display: none; position: relative; }
+.talk-button .talk-ring { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); transform: rotate(-90deg); pointer-events: none; }
+.talk-button .talk-ring circle { fill: none; stroke-width: 3; }
+.talk-button .talk-ring-track { stroke: #1d3a4d; }
+.talk-button .talk-ring-progress { stroke: #7de07d; stroke-dasharray: 100.53; stroke-dashoffset: 100.53; transition: stroke-dashoffset .1s linear; }
+.talk-button .talk-icon { font-size: 20px; line-height: 1; }
+.talk-button[aria-pressed="true"] { background: linear-gradient(#2f8f57, #176b3a); border-color: #7de07d; }
+.talk-button:disabled { opacity: .45; }
+.app-shell.audio-mode .send-button { display: none; }
+.app-shell.audio-mode .talk-button { display: inline-grid; }
 .sidebar {
   position: absolute;
   inset: 16px auto calc(var(--dock-height) + var(--tray-height)) 0;
@@ -200,6 +210,7 @@ h3 { font-size: 18px; }
 .peep-chip.selected .peep-marker { filter: drop-shadow(0 0 8px #81cf5e); transform: rotate(0); }
 .peep-name { display: block; font-size: 16px; line-height: 1.2; overflow-wrap: anywhere; }
 .peep-chip.self .peep-name, .peep-chip.selected .peep-name { color: #edffe5; text-shadow: 0 0 5px #5ea548; }
+.peep-audio { display: inline-block; margin-top: 2px; font-size: 13px; line-height: 1; filter: drop-shadow(0 0 3px #5ea548); }
 .peeps-toggle { font-size: 12px; padding: 8px; width: 100%; margin-top: 18px; }
 .bubble-layer { position: absolute; inset: 0; pointer-events: none; z-index: 46; }
 .bubble {

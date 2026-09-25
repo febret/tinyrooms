@@ -65,6 +65,7 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_MODS_PATH` | No | `mods` |
 | `TRSERVER_ADMINS` | No | _(none)_ |
 | `TRSERVER_TIMEZONE` | No | `UTC` |
+| `TRSERVER_STUN_URLS` | No | `stun:stun.l.google.com:19302` — comma-separated STUN/TURN URLs for peer audio |
 | `TRSERVER_MC_ENDPOINT` | No | _(none)_ — enables the world-side `/api/mc/*` client |
 | `TRSERVER_MC_TOKEN` | Yes* | — — required when `TRSERVER_MC_ENDPOINT` is set |
 | `TRSERVER_MC_NAME` | No | `world_id@host:port` |

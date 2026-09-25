@@ -196,6 +196,7 @@ class RoomService:
                     "username": account.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
+                    "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(account),
                 }
             )
@@ -293,6 +294,7 @@ class RoomService:
                     "sticker_url": f"/assets/stickers/{occupant.sticker}" if occupant.sticker else None,
                     "statuses": list(counters["statuses"]),
                     "counters": counters,
+                    "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(occupant),
                 }
             )

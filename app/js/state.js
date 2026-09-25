@@ -140,6 +140,7 @@ function normalizeActor(entity, { kind, labelSource }) {
     statuses: Array.isArray(entity?.statuses) ? [...entity.statuses] : [],
     counters: normalizeCounters(entity?.counters),
     pinned: Boolean(entity?.pinned),
+    audioEnabled: Boolean(entity?.audio_enabled),
     bubble: null,
     bubbleDismissed: false,
   };
@@ -506,6 +507,18 @@ function applyServerEvent(state, event) {
       },
     };
   }
+  if (event.type === "presence.audio") {
+    const targetId = String(event.account_id || "");
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        occupants: state.room.occupants.map(occupant => (
+          occupant.id === targetId ? { ...occupant, audioEnabled: Boolean(event.enabled) } : occupant
+        )),
+      },
+    };
+  }
   if (event.type === "room.environment") {
     const revision = Number(event.revision || 0);
     if (revision <= Number(state.room.environmentRevision || 0)) return state;
@@ -746,9 +759,10 @@ function createInitialState() {
     room: null,
     stickers: [],
     activities: [],
+    rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null },
-    ui: { actionLogVisible: false, soundEnabled: true, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null },
+    ui: { actionLogVisible: false, soundEnabled: true, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -770,7 +784,7 @@ function reduce(state, action) {
       user,
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
-      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled },
+      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false },
       views: { auth: !action.loggedIn, main: null, details: null, commandPalette: false },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
@@ -787,6 +801,7 @@ function reduce(state, action) {
       loggedIn: Boolean(user),
       user,
       activities: user?.activity ? [user.activity] : [],
+      rtc: action.rtc ? { iceServers: Array.isArray(action.rtc.ice_servers) ? action.rtc.ice_servers : [] } : state.rtc,
       ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog) || state.ui.actionLogVisible },
       views: { ...state.views, auth: !user },
       auth: { ...state.auth, busy: false, error: "" },
@@ -829,6 +844,7 @@ function reduce(state, action) {
   if (action.type === "toast") return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(action.message, action.tone)] } };
   if (action.type === "toggle-log") return { ...state, ui: { ...state.ui, actionLogVisible: !state.ui.actionLogVisible } };
   if (action.type === "toggle-sound") return { ...state, ui: { ...state.ui, soundEnabled: !state.ui.soundEnabled } };
+  if (action.type === "audio-state") return { ...state, ui: { ...state.ui, audioEnabled: Boolean(action.enabled), audioMuted: Boolean(action.muted) } };
   if (action.type === "dismiss-bubble" && state.room) {
     const mutate = peep => peep.id === action.id ? { ...peep, bubbleDismissed: true } : peep;
     return { ...state, room: { ...state.room, occupants: state.room.occupants.map(mutate), npcs: state.room.npcs.map(mutate) } };

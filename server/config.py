@@ -80,6 +80,7 @@ class AppConfig:
     tick_seconds: float = 1.0
     mods: frozenset[str] = frozenset()
     mods_path: Path | None = None
+    stun_urls: tuple[str, ...] = ("stun:stun.l.google.com:19302",)
     mc_endpoint: str | None = None
     mc_token: str | None = None
     mc_name: str | None = None
@@ -128,6 +129,14 @@ class AppConfig:
 
         return compute_allowed_origins(self.host, self.port)
 
+    @property
+    def ice_servers(self) -> list[dict[str, object]]:
+        """Return browser-facing ICE server descriptors for WebRTC."""
+
+        if not self.stun_urls:
+            return []
+        return [{"urls": list(self.stun_urls)}]
+
 
 def parse_features(raw_value: str) -> frozenset[str]:
     """Parse a comma-separated feature list."""
@@ -160,6 +169,20 @@ def parse_mods(raw_value: str) -> frozenset[str]:
             raise ConfigError(f"Invalid mod name '{mod}'.")
         mods.add(mod)
     return frozenset(mods)
+
+
+def parse_ice_urls(raw_value: str) -> tuple[str, ...]:
+    """Parse a comma-separated list of STUN/TURN URLs."""
+
+    urls: list[str] = []
+    for item in raw_value.split(","):
+        url = item.strip()
+        if not url:
+            continue
+        if not url.lower().startswith(("stun:", "stuns:", "turn:", "turns:")):
+            raise ConfigError(f"Invalid ICE server URL '{url}'.")
+        urls.append(url)
+    return tuple(urls)
 
 
 def ensure_contained(path: Path, root: Path, label: str) -> Path:
@@ -252,6 +275,10 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if mods and not mods_path.is_dir():
         raise ConfigError(f"TRSERVER_MODS_PATH does not exist: {mods_path}")
 
+    stun_urls = parse_ice_urls(
+        values.get("TRSERVER_STUN_URLS", "stun:stun.l.google.com:19302")
+    )
+
     mc_endpoint = values.get("TRSERVER_MC_ENDPOINT", "").strip() or None
     mc_token = values.get("TRSERVER_MC_TOKEN", "").strip() or None
     mc_name = values.get("TRSERVER_MC_NAME", "").strip() or None
@@ -280,6 +307,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         tick_seconds=tick_seconds,
         mods=mods,
         mods_path=mods_path,
+        stun_urls=stun_urls,
         mc_endpoint=mc_endpoint,
         mc_token=mc_token,
         mc_name=mc_name,

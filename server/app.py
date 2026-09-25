@@ -47,6 +47,8 @@ from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
 from server.protocol import (
     PROTOCOL_VERSION,
+    ClientRtcPresenceEnvelope,
+    ClientRtcSignalEnvelope,
     ProtocolError,
     error_envelope,
     parse_client_message,
@@ -83,6 +85,8 @@ from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.room_layout import RoomLayoutService
 from server.services.rooms import RoomService
+from server.services.rtc import relay_signal as _relay_rtc_signal
+from server.services.rtc import set_audio_presence as _set_audio_presence
 from server.services.shop import ShopService
 from server.services.stats import StatsService
 from server.services.stickers import (
@@ -766,7 +770,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         account = runtime.profiles.get_account_by_id(session.account_id)
         payload = _serialize_account(runtime, account)
         payload["can_enter_world"] = bool(account.initial_sticker_complete)
-        return {"ok": True, "user": payload}
+        return {
+            "ok": True,
+            "user": payload,
+            "rtc": {"ice_servers": runtime.config.ice_servers},
+        }
 
     @app.get("/api/rooms/{room_id}/layout")
     async def get_room_layout(request: Request, room_id: str) -> dict[str, object]:
@@ -940,6 +948,21 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                 if envelope_type == "snapshot.request":
                     refreshed_snapshot = await runtime.rooms.build_snapshot(current_account, connection.room_id or room_id)
                     await connection.send(room_snapshot_envelope(refreshed_snapshot))
+                    continue
+                if envelope_type == "rtc.presence" and isinstance(client_payload, ClientRtcPresenceEnvelope):
+                    await _set_audio_presence(
+                        runtime,
+                        connection,
+                        enabled=client_payload.enabled,
+                    )
+                    continue
+                if envelope_type == "rtc.signal" and isinstance(client_payload, ClientRtcSignalEnvelope):
+                    await _relay_rtc_signal(
+                        runtime,
+                        connection,
+                        target_id=client_payload.to,
+                        signal=client_payload.signal,
+                    )
                     continue
                 request_id = client_payload.request_id
                 try:

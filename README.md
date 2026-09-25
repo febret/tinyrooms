@@ -40,6 +40,7 @@ the port on trusted networks.
 | `TRSERVER_MODS_PATH` | Mod search directory; defaults to `mods` |
 | `TRSERVER_ADMINS` | Comma-separated usernames bootstrapped with the `admin` power |
 | `TRSERVER_TIMEZONE` | Game timezone; defaults to `UTC` |
+| `TRSERVER_STUN_URLS` | Comma-separated STUN/TURN URLs for peer audio; defaults to a public STUN server |
 | `TRSERVER_HOST` | Listener address; defaults to `127.0.0.1` |
 | `TRSERVER_PORT` | HTTPS port; defaults to `5000` |
 | `TRSERVER_MC_ENDPOINT` | `host:port` of the mission-control server; enables the world's `/api/mc/*` client |

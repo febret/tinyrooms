@@ -235,6 +235,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
         <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
           <span class="peep-marker"><img src="${escapeHtml(peep.stickerUrl || "/assets/stickers/s1.png")}" alt=""></span>
           <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
+          ${peep.audioEnabled ? `<span class="peep-audio" role="img" aria-label="Audio chat on" title="Audio chat on">&#128266;</span>` : ""}
           ${statuses.length ? `<span class="peep-statuses">${statusIconMarkup(statuses, definitions)}</span>` : ""}
         </button>
       </article>`;

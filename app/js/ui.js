@@ -27,6 +27,7 @@ import { createPropViewerManager } from "./prop-viewer.js";
 import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
+import { createVoiceChat } from "./voice.js";
 
 const store = createStore();
 const api = createApiClient();
@@ -40,6 +41,8 @@ const activityLayer = $("#activity-layer");
 const authLayer = $("#auth-layer");
 const chatInput = $("#chat-input");
 const settings = $("#settings");
+const pushToTalk = $("#push-to-talk");
+const talkRingProgress = $("#push-to-talk .talk-ring-progress");
 const dialogs = createDialogs($("#global-modal-layer"));
 const timedToasts = new Set();
 const consumedFeedback = new Set();
@@ -74,6 +77,39 @@ function showError(error) {
   toast(message, "error");
 }
 
+const TALK_RING_LENGTH = 100.53;
+
+function renderTalkProgress({ talking: active, remainingMs, durationMs }) {
+  const fraction = active && durationMs > 0 ? Math.max(0, Math.min(1, remainingMs / durationMs)) : 0;
+  talkRingProgress.style.strokeDashoffset = String(TALK_RING_LENGTH * (1 - fraction));
+  pushToTalk.setAttribute("aria-pressed", active ? "true" : "false");
+}
+
+const voice = createVoiceChat({
+  sendSignal: (to, signal) => {
+    try { socket?.sendRtcSignal(to, signal); } catch { /* the socket is closed */ }
+  },
+  sendPresence: enabled => {
+    try { socket?.sendRtcPresence(enabled); } catch { /* the socket is closed */ }
+  },
+  onError: showError,
+  onTalk: renderTalkProgress,
+  onStateChange: ({ enabled, muted }) => {
+    const ui = store.getState().ui;
+    if (ui.audioEnabled === enabled && ui.audioMuted === muted) return;
+    store.dispatch({ type: "audio-state", enabled, muted });
+  },
+});
+function syncVoice(state) {
+  if (!state.loggedIn || !state.room) {
+    if (voice.isEnabled()) voice.reset();
+    return;
+  }
+  voice.configure({ iceServers: state.rtc?.iceServers, selfId: state.user?.id });
+  if (!voice.isEnabled()) return;
+  voice.reconcile(state.room.occupants.filter(occupant => occupant.audioEnabled).map(occupant => occupant.id));
+}
+
 function playJournalOpen() {
   const book = panelLayer.querySelector(".journal-book");
   if (!book) return;
@@ -103,10 +139,11 @@ function connectSocket() {
       }
     },
     onSessionReplaced(envelope) { store.dispatch({ type: "session-replaced", message: envelope.message }); },
+    onRtcSignal(envelope) { void voice.handleSignal(envelope); },
     onProfileResync() {
       api.getBootstrap()
         .then(bootstrap => {
-          store.dispatch({ type: "bootstrap", user: bootstrap.user });
+          store.dispatch({ type: "bootstrap", user: bootstrap.user, rtc: bootstrap.rtc });
           toast("Profile data refreshed.");
         })
         .catch(() => {});
@@ -132,7 +169,7 @@ function connectSocket() {
 
 async function refreshBootstrapAndConnect() {
   const bootstrap = await api.getBootstrap();
-  store.dispatch({ type: "bootstrap", user: bootstrap.user });
+  store.dispatch({ type: "bootstrap", user: bootstrap.user, rtc: bootstrap.rtc });
   if (store.getState().user?.initialStickerComplete) connectSocket();
 }
 
@@ -695,6 +732,8 @@ function renderTopBar(state) {
   if (!updateMarkup(top, `
     <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
+    ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="audio" aria-pressed="${state.ui.audioEnabled}">${state.ui.audioEnabled ? "Disable Audio Chat" : "Enable Audio Chat"}</button>` : ""}
+    ${state.ui.audioEnabled ? `<button type="button" class="quiet" data-top-action="mute" aria-pressed="${state.ui.audioMuted}">${state.ui.audioMuted ? "Unmute" : "Mute"}</button>` : ""}
     <button type="button" class="quiet" data-top-action="commands">Commands</button>
     ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="logout">Log out</button>` : ""}
     ${state.loggedIn && !state.transport.connected && state.user?.initialStickerComplete ? `<button type="button" class="quiet" data-top-action="reconnect">Reconnect</button>` : ""}`)) return;
@@ -703,6 +742,19 @@ function renderTopBar(state) {
       const which = button.dataset.topAction;
       if (which === "log") await toggleLog();
       if (which === "sound") store.dispatch({ type: "toggle-sound" });
+      if (which === "audio") {
+        if (store.getState().ui.audioEnabled) {
+          voice.disable();
+        } else {
+          try {
+            await voice.enable();
+            toast("Audio chat is on.", "success");
+          } catch (error) { showError(error); }
+        }
+      }
+      if (which === "mute") {
+        voice.toggleMute();
+      }
       if (which === "commands") await openCommands();
       if (which === "reconnect" && !refreshPromise) {
         refreshPromise = api.getSession().then(syncLoggedInState).catch(showError).finally(() => { refreshPromise = null; });
@@ -930,12 +982,15 @@ async function render(state) {
   root.classList.toggle("editing", Boolean(state.editor));
   root.classList.toggle("shopping", Boolean(state.shop));
   root.classList.toggle("targeting", Boolean(state.ui.targeting));
+  root.classList.toggle("audio-mode", Boolean(state.ui.audioEnabled));
+  pushToTalk.disabled = !state.ui.audioEnabled || state.ui.audioMuted;
   $("#board-canvas").inert = !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details);
   panelLayer.inert = Boolean(state.views.details);
   activityLayer.inert = false;
   $(".bottom-stack").inert = !state.loggedIn || !state.user?.initialStickerComplete;
   settings.inert = !state.loggedIn || !state.user?.initialStickerComplete;
   peeps.render(state);
+  syncVoice(state);
   renderLook(state);
   renderActions(state);
   renderActionLog(state);
@@ -992,6 +1047,7 @@ async function render(state) {
 }
 
 $("#command-button").onclick = openCommands;
+pushToTalk.onclick = () => { voice.toggleTalk(); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();
   const text = chatInput.value;

@@ -181,13 +181,34 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.assertIn("portal0", remaining)
         self.assertNotIn("welcome-plant", remaining)
 
-    def test_view_library_exposes_only_approved_props(self) -> None:
+    def test_view_library_exposes_editable_and_propset_props(self) -> None:
         owner = self.owner()
         view = self.layout.view(owner, "hub")
         library = {entry["prop_id"] for entry in view["library"]}
-        self.assertEqual(library, {"plant"})
+        propset_props = {
+            definition.id
+            for definition in self.world.props.values()
+            if definition.source_kind == "propset" and definition.editable
+        }
+        self.assertIn("plant", library)
+        self.assertTrue(propset_props, "the base propsets must contribute props")
+        self.assertTrue(propset_props <= library)
+        self.assertNotIn("portal", library)
         self.assertIn("palette", view["environment_whitelist"])
         self.assertNotIn("lighting", view["environment_whitelist"])
+
+    def test_propset_prop_can_be_added_to_a_room_without_being_placed(self) -> None:
+        owner = self.owner()
+        base = self.layout.view(owner, "hub")["revision"]
+        custom_id = "custom:00000000-0000-4000-8000-000000000002"
+        update = self.layout.save(
+            owner,
+            "hub",
+            base,
+            {"props": [self.editable_instance("mustard-armchair", custom_id)]},
+        )
+        self.assertEqual(update.revision, base + 1)
+        self.assertIn(custom_id, {prop.id for prop in self.layout.effective_props("hub")})
 
     def test_custom_prop_instances_can_be_added(self) -> None:
         owner = self.owner()
