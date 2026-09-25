@@ -50,6 +50,7 @@ h2 { font-size: 24px; font-weight: 500; }
 h3 { font-size: 18px; }
 .eyebrow { font-size: 12px; color: var(--gold); }
 .app-shell {
+  height: 100vh;
   height: 100dvh;
   min-height: 0;
   position: relative;
@@ -302,6 +303,18 @@ h3 { font-size: 18px; }
 .auth-form label { display: grid; gap: 7px; font-size: 14px; }
 .auth-error { color: #ffc2ae; font-size: 14px; min-height: 1em; }
 .empty-state { padding: 24px 12px; color: var(--muted); text-align: center; line-height: 1.5; font-size: 14px; }
+.boot-guard { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 200; overflow: auto; padding: 20px; background: #061923; color: #f3f3ef; }
+.boot-guard-card { max-width: 760px; margin: 0 auto 40px; padding: 24px; border: 1px solid #395a70; border-radius: 10px; background: #050f18; }
+.boot-guard h1 { font-size: 26px; margin-bottom: 10px; color: var(--gold); }
+.boot-guard h2 { font-size: 15px; margin: 20px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.boot-guard-lead { line-height: 1.5; margin-bottom: 8px; }
+.boot-guard-list { list-style: none; margin: 0; padding: 0; }
+.boot-guard-row { display: block; padding: 6px 0; border-bottom: 1px solid #1d3a4c; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.boot-guard-key { display: block; color: #9fb7bd; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.boot-guard-value { display: block; }
+.boot-guard-actions { margin-top: 20px; }
+.boot-guard-copy { min-height: 44px; padding: 10px 18px; border: 1px solid #3b7592; border-radius: 24px; background: linear-gradient(#2b7898, #075174); color: #f3f3ef; }
+.boot-guard-report { display: block; width: 100%; min-height: 180px; margin-top: 16px; padding: 10px; border: 1px solid #395a70; border-radius: 7px; background: #06131b; color: #d7e2e8; font-family: monospace; font-size: 12px; white-space: pre; }
 .onboarding .topbar, .onboarding .bottom-stack, .onboarding .sidebar { visibility: hidden; }
 .app-shell[data-auth="out"] .topbar { z-index: 75; pointer-events: none; }
 .app-shell[data-auth="out"] .settings { display: none; }

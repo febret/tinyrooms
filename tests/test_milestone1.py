@@ -16,7 +16,7 @@ from server.app import create_app
 from server.commands.parser import CommandParseError, parse_command, parse_target
 from server.config import ConfigError, KNOWN_FEATURES, ensure_contained, load_config
 from server.content.cards import ContentError, load_card_catalog
-from server.content.worlds import load_world_definition
+from server.content.worlds import load_propset, load_world_definition
 from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
 from server.services.cards import CardService
@@ -262,6 +262,66 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertIsNone(world.rooms["hub"].props["portal0"].animation)
         self.assertIsNone(world.props["plant"].animation)
         self.assertIsNone(world.rooms["hub"].props["welcome-plant"].animation)
+
+    def test_props_config_scale_adjust_multiplies_file_scale(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            target = Path(temporary_directory) / "tutorial"
+            shutil.copytree(REPO_ROOT / "worlds" / "tutorial", target)
+            props_file = target / "props" / "props.yaml"
+            props_file.write_text(
+                "CONFIG:\n  scale_adjust: 2.0\n" + props_file.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            scaled = load_test_world(target)
+            baseline = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+            self.assertNotIn("CONFIG", scaled.props)
+            self.assertAlmostEqual(scaled.props["portal"].scale, baseline.props["portal"].scale * 2.0)
+            self.assertAlmostEqual(scaled.props["shower"].scale, baseline.props["shower"].scale * 2.0)
+            self.assertAlmostEqual(
+                scaled.props["mustard-armchair"].scale,
+                baseline.props["mustard-armchair"].scale,
+            )
+
+    def test_props_config_ignores_unknown_keys(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            propset = Path(temporary_directory) / "demo"
+            propset.mkdir()
+            (propset / "toy.glb").write_bytes(b"")
+            (propset / "props.yaml").write_text(
+                "CONFIG:\n  scale_adjust: 3.0\n  mystery: 1\n"
+                "toy:\n  label: Toy\n  description: A toy.\n  model: toy.glb\n  scale: 2.0\n",
+                encoding="utf-8",
+            )
+            props = load_propset(propset)
+            self.assertAlmostEqual(props["toy"].scale, 6.0)
+            self.assertNotIn("CONFIG", props)
+
+    def test_props_config_rejects_invalid_scale_adjust(self) -> None:
+        for value in ("0", "-1.5", "true", "big"):
+            with self.subTest(value=value), TemporaryDirectory() as temporary_directory:
+                propset = Path(temporary_directory) / "demo"
+                propset.mkdir()
+                (propset / "toy.glb").write_bytes(b"")
+                (propset / "props.yaml").write_text(
+                    f"CONFIG:\n  scale_adjust: {value}\n"
+                    "toy:\n  label: Toy\n  description: A toy.\n  model: toy.glb\n  scale: 1.0\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaises(ContentError):
+                    load_propset(propset)
+
+    def test_props_config_must_be_mapping(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            propset = Path(temporary_directory) / "demo"
+            propset.mkdir()
+            (propset / "toy.glb").write_bytes(b"")
+            (propset / "props.yaml").write_text(
+                "CONFIG: 2.0\n"
+                "toy:\n  label: Toy\n  description: A toy.\n  model: toy.glb\n  scale: 1.0\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(ContentError):
+                load_propset(propset)
 
     def test_board_image_style_loader_validation(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
