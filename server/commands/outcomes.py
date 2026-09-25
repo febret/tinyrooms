@@ -28,6 +28,7 @@ from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
+from server.services.prop_shop import PropShopService
 from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
@@ -80,6 +81,7 @@ class CommandContext:
     actions: ActionsService
     friends: FriendsService
     shop: ShopService
+    prop_shop: PropShopService
     pricing: CardPricingService
     content: GameplayContent
     world: WorldDefinition

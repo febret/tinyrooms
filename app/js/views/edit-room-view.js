@@ -1,6 +1,6 @@
 import { escapeHtml } from "../presentation.js";
-import { libraryMarkup } from "../editing/prop-library.js";
-import { libraryEntry, selectedInstance } from "../editing/edit-reducer.js";
+import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "../editing/prop-library.js";
+import { availableLibrary, libraryEntry, selectedInstance } from "../editing/edit-reducer.js";
 
 const BOARD_STYLES = ["stretch", "tile", "tile-w", "tile-h"];
 
@@ -11,32 +11,13 @@ function paletteOf(state, editor) {
   return colors.slice(0, 3);
 }
 
-function selectionSection(editor, selected) {
-  const entry = libraryEntry(editor, selected.propId);
-  const [x, y] = selected.position;
-  return `
-    <section class="editor-section editor-selection">
-      <h3>${escapeHtml(entry?.label || selected.propId)}</h3>
-      <p class="editor-meta">Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}° · Scale ${selected.scale.toFixed(2)}</p>
-      <div class="editor-buttons">
-        <button type="button" data-edit-action="rotate" data-edit-delta="-15">Rotate −15°</button>
-        <button type="button" data-edit-action="rotate" data-edit-delta="15">Rotate +15°</button>
-        <button type="button" data-edit-action="scale" data-edit-factor="0.87">Smaller</button>
-        <button type="button" data-edit-action="scale" data-edit-factor="1.15">Larger</button>
-        <button type="button" class="negative" data-edit-action="remove">Remove</button>
-      </div>
-    </section>
-  `;
-}
-
-function environmentSection(state, editor) {
+function environmentRow(state, editor) {
   const whitelist = editor.environmentWhitelist;
   if (!whitelist.length) return "";
   const colors = paletteOf(state, editor);
   const style = editor.environment.board_image_style || state.room?.board?.imageStyle || "stretch";
   return `
-    <section class="editor-section editor-environment">
-      <h3>Environment</h3>
+    <div class="editor-env-row">
       ${whitelist.includes("palette") ? `
         <div class="editor-palette" role="group" aria-label="Board palette">
           ${colors.map((color, index) => `
@@ -51,7 +32,32 @@ function environmentSection(state, editor) {
             ${BOARD_STYLES.map(value => `<option value="${value}" ${value === style ? "selected" : ""}>${value}</option>`).join("")}
           </select>
         </label>` : ""}
-    </section>
+    </div>
+  `;
+}
+
+function selectionBlock(editor, selected) {
+  const entry = libraryEntry(editor, selected.propId);
+  const [x, y] = selected.position;
+  return `
+    <p class="editor-meta"><strong>${escapeHtml(entry?.label || selected.propId)}</strong>
+      Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}° · Scale ${selected.scale.toFixed(2)}</p>
+    <div class="editor-buttons">
+      <button type="button" data-edit-action="rotate" data-edit-delta="-15">Rotate −15°</button>
+      <button type="button" data-edit-action="rotate" data-edit-delta="15">Rotate +15°</button>
+      <button type="button" data-edit-action="scale" data-edit-factor="0.87">Smaller</button>
+      <button type="button" data-edit-action="scale" data-edit-factor="1.15">Larger</button>
+      <button type="button" class="negative" data-edit-action="remove">Remove</button>
+    </div>
+  `;
+}
+
+function snapRow(editor) {
+  return `
+    <div class="editor-snaps">
+      <label class="editor-toggle"><input type="checkbox" data-edit-snap="position" ${editor.snapPosition ? "checked" : ""}> Snap position</label>
+      <label class="editor-toggle"><input type="checkbox" data-edit-snap="rotation" ${editor.snapRotation ? "checked" : ""}> Snap rotation</label>
+    </div>
   `;
 }
 
@@ -73,6 +79,7 @@ export function editRoomView(state) {
     `;
   }
   const selected = selectedInstance(editor);
+  const library = availableLibrary(editor, state.user?.unlockedProps);
   const conflict = editor.conflict
     ? `<div class="editor-conflict" role="alert">
         <span>This room changed while you were editing.</span>
@@ -84,22 +91,34 @@ export function editRoomView(state) {
     <section class="edit-room-view editor-dock-panel" role="region" aria-label="Edit Room">
       <header class="editor-dock-header">
         <strong>Edit Room</strong>
+        <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
+        <button type="button" class="editor-shop-button" data-edit-action="prop-shop">🛒 Prop Shop</button>
         <button type="button" data-edit-action="undo" ${editor.undo.length ? "" : "disabled"}>Undo</button>
         <button type="button" data-edit-action="redo" ${editor.redo.length ? "" : "disabled"}>Redo</button>
-        <label class="editor-toggle"><input type="checkbox" data-edit-snap="position" ${editor.snapPosition ? "checked" : ""}> Snap position</label>
-        <label class="editor-toggle"><input type="checkbox" data-edit-snap="rotation" ${editor.snapRotation ? "checked" : ""}> Snap rotation</label>
-        <span class="editor-status" role="status">${escapeHtml(editor.error || editor.status || (editor.dirty ? "Unsaved changes" : "All changes saved"))}</span>
         <button type="button" class="primary" data-edit-action="save" ${editor.dirty ? "" : "disabled"}>Save layout</button>
+        <span class="editor-status" role="status">${escapeHtml(editor.error || editor.status || (editor.dirty ? "Unsaved changes" : "All changes saved"))}</span>
         <button type="button" class="quiet" data-close-view="1">Close</button>
+        <div class="editor-heading-tags" role="group" aria-label="Filter by tag">
+          ${libraryTagMarkup(library)}
+          <span class="editor-library-count" role="status"></span>
+        </div>
       </header>
       ${conflict}
-      <div class="editor-dock-body">
-        <section class="editor-section editor-library-section">
-          <h3>Add a prop</h3>
-          ${libraryMarkup(editor)}
+      <div class="editor-workspace">
+        <div class="editor-env">
+          ${environmentRow(state, editor)}
+          ${selected ? selectionBlock(editor, selected) : '<p class="editor-meta editor-meta-empty">Select a prop on the board to move, rotate, or scale it.</p>'}
+          ${snapRow(editor)}
+        </div>
+        <div class="editor-propsets" role="list" aria-label="Prop sets">
+          ${libraryPropsetMarkup(library)}
+        </div>
+        <section class="editor-library-section">
+          <div class="editor-library-grid" role="list" aria-label="Approved decorative props">
+            ${libraryGridMarkup(library)}
+          </div>
+          <p class="editor-library-empty empty-state" hidden>No props match your filters.</p>
         </section>
-        ${selected ? selectionSection(editor, selected) : '<section class="editor-section editor-selection"><p class="empty-state">Select a prop on the board to move, rotate, or scale it.</p></section>'}
-        ${environmentSection(state, editor)}
       </div>
     </section>
   `;

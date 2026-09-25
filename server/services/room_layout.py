@@ -18,6 +18,7 @@ from server.content.worlds import (
 from server.profiles import AccountRecord
 from server.services.environment import EnvironmentService
 from server.services.ownership import OwnershipService
+from server.services.prop_shop import PropShopService, serialize_prop_entry
 from server.state.migrations import DatabaseHub
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 
@@ -66,12 +67,14 @@ class RoomLayoutService:
         world_state: WorldStateRepository,
         ownership: OwnershipService,
         environment: EnvironmentService,
+        prop_shop: PropShopService,
     ) -> None:
         self._hub = hub
         self._world = world
         self._world_state = world_state
         self._ownership = ownership
         self._environment = environment
+        self._prop_shop = prop_shop
 
     def _room(self, room_id: str) -> RoomDefinition:
         room = self._world.rooms.get(room_id)
@@ -79,13 +82,24 @@ class RoomLayoutService:
             raise ValueError("That room does not exist.")
         return room
 
-    def _approved_definitions(self, room: RoomDefinition) -> list[PropDefinition]:
+    def _catalog_definitions(self, room: RoomDefinition) -> list[PropDefinition]:
+        # Shared propset props form a global decorative catalog owners may add
+        # from; world and mod props stay curated by the room's own instances.
         approved: dict[str, PropDefinition] = {}
+        for definition in self._world.props.values():
+            if definition.editable and definition.source_kind == "propset":
+                approved.setdefault(definition.id, definition)
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
             if definition.editable:
                 approved.setdefault(definition.id, definition)
-        return list(approved.values())
+        return sorted(approved.values(), key=lambda definition: definition.id)
+
+    def _unlocked(self, account: AccountRecord) -> set[str]:
+        return self._prop_shop.unlocked(account.id)
+
+    def _is_locked(self, definition: PropDefinition, unlocked: set[str]) -> bool:
+        return self._prop_shop.is_locked(definition, unlocked)
 
     def can_edit(self, account: AccountRecord, room_id: str) -> bool:
         """Return whether an account may edit a room's decorative layout."""
@@ -168,15 +182,9 @@ class RoomLayoutService:
         }
 
     def _serialize_library(self, definition: PropDefinition) -> dict[str, object]:
-        return {
-            "prop_id": definition.id,
-            "label": definition.label,
-            "description": definition.description,
-            "model_url": prop_model_url(self._world.id, definition),
-            "base_scale": definition.scale,
-            "scale_min": definition.editor_scale_min,
-            "scale_max": definition.editor_scale_max,
-        }
+        # Locking is reported statically; the client hides locked props unless
+        # the account owns them, so purchases reflect instantly without a refetch.
+        return serialize_prop_entry(self._world, definition)
 
     def _editable_instances(self, room: RoomDefinition, live: list[object] | None) -> list[dict[str, object]]:
         if live is not None:
@@ -213,7 +221,10 @@ class RoomLayoutService:
             "revision": int(layout["revision"]),
             "can_edit": self.can_edit(account, room_id),
             "props": self._editable_instances(room, layout["props"]),
-            "library": [self._serialize_library(definition) for definition in self._approved_definitions(room)],
+            "library": [
+                self._serialize_library(definition)
+                for definition in self._catalog_definitions(room)
+            ],
             "environment_whitelist": list(room.editor_environment),
             "environment": self.visual_environment(room_id),
         }
@@ -234,7 +245,7 @@ class RoomLayoutService:
             raise ValueError("A valid base revision is required.")
         if not isinstance(patch, dict):
             raise ValueError("The layout patch must be a mapping.")
-        props = self._validate_props(room, patch.get("props"))
+        props = self._validate_props(room, patch.get("props"), account)
         environment_patch = self._validate_environment(room, patch.get("environment") or {})
         with self._hub.transaction() as connection:
             current_environment, current_revision = self._read(connection, room_id)
@@ -270,13 +281,31 @@ class RoomLayoutService:
             environment = {}
         return (environment if isinstance(environment, dict) else {}), int(row["layout_revision"])
 
-    def _validate_props(self, room: RoomDefinition, raw_value: object) -> list[dict[str, object]]:
+    def _validate_props(
+        self,
+        room: RoomDefinition,
+        raw_value: object,
+        account: AccountRecord,
+    ) -> list[dict[str, object]]:
         if raw_value is None:
             raw_value = []
         if not isinstance(raw_value, list):
             raise ValueError("Layout props must be a list.")
-        approved = {definition.id for definition in self._approved_definitions(room)}
+        unlocked = self._unlocked(account)
+        approved = {
+            definition.id
+            for definition in self._catalog_definitions(room)
+            if not self._is_locked(definition, unlocked)
+        }
+        # Props already placed in this room stay editable even when locked, so
+        # owners can keep, move, or remove them without buying the unlock.
+        approved.update(
+            instance.prop_id
+            for instance in room.props.values()
+            if self._world.props[instance.prop_id].editable
+        )
         live = self._world_state.read_room_layout(room.id)["props"] or []
+        approved.update(str(entry.get("prop_id")) for entry in live if isinstance(entry, dict))
         known = {instance.id for instance in room.props.values() if self._world.props[instance.prop_id].editable}
         known.update(str(entry.get("id")) for entry in live if isinstance(entry, dict))
         seen: set[str] = set()

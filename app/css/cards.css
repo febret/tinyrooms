@@ -407,31 +407,56 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 @media (max-width: 780px), (orientation: portrait) {
   .app-shell.editing { --dock-height: calc(188px + env(safe-area-inset-bottom, 0px)); }
 }
-.edit-room-view.editor-dock-panel { display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); overflow: hidden; color: #f5f5f1; }
+.edit-room-view.editor-dock-panel { display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); overflow: hidden; color: #f5f5f1; }
 .edit-room-view.editor-dock-panel.locked-state { align-items: center; justify-content: center; }
-.editor-dock-header { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
-.editor-dock-header strong { color: #f2b489; font-size: 15px; white-space: nowrap; }
-.editor-dock-header button { flex-shrink: 0; }
-.editor-status { font-size: 12px; color: #9fb7bd; white-space: nowrap; flex: 1 1 auto; text-align: right; }
-.editor-dock-body { display: flex; align-items: stretch; gap: 16px; flex: 1; min-height: 0; overflow-x: auto; overscroll-behavior: contain; padding-bottom: 2px; }
-.editor-dock-body .editor-section { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; }
-.editor-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #f2bb8e; margin-bottom: 4px; white-space: nowrap; }
-.editor-library { display: flex; gap: 8px; overflow-x: auto; }
-.editor-library-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; border-radius: 8px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; font-size: 11px; line-height: 1.1; text-align: center; width: 72px; flex: 0 0 auto; }
-.editor-library-item:hover { border-color: #8fd6ff; }
-.editor-thumb { width: 58px; height: 58px; display: block; object-fit: contain; }
-.editor-selection { min-width: 200px; }
-.editor-selection .editor-meta { color: #9fb7bd; font-size: 12px; margin-bottom: 6px; white-space: nowrap; }
-.editor-buttons { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
-.editor-buttons button { padding: 4px 10px; border-radius: 7px; border: 1px solid #2b4652; background: #10222b; color: #f5f5f1; font-size: 12px; }
+.editor-dock-header { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.editor-dock-header > strong { flex: 0 0 auto; color: #f2b489; font-size: 14px; white-space: nowrap; }
+.editor-dock-header button { flex: 0 0 auto; }
+.editor-shop-button { border-color: #c9904366 !important; background: linear-gradient(#3a2a12, #241708) !important; color: #ffd9a8; font-weight: 600; }
+.editor-search { flex: 0 1 150px; min-width: 90px; padding: 4px 8px; border-radius: 7px; border: 1px solid #2b4652; background: #0a1d26; color: #f5f5f1; font-size: 12px; }
+.editor-status { flex: 0 1 auto; font-size: 11px; color: #9fb7bd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-heading-tags { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.editor-library-count { flex: 0 0 auto; font-size: 11px; color: #9fb7bd; white-space: nowrap; }
+.editor-tag { flex: 0 0 auto; padding: 2px 10px; border-radius: 999px; border: 1px solid #2b4652; background: #0a1d26; color: #bcd0d6; font-size: 11px; text-transform: capitalize; white-space: nowrap; }
+.editor-tag:hover { border-color: #8fd6ff; }
+.editor-tag.is-active { border-color: #8fd6ff; background: #12384a; color: #eaf6ff; }
+.editor-workspace { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 200px 190px minmax(0, 1fr); gap: 8px; }
+.editor-env { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.editor-env-row { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.editor-palette { display: flex; gap: 4px; }
+.editor-color input { width: 30px; height: 24px; border: 1px solid #2b4652; background: none; padding: 0; }
+.editor-style { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #9fb7bd; white-space: nowrap; }
+.editor-style select { padding: 3px 5px; border-radius: 6px; border: 1px solid #2b4652; background: #0a1d26; color: #f5f5f1; font-size: 11px; }
+.editor-meta { flex: 0 0 auto; color: #9fb7bd; font-size: 11px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-meta strong { color: #f2bb8e; }
+.editor-meta-empty { white-space: normal; }
+.editor-buttons { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+.editor-buttons button { padding: 2px 7px; border-radius: 6px; border: 1px solid #2b4652; background: #10222b; color: #f5f5f1; font-size: 11px; }
 .editor-buttons button.negative { border-color: #7a4040; color: #f0b8b8; }
-.editor-palette { display: flex; gap: 8px; }
-.editor-color input { width: 40px; height: 26px; border: 1px solid #2b4652; background: none; padding: 0; }
-.editor-style { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9fb7bd; margin-top: 6px; }
-.editor-style select { padding: 4px 6px; border-radius: 6px; border: 1px solid #2b4652; background: #0a1d26; color: #f5f5f1; }
-.editor-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #9fb7bd; white-space: nowrap; flex-shrink: 0; }
+.editor-snaps { flex: 0 0 auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.editor-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #9fb7bd; white-space: nowrap; }
+.editor-propsets { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; overscroll-behavior: contain; }
+.editor-propset { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 8px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; min-width: 0; }
+.editor-propset:hover { border-color: #8fd6ff; }
+.editor-propset.is-active { border-color: #8fd6ff; box-shadow: inset 0 0 0 1px #8fd6ff; }
+.editor-propset-art { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 5px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; background: #04202a; }
+.editor-propset-thumb { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+.editor-propset-label { flex: 1 1 auto; min-width: 0; font-size: 12px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-library-section { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.editor-library-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 4px; padding: 0; }
+.editor-library-item { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px; border-radius: 7px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; font-size: 10px; line-height: 1.1; text-align: center; }
+.editor-library-item:hover { border-color: #8fd6ff; }
+.editor-library-item[hidden], .editor-tag[hidden], .editor-library-empty[hidden] { display: none; }
+.editor-thumb { width: 46px; height: 46px; display: block; object-fit: contain; }
+.editor-library-empty { flex: 0 0 auto; }
 .editor-conflict { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid #7a5a2a; background: #2a2113; color: #f2d9a8; font-size: 12px; }
 .editor-conflict button { flex-shrink: 0; }
+@media (max-width: 780px), (orientation: portrait) {
+  .editor-workspace { grid-template-columns: 150px 120px minmax(0, 1fr); gap: 6px; }
+  .editor-search, .editor-status { display: none; }
+  .editor-thumb { width: 40px; height: 40px; }
+  .editor-propset-art { width: 26px; height: 26px; }
+}
 
 /* Milestone 2: card shop, a docked panel that replaces the interaction panel like the editor. */
 .shop-dock { display: none; height: var(--dock-height); pointer-events: auto; background: linear-gradient(#02090cef, #030b0e); border-top: 1px solid #1d3642; }

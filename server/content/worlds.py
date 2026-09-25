@@ -22,6 +22,8 @@ from server.game.modifiers import MODIFIER_TARGETS
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
 EDITOR_ENVIRONMENT_KEYS = frozenset({"palette", "board_image_style"})
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
+DEFAULT_PROP_PRICE = 5
+FREE_PROPSET_SOURCES = frozenset({"base"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +62,9 @@ class PropDefinition:
     editor_scale_max: float = 4.0
     source: str = ""
     source_kind: str = "world"
+    tags: tuple[str, ...] = ()
+    price: int = DEFAULT_PROP_PRICE
+    locked: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -448,6 +453,24 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
         editor_scale_max = float(raw_prop.get("editor_scale_max", 4.0))
         if editor_scale_min <= 0 or editor_scale_max < editor_scale_min:
             raise ContentError(f"Prop '{prop_id}' has invalid editor scale bounds.")
+        raw_tags = raw_prop.get("tags", []) or []
+        if not isinstance(raw_tags, list):
+            raise ContentError(f"Prop '{prop_id}' tags must be a list.")
+        tags: list[str] = []
+        for raw_tag in raw_tags:
+            tag = str(raw_tag).strip().lower()
+            if not tag:
+                raise ContentError(f"Prop '{prop_id}' has an empty tag.")
+            if tag not in tags:
+                tags.append(tag)
+        raw_price = raw_prop.get("price", DEFAULT_PROP_PRICE)
+        if isinstance(raw_price, bool) or not isinstance(raw_price, (int, float)) or int(raw_price) < 0:
+            raise ContentError(f"Prop '{prop_id}' has an invalid price {raw_price!r}.")
+        price = int(raw_price)
+        if "locked" in raw_prop:
+            locked = bool(raw_prop.get("locked"))
+        else:
+            locked = source_kind == "propset" and source not in FREE_PROPSET_SOURCES
         props[prop_id] = PropDefinition(
             id=prop_id,
             label=str(raw_prop.get("label", "")).strip(),
@@ -462,6 +485,9 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
             editor_scale_max=editor_scale_max,
             source=source,
             source_kind=source_kind,
+            tags=tuple(tags),
+            price=price,
+            locked=locked,
         )
     return props
 

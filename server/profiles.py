@@ -47,6 +47,7 @@ def _default_profile() -> dict[str, object]:
         "statuses": [],
         "show_activity_log": False,
         "ui_settings": {},
+        "unlocked_props": [],
     }
 
 
@@ -73,6 +74,10 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["show_activity_log"] = False
     if not isinstance(merged.get("ui_settings"), dict):
         merged["ui_settings"] = {}
+    if not isinstance(merged.get("unlocked_props"), list):
+        merged["unlocked_props"] = []
+    else:
+        merged["unlocked_props"] = [str(prop_id) for prop_id in merged["unlocked_props"] if str(prop_id)]
     return merged
 
 
@@ -176,6 +181,11 @@ class UserProfileRecord:
         if not isinstance(raw, list):
             return ()
         return tuple(str(entry) for entry in raw)
+
+    @property
+    def unlocked_props(self) -> tuple[str, ...]:
+        raw = self.profile.get("unlocked_props")
+        return tuple(str(entry) for entry in raw) if isinstance(raw, list) else ()
 
 
 class ProfileRepository:

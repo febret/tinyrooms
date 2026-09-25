@@ -1,6 +1,6 @@
 # Leet base propset: retro-futurist and neon high-tech set dressing.
 # Models live beside this file and are served at /assets/propsets/leet-base/.
-# Decorative + editable props are offered in every room editor's library.
+# These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Computers and desks ----------------------------------------------------
 beige-terminal:
@@ -10,6 +10,7 @@ beige-terminal:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [tech, computer, display]
 hacker-desk:
   label: Hacker Desk
   description: Three CRTs, a nest of cables, and neon spilling underneath.
@@ -17,6 +18,7 @@ hacker-desk:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [furniture, desk, computer]
 neon-workstation:
   label: Neon Workstation
   description: A curved widescreen and a keyboard that glows every color at once.
@@ -24,6 +26,7 @@ neon-workstation:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [tech, computer, display]
 mechanical-keyboard:
   label: Mechanical Keyboard
   description: Chunky switches and rainbow keys. Your neighbours will know.
@@ -31,6 +34,7 @@ mechanical-keyboard:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [tech, computer]
 teletype-machine:
   label: Teletype Machine
   description: Round keys and a paper roll, chattering out the news.
@@ -38,6 +42,7 @@ teletype-machine:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [tech, computer]
 floppy-organizer:
   label: Floppy Organizer
   description: A rack of colourful floppies with handwritten labels.
@@ -45,6 +50,7 @@ floppy-organizer:
   decorative: true
   editable: true
   scale: 0.7
+  tags: [storage, computer, tech]
 circuit-crash-cart:
   label: Circuit Crash Cart
   description: A rolling cart of salvaged boards and glowing spare parts.
@@ -52,6 +58,7 @@ circuit-crash-cart:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [furniture, storage, tech]
 oscilloscope:
   label: Oscilloscope
   description: A round green screen drawing a sine wave that never ends.
@@ -59,6 +66,7 @@ oscilloscope:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [tech, display, computer]
 plasma-globe:
   label: Plasma Globe
   description: Purple lightning reaching for your hand on a chrome base.
@@ -66,6 +74,7 @@ plasma-globe:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [decoration, ornament, tech]
 
 # --- Servers and hardware ---------------------------------------------------
 server-tower:
@@ -75,6 +84,7 @@ server-tower:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [server, tech, computer]
 mainframe-cabinet:
   label: Mainframe Cabinet
   description: A hulking seventies mainframe of toggle switches and tape reels.
@@ -82,6 +92,7 @@ mainframe-cabinet:
   decorative: true
   editable: true
   scale: 1.6
+  tags: [server, cabinet, tech]
 reel-tape-drive:
   label: Reel-to-Reel Drive
   description: Chrome trim, orange lamps, and two reels always mid-rewind.
@@ -89,6 +100,7 @@ reel-tape-drive:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [server, tech, computer]
 server-rack:
   label: Server Rack
   description: A tall rack humming with blue and orange LEDs and patch cables.
@@ -96,6 +108,7 @@ server-rack:
   decorative: true
   editable: true
   scale: 1.6
+  tags: [server, tech, storage]
 acoustic-modem:
   label: Acoustic Coupler Modem
   description: A rotary handset cradled in a modem, singing to the phone line.
@@ -103,6 +116,7 @@ acoustic-modem:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [tech, computer]
 mining-rig:
   label: Mining Rig
   description: An open frame packed with glowing cards and whirring fans.
@@ -110,6 +124,7 @@ mining-rig:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [tech, computer, server]
 cryo-cooler:
   label: Cryo Cooler
   description: A chrome cabinet traced with icy blue lines, keeping bits freezing.
@@ -117,6 +132,7 @@ cryo-cooler:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [appliance, storage, tech]
 
 # --- Displays and signals ---------------------------------------------------
 crt-monitor-stack:
@@ -126,6 +142,7 @@ crt-monitor-stack:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [display, computer, tech]
 display-wall:
   label: Display Wall
   description: A wall of glowing screens showing waveforms and falling code.
@@ -133,6 +150,7 @@ display-wall:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [display, art, tech]
 wireframe-globe:
   label: Wireframe Globe
   description: A glowing wireframe world turning on a chrome stand.
@@ -140,6 +158,7 @@ wireframe-globe:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [ornament, decoration, tech]
 hologram-projector:
   label: Hologram Projector
   description: A pyramid projector lifting a cyan hologram into the air.
@@ -147,6 +166,7 @@ hologram-projector:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [tech, display, decoration]
 circuit-neon-sign:
   label: Circuit Neon Sign
   description: Pink and cyan tubes bent into a glowing circuit board.
@@ -154,6 +174,7 @@ circuit-neon-sign:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [decoration, art, lighting]
 cassette-wall:
   label: Cassette Wall
   description: Rows of glowing cassettes in loud neon colours.
@@ -161,6 +182,7 @@ cassette-wall:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [storage, art, decoration]
 
 # --- Furniture and comfort --------------------------------------------------
 orange-office-chair:
@@ -170,6 +192,7 @@ orange-office-chair:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [seating, chair, furniture]
 neon-beanbag:
   label: Neon Beanbag
   description: A glossy black beanbag edged in a single line of neon.
@@ -177,6 +200,7 @@ neon-beanbag:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [seating, furniture]
 hover-stool:
   label: Hover Stool
   description: A floating stool with underglow and no visible explanation.
@@ -184,6 +208,7 @@ hover-stool:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [seating, stool, furniture]
 circuit-rug:
   label: Circuit Rug
   description: A black rug woven with glowing circuit board traces.
@@ -191,6 +216,7 @@ circuit-rug:
   decorative: true
   editable: true
   scale: 1.6
+  tags: [rug, decoration]
 vr-headset-stand:
   label: VR Headset Stand
   description: A chunky seventies-style headset resting on a chrome stand.
@@ -198,6 +224,7 @@ vr-headset-stand:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [tech, ornament, computer]
 chrome-desk-lamp:
   label: Chrome Desk Lamp
   description: A chrome lamp on a flexible arm with a fiercely neon bulb.
@@ -205,6 +232,7 @@ chrome-desk-lamp:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [lighting, lamp, desk]
 neon-robot-arm:
   label: Neon Robot Arm
   description: A small orange arm flexing at glowing neon joints.
@@ -212,6 +240,7 @@ neon-robot-arm:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [ornament, decoration, tech]
 arcade-cabinet:
   label: Arcade Cabinet
   description: A glowing cabinet, a joystick, and chrome trim built to be loud.
@@ -219,3 +248,4 @@ arcade-cabinet:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [display, cabinet, tech]

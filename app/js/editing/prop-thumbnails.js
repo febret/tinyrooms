@@ -88,14 +88,30 @@ export function thumbnailFor(modelUrl, scale = 1) {
   return promise;
 }
 
-/** Keep `img[data-thumb-model]` tiles in sync with cached or freshly rendered thumbnails. */
+/**
+ * Keep `img[data-thumb-model]` tiles in sync with cached or freshly rendered
+ * thumbnails.
+ *
+ * Rendering is viewport-lazy: a shared GLB loader/renderer is heavy, and the
+ * prop library can hold hundreds of tiles, so only tiles that scroll near the
+ * viewport are ever loaded.
+ */
 export function createThumbnailManager() {
-  const assigned = new WeakMap();
+  const scheduled = new WeakMap();
+  const observer = typeof IntersectionObserver === "function"
+    ? new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          if (entry.target.isConnected) apply(entry.target);
+        }
+      }, { rootMargin: "240px 0px" })
+    : null;
 
-  function apply(image, modelUrl, scale) {
-    const key = cacheKey(modelUrl, scale);
-    if (assigned.get(image) === key) return;
-    assigned.set(image, key);
+  function apply(image) {
+    image.dataset.thumbPending = "true";
+    const modelUrl = image.dataset.thumbModel;
+    const scale = Number(image.dataset.thumbScale) || 1;
     const cached = cachedThumbnail(modelUrl, scale);
     if (cached) {
       image.src = cached;
@@ -120,11 +136,17 @@ export function createThumbnailManager() {
     });
   }
 
+  function schedule(image) {
+    const key = cacheKey(image.dataset.thumbModel, Number(image.dataset.thumbScale) || 1);
+    if (scheduled.get(image) === key) return;
+    scheduled.set(image, key);
+    if (observer) observer.observe(image);
+    else apply(image);
+  }
+
   return {
     sync(root) {
-      for (const image of root.querySelectorAll("img[data-thumb-model]")) {
-        apply(image, image.dataset.thumbModel, Number(image.dataset.thumbScale) || 1);
-      }
+      for (const image of root.querySelectorAll("img[data-thumb-model]")) schedule(image);
     },
   };
 }

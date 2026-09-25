@@ -83,6 +83,7 @@ from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
+from server.services.prop_shop import PropShopService
 from server.services.room_layout import RoomLayoutService
 from server.services.rooms import RoomService
 from server.services.rtc import relay_signal as _relay_rtc_signal
@@ -168,6 +169,7 @@ class RuntimeState:
     actions: ActionsService
     friends: FriendsService
     shop: ShopService
+    prop_shop: PropShopService
     pricing: CardPricingService
     dialogs: DialogService
     tasks: TaskService
@@ -451,11 +453,12 @@ def _build_runtime(
     actions = ActionsService(hub, profiles, stats, catalog, world.id)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
     shop = ShopService(hub, profiles, catalog, content, world.id)
+    prop_shop = PropShopService(hub, profiles, world)
     audit = AuditService(hub, world.id)
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     environment = EnvironmentService(hub, world, world_state)
-    layout = RoomLayoutService(hub, world, world_state, ownership, environment)
+    layout = RoomLayoutService(hub, world, world_state, ownership, environment, prop_shop)
     auras = AuraService(hub, stats, world)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
@@ -549,6 +552,7 @@ def _build_runtime(
         actions=actions,
         friends=friends,
         shop=shop,
+        prop_shop=prop_shop,
         pricing=pricing,
         dialogs=dialogs,
         tasks=tasks,

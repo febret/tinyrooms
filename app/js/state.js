@@ -330,6 +330,7 @@ function normalizeUser(user) {
         }
       : { friends: [], incoming: [], outgoing: [] },
     packs: Array.isArray(user.packs) ? user.packs.map(normalizePack) : [],
+    unlockedProps: Array.isArray(user.unlocked_props) ? user.unlocked_props.map(propId => String(propId)) : [],
     tasks: normalizeTasks(user.tasks),
     journal: normalizeJournal(user.journal),
     worldId: String(user.world_id || ""),

@@ -91,6 +91,32 @@ class ModPropLoaderTests(unittest.TestCase):
                 )
 
 
+class PropsetTagLoaderTests(unittest.TestCase):
+    """Propset props load free-form tags normalized to lowercase."""
+
+    def test_propset_tags_load_normalized(self) -> None:
+        world = load_test_world(REPO_ROOT / "worlds" / WORLD_ID)
+        armchair = world.props["mustard-armchair"]
+        self.assertEqual(armchair.source, "base")
+        self.assertEqual(armchair.source_kind, "propset")
+        self.assertIn("furniture", armchair.tags)
+        self.assertTrue(all(tag == tag.lower() for tag in armchair.tags))
+
+    def test_non_list_tags_are_rejected(self) -> None:
+        from server.content.worlds import load_propset
+
+        with TemporaryDirectory() as temporary_directory:
+            propset = Path(temporary_directory) / "propsets" / "base"
+            propset.mkdir(parents=True)
+            (propset / "thing.glb").write_bytes(b"")
+            (propset / "props.yaml").write_text(
+                "thing:\n  label: Thing\n  model: thing.glb\n  scale: 1.0\n  tags: nope\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(ContentError):
+                load_propset(propset)
+
+
 class BedroomServiceTestCase(ServiceTestCase):
     """Shared service wiring for the player bedroom tests."""
 

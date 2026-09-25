@@ -265,7 +265,7 @@ test.describe("client module logic", () => {
           owned: editLabels(true),
           locked: editLabels(false),
           lockedView: editRoomView({ room: { ...room, canEditRoom: false } }).includes("do not have permission"),
-          editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Add a prop"),
+          editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Prop Shop"),
         },
         prop: propActions.find(action => action.label === "Inspect")?.local,
         slot: skillActions.find(action => action.label === "Slot…")?.local,
@@ -777,7 +777,7 @@ test.describe("milestone 3 room editing", () => {
   test("admins see the Edit Room action without ownership", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime, "siteadmin");
     const panel = await openEditRoom(page);
-    await expect(panel).toContainText("Add a prop");
+    await expect(panel.locator(".editor-library-grid")).toBeVisible();
     // Library tiles are static images, never per-tile WebGL contexts.
     expect(await panel.locator("img.editor-thumb").count()).toBeGreaterThan(0);
     await expect(panel.locator("canvas.editor-thumb")).toHaveCount(0);
@@ -920,6 +920,60 @@ test.describe("milestone 3 room editing", () => {
     await panel.getByRole("button", { name: "Reapply my changes", exact: true }).click();
     await expect(page.locator("#toast-stack")).toContainText("Layout saved.");
     await expect(panel.locator(".editor-conflict")).toHaveCount(0);
+  });
+
+  test("editor library filters by search, prop set, and tag", async ({ page, runtime, isMobile }) => {
+    test.skip(Boolean(isMobile), "Library filtering is covered on desktop.");
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    const grid = panel.locator(".editor-library-grid");
+    await expect(grid.locator(".editor-library-item").first()).toBeVisible();
+    const total = await grid.locator(".editor-library-item:visible").count();
+    expect(total).toBeGreaterThan(1);
+
+    await panel.locator("[data-edit-search]").fill("mustard");
+    await expect(grid.locator(".editor-library-item:visible")).toHaveCount(1);
+    await expect(grid.locator('.editor-library-item[data-edit-add="mustard-armchair"]')).toBeVisible();
+    await panel.locator("[data-edit-search]").fill("");
+    await expect(grid.locator(".editor-library-item:visible")).toHaveCount(total);
+
+    await panel.locator('[data-edit-propset="base"]').click();
+    await expect(panel.locator('[data-edit-propset="base"]')).toHaveClass(/is-active/);
+    const baseIds = await grid.locator(".editor-library-item:visible").evaluateAll(nodes => nodes.map(node => node.dataset.librarySource));
+    expect(baseIds.length).toBeGreaterThan(0);
+    expect(baseIds.every(source => source === "base")).toBe(true);
+
+    await panel.locator('[data-edit-tag="furniture"]').click();
+    await expect(panel.locator('[data-edit-tag="furniture"]')).toHaveClass(/is-active/);
+    const taggedIds = await grid.locator(".editor-library-item:visible").evaluateAll(nodes => nodes.map(node => node.dataset.libraryTags));
+    expect(taggedIds.length).toBeGreaterThan(0);
+    expect(taggedIds.every(tags => tags.split(" ").includes("furniture"))).toBe(true);
+
+    await panel.locator('[data-edit-propset=""]').click();
+    await expect(panel.locator('[data-edit-propset="base"]')).not.toHaveClass(/is-active/);
+  });
+
+  test("prop shop buys an unlock and adds it to the editor", async ({ page, runtime, isMobile }) => {
+    test.skip(Boolean(isMobile), "Prop shop purchase flow is covered on desktop.");
+    test.slow();
+    await createEditorAccount(page, runtime, "editor");
+    const panel = await openEditRoom(page);
+    await expect(panel.locator('[data-edit-add="ancient-oak"]')).toHaveCount(0);
+
+    await panel.getByRole("button", { name: /Prop Shop/ }).click();
+    const frame = page.frameLocator('iframe[src*="prop-shop"]');
+    await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
+
+    await frame.locator("#search").fill("ancient oak");
+    const card = frame.locator('.shop-card[data-prop="ancient-oak"]');
+    await expect(card).toHaveCount(1);
+    await card.click();
+    await expect(frame.locator("#preview-label")).toHaveText("Ancient Oak");
+    await expect(frame.locator("canvas[data-prop-model][data-model-ready='true']")).toHaveCount(1, { timeout: 20_000 });
+
+    await frame.locator("#buy").click();
+    await expect(card.locator(".shop-card-owned")).toHaveText("Owned", { timeout: 20_000 });
+    await expect(panel.locator('[data-edit-add="ancient-oak"]')).toHaveCount(1);
   });
 });
 

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tinyrooms Prop Shop</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="/activities/prop-shop/prop-shop.css">
+    <script type="importmap">
+      { "imports": { "three": "/app/vendor/three/three.module.js" } }
+    </script>
+  </head>
+  <body class="shop-body-page">
+    <main class="shop-shell">
+      <header class="shop-bar">
+        <div class="shop-brand">
+          <span class="shop-badge">Tinyrooms marketplace</span>
+          <h1>Prop Shop</h1>
+        </div>
+        <label class="shop-search">
+          <span class="shop-search-icon" aria-hidden="true">⌕</span>
+          <input id="search" type="search" placeholder="Search props…" aria-label="Search props">
+        </label>
+        <div class="shop-wallet" id="wallet" aria-live="polite">
+          <span class="shop-coin" aria-hidden="true">◎</span>
+          <strong id="wallet-amount">—</strong>
+          <span>Bops</span>
+        </div>
+      </header>
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+      <div class="shop-panel">
+        <div class="shop-propsets" id="propsets" role="list" aria-label="Prop sets"></div>
+        <section class="shop-main">
+          <div class="shop-tags" id="tags" role="group" aria-label="Filter by tag"></div>
+          <div class="shop-grid-wrap">
+            <div class="shop-grid" id="grid" role="list" aria-label="Props for sale"></div>
+            <p class="shop-empty" id="grid-empty" hidden>No props match your filters.</p>
+          </div>
+        </section>
+        <aside class="shop-preview" id="preview" aria-label="Prop preview">
+          <div class="preview-stage">
+            <canvas id="preview-canvas" data-prop-model="" data-prop-scale="1" data-prop-interactive="true" aria-label="Selected prop preview. Drag to rotate."></canvas>
+            <span class="preview-hint">Drag to rotate</span>
+          </div>
+          <div class="preview-copy">
+            <h2 id="preview-label">Pick a prop</h2>
+            <p id="preview-description" class="muted"></p>
+            <div class="preview-foot">
+              <span class="preview-price" id="preview-price"></span>
+              <button type="button" class="primary" id="buy" disabled>Buy</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="/activities/prop-shop/prop-shop.js"></script>
+  </body>
+</html>

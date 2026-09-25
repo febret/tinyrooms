@@ -502,7 +502,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import activity_hooks, gameplay, privileged, props
+    from server.commands import activity_hooks, gameplay, privileged, prop_shop, props
 
     registry = CommandRegistry()
     registry.register(
@@ -543,6 +543,13 @@ def build_registry() -> CommandRegistry:
         gameplay.buy_pack_command,
         usage=".buy_pack <pack_id> <operation_id>",
         help="Spend Bops to open a pack. The operation id makes purchases idempotent.",
+    )
+    registry.register(
+        "buy_prop",
+        "Buy a permanent prop unlock from the Prop Shop.",
+        prop_shop.buy_prop_command,
+        usage=".buy_prop <prop_id>",
+        help="Spend Bops to unlock a marketplace prop for every room you own.",
     )
     registry.register("cancel", "Close the active activity window.", cancel_command, usage=".cancel")
     registry.register(
@@ -649,6 +656,20 @@ def build_registry() -> CommandRegistry:
         "Open a room activity or developer sample activity.",
         play_command,
         usage=".play <activity> [replace]",
+    )
+    registry.register(
+        "prop_catalog",
+        "List every prop sold in the Prop Shop.",
+        prop_shop.prop_catalog_command,
+        usage=".prop_catalog",
+        toast=False,
+        log=False,
+    )
+    registry.register(
+        "prop_shop",
+        "Open the Prop Shop marketplace.",
+        prop_shop.prop_shop_command,
+        usage=".prop_shop",
     )
     registry.register(
         "reset_room",

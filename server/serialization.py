@@ -30,6 +30,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "sticker_design": decode_design(account.sticker_design),
         "initial_sticker_complete": account.initial_sticker_complete,
         "owned_rooms": list(user_profile.owned_rooms),
+        "unlocked_props": sorted(runtime.prop_shop.unlocked(account.id)),
         "level": account.level,
         "level_label": level_definition.label,
         "kudos": account.kudos,

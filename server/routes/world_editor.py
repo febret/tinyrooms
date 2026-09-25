@@ -86,6 +86,9 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "scale": definition.scale,
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,
+            "tags": list(definition.tags),
+            "price": definition.price,
+            "locked": definition.locked,
         }
         for definition in world.props.values()
     ]

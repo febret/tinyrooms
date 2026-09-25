@@ -4,6 +4,9 @@ sticker-designer:
 crafting:
   title: Crafting
   room_bound: true
+prop-shop:
+  title: Prop Shop
+  room_bound: true
 dev-sample:
   title: Sample Activity
   aliases: [sample]

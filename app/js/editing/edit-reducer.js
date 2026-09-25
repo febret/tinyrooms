@@ -35,8 +35,18 @@ function normalizeLibrary(entries) {
       baseScale: Number(entry?.base_scale || 1),
       scaleMin: Number(entry?.scale_min ?? 0.25),
       scaleMax: Number(entry?.scale_max ?? 4),
+      source: String(entry?.source || ""),
+      tags: (Array.isArray(entry?.tags) ? entry.tags : []).map(tag => String(tag).trim().toLowerCase()).filter(Boolean),
+      price: Number(entry?.price ?? 5),
+      locked: Boolean(entry?.locked),
     }))
     .filter(entry => entry.propId);
+}
+
+/** Library entries the account may actually place (locked props need an unlock). */
+export function availableLibrary(editor, unlockedPropIds) {
+  const unlocked = unlockedPropIds instanceof Set ? unlockedPropIds : new Set(unlockedPropIds || []);
+  return (editor?.library || []).filter(entry => !entry.locked || unlocked.has(entry.propId));
 }
 
 export function normalizeEditorView(view) {

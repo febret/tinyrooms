@@ -20,6 +20,8 @@ import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
 import { editRoomView } from "./views/edit-room-view.js";
 import { shopView } from "./views/shop-view.js";
+import { bindEditorLibrary } from "./editing/library-filter.js";
+import { availableLibrary } from "./editing/edit-reducer.js";
 
 function coreMarkup(definition, selected) {
   return `
@@ -357,10 +359,12 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
+    const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage", "editSearch"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .editor-dock-body, .shop-dock-body, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
+    const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+    const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
+    const scrollSelector = ".modal-scroll, .board-modal, .editor-workspace, .editor-env, .editor-propsets, .editor-heading-tags, .editor-library-grid, .shop-dock-body, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -370,7 +374,14 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
       element.scrollLeft = scrolls[index]?.left || 0;
     });
     if (identity) {
-      [...root.querySelectorAll("button, [data-details-page]")].find(element => element.dataset[identity] === value)?.focus({ preventScroll: true });
+      const restored = [...root.querySelectorAll("button, input, [data-details-page]")]
+        .find(element => element.dataset[identity] === value);
+      if (restored) {
+        restored.focus({ preventScroll: true });
+        if (caret && typeof restored.setSelectionRange === "function") {
+          try { restored.setSelectionRange(caret.start, caret.end); } catch { /* ignore non-text inputs */ }
+        }
+      }
     }
     bindCardButtons(root, onSelect, onAction);
     return true;
@@ -392,7 +403,10 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
       `);
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
-      if (editorRoot) update(editorRoot, state.editor ? editRoomView(state) : "");
+      if (editorRoot) {
+        update(editorRoot, state.editor ? editRoomView(state) : "");
+        if (state.editor) bindEditorLibrary(editorRoot, availableLibrary(state.editor, state.user?.unlockedProps));
+      }
       if (shopRoot) update(shopRoot, state.shop ? shopView(state) : "");
     },
   };

@@ -6,6 +6,7 @@ import unittest
 
 from server.services.environment import EnvironmentService
 from server.services.ownership import OwnershipService
+from server.services.prop_shop import PropShopService
 from server.services.room_layout import RoomLayoutService
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 from tests.common import REPO_ROOT, ServiceTestCase, WORLD_ID, load_test_world
@@ -23,12 +24,14 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.world_state.initialize_world(self.world)
         self.ownership = OwnershipService(self.hub, self.profiles, self.world_state, self.world)
         self.environment = EnvironmentService(self.hub, self.world, self.world_state)
+        self.prop_shop = PropShopService(self.hub, self.profiles, self.world)
         self.layout = RoomLayoutService(
             self.hub,
             self.world,
             self.world_state,
             self.ownership,
             self.environment,
+            self.prop_shop,
         )
 
     def owner(self, username: str = "alice", room: str = "hub"):
@@ -59,7 +62,7 @@ class RoomLayoutServiceTests(ServiceTestCase):
                 self.world,
                 has_power=lambda account_id, candidate: candidate == power and account_id == account.id,
             )
-            return RoomLayoutService(self.hub, self.world, self.world_state, ownership, self.environment)
+            return RoomLayoutService(self.hub, self.world, self.world_state, ownership, self.environment, self.prop_shop)
 
         self.assertTrue(self.layout.can_edit(owner, "hub"))
         self.assertFalse(self.layout.can_edit(stranger, "hub"))
@@ -196,6 +199,91 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.assertNotIn("portal", library)
         self.assertIn("palette", view["environment_whitelist"])
         self.assertNotIn("lighting", view["environment_whitelist"])
+        tagged = next(entry for entry in view["library"] if entry["prop_id"] == "mustard-armchair")
+        self.assertEqual(tagged["source"], "base")
+        self.assertIn("furniture", tagged["tags"])
+        self.assertFalse(tagged["locked"])
+        self.assertEqual(tagged["price"], 5)
+
+    def test_locked_propset_props_require_an_unlock(self) -> None:
+        owner = self.owner()
+        base = self.layout.view(owner, "hub")["revision"]
+        locked = next(
+            entry for entry in self.layout.view(owner, "hub")["library"] if entry["prop_id"] == "ancient-oak"
+        )
+        self.assertTrue(locked["locked"])
+        with self.assertRaises(ValueError):
+            self.layout.save(
+                owner,
+                "hub",
+                base,
+                {"props": [self.editable_instance("ancient-oak", "custom:00000000-0000-4000-8000-000000000003")]},
+            )
+        self.set_progress(owner, bops=20)
+        self.prop_shop.purchase(self.reload_account(owner), "ancient-oak")
+        unlocked = self.prop_shop.unlocked(owner.id)
+        self.assertIn("ancient-oak", unlocked)
+        update = self.layout.save(
+            owner,
+            "hub",
+            base,
+            {"props": [self.editable_instance("ancient-oak", "custom:00000000-0000-4000-8000-000000000003")]},
+        )
+        self.assertEqual(update.revision, base + 1)
+
+    def test_already_placed_locked_prop_stays_editable(self) -> None:
+        builder = self.create_account("bldr")
+        self.ownership.grant("hub", builder.id)
+        self.set_progress(builder, bops=20)
+        base = self.layout.view(builder, "hub")["revision"]
+        self.prop_shop.purchase(self.reload_account(builder), "ancient-oak")
+        placed = self.layout.save(
+            builder,
+            "hub",
+            base,
+            {"props": [self.editable_instance("ancient-oak", "custom:00000000-0000-4000-8000-000000000004")]},
+        )
+        owner = self.owner("alice")
+        # A different owner who never unlocked the prop can still keep and move it.
+        moved = self.layout.save(
+            owner,
+            "hub",
+            placed.revision,
+            {
+                "props": [
+                    self.editable_instance("ancient-oak", "custom:00000000-0000-4000-8000-000000000004")
+                    | {"position": [12, 34, 0]}
+                ]
+            },
+        )
+        self.assertEqual(moved.revision, placed.revision + 1)
+
+    def test_prop_shop_purchase_is_idempotent_and_charges_once(self) -> None:
+        account = self.owner()
+        self.set_progress(account, bops=20)
+        first = self.prop_shop.purchase(self.reload_account(account), "ancient-oak")
+        self.assertEqual(first.bops_spent, 5)
+        self.assertFalse(first.replayed)
+        self.assertEqual(self.reload_account(account).bops, 15)
+        replay = self.prop_shop.purchase(self.reload_account(account), "ancient-oak")
+        self.assertEqual(replay.bops_spent, 0)
+        self.assertTrue(replay.replayed)
+        self.assertEqual(self.reload_account(account).bops, 15)
+
+    def test_prop_shop_rejects_insufficient_bops(self) -> None:
+        account = self.owner()
+        self.set_progress(account, bops=1)
+        with self.assertRaises(ValueError):
+            self.prop_shop.purchase(self.reload_account(account), "ancient-oak")
+        self.assertEqual(self.reload_account(account).bops, 1)
+        self.assertNotIn("ancient-oak", self.prop_shop.unlocked(account.id))
+
+    def test_prop_shop_catalog_lists_only_propset_props(self) -> None:
+        catalog = self.prop_shop.catalog()
+        self.assertTrue(catalog)
+        self.assertTrue(all(definition.source_kind == "propset" for definition in catalog))
+        self.assertTrue(any(definition.locked for definition in catalog))
+        self.assertTrue(any(not definition.locked for definition in catalog))
 
     def test_propset_prop_can_be_added_to_a_room_without_being_placed(self) -> None:
         owner = self.owner()

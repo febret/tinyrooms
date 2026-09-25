@@ -1,6 +1,6 @@
 # Arbor base propset: trees, flowers, rocks, and other natural set dressing.
 # Models live beside this file and are served at /assets/propsets/arbor-base/.
-# Decorative + editable props are offered in every room editor's library.
+# These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Trees ------------------------------------------------------------------
 ancient-oak:
@@ -10,6 +10,7 @@ ancient-oak:
   decorative: true
   editable: true
   scale: 2.2
+  tags: [tree, plant]
 silver-birch:
   label: Silver Birch
   description: A slender birch in pale peeling bark.
@@ -17,6 +18,7 @@ silver-birch:
   decorative: true
   editable: true
   scale: 2.0
+  tags: [tree, plant]
 scots-pine:
   label: Scots Pine
   description: A red-trunked pine with a single tuft of needles.
@@ -24,6 +26,7 @@ scots-pine:
   decorative: true
   editable: true
   scale: 2.0
+  tags: [tree, plant]
 weeping-willow:
   label: Weeping Willow
   description: A willow trailing long leafy fingers to the ground.
@@ -31,6 +34,7 @@ weeping-willow:
   decorative: true
   editable: true
   scale: 2.0
+  tags: [tree, plant]
 sugar-maple:
   label: Sugar Maple
   description: A maple caught mid-autumn in orange and red.
@@ -38,6 +42,7 @@ sugar-maple:
   decorative: true
   editable: true
   scale: 1.9
+  tags: [tree, plant]
 palm-tree:
   label: Palm Tree
   description: A leaning palm with a crown of fanned fronds.
@@ -45,6 +50,7 @@ palm-tree:
   decorative: true
   editable: true
   scale: 1.8
+  tags: [tree, plant]
 italian-cypress:
   label: Italian Cypress
   description: A dark green spire of a tree.
@@ -52,6 +58,7 @@ italian-cypress:
   decorative: true
   editable: true
   scale: 1.8
+  tags: [tree, plant]
 cherry-blossom-tree:
   label: Cherry Blossom Tree
   description: A tree of soft pink petals that will not sit still.
@@ -59,6 +66,7 @@ cherry-blossom-tree:
   decorative: true
   editable: true
   scale: 1.7
+  tags: [tree, plant, flower]
 twisted-dead-tree:
   label: Twisted Dead Tree
   description: A bare grey tree that still looks striking.
@@ -66,6 +74,7 @@ twisted-dead-tree:
   decorative: true
   editable: true
   scale: 1.8
+  tags: [tree, decoration]
 mini-pine-bonsai:
   label: Mini Pine Bonsai
   description: A tiny pine trained into a shallow stone tray.
@@ -73,6 +82,7 @@ mini-pine-bonsai:
   decorative: true
   editable: true
   scale: 0.7
+  tags: [bonsai, tree, plant]
 
 # --- Shrubs and topiary -----------------------------------------------------
 boxwood-ball:
@@ -82,6 +92,7 @@ boxwood-ball:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [shrub, topiary]
 hedgerow-shrub:
   label: Hedgerow Shrub
   description: A wild leafy shrub dusted with small white flowers.
@@ -89,6 +100,7 @@ hedgerow-shrub:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [shrub, plant, flower]
 berry-bush:
   label: Berry Bush
   description: A bush weighed down with red currants.
@@ -96,6 +108,7 @@ berry-bush:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [shrub, plant]
 gorse-bush:
   label: Gorse Bush
   description: A prickly bush wearing yellow flowers.
@@ -103,6 +116,7 @@ gorse-bush:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [shrub, plant, flower]
 cube-hedge:
   label: Cube Hedge
   description: A hedge trimmed to a very tidy cube.
@@ -110,6 +124,7 @@ cube-hedge:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [shrub, topiary]
 spiral-topiary:
   label: Spiral Topiary
   description: A shrub trained into a green corkscrew.
@@ -117,6 +132,7 @@ spiral-topiary:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [shrub, topiary]
 hydrangea-bush:
   label: Hydrangea Bush
   description: Big blue and pink flower heads on a leafy bush.
@@ -124,6 +140,7 @@ hydrangea-bush:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [shrub, plant, flower]
 fern-bush:
   label: Fern Bush
   description: A mound of arching green fern fronds.
@@ -131,6 +148,7 @@ fern-bush:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [shrub, fern]
 
 # --- Flowers ----------------------------------------------------------------
 tulip-patch:
@@ -140,6 +158,7 @@ tulip-patch:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [flower, plant]
 sunflower-stalk:
   label: Sunflower
   description: A tall sunflower following the light.
@@ -147,6 +166,7 @@ sunflower-stalk:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [flower, plant]
 rose-bush:
   label: Rose Bush
   description: Deep red blooms guarded by thorny stems.
@@ -154,6 +174,7 @@ rose-bush:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [flower, shrub, plant]
 daisy-cluster:
   label: Daisy Cluster
   description: A handful of white daisies with yellow centers.
@@ -161,6 +182,7 @@ daisy-cluster:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [flower, plant]
 lavender-row:
   label: Lavender Row
   description: Fragrant purple spikes in a tidy row.
@@ -168,6 +190,7 @@ lavender-row:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [flower, plant]
 poppy-patch:
   label: Poppy Patch
   description: Bright red poppies nodding on slender stems.
@@ -175,6 +198,7 @@ poppy-patch:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [flower, plant]
 bluebell-patch:
   label: Bluebell Patch
   description: Bluebells nodding in the shade.
@@ -182,6 +206,7 @@ bluebell-patch:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [flower, plant]
 wildflower-meadow:
   label: Wildflower Meadow
   description: A cheerful patch of mixed wildflowers.
@@ -189,6 +214,7 @@ wildflower-meadow:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [flower, plant, grass]
 lotus-pond:
   label: Lotus Pond
   description: A lotus resting on round leaves over a still pool.
@@ -196,6 +222,7 @@ lotus-pond:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [flower, plant]
 marigold-cluster:
   label: Marigold Cluster
   description: A warm cluster of orange marigolds.
@@ -203,6 +230,7 @@ marigold-cluster:
   decorative: true
   editable: true
   scale: 0.85
+  tags: [flower, plant]
 
 # --- Rocks and minerals -----------------------------------------------------
 granite-boulder:
@@ -212,6 +240,7 @@ granite-boulder:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [rock, mineral]
 pebble-pile:
   label: Pebble Pile
   description: A little heap of smooth river pebbles.
@@ -219,6 +248,7 @@ pebble-pile:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [rock]
 standing-stone:
   label: Standing Stone
   description: A weathered stone standing tall, runes faintly carved.
@@ -226,6 +256,7 @@ standing-stone:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [rock, ornament]
 crystal-cluster:
   label: Crystal Cluster
   description: Violet crystals glowing from a crack in the rock.
@@ -233,6 +264,7 @@ crystal-cluster:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [rock, mineral]
 slate-stack:
   label: Slate Stack
   description: Flat grey slates stacked into a cairn.
@@ -240,6 +272,7 @@ slate-stack:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [rock]
 mossy-rock:
   label: Mossy Rock
   description: A low rock wearing a coat of soft moss.
@@ -247,6 +280,7 @@ mossy-rock:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [rock, plant]
 stepping-stones:
   label: Stepping Stones
   description: Flat stones laid into a little garden path.
@@ -254,6 +288,7 @@ stepping-stones:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [rock]
 amethyst-geode:
   label: Amethyst Geode
   description: A cracked geode sparkling with amethyst.
@@ -261,6 +296,7 @@ amethyst-geode:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [rock, mineral]
 
 # --- Grasses and ferns ------------------------------------------------------
 fern-clump:
@@ -270,6 +306,7 @@ fern-clump:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [fern, plant]
 tall-grass-tuft:
   label: Tall Grass Tuft
   description: Wild grass caught mid-sway.
@@ -277,6 +314,7 @@ tall-grass-tuft:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [grass, plant]
 cattails:
   label: Cattails
   description: Brown cattails standing in the marsh.
@@ -284,6 +322,7 @@ cattails:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [grass, plant]
 river-reeds:
   label: River Reeds
   description: Thin green reeds at the water's edge.
@@ -291,6 +330,7 @@ river-reeds:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [grass, plant]
 bamboo-cluster:
   label: Bamboo Cluster
   description: A stand of slim green bamboo.
@@ -298,6 +338,7 @@ bamboo-cluster:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [grass, plant]
 horsetail-reeds:
   label: Horsetail Reeds
   description: Jointed reeds rising in a neat clump.
@@ -305,6 +346,7 @@ horsetail-reeds:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [grass, plant]
 
 # --- Woodland floor ---------------------------------------------------------
 mushroom-ring:
@@ -314,6 +356,7 @@ mushroom-ring:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [decoration, plant]
 toadstool-cluster:
   label: Toadstool Cluster
   description: Spotted toadstools sprouting from a mossy stump.
@@ -321,6 +364,7 @@ toadstool-cluster:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [decoration, plant]
 mossy-log:
   label: Mossy Log
   description: A fallen log furred with moss and tiny mushrooms.
@@ -328,6 +372,7 @@ mossy-log:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [decoration, foliage]
 tree-stump:
   label: Tree Stump
   description: A cut stump showing its rings.
@@ -335,6 +380,7 @@ tree-stump:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [tree, decoration]
 driftwood:
   label: Driftwood
   description: Pale wood smoothed by wind and water.
@@ -342,6 +388,7 @@ driftwood:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [decoration, foliage]
 ivy-vine:
   label: Ivy Vine
   description: Climbing ivy winding up a small frame.
@@ -349,6 +396,7 @@ ivy-vine:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [plant, foliage]
 wild-beehive:
   label: Wild Beehive
   description: A honeycomb hive abuzz with a few busy bees.
@@ -356,6 +404,7 @@ wild-beehive:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [decoration, ornament]
 birds-nest:
   label: Bird's Nest
   description: A woven nest cradling a clutch of speckled eggs.
@@ -363,3 +412,4 @@ birds-nest:
   decorative: true
   editable: true
   scale: 0.7
+  tags: [decoration, ornament]

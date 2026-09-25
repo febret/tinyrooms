@@ -1,6 +1,6 @@
 # Yokkmok propset: simple Finnish (IKEA-ish) flat-pack furnishings.
 # Models live beside this file and are served at /assets/propsets/yokkmok/.
-# Decorative + editable props are offered in every room editor's library.
+# These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Seating ----------------------------------------------------------------
 koivu-dining-chair:
@@ -10,6 +10,7 @@ koivu-dining-chair:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [seating, chair, furniture]
 pouta-sofa:
   label: Pouta Sofa
   description: A pale grey two-seater on honest wooden legs.
@@ -17,6 +18,7 @@ pouta-sofa:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [seating, sofa, furniture]
 aalto-stool:
   label: Aalto Stool
   description: A round birch stool. Stack two, or three if you are brave.
@@ -24,6 +26,7 @@ aalto-stool:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [seating, stool, furniture]
 tunturi-armchair:
   label: Tunturi Armchair
   description: A soft grey armchair with simple wooden rests.
@@ -31,6 +34,7 @@ tunturi-armchair:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [seating, chair, furniture]
 tyyny-cushions:
   label: Tyyny Cushions
   description: A tidy stack of striped floor cushions for extra guests.
@@ -38,6 +42,7 @@ tyyny-cushions:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [seating, decoration]
 
 # --- Beds and tables --------------------------------------------------------
 lumi-bed:
@@ -47,6 +52,7 @@ lumi-bed:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [bed, furniture]
 sade-desk:
   label: Sade Desk
   description: A white desk on angled wooden legs. Assembly is a rumour.
@@ -54,6 +60,7 @@ sade-desk:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [desk, table, furniture]
 jarvi-coffee-table:
   label: Jarvi Coffee Table
   description: A round pale-wood table with just three legs to argue with.
@@ -61,6 +68,7 @@ jarvi-coffee-table:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [table, furniture]
 puro-side-table:
   label: Puro Side Table
   description: A small round table with one polite little drawer.
@@ -68,6 +76,7 @@ puro-side-table:
   decorative: true
   editable: true
   scale: 0.95
+  tags: [table, storage, furniture]
 laatikko-drawer-unit:
   label: Laatikko Drawer Unit
   description: Three pine drawers that actually glide.
@@ -75,6 +84,7 @@ laatikko-drawer-unit:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [storage, cabinet, furniture]
 
 # --- Storage ----------------------------------------------------------------
 kuusi-wall-shelf:
@@ -84,6 +94,7 @@ kuusi-wall-shelf:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [storage, shelf, furniture]
 saari-cabinet:
   label: Saari Cabinet
   description: A white two-door cabinet with a warm wood top.
@@ -91,6 +102,7 @@ saari-cabinet:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [storage, cabinet, furniture]
 reppu-bench:
   label: Reppu Bench
   description: A slatted bench for boots, bags, and indecision.
@@ -98,6 +110,7 @@ reppu-bench:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [seating, bench, storage]
 metsa-bookshelf:
   label: Metsa Bookshelf
   description: Open white and pine shelves for books and small treasures.
@@ -105,6 +118,7 @@ metsa-bookshelf:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [storage, shelf, furniture]
 kori-basket:
   label: Kori Basket
   description: A woven basket with a folded grey blanket tucked inside.
@@ -112,6 +126,7 @@ kori-basket:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [storage, decoration]
 naulakko-coat-rack:
   label: Naulakko Coat Rack
   description: A simple wooden rack with round pegs for every coat.
@@ -119,6 +134,7 @@ naulakko-coat-rack:
   decorative: true
   editable: true
   scale: 1.5
+  tags: [storage, furniture]
 
 # --- Lighting ---------------------------------------------------------------
 kielo-floor-lamp:
@@ -128,6 +144,7 @@ kielo-floor-lamp:
   decorative: true
   editable: true
   scale: 1.4
+  tags: [lighting, lamp]
 taika-table-lamp:
   label: Taika Table Lamp
   description: A small white dome on a wooden base.
@@ -135,6 +152,7 @@ taika-table-lamp:
   decorative: true
   editable: true
   scale: 0.85
+  tags: [lighting, lamp]
 tahti-pendant-lamp:
   label: Tahti Pendant Lamp
   description: A simple white pendant on a plain cord.
@@ -142,6 +160,7 @@ tahti-pendant-lamp:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [lighting, lamp, sconce]
 kynttila-candle-holder:
   label: Kynttila Candles
   description: Three white block candles on a pine tray.
@@ -149,6 +168,7 @@ kynttila-candle-holder:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [lighting, lantern]
 
 # --- Decor ------------------------------------------------------------------
 satu-rug:
@@ -158,6 +178,7 @@ satu-rug:
   decorative: true
   editable: true
   scale: 1.6
+  tags: [rug, decoration]
 kukka-plant-pot:
   label: Kukka Plant
   description: One calm green plant in a plain white pot.
@@ -165,6 +186,7 @@ kukka-plant-pot:
   decorative: true
   editable: true
   scale: 0.9
+  tags: [plant, decoration]
 oksa-vase:
   label: Oksa Vase
   description: A tall white vase holding a single birch branch.
@@ -172,6 +194,7 @@ oksa-vase:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [decoration, plant]
 peili-mirror:
   label: Peili Mirror
   description: A round mirror in a plain pine frame.
@@ -179,6 +202,7 @@ peili-mirror:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [mirror, decoration]
 kello-wall-clock:
   label: Kello Wall Clock
   description: A quiet white clock with wooden hands.
@@ -186,3 +210,4 @@ kello-wall-clock:
   decorative: true
   editable: true
   scale: 0.8
+  tags: [clock, decoration]

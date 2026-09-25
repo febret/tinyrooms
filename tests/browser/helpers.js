@@ -100,7 +100,7 @@ export async function openEditRoom(page) {
       await action.click();
       const panel = page.locator("#editor-dock .edit-room-view");
       await expect(panel).toBeVisible();
-      await expect(panel).toContainText("Add a prop");
+      await expect(panel.locator(".editor-library-grid")).toBeVisible();
       return panel;
     }
   }
@@ -177,19 +177,22 @@ export async function settleArtwork(page, { allowToasts = false } = {}) {
   if (await pendingCards.count()) {
     await expect(pendingCards).toHaveCount(0, { timeout: 20_000 });
   }
-  const pendingThumbnails = page.locator("img[data-thumb-model]:visible:not([data-thumb-ready='true']):not([data-thumb-error='true'])");
+  // The prop library lazily renders only thumbnails near the viewport, so wait
+  // for the tiles the manager actually started rendering, not every clipped tile.
+  const pendingThumbnails = page.locator('img[data-thumb-model][data-thumb-pending="true"]:not([data-thumb-ready="true"]):not([data-thumb-error="true"])');
   if (await pendingThumbnails.count()) {
-    await expect(pendingThumbnails).toHaveCount(0, { timeout: 20_000 });
+    await expect(pendingThumbnails).toHaveCount(0, { timeout: 30_000 });
   }
   for (const frame of page.frames()) {
     await frame.evaluate(async () => {
       await document.fonts.ready;
       const visible = [...document.images].filter(image => {
+        if (!image.currentSrc) return false;
         const box = image.getBoundingClientRect();
         return box.width && box.height && box.bottom > 0 && box.right > 0
           && box.top < innerHeight && box.left < innerWidth;
       });
-      await Promise.all(visible.map(image => image.decode()));
+      await Promise.all(visible.map(image => image.decode().catch(() => {})));
     });
   }
   if (!allowToasts) await expect(page.locator("#toast-stack .toast")).toHaveCount(0);

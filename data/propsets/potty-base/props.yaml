@@ -1,6 +1,6 @@
 # Potty base propset: a porcelain parade from plain to preposterous.
 # Models live beside this file and are served at /assets/propsets/potty-base/.
-# Decorative + editable props are offered in every room editor's library.
+# These props are locked; owners unlock them from the Prop Shop marketplace.
 
 cottage-toilet:
   label: Cottage Toilet
@@ -9,6 +9,7 @@ cottage-toilet:
   decorative: true
   editable: true
   scale: 1.0
+  tags: [plumbing, toilet]
 victorian-high-tank:
   label: Victorian High-Tank
   description: An ornate water closet of hand-painted china on a brass pull chain.
@@ -16,6 +17,7 @@ victorian-high-tank:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [plumbing, toilet, decoration]
 gilded-throne-toilet:
   label: Gilded Throne
   description: A gold-plated throne with a tufted velvet seat and a little crown on top.
@@ -23,6 +25,7 @@ gilded-throne-toilet:
   decorative: true
   editable: true
   scale: 1.15
+  tags: [plumbing, toilet, decoration]
 marble-imperial-toilet:
   label: Imperial Marble Throne
   description: An emperor's marble throne on lion paws, its lid crusted with jewels.
@@ -30,6 +33,7 @@ marble-imperial-toilet:
   decorative: true
   editable: true
   scale: 1.2
+  tags: [plumbing, toilet, decoration]
 piano-toilet:
   label: Grand Piano Loo
   description: A baby grand you play one note at a time, lid up.
@@ -37,6 +41,7 @@ piano-toilet:
   decorative: true
   editable: true
   scale: 1.25
+  tags: [plumbing, toilet, decoration]
 rocket-toilet:
   label: Rocket Toilet
   description: A chrome rocket bound for the stars. Countdown sold separately.
@@ -44,6 +49,7 @@ rocket-toilet:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [plumbing, toilet, decoration]
 hollow-log-toilet:
   label: Hollow-Log Loo
   description: A rustic hollow-log commode. Moss included, plumbing optional.
@@ -51,6 +57,7 @@ hollow-log-toilet:
   decorative: true
   editable: true
   scale: 1.1
+  tags: [plumbing, toilet]
 shark-jaws-toilet:
   label: Shark Jaws Toilet
   description: A toilet held in the jaws of a great white. Hold your nerve.
@@ -58,6 +65,7 @@ shark-jaws-toilet:
   decorative: true
   editable: true
   scale: 1.3
+  tags: [plumbing, toilet, decoration]
 royal-frog-toilet:
   label: Royal Frog Toilet
   description: A crowned frog with a round lily-pad seat. Ribbit respectfully.
@@ -65,6 +73,7 @@ royal-frog-toilet:
   decorative: true
   editable: true
   scale: 1.15
+  tags: [plumbing, toilet, decoration]
 disco-glam-toilet:
   label: Disco Glam Toilet
   description: A mirror-ball throne that lights up warm when you sit. Stayin' alive.
@@ -72,3 +81,4 @@ disco-glam-toilet:
   decorative: true
   editable: true
   scale: 1.15
+  tags: [plumbing, toilet, decoration]

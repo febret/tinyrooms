@@ -123,6 +123,20 @@ test("milestone 3 room editing: the editor panel", async ({ page, runtime }, tes
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });
 
+test("milestone 3 prop shop: the marketplace", async ({ page, runtime }, testInfo) => {
+  test.setTimeout(240_000);
+  const { requested, remaining } = requestedFor();
+  await freezeClock(page);
+  await createEditorAccount(page, runtime, "editor");
+  const panel = await openEditRoom(page);
+  await panel.getByRole("button", { name: /Prop Shop/ }).click();
+  const frame = page.frameLocator('iframe[src*="prop-shop"]');
+  await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
+  await expect(frame.locator("canvas[data-prop-model][data-model-ready='true']")).toHaveCount(1, { timeout: 20_000 });
+  await capture(page, testInfo, requested, remaining, "prop-shop");
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
 test("milestone 2 additions: prop details, swap sticker, targeting, shop", async ({ page, runtime }, testInfo) => {
   test.setTimeout(240_000);
   const { requested, remaining } = requestedFor();

@@ -20,6 +20,7 @@ import {
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
 import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
+import { resetLibraryFilter } from "./editing/library-filter.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
@@ -211,6 +212,7 @@ async function confirmSticker(selection) {
 }
 
 function closeEditor() {
+  resetLibraryFilter();
   store.dispatch({ type: "editor-close" });
   store.dispatch({ type: "close-view" });
 }
@@ -236,8 +238,10 @@ async function openRoomEditor() {
   if (!roomId) return;
   try {
     const layout = await api.getRoomLayout(roomId);
-    if (layout) store.dispatch({ type: "editor-open", view: layout });
-    else toast("The room layout could not be loaded.", "error");
+    if (layout) {
+      resetLibraryFilter();
+      store.dispatch({ type: "editor-open", view: layout });
+    } else toast("The room layout could not be loaded.", "error");
   } catch (error) {
     showError(error);
   }
@@ -311,6 +315,9 @@ async function applyEditorAction(action) {
       break;
     case "save":
       await saveRoomEditor();
+      break;
+    case "prop-shop":
+      try { await sendCommand(".prop_shop"); } catch (error) { showError(error); }
       break;
     case "reload":
       if (state.editor.conflict) store.dispatch({ type: "editor-saved", view: state.editor.conflict });

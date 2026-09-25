@@ -43,6 +43,7 @@ def build_command_context(
         actions=runtime.actions,
         friends=runtime.friends,
         shop=runtime.shop,
+        prop_shop=runtime.prop_shop,
         pricing=runtime.pricing,
         content=runtime.content,
         world=runtime.world,
