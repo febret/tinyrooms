@@ -1,0 +1,365 @@
+# Rococo base propset: opulent baroque furnishings, ornament, and art.
+# Models live beside this file and are served at /assets/propsets/rococo-base/.
+# Decorative + editable props are offered in every room editor's library.
+
+# --- Furniture --------------------------------------------------------------
+gilded-armchair:
+  label: Gilded Armchair
+  description: An overstuffed armchair of carved gold leaf and crimson damask.
+  model: gilded-armchair.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+crimson-chaise:
+  label: Crimson Chaise
+  description: A curving velvet chaise draped in tasselled gold fringe.
+  model: crimson-chaise.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+marble-console-table:
+  label: Marble Console Table
+  description: Marble on gilded cabriole legs, carved with a scallop shell.
+  model: marble-console-table.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+gilt-mirror:
+  label: Gilt Mirror
+  description: A tall mirror wreathed in acanthus leaves and golden scrolls.
+  model: gilt-mirror.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+mahogany-writing-desk:
+  label: Mahogany Writing Desk
+  description: A mahogany desk in gilt-bronze mounts with a secret drawer.
+  model: mahogany-writing-desk.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+canopy-bed:
+  label: Canopy Bed
+  description: A grand four-poster in crimson velvet, watched over by cherubs.
+  model: canopy-bed.glb
+  decorative: true
+  editable: true
+  scale: 1.8
+marble-fireplace:
+  label: Marble Fireplace
+  description: A carved mantel of gilded putti and lions beneath an oval mirror.
+  model: marble-fireplace.glb
+  decorative: true
+  editable: true
+  scale: 1.7
+emerald-velvet-sofa:
+  label: Emerald Velvet Sofa
+  description: Deep emerald velvet set in a gilded carved frame.
+  model: emerald-velvet-sofa.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+gilt-mantel-clock:
+  label: Gilt Mantel Clock
+  description: A gilded clock on cherub feet, its porcelain face dusted with gold.
+  model: gilt-mantel-clock.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+marquetry-cabinet:
+  label: Marquetry Cabinet
+  description: Tortoiseshell and brass inlay crowned with gleaming ormolu.
+  model: marquetry-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+gilt-side-table:
+  label: Gilt Side Table
+  description: A slender marble-topped table on carved golden legs.
+  model: gilt-side-table.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+baroque-dresser:
+  label: Baroque Dresser
+  description: An imposing dresser carved with fruit and ribbons, gilded and marbled.
+  model: baroque-dresser.glb
+  decorative: true
+  editable: true
+  scale: 1.7
+gilded-birdcage:
+  label: Gilded Birdcage
+  description: A little golden pavilion of a cage, with a porcelain bird within.
+  model: gilded-birdcage.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+marble-column:
+  label: Marble Column
+  description: Veined marble beneath a gilded capital on a carved plinth.
+  model: marble-column.glb
+  decorative: true
+  editable: true
+  scale: 1.7
+
+# --- Ornament ---------------------------------------------------------------
+gilt-candelabra:
+  label: Gilt Candelabra
+  description: Five scrolled golden arms, five candles, endless wax.
+  model: gilt-candelabra.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+porcelain-urn-vase:
+  label: Porcelain Urn Vase
+  description: Pastoral scenes on painted porcelain with rococo gold handles.
+  model: porcelain-urn-vase.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+gilded-putto:
+  label: Gilded Putto
+  description: A golden cherub holding up a scallop shell.
+  model: gilded-putto.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+gilt-urn:
+  label: Gilt Urn
+  description: A domed golden urn with scrolled handles and a proud finial.
+  model: gilt-urn.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+marble-bust:
+  label: Marble Bust
+  description: A stern nobleman in lace, frozen forever in white marble.
+  model: marble-bust.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+cherub-fountain:
+  label: Cherub Fountain
+  description: Two marble cherubs and a spouting fish, always mid-splash.
+  model: cherub-fountain.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+gilt-oval-tray:
+  label: Gilt Oval Tray
+  description: A gilded oval mirror on little scrolled feet.
+  model: gilt-oval-tray.glb
+  decorative: true
+  editable: true
+  scale: 0.8
+porcelain-dish:
+  label: Porcelain Display Dish
+  description: Hand-painted flowers ringed in gold, raised on a stand.
+  model: porcelain-dish.glb
+  decorative: true
+  editable: true
+  scale: 0.8
+rococo-table-lamp:
+  label: Rococo Table Lamp
+  description: A gilded bronze base beneath a fringed silk shade.
+  model: rococo-table-lamp.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+bronze-eagle:
+  label: Bronze Eagle
+  description: A gilded eagle perched atop a polished marble sphere.
+  model: bronze-eagle.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+gold-trophy-urn:
+  label: Gold Trophy Urn
+  description: Laurel wreaths and scroll handles on a gleaming golden cup.
+  model: gold-trophy-urn.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+marble-pedestal-urn:
+  label: Marble Pedestal Urn
+  description: Acanthus leaves carved in marble on a fluted pedestal.
+  model: marble-pedestal-urn.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+
+# --- Marble statues ---------------------------------------------------------
+marble-hero:
+  label: Marble Hero
+  description: A classical hero caught between one pose and the next.
+  model: marble-hero.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+marble-goddess:
+  label: Marble Goddess
+  description: A goddess in carved, flowing drapery.
+  model: marble-goddess.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+marble-rearing-horse:
+  label: Marble Rearing Horse
+  description: A marble horse frozen mid-rear on its plinth.
+  model: marble-rearing-horse.glb
+  decorative: true
+  editable: true
+  scale: 1.7
+marble-cherub-archer:
+  label: Marble Cherub Archer
+  description: A plump marble cherub drawing a gilded bow.
+  model: marble-cherub-archer.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+marble-lion:
+  label: Marble Lion
+  description: A regal marble lion with one paw resting on a sphere.
+  model: marble-lion.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+marble-discobolus:
+  label: Marble Discobolus
+  description: A marble athlete winding up a throw that never comes.
+  model: marble-discobolus.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+marble-harvest-goddess:
+  label: Marble Harvest Goddess
+  description: A goddess crowned in grain, holding a marble sheaf of wheat.
+  model: marble-harvest-goddess.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+marble-faun:
+  label: Marble Faun
+  description: A marble faun forever playing a silent flute.
+  model: marble-faun.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+
+# --- Paintings --------------------------------------------------------------
+portrait-noblewoman:
+  label: Portrait of a Noblewoman
+  description: Oil on canvas in heavy gold, a lady in lace and pearls.
+  model: portrait-noblewoman.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+landscape-dramatic-clouds:
+  label: Landscape with Dramatic Clouds
+  description: A valley under a sky that is clearly up to something.
+  model: landscape-dramatic-clouds.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+still-life-fruit:
+  label: Still Life with Fruit
+  description: Grapes, silver, and one very patient apple.
+  model: still-life-fruit.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+oval-cherub-painting:
+  label: Oval Cherub Painting
+  description: Cherubs tumbling through pink clouds in a gilded oval.
+  model: oval-cherub-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+battle-scene-painting:
+  label: Battle Scene Painting
+  description: Cavalry, smoke, and drama in a broad gilt frame.
+  model: battle-scene-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.7
+stag-moonlit-painting:
+  label: Stag at Moonlight
+  description: A stag in a moonlit glade, half-hidden in gold.
+  model: stag-moonlit-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+madonna-painting:
+  label: Madonna Painting
+  description: A serene madonna behind a generous gilt halo.
+  model: madonna-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+storm-ship-painting:
+  label: Ship in a Storm
+  description: A ship tossed by waves inside a very calm frame.
+  model: storm-ship-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+floral-bouquet-painting:
+  label: Floral Bouquet Painting
+  description: Roses and peonies overflowing a gilded frame.
+  model: floral-bouquet-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+banquet-painting:
+  label: Classical Banquet
+  description: A lavish banquet of golden goblets and good company.
+  model: banquet-painting.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+
+# --- Lighting ---------------------------------------------------------------
+crystal-chandelier:
+  label: Crystal Chandelier
+  description: Teardrop prisms and a constellation of candles.
+  model: crystal-chandelier.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+gilt-wall-sconce:
+  label: Gilt Wall Sconce
+  description: Curling gold arms holding two candles.
+  model: gilt-wall-sconce.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+bronze-hanging-lantern:
+  label: Bronze Hanging Lantern
+  description: Frosted glass in a gilded cage, on a long chain.
+  model: bronze-hanging-lantern.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+crystal-candelabra:
+  label: Crystal Candelabra
+  description: Silver arms and hanging prisms that catch every flame.
+  model: crystal-candelabra.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+gilt-floor-candlestick:
+  label: Gilt Floor Candlestick
+  description: A single tall candle on a towering gilded stem.
+  model: gilt-floor-candlestick.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+
+# --- Curiosities ------------------------------------------------------------
+gilt-globe:
+  label: Gilt Globe
+  description: Painted continents turning on an ornate carved stand.
+  model: gilt-globe.glb
+  decorative: true
+  editable: true
+  scale: 1.2

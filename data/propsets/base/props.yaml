@@ -1,0 +1,331 @@
+# Base propset: shared decorative room furnishings.
+# Models generated with the bake pipeline live beside this file and are served
+# at /assets/propsets/base/<model>. Props are decorative + editable, so owners
+# can add, move, and scale them from the room editor.
+
+# --- Chairs and couches -----------------------------------------------------
+mustard-armchair:
+  label: Mustard Armchair
+  description: "The color of ballpark mustard and the energy of a 1996 fast-food interior. Sit back, dude."
+  model: mustard-armchair.glb
+  decorative: true
+  editable: true
+  scale: 1.25
+patchwork-rocking-chair:
+  label: Patchwork Rocking Chair
+  description: "Grandma went full DIY and stitched this rocker out of every flannel in the house. Rad."
+  model: patchwork-rocking-chair.glb
+  decorative: true
+  editable: true
+  scale: 1.15
+dusty-rose-sofa:
+  label: Dusty Rose Sofa
+  description: "Velvet throne for two mismatched floral pillows that clearly came from different friend groups."
+  model: dusty-rose-sofa.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+teal-egg-chair:
+  label: Teal Egg Chair
+  description: "Swivels a full 360. This is the chair that invented spin me right round, baby."
+  model: teal-egg-chair.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+window-daybed:
+  label: Window Daybed
+  description: "Crocheted blanket plus embroidered cushions equals maximum cozy. NGL, you may never get up."
+  model: window-daybed.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+
+# --- Rugs -------------------------------------------------------------------
+braided-rainbow-rug:
+  label: Braided Rainbow Rug
+  description: "A rag rug coiled into a rainbow spiral. Step on it. Taste it. Be the rainbow."
+  model: braided-rainbow-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+persian-medallion-rug:
+  label: Persian Medallion Rug
+  description: "Deep red, deep indigo, deep vibes. So classic it basically writes its own ASMR."
+  model: persian-medallion-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.45
+sheepskin-rug:
+  label: Sheepskin Rug
+  description: "Fluffy cream cloud energy. Toe beans engaged. This rug is a whole entire mood."
+  model: sheepskin-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+sunset-runner-rug:
+  label: Sunset Runner Rug
+  description: "Sunset orange and cream, woven long. Basically a Windows 95 screensaver for your floor."
+  model: sunset-runner-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+leaf-rug:
+  label: Leaf Rug
+  description: "It is a leaf. It is a rug. It is leaf rug, obviously. Embroidered veins for botanical flex."
+  model: leaf-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+
+# --- Lamps ------------------------------------------------------------------
+mushroom-table-lamp:
+  label: Mushroom Lamp
+  description: "Spotted cap, soft glow, toad approved. Toadstool plus nightlight equals pure rad."
+  model: mushroom-table-lamp.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+blossom-paper-lantern:
+  label: Blossom Paper Lantern
+  description: "Cherry blossoms on paper, hanging like it is hosting a 90s anime opening."
+  model: blossom-paper-lantern.glb
+  decorative: true
+  editable: true
+  scale: 0.95
+dragonfly-tiffany-lamp:
+  label: Dragonfly Tiffany Lamp
+  description: "Stained-glass dragonfly shade. Art nouveau called and wants its swag back."
+  model: dragonfly-tiffany-lamp.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+purple-lava-lamp:
+  label: Purple Lava Lamp
+  description: "Purple blobs going bloop-bloop-bloop through glowing orange. Watch it long enough and you are legally hypnotized."
+  model: purple-lava-lamp.glb
+  decorative: true
+  editable: true
+  scale: 0.85
+brass-arc-floor-lamp:
+  label: Brass Arc Floor Lamp
+  description: "A tall brass arc bending over a cream drum shade like, sup. Peak reading lamp, no notes."
+  model: brass-arc-floor-lamp.glb
+  decorative: true
+  editable: true
+  scale: 1.35
+beeswax-candle-sconce:
+  label: Beeswax Candle Sconce
+  description: "Three drippy beeswax candles. The bees worked overtime for this ambiance and they know it."
+  model: beeswax-candle-sconce.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+orange-gooseneck-lamp:
+  label: Orange Gooseneck Lamp
+  description: "Glossy orange and fully bendy. Built for 3am reading and 3am questionable internet decisions."
+  model: orange-gooseneck-lamp.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+brass-oil-lantern:
+  label: Brass Oil Lantern
+  description: "Weathered brass, flickering flame, old-school cool. Ye olde mood lighting has entered the chat."
+  model: brass-oil-lantern.glb
+  decorative: true
+  editable: true
+  scale: 0.95
+cat-night-lamp:
+  label: Cat Night Lamp
+  description: "A ceramic cat. After dark, the eyes glow. It is watching. It is always watching. Awww."
+  model: cat-night-lamp.glb
+  decorative: true
+  editable: true
+  scale: 0.85
+bookstack-floor-lamp:
+  label: Bookstack Floor Lamp
+  description: "A floor lamp stacked from colorful books. Knowledge, illuminating. Literally."
+  model: bookstack-floor-lamp.glb
+  decorative: true
+  editable: true
+  scale: 1.25
+
+# --- Side tables ------------------------------------------------------------
+rattan-side-table:
+  label: Rattan Side Table
+  description: "It is giving breezy sunroom realness."
+  model: rattan-side-table.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+milking-stool-table:
+  label: Stool Table
+  description: "Fake it till you make it, little buddy."
+  model: milking-stool-table.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+floral-nightstand:
+  label: Floral Nightstand
+  description: "Stores your retainer and your biggest dreams."
+  model: floral-nightstand.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+live-edge-slab-table:
+  label: Live-Edge Slab Table
+  description: "Live-edgy."
+  model: live-edge-slab-table.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+terrazzo-tripod-table:
+  label: Terrazzo Tripod Table
+  description: "It is terrazzo-core."
+  model: terrazzo-tripod-table.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+
+# --- Plants and flowers -----------------------------------------------------
+monstera-in-pot:
+  label: Pot of Monstera
+  description: "That leaf looked at the camera and said, I am the main character."
+  model: monstera-in-pot.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+cactus-trio:
+  label: Cactus Trio
+  description: "A Spice Girls lineup, but spikier."
+  model: cactus-trio.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+hanging-pothos:
+  label: Hanging Pothos
+  description: "70s plant energy that never once left."
+  model: hanging-pothos.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+snake-plant:
+  label: Snake Plant
+  description: "Please do not water it with soda."
+  model: snake-plant.glb
+  decorative: true
+  editable: true
+  scale: 1.15
+potted-bonsai:
+  label: Potted Bonsai
+  description: "Twenty years of patience in one teacup-sized vibe."
+  model: potted-bonsai.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+venus-flytrap-pot:
+  label: Venus Flytrap
+  description: "Feed me, Seymour. Nom nom nom."
+  model: venus-flytrap-pot.glb
+  decorative: true
+  editable: true
+  scale: 0.85
+pink-orchid:
+  label: Pink Orchid
+  description: "Elegant, dramatic, completely unbothered."
+  model: pink-orchid.glb
+  decorative: true
+  editable: true
+  scale: 0.95
+sunflower-bucket:
+  label: Bucket of Sunflowers
+  description: "Summer said, hold my lemonade."
+  model: sunflower-bucket.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+tulip-window-box:
+  label: Tulip Window Box
+  description: "Spring is doing the running man."
+  model: tulip-window-box.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+wicker-fern-basket:
+  label: Wicker Fern Basket
+  description: "Chaotic good."
+  model: wicker-fern-basket.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+
+# --- Cabinets ---------------------------------------------------------------
+apothecary-cabinet:
+  label: Apothecary Cabinet
+  description: "Dozens of tiny labeled drawers. What is inside? Nobody knows. That is the fun part."
+  model: apothecary-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.35
+china-hutch:
+  label: China Hutch
+  description: "A glass hutch showing off stacked teacups. For looking, not touching. Nana said so."
+  model: china-hutch.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+record-cabinet:
+  label: Record Cabinet
+  description: "Vinyl sleeves, a mini turntable, and room for more. This is where the bangers live."
+  model: record-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+tall-wardrobe:
+  label: Tall Wardrobe
+  description: "A tall painted wardrobe with a brass keyhole. Might lead to Narnia. Probably just coats."
+  model: tall-wardrobe.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+medicine-cabinet:
+  label: Medicine Cabinet
+  description: "Mirrored cabinet crammed with tiny bottles. Ninety percent mystery, one hundred percent mood."
+  model: medicine-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+filing-cabinet:
+  label: Filing Cabinet
+  description: "Vintage green filing cabinet. Home of important documents and one expired coupon from 2003."
+  model: filing-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+kitchen-dresser:
+  label: Kitchen Dresser
+  description: "Open shelves stacked with jars and cheerful crockery. The kitchen's official trophy case."
+  model: kitchen-dresser.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+butterfly-curio-cabinet:
+  label: Butterfly Curio Cabinet
+  description: "A hexagonal cabinet of pinned butterflies. Fascinating, educational, and slightly haunted."
+  model: butterfly-curio-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+shoe-cabinet:
+  label: Shoe Cabinet
+  description: "A slatted cabinet with sneakers peeking out. Your kicks deserve better. They got this."
+  model: shoe-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+gym-lockers:
+  label: Gym Lockers
+  description: "Two numbered metal lockers, doors slightly ajar. Smells like 1997 PE class and big ambition."
+  model: gym-lockers.glb
+  decorative: true
+  editable: true
+  scale: 1.45

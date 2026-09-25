@@ -1,0 +1,188 @@
+# Yokkmok propset: simple Finnish (IKEA-ish) flat-pack furnishings.
+# Models live beside this file and are served at /assets/propsets/yokkmok/.
+# Decorative + editable props are offered in every room editor's library.
+
+# --- Seating ----------------------------------------------------------------
+koivu-dining-chair:
+  label: Koivu Dining Chair
+  description: A plain birch chair with a wipe-clean white seat.
+  model: koivu-dining-chair.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+pouta-sofa:
+  label: Pouta Sofa
+  description: A pale grey two-seater on honest wooden legs.
+  model: pouta-sofa.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+aalto-stool:
+  label: Aalto Stool
+  description: A round birch stool. Stack two, or three if you are brave.
+  model: aalto-stool.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+tunturi-armchair:
+  label: Tunturi Armchair
+  description: A soft grey armchair with simple wooden rests.
+  model: tunturi-armchair.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+tyyny-cushions:
+  label: Tyyny Cushions
+  description: A tidy stack of striped floor cushions for extra guests.
+  model: tyyny-cushions.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+
+# --- Beds and tables --------------------------------------------------------
+lumi-bed:
+  label: Lumi Bed
+  description: A low white platform bed with a pale pine frame.
+  model: lumi-bed.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+sade-desk:
+  label: Sade Desk
+  description: A white desk on angled wooden legs. Assembly is a rumour.
+  model: sade-desk.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+jarvi-coffee-table:
+  label: Jarvi Coffee Table
+  description: A round pale-wood table with just three legs to argue with.
+  model: jarvi-coffee-table.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+puro-side-table:
+  label: Puro Side Table
+  description: A small round table with one polite little drawer.
+  model: puro-side-table.glb
+  decorative: true
+  editable: true
+  scale: 0.95
+laatikko-drawer-unit:
+  label: Laatikko Drawer Unit
+  description: Three pine drawers that actually glide.
+  model: laatikko-drawer-unit.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+
+# --- Storage ----------------------------------------------------------------
+kuusi-wall-shelf:
+  label: Kuusi Wall Shelf
+  description: A pine shelf held up by two sensible brackets.
+  model: kuusi-wall-shelf.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+saari-cabinet:
+  label: Saari Cabinet
+  description: A white two-door cabinet with a warm wood top.
+  model: saari-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+reppu-bench:
+  label: Reppu Bench
+  description: A slatted bench for boots, bags, and indecision.
+  model: reppu-bench.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+metsa-bookshelf:
+  label: Metsa Bookshelf
+  description: Open white and pine shelves for books and small treasures.
+  model: metsa-bookshelf.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+kori-basket:
+  label: Kori Basket
+  description: A woven basket with a folded grey blanket tucked inside.
+  model: kori-basket.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+naulakko-coat-rack:
+  label: Naulakko Coat Rack
+  description: A simple wooden rack with round pegs for every coat.
+  model: naulakko-coat-rack.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+
+# --- Lighting ---------------------------------------------------------------
+kielo-floor-lamp:
+  label: Kielo Floor Lamp
+  description: A slim lamp under a plain paper shade.
+  model: kielo-floor-lamp.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+taika-table-lamp:
+  label: Taika Table Lamp
+  description: A small white dome on a wooden base.
+  model: taika-table-lamp.glb
+  decorative: true
+  editable: true
+  scale: 0.85
+tahti-pendant-lamp:
+  label: Tahti Pendant Lamp
+  description: A simple white pendant on a plain cord.
+  model: tahti-pendant-lamp.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+kynttila-candle-holder:
+  label: Kynttila Candles
+  description: Three white block candles on a pine tray.
+  model: kynttila-candle-holder.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+
+# --- Decor ------------------------------------------------------------------
+satu-rug:
+  label: Satu Rug
+  description: A flat woven rug in off-white and soft blue stripes.
+  model: satu-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+kukka-plant-pot:
+  label: Kukka Plant
+  description: One calm green plant in a plain white pot.
+  model: kukka-plant-pot.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+oksa-vase:
+  label: Oksa Vase
+  description: A tall white vase holding a single birch branch.
+  model: oksa-vase.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+peili-mirror:
+  label: Peili Mirror
+  description: A round mirror in a plain pine frame.
+  model: peili-mirror.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+kello-wall-clock:
+  label: Kello Wall Clock
+  description: A quiet white clock with wooden hands.
+  model: kello-wall-clock.glb
+  decorative: true
+  editable: true
+  scale: 0.8

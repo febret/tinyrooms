@@ -1,0 +1,221 @@
+# Leet base propset: retro-futurist and neon high-tech set dressing.
+# Models live beside this file and are served at /assets/propsets/leet-base/.
+# Decorative + editable props are offered in every room editor's library.
+
+# --- Computers and desks ----------------------------------------------------
+beige-terminal:
+  label: Beige Terminal
+  description: A beige CRT terminal with a green phosphor glow and keys that clack.
+  model: beige-terminal.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+hacker-desk:
+  label: Hacker Desk
+  description: Three CRTs, a nest of cables, and neon spilling underneath.
+  model: hacker-desk.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+neon-workstation:
+  label: Neon Workstation
+  description: A curved widescreen and a keyboard that glows every color at once.
+  model: neon-workstation.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+mechanical-keyboard:
+  label: Mechanical Keyboard
+  description: Chunky switches and rainbow keys. Your neighbours will know.
+  model: mechanical-keyboard.glb
+  decorative: true
+  editable: true
+  scale: 0.8
+teletype-machine:
+  label: Teletype Machine
+  description: Round keys and a paper roll, chattering out the news.
+  model: teletype-machine.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+floppy-organizer:
+  label: Floppy Organizer
+  description: A rack of colourful floppies with handwritten labels.
+  model: floppy-organizer.glb
+  decorative: true
+  editable: true
+  scale: 0.7
+circuit-crash-cart:
+  label: Circuit Crash Cart
+  description: A rolling cart of salvaged boards and glowing spare parts.
+  model: circuit-crash-cart.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+oscilloscope:
+  label: Oscilloscope
+  description: A round green screen drawing a sine wave that never ends.
+  model: oscilloscope.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+plasma-globe:
+  label: Plasma Globe
+  description: Purple lightning reaching for your hand on a chrome base.
+  model: plasma-globe.glb
+  decorative: true
+  editable: true
+  scale: 0.8
+
+# --- Servers and hardware ---------------------------------------------------
+server-tower:
+  label: Server Tower
+  description: Blinking red lights, humming vents, a tape reel spinning on top.
+  model: server-tower.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+mainframe-cabinet:
+  label: Mainframe Cabinet
+  description: A hulking seventies mainframe of toggle switches and tape reels.
+  model: mainframe-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+reel-tape-drive:
+  label: Reel-to-Reel Drive
+  description: Chrome trim, orange lamps, and two reels always mid-rewind.
+  model: reel-tape-drive.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+server-rack:
+  label: Server Rack
+  description: A tall rack humming with blue and orange LEDs and patch cables.
+  model: server-rack.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+acoustic-modem:
+  label: Acoustic Coupler Modem
+  description: A rotary handset cradled in a modem, singing to the phone line.
+  model: acoustic-modem.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+mining-rig:
+  label: Mining Rig
+  description: An open frame packed with glowing cards and whirring fans.
+  model: mining-rig.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+cryo-cooler:
+  label: Cryo Cooler
+  description: A chrome cabinet traced with icy blue lines, keeping bits freezing.
+  model: cryo-cooler.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+
+# --- Displays and signals ---------------------------------------------------
+crt-monitor-stack:
+  label: CRT Monitor Stack
+  description: A precariously stacked tower of monitors, each a different neon.
+  model: crt-monitor-stack.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+display-wall:
+  label: Display Wall
+  description: A wall of glowing screens showing waveforms and falling code.
+  model: display-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+wireframe-globe:
+  label: Wireframe Globe
+  description: A glowing wireframe world turning on a chrome stand.
+  model: wireframe-globe.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+hologram-projector:
+  label: Hologram Projector
+  description: A pyramid projector lifting a cyan hologram into the air.
+  model: hologram-projector.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+circuit-neon-sign:
+  label: Circuit Neon Sign
+  description: Pink and cyan tubes bent into a glowing circuit board.
+  model: circuit-neon-sign.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+cassette-wall:
+  label: Cassette Wall
+  description: Rows of glowing cassettes in loud neon colours.
+  model: cassette-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+
+# --- Furniture and comfort --------------------------------------------------
+orange-office-chair:
+  label: Orange Office Chair
+  description: A moulded orange swivel chair on a chrome star base.
+  model: orange-office-chair.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+neon-beanbag:
+  label: Neon Beanbag
+  description: A glossy black beanbag edged in a single line of neon.
+  model: neon-beanbag.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+hover-stool:
+  label: Hover Stool
+  description: A floating stool with underglow and no visible explanation.
+  model: hover-stool.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+circuit-rug:
+  label: Circuit Rug
+  description: A black rug woven with glowing circuit board traces.
+  model: circuit-rug.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+vr-headset-stand:
+  label: VR Headset Stand
+  description: A chunky seventies-style headset resting on a chrome stand.
+  model: vr-headset-stand.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+chrome-desk-lamp:
+  label: Chrome Desk Lamp
+  description: A chrome lamp on a flexible arm with a fiercely neon bulb.
+  model: chrome-desk-lamp.glb
+  decorative: true
+  editable: true
+  scale: 0.9
+neon-robot-arm:
+  label: Neon Robot Arm
+  description: A small orange arm flexing at glowing neon joints.
+  model: neon-robot-arm.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+arcade-cabinet:
+  label: Arcade Cabinet
+  description: A glowing cabinet, a joystick, and chrome trim built to be loud.
+  model: arcade-cabinet.glb
+  decorative: true
+  editable: true
+  scale: 1.4

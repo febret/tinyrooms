@@ -1,0 +1,74 @@
+# Potty base propset: a porcelain parade from plain to preposterous.
+# Models live beside this file and are served at /assets/propsets/potty-base/.
+# Decorative + editable props are offered in every room editor's library.
+
+cottage-toilet:
+  label: Cottage Toilet
+  description: A dependable white ceramic loo with a plain wooden seat.
+  model: cottage-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+victorian-high-tank:
+  label: Victorian High-Tank
+  description: An ornate water closet of hand-painted china on a brass pull chain.
+  model: victorian-high-tank.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+gilded-throne-toilet:
+  label: Gilded Throne
+  description: A gold-plated throne with a tufted velvet seat and a little crown on top.
+  model: gilded-throne-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.15
+marble-imperial-toilet:
+  label: Imperial Marble Throne
+  description: An emperor's marble throne on lion paws, its lid crusted with jewels.
+  model: marble-imperial-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+piano-toilet:
+  label: Grand Piano Loo
+  description: A baby grand you play one note at a time, lid up.
+  model: piano-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.25
+rocket-toilet:
+  label: Rocket Toilet
+  description: A chrome rocket bound for the stars. Countdown sold separately.
+  model: rocket-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+hollow-log-toilet:
+  label: Hollow-Log Loo
+  description: A rustic hollow-log commode. Moss included, plumbing optional.
+  model: hollow-log-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+shark-jaws-toilet:
+  label: Shark Jaws Toilet
+  description: A toilet held in the jaws of a great white. Hold your nerve.
+  model: shark-jaws-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.3
+royal-frog-toilet:
+  label: Royal Frog Toilet
+  description: A crowned frog with a round lily-pad seat. Ribbit respectfully.
+  model: royal-frog-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.15
+disco-glam-toilet:
+  label: Disco Glam Toilet
+  description: A mirror-ball throne that lights up warm when you sit. Stayin' alive.
+  model: disco-glam-toilet.glb
+  decorative: true
+  editable: true
+  scale: 1.15
