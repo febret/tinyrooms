@@ -5,7 +5,7 @@
   "scripts": {
     "vendor": "python tools\\vendor_browser_deps.py",
     "test": "npm run test:browser",
-    "test:browser": "playwright test flows.spec.js",
+    "test:browser": "playwright test flows.spec.js audio.spec.js",
     "test:visual": "playwright test screenshots.spec.js",
     "test:report": "playwright show-report"
   },

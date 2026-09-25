@@ -59,7 +59,7 @@ export async function confirmSticker(page) {
 
 export async function command(page, text) {
   await page.locator("#chat-input").fill(text);
-  await page.getByRole("button", { name: "Send message", exact: true }).click();
+  await page.locator("#chat-input").press("Enter");
   await expect(page.locator("#chat-input")).toHaveValue("", { timeout: 20_000 });
 }
 

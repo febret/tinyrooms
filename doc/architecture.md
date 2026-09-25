@@ -361,14 +361,19 @@ private result events for `.play replace`/`.cancel`/nav so the store clears
    `getUserMedia({audio})`, then sends `rtc.presence {enabled:true}`. The
    server flags the connection and broadcasts `presence.audio
    {account_id, enabled}` to the room (the room snapshot's occupants carry
-   `audio_enabled`). Toggling off or disconnecting clears it.
-3. Clients reconcile the room's audio-enabled occupants: the peer with the
+   `audio_enabled`). Toggling off or disconnecting clears it. The mic stays
+   silent until push-to-talk.
+3. While audio is on, the chat send button is replaced by a push-to-talk
+   button. Pressing it transmits for up to ten seconds (a radial ring drains
+   the remaining time); pressing again stops immediately. The local track is
+   only enabled during a talk window (`app/js/voice.js`).
+4. Clients reconcile the room's audio-enabled occupants: the peer with the
    lexicographically smaller account id creates the offer, avoiding glare.
    SDP/ICE are relayed through `rtc.signal`; the server only forwards between
    connections that are in the same room and audio-enabled (rate-limited,
    never logged). Media flows directly over WebRTC (DTLS-SRTP); remote tracks
    play from hidden `<audio>` elements unlocked by the enable gesture.
-4. Audio survives room changes: the flag lives on the connection, so
+5. Audio survives room changes: the flag lives on the connection, so
    `.go` / `.door enter` keeps it and the client re-reconciles against the new
    room (dropping old peers via `presence.leave`, offering to new ones). Because
    the flag is per-connection and in-memory, a browser refresh or a new login
