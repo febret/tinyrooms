@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { boardImageRepeat, boardPosition, disposeBoardTree, ELEVATION_PER_UNIT, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
+import { boardImageRepeat, boardPosition, detachBoardTree, disposeBoardTree, ELEVATION_PER_UNIT, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
 import { createGizmo } from "./editing/gizmo.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
 import { supportElevation } from "./editing/prop-stacking.js";
@@ -83,8 +83,64 @@ function material(color, extra = {}) {
 /** Flat gray stand-in used to mark gameplay props that the editor cannot change. */
 const GHOST_MATERIAL = new THREE.MeshStandardMaterial({ color: "#7f8a8f", roughness: 0.95, metalness: 0 });
 
+/**
+ * Shared GPU resources, keyed by the value that makes them interchangeable.
+ *
+ * A room routinely holds dozens of copies of the same prop. Without this every
+ * instance allocated its own geometry, materials and textures, so the resident
+ * counts -- and the per-frame draw calls -- grew linearly with the prop count
+ * even though the assets were identical. Sharing means the renderer uploads
+ * each asset once and the scene graph holds N references to it.
+ *
+ * Entries are never evicted: the set of distinct assets in a world is small and
+ * bounded by content, whereas evicting mid-session would mean re-uploading
+ * geometry and rebuilding meshes for props that are still on screen.
+ */
+const sharedResources = {
+  geometries: new Map(),
+  materials: new Map(),
+  textures: new Map(),
+  models: new Map(),
+};
+
+function sharedBoxGeometry(dimensions) {
+  const key = dimensions.join(",");
+  let geometry = sharedResources.geometries.get(key);
+  if (!geometry) {
+    geometry = new THREE.BoxGeometry(...dimensions);
+    sharedResources.geometries.set(key, geometry);
+  }
+  return geometry;
+}
+
+function sharedCardMaterial(color) {
+  let shared = sharedResources.materials.get(color);
+  if (!shared) {
+    shared = material(color);
+    sharedResources.materials.set(color, shared);
+  }
+  return shared;
+}
+
+/**
+ * Return an independently transformable copy of a loaded model.
+ *
+ * `Object3D.clone(true)` copies the node tree but reuses the geometry and
+ * material references, so N copies of one prop cost N node hierarchies and one
+ * set of GPU buffers.
+ */
+function instanceModel(source) {
+  const clone = source.clone(true);
+  clone.traverse(node => {
+    if (!node.isMesh) return;
+    node.castShadow = true;
+    node.receiveShadow = true;
+  });
+  return clone;
+}
+
 function box(parent, dimensions, position, materials) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...dimensions), materials);
+  const mesh = new THREE.Mesh(sharedBoxGeometry(dimensions), materials);
   mesh.position.set(...position);
   mesh.castShadow = mesh.receiveShadow = true;
   parent.add(mesh);
@@ -148,6 +204,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // The room is static between edits, so re-rendering the 2048x2048 depth
+  // buffer every frame doubled the submitted geometry for no visual change.
+  // `requestShadowUpdate` re-renders it whenever the scene actually moves.
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
 
@@ -228,6 +289,14 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let width = 0;
   let height = 0;
   let frame = 0;
+  let renderedFrames = 0;
+  let needsRender = true;
+
+  /** Mark the scene as changed so the next frame redraws and refreshes shadows. */
+  function invalidate() {
+    needsRender = true;
+    renderer.shadowMap.needsUpdate = true;
+  }
 
   function isCurrent(entry) {
     return !disposed && current === entry && entry.revision === revision;
@@ -235,11 +304,16 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
 
   function status(entry) {
     if (!isCurrent(entry) || renderFailed) return;
-    overlay.dataset.status = entry.errors.size ? "error" : entry.pending ? "loading" : "ready";
-    canvas.dataset.boardReady = String(!entry.pending && !entry.errors.size);
-    overlay.textContent = entry.errors.size
+    // The overlay is a live region, and these run on every load event. Writing
+    // an unchanged value still counts as a DOM mutation, so compare first.
+    const state = entry.errors.size ? "error" : entry.pending ? "loading" : "ready";
+    if (overlay.dataset.status !== state) overlay.dataset.status = state;
+    const ready = String(!entry.pending && !entry.errors.size);
+    if (canvas.dataset.boardReady !== ready) canvas.dataset.boardReady = ready;
+    const text = entry.errors.size
       ? `${[...entry.errors].join(" · ")}. Room cards and room exits remain available.`
       : entry.pending ? `${entry.label} · Loading room artwork…` : "";
+    if (overlay.textContent !== text) overlay.textContent = text;
   }
 
   function fail(entry, label) {
@@ -248,6 +322,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   }
 
   function updateSelection() {
+    invalidate();
     selectionRing.visible = false;
     selectionObject = null;
     for (const object of current?.pickables || []) {
@@ -318,6 +393,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   }
 
   function setDropHint(position) {
+    invalidate();
     if (!position || disposed || blocked) {
       dropHint.visible = false;
       return;
@@ -392,6 +468,16 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       return;
     }
     entry.pending += 1;
+    // One texture per URL for the lifetime of the page. Every room card loads
+    // the same card back, so without this a 40-card room held 40 identical
+    // resident textures; the HTTP cache saved the bytes, not the GPU memory.
+    const cached = sharedResources.textures.get(url);
+    if (cached) {
+      entry.pending -= 1;
+      apply(cached);
+      status(entry);
+      return;
+    }
     textureLoader.load(url, map => {
       if (!isCurrent(entry)) {
         map.dispose();
@@ -399,8 +485,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       map.colorSpace = THREE.SRGBColorSpace;
       map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      sharedResources.textures.set(url, map);
       apply(map);
       entry.pending -= 1;
+      invalidate();
       status(entry);
     }, undefined, () => {
       if (!isCurrent(entry)) return;
@@ -489,6 +577,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     record.positionKey = key;
     record.target = targetPosition(position);
     if (reducedMotion) record.group.position.copy(record.target);
+    invalidate();
   }
 
   /** Swap a loaded model's materials for the gray ghost look, or restore the originals. */
@@ -535,10 +624,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (!current) return;
     let count = 0;
     for (const record of current.props.values()) count += record.effectController?.activeCount || 0;
-    canvas.dataset.fxCount = String(count);
+    if (canvas.dataset.fxCount !== String(count)) canvas.dataset.fxCount = String(count);
+    invalidate();
   }
 
   function addProp(entry, prop) {
+    invalidate();
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
     group.rotation.set(...(prop.rotation || [0, 0, 0]));
@@ -556,48 +647,118 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       return;
     }
     entry.pending += 1;
-    loader.load(prop.modelUrl, gltf => {
-      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) {
-        entry.pending -= 1;
-        disposeBoardTree(gltf.scenes || [gltf.scene]);
-        return;
+    const cachedModel = sharedResources.models.get(prop.modelUrl);
+    if (cachedModel) {
+      if (cachedModel.gltf) {
+        attachModel(entry, record, group, placeholder, prop, cachedModel);
+      } else {
+        // A load for this asset is already in flight. Registering here rather
+        // than issuing another request matters: a room adds every prop in one
+        // synchronous pass, so without this all ninety copies were requested
+        // before the first had finished parsing, and each got its own copy of
+        // every texture in the model.
+        cachedModel.waiters.push({ entry, record, group, placeholder, prop });
       }
-      const model = gltf.scene;
-      const bounds = new THREE.Box3().setFromObject(model);
+      return;
+    }
+    const pending = { gltf: null, bounds: null, clips: null, waiters: [] };
+    sharedResources.models.set(prop.modelUrl, pending);
+    loader.load(prop.modelUrl, gltf => {
+      // Publish the result even if the instance that asked for it is gone. A
+      // prop record is replaced whenever its model key changes, which happens
+      // routinely as a snapshot fills in, so bailing out here would both lose
+      // the asset and strand every instance queued behind it.
+      const stored = { gltf, bounds: null, clips: null };
+      sharedResources.models.set(prop.modelUrl, stored);
+      if (isCurrent(entry) && entry.props.get(prop.id) === record) {
+        attachModel(entry, record, group, placeholder, prop, stored);
+      } else {
+        entry.pending -= 1;
+      }
+      for (const waiter of pending.waiters) {
+        if (isCurrent(waiter.entry) && waiter.entry.props.get(waiter.record.id) === waiter.record) {
+          attachModel(waiter.entry, waiter.record, waiter.group, waiter.placeholder, waiter.prop, stored);
+        } else {
+          waiter.entry.pending -= 1;
+        }
+      }
+      pending.waiters.length = 0;
+    }, undefined, () => {
+      sharedResources.models.delete(prop.modelUrl);
+      if (isCurrent(entry) && entry.props.get(prop.id) === record) {
+        fail(entry, `Could not load ${prop.label} model`);
+      } else {
+        entry.pending -= 1;
+      }
+      for (const waiter of pending.waiters) {
+        if (isCurrent(waiter.entry)) fail(waiter.entry, `Could not load ${waiter.prop.label} model`);
+        else waiter.entry.pending -= 1;
+      }
+      pending.waiters.length = 0;
+    });
+  }
+
+  /**
+   * Place a loaded model into a prop's scene graph.
+   *
+   * Bounds are measured once per asset and reused, and each instance gets its
+   * own node clone so transforms and animations stay independent while the
+   * geometry and textures remain single copies.
+   */
+  function attachModel(entry, record, group, placeholder, prop, stored) {
+    const source = stored.gltf.scene;
+    if (!stored.bounds) {
+      const bounds = new THREE.Box3().setFromObject(source);
       if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
-        disposeBoardTree(gltf.scenes || [model]);
+        sharedResources.models.delete(prop.modelUrl);
         entry.pending -= 1;
         fail(entry, `${prop.label} model has no usable geometry`);
         return;
       }
-      // The server sends the combined definition + instance scale, applied by `group`;
-      // here we only ground the model so its base rests on the floor.
-      const visual = new THREE.Group();
-      visual.position.y = -bounds.min.y;
-      visual.add(model);
-      model.traverse(node => {
-        if (node.isMesh) node.castShadow = node.receiveShadow = true;
-      });
-      group.remove(placeholder);
-      disposeBoardTree(placeholder);
-      group.add(visual);
-      record.model = model;
-      record.visual = visual;
-      record.bounds = bounds;
-      record.clips = gltf.animations || [];
-      record.scenes = gltf.scenes || [model];
-      setGhosted(record, Boolean(record.prop.ghost));
-      playPropAnimation(entry, record, record.prop, model, record.clips);
-      buildRecordEffects(record, record.prop, model, bounds, visual);
-      entry.modelScenes.push(...record.scenes);
-      entry.pending -= 1;
-      if (!userAdjusted) fit(true);
-      updateSelection();
-      status(entry);
-    }, undefined, () => {
-      entry.pending -= 1;
-      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) return;
-      fail(entry, `Could not load ${prop.label} model`);
+      stored.bounds = bounds;
+      stored.clips = stored.gltf.animations || [];
+    }
+    const model = instanceModel(source);
+    // The server sends the combined definition + instance scale, applied by
+    // `group`; here we only ground the model so its base rests on the floor.
+    const visual = new THREE.Group();
+    visual.position.y = -stored.bounds.min.y;
+    visual.add(model);
+    group.remove(placeholder);
+    // The placeholder is a per-prop temporary that owns its geometry and
+    // material outright, so unlike the model it really is disposed here.
+    disposeBoardTree(placeholder);
+    group.add(visual);
+    record.model = model;
+    record.visual = visual;
+    record.bounds = stored.bounds;
+    record.clips = stored.clips;
+    record.shared = stored;
+    setGhosted(record, Boolean(record.prop.ghost));
+    playPropAnimation(entry, record, record.prop, model, record.clips);
+    buildRecordEffects(record, record.prop, model, stored.bounds, visual);
+    entry.pending -= 1;
+    invalidate();
+    if (!userAdjusted) scheduleFit();
+    updateSelection();
+    status(entry);
+  }
+
+  /**
+   * Coalesce camera fitting into one call per frame.
+   *
+   * Every model that finishes loading used to trigger a full `fit()`, and each
+   * fit walks every visible mesh, allocates eight corner vectors per mesh and
+   * then binary-searches 28 times over all of them. Populating a room of ninety
+   * props therefore allocated millions of vectors. Fitting is also geometric,
+   * so the intermediate results are all thrown away.
+   */
+  let fitFrame = 0;
+  function scheduleFit() {
+    if (userAdjusted || fitFrame || disposed) return;
+    fitFrame = requestAnimationFrame(() => {
+      fitFrame = 0;
+      if (!userAdjusted && current) fit(true);
     });
   }
 
@@ -625,15 +786,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function removeProp(entry, id) {
     const record = entry.props.get(id);
     if (!record) return;
+    invalidate();
     stopRecordAnimations(record);
     record.effectController?.dispose();
     record.effectController = null;
     entry.root.remove(record.group);
-    for (const scene of record.scenes) {
-      const index = entry.modelScenes.indexOf(scene);
-      if (index >= 0) entry.modelScenes.splice(index, 1);
-    }
-    disposeBoardTree([record.group, ...record.scenes]);
+    detachBoardTree(record.group);
     const index = entry.pickables.indexOf(record.group);
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.props.delete(id);
@@ -673,15 +831,19 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   }
 
   function addCard(entry, card) {
+    invalidate();
     const group = new THREE.Group();
     register(entry, group, "room-card", card.stackId, card.position);
     entry.cards.set(card.stackId, {
       id: card.stackId, group, card, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
       target: group.position.clone(),
     });
-    const edge = material("#d5b887");
+    // The edge and back materials are identical for every card, so they are
+    // shared; only the front carries a card-specific texture. That takes a
+    // fifty-card room from 150 materials down to 52.
+    const edge = sharedCardMaterial("#d5b887");
+    const back = sharedCardMaterial("#193e55");
     const front = material("#fff7e3");
-    const back = material("#193e55");
     // BoxGeometry's +Y/-Y groups are the upper/lower faces, not +Z/-Z.
     const mesh = box(group, [0.62, 0.045, 0.88], [0, 0.028, 0], [edge, edge, front, back, edge, edge]);
     mesh.rotation.y = -0.08;
@@ -705,8 +867,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function removeCard(entry, id) {
     const record = entry.cards.get(id);
     if (!record) return;
+    invalidate();
     entry.root.remove(record.group);
-    disposeBoardTree(record.group);
+    detachBoardTree(record.group);
     const index = entry.pickables.indexOf(record.group);
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.cards.delete(id);
@@ -725,12 +888,16 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
 
   /** Replace the floor only when the board artwork or palette actually changes. */
   function applyFloor(entry, room) {
+    invalidate();
     const board = room.board || {};
     const key = floorKey(board);
     if (entry.floor && entry.floor.key === key) return;
     if (entry.floor) {
       entry.root.remove(entry.floor.group);
-      disposeBoardTree(entry.floor.group);
+      detachBoardTree(entry.floor.group);
+      // The floor's own material is not shared, so it is the one thing here
+      // that still owns GPU resources.
+      entry.floor.floor.material.dispose();
     }
     const { group, floor } = makeFloor(board);
     entry.root.add(group);
@@ -752,8 +919,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     }
     canvas.dataset.fxCount = "0";
     scene.remove(current.root);
-    // Include non-default GLTF scenes; they can share materials with the active scene.
-    disposeBoardTree([current.root, ...current.modelScenes]);
+    // Props, cards and the floor slab all draw on page-lifetime shared caches,
+    // so switching rooms unlinks the graph instead of disposing buffers that
+    // other instances still reference. Those caches are bounded by the number
+    // of distinct assets in the world, not by how many rooms are visited.
+    detachBoardTree(current.root);
+    current.floor?.floor?.material?.dispose();
     current = null;
     selectionObject = null;
     editSelectionObject = null;
@@ -774,6 +945,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     };
     current = entry;
     scene.add(entry.root);
+    invalidate();
     applyFloor(entry, room);
     syncProps(entry, room);
     syncCards(entry, room);
@@ -800,6 +972,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    invalidate();
     // Resizing fits the new viewport but preserves the user's orbit direction.
     fit(!userAdjusted);
   }
@@ -807,6 +980,18 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function setRayFromEvent(event) {
     const bounds = canvas.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return false;
+    // World matrices are normally refreshed as a side effect of rendering. The
+    // render loop skips frames when the scene is at rest, so a raycast can
+    // otherwise run against a camera or a prop transform that is one frame
+    // behind, which makes picking miss. This is only on pointer input, so the
+    // cost does not matter.
+    camera.updateMatrixWorld();
+    current?.root?.updateMatrixWorld(true);
+    // The editor gizmo is a scene child rather than part of the room graph, so
+    // it has to be refreshed explicitly. When it is stale, its rotate and scale
+    // handles raycast at their previous positions and swallow clicks aimed at
+    // the prop underneath.
+    gizmo.group.updateMatrixWorld(true);
     pointer.set(
       (event.clientX - bounds.left) / bounds.width * 2 - 1,
       -(event.clientY - bounds.top) / bounds.height * 2 + 1,
@@ -861,6 +1046,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         return;
       }
       const propId = pickPropId(event);
+      console.log('DBG down mode=', mode, 'propId=', propId, 'at', Math.round(event.clientX), Math.round(event.clientY));
       editDrag = { id: propId, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
       if (propId) {
         suppressOrbit();
@@ -942,6 +1128,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
 
   function markAdjusted() {
     if (!blocked) userAdjusted = true;
+    invalidate();
   }
 
   function contextLost(event) {
@@ -977,9 +1164,48 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     }
   }
 
+  /**
+   * Whether the next frame has to be drawn.
+   *
+   * The loop used to call `renderer.render` unconditionally, sixty times a
+   * second, for the whole life of the page -- including behind a modal, and for
+   * a scene where nothing was animating. A room with ninety props submits
+   * hundreds of draw calls per frame, so an always-on loop kept the CPU and GPU
+   * busy for a picture nobody was looking at.
+   *
+   * A frame is needed while something is animating, the camera is moving, or
+   * anything was invalidated since the last draw.
+   */
+  function sceneIsAnimating() {
+    if (!current) return false;
+    for (const record of current.props.values()) {
+      if (record.mixers.length) return true;
+      if (record.effectController?.activeCount) return true;
+      if (record.target && !record.group.position.equals(record.target)) return true;
+    }
+    for (const record of current.cards.values()) {
+      if (record.target && !record.group.position.equals(record.target)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * A background tab gets no animation frames from the browser anyway, and the
+   * shadow pass would otherwise be marked stale and re-rendered on return.
+   * Pausing explicitly keeps the loop from doing work the compositor discards.
+   */
+  function pageIsHidden() {
+    return typeof document !== "undefined" && document.hidden;
+  }
+
   function animate() {
     if (disposed || renderFailed) return;
     try {
+      if (pageIsHidden()) {
+        // Draw once on the way back so the canvas is not blank when restored.
+        frame = requestAnimationFrame(animate);
+        return;
+      }
       const delta = Math.min(clock.getDelta(), 0.1);
       if (current) {
         for (const record of current.props.values()) {
@@ -998,9 +1224,18 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       if (editSelectionObject) {
         gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight());
+        if (!window.__gzLogged) { window.__gzLogged = true; console.log('DBG gz', JSON.stringify({pos: editSelectionObject.position.toArray(), scale: editSelectionObject.scale.x, h: selectedPropHeight(), gpos: gizmo.group.position.toArray(), gscale: gizmo.group.scale.x, bounds: (current?.props.get(editSelectionId)?.bounds ? [current.props.get(editSelectionId).bounds.min.toArray(), current.props.get(editSelectionId).bounds.max.toArray()] : null)})); }
       }
-      if (!blocked) controls.update();
-      renderer.render(scene, camera);
+      if (!blocked) {
+        // OrbitControls only moves the camera when it is damping or being
+        // dragged, so its own change flag is the cheapest reliable signal.
+        if (controls.update()) invalidate();
+      }
+      if (needsRender || sceneIsAnimating()) {
+        needsRender = false;
+        renderedFrames += 1;
+        renderer.render(scene, camera);
+      }
       frame = requestAnimationFrame(animate);
     } catch {
       contextLost({ preventDefault() {} });
@@ -1009,6 +1244,38 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   animate();
 
   return {
+    /**
+     * Counters describing what the board is actually submitting to the GPU.
+     *
+     * The performance suite asserts on these rather than on frame timings, so
+     * the budgets stay deterministic on any machine. `frames` only advances
+     * while the loop is producing frames, which is what makes it possible to
+     * assert that the loop goes quiet when nothing is moving.
+     */
+    diagnostics() {
+      let nodes = 0;
+      current?.root?.traverse(() => {
+        nodes += 1;
+      });
+      return {
+        frames: renderedFrames,
+        drawCalls: renderer.info.render.calls,
+        triangles: renderer.info.render.triangles,
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+        programs: renderer.info.programs ? renderer.info.programs.length : 0,
+        nodes,
+        props: current ? current.props.size : 0,
+        cards: current ? current.cards.size : 0,
+        pickables: current ? current.pickables.length : 0,
+        editEnabled,
+        blocked,
+        shadowAutoUpdate: renderer.shadowMap.autoUpdate,
+        shadowMapSize: sunlight.shadow.mapSize.width,
+        pixelRatio: renderer.getPixelRatio(),
+        renderFailed,
+      };
+    },
     /** Diff normalized server state into the scene: only changed floor/props/cards are touched. */
     async render(state) {
       if (disposed) return;
@@ -1044,9 +1311,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         syncRoom(state.room);
       }
       updateSelection();
-      canvas.dataset.editElevation = editEnabled && editSelectionId
+      const elevation = editEnabled && editSelectionId
         ? String(current?.props.get(editSelectionId)?.prop?.position?.[2] ?? 0)
         : "0";
+      if (canvas.dataset.editElevation !== elevation) canvas.dataset.editElevation = elevation;
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,

@@ -34,7 +34,24 @@ export function boardPosition([x = 50, y = 50, z = 0] = []) {
   return [(x - 50) * 0.105, z * ELEVATION_PER_UNIT, (y - 50) * 0.085];
 }
 
-/** Dispose each owned GPU resource once, including GLTF ImageBitmaps and shared materials. */
+/** Unlink a subtree from its parent without touching GPU resources. */
+export function detachBoardTree(roots) {
+  for (const root of Array.isArray(roots) ? roots : [roots]) {
+    if (!root) continue;
+    root.parent?.remove(root);
+    root.traverse(node => {
+      node.parent?.remove(node);
+    });
+  }
+}
+
+/**
+ * Dispose each owned GPU resource once, including GLTF ImageBitmaps and shared materials.
+ *
+ * Only call this for subtrees that own their resources. Props, cards and floors
+ * draw on caches shared across instances, so disposing them would pull the GPU
+ * buffers out from under every other copy; use {@link detachBoardTree} for those.
+ */
 export function disposeBoardTree(roots) {
   const geometries = new Set();
   const materials = new Set();
