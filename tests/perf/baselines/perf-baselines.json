@@ -1,0 +1,381 @@
+{
+  "client/board/draw-calls": {
+    "note": "Draw calls per frame with 93 instances of one shared asset.",
+    "unit": "count",
+    "value": 253
+  },
+  "client/board/frames-while-hidden": {
+    "note": "Frames drawn over 3s while the page reports itself hidden.",
+    "unit": "count",
+    "value": 0
+  },
+  "client/board/geometries": {
+    "note": "Resident geometries with 93 instances of a single prop asset.",
+    "unit": "count",
+    "value": 146
+  },
+  "client/board/nodes": {
+    "note": "Scene-graph nodes for the current room.",
+    "unit": "count",
+    "value": 1176
+  },
+  "client/board/programs": {
+    "note": "Compiled shader programs; one program per material variant, not per entity.",
+    "unit": "count",
+    "value": 8
+  },
+  "client/board/shadow-auto-update": {
+    "note": "1 means Three.js re-renders the shadow depth buffer every frame.",
+    "unit": "flag",
+    "value": 0
+  },
+  "client/board/shadow-map-size": {
+    "note": "Shadow map resolution. Above 2048 the depth pass dominates the frame.",
+    "unit": "px",
+    "value": 2048
+  },
+  "client/board/textures": {
+    "note": "Resident textures with 93 instances of a single prop asset. Prop model textures are shared per asset; a per-prop effect layer still contributes one each.",
+    "unit": "count",
+    "value": 106
+  },
+  "client/board/triangles": {
+    "note": "Triangles submitted per frame.",
+    "unit": "count",
+    "value": 255470
+  },
+  "client/dom/chat-message/appendChild": {
+    "note": "DOM appendChild caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/chat-message/classList": {
+    "note": "DOM classList caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 2
+  },
+  "client/dom/chat-message/clientHeight": {
+    "note": "DOM clientHeight caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 2
+  },
+  "client/dom/chat-message/clientWidth": {
+    "note": "DOM clientWidth caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/chat-message/forcedLayouts": {
+    "note": "DOM forcedLayouts caused by the client while chat-message.",
+    "unit": "reflows",
+    "value": 11
+  },
+  "client/dom/chat-message/getBoundingClientRect": {
+    "note": "DOM getBoundingClientRect caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 4
+  },
+  "client/dom/chat-message/inert": {
+    "note": "DOM inert caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/chat-message/innerHTML": {
+    "note": "DOM innerHTML caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 1
+  },
+  "client/dom/chat-message/insertAdjacentHTML": {
+    "note": "DOM insertAdjacentHTML caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/chat-message/offsetHeight": {
+    "note": "DOM offsetHeight caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/chat-message/offsetWidth": {
+    "note": "DOM offsetWidth caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/chat-message/querySelector": {
+    "note": "DOM querySelector caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 30
+  },
+  "client/dom/chat-message/querySelectorAll": {
+    "note": "DOM querySelectorAll caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 12
+  },
+  "client/dom/chat-message/scrollTop": {
+    "note": "DOM scrollTop caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 5
+  },
+  "client/dom/chat-message/setAttribute": {
+    "note": "DOM setAttribute caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 2
+  },
+  "client/dom/chat-message/textContent": {
+    "note": "DOM textContent caused by the client while chat-message.",
+    "unit": "writes",
+    "value": 1
+  },
+  "client/dom/inert/appendChild": {
+    "note": "DOM appendChild caused by the client while inert.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/inert/classList": {
+    "note": "DOM classList caused by the client while inert.",
+    "unit": "writes",
+    "value": 3
+  },
+  "client/dom/inert/clientHeight": {
+    "note": "DOM clientHeight caused by the client while inert.",
+    "unit": "writes",
+    "value": 3
+  },
+  "client/dom/inert/clientWidth": {
+    "note": "DOM clientWidth caused by the client while inert.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/inert/forcedLayouts": {
+    "note": "DOM forcedLayouts caused by the client while inert.",
+    "unit": "reflows",
+    "value": 15
+  },
+  "client/dom/inert/getBoundingClientRect": {
+    "note": "DOM getBoundingClientRect caused by the client while inert.",
+    "unit": "writes",
+    "value": 4
+  },
+  "client/dom/inert/inert": {
+    "note": "DOM inert caused by the client while inert.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/inert/innerHTML": {
+    "note": "DOM innerHTML caused by the client while inert.",
+    "unit": "writes",
+    "value": 2
+  },
+  "client/dom/inert/insertAdjacentHTML": {
+    "note": "DOM insertAdjacentHTML caused by the client while inert.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/inert/offsetHeight": {
+    "note": "DOM offsetHeight caused by the client while inert.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/inert/offsetWidth": {
+    "note": "DOM offsetWidth caused by the client while inert.",
+    "unit": "writes",
+    "value": 0
+  },
+  "client/dom/inert/querySelector": {
+    "note": "DOM querySelector caused by the client while inert.",
+    "unit": "writes",
+    "value": 40
+  },
+  "client/dom/inert/querySelectorAll": {
+    "note": "DOM querySelectorAll caused by the client while inert.",
+    "unit": "writes",
+    "value": 18
+  },
+  "client/dom/inert/scrollTop": {
+    "note": "DOM scrollTop caused by the client while inert.",
+    "unit": "writes",
+    "value": 8
+  },
+  "client/dom/inert/setAttribute": {
+    "note": "DOM setAttribute caused by the client while inert.",
+    "unit": "writes",
+    "value": 2
+  },
+  "client/dom/inert/textContent": {
+    "note": "DOM textContent caused by the client while inert.",
+    "unit": "writes",
+    "value": 1
+  },
+  "client/state/bubble-ms": {
+    "lower_is_better": true,
+    "note": "Applying one speech bubble across a room's occupants and npcs.",
+    "unit": "ms",
+    "value": 0.0024
+  },
+  "client/state/chat-event-ms": {
+    "lower_is_better": true,
+    "note": "Reducing one chat message in a 120-prop, 20-occupant room.",
+    "unit": "ms",
+    "value": 0.0074
+  },
+  "client/state/snapshot-ms/large": {
+    "lower_is_better": true,
+    "note": "Normalising a busy room snapshot.",
+    "unit": "ms",
+    "value": 0.2366
+  },
+  "client/state/snapshot-ms/small": {
+    "lower_is_better": true,
+    "note": "Normalising a small room snapshot.",
+    "unit": "ms",
+    "value": 0.0997
+  },
+  "client/state/toggle-ms/32-occupants": {
+    "lower_is_better": true,
+    "note": "Two UI toggles in a 32-occupant room.",
+    "unit": "ms",
+    "value": 0.001
+  },
+  "client/state/toggle-ms/4-occupants": {
+    "lower_is_better": true,
+    "note": "Two UI toggles in a 4-occupant room.",
+    "unit": "ms",
+    "value": 0.0009
+  },
+  "client/state/uuids-per-snapshot": {
+    "lower_is_better": true,
+    "note": "crypto.randomUUID calls while re-normalising an unchanged 50-line chat history. Each one is a fresh identity for a line that did not change, which defeats downstream memoisation.",
+    "unit": "uuids",
+    "value": 0
+  },
+  "perf/snapshot/axis-cards/growth": {
+    "lower_is_better": true,
+    "note": "",
+    "unit": "ratio",
+    "value": 5.8875
+  },
+  "server/accounts/sticker-scans": {
+    "lower_is_better": true,
+    "note": "Directory walks for 200 repeated sticker listings. The asset set is static for the lifetime of a runtime.",
+    "unit": "scans",
+    "value": 0.0
+  },
+  "server/broadcast/encodes": {
+    "lower_is_better": true,
+    "note": "",
+    "unit": "encodes",
+    "value": 1.0
+  },
+  "server/commands/context-ms/large-world": {
+    "lower_is_better": true,
+    "note": "Context construction in a 200-room world.",
+    "unit": "ms",
+    "value": 0.0057
+  },
+  "server/commands/context-ms/small-world": {
+    "lower_is_better": true,
+    "note": "Context construction in a 1-room world.",
+    "unit": "ms",
+    "value": 0.0055
+  },
+  "server/commands/sticker-dir-scans": {
+    "lower_is_better": true,
+    "note": "Directory walks while building 50 command contexts.",
+    "unit": "scans",
+    "value": 0.0
+  },
+  "server/connections/sender-tasks/after-60-cycles": {
+    "lower_is_better": true,
+    "note": "Live asyncio tasks after 60 connect/disconnect cycles.",
+    "unit": "tasks",
+    "value": 0.0
+  },
+  "server/logging/dumps-when-disabled": {
+    "lower_is_better": true,
+    "note": "Serialisations for 200 log records that were then discarded.",
+    "unit": "dumps",
+    "value": 0.0
+  },
+  "server/rate-limiter/keys/peak-under-40k-distinct-keys": {
+    "lower_is_better": true,
+    "note": "Peak retained limiter keys while 40,000 distinct keys streamed through. Bounded by recent traffic rather than total traffic.",
+    "unit": "keys",
+    "value": 6000.0
+  },
+  "server/snapshot/bytes/room-max": {
+    "lower_is_better": true,
+    "note": "Serialised snapshot size for a 20-occupant room. Encoded once per recipient, so this is multiplied by the occupant count on the wire.",
+    "unit": "bytes",
+    "value": 53345.0
+  },
+  "server/snapshot/ms/room-max": {
+    "lower_is_better": true,
+    "note": "Fastest observed snapshot in a 30-occupant room. The minimum is used because a busy test host inflates every other sample.",
+    "unit": "ms",
+    "value": 3.0429
+  },
+  "server/snapshot/occupants=40/entities": {
+    "lower_is_better": false,
+    "note": "Entity count carried by the snapshot, for context.",
+    "unit": "entities",
+    "value": 140.0
+  },
+  "server/snapshot/occupants=5/entities": {
+    "lower_is_better": false,
+    "note": "Entity count carried by the snapshot, for context.",
+    "unit": "entities",
+    "value": 105.0
+  },
+  "server/snapshot/queries/axis-cards-32": {
+    "lower_is_better": true,
+    "note": "SQL statements for one snapshot at 32 cards. Room environment and authored action data are static per room, so this must not grow one statement per entity.",
+    "unit": "queries",
+    "value": 3.0
+  },
+  "server/snapshot/queries/axis-peeps-32": {
+    "lower_is_better": true,
+    "note": "SQL statements for one snapshot at 32 peeps. Room environment and authored action data are static per room, so this must not grow one statement per entity.",
+    "unit": "queries",
+    "value": 3.0
+  },
+  "server/snapshot/queries/axis-props-64": {
+    "lower_is_better": true,
+    "note": "SQL statements for one snapshot at 64 props. Room environment and authored action data are static per room, so this must not grow one statement per entity.",
+    "unit": "queries",
+    "value": 3.0
+  },
+  "server/snapshot/queries/occupants=40": {
+    "lower_is_better": true,
+    "note": "SQL statements for one snapshot in a room with 40 occupants.",
+    "unit": "queries",
+    "value": 7.0
+  },
+  "server/snapshot/queries/occupants=5": {
+    "lower_is_better": true,
+    "note": "SQL statements for one snapshot in a room with 5 occupants.",
+    "unit": "queries",
+    "value": 8.0
+  },
+  "server/snapshot/queries/room-max": {
+    "lower_is_better": true,
+    "note": "A fully populated room (40 occupants, 60 props, 12 peeps, 20 cards) must build a snapshot in a bounded number of statements. Per-occupant profile reads push this past 200.",
+    "unit": "queries",
+    "value": 8.0
+  },
+  "server/tick/aura-queries/10-ticks": {
+    "lower_is_better": true,
+    "note": "SQL statements for 10 repeat probes across 25 occupants in a room with an aura already applied. All of them answered 'already applied'.",
+    "unit": "queries",
+    "value": 0.0
+  },
+  "server/tick/queries/5-ticks-25-occupants": {
+    "lower_is_better": true,
+    "note": "SQL statements for 5 ticks in a room with 25 occupants. A tick with no expiring effects and no scripted behaviour should not touch the database.",
+    "unit": "queries",
+    "value": 0.0
+  },
+  "server/tick/scheduled-tasks": {
+    "lower_is_better": true,
+    "note": "asyncio tasks created to tick a 40-room world. One task per room would be 40.",
+    "unit": "tasks",
+    "value": 1.0
+  }
+}

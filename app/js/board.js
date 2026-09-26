@@ -1,7 +1,21 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { boardImageRepeat, boardPosition, detachBoardTree, disposeBoardTree, ELEVATION_PER_UNIT, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
+import {
+  applyFloorImageStyle, box, floorKey, GHOST_MATERIAL, makeFloor, material, rememberTexture,
+  sharedCardMaterial, sharedTexture, shareModelTextures, unavailableMarker,
+} from "./board-resources.js";
+import {
+  boardPosition,
+  cardModelKey,
+  detachBoardTree,
+  disposeBoardTree,
+  ELEVATION_PER_UNIT,
+  fitBoardCamera,
+  positionKey,
+  propEffectKey,
+  propModelKey,
+} from "./board-helpers.js";
 import { createGizmo } from "./editing/gizmo.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
 import { supportElevation } from "./editing/prop-stacking.js";
@@ -12,26 +26,6 @@ const TOP = 0.045;
 const RANDOM_ANIMATION_PAUSE_MS = 1000;
 const PROP_MOVE_SMOOTHING = 9;
 const SCALE_DRAG_SENSITIVITY = 0.008;
-
-/** Key that captures everything about a prop that requires re-creating its model. */
-function propModelKey(prop) {
-  return JSON.stringify([prop.propId, prop.modelUrl, prop.label]);
-}
-
-/** Key of a prop's currently rendered effect set, independent of its model. */
-function propEffectKey(prop) {
-  return JSON.stringify([prop.effectSets || {}, prop.activeEffect || ""]);
-}
-
-/** Identity of a room card's rendered artwork; position and quantity are handled separately. */
-function cardModelKey(card) {
-  return String(card.definition?.imageUrl || "");
-}
-
-/** Stable key for an authoritative position triple so unchanged snapshots never restart a tween. */
-function positionKey(position) {
-  return `${position?.[0] ?? 50},${position?.[1] ?? 50},${position?.[2] ?? 0}`;
-}
 
 /** Convert an authoritative position into its board-space target, resting on the floor. */
 function targetPosition(position) {
@@ -76,116 +70,8 @@ function stackMetrics(record, worldX, worldZ) {
   };
 }
 
-function material(color, extra = {}) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
-}
 
-/** Flat gray stand-in used to mark gameplay props that the editor cannot change. */
-const GHOST_MATERIAL = new THREE.MeshStandardMaterial({ color: "#7f8a8f", roughness: 0.95, metalness: 0 });
 
-/**
- * Shared GPU resources, keyed by the value that makes them interchangeable.
- *
- * A room routinely holds dozens of copies of the same prop. Without this every
- * instance allocated its own geometry, materials and textures, so the resident
- * counts -- and the per-frame draw calls -- grew linearly with the prop count
- * even though the assets were identical. Sharing means the renderer uploads
- * each asset once and the scene graph holds N references to it.
- *
- * Entries are never evicted: the set of distinct assets in a world is small and
- * bounded by content, whereas evicting mid-session would mean re-uploading
- * geometry and rebuilding meshes for props that are still on screen.
- */
-const sharedResources = {
-  geometries: new Map(),
-  materials: new Map(),
-  textures: new Map(),
-  models: new Map(),
-};
-
-function sharedBoxGeometry(dimensions) {
-  const key = dimensions.join(",");
-  let geometry = sharedResources.geometries.get(key);
-  if (!geometry) {
-    geometry = new THREE.BoxGeometry(...dimensions);
-    sharedResources.geometries.set(key, geometry);
-  }
-  return geometry;
-}
-
-function sharedCardMaterial(color) {
-  let shared = sharedResources.materials.get(color);
-  if (!shared) {
-    shared = material(color);
-    sharedResources.materials.set(color, shared);
-  }
-  return shared;
-}
-
-/**
- * Return an independently transformable copy of a loaded model.
- *
- * `Object3D.clone(true)` copies the node tree but reuses the geometry and
- * material references, so N copies of one prop cost N node hierarchies and one
- * set of GPU buffers.
- */
-function instanceModel(source) {
-  const clone = source.clone(true);
-  clone.traverse(node => {
-    if (!node.isMesh) return;
-    node.castShadow = true;
-    node.receiveShadow = true;
-  });
-  return clone;
-}
-
-function box(parent, dimensions, position, materials) {
-  const mesh = new THREE.Mesh(sharedBoxGeometry(dimensions), materials);
-  mesh.position.set(...position);
-  mesh.castShadow = mesh.receiveShadow = true;
-  parent.add(mesh);
-  return mesh;
-}
-
-function makeFloor(board) {
-  const group = new THREE.Group();
-  box(group, [12.45, 0.35, 10.45], [0, -0.24, 0], material("#62422d"));
-  box(group, [12.5, 0.12, 10.5], [0, -0.08, 0], material("#a76e38"));
-  box(group, [12.12, 0.07, 10.12], [0, -0.005, 0], material("#bca076"));
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_HEIGHT),
-    material(board.palette?.[0] || "#d4be94"),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = TOP;
-  floor.receiveShadow = true;
-  group.add(floor);
-  return { group, floor };
-}
-
-function floorKey(board) {
-  return JSON.stringify([board.type, board.imageUrl, board.imageStyle, board.palette, board.dark]);
-}
-
-/** Apply the room's board image style by wrapping and repeating the floor texture. */
-function applyFloorImageStyle(map, style) {
-  const repeat = boardImageRepeat(style, map.image?.width, map.image?.height);
-  if (!repeat) return;
-  map.wrapS = repeat.wrapWidth ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-  map.wrapT = repeat.wrapHeight ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-  map.repeat.set(repeat.repeatX, repeat.repeatY);
-  map.needsUpdate = true;
-}
-
-function unavailableMarker(parent) {
-  const marker = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.28),
-    material("#e89a70", { wireframe: true }),
-  );
-  marker.position.y = 0.4;
-  parent.add(marker);
-  return marker;
-}
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
 export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, stackProps = false, dragHandles = false }) {
@@ -471,7 +357,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     // One texture per URL for the lifetime of the page. Every room card loads
     // the same card back, so without this a 40-card room held 40 identical
     // resident textures; the HTTP cache saved the bytes, not the GPU memory.
-    const cached = sharedResources.textures.get(url);
+    const cached = sharedTexture(url);
     if (cached) {
       entry.pending -= 1;
       apply(cached);
@@ -485,7 +371,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       map.colorSpace = THREE.SRGBColorSpace;
       map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-      sharedResources.textures.set(url, map);
+      rememberTexture(url, map);
       apply(map);
       entry.pending -= 1;
       invalidate();
@@ -647,111 +533,61 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       return;
     }
     entry.pending += 1;
-    const cachedModel = sharedResources.models.get(prop.modelUrl);
-    if (cachedModel) {
-      if (cachedModel.gltf) {
-        attachModel(entry, record, group, placeholder, prop, cachedModel);
-      } else {
-        // A load for this asset is already in flight. Registering here rather
-        // than issuing another request matters: a room adds every prop in one
-        // synchronous pass, so without this all ninety copies were requested
-        // before the first had finished parsing, and each got its own copy of
-        // every texture in the model.
-        cachedModel.waiters.push({ entry, record, group, placeholder, prop });
-      }
-      return;
-    }
-    const pending = { gltf: null, bounds: null, clips: null, waiters: [] };
-    sharedResources.models.set(prop.modelUrl, pending);
     loader.load(prop.modelUrl, gltf => {
-      // Publish the result even if the instance that asked for it is gone. A
-      // prop record is replaced whenever its model key changes, which happens
-      // routinely as a snapshot fills in, so bailing out here would both lose
-      // the asset and strand every instance queued behind it.
-      const stored = { gltf, bounds: null, clips: null };
-      sharedResources.models.set(prop.modelUrl, stored);
-      if (isCurrent(entry) && entry.props.get(prop.id) === record) {
-        attachModel(entry, record, group, placeholder, prop, stored);
-      } else {
+      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) {
         entry.pending -= 1;
+        disposeBoardTree(gltf.scenes || [gltf.scene]);
+        return;
       }
-      for (const waiter of pending.waiters) {
-        if (isCurrent(waiter.entry) && waiter.entry.props.get(waiter.record.id) === waiter.record) {
-          attachModel(waiter.entry, waiter.record, waiter.group, waiter.placeholder, waiter.prop, stored);
-        } else {
-          waiter.entry.pending -= 1;
-        }
-      }
-      pending.waiters.length = 0;
-    }, undefined, () => {
-      sharedResources.models.delete(prop.modelUrl);
-      if (isCurrent(entry) && entry.props.get(prop.id) === record) {
-        fail(entry, `Could not load ${prop.label} model`);
-      } else {
-        entry.pending -= 1;
-      }
-      for (const waiter of pending.waiters) {
-        if (isCurrent(waiter.entry)) fail(waiter.entry, `Could not load ${waiter.prop.label} model`);
-        else waiter.entry.pending -= 1;
-      }
-      pending.waiters.length = 0;
-    });
-  }
-
-  /**
-   * Place a loaded model into a prop's scene graph.
-   *
-   * Bounds are measured once per asset and reused, and each instance gets its
-   * own node clone so transforms and animations stay independent while the
-   * geometry and textures remain single copies.
-   */
-  function attachModel(entry, record, group, placeholder, prop, stored) {
-    const source = stored.gltf.scene;
-    if (!stored.bounds) {
-      const bounds = new THREE.Box3().setFromObject(source);
+      const model = gltf.scene;
+      const bounds = new THREE.Box3().setFromObject(model);
       if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
-        sharedResources.models.delete(prop.modelUrl);
+        disposeBoardTree(gltf.scenes || [model]);
         entry.pending -= 1;
         fail(entry, `${prop.label} model has no usable geometry`);
         return;
       }
-      stored.bounds = bounds;
-      stored.clips = stored.gltf.animations || [];
-    }
-    const model = instanceModel(source);
-    // The server sends the combined definition + instance scale, applied by
-    // `group`; here we only ground the model so its base rests on the floor.
-    const visual = new THREE.Group();
-    visual.position.y = -stored.bounds.min.y;
-    visual.add(model);
-    group.remove(placeholder);
-    // The placeholder is a per-prop temporary that owns its geometry and
-    // material outright, so unlike the model it really is disposed here.
-    disposeBoardTree(placeholder);
-    group.add(visual);
-    record.model = model;
-    record.visual = visual;
-    record.bounds = stored.bounds;
-    record.clips = stored.clips;
-    record.shared = stored;
-    setGhosted(record, Boolean(record.prop.ghost));
-    playPropAnimation(entry, record, record.prop, model, record.clips);
-    buildRecordEffects(record, record.prop, model, stored.bounds, visual);
-    entry.pending -= 1;
-    invalidate();
-    if (!userAdjusted) scheduleFit();
-    updateSelection();
-    status(entry);
+      // The server sends the combined definition + instance scale, applied by `group`;
+      // here we only ground the model so its base rests on the floor.
+      shareModelTextures(model, prop.modelUrl);
+      const visual = new THREE.Group();
+      visual.position.y = -bounds.min.y;
+      visual.add(model);
+      group.remove(placeholder);
+      // The placeholder is a per-prop temporary that owns its geometry and
+      // material outright, so unlike shared resources it really is disposed.
+      disposeBoardTree(placeholder);
+      group.add(visual);
+      record.model = model;
+      record.visual = visual;
+      record.bounds = bounds;
+      record.clips = gltf.animations || [];
+      record.scenes = gltf.scenes || [model];
+      setGhosted(record, Boolean(record.prop.ghost));
+      playPropAnimation(entry, record, record.prop, model, record.clips);
+      buildRecordEffects(record, record.prop, model, bounds, visual);
+      entry.modelScenes.push(...record.scenes);
+      entry.pending -= 1;
+      invalidate();
+      if (!userAdjusted) scheduleFit();
+      updateSelection();
+      status(entry);
+    }, undefined, () => {
+      entry.pending -= 1;
+      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) return;
+      fail(entry, `Could not load ${prop.label} model`);
+    });
   }
 
   /**
    * Coalesce camera fitting into one call per frame.
    *
-   * Every model that finishes loading used to trigger a full `fit()`, and each
+   * Every model that finished loading used to trigger a full `fit()`, and each
    * fit walks every visible mesh, allocates eight corner vectors per mesh and
    * then binary-searches 28 times over all of them. Populating a room of ninety
-   * props therefore allocated millions of vectors. Fitting is also geometric,
-   * so the intermediate results are all thrown away.
+   * props therefore allocated millions of vectors, all discarded. Fitting is
+   * idempotent, so deferring it to the next frame gives the same result once
+   * per burst of arrivals rather than once per arrival.
    */
   let fitFrame = 0;
   function scheduleFit() {
@@ -1046,7 +882,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         return;
       }
       const propId = pickPropId(event);
-      console.log('DBG down mode=', mode, 'propId=', propId, 'at', Math.round(event.clientX), Math.round(event.clientY));
       editDrag = { id: propId, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
       if (propId) {
         suppressOrbit();
@@ -1224,7 +1059,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       if (editSelectionObject) {
         gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight());
-        if (!window.__gzLogged) { window.__gzLogged = true; console.log('DBG gz', JSON.stringify({pos: editSelectionObject.position.toArray(), scale: editSelectionObject.scale.x, h: selectedPropHeight(), gpos: gizmo.group.position.toArray(), gscale: gizmo.group.scale.x, bounds: (current?.props.get(editSelectionId)?.bounds ? [current.props.get(editSelectionId).bounds.min.toArray(), current.props.get(editSelectionId).bounds.max.toArray()] : null)})); }
       }
       if (!blocked) {
         // OrbitControls only moves the camera when it is damping or being

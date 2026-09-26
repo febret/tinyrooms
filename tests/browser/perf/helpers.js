@@ -71,11 +71,25 @@ export async function seedProps(page, runtime, roomId, count, { propId = "plant"
   return props.length;
 }
 
-/** Wait until the board has drawn the expected number of props. */
-export async function waitForProps(page, expected, timeout = 90_000) {
+/**
+ * Wait until the board has built the expected number of props *and* finished
+ * loading their assets.
+ *
+ * Resource counts sampled mid-load undercount: textures and geometries are only
+ * resident once a model has been parsed and bound, so waiting on the prop count
+ * alone makes the numbers depend on how fast the machine happens to be.
+ */
+export async function waitForProps(page, expected, timeout = 120_000) {
+  const canvas = page.locator("#board-canvas");
   await expect
     .poll(async () => (await diagnostics(page))?.props ?? 0, { timeout, intervals: [250] })
     .toBeGreaterThanOrEqual(expected);
+  await expect(canvas).toHaveAttribute("data-board-ready", "true", { timeout });
+  // A frame must be produced after readiness, which only happens once the
+  // render loop has submitted the fully loaded scene.
+  await expect
+    .poll(async () => (await diagnostics(page))?.frames ?? 0, { timeout, intervals: [250] })
+    .toBeGreaterThan(0);
 }
 
 /** Read the board counters as a plain object, failing if the hook is missing. */

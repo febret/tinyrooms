@@ -25,6 +25,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
   let expanded = false;
   let latest = null;
   let prevIds = null;
+  let prevOrder = null;
   let prevRoomId = null;
   const bubbles = new Map();
   const dismissing = new Set();
@@ -32,18 +33,77 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
   const moveBubbles = new Set();
   const ghosts = new Set();
 
+  /**
+   * Place every speech bubble next to its peep chip.
+   *
+   * This runs on scroll, on resize and at the end of every render, so it has to
+   * be cheap. Three things used to make it expensive: the marker list was
+   * re-queried inside the loop, the panel rect was read before the writes, and
+   * each bubble's `offsetWidth`/`offsetHeight` was read *after* a style write
+   * had already invalidated layout. Interleaving reads and writes forces a
+   * synchronous layout per bubble, so a busy room reflowed dozens of times per
+   * message.
+   *
+   * Now the marker lookup is hoisted, every measurement happens before any
+   * write, and each bubble's own size is measured once and cached.
+   */
+  const bubbleSizes = new Map();
+
   function positionBubbles() {
+    const markers = new Map();
+    for (const node of panel.querySelectorAll("[data-peep-id]")) {
+      markers.set(node.dataset.peepId, node);
+    }
+    if (!markers.size) {
+      for (const bubble of bubbles.values()) hideBubble(bubble);
+      return;
+    }
+    // Measure everything first: any write below would otherwise invalidate
+    // these reads.
     const bounds = panel.getBoundingClientRect();
+    const measurements = [];
     for (const [id, bubble] of bubbles) {
-      const marker = [...panel.querySelectorAll("[data-peep-id]")].find(node => node.dataset.peepId === id);
-      if (!marker) { bubble.hidden = true; continue; }
+      const marker = markers.get(id);
+      if (!marker) {
+        measurements.push({ bubble, visible: false });
+        continue;
+      }
       const rect = marker.getBoundingClientRect();
       const visible = rect.bottom > bounds.top && rect.top < bounds.bottom;
-      bubble.hidden = !visible;
-      if (!visible) continue;
-      bubble.style.left = `${Math.min(bounds.right + 2, window.innerWidth - bubble.offsetWidth - 8)}px`;
-      bubble.style.top = `${Math.max(8, Math.min(rect.top + 4, bounds.bottom - bubble.offsetHeight))}px`;
+      if (!visible) {
+        measurements.push({ bubble, visible: false });
+        continue;
+      }
+      let size = bubbleSizes.get(bubble);
+      if (!size) {
+        size = { width: bubble.offsetWidth, height: bubble.offsetHeight };
+        bubbleSizes.set(bubble, size);
+      }
+      measurements.push({ bubble, visible: true, rect, size });
     }
+    for (const item of measurements) {
+      if (!item.visible) {
+        hideBubble(item.bubble);
+        continue;
+      }
+      const { rect, size } = item;
+      const left = Math.min(bounds.right + 2, window.innerWidth - size.width - 8);
+      const top = Math.max(8, Math.min(rect.top + 4, bounds.bottom - size.height));
+      if (item.bubble.hidden) item.bubble.hidden = false;
+      setStyle(item.bubble, "left", `${left}px`);
+      setStyle(item.bubble, "top", `${top}px`);
+    }
+  }
+
+  function hideBubble(bubble) {
+    if (!bubble.hidden) bubble.hidden = true;
+    bubbleSizes.delete(bubble);
+  }
+
+  /** Write a style property only when it changed, to avoid needless invalidation. */
+  function setStyle(node, property, value) {
+    if (node.style[property] === value) return;
+    node.style[property] = value;
   }
 
   function captureRects(includeClone) {
@@ -222,6 +282,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     if (prevRoomId !== null && roomId !== prevRoomId) {
       clearMoves();
       prevIds = null;
+      prevOrder = null;
     }
     prevRoomId = roomId;
     const peeps = state.room ? [...state.room.occupants, ...state.room.npcs] : [];
@@ -248,7 +309,15 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       </article>`;
     }).join("")}</div>
       ${unpinnedOthers.length > 4 ? `<button type="button" class="quiet peeps-toggle" aria-expanded="${expanded}">${expanded ? "Show fewer" : `+${unpinnedOthers.length - 4} peeps`}</button>` : ""}`;
-    const firstRects = prevIds
+    // The FLIP animation only means anything when the list actually reordered or
+    // someone is arriving or leaving. Measuring every chip's rect before and
+    // after the write forced two synchronous layouts per chip on every socket
+    // message, including the many messages that change nothing about the list.
+    const currentOrder = shown.map(peep => peep.id);
+    const orderChanged = !prevOrder || currentOrder.length !== prevOrder.length
+      || currentOrder.some((id, index) => prevOrder[index] !== id);
+    const animating = orderChanged || pendingMoves.length > 0;
+    const firstRects = prevOrder && animating
       ? captureRects(!state.ui.reducedMotion && pendingMoves.some(record => record.kind === "leave"))
       : null;
     if (updateMarkup(panel, markup)) {
@@ -258,11 +327,12 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       const toggle = panel.querySelector(".peeps-toggle");
       if (toggle) toggle.onclick = () => { expanded = !expanded; render(latest); };
     }
-    const currentIds = new Set(shown.map(peep => peep.id));
-    if (prevIds && firstRects && panel.querySelector(".peep-list")) {
+    const currentIds = new Set(currentOrder);
+    if (firstRects && panel.querySelector(".peep-list")) {
       if (!state.ui.reducedMotion) runFlip(firstRects);
       processMoves(currentIds, firstRects, state.ui.reducedMotion);
     }
+    prevOrder = currentOrder;
     prevIds = currentIds;
     const visibleIds = new Set();
     for (const peep of shown) {
@@ -308,23 +378,45 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       }
       bubble.dataset.bubbleKey = nextKey;
       const emoteClass = hasImage ? ` emote emote-${peep.bubble.style}` : "";
-      bubble.className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
-      bubble.querySelector(".bubble-text").textContent = hasImage ? "" : peep.bubble.text;
-      if (image) image.src = peep.bubble.imageUrl;
+      const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
+      // These run for every visible bubble on every render, so each write is
+      // guarded. Assigning an unchanged className still invalidates style and
+      // makes the activity layer's MutationObserver do a sibling sweep.
+      if (bubble.className !== className) bubble.className = className;
+      const text = hasImage ? "" : peep.bubble.text;
+      const textNode = bubble.querySelector(".bubble-text");
+      if (textNode.textContent !== text) textNode.textContent = text;
+      if (image && image.getAttribute("src") !== peep.bubble.imageUrl) image.src = peep.bubble.imageUrl;
       if (hasImage && bubbleChanged) {
         bubble.style.animation = "none";
         void bubble.offsetWidth;
         bubble.style.animation = "";
       }
-      bubble.setAttribute("aria-label", `${peep.label}: ${hasImage ? `${peep.bubble.text} emote` : peep.bubble.text}. Dismiss message`);
+      const label = `${peep.label}: ${hasImage ? `${peep.bubble.text} emote` : peep.bubble.text}. Dismiss message`;
+      if (bubble.getAttribute("aria-label") !== label) bubble.setAttribute("aria-label", label);
     }
     for (const [id, bubble] of bubbles) {
       if (!visibleIds.has(id)) { bubble.remove(); bubbles.delete(id); dismissing.delete(id); }
     }
     positionBubbles();
   }
+  // Listeners are kept so the view can actually be torn down; an observer and a
+  // window listener that outlive their view keep the whole closure alive.
+  const panelObserver = new ResizeObserver(positionBubbles);
   panel.addEventListener("scroll", positionBubbles, { passive: true });
-  new ResizeObserver(positionBubbles).observe(panel);
+  panelObserver.observe(panel);
   window.addEventListener("resize", positionBubbles);
-  return { render, noteMove };
+
+  function destroy() {
+    panel.removeEventListener("scroll", positionBubbles);
+    panelObserver.disconnect();
+    window.removeEventListener("resize", positionBubbles);
+    for (const bubble of bubbles.values()) bubble.remove();
+    bubbles.clear();
+    bubbleSizes.clear();
+    for (const ghost of ghosts) ghost.remove();
+    ghosts.clear();
+  }
+
+  return { render, noteMove, destroy };
 }

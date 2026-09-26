@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 2, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows plus the gameplay systems (stats/counters, inventory, skills, friends, shop, and the reward ledger). See [doc/architecture.md](doc/architecture.md) for the technical architecture (components, source-file inventory, protocol, game flows).
+Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 2, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows plus the gameplay systems (stats/counters, inventory, skills, friends, shop, and the reward ledger). See [doc/architecture.md](doc/architecture.md) for the technical architecture (components, source-file inventory, protocol, game flows). [doc/dynamic-peeps.md](doc/dynamic-peeps.md) specifies the planned agent-evolved NPC behavior milestone (not yet implemented).
 
 ## Tech Stack
 
@@ -97,10 +97,22 @@ npm run test:browser                  # functional tests
 npm run test:visual                   # screenshot comparison
 ```
 
+### Performance suite
+```powershell
+npm run test:perf                                 # all tiers, compared to the stored baseline
+python tools/run_perf.py --tiers server           # one tier
+TR_UPDATE_PERF_BASELINES=1 npm run test:perf      # re-record after an intentional change
+```
+
+See [doc/performance.md](doc/performance.md) for how a regression is decided, what
+each tier measures, and the recorded before/after numbers. It is excluded from
+`npm test` and `unittest discover` because it is slower and partly wall-clock.
+
 ### Full suite
 ```powershell
 python -m unittest discover -s tests -v   # server + client logic
 npm test                                  # browser flows
+npm run test:perf                         # performance budgets
 ```
 
 ### Visual baselines (manual review required)
@@ -138,7 +150,8 @@ Browser harness settings (from `playwright.config.js`):
 - **Authoritative server**: All world state lives in SQLite on the server. The client is a pure renderer + input dispatcher.
 - **In-process room ordering**: A single server process owns a world, so room broadcasts are ordered by the event loop; there is no per-room sequence counter. Command results are matched to clients by `request_id`.
 - **Invitation-gated accounts**: `TRSERVER_NEW_ACCOUNT_PASSPHRASE` controls who can register. Changing it after accounts exist has no effect on existing users.
-- **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, etc.). Never ship enabled-by-default dev features to production.
+- **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, `dynamic_peeps`, etc.). Never ship enabled-by-default dev features to production.
+- **Dynamic peeps execute agent-generated Python in-process**: gated behind `dynamic_peeps`, a separate worker process (`tools/peep_agent.py`), and a dev-only warning. The authored floor is immutable and agent output is validated and layered on top. Never enable in production, and never widen the artifact import allowlist without re-reading [doc/dynamic-peeps.md](doc/dynamic-peeps.md) §9.
 - **Hot-reload disabled in prod**: A separate production launch path (not yet implemented) would use a different certificate and disable self-signed cert generation.
 - **Modern browser floor**: The client is ES modules plus ES2020 syntax and an import map (Chrome/Edge 89+, Samsung Internet 15+, Firefox 108+, Safari 16.4+). `app/js/boot-guard.js` is a plain ES5 classic script that runs before the module entry; on unsupported engines it renders a diagnostic overlay (engine/JS capability/error details) instead of a blank page. Keep it ES5-only — `tests/test_ui_presentation.py` rejects modern syntax in that file.
 
@@ -151,6 +164,7 @@ Browser harness settings (from `playwright.config.js`):
 ## Before You Commit / PR
 
 - [ ] All automated tests pass locally: `npm test` + Python unittests
+- [ ] `npm run test:perf` shows no regression, or the baseline was deliberately re-recorded
 - [ ] Server static checks still clear (under-1200-line rule, no fragile CSS assertions in static checks)
 - [ ] New visual baselines are reviewed against `doc/design.md` and approved
 - [ ] No secrets or keys added (the self-signed cert under `.local/` remains gitignored)

@@ -881,6 +881,24 @@ function renderToasts(state) {
   }
 }
 
+/** Set `inert` only when it actually changes, avoiding observer feedback loops. */
+function setInert(node, value) {
+  if (!node || node.inert === value) return;
+  node.inert = value;
+}
+
+/** Toggle a class only when it actually changes. */
+function toggleClass(node, name, value) {
+  if (node.classList.contains(name) === value) return;
+  node.classList.toggle(name, value);
+}
+
+/** Set a data attribute only when it actually changes. */
+function toggleAttribute(node, name, value) {
+  if (node.dataset[name] === value) return;
+  node.dataset[name] = value;
+}
+
 function renderFeedback(state) {
   const numbers = state.ui.floatingNumbers || [];
   const effects = state.ui.effects || [];
@@ -889,14 +907,26 @@ function renderFeedback(state) {
     ...effects.map(effect => `<span class="room-effect" data-effect-id="${escapeHtml(effect.id)}"></span>`),
   ].join("");
   updateMarkup(feedbackLayer, markup);
-  const bounds = $("#peeps-panel").getBoundingClientRect();
-  for (const number of numbers) {
-    const node = feedbackLayer.querySelector(`[data-float-id="${CSS.escape(number.id)}"]`);
-    if (!node) continue;
-    const marker = [...$("#peeps-panel").querySelectorAll("[data-peep-id]")].find(element => element.dataset.peepId === number.targetId);
-    const rect = marker ? marker.getBoundingClientRect() : { top: bounds.top + 40, right: bounds.right };
-    node.style.top = `${Math.max(8, rect.top)}px`;
-    node.style.left = `${Math.min(window.innerWidth - 90, (rect.right || bounds.right) + 6)}px`;
+  if (numbers.length) {
+    // Hoisted out of the loop: the panel was re-queried and re-measured once
+    // per floating number, and the read happened after `updateMarkup` had
+    // already invalidated layout.
+    const panelElement = $("#peeps-panel");
+    const bounds = panelElement.getBoundingClientRect();
+    const markers = new Map();
+    for (const element of panelElement.querySelectorAll("[data-peep-id]")) {
+      markers.set(element.dataset.peepId, element);
+    }
+    for (const number of numbers) {
+      const node = feedbackLayer.querySelector(`[data-float-id="${CSS.escape(number.id)}"]`);
+      if (!node) continue;
+      const marker = markers.get(number.targetId);
+      const rect = marker ? marker.getBoundingClientRect() : { top: bounds.top + 40, right: bounds.right };
+      const top = `${Math.max(8, rect.top)}px`;
+      const left = `${Math.min(window.innerWidth - 90, (rect.right || bounds.right) + 6)}px`;
+      if (node.style.top !== top) node.style.top = top;
+      if (node.style.left !== left) node.style.left = left;
+    }
   }
   for (const number of numbers) {
     if (consumedFeedback.has(`n:${number.id}`)) continue;
@@ -964,6 +994,10 @@ const board = createBoard({
   stackProps: true,
   dragHandles: true,
 });
+// Read-only handle for the performance suite's structural assertions. The
+// browser suite budgets GPU resource counts and drawn frames rather than
+// frame times, which keeps those budgets deterministic across machines.
+globalThis.__tinyroomsBoard = board;
 const cards = createCardsView({
   handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"), shopRoot,
   onSelect(selection) {
@@ -1026,20 +1060,24 @@ async function render(state) {
     dialogs.closeAll();
     if (revision !== renderRevision) return;
   }
-  root.dataset.auth = state.loggedIn ? "in" : "out";
-  root.classList.toggle("onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
-  root.classList.toggle("has-view", Boolean(state.views.main));
-  root.classList.toggle("has-details", Boolean(state.views.details));
-  root.classList.toggle("editing", Boolean(state.editor));
-  root.classList.toggle("shopping", Boolean(state.shop));
-  root.classList.toggle("targeting", Boolean(state.ui.targeting));
-  root.classList.toggle("audio-mode", Boolean(state.ui.audioEnabled));
-  pushToTalk.disabled = !state.ui.audioEnabled || state.ui.audioMuted;
-  $("#board-canvas").inert = !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details);
-  panelLayer.inert = Boolean(state.views.details);
-  activityLayer.inert = false;
-  $(".bottom-stack").inert = !state.loggedIn || !state.user?.initialStickerComplete;
-  settings.inert = !state.loggedIn || !state.user?.initialStickerComplete;
+  toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
+  toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
+  toggleClass(root, "has-view", Boolean(state.views.main));
+  toggleClass(root, "has-details", Boolean(state.views.details));
+  toggleClass(root, "editing", Boolean(state.editor));
+  toggleClass(root, "shopping", Boolean(state.shop));
+  toggleClass(root, "targeting", Boolean(state.ui.targeting));
+  toggleClass(root, "audio-mode", Boolean(state.ui.audioEnabled));
+  const pushDisabled = !state.ui.audioEnabled || state.ui.audioMuted;
+  if (pushToTalk.disabled !== pushDisabled) pushToTalk.disabled = pushDisabled;
+  // The activity layer watches for `inert` mutations and re-sweeps the
+  // surrounding tree when it sees one, so assigning an unchanged value on every
+  // render made each socket message cost a full ancestor/sibling pass.
+  setInert($("#board-canvas"), !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details));
+  setInert(panelLayer, Boolean(state.views.details));
+  setInert(activityLayer, false);
+  setInert($(".bottom-stack"), !state.loggedIn || !state.user?.initialStickerComplete);
+  setInert(settings, !state.loggedIn || !state.user?.initialStickerComplete);
   peeps.render(state);
   syncVoice(state);
   renderLook(state);

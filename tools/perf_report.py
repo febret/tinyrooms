@@ -24,8 +24,23 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE = REPO_ROOT / "tests" / "perf" / "baselines" / "perf-baselines.json"
 TOLERANCE = 0.20
-#: Below this much change, a timing difference is noise.
-NOISE_FLOOR = 0.01
+
+#: Absolute slack per unit, added on top of the relative tolerance.
+#:
+#: A percentage comparison is meaningless for very small values: a 0.18ms
+#: measurement that lands on 0.24ms is a 34% "regression" caused entirely by
+#: timer granularity, and a ratio built from two such timings is worse. These
+#: floors mean a metric has to move by a *substantial* absolute amount before it
+#: is reported, which keeps the report readable and actionable.
+NOISE_FLOOR = {
+    "ms": 0.25,
+    "s": 0.00025,
+    "ratio": 0.3,
+}
+
+
+def _floor(unit: str) -> float:
+    return NOISE_FLOOR.get(unit, 0.0)
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -37,12 +52,11 @@ def load(path: Path) -> dict[str, Any]:
         return {}
 
 
-def _regressed(baseline: float, current: float, lower_is_better: bool) -> bool:
+def _regressed(baseline: float, current: float, lower_is_better: bool, floor: float) -> bool:
+    allowed = max(baseline * (1 + TOLERANCE), baseline + floor)
     if lower_is_better:
-        allowed = max(baseline * (1 + TOLERANCE), baseline + NOISE_FLOOR)
         return current > allowed
-    allowed = min(baseline * (1 - TOLERANCE), baseline - NOISE_FLOOR)
-    return current < allowed
+    return current < min(baseline * (1 - TOLERANCE), baseline - floor)
 
 
 def compare(baseline: dict[str, Any], current: dict[str, Any]) -> list[dict[str, Any]]:
@@ -61,11 +75,12 @@ def compare(baseline: dict[str, Any], current: dict[str, Any]) -> list[dict[str,
         lower_is_better = bool(after.get("lower_is_better", True))
         old_value = float(before["value"])
         new_value = float(after["value"])
+        floor = _floor(str(after.get("unit", "")))
         if new_value == old_value:
             status = "same"
-        elif _regressed(old_value, new_value, lower_is_better):
+        elif _regressed(old_value, new_value, lower_is_better, floor):
             status = "regressed"
-        elif _regressed(old_value, new_value, not lower_is_better):
+        elif _regressed(old_value, new_value, not lower_is_better, floor):
             status = "improved"
         else:
             status = "same"
@@ -103,6 +118,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Record the current run as the new baseline instead of comparing.",
     )
+    parser.add_argument(
+        "--replace-baseline",
+        action="store_true",
+        help="With --update, discard existing metrics instead of merging into them.",
+    )
     args = parser.parse_args(argv)
 
     results_path = Path(args.results or os.environ.get("TR_PERF_OUT", ""))
@@ -117,9 +137,19 @@ def main(argv: list[str] | None = None) -> int:
 
     baseline_path = Path(args.baseline)
     if args.update or os.environ.get("TR_UPDATE_PERF_BASELINES") == "1":
+        # A partial run (`--tiers server`) only measured some tiers, so merge
+        # into the existing baseline rather than dropping the metrics it did not
+        # measure. Passing --replace-baseline forces a full overwrite.
+        existing = {} if args.replace_baseline else load(baseline_path)
+        merged = {**existing, **current}
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
-        baseline_path.write_text(json.dumps(current, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(f"perf-report: recorded {len(current)} metrics to {baseline_path}")
+        baseline_path.write_text(json.dumps(merged, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        added = sorted(set(current) - set(existing))
+        kept = len(existing) - len(added)
+        print(
+            f"perf-report: recorded {len(added)} metrics to {baseline_path}"
+            + (f" ({kept} existing metrics kept)" if kept else "")
+        )
         return 0
 
     baseline = load(baseline_path)

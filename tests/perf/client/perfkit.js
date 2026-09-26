@@ -69,7 +69,14 @@ export function medianMs(fn, { iterations = 30, warmup = 5 } = {}) {
 /**
  * Assert that scaling the workload by `factor` costs at most `maxFactor` times
  * more. A linear pass tracks the factor; a quadratic pass squares it.
+ *
+ * The ratio is only recorded when the larger sample is big enough to time
+ * reliably. Below that, a ratio of two sub-millisecond medians swings by 50%
+ * between runs on identical code, which would make the baseline report cry
+ * wolf. The assertion still runs either way -- only the bookkeeping is skipped.
  */
+const MIN_TRACKABLE_MS = 0.5;
+
 export function assertScales(assert, name, small, large, { factor, maxFactor, smallN, largeN }) {
   const growth = (large + 0.02) / (small + 0.02);
   const allowed = factor * maxFactor;
@@ -81,5 +88,12 @@ export function assertScales(assert, name, small, large, { factor, maxFactor, sm
         `collection per item.`,
     );
   }
-  record(`perf/${name}/growth`, growth, { unit: "ratio" });
+  if (large >= MIN_TRACKABLE_MS) {
+    record(`perf/${name}/growth`, growth, { unit: "ratio" });
+  } else {
+    console.log(
+      `  (skipping baseline for ${name}/growth: ${large.toFixed(3)}ms is below the ` +
+        `${MIN_TRACKABLE_MS}ms tracking floor)`,
+    );
+  }
 }

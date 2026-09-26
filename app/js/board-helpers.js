@@ -155,3 +155,23 @@ export function fitBoardCamera(camera, controls, root, {
   controls.minDistance = Math.max(3, far * 0.4);
   controls.maxDistance = Math.max(80, far * 3);
 }
+
+/** Key that captures everything about a prop that requires re-creating its model. */
+export function propModelKey(prop) {
+  return JSON.stringify([prop.propId, prop.modelUrl, prop.label]);
+}
+
+/** Key of a prop's currently rendered effect set, independent of its model. */
+export function propEffectKey(prop) {
+  return JSON.stringify([prop.effectSets || {}, prop.activeEffect || ""]);
+}
+
+/** Identity of a room card's rendered artwork; position and quantity are handled separately. */
+export function cardModelKey(card) {
+  return String(card.definition?.imageUrl || "");
+}
+
+/** Stable key for an authoritative position triple so unchanged snapshots never restart a tween. */
+export function positionKey(position) {
+  return `${position?.[0] ?? 50},${position?.[1] ?? 50},${position?.[2] ?? 0}`;
+}

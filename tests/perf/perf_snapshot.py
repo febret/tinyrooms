@@ -16,11 +16,10 @@ query shows up immediately.
 from __future__ import annotations
 
 import json
-import time
 
 from server.connections import SyntheticConnection
 from server.profiles import AccountRecord
-from tests.perf.perfkit import PerfCase, sql_counter
+from tests.perf.perfkit import PerfCase, sql_counter, timeit_async
 from tests.perf.synthetic import ENTRY_ROOM, entity_counts, temp_world
 
 PROPS = 60
@@ -151,17 +150,17 @@ class SnapshotCostTests(PerfCase):
         accounts = [self.runtime.create_account(f"clock{index:03d}") for index in range(30)]
         await _occupy(self.runtime, accounts, ENTRY_ROOM)
         await self._snapshot(self.account)
-        iterations = 10
-        started = time.perf_counter()
-        for _ in range(iterations):
-            await self._snapshot(self.account)
-        elapsed = (time.perf_counter() - started) * 1000.0 / iterations
+        _, elapsed = await timeit_async(lambda: self._snapshot(self.account), iterations=12)
+        elapsed_ms = elapsed * 1000.0
         self.measure(
             "server/snapshot/ms/room-max",
-            elapsed,
+            elapsed_ms,
             unit="ms",
-            ceiling=250.0,
-            note="Mean wall clock for one snapshot in a 30-occupant room.",
+            ceiling=60.0,
+            note=(
+                "Fastest observed snapshot in a 30-occupant room. The minimum is used because a "
+                "busy test host inflates every other sample."
+            ),
         )
 
 
@@ -268,11 +267,10 @@ class SnapshotAxisScalingTests(PerfCase):
                 rooms = runtime.bind(hub)
                 account = runtime.create_account("owner")
                 await rooms.build_snapshot(account, ENTRY_ROOM)
-                iterations = 8
-                started = time.perf_counter()
-                for _ in range(iterations):
-                    await rooms.build_snapshot(account, ENTRY_ROOM)
-                timings[count] = (time.perf_counter() - started) * 1000.0 / iterations
+                _, best = await timeit_async(
+                    lambda: rooms.build_snapshot(account, ENTRY_ROOM), iterations=8
+                )
+                timings[count] = best * 1000.0
                 _, statements = await _count_sql(hub, lambda: rooms.build_snapshot(account, ENTRY_ROOM))
                 counts[count] = statements
             finally:

@@ -40,6 +40,31 @@ def _python() -> str:
     return sys.executable
 
 
+def _node_binary() -> str:
+    """Resolve the ``node`` executable for the client tier."""
+
+    return shutil.which("node") or "node"
+
+
+def _node_script(name: str) -> list[str]:
+    """Resolve a locally installed Node CLI, falling back to the runner shim.
+
+    ``npx`` is a shell shim rather than an executable, so it is not always
+    resolvable from a subprocess on Windows. The vendored binary in
+    ``node_modules/.bin`` is preferred and is what the npm scripts use.
+    """
+
+    suffix = ".cmd" if os.name == "nt" else ""
+    local = REPO_ROOT / "node_modules" / ".bin" / f"{name}{suffix}"
+    if local.is_file():
+        return [str(local)]
+    node = _node_binary()
+    script = REPO_ROOT / "node_modules" / name / "bin" / f"{name}.js"
+    if script.is_file():
+        return [node, str(script)]
+    return [shutil.which("npx") or "npx", name]
+
+
 def _run(label: str, command: list[str], env: dict[str, str]) -> tuple[str, float, bool]:
     print(f"\n--- {label} ---", flush=True)
     print(" ".join(str(part) for part in command), flush=True)
@@ -85,9 +110,13 @@ def main(argv: list[str] | None = None) -> int:
                     "-s", "tests", "-t", ".", "-p", "perf_*.py", "-v",
                 ]
             elif tier == "client":
-                command = ["node", "--test", "tests/perf/client/state-perf.test.js"]
+                command = [_node_binary(), "--test", "tests/perf/client/state-perf.test.js"]
             else:
-                command = ["npx", "playwright", "test", "--config=playwright.perf.config.js"]
+                command = [
+                    *_node_script("playwright"),
+                    "test",
+                    "--config=playwright.perf.config.js",
+                ]
             timings.append(_run(TIERS[tier], command, env))
             if fragment.is_file():
                 try:

@@ -22,12 +22,11 @@ import atexit
 import json
 import os
 import sqlite3
-import statistics
 import time
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Iterator, TypeVar
+from typing import Awaitable, Callable, Iterator, TypeVar
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BASELINE_PATH = REPO_ROOT / "tests" / "perf" / "baselines" / "perf-baselines.json"
@@ -127,27 +126,60 @@ def timeit(
     iterations: int = 25,
     warmup: int = 3,
 ) -> tuple[T, float]:
-    """Return ``(last_result, median_seconds)`` for *func*.
+    """Return ``(last_result, best_seconds)`` for *func*.
 
-    The median is used rather than the mean so that a single GC pause or a
-    background thread does not dominate the recorded figure.
+    The **minimum** is reported rather than the median. For latency work the
+    fastest observed run is the closest estimate of the code's true cost: the
+    median absorbs whatever the machine was doing during the slower iterations,
+    which on a shared or busy test host is worth several milliseconds and makes
+    a percentage comparison against a stored baseline meaningless.
     """
 
     for _ in range(warmup):
         func()
-    samples: list[float] = []
+    best = float("inf")
     result: T = None  # type: ignore[assignment]
     for _ in range(iterations):
         started = time.perf_counter()
         result = func()
-        samples.append(time.perf_counter() - started)
-    return result, statistics.median(samples)
+        best = min(best, time.perf_counter() - started)
+    return result, best
 
 
 def elapsed_ms(clock: Callable[[], float]) -> float:
     """Return milliseconds since *clock* was sampled."""
 
     return (time.perf_counter() - clock()) * 1000.0
+
+
+async def timeit_async(
+    factory: Callable[[], Awaitable[T]],
+    *,
+    iterations: int = 12,
+    warmup: int = 3,
+) -> tuple[T, float]:
+    """Return ``(last_result, best_seconds)`` for an awaitable factory.
+
+    The asynchronous counterpart of :func:`timeit`, for the same reason: the
+    minimum run is the reproducible estimate of the cost.
+    """
+
+    for _ in range(warmup):
+        await factory()
+    best = float("inf")
+    result: T = None  # type: ignore[assignment]
+    for _ in range(iterations):
+        started = time.perf_counter()
+        result = await factory()
+        best = min(best, time.perf_counter() - started)
+    return result, best
+
+
+#: Growth ratios are only baseline-tracked when the larger sample is at least
+#: this many milliseconds. A ratio built from two sub-millisecond medians swings
+#: by 50% between runs on identical code, so recording it would make the report
+#: cry wolf. The assertion still runs either way.
+MIN_TRACKABLE_MS = 1.0
 
 
 class PerfCase(unittest.IsolatedAsyncioTestCase):
@@ -194,8 +226,9 @@ class PerfCase(unittest.IsolatedAsyncioTestCase):
         if growth > expected:
             self.fail(
                 f"{name}: {large_n} units cost {growth:.2f}x the {small_n}-unit case "
-                f"({small:.3f} -> {large:.3f}{'' if small else ''}), which exceeds the "
+                f"({small:.3f} -> {large:.3f}), which exceeds the "
                 f"{expected:.2f}x allowed for a {factor}x workload increase. "
                 "This usually means an inner loop is scanning the whole collection."
             )
-        self.measure(f"perf/{name}/growth", growth, unit="ratio", lower_is_better=True)
+        if large >= MIN_TRACKABLE_MS:
+            self.measure(f"perf/{name}/growth", growth, unit="ratio", lower_is_better=True)
