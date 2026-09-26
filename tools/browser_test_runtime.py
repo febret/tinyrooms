@@ -35,8 +35,17 @@ def _prepare_world(directory: Path) -> Path:
 
     The directory keeps the world id as its name because world-card scope is
     derived from the directory name during catalog loading.
+
+    ``--world-scale`` swaps the plain copy for a generated one, which is how the
+    performance suite gets a room crowded enough to measure. It is opt-in so the
+    functional suite keeps running against the authored content.
     """
 
+    scale_arg = os.environ.get("TR_PERF_WORLD_SCALE", "").strip()
+    if scale_arg:
+        from tools.perf_world import build_scaled_world, parse_scale
+
+        return build_scaled_world(directory, **parse_scale(scale_arg))
     world_path = directory / "tutorial"
     if not world_path.is_dir():
         shutil.copytree(ROOT / "worlds" / "tutorial", world_path, copy_function=_link_or_copy)
