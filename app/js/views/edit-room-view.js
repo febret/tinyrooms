@@ -1,6 +1,6 @@
 import { escapeHtml } from "../presentation.js";
 import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "../editing/prop-library.js";
-import { availableLibrary, libraryEntry, selectedInstance } from "../editing/edit-reducer.js";
+import { availableLibrary, libraryEntry } from "../editing/edit-reducer.js";
 
 const BOARD_STYLES = ["stretch", "tile", "tile-w", "tile-h"];
 
@@ -36,17 +36,33 @@ function environmentRow(state, editor) {
   `;
 }
 
-function selectionBlock(editor, selected) {
-  const entry = libraryEntry(editor, selected.propId);
+/** Text shown in the selected-prop meta line, or the empty prompt. */
+export function editorMetaText(selected) {
+  if (!selected) return "Select a prop on the board to move, rotate, or scale it.";
   const [x, y] = selected.position;
+  return `Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}° · Scale ${selected.scale.toFixed(2)}`;
+}
+
+/** Display name of the current selection, or the empty placeholder. */
+export function editorSelectedName(editor, selected) {
+  if (!selected) return "No prop selected";
+  return libraryEntry(editor, selected.propId)?.label || selected.propId;
+}
+
+/** Conflict banner markup; empty unless the server rejected a stale save. */
+export function editorConflictMarkup(editor) {
+  if (!editor.conflict) return "";
+  return `<div class="editor-conflict" role="alert">
+    <span>This room changed while you were editing.</span>
+    <button type="button" data-edit-action="reload">Reload from server</button>
+    <button type="button" class="primary" data-edit-action="reapply">Reapply my changes</button>
+  </div>`;
+}
+
+function selectionMarkup() {
   return `
-    <p class="editor-meta"><strong>${escapeHtml(entry?.label || selected.propId)}</strong>
-      Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}° · Scale ${selected.scale.toFixed(2)}</p>
-    <div class="editor-buttons">
-      <button type="button" data-edit-action="rotate" data-edit-delta="-15">Rotate −15°</button>
-      <button type="button" data-edit-action="rotate" data-edit-delta="15">Rotate +15°</button>
-      <button type="button" data-edit-action="scale" data-edit-factor="0.87">Smaller</button>
-      <button type="button" data-edit-action="scale" data-edit-factor="1.15">Larger</button>
+    <p class="editor-meta editor-meta-empty" data-editor-meta>${editorMetaText(null)}</p>
+    <div class="editor-buttons" data-editor-buttons hidden>
       <button type="button" class="negative" data-edit-action="remove">Remove</button>
     </div>
   `;
@@ -61,6 +77,14 @@ function snapRow(editor) {
   `;
 }
 
+/**
+ * Static editor shell.
+ *
+ * Prop-instance and selection data are deliberately excluded: the panel's
+ * dynamic regions (selected name, meta line, undo/save chrome, conflict banner)
+ * are patched in place by `cards.renderEditor` so the prop library, its image
+ * tiles, and scroll/focus are mounted once per catalog change.
+ */
 export function editRoomView(state) {
   const canEdit = Boolean(state?.room?.canEditRoom);
   if (!canEdit) {
@@ -78,36 +102,29 @@ export function editRoomView(state) {
       </section>
     `;
   }
-  const selected = selectedInstance(editor);
   const library = availableLibrary(editor, state.user?.unlockedProps);
-  const conflict = editor.conflict
-    ? `<div class="editor-conflict" role="alert">
-        <span>This room changed while you were editing.</span>
-        <button type="button" data-edit-action="reload">Reload from server</button>
-        <button type="button" class="primary" data-edit-action="reapply">Reapply my changes</button>
-      </div>`
-    : "";
   return `
     <section class="edit-room-view editor-dock-panel" role="region" aria-label="Edit Room">
       <header class="editor-dock-header">
         <strong>Edit Room</strong>
+        <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
         <button type="button" class="editor-shop-button" data-edit-action="prop-shop">🛒 Prop Shop</button>
-        <button type="button" data-edit-action="undo" ${editor.undo.length ? "" : "disabled"}>Undo</button>
-        <button type="button" data-edit-action="redo" ${editor.redo.length ? "" : "disabled"}>Redo</button>
-        <button type="button" class="primary" data-edit-action="save" ${editor.dirty ? "" : "disabled"}>Save layout</button>
-        <span class="editor-status" role="status">${escapeHtml(editor.error || editor.status || (editor.dirty ? "Unsaved changes" : "All changes saved"))}</span>
+        <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
+        <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
+        <button type="button" class="primary" data-editor-save data-edit-action="save" disabled>Save layout</button>
+        <span class="editor-status" role="status" data-editor-status>All changes saved</span>
         <button type="button" class="quiet" data-close-view="1">Close</button>
         <div class="editor-heading-tags" role="group" aria-label="Filter by tag">
           ${libraryTagMarkup(library)}
           <span class="editor-library-count" role="status"></span>
         </div>
       </header>
-      ${conflict}
+      <div data-editor-conflict>${editorConflictMarkup(editor)}</div>
       <div class="editor-workspace">
         <div class="editor-env">
           ${environmentRow(state, editor)}
-          ${selected ? selectionBlock(editor, selected) : '<p class="editor-meta editor-meta-empty">Select a prop on the board to move, rotate, or scale it.</p>'}
+          <div class="editor-selection" data-editor-selection>${selectionMarkup()}</div>
           ${snapRow(editor)}
         </div>
         <div class="editor-propsets" role="list" aria-label="Prop sets">

@@ -442,6 +442,8 @@ async function handleAction(action) {
     store.dispatch({ type: "editor-env", key: "board_image_style", value: action.value });
   } else if (action.type === "edit-action") {
     await applyEditorAction(action);
+  } else if (action.type === "open-prop-editor") {
+    if (action.propId) window.open(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`, "_blank", "noopener");
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
   } else if (action.type === "start-targeting") {
@@ -957,8 +959,10 @@ const board = createBoard({
   onEditSelect(id) { store.dispatch({ type: "editor-select", id }); },
   onEditBegin() { store.dispatch({ type: "editor-begin" }); },
   onEditTransform({ id, position }) { store.dispatch({ type: "editor-transform", id, position }); },
-  onEditRotate(delta) { store.dispatch({ type: "editor-rotate", delta }); },
-  onEditScale(factor) { store.dispatch({ type: "editor-scale", factor }); },
+  onEditRotate(delta, gesture) { store.dispatch({ type: "editor-rotate", delta, gesture: Boolean(gesture) }); },
+  onEditScale(factor, gesture) { store.dispatch({ type: "editor-scale", factor, gesture: Boolean(gesture) }); },
+  stackProps: true,
+  dragHandles: true,
 });
 const cards = createCardsView({
   handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"), shopRoot,
@@ -990,6 +994,29 @@ const activities = createActivityManager({
   onActivityBridge: bridgeActivity, onCommand: sendCommand,
   onStickerConfirm: confirmSticker, onToast: toast,
 });
+
+/** Assemble the board view state, merging the live editor draft when editing. */
+function buildBoardState(state) {
+  if (!state.editor || state.views.main !== "edit-room" || !state.room) return state;
+  const editableIds = editablePropIds(state.editor);
+  return {
+    ...state,
+    editing: true,
+    editSelection: state.editor.selectedId,
+    room: {
+      ...state.room,
+      props: [
+        ...state.room.props.filter(prop => !editableIds.has(prop.propId)).map(prop => ({ ...prop, ghost: true })),
+        ...editorBoardProps(state.editor),
+      ],
+      board: {
+        ...state.room.board,
+        palette: state.editor.environment.palette || state.room.board.palette,
+        imageStyle: state.editor.environment.board_image_style || state.room.board.imageStyle,
+      },
+    },
+  };
+}
 
 async function render(state) {
   const revision = ++renderRevision;
@@ -1046,28 +1073,22 @@ async function render(state) {
   // Iframes must not wait for room textures/models to finish loading.
   await activities.sync(state.activities);
   if (revision !== renderRevision) return;
-  let boardState = state;
-  if (state.editor && state.views.main === "edit-room" && state.room) {
-    const editableIds = editablePropIds(state.editor);
-    boardState = {
-      ...state,
-      editing: true,
-      editSelection: state.editor.selectedId,
-      room: {
-        ...state.room,
-        props: [
-          ...state.room.props.filter(prop => !editableIds.has(prop.propId)).map(prop => ({ ...prop, ghost: true })),
-          ...editorBoardProps(state.editor),
-        ],
-        board: {
-          ...state.room.board,
-          palette: state.editor.environment.palette || state.room.board.palette,
-          imageStyle: state.editor.environment.board_image_style || state.room.board.imageStyle,
-        },
-      },
-    };
+  await board.render(buildBoardState(state));
+}
+
+/** Prop transforms stream at pointer rate; only the board and tiny meta patches need updating. */
+function isTransientEditorAction(action) {
+  if (!action?.type) return false;
+  if (action.type === "editor-transform") return true;
+  return (action.type === "editor-rotate" || action.type === "editor-scale") && Boolean(action.gesture);
+}
+
+function renderEditorTransient(state) {
+  // Shell is unchanged by an instance transform, so patch regions without rebuilding it.
+  cards.renderEditor(state, { shell: false });
+  if (state.views.main === "edit-room" && state.room) {
+    void board.render(buildBoardState(state)).catch(showError);
   }
-  await board.render(boardState);
 }
 
 createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help") });
@@ -1111,5 +1132,8 @@ document.addEventListener("keydown", event => {
   else if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });
-store.subscribe(state => { void render(state).catch(showError); });
+store.subscribe((state, action) => {
+  if (isTransientEditorAction(action)) { renderEditorTransient(state); return; }
+  void render(state).catch(showError);
+});
 void loadApp().catch(showError);

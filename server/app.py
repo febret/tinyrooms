@@ -43,6 +43,7 @@ from server.mods import ModDefinition, LoadedMods, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
+from server.routes import prop_editor as prop_editor_routes
 from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
 from server.protocol import (
@@ -83,6 +84,7 @@ from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
+from server.services.prop_editor import PropEditorService
 from server.services.prop_shop import PropShopService
 from server.services.room_layout import RoomLayoutService
 from server.services.room_effects import RoomEffectService
@@ -212,6 +214,15 @@ class RuntimeState:
             self.world.recipes,
             self.world.id,
             self.world.root_path,
+        )
+
+    def prop_editor_service(self) -> PropEditorService:
+        """Return a Prop Editor service bound to this runtime."""
+
+        return PropEditorService(
+            self.config,
+            self.loaded_mods,
+            self.audit,
         )
 
     async def set_prop_active_effect(self, room_id: str, prop_instance_id: str, set_name: str) -> None:
@@ -1166,6 +1177,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
+    app.include_router(prop_editor_routes.router)
     if loaded_config.mc_endpoint:
         app.include_router(mc_router)
     return app

@@ -1,14 +1,17 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { boardImageRepeat, boardPosition, disposeBoardTree, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
+import { boardImageRepeat, boardPosition, disposeBoardTree, ELEVATION_PER_UNIT, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
 import { createGizmo } from "./editing/gizmo.js";
+import { snapPositionValue } from "./editing/edit-reducer.js";
+import { supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
 const RANDOM_ANIMATION_PAUSE_MS = 1000;
 const PROP_MOVE_SMOOTHING = 9;
+const SCALE_DRAG_SENSITIVITY = 0.008;
 
 /** Key that captures everything about a prop that requires re-creating its model. */
 function propModelKey(prop) {
@@ -45,6 +48,32 @@ function boardPositionFromWorld(point) {
     Math.min(100, Math.max(0, point.z / 0.085 + 50)),
     0,
   ];
+}
+
+/**
+ * Footprint and top-elevation metrics used to decide how high a dragged prop rests.
+ * The local model bounds are rotated into board space and enclosed by an AABB.
+ */
+function stackMetrics(record, worldX, worldZ) {
+  const bounds = record?.bounds;
+  if (!bounds) return null;
+  const scale = record.group.scale.x || 1;
+  const halfLocalX = (bounds.max.x - bounds.min.x) / 2;
+  const halfLocalZ = (bounds.max.z - bounds.min.z) / 2;
+  const centerLocalX = (bounds.max.x + bounds.min.x) / 2;
+  const centerLocalZ = (bounds.max.z + bounds.min.z) / 2;
+  const angle = record.group.rotation.y || 0;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    id: record.id,
+    x: worldX + scale * (cos * centerLocalX + sin * centerLocalZ),
+    z: worldZ + scale * (-sin * centerLocalX + cos * centerLocalZ),
+    halfX: scale * (Math.abs(cos) * halfLocalX + Math.abs(sin) * halfLocalZ),
+    halfZ: scale * (Math.abs(sin) * halfLocalX + Math.abs(cos) * halfLocalZ),
+    topZ: (Number(record.prop?.position?.[2]) || 0)
+      + ((bounds.max.y - bounds.min.y) * scale) / ELEVATION_PER_UNIT,
+  };
 }
 
 function material(color, extra = {}) {
@@ -103,7 +132,7 @@ function unavailableMarker(parent) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale }) {
+export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -188,6 +217,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let selection = null;
   let selectionObject = null;
   let editEnabled = false;
+  let editSnapPosition = true;
   let editSelectionId = null;
   let editSelectionObject = null;
   let editGesture = null;
@@ -231,7 +261,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
       : null;
     if (editSelectionObject) {
-      gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x);
+      gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight());
       gizmo.setVisible(true);
     } else {
       gizmo.setVisible(false);
@@ -296,6 +326,84 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     world.y += TOP + 0.012;
     dropHint.position.copy(world);
     dropHint.visible = true;
+  }
+
+  /** World-space height of the prop currently under the gizmo, or 0 when unknown. */
+  function selectedPropHeight() {
+    const record = current?.props.get(editSelectionId);
+    if (!record?.bounds) return 0;
+    return (record.bounds.max.y - record.bounds.min.y) * (record.group.scale.x || 1);
+  }
+
+  /**
+   * Resolve a dragged prop's final position, raising it onto the highest prop it
+   * intersects. Only the room editor opts in via `stackProps`.
+   */
+  function resolveEditPosition(id, candidate) {
+    if (!stackProps) return candidate;
+    const position = snapPositionValue(candidate, editSnapPosition);
+    const record = current?.props.get(id);
+    const world = boardPosition(position);
+    const entry = stackMetrics(record, world[0], world[2]);
+    if (!entry) return position;
+    const others = [];
+    for (const other of current.props.values()) {
+      if (other.id === id) continue;
+      const metrics = stackMetrics(other, other.group.position.x, other.group.position.z);
+      if (metrics) others.push(metrics);
+    }
+    return [position[0], position[1], Math.min(50, Math.max(0, supportElevation(entry, others)))];
+  }
+
+  /**
+   * Publish the gizmo handles' canvas-relative positions so interaction tests can
+   * target them without guessing pixel coordinates.
+   */
+  function updateGizmoScreenHints() {
+    if (!editEnabled || !editSelectionObject || !gizmo.group.visible) {
+      delete canvas.dataset.gizmoScale;
+      delete canvas.dataset.gizmoRotate;
+      return;
+    }
+    const width = canvas.clientWidth || 1;
+    const height = canvas.clientHeight || 1;
+    const toCanvas = world => {
+      const point = world.project(camera);
+      return `${Math.round((point.x + 1) / 2 * width)},${Math.round((1 - point.y) / 2 * height)}`;
+    };
+    canvas.dataset.gizmoScale = toCanvas(gizmo.scaleHandlePosition());
+    canvas.dataset.gizmoRotate = toCanvas(gizmo.rotateHandlePosition());
+  }
+
+  /** Raycast a pointer event onto the floor plane for gesture math. */
+  function screenToFloorPoint(clientX, clientY) {
+    if (!setRayFromEvent({ clientX, clientY })) return null;
+    return raycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
+  }
+
+  function gestureAngle(event, center) {
+    if (!center) return 0;
+    const point = screenToFloorPoint(event.clientX, event.clientY);
+    return point ? Math.atan2(point.z - center.z, point.x - center.x) : 0;
+  }
+
+  /** Spin the prop by the angle swept around its centre since the last move. */
+  function applyRotateGesture(event) {
+    if (!editGesture?.center) return;
+    const angle = gestureAngle(event, editGesture.center);
+    let delta = ((angle - editGesture.lastAngle) * 180) / Math.PI;
+    delta = ((delta + 180) % 360 + 360) % 360 - 180;
+    if (Math.abs(delta) < 0.1) return;
+    editGesture.lastAngle = angle;
+    onEditRotate?.(delta, true);
+  }
+
+  /** Grow or shrink the prop by the vertical distance the scale handle is dragged. */
+  function applyScaleGesture(event) {
+    const factor = Math.exp((editGesture.lastY - event.clientY) * SCALE_DRAG_SENSITIVITY);
+    editGesture.lastY = event.clientY;
+    if (Math.abs(factor - 1) < 0.001) return;
+    onEditScale?.(factor, true);
   }
 
   function texture(entry, url, label, apply) {
@@ -760,7 +868,15 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (editEnabled) {
       const mode = pickEditMode(event);
       if (mode) {
-        editGesture = { mode, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
+        const center = editSelectionObject ? editSelectionObject.position.clone() : null;
+        editGesture = {
+          mode, pointerId: event.pointerId, moved: false,
+          startX: event.clientX, startY: event.clientY,
+          lastY: event.clientY, center,
+          lastAngle: mode === "rotate" ? gestureAngle(event, center) : 0,
+        };
+        // Drag gestures stream deltas, so capture one undo snapshot up front.
+        if (dragHandles) onEditBegin?.();
         suppressOrbit();
         return;
       }
@@ -781,14 +897,20 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function pointerMove(event) {
     if (editEnabled) {
       if (editGesture && editGesture.pointerId === event.pointerId) {
-        if (Math.hypot(event.clientX - editGesture.startX, event.clientY - editGesture.startY) > 6) editGesture.moved = true;
+        if (!editGesture.moved && Math.hypot(event.clientX - editGesture.startX, event.clientY - editGesture.startY) > 4) {
+          editGesture.moved = true;
+        }
+        if (dragHandles && editGesture.moved) {
+          if (editGesture.mode === "rotate") applyRotateGesture(event);
+          else if (editGesture.mode === "scale") applyScaleGesture(event);
+        }
         return;
       }
       if (editDrag && editDrag.pointerId === event.pointerId) {
         if (Math.hypot(event.clientX - editDrag.startX, event.clientY - editDrag.startY) > 4) editDrag.moved = true;
         if (editDrag.moved && editDrag.id) {
           const point = screenToBoardPosition(event.clientX, event.clientY);
-          if (point) onEditTransform?.({ id: editDrag.id, position: point.position });
+          if (point) onEditTransform?.({ id: editDrag.id, position: resolveEditPosition(editDrag.id, point.position) });
         }
         return;
       }
@@ -803,8 +925,8 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         const gesture = editGesture;
         editGesture = null;
         releaseOrbit();
-        if (!gesture.moved && gesture.mode === "rotate") onEditRotate?.(15);
-        else if (!gesture.moved && gesture.mode === "scale") onEditScale?.(1.15);
+        if (!gesture.moved && gesture.mode === "rotate") onEditRotate?.(15, dragHandles);
+        else if (!gesture.moved && gesture.mode === "scale") onEditScale?.(1.15, dragHandles);
         return;
       }
       if (editDrag && editDrag.pointerId === event.pointerId) {
@@ -895,10 +1017,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         );
       }
       if (editSelectionObject) {
-        gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x);
+        gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight());
       }
       if (!blocked) controls.update();
       renderer.render(scene, camera);
+      updateGizmoScreenHints();
       frame = requestAnimationFrame(animate);
     } catch {
       contextLost({ preventDefault() {} });
@@ -914,6 +1037,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       reducedMotion = Boolean(state.ui?.reducedMotion);
       controls.enableDamping = !state.ui?.reducedMotion;
       editEnabled = Boolean(state.editing);
+      editSnapPosition = state.editor?.snapPosition ?? true;
       editSelectionId = editEnabled ? (state.editSelection || null) : null;
       const modalView = state.views?.main;
       const blockingView = Boolean(modalView && modalView !== "edit-room");
@@ -941,6 +1065,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         syncRoom(state.room);
       }
       updateSelection();
+      canvas.dataset.editElevation = editEnabled && editSelectionId
+        ? String(current?.props.get(editSelectionId)?.prop?.position?.[2] ?? 0)
+        : "0";
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,

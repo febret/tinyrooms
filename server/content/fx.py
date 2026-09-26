@@ -23,6 +23,7 @@ TRANSFORM_MOTIONS = frozenset({"bob", "spin", "spin-y", "pulse", "sway", "shake"
 PARTICLE_PRESETS = frozenset({"smoke", "fire", "sparks"})
 PARTICLE_ANCHORS = frozenset({"base", "center", "top"})
 LAYER_TYPES = frozenset({"transform", "material", "particle"})
+TEXTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
 
 
 def effect_texture_url(texture_name: str) -> str:
@@ -287,6 +288,31 @@ def _load_layer(raw_layer: Any, effect_id: str, index: int, base_dir: Path) -> E
     return _load_particle_layer(raw_layer, effect_id, index, base_dir)
 
 
+def load_effect_definition(fx_file: Path, payload: Mapping[str, Any]) -> EffectDefinition:
+    """Validate and build one effect definition from a raw YAML mapping.
+
+    The effect id must match the YAML filename stem; particle textures resolve
+    relative to the file's directory. Shared by the content loader and the Prop
+    Editor so both enforce identical rules.
+    """
+
+    effect_id = str(payload.get("id", "")).strip() or fx_file.stem
+    if effect_id != fx_file.stem:
+        raise ContentError(f"{fx_file} id '{effect_id}' must match its filename '{fx_file.stem}'.")
+    raw_layers = payload.get("layers")
+    if not isinstance(raw_layers, list) or not raw_layers:
+        raise ContentError(f"Effect '{effect_id}' must define a non-empty layers list.")
+    layers = tuple(
+        _load_layer(raw_layer, effect_id, index, fx_file.parent)
+        for index, raw_layer in enumerate(raw_layers)
+    )
+    return EffectDefinition(
+        id=effect_id,
+        label=str(payload.get("label", effect_id)).strip() or effect_id,
+        layers=layers,
+    )
+
+
 def load_effect_catalog(root: Path | None) -> dict[str, EffectDefinition]:
     """Load every ``data/fx/*.yaml`` effect definition, keyed by id."""
 
@@ -299,20 +325,7 @@ def load_effect_catalog(root: Path | None) -> dict[str, EffectDefinition]:
     for fx_file in sorted(fx_root.glob("*.yaml")):
         payload = require_mapping(load_yaml_file(fx_file), fx_file)
         effect_id = str(payload.get("id", "")).strip() or fx_file.stem
-        if effect_id != fx_file.stem:
-            raise ContentError(f"{fx_file} id '{effect_id}' must match its filename '{fx_file.stem}'.")
         if effect_id in effects:
             raise ContentError(f"Duplicate effect id '{effect_id}'.")
-        raw_layers = payload.get("layers")
-        if not isinstance(raw_layers, list) or not raw_layers:
-            raise ContentError(f"Effect '{effect_id}' must define a non-empty layers list.")
-        layers = tuple(
-            _load_layer(raw_layer, effect_id, index, fx_file.parent)
-            for index, raw_layer in enumerate(raw_layers)
-        )
-        effects[effect_id] = EffectDefinition(
-            id=effect_id,
-            label=str(payload.get("label", effect_id)).strip() or effect_id,
-            layers=layers,
-        )
+        effects[effect_id] = load_effect_definition(fx_file, payload)
     return effects

@@ -211,3 +211,64 @@ export async function settleArtwork(page, { allowToasts = false } = {}) {
   }
   if (!allowToasts) await expect(page.locator("#toast-stack .toast")).toHaveCount(0);
 }
+
+// Brute-force the board until a prop whose meta text matches `expected` is selected.
+export async function findEditorProp(page, panel, expected) {
+  const box = await page.locator("#board-canvas").boundingBox();
+  // Deselect first so a hit can only be the prop body, never a visible gizmo handle.
+  await page.mouse.click(box.x + box.width * 0.95, box.y + box.height * 0.9);
+  const candidates = [];
+  for (let fy = 0.25; fy <= 0.8; fy += 0.03) {
+    for (let fx = 0.38; fx <= 0.85; fx += 0.03) {
+      candidates.push([fx, fy, Math.hypot(fx - 0.55, fy - 0.42)]);
+    }
+  }
+  candidates.sort((left, right) => left[2] - right[2]);
+  const metaLocator = panel.locator(".editor-meta");
+  for (const [fx, fy] of candidates) {
+    const x = box.x + box.width * fx;
+    const y = box.y + box.height * fy;
+    await page.mouse.click(x, y);
+    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
+    if (text?.includes(expected)) return { x, y };
+  }
+  throw new Error(`Could not locate prop at ${expected} on the board.`);
+}
+
+export async function dragProp(page, panel, expected, delta, { touch = false } = {}) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const point = await findEditorProp(page, panel, expected);
+    const target = { x: point.x + delta.x, y: point.y + delta.y };
+    if (touch) {
+      await touchDrag(page, point, target);
+    } else {
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.down();
+      await page.mouse.move(target.x, target.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    const metaLocator = panel.locator(".editor-meta");
+    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
+    if (text && !text.includes(expected)) return text;
+  }
+  throw new Error(`Drag did not move the prop from ${expected}.`);
+}
+
+export async function touchDrag(page, from, to) {
+  const client = await page.context().newCDPSession(page);
+  const point = (x, y) => [{ x, y, radiusX: 2, radiusY: 2, force: 1, id: 1 }];
+  await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+  try {
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from.x, from.y) });
+    for (let step = 1; step <= 6; step += 1) {
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: point(from.x + (to.x - from.x) * step / 6, from.y + (to.y - from.y) * step / 6),
+      });
+    }
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  } finally {
+    await client.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+    await client.detach();
+  }
+}

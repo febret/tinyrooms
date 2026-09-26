@@ -51,6 +51,19 @@ class UIPresentationTests(unittest.TestCase):
         self.assertIn("@playwright/test", package["devDependencies"])
         self.assertIn("test:browser", package["scripts"])
 
+    def test_peep_damage_overlays_are_wired(self) -> None:
+        assets = ["scuffs.svg", "splats.svg", "cracks.svg", "broken.svg"]
+        for name in assets:
+            path = REPO_ROOT / "app" / "assets" / "peep-damage" / name
+            self.assertTrue(path.is_file(), name)
+        css = (REPO_ROOT / "app" / "css" / "main.css").read_text(encoding="utf-8")
+        for name in assets:
+            self.assertIn(f"/app/assets/peep-damage/{name}", css, name)
+        peeps = (REPO_ROOT / "app" / "js" / "peeps.js").read_text(encoding="utf-8")
+        self.assertIn('from "./peep-damage.js"', peeps)
+        helper = (REPO_ROOT / "app" / "js" / "peep-damage.js").read_text(encoding="utf-8")
+        self.assertIn("export function peepDamageTier", helper)
+
     def test_first_party_source_files_stay_below_limit(self) -> None:
         roots = [
             REPO_ROOT / "server",

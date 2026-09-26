@@ -50,7 +50,10 @@ Key design decisions:
   (`initial_sticker_complete`, WS close `4403` until confirmed).
 - In-process room ordering: one server process owns a world, so room
   operations are serialized by the event loop; no per-room sequence counter.
-- Feature flags via `TRSERVER_FEATURES` (currently `dev_sample_activity`).
+- Feature flags via `TRSERVER_FEATURES` (`dev_sample_activity`, `world-editor`,
+  `card-database`, `prop-editor`, and the mission-control aliases). Editor
+  features are gated again by account power: the World Editor and Card Database
+  accept `builder`/`game-master`/`admin`, while the Prop Editor is admin-only.
 - All rooms in the loaded world definition are reachable; `.go` validates the
   exit, its lock, and any required card (the Milestone 1 room allowlist was
   removed in Milestone 2).

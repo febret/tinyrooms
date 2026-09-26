@@ -68,6 +68,7 @@ class PropDefinition:
     tags: tuple[str, ...] = ()
     price: int = DEFAULT_PROP_PRICE
     locked: bool = False
+    hidden: bool = False
     effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
     active_effect: str | None = None
 
@@ -481,7 +482,7 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
     return DialogDefinition(start_node_id="start", nodes=nodes)
 
 
-def _load_props_scale_adjust(raw_config: Any, path: Path) -> float:
+def load_props_scale_adjust(raw_config: Any, path: Path) -> float:
     """Read the reserved CONFIG block's optional file-wide scale multiplier."""
 
     if raw_config is None:
@@ -494,74 +495,102 @@ def _load_props_scale_adjust(raw_config: Any, path: Path) -> float:
     return float(raw_adjust)
 
 
+def load_prop_definition(
+    prop_id: str,
+    raw_prop: Mapping[str, Any],
+    *,
+    props_file: Path,
+    source: str,
+    source_kind: str = "world",
+    scale_adjust: float = 1.0,
+) -> PropDefinition:
+    """Validate and build one prop definition from a raw YAML mapping.
+
+    Models resolve relative to the props file's directory, and ``scale`` is
+    multiplied by the file-level ``scale_adjust``. Shared by the content loader
+    and the Prop Editor so both enforce identical rules.
+    """
+
+    if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
+        raise ContentError(f"{props_file} contains an invalid prop entry.")
+    model_name = str(raw_prop.get("model", "")).strip()
+    if not model_name:
+        raise ContentError(f"Prop '{prop_id}' is missing its model.")
+    model_path = (props_file.parent / model_name).resolve()
+    if not model_path.is_file():
+        raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
+    raw_scale = raw_prop.get("scale", 1.0)
+    if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
+        raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
+    scale = float(raw_scale) * scale_adjust
+    decorative = bool(raw_prop.get("decorative", False))
+    editable = bool(raw_prop.get("editable", False))
+    if editable and not decorative:
+        raise ContentError(f"Prop '{prop_id}' is editable but not decorative.")
+    editor_scale_min = float(raw_prop.get("editor_scale_min", 0.25))
+    editor_scale_max = float(raw_prop.get("editor_scale_max", 4.0))
+    if editor_scale_min <= 0 or editor_scale_max < editor_scale_min:
+        raise ContentError(f"Prop '{prop_id}' has invalid editor scale bounds.")
+    raw_tags = raw_prop.get("tags", []) or []
+    if not isinstance(raw_tags, list):
+        raise ContentError(f"Prop '{prop_id}' tags must be a list.")
+    tags: list[str] = []
+    for raw_tag in raw_tags:
+        tag = str(raw_tag).strip().lower()
+        if not tag:
+            raise ContentError(f"Prop '{prop_id}' has an empty tag.")
+        if tag not in tags:
+            tags.append(tag)
+    raw_price = raw_prop.get("price", DEFAULT_PROP_PRICE)
+    if isinstance(raw_price, bool) or not isinstance(raw_price, (int, float)) or int(raw_price) < 0:
+        raise ContentError(f"Prop '{prop_id}' has an invalid price {raw_price!r}.")
+    price = int(raw_price)
+    if "locked" in raw_prop:
+        locked = bool(raw_prop.get("locked"))
+    else:
+        locked = source_kind == "propset" and source not in FREE_PROPSET_SOURCES
+    hidden = bool(raw_prop.get("hidden", False))
+    effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
+    active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
+    return PropDefinition(
+        id=prop_id,
+        label=str(raw_prop.get("label", "")).strip(),
+        description=str(raw_prop.get("description", "")).strip(),
+        model_name=model_name,
+        model_path=model_path,
+        decorative=decorative,
+        animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
+        scale=scale,
+        editable=editable,
+        editor_scale_min=editor_scale_min,
+        editor_scale_max=editor_scale_max,
+        source=source,
+        source_kind=source_kind,
+        tags=tuple(tags),
+        price=price,
+        locked=locked,
+        hidden=hidden,
+        effect_sets=effect_sets,
+        active_effect=active_effect,
+    )
+
+
 def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -> dict[str, PropDefinition]:
     """Load prop definitions from one props.yaml, resolving models beside it."""
 
     props_payload = require_mapping(load_yaml_file(path), path)
-    scale_adjust = _load_props_scale_adjust(props_payload.get(PROPS_CONFIG_KEY), path)
+    scale_adjust = load_props_scale_adjust(props_payload.get(PROPS_CONFIG_KEY), path)
     props: dict[str, PropDefinition] = {}
     for prop_id, raw_prop in props_payload.items():
         if prop_id == PROPS_CONFIG_KEY:
             continue
-        if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
-            raise ContentError(f"{path} contains an invalid prop entry.")
-        model_name = str(raw_prop.get("model", "")).strip()
-        if not model_name:
-            raise ContentError(f"Prop '{prop_id}' is missing its model.")
-        model_path = (path.parent / model_name).resolve()
-        if not model_path.is_file():
-            raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
-        raw_scale = raw_prop.get("scale", 1.0)
-        if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
-            raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
-        scale = float(raw_scale) * scale_adjust
-        decorative = bool(raw_prop.get("decorative", False))
-        editable = bool(raw_prop.get("editable", False))
-        if editable and not decorative:
-            raise ContentError(f"Prop '{prop_id}' is editable but not decorative.")
-        editor_scale_min = float(raw_prop.get("editor_scale_min", 0.25))
-        editor_scale_max = float(raw_prop.get("editor_scale_max", 4.0))
-        if editor_scale_min <= 0 or editor_scale_max < editor_scale_min:
-            raise ContentError(f"Prop '{prop_id}' has invalid editor scale bounds.")
-        raw_tags = raw_prop.get("tags", []) or []
-        if not isinstance(raw_tags, list):
-            raise ContentError(f"Prop '{prop_id}' tags must be a list.")
-        tags: list[str] = []
-        for raw_tag in raw_tags:
-            tag = str(raw_tag).strip().lower()
-            if not tag:
-                raise ContentError(f"Prop '{prop_id}' has an empty tag.")
-            if tag not in tags:
-                tags.append(tag)
-        raw_price = raw_prop.get("price", DEFAULT_PROP_PRICE)
-        if isinstance(raw_price, bool) or not isinstance(raw_price, (int, float)) or int(raw_price) < 0:
-            raise ContentError(f"Prop '{prop_id}' has an invalid price {raw_price!r}.")
-        price = int(raw_price)
-        if "locked" in raw_prop:
-            locked = bool(raw_prop.get("locked"))
-        else:
-            locked = source_kind == "propset" and source not in FREE_PROPSET_SOURCES
-        effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
-        active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
-        props[prop_id] = PropDefinition(
-            id=prop_id,
-            label=str(raw_prop.get("label", "")).strip(),
-            description=str(raw_prop.get("description", "")).strip(),
-            model_name=model_name,
-            model_path=model_path,
-            decorative=decorative,
-            animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
-            scale=scale,
-            editable=editable,
-            editor_scale_min=editor_scale_min,
-            editor_scale_max=editor_scale_max,
+        props[prop_id] = load_prop_definition(
+            prop_id,
+            raw_prop,
+            props_file=path,
             source=source,
             source_kind=source_kind,
-            tags=tuple(tags),
-            price=price,
-            locked=locked,
-            effect_sets=effect_sets,
-            active_effect=active_effect,
+            scale_adjust=scale_adjust,
         )
     return props
 

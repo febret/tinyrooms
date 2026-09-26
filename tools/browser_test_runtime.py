@@ -43,6 +43,15 @@ def _prepare_world(directory: Path) -> Path:
     return world_path
 
 
+def _prepare_fx(directory: Path) -> Path:
+    """Copy the shared effect definitions so Prop Editor writes stay isolated."""
+
+    fx_path = directory / "fx"
+    if not fx_path.is_dir():
+        shutil.copytree(ROOT / "data" / "fx", fx_path, copy_function=_link_or_copy)
+    return fx_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", type=Path, required=True)
@@ -51,6 +60,7 @@ def main() -> None:
     if directory.parent != ROOT / ".browser-runtime" or not directory.is_dir():
         parser.error("Runtime directory must be an existing child of .browser-runtime.")
     world_path = _prepare_world(directory)
+    fx_path = _prepare_fx(directory)
     drafts_path = directory / "drafts"
     drafts_path.mkdir(parents=True, exist_ok=True)
     revisions_path = directory / "revisions"
@@ -63,7 +73,8 @@ def main() -> None:
             "TRSERVER_USERS_PATH": str(directory / "users"),
             "TRSERVER_WORLDSTATE_PATH": str(directory / "worldstate.sqlite3"),
             "TRSERVER_WORLD_PATH": str(world_path),
-            "TRSERVER_FEATURES": "dev_sample_activity,world-editor,card-database",
+            "TRSERVER_FX_PATH": str(fx_path),
+            "TRSERVER_FEATURES": "dev_sample_activity,world-editor,card-database,prop-editor",
             "TRSERVER_MODS": "*",
             "TRSERVER_ADMINS": "siteadmin",
             "TRSERVER_TIMEZONE": "UTC",

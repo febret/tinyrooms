@@ -35,7 +35,9 @@ the port on trusted networks.
 | `TRSERVER_WORLD_PATH` | Loaded definitions; defaults to `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | Live SQLite state; defaults to `.local/worldstate.sqlite3` |
 | `TRSERVER_CUSTOM_STICKERS_PATH` | Rendered custom peep stickers; defaults to `.local/stickers` |
-| `TRSERVER_FEATURES` | Optional flags such as `dev_sample_activity` |
+| `TRSERVER_PROPSETS_PATH` | Shared propset directory; defaults to `data/propsets` |
+| `TRSERVER_FX_PATH` | Shared effect definitions directory; defaults to `data/fx` |
+| `TRSERVER_FEATURES` | Optional flags such as `dev_sample_activity`, `world-editor`, `card-database`, `prop-editor` |
 | `TRSERVER_MODS` | Comma-separated mod names to load, or `*` for every installed mod |
 | `TRSERVER_MODS_PATH` | Mod search directory; defaults to `mods` |
 | `TRSERVER_ADMINS` | Comma-separated usernames bootstrapped with the `admin` power |
@@ -101,6 +103,29 @@ Python behaviour through an entrypoint (`mod.py`) exposing `register(api)`.
 Enable mods with `TRSERVER_MODS` (comma-separated names, or `*` for every
 installed mod). Worlds declare the mods they need with `requires_mods` in
 `world.yaml`; the tutorial world requires `infinite-bedrooms`.
+
+## Editors
+
+Content-authoring tools are gated by `TRSERVER_FEATURES` and power checks:
+
+- **World Editor** (`/world-editor`, feature `world-editor`): draft, validate, and
+  publish world YAML. Requires `builder`, `game-master`, or `admin`.
+- **Card Database** (`/card-database`, feature `card-database`): read-only card
+  catalog. Requires `builder`, `game-master`, or `admin`.
+- **Prop Editor** (`/prop-editor`, feature `prop-editor`): edit any loaded prop
+  definition (world, mod, or shared propset `props.yaml`) and the `data/fx`
+  effect layer stacks, save them back to disk, and force a live world reload.
+  Requires the `admin` power.
+
+```powershell
+$env:TRSERVER_FEATURES = "prop-editor"
+$env:TRSERVER_ADMINS = "siteadmin"
+python run.py
+```
+
+Then open **https://127.0.0.1:5000/prop-editor**. Saves rewrite the backing YAML
+file (comments are not preserved), so publishing a change is a two-step flow:
+**Save prop/effect**, then **Reload world**.
 
 ## Verification
 

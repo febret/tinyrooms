@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#061923">
+    <title>Prop Editor · Tinyrooms</title>
+    <link rel="icon" href="/assets/stickers/s1.png">
+    <link rel="stylesheet" href="/prop-editor/prop-editor.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/app/vendor/three/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="pe-app" class="pe-shell">
+      <header id="pe-toolbar" class="pe-toolbar" aria-label="Prop Editor toolbar"></header>
+      <div class="pe-body">
+        <aside id="pe-library" class="pe-library" aria-label="Prop selection"></aside>
+        <main class="pe-stage">
+          <section id="pe-preview" class="pe-preview" aria-label="Model preview">
+            <div class="pe-preview-canvas-wrap">
+              <canvas id="pe-preview-canvas" aria-label="Prop model and effect preview. Drag to rotate."></canvas>
+            </div>
+            <div id="pe-preview-info" class="pe-preview-info" aria-live="polite"></div>
+            <p id="pe-preview-empty" class="pe-preview-empty">Select a prop to preview its model and effects.</p>
+          </section>
+        </main>
+        <aside id="pe-sidebar" class="pe-sidebar" aria-label="Properties">
+          <nav id="pe-tabs" class="pe-tabs" aria-label="Editor views"></nav>
+          <section id="pe-prop-pane" class="pe-pane" aria-label="Prop properties"></section>
+          <section id="pe-effect-pane" class="pe-pane" hidden aria-label="Effect layers"></section>
+        </aside>
+      </div>
+      <p id="pe-toast" class="pe-toast" aria-live="polite"></p>
+    </div>
+    <script type="module" src="/prop-editor/js/app.js"></script>
+  </body>
+</html>

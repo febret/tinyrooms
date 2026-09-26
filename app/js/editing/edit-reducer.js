@@ -1,5 +1,5 @@
 const UNDO_LIMIT = 50;
-const POSITION_SNAP = 5;
+export const POSITION_SNAP = 5;
 const ROTATION_SNAP = 15;
 const SCALE_STEP = 1.15;
 
@@ -70,7 +70,8 @@ export function normalizeEditorView(view) {
     savedProps: clone(props),
     selectedId: null,
     snapPosition: true,
-    snapRotation: true,
+    // Rotation is smooth by default; the editor still offers opt-in 15° snapping.
+    snapRotation: false,
     undo: [],
     redo: [],
     dirty: false,
@@ -144,10 +145,15 @@ function updateInstance(editor, id, updater) {
   return withProps(editor, props);
 }
 
-function snapPosition(editor, position) {
-  const x = editor.snapPosition ? roundTo(Number(position[0]), POSITION_SNAP) : Number(position[0]);
-  const y = editor.snapPosition ? roundTo(Number(position[1]), POSITION_SNAP) : Number(position[1]);
+/** Snap and clamp an authoritative position triple; shared with the board's drag stacking. */
+export function snapPositionValue(position, enabled) {
+  const x = enabled ? roundTo(Number(position[0]), POSITION_SNAP) : Number(position[0]);
+  const y = enabled ? roundTo(Number(position[1]), POSITION_SNAP) : Number(position[1]);
   return [clamp(x, 0, 100), clamp(y, 0, 100), clamp(Number(position[2] || 0), 0, 50)];
+}
+
+function snapPosition(editor, position) {
+  return snapPositionValue(position, editor.snapPosition);
 }
 
 function snapRotation(editor, rotation) {
@@ -231,7 +237,8 @@ export function editorReducer(state, action) {
       if (!editor) return state;
       const instance = selectedInstance(editor);
       if (!instance) return state;
-      const next = pushUndo(editor);
+      // Drag gestures push a single undo snapshot at `editor-begin`, then stream deltas.
+      const next = action.gesture ? editor : pushUndo(editor);
       return {
         ...state,
         editor: updateInstance(next, instance.id, current => ({
@@ -246,7 +253,7 @@ export function editorReducer(state, action) {
       if (!instance) return state;
       const entry = libraryEntry(editor, instance.propId);
       const factor = Number(action.factor || SCALE_STEP);
-      const next = pushUndo(editor);
+      const next = action.gesture ? editor : pushUndo(editor);
       return {
         ...state,
         editor: updateInstance(next, instance.id, current => ({

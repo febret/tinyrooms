@@ -89,11 +89,11 @@ class RoomLayoutService:
         # from; world and mod props stay curated by the room's own instances.
         approved: dict[str, PropDefinition] = {}
         for definition in self._world.props.values():
-            if definition.editable and definition.source_kind == "propset":
+            if definition.editable and not definition.hidden and definition.source_kind == "propset":
                 approved.setdefault(definition.id, definition)
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
-            if definition.editable:
+            if definition.editable and not definition.hidden:
                 approved.setdefault(definition.id, definition)
         return sorted(approved.values(), key=lambda definition: definition.id)
 
@@ -137,15 +137,25 @@ class RoomLayoutService:
 
         room = self._room(room_id)
         live = self._world_state.read_room_layout(room_id)["props"]
-        base = [instance for instance in room.props.values() if not self._world.props[instance.prop_id].editable]
+        base = [
+            instance
+            for instance in room.props.values()
+            if not self._world.props[instance.prop_id].editable
+            and not self._world.props[instance.prop_id].hidden
+        ]
         if live is None:
-            base.extend(instance for instance in room.props.values() if self._world.props[instance.prop_id].editable)
+            base.extend(
+                instance
+                for instance in room.props.values()
+                if self._world.props[instance.prop_id].editable
+                and not self._world.props[instance.prop_id].hidden
+            )
             return base
         for entry in live:
             if not isinstance(entry, dict):
                 continue
             definition = self._world.props.get(str(entry.get("prop_id")))
-            if definition is None:
+            if definition is None or definition.hidden:
                 continue
             base.append(
                 PropInstanceDefinition(
@@ -238,7 +248,14 @@ class RoomLayoutService:
                 }
                 for instance in room.props.values()
                 if self._world.props[instance.prop_id].editable
+                and not self._world.props[instance.prop_id].hidden
             ]
+        entries = [
+            entry
+            for entry in entries
+            if (definition := self._world.props.get(str(entry["prop_id"]))) is None
+            or not definition.hidden
+        ]
         for entry in entries:
             definition = self._world.props.get(str(entry["prop_id"]))
             if definition is not None:
@@ -342,6 +359,32 @@ class RoomLayoutService:
         approved.update(str(entry.get("prop_id")) for entry in live if isinstance(entry, dict))
         known = {instance.id for instance in room.props.values() if self._world.props[instance.prop_id].editable}
         known.update(str(entry.get("id")) for entry in live if isinstance(entry, dict))
+        # Hidden props are invisible to the room editor, so a saved visible
+        # layout must carry them forward rather than dropping them from state.
+        hidden_existing: dict[str, dict[str, object]] = {}
+        for instance in room.props.values():
+            definition = self._world.props[instance.prop_id]
+            if definition.editable and definition.hidden:
+                hidden_existing[instance.id] = {
+                    "id": instance.id,
+                    "prop_id": instance.prop_id,
+                    "position": list(instance.pos),
+                    "rotation": list(instance.rot),
+                    "scale": float(instance.scale),
+                }
+        for entry in live:
+            if not isinstance(entry, dict):
+                continue
+            definition = self._world.props.get(str(entry.get("prop_id")))
+            if definition is None or not definition.hidden:
+                continue
+            hidden_existing[str(entry.get("id"))] = {
+                "id": str(entry.get("id")),
+                "prop_id": definition.id,
+                "position": list(_vector(entry.get("position"), (50.0, 50.0, 0.0))),
+                "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
+                "scale": float(entry.get("scale", 1.0)),
+            }
         seen: set[str] = set()
         props: list[dict[str, object]] = []
         for entry in raw_value:
@@ -373,6 +416,9 @@ class RoomLayoutService:
                     "scale": self._validate_scale(entry.get("scale"), definition),
                 }
             )
+        for instance_id, entry in hidden_existing.items():
+            if instance_id not in seen:
+                props.append(entry)
         return props
 
     @staticmethod

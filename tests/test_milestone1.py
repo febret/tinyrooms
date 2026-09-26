@@ -273,14 +273,16 @@ class ContentPersistenceTests(unittest.TestCase):
             _load_actions([["Go across", ".go exit0", "yes"]])
 
     def test_props_config_scale_adjust_multiplies_file_scale(self) -> None:
+        import yaml
+
         with TemporaryDirectory() as temporary_directory:
             target = Path(temporary_directory) / "tutorial"
             shutil.copytree(REPO_ROOT / "worlds" / "tutorial", target)
             props_file = target / "props" / "props.yaml"
-            props_file.write_text(
-                "CONFIG:\n  scale_adjust: 2.0\n" + props_file.read_text(encoding="utf-8"),
-                encoding="utf-8",
-            )
+            payload = yaml.safe_load(props_file.read_text(encoding="utf-8"))
+            baseline_adjust = float((payload.get("CONFIG") or {}).get("scale_adjust", 1.0))
+            payload["CONFIG"] = {"scale_adjust": baseline_adjust * 2.0}
+            props_file.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
             scaled = load_test_world(target)
             baseline = load_test_world(REPO_ROOT / "worlds" / "tutorial")
             self.assertNotIn("CONFIG", scaled.props)
@@ -580,6 +582,9 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             portal_action = next(action for action in portal["quick_actions"] if action["label"] == "Go across")
             self.assertEqual(portal_action["command"], ".go @way:exit0")
             self.assertIs(portal_action["default"], True)
+            self.assertEqual(portal["active_effect"], "idle")
+            self.assertEqual(portal["effect_sets"]["idle"][0]["id"], "smoke")
+            self.assertEqual(portal["effect_sets"]["active"][0]["id"], "sparks")
             archway = next(entry for entry in room["props"] if entry["id"] == "archway0")
             archway_action = next(action for action in archway["quick_actions"] if action["label"] == "Enter the Bedrooms")
             self.assertNotIn("default", archway_action)
@@ -934,12 +939,18 @@ class MultiplayerGameplayTests(RuntimeTestCase):
         index = self.client.get("/")
         module = self.client.get("/app/js/ui.js")
         shared_css = self.client.get("/activities/shared.css")
+        fx_asset = self.client.get("/assets/fx/smoke-puff.png")
+        damage_asset = self.client.get("/app/assets/peep-damage/scuffs.svg")
         private_file = self.client.get("/assets/stickers/../../users/profiles.sqlite3")
         self.assertEqual(index.status_code, 200)
         self.assertIn("/app/js/ui.js", index.text)
         self.assertEqual(module.status_code, 200)
         self.assertEqual(shared_css.status_code, 200)
         self.assertIn("text/css", shared_css.headers["content-type"])
+        self.assertEqual(fx_asset.status_code, 200)
+        self.assertIn("image/png", fx_asset.headers["content-type"])
+        self.assertEqual(damage_asset.status_code, 200)
+        self.assertIn("image/svg+xml", damage_asset.headers["content-type"])
         self.assertEqual(private_file.status_code, 404)
 
     def test_asset_routes_reject_path_traversal(self) -> None:
@@ -947,6 +958,7 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             "/activities/%2e%2e/server/config.py",
             "/activities/%2e%2e/.local/worldstate.sqlite3",
             "/app/%2e%2e/server/config.py",
+            "/assets/fx/%2e%2e/server/config.py",
         ):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 404, url)

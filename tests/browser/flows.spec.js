@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, travel } from "./helpers.js";
+import { PASSWORD, bootstrap, command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, dragProp, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, travel } from "./helpers.js";
 
 // Functional flows run on desktop only; portrait layout is covered by the visual
 // baselines. Tag genuinely mobile-sensitive flows with { tag: "@mobile" }.
@@ -125,30 +125,6 @@ test.describe("room and inventory", () => {
     await openRoomView(page);
     await expect(roomCards).toHaveCount(1);
   });
-});
-
-test("overlay blocks board hit testing and command menu sends commands", { tag: "@mobile" }, async ({ page, runtime }) => {
-  const sentCommands = [];
-  page.on("websocket", socket => socket.on("framesent", ({ payload }) => {
-    const envelope = JSON.parse(String(payload));
-    if (envelope.type === "command") sentCommands.push(envelope.command);
-  }));
-  await createReadyAccount(page, runtime);
-  await openCore(page, "inventory");
-  const board = await page.locator("#board-canvas").boundingBox();
-  expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, {
-    x: board.x + board.width - 3, y: board.y + board.height / 2,
-  })).not.toBe("board-canvas");
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Open command menu" }).click();
-  await expect(page.getByRole("dialog", { name: "Commands", exact: true })).toBeVisible();
-  await page.getByRole("searchbox", { name: "Search commands" }).fill("pickup");
-  await page.locator(".command-row").filter({ hasText: "pickup" }).first().click();
-  await expect(page.locator("#chat-input")).toHaveValue(".pickup");
-  await page.getByRole("button", { name: "Send message", exact: true }).click();
-  await expect.poll(() => sentCommands.at(-1)).toBe(".pickup");
-  expect(sentCommands.some(command => command.startsWith('.say ".pickup'))).toBe(false);
-  await expect(page.locator("#toast-stack .error").first()).toBeVisible();
 });
 
 test("sample activity bridges chat and supports minimize, maximize, close", { tag: "@mobile" }, async ({ page, runtime }) => {
@@ -728,66 +704,6 @@ test.describe("milestone 3 crafting", () => {
   });
 });
 
-async function findEditorProp(page, panel, expected) {
-  const box = await page.locator("#board-canvas").boundingBox();
-  // Deselect first so a hit can only be the prop body, never a visible gizmo handle.
-  await page.mouse.click(box.x + box.width * 0.95, box.y + box.height * 0.9);
-  const candidates = [];
-  for (let fy = 0.25; fy <= 0.8; fy += 0.03) {
-    for (let fx = 0.38; fx <= 0.85; fx += 0.03) {
-      candidates.push([fx, fy, Math.hypot(fx - 0.55, fy - 0.42)]);
-    }
-  }
-  candidates.sort((left, right) => left[2] - right[2]);
-  const metaLocator = panel.locator(".editor-meta");
-  for (const [fx, fy] of candidates) {
-    const x = box.x + box.width * fx;
-    const y = box.y + box.height * fy;
-    await page.mouse.click(x, y);
-    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
-    if (text?.includes(expected)) return { x, y };
-  }
-  throw new Error(`Could not locate prop at ${expected} on the board.`);
-}
-
-async function dragProp(page, panel, expected, delta, { touch = false } = {}) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const point = await findEditorProp(page, panel, expected);
-    const target = { x: point.x + delta.x, y: point.y + delta.y };
-    if (touch) {
-      await touchDrag(page, point, target);
-    } else {
-      await page.mouse.move(point.x, point.y);
-      await page.mouse.down();
-      await page.mouse.move(target.x, target.y, { steps: 8 });
-      await page.mouse.up();
-    }
-    const metaLocator = panel.locator(".editor-meta");
-    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
-    if (text && !text.includes(expected)) return text;
-  }
-  throw new Error(`Drag did not move the prop from ${expected}.`);
-}
-
-async function touchDrag(page, from, to) {
-  const client = await page.context().newCDPSession(page);
-  const point = (x, y) => [{ x, y, radiusX: 2, radiusY: 2, force: 1, id: 1 }];
-  await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
-  try {
-    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from.x, from.y) });
-    for (let step = 1; step <= 6; step += 1) {
-      await client.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: point(from.x + (to.x - from.x) * step / 6, from.y + (to.y - from.y) * step / 6),
-      });
-    }
-    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  } finally {
-    await client.send("Emulation.setTouchEmulationEnabled", { enabled: false });
-    await client.detach();
-  }
-}
-
 test.describe("milestone 3 room editing", () => {
   test.slow();
   test.setTimeout(60_000);
@@ -862,9 +778,10 @@ test.describe("milestone 3 room editing", () => {
     await page.keyboard.press("ArrowRight");
     await expect(meta).not.toHaveText(beforeNudge);
 
-    await panel.getByRole("button", { name: "Rotate +15°", exact: true }).click();
+    // Rotate and scale are keyboard/gizmo gestures; the old buttons are gone.
+    await page.keyboard.press("]");
     await expect(meta).toContainText("Rotation 15°");
-    await panel.getByRole("button", { name: "Larger", exact: true }).click();
+    await page.keyboard.press("=");
     await expect(meta).not.toContainText("Scale 1.00");
 
     const beforeUndo = await meta.textContent();

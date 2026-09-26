@@ -58,6 +58,14 @@ def load_world_mod_props():
     )
 
 
+def load_world_fx():
+    """Return the core prop-effect definitions, shared across test worlds."""
+
+    from server.content.fx import load_effect_catalog
+
+    return load_effect_catalog(REPO_ROOT / "data" / "fx")
+
+
 def load_test_world(world_path: Path, card_ids: set[str] | None = None):
     """Load a world definition with core + mod activities and props applied."""
 
@@ -74,6 +82,7 @@ def load_test_world(world_path: Path, card_ids: set[str] | None = None):
         known_features=KNOWN_FEATURES,
         propsets_root=load_world_propsets(),
         mod_props=load_world_mod_props(),
+        fx_root=REPO_ROOT / "data" / "fx",
     )
 
 

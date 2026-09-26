@@ -232,6 +232,45 @@ class PowerIntegrationTests(Milestone2IntegrationTestCase):
         self.assertIn("gm.kudos", actions)
         self.assertIn("gm.environment", actions)
 
+    def test_admin_can_set_own_counter_through_gm(self) -> None:
+        alice = self.create_ready_account("alice")
+        bob = self.create_ready_account("bob")
+        alice_id = self.account_id(alice)
+        self.runtime().powers.grant(alice_id, alice_id, "admin")
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            scuffed = self.send_command(socket, "admin-counter-1", ".gm setcounter @self health 2")
+            self.assertTrue(scuffed["ok"], scuffed)
+            self.assertEqual(self.runtime().stats.view(alice_id).health, 2)
+            implicit = self.send_command(socket, "admin-counter-2", ".gm setcounter health 10")
+            self.assertTrue(implicit["ok"], implicit)
+            self.assertEqual(self.runtime().stats.view(alice_id).health, 10)
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(bob["session_token"], bob["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            rejected = self.send_command(socket, "plain-counter", ".gm setcounter @self health 2")
+            self.assertFalse(rejected["ok"])
+            self.assertIn("game-master", rejected["message"])
+            self.assertEqual(self.runtime().stats.view(self.account_id(bob)).health, 50)
+
+    def test_reload_world_requires_admin_then_reloads(self) -> None:
+        alice = self.create_ready_account("alice")
+        alice_id = self.account_id(alice)
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            rejected = self.send_command(socket, "reload-1", ".reload_world")
+            self.assertFalse(rejected["ok"])
+            self.assertIn("admin", rejected["message"])
+            self.runtime().powers.grant(alice_id, alice_id, "admin")
+            reloaded = self.send_command(socket, "reload-2", ".reload_world")
+            self.assertTrue(reloaded["ok"], reloaded)
+            self.assertEqual(reloaded["payload"]["world_id"], self.runtime().world.id)
+
     def test_help_payload_includes_usage_power_and_help(self) -> None:
         alice = self.create_ready_account("alice")
         with self.client.websocket_connect(

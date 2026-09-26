@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 export const FLOOR_WIDTH = 12.05;
 export const FLOOR_HEIGHT = 10.05;
+export const ELEVATION_PER_UNIT = 0.1;
 
 const FLOOR_REFERENCE_PX = 768;
 const BOARD_IMAGE_AXES = new Map([
@@ -30,7 +31,7 @@ export function boardImageRepeat(style, imageWidth, imageHeight) {
 
 /** Convert authoritative [horizontal %, depth %, elevation] into board-space XYZ. */
 export function boardPosition([x = 50, y = 50, z = 0] = []) {
-  return [(x - 50) * 0.105, z * 0.1, (y - 50) * 0.085];
+  return [(x - 50) * 0.105, z * ELEVATION_PER_UNIT, (y - 50) * 0.085];
 }
 
 /** Dispose each owned GPU resource once, including GLTF ImageBitmaps and shared materials. */

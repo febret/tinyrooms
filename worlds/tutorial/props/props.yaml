@@ -1,11 +1,3 @@
-# Prop definitions.
-# scale: base model scale from model units into world units. The room instance
-#        `scale` in rooms.yaml multiplies this value.
-# CONFIG: reserved key for file-wide settings (never loaded as a prop).
-#         `scale_adjust` multiplies every prop's `scale` in this file.
-#         Example:
-#         CONFIG:
-#           scale_adjust: 1.0
 CONFIG:
   scale_adjust: 2.0
 portal:
@@ -16,12 +8,16 @@ portal:
   animation: auto
   scale: 0.2
   effects:
-    idle: [smoke, ember-glow]
-    active: [sparks]
+    idle:
+    - smoke
+    - ember-glow
+    active:
+    - sparks
   active_effect: idle
 dollhouse:
   label: A Cute Dollhouse
-  description: A whole home in miniature. Search once every ten minutes, or step right inside.
+  description: A whole home in miniature. Search once every ten minutes, or step right
+    inside.
   model: dollhouse.glb
   decorative: false
 shower:
@@ -62,7 +58,8 @@ vacuum-stand:
   scale: 1.229
 supply-shelf:
   label: Helpful Supplies
-  description: A recharging dispenser of housekeeping tools. Take a pooper scooper or a plastic bag.
+  description: A recharging dispenser of housekeeping tools. Take a pooper scooper
+    or a plastic bag.
   model: supply-shelf.glb
   decorative: false
   scale: 1.464
@@ -75,7 +72,8 @@ kitchen-counter:
   scale: 1.214
 craft-workbench:
   label: The Mending Table
-  description: Choose Craft, then select ingredient stacks from your Inventory. Poop plus Plastic Bag makes Poop in a Bag.
+  description: Choose Craft, then select ingredient stacks from your Inventory. Poop
+    plus Plastic Bag makes Poop in a Bag.
   model: craft-workbench.glb
   decorative: false
   scale: 1.161
@@ -106,7 +104,11 @@ bookshelf:
   model: bookshelf.glb
   decorative: true
   editable: true
-  scale: 1.405
+  scale: 1.155
+  effects:
+    set:
+    - fire
+  active_effect: set
 framed-picture:
   label: A Sunny Picture
   description: A hand-painted sun over a little blue hill.
@@ -130,7 +132,8 @@ lamp:
   scale: 1.065
 vending:
   label: Pocket Card Shop
-  description: Base, Tutorial and Memebase packs. Three cards for 10 Bops; unlimited stock.
+  description: Base, Tutorial and Memebase packs. Three cards for 10 Bops; unlimited
+    stock.
   model: lesiakower-vending-1586.glb
   decorative: false
   scale: 0.1

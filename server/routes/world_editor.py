@@ -91,6 +91,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "locked": definition.locked,
         }
         for definition in world.props.values()
+        if not definition.hidden
     ]
     cards = [
         runtime.cards.serialize_definition(definition)

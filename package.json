@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "vendor": "python tools\\vendor_browser_deps.py",
-    "test": "npm run test:browser",
-    "test:browser": "playwright test flows.spec.js default-actions.spec.js audio.spec.js",
+    "test": "npm run test:client && npm run test:browser",
+    "test:client": "node --test \"tests/client/**/*.test.js\"",
+    "test:browser": "playwright test flows.spec.js room-editor.spec.js default-actions.spec.js audio.spec.js prop-effects.spec.js peep-damage.spec.js chat-autocomplete.spec.js prop-editor.spec.js",
     "test:visual": "playwright test screenshots.spec.js",
     "test:report": "playwright show-report"
   },

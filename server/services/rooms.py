@@ -228,11 +228,12 @@ class RoomService:
 
     def _visible_props(self, room: RoomDefinition) -> list[PropInstanceDefinition]:
         props = self._effective_props(room)
+        visible = [prop for prop in props if not self._world.props[prop.prop_id].hidden]
         if self._environment is None:
-            return props
+            return visible
         return [
             prop
-            for prop in props
+            for prop in visible
             if self._environment.is_prop_visible(room.id, prop.id)
         ]
 

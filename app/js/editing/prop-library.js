@@ -28,7 +28,6 @@ function propTile(entry) {
       data-library-tags="${escapeHtml(entry.tags.join(" "))}"
       aria-label="Add ${escapeHtml(entry.label)}" title="${escapeHtml(entry.label)}">
       ${thumbnailMarkup(entry, "editor-thumb")}
-      <span>${escapeHtml(entry.label)}</span>
     </button>
   `;
 }
@@ -51,27 +50,55 @@ function propSetButton(source, entries) {
   `;
 }
 
-/** Tag filter pills shown in the editor heading. */
-export function libraryTagMarkup(entries) {
+/** Value signature of a library, so chrome is only rebuilt when the catalog changes. */
+function librarySignature(entries) {
   const list = Array.isArray(entries) ? entries : [];
-  return tagsOf(list)
-    .map(tag => `<button type="button" class="editor-tag" data-edit-tag="${escapeHtml(tag)}" aria-pressed="false">${escapeHtml(tag)}</button>`)
-    .join("");
+  return list.map(entry => [
+    entry.propId, entry.label, entry.modelUrl, entry.baseScale,
+    entry.source, entry.locked ? 1 : 0, entry.tags.join(","),
+  ].join("\u0001")).join("\u0002");
 }
 
-/** Source prop set filter buttons shown as a vertical scrolling list. */
-export function libraryPropsetMarkup(entries) {
-  const list = Array.isArray(entries) ? entries : [];
+/** Memoize a markup builder by the library signature; the catalog is stable while editing. */
+function memo(build) {
+  let key = null;
+  let html = "";
+  return entries => {
+    const list = Array.isArray(entries) ? entries : [];
+    const signature = librarySignature(list);
+    if (signature === key) return html;
+    key = signature;
+    html = build(list);
+    return html;
+  };
+}
+
+const tagsMarkup = memo(list => tagsOf(list)
+  .map(tag => `<button type="button" class="editor-tag" data-edit-tag="${escapeHtml(tag)}" aria-pressed="false">${escapeHtml(tag)}</button>`)
+  .join(""));
+
+const propsetsMarkup = memo(list => {
   if (!list.length) return "";
   const sources = sourcesOf(list);
   return [
     propSetButton("", list),
     ...sources.map(source => propSetButton(source, list.filter(entry => entry.source === source))),
   ].join("");
+});
+
+const gridMarkup = memo(list => list.map(propTile).join(""));
+
+/** Tag filter pills shown in the editor heading. */
+export function libraryTagMarkup(entries) {
+  return tagsMarkup(entries);
+}
+
+/** Source prop set filter buttons shown as a vertical scrolling list. */
+export function libraryPropsetMarkup(entries) {
+  return propsetsMarkup(entries);
 }
 
 /** The scrollable prop thumbnail grid. */
 export function libraryGridMarkup(entries) {
-  const list = Array.isArray(entries) ? entries : [];
-  return list.map(propTile).join("");
+  return gridMarkup(entries);
 }

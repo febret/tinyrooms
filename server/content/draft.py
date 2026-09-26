@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from server.content.common import ContentError
+from server.content.worlds import PROPS_CONFIG_KEY
 
 
 DRAFT_FORMAT_VERSION = 1
@@ -270,6 +271,8 @@ def validate_structure(draft: dict[str, Any], references: DraftReferences) -> li
             _issue(issues, "props", "props must be a mapping.")
         else:
             for prop_id, prop in props.items():
+                if prop_id == PROPS_CONFIG_KEY:
+                    continue
                 prop_path = f"props.{prop_id}"
                 if not isinstance(prop, dict):
                     _issue(issues, prop_path, "Prop must be a mapping.")

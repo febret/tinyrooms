@@ -2,6 +2,8 @@ import * as THREE from "three";
 
 const BASE_SCALE = 0.6;
 const GIZMO_HEIGHT = 0.06;
+const SCALE_HANDLE_MARGIN = 0.3;
+const SCALE_HANDLE_MIN = 0.5;
 
 function handleMesh(mesh, mode) {
   mesh.userData.editMode = mode;
@@ -27,24 +29,40 @@ export function createGizmo() {
   const ring = handleMesh(new THREE.Mesh(new THREE.TorusGeometry(BASE_SCALE * 0.72, 0.035, 8, 48), rotateMaterial), "rotate");
   ring.rotation.x = -Math.PI / 2;
   group.add(ring);
+  // A grabbable knob on the rim of the circle makes the rotate handle discoverable.
+  const rotateKnob = handleMesh(new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 12), rotateMaterial), "rotate");
+  rotateKnob.position.set(BASE_SCALE * 0.72, 0, 0);
+  group.add(rotateKnob);
 
-  const scaleStem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6), scaleMaterial);
-  scaleStem.position.y = 0.5;
+  // Unit-height stem stretched to reach the top of the selected prop.
+  const scaleStem = handleMesh(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1, 6), scaleMaterial), "scale");
   group.add(scaleStem);
   const scaleCube = handleMesh(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), scaleMaterial), "scale");
-  scaleCube.position.y = 0.78;
   group.add(scaleCube);
 
   return {
     group,
-    pickables: [ring, scaleCube],
-    setTarget(worldPosition, scale) {
+    pickables: [ring, rotateKnob, scaleStem, scaleCube],
+    setTarget(worldPosition, scale, propHeight = 0) {
       group.position.set(worldPosition[0], worldPosition[1] + GIZMO_HEIGHT, worldPosition[2]);
       const factor = Math.max(0.5, Math.min(2, Number(scale) || 1));
       group.scale.setScalar(factor);
+      // Place the scale handle just above the prop so its grab direction reads as "taller".
+      const topWorld = Math.max(Number(propHeight) || 0, 0) + SCALE_HANDLE_MARGIN;
+      const topLocal = Math.max(SCALE_HANDLE_MIN, topWorld / factor);
+      scaleStem.scale.y = topLocal;
+      scaleStem.position.y = topLocal / 2;
+      scaleCube.position.y = topLocal;
     },
     setVisible(visible) {
       group.visible = Boolean(visible);
+    },
+    /** Current world position of each handle, used to surface them for interaction tests. */
+    scaleHandlePosition() {
+      return scaleCube.getWorldPosition(new THREE.Vector3());
+    },
+    rotateHandlePosition() {
+      return rotateKnob.getWorldPosition(new THREE.Vector3());
     },
     dispose() {
       for (const child of [...group.children]) {

@@ -8,7 +8,7 @@ import {
   buildUseCommand,
 } from "./commands.js";
 import { findInventoryCard, findRoomCard, findSelectedEntity, findTask } from "./state.js";
-import { escapeHtml } from "./presentation.js";
+import { escapeHtml, updateMarkup } from "./presentation.js";
 import { longDescription, rarityLabel, tileMarkup } from "./views/view-helpers.js";
 import { roomView } from "./views/room-view.js";
 import { inventoryView } from "./views/inventory-view.js";
@@ -18,10 +18,10 @@ import { friendsView } from "./views/friends-view.js";
 import { selfView } from "./views/self-view.js";
 import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
-import { editRoomView } from "./views/edit-room-view.js";
+import { editRoomView, editorConflictMarkup, editorMetaText, editorSelectedName } from "./views/edit-room-view.js";
 import { shopView } from "./views/shop-view.js";
 import { bindEditorLibrary } from "./editing/library-filter.js";
-import { availableLibrary } from "./editing/edit-reducer.js";
+import { availableLibrary, selectedInstance } from "./editing/edit-reducer.js";
 
 function coreMarkup(definition, selected) {
   return `
@@ -245,8 +245,12 @@ export function selectionActions(state) {
   if (state.selection.kind === "prop") {
     const prop = findSelectedEntity(state);
     if (!prop) return [];
+    const isAdmin = (state.user?.powers || []).includes("admin");
     return [
       { label: "Inspect", local: { type: "open-view", view: "prop-details", propId: prop.id }, tone: "primary" },
+      ...(isAdmin && prop.propId
+        ? [{ label: "Edit Prop", local: { type: "open-prop-editor", propId: prop.propId }, tone: "neutral" }]
+        : []),
       ...prop.quickActions.map(action => ({ ...action, tone: "neutral" })),
     ];
   }
@@ -390,7 +394,43 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
     bindCardButtons(root, onSelect, onAction);
     return true;
   }
+  /**
+   * Mount the editor shell, then patch its dynamic regions in place.
+   *
+   * The shell only changes with the catalog/environment, so the prop library and
+   * its image tiles survive selection and prop-instance updates untouched.
+   */
+  function renderEditor(state, { shell = true } = {}) {
+    if (!editorRoot) return;
+    if (!state.editor) { if (shell) update(editorRoot, ""); return; }
+    const changed = shell ? update(editorRoot, editRoomView(state)) : false;
+    const editor = state.editor;
+    const selected = selectedInstance(editor);
+    if (changed) bindEditorLibrary(editorRoot, availableLibrary(editor, state.user?.unlockedProps));
+    const name = editorRoot.querySelector("[data-edit-selected-name]");
+    if (name) name.textContent = editorSelectedName(editor, selected);
+    const meta = editorRoot.querySelector("[data-editor-meta]");
+    if (meta) {
+      meta.textContent = editorMetaText(selected);
+      meta.classList.toggle("editor-meta-empty", !selected);
+    }
+    const buttons = editorRoot.querySelector("[data-editor-buttons]");
+    if (buttons) buttons.hidden = !selected;
+    const undo = editorRoot.querySelector("[data-editor-undo]");
+    if (undo) undo.disabled = !editor.undo.length;
+    const redo = editorRoot.querySelector("[data-editor-redo]");
+    if (redo) redo.disabled = !editor.redo.length;
+    const save = editorRoot.querySelector("[data-editor-save]");
+    if (save) save.disabled = !editor.dirty;
+    const status = editorRoot.querySelector("[data-editor-status]");
+    if (status) status.textContent = editor.error || editor.status || (editor.dirty ? "Unsaved changes" : "All changes saved");
+    const conflict = editorRoot.querySelector("[data-editor-conflict]");
+    if (conflict && updateMarkup(conflict, editorConflictMarkup(editor))) {
+      bindCardButtons(conflict, onSelect, onAction);
+    }
+  }
   return {
+    renderEditor,
     render(state) {
       const coreCards = state.user?.coreCards || {};
       const coreOrder = state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards);
@@ -407,10 +447,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
       `);
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
-      if (editorRoot) {
-        update(editorRoot, state.editor ? editRoomView(state) : "");
-        if (state.editor) bindEditorLibrary(editorRoot, availableLibrary(state.editor, state.user?.unlockedProps));
-      }
+      renderEditor(state);
       if (shopRoot) update(shopRoot, state.shop ? shopView(state) : "");
     },
   };

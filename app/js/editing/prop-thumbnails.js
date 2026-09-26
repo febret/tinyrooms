@@ -97,7 +97,6 @@ export function thumbnailFor(modelUrl, scale = 1) {
  * viewport are ever loaded.
  */
 export function createThumbnailManager() {
-  const scheduled = new WeakMap();
   const observer = typeof IntersectionObserver === "function"
     ? new IntersectionObserver(entries => {
         for (const entry of entries) {
@@ -137,9 +136,16 @@ export function createThumbnailManager() {
   }
 
   function schedule(image) {
-    const key = cacheKey(image.dataset.thumbModel, Number(image.dataset.thumbScale) || 1);
-    if (scheduled.get(image) === key) return;
-    scheduled.set(image, key);
+    const scale = Number(image.dataset.thumbScale) || 1;
+    const key = cacheKey(image.dataset.thumbModel, scale);
+    // A tile already showing this model is static: never re-observe or repaint it.
+    if (image.dataset.thumbApplied === key) return;
+    image.dataset.thumbApplied = key;
+    // Paint cached thumbnails synchronously so re-rendered tiles never flash blank.
+    if (cachedThumbnail(image.dataset.thumbModel, scale)) {
+      apply(image);
+      return;
+    }
     if (observer) observer.observe(image);
     else apply(image);
   }

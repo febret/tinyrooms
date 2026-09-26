@@ -65,7 +65,9 @@ class PropShopService:
         definitions = [
             definition
             for definition in self._world.props.values()
-            if definition.source_kind == "propset" and definition.editable
+            if definition.source_kind == "propset"
+            and definition.editable
+            and not definition.hidden
         ]
         return sorted(definitions, key=lambda definition: (definition.source, definition.id))
 
@@ -84,7 +86,12 @@ class PropShopService:
 
     def _for_sale(self, prop_id: str) -> PropDefinition:
         definition = self._world.props.get(prop_id)
-        if definition is None or definition.source_kind != "propset" or not definition.editable:
+        if (
+            definition is None
+            or definition.source_kind != "propset"
+            or not definition.editable
+            or definition.hidden
+        ):
             raise ValueError("That prop is not sold here.")
         return definition
 

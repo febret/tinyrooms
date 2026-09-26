@@ -8,22 +8,26 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
   const room = draft?.rooms?.[roomId];
   if (!room) return null;
   const propCatalog = new Map((catalog?.props || []).map(entry => [entry.id, entry]));
-  const props = Object.entries(room.props || {}).map(([instanceId, instance]) => {
-    const definition = propCatalog.get(instance.prop) || null;
-    return {
-      id: instanceId,
-      propId: instance.prop,
-      position: Array.isArray(instance.pos) ? instance.pos.map(Number) : [50, 50, 0],
-      rotation: Array.isArray(instance.rot) ? instance.rot.map(Number) : [0, 0, 0],
-      scale: Number(instance.scale ?? 1),
-      modelUrl: definition?.model_url || "",
-      label: definition?.label || instance.prop,
-      description: definition?.description || "",
-      animation: instance.animation || "",
-      quickActions: [],
-      ghost: false,
-    };
-  });
+  const props = Object.entries(room.props || {})
+    .map(([instanceId, instance]) => {
+      const definition = propCatalog.get(instance.prop) || null;
+      // Props absent from the catalog (e.g. hidden props) are never rendered.
+      if (!definition) return null;
+      return {
+        id: instanceId,
+        propId: instance.prop,
+        position: Array.isArray(instance.pos) ? instance.pos.map(Number) : [50, 50, 0],
+        rotation: Array.isArray(instance.rot) ? instance.rot.map(Number) : [0, 0, 0],
+        scale: Number(instance.scale ?? 1),
+        modelUrl: definition.model_url || "",
+        label: definition.label || instance.prop,
+        description: definition.description || "",
+        animation: instance.animation || "",
+        quickActions: [],
+        ghost: false,
+      };
+    })
+    .filter(Boolean);
   const roomCards = (room.cards || []).map((card, index) => {
     const entry = cardEntry(catalog, card.card);
     return {
