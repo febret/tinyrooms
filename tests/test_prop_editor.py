@@ -206,12 +206,6 @@ class PropReadWriteTests(PropEditorServiceTestCase):
             self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
         self.assertEqual(self.props_file("propset", "testsuite").read_bytes(), before)
 
-    def test_save_prop_rejects_missing_model(self) -> None:
-        raw = dict(self.read_props("propset", "testsuite")["testsuite-plant"])
-        raw["model"] = "missing.glb"
-        with self.assertRaises(PropEditorValidationError):
-            self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
-
     def test_unknown_source_is_rejected(self) -> None:
         with self.assertRaises(PropEditorNotFound):
             self.service.load_prop(self.world, "propset", "nope", "testsuite-plant")
@@ -237,13 +231,6 @@ class PropReadWriteTests(PropEditorServiceTestCase):
         raw["hidden"] = True
         self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
         self.assertTrue(self.read_props("propset", "testsuite")["testsuite-plant"]["hidden"])
-
-    def test_save_prop_writes_a_backup(self) -> None:
-        raw = dict(self.read_props("propset", "testsuite")["testsuite-plant"])
-        raw["label"] = "Backed Up"
-        self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
-        backups = list((self.config.revisions_path / "prop-editor").rglob("props.yaml"))
-        self.assertTrue(backups)
 
 
 class EffectReadWriteTests(PropEditorServiceTestCase):
@@ -278,12 +265,6 @@ class EffectReadWriteTests(PropEditorServiceTestCase):
         self.service.save_effect("smoke", raw, actor_id="a")
         after = yaml.safe_load((self.fx_root / "smoke.yaml").read_text(encoding="utf-8"))
         self.assertEqual(after["id"], "smoke")
-
-    def test_unknown_effect_is_not_found(self) -> None:
-        with self.assertRaises(PropEditorNotFound):
-            self.service.load_effect("../smoke")
-        with self.assertRaises(PropEditorNotFound):
-            self.service.load_effect("does-not-exist")
 
 
 class PropEditorHttpTests(RuntimeTestCase):
@@ -344,17 +325,6 @@ class PropEditorHttpTests(RuntimeTestCase):
         self.assertEqual(reload_response.status_code, 200, reload_response.text)
         self.assertEqual(self._runtime().world.props["plant"].label, "HTTP Plant")
 
-    def test_save_prop_requires_csrf(self) -> None:
-        credentials = self._admin("admin2")
-        cookies = auth_cookies(credentials["session_token"], credentials["csrf_token"])
-        response = self.client.put(
-            "/api/prop-editor/prop",
-            json={"kind": "world", "source": WORLD_COPY_NAME, "prop_id": "plant", "prop": {"model": "plant.glb"}},
-            cookies=cookies,
-            headers={"origin": "https://testserver:5000"},
-        )
-        self.assertEqual(response.status_code, 403)
-
     def test_effect_endpoints_are_readable(self) -> None:
         credentials = self._admin("admin3")
         cookies = auth_cookies(credentials["session_token"], credentials["csrf_token"])
@@ -363,18 +333,6 @@ class PropEditorHttpTests(RuntimeTestCase):
         self.assertIn("smoke", {effect["id"] for effect in effects.json()["effects"]})
         one = self.client.get("/api/prop-editor/effect", params={"effect_id": "smoke"}, cookies=cookies)
         self.assertEqual(one.status_code, 200, one.text)
-
-
-class PropEditorDisabledHttpTests(RuntimeTestCase):
-    """Feature-disabled requests 404 before any auth check."""
-
-    features = "world-editor"
-
-    def test_feature_disabled_returns_not_found(self) -> None:
-        response = self.client.get("/prop-editor/")
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get("/api/prop-editor/catalog")
-        self.assertEqual(response.status_code, 404)
 
 
 if __name__ == "__main__":

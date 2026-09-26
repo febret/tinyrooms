@@ -57,13 +57,6 @@ export function createGizmo() {
     setVisible(visible) {
       group.visible = Boolean(visible);
     },
-    /** Current world position of each handle, used to surface them for interaction tests. */
-    scaleHandlePosition() {
-      return scaleCube.getWorldPosition(new THREE.Vector3());
-    },
-    rotateHandlePosition() {
-      return rotateKnob.getWorldPosition(new THREE.Vector3());
-    },
     dispose() {
       for (const child of [...group.children]) {
         child.geometry?.dispose();

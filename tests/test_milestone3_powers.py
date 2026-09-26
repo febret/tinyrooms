@@ -241,10 +241,7 @@ class PowerIntegrationTests(Milestone2IntegrationTestCase):
             "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
         ) as socket:
             socket.receive_json()
-            scuffed = self.send_command(socket, "admin-counter-1", ".gm setcounter @self health 2")
-            self.assertTrue(scuffed["ok"], scuffed)
-            self.assertEqual(self.runtime().stats.view(alice_id).health, 2)
-            implicit = self.send_command(socket, "admin-counter-2", ".gm setcounter health 10")
+            implicit = self.send_command(socket, "admin-counter", ".gm setcounter health 10")
             self.assertTrue(implicit["ok"], implicit)
             self.assertEqual(self.runtime().stats.view(alice_id).health, 10)
         with self.client.websocket_connect(

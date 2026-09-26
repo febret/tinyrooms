@@ -21,28 +21,17 @@ test("snapPositionValue snaps x/y to the grid and clamps elevation", () => {
   assert.deepEqual(snapPositionValue([150, -10, 99], true), [100, 0, 50]);
 });
 
-test("rotate gestures stream deltas under a single undo snapshot", () => {
+test("rotate streams gesture deltas under one undo step and discrete deltas separately", () => {
   const start = editorState();
-  const free = editorReducer(start, { type: "editor-snap", which: "rotation", value: false });
-  const begun = editorReducer(free, { type: "editor-begin" });
+  assert.equal(start.editor.snapRotation, false, "rotation is smooth by default");
+  const begun = editorReducer(start, { type: "editor-begin" });
   const first = editorReducer(begun, { type: "editor-rotate", delta: 10, gesture: true });
   const second = editorReducer(first, { type: "editor-rotate", delta: 10, gesture: true });
   assert.equal(second.editor.undo.length, start.editor.undo.length + 1);
   assert.equal(second.editor.props[0].rotation[1], 20);
-});
-
-test("rotation is smooth by default instead of snapping to fixed angles", () => {
-  const start = editorState();
-  assert.equal(start.editor.snapRotation, false);
-  const rotated = editorReducer(start, { type: "editor-rotate", delta: 7 });
-  assert.equal(rotated.editor.props[0].rotation[1], 7);
-});
-
-test("a non-gesture rotate still records its own undo step", () => {
-  const start = editorState();
-  const next = editorReducer(start, { type: "editor-rotate", delta: 15 });
-  assert.equal(next.editor.undo.length, start.editor.undo.length + 1);
-  assert.equal(next.editor.props[0].rotation[1], 15);
+  const discrete = editorReducer(second, { type: "editor-rotate", delta: 15 });
+  assert.equal(discrete.editor.undo.length, start.editor.undo.length + 2);
+  assert.equal(discrete.editor.props[0].rotation[1], 35);
 });
 
 test("scale gestures clamp to the library bounds without piling up undo", () => {

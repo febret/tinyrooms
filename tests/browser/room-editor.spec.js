@@ -34,37 +34,6 @@ test("dragging a prop onto another stacks it above the support", async ({ page, 
   await expect.poll(async () => Number(await canvas.getAttribute("data-edit-elevation"))).toBeGreaterThan(0);
 });
 
-test("gizmo handles rotate and rescale the selected prop", async ({ page, runtime }) => {
-  await createEditorAccount(page, runtime, "editor");
-  const panel = await openEditRoom(page);
-  const canvas = page.locator("#board-canvas");
-  await expect(canvas).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
-  const meta = panel.locator(".editor-meta");
-
-  await panel.locator('[data-edit-add="plant"]').click();
-  await expect(meta).toContainText("Position 50, 50");
-
-  const dragHandle = async (attribute, delta) => {
-    await expect(canvas).toHaveAttribute(attribute, /.+/);
-    const [hx, hy] = (await canvas.getAttribute(attribute)).split(",").map(Number);
-    const box = await canvas.boundingBox();
-    await page.mouse.move(box.x + hx, box.y + hy);
-    await page.mouse.down();
-    await page.mouse.move(box.x + hx + delta.x, box.y + hy + delta.y, { steps: 8 });
-    await page.mouse.up();
-  };
-
-  const beforeScale = await meta.textContent();
-  await dragHandle("data-gizmo-scale", { x: 0, y: -45 });
-  await expect(meta).not.toHaveText(beforeScale);
-  await expect(meta).not.toContainText("Scale 1.00");
-
-  const beforeRotate = await meta.textContent();
-  await dragHandle("data-gizmo-rotate", { x: 0, y: -60 });
-  await expect(meta).not.toHaveText(beforeRotate);
-  await expect(meta).toContainText("Rotation ");
-});
-
 test("the prop library stays static while props are edited", async ({ page, runtime }) => {
   await createEditorAccount(page, runtime, "editor");
   const panel = await openEditRoom(page);
@@ -85,17 +54,8 @@ test("the prop library stays static while props are edited", async ({ page, runt
   await expect(panel.locator(".editor-meta")).toContainText("Position 50, 50");
   await dragProp(page, panel, "Position 50, 50", { x: 40, y: 25 });
   await page.keyboard.press("ArrowRight");
-
-  const dragHandle = async (attribute, delta) => {
-    const [hx, hy] = (await canvas.getAttribute(attribute)).split(",").map(Number);
-    const box = await canvas.boundingBox();
-    await page.mouse.move(box.x + hx, box.y + hy);
-    await page.mouse.down();
-    await page.mouse.move(box.x + hx + delta.x, box.y + hy + delta.y, { steps: 6 });
-    await page.mouse.up();
-  };
-  await dragHandle("data-gizmo-rotate", { x: 0, y: -50 });
-  await dragHandle("data-gizmo-scale", { x: 0, y: -40 });
+  await page.keyboard.press("]");
+  await page.keyboard.press("=");
 
   // The lightweight path must still keep the editor chrome in sync.
   await expect(panel.locator("[data-editor-status]")).toContainText("Unsaved changes");

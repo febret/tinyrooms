@@ -355,26 +355,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return [position[0], position[1], Math.min(50, Math.max(0, supportElevation(entry, others)))];
   }
 
-  /**
-   * Publish the gizmo handles' canvas-relative positions so interaction tests can
-   * target them without guessing pixel coordinates.
-   */
-  function updateGizmoScreenHints() {
-    if (!editEnabled || !editSelectionObject || !gizmo.group.visible) {
-      delete canvas.dataset.gizmoScale;
-      delete canvas.dataset.gizmoRotate;
-      return;
-    }
-    const width = canvas.clientWidth || 1;
-    const height = canvas.clientHeight || 1;
-    const toCanvas = world => {
-      const point = world.project(camera);
-      return `${Math.round((point.x + 1) / 2 * width)},${Math.round((1 - point.y) / 2 * height)}`;
-    };
-    canvas.dataset.gizmoScale = toCanvas(gizmo.scaleHandlePosition());
-    canvas.dataset.gizmoRotate = toCanvas(gizmo.rotateHandlePosition());
-  }
-
   /** Raycast a pointer event onto the floor plane for gesture math. */
   function screenToFloorPoint(clientX, clientY) {
     if (!setRayFromEvent({ clientX, clientY })) return null;
@@ -1021,7 +1001,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       if (!blocked) controls.update();
       renderer.render(scene, camera);
-      updateGizmoScreenHints();
       frame = requestAnimationFrame(animate);
     } catch {
       contextLost({ preventDefault() {} });
