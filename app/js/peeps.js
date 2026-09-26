@@ -1,3 +1,4 @@
+import { peepDamageTier } from "./peep-damage.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { statusIconMarkup } from "./views/view-helpers.js";
 
@@ -12,6 +13,11 @@ function bubbleKey(peep) {
 function lowerFirst(text) {
   const value = String(text || "");
   return value ? value.charAt(0).toLowerCase() + value.slice(1) : value;
+}
+
+function peepDamage(peep, state) {
+  const counters = peep.counters || (peep.id === state.user?.id ? state.user?.counters : null);
+  return peepDamageTier(counters);
 }
 
 /** Render room-granularity peep standees and anchored, dismissible chat bubbles. */
@@ -230,10 +236,11 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     const markup = `<div class="peep-list">${shown.map(peep => {
       const statuses = peep.statuses || [];
       const tired = statuses.includes("tired");
+      const damage = peepDamage(peep, state);
       return `
       <article class="peep-chip ${peep.id === state.user?.id ? "self" : ""} ${pinned.has(peep.id) ? "pinned" : ""} ${tired ? "tired" : ""} ${state.selection.kind === "peep" && state.selection.id === peep.id ? "selected" : ""}">
         <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
-          <span class="peep-marker"><img src="${escapeHtml(peep.stickerUrl || "/assets/stickers/s1.png")}" alt=""></span>
+          <span class="peep-marker" data-damage="${damage}"><img src="${escapeHtml(peep.stickerUrl || "/assets/stickers/s1.png")}" alt=""><span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
           <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
           ${peep.audioEnabled ? `<span class="peep-audio" role="img" aria-label="Audio chat on" title="Audio chat on">&#128266;</span>` : ""}
           ${statuses.length ? `<span class="peep-statuses">${statusIconMarkup(statuses, definitions)}</span>` : ""}
