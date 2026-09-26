@@ -18,6 +18,7 @@ class CommandSpec:
     handler: CommandHandler
     usage: str = ""
     power: str | None = None
+    powers: tuple[str, ...] = ()
     help: str = ""
     toast: bool = True
     log: bool = True
@@ -37,6 +38,7 @@ class CommandRegistry:
         *,
         usage: str = "",
         power: str | None = None,
+        powers: tuple[str, ...] = (),
         help: str = "",
         toast: bool = True,
         log: bool = True,
@@ -44,11 +46,14 @@ class CommandRegistry:
     ) -> None:
         """Register a named command with searchable metadata.
 
-        ``toast`` and ``log`` control whether a successful command's generic
-        acknowledgement message becomes a transient toast and/or a room activity
-        log line. Purely user-facing commands that change nothing in the world
-        set both to ``False``. Registering a name that already exists raises
-        unless ``override`` is set, so mods cannot silently shadow core commands.
+        ``power`` names the command's headline power (shown in help), while
+        ``powers`` lists additional powers that may also run it; holding any of
+        them satisfies the gate. ``toast`` and ``log`` control whether a
+        successful command's generic acknowledgement message becomes a transient
+        toast and/or a room activity log line. Purely user-facing commands that
+        change nothing in the world set both to ``False``. Registering a name
+        that already exists raises unless ``override`` is set, so mods cannot
+        silently shadow core commands.
         """
 
         if name in self._commands and not override:
@@ -60,6 +65,7 @@ class CommandRegistry:
             handler=handler,
             usage=usage or f".{name}",
             power=power,
+            powers=tuple(powers),
             help=help or summary,
             toast=toast,
             log=log,

@@ -606,7 +606,8 @@ def build_registry() -> CommandRegistry:
         privileged.gm_command,
         usage=".gm <give|setcounter|buff|kudos|environment> ...",
         power="game-master",
-        help="Grant cards, set counters, apply buffs, grant Kudos, or change room environment state.",
+        powers=("admin",),
+        help="Grant cards, set counters, apply buffs, grant Kudos, or change room environment state. Admins may run these too.",
     )
     registry.register("go", "Move through an exit in the current room.", go_command, usage=".go @way:<exit_id>", toast=False)
     registry.register("help", "Show the available commands.", help_command, usage=".help", toast=False, log=False)
@@ -717,15 +718,19 @@ async def dispatch_command(context: CommandContext, command: ParsedCommand) -> C
     spec = context.registry.get(command.name)
     if spec is None:
         raise CommandError(f"Unknown command '.{command.name}'.")
-    if spec.power is not None and not context.powers.has_power(context.account.id, spec.power):
+    required_powers = tuple(power for power in (spec.power, *spec.powers) if power)
+    if required_powers and not any(
+        context.powers.has_power(context.account.id, power) for power in required_powers
+    ):
+        headline = spec.power or required_powers[0]
         context.audit.safe_record(
             context.account.id,
             f"command.{spec.name}",
             None,
             "rejected",
-            {"reason": "no_power", "power": spec.power},
+            {"reason": "no_power", "power": headline},
         )
-        raise CommandError(f"You do not have the {spec.power} power here.")
+        raise CommandError(f"You do not have the {headline} power here.")
     outcome = await spec.handler(context, command)
     if isinstance(outcome, CommandOutcome):
         outcome.toast = spec.toast

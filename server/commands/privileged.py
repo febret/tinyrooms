@@ -15,6 +15,8 @@ from server.security import utc_now
 
 def _resolve_account(context: CommandContext, token: str):
     username = parse_target(token).value if token.startswith("@") else token
+    if username.lower() in {"self", "me"}:
+        return context.account
     account = context.profiles.get_account_by_username(username)
     if account is None:
         raise CommandError("That peep could not be found.")
@@ -206,12 +208,18 @@ async def _gm_give(context: CommandContext, command: ParsedCommand) -> CommandOu
 
 
 async def _gm_setcounter(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    if len(command.args) < 4:
-        raise CommandError("Use '.gm setcounter @peep <counter> <value>'.")
-    account = _resolve_account(context, command.args[1])
-    counter = command.args[2].lower()
+    args = command.args[1:]
+    if len(args) == 2:
+        account = context.account
+        counter, raw_value = args
+    elif len(args) >= 3:
+        account = _resolve_account(context, args[0])
+        counter, raw_value = args[1], args[2]
+    else:
+        raise CommandError("Use '.gm setcounter [@peep|@self] <counter> <value>'.")
+    counter = counter.lower()
     try:
-        value = float(command.args[3])
+        value = float(raw_value)
     except ValueError as exc:
         raise CommandError("Counter value must be a number.") from exc
     snapshot = context.stats.view(account.id)
@@ -224,16 +232,39 @@ async def _gm_setcounter(context: CommandContext, command: ParsedCommand) -> Com
         raise CommandError("Unknown counter.")
     clamped = clamp_counter(value, maximum)
     delta = clamped - getattr(snapshot, counter)
-    context.stats.mutate(
+    updated = context.stats.mutate(
         account.id,
         health_delta=delta if counter == "health" else 0.0,
         cleanliness_delta=delta if counter == "cleanliness" else 0.0,
         energy_delta=delta if counter == "energy" else 0.0,
     )
     context.audit.safe_record(context.account.id, "gm.setcounter", account.id, "ok", {"counter": counter, "value": clamped})
+    broadcasts = []
+    room_id = context.connection.room_id
+    if room_id is not None:
+        broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=room_id,
+                event={
+                    "type": "counter.updated",
+                    "room_id": room_id,
+                    "target_id": account.id,
+                    "target_label": account.username_display,
+                    "health_delta": delta if counter == "health" else 0.0,
+                    "energy_delta": delta if counter == "energy" else 0.0,
+                    "health": updated.health,
+                    "energy": updated.energy,
+                    "max_health": updated.effective.max_health,
+                    "max_energy": updated.effective.max_energy,
+                    "statuses": list(updated.statuses),
+                    "source_id": context.account.id,
+                },
+            )
+        )
     return CommandOutcome(
         message=f"{counter} set to {clamped:.0f}.",
         payload={"account_id": account.id, "counter": counter, "value": clamped},
+        room_broadcasts=broadcasts,
     )
 
 

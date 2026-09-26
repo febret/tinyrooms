@@ -165,9 +165,16 @@ h3 { font-size: 18px; }
 .actions-bar button.icon-action img { width: 26px; height: 26px; object-fit: contain; pointer-events: none; }
 .actions-bar .neutral { background: linear-gradient(#2b7898, #075174); }
 .actions-empty { color: var(--muted); font-size: 13px; }
-.chat-bar { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
+.chat-bar { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; }
 .chat-bar input { width: 100%; border: 1px solid #2373a0; border-radius: 25px; background: #010508; color: #fff; padding: 0 15px; font-size: 16px; }
 .chat-bar input::placeholder { color: #77919f; }
+.chat-completions { position: absolute; left: 0; right: 52px; bottom: calc(100% + 8px); z-index: 60; display: grid; gap: 4px; max-height: min(46dvh, 320px); overflow: auto; padding: 8px; border-radius: 10px; border: 1px solid #2373a0; background: #05121df2; box-shadow: 0 10px 24px #000b; }
+.chat-completions[hidden] { display: none; }
+.chat-completion { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 2px 10px; width: 100%; padding: 8px 10px; text-align: left; border-radius: 7px; background: #102b3c; cursor: pointer; }
+.chat-completion strong { font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+.chat-completion code { font-size: 12px; color: #8fd0c0; overflow-wrap: anywhere; }
+.chat-completion span { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.chat-completion.active, .chat-completion:hover { background: #1b4a63; }
 .talk-button { display: none; position: relative; }
 .talk-button .talk-ring { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); transform: rotate(-90deg); pointer-events: none; }
 .talk-button .talk-ring circle { fill: none; stroke-width: 3; }
@@ -207,6 +214,12 @@ h3 { font-size: 18px; }
 }
 .peep-marker::before { content: ""; position: absolute; inset: 3px; border: 1px solid #ffffff26; border-radius: inherit; }
 .peep-marker img { position: absolute; height: 87%; width: 100%; object-fit: contain; bottom: 3px; left: 0; image-rendering: pixelated; filter: drop-shadow(1px 2px 0 #0004); }
+.peep-damage { position: absolute; inset: -3px; pointer-events: none; background-repeat: no-repeat; background-size: 100% 100%; z-index: 1; }
+.peep-damage.wear { mix-blend-mode: multiply; }
+.peep-marker:not([data-damage="0"]) .peep-damage.wear { background-image: url("/app/assets/peep-damage/scuffs.svg"); }
+.peep-marker[data-damage="2"] .peep-damage.gashes { background-image: url("/app/assets/peep-damage/splats.svg"); }
+.peep-marker[data-damage="3"] .peep-damage.gashes { background-image: url("/app/assets/peep-damage/cracks.svg"), url("/app/assets/peep-damage/splats.svg"); }
+.peep-marker[data-damage="4"] .peep-damage.gashes { background-image: url("/app/assets/peep-damage/broken.svg"), url("/app/assets/peep-damage/cracks.svg"), url("/app/assets/peep-damage/splats.svg"); }
 .peep-chip.self .peep-marker { width: 88px; height: 112px; background: linear-gradient(130deg, #f7edd2, #d5c3a1); border-color: #ebdbb8; transform: rotate(-3deg); }
 .peep-chip.selected .peep-marker { filter: drop-shadow(0 0 8px #81cf5e); transform: rotate(0); }
 .peep-name { display: block; font-size: 16px; line-height: 1.2; overflow-wrap: anywhere; }
