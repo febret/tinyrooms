@@ -6,19 +6,24 @@
 #         Example:
 #         CONFIG:
 #           scale_adjust: 1.0
+CONFIG:
+  scale_adjust: 2.0
 portal:
   label: A Glowing Portal
   description: A familiar doorway, shimmering with possibilities.
   model: portal.glb
   decorative: false
   animation: auto
-  scale: 0.511
+  scale: 0.2
+  effects:
+    idle: [smoke, ember-glow]
+    active: [sparks]
+  active_effect: idle
 dollhouse:
   label: A Cute Dollhouse
   description: A whole home in miniature. Search once every ten minutes, or step right inside.
   model: dollhouse.glb
   decorative: false
-  scale: 0.4
 shower:
   label: Sunflower Shower
   description: A warm shower washes away grime and restores Cleanliness.
@@ -130,8 +135,8 @@ vending:
   decorative: false
   scale: 0.1
 stairs:
-  label: Little House Stairs
+  label: House Stairs
   description: Rounded wooden steps and a hand-painted banister.
   model: stairs.glb
   decorative: false
-  scale: 1.0
+  scale: 2.0

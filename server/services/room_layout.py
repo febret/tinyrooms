@@ -68,6 +68,7 @@ class RoomLayoutService:
         ownership: OwnershipService,
         environment: EnvironmentService,
         prop_shop: PropShopService,
+        room_effects: object | None = None,
     ) -> None:
         self._hub = hub
         self._world = world
@@ -75,6 +76,7 @@ class RoomLayoutService:
         self._ownership = ownership
         self._environment = environment
         self._prop_shop = prop_shop
+        self._room_effects = room_effects
 
     def _room(self, room_id: str) -> RoomDefinition:
         room = self._world.rooms.get(room_id)
@@ -164,7 +166,32 @@ class RoomLayoutService:
             )
         return base
 
-    def _serialize_instance(self, instance: PropInstanceDefinition) -> dict[str, object]:
+    def _effect_payload(
+        self,
+        room_id: str,
+        instance_id: str,
+        definition: PropDefinition,
+    ) -> dict[str, object]:
+        if not definition.effect_sets:
+            return {}
+        active = definition.active_effect
+        if self._room_effects is not None:
+            active = self._room_effects.active_for(room_id, instance_id, active)
+        if active not in definition.effect_sets:
+            active = definition.active_effect
+        return {
+            "effect_sets": {
+                set_name: [
+                    self._world.effects[effect_id].serialize()
+                    for effect_id in effect_ids
+                    if effect_id in self._world.effects
+                ]
+                for set_name, effect_ids in definition.effect_sets.items()
+            },
+            "active_effect": active,
+        }
+
+    def _serialize_instance(self, room_id: str, instance: PropInstanceDefinition) -> dict[str, object]:
         definition = self._world.props[instance.prop_id]
         animation = instance.animation if instance.animation is not None else definition.animation
         return {
@@ -179,6 +206,7 @@ class RoomLayoutService:
             "description": definition.description,
             "animation": animation,
             "quick_actions": [],
+            **self._effect_payload(room_id, instance.id, definition),
         }
 
     def _serialize_library(self, definition: PropDefinition) -> dict[str, object]:
@@ -188,7 +216,7 @@ class RoomLayoutService:
 
     def _editable_instances(self, room: RoomDefinition, live: list[object] | None) -> list[dict[str, object]]:
         if live is not None:
-            return [
+            entries = [
                 {
                     "id": str(entry.get("id")),
                     "prop_id": str(entry.get("prop_id")),
@@ -199,17 +227,23 @@ class RoomLayoutService:
                 for entry in live
                 if isinstance(entry, dict)
             ]
-        return [
-            {
-                "id": instance.id,
-                "prop_id": instance.prop_id,
-                "position": list(instance.pos),
-                "rotation": list(instance.rot),
-                "scale": float(instance.scale),
-            }
-            for instance in room.props.values()
-            if self._world.props[instance.prop_id].editable
-        ]
+        else:
+            entries = [
+                {
+                    "id": instance.id,
+                    "prop_id": instance.prop_id,
+                    "position": list(instance.pos),
+                    "rotation": list(instance.rot),
+                    "scale": float(instance.scale),
+                }
+                for instance in room.props.values()
+                if self._world.props[instance.prop_id].editable
+            ]
+        for entry in entries:
+            definition = self._world.props.get(str(entry["prop_id"]))
+            if definition is not None:
+                entry.update(self._effect_payload(room.id, str(entry["id"]), definition))
+        return entries
 
     def view(self, account: AccountRecord, room_id: str) -> dict[str, object]:
         """Return the editable layout view for a room."""
@@ -263,7 +297,7 @@ class RoomLayoutService:
         return LayoutUpdate(
             room_id=room_id,
             revision=revision,
-            props=[self._serialize_instance(instance) for instance in effective],
+            props=[self._serialize_instance(room_id, instance) for instance in effective],
             environment=self.visual_environment(room_id),
         )
 

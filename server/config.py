@@ -18,6 +18,7 @@ KNOWN_FEATURES = frozenset(
         "dev_sample_activity",
         "world-editor",
         "card-database",
+        "prop-editor",
         *MC_FEATURE_ALIASES,
     }
 )
@@ -70,6 +71,8 @@ class AppConfig:
     world_path: Path
     worldstate_path: Path
     custom_stickers_path: Path
+    propsets_path: Path
+    fx_path: Path
     new_account_passphrase: str
     features: frozenset[str]
     bootstrap_admins: frozenset[str]
@@ -110,12 +113,6 @@ class AppConfig:
         """Return the global cardsets directory."""
 
         return self.repo_root / "data" / "cardsets"
-
-    @property
-    def propsets_path(self) -> Path:
-        """Return the global propsets directory."""
-
-        return self.repo_root / "data" / "propsets"
 
     @property
     def is_wildcard_bind(self) -> bool:
@@ -235,6 +232,13 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if custom_stickers_path.exists() and not custom_stickers_path.is_dir():
         raise ConfigError(f"TRSERVER_CUSTOM_STICKERS_PATH must be a directory: {custom_stickers_path}")
 
+    propsets_path = Path(
+        values.get("TRSERVER_PROPSETS_PATH", str(root / "data" / "propsets"))
+    ).expanduser().resolve()
+    fx_path = Path(
+        values.get("TRSERVER_FX_PATH", str(root / "data" / "fx"))
+    ).expanduser().resolve()
+
     feature_value = values.get("TRSERVER_FEATURES", "")
     features = parse_features(feature_value)
 
@@ -297,6 +301,8 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         world_path=world_path.resolve(),
         worldstate_path=worldstate_path.resolve(),
         custom_stickers_path=custom_stickers_path.resolve(),
+        propsets_path=propsets_path,
+        fx_path=fx_path,
         new_account_passphrase=passphrase,
         features=features,
         bootstrap_admins=bootstrap_admins,

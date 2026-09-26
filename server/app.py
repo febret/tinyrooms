@@ -85,6 +85,7 @@ from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.prop_shop import PropShopService
 from server.services.room_layout import RoomLayoutService
+from server.services.room_effects import RoomEffectService
 from server.services.rooms import RoomService
 from server.services.rtc import relay_signal as _relay_rtc_signal
 from server.services.rtc import set_audio_presence as _set_audio_presence
@@ -179,6 +180,7 @@ class RuntimeState:
     ownership: OwnershipService
     environment: EnvironmentService
     layout: RoomLayoutService
+    room_effects: RoomEffectService
     auras: AuraService
     mods: dict[str, object]
     mod_definitions: tuple[ModDefinition, ...]
@@ -211,6 +213,12 @@ class RuntimeState:
             self.world.id,
             self.world.root_path,
         )
+
+    async def set_prop_active_effect(self, room_id: str, prop_instance_id: str, set_name: str) -> None:
+        """Switch a prop's active effect set and broadcast it to the room."""
+
+        event = self.rooms.set_prop_active_effect(room_id, prop_instance_id, set_name)
+        await _broadcast_room_event(self, room_id=room_id, event=event)
 
     async def reload_world(self) -> None:
         """Swap in the published world without rewriting unrelated live state.
@@ -458,7 +466,8 @@ def _build_runtime(
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     environment = EnvironmentService(hub, world, world_state)
-    layout = RoomLayoutService(hub, world, world_state, ownership, environment, prop_shop)
+    room_effects = RoomEffectService()
+    layout = RoomLayoutService(hub, world, world_state, ownership, environment, prop_shop, room_effects)
     auras = AuraService(hub, stats, world)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
@@ -487,6 +496,7 @@ def _build_runtime(
         environment=environment,
         auras=auras,
         layout=layout,
+        room_effects=room_effects,
     )
     dialogs = DialogService(
         hub=hub,
@@ -562,6 +572,7 @@ def _build_runtime(
         ownership=ownership,
         environment=environment,
         layout=layout,
+        room_effects=room_effects,
         auras=auras,
         mods={},
         mod_definitions=mods.definitions,
@@ -1106,6 +1117,14 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             if candidate.is_file():
                 return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Sticker asset not found.")
+
+    @app.get("/assets/fx/{filename}")
+    async def fx_asset(filename: str, request: Request) -> Response:
+        runtime = _get_runtime(request)
+        candidate = _safe_path(runtime.config.fx_path, filename)
+        if candidate.is_file():
+            return FileResponse(candidate)
+        raise HTTPException(status_code=404, detail="Effect asset not found.")
 
     @app.get("/assets/{cardset}/{filename}")
     async def cardset_asset(cardset: str, filename: str, request: Request) -> Response:

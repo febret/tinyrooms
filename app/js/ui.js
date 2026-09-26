@@ -1,5 +1,6 @@
 import { createApiClient } from "./api.js";
 import { createActivityManager } from "./activities.js";
+import { createChatAutocomplete } from "./autocomplete.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
@@ -1069,7 +1070,7 @@ async function render(state) {
   await board.render(boardState);
 }
 
-$("#command-button").onclick = openCommands;
+createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help") });
 pushToTalk.onclick = () => { voice.toggleTalk(); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();

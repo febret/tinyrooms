@@ -41,8 +41,8 @@
             <section id="look-bar" class="look-bar" aria-label="Current selection" aria-live="polite"></section>
             <section id="actions-bar" class="actions-bar" aria-label="Actions for current selection"></section>
             <form id="chat-form" class="chat-bar">
-              <button id="command-button" type="button" class="icon-button" aria-label="Open command menu" title="Commands">...</button>
-              <input id="chat-input" name="chat" autocomplete="off" maxlength="240" placeholder="Chat or command" aria-label="Chat message or command">
+              <input id="chat-input" name="chat" autocomplete="off" maxlength="240" placeholder="Chat or command" aria-label="Chat message or command" role="combobox" aria-expanded="false" aria-controls="chat-completions" aria-autocomplete="list" aria-haspopup="listbox">
+              <div id="chat-completions" class="chat-completions" role="listbox" aria-label="Completions" hidden></div>
               <button type="submit" class="icon-button send-button" aria-label="Send message" title="Send">&#8599;</button>
               <button id="push-to-talk" type="button" class="icon-button talk-button" aria-label="Push to talk" title="Push to talk" aria-pressed="false">
                 <svg class="talk-ring" viewBox="0 0 36 36" aria-hidden="true">

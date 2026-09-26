@@ -1,0 +1,21 @@
+# Smoke: a slow, rising grey particle puff. Used on smouldering or
+# other-worldly props. Textures live beside this file and are served from
+# /assets/fx/.
+id: smoke
+label: Smoke
+layers:
+  - type: particle
+    preset: smoke
+    texture: smoke-puff.png
+    rate: 5
+    lifetime: [1.8, 3.0]
+    size: [0.35, 1.0]
+    speed: 0.22
+    spread: 28
+    gravity: -0.04
+    color: "#c9cfd4"
+    opacity: [0.4, 0.0]
+    additive: false
+    max_particles: 36
+    anchor: top
+    offset: [0, 0, 0]

@@ -123,6 +123,35 @@ as a prop. Its optional `scale_adjust` (default `1.0`) multiplies the `scale` of
 every prop in that file; the per-prop value still scales with the room instance
 `scale`. Unknown `CONFIG` keys are ignored.
 
+### 2.3 Prop effects
+
+Props may carry named effect sets rendered on the 3D board. A prop definition
+declares `effects: {set_name: [effect_id, …]}` and an optional `active_effect`
+(defaulting to the first set); `active_effect` is authoritative per prop
+instance and can be switched at runtime through
+`RuntimeState.set_prop_active_effect` / `RoomService.set_prop_active_effect`,
+which stores an in-memory override and broadcasts `room.prop.updated`.
+
+Effect definitions live as `data/fx/<id>.yaml` (id matches the filename) with
+their sprite PNGs beside them; they are strictly loaded by
+`server/content/fx.py` and validated against prop references at world load.
+Each effect is an ordered list of layers:
+
+- `transform` — `bob`, `spin`, `spin-y`, `pulse`, `sway`, or `shake` with
+  `amplitude`, `period`, `phase`, and `axis`.
+- `material` — `emissive`, `emissive_intensity`, `color`, `opacity`, and
+  `flicker`/`flicker_hz`.
+- `particle` — `preset` (`smoke`, `fire`, `sparks`) plus `texture`, `rate`,
+  `lifetime`, `size`, `speed`, `spread`, `gravity`, `color`, `opacity`,
+  `additive`, `max_particles`, `anchor` (`base`/`center`/`top`), and `offset`.
+
+The server resolves descriptors (including `/assets/fx/<file>` texture URLs)
+into each prop's `effect_sets`/`active_effect` payload; the client renders them
+in `app/js/prop-effects.js`, driven by the board's animation loop. Effects are
+disabled entirely under `prefers-reduced-motion`, keeping visual baselines
+deterministic. Sprites are reproducible via `tools/generate_fx_textures.py`.
+
+
 ## 3. HTTP API (`server/app.py`, `app/js/api.js:PATHS`)
 
 | Method | Path | Purpose |
@@ -143,6 +172,7 @@ every prop in that file; the per-prop value still scales with the room instance
 | `GET` | `/activities/{name}/`, `/activities/{name}/{path}`, `/activities/shared.js\|shared.css` | Activity hosting (fallback page outside Milestone 1). |
 | `GET` | `/assets/stickers/{file}`, `/assets/base/{file}`, `/assets/world/{world}/{cards\|rooms\|props\|peeps}/{file}` | Art serving; traversal → 404. `{file}` resolves against `data/stickers`, then the per-account custom renders under `TRSERVER_CUSTOM_STICKERS_PATH`. |
 | `GET` | `/assets/propsets/{propset}/{file}` | Global propset model serving (mirrors cardsets). |
+| `GET` | `/assets/fx/{file}` | Prop-effect sprite serving from `data/fx`. |
 | `GET` | `/assets/mods/{mod_id}/props/{file}` | Mod props-set model serving (like world props). |
 
 Serialized `user`: `{id, username, sticker, sticker_design, initial_sticker_complete,
@@ -225,6 +255,7 @@ shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
 | `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
 | `.settings` | `.settings action-log off` | Persists `show_activity_log`; `payload.{show_activity_log}`. |
 | `.reset_room` | `.reset_room` | Deletes all live cards in the current room and re-inserts the YAML seeds in one txn; private fresh snapshot + `room.cards.reset` broadcast. Open to anyone for now (TODO: admin-only once Milestone 2 roles exist). |
+| `.reload_world` | `.reload_world` | Admin power only: rebuilds the world bundle from disk (world/rooms/props/peeps, propsets, mods, `data/fx`), swaps the service graph in place, and broadcasts `world.reloaded`. |
 | `.door` | `.door buy`, `.door design color cobalt tag_text "Home"`, `.door lock on`, `.door enter bedroom:<id>` | Bedrooms door family (provided by the `infinite-bedrooms` mod): `list` (activity data), `buy` (10 Bops, one per account), `design` (validated customization), `lock on\|off`, and `enter` (access-checked move to a player bedroom). |
 
 Quick actions are server-provided (`Look`, `Pick up 1`, `Drop 1`, exit

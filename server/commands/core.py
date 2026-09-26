@@ -673,6 +673,14 @@ def build_registry() -> CommandRegistry:
         usage=".prop_shop",
     )
     registry.register(
+        "reload_world",
+        "Reload all world content from disk and broadcast a refresh.",
+        privileged.reload_world_command,
+        usage=".reload_world",
+        power="admin",
+        help="Re-reads world, propset, mod, and data/fx definitions without restarting the server.",
+    )
+    registry.register(
         "reset_room",
         "Reset the current room's cards to the world definition.",
         reset_room_command,

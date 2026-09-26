@@ -1,0 +1,9 @@
+# A warm, flickering emissive glow. Demonstrates the material layer type.
+id: ember-glow
+label: Ember Glow
+layers:
+  - type: material
+    emissive: "#ff9a4d"
+    emissive_intensity: 1.4
+    flicker: 0.3
+    flicker_hz: 5

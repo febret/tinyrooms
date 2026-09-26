@@ -52,6 +52,7 @@ class RoomService:
         environment: object | None = None,
         auras: object | None = None,
         layout: object | None = None,
+        room_effects: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -67,6 +68,7 @@ class RoomService:
         self._environment = environment
         self._auras = auras
         self._layout = layout
+        self._room_effects = room_effects
         self._mod_states: list[object] = []
 
     def attach_dispatcher(self, dispatcher: object) -> None:
@@ -114,6 +116,66 @@ class RoomService:
         """Return the world definition for a prop."""
 
         return self._world.props[prop_id]
+
+    def _effect_sets_payload(self, definition: PropDefinition) -> dict[str, list[dict[str, object]]]:
+        return {
+            set_name: [
+                self._world.effects[effect_id].serialize()
+                for effect_id in effect_ids
+                if effect_id in self._world.effects
+            ]
+            for set_name, effect_ids in definition.effect_sets.items()
+        }
+
+    def _active_effect(
+        self,
+        room_id: str,
+        prop_instance_id: str,
+        definition: PropDefinition,
+    ) -> str | None:
+        if not definition.effect_sets:
+            return None
+        default = definition.active_effect
+        if self._room_effects is not None:
+            default = self._room_effects.active_for(room_id, prop_instance_id, default)
+        if default not in definition.effect_sets:
+            return definition.active_effect
+        return default
+
+    def set_prop_active_effect(
+        self,
+        room_id: str,
+        prop_instance_id: str,
+        set_name: str,
+    ) -> dict[str, object]:
+        """Switch a prop instance's active effect set at runtime.
+
+        Returns the room event a caller should broadcast. Raises ``ValueError``
+        for unknown rooms, props, or effect sets.
+        """
+
+        room = self._world.rooms.get(room_id)
+        if room is None:
+            raise ValueError("That room does not exist.")
+        instance = next(
+            (prop for prop in self._effective_props(room) if prop.id == prop_instance_id),
+            None,
+        )
+        if instance is None:
+            raise ValueError("That prop does not exist.")
+        definition = self._world.props[instance.prop_id]
+        if not definition.effect_sets:
+            raise ValueError(f"{definition.label} has no effects.")
+        if set_name not in definition.effect_sets:
+            raise ValueError(f"{definition.label} has no effect set '{set_name}'.")
+        if self._room_effects is None:
+            raise ValueError("Prop effects are unavailable.")
+        self._room_effects.set(room_id, prop_instance_id, set_name)
+        return {
+            "type": "room.prop.updated",
+            "room_id": room_id,
+            "prop": {"id": prop_instance_id, "active_effect": set_name},
+        }
 
     def room_peeps(self, room_id: str) -> list[dict[str, object]]:
         """Serialize the NPC peeps present in a room."""
@@ -270,6 +332,8 @@ class RoomService:
             "description": prop_definition.description,
             "animation": animation,
             "quick_actions": quick_actions,
+            "effect_sets": self._effect_sets_payload(prop_definition),
+            "active_effect": self._active_effect(room.id, prop.id, prop_definition),
         }
 
     async def build_snapshot(

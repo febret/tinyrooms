@@ -62,4 +62,5 @@ def build_command_context(
         dispensers=runtime.dispensers,
         crafting=runtime.crafting,
         recipes=runtime.world.recipes,
+        reload_world=runtime.reload_world,
     )

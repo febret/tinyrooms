@@ -117,6 +117,21 @@ async def builder_command(context: CommandContext, command: ParsedCommand) -> Co
     raise CommandError("Unknown builder action.")
 
 
+async def reload_world_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Admin command: rebuild all world content from disk and refresh clients."""
+
+    if context.reload_world is None:
+        context.audit.safe_record(context.account.id, "admin.reload_world", None, "rejected", {"reason": "unavailable"})
+        raise CommandError("World reload is unavailable.")
+    world_id = context.rooms.world_id
+    await context.reload_world()
+    context.audit.safe_record(context.account.id, "admin.reload_world", world_id, "ok")
+    return CommandOutcome(
+        message="World content reloaded.",
+        payload={"world_id": world_id},
+    )
+
+
 async def mute_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     """Moderator mute command."""
 

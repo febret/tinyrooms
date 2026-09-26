@@ -99,6 +99,8 @@ function normalizeProp(prop) {
     behavior: String(prop?.behavior || ""),
     modelUrl: assetOrEmpty(prop?.model_url),
     animation: typeof prop?.animation === "string" ? prop.animation : "",
+    effectSets: prop?.effect_sets && typeof prop.effect_sets === "object" ? prop.effect_sets : {},
+    activeEffect: typeof prop?.active_effect === "string" ? prop.active_effect : "",
     quickActions: normalizeQuickActions(prop?.quick_actions),
   };
 }
@@ -445,9 +447,9 @@ function applyServerEvent(state, event) {
         occupants: updatePeepCounters(state.room.occupants, targetId, event),
         npcs: updatePeepCounters(state.room.npcs, targetId, event),
       },
-      ui: pushFloating(state, entry),
     };
-    return withCounters;
+    if (!amount) return withCounters;
+    return { ...withCounters, ui: pushFloating(state, entry) };
   }
   if (event.type === "emote.bubble") {
     const bubble = event.bubble || {};
@@ -551,6 +553,18 @@ function applyServerEvent(state, event) {
           palette: Array.isArray(environment.palette) ? [...environment.palette] : state.room.board.palette,
           imageStyle: environment.board_image_style ? String(environment.board_image_style) : state.room.board.imageStyle,
         },
+      },
+    };
+  }
+  if (event.type === "room.prop.updated" && event.prop && state.room) {
+    const targetId = String(event.prop.id || "");
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        props: state.room.props.map(prop => (
+          prop.id === targetId ? { ...prop, activeEffect: String(event.prop.active_effect || "") } : prop
+        )),
       },
     };
   }

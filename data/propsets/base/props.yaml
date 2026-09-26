@@ -141,6 +141,10 @@ beeswax-candle-sconce:
   editable: true
   scale: 0.9
   tags: [lighting, sconce]
+  effects:
+    lit: [fire]
+    smoking: [smoke]
+  active_effect: lit
 orange-gooseneck-lamp:
   label: Orange Gooseneck Lamp
   description: "Glossy orange and fully bendy. Built for 3am reading and 3am questionable internet decisions."
@@ -149,6 +153,10 @@ orange-gooseneck-lamp:
   editable: true
   scale: 0.9
   tags: [lighting, lamp]
+  effects:
+    idle: [ember-glow]
+    faulty: [sparks]
+  active_effect: idle
 brass-oil-lantern:
   label: Brass Oil Lantern
   description: "Weathered brass, flickering flame, old-school cool. Ye olde mood lighting has entered the chat."
@@ -157,6 +165,10 @@ brass-oil-lantern:
   editable: true
   scale: 0.95
   tags: [lighting, lantern]
+  effects:
+    lit: [fire, ember-glow]
+    smoking: [smoke]
+  active_effect: lit
 cat-night-lamp:
   label: Cat Night Lamp
   description: "A ceramic cat. After dark, the eyes glow. It is watching. It is always watching. Awww."

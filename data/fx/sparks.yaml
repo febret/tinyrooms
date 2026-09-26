@@ -1,0 +1,19 @@
+# Electrical sparks: fast additive flecks that arc out and fall under gravity.
+id: sparks
+label: Electrical Sparks
+layers:
+  - type: particle
+    preset: sparks
+    texture: spark.png
+    rate: 7
+    lifetime: [0.25, 0.55]
+    size: [0.10, 0.28]
+    speed: 1.1
+    spread: 80
+    gravity: -0.9
+    color: "#cfe9ff"
+    opacity: [1.0, 0.0]
+    additive: true
+    max_particles: 40
+    anchor: center
+    offset: [0, 0, 0]

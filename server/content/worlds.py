@@ -14,6 +14,7 @@ from server.content.activities import (
 )
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.conditions import StatusCondition, parse_status_condition
+from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.tasks import TaskDefinition, load_task_definitions
 from server.game.modifiers import MODIFIER_TARGETS
@@ -67,6 +68,8 @@ class PropDefinition:
     tags: tuple[str, ...] = ()
     price: int = DEFAULT_PROP_PRICE
     locked: bool = False
+    effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    active_effect: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,6 +202,7 @@ class WorldDefinition:
     powers: dict[str, tuple[str, ...]] = field(default_factory=dict)
     recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
     requires_mods: tuple[str, ...] = ()
+    effects: dict[str, EffectDefinition] = field(default_factory=dict)
 
 
 def prop_model_url(world_id: str, definition: PropDefinition) -> str:
@@ -339,6 +343,51 @@ def _load_animation(raw_value: Any, label: str) -> str | None:
         raise ContentError(f"{label} must be a string.")
     text = raw_value.strip()
     return text or None
+
+
+def _load_effect_sets(raw_value: Any, label: str) -> dict[str, tuple[str, ...]]:
+    """Parse a prop's named effect sets: ``{set_name: [effect_id, ...]}``."""
+
+    if raw_value is None:
+        return {}
+    if isinstance(raw_value, list):
+        raw_value = {"default": raw_value}
+    if not isinstance(raw_value, dict) or not raw_value:
+        raise ContentError(f"{label} must be a non-empty mapping of set names to effect lists.")
+    sets: dict[str, tuple[str, ...]] = {}
+    for raw_name, raw_effects in raw_value.items():
+        set_name = str(raw_name).strip()
+        if not set_name:
+            raise ContentError(f"{label} contains an empty set name.")
+        if not isinstance(raw_effects, list) or not raw_effects:
+            raise ContentError(f"{label} set '{set_name}' must be a non-empty list of effect ids.")
+        effect_ids: list[str] = []
+        for raw_effect in raw_effects:
+            effect_id = str(raw_effect).strip()
+            if not effect_id:
+                raise ContentError(f"{label} set '{set_name}' contains an empty effect id.")
+            if effect_id not in effect_ids:
+                effect_ids.append(effect_id)
+        sets[set_name] = tuple(effect_ids)
+    return sets
+
+
+def _load_active_effect(raw_value: Any, effect_sets: dict[str, tuple[str, ...]], prop_id: str) -> str | None:
+    """Resolve the default active set, defaulting to the first declared set."""
+
+    if not effect_sets:
+        if raw_value is not None:
+            raise ContentError(f"Prop '{prop_id}' declares active_effect without any effects.")
+        return None
+    if raw_value is None:
+        return next(iter(effect_sets))
+    if not isinstance(raw_value, str):
+        raise ContentError(f"Prop '{prop_id}' active_effect must be a string.")
+    active = raw_value.strip()
+    if active not in effect_sets:
+        raise ContentError(f"Prop '{prop_id}' active_effect '{active}' is not one of its effect sets.")
+    return active
+
 
 
 def _parse_dialog_condition(raw_value: Any, peep_id: str, node_id: str, index: int) -> StatusCondition | None:
@@ -492,6 +541,8 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
             locked = bool(raw_prop.get("locked"))
         else:
             locked = source_kind == "propset" and source not in FREE_PROPSET_SOURCES
+        effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
+        active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
         props[prop_id] = PropDefinition(
             id=prop_id,
             label=str(raw_prop.get("label", "")).strip(),
@@ -509,17 +560,37 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
             tags=tuple(tags),
             price=price,
             locked=locked,
+            effect_sets=effect_sets,
+            active_effect=active_effect,
         )
     return props
 
 
-def load_propset(propset_path: Path) -> dict[str, PropDefinition]:
+def _validate_prop_effects(props: Mapping[str, PropDefinition], effects: Mapping[str, EffectDefinition]) -> None:
+    """Reject props that reference effect ids absent from the loaded catalog."""
+
+    for definition in props.values():
+        for set_name, effect_ids in definition.effect_sets.items():
+            for effect_id in effect_ids:
+                if effect_id not in effects:
+                    raise ContentError(
+                        f"Prop '{definition.id}' effect set '{set_name}' references unknown effect '{effect_id}'."
+                    )
+
+
+def load_propset(
+    propset_path: Path,
+    effects: Mapping[str, EffectDefinition] | None = None,
+) -> dict[str, PropDefinition]:
     """Load a shared propset directory's ``props.yaml`` definitions."""
 
     props_file = propset_path / "props.yaml"
     if not props_file.is_file():
         raise ContentError(f"Propset is missing props.yaml: {propset_path}")
-    return _load_props_from_file(props_file, propset_path.name, source_kind="propset")
+    props = _load_props_from_file(props_file, propset_path.name, source_kind="propset")
+    if effects is not None:
+        _validate_prop_effects(props, effects)
+    return props
 
 
 def load_world_definition(
@@ -531,6 +602,7 @@ def load_world_definition(
     propsets_root: Path | Sequence[Path] | None = None,
     mod_props: Sequence[tuple[str, Path]] | None = None,
     enabled_mods: frozenset[str] | None = None,
+    fx_root: Path | None = None,
 ) -> WorldDefinition:
     """Load the immutable world definition set from YAML."""
 
@@ -580,6 +652,9 @@ def load_world_definition(
         if prop_id in props:
             raise ContentError(f"Duplicate prop id '{prop_id}'.")
         props[prop_id] = definition
+    effects = load_effect_catalog(fx_root)
+    if fx_root is not None:
+        _validate_prop_effects(props, effects)
 
     rooms: dict[str, RoomDefinition] = {}
     for room_id, raw_room in rooms_payload.items():
@@ -753,4 +828,5 @@ def load_world_definition(
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,
         requires_mods=requires_mods,
+        effects=effects,
     )

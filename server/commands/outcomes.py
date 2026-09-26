@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
 from server.commands.registry import CommandRegistry
@@ -100,3 +100,4 @@ class CommandContext:
     crafting: CraftingService
     recipes: dict[str, RecipeDefinition]
     mods: dict[str, object]
+    reload_world: Callable[[], Awaitable[None]] | None = None

@@ -1,0 +1,8 @@
+# A gentle vertical hover. Demonstrates the transform layer type.
+id: gentle-bob
+label: Gentle Bob
+layers:
+  - type: transform
+    motion: bob
+    amplitude: 0.06
+    period: 3.4

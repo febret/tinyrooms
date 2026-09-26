@@ -3,6 +3,7 @@ import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitContro
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import { boardImageRepeat, boardPosition, disposeBoardTree, fitBoardCamera, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
 import { createGizmo } from "./editing/gizmo.js";
+import { createPropEffects } from "./prop-effects.js";
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
@@ -12,6 +13,11 @@ const PROP_MOVE_SMOOTHING = 9;
 /** Key that captures everything about a prop that requires re-creating its model. */
 function propModelKey(prop) {
   return JSON.stringify([prop.propId, prop.modelUrl, prop.label]);
+}
+
+/** Key of a prop's currently rendered effect set, independent of its model. */
+function propEffectKey(prop) {
+  return JSON.stringify([prop.effectSets || {}, prop.activeEffect || ""]);
 }
 
 /** Identity of a room card's rendered artwork; position and quantity are handled separately. */
@@ -144,6 +150,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   const fill = new THREE.DirectionalLight("#bce2df", 0.45);
   fill.position.set(5, 5, -4);
   scene.add(fill);
+
+  /** Pixel scale used by point-sprite effects so particle size is world-sized. */
+  function effectPixelScale() {
+    return renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI / 180) / 2));
+  }
 
   const selectionRing = new THREE.Mesh(
     new THREE.TorusGeometry(0.65, 0.035, 8, 64),
@@ -410,6 +421,35 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     }
   }
 
+  /** Build (or rebuild) a prop record's effect controller from its effect sets. */
+  function buildRecordEffects(record, prop, model, bounds, visual) {
+    record.effectController?.dispose();
+    record.effectController = null;
+    record.effectKey = propEffectKey(prop);
+    const effectSets = prop.effectSets && typeof prop.effectSets === "object" ? prop.effectSets : null;
+    if (!effectSets || !model) return;
+    record.effectController = createPropEffects({
+      group: record.group,
+      visual,
+      model,
+      bounds,
+      effectSets,
+      activeEffect: prop.activeEffect || null,
+      reducedMotion,
+      textureLoader,
+      pixelScale: effectPixelScale,
+    });
+    refreshFxStatus();
+  }
+
+  /** Publish how many effect layers are live so tests can observe them without pixels. */
+  function refreshFxStatus() {
+    if (!current) return;
+    let count = 0;
+    for (const record of current.props.values()) count += record.effectController?.activeCount || 0;
+    canvas.dataset.fxCount = String(count);
+  }
+
   function addProp(entry, prop) {
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
@@ -419,6 +459,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
       model: null, clips: [], animation: prop.animation || "", mixers: [], animTimers: [], scenes: [],
       target: group.position.clone(), ghosted: false, materials: null,
+      effectController: null, effectKey: "",
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
@@ -453,10 +494,13 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       disposeBoardTree(placeholder);
       group.add(visual);
       record.model = model;
+      record.visual = visual;
+      record.bounds = bounds;
       record.clips = gltf.animations || [];
       record.scenes = gltf.scenes || [model];
       setGhosted(record, Boolean(record.prop.ghost));
       playPropAnimation(entry, record, record.prop, model, record.clips);
+      buildRecordEffects(record, record.prop, model, bounds, visual);
       entry.modelScenes.push(...record.scenes);
       entry.pending -= 1;
       if (!userAdjusted) fit(true);
@@ -475,6 +519,14 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     record.group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
     setGhosted(record, Boolean(prop.ghost));
     setRecordTarget(record, prop.position);
+    if (propEffectKey(prop) !== record.effectKey) {
+      if (record.model && record.visual && record.bounds) {
+        buildRecordEffects(record, prop, record.model, record.bounds, record.visual);
+      } else {
+        record.effectKey = propEffectKey(prop);
+        refreshFxStatus();
+      }
+    }
     if ((prop.animation || "") !== record.animation) {
       record.animation = prop.animation || "";
       stopRecordAnimations(record);
@@ -486,6 +538,8 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     const record = entry.props.get(id);
     if (!record) return;
     stopRecordAnimations(record);
+    record.effectController?.dispose();
+    record.effectController = null;
     entry.root.remove(record.group);
     for (const scene of record.scenes) {
       const index = entry.modelScenes.indexOf(scene);
@@ -527,6 +581,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       update: (record, prop) => updateProp(entry, record, prop),
       remove: id => removeProp(entry, id),
     });
+    refreshFxStatus();
   }
 
   function addCard(entry, card) {
@@ -602,7 +657,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
 
   function clear() {
     if (!current) return;
-    for (const record of current.props.values()) stopRecordAnimations(record);
+    for (const record of current.props.values()) {
+      stopRecordAnimations(record);
+      record.effectController?.dispose();
+      record.effectController = null;
+    }
+    canvas.dataset.fxCount = "0";
     scene.remove(current.root);
     // Include non-default GLTF scenes; they can share materials with the active scene.
     disposeBoardTree([current.root, ...current.modelScenes]);
@@ -822,6 +882,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (current) {
         for (const record of current.props.values()) {
           for (const mixer of record.mixers) mixer.update(delta);
+          record.effectController?.update(delta);
         }
         advanceRecords(current.props.values(), delta);
         advanceRecords(current.cards.values(), delta);

@@ -22,6 +22,8 @@ function normalizeInstance(entry) {
     position: Array.isArray(entry?.position) ? entry.position.map(Number) : [50, 50, 0],
     rotation: Array.isArray(entry?.rotation) ? entry.rotation.map(Number) : [0, 0, 0],
     scale: Number(entry?.scale ?? 1),
+    effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
+    activeEffect: typeof entry?.active_effect === "string" ? entry.active_effect : "",
   };
 }
 
@@ -39,6 +41,8 @@ function normalizeLibrary(entries) {
       tags: (Array.isArray(entry?.tags) ? entry.tags : []).map(tag => String(tag).trim().toLowerCase()).filter(Boolean),
       price: Number(entry?.price ?? 5),
       locked: Boolean(entry?.locked),
+      effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
+      activeEffect: typeof entry?.active_effect === "string" ? entry.active_effect : "",
     }))
     .filter(entry => entry.propId);
 }
@@ -105,6 +109,8 @@ export function editorBoardProps(editor) {
       label: entry?.label || "Prop",
       description: entry?.description || "",
       animation: "",
+      effectSets: Object.keys(instance.effectSets || {}).length ? instance.effectSets : (entry?.effectSets || {}),
+      activeEffect: instance.activeEffect || entry?.activeEffect || "",
       quickActions: [],
       ghost: false,
     };

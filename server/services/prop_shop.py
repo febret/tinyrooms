@@ -29,6 +29,15 @@ def serialize_prop_entry(
         "tags": list(definition.tags),
         "price": definition.price,
         "locked": definition.locked if locked is None else locked,
+        "effect_sets": {
+            set_name: [
+                world.effects[effect_id].serialize()
+                for effect_id in effect_ids
+                if effect_id in world.effects
+            ]
+            for set_name, effect_ids in definition.effect_sets.items()
+        },
+        "active_effect": definition.active_effect,
     }
 
 

@@ -1,0 +1,19 @@
+# Fire: a short-lived, additive flame that licks upward from the host's top.
+id: fire
+label: Fire
+layers:
+  - type: particle
+    preset: fire
+    texture: fire-puff.png
+    rate: 14
+    lifetime: [0.5, 0.9]
+    size: [0.18, 0.42]
+    speed: 0.55
+    spread: 14
+    gravity: 0.18
+    color: "#ffb347"
+    opacity: [0.9, 0.0]
+    additive: true
+    max_particles: 46
+    anchor: top
+    offset: [0, 0, 0]
