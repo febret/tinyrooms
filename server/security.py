@@ -190,20 +190,48 @@ def _is_same_port_https_origin(candidate: str, port: int) -> bool:
 
 
 class RateLimiter:
-    """Simple in-memory sliding-window rate limiter."""
+    """Simple in-memory sliding-window rate limiter.
+
+    Keys are keyed partly by unauthenticated input (submitted username, source
+    IP), so the key space is attacker-controlled. Timestamps inside a window are
+    trimmed on use, but the key itself has to be removed too, otherwise the
+    dictionary grows for the lifetime of the process. Idle keys are swept once
+    per :attr:`max_keys` insertions, which keeps the amortised cost constant
+    without putting a timer on the request path.
+    """
+
+    #: Sweep after this many insertions, so a burst cannot monopolise the lock.
+    max_keys = 4096
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._events: dict[str, deque[float]] = {}
+        self._since_sweep = 0
 
     def check(self, key: str, *, limit: int, window_seconds: int, now_ts: float) -> None:
         """Validate the current key against the configured limit."""
 
         with self._lock:
-            queue = self._events.setdefault(key, deque())
+            queue = self._events.get(key)
+            if queue is None:
+                self._since_sweep += 1
+                if self._since_sweep >= self.max_keys:
+                    self._sweep(now_ts)
+                queue = self._events[key] = deque()
             floor = now_ts - window_seconds
             while queue and queue[0] < floor:
                 queue.popleft()
             if len(queue) >= limit:
                 raise RateLimitError("Too many attempts. Please wait and try again.")
             queue.append(now_ts)
+
+    def _sweep(self, now_ts: float, *, grace: float = 900.0) -> None:
+        """Drop keys whose most recent event is older than *grace* seconds."""
+
+        self._since_sweep = 0
+        # A window is at most a few minutes, so anything idle for fifteen
+        # minutes cannot affect a later decision and is safe to discard.
+        cutoff = now_ts - grace
+        stale = [key for key, queue in self._events.items() if not queue or queue[-1] < cutoff]
+        for key in stale:
+            del self._events[key]

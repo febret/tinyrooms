@@ -181,6 +181,12 @@ def room_event_envelope(event: dict[str, object]) -> dict[str, object]:
     return {"v": PROTOCOL_VERSION, "type": "room.event", "event": event}
 
 
+def encode_envelope(envelope: dict[str, object]) -> str:
+    """Serialise an envelope once so it can be shared across many recipients.
+    """
+    return json.dumps(envelope, separators=(",", ":"), default=str)
+
+
 def session_replaced_envelope(message: str) -> dict[str, object]:
     """Build a forced sign-out envelope."""
 

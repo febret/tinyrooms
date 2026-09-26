@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 import html
@@ -109,8 +109,15 @@ LOGGER = logging.getLogger("tinyrooms.server")
 
 
 def _log_event(event: str, **fields: object) -> None:
-    """Write one structured log record without request bodies or credentials."""
+    """Write one structured log record without request bodies or credentials.
 
+    This runs for every request, command and connect. The level check comes
+    first: serialising a record that is then discarded is pure overhead on the
+    event loop, and INFO is off by default.
+    """
+
+    if not LOGGER.isEnabledFor(logging.INFO):
+        return
     LOGGER.info(json.dumps({"event": event, **fields}, separators=(",", ":")))
 
 
@@ -1067,6 +1074,12 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                 )
                 await _deliver_behavior_result(runtime, leave_result)
             await runtime.connections.unregister(account.id, connection)
+            # Retires the sender task. Unregistering alone leaves it parked on
+            # queue.get() for the lifetime of the process, taking the connection
+            # and any queued frames with it. The socket is already gone, so a
+            # failure to close again is expected and ignored.
+            with suppress(Exception):
+                await connection.close()
             _log_event(
                 "websocket.disconnected",
                 account_id=account.id,

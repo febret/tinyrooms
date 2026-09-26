@@ -556,6 +556,49 @@ class ProfileRepository:
             ).fetchall()
         return [self._stack_from_row(row) for row in rows]
 
+    def get_user_profiles_by_ids(self, account_ids: list[str]) -> dict[str, UserProfileRecord]:
+        """Fetch many per-user profiles with a single query.
+
+        Room snapshots need every occupant's profile at once, so this avoids
+        the per-occupant read that would otherwise dominate a busy room.
+        """
+
+        unique_ids = list(dict.fromkeys(account_ids))
+        if not unique_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in unique_ids)
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                f"SELECT * FROM user_profiles WHERE account_id IN ({placeholders})",
+                tuple(unique_ids),
+            ).fetchall()
+        return {row["account_id"]: self._user_profile_from_row(row) for row in rows}
+
+    def list_inventories_by_accounts(
+        self,
+        account_ids: list[str],
+        world_id: str,
+    ) -> dict[str, list[InventoryStack]]:
+        """Fetch visible inventory stacks for many accounts with a single query."""
+
+        unique_ids = list(dict.fromkeys(account_ids))
+        if not unique_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in unique_ids)
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT * FROM profile_card_stacks
+                WHERE account_id IN ({placeholders}) AND (world_id IS NULL OR world_id = ?)
+                ORDER BY account_id, scope, created_at, stack_id
+                """,
+                (*unique_ids, world_id),
+            ).fetchall()
+        grouped: dict[str, list[InventoryStack]] = {account_id: [] for account_id in unique_ids}
+        for row in rows:
+            grouped.setdefault(row["account_id"], []).append(self._stack_from_row(row))
+        return grouped
+
     def get_inventory_stack(self, account_id: str, world_id: str, stack_id: str) -> InventoryStack | None:
         """Fetch a visible inventory stack by ID."""
 

@@ -40,12 +40,21 @@ class AccountService:
         self._entry_room_id = entry_room_id
         self._create_limiter = RateLimiter()
         self._login_limiter = RateLimiter()
+        self._stickers: tuple[str, ...] | None = None
 
     def _limit(self, limiter: RateLimiter, bucket: str, *, limit: int, window_seconds: int) -> None:
         limiter.check(bucket, limit=limit, window_seconds=window_seconds, now_ts=time.time())
 
     def list_stickers(self) -> list[str]:
-        """Return the available sticker asset filenames."""
+        """Return the available sticker asset filenames.
+
+        Cached for the lifetime of the service: the asset directory is static
+        once a runtime is up.
+        """
+
+        cached = self._stickers
+        if cached is not None:
+            return list(cached)
 
         stickers: list[str] = []
         for path in sorted(self._config.stickers_path.iterdir()):
@@ -58,6 +67,7 @@ class AccountService:
             stickers.append(path.name)
         if not stickers:
             raise ValueError("No sticker assets were found under data/stickers.")
+        self._stickers = tuple(stickers)
         return stickers
 
     def create_account(self, username: str, password: str, passphrase: str, source_key: str) -> LoginResult:

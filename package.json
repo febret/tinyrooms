@@ -8,6 +8,7 @@
     "test:client": "node --test \"tests/client/**/*.test.js\"",
     "test:browser": "playwright test flows.spec.js room-editor.spec.js default-actions.spec.js audio.spec.js prop-effects.spec.js peep-damage.spec.js chat-autocomplete.spec.js prop-editor.spec.js",
     "test:visual": "playwright test screenshots.spec.js",
+    "test:perf": "python tools/run_perf.py",
     "test:report": "playwright show-report"
   },
   "dependencies": {

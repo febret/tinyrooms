@@ -16,4 +16,5 @@ users/
 .VSCodeCounter/
 .browser-runtime/
 .test-results/
+.test-results-perf/
 .playwright-report/

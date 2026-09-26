@@ -350,12 +350,13 @@ class RoomService:
             occupant_accounts = self._profiles.get_accounts_by_ids(occupant_ids)
             room_cards, chat_history = self._world_state.read_room_view(room_id)
             inventory = self._profiles.list_inventory(account.id, self._world.id)
+            occupant_views = self._stats.views(occupant_ids)
         occupants: list[dict[str, object]] = []
         for connection in live_connections:
             occupant = occupant_accounts.get(connection.account_id)
             if occupant is None:
                 continue
-            counters = self._stats.view(occupant.id).payload()
+            counters = occupant_views[occupant.id].payload()
             occupants.append(
                 {
                     "id": occupant.id,

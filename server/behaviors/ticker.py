@@ -17,7 +17,8 @@ SYSTEM_PEEP = PeepRef(kind="npc", peep_id=None, account_id=None)
 
 
 class RoomTicker:
-    """Owns one asyncio task per room and dispatches ``tick`` events."""
+    """Dispatches ``tick`` events for occupied rooms on a fixed interval.
+    """
 
     def __init__(
         self,
@@ -39,30 +40,31 @@ class RoomTicker:
         self._on_result = on_result
         self._interval = float(interval)
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
-        self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._task: asyncio.Task[None] | None = None
         self._running: set[str] = set()
 
     def start(self) -> None:
-        """Start one tick task per room; a no-op when already started."""
+        """Start the scheduler task; a no-op when already started."""
 
-        if self._tasks:
+        if self._task is not None and not self._task.done():
             return
         loop = asyncio.get_running_loop()
-        for room_id in self._world.rooms:
-            self._tasks[room_id] = loop.create_task(self._loop(room_id))
+        self._task = loop.create_task(self._loop())
 
     def stop(self) -> None:
-        """Cancel all tick tasks."""
+        """Cancel the scheduler task."""
 
-        for task in self._tasks.values():
-            task.cancel()
-        self._tasks.clear()
+        if self._task is not None:
+            self._task.cancel()
+            self._task = None
+        self._running.clear()
 
-    async def _loop(self, room_id: str) -> None:
+    async def _loop(self) -> None:
         try:
             while True:
                 await asyncio.sleep(self._interval)
-                await self.run_once(room_id)
+                for room_id in tuple(self._world.rooms):
+                    await self.run_once(room_id)
         except asyncio.CancelledError:
             raise
 

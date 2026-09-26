@@ -664,6 +664,12 @@ class DatabaseHub:
             self._connection.execute("PRAGMA world.journal_mode = WAL")
         self._lock = threading.RLock()
 
+    @property
+    def connection(self):
+        """Expose the shared connection for diagnostics such as statement tracing."""
+
+        return self._connection
+
     @contextmanager
     def locked(self):
         """Yield the shared connection for a read-only critical section."""

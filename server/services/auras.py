@@ -13,12 +13,14 @@ from server.state.migrations import DatabaseHub
 
 
 class AuraService:
-    """Applies a room's aura while present and removes it immediately on leave."""
+    """Applies a room's aura while present and removes it immediately on leave.
+    """
 
     def __init__(self, hub: DatabaseHub, stats: StatsService, world: WorldDefinition) -> None:
         self._hub = hub
         self._stats = stats
         self._world = world
+        self._applied: set[tuple[str, str]] = set()
 
     @staticmethod
     def source_for(room_id: str) -> str:
@@ -33,8 +35,9 @@ class AuraService:
         if room is None or not room.aura:
             return
         source = self.source_for(room_id)
-        if self._stats.has_source(account_id, source):
+        if (account_id, source) in self._applied:
             return
+        self._applied.add((account_id, source))
         modifiers = tuple(
             Modifier(target=entry.stat, flat=entry.delta)
             for entry in room.aura
@@ -50,9 +53,17 @@ class AuraService:
     def leave(self, account_id: str, room_id: str) -> None:
         """Remove a room's aura contribution without touching timed buffs."""
 
-        if not self._stats.has_source(account_id, self.source_for(room_id)):
+        source = self.source_for(room_id)
+        if (account_id, source) not in self._applied:
             return
-        self._stats.remove_source(account_id, self.source_for(room_id))
+        self._applied.discard((account_id, source))
+        self._stats.remove_source(account_id, source)
+
+    def forget(self, account_id: str) -> None:
+        """Drop all cached aura state for an account, e.g. on session replacement."""
+
+        for key in [key for key in self._applied if key[0] == account_id]:
+            self._applied.discard(key)
 
     @staticmethod
     def _buff_instance(entry) -> BuffInstance:

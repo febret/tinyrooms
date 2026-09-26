@@ -97,8 +97,15 @@ class StatsService:
 
         return self._content
 
-    def _card_modifiers(self, account_id: str, profile: UserProfileRecord) -> tuple[Modifier, ...]:
-        stacks = {stack.stack_id: stack for stack in self._profiles.list_inventory(account_id, self._world_id)}
+    def _card_modifiers(
+        self,
+        account_id: str,
+        profile: UserProfileRecord,
+        stacks: list[InventoryStack] | None = None,
+    ) -> tuple[Modifier, ...]:
+        if stacks is None:
+            stacks = self._profiles.list_inventory(account_id, self._world_id)
+        stacks = {stack.stack_id: stack for stack in stacks}
         modifiers: list[Modifier] = []
         for stack in stacks.values():
             if not stack.equipped:
@@ -160,12 +167,18 @@ class StatsService:
                     continue
         return tuple(modifiers)
 
-    def collect_modifiers(self, account_id: str, profile: UserProfileRecord, now: datetime) -> tuple[Modifier, ...]:
+    def collect_modifiers(
+        self,
+        account_id: str,
+        profile: UserProfileRecord,
+        now: datetime,
+        stacks: list[InventoryStack] | None = None,
+    ) -> tuple[Modifier, ...]:
         """Combine equipment, slotted skills, active buffs, and source auras."""
 
         instances = expire(self._buff_instances(profile), now)
         return (
-            *self._card_modifiers(account_id, profile),
+            *self._card_modifiers(account_id, profile, stacks),
             *active_modifiers(instances, now),
             *self._source_modifiers(profile),
         )
@@ -204,13 +217,14 @@ class StatsService:
         *,
         now: datetime | None = None,
         energy: float | None = None,
+        stacks: list[InventoryStack] | None = None,
     ) -> EffectivePeepState:
         """Compute effective state without persisting anything."""
 
         moment = now or utc_now()
         counters = normalize_counters(profile.counters)
         current_energy = account.shared_energy if energy is None else energy
-        modifiers = self.collect_modifiers(account.id, profile, moment)
+        modifiers = self.collect_modifiers(account.id, profile, moment, stacks)
         return compute_effective_state(
             self._content,
             level=account.level,
@@ -224,6 +238,7 @@ class StatsService:
         account: AccountRecord,
         profile: UserProfileRecord,
         now: datetime,
+        stacks: list[InventoryStack] | None = None,
     ) -> tuple[float, str]:
         """Accrue whole minutes of recovery and return (energy, last_energy_at).
 
@@ -237,7 +252,7 @@ class StatsService:
         whole_minutes = int(max(0.0, (now - last).total_seconds()) // 60)
         if whole_minutes <= 0:
             return account.shared_energy, account.last_energy_at
-        maximum = self.compute_state(account, profile, now=now).max_energy
+        maximum = self.compute_state(account, profile, now=now, stacks=stacks).max_energy
         gained = whole_minutes * self._content.juice.energy_recharge_rate
         energy = min(float(maximum), account.shared_energy + gained)
         advanced = last + timedelta(minutes=whole_minutes)
@@ -302,11 +317,47 @@ class StatsService:
             if account is None or profile is None:
                 raise ValueError("Unknown account.")
             now = utc_now()
-            energy, _last_energy_at = self._recharge_energy(account, profile, now)
-            state = self.compute_state(account, profile, now=now, energy=energy)
-            counters = normalize_counters(profile.counters)
-            health = clamp_counter(counters["health"], state.max_health)
-            cleanliness = clamp_counter(counters["cleanliness"], state.max_cleanliness)
+            return self._build_view(account, profile, None, now)
+
+    def views(self, account_ids: list[str]) -> dict[str, PeepSnapshot]:
+        """Return reconciled snapshots for many accounts in three queries.
+
+        This is the batched form of :meth:`view`. A room snapshot needs one of
+        these per occupant, so issuing ``view`` in a loop is what makes snapshot
+        cost grow with occupancy.
+        """
+
+        unique_ids = list(dict.fromkeys(account_ids))
+        if not unique_ids:
+            return {}
+        with self._hub.locked():
+            accounts = self._profiles.get_accounts_by_ids(unique_ids)
+            profiles = self._profiles.get_user_profiles_by_ids(unique_ids)
+            inventories = self._profiles.list_inventories_by_accounts(unique_ids, self._world_id)
+            now = utc_now()
+            snapshots: dict[str, PeepSnapshot] = {}
+            for account_id in unique_ids:
+                account = accounts.get(account_id)
+                profile = profiles.get(account_id)
+                if account is None or profile is None:
+                    continue
+                snapshots[account_id] = self._build_view(
+                    account, profile, inventories.get(account_id, []), now
+                )
+            return snapshots
+
+    def _build_view(
+        self,
+        account: AccountRecord,
+        profile: UserProfileRecord,
+        stacks: list[InventoryStack] | None,
+        now: datetime,
+    ) -> PeepSnapshot:
+        energy, _last_energy_at = self._recharge_energy(account, profile, now, stacks)
+        state = self.compute_state(account, profile, now=now, energy=energy, stacks=stacks)
+        counters = normalize_counters(profile.counters)
+        health = clamp_counter(counters["health"], state.max_health)
+        cleanliness = clamp_counter(counters["cleanliness"], state.max_cleanliness)
         return PeepSnapshot(
             account=account,
             effective=state,

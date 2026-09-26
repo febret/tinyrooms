@@ -13,7 +13,12 @@ from server.protocol import MAX_SEND_QUEUE, session_replaced_envelope
 
 @dataclass(slots=True)
 class LiveConnection:
-    """A single authenticated live WebSocket connection."""
+    """A single authenticated live WebSocket connection.
+
+    ``queue`` holds either an already-serialised frame (``str``, produced by
+    :func:`server.protocol.encode_envelope` so a broadcast encodes once) or a
+    ``dict`` still to be encoded by the sender loop.
+    """
 
     websocket: WebSocket
     account_id: str
@@ -21,7 +26,9 @@ class LiveConnection:
     generation: int
     room_id: str | None = None
     audio_enabled: bool = False
-    queue: asyncio.Queue[dict[str, object] | None] = field(default_factory=lambda: asyncio.Queue(MAX_SEND_QUEUE))
+    queue: asyncio.Queue[dict[str, object] | str | None] = field(
+        default_factory=lambda: asyncio.Queue(MAX_SEND_QUEUE)
+    )
     sender_task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
@@ -34,9 +41,12 @@ class LiveConnection:
             payload = await self.queue.get()
             if payload is None:
                 return
-            await self.websocket.send_json(payload)
+            if isinstance(payload, str):
+                await self.websocket.send_text(payload)
+            else:
+                await self.websocket.send_json(payload)
 
-    async def send(self, payload: dict[str, object]) -> None:
+    async def send(self, payload: dict[str, object] | str) -> None:
         """Enqueue an outbound payload for delivery."""
 
         try:
@@ -62,13 +72,16 @@ class SyntheticConnection:
     """A connection stand-in for out-of-band command dispatch (mission control).
 
     Handlers read ``account_id``/``username``/``generation``/``room_id``; the
-    send/close methods are no-ops because there is no live socket.
+    send/close methods are no-ops because there is no live socket. ``audio_enabled``
+    is present so a synthetic connection satisfies the same surface as
+    :class:`LiveConnection` for code that reads presence state.
     """
 
     account_id: str
     username: str
     generation: int = 0
     room_id: str | None = None
+    audio_enabled: bool = False
 
     async def send(self, payload: dict[str, object]) -> None:  # noqa: ARG002
         return None
@@ -172,7 +185,7 @@ class ConnectionRegistry:
 
         return list(self._by_account.values())
 
-    async def broadcast(self, payload: dict[str, object]) -> int:
+    async def broadcast(self, payload: dict[str, object] | str) -> int:
         """Send a payload to every live connection and return the count sent."""
 
         connections = self.list_all()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 import json
 import threading
@@ -71,6 +72,8 @@ class WorldStateRepository:
         self._hub = hub
         self._chat_history: dict[str, list[dict[str, Any]]] = {}
         self._chat_lock = threading.Lock()
+        self._environment_cache: dict[str, tuple[dict[str, Any], int]] = {}
+        self._environment_lock = threading.Lock()
 
     def _stack_from_row(self, row: sqlite3.Row) -> RoomCardStack:
         return RoomCardStack(
@@ -203,6 +206,7 @@ class WorldStateRepository:
                 self._insert_seed_cards(connection, room_id, room.initial_cards)
                 self._mark_room_initialized(connection, room_id)
                 self._seed_room_layout(connection, room_id, room, world)
+        self.invalidate_room_environment()
 
     def reset_room_cards(
         self,
@@ -225,6 +229,7 @@ class WorldStateRepository:
             self._insert_seed_cards(connection, room_id, room.initial_cards)
             self._mark_room_initialized(connection, room_id)
             self._seed_room_layout(connection, room_id, room, world)
+        self.invalidate_room_environment(room_id)
 
     @staticmethod
     def _seed_room_layout(
@@ -328,6 +333,7 @@ class WorldStateRepository:
         """Delete a room's live state row, if present."""
 
         connection.execute("DELETE FROM world.room_states WHERE room_id = ?", (room_id,))
+        self.invalidate_room_environment(room_id)
 
     def read_world_meta(self, key: str) -> str | None:
         """Return a world metadata value, or None when unset."""
@@ -362,7 +368,20 @@ class WorldStateRepository:
         return cards, self.get_chat_history(room_id)
 
     def read_room_environment(self, room_id: str) -> tuple[dict[str, Any], int]:
-        """Return a room's persisted environment and layout revision."""
+        """Return a room's persisted environment and layout revision.
+
+        The row is cached because it is read once per prop, exit and authored
+        action while assembling a room snapshot, and it only changes when a
+        writer bumps the revision. Every writer of this row lives in this
+        repository, so dropping the entry on write is sufficient to keep the
+        cache honest. Returns a copy so callers cannot mutate the
+        cached value in place.
+        """
+
+        with self._environment_lock:
+            cached = self._environment_cache.get(room_id)
+        if cached is not None:
+            return deepcopy(cached[0]), cached[1]
 
         with self._hub.locked() as connection:
             row = connection.execute(
@@ -375,7 +394,20 @@ class WorldStateRepository:
             environment = json.loads(row["environment_json"])
         except (TypeError, ValueError):
             environment = {}
-        return (environment if isinstance(environment, dict) else {}), int(row["layout_revision"])
+        resolved = environment if isinstance(environment, dict) else {}
+        revision = int(row["layout_revision"])
+        with self._environment_lock:
+            self._environment_cache[room_id] = (resolved, revision)
+        return deepcopy(resolved), revision
+
+    def invalidate_room_environment(self, room_id: str | None = None) -> None:
+        """Drop cached environment rows, for one room or all of them."""
+
+        with self._environment_lock:
+            if room_id is None:
+                self._environment_cache.clear()
+            else:
+                self._environment_cache.pop(room_id, None)
 
     def write_room_environment(
         self,
@@ -397,6 +429,7 @@ class WorldStateRepository:
         )
         if cursor.rowcount != 1:
             raise ValueError("That room is not initialized.")
+        self.invalidate_room_environment(room_id)
 
     def read_room_layout(self, room_id: str) -> dict[str, Any]:
         """Return a room's live prop layout and revision.
@@ -449,6 +482,7 @@ class WorldStateRepository:
         )
         if cursor.rowcount != 1:
             raise LayoutRevisionConflict("The room layout changed since you loaded it.")
+        self.invalidate_room_environment(room_id)
         return new_revision
 
     def get_chat_history(self, room_id: str) -> list[dict[str, Any]]:
