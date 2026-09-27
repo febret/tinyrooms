@@ -6,7 +6,6 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-import html
 import json
 import logging
 import mimetypes
@@ -43,9 +42,11 @@ from server.mods import ModDefinition, LoadedMods, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
+from server.routes import cutscenes as cutscene_routes
 from server.routes import prop_editor as prop_editor_routes
 from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
+from server.routes.html_pages import render_fallback_activity
 from server.protocol import (
     PROTOCOL_VERSION,
     ClientRtcPresenceEnvelope,
@@ -67,6 +68,7 @@ from server.security import (
     validate_origin,
 )
 from server.services.activities import ActivityService
+from server.services.cutscenes import CutsceneService
 from server.services.activity_results import ActivityResultService
 from server.services.actions import ActionsService
 from server.services.audit import AuditService
@@ -170,6 +172,7 @@ class RuntimeState:
     cards: CardService
     activities: ActivityService
     activity_results: ActivityResultService
+    cutscenes: CutsceneService
     connections: ConnectionRegistry
     rooms: RoomService
     registry: CommandRegistry
@@ -341,24 +344,12 @@ def _activity_roots(runtime: RuntimeState) -> tuple[Path, ...]:
     return (runtime.config.activities_path, *(mod.activities_path for mod in runtime.mod_definitions))
 
 
+
 def _propset_roots(runtime: RuntimeState) -> tuple[Path, ...]:
     """Return core propset roots in search order."""
 
     return (runtime.config.propsets_path,)
 
-
-def _render_fallback_activity(kind: str) -> HTMLResponse:
-    title = html.escape(kind.replace("-", " ").title())
-    body = f"""<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><title>{title}</title></head>
-<body style="font-family:sans-serif;padding:1rem">
-  <h1>{title}</h1>
-  <p>Milestone 1 fallback activity page for <code>{title}</code>.</p>
-  <p>This route is ready for the real activity files under <code>activities\\{html.escape(kind)}</code>.</p>
-</body>
-</html>"""
-    return HTMLResponse(body)
 
 
 def _auth_response(runtime: RuntimeState, result: LoginResult, account: AccountRecord) -> Response:
@@ -458,6 +449,10 @@ def _build_runtime(
     equipped_caps = {level: definition.max_equipped for level, definition in content.levels.levels.items()}
     pricing = CardPricingService(hub, profiles, catalog, content, world.id)
     cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps, pricing)
+    cutscenes = CutsceneService(
+        config, world=lambda: world, profiles=profiles, cards=cards,
+        valid_stickers=frozenset(accounts.list_stickers()),
+    )
     stats = StatsService(hub, profiles, catalog, content, world.id)
     inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
     progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
@@ -532,6 +527,7 @@ def _build_runtime(
         stats=stats,
         progression=progression,
         activities=activities,
+        cutscenes=cutscenes,
         catalog=catalog,
         dialogs=dialogs,
         connections=connections,
@@ -571,6 +567,7 @@ def _build_runtime(
         cards=cards,
         activities=activities,
         activity_results=activity_results,
+        cutscenes=cutscenes,
         connections=connections,
         rooms=rooms,
         registry=registry,
@@ -1113,7 +1110,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             candidate = _safe_path(root, f"{activity_name}/index.html")
             if candidate.is_file():
                 return FileResponse(candidate)
-        return _render_fallback_activity(activity_name)
+        return render_fallback_activity(activity_name)
 
     @app.get("/activities/{filename}")
     async def shared_activity_file(filename: str, request: Request) -> Response:
@@ -1191,6 +1188,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
     app.include_router(prop_editor_routes.router)
+    app.include_router(cutscene_routes.router)
     if loaded_config.mc_endpoint:
         app.include_router(mc_router)
     return app

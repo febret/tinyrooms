@@ -25,6 +25,7 @@ TUTORIAL_PACK_CARDS = {
     "seal-plushie",
     "tasty-toast",
     "tomato-sauce",
+    "victory-dance",
 }
 MEMEBASE_PACK_CARDS = {
     "beach-day",

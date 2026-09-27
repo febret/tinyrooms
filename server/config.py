@@ -103,6 +103,12 @@ class AppConfig:
         return self.repo_root / "activities"
 
     @property
+    def cutscenes_path(self) -> Path:
+        """Return the core cutscene script directory."""
+
+        return self.repo_root / "data" / "cutscenes"
+
+    @property
     def stickers_path(self) -> Path:
         """Return the stickers directory."""
 

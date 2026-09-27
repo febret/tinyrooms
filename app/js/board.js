@@ -70,9 +70,6 @@ function stackMetrics(record, worldX, worldZ) {
   };
 }
 
-
-
-
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
 export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
@@ -92,7 +89,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   // The room is static between edits, so re-rendering the 2048x2048 depth
   // buffer every frame doubled the submitted geometry for no visual change.
-  // `requestShadowUpdate` re-renders it whenever the scene actually moves.
+  // `invalidate` marks it stale whenever the scene actually moves.
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -242,6 +239,14 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return bounds.width && bounds.height ? bounds : null;
   }
 
+  /** Convert a projected NDC point into canvas client coordinates. */
+  function ndcToScreen(projected, bounds) {
+    return {
+      x: (projected.x + 1) / 2 * bounds.width + bounds.left,
+      y: (1 - projected.y) / 2 * bounds.height + bounds.top,
+    };
+  }
+
   function screenToBoardPosition(clientX, clientY) {
     if (disposed || renderFailed || !current || blocked) return null;
     const bounds = canvasBounds();
@@ -254,14 +259,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
     if (!hit) return null;
-    const projected = hit.clone().project(camera);
-    return {
-      position: boardPositionFromWorld(hit),
-      screen: {
-        x: (projected.x + 1) / 2 * bounds.width + bounds.left,
-        y: (1 - projected.y) / 2 * bounds.height + bounds.top,
-      },
-    };
+    return { position: boardPositionFromWorld(hit), screen: ndcToScreen(hit.clone().project(camera), bounds) };
   }
 
   function projectPositionToScreen(position) {
@@ -272,10 +270,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     world.y += TOP;
     const projected = world.project(camera);
     if (!Number.isFinite(projected.x) || projected.z > 1) return null;
-    return {
-      x: (projected.x + 1) / 2 * bounds.width + bounds.left,
-      y: (1 - projected.y) / 2 * bounds.height + bounds.top,
-    };
+    return ndcToScreen(projected, bounds);
   }
 
   function setDropHint(position) {
@@ -398,15 +393,19 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     record.mixers.length = 0;
   }
 
-  function startLoopedClip(record, model, clip) {
+  /** Create an animation mixer for `model` and register it for teardown. */
+  function createRecordMixer(record, model) {
     const mixer = new THREE.AnimationMixer(model);
-    mixer.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
     record.mixers.push(mixer);
+    return mixer;
+  }
+
+  function startLoopedClip(record, model, clip) {
+    createRecordMixer(record, model).clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
   }
 
   function startRandomClips(entry, record, model, clips) {
-    const mixer = new THREE.AnimationMixer(model);
-    record.mixers.push(mixer);
+    const mixer = createRecordMixer(record, model);
     let lastIndex = -1;
     function pick() {
       if (!isCurrent(entry) || entry.props.get(record.id) !== record) return;
@@ -484,6 +483,15 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     }
   }
 
+  /** Release a prop model's per-instance geometry and materials, keeping shared textures. */
+  function disposePropRecord(record) {
+    stopRecordAnimations(record);
+    record.effectController?.dispose();
+    record.effectController = null;
+    setGhosted(record, false);
+    disposeBoardTree([record.group, ...(record.scenes || [])], { textures: false });
+  }
+
   /** Build (or rebuild) a prop record's effect controller from its effect sets. */
   function buildRecordEffects(record, prop, model, bounds, visual) {
     record.effectController?.dispose();
@@ -540,6 +548,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         return;
       }
       const model = gltf.scene;
+      // Models load without shadow flags, so without this props cast no shadow.
+      model.traverse(node => {
+        if (node.isMesh) node.castShadow = node.receiveShadow = true;
+      });
       const bounds = new THREE.Box3().setFromObject(model);
       if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
         disposeBoardTree(gltf.scenes || [model]);
@@ -566,7 +578,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       setGhosted(record, Boolean(record.prop.ghost));
       playPropAnimation(entry, record, record.prop, model, record.clips);
       buildRecordEffects(record, record.prop, model, bounds, visual);
-      entry.modelScenes.push(...record.scenes);
       entry.pending -= 1;
       invalidate();
       if (!userAdjusted) scheduleFit();
@@ -623,11 +634,8 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     const record = entry.props.get(id);
     if (!record) return;
     invalidate();
-    stopRecordAnimations(record);
-    record.effectController?.dispose();
-    record.effectController = null;
+    disposePropRecord(record);
     entry.root.remove(record.group);
-    detachBoardTree(record.group);
     const index = entry.pickables.indexOf(record.group);
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.props.delete(id);
@@ -670,16 +678,16 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     invalidate();
     const group = new THREE.Group();
     register(entry, group, "room-card", card.stackId, card.position);
-    entry.cards.set(card.stackId, {
-      id: card.stackId, group, card, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
-      target: group.position.clone(),
-    });
     // The edge and back materials are identical for every card, so they are
-    // shared; only the front carries a card-specific texture. That takes a
-    // fifty-card room from 150 materials down to 52.
+    // shared; only the front carries a card-specific texture and owns its
+    // material, so the record keeps a handle to release it.
     const edge = sharedCardMaterial("#d5b887");
     const back = sharedCardMaterial("#193e55");
     const front = material("#fff7e3");
+    entry.cards.set(card.stackId, {
+      id: card.stackId, group, card, front, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
+      target: group.position.clone(),
+    });
     // BoxGeometry's +Y/-Y groups are the upper/lower faces, not +Z/-Z.
     const mesh = box(group, [0.62, 0.045, 0.88], [0, 0.028, 0], [edge, edge, front, back, edge, edge]);
     mesh.rotation.y = -0.08;
@@ -706,6 +714,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     invalidate();
     entry.root.remove(record.group);
     detachBoardTree(record.group);
+    // The card's own front material is the one thing in the group the shared
+    // caches did not hand out, so it is the one thing to release.
+    record.front?.dispose();
     const index = entry.pickables.indexOf(record.group);
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.cards.delete(id);
@@ -731,13 +742,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (entry.floor) {
       entry.root.remove(entry.floor.group);
       detachBoardTree(entry.floor.group);
-      // The floor's own material is not shared, so it is the one thing here
-      // that still owns GPU resources.
-      entry.floor.floor.material.dispose();
+      entry.floor.dispose();
     }
-    const { group, floor } = makeFloor(board);
+    const { group, floor, dispose } = makeFloor(board);
     entry.root.add(group);
-    entry.floor = { group, floor, key };
+    entry.floor = { group, floor, dispose, key };
     texture(entry, board.imageUrl, "floor artwork", map => {
       applyFloorImageStyle(map, board.imageStyle);
       floor.material.map = map;
@@ -748,19 +757,14 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
 
   function clear() {
     if (!current) return;
-    for (const record of current.props.values()) {
-      stopRecordAnimations(record);
-      record.effectController?.dispose();
-      record.effectController = null;
-    }
+    for (const record of current.props.values()) disposePropRecord(record);
+    for (const record of current.cards.values()) record.front?.dispose();
     canvas.dataset.fxCount = "0";
     scene.remove(current.root);
-    // Props, cards and the floor slab all draw on page-lifetime shared caches,
-    // so switching rooms unlinks the graph instead of disposing buffers that
-    // other instances still reference. Those caches are bounded by the number
-    // of distinct assets in the world, not by how many rooms are visited.
+    // Shared box geometry, card faces and textures are page-lifetime caches, so
+    // each entry releases only what it created before the graph is unlinked.
+    current.floor?.dispose?.();
     detachBoardTree(current.root);
-    current.floor?.floor?.material?.dispose();
     current = null;
     selectionObject = null;
     editSelectionObject = null;
@@ -775,7 +779,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     roomId = room.id;
     userAdjusted = false;
     const entry = {
-      root: new THREE.Group(), revision, pickables: [], modelScenes: [],
+      root: new THREE.Group(), revision, pickables: [],
       props: new Map(), cards: new Map(), floor: null,
       pending: 0, errors: new Set(), label: room.label,
     };
@@ -836,22 +840,24 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return true;
   }
 
-  function pickEditMode(event) {
-    if (!gizmo.group.visible || !setRayFromEvent(event)) return null;
-    const hit = raycaster.intersectObjects(gizmo.pickables, true)[0];
+  /** Walk up from the nearest raycast hit to the first object carrying `field`. */
+  function pickOwner(objects, field) {
+    const hit = raycaster.intersectObjects(objects, true)[0];
     if (!hit) return null;
     let object = hit.object;
-    while (object && !object.userData.editMode) object = object.parent;
-    return object ? object.userData.editMode : null;
+    while (object && !object.userData[field]) object = object.parent;
+    return object;
+  }
+
+  function pickEditMode(event) {
+    if (!gizmo.group.visible || !setRayFromEvent(event)) return null;
+    return pickOwner(gizmo.pickables, "editMode")?.userData.editMode ?? null;
   }
 
   function pickPropId(event) {
     if (!setRayFromEvent(event)) return null;
-    const hit = raycaster.intersectObjects(current?.pickables || [], true)[0];
-    if (!hit) return null;
-    let object = hit.object;
-    while (object && !object.userData.kind) object = object.parent;
-    return object && object.userData.kind === "prop" ? object.userData.id : null;
+    const owner = pickOwner(current?.pickables || [], "kind");
+    return owner?.userData.kind === "prop" ? owner.userData.id : null;
   }
 
   function suppressOrbit() {
@@ -944,10 +950,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
-    let object = raycaster.intersectObjects(current?.pickables || [], true)[0]?.object;
-    while (object && !object.userData.kind) object = object.parent;
-    if (object) {
-      onSelect({ kind: object.userData.kind, id: object.userData.id });
+    const owner = pickOwner(current?.pickables || [], "kind");
+    if (owner) {
+      onSelect({ kind: owner.userData.kind, id: owner.userData.id });
       return;
     }
     if (roomId) onSelect({ kind: "room", id: roomId });
@@ -1181,7 +1186,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       canvas.removeEventListener("webglcontextlost", contextLost);
       clear();
       gizmo.dispose();
-      GHOST_MATERIAL.dispose();
+      // GHOST_MATERIAL is a page-lifetime shared resource, so it is not disposed with one board.
       disposeBoardTree(selectionRing);
       disposeBoardTree(dropHint);
       sunlight.shadow.dispose();

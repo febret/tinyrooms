@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from server.content.cards import load_card_catalog
+from server.content.cards import cutscene_card_references, load_card_catalog
 from server.content.gameplay import load_gameplay_content
 from server.profiles import AccountRecord, ProfileRepository
 from server.security import utc_now
@@ -42,6 +42,29 @@ def load_world_activities():
     return {**core, **mod_activities}
 
 
+def load_world_cutscenes():
+    """Merge the core and mod cutscene catalogs for world loading."""
+
+    from server.config import KNOWN_FEATURES
+    from server.content.cutscenes import load_cutscene_definitions, merge_cutscene_definitions
+    from server.mods import load_mod_cutscene_definitions
+
+    core = load_cutscene_definitions(
+        REPO_ROOT / "data" / "core" / "cutscenes.yaml",
+        source="core",
+        script_roots=(REPO_ROOT / "data" / "cutscenes",),
+        known_features=KNOWN_FEATURES,
+    )
+    mod_cutscenes = load_mod_cutscene_definitions(repo_mods().values(), known_features=KNOWN_FEATURES)
+    return merge_cutscene_definitions(core, mod_cutscenes)
+
+
+def load_world_cutscene_roots():
+    """Return the mod cutscene script roots for world loading."""
+
+    return tuple(mod.cutscenes_path for mod in repo_mods().values() if mod.cutscenes_path.is_dir())
+
+
 def load_world_propsets():
     """Return the core propset roots for world loading."""
 
@@ -72,13 +95,16 @@ def load_test_world(world_path: Path, card_ids: set[str] | None = None):
     from server.config import KNOWN_FEATURES
     from server.content.worlds import load_world_definition
 
+    catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", world_path)
     if card_ids is None:
-        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", world_path)
         card_ids = set(catalog.cards)
     return load_world_definition(
         world_path,
         card_ids,
         core_activities=load_world_activities(),
+        core_cutscenes=load_world_cutscenes(),
+        cutscene_cards=cutscene_card_references(catalog),
+        cutscene_roots=load_world_cutscene_roots(),
         known_features=KNOWN_FEATURES,
         propsets_root=load_world_propsets(),
         mod_props=load_world_mod_props(),

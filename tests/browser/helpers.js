@@ -33,7 +33,7 @@ async function provisionAccount(page, runtime, username) {
   expect(confirmed.ok(), await confirmed.text()).toBeTruthy();
 }
 
-async function loginAccount(page, runtime, username) {
+export async function loginAs(page, runtime, username) {
   const origin = new URL(runtime.baseURL).origin;
   const response = await page.request.post(`${runtime.baseURL}/api/auth/login`, {
     data: { username, password: PASSWORD },
@@ -77,13 +77,22 @@ export async function openCore(page, id) {
 // Create an account and grant it builder power through the bootstrap admin.
 // One browser context is reused: boot as siteadmin, run the grant, then sign
 // back in as the editor. This avoids the cost of a second context and app boot.
-export async function createEditorAccount(page, runtime, username = "editor") {
+// Sign in as the bootstrap admin and hand a card to another account, so a
+// flow can exercise owned-card behaviour without a pack draw.
+export async function grantCardAsAdmin(page, runtime, username, cardId, quantity = 1) {
+  await provisionAccount(page, runtime, "siteadmin");
+  await loginAs(page, runtime, "siteadmin");
+  await page.goto(runtime.baseURL);
+  await command(page, `.gm give @${username} @card:${cardId} ${quantity}`);
+}
+
+export async function createEditorAccount(page, runtime, username = "editor", power = "builder") {
   await provisionAccount(page, runtime, username);
   await provisionAccount(page, runtime, "siteadmin");
-  await loginAccount(page, runtime, "siteadmin");
+  await loginAs(page, runtime, "siteadmin");
   await page.goto(runtime.baseURL);
   await command(page, `.builder grant @${username}`);
-  await loginAccount(page, runtime, username);
+  await loginAs(page, runtime, username);
   await page.goto(runtime.baseURL);
   await expect(page.getByRole("button", { name: `Select ${username}`, exact: true })).toBeVisible();
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");

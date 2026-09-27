@@ -61,7 +61,24 @@ export default defineConfig({
     },
   },
   projects: [
-    { name: "desktop", use: { viewport: { width: 1280, height: 800 } } },
-    { name: "portrait", use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
+    {
+      name: "desktop",
+      // Cutscene playback needs motion, so its spec only runs in desktop-motion.
+      testIgnore: /cutscenes\.spec\.js/,
+      use: { viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: "portrait",
+      testIgnore: /cutscenes\.spec\.js/,
+      use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+    },
+    // Cutscenes are disabled outright under reduced motion, so the suite's
+    // default `reduce` setting can never exercise one. This project opts back
+    // in for cutscene specs only; every other project keeps reduced motion.
+    {
+      name: "desktop-motion",
+      testMatch: /cutscenes\.spec\.js/,
+      use: { viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference" },
+    },
   ],
 });

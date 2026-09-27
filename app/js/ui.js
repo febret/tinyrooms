@@ -4,6 +4,7 @@ import { createChatAutocomplete } from "./autocomplete.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
+import { createCutsceneManager } from "./cutscenes/manager.js";
 import { flyCoinReward } from "./coin-effects.js";
 import {
   COMMANDS,
@@ -23,6 +24,7 @@ import { createCardMotion } from "./drag.js";
 import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
 import { resetLibraryFilter } from "./editing/library-filter.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
+import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
@@ -40,6 +42,7 @@ const detailLayer = $("#detail-layer");
 const editorRoot = $("#editor-dock");
 const shopRoot = $("#shop-dock");
 const activityLayer = $("#activity-layer");
+const cutsceneLayer = $("#cutscene-layer");
 const authLayer = $("#auth-layer");
 const chatInput = $("#chat-input");
 const settings = $("#settings");
@@ -132,6 +135,10 @@ function connectSocket() {
         void openShop();
         return;
       }
+      if (envelope.event?.type === "cutscene.play") {
+        cutscenes.enqueue(envelope.event);
+        return;
+      }
       store.dispatch({ type: "room-event", event: envelope.event });
       if (["presence.enter", "presence.leave"].includes(envelope.event?.type)) {
         peeps.noteMove(envelope.event);
@@ -153,13 +160,22 @@ function connectSocket() {
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
     onResult(envelope) {
       const events = Array.isArray(envelope.events) ? envelope.events : [];
+      // `cutscene.play` and `shop.open` are handled out of band, so they are
+      // filtered out before the store sees them and never become view state.
       const shopOpen = events.some(event => event?.type === "shop.open");
+      const handled = events.filter(event => {
+        if (event?.type === "cutscene.play") {
+          cutscenes.enqueue(event);
+          return false;
+        }
+        return event?.type !== "shop.open";
+      });
       store.dispatch({
         type: "result",
         ok: envelope.ok,
         message: envelope.message,
         payload: envelope.payload,
-        events: shopOpen ? events.filter(event => event?.type !== "shop.open") : events,
+        events: handled,
         toast: envelope.toast,
         log: envelope.log,
       });
@@ -881,18 +897,6 @@ function renderToasts(state) {
   }
 }
 
-/** Set `inert` only when it actually changes, avoiding observer feedback loops. */
-function setInert(node, value) {
-  if (!node || node.inert === value) return;
-  node.inert = value;
-}
-
-/** Toggle a class only when it actually changes. */
-function toggleClass(node, name, value) {
-  if (node.classList.contains(name) === value) return;
-  node.classList.toggle(name, value);
-}
-
 /** Set a data attribute only when it actually changes. */
 function toggleAttribute(node, name, value) {
   if (node.dataset[name] === value) return;
@@ -1029,6 +1033,16 @@ const activities = createActivityManager({
   onStickerConfirm: confirmSticker, onToast: toast,
 });
 
+const applyInert = createInertSweep({
+  root, panelLayer, detailLayer, activityLayer, settings,
+  bottomStack: $(".bottom-stack"),
+});
+
+const cutscenes = createCutsceneManager({
+  layer: cutsceneLayer, getState: () => store.getState(),
+  onToast: toast, onBlockingChange: () => applyInert(store.getState()),
+});
+
 /** Assemble the board view state, merging the live editor draft when editing. */
 function buildBoardState(state) {
   if (!state.editor || state.views.main !== "edit-room" || !state.room) return state;
@@ -1070,14 +1084,8 @@ async function render(state) {
   toggleClass(root, "audio-mode", Boolean(state.ui.audioEnabled));
   const pushDisabled = !state.ui.audioEnabled || state.ui.audioMuted;
   if (pushToTalk.disabled !== pushDisabled) pushToTalk.disabled = pushDisabled;
-  // The activity layer watches for `inert` mutations and re-sweeps the
-  // surrounding tree when it sees one, so assigning an unchanged value on every
-  // render made each socket message cost a full ancestor/sibling pass.
-  setInert($("#board-canvas"), !state.loggedIn || Boolean((state.views.main && state.views.main !== "edit-room") || state.views.details));
-  setInert(panelLayer, Boolean(state.views.details));
-  setInert(activityLayer, false);
-  setInert($(".bottom-stack"), !state.loggedIn || !state.user?.initialStickerComplete);
-  setInert(settings, !state.loggedIn || !state.user?.initialStickerComplete);
+  cutscenes.sync();
+  applyInert(state);
   peeps.render(state);
   syncVoice(state);
   renderLook(state);

@@ -38,6 +38,7 @@ class CardDefinition:
     amount: int | None
     duration: int | None
     category: str | None
+    cutscene: str | None
     rank: str | None
     quest: bool
     order: int | None
@@ -107,6 +108,9 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
         if not label or not description:
             raise ContentError(f"Card '{card_id}' must define label and description.")
         card_type = _detect_type(card_id, raw_card)
+        cutscene = str(raw_card["cutscene"]).strip() if raw_card.get("cutscene") else None
+        if cutscene is not None and card_type != "emote":
+            raise ContentError(f"Card '{card_id}' may only define cutscene on an emote.")
         raw_stack_limit = raw_card.get("stack_limit")
         if raw_stack_limit is None:
             stack_limit = DEFAULT_STACKABLE_LIMIT if card_type in STACKABLE_TYPES else 1
@@ -143,12 +147,23 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             amount=int(raw_card["amount"]) if "amount" in raw_card else None,
             duration=int(raw_card["duration"]) if "duration" in raw_card else None,
             category=str(raw_card["category"]) if "category" in raw_card else None,
+            cutscene=cutscene,
             rank=str(raw_card["rank"]) if "rank" in raw_card else None,
             quest=bool(raw_card.get("quest", False)),
             order=order,
             source=source,
         )
     return cards
+
+
+def cutscene_card_references(catalog: CardCatalog) -> tuple[tuple[str, str], ...]:
+    """Return every ``(card_id, cutscene)`` reference in a catalog."""
+
+    return tuple(
+        (definition.id, definition.cutscene)
+        for definition in catalog.cards.values()
+        if definition.cutscene
+    )
 
 
 def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefinition], source: str) -> PackDefinition:

@@ -25,6 +25,7 @@ from server.accounts import AccountService
 from server.commands.context import build_command_context
 from server.config import load_config
 from server.profiles import ProfileRepository
+from types import SimpleNamespace
 from tests.common import REPO_ROOT
 from tests.perf.perfkit import PerfCase
 from tests.perf.synthetic import temp_world
@@ -33,7 +34,7 @@ COMMANDS = 200
 
 #: Every attribute ``build_command_context`` reads off the runtime.
 RUNTIME_SLOTS = (
-    "profiles", "world_state", "rooms", "cards", "activities", "activity_results",
+    "profiles", "world_state", "rooms", "cards", "activities", "activity_results", "cutscenes",
     "registry", "stats", "inventory", "progression", "actions", "friends", "shop",
     "prop_shop", "pricing", "content", "behaviors", "dialogs", "tasks", "memories",
     "powers", "ownership", "environment", "audit", "connections", "mods",
@@ -65,6 +66,9 @@ def _runtime_stub(world, accounts: AccountService):
     stub.reload_world = lambda: None
     for name in RUNTIME_SLOTS:
         setattr(stub, name, object())
+    # The context reads the cached sticker set off the cutscene service; serving
+    # it from a fixed value is what keeps directory scans out of the hot path.
+    stub.cutscenes = SimpleNamespace(valid_stickers=frozenset({"s1.png"}))
     return stub
 
 

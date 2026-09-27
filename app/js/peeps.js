@@ -382,10 +382,17 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       // These run for every visible bubble on every render, so each write is
       // guarded. Assigning an unchanged className still invalidates style and
       // makes the activity layer's MutationObserver do a sibling sweep.
-      if (bubble.className !== className) bubble.className = className;
+      if (bubble.className !== className) {
+        bubble.className = className;
+        // Length or style changed, so the cached measurement is stale.
+        bubbleSizes.delete(bubble);
+      }
       const text = hasImage ? "" : peep.bubble.text;
       const textNode = bubble.querySelector(".bubble-text");
-      if (textNode.textContent !== text) textNode.textContent = text;
+      if (textNode.textContent !== text) {
+        textNode.textContent = text;
+        bubbleSizes.delete(bubble);
+      }
       if (image && image.getAttribute("src") !== peep.bubble.imageUrl) image.src = peep.bubble.imageUrl;
       if (hasImage && bubbleChanged) {
         bubble.style.animation = "none";

@@ -24,6 +24,7 @@ export const COMMANDS = [
   { name: ".swap_sticker <sticker>", summary: "Swap your peep sticker for Bops." },
   { name: ".shop", summary: "Open the card-pack shop." },
   { name: ".play <activity>", summary: "Open a room or account activity." },
+  { name: ".cutscene <id>", summary: "Play a cutscene for yourself, or the room with --room." },
   { name: ".cancel", summary: "Cancel targeting or a pending interaction." },
 ];
 

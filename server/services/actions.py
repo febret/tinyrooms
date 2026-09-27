@@ -11,7 +11,7 @@ from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
 DEFAULT_CARD_ENERGY_COST = 2
-EMOTE_COSTS = {"Expression": 1, "Animation": 3, "Effects": 5}
+EMOTE_COSTS = {"Expression": 1, "Animation": 3, "Effects": 5, "Scene": 5}
 HEALTH_EFFECT = "health"
 ENERGY_EFFECT = "energy"
 SUPPORTED_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT})
@@ -44,6 +44,7 @@ class ActionResult:
     effects: tuple[ActionEffect, ...] = ()
     room_effect: str | None = None
     bubble: dict[str, object] | None = None
+    cutscene: str | None = None
     inventory: tuple[InventoryStack, ...] = field(default_factory=tuple)
 
 
@@ -216,6 +217,16 @@ class ActionsService:
             else:
                 actor = self._stats.reconcile_in_transaction(connection, account.id)
             category = definition.category or "Expression"
+            if definition.cutscene:
+                return ActionResult(
+                    actor=actor,
+                    card_id=definition.id,
+                    card_label=definition.label,
+                    message=f"{account.username_display} used {definition.label}.",
+                    consumed=False,
+                    cutscene=definition.cutscene,
+                    inventory=tuple(self._profiles.list_inventory(account.id, self._world_id)),
+                )
             if category == "Effects":
                 return ActionResult(
                     actor=actor,

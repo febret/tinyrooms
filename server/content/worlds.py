@@ -14,6 +14,11 @@ from server.content.activities import (
 )
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.conditions import StatusCondition, parse_status_condition
+from server.content.cutscenes import (
+    CutsceneDefinition,
+    load_cutscene_definitions,
+    merge_cutscene_definitions,
+)
 from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.tasks import TaskDefinition, load_task_definitions
@@ -199,6 +204,7 @@ class WorldDefinition:
     rooms: dict[str, RoomDefinition]
     peeps: dict[str, PeepDefinition]
     activities: dict[str, ActivityDefinition] = field(default_factory=dict)
+    cutscenes: dict[str, CutsceneDefinition] = field(default_factory=dict)
     tasks: dict[str, TaskDefinition] = field(default_factory=dict)
     powers: dict[str, tuple[str, ...]] = field(default_factory=dict)
     recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
@@ -627,6 +633,9 @@ def load_world_definition(
     card_ids: set[str],
     *,
     core_activities: Mapping[str, ActivityDefinition] | None = None,
+    core_cutscenes: Mapping[str, CutsceneDefinition] | None = None,
+    cutscene_cards: Sequence[tuple[str, str]] = (),
+    cutscene_roots: Sequence[Path] | None = None,
     known_features: frozenset[str] = frozenset(),
     propsets_root: Path | Sequence[Path] | None = None,
     mod_props: Sequence[tuple[str, Path]] | None = None,
@@ -842,6 +851,21 @@ def load_world_definition(
         if peep.activity and peep.activity not in activities:
             raise ContentError(f"Peep '{peep.id}' references unknown activity '{peep.activity}'.")
 
+    roots: list[Path] = [Path(root) for root in (cutscene_roots or ())]
+    roots.insert(0, world_path / "cutscenes")
+    world_cutscenes = load_cutscene_definitions(
+        world_path / "cutscenes.yaml",
+        source=world_id,
+        script_roots=roots,
+        known_rooms=frozenset(rooms),
+        known_features=known_features,
+        known_powers=frozenset(POWER_NAMES),
+    )
+    cutscenes = merge_cutscene_definitions(core_cutscenes or {}, world_cutscenes)
+    for card_id, cutscene_id in cutscene_cards:
+        if cutscene_id not in cutscenes:
+            raise ContentError(f"Card '{card_id}' references unknown cutscene '{cutscene_id}'.")
+
     return WorldDefinition(
         id=world_id,
         label=str(world_payload.get("label", "")).strip(),
@@ -853,6 +877,7 @@ def load_world_definition(
         rooms=rooms,
         peeps=peeps,
         activities=activities,
+        cutscenes=cutscenes,
         tasks=load_task_definitions(world_path, card_ids),
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,

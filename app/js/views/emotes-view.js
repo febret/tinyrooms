@@ -2,10 +2,10 @@ import { cardsGrid, modalShell } from "./view-helpers.js";
 
 export function emotesView(state) {
   const category = state.ui.emoteCategory || "Expression";
-  const categories = ["Expression", "Animation", "Effects"];
+  const categories = ["Expression", "Animation", "Scene"];
   const emotes = (state.room?.inventory || []).filter(stack => stack.definition?.type === "emote");
   const visible = emotes.filter(stack => {
-    const value = stack.definition?.category || (stack.definition?.effect ? "Effects" : "Expression");
+    const value = stack.definition?.category || "Expression";
     return value === category;
   });
   return modalShell({

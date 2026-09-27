@@ -59,12 +59,6 @@ class AuraService:
         self._applied.discard((account_id, source))
         self._stats.remove_source(account_id, source)
 
-    def forget(self, account_id: str) -> None:
-        """Drop all cached aura state for an account, e.g. on session replacement."""
-
-        for key in [key for key in self._applied if key[0] == account_id]:
-            self._applied.discard(key)
-
     @staticmethod
     def _buff_instance(entry) -> BuffInstance:
         now = utc_now()

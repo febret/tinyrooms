@@ -50,6 +50,7 @@ class BehaviorDispatcher:
         stats: object,
         progression: object,
         activities: object,
+        cutscenes: object | None = None,
         catalog: CardCatalog,
         dialogs: object,
         connections: object,
@@ -64,6 +65,7 @@ class BehaviorDispatcher:
         self._stats = stats
         self._progression = progression
         self._activities = activities
+        self._cutscenes = cutscenes
         self._catalog = catalog
         self._dialogs = dialogs
         self._connections = connections
@@ -317,6 +319,8 @@ class BehaviorDispatcher:
             self._apply_end_dialog(connection, context, result)
         elif kind == "start_activity":
             self._apply_start_activity(payload, context, event, result)
+        elif kind == "cutscene":
+            self._apply_cutscene(payload, context, event, result)
         elif kind in {"start_task", "update_task_progress"}:
             self._apply_task_intent(kind, payload, context, result, deferred)
         elif kind == "request_move":
@@ -325,6 +329,45 @@ class BehaviorDispatcher:
             self._apply_set_environment(connection, payload, context, event, result)
         else:
             self._log("behavior.intent.unknown", kind=kind)
+
+    def _apply_cutscene(
+        self,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        cutscenes = self._cutscenes
+        if cutscenes is None or event.room_id is None:
+            self._log("behavior.intent.skipped", kind="cutscene", reason="unavailable")
+            return
+        account_id = context.actor.account_id
+        if account_id is None:
+            self._log("behavior.intent.skipped", kind="cutscene", reason="no_account")
+            return
+        cutscene_id = str(payload.get("cutscene_id", ""))
+        try:
+            definition = cutscenes.resolve(cutscene_id)
+            audience = cutscenes.choose_audience(definition, payload.get("audience"))
+            account = self._profiles.get_account_by_id(account_id)
+            if account is None:
+                raise ValueError("the acting account no longer exists")
+            launch = cutscenes.launch(
+                definition=definition,
+                account=account,
+                room_id=event.room_id,
+                audience=audience,
+                origin="behavior",
+                params=payload.get("params") if isinstance(payload.get("params"), dict) else None,
+            )
+        except Exception as exc:  # noqa: BLE001 - one bad script must not break the room
+            self._log("behavior.intent.skipped", kind="cutscene", error=str(exc))
+            return
+        if launch.is_room_wide:
+            result.room_broadcasts.append(PendingRoomBroadcast(room_id=event.room_id, event=launch.event))
+        else:
+            result.private_events.append(launch.event)
+        result.messages.append(f"{launch.definition.title} played.")
 
     def _apply_feedback(self, payload: Mapping[str, object], result: BehaviorResult) -> None:
         text = str(payload.get("text", ""))

@@ -502,7 +502,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import activity_hooks, gameplay, privileged, prop_shop, props
+    from server.commands import activity_hooks, cutscenes, gameplay, privileged, prop_shop, props
 
     registry = CommandRegistry()
     registry.register(
@@ -577,8 +577,24 @@ def build_registry() -> CommandRegistry:
         props.craft_preview_command,
         usage=".craft_preview <recipe_id>",
     )
-    registry.register("dialog", "Choose a declarative dialog option.", dialog_command, usage=".dialog <index>")
-    registry.register("dialog_end", "End the current conversation.", dialog_end_command, usage=".dialog_end")
+    # The dialog panel is its own feedback, so a choice produces no toast or
+    # log line; this matches `.talk`, which opens the same panel silently.
+    registry.register(
+        "dialog",
+        "Choose a declarative dialog option.",
+        dialog_command,
+        usage=".dialog <index>",
+        toast=False,
+        log=False,
+    )
+    registry.register(
+        "dialog_end",
+        "End the current conversation.",
+        dialog_end_command,
+        usage=".dialog_end",
+        toast=False,
+        log=False,
+    )
     registry.register(
         "dispense",
         "Take a card from a dispenser prop.",
@@ -657,6 +673,14 @@ def build_registry() -> CommandRegistry:
         "Open a room activity or developer sample activity.",
         play_command,
         usage=".play <activity> [replace]",
+    )
+    registry.register(
+        "cutscene",
+        "Play a cutscene for yourself, or for the whole room.",
+        cutscenes.cutscene_command,
+        usage=".cutscene <id> [key=value ...] [@prop:<id>|@peep:<id>] [--room]",
+        help="Play a short scripted animation over the room. Cutscenes never interrupt activities.",
+        toast=False,
     )
     registry.register(
         "prop_catalog",

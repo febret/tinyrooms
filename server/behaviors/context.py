@@ -139,6 +139,29 @@ class BehaviorContext:
 
         self._append("start_activity", {"kind": str(kind), "title": title})
 
+    def cutscene(
+        self,
+        cutscene_id: str,
+        *,
+        audience: str | None = None,
+        params: Mapping[str, object] | None = None,
+    ) -> None:
+        """Queue playing a cutscene for the acting peep, or for the whole room.
+
+        The default ``private`` audience reaches only the account whose action
+        triggered this event, because the dispatcher routes the play event by
+        ``account_id``.
+        """
+
+        self._append(
+            "cutscene",
+            {
+                "cutscene_id": str(cutscene_id),
+                "audience": str(audience) if audience else None,
+                "params": dict(params or {}),
+            },
+        )
+
     def start_task(self, task_id: str) -> None:
         """Queue starting a task (task storage lands in Phase B)."""
 

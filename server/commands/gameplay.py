@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from server.behaviors.events import BehaviorEvent, PeepRef
+from server.commands.cutscenes import deliver, play_cutscene
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
 from server.commands.parser import ParsedCommand, parse_target
 from server.services.actions import ActionResult
@@ -140,10 +141,41 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
     return outcome
 
 
+async def play_cutscene_emote(context: CommandContext, result: ActionResult) -> CommandOutcome:
+    """Broadcast the cutscene a cutscene emote card points at."""
+
+    if context.connection.room_id is None:
+        raise CommandError("You are not currently in a room.")
+    launch = await play_cutscene(
+        context,
+        reference=str(result.cutscene),
+        room_id=context.connection.room_id,
+        origin="emote",
+        params={"card": result.card_id},
+    )
+    private_events, room_broadcasts = deliver(launch)
+    return CommandOutcome(
+        message=result.message,
+        payload={
+            "inventory": [
+                context.cards.serialize_inventory_stack(stack) for stack in result.inventory
+            ],
+            "user": _user_payload(context),
+        },
+        private_events=[
+            *private_events,
+            {"type": "action.log", "text": result.message, "source": context.account.username_display},
+        ],
+        room_broadcasts=room_broadcasts,
+    )
+
+
 async def emote_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     result = context.actions.use_emote(context.account, stack_id=stack_id)
     room_id = context.connection.room_id
+    if result.cutscene:
+        return await play_cutscene_emote(context, result)
     broadcasts = []
     if room_id is not None and result.room_effect is not None:
         event = {

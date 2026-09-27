@@ -18,6 +18,7 @@ from server.services.activity_results import ActivityResultService
 from server.services.audit import AuditService
 from server.services.cards import CardService
 from server.services.crafting import CraftingService
+from server.services.cutscenes import CutsceneService
 from server.services.dialogs import DialogService
 from server.services.dispensers import DispenserService
 from server.services.environment import EnvironmentService
@@ -74,6 +75,7 @@ class CommandContext:
     cards: CardService
     activities: ActivityService
     activity_results: ActivityResultService
+    cutscenes: CutsceneService
     registry: CommandRegistry
     stats: StatsService
     inventory: InventoryService

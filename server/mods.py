@@ -25,6 +25,7 @@ import types
 from server.config import AppConfig, ConfigError, KNOWN_FEATURES
 from server.content.activities import ActivityDefinition, load_activity_definitions
 from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.cutscenes import CutsceneDefinition, load_cutscene_definitions
 
 
 _MOD_ID = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
@@ -46,6 +47,12 @@ class ModDefinition:
         """Return the mod's activity iframe directory."""
 
         return self.path / "activities"
+
+    @property
+    def cutscenes_path(self) -> Path:
+        """Return the mod's cutscene script root."""
+
+        return self.path / "cutscenes"
 
     @property
     def props_path(self) -> Path:
@@ -122,12 +129,20 @@ class LoadedMods:
     definitions: tuple[ModDefinition, ...] = ()
     apis: tuple[ModAPI, ...] = ()
     activity_definitions: dict[str, ActivityDefinition] = field(default_factory=dict)
+    cutscene_definitions: dict[str, CutsceneDefinition] = field(default_factory=dict)
 
     @property
     def ids(self) -> frozenset[str]:
         """Return the enabled mod ids."""
 
         return frozenset(mod.id for mod in self.definitions)
+
+    def cutscene_roots(self) -> tuple[Path, ...]:
+        """Return the cutscene script roots contributed by enabled mods."""
+
+        return tuple(
+            mod.cutscenes_path for mod in self.definitions if mod.cutscenes_path.is_dir()
+        )
 
     def mod_props(self) -> tuple[tuple[str, Path], ...]:
         """Return ``(mod_id, props_dir)`` for every mod with a props.yaml."""
@@ -263,6 +278,31 @@ def load_mod_activity_definitions(
     return definitions
 
 
+def load_mod_cutscene_definitions(
+    mods: Iterable[ModDefinition],
+    *,
+    known_features: frozenset[str] = KNOWN_FEATURES,
+) -> dict[str, CutsceneDefinition]:
+    """Load each mod's optional ``content/cutscenes.yaml``."""
+
+    definitions: dict[str, CutsceneDefinition] = {}
+    for mod in mods:
+        path = mod.content_path / "cutscenes.yaml"
+        if not path.is_file():
+            continue
+        loaded = load_cutscene_definitions(
+            path,
+            source=mod.id,
+            script_roots=(mod.cutscenes_path,),
+            known_features=known_features,
+        )
+        for cutscene_id, definition in loaded.items():
+            if cutscene_id in definitions:
+                raise ContentError(f"Duplicate mod cutscene id '{cutscene_id}'.")
+            definitions[cutscene_id] = definition
+    return definitions
+
+
 def load_mods(config: AppConfig) -> LoadedMods:
     """Resolve, import, and register every enabled mod."""
 
@@ -285,4 +325,5 @@ def load_mods(config: AppConfig) -> LoadedMods:
         definitions=definitions,
         apis=tuple(apis),
         activity_definitions=load_mod_activity_definitions(definitions),
+        cutscene_definitions=load_mod_cutscene_definitions(definitions),
     )

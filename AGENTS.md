@@ -22,8 +22,8 @@ Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, v
 | `server/client/` | Client-side logic ported to Python for browser-free tests |
 | `app/` | Browser UI — JavaScript modules, Three.js renderer, HTML/CSS |
 | `activities/` | Self-contained game activities (e.g. Sticker Designer) |
-| `data/` | Shared card definitions and sticker artwork assets |
-| `worlds/tutorial/` | Tutorial world YAML definitions (rooms, peeps, cards, recipes, props) |
+| `data/` | Shared card definitions and sticker artwork assets, plus core cutscenes in `data/cutscenes/<id>/` |
+| `worlds/tutorial/` | Tutorial world YAML definitions (rooms, peeps, cards, recipes, props) and world cutscenes in `worlds/tutorial/cutscenes/<id>/` |
 | `tests/` | Python unit/integration tests, ported client-logic tests, and Playwright browser specs |
 
 ## Code Conventions
@@ -60,7 +60,7 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_WORLD_PATH` | No | `worlds/tutorial` |
 | `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
 | `TRSERVER_CUSTOM_STICKERS_PATH` | No | `.local/stickers` |
-| `TRSERVER_FEATURES` | No | _(none)_ |
+| `TRSERVER_FEATURES` | No | _(none)_ — e.g. `dynamic_peeps` |
 | `TRSERVER_MODS` | No | _(none)_ — comma-separated names or `*` |
 | `TRSERVER_MODS_PATH` | No | `mods` |
 | `TRSERVER_ADMINS` | No | _(none)_ |
@@ -150,7 +150,7 @@ Browser harness settings (from `playwright.config.js`):
 - **Authoritative server**: All world state lives in SQLite on the server. The client is a pure renderer + input dispatcher.
 - **In-process room ordering**: A single server process owns a world, so room broadcasts are ordered by the event loop; there is no per-room sequence counter. Command results are matched to clients by `request_id`.
 - **Invitation-gated accounts**: `TRSERVER_NEW_ACCOUNT_PASSPHRASE` controls who can register. Changing it after accounts exist has no effect on existing users.
-- **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, `dynamic_peeps`, etc.). Never ship enabled-by-default dev features to production.
+- **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, `dynamic_peeps`, etc.). Never ship enabled-by-default dev features to production. Cutscenes are deliberately **not** flagged: the subsystem is always live and only the client's reduced-motion preference suppresses playback, so a cutscene can never be half-enabled.
 - **Dynamic peeps execute agent-generated Python in-process**: gated behind `dynamic_peeps`, a separate worker process (`tools/peep_agent.py`), and a dev-only warning. The authored floor is immutable and agent output is validated and layered on top. Never enable in production, and never widen the artifact import allowlist without re-reading [doc/dynamic-peeps.md](doc/dynamic-peeps.md) §9.
 - **Hot-reload disabled in prod**: A separate production launch path (not yet implemented) would use a different certificate and disable self-signed cert generation.
 - **Modern browser floor**: The client is ES modules plus ES2020 syntax and an import map (Chrome/Edge 89+, Samsung Internet 15+, Firefox 108+, Safari 16.4+). `app/js/boot-guard.js` is a plain ES5 classic script that runs before the module entry; on unsupported engines it renders a diagnostic overlay (engine/JS capability/error details) instead of a blank page. Keep it ES5-only — `tests/test_ui_presentation.py` rejects modern syntax in that file.

@@ -1,0 +1,12 @@
+victory-dance:
+  title: Victory Dance
+  script: victory-dance.js
+  frame: vs
+  duration: 4200
+  audience: room
+  room_bound: false
+  skip: true
+  max_queue: 1
+  params:
+    accent: "#f0b429"
+    stage_background: "#120a24"

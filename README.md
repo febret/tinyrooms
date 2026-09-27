@@ -213,8 +213,11 @@ TR_UPDATE_SCREENSHOTS=1 npm run test:visual -- --update-snapshots
 - `app`: browser UI and Three.js tabletop renderer.
 - `server`: accounts, commands, protocol, services, and persistence.
 - `activities`: Sticker Designer and activity fixtures.
-- `data`: shared cards and sticker artwork.
-- `worlds/tutorial`: tutorial definitions and assets.
+- `data`: shared cards and sticker artwork, plus core cutscene definitions and
+  their scripts under `data/cutscenes/<id>/`.
+- `worlds/tutorial`: tutorial definitions and assets, including world cutscenes
+  under `worlds/tutorial/cutscenes/<id>/`. See
+  [doc/cutscenes.md](doc/cutscenes.md).
 - `tools`: reproducible browser dependency vendoring.
 - `doc`: design, milestone, and visual references. Start with
   [doc/architecture.md](doc/architecture.md) for the technical overview.

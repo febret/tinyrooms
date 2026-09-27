@@ -425,6 +425,22 @@ test.describe("core milestone 2 views", () => {
 
 });
 
+test.describe("cutscenes under reduced motion", () => {
+  // The whole suite runs with `prefers-reduced-motion: reduce`, under which
+  // cutscenes are disabled outright. Positive coverage lives in
+  // cutscenes.spec.js, which opts back in through the desktop-motion project.
+  test("never builds the cutscene layer", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    const layer = page.locator("#cutscene-layer");
+    await expect(layer).toHaveAttribute("data-state", "idle");
+    await command(page, ".cutscene molly-greet");
+    await page.waitForTimeout(1_000);
+    await expect(layer).toHaveAttribute("data-state", "idle");
+    await expect(layer).toBeHidden();
+    await expect(page.locator(".cutscene-root")).toHaveCount(0);
+  });
+});
+
 test.describe("milestone 2 activities and targeting", () => {
   test.slow();
 

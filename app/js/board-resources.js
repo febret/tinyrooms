@@ -155,18 +155,30 @@ export function box(parent, dimensions, position, materials) {
 
 export function makeFloor(board) {
   const group = new THREE.Group();
-  box(group, [12.45, 0.35, 10.45], [0, -0.24, 0], material("#62422d"));
-  box(group, [12.5, 0.12, 10.5], [0, -0.08, 0], material("#a76e38"));
-  box(group, [12.12, 0.07, 10.12], [0, -0.005, 0], material("#bca076"));
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_HEIGHT),
-    material(board.palette?.[0] || "#d4be94"),
-  );
+  const slabMaterials = [
+    material("#62422d"),
+    material("#a76e38"),
+    material("#bca076"),
+  ];
+  box(group, [12.45, 0.35, 10.45], [0, -0.24, 0], slabMaterials[0]);
+  box(group, [12.5, 0.12, 10.5], [0, -0.08, 0], slabMaterials[1]);
+  box(group, [12.12, 0.07, 10.12], [0, -0.005, 0], slabMaterials[2]);
+  const geometry = new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_HEIGHT);
+  const planeMaterial = material(board.palette?.[0] || "#d4be94");
+  const floor = new THREE.Mesh(geometry, planeMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = TOP;
   floor.receiveShadow = true;
   group.add(floor);
-  return { group, floor };
+  // The slab geometry is the shared box cache and the floor artwork texture is
+  // the shared texture cache, so neither is released here; the per-floor
+  // materials and the one plane buffer are this floor's own.
+  const dispose = () => {
+    for (const item of slabMaterials) item.dispose();
+    planeMaterial.dispose();
+    geometry.dispose();
+  };
+  return { group, floor, dispose };
 }
 
 export function floorKey(board) {

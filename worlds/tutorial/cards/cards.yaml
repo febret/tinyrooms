@@ -110,3 +110,14 @@ vacuum-cleaner:
   quest: true
   effect: vacuum
   target: prop
+
+# Cutscene emote: playing it broadcasts a scripted cutscene to the room.
+victory-dance:
+  label: Victory Dance
+  description: A triumphant full-screen strut. Plays for the whole room.
+  image: victory-dance.png
+  type: emote
+  category: Scene
+  cutscene: victory-dance
+  rarity: Uncommon
+  energy_cost: 5

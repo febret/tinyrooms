@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING
 
 from server.config import AppConfig, KNOWN_FEATURES
 from server.content.activities import load_activity_definitions
-from server.content.cards import CardCatalog, load_card_catalog
+from server.content.cards import CardCatalog, cutscene_card_references, load_card_catalog
+from server.content.cutscenes import load_cutscene_definitions
 from server.content.gameplay import GameplayContent, load_gameplay_content
 from server.content.worlds import WorldDefinition, load_world_definition
 
@@ -45,10 +46,21 @@ def load_world_bundle(
         known_features=KNOWN_FEATURES,
     )
     mod_activities = loaded_mods.activity_definitions if loaded_mods is not None else {}
+    core_cutscenes = load_cutscene_definitions(
+        config.repo_root / "data" / "core" / "cutscenes.yaml",
+        source="core",
+        script_roots=(config.repo_root / "data" / "cutscenes",),
+        known_features=KNOWN_FEATURES,
+    )
+    mod_cutscenes = loaded_mods.cutscene_definitions if loaded_mods is not None else {}
+    mod_cutscene_roots = loaded_mods.cutscene_roots() if loaded_mods is not None else ()
     world = load_world_definition(
         world_path,
         set(catalog.cards),
         core_activities={**core_activities, **mod_activities},
+        core_cutscenes={**core_cutscenes, **mod_cutscenes},
+        cutscene_cards=cutscene_card_references(catalog),
+        cutscene_roots=mod_cutscene_roots,
         known_features=KNOWN_FEATURES,
         propsets_root=config.propsets_path,
         mod_props=loaded_mods.mod_props() if loaded_mods is not None else (),

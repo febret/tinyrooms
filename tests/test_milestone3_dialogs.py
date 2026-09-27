@@ -157,6 +157,22 @@ class DialogCommandIntegrationTests(RuntimeTestCase):
             self.assertTrue(ended["ok"], ended)
             self.assertIsNone(ended["payload"]["dialog"])
 
+    def test_dialog_turns_are_silent(self) -> None:
+        credentials = self.create_ready_account("quiet")
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            self._travel_to_playroom(socket)
+            talk = self.command(socket, "talk-1", ".talk molly")
+            self.assertIs(talk.get("toast"), False, "opening a dialog should not toast")
+            chosen = self.command(socket, "dialog-1", ".dialog 0")
+            self.assertIs(chosen.get("toast"), False, "a dialog choice should not toast")
+            self.assertIs(chosen.get("log"), False, "a dialog choice should not log")
+            ended = self.command(socket, "dialog-2", ".dialog_end")
+            self.assertIs(ended.get("toast"), False, "ending a dialog should not toast")
+            self.assertIs(ended.get("log"), False, "ending a dialog should not log")
+
     def test_go_cancels_active_dialog(self) -> None:
         credentials = self.create_ready_account("elo")
         with self.client.websocket_connect(

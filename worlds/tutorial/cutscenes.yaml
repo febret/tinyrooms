@@ -1,0 +1,15 @@
+molly-greet:
+  title: Molly Greets You
+  script: molly-greet.js
+  frame: movie
+  duration: 5200
+  audience: private
+  room_bound: true
+  aliases: [greet]
+  max_queue: 2
+  params:
+    stage_background: "#04141c"
+    caption_color: "#f7f5ed"
+  text:
+    - {at: 350, speaker: Molly, say: "Purrrr."}
+    - {at: 2100, speaker: Molly, say: "$me, you again? Good."}

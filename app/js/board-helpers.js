@@ -39,26 +39,34 @@ export function detachBoardTree(roots) {
   for (const root of Array.isArray(roots) ? roots : [roots]) {
     if (!root) continue;
     root.parent?.remove(root);
-    root.traverse(node => {
-      node.parent?.remove(node);
-    });
+    // Detaching inside the walk mutates the parent's `children` array while
+    // `traverse` holds a cached length, so it walks past the shifted list and
+    // dereferences undefined. Snapshot the nodes first, then unlink them.
+    const nodes = [];
+    root.traverse(node => nodes.push(node));
+    for (const node of nodes) node.parent?.remove(node);
   }
 }
 
 /**
- * Dispose each owned GPU resource once, including GLTF ImageBitmaps and shared materials.
+ * Dispose each owned GPU resource once, including GLTF ImageBitmaps and unshared materials.
  *
- * Only call this for subtrees that own their resources. Props, cards and floors
- * draw on caches shared across instances, so disposing them would pull the GPU
- * buffers out from under every other copy; use {@link detachBoardTree} for those.
+ * Only call this for subtrees that own their resources. Floors and cards draw
+ * on geometry, material and texture caches shared across instances, so
+ * disposing them would pull the GPU buffers out from under every other copy;
+ * use {@link detachBoardTree} for those. Prop models own their geometry and
+ * materials (parsed per instance) but share their textures through
+ * `shareModelTextures`, so they pass ``textures: false`` to keep the canonical
+ * uploads alive.
  */
-export function disposeBoardTree(roots) {
+export function disposeBoardTree(roots, { textures: disposeTextures = true } = {}) {
   const geometries = new Set();
   const materials = new Set();
   const textures = new Set();
   const images = new Set();
   const skeletons = new Set();
   for (const root of Array.isArray(roots) ? roots : [roots]) {
+    if (!root) continue;
     root.traverse(node => {
       if (node.geometry) geometries.add(node.geometry);
       if (node.skeleton) skeletons.add(node.skeleton);
@@ -68,18 +76,22 @@ export function disposeBoardTree(roots) {
     });
   }
   for (const item of materials) {
-    for (const value of Object.values(item)) {
-      if (value?.isTexture) textures.add(value);
+    if (disposeTextures) {
+      for (const value of Object.values(item)) {
+        if (value?.isTexture) textures.add(value);
+      }
     }
     item.dispose();
   }
-  for (const texture of textures) {
-    for (const image of Array.isArray(texture.source?.data) ? texture.source.data : [texture.source?.data]) {
-      if (image?.close) images.add(image);
+  if (disposeTextures) {
+    for (const texture of textures) {
+      for (const image of Array.isArray(texture.source?.data) ? texture.source.data : [texture.source?.data]) {
+        if (image?.close) images.add(image);
+      }
+      texture.dispose();
     }
-    texture.dispose();
+    for (const image of images) image.close();
   }
-  for (const image of images) image.close();
   for (const geometry of geometries) geometry.dispose();
   for (const skeleton of skeletons) skeleton.dispose();
 }

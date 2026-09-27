@@ -1,6 +1,9 @@
 # Tinyrooms — Cutscenes
 
-Status: design specification. Not yet implemented. Related docs:
+Status: **implemented**. Cutscenes are always available; the only switch is the
+client's reduced-motion preference (§2.3). This document is the specification; the notes
+in each section marked *As built* record where the shipped code differs from it.
+Related docs:
 [architecture.md](./architecture.md) (current components/protocol),
 [design.md](./design.md) (product/design intent),
 [db.md](./db.md) (schemas), [mission-control.md](./mission-control.md) (the
@@ -9,8 +12,14 @@ other forward-looking spec).
 This document specifies **what** the cutscene feature is and the contracts
 between the server, the client, and cutscene authors. Fine-grained
 implementation choices (exact module internals, CSS keyframe values, the
-ordering of individual animation beats) are intentionally left to the build
-step.
+ordering of individual animation beats) are left to the scene author.
+
+Shipped alongside it: `data/core/cutscenes.yaml` (`victory-dance`, a
+room-audience `vs` scene with a custom `victory-banner` frame) and
+`worlds/tutorial/cutscenes.yaml` (`molly-greet`, a private `movie` scene bound
+to Molly through `cutscene: molly-greet` in `worlds/tutorial/peeps/peeps.yaml`).
+A matching `victory-dance` emote card lives in `worlds/tutorial/cards/` and is
+in the tutorial pack.
 
 ## 1. Overview
 
@@ -94,7 +103,10 @@ trust tier as world YAML and mod Python. It is never attacker-supplied:
   from the content catalog. The client never accepts a module path from a
   cutscene message.
 - Only the server's own cutscene roots are searched, with per-scene directory
-  containment (mirroring `_safe_path` in `server/app.py:331`).
+  containment. *As built:* `server/routes/cutscenes.py` resolves the requested
+  file under each root, requires the first path segment to equal the cutscene
+  id, and skips any candidate that escapes its root. The static route is not
+  feature-flagged, matching `/activities/`.
 - Mods can ship cutscenes only if the operator enabled them
   (`TRSERVER_MODS`), exactly as for mod activities and mod props.
 
@@ -135,7 +147,7 @@ frame type is logged once to the console, torn down, and the queue continues.
 | `#activity-layer` | **Untouched** — activities open and render above |
 | `.bottom-stack` (card hand, chat, shop, editor) | Untouched and usable |
 | `#bubble-layer` | Dimmed behind the frame; bubble auto-dismiss timers keep running |
-| Keyboard | `Escape` skips the cutscene; focus is trapped in the frame |
+| Keyboard | `Escape` skips the cutscene; focus moves to the Skip button and returns to where it was |
 
 The `inert` sweep is shared with the existing activity focus machinery
 (`syncModal` in `app/js/activities.js:45`, driven by the `MutationObserver` at
@@ -269,10 +281,16 @@ any sibling assets (SVGs, sprites, CSS):
 | Mod | `mods/<id>/content/cutscenes.yaml` | `mods/<id>/cutscenes/<id>/` | `/cutscenes/<id>/<script>` |
 | World | `worlds/<world>/cutscenes.yaml` | `worlds/<world>/cutscenes/<id>/` | `/cutscenes/<id>/<script>` |
 
-Search order for a given id mirrors `_activity_roots` (`server/app.py:338`):
-core first, then mods in load order, then the world. A later source that
-redefines an id is a **load error**, not an override — same rule as duplicate
-activity ids.
+Search order for a given id mirrors the activity roots: core first, then mods
+in load order, then the world. A later source that redefines an id is a **load
+error**, not an override — the same rule duplicate prop ids follow. An alias
+claimed by two cutscenes, or an alias equal to another cutscene's id, is also
+a load error.
+
+*As built:* the roots are assembled in `server/content/bundle.py`, which passes
+core plus mod definitions into `load_world_definition` as `core_cutscenes` and
+`cutscene_roots`; the world loader adds its own `cutscenes/` directory at the
+front of the script search and merges `worlds/<world>/cutscenes.yaml`.
 
 Sibling assets are ordinary same-origin URLs (`/cutscenes/<id>/sprite.svg`).
 Cutscene modules may `import` them relatively, exactly as
@@ -341,8 +359,8 @@ Consequences:
 - A cutscene emote produces **no** speech bubble. `use_emote` returns a
   cutscene result instead of a bubble result, so `.emote` on a cutscene card
   broadcasts `cutscene.play` and nothing else.
-- Playing a cutscene emote when the `cutscenes` feature flag is off is
-  rejected with a clear message rather than silently falling back to a bubble.
+- Playing a cutscene emote costs its Energy like any other emote and produces no
+  speech bubble.
 
 ## 4. Client runtime API
 
@@ -419,12 +437,14 @@ Teardown order is the mirror image: outro, then `dom.root` removal, then
 | `params` | object | Frozen, deep-merged key/value pairs (§4.5) |
 | `text` | array | Caption cues from the definition |
 | `assets` | array | Resolved placeholders (§4.6) |
-| `signal` | `AbortSignal` | Aborted on skip, teardown, room change, logout, disconnect, and (when `duration` is non-zero) at the cap |
+| `roomId` | string \| null | The room the play event was delivered for |
+| `signal` | `AbortSignal` | Aborted at teardown — after the outro — and on any early end, so `wait()` rejects and a listener can bail out |
 
-`signal` is the only supported cancellation channel. A scene that starts its
-own timers should tie them to `signal` via the runtime's `wait()` helper or an
-`abort` listener; anything the scene leaves running is cleaned up by the
-runtime at teardown either way.
+`signal` is the only supported cancellation channel, and it aborts when the
+runtime tears the layer down — which is *after* the outro, so a scene that keeps
+animating during the outro still finishes. `wait()` rejects with an
+`AbortError` on abort, and the runtime cancels every timer it handed out.
+Anything the scene started on its own is cleaned up at teardown either way.
 
 ### 4.4 Frame types
 
@@ -519,7 +539,10 @@ parameter values using a `$` token:
 
 The **server** resolves every token in a definition's `params`/`text` and in a
 trigger's arguments against the current room and ships concrete asset records
-in `cutscene.assets`. Each record echoes the token it satisfied in `ref`, so
+in `cutscene.assets`. Tokens are matched anywhere in a string, so a caption like
+`"$me, you again? Good."` contributes `$me`; a token in a caption is replaced
+with the asset's `label` in the text the client receives, while `params` keeps
+the raw token for `sprite()` to look up. Each record echoes the token it satisfied in `ref`, so
 the scene can map a record back to the parameter that asked for it. The client
 never constructs asset paths from a token.
 
@@ -626,6 +649,12 @@ No new WebSocket envelope type is required. Cutscenes ride the existing
     } } }
 ```
 
+The shipped payload adds three fields to the `cutscene` object:
+`room_bound` (the client needs it to clear the queue on travel), `max_queue`
+(the client's per-definition cap), and the `random`, `room_id`, `source_name`,
+and `origin` keys inside `params` (§4.5). *As built:* the full record is built
+by `CutsceneService.launch` (`server/services/cutscenes.py`).
+
 - `room` audience: emitted as a room broadcast through the existing
   `broadcast_room_event` path (`server/broadcast.py:14`), so every occupant
   receives it and nobody else does.
@@ -642,16 +671,22 @@ No new WebSocket envelope type is required. Cutscenes ride the existing
 There is deliberately no `cutscene.started` / `cutscene.finished` /
 `cutscene.skipped` message and no client→server frame. `.cutscene` resolves
 as soon as the message is queued for delivery. Any future need for playback
-telemetry requires a new design and a new feature flag, not a retrofit of
-this one.
+telemetry requires a new design, not a retrofit of this one.
 
 ### 6.3 HTTP
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/cutscenes/{id}/` | The cutscene's `index.html`, if present — for authoring previews only; the runtime never loads it |
 | `GET` | `/cutscenes/{id}/{file}` | The scene module and its sibling assets |
-| `GET` | `/api/cutscenes` | The catalog visible to the signed-in account: `id`, `title`, `aliases`, `frame`, `audience`, `room_bound`, `rooms`, and whether the account may launch it. Used for the `.cutscene` command palette and for tests. Never includes `script_url` |
+| `GET` | `/api/cutscenes` | The catalog visible to the signed-in account: `id`, `title`, `aliases`, `frame`, `audience`, `room_bound`, `rooms`, and the source. Used for the `.cutscene` command palette and for tests. Never includes `script_url` |
+
+*As built:* there is no `/cutscenes/{id}/` index route. A cutscene is a module,
+not a page, so there is nothing to serve; the runtime never loads HTML. The two
+routes live in `server/routes/cutscenes.py` and are mounted with
+`app.include_router(cutscene_routes.router)` in `server/app.py`. `/api/cutscenes`
+requires a session (401 otherwise) and filters by the account's remembered
+room. The command palette is fed by the server-provided `.help` catalog rather
+than by this route.
 
 Route rules: search the cutscene roots in the order of §3.2, confine every
 resolved path to the matched `cutscenes/<id>/` directory (404 on escape,
@@ -673,7 +708,8 @@ for `/activities/`. The flag gates *playback*, not delivery of inert files.
 | `server/content/cards.py` | `cutscene` field on `CardDefinition` (one new field) |
 | `server/services/actions.py` | `use_emote` cutscene branch; `Scene` in `EMOTE_COSTS` |
 | `server/content/bundle.py`, `server/content/worlds.py`, `server/mods.py` | Loading, merging, cross-content validation, world reload |
-| `server/app.py` | `/cutscenes/*` and `/api/cutscenes` routes |
+| `server/routes/cutscenes.py` | `/cutscenes/{id}/{file}` and `/api/cutscenes` routes |
+| `server/app.py` | Service construction, router mount, command registration |
 | `server/behaviors/context.py`, `server/behaviors/dispatcher.py` | `cutscene` intent |
 
 `CutsceneDefinition` is a frozen dataclass in the shape of `ActivityDefinition`
@@ -686,23 +722,24 @@ The catalog is loaded once with the world bundle, so a world reload
 (`RuntimeState._apply_world_reload`) picks up cutscene edits exactly as it does
 for activities.
 
-### 7.2 Feature flag
+### 7.2 Availability
 
-Cutscenes are gated by a `cutscenes` feature flag, added to `KNOWN_FEATURES`
-in `server/config.py:15`. An unknown flag is a hard `ConfigError`
-(`server/config.py:148`), so the constant must be extended in the same change.
-With the flag off:
+Cutscenes have **no server-side feature flag**. The subsystem, the `.cutscene`
+command, prop and peep `cutscene:` bindings, cutscene emote cards, and the
+behavior intent are always live, so nothing about a world changes when an
+operator edits `TRSERVER_FEATURES`. The only availability switch is the
+client's reduced-motion preference (§2.3), which drops play messages.
 
-- `.cutscene` is not registered at all, so prop/peep `actions:` referencing it
-  are rejected by the existing command-verb allowlist
-  (`server/services/rooms.py:206`) rather than dangling.
-- Playing a cutscene emote fails with "… is not available."
-- Behavior `cutscene` intents are dropped, not surfaced as errors.
+A single scene can still be gated on its own flag with `feature:` in its
+definition, exactly as an activity definition can. The gate is checked per
+launch by `CutsceneService.check`, and the value is validated against
+`KNOWN_FEATURES` at load time, so a typo is a `ContentError` rather than a
+scene that silently never plays.
 
 ### 7.3 Launch resolution
 
-A launch attempt resolves, in order: the flag → the definition by id or alias
-→ `rooms` allowlist → `power` requirement → energy → the audience decision →
+A launch attempt resolves, in order: the definition by id or alias → the
+definition's `feature`/`rooms`/`power` gates → energy → the audience decision →
 placeholder resolution → payload build. Any failure is a `CommandError` with a
 player-facing message, exactly as `start_activity` does
 (`server/commands/activity_launch.py:63`).
@@ -762,7 +799,10 @@ account whose action triggered this event" — routed with `account_id` set so
 cutscenes set `audience="room"` and are added to
 `BehaviorResult.room_broadcasts`. Unresolvable ids are recorded in
 `BehaviorResult.rejected` rather than raising, because one bad script must
-never break the room loop (`server/behaviors/dispatcher.py:261`).
+never break the room loop (`server/behaviors/dispatcher.py:261`). *As built:*
+`_apply_cutscene` catches every failure — unknown id, disabled flag, missing
+account — logs it, and adds nothing to the result, so a bad script produces
+silence rather than a broken room.
 
 **Emotes.** `.emote` on a card with a `cutscene:` field takes the cutscene
 branch. The room is notified via a single `cutscene.play` broadcast; no
@@ -779,8 +819,14 @@ bubble, no inventory mutation. The Action Log line is the standard
 | `app/js/cutscenes/stage.js` | The singleton stage API (§4.7) and the frame registry |
 | `app/js/cutscenes/frames.js` | Built-in frame descriptors |
 | `app/js/cutscenes/placeholders.js` | Asset record → element, prop thumbnails, origin validation, element cache |
+| `app/js/inert.js` | The board-side `inert` sweep, shared by the render loop and the cutscene manager |
 | `app/css/cutscenes.css` | Layer, frame geometry, keyframes, Skip control |
 | `app/js/views/emotes-view.js` | One-line change: add `Scene` to the category list |
+
+*As built:* the `inert` sweep moved out of `app/js/ui.js` into `app/js/inert.js`
+rather than being written by the manager. Both `server/app.py` and
+`app/js/ui.js` were already within a few lines of the 1200-line rule, so the
+sweep and the two new route handlers were extracted rather than appended.
 
 Every file stays under the 1200-line rule enforced by
 `tests/test_ui_presentation.py:67`.
@@ -807,10 +853,12 @@ avoid the card-hand tray — the tray is outside `.board-frame` anyway).
 Runtime DOM shape:
 
 ```html
-<div id="cutscene-layer" class="cutscene-layer" data-state="playing">
-  <div class="cutscene-root" data-cutscene="molly-greet">
-    <div class="cutscene-frame cutscene-frame-movie" data-phase="intro">
-      <div class="cutscene-stage"> ...scene DOM... </div>
+<div id="cutscene-layer" class="cutscene-layer" data-state="playing" data-blocking="1">
+  <div class="cutscene-root" data-cutscene="molly-greet" data-state="playing">
+    <div class="cutscene-frame cutscene-frame-movie" data-phase="intro" data-from="left"
+         data-cutscene="molly-greet" role="dialog" aria-label="Molly Greets You">
+      <div class="cutscene-stage" data-cutscene-stage="molly-greet"> ...scene DOM... </div>
+      <div class="cutscene-captions"></div>
       <button class="cutscene-skip" type="button">Skip</button>
     </div>
   </div>
@@ -851,12 +899,16 @@ surfaces through `onStatus`, so the manager needs no new plumbing for it.
 - Focus moves to the Skip button when playback starts and returns to the
   previously focused element at teardown.
 - `Escape` skips, and a keydown listener is active only while playing.
-- Because the layer covers the board, `inert` is applied to the board canvas,
-  `#board-overlay`, `#panel-layer`, and `#detail-layer` for the duration, and
-  removed on teardown — including on abnormal teardown paths, via `finally`.
-- The Skip button is the only focusable element in the layer, so a focus trap
-  is unnecessary; the existing `syncModal` observer still runs to keep the
-  background inert.
+- Because the layer covers the board, the board canvas, `#board-overlay`,
+  `#panel-layer`, and `#detail-layer` are made `inert` for the duration and
+  released at teardown, including on abnormal teardown paths. The manager does
+  not write `inert` itself: it toggles a `cutscene-playing` class on `#app` and
+  asks the render loop's sweep (`app/js/inert.js`) to re-apply, so there is
+  exactly one writer and the activity layer's `inert` observer never sees a tug
+  of war.
+- Focus is **not** trapped. Trapping would contradict §2.2: the chat bar has to
+  stay reachable. Nothing interactive sits behind the cutscene except the
+  card hand, chat, shop, and editor dock, which stay live on purpose.
 - Nothing is announced to screen readers beyond the dialog label. Cutscene
   captions are decorative visuals; the same information is expected to exist
   in chat or the Action Log.
@@ -883,59 +935,113 @@ molly-greet:
     caption_color: "#f7f5ed"
   text:
     - {at: 350, speaker: Molly, say: "Purrrr."}
-    - {at: 2100, speaker: Molly, say: "You again? Good."}
+    - {at: 2100, speaker: Molly, say: "$me, you again? Good."}
 ```
 
-`worlds/tutorial/cutscenes/molly-greet.js`:
+`worlds/tutorial/cutscenes/molly-greet/molly-greet.js`:
 
 ```js
 import {
   beginCutscene, endCutscene, sprite, wait, captions,
 } from "/app/js/cutscenes/stage.js";
 
+const HEART_GLYPHS = ["❤️", "💖", "💕", "💗", "💓", "💞"];
+const DEFAULT_PEEP = "$peep:molly";
+
+function burstHearts(dom, count = 20) {
+  const burst = document.createElement("div");
+  burst.className = "cutscene-hearts";
+  for (let index = 0; index < count; index += 1) {
+    const heart = document.createElement("span");
+    heart.className = "cutscene-heart";
+    heart.textContent = HEART_GLYPHS[index % HEART_GLYPHS.length];
+    const angle = (Math.PI * 2 * index) / count - Math.PI / 2;
+    const distance = 26 + (index % 4) * 7;
+    heart.style.setProperty("--heart-x", `${(Math.cos(angle) * distance).toFixed(2)}vmin`);
+    heart.style.setProperty("--heart-y", `${(Math.sin(angle) * distance).toFixed(2)}vmin`);
+    heart.style.setProperty("--heart-delay", `${(index % 5) * 45}ms`);
+    heart.style.setProperty("--heart-scale", `${(0.85 + (index % 4) * 0.2).toFixed(2)}`);
+    heart.style.setProperty("--heart-rotate", `${(index % 2 ? 1 : -1) * 18}deg`);
+    burst.append(heart);
+  }
+  dom.append(burst);
+  return burst;
+}
+
 export default async function (ctx) {
   const dom = beginCutscene("movie", {
     background: ctx.params.stage_background,
     duration: 700,
   });
+
+  const couple = document.createElement("div");
+  couple.className = "cutscene-couple";
+
   const me = await sprite("$me");
-  me.className = "cutscene-sprite";
-  me.style.setProperty("--cutscene-scale", ctx.params.me_scale || 1);
-  dom.append(me);
+  me.className = "cutscene-sprite cutscene-sprite-me";
 
-  const caption = document.createElement("p");
-  caption.className = "cutscene-line";
-  caption.style.color = ctx.params.caption_color || "#f7f5ed";
-  caption.textContent = ctx.source?.name ? `${ctx.source.name} steps closer.` : "Someone steps closer.";
-  dom.append(caption);
+  const peepRef = typeof ctx.params.peep === "string" ? ctx.params.peep : DEFAULT_PEEP;
+  const peep = await sprite(peepRef, { label: "Molly" });
+  peep.className = "cutscene-sprite cutscene-sprite-peep";
 
-  await wait(1400);
-  caption.remove();
+  couple.append(me, peep);
+  dom.append(couple);
+
+  const line = document.createElement("p");
+  line.className = "cutscene-line";
+  line.style.color = ctx.params.caption_color || "#f7f5ed";
+  line.textContent = `${ctx.params.source_name || "Someone"} steps closer.`;
+  dom.append(line);
+
+  await wait(1200);
+  line.remove();
+
+  couple.classList.add("cutscene-couple-meet");
+  await wait(760);
+  burstHearts(dom);
+
   await captions(ctx.text);
   await wait(400);
   endCutscene();
 }
 ```
 
-Wired up with `cutscene: molly-greet` on the `molly` peep in
-`worlds/tutorial/peeps/peeps.yaml`, which gives the Playroom's Molly an
-automatic **Greet** quick action. Energy is not charged because the definition
-sets none; the scene is pure flavor and is discarded on room change.
+Wired up with `cutscene: molly-greet` and `cutscene_label: Greet` on the
+`molly` peep in `worlds/tutorial/peeps/peeps.yaml`, which gives the Playroom's
+Molly an automatic **Greet** quick action (`.cutscene molly-greet @peep:molly`).
+Energy is not charged because the definition sets none; the scene is pure
+flavor and is discarded on room change. The second cue shows the caption token
+rule: `$me` in a `say` string reaches the client as the player's display name,
+and the sticker itself is still available through `sprite("$me")`.
+
+The scene also shows a peep placeholder. The Greet action's `@peep:molly`
+target becomes the `peep` param, so `sprite(ctx.params.peep)` resolves Molly's
+own sticker through the same mechanism; when no target is given the scene falls
+back to `$peep:molly`. The two sprites sit in a `.cutscene-couple`; adding the
+`cutscene-couple-meet` class plays the approach keyframes, and `burstHearts`
+scatters `.cutscene-heart` spans whose per-element custom properties drive one
+radial keyframe each (see `app/css/cutscenes.css`).
 
 ### 9.2 A room-wide cutscene emote (`vs` frame)
 
-`data/cardsets/base/cards.yaml`:
+`worlds/tutorial/cards/cards.yaml` (and `victory-dance` added to
+`worlds/tutorial/cards/pack.yaml`, so the tutorial pack can drop it):
 
 ```yaml
 victory-dance:
+  label: Victory Dance
+  description: A triumphant full-screen strut. Plays for the whole room.
+  image: victory-dance.png
   type: emote
   category: Scene
   cutscene: victory-dance
-  label: Victory Dance
-  description: A triumphant full-screen strut
-  image: victory-dance.webp
+  rarity: Uncommon
   energy_cost: 5
 ```
+
+*As built:* the card lives in the tutorial cardset rather than the base one. The
+base pack is asserted to contain only Common cards, so a scene emote does not
+belong there.
 
 `data/core/cutscenes.yaml`:
 
@@ -947,8 +1053,10 @@ victory-dance:
   duration: 4200
   audience: room
   room_bound: false
+  max_queue: 1
   params:
     accent: "#f0b429"
+    stage_background: "#120a24"
 ```
 
 `data/cutscenes/victory-dance/victory-dance.js`:
@@ -963,26 +1071,33 @@ registerCutsceneFrame("victory-banner", {
 });
 
 export default async function (ctx) {
-  const dom = beginCutscene("victory-banner", { accent: ctx.params.accent });
+  const dom = beginCutscene("victory-banner", {
+    background: ctx.params.stage_background,
+    accent: ctx.params.accent,
+  });
+
   const banner = document.createElement("h2");
   banner.className = "cutscene-banner";
   banner.textContent = ctx.title.toUpperCase();
   dom.append(banner);
 
-  for (const ref of ["$me"]) {
-    const spriteElement = await sprite(ref);
-    spriteElement.className = "cutscene-dancer";
-    dom.append(spriteElement);
-  }
+  const dancer = await sprite("$me");
+  dancer.className = "cutscene-dancer";
+  dom.append(dancer);
 
   await wait(2600);
   endCutscene();
 }
 ```
 
-Anyone who buys the card can play it with `.emote`; it plays for the whole room
-and is not room-bound, so it survives travel. Every occupant queues it
-locally and plays it in arrival order, with no synchronization.
+Anyone who opens the tutorial pack can play it with `.emote`; it plays for the
+whole room and is not room-bound, so it survives travel. Every occupant queues
+it locally and plays it in arrival order, with no synchronization.
+
+`victory-banner` is the worked example of an author-defined frame: the module
+registers it at top level, before its default export is called, and
+`app/css/cutscenes.css` carries the matching `.cutscene-frame-victory` keyframes.
+A frame name registered twice is ignored after the first registration.
 
 ## 10. Testing strategy
 
@@ -1003,14 +1118,18 @@ locally and plays it in arrival order, with no synchronization.
 - Protocol: `room` cutscenes reach every occupant and no one else; `private`
   cutscenes reach only the actor; the payload contains a server-resolved
   `script_url` and the merged params.
-- Emote integration: a cutscene card is stackable and purchasable, `.emote`
-  broadcasts `cutscene.play` with `origin: "emote"`, charges energy, produces
-  no bubble, and is rejected when the flag is off.
-- Feature flag off: `.cutscene` is unregistered; prop `actions:` referencing it
-  are rejected by the verb allowlist; behavior intents are dropped.
+- Emote integration: a cutscene card is stackable, `.emote` broadcasts
+  `cutscene.play` with `origin: "emote"`, charges Energy, and produces no
+  bubble.
+- Availability: `.cutscene` is always registered, the service needs no enabled
+  features, and a definition-level `feature:` gate is what rejects a launch.
 - Behavior intent: private routing reaches only the triggering account, room
-  routing reaches the room, an unresolvable id lands in `rejected` without
-  raising.
+  routing reaches the room, an unresolvable id and a disabled feature produce
+  nothing and no error.
+
+*As built:* 71 tests. Behavior coverage dispatches a real `tick` event through
+`BehaviorDispatcher` with an in-memory script rather than calling the intent
+applier directly, so the whole path is exercised.
 
 ### 10.2 Browser
 
@@ -1023,23 +1142,28 @@ disables cutscenes entirely (§2.3). A third project is therefore required:
 | `portrait` | 390×844 touch | reduce | everything existing |
 | `desktop-motion` | 1280×800 | `no-preference` | `cutscenes.spec.js` only |
 
-`tests/browser/cutscenes.spec.js`:
+`tests/browser/cutscenes.spec.js` (10 tests, `desktop-motion` only):
 
-- A prop-triggered cutscene plays: `#cutscene-layer[data-state]` cycles
-  `loading → playing`, the stage receives scene DOM, and the layer is removed
-  at teardown.
-- Skip button, click, and `Escape` each end playback and move focus back.
-- A cutscene emote plays for two browser contexts in the same room, and the
-  second context queues it while a longer cutscene is playing.
-- Chat remains usable during playback (type and send a message, assert it
-  appears) and a card panel can be opened by command.
-- Opening an activity while a cutscene plays leaves the activity on top.
-- Room change clears a queued cutscene.
-- Under `reducedMotion: 'reduce'` (the default projects), a `cutscene.play`
-  produces no layer at all.
+- `.cutscene` plays, the frame and stage appear, and the layer is torn down.
+- The scene's own DOM lands in the stage, the `$me` placeholder resolves to a
+  sticker `<img>`, and the custom caption line renders.
+- Caption cues from the definition text appear.
+- The Skip control and `Escape` each end playback.
+- The board is `inert` during playback while `#chat-input` stays enabled and a
+  chat line still reaches the log.
+- A room-audience cutscene plays in two browser contexts at once.
+- A cutscene emote plays from the Emotes view's `Scene` tab and produces no
+  emote bubble.
+- A room change clears playback.
+- An unknown cutscene is rejected with a message and builds no layer.
 
-Visual snapshots go in `screenshots.spec.js` only after the frame designs are
-approved against `doc/design.md`; `movie` and `vs` are the two worth capturing.
+Under `reducedMotion: 'reduce'` the default projects run one case in
+`flows.spec.js` asserting a `cutscene.play` never creates the layer.
+
+*Still to do:* visual snapshots. The Emotes panel gains a fourth category tab,
+so `emotes.png` needs a deliberate baseline review and re-record once the
+pre-existing screenshot failures in `screenshots.spec.js` are resolved. Frame
+captures (`movie`, `vs`) should be added at the same time.
 
 ### 10.3 Performance and static checks
 
@@ -1050,65 +1174,58 @@ approved against `doc/design.md`; `movie` and `vs` are the two worth capturing.
 - `tests/test_ui_presentation.py` covers the new stylesheet link, the
   `index.html` landmarks, and the 1200-line rule for the new modules.
 
-## 11. Implementation plan
+## 11. As built
 
-Phases are ordered so each one is independently testable and mergeable. No
-phase depends on a later one.
+The feature shipped in four phases. This is the file map that resulted, for
+anyone extending it.
 
-### Phase 1 — Content model and server plumbing
+### Server
 
-| File | Change |
+| File | Role |
 | --- | --- |
-| `server/config.py` | Add `cutscenes` to `KNOWN_FEATURES` |
-| `server/content/cutscenes.py` | **New.** `CutsceneDefinition`, loader, merge, validation (§3, §7.1) |
-| `server/content/bundle.py`, `server/content/worlds.py`, `server/mods.py` | Load core/world/mod catalogs; cross-validate references; reload with the world |
-| `server/services/cutscenes.py` | **New.** Resolution, launch decisions, placeholder resolution, payload build |
-| `server/app.py` | `/cutscenes/*` and `/api/cutscenes` routes; register the service on `RuntimeState` |
-| `tests/test_cutscenes.py` | **New.** Loader and service tests |
+| `server/config.py` | `AppConfig.cutscenes_path` (no feature flag) |
+| `server/content/cutscenes.py` | `CutsceneDefinition`, `CutsceneCue`, `CutsceneCatalog`, strict loader, merge, `parse_param_arguments`, `resolve_cutscene_id` |
+| `server/content/bundle.py` | Loads `data/core/cutscenes.yaml` and mod catalogs, passes them and the script roots into the world loader |
+| `server/content/worlds.py` | `cutscenes` on `WorldDefinition`; `cutscene`/`cutscene_label` on prop instances and peeps; reference validation |
+| `server/mods.py` | `ModDefinition.cutscenes_path`, `LoadedMods.cutscene_definitions` / `cutscene_roots()` |
+| `server/services/cutscenes.py` | `CutsceneService` (catalog, resolve, check, audience, launch, placeholder resolution, per-definition `feature_enabled`, `valid_stickers`), `CutsceneLaunch`, `choose_audience`, `CutsceneError` |
+| `server/commands/cutscenes.py` | `cutscene_command` plus the shared launch/resolve/deliver helpers used by the emote path. Deliberately does not import `server.commands.core` (the registry imports it) |
+| `server/commands/core.py` | Registers `.cutscene` with `toast=False`, like `.emote` and `.talk` |
+| `server/commands/gameplay.py` | `play_cutscene_emote`, the `use_emote` cutscene branch entry point |
+| `server/services/actions.py` | `ActionResult.cutscene`, the `use_emote` branch, `Scene` in `EMOTE_COSTS` |
+| `server/content/cards.py` | `cutscene` field on `CardDefinition`, emote-only validation, `cutscene_card_references` |
+| `server/services/cards.py` | `cutscene` in the serialized definition, plus `asset_urls`/`has_definition` used by placeholder resolution |
+| `server/services/rooms.py` | Implicit cutscene quick actions for prop and peep bindings |
+| `server/behaviors/context.py`, `dispatcher.py` | `context.cutscene(...)` intent and `_apply_cutscene` |
+| `server/routes/cutscenes.py` | `/cutscenes/{id}/{file}` and `/api/cutscenes` |
+| `server/routes/html_pages.py` | The activity fallback page, moved out of `app.py` for the line limit |
+| `server/commands/context.py` | `cutscenes` on `CommandContext`; the sticker set now comes from the service instead of a per-command directory scan |
 
-Deliverable: the server can resolve and serialize a `cutscene.play` message.
-No client code exists yet; nothing is delivered to clients because the command
-is not registered until Phase 3.
+### Client
 
-### Phase 2 — Client runtime
-
-| File | Change |
+| File | Role |
 | --- | --- |
-| `app/index.html` | Add the stylesheet link and `#cutscene-layer`; bump nothing yet |
-| `app/css/cutscenes.css`, `app/css/main.css`, `app/css/activities.css` | **New** + layer z-index and the activity bump to 37 |
-| `app/js/cutscenes/stage.js`, `frames.js`, `placeholders.js` | **New.** Stage API, five built-in frames, sprite resolution |
-| `app/js/cutscenes/manager.js` | **New.** Queue, state machine, gating, reduced-motion kill switch |
-| `app/js/state.js`, `app/js/ui.js` | Intercept `cutscene.play` out of band (§8.3) and wire the manager |
-| `playwright.config.js` | Add the `desktop-motion` project |
+| `app/js/cutscenes/manager.js` | Queue, playback state machine, module cache, layer lifecycle, focus, reduced-motion kill switch, room/sign-out/transport reactions |
+| `app/js/cutscenes/stage.js` | The authoring API (`beginCutscene`, `endCutscene`, `skipCutscene`, `wait`, `caption`, `captions`, `sprite`, `sprites`, `spriteUrl`, `asset`, `registerCutsceneFrame`, `frameNames`, `currentCutscene`) and the playback session |
+| `app/js/cutscenes/frames.js` | The five built-in frame descriptors |
+| `app/js/cutscenes/placeholders.js` | Asset record → `<img>`/`<canvas>`, prop thumbnails, origin validation, element cache |
+| `app/js/inert.js` | The board-side `inert` sweep, shared by render and the cutscene manager |
+| `app/css/cutscenes.css` | Layer, five frame geometries plus the `victory-banner` example, keyframes, sprite and caption styles |
+| `app/js/ui.js`, `app/js/state.js`, `app/js/commands.js`, `app/js/views/emotes-view.js` | Layer element, out-of-band event interception, palette entry, `Scene` category, `cutscene` on normalized cards |
+| `app/index.html`, `app/css/main.css`, `app/css/activities.css` | Stylesheet link, `#cutscene-layer`, activity layer bumped to `z-index: 37` |
 
-Deliverable: a cutscene plays when a `cutscene.play` message arrives, with no
-way yet for the game to send one. Testable by injecting the message in a
-browser test.
+### Content shipped
 
-### Phase 3 — Triggers
+`data/core/cutscenes.yaml` + `data/cutscenes/victory-dance/`,
+`worlds/tutorial/cutscenes.yaml` + `worlds/tutorial/cutscenes/molly-greet/`,
+the `victory-dance` card in `worlds/tutorial/cards/` (art and pack entry), and
+`cutscene: molly-greet` on the Molly peep.
 
-| File | Change |
-| --- | --- |
-| `server/commands/cutscenes.py`, `server/commands/core.py` | **New** + `.cutscene` registration |
-| `server/content/worlds.py` | `cutscene:` / `cutscene_label:` on prop instances and peeps; implicit quick action in the serializer (`server/services/rooms.py:313`) |
-| `server/behaviors/context.py`, `dispatcher.py` | `cutscene` intent |
-| `server/content/cards.py`, `server/services/actions.py`, `server/commands/gameplay.py` | `cutscene` field, `use_emote` branch, `Scene` cost, `emote_command` broadcast |
-| `app/js/views/emotes-view.js` | Add the `Scene` category |
+### Tests
 
-Deliverable: props, peeps, behaviors, and purchased cutscene emotes all play
-cutscenes. Content authors can ship scenes.
-
-### Phase 4 — Polish, tests, docs
-
-| File | Change |
-| --- | --- |
-| `tests/test_cutscenes.py` | Trigger, emote, protocol, and flag-off coverage |
-| `tests/browser/cutscenes.spec.js` | **New.** Functional flows |
-| `tests/browser/flows.spec.js` | Reduced-motion drop assertion |
-| `tests/browser/perf/dom-counters.js` | Cutscene node counter |
-| `doc/architecture.md` | Extend §6.6 (or add §6.9) with the cutscene flow; list the new files in the inventory |
-| `README.md`, `AGENTS.md` | Document the `cutscenes` feature flag and the new content directories |
-| `doc/design.md` | Product-level description of the frame language once the designs are approved |
+`tests/test_cutscenes.py` (71), `tests/browser/cutscenes.spec.js` (10), one
+reduced-motion case in `tests/browser/flows.spec.js`, and
+`tests/browser/helpers.js:grantCardAsAdmin` for the emote flow.
 
 ## 12. Open questions and deliberate deferrals
 
@@ -1122,4 +1239,5 @@ cutscenes. Content authors can ship scenes.
 | `world-editor` cutscene authoring | Would require the world editor (`server/routes/world_editor.py`) to gain a cutscene editor; noted, not planned |
 | Custom frame CSS shipped by content | Deferred. Custom frames are registered in JavaScript; per-scene CSS files are a possible later addition to the hosting rules |
 | Queue persistence across reload | Not supported. A page reload clears the queue |
-| Cutscene-aware visual baselines | Only after frame designs are approved; see §10.2 |
+| Cutscene-aware visual baselines | Outstanding. The Emotes panel gains a fourth tab, so `emotes.png` needs a deliberate re-record; frame captures (`movie`, `vs`) should land at the same time. See §10.2 |
+| Cutscene node counter in the perf suite | Outstanding. `tests/browser/perf/dom-counters.js` has no cutscene counter yet, so a runaway scene would not show up as a budget regression |
