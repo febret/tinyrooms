@@ -92,25 +92,55 @@ avoids all of that, and R5.6 asserts the invariant with a test.
 
 - **R1.1** Every interaction directed at a peep MUST be recorded as an
   observation, durably, within the same transaction that applies its effect.
-  Losing an observation is a correctness bug, not a degradation.
+  Losing an observation is a correctness bug, not a degradation. See **R1.5a**
+  for the deferred-intent case.
 - **R1.2** The captured vocabulary MUST be the existing `BehaviorEvent`
   vocabulary — `quick_action`, `card_play`, `dialog_action`, `activity_result`,
   `enter`, `leave`. This milestone introduces no new runtime event types.
 - **R1.3** Each observation MUST record the **subject** (the peep observed), the
   **actor** (`kind` of `user` | `npc` | `system`, plus account or peer id),
   `room_id`, `event_type`, `action`, and a bounded `detail_json`.
+  - **R1.3a** *Choosing the subject.* `_attachments_for` routes
+    `tick` / `enter` / `leave` to **all** room attachments, which include both
+    peeps and props (`dispatcher.py:117-119`, `loader.py:125-134`), and
+    `quick_action` / `card_play` may target a **prop** rather than a peep
+    (`dispatcher.py:125-127`). The subject rule is therefore:
+    - direct peep target (`PeepRef` with a `peep_id`) → that peep;
+    - room-wide event (`tick` / `enter` / `leave`) → one observation per **peep
+      attachment** in the room, and none for prop attachments;
+    - prop-targeted `quick_action` / `card_play` → **no observation**; props are
+      not peeps and there is no subject. This is not a degradation, it is the
+      definition of a peep-directed observation.
+  - **R1.3b** Because a single `enter` can fan out to every peep in a busy
+    room, room-wide observations MUST be subject to the same digest bounds as
+    everything else (R2.2) so a large room cannot flood a window.
 - **R1.4** `detail_json` MUST be schema-versioned and MUST NOT contain raw chat
   text, credentials, session tokens, or password material. Any retained free
-  text MUST be length-capped and stored separately from structured fields.
+  text MUST be length-capped and stored separately from structured fields. Note
+  that free text does reach this path: `dialog_action` carries the authored
+  choice `label` (`dialogs.py:265-279`), so the length cap applies to it.
 - **R1.5** Capture MUST NOT change the semantics, ordering, or transactional
   boundaries of the existing dispatch path. It is an additive write alongside
   an already-committed intent application.
+  - **R1.5a** *Deferred intents.* `BehaviorDispatcher._apply` runs the
+    `DatabaseHub` transaction for all contexts, then executes the collected
+    deferred operations **after** the transaction has committed
+    (`dispatcher.py:282-291`); `start_task`, `update_task_progress` and
+    `request_move` are deferred. For those, a strictly in-transaction
+    observation is impossible. The observation is written in the main
+    transaction regardless, and the **effect** may land afterwards — matching
+    the existing tolerance for these intents rather than restructuring `_apply`.
+    Document this as the one place R1.1 is "observation commits atomically with
+    the main intent transaction", not necessarily with the deferred effect.
 - **R1.6** `activity_result` observations SHOULD be emitted. The activity bridge
-  (`server/routes/activity_bridge.py:17-44`) currently does not dispatch this
-  event; closing that gap is in scope because it is the highest-signal
-  observation type.
+  (`server/routes/activity_bridge.py:17-44`) does not dispatch this event —
+  `ActivityResultService.complete()` records a *task* trigger but never
+  constructs a `BehaviorEvent` (`server/services/activity_results.py:159-163`) —
+  so closing that gap is in scope because it is the highest-signal observation
+  type.
 - **R1.7** Observations MUST be attributed to the behavior version live at
-  capture time, so a version's quality can be evaluated against what it saw.
+  capture time, so a version's quality can be evaluated against what it saw. A
+  peep with no committed overlay records against version `0`.
 
 ### R2 — Digest and retention
 
@@ -132,29 +162,63 @@ avoids all of that, and R5.6 asserts the invariant with a test.
 ### R3 — Agent pipeline
 
 - **R3.1** Generation MUST be triggered by a cadence scheduler, never by
-  gameplay events. Supported cadences: `daily`, aligned to the
-  `TRSERVER_TIMEZONE` game-day boundary via `server/game_time.py`; and
-  `hourly`. Cadence is per peep and defaults to daily.
+  gameplay events. Supported cadences: `daily`, aligned to the `TRSERVER_TIMEZONE`
+  game-day boundary, and `hourly`. Cadence is per peep and defaults to daily.
+  - **R3.1a** `server/game_time.py` exposes **date helpers only**
+    (`game_date`, `today_in`, `current_game_month`) — there is no boundary
+    event. The scheduler is therefore a **poller** that compares
+    `today_in(tz)` / the current hour against the last processed window and
+    enqueues on change, not an event listener. It MUST use game-date semantics
+    so a DST transition or a clock jump cannot fire or skip a window
+    incorrectly.
 - **R3.2** The scheduler MUST enqueue a job row. It MUST NOT perform the model
   call.
 - **R3.3** The worker MUST process jobs out of process, over an outbound HTTPS
-  client modelled on `server/mc_client.py`. It MUST NOT share the game server's
-  event loop.
+  client modelled on `server/mc_client.py` (`httpx.AsyncClient`, JSON-log
+  `_log`). It MUST NOT share the game server's event loop.
+  - **R3.3a** *Cross-process database access.* The `peep_*` tables live in the
+    **world** database, which at runtime is opened by the game server through
+    `DatabaseHub` as a single connection with the world file `ATTACH`ed and a
+    process-local `threading.RLock` (`server/state/migrations.py:657-679`).
+    That `RLock` protects threads *within* the game server only; it is
+    meaningless to a second process. The worker MUST therefore open its **own**
+    connection to the world DB file, set a `busy_timeout`, and rely on WAL for
+    reader/writer concurrency. The worker MUST NOT import or reuse
+    `DatabaseHub`, because that assumes it owns both databases and is
+    single-process.
+  - **R3.3b** *Contention budget.* The game server writes the world DB on
+    essentially every room mutation, so worker writes (lease, complete, digest
+    commit) will contend. Worker write volume is tiny — a handful of rows per
+    window — so this is acceptable, but the worker MUST retry on
+    `sqlite3.OperationalError: database is locked` with bounded backoff rather
+    than failing the job, and MUST NOT hold a write transaction open across a
+    model call.
 - **R3.4** A job MUST be idempotent per `(peep, window)`: enqueuing a duplicate
   MUST NOT produce a second artifact for the same window.
 - **R3.5** Jobs MUST be leased with expiry, so a crashed worker's jobs are
   reclaimed rather than lost. Expired-lease recovery MUST be bounded and logged.
+  Leases MUST be claimed with a conditional `UPDATE ... WHERE state='pending'`
+  so two workers cannot claim the same job.
 - **R3.6** The worker MUST enforce per-cycle wall-clock and token budgets and
   MUST abort a generation that exceeds them, leaving the previous artifact live.
 - **R3.7** The worker MUST enforce a per-peep daily call and token cap
   (defaults 2 calls and 40k tokens per peep per game-day, plus a global daily
   ceiling) to bound cost and prevent rewrite loops.
+  - **R3.7a** *Token accounting is provider-dependent and must be specified.*
+    Some chat-completions APIs return a `usage` block; some do not, and some
+    stream without one. The budget MUST be enforced on the best available
+    signal, in this order: (1) provider-reported `usage.total_tokens` when
+    present; (2) a conservative local estimate (prompt + completion
+    characters ÷ 4, rounded up) when it is not. When only an estimate is
+    available, the job MUST record `tokens_estimated = true` in `cost_json` so
+    the numbers are not mistaken for billed truth. A provider that reports
+    neither MUST NOT be treated as zero-cost.
 - **R3.8** Every job MUST terminate in exactly one state: `succeeded`,
   `rejected` (validation failure), `skipped` (budget, cap, or empty window), or
   `failed` (transport or parse error). State and reason MUST be persisted.
 - **R3.9** Provider credentials MUST come from environment configuration, MUST
   never be persisted to the world DB, and MUST never appear in logs or
-  artifacts.
+  artifacts. `cost_json` therefore stores counts only, never key material.
 - **R3.10** The worker MUST refuse to start when the feature flag is off, and
   the world server MUST behave exactly as it does today in that case.
 
@@ -173,10 +237,21 @@ Validation failures are terminal and leave the prior version live.
   artifact MUST resolve against live world content. Unknown references reject;
   they are never silently dropped. This mirrors the strictness of the loaders in
   `server/content/worlds.py`.
-- **R4.5** **Additive only.** The artifact MUST NOT redefine, wrap,
-  monkey-patch, or shadow the authored module. It MUST NOT import anything
-  outside a small allowlist (a stdlib subset plus `server.behaviors.*` and
-  `server.content.*`). Violation rejects.
+- **R4.5** **Additive only (best-effort in v1).** The artifact MUST NOT redefine
+  the authored module's handlers, and its imports MUST come from a small
+  allowlist (a stdlib subset plus `server.behaviors.*` and `server.content.*`).
+  - **R4.5a** *Honest scope.* In v1 this is enforced by an **import-name
+    allowlist**, not by inspecting the parse tree. That catches the common
+    failure (an artifact reaching for `os`, `subprocess`, `socket`) but it
+    cannot reliably detect shadowing, monkey-patching, `importlib`/`__import__`
+    indirection, or attribute reach-through. R4.5 is therefore a **deterrent
+    and a tripwire, not a security boundary**; real enforcement is the
+    [§9.2](#92-blocking-v11-hardening-gate) gate. Do not treat a v1 import
+    allowlist pass as evidence the artifact is safe.
+  - **R4.5b** What v1 *does* enforce mechanically: it must not bind a handler
+    name the authored module already defines, and the smoke harness in R4.6
+    must observe that the authored module's handlers are still reachable and
+    unchanged after the overlay is imported.
 - **R4.6** **Smoke test.** The artifact MUST import in a restricted harness and
   MUST expose only the expected handler names — `on_tick`, `on_quick_action`,
   `on_card_play`, `on_dialog_action`, `on_activity_result`. Import failure or an
@@ -188,18 +263,60 @@ Validation failures are terminal and leave the prior version live.
 
 - **R5.1** The runtime MUST load the authored floor and the committed overlay as
   two distinct modules, dispatching to both, with the authored module invoked
-  first.
-- **R5.2** An overlay failure MUST be contained to the overlay. The existing
-  containment in `BehaviorDispatcher._dispatch` (`dispatcher.py:261-264`) MUST
-  extend to overlay modules such that an erroring overlay is disabled for the
-  remainder of that version's life while the floor continues to serve.
-- **R5.3** Both modules MUST share the same `BehaviorContext` and the same
-  `world.behavior_state` row for the peep (`namespace="peep"`,
-  `instance_id=<peep_id>`), so state written by either is visible to both
-  within a dispatch.
+  first. Today `BehaviorScripts.peep_attachments` maps a peep to exactly one
+  `BehaviorAttachment` (`loader.py:100-105`) and `_attachments_for` returns that
+  single attachment for a peep-targeted `quick_action` / `card_play`
+  (`dispatcher.py:120-128`), so this requires changing those maps to hold an
+  ordered **tuple** of attachments per peep. This is a real signature change to
+  the loader and the dispatcher, not a one-line edit.
+- **R5.2** An overlay failure MUST be contained to the overlay, and the floor's
+  effects for that event MUST still be applied.
+  - **R5.2a** *This is new behavior, not an extension of existing containment.*
+    Today `BehaviorDispatcher._dispatch` catches a handler exception, records
+    the id in `self.erroring`, logs, and immediately
+    `return BehaviorResult(rejected=True)` (`dispatcher.py:263-266`). Because
+    intents are only applied **after** the whole handler loop finishes, in
+    `_apply` (`dispatcher.py:267-274`), that early return discards the intents
+    already queued by every handler that succeeded — including the authored
+    floor. Under the current code an erroring overlay would therefore *also*
+    destroy the floor's effects for that event.
+  - **R5.2b** `_dispatch` MUST be restructured to isolate each attachment:
+    run every attachment's handler, catch per attachment, drop only the failing
+    attachment's `context.intents` and its state contribution, and proceed to
+    `_apply` with the surviving contexts. A failing overlay MUST NOT cause a
+    `rejected` result.
+  - **R5.2c** `self.erroring` is currently write-only — populated at
+    `dispatcher.py:264` and never consulted — so "disabled" requires a real
+    mechanism: a per-`(peep_id, version)` disabled set checked in
+    `_attachments_for` so an overlay is skipped for the remaining life of that
+    version, while the floor still dispatches. A new version clears it.
+  - **R5.2d** A failure in the **authored floor** retains today's behavior:
+    `rejected=True` for the event. Only the overlay is isolated.
+- **R5.3** The floor and the overlay MUST observe and write one shared
+  `behavior_state` row (`namespace="peep"`, `instance_id=<peep_id>`) and see
+  each other's writes **within the same dispatch**.
+  - **R5.3a** *This is not what the dispatcher does today.* `_dispatch` builds an
+    independent `BehaviorContext` per attachment, each with its own `state`
+    dict loaded by a separate `_load_state` call (`dispatcher.py:245-253`), and
+    `_apply` then calls `_save_state` once per attachment
+    (`dispatcher.py:284-287`). Two same-namespace attachments would therefore
+    produce two separate loads and two saves, and the second save would clobber
+    the first — last-writer-wins, not sharing.
+  - **R5.3b** The implementation MUST load the state row **once per
+    `(namespace, instance_id)` per dispatch** and hand the *same dict object* to
+    every attachment sharing that key, then save it **once**. Because
+    `BehaviorContext.state` is a plain mutable dict and `prop_state()` reads from
+    it (`context.py:189-192`), aliasing one dict gives the required
+    read-your-writes semantics for both modules.
+  - **R5.3c** Conflicting writes to the same key within one dispatch resolve
+    **floor-first, overlay-last** (the overlay, being newer, wins). This is
+    deterministic and belongs in the overlay authoring contract, not left to
+    merge-order accident.
 - **R5.4** Committing a new version MUST hot-swap the loaded module without
   restarting the world and without interrupting an in-flight dispatch. The swap
-  MUST be atomic with respect to the dispatcher.
+  MUST be atomic with respect to the dispatcher. See
+  [§4.7](#47-hot-swap) for the concrete mechanism and lock ordering; there is no
+  existing hook this reuses.
 - **R5.5** The previous 3 committed versions MUST remain loadable for
   **operator-initiated** rollback. Rollback is never automatic.
 - **R5.6** Because v1 peeps are room-bound, the overlay MUST NOT need to resolve
@@ -208,29 +325,51 @@ Validation failures are terminal and leave the prior version live.
   asserted by a test.
 - **R5.7** Overlay-written behavior state MUST be version-tagged so a new
   version can migrate or reset it deliberately rather than blindly reading
-  another version's keys.
+  another version's keys. Version tags live **inside** the shared state dict
+  (the row itself stays a single row per R5.3), e.g. under a reserved
+  `overlay_version` key the overlay writes on first use.
 - **R5.8** A dynamic peep with **no committed overlay** MUST behave exactly as
   today — authored floor only. Absence of generation MUST be indistinguishable
   from the feature being off, apart from a log line.
 
 ### R6 — Dialog memory
 
-- **R6.1** Dialog generation MUST be append-only. The agent MAY add nodes; it
-  MUST NOT modify, reorder, or remove any authored node, nor alter any authored
-  choice's `label`, `next`, `action`, `script`, `give_card`, `start_task`, or
-  `grant`.
-- **R6.2** Every generated node id MUST carry a `dynamic_` prefix — the
-  machine-checkable marker that also matches the existing unreachable-node
-  escape hatch in `server/content/worlds.py:471-481`.
+- **R6.1** Dialog generation MUST be append-only. The agent MAY add entirely new
+  nodes; it MUST NOT modify, reorder, or remove any authored node, nor alter any
+  authored choice's `label`, `next`, `action`, `script`, `give_card`,
+  `start_task`, or `grant`.
+- **R6.1a** *Appending a choice to an authored node.* To satisfy R6.9, a
+  generated node must hang off the authored tree, and the only legal way to do
+  that is to **append** a new choice to an existing authored node. This is
+  permitted and is not a modification of that node's authored choices.
+  Constraints:
+  1. Generated choices are appended **after** all authored choices, never
+     inserted, so every authored choice keeps its original `index` and
+     therefore its `action_id` (`f"{node_id}:{index}"`) and its
+     `dialog:<peep>:<action_id>` ledger entry.
+  2. A node's authored `text` MUST NOT be changed; a generated choice that wants
+     new prose MUST introduce a new generated node and lead to it.
+  3. A generated choice MAY be gated on the version it was authored under, so
+     retiring it does not require editing the authored node.
+- **R6.2** Every generated node id MUST carry a `dynamic_` prefix. This is a
+  **new**, deliberately distinct marker for agent-authored nodes, chosen so
+  operators and tooling can identify generated content at a glance and so the
+  commit rule below is checkable. It is *not* the existing unreachable-node
+  escape hatch — that prefix is `unused_` (`server/content/worlds.py:489`) and
+  is unrelated. `dynamic_` is deliberately **not** an exemption prefix, so
+  generated nodes remain subject to the full reachability check in R6.4/R6.9.
 - **R6.3** `action_id` is synthesized as `f"{node_id}:{index}"`
-  (`worlds.py:430`) and is the `reward_ledger` key, so generated node ids MUST be
+  (`worlds.py:440`) and forms the `reward_ledger` key `dialog:<peep_id>:<action_id>`
+  (`server/services/dialogs.py:237`), so generated node ids MUST be
   **cycle-scoped** (`dynamic_<peep>_<version>_<slug>`). A generated node MUST NOT
   reuse an authored node id, and no two cycles may collide. This guarantees no
   reward is ever re-issued or permanently voided.
-- **R6.4** The combined authored + generated tree MUST be re-validated through
-  the **existing** loader rules — start node present, `next` targets exist, no
-  dangling edges. Authored nodes remain exempt from the reachability check by
-  existing convention.
+- **R6.4** The combined authored + generated tree MUST be re-validated through the
+  **existing** loader rules — start node present, `next` targets exist, no
+  dangling edges, and full reachability from `start`. Note that `_load_dialog`
+  does **not** exempt authored nodes: it enforces reachability for every node
+  whose id does not start with `unused_` (`worlds.py:481-491`). Authored content
+  already satisfies this, so the check is preserved rather than relaxed.
 - **R6.5** Any generated `when` clause MUST use the same `StatusCondition`
   vocabulary as authored nodes (`server/content/conditions.py`).
 - **R6.6** A generated choice MAY use `grant` and `give_card`, but its
@@ -238,11 +377,27 @@ Validation failures are terminal and leave the prior version live.
   idempotency holds.
 - **R6.7** Validation MUST reuse `_load_dialog` rather than a parallel
   implementation. Divergence between two validators is a defect.
+  - **R6.7a** *Input shape.* `_load_dialog(raw_value, peep_id, card_ids)`
+    consumes the **raw YAML-shaped mapping**, not parsed dataclasses, and
+    `WorldDefinition` retains only the parsed `DialogDefinition`
+    (`PeepDefinition.dialog`, `worlds.py:830-843`). To reuse the validator
+    verbatim, the loader MUST retain the raw dialog mapping for each peep so the
+    merger can reconstruct `{authored raw} + {generated raw}` and re-run
+    `_load_dialog` over the merged mapping. Generated nodes are therefore
+    serialized back into the YAML shape before validation. Concretely: add a
+    `raw_dialog` mapping to `PeepDefinition` (populated at load time). This is a
+    small additive change to the content loader, not a second validator.
+  - **R6.7b** The merge MUST be lossless: the merged tree's authored node ids,
+    texts, and choice tuples MUST be identical to the authored
+    `DialogDefinition` after re-parse. A test asserts that re-running
+    `_load_dialog` on the merged raw mapping reproduces the authored nodes
+    exactly and adds only `dynamic_*` nodes plus appended choices.
 - **R6.8** Personalization — acknowledging a specific user, referencing a past
   interaction — MUST be driven by `behavior_state` and the digest, never by
   mutating authored text.
 - **R6.9** A generated node that no authored choice leads to MUST still be
-  reachable, via a generated choice on a reachable node.
+  reachable, via a generated choice on a reachable node, per R6.1a. The merger
+  MUST reject a cycle that adds a `dynamic_*` node with no incoming edge.
 
 ### R7 — Configuration
 
@@ -286,21 +441,34 @@ with mandatory guardrails and a blocking v1.1 follow-up.
   during a dispatch, and rollback.
 - **R10.3** Observation capture MUST have tests asserting no change to existing
   dispatch or transaction behavior — the current `tests/test_milestone3_behaviors.py`
-  and `tests/test_milestone3_dialogs.py` suites MUST pass unchanged.
+  and `tests/test_milestone3_dialogs.py` suites MUST pass unchanged. The
+  dispatcher restructuring in R5.2b is a behavior-affecting refactor, so this
+  "unchanged" bar is a real constraint: per-attachment isolation must be
+  provably equivalent for the authored-only path (a single attachment, or a
+  floor error still yielding `rejected=True` per R5.2d).
 - **R10.4** End-to-end must be testable with a **deterministic fake model**: a
   fixture returning canned artifacts — one valid, one oversized, one with a
   dangling prop reference, one with a non-additive dialog edit. The full cycle
   MUST run offline in CI.
 - **R10.5** Dialog append-only rules MUST have tests proving an authored
-  `action_id` can never be re-issued or voided by generation.
+  `action_id` can never be re-issued or voided by generation, and (per R6.7b)
+  that the merged tree's authored nodes survive re-parse unchanged.
 - **R10.6** A static check mirroring the 1200-line rule MUST enforce the 500/150
-  budgets in-repo and MUST be added to the pre-commit checklist.
+  budgets in-repo and MUST be added to the pre-commit checklist. It MUST apply
+  to generated artifacts at **commit time**, not only to checked-in sources,
+  since artifacts are written under `.local/` at runtime.
 - **R10.7** Browser coverage MUST include at least one visual test that a
   generated dialog node renders and its choice is clickable, and one
   **baseline-preservation** test that a peep with no overlay renders identically
   to its existing baseline. The second is mandatory.
 - **R10.8** `doc/db.md` MUST be updated to the new schema versions, correcting
   the existing drift (the doc says profile 6 / world 10; the code is 7 / 12).
+- **R10.9** The dispatcher refactor MUST have explicit regression tests for
+  R5.2b and R5.3b: (a) an overlay that raises does **not** prevent the floor's
+  intents from being applied, and does not set `rejected`; (b) floor and
+  overlay writing the same state key resolve floor-first/overlay-last; (c) the
+  state row is written exactly once per `(namespace, instance_id)`; (d) the
+  authored-only path behaves identically to today.
 
 ---
 
@@ -320,13 +488,34 @@ with mandatory guardrails and a blocking v1.1 follow-up.
 | `ModelClient` | `server/agent/model_client.py` | Outbound HTTPS, mirroring `server/mc_client.py` conventions |
 | `PromptBuilder` | `server/agent/prompts.py` | Assembles artifact + digest + world constraints into the request |
 | `AgentWorker` (separate process) | `tools/peep_agent.py`, `server/agent/` | Leases jobs, calls the model, validates, commits |
-| `OverlayRuntime` | `server/behaviors/overlay.py` | Loads, unloads, and swaps overlay modules alongside the authored floor |
-| `DynamicDialogMerger` | `server/services/dialogs.py` | Composes authored + generated nodes; reuses `_load_dialog` validation |
+| `WorkerStore` | `server/agent/store.py` | The worker's **own** world-DB connection + `busy_timeout`, isolated from `DatabaseHub` (R3.3a) |
+| `OverlayRuntime` | `server/behaviors/overlay.py` | Loads, unloads, and swaps overlay modules alongside the authored floor; owns the per-`(peep, version)` disabled set (R5.2c) |
+| `DynamicDialogMerger` | `server/services/dialogs.py` | Composes authored + generated nodes; reuses `_load_dialog` over the retained raw mapping (R6.7a) |
 
 ### 4.2 Data model
 
 Four new tables in the **world** DB, added as world schema migration v13. The
 profile DB is untouched.
+
+Bumping the world schema is a five-part change in
+`server/state/migrations.py`, all of which are required — omitting any one fails
+`ensure_world_database()` validation:
+
+1. `WORLD_SCHEMA_VERSION` → `13` (`migrations.py:12`).
+2. The new `CREATE TABLE` statements added to `_WORLD_SCHEMA_SQL`, and its
+   trailing `PRAGMA user_version = 12` → `13` (`migrations.py:188`) so a fresh
+   database is created at the right version.
+3. A `_WORLD_MIGRATIONS[13]` script carrying the same `CREATE TABLE` statements
+   for existing databases; the version loop in `_ensure_database` walks
+   `12 → 13` and hard-fails if the step is missing (`migrations.py:564-574`).
+4. The four new names added to `_WORLD_TABLES` (`migrations.py:206`), which is
+   the `expected_tables` completeness check.
+5. The new `CHECK (json_valid(…))` and `UNIQUE (peep_id, window_start)`
+   constraints MUST appear in the migration SQL itself, because
+   `_ensure_database` re-runs `CREATE TABLE IF NOT EXISTS` on an already-valid
+   database and will not retrofit a missing constraint. Column specs in
+   `ensure_world_database` (`migrations.py:642-645`) may omit the new tables —
+   `world_meta` is already unlisted there — but adding them is cheap.
 
 ```sql
 -- Append-only raw signal. Pruned on a rolling window (R2.4).
@@ -457,27 +646,67 @@ AgentWorker (separate process, own event loop)
 game event (quick_action | dialog_action | card_play | enter | leave)
   └─> BehaviorDispatcher.dispatch(event)              # existing routing, unchanged
         ├─> attachment resolution                      # loader.py room map, still valid (room-bound)
-        ├─> PeepObserver.record(...)                   # R1, same transaction as intents
-        └─> _dispatch:  authored handler   (floor, first)
-                       overlay handler    (versioned, second; failures contained per R5.2)
-                           └─> intents ──> one hub transaction ──> broadcast
+        │     peep attachments are now an ORDERED TUPLE: (floor, overlay)  # R5.1
+        ├─> PeepObserver.record(...)                   # R1, subject per R1.3a
+        └─> _dispatch:
+             ├─> load behavior_state ONCE per (namespace, instance_id)      # R5.3b
+             ├─> handler per attachment, in order, sharing the one state dict
+             │     ├─ authored handler   (floor, first)
+             │     └─ overlay handler    (versioned, second)
+             │           └─ on error: drop only this attachment's intents,
+             │              disable (peep, version); floor still applies      # R5.2
+             └─> _apply: surviving intents ──> one hub transaction ──> broadcast
+                    state saved once per (namespace, instance_id)             # R5.3b
 ```
 
 ### 4.7 Hot-swap
 
-The world server detects an active-version change at the same cadence it
-already uses for tick environment expiry, or via the process-local notification
-path used by hot-reload (`server/app.py:262-283`). The swap must not interleave
-with an in-flight dispatch; the existing global `asyncio.Lock` in
-`BehaviorDispatcher.dispatch` (`dispatcher.py:219-226`) is the natural
-serialization point.
+**There is no existing hook this reuses, and the plan must say so.** The only
+in-process reload path today is `RuntimeState._apply_world_reload`
+(`server/app.py:256-287`), which is a *full* service-graph rebuild: it reloads
+the entire world bundle, stops the ticker, replaces every `RuntimeState` field,
+restarts the ticker, and broadcasts `world.reloaded`. That is far too heavy for
+a module swap — it would churn activities, drop dispatcher-local caches, and
+force a client-visible world reload on every generation cycle. It is not a
+notification path and must not be used as one.
 
-One subtlety to settle during implementation: `BehaviorLoader` derives
-`script_id` as `behavior:<sha1(path)>` (`loader.py:62`). A new version whose
-content is byte-identical to an old one will therefore resolve to the same
-`script_id` and the module cache will reuse the older module. Decide
-explicitly whether that is the desired no-op behavior, and cover it with a test
-rather than leaving it to chance.
+The swap needs its own, narrow mechanism:
+
+- **Detection.** A lightweight poller in the overlay runtime (on the existing
+  `RoomTicker` task, or a sibling task) reads the active version per dynamic
+  peep at a low interval. The existing `TRSERVER_TICK_SECONDS` loop is a fine
+  cadence; per-tick environment expiry already runs there (`ticker.py:111-116`).
+  Reading active versions is a cheap indexed lookup.
+- **Serialization.** The swap is performed under the dispatcher's existing
+  dispatch lock. `BehaviorDispatcher.dispatch` already serializes all dispatches
+  behind a lazily-created `asyncio.Lock` (`dispatcher.py:78`,
+  `dispatcher.py:229-232`); acquiring that same lock to apply a swap guarantees
+  the swap does not interleave with an in-flight dispatch and is atomic from the
+  dispatcher's point of view.
+- **Lock ordering.** The dispatcher lock is an `asyncio` lock and is
+  per-dispatcher-instance; it is **recreated** whenever `_apply_world_reload`
+  rebuilds the graph. The swap path MUST take the dispatcher lock *only* around
+  the attachment-map mutation and MUST NOT hold a `DatabaseHub` transaction
+  while awaiting it. The ordering is: acquire dispatch lock → mutate attachment
+  map → release. No lock is held across the import or the `await` the way
+  `dispatch` is.
+- **Atomicity.** Because a dispatch holds the lock for its whole duration, a
+  swap either happens entirely before or entirely after any dispatch. The
+  import itself (file read + `exec_module`) happens **outside** the lock; the
+  lock is then taken only to publish the already-built module reference.
+
+**Dropped subtlety (was a misreading).** An earlier draft claimed a
+byte-identical new version would collide on `script_id`. That is not the case:
+`script_id = behavior:<sha1(path)>` (`loader.py:72`) hashes the **path**, not
+the content. Because §4.3 stores each version in its own immutable file
+(`v1.py`, `v2.py`, …), distinct versions have distinct paths and therefore
+distinct `script_id`s and distinct module names (`_module_name`,
+`loader.py:57-60`). The module cache is keyed by resolved path
+(`loader.py:62-74`), so a re-import of an existing version path is a cache hit
+(as intended) and two different versions never alias. No collision test is
+needed; instead, a test asserts the swap publishes the *new* module even when
+the new version's source happens to be byte-identical to the old one, proving
+the distinction is by identity, not content.
 
 ---
 
@@ -491,9 +720,11 @@ rather than leaving it to chance.
 | Artifact valid but errors at runtime | Overlay disabled for that version's life; floor continues; surfaced in R8.2 |
 | Generated dialog breaks the tree | Merged-tree validation fails ⇒ the whole cycle is rejected. Commit is atomic, never partially applied |
 | Worker process down | Leases expire; jobs reclaimed by the next worker. No gameplay impact |
+| Worker cannot write the world DB | Bounded retry on `database is locked`; on exhaustion the job is retried later, never failed for a transient lock |
 | Feature flag off | World server path is identical to today. The worker refuses to start |
 | Cost cap hit mid-cycle | Job `skipped` with a reason. No partial artifact |
-| Clock jump or DST | Cadence uses `game_time.today_in` and game-date semantics, never naive elapsed time |
+| Clock jump or DST | Cadence uses `today_in` / game-date semantics, never naive elapsed time |
+| Model reports no token usage | Budget falls back to a local estimate and records `tokens_estimated = true` (R3.7a) |
 
 **Absolute invariant: no generation failure may ever degrade gameplay.** The
 worst case is a static peep.
@@ -505,24 +736,49 @@ worst case is a static peep.
 These are properties of the current codebase that the design must respect.
 They are not defects introduced by this milestone.
 
-- **Rooms with no connected humans do not tick** (`ticker.py:79`). For
+- **Rooms with no connected humans do not tick** (`ticker.py:71-80`). For
   room-bound v1 this is acceptable — a peep with no observers has nothing to
   react to — but it MUST be documented as a limitation and re-examined when
   mobility lands.
-- **`_account_for` resolves a target account** (`dispatcher.py:211-217`), so an
+- **`_account_for` resolves a target account** (`dispatcher.py:213-219`), so an
   overlay reacting to a user-initiated event already has full access to
   counters, buffs, cards, and grants against that user. No dispatcher change is
   required for the v1 reaction surface.
 - **`activity_result` is never dispatched today.** The bridge in
   `server/routes/activity_bridge.py:17-44` completes activities without emitting
   the event, even though the dispatcher supports the type
-  (`dispatcher.py:139-144`). This is the one event-source gap in scope.
-- **Line-budget pressure.** Overlay code must stay well under the 1200-line
-  rule and must not push `dispatcher.py` (629 lines) or `app.py` over it.
-  Splitting `dispatcher.py` may be a prerequisite.
-- **Doc drift.** `doc/db.md:12-13` and `:241` still state
-  `PROFILE_SCHEMA_VERSION = 6` and `WORLD_SCHEMA_VERSION = 10`; the code is at 7
-  and 12. Correct this in the same change that adds v13 (R10.8).
+  (`dispatcher.py:141-146`). This is the one event-source gap in scope.
+- **Handler errors currently abort the whole dispatch.** `_dispatch` returns
+  `rejected=True` on the first exception and drops every already-queued intent
+  (`dispatcher.py:263-266`, applied only at `dispatcher.py:267-274`); and
+  `self.erroring` is recorded but never consulted, so there is no working
+  "disable a broken script" mechanism. Both are pre-existing; R5.2 requires
+  fixing them for overlays, and the fix is a genuine behavior change that must
+  stay inert for the authored-only path.
+- **State is loaded and saved per attachment**, not per
+  `(namespace, instance_id)` (`dispatcher.py:245-253` and
+  `dispatcher.py:284-287`), so today two attachments sharing a state row would
+  clobber each other. R5.3b changes this; the authored-only path is unaffected
+  because it has one attachment per instance.
+- **Line-budget pressure is tight and asymmetric.** The 1200-line static check
+  (`tests/test_ui_presentation.py:67-92`) covers `server/`, so:
+  - `server/app.py` is **1194 lines — six lines of headroom.** No new wiring may
+    be added to `app.py`; the scheduler, hot-swap poller, and commands must live
+    in new modules and attach to `RuntimeState` elsewhere. This is a hard
+    constraint, not a style preference.
+  - `server/behaviors/dispatcher.py` is **673 lines** and R5.2b adds real
+    restructuring to `_dispatch`/`_apply`. Splitting `_apply_intent` and the
+    per-intent handlers into a separate module should be treated as a
+    **prerequisite**, not an optional cleanup, to leave headroom.
+- **Content loaders ignore unknown peep keys.** The peep loader reads each field
+  with `.get()` and does not reject extras
+  (`server/content/worlds.py:819-843`), so a `dynamic:` block is silently dropped
+  today. Adding it means a new `PeepDefinition` field, and it MUST be validated
+  (unknown cadence rejected) rather than silently defaulted.
+- **Doc drift.** `doc/db.md:12-13` still states
+  `PROFILE_SCHEMA_VERSION = 6` and `WORLD_SCHEMA_VERSION = 10`; the code is at
+  `migrations.py:11-12` = 7 and 12. Correct this in the same change that adds
+  v13 (R10.8).
 - **Unrelated drift.** `AGENTS.md` documents `server/client/` and `tests/client/`,
   which do not exist. The client-logic-testing convention in the agent guide is
   currently unsatisfiable.
@@ -567,6 +823,17 @@ molly:
   dynamic:
     cadence: daily          # daily (default) | hourly
 ```
+
+`dynamic` requires a loader change: a new field on the frozen
+`PeepDefinition` (`server/content/worlds.py:179-194`, constructed at
+`worlds.py:830-843`). The loader currently ignores unknown peep keys, so it
+MUST parse and **validate** the block explicitly — an unrecognized `cadence`
+MUST raise `ContentError` rather than silently defaulting, matching the
+strictness of the rest of `server/content/`. A peep with no `dynamic` block is
+authored-only and is unaffected (R5.8). The feature name is also new:
+`KNOWN_FEATURES` (`server/config.py:15-25`) and `parse_features`
+(`config.py:145-158`) reject unknown feature names, so `dynamic_peeps` must be
+registered there or the server will refuse to start.
 
 ---
 
@@ -613,13 +880,15 @@ may touch the network.
 Before any non-dev deployment, one of the following MUST be done:
 
 1. **AST-level import and attribute allowlisting** over the generated artifact,
-   replacing the R4.5 import-list check with real inspection of the parsed tree;
-   or
+   replacing the R4.5 name-based import-list check with real inspection of the
+   parsed tree (R4.5a); or
 2. **Migration to a declarative IR** — the agent emits a structured
    behavior spec (goals, schedule, reactions, dialog fragments) executed by a
    hand-written interpreter, so generated content can never execute code. This
    also converts the 500-line budget into a simple size cap.
 
+Until this gate is closed, the v1 import allowlist is a tripwire, not a boundary
+(R4.5a): it stops the obvious cases and does not stop a determined artifact.
 This gate is a **blocking follow-up**, tracked in this document rather than in
 informal notes. It is the reason the feature ships behind a flag.
 
@@ -637,44 +906,60 @@ informal notes. It is the reason the feature ships behind a flag.
 ## 10. Complexity assessment and sequencing
 
 **Overall: high.** For the locked scope — trusted Python, room-bound,
-additive-only dialog, out-of-process worker — the estimate is **3–4 weeks** of
+additive-only dialog, out-of-process worker — the estimate is **4–6 weeks** of
 focused work for one experienced developer, with a clearly separable second
-phase for the v1 debt in §9.2.
+phase for the v1 debt in §9.2. (This supersedes the earlier 3–4 week figure,
+which underestimated the dispatcher work surfaced in R5.2b/R5.3b and the
+cross-process database coordination in R3.3a.)
 
 | Area | Share | Notes |
 | --- | --- | --- |
-| Observation capture, digest, retention, migrations | ~20% | Individually cheap; the schema is a long-term commitment. Includes the `activity_result` gap |
-| Job store, scheduler, leases, game-time cadence | ~15% | Straightforward once the day/hour boundary is settled |
+| Observation capture, digest, retention, migrations | ~15% | Individually cheap; the v13 schema is a long-term commitment. Includes the `activity_result` gap |
+| Job store, scheduler, leases, game-time cadence | ~15% | Straightforward once the day/hour boundary and the worker's own DB connection (R3.3a) are settled |
 | Model client, prompt assembly, cost accounting | ~15% | The prompt contract is the real design work, not the HTTP |
 | Validator | ~15% | R4.4 referential integrity mirrors `server/content/worlds.py` and needs real care |
-| Overlay runtime, hot-swap, rollback | ~20% | The trickiest correctness surface |
-| Dialog append-only merge | ~10% | Mostly constrained by R6; a matter of reusing the existing validator correctly |
+| **Dispatcher refactor + overlay runtime + hot-swap + rollback** | **~25%** | The trickiest correctness surface: shared state (R5.3b), per-attachment isolation (R5.2b), the disabled set (R5.2c), and swap lock ordering (§4.7). Now the largest single area |
+| Dialog append-only merge | ~10% | Constrained by R6, but the raw-source retention in R6.7a and the append-only semantics in R6.1a are real loader work, not a free merge |
 | Tests, static checks, docs | ~15% | Overlaps the above; the fake model is a prerequisite |
 
 ### 10.1 What is genuinely hard
 
-1. **Hot-swap without interrupting a dispatch.** Everything else is CRUD. This
-   needs a real argument about the dispatcher's global lock, module identity,
-   and the `behavior:<sha1(path)>` `script_id` derivation described in §4.7.
-2. **The prompt / validation contract.** Getting a model to produce artifacts
+1. **Reworking `_dispatch` for dual dispatch, shared state, and isolation.**
+   This is the schedule risk. Making the floor and overlay share one loaded,
+   once-saved state dict (R5.3b) while isolating a failing overlay's intents
+   without losing the floor's (R5.2b) is a real change to the core dispatch
+   path, and the "M3 suites pass unchanged" bar (R10.3) constrains it tightly.
+2. **Hot-swap without interrupting a dispatch.** Needs a real argument about
+   lock ordering between the dispatcher's `asyncio.Lock`, the swap path, and the
+   `DatabaseHub` transaction — see §4.7. (The `sha1(path)` `script_id` worry
+   that previously sat here was a misreading and has been removed.)
+3. **The prompt / validation contract.** Getting a model to produce artifacts
    that pass a strict validator *and* are actually interesting is an iteration
    problem, not a one-shot design. Expect several rounds against a corpus of
    real digests.
-3. **Making "remembers this specific user" actually work** through the existing
+4. **Making "remembers this specific user" actually work** through the existing
    `reward_ledger`-keyed dialog system without a re-issue or a void. R6.3's
-   cycle-scoped node ids are the crux.
+   cycle-scoped node ids and R6.1a's append-only constraint are the crux.
+5. **Two writers on one SQLite file.** The worker and the game loop both write
+   the world DB (R3.3a). Small volume, but the retry/busy-timeout discipline has
+   to be right or jobs flake under load.
 
 ### 10.2 Recommended sequencing
 
 1. Observation capture + digest + retention + migrations + **fake model** +
    validator — all offline, zero runtime risk. Proves the data contract.
-2. Overlay runtime + hot-swap + rollback, still with no model involvement.
-3. Cadence scheduler + job store + real model client.
-4. Dialog append-only merge.
+2. **Dispatcher refactor** (shared state + per-attachment isolation + disabled
+   set) with authored-only behavior provably unchanged, plus the overlay
+   runtime, hot-swap and rollback — still with no model involvement. This is the
+   step that carries the schedule risk and must not be deferred behind the
+   dialog work.
+3. Cadence scheduler + job store + worker DB access + real model client.
+4. Dialog append-only merge (retire the raw dialog mapping, add the merger).
 5. Operator surface, metrics, docs, browser baselines.
 
 Steps 1–2 carry the schedule risk and have no model dependency, which is exactly
-the right order.
+the right order. The dispatcher refactor is deliberately front-loaded inside
+step 2 so its risk surfaces before the model and dialog work compounds it.
 
 ---
 
@@ -695,23 +980,46 @@ the right order.
 Resolved during specification, listed here for traceability:
 
 1. **Artifact file layout** — separate immutable file per version
-   (`.local/peep-overlays/<peep_id>/v<version>.py`). Cost: a small
-   `BehaviorLoader` change so one peep can have two attachments.
+   (`.local/peep-overlays/<peep_id>/v<version>.py`). Cost: `BehaviorLoader` and
+   `BehaviorScripts.peep_attachments` must change from one attachment to an
+   ordered tuple per peep (R5.1), and `_attachments_for` must iterate it. This
+   is a signature change across loader + dispatcher, **not** a small edit.
 2. **Cadence default** — `daily`, with `hourly` as an explicit per-peep opt-in
    in `peeps.yaml`. Tunable after real digests exist.
 3. **Cost ceiling** — fixed conservative defaults (2 calls / 40k tokens per
    peep per game-day, plus global ceilings), overridable via `TRSERVER_*`.
+4. **Dialog reachability conflict (R6.1 vs R6.9)** — resolved by R6.1a:
+   generated choices are *appended* to authored nodes, never inserted, so
+   authored `action_id`s and their ledger entries are preserved.
+5. **Validator input shape** — resolved by R6.7a: retain the raw dialog mapping
+   on `PeepDefinition` so `_load_dialog` can be reused verbatim.
+6. **`script_id` collision concern** — dropped; it was a misreading of
+   `sha1(path)` as a content hash (§4.7).
+7. **Error containment** — not an extension of existing behavior but a new
+   per-attachment isolation model with a real disabled set (R5.2a–R5.2d).
+8. **Worker database access** — resolved in favor of a dedicated connection
+   with `busy_timeout` and bounded lock retry, isolated from `DatabaseHub`
+   (R3.3a/R3.3b).
+9. **Token accounting without provider `usage`** — resolved by a documented
+   fallback with an explicit `tokens_estimated` flag (R3.7a).
 
 Still open, and needing a decision before implementation of the affected area:
 
-4. **Should generated dialog be visible in the world editor?** If yes, editor
-   work is in scope. If no, generated content stays server-only and the editor
-   needs an explicit "this tree differs from disk" warning so an author does not
-   unknowingly discard it.
-5. **Should digest building run on the game server or the worker?** Digest
-   building reads the world DB and is cheap, so the game server is defensible,
-   but it places AI-adjacent work on the gameplay process. Leaning worker-side,
-   with the scheduler writing a closed-window marker the worker polls.
-6. **Model provider and endpoint shape.** §7 assumes a generic OpenAI-style
-   chat-completions surface. A different provider changes `ModelClient` and the
-   cost-accounting fields but no other component.
+10. **Should generated dialog be visible in the world editor?** If yes, editor
+    work is in scope. If no, generated content stays server-only and the editor
+    needs an explicit "this tree differs from disk" warning so an author does not
+    unknowingly discard it. Note the editor validates through the same bundle
+    loaders (`server/content/bundle.py`), so a server-side merged tree that the
+    editor cannot reproduce is a real divergence risk.
+11. **Should digest building run on the game server or the worker?** Digest
+    building reads the world DB and is cheap, so the game server is defensible,
+    but it places AI-adjacent work on the gameplay process. Leaning worker-side,
+    with the scheduler writing a closed-window marker the worker polls.
+12. **Model provider and endpoint shape.** §7 assumes a generic OpenAI-style
+    chat-completions surface. A different provider changes `ModelClient` and the
+    cost-accounting fields but no other component — and directly determines
+    whether R3.7a needs its estimate fallback at all.
+13. **How is the worker launched and supervised?** `tools/peep_agent.py` implies a
+    separate entrypoint; the doc does not say whether `run.py` spawns it, whether
+    it is supervised, or whether an operator runs it by hand in a second terminal.
+    This matters for dev ergonomics and for the R3.10 "refuses to start" path.

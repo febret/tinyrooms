@@ -77,7 +77,9 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Protocol | `server/protocol.py` | WS envelope constants, validation, and serializer helpers. |
 | Live connections | `server/connections.py` | In-memory WS registry, per-account queue, room membership, session replacement. |
 | Commands | `server/commands/` | `.`-command/chat/`\admin` parser, name→handler registry, 11 core handlers + dispatcher. |
-| Content loaders | `server/content/` | Strict YAML loading for cards/packs, world/rooms/props/peeps, and activity launch definitions. |
+| Content loaders | `server/content/` | Strict YAML loading for cards/packs, world/rooms/props/peeps, activity launch definitions, and cutscene definitions. |
+| Cutscene service | `server/services/cutscenes.py` | Cutscene definition resolution, audience selection, placeholder resolution, and `cutscene.play` payload building. See `doc/cutscenes.md`. |
+| Cutscene client | `app/js/cutscenes/`, `app/css/cutscenes.css` | Client-side cutscene queue, playback state machine, frame types, and the stage API cutscene code programs against. |
 | Mod loader | `server/mods.py` | Discovers `mods/<id>/mod.yaml`, validates `TRSERVER_MODS`, merges mod content/props/activities, registers mod commands + runtime state. |
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
 | Bedroom mod | `mods/infinite-bedrooms/` | Player-room purchase/materialization, door locking, customization, access checks, and the Bedrooms activity. |
@@ -87,8 +89,8 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
 | Browser UI | `app/` | Shell (`index.html`), styles, vanilla ES-module JS, vendored Three.js. Includes `app/js/voice.js` for P2P audio. |
 | Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
-| Shared data | `data/` | Core tuning YAML, base card set + art, preset sticker choices, door catalog. Rendered custom stickers live under `TRSERVER_CUSTOM_STICKERS_PATH` (`.local/stickers`). |
-| Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes + art/models. |
+| Shared data | `data/` | Core tuning YAML, base card set + art, preset sticker choices, door catalog, core cutscenes (`cutscenes/<id>/`). Rendered custom stickers live under `TRSERVER_CUSTOM_STICKERS_PATH` (`.local/stickers`). |
+| Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes/cutscenes + art/models. |
 | Tests | `tests/` | Python `unittest` (server/integration/static) + Playwright browser specs. |
 | Tooling | `tools/`, root configs | Browser-test server, dep vendoring, Playwright/npm config. |
 | Mission control | `server/mission_control/` | Optional fleet operations server (launched by `run.py` when `TRSERVER_FEATURES` includes `mission-control`): instance registry/supervisor, package manager, user manager, operator auth + UI. See `doc/mission-control.md`. |
@@ -420,6 +422,52 @@ private result events for `.play replace`/`.cancel`/nav so the store clears
    room (dropping old peers via `presence.leave`, offering to new ones). Because
    the flag is per-connection and in-memory, a browser refresh or a new login
    (which replaces the connection) starts with audio disabled.
+
+### 6.9 Cutscene playback
+
+Always available; only the client's reduced-motion preference switches playback
+off. Definitions live in `data/core/cutscenes.yaml`,
+`mods/<id>/content/cutscenes.yaml`, and `worlds/<world>/cutscenes.yaml`; each
+script is a module in `cutscenes/<id>/<id>.js` under `data/cutscenes/`, the
+mod's `cutscenes/`, or the world's `cutscenes/`, served read-only from
+`/cutscenes/<id>/<file>`. A definition may still declare its own `feature:`
+gate, checked per launch.
+
+1. A launch resolves the definition by id or alias (`server/content/cutscenes.py`
+   is the strict loader), checks the `feature`/`rooms`/`power` gates, charges any
+   `energy_cost`, and merges launch `key=value` arguments over the definition's
+   `params` (`server/commands/cutscenes.py`).
+2. Every `$me`, `$user:`, `$peep:`, `$sticker:`, `$card:`, and `$prop:` token in
+   those params and in the caption cues is resolved **server-side** into an
+   asset record; `$prop:` thumbnails are rendered in the browser, so their
+   record carries `model_url`/`scale` and a null `thumbnail`.
+3. The resulting `cutscene.play` event is delivered as a room broadcast
+   (`room` audience) or in the actor's private `result.events[]` (`private`),
+   with `account_id` set so behavior-triggered private plays route through
+   `deliver_behavior_result`. `room_bound` rides along so the client can drop
+   queued scenes on travel. Nothing is acknowledged: the server never learns
+   whether a cutscene played.
+4. The client never routes the event through the store. `ui.js` intercepts
+   `cutscene.play` alongside `shop.open` and hands it to
+   `createCutsceneManager` (`app/js/cutscenes/manager.js`), which owns a FIFO
+   queue (global cap 6, per-definition `max_queue`, dedupe by id+source),
+   dynamically imports the module, and runs the default export.
+5. The scene calls `beginCutscene(frameType, options)` from
+   `app/js/cutscenes/stage.js`, which returns the stage element inside a frame
+   that owns the intro/outro animation; `endCutscene()`/`skip`/the duration cap
+   each run the outro and tear the layer down. Frames are `movie`, `vs`,
+   `letterbox`, `caption`, and `plain`, and cutscene modules may register
+   their own from top level.
+6. Reduced motion disables cutscenes entirely (`prefers-reduced-motion` →
+   `state.ui.reducedMotion`): no layer is created, no module is imported, and
+   the queue is never filled. The cutscene layer sits at `z-index: 36`, below
+   the activity layer's `37`, and above the board-side panels; chat, the card
+   hand, and activities stay live and interactive throughout.
+
+Triggers: the `.cutscene` command (also authored as a prop/peep quick action),
+the `context.cutscene(...)` behavior intent, and a cutscene emote card
+(`type: emote` + `cutscene:` field, shown under the Emotes view's `Scene`
+category).
 
 ## 7. Testing architecture
 

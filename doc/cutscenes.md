@@ -16,8 +16,8 @@ ordering of individual animation beats) are left to the scene author.
 
 Shipped alongside it: `data/core/cutscenes.yaml` (`victory-dance`, a
 room-audience `vs` scene with a custom `victory-banner` frame) and
-`worlds/tutorial/cutscenes.yaml` (`molly-greet`, a private `movie` scene bound
-to Molly through `cutscene: molly-greet` in `worlds/tutorial/peeps/peeps.yaml`).
+`worlds/tutorial/cutscenes.yaml` (`molly-greet`, a private `movie` scene reached
+from Molly's authored Greet action in `worlds/tutorial/peeps/peeps.yaml`).
 A matching `victory-dance` emote card lives in `worlds/tutorial/cards/` and is
 in the tutorial pack.
 
@@ -317,14 +317,15 @@ The loader is strict and raises `ContentError` on the first problem, matching
   known room ids.
 
 Cross-content validation, mirroring the activity reference check at
-`server/content/worlds.py:835`:
+`server/content/worlds.py:847`:
 
-- Every `cutscene:` reference on a prop instance, a peep, and a card resolves
-  (by id or alias) in the merged catalog.
-- Every `.cutscene` command embedded in a prop/peep `actions:` list parses and
-  names a resolvable cutscene. (Command *verbs* are already allowlisted from
-  the registry at `server/services/rooms.py:206`, so registering `.cutscene`
-  is what makes these usable.)
+- Every `cutscene:` reference on a card resolves (by id or alias) in the
+  merged catalog.
+
+An authored `.cutscene` command inside a prop/peep `actions:` list is not
+resolved at load time. The command verb is allowlisted from the registry at
+`server/services/rooms.py:206`, and an unknown id only surfaces as a runtime
+"no cutscene called" message when the action fires.
 
 ### 3.4 Cutscene emotes are cards
 
@@ -725,8 +726,8 @@ for activities.
 ### 7.2 Availability
 
 Cutscenes have **no server-side feature flag**. The subsystem, the `.cutscene`
-command, prop and peep `cutscene:` bindings, cutscene emote cards, and the
-behavior intent are always live, so nothing about a world changes when an
+command, `.cutscene` quick actions on props and peeps, cutscene emote cards, and
+the behavior intent are always live, so nothing about a world changes when an
 operator edits `TRSERVER_FEATURES`. The only availability switch is the
 client's reduced-motion preference (§2.3), which drops play messages.
 
@@ -771,20 +772,21 @@ must be written to tolerate missing sprites (§4.6).
 
 ### 7.5 Trigger bindings
 
-**Props and peeps.** A prop instance or peep definition may declare:
+**Props and peeps.** A prop instance or peep definition exposes a cutscene the
+same way it exposes any other action: an entry in its `actions:` list.
 
 ```yaml
 molly:
-  cutscene: molly-greet
-  cutscene_label: Greet
+  actions:
+    - ["Greet", ".cutscene molly-greet @peep:molly"]
 ```
 
-The loader resolves and validates the reference, and the serializer adds an
-implicit quick action carrying `.cutscene <id> @peep:<id>`, using
-`cutscene_label` (default `Watch`) as the button text. The implicit action is
-appended after any authored `actions:` entries and never displaces an
-authored `default: true` action. This mirrors how `activity:` bindings
-synthesize `.play <prop>`.
+There is no implicit binding: the author names the cutscene and the `@peep:` /
+`@prop:` target explicitly. The entry is normalized like any authored action,
+so it appears only when the `.cutscene` verb is registered and the environment
+allows it, and it keeps the author's placement and label. The target is what
+makes the scene resolve that entity's placeholder asset and sets `origin` to
+`peep`/`prop`; without it the scene still plays, but `origin` stays `command`.
 
 **Behaviors.** A new intent:
 
@@ -1006,9 +1008,9 @@ export default async function (ctx) {
 }
 ```
 
-Wired up with `cutscene: molly-greet` and `cutscene_label: Greet` on the
-`molly` peep in `worlds/tutorial/peeps/peeps.yaml`, which gives the Playroom's
-Molly an automatic **Greet** quick action (`.cutscene molly-greet @peep:molly`).
+Wired up with a Greet entry in the `molly` peep's `actions:` list in
+`worlds/tutorial/peeps/peeps.yaml` (`["Greet", ".cutscene molly-greet @peep:molly"]`),
+which gives the Playroom's Molly the **Greet** quick action.
 Energy is not charged because the definition sets none; the scene is pure
 flavor and is discarded on room change. The second cue shows the caption token
 rule: `$me` in a `say` string reaches the client as the player's display name,
@@ -1108,8 +1110,8 @@ A frame name registered twice is ignored after the first registration.
 - Loader: required `title`, existing `script`, scalar `params`, well-formed
   `text` cues, valid `audience`/`feature`/`power`/`rooms`, alias collisions,
   duplicate ids across sources.
-- Cross-content: a prop, peep, or card naming a missing cutscene is a
-  `ContentError`; a valid one serializes the expected implicit quick action.
+- Cross-content: a card naming a missing cutscene is a `ContentError`; an
+  authored `.cutscene` action on a prop or peep serializes with its label.
 - Service: resolution by id and alias, `rooms` allowlist, `power` requirement,
   energy charging, audience promotion via `--room` for `private` definitions.
 - Placeholders: `$me`, `$user:`, `$peep:`, `$sticker:`, `$card:`, `$prop:`
@@ -1186,7 +1188,7 @@ anyone extending it.
 | `server/config.py` | `AppConfig.cutscenes_path` (no feature flag) |
 | `server/content/cutscenes.py` | `CutsceneDefinition`, `CutsceneCue`, `CutsceneCatalog`, strict loader, merge, `parse_param_arguments`, `resolve_cutscene_id` |
 | `server/content/bundle.py` | Loads `data/core/cutscenes.yaml` and mod catalogs, passes them and the script roots into the world loader |
-| `server/content/worlds.py` | `cutscenes` on `WorldDefinition`; `cutscene`/`cutscene_label` on prop instances and peeps; reference validation |
+| `server/content/worlds.py` | `cutscenes` on `WorldDefinition`; resolves definitions and validates card `cutscene:` references |
 | `server/mods.py` | `ModDefinition.cutscenes_path`, `LoadedMods.cutscene_definitions` / `cutscene_roots()` |
 | `server/services/cutscenes.py` | `CutsceneService` (catalog, resolve, check, audience, launch, placeholder resolution, per-definition `feature_enabled`, `valid_stickers`), `CutsceneLaunch`, `choose_audience`, `CutsceneError` |
 | `server/commands/cutscenes.py` | `cutscene_command` plus the shared launch/resolve/deliver helpers used by the emote path. Deliberately does not import `server.commands.core` (the registry imports it) |
@@ -1195,7 +1197,7 @@ anyone extending it.
 | `server/services/actions.py` | `ActionResult.cutscene`, the `use_emote` branch, `Scene` in `EMOTE_COSTS` |
 | `server/content/cards.py` | `cutscene` field on `CardDefinition`, emote-only validation, `cutscene_card_references` |
 | `server/services/cards.py` | `cutscene` in the serialized definition, plus `asset_urls`/`has_definition` used by placeholder resolution |
-| `server/services/rooms.py` | Implicit cutscene quick actions for prop and peep bindings |
+| `server/services/rooms.py` | Serializes authored prop/peep quick actions, including `.cutscene` entries |
 | `server/behaviors/context.py`, `dispatcher.py` | `context.cutscene(...)` intent and `_apply_cutscene` |
 | `server/routes/cutscenes.py` | `/cutscenes/{id}/{file}` and `/api/cutscenes` |
 | `server/routes/html_pages.py` | The activity fallback page, moved out of `app.py` for the line limit |
@@ -1219,7 +1221,7 @@ anyone extending it.
 `data/core/cutscenes.yaml` + `data/cutscenes/victory-dance/`,
 `worlds/tutorial/cutscenes.yaml` + `worlds/tutorial/cutscenes/molly-greet/`,
 the `victory-dance` card in `worlds/tutorial/cards/` (art and pack entry), and
-`cutscene: molly-greet` on the Molly peep.
+Molly's Greet `.cutscene` action.
 
 ### Tests
 
