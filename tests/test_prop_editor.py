@@ -206,6 +206,21 @@ class PropReadWriteTests(PropEditorServiceTestCase):
             self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
         self.assertEqual(self.props_file("propset", "testsuite").read_bytes(), before)
 
+    def test_save_prop_allows_clearing_an_effect_set(self) -> None:
+        raw = dict(self.read_props("propset", "testsuite")["testsuite-plant"])
+        raw["effects"] = {"idle": []}
+        self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
+        self.assertEqual(self.read_props("propset", "testsuite")["testsuite-plant"]["effects"], {"idle": []})
+
+    def test_save_prop_allows_removing_all_effects(self) -> None:
+        raw = dict(self.read_props("propset", "testsuite")["testsuite-plant"])
+        raw["effects"] = {}
+        raw.pop("active_effect", None)
+        self.service.save_prop(self.world, "propset", "testsuite", "testsuite-plant", raw, actor_id="a")
+        after = self.read_props("propset", "testsuite")["testsuite-plant"]
+        self.assertEqual(after["effects"], {})
+        self.assertNotIn("active_effect", after)
+
     def test_unknown_source_is_rejected(self) -> None:
         with self.assertRaises(PropEditorNotFound):
             self.service.load_prop(self.world, "propset", "nope", "testsuite-plant")

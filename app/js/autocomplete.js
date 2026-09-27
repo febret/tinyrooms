@@ -223,10 +223,10 @@ function completionFor(state, value, caret) {
   return { items: [], range: token };
 }
 
-/** Attach the `.`/`@` completion popup to the chat input. */
-export function createChatAutocomplete({ form, input, store, requestCatalog }) {
+/** Attach the `.`/`@` completion and history popup to the chat input. */
+export function createChatAutocomplete({ form, input, store, requestCatalog, history }) {
   const list = form.querySelector("#chat-completions");
-  const controller = { items: [], active: -1, open: false, range: null, requested: false };
+  const controller = { items: [], active: -1, open: false, mode: null, range: null, requested: false };
 
   function optionId(index) {
     return `chat-completion-${index}`;
@@ -236,6 +236,7 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
     controller.open = false;
     controller.active = -1;
     controller.items = [];
+    controller.mode = null;
     controller.range = null;
     list.hidden = true;
     updateMarkup(list, "");
@@ -246,6 +247,7 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
   function render() {
     controller.open = true;
     list.hidden = false;
+    list.setAttribute("aria-label", controller.mode === "history" ? "Command history" : "Completions");
     input.setAttribute("aria-expanded", "true");
     if (controller.active >= 0) input.setAttribute("aria-activedescendant", optionId(controller.active));
     else input.removeAttribute("aria-activedescendant");
@@ -266,6 +268,7 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
 
   function refresh() {
     const { items, range } = completionFor(store.getState(), input.value, input.selectionStart ?? input.value.length);
+    controller.mode = "completion";
     controller.items = items;
     controller.range = range;
     if (!items.length) {
@@ -276,9 +279,45 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
     render();
   }
 
+  function refreshHistory() {
+    const items = (history?.filter(input.value, MAX_ITEMS) || []).map(text => ({
+      label: text,
+      detail: "",
+      summary: "",
+      insert: text,
+    }));
+    controller.mode = "history";
+    controller.range = null;
+    controller.items = items;
+    if (!items.length) {
+      controller.open = false;
+      list.hidden = true;
+      updateMarkup(list, "");
+      input.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-activedescendant");
+      return;
+    }
+    if (controller.active < 0 || controller.active >= items.length) controller.active = 0;
+    render();
+  }
+
+  function openHistory() {
+    controller.active = 0;
+    refreshHistory();
+  }
+
   function accept(index) {
     const item = controller.items[index];
-    if (!item || !controller.range) return;
+    if (!item) return;
+    if (controller.mode === "history") {
+      input.value = item.insert;
+      const caret = item.insert.length;
+      input.setSelectionRange(caret, caret);
+      input.focus();
+      close();
+      return;
+    }
+    if (!controller.range) return;
     const value = input.value;
     const before = value.slice(0, controller.range.start);
     const after = value.slice(controller.range.end);
@@ -304,7 +343,8 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
 
   input.addEventListener("input", () => {
     controller.active = -1;
-    refresh();
+    if (controller.mode === "history") refreshHistory();
+    else refresh();
     ensureCatalog();
   });
 
@@ -316,16 +356,41 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
       }
       return;
     }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (event.key === "ArrowUp") {
+      if (controller.mode === "completion" && controller.items.length) {
+        event.preventDefault();
+        const size = controller.items.length;
+        controller.active = controller.active < 0 ? size - 1 : (controller.active - 1 + size) % size;
+        render();
+        return;
+      }
+      event.preventDefault();
+      if (controller.mode === "history" && controller.items.length) {
+        const size = controller.items.length;
+        controller.active = (controller.active - 1 + size) % size;
+        render();
+        return;
+      }
+      openHistory();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      if (controller.mode === "history") {
+        event.preventDefault();
+        if (controller.items.length) {
+          controller.active = (controller.active + 1) % controller.items.length;
+          render();
+        }
+        return;
+      }
       if (!controller.items.length) return;
       event.preventDefault();
       const size = controller.items.length;
-      if (event.key === "ArrowDown") controller.active = controller.active < 0 ? 0 : (controller.active + 1) % size;
-      else controller.active = controller.active < 0 ? size - 1 : (controller.active - 1 + size) % size;
+      controller.active = controller.active < 0 ? 0 : (controller.active + 1) % size;
       render();
       return;
     }
-    if (event.key === "Escape" && controller.open) {
+    if (event.key === "Escape" && (controller.open || controller.mode === "history")) {
       event.preventDefault();
       event.stopPropagation();
       close();
@@ -335,8 +400,8 @@ export function createChatAutocomplete({ form, input, store, requestCatalog }) {
   input.addEventListener("blur", () => close());
 
   store.subscribe(() => {
-    if (controller.open) refresh();
+    if (controller.mode === "completion") refresh();
   });
 
-  return { refresh, close };
+  return { refresh, close, openHistory };
 }

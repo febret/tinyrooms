@@ -626,6 +626,15 @@ def build_registry() -> CommandRegistry:
         help="Grant cards, set counters, apply buffs, grant Kudos, or change room environment state. Admins may run these too.",
     )
     registry.register("go", "Move through an exit in the current room.", go_command, usage=".go @way:<exit_id>", toast=False)
+    registry.register(
+        "grant",
+        "Grant Bops or Kudos to a peep.",
+        privileged.grant_command,
+        usage=".grant <bops|kudos> <amount> [@peep]",
+        power="game-master",
+        powers=("admin",),
+        help="Give an amount of Bops or Kudos to yourself or another peep. Admins may run this too.",
+    )
     registry.register("help", "Show the available commands.", help_command, usage=".help", toast=False, log=False)
     registry.register("inspect", "Inspect a visible room entity.", inspect_command, usage=".inspect [target]", toast=False, log=False)
     registry.register("kick", "Disconnect a peep from the room.", privileged.kick_command, usage=".kick @peep [reason]", power="moderator")

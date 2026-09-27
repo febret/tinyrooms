@@ -117,6 +117,26 @@ class PropEffectBindingTests(ServiceTestCase):
             self.assertEqual(props["thing"].effect_sets, {"default": ("smoke",)})
             self.assertEqual(props["thing"].active_effect, "default")
 
+    def test_empty_effect_set_is_allowed(self) -> None:
+        with TemporaryDirectory() as temporary:
+            propset = _write_propset(
+                Path(temporary),
+                "thing:\n  label: Thing\n  model: model.glb\n  effects:\n    idle: []\n",
+            )
+            thing = load_propset(propset, effects=load_world_fx())["thing"]
+            self.assertEqual(thing.effect_sets, {"idle": ()})
+            self.assertEqual(thing.active_effect, "idle")
+
+    def test_empty_effects_mapping_has_no_sets(self) -> None:
+        with TemporaryDirectory() as temporary:
+            propset = _write_propset(
+                Path(temporary),
+                "thing:\n  label: Thing\n  model: model.glb\n  effects: {}\n",
+            )
+            thing = load_propset(propset, effects=load_world_fx())["thing"]
+            self.assertEqual(thing.effect_sets, {})
+            self.assertIsNone(thing.active_effect)
+
     def test_unknown_effect_reference_is_rejected(self) -> None:
         with TemporaryDirectory() as temporary:
             propset = _write_propset(

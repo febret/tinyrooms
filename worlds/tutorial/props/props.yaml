@@ -105,10 +105,7 @@ bookshelf:
   decorative: true
   editable: true
   scale: 1.155
-  effects:
-    set:
-    - fire
-  active_effect: set
+  effects: {}
 framed-picture:
   label: A Sunny Picture
   description: A hand-painted sun over a little blue hill.

@@ -62,3 +62,22 @@ test("chat autocompletes room identifiers after @", { tag: "@mobile" }, async ({
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect.poll(() => sentCommands.at(-1)).toBe(".go @way:exit0");
 });
+
+test("chat bar recalls sent messages from history and fuzzy filters them", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime);
+  for (const text of ["hello history", ".look"]) {
+    await page.locator("#chat-input").fill(text);
+    await page.locator("#chat-input").press("Enter");
+    await expect(page.locator("#chat-input")).toHaveValue("", { timeout: 20_000 });
+  }
+  const history = page.locator("#chat-completions");
+  await page.locator("#chat-input").press("ArrowUp");
+  await expect(history).toBeVisible();
+  await expect(history.getByRole("option").filter({ hasText: "hello history" })).toBeVisible();
+  await expect(history.getByRole("option").filter({ hasText: ".look" })).toBeVisible();
+  await page.locator("#chat-input").pressSequentially("hel");
+  await expect(history.getByRole("option")).toHaveCount(1);
+  await page.locator("#chat-input").press("Enter");
+  await expect(page.locator("#chat-input")).toHaveValue("hello history");
+  await expect(history).toBeHidden();
+});

@@ -201,6 +201,44 @@ async def gm_command(context: CommandContext, command: ParsedCommand) -> Command
     raise CommandError("Unknown game-master action.")
 
 
+GRANTABLE_RESOURCES = ("bops", "kudos")
+
+
+async def grant_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Game-master command: grant a resource to yourself or another peep."""
+
+    if len(command.args) < 2:
+        raise CommandError("Use '.grant <bops|kudos> <amount> [@peep]'.")
+    resource = command.args[0].lower()
+    if resource not in GRANTABLE_RESOURCES:
+        raise CommandError(
+            f"Unknown resource '{command.args[0]}'. Grantable resources: {', '.join(GRANTABLE_RESOURCES)}."
+        )
+    try:
+        amount = int(command.args[1])
+    except ValueError as exc:
+        raise CommandError("Amount must be an integer.") from exc
+    if amount < 1:
+        raise CommandError("Amount must be at least 1.")
+    if len(command.args) >= 3:
+        account = _resolve_account(context, command.args[2])
+    else:
+        account = context.account
+    ledger_key = f"grant:{resource}:{uuid.uuid4()}"
+    if resource == "kudos":
+        context.progression.reward_once(account.id, ledger_key, kudos=amount, kind="grant")
+    else:
+        context.progression.reward_once(account.id, ledger_key, bops=amount, kind="grant")
+    context.audit.safe_record(context.account.id, f"grant.{resource}", account.id, "ok", {"amount": amount})
+    payload: dict[str, object] = {"account_id": account.id, "type": resource, "amount": amount}
+    if account.id == context.account.id:
+        payload["user"] = context.serialize_user(context.profiles.get_account_by_id(account.id) or account)
+    return CommandOutcome(
+        message=f"Granted {amount} {resource.capitalize()} to {account.username_display}.",
+        payload=payload,
+    )
+
+
 async def _gm_give(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     if len(command.args) < 3:
         raise CommandError("Use '.gm give @peep @card:<card_id> [quantity]'.")

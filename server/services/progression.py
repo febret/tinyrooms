@@ -186,6 +186,7 @@ class ProgressionService:
         ledger_key: str,
         *,
         kudos: int = 0,
+        bops: int = 0,
         cards: tuple[str, ...] | list[str] = (),
         kind: str = "reward",
     ) -> bool:
@@ -194,6 +195,7 @@ class ProgressionService:
         return self._grant(
             account_id,
             kudos=kudos,
+            bops=bops,
             cards=tuple(cards),
             ledger_key=ledger_key,
             kind=kind,
@@ -204,6 +206,7 @@ class ProgressionService:
         account_id: str,
         *,
         kudos: int,
+        bops: int,
         cards: tuple[str, ...],
         ledger_key: str,
         kind: str,
@@ -213,6 +216,7 @@ class ProgressionService:
                 connection,
                 account_id,
                 kudos=kudos,
+                bops=bops,
                 cards=cards,
                 ledger_key=ledger_key,
                 kind=kind,
@@ -238,6 +242,7 @@ class ProgressionService:
         account_id: str,
         *,
         kudos: int = 0,
+        bops: int = 0,
         cards: tuple[str, ...] | list[str] = (),
         ledger_key: str | None = None,
         kind: str = "reward",
@@ -270,17 +275,18 @@ class ProgressionService:
                     account_id,
                     self._world_id,
                     kind,
-                    json.dumps({"kudos": kudos, "cards": list(cards)}),
+                    json.dumps({"kudos": kudos, "bops": bops, "cards": list(cards)}),
                     now.isoformat(),
                 ),
             )
         for card_id in cards:
             self._grant_card(connection, account_id, card_id)
-        if kudos:
+        if kudos or bops:
             self._profiles.update_progress(
                 connection,
                 account,
                 kudos=account.kudos + kudos,
+                bops=account.bops + bops,
             )
         return True
 

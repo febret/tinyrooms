@@ -232,6 +232,52 @@ class PowerIntegrationTests(Milestone2IntegrationTestCase):
         self.assertIn("gm.kudos", actions)
         self.assertIn("gm.environment", actions)
 
+    def test_grant_command_requires_power_then_grants_bops_and_kudos(self) -> None:
+        alice = self.create_ready_account("alice")
+        bob = self.create_ready_account("bob")
+        alice_id = self.account_id(alice)
+        bob_id = self.account_id(bob)
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            rejected = self.send_command(socket, "grant-1", ".grant bops 10")
+            self.assertFalse(rejected["ok"])
+            self.assertIn("game-master", rejected["message"])
+            self.runtime().powers.grant(alice_id, alice_id, "game-master")
+            self_grant = self.send_command(socket, "grant-2", ".grant bops 10")
+            self.assertTrue(self_grant["ok"], self_grant)
+            self.assertEqual(self_grant["payload"]["type"], "bops")
+            self.assertEqual(self_grant["payload"]["amount"], 10)
+            self.assertEqual(self_grant["payload"]["user"]["bops"], 20)
+            target = self.send_command(socket, "grant-3", ".grant kudos 4 @bob")
+            self.assertTrue(target["ok"], target)
+            self.assertEqual(target["payload"]["account_id"], bob_id)
+            self.assertNotIn("user", target["payload"])
+        self.assertEqual(self.runtime().profiles.get_account_by_id(alice_id).bops, 20)
+        self.assertEqual(self.runtime().profiles.get_account_by_id(bob_id).kudos, 4)
+        actions = [entry["action"] for entry in self.runtime().audit.entries()]
+        self.assertIn("grant.bops", actions)
+        self.assertIn("grant.kudos", actions)
+
+    def test_grant_rejects_unknown_resource_and_bad_amount(self) -> None:
+        alice = self.create_ready_account("alice")
+        alice_id = self.account_id(alice)
+        self.runtime().powers.grant(alice_id, alice_id, "game-master")
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            unknown = self.send_command(socket, "grant-x", ".grant energy 5")
+            self.assertFalse(unknown["ok"])
+            self.assertIn("Unknown resource", unknown["message"])
+            zero = self.send_command(socket, "grant-y", ".grant bops 0")
+            self.assertFalse(zero["ok"])
+            self.assertIn("at least 1", zero["message"])
+            bad = self.send_command(socket, "grant-z", ".grant bops lots")
+            self.assertFalse(bad["ok"])
+            self.assertIn("integer", bad["message"])
+
     def test_admin_can_set_own_counter_through_gm(self) -> None:
         alice = self.create_ready_account("alice")
         bob = self.create_ready_account("bob")

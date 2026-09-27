@@ -81,6 +81,11 @@ class RewardLedgerTests(ProgressionTestCase):
         stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "sturdy"]
         self.assertEqual(sum(stack.quantity for stack in stacks), 1)
 
+    def test_reward_once_grants_bops_exactly_once(self) -> None:
+        self.assertTrue(self.progression.reward_once(self.account.id, "grant:bops:1", bops=7, kind="grant"))
+        self.assertFalse(self.progression.reward_once(self.account.id, "grant:bops:1", bops=7, kind="grant"))
+        self.assertEqual(self._reload().bops, 17)
+
 
 class SkillSlotTests(ProgressionTestCase):
     """Skill-grid unlock, rank, and ownership rules."""

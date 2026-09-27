@@ -353,21 +353,25 @@ def _load_animation(raw_value: Any, label: str) -> str | None:
 
 
 def _load_effect_sets(raw_value: Any, label: str) -> dict[str, tuple[str, ...]]:
-    """Parse a prop's named effect sets: ``{set_name: [effect_id, ...]}``."""
+    """Parse a prop's named effect sets: ``{set_name: [effect_id, ...]}``.
+
+    Empty mappings and empty set lists are valid: they represent a prop with no
+    effects at all, or a named set that intentionally produces nothing.
+    """
 
     if raw_value is None:
         return {}
     if isinstance(raw_value, list):
         raw_value = {"default": raw_value}
-    if not isinstance(raw_value, dict) or not raw_value:
-        raise ContentError(f"{label} must be a non-empty mapping of set names to effect lists.")
+    if not isinstance(raw_value, dict):
+        raise ContentError(f"{label} must be a mapping of set names to effect lists.")
     sets: dict[str, tuple[str, ...]] = {}
     for raw_name, raw_effects in raw_value.items():
         set_name = str(raw_name).strip()
         if not set_name:
             raise ContentError(f"{label} contains an empty set name.")
-        if not isinstance(raw_effects, list) or not raw_effects:
-            raise ContentError(f"{label} set '{set_name}' must be a non-empty list of effect ids.")
+        if not isinstance(raw_effects, list):
+            raise ContentError(f"{label} set '{set_name}' must be a list of effect ids.")
         effect_ids: list[str] = []
         for raw_effect in raw_effects:
             effect_id = str(raw_effect).strip()

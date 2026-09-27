@@ -1,6 +1,7 @@
 import { createApiClient } from "./api.js";
 import { createActivityManager } from "./activities.js";
 import { createChatAutocomplete } from "./autocomplete.js";
+import { createChatHistory } from "./chat-history.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
@@ -1137,18 +1138,23 @@ function renderEditorTransient(state) {
   }
 }
 
-createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help") });
+const chatHistory = createChatHistory();
+const chatAutocomplete = createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help"), history: chatHistory });
 pushToTalk.onclick = () => { voice.toggleTalk(); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();
   const text = chatInput.value;
   const command = chatToCommand(text);
   if (!command) return;
+  chatHistory.record(text);
   try {
     const result = await sendCommand(command);
     if (result) {
       playTone("tap");
-      if (chatInput.value === text) chatInput.value = "";
+      if (chatInput.value === text) {
+        chatInput.value = "";
+        chatAutocomplete.close();
+      }
     }
   } catch (error) { showError(error); }
 };
