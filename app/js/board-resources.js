@@ -24,15 +24,18 @@ export const GHOST_MATERIAL = new THREE.MeshStandardMaterial({
   metalness: 0,
 });
 
-// Unlit-looking silhouette used for props in a dark room: shapes stay readable
-// as outlines against the lit floor while surface detail disappears.
+// Uniform dark-grey silhouette used for props in a dark room: the whole room
+// reads as one flat, barely-lit grey while shapes stay readable against shadows.
 export const DARK_MATERIAL = new THREE.MeshStandardMaterial({
-  color: "#0c1216",
+  color: "#3a3f42",
   roughness: 1,
   metalness: 0,
-  emissive: "#04070a",
-  emissiveIntensity: 0.4,
+  emissive: "#1b2023",
+  emissiveIntensity: 0.35,
 });
+
+const DARK_FLOOR_COLOR = "#3a3f42";
+const DARK_FLOOR_TINT = { emissive: "#1b2023", emissiveIntensity: 0.35 };
 
 const resources = {
   geometries: new Map(),
@@ -165,16 +168,19 @@ export function box(parent, dimensions, position, materials) {
 
 export function makeFloor(board) {
   const group = new THREE.Group();
-  const slabMaterials = [
-    material("#62422d"),
-    material("#a76e38"),
-    material("#bca076"),
-  ];
+  const dark = Boolean(board.dark);
+  const slabMaterials = dark
+    ? [material(DARK_FLOOR_COLOR, DARK_FLOOR_TINT), material(DARK_FLOOR_COLOR, DARK_FLOOR_TINT), material(DARK_FLOOR_COLOR, DARK_FLOOR_TINT)]
+    : [
+        material("#62422d"),
+        material("#a76e38"),
+        material("#bca076"),
+      ];
   box(group, [12.45, 0.35, 10.45], [0, -0.24, 0], slabMaterials[0]);
   box(group, [12.5, 0.12, 10.5], [0, -0.08, 0], slabMaterials[1]);
   box(group, [12.12, 0.07, 10.12], [0, -0.005, 0], slabMaterials[2]);
   const geometry = new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_HEIGHT);
-  const planeMaterial = material(board.palette?.[0] || "#d4be94");
+  const planeMaterial = material(dark ? DARK_FLOOR_COLOR : (board.palette?.[0] || "#d4be94"), dark ? DARK_FLOOR_TINT : {});
   const floor = new THREE.Mesh(geometry, planeMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = TOP;

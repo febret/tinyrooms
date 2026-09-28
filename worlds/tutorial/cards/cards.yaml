@@ -121,6 +121,7 @@ vacuum-cleaner:
   target_prop: centipedes
   hide_seconds: 3600
   clears_source: scary
+  cutscene: centipede-vacuum
 
 # Cutscene emote: playing it broadcasts a scripted cutscene to the room.
 victory-dance:
@@ -128,7 +129,6 @@ victory-dance:
   description: A triumphant full-screen strut. Plays for the whole room.
   image: victory-dance.png
   type: emote
-  category: Scene
   cutscene: victory-dance
   rarity: Uncommon
   energy_cost: 5

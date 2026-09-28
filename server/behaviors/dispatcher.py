@@ -17,19 +17,21 @@ from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.behaviors.loader import BehaviorAttachment, BehaviorScripts
 from server.commands.outcomes import PendingRoomBroadcast
 from server.content.cards import CardCatalog
+from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.content.worlds import WorldDefinition
 from server.game.buffs import BuffInstance, DAILY, TIMED
 from server.game.buffs import apply_buff as apply_buff_instances
 from server.profiles import ProfileRepository
 from server.protocol import peep_enter_event, peep_leave_event
 from server.security import utc_now
-from server.services.cards import grant_card_to_inventory
+from server.services.cards import auto_equip_new_stacks, grant_card_to_inventory
 from server.services.npc_movement import resolve_npc_move
 from server.state.migrations import DatabaseHub
-from server.state.peep_locations import PeepLocationRepository
+from server.state.npc_peep_states import NpcPeepStateRepository
 
 
 SLOW_HANDLER_SECONDS = 0.25
+DEFAULT_HIDE_SECONDS = 3600.0
 
 
 @dataclass(slots=True)
@@ -40,6 +42,7 @@ class BehaviorResult:
     private_events: list[dict[str, object]] = field(default_factory=list)
     room_broadcasts: list[PendingRoomBroadcast] = field(default_factory=list)
     rejected: bool = False
+    inventory_changed_for: str | None = None
 
 
 class BehaviorDispatcher:
@@ -61,7 +64,8 @@ class BehaviorDispatcher:
         world: WorldDefinition,
         tasks: object | None = None,
         environment: object | None = None,
-        peep_locations: PeepLocationRepository | None = None,
+        peep_states: NpcPeepStateRepository | None = None,
+        equipped_caps: dict[int, int] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         self._hub = hub
@@ -77,7 +81,8 @@ class BehaviorDispatcher:
         self._world = world
         self._tasks = tasks
         self._environment = environment
-        self._peep_locations = peep_locations
+        self._peep_states = peep_states
+        self._equipped_caps = equipped_caps or {}
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self.erroring: set[str] = set()
         self._lock: asyncio.Lock | None = None
@@ -120,8 +125,8 @@ class BehaviorDispatcher:
             self._log("behavior.task.error", event_type=event.type, error=str(exc))
 
     def _current_peep_room(self, peep_id: str) -> str | None:
-        if self._peep_locations is not None:
-            current = self._peep_locations.room_for(peep_id)
+        if self._peep_states is not None:
+            current = self._peep_states.room_for(peep_id)
             if current in self._world.rooms:
                 return current
         peep = self._world.peeps.get(peep_id)
@@ -181,6 +186,7 @@ class BehaviorDispatcher:
             "counters": {},
             "card_ids": (),
             "equipped_ids": (),
+            "username": "",
         }
         account_id = event.actor.account_id if event.actor.kind == "user" else None
         if not account_id:
@@ -195,11 +201,13 @@ class BehaviorDispatcher:
         except Exception as exc:  # noqa: BLE001 - an inventory read must not break the room loop
             self._log("behavior.inventory.error", error=str(exc))
             stacks = []
+        account = self._profiles.get_account_by_id(account_id)
         return {
             "statuses": tuple(payload.get("statuses") or ()),
             "counters": payload,
             "card_ids": tuple(stack.card_def_id for stack in stacks),
             "equipped_ids": tuple(stack.card_def_id for stack in stacks if stack.equipped),
+            "username": account.username_display if account is not None else "",
         }
 
     def _load_state(self, namespace: str, instance_id: str) -> dict[str, object]:
@@ -320,6 +328,7 @@ class BehaviorDispatcher:
                 card_ids=actor_view["card_ids"],
                 equipped_ids=actor_view["equipped_ids"],
                 environment=self._environment,
+                actor_username=str(actor_view.get("username") or ""),
             )
             contexts.append((attachment, context))
             try:
@@ -384,9 +393,9 @@ class BehaviorDispatcher:
         elif kind == "grant":
             self._apply_grant(connection, payload, context)
         elif kind == "give_card":
-            self._apply_give_card(connection, payload, context)
+            self._apply_give_card(connection, payload, context, result)
         elif kind == "remove_card":
-            self._apply_remove_card(connection, payload, context)
+            self._apply_remove_card(connection, payload, context, result)
         elif kind == "npc_say":
             self._apply_npc_say(payload, context, event, result)
         elif kind == "start_dialog":
@@ -405,6 +414,10 @@ class BehaviorDispatcher:
             self._apply_move_through(connection, payload, context, result, deferred)
         elif kind == "set_environment":
             self._apply_set_environment(connection, payload, context, event, result)
+        elif kind == "hide_prop":
+            self._apply_hide_prop(connection, payload, context, event, result)
+        elif kind == "clear_source":
+            self._apply_clear_source(payload, event, deferred)
         else:
             self._log("behavior.intent.unknown", kind=kind)
 
@@ -628,7 +641,13 @@ class BehaviorDispatcher:
             kind="behavior",
         )
 
-    def _apply_give_card(self, connection: sqlite3.Connection, payload: Mapping[str, object], context: BehaviorContext) -> None:
+    def _apply_give_card(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        result: BehaviorResult,
+    ) -> None:
         account_id = self._account_for(payload, context)
         if account_id is None:
             self._log("behavior.intent.skipped", kind="give_card", reason="no_account")
@@ -639,14 +658,31 @@ class BehaviorDispatcher:
             self._log("behavior.intent.skipped", kind="give_card", reason="unknown_card", card_id=card_id)
             return
         quantity = max(0, int(payload.get("quantity", 1) or 0))
+        created_stacks: list = []
         for _ in range(quantity):
-            grant_card_to_inventory(
-                self._profiles,
-                connection,
-                account_id=account_id,
-                definition=definition,
-                world_id=self._world.id,
+            created_stacks.extend(
+                grant_card_to_inventory(
+                    self._profiles,
+                    connection,
+                    account_id=account_id,
+                    definition=definition,
+                    world_id=self._world.id,
+                )
             )
+        account = self._profiles.get_account_by_id(account_id)
+        cap = DEFAULT_MAX_EQUIPPED
+        if account is not None:
+            cap = self._equipped_caps.get(account.level, DEFAULT_MAX_EQUIPPED)
+        auto_equip_new_stacks(
+            self._profiles,
+            connection,
+            account_id=account_id,
+            world_id=self._world.id,
+            definition=definition,
+            created_stacks=created_stacks,
+            equipped_cap=cap,
+        )
+        result.inventory_changed_for = account_id
 
     def _apply_npc_say(
         self,
@@ -681,6 +717,7 @@ class BehaviorDispatcher:
         connection: sqlite3.Connection,
         payload: Mapping[str, object],
         context: BehaviorContext,
+        result: BehaviorResult,
     ) -> None:
         account_id = self._account_for(payload, context)
         if account_id is None:
@@ -689,9 +726,43 @@ class BehaviorDispatcher:
         card_id = str(payload.get("card_id", ""))
         if not card_id:
             return
-        self._profiles.remove_inventory_card_in_transaction(
-            connection, account_id, self._world.id, card_id
+        raw_quantity = payload.get("quantity")
+        if raw_quantity is None:
+            self._profiles.remove_inventory_card_in_transaction(
+                connection, account_id, self._world.id, card_id
+            )
+        else:
+            self._remove_card_quantity(connection, account_id, card_id, int(raw_quantity))
+        result.inventory_changed_for = account_id
+
+    def _remove_card_quantity(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        card_def_id: str,
+        quantity: int,
+    ) -> None:
+        """Remove up to *quantity* copies of one card, equipped stacks first."""
+
+        remaining = max(0, quantity)
+        stacks = sorted(
+            self._profiles.list_inventory(account_id, self._world.id),
+            key=lambda stack: (not stack.equipped, stack.created_at, stack.stack_id),
         )
+        for stack in stacks:
+            if remaining <= 0:
+                break
+            if stack.card_def_id != card_def_id:
+                continue
+            take = min(remaining, stack.quantity)
+            self._profiles.remove_inventory_quantity(
+                connection,
+                account_id=account_id,
+                world_id=self._world.id,
+                stack_id=stack.stack_id,
+                quantity=take,
+            )
+            remaining -= take
 
     def _apply_start_dialog(
         self,
@@ -836,7 +907,7 @@ class BehaviorDispatcher:
         else:
             self._log("behavior.intent.skipped", kind="move_through", reason="not_npc")
             return
-        if self._peep_locations is None:
+        if self._peep_states is None:
             self._log("behavior.intent.skipped", kind="move_through", reason="unavailable")
             return
         peep = self._world.peeps.get(peep_id)
@@ -850,7 +921,7 @@ class BehaviorDispatcher:
         except ValueError as exc:
             self._log("behavior.intent.skipped", kind="move_through", reason=str(exc))
             return
-        self._peep_locations.set_in_transaction(connection, peep.id, move.destination_room_id)
+        self._peep_states.set_in_transaction(connection, peep.id, move.destination_room_id)
         source_room = self._world.rooms[move.source_room_id]
         result.room_broadcasts.append(
             PendingRoomBroadcast(
@@ -880,7 +951,7 @@ class BehaviorDispatcher:
         target_room = move.destination_room_id
 
         def record_move() -> None:
-            self._peep_locations.record(target_peep, target_room)
+            self._peep_states.record(target_peep, target_room)
 
         deferred.append(record_move)
 
@@ -911,3 +982,55 @@ class BehaviorDispatcher:
             self._log("behavior.intent.skipped", kind="set_environment", error=str(exc))
             return
         result.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event=update.event()))
+
+    def _apply_hide_prop(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        if self._environment is None:
+            self._log("behavior.intent.skipped", kind="hide_prop", reason="no_service")
+            return
+        room_id = event.room_id
+        if not isinstance(room_id, str) or not room_id:
+            room_id = payload.get("target_room_id")
+        if not isinstance(room_id, str) or not room_id:
+            self._log("behavior.intent.skipped", kind="hide_prop", reason="no_room")
+            return
+        instance_id = payload.get("instance_id")
+        if not isinstance(instance_id, str) or not instance_id:
+            self._log("behavior.intent.skipped", kind="hide_prop", reason="no_instance")
+            return
+        try:
+            seconds = float(payload.get("seconds", DEFAULT_HIDE_SECONDS) or DEFAULT_HIDE_SECONDS)
+        except (TypeError, ValueError):
+            seconds = DEFAULT_HIDE_SECONDS
+        hidden = dict(self._environment.get(room_id).get("hidden_props") or {})
+        hidden[instance_id] = {"expires_at": (utc_now() + timedelta(seconds=seconds)).isoformat()}
+        try:
+            update = self._environment.set_in_transaction(connection, room_id, {"hidden_props": hidden})
+        except ValueError as exc:
+            self._log("behavior.intent.skipped", kind="hide_prop", error=str(exc))
+            return
+        result.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event=update.event()))
+
+    def _apply_clear_source(
+        self,
+        payload: Mapping[str, object],
+        event: BehaviorEvent,
+        deferred: list[object],
+    ) -> None:
+        room_id = event.room_id
+        source = str(payload.get("source", ""))
+        if not isinstance(room_id, str) or not room_id or not source:
+            self._log("behavior.intent.skipped", kind="clear_source", reason="invalid")
+            return
+
+        async def operation(target_room: str = room_id, target_source: str = source) -> None:
+            for connection in await self._connections.list_room(target_room):
+                self._stats.remove_source(connection.account_id, target_source)
+
+        deferred.append(operation)

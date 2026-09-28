@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { command, createReadyAccount, grantCardAsAdmin, loginAs, travel } from "./helpers.js";
+import { bootstrap, command, createReadyAccount, grantCardAsAdmin, loginAs, travel } from "./helpers.js";
 
 // Cutscenes are disabled outright under reduced motion, so this spec only runs
 // in the `desktop-motion` project (see playwright.config.js). The negative case
@@ -100,6 +100,17 @@ test("a room change clears a playing cutscene", async ({ page }) => {
   await command(page, ".cutscene molly-greet");
   await expect(page.locator(".cutscene-frame-movie")).toBeVisible();
   await travel(page, "exit0");
+  await expect(layer(page)).toHaveAttribute("data-state", "idle", { timeout: 20_000 });
+});
+
+test("opening a sealed pack plays the pack-open cutscene", async ({ page }) => {
+  await command(page, ".buy_pack base op-cutscene-buy");
+  const sealed = (await bootstrap(page)).user.inventory.find(entry => entry.definition?.id === "pack_base");
+  expect(sealed).toBeTruthy();
+  await command(page, `.open_pack @card:${sealed.stack_id} op-cutscene-open`);
+  await expect(page.locator('.cutscene-stage[data-cutscene-stage="pack-open"]')).toBeAttached();
+  await expect(page.locator(".cutscene-pack-slot")).toHaveCount(3);
+  await expect(page.locator(".cutscene-pack-slot.is-flipped")).toHaveCount(3, { timeout: 20_000 });
   await expect(layer(page)).toHaveAttribute("data-state", "idle", { timeout: 20_000 });
 });
 

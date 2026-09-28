@@ -5,7 +5,6 @@ beach-day:
   image: beach-day.webp
   animation: 4897.gif
   type: emote
-  category: Animation
   rarity: Common
 cherry-cat:
   label: Cherry Cat
@@ -13,7 +12,6 @@ cherry-cat:
   image: cherry-cat.webp
   animation: 5d526c55e610a00.webp
   type: emote
-  category: Animation
   rarity: Common
 bitaroo-blaze:
   label: Bitaroo Blaze
@@ -21,7 +19,6 @@ bitaroo-blaze:
   image: bitaroo-blaze.webp
   animation: bitcoin-bitaroo.gif
   type: emote
-  category: Animation
   rarity: Common
 tina-uhh:
   label: Uhh... Tina
@@ -29,7 +26,6 @@ tina-uhh:
   image: tina-uhh.webp
   animation: bobs-burgers-tina-belcher.gif
   type: emote
-  category: Animation
   rarity: Common
 troll-dance:
   label: Troll Dance
@@ -37,7 +33,6 @@ troll-dance:
   image: troll-dance.webp
   animation: download.png
   type: emote
-  category: Animation
   rarity: Common
 masked-laugh:
   label: Masked Laugh
@@ -45,7 +40,6 @@ masked-laugh:
   image: masked-laugh.webp
   animation: giphy.gif
   type: emote
-  category: Animation
   rarity: Common
 ok-hamster:
   label: OK Hamster
@@ -53,7 +47,6 @@ ok-hamster:
   image: ok-hamster.webp
   animation: hamster.gif
   type: emote
-  category: Animation
   rarity: Common
 troll-problem:
   label: Troll Problem
@@ -61,7 +54,6 @@ troll-problem:
   image: troll-problem.webp
   animation: hilarious-internet-troll-face-h96vg67m33zwomzh.gif
   type: emote
-  category: Animation
   rarity: Common
 pixel-hamster:
   label: Pixel Hamster
@@ -69,7 +61,6 @@ pixel-hamster:
   image: pixel-hamster.webp
   animation: tumblr_mit6l0CKMR1rfjowdo1_500.gif
   type: emote
-  category: Animation
   rarity: Common
 grumpy-munchkin:
   label: Grumpy Munchkin
@@ -77,5 +68,4 @@ grumpy-munchkin:
   image: grumpy-munchkin.webp
   animation: tumblr_nmu6r4U9XW1s3lkzpo1_400.gif
   type: emote
-  category: Animation
   rarity: Common

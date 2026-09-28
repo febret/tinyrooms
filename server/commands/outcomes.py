@@ -103,3 +103,26 @@ class CommandContext:
     recipes: dict[str, RecipeDefinition]
     mods: dict[str, object]
     reload_world: Callable[[], Awaitable[None]] | None = None
+
+
+def apply_behavior_inventory(
+    context: CommandContext,
+    outcome: CommandOutcome,
+    result: object | None,
+) -> None:
+    """Refresh the actor's inventory payload after a behavior granted or removed cards.
+
+    Behavior scripts can change inventory through ``give_card``/``remove_card``
+    intents, which run inside the dispatcher. The command result must carry the
+    refreshed stacks so the client's inventory view updates immediately.
+    """
+
+    account_id = getattr(result, "inventory_changed_for", None)
+    if not isinstance(account_id, str) or account_id != context.account.id:
+        return
+    stacks = context.profiles.list_inventory(context.account.id, context.world.id)
+    account = context.profiles.get_account_by_id(context.account.id) or context.account
+    payload = dict(outcome.payload or {})
+    payload["inventory"] = context.cards.serialize_inventory_stacks(stacks)
+    payload["user"] = context.serialize_user(account)
+    outcome.payload = payload

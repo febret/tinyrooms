@@ -9,13 +9,16 @@
 #           scale_adjust: 1.0
 
 # --- Chairs and couches -----------------------------------------------------
+CONFIG:
+  scale_adjust: 2.0
+
 mustard-armchair:
   label: Mustard Armchair
   description: "The color of ballpark mustard and the energy of a 1996 fast-food interior. Sit back, dude."
   model: mustard-armchair.glb
   decorative: true
   editable: true
-  scale: 1.25
+  scale: 1.0
   tags: [seating, chair, furniture]
 patchwork-rocking-chair:
   label: Patchwork Rocking Chair
@@ -39,7 +42,7 @@ teal-egg-chair:
   model: teal-egg-chair.glb
   decorative: true
   editable: true
-  scale: 1.2
+  scale: 1.0
   tags: [seating, chair, furniture]
 window-daybed:
   label: Window Daybed
@@ -73,7 +76,7 @@ sheepskin-rug:
   model: sheepskin-rug.glb
   decorative: true
   editable: true
-  scale: 1.5
+  scale: 1.3
   tags: [rug, decoration]
 sunset-runner-rug:
   label: Sunset Runner Rug
@@ -81,7 +84,7 @@ sunset-runner-rug:
   model: sunset-runner-rug.glb
   decorative: true
   editable: true
-  scale: 1.6
+  scale: 1.5
   tags: [rug, decoration]
 leaf-rug:
   label: Leaf Rug
@@ -99,7 +102,7 @@ mushroom-table-lamp:
   model: mushroom-table-lamp.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.7
   tags: [lighting, lamp]
 blossom-paper-lantern:
   label: Blossom Paper Lantern
@@ -139,7 +142,7 @@ beeswax-candle-sconce:
   model: beeswax-candle-sconce.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.6
   tags: [lighting, sconce]
   effects:
     lit: [fire]
@@ -175,7 +178,7 @@ cat-night-lamp:
   model: cat-night-lamp.glb
   decorative: true
   editable: true
-  scale: 0.85
+  scale: 0.65
   tags: [lighting, lamp]
 bookstack-floor-lamp:
   label: Bookstack Floor Lamp
@@ -209,7 +212,7 @@ floral-nightstand:
   model: floral-nightstand.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.75
   tags: [nightstand, storage, furniture]
 live-edge-slab-table:
   label: Live-Edge Slab Table
@@ -243,7 +246,7 @@ cactus-trio:
   model: cactus-trio.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.7
   tags: [plant, succulent]
 hanging-pothos:
   label: Hanging Pothos
@@ -267,7 +270,7 @@ potted-bonsai:
   model: potted-bonsai.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.6
   tags: [plant, bonsai]
 venus-flytrap-pot:
   label: Venus Flytrap
@@ -275,7 +278,7 @@ venus-flytrap-pot:
   model: venus-flytrap-pot.glb
   decorative: true
   editable: true
-  scale: 0.85
+  scale: 0.65
   tags: [plant, decoration]
 pink-orchid:
   label: Pink Orchid
@@ -283,7 +286,7 @@ pink-orchid:
   model: pink-orchid.glb
   decorative: true
   editable: true
-  scale: 0.95
+  scale: 0.6
   tags: [plant, flower]
 sunflower-bucket:
   label: Bucket of Sunflowers
@@ -291,7 +294,7 @@ sunflower-bucket:
   model: sunflower-bucket.glb
   decorative: true
   editable: true
-  scale: 1.2
+  scale: 0.8
   tags: [plant, flower]
 tulip-window-box:
   label: Tulip Window Box
@@ -307,7 +310,7 @@ wicker-fern-basket:
   model: wicker-fern-basket.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.75
   tags: [plant, fern]
 
 # --- Cabinets ---------------------------------------------------------------
@@ -325,7 +328,7 @@ china-hutch:
   model: china-hutch.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.2
   tags: [storage, cabinet, furniture]
 record-cabinet:
   label: Record Cabinet
@@ -333,7 +336,7 @@ record-cabinet:
   model: record-cabinet.glb
   decorative: true
   editable: true
-  scale: 1.3
+  scale: 1.2
   tags: [storage, cabinet, furniture]
 tall-wardrobe:
   label: Tall Wardrobe
@@ -341,7 +344,7 @@ tall-wardrobe:
   model: tall-wardrobe.glb
   decorative: true
   editable: true
-  scale: 1.5
+  scale: 1.4
   tags: [storage, wardrobe, furniture]
 medicine-cabinet:
   label: Medicine Cabinet
@@ -349,7 +352,7 @@ medicine-cabinet:
   model: medicine-cabinet.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.8
   tags: [storage, cabinet, mirror]
 filing-cabinet:
   label: Filing Cabinet
@@ -357,7 +360,7 @@ filing-cabinet:
   model: filing-cabinet.glb
   decorative: true
   editable: true
-  scale: 1.2
+  scale: 1.0
   tags: [storage, cabinet, furniture]
 kitchen-dresser:
   label: Kitchen Dresser
@@ -365,7 +368,7 @@ kitchen-dresser:
   model: kitchen-dresser.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.2
   tags: [storage, shelf, furniture]
 butterfly-curio-cabinet:
   label: Butterfly Curio Cabinet

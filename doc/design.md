@@ -342,8 +342,7 @@ The emote types are:
 - **Expressions**: simple expressions displayed as large emojis in speech bubbles
 (see below for a description of speech bubbles).
 - **Animations**: short animated emojis / GIFs, also displayed in speech bubbles.
-- **Effects**: room-wide visual effects. These visual effects are queued
-and played in submission order from the room users.
+- **Cutscenes**: emote cards that run a scripted cutscene for the room.
 
 
 ### Speech and Emote Bubbles
@@ -414,6 +413,10 @@ card's stack limit, with the stack size shown on top of the card. Non-stackable
 cards are displayed individually. From the inventory, it is possible to
 select cards, inspect them, equip them, etc. Equipped item and action stacks can
 be played from Inventory or the Card View. Unequipped stacks must be equipped first.
+A `Sell Mode` toggle in the Inventory header turns card clicks into immediate
+sales: clicking a card sells one copy for its rarity value with no confirmation,
+and repeated clicks sell repeated copies. Cards that are not sellable report that
+they cannot be sold.
 
 Stackable cards provide `Split Stack` and `Merge Stacks` actions. Splitting creates
 another stack with a user-chosen number of copies. Merging moves copies between
@@ -623,8 +626,8 @@ These are the shipped configurable Energy-cost defaults:
 - change room: 1
 - play an ordinary item or action card: 2
 - Expression emote: 1
-- Animation emote: 3
-- room-wide Effects emote: 5
+- Animation emote: 2
+- Cutscene emote: 5
 - chat, selection, inspection, opening views, and inventory/equipment management: 0
 - use an Energy-refill card: 0
 
@@ -715,30 +718,43 @@ illustrative; the authored price table is authoritative.
 The standard pack contains 3 independently drawn card copies, with duplicates
 allowed. Each pack defines its price and may define a different size.
 Received copies follow normal card-stacking rules.
+A pack may also declare **guaranteed cards**: when the opener does not already
+own a copy of a guaranteed card, one of the pack's draws is forced to that card
+instead of a random result. The tutorial pack guarantees a Flashlight so the
+dark basement is always reachable; openers who already own one get the normal
+random draw.
 
 Each pack draw first selects a rarity using configurable weights: Common 70,
 Uncommon 20, Rare 8, Epic 1.8, and Legendary 0.2 by default. Only rarities present
 in the pack participate, with their weights renormalized. The draw then chooses
 uniformly among the pack's cards of that rarity. Packs may override the weights.
 
-Packs open immediately on purchase rather than becoming unopened inventory items.
-A successful purchase charges Bops and grants its fixed card results once.
-A reveal presentation shows the results; closing it or disconnecting afterward
-does not lose or reroll the granted cards.
+Buying a pack adds a **sealed pack** to the player's inventory; it does not open
+immediately. The idempotent `.buy_pack <pack> <operation_id>` command charges
+Bops and grants one sealed pack exactly once. A sealed pack is a non-sellable,
+non-equippable inventory card whose art is the pack's back image; its stack shows
+how many unopened packs the player holds.
+
+Opening a sealed pack (`.open_pack @card:<stack> <operation_id>`) consumes one
+copy, draws the pack's cards, and grants them exactly once per operation id. It
+also launches the core `pack-open` cutscene: a private presentation that tears a
+physical pack open and flips the drawn cards one by one, with rarity-scaled glow
+and spark bursts. The cards are already committed server-side, so skipping,
+disconnecting, or an idempotent replay never rerolls or loses them. When reduced
+motion suppresses cutscenes, the client shows an inline reveal dialog instead;
+a replayed open also reveals inline, since the cutscene already played.
+
 Before purchase, the shop shows the pack's price and card count only, not its
 eligible-card list or draw probabilities.
 Buying requires explicit confirmation of the Bops price and costs no Energy.
 Insufficient Bops reject the purchase without spending resources or granting cards.
 
-Card packs are bought with Bops through the Card Shop, a docked panel that
-replaces the look bar, quick action bar, and chat box while open — the same
-swap the room editor uses. It is opened from a button in the Inventory, and the
-`.shop` command emits a `shop.open` client event that opens it as well. Packs
-are listed from the bootstrap payload; purchases use the idempotent
-`.buy_pack <pack> <operation_id>` command and the reveal is presentation-only
-after the server commits. Other, room-bound vendor interactions can still use
-[Activities](#activities): a prop or merchant peep can have a vending activity
-associated to it, launched through a quick action.
+The Shop is a single room-bound activity with two sections, **Card Packs** and
+**Props**. It is launched from the Inventory's Shop button (Cards), from the room
+editor's Shop button (Props), or through `.shop [cards|props]`. It replaces the
+former docked card-shop panel and unifies card-pack and prop purchases in one
+window; `.prop_shop` remains as a convenience command that opens the Props
+section. Props still use their own idempotent `.buy_prop` purchase.
 
 
 -------------------------------------------------------------------------------
@@ -803,7 +819,7 @@ card that another peep has already picked up. A valid action that produces an
 unfavorable gameplay outcome is not a rejection and may still have its normal cost.
 
 Actions can also display visual effects in the room that are visible to other users.
-Room-wide visual effects from actions and Effects emotes share a queue.
+Room-wide visual effects from actions share a queue.
 Successive effects in a room do not cancel previous ones; they all play in the
 order they are received.
 
@@ -818,8 +834,8 @@ Peeps can have one or more buffs attached to them. Buffs are temporary gameplay 
 that can alter any of the peep's stats, counters or counter max values (either 
 in absolute terms or as % changes).
 
-Buffs can also have optional status icons, which are displayed under the peep
-in the sidebar.
+Buffs can also have optional status icons, which are displayed at the top-left
+of the peep in the sidebar.
 
 Timed buffs expire after their specified elapsed real-time duration, including
 time spent offline. Daily buffs expire at the next midnight in the shared game
@@ -1055,9 +1071,11 @@ played on top of the normal room gameplay. A user can have at most one activity
 running at a time.
 
 The initial release includes Sticker Designer, Lazor Rush, and a basic
-crafting-station activity. The Card Shop is not an activity; it is a docked UI
-opened from the Inventory or the `.shop` command. Specialized shop or crafting
-variants are extension capabilities, not additional required activities.
+crafting-station activity. The Shop is a single activity with Card Packs and
+Props sections, opened from the Inventory, the room editor, or the `.shop`
+command; it replaces the earlier docked card-shop UI. Specialized shop or
+crafting variants are extension capabilities, not additional required
+activities.
 
 Activities can be launched through these contexts:
 - through a prop: a quick action defined on a prop can start an activity (e.g., a

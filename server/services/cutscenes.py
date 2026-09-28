@@ -374,7 +374,7 @@ class CutsceneService:
             definition = self._cards.definition(value)
         else:
             for stack in self._profiles.list_inventory(account.id, self._world().id):
-                if stack.stack_id == value:
+                if stack.stack_id == value and self._cards.has_definition(stack.card_def_id):
                     definition = self._cards.definition(stack.card_def_id)
                     break
         if definition is None:

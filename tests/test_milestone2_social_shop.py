@@ -89,32 +89,82 @@ class PackCatalogTests(SocialShopTestCase):
 class PurchaseTests(SocialShopTestCase):
     """Exactly-once pack purchases."""
 
-    def test_purchase_charges_and_grants(self) -> None:
+    def sealed_stack(self, account, pack_id: str = "base"):
+        for stack in self.profiles.list_inventory(account.id, WORLD_ID):
+            if stack.card_def_id == f"pack_{pack_id}":
+                return stack
+        return None
+
+    def buy_and_open(self, pack_id: str, buy_op: str, open_op: str, shop: ShopService | None = None):
+        service = shop or self.shop
+        service.purchase(self.reload_account(self.alice), pack_id, buy_op)
+        stack = self.sealed_stack(self.alice, pack_id)
+        self.assertIsNotNone(stack)
+        return service.open_pack(self.reload_account(self.alice), stack.stack_id, open_op)
+
+    def test_purchase_charges_and_grants_sealed_pack(self) -> None:
         self.set_progress(self.alice, bops=50)
         before = {stack.stack_id for stack in self.profiles.list_inventory(self.alice.id, WORLD_ID)}
         result = self.shop.purchase(self.reload_account(self.alice), "base", "op-1")
         self.assertEqual(result.bops_spent, 10)
         self.assertEqual(result.account.bops, 40)
         self.assertFalse(result.replayed)
+        self.assertEqual(result.pack_card.id, "pack_base")
+        self.assertEqual(result.pack_card.type, "pack")
         after = {stack.stack_id for stack in self.profiles.list_inventory(self.alice.id, WORLD_ID)}
         self.assertTrue(after - before)
+        stack = self.sealed_stack(self.alice, "base")
+        self.assertIsNotNone(stack)
+        self.assertEqual(stack.quantity, 1)
 
-    def test_memebase_purchase_grants_animation_emotes(self) -> None:
+    def test_tutorial_pack_guarantees_flashlight_when_missing(self) -> None:
         self.set_progress(self.alice, bops=50)
-        result = self.shop.purchase(self.reload_account(self.alice), "memebase", "op-meme")
-        self.assertEqual(result.bops_spent, 10)
+        result = self.buy_and_open("tutorial", "op-buy-light", "op-light")
+        ids = [definition.id for definition in result.cards]
+        self.assertEqual(len(ids), 3)
+        self.assertIn("hand-light", ids)
+
+    def test_tutorial_pack_is_a_normal_draw_when_flashlight_owned(self) -> None:
+        self.set_progress(self.alice, bops=50)
+        self.grant_card(self.alice, "hand-light")
+        pack = self.catalog.packs["tutorial"]
+        expected = [definition.id for definition in self.shop.draw(pack, random.Random(99))]
+        shop = ShopService(
+            self.hub, self.profiles, self.catalog, self.content, WORLD_ID, rng=random.Random(99)
+        )
+        result = self.buy_and_open("tutorial", "op-buy-owned", "op-owned", shop=shop)
+        self.assertEqual([definition.id for definition in result.cards], expected)
+
+    def test_memebase_open_grants_animation_emotes(self) -> None:
+        self.set_progress(self.alice, bops=50)
+        result = self.buy_and_open("memebase", "op-buy-meme", "op-meme")
         self.assertEqual(len(result.cards), 3)
         for definition in result.cards:
             self.assertEqual(definition.category, "Animation")
 
-    def test_replay_same_operation_does_not_charge_or_duplicate(self) -> None:
+    def test_open_consumes_one_sealed_pack(self) -> None:
         self.set_progress(self.alice, bops=50)
-        first = self.shop.purchase(self.reload_account(self.alice), "tutorial", "op-2")
-        second = self.shop.purchase(self.reload_account(self.alice), "tutorial", "op-2")
-        self.assertEqual(second.bops_spent, 0)
-        self.assertEqual(second.account.bops, first.account.bops)
+        self.shop.purchase(self.reload_account(self.alice), "base", "op-buy-1")
+        self.shop.purchase(self.reload_account(self.alice), "base", "op-buy-2")
+        stack = self.sealed_stack(self.alice, "base")
+        self.assertEqual(stack.quantity, 2)
+        self.shop.open_pack(self.reload_account(self.alice), stack.stack_id, "op-open-1")
+        remaining = self.sealed_stack(self.alice, "base")
+        self.assertEqual(remaining.quantity, 1)
+
+    def test_open_replay_same_operation_does_not_consume_or_duplicate(self) -> None:
+        self.set_progress(self.alice, bops=50)
+        first = self.buy_and_open("tutorial", "op-buy-2", "op-2")
+        self.assertIsNone(self.sealed_stack(self.alice, "tutorial"))
+        second = self.shop.open_pack(self.reload_account(self.alice), "inv:missing", "op-2")
         self.assertTrue(second.replayed)
         self.assertEqual([c.id for c in first.cards], [c.id for c in second.cards])
+        self.assertIsNone(self.sealed_stack(self.alice, "tutorial"))
+
+    def test_open_requires_an_owned_pack(self) -> None:
+        self.set_progress(self.alice, bops=50)
+        with self.assertRaises(ValueError):
+            self.shop.open_pack(self.reload_account(self.alice), "inv:missing", "op-missing")
 
     def test_same_operation_id_is_scoped_per_account(self) -> None:
         self.set_progress(self.alice, bops=50)

@@ -72,6 +72,77 @@ html, body { height: 100%; }
 .shop-wallet strong { color: var(--shop-gold); font-size: 16px; }
 .shop-coin { color: var(--shop-gold); }
 
+.shop-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+.shop-tab {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 6px 16px;
+  border-radius: 999px 999px 0 0;
+  border: 1px solid var(--shop-ridge);
+  border-bottom: 0;
+  background: #04202a;
+  color: var(--muted);
+  font-weight: 600;
+}
+.shop-tab:hover { color: var(--ink); }
+.shop-tab[aria-selected="true"] {
+  border-color: var(--shop-gold);
+  background: linear-gradient(#ffd9a8, #f0ac68);
+  color: #3a1f05;
+}
+
+.shop-section[hidden],
+.shop-panel[hidden] { display: none; }
+
+.shop-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: 1px solid var(--shop-ridge);
+  border-radius: 14px;
+  background: radial-gradient(ellipse at top, #0d3541, var(--shop-panel));
+  box-shadow: var(--shadow);
+}
+.shop-grid.shop-pack-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 12px;
+}
+.shop-pack {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 8px 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--shop-ridge);
+  background: linear-gradient(#0a2c37, #051b23);
+  color: var(--ink);
+}
+.shop-pack-art {
+  grid-row: 1 / 3;
+  width: 76px;
+  height: 106px;
+  border-radius: 8px;
+  background-color: #02121a;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 12px #0007;
+}
+.shop-pack-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.shop-pack-copy strong { font-size: 15px; line-height: 1.2; }
+.shop-pack-description { font-size: 12px; color: var(--muted); }
+.shop-pack-meta { font-size: 12px; font-weight: 700; color: var(--shop-gold); }
+.shop-pack button { align-self: start; justify-self: start; }
+.shop-pack-confirm { display: inline-flex; gap: 6px; align-items: center; }
+
 .shop-panel {
   flex: 1 1 auto;
   min-height: 0;

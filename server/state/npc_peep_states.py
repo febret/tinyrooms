@@ -1,4 +1,4 @@
-"""Persistent NPC peep room locations backed by the world database."""
+"""Persistent per-NPC peep world state backed by the world database."""
 
 from __future__ import annotations
 
@@ -9,13 +9,18 @@ from server.security import utc_now
 from server.state.migrations import DatabaseHub
 
 
-class PeepLocationRepository:
-    """Tracks the current room of every NPC peep.
+class NpcPeepStateRepository:
+    """Tracks the current room of every NPC peep, plus reserved future columns.
 
-    The authored ``peep.room_id`` is the spawn default; rows in
-    ``world.peep_locations`` override it once an NPC has moved. The map is kept
-    in memory because room snapshots and behavior routing read it on every
+    The authored ``peep.room_id`` is the spawn default; a row in
+    ``world.npc_peep_states`` overrides it once an NPC has moved. The room map is
+    kept in memory because room snapshots and behavior routing read it on every
     event, and only this repository writes it.
+
+    ``counters_json``, ``buffs_json`` and ``memories_json`` are a mirror of the
+    columns of the same name on ``user_profiles``. They are reserved for future
+    per-NPC state (stats/counters, buffs and memories); nothing reads or writes
+    them yet, and they default to ``'{}'``.
     """
 
     def __init__(self, hub: DatabaseHub, world: WorldDefinition) -> None:
@@ -30,7 +35,7 @@ class PeepLocationRepository:
     def _load(self, world: WorldDefinition) -> None:
         with self._hub.locked() as connection:
             rows = connection.execute(
-                "SELECT peep_id, room_id FROM world.peep_locations"
+                "SELECT peep_id, room_id FROM world.npc_peep_states"
             ).fetchall()
         for row in rows:
             peep_id = str(row["peep_id"])
@@ -55,11 +60,14 @@ class PeepLocationRepository:
         return {peep_id for peep_id, current in self._rooms.items() if current == room_id}
 
     def set_in_transaction(self, connection: sqlite3.Connection, peep_id: str, room_id: str) -> None:
-        """Persist a peep's room inside an already-open transaction."""
+        """Persist a peep's room inside an already-open transaction.
+
+        The reserved ``*_json`` columns are left at their ``'{}'`` defaults.
+        """
 
         connection.execute(
             """
-            INSERT INTO world.peep_locations (peep_id, room_id, updated_at)
+            INSERT INTO world.npc_peep_states (peep_id, room_id, updated_at)
             VALUES (?, ?, ?)
             ON CONFLICT(peep_id) DO UPDATE SET room_id = excluded.room_id, updated_at = excluded.updated_at
             """,

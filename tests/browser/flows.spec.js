@@ -255,7 +255,7 @@ test.describe("client module logic", () => {
           owned: editLabels(true),
           locked: editLabels(false),
           lockedView: editRoomView({ room: { ...room, canEditRoom: false } }).includes("do not have permission"),
-          editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("Prop Shop"),
+          editorView: editRoomView({ room: { ...room, canEditRoom: true }, editor }).includes("🛒 Shop"),
         },
         prop: propActions.find(action => action.label === "Inspect")?.local,
         defaultAction: defaultAction ? { label: defaultAction.label, command: defaultAction.command } : null,
@@ -393,17 +393,13 @@ test.describe("core milestone 2 views", () => {
 
   test("playing an animation emote shows a gif bubble sized to the animation", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
-    await command(page, ".shop");
-    const shop = page.locator("#shop-dock");
-    await expect(shop.locator(".shop-pack")).toHaveCount(3);
-    await shop.locator(".shop-pack").filter({ hasText: "Memebase Pack" }).getByRole("button", { name: "Buy" }).click();
-    const confirm = page.locator(".global-dialog");
-    await expect(confirm).toBeVisible();
-    await confirm.getByRole("button", { name: "Buy", exact: true }).click();
+    await command(page, ".buy_pack memebase op-meme-buy");
+    await openCore(page, "inventory");
+    const inventoryPanel = page.locator("#panel-layer [role=dialog]");
+    await inventoryPanel.getByRole("button", { name: /Tinyrooms Memebase Pack/ }).click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Open", exact: true }).click();
     await expect(page.locator(".pack-reveal-card")).toHaveCount(3);
     await page.locator(".pack-reveal-close").click();
-    await shop.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(shop).toBeHidden();
     await page.reload();
     await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
     await openCore(page, "emotes");
@@ -444,41 +440,49 @@ test.describe("cutscenes under reduced motion", () => {
 test.describe("milestone 2 activities and targeting", () => {
   test.slow();
 
-  test("shop dock lists packs and reveals committed cards", async ({ page, runtime }) => {
+  test("shop activity lists packs and grants a sealed pack", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await command(page, ".shop");
-    const shop = page.locator("#shop-dock");
-    await expect(shop).toBeVisible();
-    await expect(shop.locator(".shop-pack")).toHaveCount(3);
-    await expect(shop.locator(".shop-balance")).toContainText("10 Bops");
-    await shop.locator(".shop-pack").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
-    const confirm = page.locator(".global-dialog");
-    await expect(confirm).toBeVisible();
-    await confirm.getByRole("button", { name: "Buy", exact: true }).click();
+    const frame = page.frameLocator('iframe[src*="shop"]');
+    await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
+    await expect(frame.locator(".shop-pack")).toHaveCount(3);
+    await expect(frame.locator(".shop-wallet")).toContainText("10");
+    await frame.locator(".shop-pack").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
+    await frame.getByRole("button", { name: /Confirm/ }).click();
+    await expect(frame.locator(".shop-wallet")).toContainText("0", { timeout: 20_000 });
+    const inventory = (await bootstrap(page)).user.inventory;
+    expect(inventory.some(entry => entry.definition?.id === "pack_base")).toBe(true);
+  });
+
+  test("inventory Shop button opens the shop activity", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await openCore(page, "inventory");
+    await page.locator("#panel-layer").getByRole("button", { name: "Shop", exact: true }).click();
+    const frame = page.frameLocator('iframe[src*="shop"]');
+    await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
+    await expect(frame.locator(".shop-pack")).toHaveCount(3);
+  });
+
+  test("opening a sealed pack reveals its cards inline under reduced motion", async ({ page, runtime }) => {
+    await createReadyAccount(page, runtime);
+    await command(page, ".buy_pack base op-seal-1");
+    await openCore(page, "inventory");
+    const panel = page.locator("#panel-layer [role=dialog]");
+    await panel.getByRole("button", { name: /Tinyrooms Base Pack/ }).click();
+    await page.locator("#actions-bar").getByRole("button", { name: "Open", exact: true }).click();
     await expect(page.locator(".pack-reveal")).toBeVisible();
     await expect(page.locator(".pack-reveal-card")).toHaveCount(3);
     await page.locator(".pack-reveal-close").click();
-    await expect(page.locator(".pack-reveal")).toHaveCount(0);
-    await expect(shop.locator(".shop-balance")).toContainText("0 Bops");
-  });
-
-  test("inventory Card Shop button opens the shop dock", async ({ page, runtime }) => {
-    await createReadyAccount(page, runtime);
-    await openCore(page, "inventory");
-    await page.locator("#panel-layer").getByRole("button", { name: "Card Shop", exact: true }).click();
-    await expect(page.locator("#panel-layer [role=dialog]")).toHaveCount(0);
-    const shop = page.locator("#shop-dock");
-    await expect(shop).toBeVisible();
-    await expect(shop.locator(".shop-pack")).toHaveCount(3);
+    const inventory = (await bootstrap(page)).user.inventory;
+    expect(inventory.some(entry => entry.definition?.id === "pack_base")).toBe(false);
   });
 
   test("selling a card from the inventory credits Bops", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await openCore(page, "inventory");
     const panel = page.locator("#panel-layer [role=dialog]");
+    await panel.getByRole("button", { name: "Sell Mode", exact: true }).click();
     await panel.getByRole("button", { name: "Smile", exact: true }).click();
-    await page.locator("#actions-bar").getByRole("button", { name: /^Sell 1/ }).click();
-    await page.locator(".global-dialog").getByRole("button", { name: "Sell", exact: true }).click();
     await expect(page.locator(".coin-motion-layer")).toHaveAttribute("data-last-coins", "1");
     await expect.poll(async () => (await bootstrap(page)).user.bops).toBe(11);
   });
@@ -507,7 +511,10 @@ test.describe("milestone 2 activities and targeting", () => {
     await openCore(page, "inventory");
     await owned.click();
     await page.locator("#actions-bar").getByRole("button", { name: "Use on…", exact: true }).click();
-    await page.getByRole("button", { name: "Select sunbeam", exact: true }).click();
+    const target = page.getByRole("button", { name: "Select sunbeam", exact: true });
+    await target.click();
+    await expect(page.locator("#target-line")).toBeVisible();
+    await target.click();
     await expect(page.locator("#toast-stack .error").first()).toContainText(/full Health/i);
   });
 });
@@ -885,8 +892,8 @@ test.describe("milestone 3 room editing", () => {
     const panel = await openEditRoom(page);
     await expect(panel.locator('[data-edit-add="ancient-oak"]')).toHaveCount(0);
 
-    await panel.getByRole("button", { name: /Prop Shop/ }).click();
-    const frame = page.frameLocator('iframe[src*="prop-shop"]');
+    await panel.getByRole("button", { name: /Shop/ }).click();
+    const frame = page.frameLocator('iframe[src*="shop"]');
     await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
 
     await frame.locator("#search").fill("ancient oak");

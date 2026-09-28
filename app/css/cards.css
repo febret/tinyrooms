@@ -208,7 +208,7 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 
 /* Milestone 2: status icons, counters, skill grid, social, feedback */
 .status-icons, .peep-statuses { display: inline-flex; gap: 2px; font-size: 12px; line-height: 1; }
-.peep-statuses { position: absolute; bottom: -2px; right: 2px; background: var(--panel-solid, #0d2430); border-radius: 8px; padding: 1px 3px; }
+.peep-statuses { position: absolute; top: -6px; left: -4px; z-index: 3; background: var(--panel-solid, #0d2430); border-radius: 10px; padding: 1px 5px; font-size: 36px; white-space: nowrap; box-shadow: 0 2px 6px #0008; }
 .peep-chip.tired .peep-marker img { filter: grayscale(1) brightness(.8); }
 .peep-chip.pinned .peep-name::after { content: " ◆"; color: var(--gold, #efbb88); font-size: 10px; }
 .peep-chip { position: relative; }
@@ -247,6 +247,8 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 .journal-tabs button.selected { background: var(--gold, #efbb88); color: #061923; }
 .locked-state { font-size: 15px; }
 .inventory-balance { display: flex; align-items: center; gap: 10px; }
+.sell-mode .inventory-view .game-card { cursor: cell; box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
+.sell-mode .inventory-view .game-card:hover { filter: brightness(1.12); }
 .choose-list { display: grid; gap: 6px; margin: 10px 0; }
 .choose-row { text-align: left; }
 .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; max-height: 50vh; overflow: auto; margin: 10px 0; }
@@ -461,30 +463,7 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
   .editor-propset-art { width: 26px; height: 26px; }
 }
 
-/* Milestone 2: card shop, a docked panel that replaces the interaction panel like the editor. */
-.shop-dock { display: none; height: var(--dock-height); pointer-events: auto; background: linear-gradient(#02090cef, #030b0e); border-top: 1px solid #1d3642; }
-.app-shell.shopping { --dock-height: calc(232px + env(safe-area-inset-bottom, 0px)); }
-.app-shell.shopping .shop-dock { display: block; }
-.app-shell.shopping .interaction-dock { display: none; }
-@media (max-width: 780px), (orientation: portrait) {
-  .app-shell.shopping { --dock-height: calc(210px + env(safe-area-inset-bottom, 0px)); }
-}
-.shop-view.editor-dock-panel { display: flex; flex-direction: column; gap: 6px; height: 100%; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); overflow: hidden; color: #f5f5f1; }
-.shop-dock-header { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
-.shop-dock-header strong { color: #f2b489; font-size: 15px; white-space: nowrap; }
-.shop-balance { padding: 3px 12px; border-radius: 999px; background: #e4be75; color: #1b1206; font-weight: 700; font-size: 13px; white-space: nowrap; }
-.shop-lede { color: #9fb7bd; font-size: 12px; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shop-dock-header button { flex-shrink: 0; }
-.shop-dock-body { flex: 1; min-height: 0; overflow-x: auto; overscroll-behavior: contain; padding-bottom: 2px; }
-.shop-packs { display: flex; align-items: stretch; gap: 10px; height: 100%; }
-.shop-pack { display: flex; flex-direction: column; gap: 4px; width: 172px; flex: 0 0 auto; padding: 8px; border-radius: 10px; border: 1px solid #29505d; background: #03181f; text-align: center; }
-.shop-pack-art { height: 72px; border-radius: 8px; background-size: cover; background-position: center; background-color: #0a2b36; flex-shrink: 0; }
-.shop-pack-copy { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
-.shop-pack-copy p { margin: 0; }
-.shop-pack-copy strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shop-pack-description { font-size: 11px; color: #9fb7bd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shop-pack-meta { font-weight: 700; color: #e4be75; font-size: 12px; }
-.shop-pack button { margin-top: auto; flex-shrink: 0; }
+/* Reduced-motion and replay fallback for the pack-opening reveal. */
 .pack-reveal { max-width: min(640px, 92vw); text-align: center; }
 .pack-reveal-cards { display: flex; flex-wrap: nowrap; justify-content: center; gap: 10px; margin: 12px 0; overflow-x: auto; }
 .pack-reveal-card { margin: 0; flex: 0 1 130px; min-width: 0; }

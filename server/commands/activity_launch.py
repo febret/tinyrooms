@@ -57,6 +57,7 @@ def start_activity(
     *,
     room_id: str,
     replace_existing: bool,
+    extra_config: Mapping[str, object] | None = None,
 ) -> CommandOutcome:
     """Start a resolved activity and build the command outcome."""
 
@@ -65,6 +66,12 @@ def start_activity(
         raise CommandError(f"{definition.title} is not available.")
     if definition.rooms and room_id not in definition.rooms:
         raise CommandError(f"{definition.title} is not available here.")
+    config: dict[str, object] = {
+        "start_cost": definition.start_cost,
+        "record": definition.record,
+        "min_completed_round": definition.min_completed_round,
+    }
+    config.update(extra_config or {})
     try:
         session, replaced = context.activities.start(
             account_id=context.account.id,
@@ -73,11 +80,7 @@ def start_activity(
             room_bound=resolved.room_bound,
             room_id=room_id if resolved.room_bound else None,
             replace_existing=replace_existing,
-            config={
-                "start_cost": definition.start_cost,
-                "record": definition.record,
-                "min_completed_round": definition.min_completed_round,
-            },
+            config=config,
         )
     except ValueError as exc:
         raise CommandError(

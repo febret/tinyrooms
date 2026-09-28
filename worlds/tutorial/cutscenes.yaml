@@ -28,3 +28,18 @@ tutorial-end:
   text:
     - {at: 400, speaker: Pip, say: "You did it!"}
     - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!"}
+centipede-vacuum:
+  title: Mission Accomplished
+  script: centipede-vacuum.js
+  frame: letterbox
+  duration: 6400
+  audience: room
+  room_bound: true
+  aliases: [vacuum, centipedes]
+  max_queue: 1
+  params:
+    stage_background: "#050b0d"
+    accent: "#7de07d"
+  text:
+    - {at: 200, speaker: Vacuum, say: "Vrrrrrrm!"}
+    - {at: 2600, speaker: Vacuum, say: "All clear!"}

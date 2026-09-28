@@ -76,7 +76,7 @@ def _mutation_payload(
 
     account = context.profiles.get_account_by_id(context.account.id) or context.account
     return {
-        "inventory": [context.cards.serialize_inventory_stack(stack) for stack in stacks],
+        "inventory": context.cards.serialize_inventory_stacks(stacks),
         "user": context.serialize_user(account),
         **extra,
     }

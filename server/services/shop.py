@@ -6,7 +6,13 @@ from dataclasses import dataclass
 import json
 import random
 
-from server.content.cards import CardCatalog, CardDefinition, PackDefinition
+from server.content.cards import (
+    PACK_CARD_TYPE,
+    CardCatalog,
+    CardDefinition,
+    PackDefinition,
+    closed_pack_card_id,
+)
 from server.content.gameplay import GameplayContent
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.security import utc_now
@@ -49,12 +55,23 @@ class PackPreview:
 
 @dataclass(frozen=True, slots=True)
 class PurchaseResult:
-    """Outcome of a pack purchase (or an idempotent replay)."""
+    """Outcome of a sealed-pack purchase (or an idempotent replay)."""
+
+    pack: PackDefinition
+    pack_card: CardDefinition
+    stacks: tuple[InventoryStack, ...]
+    bops_spent: int
+    account: AccountRecord
+    replayed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class OpenResult:
+    """Outcome of opening a sealed pack (or an idempotent replay)."""
 
     pack: PackDefinition
     cards: tuple[CardDefinition, ...]
     stacks: tuple[InventoryStack, ...]
-    bops_spent: int
     account: AccountRecord
     replayed: bool
 
@@ -129,29 +146,72 @@ class ShopService:
             results.append(generator.choice(pool))
         return results
 
-    def purchase(self, account: AccountRecord, pack_id: str, operation_id: str) -> PurchaseResult:
-        """Charge Bops and grant results exactly once per operation id."""
+    def _apply_guaranteed(
+        self,
+        pack: PackDefinition,
+        draws: list[CardDefinition],
+        owned_ids: set[str],
+    ) -> None:
+        """Force each guaranteed card into a draw while the opener owns none of it."""
+
+        if not pack.guaranteed:
+            return
+        guaranteed = set(pack.guaranteed)
+        present = {definition.id for definition in draws}
+        for card_id in pack.guaranteed:
+            if card_id in owned_ids or card_id in present:
+                continue
+            index = next(
+                (position for position in range(len(draws) - 1, -1, -1) if draws[position].id not in guaranteed),
+                0,
+            )
+            draws[index] = self._catalog.cards[card_id]
+            present.add(card_id)
+
+    def sealed_definition(self, pack_id: str) -> CardDefinition | None:
+        """Return the sealed inventory card that represents *pack_id*."""
 
         pack = self._catalog.packs.get(pack_id)
         if pack is None:
+            return None
+        definition = self._catalog.cards.get(closed_pack_card_id(pack.id))
+        if definition is None or definition.opens_pack != pack.id:
+            return None
+        return definition
+
+    def openable_definition(self, card_def_id: str) -> CardDefinition | None:
+        """Return the sealed definition named by *card_def_id*, if it opens a pack."""
+
+        definition = self._catalog.cards.get(card_def_id)
+        if definition is None or definition.type != PACK_CARD_TYPE or not definition.opens_pack:
+            return None
+        return definition
+
+    def purchase(self, account: AccountRecord, pack_id: str, operation_id: str) -> PurchaseResult:
+        """Charge Bops and grant one sealed pack exactly once per operation id."""
+
+        pack = self._catalog.packs.get(pack_id)
+        if pack is None:
+            raise ValueError("Unknown card pack.")
+        pack_card = self.sealed_definition(pack.id)
+        if pack_card is None:
             raise ValueError("Unknown card pack.")
         operation_id = (operation_id or "").strip()
         if not operation_id or len(operation_id) > 80:
             raise ValueError("A valid purchase operation id is required.")
         with self._hub.transaction() as connection:
             existing = connection.execute(
-                "SELECT pack_id, results_json FROM pack_purchases WHERE operation_id = ? AND account_id = ?",
+                "SELECT pack_id FROM pack_purchases WHERE operation_id = ? AND account_id = ?",
                 (operation_id, account.id),
             ).fetchone()
             if existing is not None:
-                card_ids = [str(entry) for entry in json.loads(existing["results_json"])]
-                cards = tuple(self._catalog.cards[card_id] for card_id in card_ids)
+                replayed_pack = self._catalog.packs[str(existing["pack_id"])]
                 current = self._profiles.get_account_by_id(account.id)
                 if current is None:
                     raise ValueError("Unknown account.")
                 return PurchaseResult(
-                    pack=self._catalog.packs[str(existing["pack_id"])],
-                    cards=cards,
+                    pack=replayed_pack,
+                    pack_card=self.sealed_definition(replayed_pack.id) or pack_card,
                     stacks=tuple(self._profiles.list_inventory(account.id, self._world_id)),
                     bops_spent=0,
                     account=current,
@@ -162,18 +222,13 @@ class ShopService:
                 raise ValueError("Unknown account.")
             if current.bops < pack.price:
                 raise ValueError(f"You need {pack.price - current.bops} more Bops for that pack.")
-            draws = self.draw(pack, self._rng)
-            granted: list[InventoryStack] = []
-            for definition in draws:
-                granted.extend(
-                    grant_card_to_inventory(
-                        self._profiles,
-                        connection,
-                        account_id=account.id,
-                        definition=definition,
-                        world_id=self._world_id,
-                    )
-                )
+            grant_card_to_inventory(
+                self._profiles,
+                connection,
+                account_id=account.id,
+                definition=pack_card,
+                world_id=self._world_id,
+            )
             updated = self._profiles.update_progress(
                 connection,
                 current,
@@ -188,16 +243,94 @@ class ShopService:
                     operation_id,
                     account.id,
                     pack.id,
-                    json.dumps([definition.id for definition in draws]),
+                    json.dumps([]),
                     utc_now().isoformat(),
                 ),
             )
             return PurchaseResult(
                 pack=pack,
-                cards=tuple(draws),
+                pack_card=pack_card,
                 stacks=tuple(self._profiles.list_inventory(account.id, self._world_id)),
                 bops_spent=pack.price,
                 account=updated,
+                replayed=False,
+            )
+
+    def open_pack(self, account: AccountRecord, stack_id: str, operation_id: str) -> OpenResult:
+        """Consume one sealed pack stack and grant its drawn cards exactly once."""
+
+        operation_id = (operation_id or "").strip()
+        if not operation_id or len(operation_id) > 80:
+            raise ValueError("A valid open operation id is required.")
+        with self._hub.transaction() as connection:
+            existing = connection.execute(
+                "SELECT pack_id, results_json FROM pack_opens WHERE operation_id = ? AND account_id = ?",
+                (operation_id, account.id),
+            ).fetchone()
+            if existing is not None:
+                card_ids = [str(entry) for entry in json.loads(existing["results_json"])]
+                cards = tuple(self._catalog.cards[card_id] for card_id in card_ids)
+                current = self._profiles.get_account_by_id(account.id)
+                if current is None:
+                    raise ValueError("Unknown account.")
+                return OpenResult(
+                    pack=self._catalog.packs[str(existing["pack_id"])],
+                    cards=cards,
+                    stacks=tuple(self._profiles.list_inventory(account.id, self._world_id)),
+                    account=current,
+                    replayed=True,
+                )
+            stack = self._profiles.get_inventory_stack(account.id, self._world_id, stack_id)
+            if stack is None:
+                raise ValueError("You do not have that pack in your inventory.")
+            sealed = self.openable_definition(stack.card_def_id)
+            if sealed is None or sealed.opens_pack is None:
+                raise ValueError("That is not a sealed card pack.")
+            pack = self._catalog.packs.get(sealed.opens_pack)
+            if pack is None:
+                raise ValueError("Unknown card pack.")
+            current = self._profiles.get_account_by_id(account.id)
+            if current is None:
+                raise ValueError("Unknown account.")
+            draws = self.draw(pack, self._rng)
+            owned_ids = {
+                entry.card_def_id
+                for entry in self._profiles.list_inventory(current.id, self._world_id)
+            }
+            self._apply_guaranteed(pack, draws, owned_ids)
+            self._profiles.remove_inventory_quantity(
+                connection,
+                account_id=current.id,
+                world_id=self._world_id,
+                stack_id=stack.stack_id,
+                quantity=1,
+            )
+            for definition in draws:
+                grant_card_to_inventory(
+                    self._profiles,
+                    connection,
+                    account_id=account.id,
+                    definition=definition,
+                    world_id=self._world_id,
+                )
+            connection.execute(
+                """
+                INSERT INTO pack_opens (operation_id, account_id, pack_id, results_json, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    operation_id,
+                    account.id,
+                    pack.id,
+                    json.dumps([definition.id for definition in draws]),
+                    utc_now().isoformat(),
+                ),
+            )
+            return OpenResult(
+                pack=pack,
+                cards=tuple(draws),
+                stacks=tuple(self._profiles.list_inventory(account.id, self._world_id)),
+                account=current,
                 replayed=False,
             )
 

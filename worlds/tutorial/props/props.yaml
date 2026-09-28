@@ -91,7 +91,7 @@ plant:
   model: quaternius_cc0-cactus-775.glb
   decorative: true
   editable: true
-  scale: 0.76
+  scale: 0.32
 bookshelf:
   label: Story Shelf
   description: Hand-bound books and a tiny keepsake house.
@@ -106,7 +106,7 @@ framed-picture:
   model: framed-picture.glb
   decorative: true
   editable: true
-  scale: 1.593
+  scale: 0.53
 rug:
   label: Woven Flower Rug
   description: A scalloped rug with a cheerful embroidered flower.

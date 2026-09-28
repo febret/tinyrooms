@@ -685,15 +685,6 @@ function applyServerEvent(state, event) {
   if (event.type === "dialog.updated") {
     return { ...state, room: { ...state.room, dialog: normalizeDialog(event.dialog) } };
   }
-  if (event.type === "shop.open") {
-    return {
-      ...state,
-      editor: null,
-      shop: true,
-      views: { ...state.views, main: null, details: null },
-      ui: { ...state.ui, targeting: null },
-    };
-  }
   if (event.type === "activity.started") {
     const activity = normalizeActivity(event.activity);
     return {
@@ -812,6 +803,9 @@ function mergeResultPayload(state, payload) {
 
 function dismissInvalidSelection(state) {
   if (!state.room) return state;
+  if (state.ui.targeting && !findInventoryCard(state, state.ui.targeting.stackId)) {
+    state = { ...state, ui: { ...state.ui, targeting: null } };
+  }
   if (state.views.details && ![...state.room.roomCards, ...state.room.inventory].some(card => card.stackId === state.views.details)) {
     state = { ...state, views: { ...state.views, details: null } };
   }
@@ -844,11 +838,10 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null },
-    ui: { actionLogVisible: false, soundEnabled: true, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null },
+    ui: { actionLogVisible: false, soundEnabled: true, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
-    shop: false,
   };
 }
 
@@ -873,7 +866,6 @@ function reduce(state, action) {
       commandCatalog: action.loggedIn ? state.commandCatalog : [],
       describedEntity: null,
       editor: action.loggedIn ? state.editor : null,
-      shop: false,
     };
   }
   if (action.type === "bootstrap") {
@@ -897,7 +889,6 @@ function reduce(state, action) {
   if (action.type === "open-view") {
     return {
       ...state,
-      shop: false,
       selection: { kind: "core", id: action.view },
       views: {
         ...state.views,
@@ -906,15 +897,14 @@ function reduce(state, action) {
         propId: action.view === "prop-details" ? action.propId || null : null,
         skillStackId: action.view === "skills" ? action.stackId || null : null,
       },
-      ui: { ...state.ui, targeting: null },
+      ui: { ...state.ui, targeting: null, sellMode: false },
     };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
-  if (action.type === "shop-open") return { ...state, editor: null, shop: true, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null } };
-  if (action.type === "shop-close") return { ...state, shop: false };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null, sellMode: false } };
   if (action.type === "emote-category") return { ...state, ui: { ...state.ui, emoteCategory: action.category } };
   if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
+  if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
   if (action.type === "start-targeting") return { ...state, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: { stackId: action.stackId, label: action.label } } };
   if (action.type === "cancel-targeting") return { ...state, ui: { ...state.ui, targeting: null } };
   if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
@@ -949,7 +939,7 @@ function reduce(state, action) {
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, details: null },
-      ui: sameRoom ? state.ui : { ...state.ui, targeting: null },
+      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false },
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };

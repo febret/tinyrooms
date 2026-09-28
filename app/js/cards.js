@@ -19,7 +19,6 @@ import { selfView } from "./views/self-view.js";
 import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
 import { editRoomView, editorConflictMarkup, editorMetaText, editorSelectedName } from "./views/edit-room-view.js";
-import { shopView } from "./views/shop-view.js";
 import { bindEditorLibrary } from "./editing/library-filter.js";
 import { availableLibrary, selectedInstance } from "./editing/edit-reducer.js";
 
@@ -63,16 +62,13 @@ function bindCardButtons(root, onSelect, onAction) {
     button.onclick = () => onAction({ type: "claim-bops" });
   });
   root.querySelectorAll("[data-open-shop]").forEach(button => {
-    button.onclick = () => onAction({ type: "open-shop" });
-  });
-  root.querySelectorAll("[data-close-shop]").forEach(button => {
-    button.onclick = () => onAction({ type: "shop-close" });
-  });
-  root.querySelectorAll("[data-buy-pack]").forEach(button => {
-    button.onclick = () => onAction({ type: "buy-pack", packId: button.dataset.buyPack });
+    button.onclick = () => onAction({ type: "open-shop", section: button.dataset.openShop || "cards" });
   });
   root.querySelectorAll("[data-auto-merge]").forEach(button => {
     button.onclick = () => onAction({ command: ".merge_all" });
+  });
+  root.querySelectorAll("[data-sell-mode]").forEach(button => {
+    button.onclick = () => onAction({ type: "toggle-sell-mode" });
   });
   root.querySelectorAll("[data-level-up]").forEach(button => {
     button.onclick = () => onAction({ type: "level-up" });
@@ -317,6 +313,10 @@ function inventoryStackActions(stack) {
   const definition = stack.definition || {};
   const actions = [];
   const type = definition.type || "item";
+  if (type === "pack") {
+    actions.push({ label: "Open", local: { type: "open-pack", stackId: stack.stackId }, tone: "primary" });
+    return actions;
+  }
   if (type === "emote") {
     actions.push({ label: "Play", command: buildEmoteCommand(stack.stackId), tone: "primary" });
   } else if (type === "skill") {
@@ -349,25 +349,11 @@ function inventoryStackActions(stack) {
   if ((definition.stackLimit || 1) > 1) {
     actions.push({ label: "Merge…", local: { type: "merge", stackId: stack.stackId }, tone: "neutral" });
   }
-  if (definition.sellPrice != null) {
-    actions.push({
-      label: `Sell 1 (${definition.sellPrice} Bops)`,
-      local: { type: "sell", stackId: stack.stackId, quantity: 1, unit: definition.sellPrice, label: definition.label },
-      tone: "positive",
-    });
-    if (stack.quantity > 1) {
-      actions.push({
-        label: "Sell…",
-        local: { type: "sell", stackId: stack.stackId, max: stack.quantity, unit: definition.sellPrice, label: definition.label },
-        tone: "positive",
-      });
-    }
-  }
   return actions;
 }
 
 /** Render core cards, equipped/inventory previews, board-modal views, and card details. */
-export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, shopRoot, onSelect, onAction }) {
+export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
   const rendered = new WeakMap();
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
@@ -377,7 +363,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
     const value = identity ? active.dataset[identity] : null;
     const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
     const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .editor-workspace, .editor-env, .editor-propsets, .editor-heading-tags, .editor-library-grid, .shop-dock-body, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .editor-workspace, .editor-env, .editor-propsets, .editor-heading-tags, .editor-library-grid, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -453,7 +439,6 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, s
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
       renderEditor(state);
-      if (shopRoot) update(shopRoot, state.shop ? shopView(state) : "");
     },
   };
 }

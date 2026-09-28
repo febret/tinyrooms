@@ -167,11 +167,11 @@ unified per account across worlds; `world_id` records where each grant occurred.
 
 ### 2.6 `pack_purchases`
 
-Idempotency log guaranteeing that a card-pack purchase is charged and its
-results granted **exactly once** per `(account_id, operation_id)`. Written and
-read by `server/services/shop.py:ShopService.purchase()`; the replay lookup, the
-Bops debit, the card grants, and the insert all run inside a single
-`DatabaseHub.transaction()`. A repeated `operation_id` returns the stored draw
+Idempotency log guaranteeing that a card-pack purchase charges Bops and grants
+the sealed pack item **exactly once** per `(account_id, operation_id)`. Written
+and read by `server/services/shop.py:ShopService.purchase()`; the replay lookup,
+the Bops debit, the sealed-pack grant, and the insert all run inside a single
+`DatabaseHub.transaction()`. A repeated `operation_id` returns the stored pack
 (`replayed = True`, `bops_spent = 0`) without mutating balances or inventory.
 Like `reward_ledger`, this table lives in the profile DB, so purchases are
 unified per account across worlds.
@@ -181,10 +181,28 @@ unified per account across worlds.
 | `operation_id` | TEXT PK (composite) | Client-supplied purchase identity from `.buy_pack <pack> <operation_id>` (1–80 chars). Unique per account, not globally. |
 | `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Purchasing account. Indexed via `idx_pack_purchases_owner`. |
 | `pack_id` | TEXT NOT NULL | Pack definition ID from the catalog (`server/content/cards.py`). |
-| `results_json` | TEXT NOT NULL CHECK `json_valid` | Ordered JSON list of drawn `card_def_id`s, replayed on a duplicate `operation_id`. |
+| `results_json` | TEXT NOT NULL CHECK `json_valid` | Reserved; currently an empty JSON list. The drawn cards are no longer decided at purchase. |
 | `created_at` | TEXT NOT NULL | ISO purchase timestamp. |
 
-### 2.7 `task_progress`
+### 2.7 `pack_opens`
+
+Idempotency log guaranteeing that opening a sealed pack consumes it and grants
+its drawn cards **exactly once** per `(account_id, operation_id)`. Written and
+read by `server/services/shop.py:ShopService.open_pack()`; the replay lookup, the
+stack decrement, the card grants, the draw, and the insert all run inside a
+single `DatabaseHub.transaction()`. A repeated `operation_id` returns the stored
+draw (`replayed = True`) without consuming another pack. Contents are decided at
+open time, so the drawn ids are persisted here for a deterministic replay.
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `operation_id` | TEXT PK (composite) | Client-supplied open identity from `.open_pack <pack> <operation_id>` (1–80 chars). Unique per account, not globally. |
+| `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Opening account. Indexed via `idx_pack_opens_owner`. |
+| `pack_id` | TEXT NOT NULL | Pack definition ID from the catalog (`server/content/cards.py`). |
+| `results_json` | TEXT NOT NULL CHECK `json_valid` | Ordered JSON list of drawn `card_def_id`s, replayed on a duplicate `operation_id`. |
+| `created_at` | TEXT NOT NULL | ISO open timestamp. |
+
+### 2.8 `task_progress`
 
 One row per `(account_id, task_id)` for every task a user has started. Owned by
 `server/services/tasks.py:TaskService` (started lazily by `start()` /
@@ -207,7 +225,7 @@ per `reset_policy` (currently `daily`, using the configured timezone).
 | `reward_operation_id` | TEXT NULL | Ledger key of the granted reward (audit/replay). |
 | `shared_owner_id` | TEXT NULL | World ID for shared tasks; NULL for personal. |
 
-### 2.8 `memories`
+### 2.9 `memories`
 
 Journal entries. Game memories are immutable (`editable = 0`) and written by
 `TaskService`; manual memories (`editable = 1`, `source_type = 'manual'`) are

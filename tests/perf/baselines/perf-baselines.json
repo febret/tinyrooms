@@ -1,8 +1,8 @@
 {
   "client/board/draw-calls": {
-    "note": "Draw calls per frame with 93 instances of one shared asset.",
+    "note": "Draw calls per frame with 101 instances of one shared asset.",
     "unit": "count",
-    "value": 253
+    "value": 261
   },
   "client/board/frames-while-hidden": {
     "note": "Frames drawn over 3s while the page reports itself hidden.",
@@ -10,19 +10,19 @@
     "value": 0
   },
   "client/board/geometries": {
-    "note": "Resident geometries with 93 instances of a single prop asset.",
+    "note": "Resident geometries with 101 instances of a single prop asset.",
     "unit": "count",
-    "value": 146
+    "value": 154
   },
   "client/board/nodes": {
     "note": "Scene-graph nodes for the current room.",
     "unit": "count",
-    "value": 1176
+    "value": 1208
   },
   "client/board/programs": {
     "note": "Compiled shader programs; one program per material variant, not per entity.",
     "unit": "count",
-    "value": 8
+    "value": 11
   },
   "client/board/shadow-auto-update": {
     "note": "1 means Three.js re-renders the shadow depth buffer every frame.",
@@ -35,14 +35,14 @@
     "value": 2048
   },
   "client/board/textures": {
-    "note": "Resident textures with 93 instances of a single prop asset. Prop model textures are shared per asset; a per-prop effect layer still contributes one each.",
+    "note": "Resident textures with 101 instances of a single prop asset. Prop model textures are shared per asset; a per-prop effect layer still contributes one each.",
     "unit": "count",
-    "value": 106
+    "value": 121
   },
   "client/board/triangles": {
     "note": "Triangles submitted per frame.",
     "unit": "count",
-    "value": 255470
+    "value": 266769
   },
   "client/dom/chat-message/appendChild": {
     "note": "DOM appendChild caused by the client while chat-message.",
@@ -117,7 +117,7 @@
   "client/dom/chat-message/setAttribute": {
     "note": "DOM setAttribute caused by the client while chat-message.",
     "unit": "writes",
-    "value": 2
+    "value": 3
   },
   "client/dom/chat-message/textContent": {
     "note": "DOM textContent caused by the client while chat-message.",
@@ -197,7 +197,7 @@
   "client/dom/inert/setAttribute": {
     "note": "DOM setAttribute caused by the client while inert.",
     "unit": "writes",
-    "value": 2
+    "value": 3
   },
   "client/dom/inert/textContent": {
     "note": "DOM textContent caused by the client while inert.",
@@ -208,37 +208,37 @@
     "lower_is_better": true,
     "note": "Applying one speech bubble across a room's occupants and npcs.",
     "unit": "ms",
-    "value": 0.0024
+    "value": 0.0027
   },
   "client/state/chat-event-ms": {
     "lower_is_better": true,
     "note": "Reducing one chat message in a 120-prop, 20-occupant room.",
     "unit": "ms",
-    "value": 0.0074
+    "value": 0.0057
   },
   "client/state/snapshot-ms/large": {
     "lower_is_better": true,
     "note": "Normalising a busy room snapshot.",
     "unit": "ms",
-    "value": 0.2366
+    "value": 0.2178
   },
   "client/state/snapshot-ms/small": {
     "lower_is_better": true,
     "note": "Normalising a small room snapshot.",
     "unit": "ms",
-    "value": 0.0997
+    "value": 0.1486
   },
   "client/state/toggle-ms/32-occupants": {
     "lower_is_better": true,
     "note": "Two UI toggles in a 32-occupant room.",
     "unit": "ms",
-    "value": 0.001
+    "value": 0.0009
   },
   "client/state/toggle-ms/4-occupants": {
     "lower_is_better": true,
     "note": "Two UI toggles in a 4-occupant room.",
     "unit": "ms",
-    "value": 0.0009
+    "value": 0.001
   },
   "client/state/uuids-per-snapshot": {
     "lower_is_better": true,
@@ -268,13 +268,13 @@
     "lower_is_better": true,
     "note": "Context construction in a 200-room world.",
     "unit": "ms",
-    "value": 0.0057
+    "value": 0.0049
   },
   "server/commands/context-ms/small-world": {
     "lower_is_better": true,
     "note": "Context construction in a 1-room world.",
     "unit": "ms",
-    "value": 0.0055
+    "value": 0.0049
   },
   "server/commands/sticker-dir-scans": {
     "lower_is_better": true,
@@ -304,25 +304,25 @@
     "lower_is_better": true,
     "note": "Serialised snapshot size for a 20-occupant room. Encoded once per recipient, so this is multiplied by the occupant count on the wire.",
     "unit": "bytes",
-    "value": 53345.0
+    "value": 55976.0
   },
   "server/snapshot/ms/room-max": {
     "lower_is_better": true,
     "note": "Fastest observed snapshot in a 30-occupant room. The minimum is used because a busy test host inflates every other sample.",
     "unit": "ms",
-    "value": 3.0429
+    "value": 2.3423
   },
   "server/snapshot/occupants=40/entities": {
     "lower_is_better": false,
     "note": "Entity count carried by the snapshot, for context.",
     "unit": "entities",
-    "value": 140.0
+    "value": 148.0
   },
   "server/snapshot/occupants=5/entities": {
     "lower_is_better": false,
     "note": "Entity count carried by the snapshot, for context.",
     "unit": "entities",
-    "value": 105.0
+    "value": 113.0
   },
   "server/snapshot/queries/axis-cards-32": {
     "lower_is_better": true,

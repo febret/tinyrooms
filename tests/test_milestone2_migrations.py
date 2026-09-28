@@ -135,6 +135,7 @@ class MigrationTests(unittest.TestCase):
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             self.assertIn("reward_ledger", tables)
             self.assertIn("pack_purchases", tables)
+            self.assertIn("pack_opens", tables)
             row = connection.execute("SELECT level, kudos, bops FROM accounts WHERE id = 'a1'").fetchone()
             self.assertEqual(row, (3, 7, 42))
             connection.close()

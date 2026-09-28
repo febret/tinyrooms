@@ -3,6 +3,9 @@
 # These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Seating ----------------------------------------------------------------
+CONFIG:
+  scale_adjust: 2.0
+
 koivu-dining-chair:
   label: Koivu Dining Chair
   description: A plain birch chair with a wipe-clean white seat.
@@ -25,7 +28,7 @@ aalto-stool:
   model: aalto-stool.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.6
   tags: [seating, stool, furniture]
 tunturi-armchair:
   label: Tunturi Armchair
@@ -41,7 +44,7 @@ tyyny-cushions:
   model: tyyny-cushions.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.65
   tags: [seating, decoration]
 
 # --- Beds and tables --------------------------------------------------------
@@ -83,7 +86,7 @@ laatikko-drawer-unit:
   model: laatikko-drawer-unit.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.9
   tags: [storage, cabinet, furniture]
 
 # --- Storage ----------------------------------------------------------------
@@ -93,7 +96,7 @@ kuusi-wall-shelf:
   model: kuusi-wall-shelf.glb
   decorative: true
   editable: true
-  scale: 1.2
+  scale: 1.0
   tags: [storage, shelf, furniture]
 saari-cabinet:
   label: Saari Cabinet
@@ -101,7 +104,7 @@ saari-cabinet:
   model: saari-cabinet.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.2
   tags: [storage, cabinet, furniture]
 reppu-bench:
   label: Reppu Bench
@@ -117,7 +120,7 @@ metsa-bookshelf:
   model: metsa-bookshelf.glb
   decorative: true
   editable: true
-  scale: 1.5
+  scale: 1.2
   tags: [storage, shelf, furniture]
 kori-basket:
   label: Kori Basket
@@ -125,7 +128,7 @@ kori-basket:
   model: kori-basket.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.7
   tags: [storage, decoration]
 naulakko-coat-rack:
   label: Naulakko Coat Rack
@@ -133,7 +136,7 @@ naulakko-coat-rack:
   model: naulakko-coat-rack.glb
   decorative: true
   editable: true
-  scale: 1.5
+  scale: 1.2
   tags: [storage, furniture]
 
 # --- Lighting ---------------------------------------------------------------
@@ -143,7 +146,7 @@ kielo-floor-lamp:
   model: kielo-floor-lamp.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.2
   tags: [lighting, lamp]
 taika-table-lamp:
   label: Taika Table Lamp
@@ -185,7 +188,7 @@ kukka-plant-pot:
   model: kukka-plant-pot.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.65
   tags: [plant, decoration]
 oksa-vase:
   label: Oksa Vase
@@ -201,7 +204,7 @@ peili-mirror:
   model: peili-mirror.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.8
   tags: [mirror, decoration]
 kello-wall-clock:
   label: Kello Wall Clock
@@ -209,5 +212,5 @@ kello-wall-clock:
   model: kello-wall-clock.glb
   decorative: true
   editable: true
-  scale: 0.8
+  scale: 0.6
   tags: [clock, decoration]

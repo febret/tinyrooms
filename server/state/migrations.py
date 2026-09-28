@@ -8,8 +8,8 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 7
-WORLD_SCHEMA_VERSION = 13
+PROFILE_SCHEMA_VERSION = 8
+WORLD_SCHEMA_VERSION = 14
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -95,6 +95,16 @@ CREATE TABLE IF NOT EXISTS pack_purchases (
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
+CREATE TABLE IF NOT EXISTS pack_opens (
+    operation_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    pack_id TEXT NOT NULL,
+    results_json TEXT NOT NULL CHECK (json_valid(results_json)),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, operation_id),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_pack_opens_owner ON pack_opens(account_id);
 CREATE TABLE IF NOT EXISTS task_progress (
     account_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
@@ -137,7 +147,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-PRAGMA user_version = 7;
+PRAGMA user_version = 8;
 COMMIT;
 """
 
@@ -185,12 +195,15 @@ CREATE TABLE IF NOT EXISTS activity_records (
     PRIMARY KEY (account_id, activity_kind)
 );
 CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind);
-CREATE TABLE IF NOT EXISTS peep_locations (
+CREATE TABLE IF NOT EXISTS npc_peep_states (
     peep_id TEXT PRIMARY KEY,
     room_id TEXT NOT NULL,
+    counters_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(counters_json)),
+    buffs_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(buffs_json)),
+    memories_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(memories_json)),
     updated_at TEXT NOT NULL
 );
-PRAGMA user_version = 13;
+PRAGMA user_version = 14;
 COMMIT;
 """
 
@@ -202,6 +215,7 @@ _PROFILE_TABLES = frozenset(
         "user_profiles",
         "reward_ledger",
         "pack_purchases",
+        "pack_opens",
         "task_progress",
         "memories",
         "audit_log",
@@ -209,7 +223,7 @@ _PROFILE_TABLES = frozenset(
 )
 
 _WORLD_TABLES = frozenset(
-    {"room_cards", "room_states", "behavior_state", "world_meta", "activity_records", "peep_locations"}
+    {"room_cards", "room_states", "behavior_state", "world_meta", "activity_records", "npc_peep_states"}
 )
 
 _PROFILE_MIGRATIONS: dict[int, str] = {
@@ -305,6 +319,21 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 7;
     COMMIT;
     """,
+    8: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS pack_opens (
+        operation_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        pack_id TEXT NOT NULL,
+        results_json TEXT NOT NULL CHECK (json_valid(results_json)),
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, operation_id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_pack_opens_owner ON pack_opens(account_id);
+    PRAGMA user_version = 8;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -371,6 +400,22 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 13;
     COMMIT;
     """,
+    14: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS npc_peep_states (
+        peep_id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        counters_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(counters_json)),
+        buffs_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(buffs_json)),
+        memories_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(memories_json)),
+        updated_at TEXT NOT NULL
+    );
+    INSERT INTO npc_peep_states (peep_id, room_id, updated_at)
+        SELECT peep_id, room_id, updated_at FROM peep_locations;
+    DROP TABLE peep_locations;
+    PRAGMA user_version = 14;
+    COMMIT;
+    """,
 }
 
 _REWARD_LEDGER_COLUMNS = (
@@ -383,6 +428,14 @@ _REWARD_LEDGER_COLUMNS = (
 )
 
 _PACK_PURCHASES_COLUMNS = (
+    "operation_id",
+    "account_id",
+    "pack_id",
+    "results_json",
+    "created_at",
+)
+
+_PACK_OPENS_COLUMNS = (
     "operation_id",
     "account_id",
     "pack_id",
@@ -524,9 +577,12 @@ _ACTIVITY_RECORDS_COLUMNS = (
     "updated_at",
 )
 
-_PEEP_LOCATIONS_COLUMNS = (
+_NPC_PEEP_STATES_COLUMNS = (
     "peep_id",
     "room_id",
+    "counters_json",
+    "buffs_json",
+    "memories_json",
     "updated_at",
 )
 
@@ -632,6 +688,7 @@ def ensure_profile_database(path: Path) -> None:
             "user_profiles": _USER_PROFILES_COLUMNS,
             "reward_ledger": _REWARD_LEDGER_COLUMNS,
             "pack_purchases": _PACK_PURCHASES_COLUMNS,
+            "pack_opens": _PACK_OPENS_COLUMNS,
             "task_progress": _TASK_PROGRESS_COLUMNS,
             "memories": _MEMORIES_COLUMNS,
             "audit_log": _AUDIT_LOG_COLUMNS,
@@ -642,6 +699,7 @@ def ensure_profile_database(path: Path) -> None:
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",
             "CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id)",
+            "CREATE INDEX IF NOT EXISTS idx_pack_opens_owner ON pack_opens(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at)",
             "CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id)",
@@ -665,7 +723,7 @@ def ensure_world_database(path: Path) -> None:
             "room_states": _ROOM_STATES_COLUMNS,
             "behavior_state": _BEHAVIOR_STATE_COLUMNS,
             "activity_records": _ACTIVITY_RECORDS_COLUMNS,
-            "peep_locations": _PEEP_LOCATIONS_COLUMNS,
+            "npc_peep_states": _NPC_PEEP_STATES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",

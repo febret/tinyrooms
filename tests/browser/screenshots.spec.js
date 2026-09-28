@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, settleArtwork, travel } from "./helpers.js";
+import { bootstrap, command, confirmSticker, createAccount, createEditorAccount, createReadyAccount, openCore, openEditRoom, openFriends, openRoomView, openSelf, openSkills, selectFirstProp, settleArtwork, travel } from "./helpers.js";
 
 // Run explicitly with npm run test:visual. Missing baselines fail, never auto-pass.
 function requestedFor() {
@@ -129,8 +129,8 @@ test("milestone 3 prop shop: the marketplace", async ({ page, runtime }, testInf
   await freezeClock(page);
   await createEditorAccount(page, runtime, "editor");
   const panel = await openEditRoom(page);
-  await panel.getByRole("button", { name: /Prop Shop/ }).click();
-  const frame = page.frameLocator('iframe[src*="prop-shop"]');
+  await panel.getByRole("button", { name: /Shop/ }).click();
+  const frame = page.frameLocator('iframe[src*="shop"]');
   await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
   await expect(frame.locator("canvas[data-prop-model][data-model-ready='true']")).toHaveCount(1, { timeout: 20_000 });
   await capture(page, testInfo, requested, remaining, "prop-shop");
@@ -173,14 +173,14 @@ test("milestone 2 additions: prop details, swap sticker, targeting, shop", async
   await capture(page, testInfo, requested, remaining, "targeting");
   await page.keyboard.press("Escape");
 
-  await command(page, ".shop");
-  const shop = page.locator("#shop-dock");
-  await expect(shop.locator(".shop-pack")).toHaveCount(3);
+  await command(page, ".shop cards");
+  const frame = page.frameLocator('iframe[src*="shop"]');
+  await expect(frame.locator("body")).toHaveAttribute("data-shop-ready", "true", { timeout: 30_000 });
+  await expect(frame.locator(".shop-pack")).toHaveCount(3);
   await capture(page, testInfo, requested, remaining, "shop");
-  await shop.locator(".shop-pack").filter({ hasText: "Tinyrooms Base Pack" }).getByRole("button", { name: "Buy" }).click();
-  const confirm = page.locator(".global-dialog");
-  await expect(confirm).toBeVisible();
-  await confirm.getByRole("button", { name: "Buy", exact: true }).click();
+  await command(page, ".buy_pack base op-shot-buy");
+  const sealed = (await bootstrap(page)).user.inventory.find(entry => entry.definition?.id === "pack_base");
+  await command(page, `.open_pack @card:${sealed.stack_id} op-shot-open`);
   // The reveal contents are randomly drawn, so the layout is covered by flows.spec.js
   // rather than a pixel baseline.
   await expect(page.locator(".pack-reveal")).toBeVisible();

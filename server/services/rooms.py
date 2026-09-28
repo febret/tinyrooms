@@ -20,7 +20,7 @@ from server.services.cards import CardService
 from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
-from server.state.peep_locations import PeepLocationRepository
+from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import WorldStateRepository
 
 
@@ -70,7 +70,7 @@ class RoomService:
         auras: object | None = None,
         layout: object | None = None,
         room_effects: object | None = None,
-        peep_locations: PeepLocationRepository | None = None,
+        peep_states: NpcPeepStateRepository | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -80,7 +80,7 @@ class RoomService:
         self._activities = activities
         self._world = world
         self._stats = stats
-        self._peep_locations = peep_locations
+        self._peep_states = peep_states
         self._allowed_verbs = set(command_verbs or ()) | BASE_QUICK_COMMANDS
         self._behaviors: object | None = None
         self._dialogs: object | None = None
@@ -246,13 +246,9 @@ class RoomService:
         return self._layout.effective_props(room.id)
 
     def _visible_props(self, room: RoomDefinition, *, dark: bool = False) -> list[PropInstanceDefinition]:
+        del dark
         props = self._effective_props(room)
-        visible = [
-            prop
-            for prop in props
-            if not self._world.props[prop.prop_id].hidden
-            and not (dark and self._world.props[prop.prop_id].requires_light)
-        ]
+        visible = [prop for prop in props if not self._world.props[prop.prop_id].hidden]
         if self._environment is None:
             return visible
         return [
@@ -304,8 +300,8 @@ class RoomService:
     def peep_room(self, peep: PeepDefinition) -> str:
         """Return the peep's current room, falling back to its spawn room."""
 
-        if self._peep_locations is not None:
-            current = self._peep_locations.room_for(peep.id)
+        if self._peep_states is not None:
+            current = self._peep_states.room_for(peep.id)
             if current in self._world.rooms:
                 return current
         return peep.room_id
@@ -341,13 +337,13 @@ class RoomService:
         peep = self._world.peeps.get(peep_id)
         if peep is None:
             raise ValueError("That peep does not exist.")
-        if self._peep_locations is None:
+        if self._peep_states is None:
             raise ValueError("NPC movement is unavailable.")
         source_room_id = self.peep_room(peep)
         move = resolve_npc_move(self._world, peep, source_room_id, exit_id)
         with self._hub.transaction() as connection:
-            self._peep_locations.set_in_transaction(connection, peep_id, move.destination_room_id)
-        self._peep_locations.record(peep_id, move.destination_room_id)
+            self._peep_states.set_in_transaction(connection, peep_id, move.destination_room_id)
+        self._peep_states.record(peep_id, move.destination_room_id)
         source_room = self._world.rooms[move.source_room_id]
         return NpcMoveResult(
             move=move,
@@ -495,9 +491,9 @@ class RoomService:
             ],
             "occupants": occupants,
             "npcs": self._room_peeps(room_id),
-            "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],
+            "room_cards": self._card_service.serialize_room_stacks(room_cards),
             "chat_history": chat_history,
-            "inventory": [self._card_service.serialize_inventory_stack(stack) for stack in inventory],
+            "inventory": self._card_service.serialize_inventory_stacks(inventory),
             "editable": room_id in user_profile.owned_rooms,
             "layout_revision": layout_revision,
             "can_edit_room": can_edit_room,

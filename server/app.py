@@ -104,7 +104,7 @@ from server.services.stickers import (
 from server.services.tasks import TaskService
 from server.services.world_editor import WorldEditorService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
-from server.state.peep_locations import PeepLocationRepository
+from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 
 
@@ -497,7 +497,7 @@ def _build_runtime(
             toast=spec["toast"],
             log=spec["log"],
         )
-    peep_locations = PeepLocationRepository(hub, world)
+    peep_states = NpcPeepStateRepository(hub, world)
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -512,7 +512,7 @@ def _build_runtime(
         auras=auras,
         layout=layout,
         room_effects=room_effects,
-        peep_locations=peep_locations,
+        peep_states=peep_states,
     )
     dialogs = DialogService(
         hub=hub,
@@ -538,7 +538,8 @@ def _build_runtime(
         world=world,
         tasks=tasks,
         environment=environment,
-        peep_locations=peep_locations,
+        peep_states=peep_states,
+        equipped_caps=equipped_caps,
     )
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)

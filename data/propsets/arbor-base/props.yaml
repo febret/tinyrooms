@@ -3,6 +3,9 @@
 # These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Trees ------------------------------------------------------------------
+CONFIG:
+  scale_adjust: 2.0
+
 ancient-oak:
   label: Ancient Oak
   description: A broad old oak with a gnarled trunk and a generous canopy.
@@ -41,7 +44,7 @@ sugar-maple:
   model: sugar-maple.glb
   decorative: true
   editable: true
-  scale: 1.9
+  scale: 1.7
   tags: [tree, plant]
 palm-tree:
   label: Palm Tree
@@ -65,7 +68,7 @@ cherry-blossom-tree:
   model: cherry-blossom-tree.glb
   decorative: true
   editable: true
-  scale: 1.7
+  scale: 1.659
   tags: [tree, plant, flower]
 twisted-dead-tree:
   label: Twisted Dead Tree
@@ -73,7 +76,7 @@ twisted-dead-tree:
   model: twisted-dead-tree.glb
   decorative: true
   editable: true
-  scale: 1.8
+  scale: 1.6
   tags: [tree, decoration]
 mini-pine-bonsai:
   label: Mini Pine Bonsai
@@ -91,7 +94,7 @@ boxwood-ball:
   model: boxwood-ball.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.8
   tags: [shrub, topiary]
 hedgerow-shrub:
   label: Hedgerow Shrub
@@ -157,7 +160,7 @@ tulip-patch:
   model: tulip-patch.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.75
   tags: [flower, plant]
 sunflower-stalk:
   label: Sunflower
@@ -165,7 +168,7 @@ sunflower-stalk:
   model: sunflower-stalk.glb
   decorative: true
   editable: true
-  scale: 1.3
+  scale: 1.1
   tags: [flower, plant]
 rose-bush:
   label: Rose Bush
@@ -173,7 +176,7 @@ rose-bush:
   model: rose-bush.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.8
   tags: [flower, shrub, plant]
 daisy-cluster:
   label: Daisy Cluster
@@ -181,7 +184,7 @@ daisy-cluster:
   model: daisy-cluster.glb
   decorative: true
   editable: true
-  scale: 0.8
+  scale: 0.6
   tags: [flower, plant]
 lavender-row:
   label: Lavender Row
@@ -189,7 +192,7 @@ lavender-row:
   model: lavender-row.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.9
   tags: [flower, plant]
 poppy-patch:
   label: Poppy Patch
@@ -221,7 +224,7 @@ lotus-pond:
   model: lotus-pond.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 1.1
   tags: [flower, plant]
 marigold-cluster:
   label: Marigold Cluster
@@ -239,7 +242,7 @@ granite-boulder:
   model: granite-boulder.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.0
   tags: [rock, mineral]
 pebble-pile:
   label: Pebble Pile
@@ -263,7 +266,7 @@ crystal-cluster:
   model: crystal-cluster.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.8
   tags: [rock, mineral]
 slate-stack:
   label: Slate Stack
@@ -271,7 +274,7 @@ slate-stack:
   model: slate-stack.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.7
   tags: [rock]
 mossy-rock:
   label: Mossy Rock
@@ -287,7 +290,7 @@ stepping-stones:
   model: stepping-stones.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.3
   tags: [rock]
 amethyst-geode:
   label: Amethyst Geode
@@ -355,7 +358,7 @@ mushroom-ring:
   model: mushroom-ring.glb
   decorative: true
   editable: true
-  scale: 0.9
+  scale: 0.7
   tags: [decoration, plant]
 toadstool-cluster:
   label: Toadstool Cluster
@@ -363,7 +366,7 @@ toadstool-cluster:
   model: toadstool-cluster.glb
   decorative: true
   editable: true
-  scale: 0.8
+  scale: 0.65
   tags: [decoration, plant]
 mossy-log:
   label: Mossy Log
@@ -371,7 +374,7 @@ mossy-log:
   model: mossy-log.glb
   decorative: true
   editable: true
-  scale: 1.3
+  scale: 1.0
   tags: [decoration, foliage]
 tree-stump:
   label: Tree Stump
@@ -411,5 +414,5 @@ birds-nest:
   model: birds-nest.glb
   decorative: true
   editable: true
-  scale: 0.7
+  scale: 0.5
   tags: [decoration, ornament]

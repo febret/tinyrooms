@@ -9,9 +9,10 @@ from typing import Any
 from server.content.common import ContentError, load_yaml_file, require_mapping
 
 CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal"})
-BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart", "starlight"})
-NON_EQUIP_TYPES = frozenset({"emote", "core", "skill"})
-STACKABLE_TYPES = frozenset({"item", "emote", "skill"})
+BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart"})
+PACK_CARD_TYPE = "pack"
+NON_EQUIP_TYPES = frozenset({"emote", "core", "skill", PACK_CARD_TYPE})
+STACKABLE_TYPES = frozenset({"item", "emote", "skill", PACK_CARD_TYPE})
 DEFAULT_STACKABLE_LIMIT = 99
 
 
@@ -50,6 +51,7 @@ class CardDefinition:
     hide_seconds: int | None = None
     clears_source: str | None = None
     soils: bool = False
+    opens_pack: str | None = None
 
     @property
     def collectible(self) -> bool:
@@ -71,6 +73,7 @@ class PackDefinition:
     size: int
     cards: tuple[str, ...]
     source: str
+    guaranteed: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,8 +119,20 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             raise ContentError(f"Card '{card_id}' must define label and description.")
         card_type = _detect_type(card_id, raw_card)
         cutscene = str(raw_card["cutscene"]).strip() if raw_card.get("cutscene") else None
-        if cutscene is not None and card_type != "emote":
-            raise ContentError(f"Card '{card_id}' may only define cutscene on an emote.")
+        if cutscene is not None and card_type == "core":
+            raise ContentError(f"Card '{card_id}' may not define cutscene on a core card.")
+        # An emote's category is derived from its fields, never authored: a card
+        # that runs a cutscene is a Cutscene emote, one with an animation is an
+        # Animation emote, and everything else is an Expression.
+        if card_type == "emote":
+            if cutscene is not None:
+                category = "Cutscene"
+            elif animation_name is not None:
+                category = "Animation"
+            else:
+                category = "Expression"
+        else:
+            category = str(raw_card["category"]) if "category" in raw_card else None
         raw_stack_limit = raw_card.get("stack_limit")
         if raw_stack_limit is None:
             stack_limit = DEFAULT_STACKABLE_LIMIT if card_type in STACKABLE_TYPES else 1
@@ -153,7 +168,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             effect=str(raw_card["effect"]) if "effect" in raw_card else None,
             amount=int(raw_card["amount"]) if "amount" in raw_card else None,
             duration=int(raw_card["duration"]) if "duration" in raw_card else None,
-            category=str(raw_card["category"]) if "category" in raw_card else None,
+            category=category,
             cutscene=cutscene,
             rank=str(raw_card["rank"]) if "rank" in raw_card else None,
             quest=bool(raw_card.get("quest", False)),
@@ -198,6 +213,21 @@ def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefiniti
     for card_id in card_ids:
         if card_id not in cards:
             raise ContentError(f"Pack '{pack_id}' references unknown card '{card_id}'.")
+    size = int(payload.get("size", 0))
+    raw_guaranteed = payload.get("guaranteed") or []
+    if not isinstance(raw_guaranteed, list):
+        raise ContentError(f"Pack '{pack_id}' guaranteed must be a list of card ids.")
+    guaranteed: list[str] = []
+    for card_id in raw_guaranteed:
+        if not isinstance(card_id, str) or not card_id:
+            raise ContentError(f"Pack '{pack_id}' guaranteed entries must be card ids.")
+        if card_id not in card_ids:
+            raise ContentError(f"Pack '{pack_id}' guarantees card '{card_id}' that is not in the pack.")
+        if card_id in guaranteed:
+            raise ContentError(f"Pack '{pack_id}' repeats guaranteed card '{card_id}'.")
+        guaranteed.append(card_id)
+    if len(guaranteed) > size:
+        raise ContentError(f"Pack '{pack_id}' guarantees more cards than it draws.")
     return PackDefinition(
         id=pack_id,
         label=label,
@@ -205,9 +235,48 @@ def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefiniti
         back_image_name=back_image_name,
         back_image_path=back_image_path,
         price=int(payload.get("price", 0)),
-        size=int(payload.get("size", 0)),
+        size=size,
         cards=tuple(str(card_id) for card_id in card_ids),
         source=source,
+        guaranteed=tuple(guaranteed),
+    )
+
+
+def closed_pack_card_id(pack_id: str) -> str:
+    """Return the synthetic inventory card id for a sealed pack."""
+
+    return f"pack_{pack_id}"
+
+
+def _sealed_pack_card(pack: PackDefinition) -> CardDefinition:
+    """Build the inventory card that represents one sealed copy of *pack*."""
+
+    return CardDefinition(
+        id=closed_pack_card_id(pack.id),
+        label=pack.label,
+        description=pack.description,
+        image_name=pack.back_image_name,
+        image_path=pack.back_image_path,
+        animation_name=None,
+        type=PACK_CARD_TYPE,
+        rarity=None,
+        stack_limit=DEFAULT_STACKABLE_LIMIT,
+        one_use=False,
+        passive=True,
+        decorative=False,
+        bonuses={},
+        energy_cost=None,
+        target=None,
+        effect=None,
+        amount=None,
+        duration=None,
+        category=None,
+        cutscene=None,
+        rank=None,
+        quest=False,
+        order=None,
+        source=pack.source,
+        opens_pack=pack.id,
     )
 
 
@@ -243,6 +312,12 @@ def load_card_catalog(cardsets_root: Path, world_path: Path) -> CardCatalog:
         if pack_id in packs:
             raise ContentError(f"Duplicate pack id '{pack_id}'.")
         packs[pack_id] = _load_pack_from_file(world_pack_file, pack_id, cards, world_path.name)
+
+    for pack in packs.values():
+        sealed = _sealed_pack_card(pack)
+        if sealed.id in cards:
+            raise ContentError(f"Sealed-pack card id '{sealed.id}' collides with an authored card.")
+        cards[sealed.id] = sealed
 
     return CardCatalog(cards=cards, packs=packs)
 

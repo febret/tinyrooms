@@ -216,7 +216,7 @@ class SocialShopIntegrationTests(Milestone2IntegrationTestCase):
             self.assertTrue(result["ok"], result)
             self.assertEqual(len(result["payload"]["user"]["friends"]["friends"]), 1)
 
-    def test_buy_pack_is_idempotent(self) -> None:
+    def test_buy_pack_is_idempotent_and_grants_sealed_pack(self) -> None:
         alice = self.create_ready_account("lyn")
         alice_id = self.account_id(alice)
         self.set_bops(alice_id, 50)
@@ -227,11 +227,37 @@ class SocialShopIntegrationTests(Milestone2IntegrationTestCase):
             first = self.command(socket, "buy-1", ".buy_pack base op-live-1")
             self.assertTrue(first["ok"], first)
             self.assertEqual(first["payload"]["purchase"]["bops_spent"], 10)
-            self.assertEqual(len(first["payload"]["purchase"]["cards"]), 3)
+            self.assertEqual(first["payload"]["purchase"]["pack_card"]["id"], "pack_base")
             second = self.command(socket, "buy-2", ".buy_pack base op-live-1")
             self.assertTrue(second["ok"])
             self.assertTrue(second["payload"]["purchase"]["replayed"])
             self.assertEqual(second["payload"]["user"]["bops"], 40)
+
+    def test_open_pack_grants_cards_and_is_idempotent(self) -> None:
+        alice = self.create_ready_account("moe")
+        alice_id = self.account_id(alice)
+        self.set_bops(alice_id, 50)
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            bought = self.command(socket, "buy-3", ".buy_pack base op-buy-3")
+            stack = next(
+                entry for entry in bought["payload"]["inventory"]
+                if entry["definition"]["id"] == "pack_base"
+            )
+            opened = self.command(socket, "open-1", f".open_pack @card:{stack['stack_id']} op-open-3")
+            self.assertTrue(opened["ok"], opened)
+            cards = opened["payload"]["opened"]["cards"]
+            self.assertEqual(len(cards), 3)
+            self.assertFalse(opened["payload"]["opened"]["replayed"])
+            replay = self.command(socket, "open-2", f".open_pack @card:{stack['stack_id']} op-open-3")
+            self.assertTrue(replay["ok"])
+            self.assertTrue(replay["payload"]["opened"]["replayed"])
+            self.assertEqual(
+                [card["id"] for card in replay["payload"]["opened"]["cards"]],
+                [card["id"] for card in cards],
+            )
 
     def test_swap_sticker_charges(self) -> None:
         alice = self.create_ready_account("mia")
@@ -304,7 +330,7 @@ class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
         after = self.runtime().stats.snapshot(alice_id).energy
         self.assertAlmostEqual(before - after, 1, delta=0.2)
 
-    def test_shop_command_opens_shop_ui(self) -> None:
+    def test_shop_command_launches_shop_activity(self) -> None:
         alice = self.create_ready_account("rae")
         with self.client.websocket_connect(
             "/ws", headers=websocket_headers(alice["session_token"], alice["csrf_token"])
@@ -312,8 +338,12 @@ class RoomAndActivityIntegrationTests(Milestone2IntegrationTestCase):
             socket.receive_json()
             result = self.command(socket, "shop-1", ".shop")
             self.assertTrue(result["ok"], result)
-            self.assertIsNone(result["payload"].get("activity"))
-            self.assertIn({"type": "shop.open"}, result["events"])
+            activity = result["payload"]["activity"]
+            self.assertEqual(activity["kind"], "shop")
+            self.assertEqual(activity["config"]["section"], "cards")
+            props = self.command(socket, "shop-2", ".shop props")
+            self.assertTrue(props["ok"], props)
+            self.assertEqual(props["payload"]["activity"]["config"]["section"], "props")
             packs = self.command(socket, "packs-1", ".packs")
             self.assertEqual({pack["id"] for pack in packs["payload"]["packs"]}, {"base", "tutorial", "memebase"})
 

@@ -16,10 +16,11 @@ import {
   propEffectKey,
   propModelKey,
 } from "./board-helpers.js";
-import { createGizmo } from "./editing/gizmo.js";
+import { createGizmo, footprintRadius, projectGizmo, rotationDeltaForDrag } from "./editing/gizmo.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
 import { supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
+import { applyDarkLighting, createBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 
 export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
 const TOP = 0.045;
@@ -111,18 +112,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   // suppresses the controls for the duration of the gesture instead.
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
-  scene.add(new THREE.HemisphereLight("#fff2d5", "#496e69", 1.45));
-  const sunlight = new THREE.DirectionalLight("#ffe6bb", 2);
-  sunlight.position.set(-5, 12, 7);
-  sunlight.castShadow = true;
-  sunlight.shadow.mapSize.set(2048, 2048);
-  Object.assign(sunlight.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 0.5, far: 45 });
-  sunlight.shadow.normalBias = 0.025;
-  sunlight.shadow.bias = -0.0001;
-  scene.add(sunlight);
-  const fill = new THREE.DirectionalLight("#bce2df", 0.45);
-  fill.position.set(5, 5, -4);
-  scene.add(fill);
+  const lights = createBoardLights(scene);
 
   /** Pixel scale used by point-sprite effects so particle size is world-sized. */
   function effectPixelScale() {
@@ -169,6 +159,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let orbitSuppressed = false;
   let reducedMotion = false;
   let roomDark = false;
+  let roomScared = false;
   let userAdjusted = false;
   let width = 0;
   let height = 0;
@@ -220,7 +211,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
       : null;
     if (editSelectionObject) {
-      gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight());
+      gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
       gizmo.setVisible(true);
     } else {
       gizmo.setVisible(false);
@@ -293,6 +284,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return (record.bounds.max.y - record.bounds.min.y) * (record.group.scale.x || 1);
   }
 
+  /** World-space footprint radius of the selected prop, used to size the drag circle. */
+  function selectedPropFootprint() {
+    const record = current?.props.get(editSelectionId);
+    return footprintRadius(record?.bounds, record?.group.scale.x);
+  }
+
   /**
    * Resolve a dragged prop's final position, raising it onto the highest prop it
    * intersects. Only the room editor opts in via `stackProps`.
@@ -313,26 +310,29 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return [position[0], position[1], Math.min(50, Math.max(0, supportElevation(entry, others)))];
   }
 
-  /** Raycast a pointer event onto the floor plane for gesture math. */
-  function screenToFloorPoint(clientX, clientY) {
-    if (!setRayFromEvent({ clientX, clientY })) return null;
-    return raycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
+  /** True when a screen point falls inside the selected prop's drag circle. */
+  function pickDragCircle(event) {
+    if (!editSelectionObject || !editSelectionId || !(gizmo.circleRadius > 0) || !setRayFromEvent(event)) return null;
+    const point = raycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
+    if (!point) return null;
+    const dx = point.x - editSelectionObject.position.x;
+    const dz = point.z - editSelectionObject.position.z;
+    return Math.hypot(dx, dz) <= gizmo.circleRadius ? editSelectionId : null;
   }
 
-  function gestureAngle(event, center) {
-    if (!center) return 0;
-    const point = screenToFloorPoint(event.clientX, event.clientY);
-    return point ? Math.atan2(point.z - center.z, point.x - center.x) : 0;
+  /** Push the single undo snapshot for a streamed gesture the first time it actually changes. */
+  function ensureEditBegin(gesture) {
+    if (!gesture || gesture.began) return;
+    gesture.began = true;
+    if (dragHandles) onEditBegin?.();
   }
 
-  /** Spin the prop by the angle swept around its centre since the last move. */
+  /** Rotate the prop by the horizontal distance the rotate handle is dragged. */
   function applyRotateGesture(event) {
-    if (!editGesture?.center) return;
-    const angle = gestureAngle(event, editGesture.center);
-    let delta = ((angle - editGesture.lastAngle) * 180) / Math.PI;
-    delta = ((delta + 180) % 360 + 360) % 360 - 180;
-    if (Math.abs(delta) < 0.1) return;
-    editGesture.lastAngle = angle;
+    const delta = rotationDeltaForDrag(event.clientX - editGesture.lastX);
+    editGesture.lastX = event.clientX;
+    if (Math.abs(delta) < 0.01) return;
+    ensureEditBegin(editGesture);
     onEditRotate?.(delta, true);
   }
 
@@ -341,6 +341,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     const factor = Math.exp((editGesture.lastY - event.clientY) * SCALE_DRAG_SENSITIVITY);
     editGesture.lastY = event.clientY;
     if (Math.abs(factor - 1) < 0.001) return;
+    ensureEditBegin(editGesture);
     onEditScale?.(factor, true);
   }
 
@@ -733,6 +734,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     const { group, floor, dispose } = makeFloor(board);
     entry.root.add(group);
     entry.floor = { group, floor, dispose, key };
+    if (board.dark) return;
     texture(entry, board.imageUrl, "floor artwork", map => {
       applyFloorImageStyle(map, board.imageStyle);
       floor.material.map = map;
@@ -861,24 +863,20 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (editEnabled) {
       const mode = pickEditMode(event);
       if (mode) {
-        const center = editSelectionObject ? editSelectionObject.position.clone() : null;
         editGesture = {
-          mode, pointerId: event.pointerId, moved: false,
+          mode, pointerId: event.pointerId, moved: false, began: false,
           startX: event.clientX, startY: event.clientY,
-          lastY: event.clientY, center,
-          lastAngle: mode === "rotate" ? gestureAngle(event, center) : 0,
+          lastX: event.clientX, lastY: event.clientY,
         };
-        // Drag gestures stream deltas, so capture one undo snapshot up front.
-        if (dragHandles) onEditBegin?.();
         suppressOrbit();
         return;
       }
       const propId = pickPropId(event);
-      editDrag = { id: propId, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
-      if (propId) {
+      const id = propId || pickDragCircle(event);
+      editDrag = { id, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
+      if (id) {
         suppressOrbit();
-        onEditSelect?.(propId);
-        onEditBegin?.();
+        if (propId) onEditSelect?.(propId);
       }
       return;
     }
@@ -902,6 +900,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (editDrag && editDrag.pointerId === event.pointerId) {
         if (Math.hypot(event.clientX - editDrag.startX, event.clientY - editDrag.startY) > 4) editDrag.moved = true;
         if (editDrag.moved && editDrag.id) {
+          ensureEditBegin(editDrag);
           const point = screenToBoardPosition(event.clientX, event.clientY);
           if (point) onEditTransform?.({ id: editDrag.id, position: resolveEditPosition(editDrag.id, point.position) });
         }
@@ -918,8 +917,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         const gesture = editGesture;
         editGesture = null;
         releaseOrbit();
-        if (!gesture.moved && gesture.mode === "rotate") onEditRotate?.(15, dragHandles);
-        else if (!gesture.moved && gesture.mode === "scale") onEditScale?.(1.15, dragHandles);
+        if (!gesture.moved && gesture.mode === "scale") {
+          ensureEditBegin(gesture);
+          onEditScale?.(1.15, dragHandles);
+        }
         return;
       }
       if (editDrag && editDrag.pointerId === event.pointerId) {
@@ -1006,6 +1007,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
    */
   function sceneIsAnimating() {
     if (!current) return false;
+    if (roomScared && !reducedMotion) return true;
     for (const record of current.props.values()) {
       if (record.mixers.length) return true;
       if (record.effectController?.activeCount) return true;
@@ -1036,6 +1038,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       const delta = Math.min(clock.getDelta(), 0.1);
       if (current) {
+        if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
         for (const record of current.props.values()) {
           for (const mixer of record.mixers) mixer.update(delta);
           record.effectController?.update(delta);
@@ -1051,7 +1054,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         );
       }
       if (editSelectionObject) {
-        gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight());
+        gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
       }
       if (!blocked) {
         // OrbitControls only moves the camera when it is damping or being
@@ -1098,7 +1101,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         editEnabled,
         blocked,
         shadowAutoUpdate: renderer.shadowMap.autoUpdate,
-        shadowMapSize: sunlight.shadow.mapSize.width,
+        shadowMapSize: lights.sunlight.shadow.mapSize.width,
         pixelRatio: renderer.getPixelRatio(),
         renderFailed,
       };
@@ -1133,6 +1136,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         return;
       }
       roomDark = Boolean(state.room.board?.dark);
+      roomScared = selfIsScared(state);
+      if (!roomScared && current) settleShake(current.root);
+      if (applyDarkLighting(lights, roomDark)) invalidate();
       if (!current || roomId !== state.room.id) {
         rebuild(state.room);
       } else {
@@ -1151,13 +1157,20 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     projectPositionToScreen,
     /** Show or clear the floor marker used as a drag drop target. */
     setDropHint,
-    /** Cancel an in-progress edit gesture; returns true when one was active. */
+    /** Test-only view of the gizmo's on-screen drag circle and rotate handle. */
+    editGizmo() {
+      if (!gizmo.group.visible || !editSelectionObject) return null;
+      const bounds = canvasBounds();
+      return bounds ? projectGizmo(gizmo, editSelectionObject.position, camera, bounds, ndcToScreen) : null;
+    },
+    /** Cancel an in-progress edit gesture. Returns null when none was active, else whether an undo is owed. */
     cancelEditGesture() {
-      const active = Boolean(editGesture || editDrag);
+      const gesture = editGesture || editDrag;
       editGesture = null;
       editDrag = null;
       releaseOrbit();
-      return active;
+      // A handle press pushes its snapshot lazily, so a click with no drag owes no undo.
+      return gesture ? { undo: gesture.began !== false } : null;
     },
     /** Release geometry, materials, textures, controls, listeners, and late-loading assets. */
     dispose() {
@@ -1179,7 +1192,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       // GHOST_MATERIAL is a page-lifetime shared resource, so it is not disposed with one board.
       disposeBoardTree(selectionRing);
       disposeBoardTree(dropHint);
-      sunlight.shadow.dispose();
+      lights.sunlight.shadow.dispose();
       renderer.dispose();
     },
   };

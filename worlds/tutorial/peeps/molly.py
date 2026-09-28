@@ -5,9 +5,13 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import random
 
-STINKY_LINE = "Mrrrp! You smell like my litter tray. Go take a shower!"
+STINKY_LINE = "Mrrrp, {name}! You smell like my litter tray. Go take a shower!"
 MOVE_INTERVAL_SECONDS = 60
 MOVE_CHANCE = 0.5
+
+
+def _stinky_line(context) -> str:
+    return STINKY_LINE.format(name=context.actor_name)
 
 
 def _move_due(context) -> bool:
@@ -47,7 +51,7 @@ def on_tick(context, event):
 
 def _comment_if_stinky(context, event):
     if event.actor.kind == "user" and context.has_status("stinky"):
-        context.npc_say(STINKY_LINE)
+        context.npc_say(_stinky_line(context))
 
 
 def on_enter(context, event):
@@ -60,7 +64,7 @@ def on_quick_action(context, event):
     """React to petting with flavor; defer play and dialog to the server."""
 
     if context.has_status("stinky") and event.action in {"pet", "talk", "chat"}:
-        context.npc_say(STINKY_LINE)
+        context.npc_say(_stinky_line(context))
         return
     if event.action == "pet":
         context.feedback("Molly leans into your hand and purrs like a tiny motor.")

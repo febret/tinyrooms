@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 import sqlite3
+import logging
 from typing import TYPE_CHECKING
 
 from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
@@ -14,6 +16,9 @@ from server.state.world_state import RoomCardStack, WorldStateRepository
 
 if TYPE_CHECKING:
     from server.services.pricing import CardPricingService
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,7 +145,7 @@ class CardService:
     def definition(self, card_def_id: str) -> CardDefinition:
         """Return a loaded card definition by ID."""
 
-        return self._catalog.cards[card_def_id]
+        return require_definition(self._catalog, card_def_id)
 
     def has_definition(self, card_def_id: str) -> bool:
         """Return whether a card definition id exists in the catalog."""
@@ -220,9 +225,19 @@ class CardService:
             "quick_actions": [extra_action],
         }
 
-    def serialize_inventory_stack(self, stack: InventoryStack) -> dict[str, object]:
-        """Serialize an inventory stack for the client."""
+    def _warn_missing_definition(self, stack_id: str, card_def_id: str) -> None:
+        logger.warning(
+            "Ignoring card stack '%s' with missing definition '%s' referenced in world state.",
+            stack_id,
+            card_def_id,
+        )
 
+    def serialize_inventory_stack(self, stack: InventoryStack) -> dict[str, object] | None:
+        """Serialize an inventory stack, or ``None`` when its definition is missing."""
+
+        if not self.has_definition(stack.card_def_id):
+            self._warn_missing_definition(stack.stack_id, stack.card_def_id)
+            return None
         payload = self._serialize_stack_base(
             stack.stack_id,
             stack.card_def_id,
@@ -235,9 +250,24 @@ class CardService:
         payload["equipped"] = stack.equipped
         return payload
 
-    def serialize_room_stack(self, stack: RoomCardStack) -> dict[str, object]:
-        """Serialize a room card stack for the client."""
+    def serialize_inventory_stacks(
+        self, stacks: Iterable[InventoryStack]
+    ) -> list[dict[str, object]]:
+        """Serialize inventory stacks, skipping entries with missing definitions."""
 
+        payloads: list[dict[str, object]] = []
+        for stack in stacks:
+            payload = self.serialize_inventory_stack(stack)
+            if payload is not None:
+                payloads.append(payload)
+        return payloads
+
+    def serialize_room_stack(self, stack: RoomCardStack) -> dict[str, object] | None:
+        """Serialize a room card stack, or ``None`` when its definition is missing."""
+
+        if not self.has_definition(stack.card_def_id):
+            self._warn_missing_definition(stack.stack_id, stack.card_def_id)
+            return None
         payload = self._serialize_stack_base(
             stack.stack_id,
             stack.card_def_id,
@@ -248,13 +278,22 @@ class CardService:
         payload["position"] = [stack.position[0], stack.position[1], stack.position[2]]
         return payload
 
+    def serialize_room_stacks(self, stacks: Iterable[RoomCardStack]) -> list[dict[str, object]]:
+        """Serialize room card stacks, skipping entries with missing definitions."""
+
+        payloads: list[dict[str, object]] = []
+        for stack in stacks:
+            payload = self.serialize_room_stack(stack)
+            if payload is not None:
+                payloads.append(payload)
+        return payloads
+
     def list_inventory_payload(self, account_id: str) -> list[dict[str, object]]:
         """Serialize all visible inventory for the current world."""
 
-        return [
-            self.serialize_inventory_stack(stack)
-            for stack in self._profiles.list_inventory(account_id, self._world_id)
-        ]
+        return self.serialize_inventory_stacks(
+            self._profiles.list_inventory(account_id, self._world_id)
+        )
 
     def pickup(self, account: AccountRecord, room_id: str, stack_id: str, quantity: int) -> CardMutationResult:
         """Move cards from a room stack into inventory atomically."""
@@ -266,7 +305,7 @@ class CardService:
                 stack_id=stack_id,
                 quantity=quantity,
             )
-            definition = self.definition(stack.card_def_id)
+            definition = require_definition(self._catalog, stack.card_def_id)
             created_stacks = self._profiles.add_inventory_card(
                 connection,
                 account_id=account.id,
@@ -294,7 +333,7 @@ class CardService:
             "inventory_stack_ids": [created_stack.stack_id for created_stack in created_stacks],
         }
         return CardMutationResult(
-            inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
+            inventory=self.serialize_inventory_stacks(inventory_rows),
             room_event=event,
         )
 
@@ -316,6 +355,7 @@ class CardService:
                 stack_id=stack_id,
                 quantity=quantity,
             )
+            require_definition(self._catalog, inventory_stack.card_def_id)
             room_stack = self._world_state.add_room_card(
                 connection,
                 room_id=room_id,
@@ -332,6 +372,6 @@ class CardService:
             "dropped_by": account.username_display,
         }
         return CardMutationResult(
-            inventory=[self.serialize_inventory_stack(item) for item in inventory_rows],
+            inventory=self.serialize_inventory_stacks(inventory_rows),
             room_event=event,
         )

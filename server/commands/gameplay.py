@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
-from server.behaviors.events import BehaviorEvent, PeepRef
+from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
+from server.commands.activity_launch import resolve_activity, start_activity
 from server.commands.cutscenes import deliver, play_cutscene
-from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
+from server.commands.outcomes import (
+    CommandContext,
+    CommandError,
+    CommandOutcome,
+    PendingRoomBroadcast,
+    apply_behavior_inventory,
+)
 from server.commands.parser import ParsedCommand, parse_target
 from server.services.actions import ActionResult, PropTarget
 
@@ -78,9 +85,12 @@ def _counter_events(context: CommandContext, result: ActionResult) -> list[Pendi
     return broadcasts
 
 
-def _action_feedback(context: CommandContext, result: ActionResult) -> list[dict[str, object]]:
+def _action_feedback(
+    context: CommandContext, result: ActionResult, message: str | None = None
+) -> list[dict[str, object]]:
+    text = result.message if message is None else message
     events: list[dict[str, object]] = [
-        {"type": "action.log", "text": result.message, "source": context.account.username_display}
+        {"type": "action.log", "text": text, "source": context.account.username_display}
     ]
     for effect in result.effects:
         if effect.health_delta or effect.energy_delta or effect.cleanliness_delta:
@@ -88,11 +98,22 @@ def _action_feedback(context: CommandContext, result: ActionResult) -> list[dict
                 {
                     "type": "toast",
                     "tone": "success",
-                    "text": result.message,
+                    "text": text,
                 }
             )
             break
     return events
+
+
+def _behavior_message(result: object | None) -> str | None:
+    """Return the first non-empty message from a behavior result."""
+
+    if result is None:
+        return None
+    for message in getattr(result, "messages", []):
+        if message:
+            return str(message)
+    return None
 
 
 def _user_payload(context: CommandContext) -> dict[str, object]:
@@ -119,14 +140,16 @@ def _require_prop_interaction(context: CommandContext, target: PropTarget, card_
         raise CommandError("It is too dark to make anything out.")
 
 
-def _use_outcome(context: CommandContext, result: ActionResult) -> CommandOutcome:
+def _use_outcome(
+    context: CommandContext, result: ActionResult, message: str | None = None
+) -> CommandOutcome:
     outcome = CommandOutcome(
-        message=result.message,
+        message=result.message if message is None else message,
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.inventory],
+            "inventory": context.cards.serialize_inventory_stacks(result.inventory),
             "user": _user_payload(context),
         },
-        private_events=_action_feedback(context, result),
+        private_events=_action_feedback(context, result, message),
         room_broadcasts=_counter_events(context, result),
     )
     room_id = context.connection.room_id
@@ -152,10 +175,40 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
             target_prop=prop_target,
             room_id=room_id,
         )
-        if result.clears_source:
-            for connection in await context.connections.list_room(room_id):
-                context.stats.remove_source(connection.account_id, result.clears_source)
-        return _use_outcome(context, result)
+        behavior = None
+        if result.delegated:
+            behavior = await context.behaviors.dispatch(
+                BehaviorEvent(
+                    type="card_play",
+                    actor=PeepRef(kind="user", peep_id=None, account_id=context.account.id),
+                    target=PropRef(
+                        instance_id=prop_target.instance_id,
+                        prop_id=prop_target.prop_id,
+                        room_id=prop_target.room_id,
+                    ),
+                    room_id=room_id,
+                    action="use",
+                    data={"card_id": result.card_id, "stack_id": stack_id},
+                )
+            )
+        outcome = _use_outcome(context, result, _behavior_message(behavior))
+        if behavior is not None:
+            outcome.private_events.extend(getattr(behavior, "private_events", []))
+            outcome.room_broadcasts.extend(getattr(behavior, "room_broadcasts", []))
+            apply_behavior_inventory(context, outcome, behavior)
+        if result.cutscene:
+            launch = await play_cutscene(
+                context,
+                reference=result.cutscene,
+                room_id=room_id,
+                origin="card",
+                target=f"@prop:{prop_target.instance_id}",
+                params={"card": f"$card:{result.card_id}"},
+            )
+            private_events, room_broadcasts = deliver(launch)
+            outcome.private_events.extend(private_events)
+            outcome.room_broadcasts.extend(room_broadcasts)
+        return outcome
 
     target_id, target_label, target_is_npc, target_peep_id = await _resolve_target(context, target_token)
     result = context.actions.use_card(
@@ -167,13 +220,15 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         room_id=context.connection.room_id,
     )
     behavior = None
-    if target_token is not None:
+    if target_token is not None or result.delegated:
         room_id = context.connection.room_id
-        target_ref = (
-            PeepRef(kind="npc", peep_id=target_peep_id, account_id=None)
-            if target_is_npc
-            else PeepRef(kind="user", peep_id=None, account_id=target_id)
-        )
+        target_ref = None
+        if target_token is not None:
+            target_ref = (
+                PeepRef(kind="npc", peep_id=target_peep_id, account_id=None)
+                if target_is_npc
+                else PeepRef(kind="user", peep_id=None, account_id=target_id)
+            )
         behavior = await context.behaviors.dispatch(
             BehaviorEvent(
                 type="card_play",
@@ -184,10 +239,11 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                 data={"card_id": result.card_id, "stack_id": stack_id, "target_label": target_label},
             )
         )
-    outcome = _use_outcome(context, result)
+    outcome = _use_outcome(context, result, _behavior_message(behavior))
     if behavior is not None:
         outcome.private_events.extend(getattr(behavior, "private_events", []))
         outcome.room_broadcasts.extend(getattr(behavior, "room_broadcasts", []))
+        apply_behavior_inventory(context, outcome, behavior)
     return outcome
 
 
@@ -207,9 +263,7 @@ async def play_cutscene_emote(context: CommandContext, result: ActionResult) -> 
     return CommandOutcome(
         message=result.message,
         payload={
-            "inventory": [
-                context.cards.serialize_inventory_stack(stack) for stack in result.inventory
-            ],
+            "inventory": context.cards.serialize_inventory_stacks(result.inventory),
             "user": _user_payload(context),
         },
         private_events=[
@@ -227,18 +281,6 @@ async def emote_command(context: CommandContext, command: ParsedCommand) -> Comm
     if result.cutscene:
         return await play_cutscene_emote(context, result)
     broadcasts = []
-    if room_id is not None and result.room_effect is not None:
-        event = {
-            "type": "effect.queued",
-            "room_id": room_id,
-            "effect": result.room_effect,
-            "card_id": result.card_id,
-            "source_id": context.account.id,
-            "source": context.account.username_display,
-        }
-        broadcasts.append(
-            PendingRoomBroadcast(room_id=room_id, event=event)
-        )
     if room_id is not None and result.bubble is not None:
         event = {
             "type": "emote.bubble",
@@ -254,7 +296,7 @@ async def emote_command(context: CommandContext, command: ParsedCommand) -> Comm
     return CommandOutcome(
         message=result.message,
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.inventory],
+            "inventory": context.cards.serialize_inventory_stacks(result.inventory),
             "user": _user_payload(context),
         },
         private_events=[{"type": "action.log", "text": result.message, "source": context.account.username_display}],
@@ -268,7 +310,7 @@ async def equip_command(context: CommandContext, command: ParsedCommand) -> Comm
     return CommandOutcome(
         message="Card equipped.",
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in mutation.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(mutation.stacks),
             "user": _user_payload(context),
         },
     )
@@ -280,7 +322,7 @@ async def unequip_command(context: CommandContext, command: ParsedCommand) -> Co
     return CommandOutcome(
         message="Card unequipped.",
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in mutation.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(mutation.stacks),
             "user": _user_payload(context),
         },
     )
@@ -298,7 +340,7 @@ async def split_command(context: CommandContext, command: ParsedCommand) -> Comm
     return CommandOutcome(
         message="Stack split.",
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in mutation.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(mutation.stacks),
             "user": _user_payload(context),
         },
     )
@@ -317,7 +359,7 @@ async def merge_command(context: CommandContext, command: ParsedCommand) -> Comm
     return CommandOutcome(
         message="Stacks merged.",
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in mutation.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(mutation.stacks),
             "user": _user_payload(context),
         },
     )
@@ -329,7 +371,7 @@ async def merge_all_command(context: CommandContext, command: ParsedCommand) -> 
     return CommandOutcome(
         message="Stacks merged.",
         payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in mutation.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(mutation.stacks),
             "user": _user_payload(context),
         },
     )
@@ -352,7 +394,7 @@ async def sell_command(context: CommandContext, command: ParsedCommand) -> Comma
                 "quantity": result.quantity,
                 "bops_gained": result.bops_gained,
             },
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(result.stacks),
             "user": _user_payload(context),
         },
         private_events=[{"type": "toast", "tone": "success", "text": f"+{result.bops_gained} Bops", "silent": True}],
@@ -410,33 +452,77 @@ async def buy_pack_command(context: CommandContext, command: ParsedCommand) -> C
     operation_id = command.args[1]
     result = context.shop.purchase(context.account, pack_id, operation_id)
     return CommandOutcome(
-        message=f"Opened {result.pack.label}.",
+        message=f"Purchased {result.pack.label}.",
         payload={
             "purchase": {
                 "pack_id": result.pack.id,
-                "cards": [context.cards.serialize_definition(card) for card in result.cards],
+                "pack_card": context.cards.serialize_definition(result.pack_card),
                 "replayed": result.replayed,
                 "bops_spent": result.bops_spent,
             },
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.stacks],
+            "inventory": context.cards.serialize_inventory_stacks(result.stacks),
             "user": _user_payload(context),
         },
-        private_events=[
-            {"type": "shop.reveal", "pack_id": result.pack.id, "cards": [card.id for card in result.cards]}
-        ],
+    )
+
+
+async def open_pack_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    if len(command.args) < 2:
+        raise CommandError("Use '.open_pack <pack> <operation_id>'.")
+    stack_id = _require_card_target(command, 0)
+    operation_id = command.args[1]
+    result = context.shop.open_pack(context.account, stack_id, operation_id)
+    private_events: list[dict[str, object]] = []
+    if not result.replayed and context.connection.room_id is not None:
+        sealed = context.shop.sealed_definition(result.pack.id)
+        params: dict[str, object] = {"pack_label": result.pack.label}
+        if sealed is not None:
+            params["pack_art"] = f"$card:{sealed.id}"
+        for index, card in enumerate(result.cards, start=1):
+            params[f"card{index}"] = f"$card:{card.id}"
+            params[f"rarity{index}"] = card.rarity or "Common"
+        try:
+            launch = await play_cutscene(
+                context,
+                reference="pack-open",
+                room_id=context.connection.room_id,
+                audience="private",
+                origin="pack",
+                params=params,
+            )
+        except CommandError:
+            launch = None
+        if launch is not None:
+            private_events, _ = deliver(launch)
+    return CommandOutcome(
+        message=f"Opened {result.pack.label}.",
+        payload={
+            "opened": {
+                "pack_id": result.pack.id,
+                "cards": [context.cards.serialize_definition(card) for card in result.cards],
+                "replayed": result.replayed,
+            },
+            "inventory": context.cards.serialize_inventory_stacks(result.stacks),
+            "user": _user_payload(context),
+        },
+        private_events=private_events,
     )
 
 
 async def shop_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    del command
-    if context.connection.room_id is None:
+    room_id = context.connection.room_id
+    if room_id is None:
         raise CommandError("You are not currently in a room.")
-    return CommandOutcome(
-        message=None,
-        payload={},
-        private_events=[{"type": "shop.open"}],
-        toast=False,
-        log=False,
+    section = command.args[0].lower() if command.args else "cards"
+    if section not in {"cards", "props"}:
+        section = "cards"
+    resolved = resolve_activity(context, room_id, "shop")
+    return start_activity(
+        context,
+        resolved,
+        room_id=room_id,
+        replace_existing=True,
+        extra_config={"section": section},
     )
 
 

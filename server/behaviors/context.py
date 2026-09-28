@@ -47,6 +47,7 @@ class BehaviorContext:
         card_ids: tuple[str, ...] = (),
         equipped_ids: tuple[str, ...] = (),
         environment: object | None = None,
+        actor_username: str = "",
     ) -> None:
         self.event = event
         self.actor = actor
@@ -60,7 +61,14 @@ class BehaviorContext:
         self._card_ids = frozenset(card_ids)
         self._equipped_ids = frozenset(equipped_ids)
         self._environment = environment
+        self.actor_username = str(actor_username or "")
         self.intents: list[Intent] = []
+
+    @property
+    def actor_name(self) -> str:
+        """Return the acting user's display name, falling back to "You"."""
+
+        return self.actor_username or "You"
 
     def has_status(self, status_id: str) -> bool:
         """Return whether the acting peep currently has *status_id*."""
@@ -178,12 +186,40 @@ class BehaviorContext:
         payload.update(_target_payload(self._resolve(target)))
         self._append("give_card", payload)
 
-    def remove_card(self, card_id: str, *, target: PeepRef | PropRef | None = None) -> None:
-        """Queue removal of every copy of a card from the target's inventory."""
+    def remove_card(
+        self,
+        card_id: str,
+        quantity: int | None = None,
+        *,
+        target: PeepRef | PropRef | None = None,
+    ) -> None:
+        """Queue removal of a card from the target's inventory.
+
+        Passing *quantity* removes that many copies (equipped stacks first);
+        omitting it removes every copy.
+        """
 
         payload: dict[str, object] = {"card_id": str(card_id)}
+        if quantity is not None:
+            payload["quantity"] = int(quantity)
         payload.update(_target_payload(self._resolve(target)))
         self._append("remove_card", payload)
+
+    def hide_prop(self, seconds: float, *, instance_id: str | None = None, target: PropRef | None = None) -> None:
+        """Queue hiding a prop instance from its room for *seconds*."""
+
+        resolved = target if target is not None else self.target
+        if instance_id is None and isinstance(resolved, PropRef):
+            instance_id = resolved.instance_id
+        payload: dict[str, object] = {"seconds": float(seconds), "instance_id": instance_id}
+        if isinstance(resolved, PropRef):
+            payload.update(_target_payload(resolved))
+        self._append("hide_prop", payload)
+
+    def clear_source(self, source: str) -> None:
+        """Queue clearing a named source from every peep in the acting room."""
+
+        self._append("clear_source", {"source": str(source)})
 
     def npc_say(self, text: str, style: str = "expression") -> None:
         """Queue a speech bubble spoken by the attached NPC peep."""

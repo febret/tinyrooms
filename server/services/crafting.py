@@ -10,7 +10,7 @@ from server.content.gameplay import GameplayContent
 from server.content.recipes import RecipeDefinition
 from server.content.worlds import PropInstanceDefinition, WorldDefinition
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
-from server.services.cards import grant_card_to_inventory
+from server.services.cards import auto_equip_new_stacks, grant_card_to_inventory
 from server.services.inventory import InventoryService
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
@@ -169,12 +169,22 @@ class CraftingService:
         with self._hub.transaction() as connection:
             self._consume(connection, account, recipe, selections)
             for item in recipe.output:
-                grant_card_to_inventory(
+                definition = self._catalog.cards[item.card_id]
+                created_stacks = grant_card_to_inventory(
                     self._profiles,
                     connection,
                     account_id=account.id,
-                    definition=self._catalog.cards[item.card_id],
+                    definition=definition,
                     world_id=self._world_id,
+                )
+                auto_equip_new_stacks(
+                    self._profiles,
+                    connection,
+                    account_id=account.id,
+                    world_id=self._world_id,
+                    definition=definition,
+                    created_stacks=created_stacks,
+                    equipped_cap=self._content.levels.equipped_cap(account.level),
                 )
             if recipe.energy_cost:
                 self._stats.charge_in_transaction(connection, account.id, recipe.energy_cost)

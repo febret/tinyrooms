@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from server.content.cards import CardCatalog, CardDefinition
+from server.content.cards import PACK_CARD_TYPE, CardCatalog, CardDefinition
 from server.content.gameplay import GameplayContent
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
@@ -50,7 +50,7 @@ class CardPricingService:
     def is_sellable(self, definition: CardDefinition) -> bool:
         """Return whether a card can be sold from an inventory."""
 
-        return definition.collectible and not definition.quest
+        return definition.collectible and not definition.quest and definition.type != PACK_CARD_TYPE
 
     def _slotted_count(self, account_id: str, stack_id: str) -> int:
         profile = self._profiles.get_user_profile(account_id)

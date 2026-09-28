@@ -82,7 +82,6 @@ wave:
   image: wave.webp
   animation: wave.gif
   type: emote
-  category: Animation
   rarity: Common
 happy-dance:
   label: Happy Dance
@@ -90,7 +89,6 @@ happy-dance:
   image: happy-dance.webp
   animation: happy-dance.gif
   type: emote
-  category: Animation
   rarity: Common
 heart:
   label: Warm Heart
@@ -98,13 +96,4 @@ heart:
   image: heart.webp
   animation: heart.gif
   type: emote
-  category: Animation
   rarity: Common
-starlight:
-  label: Starlight
-  description: A room-wide shower of golden paper stars. Purely decorative.
-  image: starlight.webp
-  type: emote
-  category: Effects
-  effect: starlight
-  rarity: Uncommon

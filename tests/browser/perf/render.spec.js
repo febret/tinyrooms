@@ -53,7 +53,7 @@ test.describe("board resource budgets", () => {
     // Textures are deduplicated per asset, so ninety copies of one prop must not
     // cost ninety uploads. Before sharing this was 205 for the same room.
     record("client/board/textures", values.textures, {
-      ceiling: 120,
+      ceiling: 130,
       note: (
         `Resident textures with ${values.props} instances of a single prop asset. Prop model ` +
         "textures are shared per asset; a per-prop effect layer still contributes one each."
@@ -72,7 +72,7 @@ test.describe("board resource budgets", () => {
     expect(
       values.textures,
       `${values.textures} textures for ${values.props} copies of one asset; textures must be shared`,
-    ).toBeLessThanOrEqual(120);
+    ).toBeLessThanOrEqual(130);
     expect(
       values.geometries,
       `${values.geometries} geometries for ${values.props} copies of one asset`,

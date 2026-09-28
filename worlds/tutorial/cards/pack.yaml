@@ -5,3 +5,6 @@ back_image: back.webp
 price: 10
 size: 3
 cards: [ballet-shoes, fancy-wallet, hand-light, juicy-drink, lucille, plastic-bag, poop-in-a-bag, poop, pooper-scooper, seal-plushie, tasty-toast, tomato-sauce, victory-dance]
+# Injected as one of the draws while the opener owns no Flashlight, so the
+# dark basement is always reachable; otherwise the draw is normal.
+guaranteed: [hand-light]

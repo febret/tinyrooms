@@ -75,6 +75,7 @@ class PropEditorServiceTestCase(ServiceTestCase):
         root = Path(self.temporary_directory.name)
         self.world_root = _copy_world(root / WORLD_COPY_NAME)
         self.propsets_root = root / "propsets"
+        shutil.copytree(REPO_ROOT / "data" / "propsets", self.propsets_root, copy_function=_link_or_copy)
         _write_propset(self.propsets_root)
         self.mods_root = root / "mods"
         shutil.copytree(REPO_ROOT / "mods" / "infinite-bedrooms", self.mods_root / "infinite-bedrooms")

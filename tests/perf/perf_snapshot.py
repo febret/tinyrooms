@@ -229,6 +229,7 @@ class SnapshotContentTests(PerfCase):
         expiry = {"expires_at": "2999-01-01T00:00:00+00:00"}
         values = {
             "lighting": "dark",
+            "lighting_expires_at": "2999-01-01T00:00:00+00:00",
             "hidden_props": {"bulk-prop-0": expiry},
             "disabled_exits": {"exit0": expiry},
             "disabled_actions": {"inspect": expiry},

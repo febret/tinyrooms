@@ -3,6 +3,9 @@
 # These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Computers and desks ----------------------------------------------------
+CONFIG:
+  scale_adjust: 2.0
+
 beige-terminal:
   label: Beige Terminal
   description: A beige CRT terminal with a green phosphor glow and keys that clack.
@@ -167,7 +170,7 @@ neon-beanbag:
   model: neon-beanbag.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.8
   tags: [seating, furniture]
 hover-stool:
   label: Hover Stool
@@ -215,5 +218,5 @@ arcade-cabinet:
   model: arcade-cabinet.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 1.2
   tags: [display, cabinet, tech]

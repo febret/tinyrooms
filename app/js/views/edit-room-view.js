@@ -109,7 +109,7 @@ export function editRoomView(state) {
         <strong>Edit Room</strong>
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
-        <button type="button" class="editor-shop-button" data-edit-action="prop-shop">🛒 Prop Shop</button>
+        <button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>
         <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
         <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
         <button type="button" class="primary" data-editor-save data-edit-action="save" disabled>Save layout</button>

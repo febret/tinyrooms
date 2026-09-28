@@ -10,3 +10,16 @@ victory-dance:
   params:
     accent: "#f0b429"
     stage_background: "#120a24"
+
+pack-open:
+  title: Card Pack
+  script: pack-open.js
+  frame: movie
+  duration: 20000
+  audience: private
+  room_bound: true
+  skip: true
+  max_queue: 1
+  params:
+    accent: "#f5c451"
+    stage_background: "#0c0a1e"

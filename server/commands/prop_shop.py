@@ -10,12 +10,18 @@ from server.services.prop_shop import serialize_prop_entry
 
 
 async def prop_shop_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    """Open the Prop Shop marketplace activity."""
+    """Open the unified Shop activity on its Props section."""
 
     del command
     room_id = require_room_id(context)
-    resolved = resolve_activity(context, room_id, "prop-shop")
-    return start_activity(context, resolved, room_id=room_id, replace_existing=True)
+    resolved = resolve_activity(context, room_id, "shop")
+    return start_activity(
+        context,
+        resolved,
+        room_id=room_id,
+        replace_existing=True,
+        extra_config={"section": "props"},
+    )
 
 
 async def prop_catalog_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

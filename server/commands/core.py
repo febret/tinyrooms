@@ -11,6 +11,7 @@ from server.commands.outcomes import (
     CommandError,
     CommandOutcome,
     PendingRoomBroadcast,
+    apply_behavior_inventory,
 )
 from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
@@ -72,7 +73,7 @@ def _entity_outcome(message: str, entity: dict[str, object]) -> CommandOutcome:
     return CommandOutcome(message=message, payload={"entity": entity})
 
 
-def _merge_behavior(outcome: CommandOutcome, result: object | None) -> None:
+def _merge_behavior(context: CommandContext, outcome: CommandOutcome, result: object | None) -> None:
     if result is None:
         return
     outcome.private_events.extend(getattr(result, "private_events", []))
@@ -80,6 +81,7 @@ def _merge_behavior(outcome: CommandOutcome, result: object | None) -> None:
     for message in getattr(result, "messages", []):
         if message and not outcome.message:
             outcome.message = message
+    apply_behavior_inventory(context, outcome, result)
 
 
 async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
@@ -164,10 +166,14 @@ async def look_command(context: CommandContext, command: ParsedCommand) -> Comma
         if target.kind == "card":
             room_stack = next((stack for stack in context.world_state.list_room_cards(room_id) if stack.stack_id == target.value), None)
             if room_stack is not None:
+                if not context.cards.has_definition(room_stack.card_def_id):
+                    raise CommandError("That card is not visible right now.")
                 definition = context.cards.definition(room_stack.card_def_id)
                 return _entity_outcome("Card details loaded.", context.cards.serialize_definition(definition))
             inventory_stack = context.profiles.get_inventory_stack(context.account.id, context.rooms.world_id, target.value)
             if inventory_stack is None:
+                raise CommandError("That card is not visible right now.")
+            if not context.cards.has_definition(inventory_stack.card_def_id):
                 raise CommandError("That card is not visible right now.")
             definition = context.cards.definition(inventory_stack.card_def_id)
             return _entity_outcome("Card details loaded.", context.cards.serialize_definition(definition))
@@ -234,7 +240,7 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
     if navigation.closed_activity is not None:
         outcome.private_events.append({"type": "activity.closed", "activity": navigation.closed_activity, "reason": "room_changed"})
     for behavior in navigation.behavior_results:
-        _merge_behavior(outcome, behavior)
+        _merge_behavior(context, outcome, behavior)
     return outcome
 
 
@@ -260,7 +266,7 @@ async def talk_command(context: CommandContext, command: ParsedCommand) -> Comma
         message="Conversation started.",
         payload={"dialog": context.dialogs.serialize(context.dialogs.view(context.account.id))},
     )
-    _merge_behavior(outcome, behavior)
+    _merge_behavior(context, outcome, behavior)
     return outcome
 
 async def act_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
@@ -282,7 +288,7 @@ async def act_command(context: CommandContext, command: ParsedCommand) -> Comman
         )
     )
     outcome = CommandOutcome()
-    _merge_behavior(outcome, behavior)
+    _merge_behavior(context, outcome, behavior)
     if not outcome.message:
         outcome.message = f"You {action}."
     return outcome
@@ -297,7 +303,7 @@ async def dialog_command(context: CommandContext, command: ParsedCommand) -> Com
         raise CommandError("Dialog choice must be an index.") from exc
     result = await context.dialogs.choose(context.account, index)
     outcome = CommandOutcome(message="Conversation updated.", payload={"dialog": result.dialog})
-    _merge_behavior(outcome, result.behavior_result)
+    _merge_behavior(context, outcome, result.behavior_result)
     outcome.private_events.extend(result.events)
     return outcome
 
@@ -348,7 +354,7 @@ async def reset_room_command(context: CommandContext, command: ParsedCommand) ->
     room_id = require_room_id(context)
     room = context.rooms.room_definition(room_id)
     stacks = context.world_state.reset_room_cards(room_id, room.initial_cards)
-    serialized = [context.cards.serialize_room_stack(stack) for stack in stacks]
+    serialized = context.cards.serialize_room_stacks(stacks)
     snapshot = await context.rooms.build_snapshot(context.account, room_id)
     return CommandOutcome(
         message="Room reset to its defined state.",
@@ -539,14 +545,14 @@ def build_registry() -> CommandRegistry:
     )
     registry.register(
         "buy_pack",
-        "Buy and open a card pack.",
+        "Buy a sealed card pack.",
         gameplay.buy_pack_command,
         usage=".buy_pack <pack_id> <operation_id>",
-        help="Spend Bops to open a pack. The operation id makes purchases idempotent.",
+        help="Spend Bops to add a sealed pack to your inventory. The operation id makes purchases idempotent.",
     )
     registry.register(
         "buy_prop",
-        "Buy a permanent prop unlock from the Prop Shop.",
+        "Buy a permanent prop unlock from the Shop.",
         prop_shop.buy_prop_command,
         usage=".buy_prop <prop_id>",
         help="Spend Bops to unlock a marketplace prop for every room you own.",
@@ -675,6 +681,13 @@ def build_registry() -> CommandRegistry:
         usage=".npcgo @peep:<peep_id> @way:<exit_id>",
         power="admin",
     )
+    registry.register(
+        "open_pack",
+        "Open a sealed card pack from your inventory.",
+        gameplay.open_pack_command,
+        usage=".open_pack @card:<stack_id> <operation_id>",
+        help="Consume a sealed pack and reveal its cards. The operation id makes opens idempotent.",
+    )
     registry.register("own", "Manage room ownership.", privileged.own_command, usage=".own <grant|remove|modify|show> <room_id> [@peep]", power="realtor")
     registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command, usage=".packs")
     registry.register("pickup", "Pick up a room card stack quantity.", pickup_command, usage=".pickup @card:<stack_id> [quantity]")
@@ -700,7 +713,7 @@ def build_registry() -> CommandRegistry:
     )
     registry.register(
         "prop_catalog",
-        "List every prop sold in the Prop Shop.",
+        "List every prop sold in the Shop's Props section.",
         prop_shop.prop_catalog_command,
         usage=".prop_catalog",
         toast=False,
@@ -708,7 +721,7 @@ def build_registry() -> CommandRegistry:
     )
     registry.register(
         "prop_shop",
-        "Open the Prop Shop marketplace.",
+        "Open the Shop on its Props section.",
         prop_shop.prop_shop_command,
         usage=".prop_shop",
     )
@@ -742,7 +755,7 @@ def build_registry() -> CommandRegistry:
         toast=False,
         log=False,
     )
-    registry.register("shop", "Open the card-pack shop.", gameplay.shop_command, usage=".shop")
+    registry.register("shop", "Open the Shop on its Cards or Props section.", gameplay.shop_command, usage=".shop [cards|props]")
     registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command, usage=".skill @card:<stack_id> <slot>")
     registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command, usage=".split @card:<stack_id> <quantity>")
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")

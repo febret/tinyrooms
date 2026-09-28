@@ -9,17 +9,6 @@ Related docs:
 [db.md](./db.md) (schemas), [mission-control.md](./mission-control.md) (the
 other forward-looking spec).
 
-This document specifies **what** the cutscene feature is and the contracts
-between the server, the client, and cutscene authors. Fine-grained
-implementation choices (exact module internals, CSS keyframe values, the
-ordering of individual animation beats) are left to the scene author.
-
-Shipped alongside it: `data/core/cutscenes.yaml` (`victory-dance`, a
-room-audience `vs` scene with a custom `victory-banner` frame) and
-`worlds/tutorial/cutscenes.yaml` (`molly-greet`, a private `movie` scene reached
-from Molly's authored Greet action in `worlds/tutorial/peeps/peeps.yaml`).
-A matching `victory-dance` emote card lives in `worlds/tutorial/cards/` and is
-in the tutorial pack.
 
 ## 1. Overview
 
@@ -336,7 +325,6 @@ with `type: emote` and one extra field, `cutscene`:
 # data/cardsets/base/cards.yaml
 victory-dance:
   type: emote
-  category: Scene
   cutscene: victory-dance
   label: Victory Dance
   description: A triumphant full-screen strut
@@ -346,17 +334,20 @@ victory-dance:
 
 Consequences:
 
-- Ownership, stacking, packs, and the Card Shop are unchanged. Cutscene
+- Ownership, stacking, packs, and the Shop are unchanged. Cutscene
   emotes are bought and traded like any other emote.
 - The card still needs a static `image` (the loader requires one,
   `server/content/cards.py:96`) — a representative still, used as the card
   tile and as its thumbnail in lists.
 - The card's `cutscene:` field must be added to `CardDefinition` and read by
   the loader; it is ignored for every other card type.
-- The new `Scene` category joins `Expression`, `Animation`, and `Effects` in
-  the Emotes view (`app/js/views/emotes-view.js:5`) and in the energy cost
-  table `EMOTE_COSTS` (`server/services/actions.py:14`, default cost 5;
-  a card's explicit `energy_cost` wins).
+- An emote's category is derived from its fields, never authored: a card with
+  `cutscene` is a `Cutscene` emote, a card with `animation` is an `Animation`
+  emote, and everything else is an `Expression` (`server/content/cards.py`).
+  The Emotes view (`app/js/views/emotes-view.js`) therefore exposes exactly
+  `Expression`, `Animation`, and `Cutscene`, and the energy cost table
+  `EMOTE_COSTS` (`server/services/actions.py`, `Cutscene` = 5) charges a
+  cutscene emote 5 Energy; a card's explicit `energy_cost` wins.
 - A cutscene emote produces **no** speech bubble. `use_emote` returns a
   cutscene result instead of a bubble result, so `.emote` on a cutscene card
   broadcasts `cutscene.play` and nothing else.
@@ -707,7 +698,7 @@ for `/activities/`. The flag gates *playback*, not delivery of inert files.
 | `server/services/cutscenes.py` | Resolution by id/alias, launch decisions, placeholder resolution, energy, payload building |
 | `server/commands/cutscenes.py` | `.cutscene` handler |
 | `server/content/cards.py` | `cutscene` field on `CardDefinition` (one new field) |
-| `server/services/actions.py` | `use_emote` cutscene branch; `Scene` in `EMOTE_COSTS` |
+| `server/services/actions.py` | `use_emote` cutscene branch; `Cutscene` in `EMOTE_COSTS` |
 | `server/content/bundle.py`, `server/content/worlds.py`, `server/mods.py` | Loading, merging, cross-content validation, world reload |
 | `server/routes/cutscenes.py` | `/cutscenes/{id}/{file}` and `/api/cutscenes` routes |
 | `server/app.py` | Service construction, router mount, command registration |
@@ -823,7 +814,7 @@ bubble, no inventory mutation. The Action Log line is the standard
 | `app/js/cutscenes/placeholders.js` | Asset record → element, prop thumbnails, origin validation, element cache |
 | `app/js/inert.js` | The board-side `inert` sweep, shared by the render loop and the cutscene manager |
 | `app/css/cutscenes.css` | Layer, frame geometry, keyframes, Skip control |
-| `app/js/views/emotes-view.js` | One-line change: add `Scene` to the category list |
+| `app/js/views/emotes-view.js` | Category list is `Expression`, `Animation`, `Cutscene` |
 
 *As built:* the `inert` sweep moved out of `app/js/ui.js` into `app/js/inert.js`
 rather than being written by the manager. Both `server/app.py` and
@@ -874,16 +865,15 @@ manager is never inspected from outside.
 ### 8.3 Store integration
 
 `cutscene.play` never reaches the store. The queue is imperative and timed,
-and a playing cutscene is not a snapshot-worthy fact. The existing precedent
-is `shop.open`: `ui.js` intercepts that event type in the socket callbacks and
-handles it out of band, filtering it out of the dispatch
-(`app/js/ui.js:131`, `app/js/ui.js:156`). Cutscenes follow that shape:
+and a playing cutscene is not a snapshot-worthy fact. `ui.js` intercepts the
+event type in the socket callbacks and handles it out of band, filtering it out
+of the dispatch:
 
 1. In `onRoomEvent`, intercept `cutscene.play` before the `room-event`
    dispatch and call `cutscenes.enqueue(event)`.
 2. In `onResult`, intercept `cutscene.play` inside `envelope.events` — that is
    how `private` cutscenes arrive — and remove it from the events array handed
-   to the store, exactly as `shop.open` is removed today.
+   to the store.
 3. `applyServerEvent` in `app/js/state.js` therefore has no `cutscene.play`
    branch, and `room.snapshot` is unaffected.
 
@@ -1035,7 +1025,6 @@ victory-dance:
   description: A triumphant full-screen strut. Plays for the whole room.
   image: victory-dance.png
   type: emote
-  category: Scene
   cutscene: victory-dance
   rarity: Uncommon
   energy_cost: 5
@@ -1154,7 +1143,7 @@ disables cutscenes entirely (§2.3). A third project is therefore required:
 - The board is `inert` during playback while `#chat-input` stays enabled and a
   chat line still reaches the log.
 - A room-audience cutscene plays in two browser contexts at once.
-- A cutscene emote plays from the Emotes view's `Scene` tab and produces no
+- A cutscene emote plays from the Emotes view's `Cutscene` tab and produces no
   emote bubble.
 - A room change clears playback.
 - An unknown cutscene is rejected with a message and builds no layer.
@@ -1162,8 +1151,8 @@ disables cutscenes entirely (§2.3). A third project is therefore required:
 Under `reducedMotion: 'reduce'` the default projects run one case in
 `flows.spec.js` asserting a `cutscene.play` never creates the layer.
 
-*Still to do:* visual snapshots. The Emotes panel gains a fourth category tab,
-so `emotes.png` needs a deliberate baseline review and re-record once the
+*Still to do:* visual snapshots. The Emotes panel gains the `Cutscene` category
+tab, so `emotes.png` needs a deliberate baseline review and re-record once the
 pre-existing screenshot failures in `screenshots.spec.js` are resolved. Frame
 captures (`movie`, `vs`) should be added at the same time.
 
@@ -1194,7 +1183,7 @@ anyone extending it.
 | `server/commands/cutscenes.py` | `cutscene_command` plus the shared launch/resolve/deliver helpers used by the emote path. Deliberately does not import `server.commands.core` (the registry imports it) |
 | `server/commands/core.py` | Registers `.cutscene` with `toast=False`, like `.emote` and `.talk` |
 | `server/commands/gameplay.py` | `play_cutscene_emote`, the `use_emote` cutscene branch entry point |
-| `server/services/actions.py` | `ActionResult.cutscene`, the `use_emote` branch, `Scene` in `EMOTE_COSTS` |
+| `server/services/actions.py` | `ActionResult.cutscene`, the `use_emote` branch, `Cutscene` in `EMOTE_COSTS` |
 | `server/content/cards.py` | `cutscene` field on `CardDefinition`, emote-only validation, `cutscene_card_references` |
 | `server/services/cards.py` | `cutscene` in the serialized definition, plus `asset_urls`/`has_definition` used by placeholder resolution |
 | `server/services/rooms.py` | Serializes authored prop/peep quick actions, including `.cutscene` entries |
@@ -1213,7 +1202,7 @@ anyone extending it.
 | `app/js/cutscenes/placeholders.js` | Asset record → `<img>`/`<canvas>`, prop thumbnails, origin validation, element cache |
 | `app/js/inert.js` | The board-side `inert` sweep, shared by render and the cutscene manager |
 | `app/css/cutscenes.css` | Layer, five frame geometries plus the `victory-banner` example, keyframes, sprite and caption styles |
-| `app/js/ui.js`, `app/js/state.js`, `app/js/commands.js`, `app/js/views/emotes-view.js` | Layer element, out-of-band event interception, palette entry, `Scene` category, `cutscene` on normalized cards |
+| `app/js/ui.js`, `app/js/state.js`, `app/js/commands.js`, `app/js/views/emotes-view.js` | Layer element, out-of-band event interception, palette entry, `Cutscene` category, `cutscene` on normalized cards |
 | `app/index.html`, `app/css/main.css`, `app/css/activities.css` | Stylesheet link, `#cutscene-layer`, activity layer bumped to `z-index: 37` |
 
 ### Content shipped

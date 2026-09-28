@@ -82,7 +82,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Cutscene client | `app/js/cutscenes/`, `app/css/cutscenes.css` | Client-side cutscene queue, playback state machine, frame types, and the stage API cutscene code programs against. |
 | Mod loader | `server/mods.py` | Discovers `mods/<id>/mod.yaml`, validates `TRSERVER_MODS`, merges mod content/props/activities, registers mod commands + runtime state. |
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
-| NPC movement | `server/services/npc_movement.py`, `server/state/peep_locations.py` | Exit-validated NPC room changes (`npc_barrier`/locked rules) plus persisted peep locations. |
+| NPC movement | `server/services/npc_movement.py`, `server/state/npc_peep_states.py` | Exit-validated NPC room changes (`npc_barrier`/locked rules) plus persisted per-NPC state. |
 | Bedroom mod | `mods/infinite-bedrooms/` | Player-room purchase/materialization, door locking, customization, access checks, and the Bedrooms activity. |
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
@@ -156,6 +156,20 @@ into each prop's `effect_sets`/`active_effect` payload; the client renders them
 in `app/js/prop-effects.js`, driven by the board's animation loop. Effects are
 disabled entirely under `prefers-reduced-motion`, keeping visual baselines
 deterministic. Sprites are reproducible via `tools/generate_fx_textures.py`.
+
+### 2.4 World-resolved card effects
+
+`ActionsService` resolves the generic stat effects (`health`, `energy`) and room
+lighting (`light`) itself. Any other usable effect is delegated to world-authored
+behavior: the core validates the card, charges Energy, and consumes `one_use`
+copies, then `use_command` dispatches a prop-targeted `card_play` behavior event
+(`server/commands/gameplay.py`). The prop's behavior script owns the effect and
+expresses it through `BehaviorContext` intents. The tutorial world implements
+`scoop` (`props/litter-tray.py`) and `vacuum` (`props/centipedes.py`) this way.
+World scripts can hide props (`hide_prop`), clear named sources from a room
+(`clear_source`), and remove a specific number of card copies (`remove_card` with
+a quantity). The target-prop match is still enforced generically against the
+card definition's `target_prop` before dispatch.
 
 
 ## 3. HTTP API (`server/app.py`, `app/js/api.js:PATHS`)
@@ -451,8 +465,8 @@ gate, checked per launch.
    queued scenes on travel. Nothing is acknowledged: the server never learns
    whether a cutscene played.
 4. The client never routes the event through the store. `ui.js` intercepts
-   `cutscene.play` alongside `shop.open` and hands it to
-   `createCutsceneManager` (`app/js/cutscenes/manager.js`), which owns a FIFO
+   `cutscene.play` in both the room-event and command-result callbacks and hands
+   it to `createCutsceneManager` (`app/js/cutscenes/manager.js`), which owns a FIFO
    queue (global cap 6, per-definition `max_queue`, dedupe by id+source),
    dynamically imports the module, and runs the default export.
 5. The scene calls `beginCutscene(frameType, options)` from
@@ -468,9 +482,10 @@ gate, checked per launch.
    hand, and activities stay live and interactive throughout.
 
 Triggers: the `.cutscene` command (also authored as a prop/peep quick action),
-the `context.cutscene(...)` behavior intent, and a cutscene emote card
-(`type: emote` + `cutscene:` field, shown under the Emotes view's `Scene`
-category).
+the `context.cutscene(...)` behavior intent, a cutscene emote card
+(`type: emote` + `cutscene:` field, shown under the Emotes view's `Cutscene`
+category), and opening a sealed card pack (`.open_pack`, which launches the core
+`pack-open` scene privately with the drawn card ids as `$card:` params).
 
 ## 7. Testing architecture
 

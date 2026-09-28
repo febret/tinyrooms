@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from server.content.cards import CORE_CARD_IDS, CardCatalog, CardDefinition
+from server.content.cards import CORE_CARD_IDS, PACK_CARD_TYPE, CardCatalog, CardDefinition
 from server.content.recipes import RecipeDefinition
 
 
@@ -52,6 +52,7 @@ class CardDatabaseService:
         cards = [
             self._serialize_card(definition, packs_by_card, recipes_by_card)
             for definition in sorted(self._catalog.cards.values(), key=lambda item: item.id)
+            if definition.type != PACK_CARD_TYPE
         ]
         packs = [
             {
@@ -63,6 +64,7 @@ class CardDatabaseService:
                 "source": pack.source,
                 "back_image_url": f"/assets/{_asset_kind(self._world_id, pack.source)}/{pack.back_image_name}",
                 "cards": list(pack.cards),
+                "guaranteed": list(pack.guaranteed),
             }
             for pack in sorted(self._catalog.packs.values(), key=lambda item: item.id)
         ]

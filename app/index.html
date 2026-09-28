@@ -31,6 +31,14 @@
         </header>
         <section class="board-frame" aria-label="Room board">
           <canvas id="board-canvas" aria-label="Three-dimensional room. Drag to rotate; scroll or pinch to zoom."></canvas>
+          <div id="target-line" class="target-line" hidden>
+            <svg aria-hidden="true">
+              <line class="target-line-stroke"></line>
+              <circle class="target-line-source" r="6"></circle>
+              <circle class="target-line-end" r="11"></circle>
+            </svg>
+          </div>
+          <div id="room-filter" class="room-filter" aria-hidden="true"></div>
           <div id="board-overlay" class="board-overlay" aria-live="polite"></div>
           <div id="cutscene-layer" class="cutscene-layer" data-state="idle" hidden></div>
           <div id="activity-layer" class="activity-layer"></div>
@@ -56,7 +64,6 @@
             </form>
           </div>
           <section id="editor-dock" class="editor-dock" aria-label="Room editor"></section>
-          <section id="shop-dock" class="shop-dock" aria-label="Card Shop"></section>
         </section>
       </main>
       <aside id="action-log" class="log-panel" aria-label="Action Log"></aside>

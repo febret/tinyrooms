@@ -556,7 +556,7 @@ async def door_command(context: CommandContext, command: ParsedCommand) -> Comma
         from server.commands.core import _merge_behavior
 
         for behavior in navigation.behavior_results:
-            _merge_behavior(outcome, behavior)
+            _merge_behavior(context, outcome, behavior)
         return outcome
 
     raise CommandError("Unknown door command.")

@@ -3,6 +3,9 @@
 # These props are locked; owners unlock them from the Prop Shop marketplace.
 
 # --- Furniture --------------------------------------------------------------
+CONFIG:
+  scale_adjust: 2.0
+
 gilded-armchair:
   label: Gilded Armchair
   description: An overstuffed armchair of carved gold leaf and crimson damask.
@@ -33,7 +36,7 @@ gilt-mirror:
   model: gilt-mirror.glb
   decorative: true
   editable: true
-  scale: 1.5
+  scale: 1.1
   tags: [mirror, decoration]
 mahogany-writing-desk:
   label: Mahogany Writing Desk
@@ -89,7 +92,7 @@ gilt-side-table:
   model: gilt-side-table.glb
   decorative: true
   editable: true
-  scale: 1.1
+  scale: 0.75
   tags: [table, furniture]
 baroque-dresser:
   label: Baroque Dresser
@@ -287,7 +290,7 @@ portrait-noblewoman:
   model: portrait-noblewoman.glb
   decorative: true
   editable: true
-  scale: 1.4
+  scale: 0.9
   tags: [painting, art]
 landscape-dramatic-clouds:
   label: Landscape with Dramatic Clouds

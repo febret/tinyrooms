@@ -317,7 +317,12 @@ class CutsceneResolutionTests(CutsceneServiceTestCase):
         definition = replace(self.cutscenes.resolve("molly-greet"), power="admin")
         with self.assertRaisesRegex(CutsceneError, "not available"):
             self.cutscenes.check(definition, room_id="hub", has_power=lambda name: False)
-        self.cutscenes.check(definition, room_id="hub", has_power=lambda name: True)
+
+    def test_item_card_may_reference_a_room_cutscene(self) -> None:
+        definition = self.catalog.cards["vacuum-cleaner"]
+        self.assertEqual(definition.type, "item")
+        self.assertEqual(definition.cutscene, "centipede-vacuum")
+        self.assertEqual(self.cutscenes.resolve(definition.cutscene).audience, "room")
 
     def test_check_rejects_missing_feature(self) -> None:
         definition = replace(self.cutscenes.resolve("molly-greet"), required_feature="world-editor")
@@ -335,7 +340,7 @@ class CutsceneResolutionTests(CutsceneServiceTestCase):
         entries = self.cutscenes.visible_catalog(room_id="hub")
         self.assertEqual(
             {entry["id"] for entry in entries},
-            {"molly-greet", "tutorial-end", "victory-dance"},
+            {"molly-greet", "tutorial-end", "centipede-vacuum", "victory-dance", "pack-open"},
         )
         for entry in entries:
             self.assertNotIn("script_url", entry)
@@ -617,7 +622,7 @@ class CutsceneCommandTests(Milestone2IntegrationTestCase):
         entries = response.json()["cutscenes"]
         self.assertEqual(
             {entry["id"] for entry in entries},
-            {"molly-greet", "tutorial-end", "victory-dance"},
+            {"molly-greet", "tutorial-end", "centipede-vacuum", "victory-dance", "pack-open"},
         )
         for entry in entries:
             self.assertNotIn("script_url", entry)

@@ -6,14 +6,12 @@ import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import { createCutsceneManager } from "./cutscenes/manager.js";
-import { flyCoinReward } from "./coin-effects.js";
 import {
   COMMANDS,
   buildEmoteCommand,
   buildFriendCommand,
   buildMergeCommand,
   buildQuantityCommand,
-  buildSellCommand,
   buildSkillCommand,
   buildSplitCommand,
   buildSwapStickerCommand,
@@ -32,6 +30,8 @@ import { createPropViewerManager } from "./prop-viewer.js";
 import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
+import { createTargetingController } from "./targeting.js";
+import { sellInventoryCard } from "./sell.js";
 import { createVoiceChat } from "./voice.js";
 
 const store = createStore();
@@ -41,7 +41,6 @@ const root = $("#app");
 const panelLayer = $("#panel-layer");
 const detailLayer = $("#detail-layer");
 const editorRoot = $("#editor-dock");
-const shopRoot = $("#shop-dock");
 const activityLayer = $("#activity-layer");
 const cutsceneLayer = $("#cutscene-layer");
 const authLayer = $("#auth-layer");
@@ -67,6 +66,7 @@ let previousView = null;
 let previousDetails = null;
 let renderRevision = 0;
 let refreshPromise = null;
+let targeting = null;
 
 function playTone(kind = "tap") {
   playSound(kind, store.getState().ui.soundEnabled);
@@ -132,10 +132,6 @@ function connectSocket() {
       if (envelope.room?.metadata?.note) toast(envelope.room.metadata.note);
     },
     onRoomEvent(envelope) {
-      if (envelope.event?.type === "shop.open") {
-        void openShop();
-        return;
-      }
       if (envelope.event?.type === "cutscene.play") {
         cutscenes.enqueue(envelope.event);
         return;
@@ -161,15 +157,14 @@ function connectSocket() {
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
     onResult(envelope) {
       const events = Array.isArray(envelope.events) ? envelope.events : [];
-      // `cutscene.play` and `shop.open` are handled out of band, so they are
-      // filtered out before the store sees them and never become view state.
-      const shopOpen = events.some(event => event?.type === "shop.open");
+      // `cutscene.play` is handled out of band, so it is filtered out before the
+      // store sees it and never becomes view state.
       const handled = events.filter(event => {
         if (event?.type === "cutscene.play") {
           cutscenes.enqueue(event);
           return false;
         }
-        return event?.type !== "shop.open";
+        return true;
       });
       store.dispatch({
         type: "result",
@@ -180,7 +175,6 @@ function connectSocket() {
         toast: envelope.toast,
         log: envelope.log,
       });
-      if (shopOpen) void openShop();
     },
   });
   socket.connect();
@@ -245,10 +239,12 @@ async function confirmCloseEditor() {
   return accepted;
 }
 
-async function openShop() {
-  const state = store.getState();
-  if (state.views.main === "edit-room" && state.editor?.dirty && !(await confirmCloseEditor())) return;
-  store.dispatch({ type: "shop-open" });
+async function openShop(section = "cards") {
+  try {
+    await sendCommand(section === "props" ? ".shop props" : ".shop cards");
+  } catch (error) {
+    showError(error);
+  }
 }
 
 async function openRoomEditor() {
@@ -334,8 +330,8 @@ async function applyEditorAction(action) {
     case "save":
       await saveRoomEditor();
       break;
-    case "prop-shop":
-      try { await sendCommand(".prop_shop"); } catch (error) { showError(error); }
+    case "shop":
+      try { await sendCommand(".shop props"); } catch (error) { showError(error); }
       break;
     case "reload":
       if (state.editor.conflict) store.dispatch({ type: "editor-saved", view: state.editor.conflict });
@@ -412,7 +408,7 @@ function renderLook(state) {
 async function handleAction(action) {
   if (!action) return;
   if (action.local) action = action.local;
-  if (action.type !== "sell") playTone("tap");
+  if (action.type !== "sell-click") playTone("tap");
   if (action.command) {
     try {
       cardMotion.animatePickupCommand(action.command);
@@ -444,11 +440,9 @@ async function handleAction(action) {
     }
     store.dispatch({ type: action.type });
   } else if (action.type === "open-shop") {
-    await openShop();
-  } else if (action.type === "shop-close") {
-    store.dispatch({ type: "shop-close" });
-  } else if (action.type === "buy-pack") {
-    await buyPack(action.packId);
+    await openShop(action.section);
+  } else if (action.type === "open-pack") {
+    await openPack(action.stackId);
   } else if (action.type === "edit-add") {
     store.dispatch({ type: "editor-add", propId: action.propId });
   } else if (action.type === "edit-snap") {
@@ -515,37 +509,11 @@ async function handleAction(action) {
     }
   } else if (action.type === "merge") {
     await mergeStack(action.stackId);
-  } else if (action.type === "sell") {
-    let quantity = action.quantity || 1;
-    if (action.max) {
-      const chosen = await dialogs.quantity("sell", action.max, 1);
-      if (chosen === null) return;
-      quantity = chosen;
-    }
-    const total = (action.unit || 0) * quantity;
-    const accepted = await dialogs.confirm(
-      `Sell ${quantity}× ${action.label}?`,
-      `You will receive ${total} Bops.`,
-      "Sell",
-    );
-    if (!accepted) return;
-    const sourceTile = document.querySelector(`#panel-layer [data-stack-id="${CSS.escape(action.stackId)}"]`);
-    const from = sourceTile ? sourceTile.getBoundingClientRect() : null;
-    try {
-      const envelope = await sendCommand(buildSellCommand(action.stackId, quantity));
-      const gained = Number(envelope?.payload?.sale?.bops_gained || 0);
-      if (gained > 0) {
-        const target = document.querySelector("#peeps-panel .peep-chip.self .peep-marker")
-          || document.querySelector("#peeps-panel .peep-chip.self");
-        playTone("coin");
-        flyCoinReward({
-          from: from || { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-          to: target,
-          bops: gained,
-          reducedMotion: store.getState().ui.reducedMotion,
-        });
-      }
-    } catch (error) { showError(error); }
+  } else if (action.type === "toggle-sell-mode") {
+    store.dispatch({ type: "toggle-sell-mode" });
+    playTone("flip");
+  } else if (action.type === "sell-click") {
+    await sellInventoryCard(action.stackId, { store, sendCommand, playCoin: () => playTone("coin"), onError: showError, onToast: toast });
   } else if (action.type === "swap-sticker") {
     await openStickerSwap();
   } else if (action.type === "quantity") {
@@ -654,37 +622,26 @@ async function openStickerSwap() {
   );
 }
 
-function findPack(state, packId) {
-  return (state.user?.packs || []).find(pack => pack.id === packId) || null;
+function operationId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function operationId() {
-  return `pack-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-async function buyPack(packId) {
-  const state = store.getState();
-  const pack = findPack(state, packId);
-  if (!pack) return;
-  const bops = Number(state.user?.bops ?? 0);
-  if (bops < pack.price) {
-    toast(`You need ${pack.price - bops} more Bops for that pack.`, "error");
-    return;
-  }
-  const accepted = await dialogs.confirm(
-    `Buy ${pack.label}?`,
-    `Spend ${pack.price} Bops to open ${pack.size} cards?`,
-    "Buy",
-  );
-  if (!accepted) return;
+async function openPack(stackId) {
+  if (!stackId) return;
   try {
-    const envelope = await sendCommand(`.buy_pack ${pack.id} ${operationId()}`);
-    const purchase = envelope?.payload?.purchase;
-    if (purchase) revealPack(purchase.cards || []);
-  } catch (error) { showError(error); }
+    const envelope = await sendCommand(`.open_pack @card:${stackId} ${operationId("open")}`);
+    const opened = envelope?.payload?.opened;
+    // The pack cutscene is presentation-only. Reduced motion drops it entirely,
+    // and an idempotent replay has already played, so reveal inline instead.
+    if (opened && (opened.replayed || store.getState().ui.reducedMotion)) {
+      showPackReveal(opened.cards || []);
+    }
+  } catch (error) {
+    showError(error);
+  }
 }
 
-function revealPack(cards) {
+function showPackReveal(cards) {
   playTone("success");
   dialogs.open(
     `<section class="global-dialog pack-reveal" role="dialog" aria-modal="true" aria-labelledby="pack-reveal-title">
@@ -705,7 +662,7 @@ function revealPack(cards) {
 function renderActions(state) {
   const bar = $("#actions-bar");
   if (state.ui.targeting) {
-    const markup = `<span class="targeting-hint">Choose a target for ${escapeHtml(state.ui.targeting.label)}</span>
+    const markup = `<span class="targeting-hint">Choose a target for ${escapeHtml(state.ui.targeting.label)} — click it again to confirm</span>
       <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
     if (!updateMarkup(bar, markup)) return;
     bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } });
@@ -968,13 +925,7 @@ function activateSelection(selection) {
 const peeps = createPeepsView({
   panel: $("#peeps-panel"), bubbleLayer: $("#bubble-layer"),
   onSelect: selection => {
-    const state = store.getState();
-    if (state.ui.targeting && selection.kind === "peep") {
-      const stackId = state.ui.targeting.stackId;
-      store.dispatch({ type: "cancel-targeting" });
-      void sendCommand(`.use @card:${stackId} @peep:${selection.id}`).catch(showError);
-      return;
-    }
+    if (targeting?.handle(selection)) return;
     if (activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
   },
@@ -987,14 +938,7 @@ const board = createBoard({
   onSelect(selection) {
     const state = store.getState();
     if (state.views.main || state.views.details || dialogs.active || !state.user?.initialStickerComplete) return;
-    if (state.ui.targeting) {
-      if (selection.kind === "prop") {
-        const stackId = state.ui.targeting.stackId;
-        store.dispatch({ type: "cancel-targeting" });
-        void sendCommand(`.use @card:${stackId} @prop:${selection.id}`).catch(showError);
-      }
-      return;
-    }
+    if (targeting?.handle(selection)) return;
     if (activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
     playTone("flip");
@@ -1011,9 +955,18 @@ const board = createBoard({
 // browser suite budgets GPU resource counts and drawn frames rather than
 // frame times, which keeps those budgets deterministic across machines.
 globalThis.__tinyroomsBoard = board;
+targeting = createTargetingController({
+  board, boardFrame: $(".board-frame"), getState: () => store.getState(), store, sendCommand,
+  onToast: toast, onError: showError,
+});
 const cards = createCardsView({
-  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"), shopRoot,
+  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
   onSelect(selection) {
+    const sellState = store.getState();
+    if (sellState.ui.sellMode && selection.kind === "inventory-card") {
+      void sellInventoryCard(selection.id, { store, sendCommand, playCoin: () => playTone("coin"), onError: showError, onToast: toast });
+      return;
+    }
     if (activateSelection(selection)) return;
     const detailsOpen = Boolean(store.getState().views.details);
     store.dispatch({ type: "select", selection });
@@ -1088,8 +1041,10 @@ async function render(state) {
   toggleClass(root, "has-view", Boolean(state.views.main));
   toggleClass(root, "has-details", Boolean(state.views.details));
   toggleClass(root, "editing", Boolean(state.editor));
-  toggleClass(root, "shopping", Boolean(state.shop));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));
+  toggleClass(root, "sell-mode", Boolean(state.ui.sellMode));
+  const selfPeep = (state.room?.occupants || []).find(peep => peep.id === state.user?.id);
+  toggleClass(root, "scared", Boolean(state.room) && (selfPeep?.statuses || state.user?.statuses || []).includes("scared"));
   toggleClass(root, "audio-mode", Boolean(state.ui.audioEnabled));
   const pushDisabled = !state.ui.audioEnabled || state.ui.audioMuted;
   if (pushToTalk.disabled !== pushDisabled) pushToTalk.disabled = pushDisabled;
@@ -1099,6 +1054,7 @@ async function render(state) {
   syncVoice(state);
   renderLook(state);
   renderActions(state);
+  targeting?.sync(state);
   renderActionLog(state);
   renderTopBar(state);
   renderAuth(state);
@@ -1177,7 +1133,11 @@ document.addEventListener("keydown", event => {
   if (!typing && state.editor && state.views.main === "edit-room" && !dialogs.active) {
     if (event.key === "Escape") {
       event.preventDefault();
-      if (board.cancelEditGesture()) { store.dispatch({ type: "editor-undo" }); return; }
+      const cancelled = board.cancelEditGesture();
+      if (cancelled) {
+        if (cancelled.undo) store.dispatch({ type: "editor-undo" });
+        return;
+      }
       if (state.editor.dirty) { void confirmCloseEditor(); return; }
       closeEditor();
       return;
@@ -1188,8 +1148,7 @@ document.addEventListener("keydown", event => {
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
-  if (state.shop) store.dispatch({ type: "shop-close" });
-  else if (state.views.details) store.dispatch({ type: "close-details" });
+  if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });
 store.subscribe((state, action) => {

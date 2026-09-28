@@ -12,7 +12,7 @@ from server.state.migrations import DatabaseHub
 from server.state.world_state import WorldStateRepository
 
 
-ENVIRONMENT_KEYS = ("lighting", "hidden_props", "disabled_exits", "disabled_actions")
+ENVIRONMENT_KEYS = ("lighting", "lighting_expires_at", "hidden_props", "disabled_exits", "disabled_actions")
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,7 +122,7 @@ class EnvironmentService:
         now = utc_now()
         patch: dict[str, object] = {}
         for key in ENVIRONMENT_KEYS:
-            if key == "lighting":
+            if key in {"lighting", "lighting_expires_at"}:
                 continue
             value = environment.get(key)
             if not isinstance(value, dict):
@@ -134,9 +134,40 @@ class EnvironmentService:
             }
             if kept != value:
                 patch[key] = kept if kept else None
+        expires_at = _parse_timestamp(environment.get("lighting_expires_at"))
+        if expires_at is not None and expires_at <= now:
+            patch["lighting"] = None
+            patch["lighting_expires_at"] = None
         if not patch:
             return None
         return self.set(room_id, patch)
+
+    def light_room(self, room_id: str, mode: str, duration_seconds: float | None) -> EnvironmentUpdate:
+        """Set a room's lighting, optionally reverting after *duration_seconds*."""
+
+        with self._hub.transaction() as connection:
+            return self.light_room_in_transaction(connection, room_id, mode, duration_seconds)
+
+    def light_room_in_transaction(
+        self,
+        connection,
+        room_id: str,
+        mode: str,
+        duration_seconds: float | None,
+    ) -> EnvironmentUpdate:
+        """Set a room's lighting inside a caller-owned transaction."""
+
+        if mode not in {"normal", "dark"}:
+            raise ValueError("Lighting mode must be 'normal' or 'dark'.")
+        if duration_seconds is None:
+            patch: dict[str, object] = {"lighting": mode, "lighting_expires_at": None}
+        else:
+            expires = utc_now().timestamp() + max(0.0, float(duration_seconds))
+            patch = {
+                "lighting": mode,
+                "lighting_expires_at": datetime.fromtimestamp(expires, tz=utc_now().tzinfo).isoformat(),
+            }
+        return self.set_in_transaction(connection, room_id, patch)
 
     def is_prop_visible(self, room_id: str, prop_instance_id: str) -> bool:
         """Return whether a prop instance is visible in the room."""
@@ -159,7 +190,11 @@ class EnvironmentService:
     def lighting(self, room_id: str) -> str:
         """Return the room lighting mode, defaulting to the definition."""
 
-        value = self.get(room_id).get("lighting")
+        environment = self.get(room_id)
+        expires_at = _parse_timestamp(environment.get("lighting_expires_at"))
+        if expires_at is not None and expires_at <= utc_now():
+            return "dark" if self._world.rooms[room_id].dark else "normal"
+        value = environment.get("lighting")
         if value in {"normal", "dark"}:
             return str(value)
         return "dark" if self._world.rooms[room_id].dark else "normal"

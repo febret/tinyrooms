@@ -374,6 +374,30 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertTrue(all(card["image_url"].startswith("/assets/base/") for card in serialized))
         self.assertFalse(any(card["id"] in {"self", "friends", "edit-room", "arrow-left", "arrow-right"} for card in serialized))
 
+    def test_pack_guaranteed_loader_validation(self) -> None:
+        from server.content.cards import _load_pack_from_file
+
+        catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
+        self.assertEqual(catalog.packs["tutorial"].guaranteed, ("hand-light",))
+        with TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / "back.webp").write_bytes(b"")
+            pack_file = root / "pack.yaml"
+            body = (
+                "label: Demo\n"
+                "description: Demo pack.\n"
+                "back_image: back.webp\n"
+                "price: 1\n"
+                "size: 3\n"
+                "cards: [smile, sigh]\n"
+            )
+            pack_file.write_text(body + "guaranteed: [smile]\n", encoding="utf-8")
+            definition = _load_pack_from_file(pack_file, "demo", catalog.cards, "demo")
+            self.assertEqual(definition.guaranteed, ("smile",))
+            pack_file.write_text(body + "guaranteed: [goof]\n", encoding="utf-8")
+            with self.assertRaises(ContentError):
+                _load_pack_from_file(pack_file, "demo", catalog.cards, "demo")
+
     def test_stackable_types_default_to_a_shared_limit(self) -> None:
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
         self.assertEqual(catalog.cards["smile"].stack_limit, 99)
@@ -1020,6 +1044,53 @@ class PickupAutoEquipTests(RuntimeTestCase):
         self.assertEqual(len(picked), 1)
         self.assertFalse(picked[0]["equipped"])
         self.assertEqual(sum(1 for item in result.inventory if item["equipped"]), 5)
+
+
+class MissingCardDefinitionTests(RuntimeTestCase):
+    """World-state rows whose card definition was removed are skipped, not fatal."""
+
+    def test_snapshot_skips_cards_with_missing_definitions(self) -> None:
+        runtime = self.client.app.state.runtime
+        credentials = self.create_ready_account("GhostCards")
+        account = runtime.profiles.get_account_by_username("GhostCards")
+        self.assertIsNotNone(account)
+        with runtime.hub.transaction() as connection:
+            runtime.world_state.add_room_card(
+                connection,
+                room_id=runtime.world.entry_room_id,
+                card_def_id="ghost-test-card",
+                quantity=1,
+                pos=(0.0, 0.0, 0.0),
+                placed_by_account_id=account.id,
+            )
+            runtime.profiles.create_inventory_stack(
+                connection,
+                account_id=account.id,
+                world_id=runtime.world.id,
+                card_def_id="ghost-test-card",
+                quantity=1,
+                scope="world",
+            )
+        with self.client.websocket_connect(
+            "/ws",
+            headers=websocket_headers(
+                credentials["session_token"],
+                credentials["csrf_token"],
+            ),
+        ) as socket:
+            snapshot = socket.receive_json()["room"]
+        self.assertFalse(
+            any(
+                stack["definition"]["id"] == "ghost-test-card"
+                for stack in snapshot["room_cards"]
+            )
+        )
+        self.assertFalse(
+            any(
+                stack["definition"]["id"] == "ghost-test-card"
+                for stack in snapshot["inventory"]
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -2,13 +2,16 @@
 # Models live beside this file and are served at /assets/propsets/potty-base/.
 # These props are locked; owners unlock them from the Prop Shop marketplace.
 
+CONFIG:
+  scale_adjust: 2.0
+
 cottage-toilet:
   label: Cottage Toilet
   description: A dependable white ceramic loo with a plain wooden seat.
   model: cottage-toilet.glb
   decorative: true
   editable: true
-  scale: 1.0
+  scale: 0.9
   tags: [plumbing, toilet]
 victorian-high-tank:
   label: Victorian High-Tank
