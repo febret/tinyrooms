@@ -87,7 +87,7 @@ test("a cutscene emote plays for the room and leaves no bubble", async ({ page, 
   await loginAs(page, runtime, "director");
   await page.goto(runtime.baseURL);
   await page.locator('#card-hand [data-core-id="emotes"]').click();
-  await page.locator('[data-emote-category="Scene"]').click();
+  await page.locator('[data-emote-category="Cutscene"]').click();
   const tile = page.getByRole("button", { name: "Victory Dance", exact: true });
   await expect(tile).toBeVisible();
   await tile.click();

@@ -23,7 +23,7 @@ from server.services.progression import ProgressionService
 from server.services.rooms import RoomService
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
-from server.state.peep_locations import PeepLocationRepository
+from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import WorldStateRepository
 from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase, load_test_world
 
@@ -71,7 +71,7 @@ class NpcMovementTestCase(ServiceTestCase):
         self.world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(self.catalog.cards))
         self.world_state = WorldStateRepository(self.hub)
         self.world_state.initialize_world(self.world)
-        self.peep_locations = PeepLocationRepository(self.hub, self.world)
+        self.peep_states = NpcPeepStateRepository(self.hub, self.world)
         self.stats = StatsService(self.hub, self.profiles, self.catalog, self.content, WORLD_ID)
         self.progression = ProgressionService(self.hub, self.profiles, self.stats, self.catalog, self.content, WORLD_ID)
         self.activities = ActivityService(SimpleNamespace(features=frozenset()))
@@ -85,7 +85,7 @@ class NpcMovementTestCase(ServiceTestCase):
             activities=self.activities,
             world=self.world,
             stats=self.stats,
-            peep_locations=self.peep_locations,
+            peep_states=self.peep_states,
         )
 
     def build_dispatcher(self, scripts: BehaviorScripts) -> BehaviorDispatcher:
@@ -108,7 +108,7 @@ class NpcMovementTestCase(ServiceTestCase):
             connections=self.connections,
             scripts=scripts,
             world=self.world,
-            peep_locations=self.peep_locations,
+            peep_states=self.peep_states,
         )
         dialogs.attach_dispatcher(dispatcher)
         return dispatcher
@@ -144,7 +144,7 @@ class RoomServiceMovementTests(NpcMovementTestCase):
     def test_move_npc_persists_and_builds_events(self) -> None:
         result = asyncio.run(self.rooms.move_npc("molly", "exit0"))
         self.assertEqual(result.move.destination_room_id, "foyer")
-        self.assertEqual(self.peep_locations.room_for("molly"), "foyer")
+        self.assertEqual(self.peep_states.room_for("molly"), "foyer")
         self.assertEqual(result.source_event["type"], "peep.leave")
         self.assertEqual(result.destination_event["type"], "peep.enter")
         self.assertEqual(result.destination_event["source_room_id"], "playroom")
@@ -162,7 +162,7 @@ class RoomServiceMovementTests(NpcMovementTestCase):
         root = Path(self.temporary_directory.name)
         reopened = DatabaseHub(root / "profiles.sqlite3", root / "worldstate.sqlite3")
         try:
-            locations = PeepLocationRepository(reopened, self.world)
+            locations = NpcPeepStateRepository(reopened, self.world)
             self.assertEqual(locations.room_for("molly"), "foyer")
         finally:
             reopened.close()
@@ -194,7 +194,7 @@ class DispatcherMovementTests(NpcMovementTestCase):
         result = asyncio.run(
             dispatcher.dispatch(BehaviorEvent(type="tick", actor=PeepRef("npc", None, None), room_id="playroom"))
         )
-        self.assertEqual(self.peep_locations.room_for("molly"), "foyer")
+        self.assertEqual(self.peep_states.room_for("molly"), "foyer")
         self.assertEqual(
             {pending.event["type"] for pending in result.room_broadcasts},
             {"peep.leave", "peep.enter"},
@@ -217,7 +217,7 @@ class DispatcherMovementTests(NpcMovementTestCase):
         result = asyncio.run(
             dispatcher.dispatch(BehaviorEvent(type="tick", actor=PeepRef("npc", None, None), room_id="playroom"))
         )
-        self.assertEqual(self.peep_locations.room_for("molly"), "playroom")
+        self.assertEqual(self.peep_states.room_for("molly"), "playroom")
         self.assertEqual(result.room_broadcasts, [])
 
     def test_tick_routing_follows_moved_peep(self) -> None:
@@ -253,7 +253,7 @@ class DispatcherMovementTests(NpcMovementTestCase):
             )
         finally:
             module.random.random = original
-        self.assertEqual(self.peep_locations.room_for("molly"), "foyer")
+        self.assertEqual(self.peep_states.room_for("molly"), "foyer")
 
 
 class AdminCommandTests(NpcMovementTestCase):
@@ -270,7 +270,7 @@ class AdminCommandTests(NpcMovementTestCase):
             raw_text=".npcgo @peep:molly @way:exit0",
         )
         outcome = asyncio.run(npc_move_command(context, command))
-        self.assertEqual(self.peep_locations.room_for("molly"), "foyer")
+        self.assertEqual(self.peep_states.room_for("molly"), "foyer")
         self.assertEqual(len(outcome.room_broadcasts), 2)
         self.assertTrue(audit.entries)
 

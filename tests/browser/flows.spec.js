@@ -371,13 +371,13 @@ test.describe("core milestone 2 views", () => {
     await expect(window).toHaveCount(0);
   });
 
-  test("emotes view exposes expression, animation, and effects categories", async ({ page, runtime }) => {
+  test("emotes view exposes expression, animation, and cutscene categories", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime);
     await openCore(page, "emotes");
     const panel = page.locator("#panel-layer [role=dialog]");
     await expect(panel.getByRole("button", { name: "Expression", exact: true })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Animation", exact: true })).toBeVisible();
-    await expect(panel.getByRole("button", { name: "Effects", exact: true })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Cutscene", exact: true })).toBeVisible();
   });
 
   test("playing an emote shows an emoji bubble and no toast", async ({ page, runtime }) => {

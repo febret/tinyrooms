@@ -33,7 +33,7 @@ class SellValueTests(CardPricingTestCase):
         cases = {
             "tasty-toast": 1,
             "wave": 1,
-            "starlight": 2,
+            "heart": 1,
             "spirited": 2,
         }
         for card_id, expected in cases.items():
@@ -63,10 +63,10 @@ class SellTransactionTests(CardPricingTestCase):
         self.assertEqual(sum(stack.quantity for stack in stacks), 1)
 
     def test_selling_whole_stack_removes_it(self) -> None:
-        stack_id = self.grant_card(self.account, "starlight", 2, scope="global")
+        stack_id = self.grant_card(self.account, "spirited", 2, scope="global")
         result = self.pricing.sell(self._reload(), stack_id, 2)
         self.assertEqual(result.bops_gained, 4)
-        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "starlight"]
+        stacks = [s for s in self.profiles.list_inventory(self.account.id, WORLD_ID) if s.card_def_id == "spirited"]
         self.assertEqual(stacks, [])
 
     def test_quest_cards_cannot_be_sold(self) -> None:

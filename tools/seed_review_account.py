@@ -42,7 +42,6 @@ SEED_CARDS = (
     "wave",
     "happy-dance",
     "heart",
-    "starlight",
 )
 
 

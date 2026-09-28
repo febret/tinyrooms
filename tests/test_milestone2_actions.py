@@ -115,22 +115,24 @@ class PassiveAndDecorativeTests(ActionsTestCase):
 
 
 class EmoteTests(ActionsTestCase):
-    """Expression, Animation, and Effects emote costs and presentation."""
+    """Expression, Animation, and Cutscene emote costs and presentation."""
 
     def test_emote_costs_by_category(self) -> None:
-        for card_id, cost in (("smile", 1), ("wave", 3), ("starlight", 5)):
+        cases = (("smile", 1, "global"), ("wave", 2, "global"), ("victory-dance", 5, "world"))
+        for card_id, cost, scope in cases:
             with self.subTest(card_id=card_id):
                 account = self.create_account(f"Emote-{card_id}")
-                stack_id = self.grant_card(account, card_id, scope="global")
+                stack_id = self.grant_card(account, card_id, scope=scope)
                 self.set_energy(account, 20)
                 result = self.actions.use_emote(self.reload_account(account), stack_id=stack_id)
                 self.assertAlmostEqual(result.actor.energy, 20 - cost, delta=0.2)
 
-    def test_effects_enter_room_queue(self) -> None:
-        stack_id = self.grant_card(self.alice, "starlight", scope="global")
+    def test_cutscene_emote_returns_a_cutscene(self) -> None:
+        stack_id = self.grant_card(self.alice, "victory-dance", scope="world")
         self.set_energy(self.alice, 20)
         result = self.actions.use_emote(self.reload_account(self.alice), stack_id=stack_id)
-        self.assertIsNotNone(result.room_effect)
+        self.assertEqual(result.cutscene, "victory-dance")
+        self.assertIsNone(result.bubble)
 
     def test_emote_blocked_while_tired(self) -> None:
         stack_id = self.grant_card(self.alice, "smile", scope="global")
