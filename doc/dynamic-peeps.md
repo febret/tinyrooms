@@ -57,12 +57,14 @@ generation failure never degrades gameplay: the worst case is a static peep.
 ### 1.1 Why room-bound matters
 
 `doc/design.md` already constrains peeps to room granularity — peeps have no
-position on the board. The existing runtime bakes each NPC into exactly one
-room at load time (`server/behaviors/loader.py:125-134`), and `PeepDefinition`
-is a frozen dataclass whose `room_id` is a literal string with no persistence
-behind it. Supporting movement would require a world-state schema change, a
-dispatcher routing change, and NPC presence broadcasting. v1 deliberately
-avoids all of that, and R5.6 asserts the invariant with a test.
+position on the board. When this milestone was specified, the runtime baked each
+NPC into exactly one room at load time (`server/behaviors/loader.py:125-134`),
+and `PeepDefinition` was a frozen dataclass whose `room_id` was a literal string
+with no persistence behind it. Movement now exists as a separate feature: the
+`peep_locations` world-state table tracks NPC rooms, `context.move_through`
+moves a peep through an exit, and the dispatcher routes room events by current
+room rather than the authored spawn room. This milestone still treats its
+`dynamic_peeps` overlays as room-bound for authoring purposes.
 
 ---
 
@@ -965,7 +967,8 @@ step 2 so its risk surfaces before the model and dialog work compounds it.
 
 ## 11. Non-goals for v1
 
-- NPC movement and NPC position persistence
+- Dynamic-peep-authored NPC movement and position persistence (a separate
+  authored-behavior feature now provides `move_through` + `peep_locations`)
 - NPC-to-NPC dialog
 - Generated content in `rooms.yaml`, `cards.yaml`, or `props.yaml`
 - Artifact sandboxing beyond the R4.5 import allowlist

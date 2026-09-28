@@ -81,9 +81,13 @@ class BehaviorLoader:
 
     def _resolve_prop(self, world: WorldDefinition, script: str, instance_id: str) -> Path:
         path = (world.root_path / "props" / script).resolve()
-        if not path.is_file():
-            raise ContentError(f"Prop '{instance_id}' references missing behavior script '{script}'.")
-        return path
+        if path.is_file():
+            return path
+        if not script.endswith(".py"):
+            python_path = (world.root_path / "props" / f"{script}.py").resolve()
+            if python_path.is_file():
+                return python_path
+        raise ContentError(f"Prop '{instance_id}' references missing behavior script '{script}'.")
 
     def load_world(self, world: WorldDefinition) -> BehaviorScripts:
         """Import every referenced script and build the attachment maps."""

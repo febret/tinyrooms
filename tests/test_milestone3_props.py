@@ -295,28 +295,6 @@ class PropCommandIntegrationTests(Milestone2IntegrationTestCase):
             self.assertFalse(second["ok"])
             self.assertIn("recharging", second["message"])
 
-    def test_craft_command_opens_bound_activity_and_crafts(self) -> None:
-        credentials = self.create_ready_account("bea")
-        account_id = self.account_id(credentials)
-        poop_id = self.grant_card(account_id, "poop", 2)
-        bag_id = self.grant_card(account_id, "plastic-bag", 1)
-        with self.client.websocket_connect(
-            "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
-        ) as socket:
-            socket.receive_json()
-            for index, exit_id in enumerate(("exit0", "exit0", "kitchen")):
-                self.assertTrue(self.send_command(socket, f"go-{index}", f".go @way:{exit_id}")["ok"])
-            opened = self.send_command(socket, "craft-1", ".craft @prop:workbench0")
-            self.assertTrue(opened["ok"], opened)
-            self.assertEqual(opened["payload"]["activity"]["kind"], "crafting")
-            self.assertEqual(opened["payload"]["activity"]["config"]["prop_instance_id"], "workbench0")
-            preview = self.send_command(socket, "preview-1", ".craft_preview bagged-poop")
-            self.assertTrue(preview["ok"], preview)
-            self.assertEqual(preview["payload"]["preview"]["recipe_id"], "bagged-poop")
-            made = self.send_command(socket, "make-1", f".craft_make bagged-poop {poop_id}:1 {bag_id}:1")
-            self.assertTrue(made["ok"], made)
-            self.assertEqual(made["payload"]["craft"]["outputs"][0]["card_id"], "poop-in-a-bag")
-
 
 if __name__ == "__main__":
     unittest.main()

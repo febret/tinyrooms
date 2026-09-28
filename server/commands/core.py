@@ -668,6 +668,13 @@ def build_registry() -> CommandRegistry:
         help="Consolidate duplicate inventory stacks up to each card's stack limit.",
     )
     registry.register("mute", "Mute a peep's chat.", privileged.mute_command, usage=".mute @peep <minutes>", power="moderator")
+    registry.register(
+        "npcgo",
+        "Move an NPC peep through an exit in its current room.",
+        privileged.npc_move_command,
+        usage=".npcgo @peep:<peep_id> @way:<exit_id>",
+        power="admin",
+    )
     registry.register("own", "Manage room ownership.", privileged.own_command, usage=".own <grant|remove|modify|show> <room_id> [@peep]", power="realtor")
     registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command, usage=".packs")
     registry.register("pickup", "Pick up a room card stack quantity.", pickup_command, usage=".pickup @card:<stack_id> [quantity]")

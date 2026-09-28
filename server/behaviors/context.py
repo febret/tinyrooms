@@ -42,6 +42,11 @@ class BehaviorContext:
         world: Mapping[str, object],
         state: dict[str, object],
         now: datetime,
+        statuses: tuple[str, ...] = (),
+        counters: Mapping[str, object] | None = None,
+        card_ids: tuple[str, ...] = (),
+        equipped_ids: tuple[str, ...] = (),
+        environment: object | None = None,
     ) -> None:
         self.event = event
         self.actor = actor
@@ -50,7 +55,49 @@ class BehaviorContext:
         self.world = world
         self.state = state
         self.now = now
+        self.statuses = statuses
+        self.counters = dict(counters or {})
+        self._card_ids = frozenset(card_ids)
+        self._equipped_ids = frozenset(equipped_ids)
+        self._environment = environment
         self.intents: list[Intent] = []
+
+    def has_status(self, status_id: str) -> bool:
+        """Return whether the acting peep currently has *status_id*."""
+
+        return status_id in self.statuses
+
+    def counter(self, name: str, default: float = 0.0) -> float:
+        """Return one of the acting peep's counter values."""
+
+        try:
+            return float(self.counters.get(name, default))
+        except (TypeError, ValueError):
+            return default
+
+    def has_card(self, card_id: str) -> bool:
+        """Return whether the acting peep owns at least one copy of a card."""
+
+        return card_id in self._card_ids
+
+    def has_equipped_card(self, card_id: str) -> bool:
+        """Return whether the acting peep has a copy of a card equipped."""
+
+        return card_id in self._equipped_ids
+
+    def room_lighting(self) -> str:
+        """Return the acting room's lighting mode."""
+
+        if self._environment is None or self.event.room_id is None:
+            return "normal"
+        return str(self._environment.lighting(self.event.room_id))
+
+    def prop_visible(self, instance_id: str) -> bool:
+        """Return whether a prop instance is currently visible in the room."""
+
+        if self._environment is None or self.event.room_id is None:
+            return True
+        return bool(self._environment.is_prop_visible(self.event.room_id, instance_id))
 
     def _resolve(self, target: PeepRef | PropRef | None) -> PeepRef | PropRef | None:
         return self.actor if target is None else target
@@ -78,6 +125,13 @@ class BehaviorContext:
         payload: dict[str, object] = {"counter": str(counter), "delta": float(delta)}
         payload.update(_target_payload(self._resolve(target)))
         self._append("apply_counter", payload)
+
+    def set_counter(self, counter: str, value: float, *, target: PeepRef | PropRef | None = None) -> None:
+        """Queue an absolute counter value on a peep."""
+
+        payload: dict[str, object] = {"counter": str(counter), "value": float(value)}
+        payload.update(_target_payload(self._resolve(target)))
+        self._append("set_counter", payload)
 
     def apply_buff(
         self,
@@ -123,6 +177,18 @@ class BehaviorContext:
         payload: dict[str, object] = {"card_id": str(card_id), "quantity": int(quantity)}
         payload.update(_target_payload(self._resolve(target)))
         self._append("give_card", payload)
+
+    def remove_card(self, card_id: str, *, target: PeepRef | PropRef | None = None) -> None:
+        """Queue removal of every copy of a card from the target's inventory."""
+
+        payload: dict[str, object] = {"card_id": str(card_id)}
+        payload.update(_target_payload(self._resolve(target)))
+        self._append("remove_card", payload)
+
+    def npc_say(self, text: str, style: str = "expression") -> None:
+        """Queue a speech bubble spoken by the attached NPC peep."""
+
+        self._append("npc_say", {"text": str(text), "style": str(style)})
 
     def start_dialog(self, peep_id: str, node_id: str | None = None) -> None:
         """Queue opening (or refocusing) an NPC dialog."""
@@ -176,6 +242,11 @@ class BehaviorContext:
         """Queue moving the acting peep to another room."""
 
         self._append("request_move", {"room_id": str(room_id)})
+
+    def move_through(self, exit_id: str) -> None:
+        """Queue moving the acting peep through an exit in its current room."""
+
+        self._append("move_through", {"exit_id": str(exit_id)})
 
     def set_environment(self, key: str, value: object, *, target: PropRef | None = None) -> None:
         """Queue a persistent prop environment update (Phase C stub)."""

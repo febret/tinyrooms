@@ -6,7 +6,7 @@ from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.cutscenes import deliver, play_cutscene
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome, PendingRoomBroadcast
 from server.commands.parser import ParsedCommand, parse_target
-from server.services.actions import ActionResult
+from server.services.actions import ActionResult, PropTarget
 
 VALID_FRIEND_ACTIONS = {"add", "accept", "decline", "cancel", "remove"}
 MAX_PINNED_PEEPS = 25
@@ -61,10 +61,13 @@ def _counter_events(context: CommandContext, result: ActionResult) -> list[Pendi
             "target_label": effect.target_label,
             "health_delta": effect.health_delta,
             "energy_delta": effect.energy_delta,
+            "cleanliness_delta": effect.cleanliness_delta,
             "health": effect.health,
             "energy": effect.energy,
+            "cleanliness": effect.cleanliness,
             "max_health": effect.max_health,
             "max_energy": effect.max_energy,
+            "max_cleanliness": effect.max_cleanliness,
             "statuses": list(effect.statuses),
             "card_id": result.card_id,
             "source_id": context.account.id,
@@ -80,7 +83,7 @@ def _action_feedback(context: CommandContext, result: ActionResult) -> list[dict
         {"type": "action.log", "text": result.message, "source": context.account.username_display}
     ]
     for effect in result.effects:
-        if effect.health_delta or effect.energy_delta:
+        if effect.health_delta or effect.energy_delta or effect.cleanliness_delta:
             events.append(
                 {
                     "type": "toast",
@@ -97,9 +100,64 @@ def _user_payload(context: CommandContext) -> dict[str, object]:
     return context.serialize_user(account)
 
 
+def _resolve_prop_target(context: CommandContext, token: str) -> PropTarget:
+    parsed = parse_target(token)
+    if parsed.kind != "prop":
+        raise CommandError("Prop targets must use @prop:<id>.")
+    room_id = context.connection.room_id
+    if room_id is None:
+        raise CommandError("You are not currently in a room.")
+    prop = context.rooms.room_definition(room_id).props.get(parsed.value)
+    if prop is None:
+        raise CommandError("That prop is not in this room.")
+    return PropTarget(instance_id=prop.id, prop_id=prop.prop_id, room_id=room_id)
+
+
+def _require_prop_interaction(context: CommandContext, target: PropTarget) -> None:
+    if context.environment.lighting(target.room_id) == "dark":
+        raise CommandError("It is too dark to make anything out.")
+    if "scared" in context.stats.view(context.account.id).statuses:
+        raise CommandError("You are too scared to touch anything.")
+
+
+def _use_outcome(context: CommandContext, result: ActionResult) -> CommandOutcome:
+    outcome = CommandOutcome(
+        message=result.message,
+        payload={
+            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.inventory],
+            "user": _user_payload(context),
+        },
+        private_events=_action_feedback(context, result),
+        room_broadcasts=_counter_events(context, result),
+    )
+    room_id = context.connection.room_id
+    if result.room_event is not None and room_id is not None:
+        outcome.room_broadcasts.append(
+            PendingRoomBroadcast(room_id=room_id, event=result.room_event)
+        )
+    return outcome
+
+
 async def use_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     target_token = command.args[1] if len(command.args) > 1 else None
+    if target_token is not None and target_token.startswith("@prop:"):
+        room_id = context.connection.room_id
+        if room_id is None:
+            raise CommandError("You are not currently in a room.")
+        prop_target = _resolve_prop_target(context, target_token)
+        _require_prop_interaction(context, prop_target)
+        result = context.actions.use_card(
+            context.account,
+            stack_id=stack_id,
+            target_prop=prop_target,
+            room_id=room_id,
+        )
+        if result.card_id == "vacuum-cleaner":
+            for connection in await context.connections.list_room(room_id):
+                context.stats.remove_source(connection.account_id, "scary")
+        return _use_outcome(context, result)
+
     target_id, target_label, target_is_npc, target_peep_id = await _resolve_target(context, target_token)
     result = context.actions.use_card(
         context.account,
@@ -126,15 +184,7 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                 data={"card_id": result.card_id, "stack_id": stack_id, "target_label": target_label},
             )
         )
-    outcome = CommandOutcome(
-        message=result.message,
-        payload={
-            "inventory": [context.cards.serialize_inventory_stack(stack) for stack in result.inventory],
-            "user": _user_payload(context),
-        },
-        private_events=_action_feedback(context, result),
-        room_broadcasts=_counter_events(context, result),
-    )
+    outcome = _use_outcome(context, result)
     if behavior is not None:
         outcome.private_events.extend(getattr(behavior, "private_events", []))
         outcome.room_broadcasts.extend(getattr(behavior, "room_broadcasts", []))

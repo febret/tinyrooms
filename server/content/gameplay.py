@@ -21,15 +21,17 @@ class StatDefinition:
 
 @dataclass(frozen=True, slots=True)
 class StatusDefinition:
-    """An automatic counter-driven status such as Sick or Tired."""
+    """A status applied by a counter condition or an active named source."""
 
     id: str
     label: str
     description: str
     icon: str
-    applied_when: StatusCondition
-    cleared_when: StatusCondition
+    applied_when: StatusCondition | None
+    cleared_when: StatusCondition | None
     stat_effects: dict[str, float]
+    source: str | None = None
+    disables_prop_actions: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,18 +158,25 @@ def _load_statuses(path: Path) -> dict[str, StatusDefinition]:
         if not isinstance(stats_raw, dict):
             raise ContentError(f"Status '{status_id}' effects.stats must be a mapping.")
         stat_effects = {str(name): float(value) for name, value in stats_raw.items()}
+        raw_source = raw.get("source")
+        source = str(raw_source).strip() if raw_source is not None else None
+        if raw_source is not None and not source:
+            raise ContentError(f"Status '{status_id}' source must be a non-empty string.")
+        counter_driven = source is None
         statuses[status_id] = StatusDefinition(
             id=status_id,
             label=label,
             description=description,
             icon=str(raw.get("icon", "")),
             applied_when=parse_status_condition(
-                raw.get("applied_when"), f"Status '{status_id}' condition", required=True
+                raw.get("applied_when"), f"Status '{status_id}' condition", required=counter_driven
             ),
             cleared_when=parse_status_condition(
-                raw.get("cleared_when"), f"Status '{status_id}' condition", required=True
+                raw.get("cleared_when"), f"Status '{status_id}' condition", required=counter_driven
             ),
             stat_effects=stat_effects,
+            source=source,
+            disables_prop_actions=bool(raw.get("disables_prop_actions", False)),
         )
     return statuses
 

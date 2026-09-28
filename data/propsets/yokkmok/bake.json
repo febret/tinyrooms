@@ -1,7 +1,7 @@
 [
   {"label": "koivu-dining-chair", "tool": "asset", "prompt": "a simple Scandinavian birch dining chair with a plain white seat, minimal nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/koivu-dining-chair.glb", "args": {"seed": 2001, "faces": 500}},
   {"label": "pouta-sofa", "tool": "asset", "prompt": "a minimal light-grey two-seat sofa on pale wooden legs, simple nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/pouta-sofa.glb", "args": {"seed": 2002, "faces": 500}},
-  {"label": "aalto-stool", "tool": "asset", "prompt": "a round stackable birch stool with a plain seat, simple nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/aalto-stool.glb", "args": {"seed": 2003, "faces": 500}},
+  {"label": "aalto-stool", "tool": "asset", "prompt": "a round plastic stool with a plain seat, simple nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/aalto-stool.glb", "args": {"seed": 2003, "faces": 500}},
   {"label": "lumi-bed", "tool": "asset", "prompt": "a low white platform bed with a pale pine frame and plain bedding, simple nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/lumi-bed.glb", "args": {"seed": 2004, "faces": 500}},
   {"label": "sade-desk", "tool": "asset", "prompt": "a simple white desk on angled light wooden legs, minimal nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/sade-desk.glb", "args": {"seed": 2005, "faces": 500}},
   {"label": "kuusi-wall-shelf", "tool": "asset", "prompt": "a plain pine wall shelf with two white brackets, minimal nordic design", "output": "C:/workspace/tinyrooms-noon/data/propsets/yokkmok/kuusi-wall-shelf.glb", "args": {"seed": 2006, "faces": 500}},

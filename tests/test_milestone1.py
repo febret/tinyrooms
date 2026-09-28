@@ -235,7 +235,6 @@ class ContentPersistenceTests(unittest.TestCase):
         catalog = load_card_catalog(REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "tutorial")
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial", set(catalog.cards))
         self.assertEqual(world.peeps["molly"].activity, "lazor-rush")
-        self.assertEqual(world.rooms["kitchen"].props["workbench0"].activity, "crafting")
         self.assertEqual(world.activities["lazor-rush"].title, "Lazor Rush")
         self.assertTrue(world.activities["lazor-rush"].room_bound)
         self.assertEqual(world.activities["dev-sample"].aliases, ("sample",))

@@ -141,7 +141,7 @@ function connectSocket() {
         return;
       }
       store.dispatch({ type: "room-event", event: envelope.event });
-      if (["presence.enter", "presence.leave"].includes(envelope.event?.type)) {
+      if (["presence.enter", "presence.leave", "peep.enter", "peep.leave"].includes(envelope.event?.type)) {
         peeps.noteMove(envelope.event);
         socket?.requestSnapshot();
       } else if (envelope.event?.type === "room.environment") {
@@ -986,7 +986,15 @@ const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
   onSelect(selection) {
     const state = store.getState();
-    if (state.views.main || state.views.details || state.ui.targeting || dialogs.active || !state.user?.initialStickerComplete) return;
+    if (state.views.main || state.views.details || dialogs.active || !state.user?.initialStickerComplete) return;
+    if (state.ui.targeting) {
+      if (selection.kind === "prop") {
+        const stackId = state.ui.targeting.stackId;
+        store.dispatch({ type: "cancel-targeting" });
+        void sendCommand(`.use @card:${stackId} @prop:${selection.id}`).catch(showError);
+      }
+      return;
+    }
     if (activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
     playTone("flip");

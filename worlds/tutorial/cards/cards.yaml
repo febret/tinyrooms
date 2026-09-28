@@ -14,8 +14,8 @@ fancy-wallet:
   image: fancy-wallet.webp
   decorative: true
 hand-light:
-  label: Hand Light
-  description: Use in the basement to light it for 30 minutes. One use.
+  label: Flashlight
+  description: Use in a dark room to light it for 10 minutes. One use.
   image: hand-light.webp
   type: item
   stack_limit: 10
@@ -23,7 +23,7 @@ hand-light:
   energy_cost: 0
   target: room
   effect: light
-  duration: 1800
+  duration: 600
 juicy-drink:
   label: Juicy Drink
   description: Restore 25 Energy, even when Tired. Free to use on yourself.
@@ -53,15 +53,22 @@ poop-in-a-bag:
   stack_limit: 10
 poop:
   label: Poop
-  description: A piece of poop
+  description: A piece of poop. Holding it is a messy business.
   image: poop.webp
   stack_limit: 10
+  soils: true
 pooper-scooper:
   label: Pooper Scooper
-  description: A reusable scoop for Molly's litter tray. Supplies are in the utility room.
+  description: Equip it, then use it on Molly's litter tray. A plastic bag is equipped? The mess gets bagged.
   image: pooper-scooper.webp
   one_use: false
+  energy_cost: 0
   target: prop
+  effect: scoop
+  target_prop: litter-tray
+  consume_card: plastic-bag
+  output_card: poop
+  bagged_output_card: poop-in-a-bag
 seal-plushie:
   label: Seal Plushie
   description: A cute seal plushie, not stinky at all.
@@ -101,15 +108,19 @@ house-key:
   target: prop
 vacuum-cleaner:
   label: Vacuum Cleaner
-  description: A cheerful little vacuum for the basement centipedes. Reusable.
+  description: A cheerful little vacuum. Equip it, then use it on the basement centipedes. Reusable.
   image: vacuum-cleaner.webp
   type: item
   rarity: Common
   stack_limit: 1
   one_use: false
+  energy_cost: 0
   quest: true
   effect: vacuum
   target: prop
+  target_prop: centipedes
+  hide_seconds: 3600
+  clears_source: scary
 
 # Cutscene emote: playing it broadcasts a scripted cutscene to the room.
 victory-dance:

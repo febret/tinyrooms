@@ -229,10 +229,10 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
 
   function noteMove(event) {
     if (!latest?.user || !latest.room) return;
-    const accountId = String(event?.account_id || "");
-    if (!accountId || accountId === latest.user.id) return;
-    const kind = event.type === "presence.leave" ? "leave" : "enter";
-    const label = String(event.username || "Peep");
+    const peepId = String(event?.peep_id || event?.account_id || "");
+    if (!peepId || peepId === latest.user.id) return;
+    const kind = String(event.type || "").endsWith("leave") ? "leave" : "enter";
+    const label = String(event.label || event.username || "Peep");
     const otherRoomId = kind === "leave"
       ? String(event.destination_room_id || "")
       : String(event.source_room_id || "");
@@ -244,7 +244,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       ? (direction ? `${label} went ${lowerFirst(direction)}` : `${label} left`)
       : (direction ? `${label} came from ${direction}` : `${label} arrived`);
     pendingMoves.push({
-      peepId: accountId,
+      peepId,
       kind,
       text,
       command: exit ? `.go ${exit.id}` : "",

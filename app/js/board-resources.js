@@ -24,6 +24,16 @@ export const GHOST_MATERIAL = new THREE.MeshStandardMaterial({
   metalness: 0,
 });
 
+// Unlit-looking silhouette used for props in a dark room: shapes stay readable
+// as outlines against the lit floor while surface detail disappears.
+export const DARK_MATERIAL = new THREE.MeshStandardMaterial({
+  color: "#0c1216",
+  roughness: 1,
+  metalness: 0,
+  emissive: "#04070a",
+  emissiveIntensity: 0.4,
+});
+
 const resources = {
   geometries: new Map(),
   materials: new Map(),
@@ -193,6 +203,47 @@ export function applyFloorImageStyle(map, style) {
   map.wrapT = repeat.wrapHeight ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
   map.repeat.set(repeat.repeatX, repeat.repeatY);
   map.needsUpdate = true;
+}
+
+/**
+ * Apply a record's current material override.
+ *
+ * Ghosting (editor drags) and darkening (unlit rooms) both replace every mesh
+ * material, so they share one override slot: the dark silhouette wins in a dark
+ * room, otherwise the ghost look applies while dragging. `record` owns `model`,
+ * `ghosted`, `darkened`, `materials` and `override`.
+ */
+function applyMaterialOverride(record) {
+  const override = record.darkened ? DARK_MATERIAL : (record.ghosted ? GHOST_MATERIAL : null);
+  if (record.override === override) return;
+  if (record.materials) {
+    for (const [node, original] of record.materials) node.material = original;
+    record.materials = null;
+  }
+  record.override = override;
+  if (override && record.model) {
+    record.materials = [];
+    record.model.traverse(node => {
+      if (node.isMesh && node.material) {
+        record.materials.push([node, node.material]);
+        node.material = override;
+      }
+    });
+  }
+}
+
+/** Swap a loaded model's materials for the gray ghost look, or restore the originals. */
+export function setGhosted(record, ghosted) {
+  if (record.ghosted === ghosted) return;
+  record.ghosted = ghosted;
+  applyMaterialOverride(record);
+}
+
+/** Swap a loaded model's materials for the dark silhouette, or restore the originals. */
+export function setDarkened(record, darkened) {
+  if (record.darkened === darkened) return;
+  record.darkened = darkened;
+  applyMaterialOverride(record);
 }
 
 export function unavailableMarker(parent) {

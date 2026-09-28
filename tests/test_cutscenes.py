@@ -333,7 +333,10 @@ class CutsceneResolutionTests(CutsceneServiceTestCase):
 
     def test_visible_catalog_filters_rooms(self) -> None:
         entries = self.cutscenes.visible_catalog(room_id="hub")
-        self.assertEqual({entry["id"] for entry in entries}, {"molly-greet", "victory-dance"})
+        self.assertEqual(
+            {entry["id"] for entry in entries},
+            {"molly-greet", "tutorial-end", "victory-dance"},
+        )
         for entry in entries:
             self.assertNotIn("script_url", entry)
 
@@ -612,7 +615,10 @@ class CutsceneCommandTests(Milestone2IntegrationTestCase):
         response = self.client.get("/api/cutscenes", cookies=auth_cookies(**credentials))
         self.assertEqual(response.status_code, 200, response.text)
         entries = response.json()["cutscenes"]
-        self.assertEqual({entry["id"] for entry in entries}, {"molly-greet", "victory-dance"})
+        self.assertEqual(
+            {entry["id"] for entry in entries},
+            {"molly-greet", "tutorial-end", "victory-dance"},
+        )
         for entry in entries:
             self.assertNotIn("script_url", entry)
 

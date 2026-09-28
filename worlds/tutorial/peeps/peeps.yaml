@@ -38,13 +38,13 @@ caretaker:
         - {label: Meeting peeps, next: friends}
         - {label: Make it my own, next: room}
     chores:
-      text: Supplies and a vacuum are behind the kitchen. Clean the bathroom litter tray, light the basement, and vacuum the little bugs. The spare front-door key is downstairs.
+      text: Supplies and a vacuum are behind the kitchen. Equip a pooper scooper and use it on the bathroom litter tray; bring a plastic bag to bag the mess. Light the dark basement with a flashlight, vacuum the centipedes, then take the key from the cabinet and leave by the front door.
       choices: [{label: "And then?", next: clean}, {label: Back, next: start}]
     clean:
-      text: Equip a Hand Light and use it in the basement; one lasts thirty minutes. Grab another from supplies if you need it. A bathroom shower restores your Cleanliness.
+      text: Equip a Flashlight and use it in a dark room; one lasts ten minutes. Grab another from supplies if you need it. A bathroom shower restores your Cleanliness, but not while you are holding poop.
       choices: [{label: Back, next: start}]
     cards:
-      text: Room shows cards on the floor. Pick one up, equip it in Inventory, or drop it for someone else. Choose Craft at the kitchen table and select one Poop and one Plastic Bag from your Inventory.
+      text: Room shows cards on the floor. Pick one up, equip it in Inventory, or drop it for someone else. Some tools are used on a prop; select the tool, choose Use on…, then click the prop.
       choices: [{label: About packs, next: packs}, {label: Back, next: start}]
     packs:
       text: Claim daily Bops in Self. The Hub shop sells Base and Tutorial packs for 10 Bops. Three independent cards; duplicates are possible. Useful task tools never require a lucky pack.

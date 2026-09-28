@@ -324,9 +324,14 @@ function inventoryStackActions(stack) {
   } else if (type === "item" || type === "action") {
     if (stack.equipped) {
       if (!definition.passive && !definition.decorative) {
-        actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
-        if ((definition.target || "") === "peep") {
-          actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "positive" });
+        const targetKind = definition.target || "";
+        if (targetKind === "prop") {
+          actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "primary" });
+        } else {
+          actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
+          if (targetKind === "peep") {
+            actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "positive" });
+          }
         }
       }
       actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });

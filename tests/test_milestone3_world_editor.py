@@ -260,7 +260,6 @@ class CardDatabaseTests(WorldEditorServiceTestCase):
         payload = service.payload()
         self.assertTrue(payload["cards"])
         self.assertTrue(payload["packs"])
-        self.assertTrue(any(recipe["id"] == "bagged-poop" for recipe in payload["recipes"]))
         self.assertIsInstance(payload["errors"], list)
         card = payload["cards"][0]
         for forbidden in ("inventory", "equipped", "grant", "quantity"):

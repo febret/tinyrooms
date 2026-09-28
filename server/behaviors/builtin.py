@@ -9,14 +9,9 @@ from __future__ import annotations
 
 
 BUILTIN_BEHAVIORS: dict[str, str] = {
-    "centipedes": "builtin:centipedes",
     "crafting": "builtin:crafting",
     "dispenser": "builtin:dispenser",
-    "key": "builtin:key",
-    "litter": "builtin:litter",
     "locked-door": "builtin:locked-door",
-    "shower": "builtin:shower",
     "shop": "builtin:shop",
     "supplies": "builtin:supplies",
-    "vacuum": "builtin:vacuum",
 }

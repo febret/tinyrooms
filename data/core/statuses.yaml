@@ -27,3 +27,10 @@ tired:
   applied_when: { counter: energy, at_or_below: 0 }
   cleared_when: { counter: energy, at_or_above_fraction: 0.1 }
   effects: {}
+scared:
+  label: Scared
+  description: Something in the room has this peep spooked.
+  icon: "😱"
+  source: scary
+  disables_prop_actions: true
+  effects: {}

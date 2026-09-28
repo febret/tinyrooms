@@ -82,6 +82,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Cutscene client | `app/js/cutscenes/`, `app/css/cutscenes.css` | Client-side cutscene queue, playback state machine, frame types, and the stage API cutscene code programs against. |
 | Mod loader | `server/mods.py` | Discovers `mods/<id>/mod.yaml`, validates `TRSERVER_MODS`, merges mod content/props/activities, registers mod commands + runtime state. |
 | Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
+| NPC movement | `server/services/npc_movement.py`, `server/state/peep_locations.py` | Exit-validated NPC room changes (`npc_barrier`/locked rules) plus persisted peep locations. |
 | Bedroom mod | `mods/infinite-bedrooms/` | Player-room purchase/materialization, door locking, customization, access checks, and the Bedrooms activity. |
 | Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
 | Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
@@ -223,7 +224,9 @@ re-auth on generation mismatch (one gameplay session per account).
 - Room broadcasts are ordered in-process (no sequence counter). Join: private
   `room.snapshot` → broadcast `presence.enter` to others. `.go`: private dest
   snapshot + `presence.leave` (old) + `presence.enter` (new). Chat/pickup/drop:
-  one broadcast.
+  one broadcast. An NPC room change broadcasts `peep.leave` to the old room and
+  `peep.enter` to the new room; clients treat both like presence changes and
+  request a fresh snapshot.
 - The client sends `snapshot.request` when it needs a fresh snapshot (on
   reconnect, after a presence change, or on manual refresh); the server replies
   with a full `room.snapshot`.

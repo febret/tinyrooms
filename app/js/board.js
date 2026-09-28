@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import {
-  applyFloorImageStyle, box, floorKey, GHOST_MATERIAL, makeFloor, material, rememberTexture,
-  sharedCardMaterial, sharedTexture, shareModelTextures, unavailableMarker,
+  applyFloorImageStyle, box, floorKey, makeFloor, material, rememberTexture,
+  setDarkened, setGhosted, sharedCardMaterial, sharedTexture, shareModelTextures, unavailableMarker,
 } from "./board-resources.js";
 import {
   boardPosition,
@@ -168,6 +168,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let editDrag = null;
   let orbitSuppressed = false;
   let reducedMotion = false;
+  let roomDark = false;
   let userAdjusted = false;
   let width = 0;
   let height = 0;
@@ -465,30 +466,13 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     invalidate();
   }
 
-  /** Swap a loaded model's materials for the gray ghost look, or restore the originals. */
-  function setGhosted(record, ghosted) {
-    if (!record.model || record.ghosted === ghosted) return;
-    record.ghosted = ghosted;
-    if (ghosted) {
-      record.materials = [];
-      record.model.traverse(node => {
-        if (node.isMesh && node.material) {
-          record.materials.push([node, node.material]);
-          node.material = GHOST_MATERIAL;
-        }
-      });
-    } else if (record.materials) {
-      for (const [node, original] of record.materials) node.material = original;
-      record.materials = null;
-    }
-  }
-
   /** Release a prop model's per-instance geometry and materials, keeping shared textures. */
   function disposePropRecord(record) {
     stopRecordAnimations(record);
     record.effectController?.dispose();
     record.effectController = null;
     setGhosted(record, false);
+    setDarkened(record, false);
     disposeBoardTree([record.group, ...(record.scenes || [])], { textures: false });
   }
 
@@ -531,7 +515,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     const record = {
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
       model: null, clips: [], animation: prop.animation || "", mixers: [], animTimers: [], scenes: [],
-      target: group.position.clone(), ghosted: false, materials: null,
+      target: group.position.clone(), ghosted: false, darkened: false, override: null, materials: null,
       effectController: null, effectKey: "",
     };
     entry.props.set(prop.id, record);
@@ -576,6 +560,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       record.clips = gltf.animations || [];
       record.scenes = gltf.scenes || [model];
       setGhosted(record, Boolean(record.prop.ghost));
+      setDarkened(record, roomDark);
       playPropAnimation(entry, record, record.prop, model, record.clips);
       buildRecordEffects(record, record.prop, model, bounds, visual);
       entry.pending -= 1;
@@ -614,6 +599,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     record.group.rotation.set(...(prop.rotation || [0, 0, 0]));
     record.group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
     setGhosted(record, Boolean(prop.ghost));
+    setDarkened(record, roomDark);
     setRecordTarget(record, prop.position);
     if (propEffectKey(prop) !== record.effectKey) {
       if (record.model && record.visual && record.bounds) {
@@ -950,7 +936,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
-    const owner = pickOwner(current?.pickables || [], "kind");
+    let owner = pickOwner(current?.pickables || [], "kind");
+    // Props in a dark room cannot be interacted with, so they never take a click.
+    if (owner?.userData.kind === "prop" && roomDark) owner = null;
     if (owner) {
       onSelect({ kind: owner.userData.kind, id: owner.userData.id });
       return;
@@ -1144,11 +1132,13 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         }
         return;
       }
+      roomDark = Boolean(state.room.board?.dark);
       if (!current || roomId !== state.room.id) {
         rebuild(state.room);
       } else {
         syncRoom(state.room);
       }
+      for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
       const elevation = editEnabled && editSelectionId
         ? String(current?.props.get(editSelectionId)?.prop?.position?.[2] ?? 0)
