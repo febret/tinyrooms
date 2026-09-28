@@ -167,6 +167,37 @@ class StatsService:
                     continue
         return tuple(modifiers)
 
+    def _active_sources(self, profile: UserProfileRecord) -> set[str]:
+        """Return the set of named sources currently contributing to the peep."""
+
+        raw = profile.buffs.get("sources") if isinstance(profile.buffs, dict) else None
+        return set(raw) if isinstance(raw, dict) else set()
+
+    def _status_immunities(self, profile: UserProfileRecord) -> frozenset[str]:
+        """Return statuses the peep is immune to.
+
+        A future "brave" skill can contribute immunity here without changing the
+        status pipeline: the room aura and the status it applies stay separate.
+        """
+
+        del profile
+        return frozenset()
+
+    def external_statuses(self, profile: UserProfileRecord) -> tuple[str, ...]:
+        """Return source-driven statuses currently active for *profile*."""
+
+        sources = self._active_sources(profile)
+        if not sources:
+            return ()
+        immunities = self._status_immunities(profile)
+        return tuple(
+            status_id
+            for status_id, definition in self._content.statuses.items()
+            if definition.source is not None
+            and definition.source in sources
+            and status_id not in immunities
+        )
+
     def collect_modifiers(
         self,
         account_id: str,
@@ -231,6 +262,7 @@ class StatsService:
             counters={**counters, "energy": current_energy},
             previous_statuses=profile.active_statuses,
             modifiers=modifiers,
+            external_statuses=self.external_statuses(profile),
         )
 
     def _recharge_energy(
@@ -457,6 +489,7 @@ class StatsService:
             counters={**counters, "energy": energy},
             previous_statuses=snapshot.statuses,
             modifiers=modifiers,
+            external_statuses=self.external_statuses(profile),
         )
         health = clamp_counter(health, state.max_health)
         cleanliness = clamp_counter(cleanliness, state.max_cleanliness)

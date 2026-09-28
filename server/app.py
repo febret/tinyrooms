@@ -104,6 +104,7 @@ from server.services.stickers import (
 from server.services.tasks import TaskService
 from server.services.world_editor import WorldEditorService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
+from server.state.peep_locations import PeepLocationRepository
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 
 
@@ -471,17 +472,17 @@ def _build_runtime(
     activity_results = ActivityResultService(
         hub, profiles, stats, progression, tasks, world.id, world.activities
     )
-    actions = ActionsService(hub, profiles, stats, catalog, world.id)
+    environment = EnvironmentService(hub, world, world_state)
+    actions = ActionsService(hub, profiles, stats, catalog, world.id, environment=environment)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
     audit = AuditService(hub, world.id)
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
-    environment = EnvironmentService(hub, world, world_state)
     room_effects = RoomEffectService()
     layout = RoomLayoutService(hub, world, world_state, ownership, environment, prop_shop, room_effects)
-    auras = AuraService(hub, stats, world)
+    auras = AuraService(hub, stats, world, environment=environment)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
     registry = build_registry()
@@ -496,6 +497,7 @@ def _build_runtime(
             toast=spec["toast"],
             log=spec["log"],
         )
+    peep_locations = PeepLocationRepository(hub, world)
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -510,6 +512,7 @@ def _build_runtime(
         auras=auras,
         layout=layout,
         room_effects=room_effects,
+        peep_locations=peep_locations,
     )
     dialogs = DialogService(
         hub=hub,
@@ -535,6 +538,7 @@ def _build_runtime(
         world=world,
         tasks=tasks,
         environment=environment,
+        peep_locations=peep_locations,
     )
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)

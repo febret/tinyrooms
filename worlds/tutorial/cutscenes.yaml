@@ -13,3 +13,18 @@ molly-greet:
   text:
     - {at: 350, speaker: Molly, say: "Purrrr."}
     - {at: 2100, speaker: Molly, say: "$me, you again? Good."}
+tutorial-end:
+  title: Tutorial Complete
+  script: tutorial-end.js
+  frame: movie
+  duration: 5600
+  audience: private
+  room_bound: true
+  aliases: [tutorial-complete, end]
+  max_queue: 1
+  params:
+    stage_background: "#1d2b3a"
+    caption_color: "#f7f5ed"
+  text:
+    - {at: 400, speaker: Pip, say: "You did it!"}
+    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!"}

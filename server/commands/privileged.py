@@ -132,6 +132,39 @@ async def reload_world_command(context: CommandContext, command: ParsedCommand) 
     )
 
 
+async def npc_move_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Admin command: move an NPC peep through an exit in its current room."""
+
+    if len(command.args) < 2:
+        raise CommandError("Use '.npcgo @peep:<peep_id> @way:<exit_id>'.")
+    peep_id = parse_target(command.args[0]).value if command.args[0].startswith("@") else command.args[0]
+    if peep_id not in context.rooms.world.peeps:
+        raise CommandError("That peep does not exist.")
+    exit_id = parse_target(command.args[1]).value if command.args[1].startswith("@") else command.args[1]
+    try:
+        result = await context.rooms.move_npc(peep_id, exit_id)
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    context.audit.safe_record(
+        context.account.id,
+        "admin.npc_move",
+        peep_id,
+        "ok",
+        {"exit_id": exit_id, "room_id": result.move.destination_room_id},
+    )
+    outcome = CommandOutcome(
+        message=f"{result.move.label} moved to {result.move.destination_room_id}.",
+        payload={"peep_id": peep_id, "room_id": result.move.destination_room_id},
+    )
+    outcome.room_broadcasts.append(
+        PendingRoomBroadcast(room_id=result.move.source_room_id, event=result.source_event)
+    )
+    outcome.room_broadcasts.append(
+        PendingRoomBroadcast(room_id=result.move.destination_room_id, event=result.destination_event)
+    )
+    return outcome
+
+
 async def mute_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     """Moderator mute command."""
 

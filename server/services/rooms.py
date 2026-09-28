@@ -8,11 +8,19 @@ from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
 from server.profiles import AccountRecord, ProfileRepository
-from server.protocol import MAX_CHAT_SIZE, presence_enter_event, presence_leave_event
+from server.protocol import (
+    MAX_CHAT_SIZE,
+    peep_enter_event,
+    peep_leave_event,
+    presence_enter_event,
+    presence_leave_event,
+)
 from server.services.activities import ActivityService
 from server.services.cards import CardService
+from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
+from server.state.peep_locations import PeepLocationRepository
 from server.state.world_state import WorldStateRepository
 
 
@@ -30,6 +38,15 @@ class NavigationResult:
     destination_event: dict[str, object]
     closed_activity: dict[str, object] | None
     behavior_results: list[object] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class NpcMoveResult:
+    """Outcome of moving an NPC peep between rooms."""
+
+    move: NpcMove
+    source_event: dict[str, object]
+    destination_event: dict[str, object]
 
 
 class RoomService:
@@ -53,6 +70,7 @@ class RoomService:
         auras: object | None = None,
         layout: object | None = None,
         room_effects: object | None = None,
+        peep_locations: PeepLocationRepository | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -62,6 +80,7 @@ class RoomService:
         self._activities = activities
         self._world = world
         self._stats = stats
+        self._peep_locations = peep_locations
         self._allowed_verbs = set(command_verbs or ()) | BASE_QUICK_COMMANDS
         self._behaviors: object | None = None
         self._dialogs: object | None = None
@@ -226,9 +245,14 @@ class RoomService:
             return list(room.props.values())
         return self._layout.effective_props(room.id)
 
-    def _visible_props(self, room: RoomDefinition) -> list[PropInstanceDefinition]:
+    def _visible_props(self, room: RoomDefinition, *, dark: bool = False) -> list[PropInstanceDefinition]:
         props = self._effective_props(room)
-        visible = [prop for prop in props if not self._world.props[prop.prop_id].hidden]
+        visible = [
+            prop
+            for prop in props
+            if not self._world.props[prop.prop_id].hidden
+            and not (dark and self._world.props[prop.prop_id].requires_light)
+        ]
         if self._environment is None:
             return visible
         return [
@@ -277,18 +301,28 @@ class RoomService:
             {"label": "Add Friend", "command": f".friend add @peep:{account.id}"},
         ]
 
+    def peep_room(self, peep: PeepDefinition) -> str:
+        """Return the peep's current room, falling back to its spawn room."""
+
+        if self._peep_locations is not None:
+            current = self._peep_locations.room_for(peep.id)
+            if current in self._world.rooms:
+                return current
+        return peep.room_id
+
     def _room_peeps(self, room_id: str) -> list[dict[str, object]]:
         peeps: list[dict[str, object]] = []
         for peep in self._world.peeps.values():
-            if peep.room_id != room_id:
+            if self.peep_room(peep) != room_id:
                 continue
-            peeps.append(self.serialize_npc(peep))
+            peeps.append(self.serialize_npc(peep, room_id))
         return peeps
 
-    def serialize_npc(self, peep: PeepDefinition) -> dict[str, object]:
-        """Serialize a static NPC definition with its authored actions."""
+    def serialize_npc(self, peep: PeepDefinition, room_id: str | None = None) -> dict[str, object]:
+        """Serialize an NPC definition with the actions available in its room."""
 
-        room = self._world.rooms.get(peep.room_id)
+        resolved_room_id = room_id if room_id is not None else self.peep_room(peep)
+        room = self._world.rooms.get(resolved_room_id)
         quick_actions = self._visible_prop_actions(room, peep.actions) if room is not None else []
         quick_actions.append({"label": "Look", "command": f".look @peep:{peep.id}"})
         return {
@@ -296,9 +330,42 @@ class RoomService:
             "kind": "npc",
             "label": peep.label,
             "description": peep.description,
+            "room_id": resolved_room_id,
             "image_url": f"/assets/world/{self._world.id}/peeps/{peep.image_name}",
             "quick_actions": quick_actions,
         }
+
+    async def move_npc(self, peep_id: str, exit_id: str) -> NpcMoveResult:
+        """Move an NPC through an authored exit and return its room events."""
+
+        peep = self._world.peeps.get(peep_id)
+        if peep is None:
+            raise ValueError("That peep does not exist.")
+        if self._peep_locations is None:
+            raise ValueError("NPC movement is unavailable.")
+        source_room_id = self.peep_room(peep)
+        move = resolve_npc_move(self._world, peep, source_room_id, exit_id)
+        with self._hub.transaction() as connection:
+            self._peep_locations.set_in_transaction(connection, peep_id, move.destination_room_id)
+        self._peep_locations.record(peep_id, move.destination_room_id)
+        source_room = self._world.rooms[move.source_room_id]
+        return NpcMoveResult(
+            move=move,
+            source_event=peep_leave_event(
+                peep_id=peep.id,
+                label=peep.label,
+                room_id=move.source_room_id,
+                destination_room_id=move.destination_room_id,
+                direction=move.direction,
+            ),
+            destination_event=peep_enter_event(
+                peep_id=peep.id,
+                label=peep.label,
+                room_id=move.destination_room_id,
+                source_room_id=move.source_room_id,
+                source_room_label=source_room.label,
+            ),
+        )
 
     def _serialize_exit(self, exit_definition: ExitDefinition) -> dict[str, object]:
         return {
@@ -307,34 +374,46 @@ class RoomService:
             "target_room_id": exit_definition.target_room_id,
             "locked": exit_definition.locked,
             "requires_card_id": exit_definition.requires_card_id,
+            "npc_barrier": exit_definition.npc_barrier,
             "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
         }
 
-    def _serialize_prop(self, account: AccountRecord, room: RoomDefinition, prop: PropInstanceDefinition) -> dict[str, object]:
+    def _serialize_prop(
+        self,
+        account: AccountRecord,
+        room: RoomDefinition,
+        prop: PropInstanceDefinition,
+        *,
+        dark: bool = False,
+        disable_actions: bool = False,
+    ) -> dict[str, object]:
         prop_definition = self._world.props[prop.prop_id]
         animation = prop.animation if prop.animation is not None else prop_definition.animation
-        quick_actions = self._visible_prop_actions(room, prop.actions)
-        for state in self._mod_states:
-            personal_actions = getattr(state, "personal_actions", None)
-            if personal_actions is None:
-                continue
-            personal = personal_actions(account, prop)
-            if personal:
-                quick_actions = quick_actions + self._visible_prop_actions(room, tuple(personal))
+        if dark or disable_actions:
+            quick_actions: list[dict[str, object]] = []
+        else:
+            quick_actions = self._visible_prop_actions(room, prop.actions)
+            for state in self._mod_states:
+                personal_actions = getattr(state, "personal_actions", None)
+                if personal_actions is None:
+                    continue
+                personal = personal_actions(account, prop)
+                if personal:
+                    quick_actions = quick_actions + self._visible_prop_actions(room, tuple(personal))
         return {
             "id": prop.id,
             "prop_id": prop.prop_id,
             "position": list(prop.pos),
             "rotation": list(prop.rot),
             "scale": prop.scale * prop_definition.scale,
-            "behavior": prop.behavior,
+            "behavior": None if dark else prop.behavior,
             "model_url": prop_model_url(self._world.id, prop_definition),
-            "label": prop_definition.label,
-            "description": prop_definition.description,
+            "label": "Something in the dark" if dark else prop_definition.label,
+            "description": "" if dark else prop_definition.description,
             "animation": animation,
             "quick_actions": quick_actions,
-            "effect_sets": self._effect_sets_payload(prop_definition),
-            "active_effect": self._active_effect(room.id, prop.id, prop_definition),
+            "effect_sets": {} if dark else self._effect_sets_payload(prop_definition),
+            "active_effect": None if dark else self._active_effect(room.id, prop.id, prop_definition),
         }
 
     async def build_snapshot(
@@ -375,8 +454,16 @@ class RoomService:
         environment_revision = 0
         if self._environment is not None:
             environment, environment_revision = self._environment.snapshot(room_id)
-        lighting = environment.get("lighting")
-        dark = lighting == "dark" if lighting in {"normal", "dark"} else room.dark
+            dark = self._environment.lighting(room_id) == "dark"
+        else:
+            dark = room.dark
+        viewer_view = occupant_views.get(account.id)
+        viewer_statuses = viewer_view.statuses if viewer_view is not None else ()
+        status_definitions = self._stats.content.statuses
+        disable_prop_actions = any(
+            getattr(status_definitions.get(status_id), "disables_prop_actions", False)
+            for status_id in viewer_statuses
+        )
         board_palette = list(room.palette)
         board_style = room.board_image_style
         layout_revision = environment_revision
@@ -402,7 +489,10 @@ class RoomService:
             "environment": environment,
             "environment_revision": environment_revision,
             "exits": visible_exits,
-            "props": [self._serialize_prop(account, room, prop) for prop in self._visible_props(room)],
+            "props": [
+                self._serialize_prop(account, room, prop, dark=dark, disable_actions=disable_prop_actions)
+                for prop in self._visible_props(room, dark=dark)
+            ],
             "occupants": occupants,
             "npcs": self._room_peeps(room_id),
             "room_cards": [self._card_service.serialize_room_stack(stack) for stack in room_cards],

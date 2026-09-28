@@ -28,7 +28,7 @@ Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, v
 
 ## Code Conventions
 
-- **Python**: Type hints on all public functions. First-party source files kept under 1200 lines per codebase rule (static check). No inline comments unless necessary to explain tricky logic. Imports: standard library, third-party, then local `server.*` — ordered groups separated by blank line. Use `from __future__ import annotations` at the top of every Python file.
+- **Python**: Type hints on all public functions. First-party source files kept under 1200 lines per codebase rule (static check), split them if they grow larger than this. No inline comments unless necessary to explain tricky logic. Imports: standard library, third-party, then local `server.*` — ordered groups separated by blank line. Use `from __future__ import annotations` at the top of every Python file.
 - **JavaScript**: Vanilla ES modules (`"type": "module"` in package.json). No build step for app code; only Three.js is version-pinned and Playwright is dev-only.
 - **YAML**: World definitions are authored as human-readable YAML files under `worlds/` and `data/`. Never edit these by hand without validating structure against the content loaders in `server/content/`.
 - **Naming**: Keep classes, modules, and functions descriptive. Avoid abbreviations beyond established ones (e.g. `peep`, `prop`).

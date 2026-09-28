@@ -56,15 +56,22 @@ def reconcile_statuses(
     counters: Mapping[str, float],
     maxima: Mapping[str, float],
 ) -> tuple[str, ...]:
-    """Apply/clear statuses using their conditions with hysteresis.
+    """Apply/clear counter-driven statuses using their conditions with hysteresis.
 
     A status already active only clears when its clear condition matches; a new
     status applies only when its apply condition matches. Each status occurs at
-    most once per peep.
+    most once per peep. Statuses declared with a ``source`` are ignored here;
+    callers merge them in from their active sources.
     """
 
-    active = list(dict.fromkeys(previous))
+    active = [
+        status_id
+        for status_id in dict.fromkeys(previous)
+        if not (content.statuses.get(status_id) and content.statuses[status_id].source is not None)
+    ]
     for status_id, definition in content.statuses.items():
+        if definition.source is not None:
+            continue
         value = float(counters.get(definition.applied_when.counter, 0.0))
         maximum = float(maxima.get(definition.applied_when.counter, 0.0))
         if status_id in active:
@@ -108,12 +115,14 @@ def compute_effective_state(
     counters: Mapping[str, float],
     previous_statuses: Sequence[str] = (),
     modifiers: Sequence[Modifier] = (),
+    external_statuses: Sequence[str] = (),
 ) -> EffectivePeepState:
     """Compute the full effective state given counters, equipment/skills/buffs.
 
     Statuses are reconciled first using non-status modifiers, then status stat
     effects feed back into the final calculation so every caller sees identical
-    results.
+    results. ``external_statuses`` are source-driven statuses (for example a
+    room aura) merged on top of the counter-driven set.
     """
 
     pass_one = _base_maxima(content, level, modifiers)
@@ -122,12 +131,18 @@ def compute_effective_state(
         "energy": pass_one[1],
         "cleanliness": pass_one[2],
     }
-    statuses = reconcile_statuses(
-        content,
-        previous=previous_statuses,
-        counters=counters,
-        maxima=maxima,
+    statuses = list(
+        reconcile_statuses(
+            content,
+            previous=previous_statuses,
+            counters=counters,
+            maxima=maxima,
+        )
     )
+    for status_id in external_statuses:
+        if status_id in content.statuses and status_id not in statuses:
+            statuses.append(status_id)
+    statuses = tuple(statuses)
     all_modifiers = (*modifiers, *status_modifiers(content, statuses))
     stats = {
         stat: effective_value(1, modifiers_for(all_modifiers, stat), minimum=0) for stat in STAT_TARGETS

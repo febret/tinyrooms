@@ -113,11 +113,10 @@ def _resolve_prop_target(context: CommandContext, token: str) -> PropTarget:
     return PropTarget(instance_id=prop.id, prop_id=prop.prop_id, room_id=room_id)
 
 
-def _require_prop_interaction(context: CommandContext, target: PropTarget) -> None:
+def _require_prop_interaction(context: CommandContext, target: PropTarget, card_id: str) -> None:
+    del card_id
     if context.environment.lighting(target.room_id) == "dark":
         raise CommandError("It is too dark to make anything out.")
-    if "scared" in context.stats.view(context.account.id).statuses:
-        raise CommandError("You are too scared to touch anything.")
 
 
 def _use_outcome(context: CommandContext, result: ActionResult) -> CommandOutcome:
@@ -146,16 +145,16 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         if room_id is None:
             raise CommandError("You are not currently in a room.")
         prop_target = _resolve_prop_target(context, target_token)
-        _require_prop_interaction(context, prop_target)
+        _require_prop_interaction(context, prop_target, "")
         result = context.actions.use_card(
             context.account,
             stack_id=stack_id,
             target_prop=prop_target,
             room_id=room_id,
         )
-        if result.card_id == "vacuum-cleaner":
+        if result.clears_source:
             for connection in await context.connections.list_room(room_id):
-                context.stats.remove_source(connection.account_id, "scary")
+                context.stats.remove_source(connection.account_id, result.clears_source)
         return _use_outcome(context, result)
 
     target_id, target_label, target_is_npc, target_peep_id = await _resolve_target(context, target_token)
@@ -165,6 +164,7 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         target_account_id=target_id,
         target_label=target_label,
         target_is_npc=target_is_npc,
+        room_id=context.connection.room_id,
     )
     behavior = None
     if target_token is not None:

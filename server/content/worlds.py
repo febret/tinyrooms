@@ -51,6 +51,7 @@ class ExitDefinition:
     target_room_id: str
     locked: bool
     requires_card_id: str | None
+    npc_barrier: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +75,7 @@ class PropDefinition:
     price: int = DEFAULT_PROP_PRICE
     locked: bool = False
     hidden: bool = False
+    requires_light: bool = False
     effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
     active_effect: str | None = None
 
@@ -100,13 +102,15 @@ class PropInstanceDefinition:
 
 @dataclass(frozen=True, slots=True)
 class AuraDefinition:
-    """A room-scoped modifier or named buff applied while present."""
+    """A room-scoped modifier, named buff, or named source applied while present."""
 
     stat: str | None = None
     delta: float = 0.0
     buff_id: str | None = None
     duration_seconds: float | None = None
     daily: bool = False
+    source: str | None = None
+    requires_prop: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -279,11 +283,15 @@ def _load_aura(raw_value: Any, room_id: str) -> tuple[AuraDefinition, ...]:
             raise ContentError(f"Room '{room_id}' aura entry {index} delta must be a number.")
         raw_buff = entry.get("buff")
         buff_id = str(raw_buff).strip() if raw_buff is not None else None
-        if stat is None and buff_id is None:
-            raise ContentError(f"Room '{room_id}' aura entry {index} must define a stat or a buff.")
+        raw_source = entry.get("source")
+        source = str(raw_source).strip() if raw_source is not None else None
+        if stat is None and buff_id is None and source is None:
+            raise ContentError(f"Room '{room_id}' aura entry {index} must define a stat, a buff, or a source.")
         raw_duration = entry.get("duration")
         if raw_duration is not None and (isinstance(raw_duration, bool) or not isinstance(raw_duration, (int, float))):
             raise ContentError(f"Room '{room_id}' aura entry {index} duration must be a number.")
+        raw_requires = entry.get("requires_prop")
+        requires_prop = str(raw_requires).strip() if raw_requires is not None else None
         auras.append(
             AuraDefinition(
                 stat=stat,
@@ -291,6 +299,8 @@ def _load_aura(raw_value: Any, room_id: str) -> tuple[AuraDefinition, ...]:
                 buff_id=buff_id,
                 duration_seconds=float(raw_duration) if raw_duration is not None else None,
                 daily=bool(entry.get("daily", False)),
+                source=source,
+                requires_prop=requires_prop,
             )
         )
     return tuple(auras)
@@ -560,6 +570,7 @@ def load_prop_definition(
     else:
         locked = source_kind == "propset" and source not in FREE_PROPSET_SOURCES
     hidden = bool(raw_prop.get("hidden", False))
+    requires_light = bool(raw_prop.get("requires_light", False))
     effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
     active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
     return PropDefinition(
@@ -580,6 +591,7 @@ def load_prop_definition(
         price=price,
         locked=locked,
         hidden=hidden,
+        requires_light=requires_light,
         effect_sets=effect_sets,
         active_effect=active_effect,
     )
@@ -767,6 +779,7 @@ def load_world_definition(
                 target_room_id=str(raw_exit.get("target", "")).strip(),
                 locked=bool(raw_exit.get("locked", False)),
                 requires_card_id=requires_card_id,
+                npc_barrier=bool(raw_exit.get("npc_barrier", False)),
             )
         room_cards: list[InitialRoomCard] = []
         for index, raw_card in enumerate(raw_room.get("cards", []) or []):

@@ -87,6 +87,14 @@ class InventoryService:
                 stack_id=stack_id,
                 equipped=True,
             )
+            # Apply soiled state when equipping an item that soils the character
+            if definition.soils:
+                snapshot = self._stats.reconcile_in_transaction(connection, account.id)
+                self._stats.apply_in_transaction(
+                    connection,
+                    account.id,
+                    cleanliness_delta=-snapshot.cleanliness,
+                )
             return self._finish(connection, account.id)
 
     def unequip(self, account: AccountRecord, stack_id: str) -> InventoryMutation:

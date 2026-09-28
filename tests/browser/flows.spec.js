@@ -1017,7 +1017,6 @@ test.describe("world editor and card database", () => {
     await page.goto(`${runtime.baseURL}/card-database/`);
     await expect(page.locator(".card-tile").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Packs", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();
 
     await page.locator("#cdb-search").fill("tasty");
     await expect(page.locator(".card-tile", { hasText: "Tasty Toast" })).toHaveCount(1);

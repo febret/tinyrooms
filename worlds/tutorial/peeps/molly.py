@@ -2,7 +2,47 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+import random
+
 STINKY_LINE = "Mrrrp! You smell like my litter tray. Go take a shower!"
+MOVE_INTERVAL_SECONDS = 60
+MOVE_CHANCE = 0.5
+
+
+def _move_due(context) -> bool:
+    """Return True at most once per interval, stamping the attempt time."""
+
+    now = context.now
+    previous = context.state.get("last_move_at")
+    if isinstance(previous, str):
+        try:
+            previous_at = datetime.fromisoformat(previous)
+        except ValueError:
+            previous_at = None
+    else:
+        previous_at = None
+    if previous_at is not None and (now - previous_at) < timedelta(seconds=MOVE_INTERVAL_SECONDS):
+        return False
+    context.state["last_move_at"] = now.isoformat()
+    return True
+
+
+def on_tick(context, event):
+    """Wander the dollhouse: every minute, sometimes take a random exit."""
+
+    if not _move_due(context):
+        return
+    if random.random() >= MOVE_CHANCE:
+        return
+    exits = [
+        exit_definition
+        for exit_definition in context.room.get("exits", [])
+        if not exit_definition.get("npc_barrier") and not exit_definition.get("locked")
+    ]
+    if not exits:
+        return
+    context.move_through(random.choice(exits)["id"])
 
 
 def _comment_if_stinky(context, event):

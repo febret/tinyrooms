@@ -9,7 +9,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 7
-WORLD_SCHEMA_VERSION = 12
+WORLD_SCHEMA_VERSION = 13
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -185,7 +185,12 @@ CREATE TABLE IF NOT EXISTS activity_records (
     PRIMARY KEY (account_id, activity_kind)
 );
 CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind);
-PRAGMA user_version = 12;
+CREATE TABLE IF NOT EXISTS peep_locations (
+    peep_id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+PRAGMA user_version = 13;
 COMMIT;
 """
 
@@ -203,7 +208,9 @@ _PROFILE_TABLES = frozenset(
     }
 )
 
-_WORLD_TABLES = frozenset({"room_cards", "room_states", "behavior_state", "world_meta", "activity_records"})
+_WORLD_TABLES = frozenset(
+    {"room_cards", "room_states", "behavior_state", "world_meta", "activity_records", "peep_locations"}
+)
 
 _PROFILE_MIGRATIONS: dict[int, str] = {
     3: """
@@ -352,6 +359,16 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     );
     CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind);
     PRAGMA user_version = 12;
+    COMMIT;
+    """,
+    13: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS peep_locations (
+        peep_id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    PRAGMA user_version = 13;
     COMMIT;
     """,
 }
@@ -507,6 +524,12 @@ _ACTIVITY_RECORDS_COLUMNS = (
     "updated_at",
 )
 
+_PEEP_LOCATIONS_COLUMNS = (
+    "peep_id",
+    "room_id",
+    "updated_at",
+)
+
 
 def _connect(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
@@ -642,6 +665,7 @@ def ensure_world_database(path: Path) -> None:
             "room_states": _ROOM_STATES_COLUMNS,
             "behavior_state": _BEHAVIOR_STATE_COLUMNS,
             "activity_records": _ACTIVITY_RECORDS_COLUMNS,
+            "peep_locations": _PEEP_LOCATIONS_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",

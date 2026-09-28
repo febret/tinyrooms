@@ -105,6 +105,6 @@ starlight:
   description: A room-wide shower of golden paper stars. Purely decorative.
   image: starlight.webp
   type: emote
-  category: Scene
+  category: Effects
   effect: starlight
   rarity: Uncommon

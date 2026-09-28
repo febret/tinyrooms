@@ -28,31 +28,32 @@ shower:
   scale: 1.306
 litter-tray:
   label: Molly's Litter Tray
-  description: A little chore. Bring a pooper scooper from the utility room.
+  description: A little chore. Equip a pooper scooper, then use it here. Bring a plastic bag to bag the mess.
   model: litter-tray.glb
   decorative: false
   scale: 1.488
 locked-front-door:
   label: The Front Door
-  description: The garden is just outside. The spare key is in the dark basement.
+  description: The way out of the house. The key is in the dark basement, once the centipedes are gone.
   model: locked-front-door.glb
   decorative: false
   scale: 1.374
 keys-cabinet:
   label: Spare Key Cabinet
-  description: A tiny brass key hangs on the sunflower hook.
+  description: A tiny brass key hangs on the sunflower hook, but only once the centipedes are gone.
   model: keys-cabinet.glb
   decorative: false
   scale: 1.636
 centipedes:
   label: House Centipedes
-  description: All those tiny feet! The utility-room vacuum will help.
+  description: All those tiny feet! Borrow the utility-room vacuum and use it here to clear them out.
   model: centipedes.glb
   decorative: false
   scale: 1.207
+  requires_light: true
 vacuum-stand:
   label: Vacuum Corner
-  description: A trusty wheeled vacuum. Borrow it to tidy the basement.
+  description: A trusty wheeled vacuum. Borrow it, then use it on the centipedes in the basement.
   model: vacuum-stand.glb
   decorative: false
   scale: 1.229
@@ -70,13 +71,6 @@ kitchen-counter:
   decorative: true
   editable: true
   scale: 1.214
-craft-workbench:
-  label: The Mending Table
-  description: Choose Craft, then select ingredient stacks from your Inventory. Poop
-    plus Plastic Bag makes Poop in a Bag.
-  model: craft-workbench.glb
-  decorative: false
-  scale: 1.161
 sofa:
   label: Marmalade Sofa
   description: Soft corduroy, striped cushions, and room for a friend.

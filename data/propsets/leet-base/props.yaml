@@ -117,14 +117,6 @@ acoustic-modem:
   editable: true
   scale: 0.9
   tags: [tech, computer]
-mining-rig:
-  label: Mining Rig
-  description: An open frame packed with glowing cards and whirring fans.
-  model: mining-rig.glb
-  decorative: true
-  editable: true
-  scale: 1.2
-  tags: [tech, computer, server]
 cryo-cooler:
   label: Cryo Cooler
   description: A chrome cabinet traced with icy blue lines, keeping bits freezing.
@@ -135,14 +127,6 @@ cryo-cooler:
   tags: [appliance, storage, tech]
 
 # --- Displays and signals ---------------------------------------------------
-crt-monitor-stack:
-  label: CRT Monitor Stack
-  description: A precariously stacked tower of monitors, each a different neon.
-  model: crt-monitor-stack.glb
-  decorative: true
-  editable: true
-  scale: 1.2
-  tags: [display, computer, tech]
 display-wall:
   label: Display Wall
   description: A wall of glowing screens showing waveforms and falling code.
@@ -151,14 +135,6 @@ display-wall:
   editable: true
   scale: 1.5
   tags: [display, art, tech]
-wireframe-globe:
-  label: Wireframe Globe
-  description: A glowing wireframe world turning on a chrome stand.
-  model: wireframe-globe.glb
-  decorative: true
-  editable: true
-  scale: 1.0
-  tags: [ornament, decoration, tech]
 hologram-projector:
   label: Hologram Projector
   description: A pyramid projector lifting a cyan hologram into the air.
@@ -175,14 +151,6 @@ circuit-neon-sign:
   editable: true
   scale: 1.1
   tags: [decoration, art, lighting]
-cassette-wall:
-  label: Cassette Wall
-  description: Rows of glowing cassettes in loud neon colours.
-  model: cassette-wall.glb
-  decorative: true
-  editable: true
-  scale: 1.3
-  tags: [storage, art, decoration]
 
 # --- Furniture and comfort --------------------------------------------------
 orange-office-chair:

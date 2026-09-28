@@ -282,3 +282,35 @@ def presence_leave_event(
         event["reason"] = reason
     return event
 
+
+def peep_enter_event(
+    *,
+    peep_id: str,
+    label: str,
+    room_id: str,
+    source_room_id: str,
+    source_room_label: str | None = None,
+) -> dict[str, object]:
+    """Build the room event announcing an NPC peep entering *room_id*."""
+
+    event = {"type": "peep.enter", "room_id": room_id, "peep_id": peep_id, "label": label, "source_room_id": source_room_id}
+    if source_room_label is not None:
+        event["source_room_label"] = source_room_label
+    return event
+
+
+def peep_leave_event(
+    *,
+    peep_id: str,
+    label: str,
+    room_id: str,
+    destination_room_id: str,
+    direction: str | None = None,
+) -> dict[str, object]:
+    """Build the room event announcing an NPC peep leaving *room_id*."""
+
+    event = {"type": "peep.leave", "room_id": room_id, "peep_id": peep_id, "label": label, "destination_room_id": destination_room_id}
+    if direction is not None:
+        event["direction"] = direction
+    return event
+

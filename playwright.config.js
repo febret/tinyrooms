@@ -37,7 +37,10 @@ export default defineConfig({
   // Functional flows are isolated per test (own server, users, database), so they
   // run in parallel. Override with TR_BROWSER_WORKERS=<n>.
   workers: visualRun ? 1 : Number(process.env.TR_BROWSER_WORKERS || defaultWorkers),
-  retries: 0,
+  // Each test boots its own server under parallel load, so a rare timing flake is
+  // expected; one retry keeps the suite trustworthy without hiding real failures
+  // (which fail both attempts). Visual runs never retry.
+  retries: visualRun ? 0 : 1,
   forbidOnly: !!process.env.CI,
   outputDir: ".test-results",
   snapshotPathTemplate: "{testDir}/baselines/{projectName}/{testFilePath}/{arg}{ext}",

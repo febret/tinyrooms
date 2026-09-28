@@ -353,14 +353,6 @@ floral-bouquet-painting:
   editable: true
   scale: 1.3
   tags: [painting, art]
-banquet-painting:
-  label: Classical Banquet
-  description: A lavish banquet of golden goblets and good company.
-  model: banquet-painting.glb
-  decorative: true
-  editable: true
-  scale: 1.6
-  tags: [painting, art]
 
 # --- Lighting ---------------------------------------------------------------
 crystal-chandelier:

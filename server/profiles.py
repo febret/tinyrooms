@@ -835,6 +835,39 @@ class ProfileRepository:
             False,
         )
 
+    def clear_inventory_card(self, account_id: str, world_id: str, card_def_id: str) -> int:
+        """Delete every stack of one card and return the total quantity removed."""
+
+        with self._hub.transaction() as connection:
+            return self.remove_inventory_card_in_transaction(connection, account_id, world_id, card_def_id)
+
+    def remove_inventory_card_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        world_id: str,
+        card_def_id: str,
+    ) -> int:
+        """Delete every stack of one card inside a caller-owned transaction."""
+
+        rows = connection.execute(
+            """
+            SELECT quantity FROM profile_card_stacks
+            WHERE account_id = ? AND card_def_id = ? AND (world_id IS NULL OR world_id = ?)
+            """,
+            (account_id, card_def_id, world_id),
+        ).fetchall()
+        total = sum(int(row["quantity"]) for row in rows)
+        if total:
+            connection.execute(
+                """
+                DELETE FROM profile_card_stacks
+                WHERE account_id = ? AND card_def_id = ? AND (world_id IS NULL OR world_id = ?)
+                """,
+                (account_id, card_def_id, world_id),
+            )
+        return total
+
     def get_user_profile(self, account_id: str) -> UserProfileRecord | None:
         """Fetch the single per-user profile row."""
 
