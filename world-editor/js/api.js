@@ -1,3 +1,5 @@
+import { withBase } from "../../app/js/base-path.js";
+
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 let csrfToken = "";
@@ -15,7 +17,7 @@ async function parse(response) {
 async function request(method, url, payload) {
   const headers = { ...JSON_HEADERS };
   if (method !== "GET" && csrfToken) headers["X-CSRF-Token"] = csrfToken;
-  const response = await fetch(url, {
+  const response = await fetch(withBase(url), {
     method,
     headers,
     credentials: "same-origin",

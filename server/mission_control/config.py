@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 import os
 import secrets
 
@@ -11,8 +12,10 @@ from server.config import (
     MC_FEATURE_ALIASES,
     ConfigError,
     compute_allowed_origins,
+    normalize_base_path,
     parse_bool,
     parse_features,
+    parse_origins,
 )
 
 
@@ -35,6 +38,26 @@ class MCConfig:
     new_account_passphrase: str
     features: frozenset[str]
     mods: str = "*"
+    base_path: str = ""
+    public_origins: tuple[str, ...] = ()
+    nginx_conf_path: Path | None = None
+    nginx_reload_command: str | None = None
+
+    @property
+    def admin_route(self) -> str:
+        """Return the URL path segment the mission-control UI is served under."""
+
+        return self.base_path.lstrip("/") or "mission-control"
+
+    @property
+    def server_name(self) -> str:
+        """Return the public hostname used in the generated nginx config."""
+
+        for origin in self.public_origins:
+            hostname = urlparse(origin).hostname
+            if hostname:
+                return hostname
+        return self.host
 
     @property
     def ui_path(self) -> Path:
@@ -58,7 +81,11 @@ class MCConfig:
     def allowed_origins(self) -> tuple[str, ...]:
         """Return allowed browser origins for the mission-control UI."""
 
-        return compute_allowed_origins(self.host, self.port)
+        return tuple(
+            dict.fromkeys(
+                (*compute_allowed_origins(self.host, self.port), *self.public_origins)
+            )
+        )
 
 
 def _require(values: dict[str, str], key: str) -> str:
@@ -124,6 +151,12 @@ def load_mc_config(
     new_account_passphrase = (
         values.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE", "").strip() or secrets.token_urlsafe(16)
     )
+    base_path = normalize_base_path(values.get("TRSERVER_MC_BASE_PATH", ""))
+    public_origins = parse_origins(values.get("TRSERVER_MC_PUBLIC_ORIGIN", ""))
+
+    nginx_conf_raw = values.get("TRSERVER_MC_NGINX_CONF", "").strip()
+    nginx_conf_path = Path(nginx_conf_raw).expanduser() if nginx_conf_raw else None
+    nginx_reload_command = values.get("TRSERVER_MC_NGINX_RELOAD", "").strip() or None
 
     return MCConfig(
         repo_root=root,
@@ -140,4 +173,8 @@ def load_mc_config(
         actor=actor,
         new_account_passphrase=new_account_passphrase,
         features=features,
+        base_path=base_path,
+        public_origins=public_origins,
+        nginx_conf_path=nginx_conf_path,
+        nginx_reload_command=nginx_reload_command,
     )

@@ -1,6 +1,6 @@
-import { createPropViewerManager } from "/app/js/prop-viewer.js";
-import { createThumbnailManager } from "/app/js/editing/prop-thumbnails.js";
-import { filterLibrary, sourcesOf, tagsOf } from "/app/js/editing/library-filter.js";
+import { createPropViewerManager } from "../../app/js/prop-viewer.js";
+import { createThumbnailManager } from "../../app/js/editing/prop-thumbnails.js";
+import { filterLibrary, sourcesOf, tagsOf } from "../../app/js/editing/library-filter.js";
 
 const Tiny = window.TinyActivity;
 

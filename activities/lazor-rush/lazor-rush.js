@@ -295,7 +295,7 @@ function loadMolly() {
   MOLLY_IMAGE.addEventListener("error", () => {
     // Keep the fallback sprite if the peep image cannot load.
   });
-  MOLLY_IMAGE.src = `/assets/world/${encodeURIComponent(worldId)}/peeps/molly.png`;
+  MOLLY_IMAGE.src = `${window.__TR_BASE__ || ""}/assets/world/${encodeURIComponent(worldId)}/peeps/molly.png`;
 }
 
 canvas.addEventListener("pointerdown", event => {

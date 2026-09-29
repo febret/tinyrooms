@@ -15,6 +15,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: "Segoe UI", system-ui, sans-serif;
@@ -171,3 +173,43 @@ tr.clickable:hover { background: var(--panel-alt); cursor: pointer; }
   min-height: 3rem;
   white-space: pre-wrap;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 9, 14, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+}
+
+.modal {
+  width: min(860px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal .row { justify-content: flex-end; }
+
+.nginx-config {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.8rem;
+  background: #0b0e14;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem;
+  margin: 0;
+  max-height: 48vh;
+  overflow: auto;
+  white-space: pre;
+}
+

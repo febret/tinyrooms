@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 from server.routes.common import get_runtime, require_editor_access
 from server.routes.world_editor import _serve_page
@@ -15,7 +15,7 @@ router = APIRouter()
 @router.get("/card-database")
 @router.get("/card-database/")
 @router.get("/card-database/{requested_path:path}")
-async def card_database_page(request: Request, requested_path: str = "") -> FileResponse:
+async def card_database_page(request: Request, requested_path: str = "") -> Response:
     """Serve the Card Database single-page app behind feature and power gates."""
 
     runtime = get_runtime(request)

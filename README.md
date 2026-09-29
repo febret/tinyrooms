@@ -45,6 +45,8 @@ the port on trusted networks.
 | `TRSERVER_STUN_URLS` | Comma-separated STUN/TURN URLs for peer audio; defaults to a public STUN server |
 | `TRSERVER_HOST` | Listener address; defaults to `127.0.0.1` |
 | `TRSERVER_PORT` | HTTPS port; defaults to `5000` |
+| `TRSERVER_BASE_PATH` | Optional URL prefix when served behind a reverse proxy; e.g. `/admin` |
+| `TRSERVER_PUBLIC_ORIGIN` | Comma-separated extra browser origins accepted behind a proxy; e.g. `https://tinyrooms.febret.com` |
 | `TRSERVER_MC_ENDPOINT` | `host:port` of the mission-control server; enables the world's `/api/mc/*` client |
 | `TRSERVER_MC_TOKEN` | Shared secret for the mission-control channel (required with `TRSERVER_MC_ENDPOINT`) |
 | `TRSERVER_MC_NAME` | Display name for this instance; defaults to `world_id@host:port` |
@@ -110,6 +112,12 @@ Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
 passphrase. Mission control serves HTTPS with the same self-signed certificate
 helper as the game server (reusing `.local/cert.pem` / `key.pem`).
 
+The **Server Manager** tab has an **Update nginx config** button. It renders an
+nginx site config with a reverse-proxy location for the mission-control UI and
+for every live instance (each spawned world is launched under its own URL
+prefix), shows the result for review, and on confirmation writes
+`TRSERVER_MC_NGINX_CONF` and runs `TRSERVER_MC_NGINX_RELOAD`.
+
 | Variable | Purpose |
 | --- | --- |
 | `TRSERVER_FEATURES` | Must include `mission-control` |
@@ -125,6 +133,36 @@ helper as the game server (reusing `.local/cert.pem` / `key.pem`).
 | `TRSERVER_MC_HEARTBEAT_SECONDS` | Expected heartbeat interval; defaults to `5` |
 | `TRSERVER_MC_ACTOR` | World username used as the admin-console actor; defaults to `mission-control` |
 | `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE` | Invitation used for MC-spawned worlds; generated when unset |
+| `TRSERVER_MC_BASE_PATH` | Optional URL prefix for the MC UI behind a reverse proxy; e.g. `/admin` |
+| `TRSERVER_MC_PUBLIC_ORIGIN` | Comma-separated extra browser origins accepted behind a proxy |
+| `TRSERVER_MC_NGINX_CONF` | Path to the nginx site config the Server Manager regenerates |
+| `TRSERVER_MC_NGINX_RELOAD` | Command that installs the generated config and reloads nginx |
+
+## Deploying
+
+`tools/deploy.py` packages a version and deploys it to a remote host over
+passwordless SSH. It installs nginx, `python3-venv`, and `python3-pip` via apt
+when they are missing.
+
+```bash
+python tools/deploy.py <host> [rootdir] [bootstrap|deploy] [-u USER] [--dirty]
+```
+
+`host` may be a bare hostname or `user@host`; `-u/--user` overrides the SSH
+user. `bootstrap` creates the deployment directories (`mods`, `worlds`, `releases`,
+`logs`, `versions`), configures an nginx reverse proxy with a self-signed
+certificate, deploys a first version, and supervises a mission-control server
+under a keepalive script registered in `@reboot`. `deploy` increments the patch
+version in `version.json`, packages the working tree (with its
+`requirements.txt`) into `./releases`, uploads it to
+`<rootdir>/versions/<version>`, and repoints `<rootdir>/versions/latest`.
+Pass `--dirty` to skip the clean-worktree check and git tagging and to mark the
+version dirty. A bootstrap on `tinyrooms.febret.com` exposes mission control at
+`https://tinyrooms.febret.com/admin/mission-control`. Bootstrap also sets
+`TRSERVER_MC_INSECURE_TLS=1` so mission control can manage the self-signed world
+servers it spawns on the same host, and writes
+`TRSERVER_MC_NGINX_CONF`/`TRSERVER_MC_NGINX_RELOAD` for the Server Manager's
+**Update nginx config** action.
 
 ## Mods
 

@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { GLTFLoader } from "/app/vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { disposeBoardTree } from "/app/js/board-helpers.js";
-import { createViewerStage } from "/app/js/viewer-stage.js";
-import { createPropEffects } from "/app/js/prop-effects.js";
+import { GLTFLoader } from "../../app/vendor/three/examples/jsm/loaders/GLTFLoader.js";
+import { disposeBoardTree } from "../../app/js/board-helpers.js";
+import { createViewerStage } from "../../app/js/viewer-stage.js";
+import { createPropEffects } from "../../app/js/prop-effects.js";
 
 const loader = new GLTFLoader();
 const textureLoader = new THREE.TextureLoader();

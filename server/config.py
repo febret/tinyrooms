@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 import os
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -11,6 +12,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _MOD_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
+_BASE_PATH_PATTERN = re.compile(r"^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
 MC_FEATURE_ALIASES = frozenset({"mission-control", "mission_control"})
 KNOWN_FEATURES = frozenset(
     {
@@ -55,6 +57,36 @@ def parse_bool(raw_value: str) -> bool:
     return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def normalize_base_path(raw_value: str) -> str:
+    """Validate and normalize a URL base path, returning empty for the root."""
+
+    value = raw_value.strip()
+    if value in {"", "/"}:
+        return ""
+    if not value.startswith("/"):
+        value = f"/{value}"
+    value = value.rstrip("/")
+    if not _BASE_PATH_PATTERN.match(value) or any(part in {".", ".."} for part in value.split("/")):
+        raise ConfigError(f"Invalid base path '{raw_value}'.")
+    return value
+
+
+def parse_origins(raw_value: str) -> tuple[str, ...]:
+    """Parse a comma-separated list of additional allowed browser origins."""
+
+    origins: list[str] = []
+    for item in raw_value.split(","):
+        text = item.strip().rstrip("/")
+        if not text:
+            continue
+        parsed = urlparse(text)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ConfigError(f"Invalid public origin '{item.strip()}'.")
+        if text not in origins:
+            origins.append(text)
+    return tuple(origins)
+
+
 class ConfigError(ValueError):
     """Raised when configuration is invalid."""
 
@@ -89,6 +121,8 @@ class AppConfig:
     mc_name: str | None = None
     mc_ca_file: Path | None = None
     mc_insecure_tls: bool = False
+    base_path: str = ""
+    public_origins: tuple[str, ...] = ()
 
     @property
     def app_path(self) -> Path:
@@ -130,7 +164,11 @@ class AppConfig:
     def allowed_origins(self) -> tuple[str, ...]:
         """Return allowed browser origins for this server."""
 
-        return compute_allowed_origins(self.host, self.port)
+        return tuple(
+            dict.fromkeys(
+                (*compute_allowed_origins(self.host, self.port), *self.public_origins)
+            )
+        )
 
     @property
     def ice_servers(self) -> list[dict[str, object]]:
@@ -298,6 +336,9 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     mc_ca_file = Path(mc_ca_raw).expanduser().resolve() if mc_ca_raw else None
     mc_insecure_tls = parse_bool(values.get("TRSERVER_MC_INSECURE_TLS", "0"))
 
+    base_path = normalize_base_path(values.get("TRSERVER_BASE_PATH", ""))
+    public_origins = parse_origins(values.get("TRSERVER_PUBLIC_ORIGIN", ""))
+
     return AppConfig(
         repo_root=root,
         local_path=local_path,
@@ -325,4 +366,6 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         mc_name=mc_name,
         mc_ca_file=mc_ca_file,
         mc_insecure_tls=mc_insecure_tls,
+        base_path=base_path,
+        public_origins=public_origins,
     )

@@ -78,6 +78,7 @@ class McClient:
             "protocol_version": PROTOCOL_VERSION,
             "world": {"id": self._runtime.world.id, "label": self._runtime.world.label},
             "started_at": datetime.fromtimestamp(self._runtime.started_at, tz=UTC).isoformat(),
+            "base_path": config.base_path,
         }
 
     async def register(self) -> dict[str, object]:

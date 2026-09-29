@@ -61,6 +61,8 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
 | `TRSERVER_CUSTOM_STICKERS_PATH` | No | `.local/stickers` |
 | `TRSERVER_FEATURES` | No | _(none)_ — e.g. `dynamic_peeps` |
+| `TRSERVER_BASE_PATH` | No | _(none)_ — URL prefix when served behind a reverse proxy, e.g. `/admin` |
+| `TRSERVER_PUBLIC_ORIGIN` | No | _(none)_ — comma-separated extra allowed browser origins behind a proxy |
 | `TRSERVER_MODS` | No | _(none)_ — comma-separated names or `*` |
 | `TRSERVER_MODS_PATH` | No | `mods` |
 | `TRSERVER_ADMINS` | No | _(none)_ |
@@ -78,7 +80,11 @@ must include `mission-control`. Additional MC vars: `TRSERVER_MC_HOST` (`127.0.0
 `TRSERVER_MC_PORT` (`8001`), `TRSERVER_MC_USERS_PATH` (`users`),
 `TRSERVER_MC_INSTANCES_PATH` (`.local/mc-instances`), `TRSERVER_MC_VERSIONS_PATH`
 (`.local/mc-versions`), `TRSERVER_MC_HEARTBEAT_SECONDS` (`5`),
-`TRSERVER_MC_ACTOR` (`mission-control`), `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE`.
+`TRSERVER_MC_ACTOR` (`mission-control`), `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE`,
+`TRSERVER_MC_BASE_PATH` (URL prefix behind a proxy), `TRSERVER_MC_PUBLIC_ORIGIN`
+(comma-separated extra allowed browser origins), `TRSERVER_MC_NGINX_CONF` (site
+config the Server Manager regenerates), `TRSERVER_MC_NGINX_RELOAD` (command to
+install the config and reload nginx).
 
 ## Testing
 

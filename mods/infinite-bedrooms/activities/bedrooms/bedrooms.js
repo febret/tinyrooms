@@ -13,7 +13,14 @@ const controls = document.querySelector("#controls");
 const lockInput = document.querySelector("#lock");
 const connection = document.querySelector("#connection");
 
-const ASSET_ROOT = "/activities/bedrooms/assets/";
+const BASE_PATH = window.__TR_BASE__ || "";
+
+function withBase(path) {
+  if (!BASE_PATH || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//") || path.startsWith(`${BASE_PATH}/`)) return path;
+  return `${BASE_PATH}${path}`;
+}
+
+const ASSET_ROOT = `${BASE_PATH}/activities/bedrooms/assets/`;
 
 const state = {
   user: null,
@@ -267,7 +274,7 @@ function renderDesigner() {
         if (option.asset) {
           swatch.classList.add("asset");
           const icon = document.createElement("img");
-          icon.src = option.asset;
+          icon.src = withBase(option.asset);
           icon.alt = "";
           swatch.append(icon);
         }

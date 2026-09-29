@@ -1,4 +1,5 @@
-import { createBoard } from "/app/js/board.js";
+import { createBoard } from "../../app/js/board.js";
+import { withBase } from "../../app/js/base-path.js";
 
 function cardEntry(catalog, cardId) {
   return (catalog?.cards || []).find(entry => entry.id === cardId) || null;
@@ -19,7 +20,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
         position: Array.isArray(instance.pos) ? instance.pos.map(Number) : [50, 50, 0],
         rotation: Array.isArray(instance.rot) ? instance.rot.map(Number) : [0, 0, 0],
         scale: Number(instance.scale ?? 1),
-        modelUrl: definition.model_url || "",
+        modelUrl: withBase(definition.model_url || ""),
         label: definition.label || instance.prop,
         description: definition.description || "",
         animation: instance.animation || "",
@@ -34,7 +35,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
       stackId: `seed-${roomId}-${index}`,
       position: Array.isArray(card.pos) ? card.pos.map(Number) : [50, 50, 0],
       definition: {
-        imageUrl: entry?.image_url || "",
+        imageUrl: withBase(entry?.image_url || ""),
         label: entry?.label || card.card,
       },
     };
@@ -44,7 +45,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
     label: room.label || roomId,
     board: {
       type: room.board_type || "basic",
-      imageUrl: `/assets/world/${worldId}/rooms/${room.board_image}`,
+      imageUrl: withBase(`/assets/world/${worldId}/rooms/${room.board_image}`),
       imageStyle: room.board_image_style || "stretch",
       palette: Array.isArray(room.palette) ? room.palette : [],
       dark: Boolean(room.dark),

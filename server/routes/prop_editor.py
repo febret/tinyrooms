@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server.content.common import ContentError
@@ -51,7 +51,7 @@ def _error(status_code: int, code: str, message: str) -> JSONResponse:
 @router.get("/prop-editor")
 @router.get("/prop-editor/")
 @router.get("/prop-editor/{requested_path:path}")
-async def prop_editor_page(request: Request, requested_path: str = "") -> FileResponse:
+async def prop_editor_page(request: Request, requested_path: str = "") -> Response:
     """Serve the Prop Editor single-page app behind feature and admin gates."""
 
     runtime = get_runtime(request)

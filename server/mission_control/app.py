@@ -14,8 +14,9 @@ import time
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
+from server.base_path import BasePathMiddleware, render_html, with_base
 from server.config import ensure_contained
 from server.mission_control import routes as mc_routes
 from server.mission_control.audit import McAuditLog
@@ -149,14 +150,14 @@ def create_mc_app(config: MCConfig) -> FastAPI:
 
     @app.get("/")
     async def root() -> RedirectResponse:
-        return RedirectResponse(url="/mission-control")
+        return RedirectResponse(url=with_base(config.base_path, "/mission-control"))
 
     @app.get("/mission-control")
     @app.get("/mission-control/")
     async def ui_index() -> Response:
         index_path = config.ui_path / "index.html"
         if index_path.is_file():
-            return FileResponse(index_path)
+            return render_html(index_path, config.base_path)
         return HTMLResponse("<!doctype html><html><body><h1>Mission Control</h1></body></html>")
 
     @app.get("/mission-control/{requested_path:path}")
@@ -164,7 +165,7 @@ def create_mc_app(config: MCConfig) -> FastAPI:
         candidate = _safe_ui_path(config.ui_path, requested_path)
         if candidate.is_file():
             media_type, _ = mimetypes.guess_type(candidate.name)
-            return FileResponse(candidate, media_type=media_type)
+            return render_html(candidate, config.base_path, media_type=media_type)
         raise HTTPException(status_code=404, detail="UI file not found.")
 
-    return app
+    return BasePathMiddleware(app, config.base_path)

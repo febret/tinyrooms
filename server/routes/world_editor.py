@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import mimetypes
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from server.base_path import render_html
 from server.config import ConfigError, ensure_contained
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
 from server.routes.common import (
@@ -46,7 +48,7 @@ def _editor_root(runtime) -> Path:
     return runtime.config.repo_root / "world-editor"
 
 
-def _serve_page(runtime, root: Path, requested_path: str) -> FileResponse:
+def _serve_page(runtime, root: Path, requested_path: str) -> Response:
     relative = requested_path or "index.html"
     if relative.endswith("/"):
         relative = f"{relative}index.html"
@@ -58,7 +60,8 @@ def _serve_page(runtime, root: Path, requested_path: str) -> FileResponse:
         candidate = candidate / "index.html"
     if not candidate.is_file():
         raise HTTPException(status_code=404, detail="Not found.")
-    return FileResponse(candidate)
+    media_type, _ = mimetypes.guess_type(candidate.name)
+    return render_html(candidate, runtime.config.base_path, media_type=media_type)
 
 
 def _image_names(directory: Path) -> list[str]:
@@ -117,7 +120,7 @@ def _issue_payloads(issues: list) -> list[dict[str, str]]:
 @router.get("/world-editor")
 @router.get("/world-editor/")
 @router.get("/world-editor/{requested_path:path}")
-async def world_editor_page(request: Request, requested_path: str = "") -> FileResponse:
+async def world_editor_page(request: Request, requested_path: str = "") -> Response:
     """Serve the World Editor single-page app behind feature and power gates."""
 
     runtime = get_runtime(request)

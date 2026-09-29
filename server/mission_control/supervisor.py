@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -23,6 +24,18 @@ def allocate_port(host: str = "127.0.0.1") -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind((host, 0))
         return int(sock.getsockname()[1])
+
+
+def route_slug(name: str, taken: set[str]) -> str:
+    """Return a unique URL path segment for an instance name."""
+
+    base = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-") or "world"
+    candidate = base
+    index = 2
+    while candidate in taken:
+        candidate = f"{base}-{index}"
+        index += 1
+    return candidate
 
 
 def sanitize_child_features(raw: str) -> str:
@@ -71,6 +84,9 @@ class Supervisor:
         instance_dir = self._config.instances_path / f"mc-{uuid.uuid4().hex[:12]}"
         instance_dir.mkdir(parents=True, exist_ok=True)
         resolved_worldstate = worldstate_path or (instance_dir / "worldstate.sqlite3")
+        taken = {record.base_path.lstrip("/") for record in self._registry.list() if record.base_path}
+        taken.add(self._config.admin_route)
+        base_path = f"/{route_slug(name, taken)}"
         env = self._build_env(
             name=name,
             world_path=world_path,
@@ -81,6 +97,7 @@ class Supervisor:
             features=features,
             admins=admins,
             mods=mods,
+            base_path=base_path,
         )
         command = [sys.executable, str(self._config.repo_root / "run.py"), "--host", host, "--port", str(allocated_port)]
         process = self._spawn(
@@ -98,6 +115,7 @@ class Supervisor:
             endpoint=endpoint,
             instance_dir=str(instance_dir),
             process_handle=process,
+            base_path=base_path,
             spawn_config={
                 "name": name,
                 "world_path": str(world_path),
@@ -127,6 +145,7 @@ class Supervisor:
         features: str,
         admins: str,
         mods: str | None,
+        base_path: str,
     ) -> dict[str, str]:
         env = dict(os.environ)
         for key in [existing for existing in env if existing.startswith("TRSERVER_MC_")]:
@@ -136,6 +155,7 @@ class Supervisor:
         env["TRSERVER_USERS_PATH"] = str(users_path)
         env["TRSERVER_HOST"] = host
         env["TRSERVER_PORT"] = str(port)
+        env["TRSERVER_BASE_PATH"] = base_path
         env["TRSERVER_NEW_ACCOUNT_PASSPHRASE"] = self._config.new_account_passphrase
         env["TRSERVER_FEATURES"] = sanitize_child_features(features)
         env["TRSERVER_ADMINS"] = admins
@@ -143,6 +163,8 @@ class Supervisor:
         env["TRSERVER_MC_ENDPOINT"] = f"{self._config.host}:{self._config.port}"
         env["TRSERVER_MC_TOKEN"] = self._config.token
         env["TRSERVER_MC_NAME"] = name
+        if self._config.public_origins:
+            env["TRSERVER_PUBLIC_ORIGIN"] = ",".join(self._config.public_origins)
         if self._config.ca_file is not None:
             env["TRSERVER_MC_CA_FILE"] = str(self._config.ca_file)
         if self._config.ca_file is None or self._config.insecure_tls:

@@ -1,4 +1,5 @@
 import { escapeHtml } from "./util.js";
+import { withBase } from "../../app/js/base-path.js";
 
 const content = document.getElementById("cdb-content");
 const status = document.getElementById("cdb-status");
@@ -126,7 +127,7 @@ search.addEventListener("input", event => {
 
 async function boot() {
   try {
-    const response = await fetch("/api/card-database", { credentials: "same-origin" });
+    const response = await fetch(withBase("/api/card-database"), { credentials: "same-origin" });
     if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const body = await response.json();
     database = body.database;

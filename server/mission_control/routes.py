@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
+from server.mission_control import nginx as nginx_config
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
 from server.mission_control.packages import MAX_UPLOAD_BYTES
 from server.mission_control.registry import EXTERNAL, SPAWNED, STATUS_RUNNING, STATUS_STOPPED, STATUS_UNREACHABLE
@@ -68,6 +69,7 @@ class RegisterPayload(BaseModel):
     protocol_version: int | None = None
     world: dict[str, object] = {}
     started_at: str | None = None
+    base_path: str = ""
 
 
 class HeartbeatPayload(BaseModel):
@@ -471,6 +473,48 @@ async def resync_all(request: Request) -> dict[str, object]:
             results.append({"instance_id": record.instance_id, "ok": False, "message": type(exc).__name__})
     runtime.audit.record("operator", "fleet.resync", detail={"count": len(results)})
     return {"ok": True, "results": results}
+
+
+# --- Reverse proxy configuration ----------------------------------------------
+
+
+@router.get("/api/mission-control/nginx")
+async def nginx_preview(request: Request) -> dict[str, object]:
+    """Render the nginx configuration for the admin UI and live instances."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    config = runtime.config
+    if config.nginx_conf_path is None:
+        return {"ok": False, "code": "nginx_unconfigured", "message": "Nginx management is not configured."}
+    records = runtime.registry.list()
+    return {
+        "ok": True,
+        "path": str(config.nginx_conf_path),
+        "server_name": config.server_name,
+        "services": nginx_config.service_entries(config, records),
+        "config": nginx_config.render_site_config(config, records),
+    }
+
+
+@router.post("/api/mission-control/nginx")
+async def nginx_update(request: Request) -> dict[str, object]:
+    """Regenerate the nginx configuration and reload the live server."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    config = runtime.config
+    if config.nginx_conf_path is None:
+        return _json_error(400, "nginx_unconfigured", "Nginx management is not configured.")
+    records = runtime.registry.list()
+    text = nginx_config.render_site_config(config, records)
+    try:
+        result = nginx_config.apply_site_config(config, text)
+    except nginx_config.NginxConfigError as exc:
+        return _json_error(502, "nginx_reload_failed", str(exc))
+    runtime.audit.record("operator", "nginx.update", target=str(config.nginx_conf_path))
+    return {"ok": True, **result, "services": nginx_config.service_entries(config, records)}
 
 
 # --- Package Manager ----------------------------------------------------------

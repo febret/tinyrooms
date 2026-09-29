@@ -68,6 +68,7 @@ export function createServerManager(container, ctx) {
         el("h2", { text: "Server Manager" }),
         el("div", { class: "row" }, [
           el("span", { class: "muted", text: `${state.summary.running || 0} running · ${state.summary.total || 0} known` }),
+          el("button", { type: "button", onclick: () => openNginxDialog(), text: "Update nginx config" }),
           el("button", { type: "button", onclick: () => refreshList().catch(showError), text: "Refresh" }),
         ]),
       ]),
@@ -227,6 +228,64 @@ export function createServerManager(container, ctx) {
     } catch (error) {
       ctx.setBanner(error.message);
     }
+  }
+
+  async function openNginxDialog() {
+    let preview;
+    try {
+      preview = await api.get("/api/mission-control/nginx");
+    } catch (error) {
+      ctx.setBanner(error.message);
+      return;
+    }
+    if (!preview.ok) {
+      ctx.setBanner(preview.message || "Nginx management is not configured.");
+      return;
+    }
+    showNginxDialog(preview);
+  }
+
+  function showNginxDialog(preview) {
+    const overlay = el("div", { class: "modal-overlay" });
+    const close = () => overlay.remove();
+    const errorNode = el("p", { class: "error" });
+    const routes = preview.services.map((service) => `/${service.route}/ → 127.0.0.1:${service.port}`).join("   ");
+    const confirm = el("button", {
+      class: "primary",
+      type: "button",
+      text: "Apply and reload",
+      onclick: async () => {
+        confirm.disabled = true;
+        errorNode.textContent = "";
+        try {
+          const result = await api.post("/api/mission-control/nginx", {});
+          close();
+          await refreshList();
+          const detail = result.output ? `: ${result.output}` : "";
+          ctx.setBanner(`nginx configuration updated (${result.services.length} services)${detail}`);
+        } catch (error) {
+          confirm.disabled = false;
+          errorNode.textContent = error.message;
+        }
+      },
+    });
+    overlay.append(
+      el("div", { class: "modal" }, [
+        el("h3", { text: "Update nginx configuration" }),
+        el("p", { class: "muted", text: `${preview.path} · server_name ${preview.server_name}` }),
+        el("p", { class: "muted", text: routes }),
+        el("pre", { class: "nginx-config", text: preview.config }),
+        errorNode,
+        el("div", { class: "row" }, [
+          el("button", { type: "button", text: "Cancel", onclick: close }),
+          confirm,
+        ]),
+      ]),
+    );
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) close();
+    });
+    document.body.append(overlay);
   }
 
   function showError(error) {

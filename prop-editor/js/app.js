@@ -12,9 +12,10 @@ import { renderEffectsPanel } from "./effects-panel.js";
 import { createPreviewViewer } from "./preview.js";
 import { renderPropsPanel } from "./props-panel.js";
 import { escapeHtml, clone, numberOr, parseCsv, setPath } from "./util.js";
-import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "/app/js/editing/prop-library.js";
-import { bindEditorLibrary } from "/app/js/editing/library-filter.js";
-import { createThumbnailManager } from "/app/js/editing/prop-thumbnails.js";
+import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "../../app/js/editing/prop-library.js";
+import { bindEditorLibrary } from "../../app/js/editing/library-filter.js";
+import { createThumbnailManager } from "../../app/js/editing/prop-thumbnails.js";
+import { withBase } from "../../app/js/base-path.js";
 
 const thumbnails = createThumbnailManager();
 
@@ -64,9 +65,9 @@ function effectDirty() {
 }
 
 function modelUrlFor(kind, source, model) {
-  if (kind === "mod") return `/assets/mods/${source}/props/${model}`;
-  if (kind === "propset") return `/assets/propsets/${source}/${model}`;
-  return `/assets/world/${state.worldId}/props/${model}`;
+  if (kind === "mod") return withBase(`/assets/mods/${source}/props/${model}`);
+  if (kind === "propset") return withBase(`/assets/propsets/${source}/${model}`);
+  return withBase(`/assets/world/${state.worldId}/props/${model}`);
 }
 
 function readValue(target, kind) {

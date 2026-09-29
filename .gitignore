@@ -18,3 +18,4 @@ users/
 .test-results/
 .test-results-perf/
 .playwright-report/
+releases/

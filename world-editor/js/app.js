@@ -19,7 +19,7 @@ import {
   renderRecipes,
   renderTasks,
 } from "./panels/systems.js";
-import { createThumbnailManager } from "/app/js/editing/prop-thumbnails.js";
+import { createThumbnailManager } from "../../app/js/editing/prop-thumbnails.js";
 
 const store = createStore();
 const thumbnails = createThumbnailManager();

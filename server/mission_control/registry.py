@@ -41,6 +41,7 @@ class InstanceRecord:
     version: str | None = None
     protocol_version: int | None = None
     started_at: str | None = None
+    base_path: str = ""
     registered_at: str | None = None
     last_heartbeat_at: str | None = None
     uptime_seconds: float = 0.0
@@ -123,6 +124,7 @@ class InstanceRegistry:
             protocol = payload.get("protocol_version")
             record.protocol_version = int(protocol) if isinstance(protocol, int) else None
             record.started_at = str(payload.get("started_at")) if payload.get("started_at") else None
+            record.base_path = str(payload.get("base_path") or "")
             record.registered_at = utc_now().isoformat()
             record.last_heartbeat_at = record.registered_at
             record.status = STATUS_RUNNING
@@ -144,6 +146,7 @@ class InstanceRegistry:
         instance_dir: str,
         process_handle: object,
         spawn_config: dict[str, object],
+        base_path: str = "",
     ) -> InstanceRecord:
         """Pre-register a spawned child so its logs and lifecycle are tracked."""
 
@@ -158,6 +161,7 @@ class InstanceRegistry:
                 process_handle=process_handle,
                 instance_dir=instance_dir,
                 spawn_config=spawn_config,
+                base_path=base_path,
             )
             self._instances[record.instance_id] = record
             return record
@@ -264,6 +268,7 @@ class InstanceRegistry:
             "version": record.version,
             "protocol_version": record.protocol_version,
             "started_at": record.started_at,
+            "base_path": record.base_path,
             "uptime_seconds": record.uptime_seconds,
             "users_online": record.users_online,
             "last_heartbeat_seconds": age,

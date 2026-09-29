@@ -190,6 +190,8 @@ def main() -> int:
         ssl_keyfile=str(key_path),
         log_level="info",
         timeout_graceful_shutdown=GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS,
+        proxy_headers=True,
+        forwarded_allow_ips="127.0.0.1",
     ))
     try:
         server.run()

@@ -8,16 +8,16 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 import json
 import logging
-import mimetypes
 import sqlite3
 import time
 import uuid
 
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server.accounts import AccountConflictError, AccountService, AuthenticationError, LoginResult
+from server.base_path import BasePathMiddleware
 from server.behaviors.dispatcher import BehaviorDispatcher
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.behaviors.loader import BehaviorLoader
@@ -29,7 +29,7 @@ from server.commands.core import build_registry, dispatch_command
 from server.commands.outcomes import CommandError
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
-from server.config import AppConfig, ConfigError, ensure_contained, load_config
+from server.config import AppConfig, load_config
 from server.connections import ConnectionRegistry, LiveConnection
 from server.content.bundle import WorldBundle, load_world_bundle
 from server.content.cards import CardCatalog, ContentError
@@ -46,7 +46,7 @@ from server.routes import cutscenes as cutscene_routes
 from server.routes import prop_editor as prop_editor_routes
 from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
-from server.routes.html_pages import render_fallback_activity
+from server.routes.static_files import register_static_routes
 from server.protocol import (
     PROTOCOL_VERSION,
     ClientRtcPresenceEnvelope,
@@ -330,27 +330,6 @@ def _set_session_cookies(response: Response, *, token: str, csrf_token: str, exp
 def _clear_session_cookies(response: Response) -> None:
     response.delete_cookie(SESSION_COOKIE, path="/")
     response.delete_cookie(CSRF_COOKIE, path="/")
-
-
-def _safe_path(root: Path, requested_path: str) -> Path:
-    try:
-        return ensure_contained(root / requested_path, root, "asset")
-    except ConfigError as exc:
-        raise HTTPException(status_code=404, detail="Not found.") from exc
-
-
-def _activity_roots(runtime: RuntimeState) -> tuple[Path, ...]:
-    """Return core and mod activity roots in search order."""
-
-    return (runtime.config.activities_path, *(mod.activities_path for mod in runtime.mod_definitions))
-
-
-
-def _propset_roots(runtime: RuntimeState) -> tuple[Path, ...]:
-    """Return core propset roots in search order."""
-
-    return (runtime.config.propsets_path,)
-
 
 
 def _auth_response(runtime: RuntimeState, result: LoginResult, account: AccountRecord) -> Response:
@@ -1088,107 +1067,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                 generation=connection.generation,
             )
 
-    @app.get("/")
-    async def index(request: Request) -> Response:
-        runtime = _get_runtime(request)
-        index_path = runtime.config.app_path / "index.html"
-        if index_path.is_file():
-            return FileResponse(index_path)
-        return HTMLResponse(
-            "<!doctype html><html><body><h1>Tinyrooms backend ready</h1>"
-            "<p>The backend is running. Add the frontend files under app\\index.html when available.</p>"
-            "</body></html>"
-        )
-
-    @app.get("/app/{requested_path:path}")
-    async def app_files(requested_path: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        candidate = _safe_path(runtime.config.app_path, requested_path)
-        if candidate.is_file():
-            return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="App file not found.")
-
-    @app.get("/activities/{activity_name}/")
-    async def activity_index(activity_name: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        for root in _activity_roots(runtime):
-            candidate = _safe_path(root, f"{activity_name}/index.html")
-            if candidate.is_file():
-                return FileResponse(candidate)
-        return render_fallback_activity(activity_name)
-
-    @app.get("/activities/{filename}")
-    async def shared_activity_file(filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        if filename not in {"shared.css", "shared.js"}:
-            raise HTTPException(status_code=404, detail="Activity file not found.")
-        candidate = _safe_path(runtime.config.activities_path, filename)
-        return FileResponse(candidate)
-
-    @app.get("/activities/{activity_name}/{requested_path:path}")
-    async def activity_files(activity_name: str, requested_path: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        for root in _activity_roots(runtime):
-            candidate = _safe_path(root, f"{activity_name}/{requested_path}")
-            if candidate.is_file():
-                media_type, _ = mimetypes.guess_type(candidate.name)
-                return FileResponse(candidate, media_type=media_type)
-        raise HTTPException(status_code=404, detail="Activity file not found.")
-
-    @app.get("/assets/stickers/{filename}")
-    async def sticker_asset(filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        for root in (runtime.config.stickers_path, runtime.config.custom_stickers_path):
-            candidate = _safe_path(root, filename)
-            if candidate.is_file():
-                return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="Sticker asset not found.")
-
-    @app.get("/assets/fx/{filename}")
-    async def fx_asset(filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        candidate = _safe_path(runtime.config.fx_path, filename)
-        if candidate.is_file():
-            return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="Effect asset not found.")
-
-    @app.get("/assets/{cardset}/{filename}")
-    async def cardset_asset(cardset: str, filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        candidate = _safe_path(runtime.config.cardsets_path, f"{cardset}/{filename}")
-        if candidate.is_file():
-            return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="Cardset asset not found.")
-
-    @app.get("/assets/propsets/{propset}/{filename}")
-    async def propset_asset(propset: str, filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        for root in _propset_roots(runtime):
-            candidate = _safe_path(root, f"{propset}/{filename}")
-            if candidate.is_file():
-                return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="Propset asset not found.")
-
-    @app.get("/assets/mods/{mod_id}/props/{filename}")
-    async def mod_prop_asset(mod_id: str, filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        for mod in runtime.mod_definitions:
-            if mod.id != mod_id:
-                continue
-            candidate = _safe_path(mod.props_path, filename)
-            if candidate.is_file():
-                return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="Mod prop asset not found.")
-
-    @app.get("/assets/world/{world_id}/{bucket}/{filename}")
-    async def world_asset(world_id: str, bucket: str, filename: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        if world_id != runtime.world.id or bucket not in {"cards", "rooms", "props", "peeps"}:
-            raise HTTPException(status_code=404, detail="World asset not found.")
-        candidate = _safe_path(runtime.world.root_path, f"{bucket}/{filename}")
-        if candidate.is_file():
-            return FileResponse(candidate)
-        raise HTTPException(status_code=404, detail="World asset not found.")
+    register_static_routes(app)
 
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
@@ -1196,4 +1075,4 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(cutscene_routes.router)
     if loaded_config.mc_endpoint:
         app.include_router(mc_router)
-    return app
+    return BasePathMiddleware(app, loaded_config.base_path)

@@ -1,3 +1,17 @@
+const BASE_PATH = typeof window !== "undefined" && typeof window.__TR_BASE__ === "string"
+  ? window.__TR_BASE__
+  : "";
+
+function withBase(path) {
+  if (!BASE_PATH || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) {
+    return path;
+  }
+  if (path === BASE_PATH || path.startsWith(`${BASE_PATH}/`)) {
+    return path;
+  }
+  return `${BASE_PATH}${path}`;
+}
+
 function csrfToken() {
   const match = document.cookie.split("; ").find((entry) => entry.startsWith("tr_mc_csrf="));
   return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : "";
@@ -11,7 +25,7 @@ async function request(method, path, options = {}) {
   }
   if (options.body !== undefined) opts.body = options.body;
   if (method !== "GET") opts.headers["X-CSRF-Token"] = csrfToken();
-  const response = await fetch(path, opts);
+  const response = await fetch(withBase(path), opts);
   let data = null;
   try {
     data = await response.json();

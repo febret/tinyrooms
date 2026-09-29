@@ -88,6 +88,8 @@ world server(s)  -- also self-register when started outside MC
 | `TRSERVER_MC_CA_FILE` | No | — | PEM CA bundle used to verify world-server TLS. |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` | Dev-only: skip world-server cert verification. |
 | `TRSERVER_MC_HEARTBEAT_SECONDS` | No | `5` | Expected heartbeat interval; used for staleness. |
+| `TRSERVER_MC_NGINX_CONF` | No | — | Site config file the Server Manager regenerates (enables nginx management). |
+| `TRSERVER_MC_NGINX_RELOAD` | No | — | Command that installs the generated config and reloads nginx. |
 
 MC serves HTTPS with the existing self-signed cert helper (`run.py`), reusing
 `.local/cert.pem` / `key.pem` unless `--certfile/--keyfile` are supplied.
@@ -211,6 +213,10 @@ and tracks the child handle.
 - **Lifecycle controls**: Start / Stop / Restart (spawned instances); for
   external instances, cooperative Shutdown/Restart via the world API.
 - **Resync** button (see §5.5).
+- **Update nginx config**: regenerates the reverse-proxy site config from the
+  admin UI route and every live instance (each spawned world runs under its own
+  `/route` base path), previews the rendered file in a confirmation dialog, then
+  writes `TRSERVER_MC_NGINX_CONF` and runs `TRSERVER_MC_NGINX_RELOAD`.
 
 ### 5.4 Package Manager
 
@@ -305,6 +311,8 @@ Mounted on the MC server, gated by the `mission-control` feature and MC auth.
 | `POST` | `/api/mission-control/servers/{id}/command` | Send admin command. |
 | `POST` | `/api/mission-control/servers/{id}/resync` | Resync one instance. |
 | `POST` | `/api/mission-control/resync` | Resync all instances. |
+| `GET` | `/api/mission-control/nginx` | Preview the generated nginx site config. |
+| `POST` | `/api/mission-control/nginx` | Write the config and reload nginx. |
 | `GET` | `/api/mission-control/packages` | Package inventory. |
 | `POST` | `/api/mission-control/packages` | Upload/install a package zip. |
 | `POST` | `/api/mission-control/packages/{kind}/{id}/enable` | Enable/disable. |
