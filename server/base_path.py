@@ -30,8 +30,25 @@ def with_base(base_path: str, url: str) -> str:
     return f"{base_path}{url}"
 
 
-def inject_base_path(html: str, base_path: str) -> str:
-    """Rewrite root-absolute HTML URLs to honor *base_path*."""
+def _document_directory(document_path: str) -> str:
+    """Return the trailing-slash directory of a root-relative document path."""
+
+    if not document_path or document_path == "/":
+        return "/"
+    if document_path.endswith("/"):
+        return document_path
+    head, _, _ = document_path.rpartition("/")
+    return f"{head}/" if head else "/"
+
+
+def inject_base_path(html: str, base_path: str, document_path: str = "/") -> str:
+    """Rewrite root-absolute HTML URLs to honor *base_path*.
+
+    ``document_path`` is the root-relative URL of the document (without the base
+    prefix). The injected ``<base>`` points at the document's own directory so
+    document-relative references keep resolving correctly for nested pages such
+    as activities served under ``/activities/<id>/``.
+    """
 
     if not base_path:
         return html
@@ -43,8 +60,9 @@ def inject_base_path(html: str, base_path: str) -> str:
         lambda match: f'{match.group("quote")}: {match.group("value")}{base_path}/{match.group("tail")}',
         html,
     )
+    base_href = f"{base_path}{_document_directory(document_path)}"
     injection = (
-        f'<base href="{base_path}/">'
+        f'<base href="{base_href}">'
         f'<script>window.__TR_BASE__="{base_path}";</script>'
     )
     head = _HEAD_PATTERN.search(html)
@@ -55,13 +73,19 @@ def inject_base_path(html: str, base_path: str) -> str:
     return html
 
 
-def render_html(path: Path, base_path: str, *, media_type: str = _MIME_HTML) -> Response:
+def render_html(
+    path: Path,
+    base_path: str,
+    *,
+    media_type: str = _MIME_HTML,
+    document_path: str = "/",
+) -> Response:
     """Serve *path* as HTML, injecting the base path when one is configured."""
 
     if not base_path or not media_type.startswith(_MIME_HTML):
         return FileResponse(path, media_type=media_type)
     text = path.read_text(encoding="utf-8")
-    return HTMLResponse(inject_base_path(text, base_path))
+    return HTMLResponse(inject_base_path(text, base_path, document_path))
 
 
 class BasePathMiddleware:

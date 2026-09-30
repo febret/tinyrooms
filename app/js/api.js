@@ -1,3 +1,5 @@
+import { withBase } from "./base-path.js";
+
 const JSON_HEADERS = { Accept: "application/json" };
 
 export const PATHS = {
@@ -33,7 +35,7 @@ function withJson(body) {
 /** Call the backend and raise readable errors for non-OK JSON responses. */
 async function requestJson(path, options = {}) {
   const { headers: optionHeaders = {}, ...requestOptions } = options;
-  const response = await fetch(path, {
+  const response = await fetch(withBase(path), {
     credentials: "include",
     ...requestOptions,
     headers: { ...JSON_HEADERS, ...optionHeaders },
@@ -114,7 +116,7 @@ export function createApiClient() {
     },
     async saveRoomLayout(roomId, payload) {
       const request = withJson(payload);
-      const response = await fetch(`/api/rooms/${encodeURIComponent(roomId)}/layout`, {
+      const response = await fetch(withBase(`/api/rooms/${encodeURIComponent(roomId)}/layout`), {
         method: "POST",
         credentials: "include",
         ...request,

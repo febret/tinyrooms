@@ -1,5 +1,7 @@
 import * as THREE from "three";
 
+import { withBase } from "./base-path.js";
+
 /**
  * Render YAML-defined prop effects in the room board.
  *
@@ -199,7 +201,7 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
   group.add(points);
 
   let ready = false;
-  sharedTexture(layer.texture_url, loader).then(texture => {
+  sharedTexture(withBase(layer.texture_url), loader).then(texture => {
     if (!texture) return;
     uniforms.uMap.value = texture;
     uniforms.uHasMap.value = 1;

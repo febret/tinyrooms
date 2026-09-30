@@ -112,11 +112,16 @@ Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
 passphrase. Mission control serves HTTPS with the same self-signed certificate
 helper as the game server (reusing `.local/cert.pem` / `key.pem`).
 
-The **Server Manager** tab has an **Update nginx config** button. It renders an
-nginx site config with a reverse-proxy location for the mission-control UI and
-for every live instance (each spawned world is launched under its own URL
-prefix), shows the result for review, and on confirmation writes
-`TRSERVER_MC_NGINX_CONF` and runs `TRSERVER_MC_NGINX_RELOAD`.
+The **Server Manager** tab lists instances and exposes Stop / Restart / Rename /
+Resync / Delete on each one, plus an **Update nginx config** button and a
+**Reboot** button. It renders an nginx site config with a reverse-proxy location
+for the mission-control UI and for every live instance (each spawned world is
+launched under its own URL prefix), shows the result for review, and on
+confirmation writes `TRSERVER_MC_NGINX_CONF` and runs
+`TRSERVER_MC_NGINX_RELOAD`. Starting, renaming, and deleting an instance
+regenerate the config automatically when nginx management is configured.
+**Reboot** stops every spawned instance, records them for resume, and shuts MC
+down; the keepalive restarts it and the recorded instances come back up.
 
 | Variable | Purpose |
 | --- | --- |
@@ -137,6 +142,7 @@ prefix), shows the result for review, and on confirmation writes
 | `TRSERVER_MC_PUBLIC_ORIGIN` | Comma-separated extra browser origins accepted behind a proxy |
 | `TRSERVER_MC_NGINX_CONF` | Path to the nginx site config the Server Manager regenerates |
 | `TRSERVER_MC_NGINX_RELOAD` | Command that installs the generated config and reloads nginx |
+| `TRSERVER_MC_KEEPALIVE` | Keepalive script rerun by the **Reboot** action; set by the deploy tool |
 
 ## Deploying
 
@@ -152,7 +158,8 @@ python tools/deploy.py <host> [rootdir] [bootstrap|deploy] [-u USER] [--dirty]
 user. `bootstrap` creates the deployment directories (`mods`, `worlds`, `releases`,
 `logs`, `versions`), configures an nginx reverse proxy with a self-signed
 certificate, deploys a first version, and supervises a mission-control server
-under a keepalive script registered in `@reboot`. `deploy` increments the patch
+under a keepalive script registered both at `@reboot` and on a per-minute cron
+entry. `deploy` increments the patch
 version in `version.json`, packages the working tree (with its
 `requirements.txt`) into `./releases`, uploads it to
 `<rootdir>/versions/<version>`, and repoints `<rootdir>/versions/latest`.

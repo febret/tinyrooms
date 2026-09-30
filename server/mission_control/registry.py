@@ -147,12 +147,13 @@ class InstanceRegistry:
         process_handle: object,
         spawn_config: dict[str, object],
         base_path: str = "",
+        instance_id: str | None = None,
     ) -> InstanceRecord:
         """Pre-register a spawned child so its logs and lifecycle are tracked."""
 
         with self._lock:
             record = InstanceRecord(
-                instance_id=self.allocate_id(),
+                instance_id=instance_id or self.allocate_id(),
                 name=name,
                 endpoint=endpoint,
                 source=SPAWNED,
@@ -164,6 +165,34 @@ class InstanceRegistry:
                 base_path=base_path,
             )
             self._instances[record.instance_id] = record
+            return record
+
+    def revive(self, instance_id: str, *, process_handle: object, instance_dir: str | None = None) -> InstanceRecord | None:
+        """Attach a fresh process to an existing record for an in-place restart."""
+
+        with self._lock:
+            record = self._instances.get(instance_id)
+            if record is None:
+                return None
+            record.process_handle = process_handle
+            if instance_dir is not None:
+                record.instance_dir = instance_dir
+            record.status = STATUS_STARTING
+            record.log_buffer.clear()
+            return record
+
+    def rename(self, instance_id: str, name: str, base_path: str) -> InstanceRecord | None:
+        """Update an instance's display name and public route."""
+
+        with self._lock:
+            record = self._instances.get(instance_id)
+            if record is None:
+                return None
+            record.name = name
+            record.base_path = base_path
+            if record.spawn_config is not None:
+                record.spawn_config["name"] = name
+                record.spawn_config["base_path"] = base_path
             return record
 
     def heartbeat(

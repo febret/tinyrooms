@@ -227,10 +227,10 @@ h3 { font-size: 18px; }
 .peep-marker img { position: absolute; height: 87%; width: 100%; object-fit: contain; bottom: 3px; left: 0; image-rendering: pixelated; filter: drop-shadow(1px 2px 0 #0004); }
 .peep-damage { position: absolute; inset: -3px; pointer-events: none; background-repeat: no-repeat; background-size: 100% 100%; z-index: 1; }
 .peep-damage.wear { mix-blend-mode: multiply; }
-.peep-marker:not([data-damage="0"]) .peep-damage.wear { background-image: url("/app/assets/peep-damage/scuffs.svg"); }
-.peep-marker[data-damage="2"] .peep-damage.gashes { background-image: url("/app/assets/peep-damage/splats.svg"); }
-.peep-marker[data-damage="3"] .peep-damage.gashes { background-image: url("/app/assets/peep-damage/cracks.svg"), url("/app/assets/peep-damage/splats.svg"); }
-.peep-marker[data-damage="4"] .peep-damage.gashes { background-image: url("/app/assets/peep-damage/broken.svg"), url("/app/assets/peep-damage/cracks.svg"), url("/app/assets/peep-damage/splats.svg"); }
+.peep-marker:not([data-damage="0"]) .peep-damage.wear { background-image: url("../assets/peep-damage/scuffs.svg"); }
+.peep-marker[data-damage="2"] .peep-damage.gashes { background-image: url("../assets/peep-damage/splats.svg"); }
+.peep-marker[data-damage="3"] .peep-damage.gashes { background-image: url("../assets/peep-damage/cracks.svg"), url("../assets/peep-damage/splats.svg"); }
+.peep-marker[data-damage="4"] .peep-damage.gashes { background-image: url("../assets/peep-damage/broken.svg"), url("../assets/peep-damage/cracks.svg"), url("../assets/peep-damage/splats.svg"); }
 .peep-chip.self .peep-marker { width: 88px; height: 112px; background: linear-gradient(130deg, #f7edd2, #d5c3a1); border-color: #ebdbb8; transform: rotate(-3deg); }
 .peep-chip.selected .peep-marker { filter: drop-shadow(0 0 8px #81cf5e); transform: rotate(0); }
 .peep-name { display: block; font-size: 16px; line-height: 1.2; overflow-wrap: anywhere; }
@@ -259,7 +259,7 @@ h3 { font-size: 18px; }
 }
 .bubble::before { content: ""; position: absolute; left: -17px; top: 18px; border-width: 8px 17px 8px 0; border-style: solid; border-color: transparent #bcc1c3 transparent transparent; }
 .bubble-text { display: block; max-height: max(44px, min(220px, calc(100dvh - var(--dock-height) - 100px))); overflow: auto; }
-.bubble.thought { min-height: 90px; border: 0; border-radius: 0; background: url("/app/assets/thought-bubble.svg") center / 100% 100% no-repeat; padding: 24px 28px; box-shadow: none; filter: drop-shadow(0 3px 4px #0007); }
+.bubble.thought { min-height: 90px; border: 0; border-radius: 0; background: url("../assets/thought-bubble.svg") center / 100% 100% no-repeat; padding: 24px 28px; box-shadow: none; filter: drop-shadow(0 3px 4px #0007); }
 .bubble.thought::before { width: 10px; height: 10px; border-radius: 50%; border: 0; background: #bcc1c3; box-shadow: -12px 4px 0 -2px #bcc1c3; left: -12px; }
 .bubble.spiky { border-radius: 3px; border-width: 3px; border-color: #d7b190; outline: 2px solid #123744; clip-path: polygon(0 9%,7% 12%,5% 0,20% 5%,30% 0,45% 5%,58% 0,72% 5%,89% 0,88% 10%,100% 7%,96% 30%,100% 48%,96% 69%,100% 93%,90% 90%,91% 100%,72% 95%,57% 100%,43% 96%,28% 100%,13% 95%,3% 100%,5% 84%,0 78%,4% 58%,0 40%,4% 23%); padding: 18px 22px; }
 .bubble.long { font-size: 14px; }
@@ -284,7 +284,7 @@ h3 { font-size: 18px; }
 .log-line { margin: 7px 0; overflow-wrap: anywhere; color: var(--muted); }
 .log-line.chat { color: var(--ink); }
 .toast-stack { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); width: max-content; max-width: min(600px, 80%); display: grid; gap: 6px; z-index: 100; pointer-events: none; }
-.toast { min-width: min(300px, 75vw); padding: 22px 40px; color: #f2f5ed; background: url("/app/assets/action-scroll.svg") center / 100% 100% no-repeat; filter: drop-shadow(0 4px 5px #0008); text-align: center; overflow-wrap: anywhere; animation: reveal .18s ease-out; font-size: 16px; }
+.toast { min-width: min(300px, 75vw); padding: 22px 40px; color: #f2f5ed; background: url("../assets/action-scroll.svg") center / 100% 100% no-repeat; filter: drop-shadow(0 4px 5px #0008); text-align: center; overflow-wrap: anywhere; animation: reveal .18s ease-out; font-size: 16px; }
 .toast.error { color: #ffd0ba; }
 .onboarding .toast-stack, .app-shell[data-auth="out"] .toast-stack { top: 10px; }
 .global-modal-layer { position: absolute; inset: 0; pointer-events: none; z-index: 90; }

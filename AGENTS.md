@@ -84,7 +84,8 @@ must include `mission-control`. Additional MC vars: `TRSERVER_MC_HOST` (`127.0.0
 `TRSERVER_MC_BASE_PATH` (URL prefix behind a proxy), `TRSERVER_MC_PUBLIC_ORIGIN`
 (comma-separated extra allowed browser origins), `TRSERVER_MC_NGINX_CONF` (site
 config the Server Manager regenerates), `TRSERVER_MC_NGINX_RELOAD` (command to
-install the config and reload nginx).
+install the config and reload nginx), `TRSERVER_MC_KEEPALIVE` (keepalive script
+rerun by the UI **Reboot** action; set by `tools/deploy.py`).
 
 ## Testing
 

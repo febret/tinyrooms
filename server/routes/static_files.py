@@ -63,7 +63,11 @@ def register_static_routes(app: FastAPI) -> None:
         for root in _activity_roots(runtime):
             candidate = _safe_path(root, f"{activity_name}/index.html")
             if candidate.is_file():
-                return render_html(candidate, runtime.config.base_path)
+                return render_html(
+                    candidate,
+                    runtime.config.base_path,
+                    document_path=f"/activities/{activity_name}/",
+                )
         return render_fallback_activity(activity_name)
 
     @app.get("/activities/{filename}")
@@ -81,7 +85,12 @@ def register_static_routes(app: FastAPI) -> None:
             candidate = _safe_path(root, f"{activity_name}/{requested_path}")
             if candidate.is_file():
                 media_type, _ = mimetypes.guess_type(candidate.name)
-                return render_html(candidate, runtime.config.base_path, media_type=media_type)
+                return render_html(
+                    candidate,
+                    runtime.config.base_path,
+                    media_type=media_type,
+                    document_path=f"/activities/{activity_name}/{requested_path}",
+                )
         raise HTTPException(status_code=404, detail="Activity file not found.")
 
     @app.get("/assets/stickers/{filename}")

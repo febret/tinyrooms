@@ -1,4 +1,5 @@
 import { peepDamageTier } from "./peep-damage.js";
+import { withBase } from "./base-path.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { statusIconMarkup } from "./views/view-helpers.js";
 
@@ -301,7 +302,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       return `
       <article class="peep-chip ${peep.id === state.user?.id ? "self" : ""} ${pinned.has(peep.id) ? "pinned" : ""} ${tired ? "tired" : ""} ${state.selection.kind === "peep" && state.selection.id === peep.id ? "selected" : ""}">
         <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
-          <span class="peep-marker" data-damage="${damage}"><img src="${escapeHtml(peep.stickerUrl || "/assets/stickers/s1.png")}" alt=""><span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
+          <span class="peep-marker" data-damage="${damage}"><img src="${escapeHtml(peep.stickerUrl || withBase("/assets/stickers/s1.png"))}" alt=""><span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
           <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
           ${peep.audioEnabled ? `<span class="peep-audio" role="img" aria-label="Audio chat on" title="Audio chat on">&#128266;</span>` : ""}
           ${statuses.length ? `<span class="peep-statuses">${statusIconMarkup(statuses, definitions)}</span>` : ""}

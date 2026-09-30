@@ -1,4 +1,5 @@
 import { thumbnailFor } from "../editing/prop-thumbnails.js";
+import { withBase } from "../base-path.js";
 
 const PAGE_ORIGIN = typeof window === "undefined" ? "" : window.location.origin;
 const elementCache = new Map();
@@ -30,7 +31,7 @@ export function assetSource(asset) {
     warnOnce(String(preferred), `Rejected image URL ${String(preferred)}.`);
     return "";
   }
-  return preferred;
+  return withBase(preferred);
 }
 
 /** Build the neutral box shown while a sprite loads or cannot resolve. */
@@ -60,7 +61,7 @@ function imageElement(asset) {
 
 /** Build the still <img> for a 3D prop, rendered through the shared offscreen context. */
 function propElement(asset) {
-  const url = asset.model_url || "";
+  const url = withBase(asset.model_url || "");
   if (!isSameOrigin(url)) {
     warnOnce(String(url), `Rejected model URL ${String(url)}.`);
     return Promise.resolve(placeholderBox(asset));

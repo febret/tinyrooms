@@ -42,6 +42,7 @@ class MCConfig:
     public_origins: tuple[str, ...] = ()
     nginx_conf_path: Path | None = None
     nginx_reload_command: str | None = None
+    keepalive_path: Path | None = None
 
     @property
     def admin_route(self) -> str:
@@ -158,6 +159,9 @@ def load_mc_config(
     nginx_conf_path = Path(nginx_conf_raw).expanduser() if nginx_conf_raw else None
     nginx_reload_command = values.get("TRSERVER_MC_NGINX_RELOAD", "").strip() or None
 
+    keepalive_raw = values.get("TRSERVER_MC_KEEPALIVE", "").strip()
+    keepalive_path = Path(keepalive_raw).expanduser() if keepalive_raw else None
+
     return MCConfig(
         repo_root=root,
         host=host,
@@ -177,4 +181,5 @@ def load_mc_config(
         public_origins=public_origins,
         nginx_conf_path=nginx_conf_path,
         nginx_reload_command=nginx_reload_command,
+        keepalive_path=keepalive_path,
     )

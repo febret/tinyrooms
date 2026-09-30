@@ -26,7 +26,19 @@ export function createServerManager(container, ctx) {
   }
 
   async function refreshDetail() {
-    const data = await api.get(`/api/mission-control/servers/${state.selectedId}`);
+    let data;
+    try {
+      data = await api.get(`/api/mission-control/servers/${state.selectedId}`);
+    } catch (error) {
+      if (error.status === 404) {
+        state.selectedId = null;
+        state.detail = null;
+        if (state.timer) window.clearInterval(state.timer);
+        await refreshList();
+        return;
+      }
+      throw error;
+    }
     state.detail = data.server;
     try {
       const logs = await api.get(`/api/mission-control/servers/${state.selectedId}/logs?limit=200`);
@@ -69,6 +81,7 @@ export function createServerManager(container, ctx) {
         el("div", { class: "row" }, [
           el("span", { class: "muted", text: `${state.summary.running || 0} running · ${state.summary.total || 0} known` }),
           el("button", { type: "button", onclick: () => openNginxDialog(), text: "Update nginx config" }),
+          el("button", { type: "button", onclick: () => reboot(), text: "Reboot" }),
           el("button", { type: "button", onclick: () => refreshList().catch(showError), text: "Refresh" }),
         ]),
       ]),
@@ -125,9 +138,10 @@ export function createServerManager(container, ctx) {
       return;
     }
     try {
-      await api.post("/api/mission-control/servers", payload);
+      const data = await api.post("/api/mission-control/servers", payload);
       form.reset();
       await refreshList();
+      ctx.setBanner(nginxNote("Instance started", data.nginx));
     } catch (error) {
       ctx.setBanner(error.message);
     }
@@ -155,7 +169,9 @@ export function createServerManager(container, ctx) {
         el("div", { class: "row" }, [
           el("button", { type: "button", onclick: () => lifecycle("stop"), text: "Stop" }),
           el("button", { type: "button", onclick: () => lifecycle("restart"), text: "Restart" }),
+          el("button", { type: "button", onclick: () => renameInstance(), text: "Rename" }),
           el("button", { type: "button", onclick: () => resync(), text: "Resync" }),
+          el("button", { type: "button", onclick: () => deleteInstance(), text: "Delete" }),
         ]),
       ]),
       el("div", { class: "card grid cols-2" }, [
@@ -214,11 +230,68 @@ export function createServerManager(container, ctx) {
 
   async function lifecycle(action) {
     try {
-      await api.post(`/api/mission-control/servers/${state.selectedId}/${action}`, {});
-      await refreshDetail();
+      const data = await api.post(`/api/mission-control/servers/${state.selectedId}/${action}`, {});
+      if (data && data.server && data.server.instance_id) {
+        state.selectedId = data.server.instance_id;
+      }
+      await refreshList();
     } catch (error) {
       ctx.setBanner(error.message);
     }
+  }
+
+  async function renameInstance() {
+    const detail = state.detail;
+    if (!detail) return;
+    const proposed = window.prompt("New instance name", detail.name);
+    if (proposed === null) return;
+    const name = proposed.trim();
+    if (!name) {
+      ctx.setBanner("A new name is required.");
+      return;
+    }
+    try {
+      const data = await api.post(`/api/mission-control/servers/${state.selectedId}/rename`, { name });
+      if (data.server && data.server.instance_id) state.selectedId = data.server.instance_id;
+      await refreshList();
+      ctx.setBanner(nginxNote("Instance renamed", data.nginx));
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
+  }
+
+  async function deleteInstance() {
+    const detail = state.detail;
+    if (!detail) return;
+    if (!window.confirm(`Delete "${detail.name}"?`)) return;
+    try {
+      const data = await api.del(`/api/mission-control/servers/${state.selectedId}`);
+      state.selectedId = null;
+      state.detail = null;
+      if (state.timer) window.clearInterval(state.timer);
+      await refreshList();
+      ctx.setBanner(nginxNote("Instance deleted", data.nginx));
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
+  }
+
+  async function reboot() {
+    if (!window.confirm("Reboot mission control? Spawned servers stop now and resume after it restarts.")) return;
+    try {
+      const data = await api.post("/api/mission-control/reboot", {});
+      const count = Array.isArray(data.resuming) ? data.resuming.length : 0;
+      ctx.setBanner(`Rebooting mission control… ${count} instance(s) will resume.`);
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
+  }
+
+  function nginxNote(prefix, nginx) {
+    if (!nginx) return prefix;
+    if (nginx.skipped) return `${prefix} (nginx not configured).`;
+    if (nginx.ok === false) return `${prefix}, but nginx reload failed: ${nginx.error}`;
+    return `${prefix} and nginx reloaded.`;
   }
 
   async function resync() {

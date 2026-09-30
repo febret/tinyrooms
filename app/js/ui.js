@@ -1,4 +1,5 @@
 import { createApiClient } from "./api.js";
+import { withBase } from "./base-path.js";
 import { createActivityManager } from "./activities.js";
 import { createChatAutocomplete } from "./autocomplete.js";
 import { createChatHistory } from "./chat-history.js";
@@ -454,7 +455,7 @@ async function handleAction(action) {
   } else if (action.type === "edit-action") {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {
-    if (action.propId) window.open(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`, "_blank", "noopener");
+    if (action.propId) window.open(withBase(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`), "_blank", "noopener");
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
   } else if (action.type === "start-targeting") {
@@ -597,7 +598,7 @@ async function openStickerSwap() {
       <p>Choose a new sticker. Confirming a different sticker costs ${cost} Bops; keeping the current one is free.</p>
       <div class="sticker-grid">${stickers.map(entry => {
         const name = String(entry?.name || "");
-        const imageUrl = entry?.image_url || `/assets/stickers/${name}`;
+        const imageUrl = withBase(entry?.image_url || `/assets/stickers/${name}`);
         return `<button type="button" class="sticker-choice ${name === current ? "current" : ""}" data-sticker="${escapeHtml(name)}"><img src="${escapeHtml(imageUrl)}" alt=""></button>`;
       }).join("")}</div>
       <div class="dialog-actions">
@@ -647,7 +648,7 @@ function showPackReveal(cards) {
     `<section class="global-dialog pack-reveal" role="dialog" aria-modal="true" aria-labelledby="pack-reveal-title">
       <h2 id="pack-reveal-title">Your ${escapeHtml(cards.length)} cards</h2>
       <div class="pack-reveal-cards">${cards.map(card => `
-        <figure class="pack-reveal-card"><img src="${escapeHtml(card.image_url)}" alt="${escapeHtml(card.label)}"><figcaption>${escapeHtml(card.label)}</figcaption></figure>
+        <figure class="pack-reveal-card"><img src="${escapeHtml(withBase(card.image_url))}" alt="${escapeHtml(card.label)}"><figcaption>${escapeHtml(card.label)}</figcaption></figure>
       `).join("")}</div>
       <div class="dialog-actions"><button type="button" class="primary pack-reveal-close">Continue</button></div>
     </section>`,
@@ -948,6 +949,7 @@ const board = createBoard({
   onEditTransform({ id, position }) { store.dispatch({ type: "editor-transform", id, position }); },
   onEditRotate(delta, gesture) { store.dispatch({ type: "editor-rotate", delta, gesture: Boolean(gesture) }); },
   onEditScale(factor, gesture) { store.dispatch({ type: "editor-scale", factor, gesture: Boolean(gesture) }); },
+  onEditElevate(delta, gesture) { store.dispatch({ type: "editor-elevate", delta, gesture: Boolean(gesture) }); },
   stackProps: true,
   dragHandles: true,
 });

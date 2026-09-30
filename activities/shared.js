@@ -4,6 +4,7 @@
   document.documentElement.classList.toggle("embedded", window.parent !== window);
 
   const origin = window.location.origin;
+  const basePath = typeof window.__TR_BASE__ === "string" ? window.__TR_BASE__ : "";
   const activityId = new URLSearchParams(window.location.search).get("session_id") || "";
   const listeners = new Set();
   const pending = new Map();
@@ -28,8 +29,12 @@
 
   function image(url) {
     if (!url) return "";
+    let value = String(url);
+    if (basePath && value.startsWith("/") && !value.startsWith("//") && value !== basePath && !value.startsWith(`${basePath}/`)) {
+      value = `${basePath}${value}`;
+    }
     try {
-      const resolved = new URL(String(url), origin);
+      const resolved = new URL(value, origin);
       if (resolved.origin !== origin || !/^https?:$/.test(resolved.protocol)) throw new TypeError("cross-origin");
       return resolved.href;
     } catch {

@@ -287,7 +287,7 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
   display: flex;
   padding: clamp(9px, 1.5vw, 16px) clamp(11px, 1.8vw, 22px);
   border-radius: 16px;
-  background: url("/app/assets/journal-leather.svg") center / 160px repeat, linear-gradient(150deg, #4a2f1d, #2a1810 72%);
+  background: url("../assets/journal-leather.svg") center / 160px repeat, linear-gradient(150deg, #4a2f1d, #2a1810 72%);
   box-shadow: 0 22px 44px #000a, inset 0 0 0 1px #000000a6, inset 0 0 44px #00000080;
   transform-origin: 14% center;
   isolation: isolate;
@@ -318,13 +318,13 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
   min-height: 0;
   padding: clamp(12px, 1.8vw, 22px) clamp(12px, 1.7vw, 24px);
   color: var(--journal-ink);
-  background: url("/app/assets/journal-paper.svg") center / 220px repeat, radial-gradient(ellipse at 50% -10%, #fbf4e2, #f1e4c8 72%, #e7d5b0);
+  background: url("../assets/journal-paper.svg") center / 220px repeat, radial-gradient(ellipse at 50% -10%, #fbf4e2, #f1e4c8 72%, #e7d5b0);
 }
 .journal-page-left { border-radius: 6px 2px 2px 6px; box-shadow: inset -22px 0 26px -20px rgba(80, 54, 30, .55); }
 .journal-page-right {
   border-radius: 2px 6px 6px 2px;
   box-shadow: inset 22px 0 26px -20px rgba(80, 54, 30, .55);
-  background: url("/app/assets/journal-paper.svg") center / 220px repeat, repeating-linear-gradient(to bottom, transparent 0 27px, rgba(120, 92, 58, .14) 27px 28px), radial-gradient(ellipse at 50% -10%, #fbf4e2, #f1e4c8 72%, #e7d5b0);
+  background: url("../assets/journal-paper.svg") center / 220px repeat, repeating-linear-gradient(to bottom, transparent 0 27px, rgba(120, 92, 58, .14) 27px 28px), radial-gradient(ellipse at 50% -10%, #fbf4e2, #f1e4c8 72%, #e7d5b0);
 }
 .journal-page-inner { height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(120, 92, 58, .5) transparent; padding-right: 4px; }
 .journal-spine {

@@ -1,4 +1,5 @@
 import { editorReducer } from "./editing/edit-reducer.js";
+import { withBase } from "./base-path.js";
 
 const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia === "function"
   ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -10,7 +11,7 @@ function clone(value) {
 }
 
 function assetOrEmpty(value) {
-  return typeof value === "string" && value ? value : "";
+  return typeof value === "string" && value ? withBase(value) : "";
 }
 
 function normalizeQuickActions(actions) {
@@ -327,7 +328,7 @@ function normalizeUser(user) {
     id: String(user.id || ""),
     username: String(user.username || "Guest"),
     sticker: String(user.sticker || ""),
-    stickerUrl: user.sticker ? `/assets/stickers/${user.sticker}` : "",
+    stickerUrl: user.sticker ? withBase(`/assets/stickers/${user.sticker}`) : "",
     stickerDesign: user.sticker_design && typeof user.sticker_design === "object"
       ? {
           ...user.sticker_design,
@@ -417,7 +418,7 @@ function toastRecord(message, tone = "info", silent = false) {
 }
 
 function applyBubble(peeps, key, label, text, style, imageUrl = "") {
-  const url = String(imageUrl || "");
+  const url = withBase(String(imageUrl || ""));
   const wanted = String(label || "").toLowerCase();
   let next = peeps;
   for (let index = 0; index < peeps.length; index += 1) {

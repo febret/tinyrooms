@@ -118,7 +118,7 @@ function renderPacks() {
   const bops = Number(Tiny.state?.user?.bops ?? 0);
   packGrid.innerHTML = list.map(pack => {
     const art = pack.backImageUrl
-      ? `<span class="shop-pack-art" style="background-image: url('${escape(pack.backImageUrl)}')" role="img" aria-label="${escape(pack.label)} pack art"></span>`
+      ? `<span class="shop-pack-art" style="background-image: url('${escape(Tiny.image(pack.backImageUrl))}')" role="img" aria-label="${escape(pack.label)} pack art"></span>`
       : `<span class="shop-pack-art" aria-hidden="true"></span>`;
     const affordable = bops >= pack.price;
     const confirming = pendingPack === pack.id;

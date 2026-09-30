@@ -108,6 +108,12 @@ def create_mc_app(config: MCConfig) -> FastAPI:
         runtime = build_runtime(config)
         app.state.mc = runtime
         runtime.packages.refresh()
+        try:
+            resumed = runtime.supervisor.resume_pending()
+            if resumed:
+                LOGGER.info(json.dumps({"event": "mc.resume", "instances": resumed}))
+        except Exception:  # noqa: BLE001 - never block startup on resume
+            LOGGER.exception("mc.resume_failed")
         sweeper = asyncio.create_task(_sweep_stale(runtime))
         try:
             yield

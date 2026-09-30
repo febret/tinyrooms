@@ -262,6 +262,7 @@ def deploy(host: str, server_name: str, root: str, dirty: bool, *, restart: bool
     install_requirements(host, root, version)
     registry = read_services(host, root)
     write_admin_env(host, root, server_name, registry)
+    ensure_keepalive(host, root)
     if restart:
         restart_admin(host, root)
     return version
@@ -420,6 +421,7 @@ def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, di
         "TRSERVER_MC_VERSIONS_PATH": f"{root.rstrip('/')}/versions",
         "TRSERVER_MC_NGINX_CONF": conf_path,
         "TRSERVER_MC_NGINX_RELOAD": reload_command,
+        "TRSERVER_MC_KEEPALIVE": f"{root.rstrip('/')}/keepalive.sh",
         "TRSERVER_MC_INSECURE_TLS": "1",
     }
     body = render_env_file(lines)
@@ -448,19 +450,31 @@ def keepalive_script(root: str) -> str:
     )
 
 
-def setup_mission_control(host: str, root: str, host_name: str, registry: dict[str, dict[str, object]]) -> None:
-    """Install the keepalive script, crontab entry, and start the server."""
+def keepalive_cron_entries(root: str) -> list[str]:
+    """Return the crontab entries that keep the mission-control server alive."""
+
+    marker = f"{root.rstrip('/')}/keepalive.sh"
+    return [f"@reboot {marker}", f"* * * * * {marker}"]
+
+
+def ensure_keepalive(host: str, root: str) -> None:
+    """Install or refresh the keepalive script and its crontab entries."""
 
     script = keepalive_script(root)
     run_remote(host, f"cat > {remote_path(root, 'keepalive.sh')} <<'KEEPEOF'\n{script}\nKEEPEOF")
     run_remote(host, f"chmod +x {remote_path(root, 'keepalive.sh')}")
-    marker = f"{root.rstrip('/')}/keepalive.sh"
-    cron_line = f"@reboot {marker}"
-    run_remote(
-        host,
-        f"crontab -l 2>/dev/null | grep -qF {shlex.quote(marker)} || "
-        f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -",
-    )
+    for cron_line in keepalive_cron_entries(root):
+        run_remote(
+            host,
+            f"crontab -l 2>/dev/null | grep -qF {shlex.quote(cron_line)} || "
+            f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -",
+        )
+
+
+def setup_mission_control(host: str, root: str, host_name: str, registry: dict[str, dict[str, object]]) -> None:
+    """Install the keepalive script, crontab entries, and start the server."""
+
+    ensure_keepalive(host, root)
     run_remote(host, f"bash {remote_path(root, 'keepalive.sh')}")
     print("Mission control keepalive installed and started.")
 

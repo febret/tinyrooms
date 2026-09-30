@@ -1,7 +1,8 @@
 import { PATHS } from "./api.js";
+import { withBase } from "./base-path.js";
 
 function websocketUrl() {
-  const url = new URL(PATHS.websocket, window.location.origin);
+  const url = new URL(withBase(PATHS.websocket), window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   return url.href;
 }

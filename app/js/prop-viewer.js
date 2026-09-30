@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import { disposeBoardTree } from "./board-helpers.js";
 import { createViewerStage } from "./viewer-stage.js";
+import { withBase } from "./base-path.js";
 
 const loader = new GLTFLoader();
 
@@ -13,7 +14,7 @@ function createModelViewer({ canvas, modelUrl, scale, interactive, reducedMotion
   let modelScenes = [];
 
   function loadModel() {
-    loader.load(modelUrl, gltf => {
+    loader.load(withBase(modelUrl), gltf => {
       if (disposed) {
         disposeBoardTree(gltf.scenes || [gltf.scene]);
         return;

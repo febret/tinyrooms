@@ -44,7 +44,7 @@ function renderCards() {
     <div class="card-grid">
       ${cards.map(card => `
         <article class="card-tile">
-          <img src="${escapeHtml(card.image_url)}" alt="${escapeHtml(card.label)}" loading="lazy">
+          <img src="${escapeHtml(withBase(card.image_url))}" alt="${escapeHtml(card.label)}" loading="lazy">
           <h3>${escapeHtml(card.label)}</h3>
           ${badges(card)}
           <p>${escapeHtml(card.description || "")}</p>

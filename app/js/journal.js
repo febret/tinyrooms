@@ -1,4 +1,5 @@
 import { escapeHtml } from "./presentation.js";
+import { withBase } from "./base-path.js";
 
 function stepMarkup(step) {
   const pct = step.amount > 0 ? Math.min(100, Math.round((step.progress / step.amount) * 100)) : 0;
@@ -113,7 +114,7 @@ export function memoriesMarkup(state) {
   return `
     <section class="memory-list">
       <h3>Memories <span class="memory-count">${memories.length}</span></h3>
-      <img class="journal-flourish" src="/app/assets/journal-flourish.svg" alt="" aria-hidden="true">
+      <img class="journal-flourish" src="${withBase("/app/assets/journal-flourish.svg")}" alt="" aria-hidden="true">
       ${filterBanner}
       ${memories.length
         ? memories.map(memoryMarkup).join("")

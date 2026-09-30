@@ -1,4 +1,5 @@
 import { CARD_BACK } from "./board.js";
+import { withBase } from "./base-path.js";
 import {
   buildEmoteCommand,
   buildEquipCommand,
@@ -137,7 +138,7 @@ function detailsModal(state) {
   const stack = roomCard || inventoryCard;
   if (!stack) return "";
   const definition = stack.definition;
-  const backUrl = definition.imageUrl.startsWith("/assets/world/") ? CARD_BACK : "/assets/base/base-pack-back.webp";
+  const backUrl = definition.imageUrl.startsWith(withBase("/assets/world/")) ? CARD_BACK : withBase("/assets/base/base-pack-back.webp");
   return `
     <section class="card-view" role="dialog" aria-modal="false" aria-label="Card Details: ${escapeHtml(definition.label)}">
       <button type="button" class="quiet card-view-close" data-close-details="1" aria-label="Close card details">Close</button>
@@ -258,7 +259,7 @@ export function selectionActions(state) {
       actions.unshift(
         { label: "Open Self", local: { type: "open-view", view: "self" }, tone: "primary" },
         { label: "Friends", local: { type: "open-view", view: "friends" }, tone: "neutral" },
-        { label: "Skills", local: { type: "open-view", view: "skills" }, tone: "neutral", icon: "/assets/base/skills-icon.png" },
+        { label: "Skills", local: { type: "open-view", view: "skills" }, tone: "neutral", icon: withBase("/assets/base/skills-icon.png") },
       );
       const pinned = (state.user.pinnedPeeps || []).includes(peep.id);
       actions.push({ label: pinned ? "Unpin" : "Pin", command: buildPinCommand(peep.id), tone: "neutral" });
