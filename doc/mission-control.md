@@ -211,12 +211,27 @@ and tracks the child handle.
   against the world's admin capability set; MC does not invent new in-world
   commands.
 - **Lifecycle controls**: Start / Stop / Restart (spawned instances); for
-  external instances, cooperative Shutdown/Restart via the world API.
+  external instances, cooperative Shutdown/Restart via the world API. Restarting
+  a spawned instance reuses its instance id, port, and base path, so the UI keeps
+  tracking it and the nginx route is stable.
+- **Rename** (spawned only): changes the display name and derives a new unique
+  `/route` base path, restarts the child so it serves the new prefix, and
+  regenerates the nginx config. External instances are rejected because MC cannot
+  reconfigure their process.
+- **Delete**: stops a spawned child and removes it from the registry (data on
+  disk is left in place); external instances are cooperatively shut down and
+  dropped. The nginx config is regenerated so the route disappears.
 - **Resync** button (see §5.5).
+- **Reboot**: stops every running spawned instance, writes their launch configs
+  to `TRSERVER_MC_INSTANCES_PATH/resume.json`, and shuts down the MC process. The
+  keepalive script (per-minute cron and immediate trigger) restarts MC, which
+  respawns the recorded instances on startup. External instances are not resumed.
 - **Update nginx config**: regenerates the reverse-proxy site config from the
   admin UI route and every live instance (each spawned world runs under its own
   `/route` base path), previews the rendered file in a confirmation dialog, then
-  writes `TRSERVER_MC_NGINX_CONF` and runs `TRSERVER_MC_NGINX_RELOAD`.
+  writes `TRSERVER_MC_NGINX_CONF` and runs `TRSERVER_MC_NGINX_RELOAD`. Starting,
+  renaming, and deleting an instance also regenerate the config automatically
+  when nginx management is configured.
 
 ### 5.4 Package Manager
 
@@ -306,7 +321,10 @@ Mounted on the MC server, gated by the `mission-control` feature and MC auth.
 | `POST` | `/api/mission-control/servers` | Start a new instance. |
 | `GET` | `/api/mission-control/servers/{id}` | Instance detail. |
 | `POST` | `/api/mission-control/servers/{id}/stop` | Stop instance. |
-| `POST` | `/api/mission-control/servers/{id}/restart` | Restart instance. |
+| `POST` | `/api/mission-control/servers/{id}/restart` | Restart instance in place. |
+| `POST` | `/api/mission-control/servers/{id}/rename` | Rename (spawned) + reload nginx. |
+| `DELETE` | `/api/mission-control/servers/{id}` | Stop/remove instance + reload nginx. |
+| `POST` | `/api/mission-control/reboot` | Stop spawned instances and restart MC via keepalive. |
 | `GET` | `/api/mission-control/servers/{id}/logs` | Log tail. |
 | `POST` | `/api/mission-control/servers/{id}/command` | Send admin command. |
 | `POST` | `/api/mission-control/servers/{id}/resync` | Resync one instance. |
