@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "../../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import { disposeBoardTree } from "../board-helpers.js";
+import { withBase } from "../base-path.js";
 
 const SIZE = 128;
 const loader = new GLTFLoader();
@@ -53,7 +54,7 @@ export function thumbnailFor(modelUrl, scale = 1) {
   if (inflight.has(key)) return inflight.get(key);
   const promise = new Promise(resolve => {
     ensureRenderer();
-    loader.load(modelUrl, gltf => {
+    loader.load(withBase(modelUrl), gltf => {
       const model = gltf.scene;
       try {
         const bounds = new THREE.Box3().setFromObject(model);

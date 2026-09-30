@@ -262,6 +262,21 @@ export function editorReducer(state, action) {
         })),
       };
     }
+    case "editor-elevate": {
+      if (!editor) return state;
+      const instance = selectedInstance(editor);
+      if (!instance) return state;
+      // Vertical handle drags change elevation only; x/y keep their snapped values.
+      const next = action.gesture ? editor : pushUndo(editor);
+      const elevation = clamp(Number(instance.position[2] || 0) + Number(action.delta || 0), 0, 50);
+      return {
+        ...state,
+        editor: updateInstance(next, instance.id, current => ({
+          ...current,
+          position: [current.position[0], current.position[1], elevation],
+        })),
+      };
+    }
     case "editor-env": {
       if (!editor) return state;
       const next = pushUndo(editor);

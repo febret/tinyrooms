@@ -10,19 +10,19 @@ import {
   cardModelKey,
   detachBoardTree,
   disposeBoardTree,
-  ELEVATION_PER_UNIT,
   fitBoardCamera,
   positionKey,
   propEffectKey,
   propModelKey,
 } from "./board-helpers.js";
-import { createGizmo, footprintRadius, projectGizmo, rotationDeltaForDrag } from "./editing/gizmo.js";
+import { createGizmo, elevationDeltaForDrag, footprintRadius, projectGizmo, rotationDeltaForDrag } from "./editing/gizmo.js";
+import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
-import { supportElevation } from "./editing/prop-stacking.js";
+import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
 import { applyDarkLighting, createBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
-
-export const CARD_BACK = "/assets/world/tutorial/cards/back.webp";
+import { withBase } from "./base-path.js";
+export const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
 const RANDOM_ANIMATION_PAUSE_MS = 1000;
 const PROP_MOVE_SMOOTHING = 9;
@@ -45,34 +45,8 @@ function boardPositionFromWorld(point) {
   ];
 }
 
-/**
- * Footprint and top-elevation metrics used to decide how high a dragged prop rests.
- * The local model bounds are rotated into board space and enclosed by an AABB.
- */
-function stackMetrics(record, worldX, worldZ) {
-  const bounds = record?.bounds;
-  if (!bounds) return null;
-  const scale = record.group.scale.x || 1;
-  const halfLocalX = (bounds.max.x - bounds.min.x) / 2;
-  const halfLocalZ = (bounds.max.z - bounds.min.z) / 2;
-  const centerLocalX = (bounds.max.x + bounds.min.x) / 2;
-  const centerLocalZ = (bounds.max.z + bounds.min.z) / 2;
-  const angle = record.group.rotation.y || 0;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    id: record.id,
-    x: worldX + scale * (cos * centerLocalX + sin * centerLocalZ),
-    z: worldZ + scale * (-sin * centerLocalX + cos * centerLocalZ),
-    halfX: scale * (Math.abs(cos) * halfLocalX + Math.abs(sin) * halfLocalZ),
-    halfZ: scale * (Math.abs(sin) * halfLocalX + Math.abs(cos) * halfLocalZ),
-    topZ: (Number(record.prop?.position?.[2]) || 0)
-      + ((bounds.max.y - bounds.min.y) * scale) / ELEVATION_PER_UNIT,
-  };
-}
-
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -172,6 +146,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     needsRender = true;
     renderer.shadowMap.needsUpdate = true;
   }
+
+  const editModifier = createEditModifier(active => {
+    gizmo.setVerticalMode(active);
+    invalidate();
+  });
 
   function isCurrent(entry) {
     return !disposed && current === entry && entry.revision === revision;
@@ -343,6 +322,15 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (Math.abs(factor - 1) < 0.001) return;
     ensureEditBegin(editGesture);
     onEditScale?.(factor, true);
+  }
+
+  /** Raise or lower the prop by the vertical distance the shift-held top handle is dragged. */
+  function applyElevateGesture(event) {
+    const delta = elevationDeltaForDrag(event.clientY - editGesture.lastY);
+    editGesture.lastY = event.clientY;
+    if (Math.abs(delta) < 0.001) return;
+    ensureEditBegin(editGesture);
+    onEditElevate?.(delta, true);
   }
 
   function texture(entry, url, label, apply) {
@@ -526,7 +514,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       return;
     }
     entry.pending += 1;
-    loader.load(prop.modelUrl, gltf => {
+    loader.load(withBase(prop.modelUrl), gltf => {
       if (!isCurrent(entry) || entry.props.get(prop.id) !== record) {
         entry.pending -= 1;
         disposeBoardTree(gltf.scenes || [gltf.scene]);
@@ -894,6 +882,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         if (dragHandles && editGesture.moved) {
           if (editGesture.mode === "rotate") applyRotateGesture(event);
           else if (editGesture.mode === "scale") applyScaleGesture(event);
+          else if (editGesture.mode === "elevate") applyElevateGesture(event);
         }
         return;
       }
@@ -1187,6 +1176,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       canvas.removeEventListener("pointerup", pointerUp);
       canvas.removeEventListener("pointercancel", pointerCancel);
       canvas.removeEventListener("webglcontextlost", contextLost);
+      editModifier.dispose();
       clear();
       gizmo.dispose();
       // GHOST_MATERIAL is a page-lifetime shared resource, so it is not disposed with one board.

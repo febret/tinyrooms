@@ -12,9 +12,17 @@ const SCALE_FACTOR_MAX = 2;
 /** Degrees the prop turns per pixel the rotate handle is dragged horizontally. */
 export const ROTATE_DRAG_DEG_PER_PX = 0.02;
 
+/** Authoritative elevation units gained per pixel the top handle is dragged upward. */
+export const ELEVATE_DRAG_UNITS_PER_PX = 0.1;
+
 /** Horizontal rotate-handle drag → prop yaw. Dragging right spins clockwise from above. */
 export function rotationDeltaForDrag(dx) {
   return -Number(dx || 0) * ROTATE_DRAG_DEG_PER_PX;
+}
+
+/** Vertical top-handle drag → elevation delta. Dragging up (negative dy) raises the prop. */
+export function elevationDeltaForDrag(dy) {
+  return -Number(dy || 0) * ELEVATE_DRAG_UNITS_PER_PX;
 }
 
 /** Local-space circle radius that wraps a world-space footprint at the gizmo's clamped scale. */
@@ -40,8 +48,9 @@ export function projectGizmo(gizmo, center, camera, bounds, ndcToScreen) {
   const screenCenter = project(center.clone());
   const edge = project(new THREE.Vector3(center.x + gizmo.circleRadius, center.y, center.z));
   const rotate = project(gizmo.rotateHandleWorldPosition());
-  if (!screenCenter || !edge || !rotate) return null;
-  return { center: screenCenter, rotate, radiusPx: Math.hypot(edge.x - screenCenter.x, edge.y - screenCenter.y) };
+  const top = project(gizmo.topHandleWorldPosition());
+  if (!screenCenter || !edge || !rotate || !top) return null;
+  return { center: screenCenter, rotate, top, radiusPx: Math.hypot(edge.x - screenCenter.x, edge.y - screenCenter.y) };
 }
 
 function handleMesh(mesh, mode) {
@@ -58,6 +67,7 @@ export function createGizmo() {
   const moveFillMaterial = new THREE.MeshBasicMaterial({ color: "#8fd6ff", depthWrite: false, transparent: true, opacity: 0.16 });
   const rotateMaterial = new THREE.MeshBasicMaterial({ color: "#ffd479", depthWrite: false, transparent: true, opacity: 0.9 });
   const scaleMaterial = new THREE.MeshBasicMaterial({ color: "#a6e87a", depthWrite: false, transparent: true, opacity: 0.95 });
+  const elevateMaterial = new THREE.MeshBasicMaterial({ color: "#ff9f6e", depthWrite: false, transparent: true, opacity: 0.95 });
 
   // Unit-radius drag circle: an outline plus a faint fill, resized per prop in setTarget.
   // It sits under the prop, so dragging anywhere inside it moves the prop.
@@ -79,13 +89,20 @@ export function createGizmo() {
   group.add(scaleStem);
   const scaleCube = handleMesh(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), scaleMaterial), "scale");
   group.add(scaleCube);
+  // Shift swaps the box for an up-pointing arrow that reads as "raise the prop".
+  const elevateArrow = handleMesh(new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.26, 16), elevateMaterial), "elevate");
+  elevateArrow.visible = false;
+  group.add(elevateArrow);
 
   let circleRadiusWorld = 0;
+  let verticalMode = false;
 
   return {
     group,
     // The drag circle is hit-tested by distance in board.js, so only the raised handles raycast.
-    pickables: [rotateKnob, scaleStem, scaleCube],
+    get pickables() {
+      return verticalMode ? [rotateKnob, scaleStem, elevateArrow] : [rotateKnob, scaleStem, scaleCube];
+    },
     /** World-space radius of the drag circle from the most recent setTarget. */
     get circleRadius() {
       return circleRadiusWorld;
@@ -94,6 +111,19 @@ export function createGizmo() {
     rotateHandleWorldPosition(target = new THREE.Vector3()) {
       group.updateMatrixWorld(true);
       return rotateKnob.getWorldPosition(target);
+    },
+    /** Current world position of the active top handle, for projecting its screen point. */
+    topHandleWorldPosition(target = new THREE.Vector3()) {
+      group.updateMatrixWorld(true);
+      return (verticalMode ? elevateArrow : scaleCube).getWorldPosition(target);
+    },
+    /** Swap the top handle between scaling (box) and vertical movement (arrow). */
+    setVerticalMode(active) {
+      verticalMode = Boolean(active);
+      scaleCube.visible = !verticalMode;
+      elevateArrow.visible = verticalMode;
+      scaleStem.material = verticalMode ? elevateMaterial : scaleMaterial;
+      scaleStem.userData.editMode = verticalMode ? "elevate" : "scale";
     },
     setTarget(worldPosition, scale, propHeight = 0, footprint = 0) {
       group.position.set(worldPosition[0], worldPosition[1] + GIZMO_HEIGHT, worldPosition[2]);
@@ -110,6 +140,7 @@ export function createGizmo() {
       scaleStem.scale.y = topLocal;
       scaleStem.position.y = topLocal / 2;
       scaleCube.position.y = topLocal;
+      elevateArrow.position.y = topLocal;
     },
     setVisible(visible) {
       group.visible = Boolean(visible);
@@ -122,6 +153,7 @@ export function createGizmo() {
       moveFillMaterial.dispose();
       rotateMaterial.dispose();
       scaleMaterial.dispose();
+      elevateMaterial.dispose();
       group.removeFromParent();
     },
   };
