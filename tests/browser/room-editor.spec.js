@@ -82,6 +82,50 @@ test("dragging the rotate handle 100px horizontally turns the prop 20 degrees", 
   expect(Math.min(Math.abs(rotation - 340), Math.abs(rotation - 20))).toBeLessThan(2);
 });
 
+test("dragging the top handle without Shift scales the prop", async ({ page, runtime }) => {
+  await createEditorAccount(page, runtime, "editor");
+  const panel = await openEditRoom(page);
+  const canvas = page.locator("#board-canvas");
+  await expect(canvas).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+
+  await panel.locator('[data-edit-add="plant"]').click();
+  await expect(panel.locator(".editor-meta")).toContainText("Scale 1.00");
+  const gizmo = await page.evaluate(() => window.__tinyroomsBoard.editGizmo());
+  expect(gizmo?.top).toBeTruthy();
+
+  await page.mouse.move(gizmo.top.x, gizmo.top.y);
+  await page.mouse.down();
+  await page.mouse.move(gizmo.top.x, gizmo.top.y - 100, { steps: 8 });
+  await page.mouse.up();
+
+  const text = await panel.locator(".editor-meta").textContent();
+  const scale = Number(/Scale ([\d.]+)/.exec(text)?.[1]);
+  expect(scale).toBeGreaterThan(1);
+  await expect(canvas).toHaveAttribute("data-edit-elevation", "0");
+});
+
+test("shift-dragging the top handle raises the prop", async ({ page, runtime }) => {
+  await createEditorAccount(page, runtime, "editor");
+  const panel = await openEditRoom(page);
+  const canvas = page.locator("#board-canvas");
+  await expect(canvas).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
+
+  await panel.locator('[data-edit-add="plant"]').click();
+  await expect(canvas).toHaveAttribute("data-edit-elevation", "0");
+  const gizmo = await page.evaluate(() => window.__tinyroomsBoard.editGizmo());
+  expect(gizmo?.top).toBeTruthy();
+
+  // Holding Shift turns the top handle into an elevate arrow; dragging it up raises the prop.
+  await page.keyboard.down("Shift");
+  await page.mouse.move(gizmo.top.x, gizmo.top.y);
+  await page.mouse.down();
+  await page.mouse.move(gizmo.top.x, gizmo.top.y - 80, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+
+  await expect.poll(async () => Number(await canvas.getAttribute("data-edit-elevation"))).toBeGreaterThan(0);
+});
+
 test("the prop library stays static while props are edited", async ({ page, runtime }) => {
   await createEditorAccount(page, runtime, "editor");
   const panel = await openEditRoom(page);
