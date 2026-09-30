@@ -394,3 +394,251 @@ gym-lockers:
   editable: true
   scale: 1.45
   tags: [storage, cabinet, furniture]
+
+# --- Stairwells -------------------------------------------------------------
+oak-stairwell-landing:
+  label: Oak Stairwell Landing
+  description: "Warm oak steps up to a proper landing. The banquet spot at the top of the house."
+  model: oak-stairwell-landing.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [stairs, building]
+stone-spiral-stairwell:
+  label: Stone Spiral Stairwell
+  description: "Winds around a central newel like a corkscrew. Take it slowly after snack time."
+  model: stone-spiral-stairwell.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+  tags: [stairs, building]
+white-cottage-stairwell:
+  label: White Cottage Stairwell
+  description: "Whitewashed treads and turned spindles. Half-landing, full cottagecore."
+  model: white-cottage-stairwell.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [stairs, building]
+metal-industrial-stairwell:
+  label: Metal Industrial Stairwell
+  description: "Open grated treads and pipe rails. Every step makes a satisfying clang."
+  model: metal-industrial-stairwell.glb
+  decorative: true
+  editable: true
+  scale: 1.6
+  tags: [stairs, building]
+garden-deck-stairwell:
+  label: Garden Deck Stairwell
+  description: "Outdoor timber steps up to a little deck. Sunsets included at no extra charge."
+  model: garden-deck-stairwell.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [stairs, building]
+
+# --- Walls ------------------------------------------------------------------
+red-brick-wall:
+  label: Red Brick Wall
+  description: "Classic red brick, running bond, zero nonsense. Instant sturdy."
+  model: red-brick-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+white-plaster-wall:
+  label: White Plaster Wall
+  description: "Smooth matte white. The blank canvas of room building."
+  model: white-plaster-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+exposed-stone-wall:
+  label: Exposed Stone Wall
+  description: "Rough fieldstone with character in every single stone."
+  model: exposed-stone-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+shiplap-wood-wall:
+  label: Shiplap Wood Wall
+  description: "Whitewashed horizontal boards. Fixer-upper energy, but make it cozy."
+  model: shiplap-wood-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+floral-wallpaper-wall:
+  label: Floral Wallpaper Wall
+  description: "Vintage wallpaper dotted with tiny red roses. Grandma approved."
+  model: floral-wallpaper-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+subway-tile-wall:
+  label: Subway Tile Wall
+  description: "Glossy white subway tiles and clean grout lines. Extremely deli-coded."
+  model: subway-tile-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+concrete-wall:
+  label: Concrete Wall
+  description: "Raw grey poured concrete. Brutalist, but keep it friendly."
+  model: concrete-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+log-cabin-wall:
+  label: Log Cabin Wall
+  description: "Stacked round timbers. Rustic with a capital R."
+  model: log-cabin-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+sage-green-wall:
+  label: Sage Green Wall
+  description: "Muted sage paint. Calm, herbal, and extremely now."
+  model: sage-green-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+beadboard-wainscot-wall:
+  label: Beadboard Wainscot Wall
+  description: "Beadboard below, cream above. Porch-core for your indoors."
+  model: beadboard-wainscot-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+stucco-wall:
+  label: Stucco Wall
+  description: "Warm ochre stucco with all the texture of a sunny villa."
+  model: stucco-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+river-rock-wall:
+  label: River Rock Wall
+  description: "Smooth rounded river stones. Nature's own pebble dash."
+  model: river-rock-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+bamboo-wall:
+  label: Bamboo Wall
+  description: "Vertical bamboo poles lashed tight. Tropical and tidy."
+  model: bamboo-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+navy-blue-wall:
+  label: Navy Blue Wall
+  description: "Deep navy with a subtle sheen. Moody in the best possible way."
+  model: navy-blue-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+whitewashed-brick-wall:
+  label: Whitewashed Brick Wall
+  description: "Brick with a soft whitewash. Aged, tasteful, slightly trendy."
+  model: whitewashed-brick-wall.glb
+  decorative: true
+  editable: true
+  scale: 1.5
+  tags: [wall, building]
+
+# --- Doors ------------------------------------------------------------------
+oak-panel-door:
+  label: Oak Panel Door
+  description: "Solid oak, raised panels, one very knobbable brass knob."
+  model: oak-panel-door.glb
+  decorative: true
+  editable: true
+  scale: 1.35
+  tags: [door, building]
+red-front-door:
+  label: Red Front Door
+  description: "Glossy red and cheerful. The official color of coming home."
+  model: red-front-door.glb
+  decorative: true
+  editable: true
+  scale: 1.35
+  tags: [door, building]
+glass-french-door:
+  label: Glass French Door
+  description: "White mullions and divided glass. Light in, drama out."
+  model: glass-french-door.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+  tags: [door, building]
+rustic-barn-door:
+  label: Rustic Barn Door
+  description: "Weathered planks and black iron cross-braces. Slides right into your heart."
+  model: rustic-barn-door.glb
+  decorative: true
+  editable: true
+  scale: 1.4
+  tags: [door, building]
+arched-iron-door:
+  label: Arched Iron Door
+  description: "Arched oak with iron bands and a ring pull. Very castle, very cozy."
+  model: arched-iron-door.glb
+  decorative: true
+  editable: true
+  scale: 1.35
+  tags: [door, building]
+
+# --- Windows ----------------------------------------------------------------
+bay-window:
+  label: Bay Window
+  description: "Three angled panes and a seat ledge. Prime people-watching real estate."
+  model: bay-window.glb
+  decorative: true
+  editable: true
+  scale: 1.2
+  tags: [window, building]
+casement-window:
+  label: Casement Window
+  description: "White frame, side-hinged sashes, maximum breeze."
+  model: casement-window.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+  tags: [window, building]
+stained-glass-window:
+  label: Stained Glass Window
+  description: "Jewel-toned diamonds and roundels. Instant cathedral."
+  model: stained-glass-window.glb
+  decorative: true
+  editable: true
+  scale: 1.15
+  tags: [window, building]
+round-porthole-window:
+  label: Round Porthole Window
+  description: "Riveted brass circle. Set sail for the living room."
+  model: round-porthole-window.glb
+  decorative: true
+  editable: true
+  scale: 1.0
+  tags: [window, building]
+arched-cottage-window:
+  label: Arched Cottage Window
+  description: "Arched top, diamond lattice. Storybook, but functional."
+  model: arched-cottage-window.glb
+  decorative: true
+  editable: true
+  scale: 1.1
+  tags: [window, building]
