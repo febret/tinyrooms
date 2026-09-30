@@ -80,6 +80,16 @@ class McConfigTests(unittest.TestCase):
             self.assertEqual(config.actor, "mission-control")
             self.assertTrue(config.new_account_passphrase)
 
+    def test_keepalive_path_is_optional(self) -> None:
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertIsNone(load_mc_config(env=self._env(root), repo_root=REPO_ROOT).keepalive_path)
+            config = load_mc_config(
+                env=self._env(root, TRSERVER_MC_KEEPALIVE=str(root / "keepalive.sh")),
+                repo_root=REPO_ROOT,
+            )
+            self.assertEqual(config.keepalive_path, root / "keepalive.sh")
+
 
 if __name__ == "__main__":
     unittest.main()

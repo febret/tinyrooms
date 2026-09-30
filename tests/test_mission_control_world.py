@@ -28,6 +28,7 @@ class _FakeConfig:
         self.mc_ca_file = None
         self.host = "127.0.0.1"
         self.port = 5000
+        self.base_path = "/world"
 
 
 class _FakeWorld:
@@ -63,6 +64,7 @@ class McClientTests(unittest.TestCase):
             if request.url.path.endswith("/register"):
                 payload = json.loads(request.content)
                 assert payload["instance_name"] == "test-world"
+                assert payload["base_path"] == "/world"
                 return httpx.Response(200, json={"ok": True, "instance_id": "mc-1", "heartbeat_seconds": 7, "capabilities": []})
             return httpx.Response(200, json={"ok": True, "pending_commands": []})
 
