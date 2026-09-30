@@ -44,3 +44,15 @@ test("scale gestures clamp to the library bounds without piling up undo", () => 
   assert.equal(state.editor.undo.length, start.editor.undo.length + 1);
   assert.equal(state.editor.props[0].scale, 4);
 });
+
+test("elevate gestures stream under one undo, clamp to 0-50 and keep x/y", () => {
+  const start = editorState();
+  const begun = editorReducer(start, { type: "editor-begin" });
+  const raised = editorReducer(begun, { type: "editor-elevate", delta: 12, gesture: true });
+  assert.equal(raised.editor.undo.length, start.editor.undo.length + 1);
+  assert.deepEqual(raised.editor.props[0].position, [50, 50, 12]);
+  const floored = editorReducer(raised, { type: "editor-elevate", delta: -99, gesture: true });
+  assert.deepEqual(floored.editor.props[0].position, [50, 50, 0]);
+  const capped = editorReducer(floored, { type: "editor-elevate", delta: 99, gesture: true });
+  assert.deepEqual(capped.editor.props[0].position, [50, 50, 50]);
+});

@@ -55,6 +55,7 @@ class RenderTests(unittest.TestCase):
         self.assertIn("proxy_pass https://127.0.0.1:8001;", text)
         self.assertIn("location /tutorial/ {", text)
         self.assertIn("proxy_pass https://127.0.0.1:5099;", text)
+        self.assertIn("location = / { return 302 /home; }", text)
         self.assertIn("ssl_certificate", text)
 
     def test_route_falls_back_to_instance_id(self) -> None:

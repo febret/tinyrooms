@@ -72,6 +72,30 @@ class VersionTests(unittest.TestCase):
         self.assertEqual(deploy.latest_version(entries)["minor"], 0)
         self.assertEqual(deploy.latest_version(entries)["major"], 1)
 
+    def test_current_version_returns_latest_without_writing(self) -> None:
+        entries = [
+            {"major": 0, "minor": 0, "patch": 2},
+            {"major": 0, "minor": 3, "patch": 4},
+        ]
+        self.version_file.write_text(json.dumps(entries), encoding="utf-8")
+        before = self.version_file.read_text(encoding="utf-8")
+        self.assertEqual(deploy.current_version(), "0.3.4")
+        self.assertEqual(self.version_file.read_text(encoding="utf-8"), before)
+
+    def test_current_version_requires_entries(self) -> None:
+        with self.assertRaises(deploy.DeployError):
+            deploy.current_version()
+
+
+class ParseArgsTests(unittest.TestCase):
+    def test_keep_version_flag(self) -> None:
+        args = deploy.parse_args(["example.com", "~/.local/tinyrooms", "deploy", "--keep-version"])
+        self.assertTrue(args.keep_version)
+
+    def test_keep_version_defaults_off(self) -> None:
+        args = deploy.parse_args(["example.com"])
+        self.assertFalse(args.keep_version)
+
 
 class NginxTests(unittest.TestCase):
     def test_locations_generated_per_service(self) -> None:
@@ -111,6 +135,33 @@ class EnvFileTests(unittest.TestCase):
     def test_plain_values_stay_unquoted(self) -> None:
         body = deploy.render_env_file({"TRSERVER_FEATURES": "mission-control"})
         self.assertEqual(body, "TRSERVER_FEATURES=mission-control\n")
+
+
+class AdminEnvTests(unittest.TestCase):
+    REGISTRY = {"admin": {"port": 8001}}
+
+    def test_preserves_new_account_passphrase_when_set(self) -> None:
+        values = deploy.admin_env_values(
+            "/home/u/.local/tinyrooms",
+            "example.com",
+            self.REGISTRY,
+            {"TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE": "choose-an-invitation"},
+        )
+        self.assertEqual(values["TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE"], "choose-an-invitation")
+
+    def test_omits_new_account_passphrase_when_unset(self) -> None:
+        values = deploy.admin_env_values("/home/u/.local/tinyrooms", "example.com", self.REGISTRY, {})
+        self.assertNotIn("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE", values)
+
+    def test_preserves_operator_secrets(self) -> None:
+        values = deploy.admin_env_values(
+            "/home/u/.local/tinyrooms",
+            "example.com",
+            self.REGISTRY,
+            {"TRSERVER_MC_PASSPHRASE": "operator-passphrase", "TRSERVER_MC_TOKEN": "shared-secret"},
+        )
+        self.assertEqual(values["TRSERVER_MC_PASSPHRASE"], "operator-passphrase")
+        self.assertEqual(values["TRSERVER_MC_TOKEN"], "shared-secret")
 
 
 class PackageTests(unittest.TestCase):

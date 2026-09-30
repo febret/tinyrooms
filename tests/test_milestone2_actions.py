@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from server.services.actions import ActionsService
+from server.services.actions import ActionsService, PropTarget
 from server.services.inventory import InventoryService
 from server.services.stats import StatsService
 from tests.common import ServiceTestCase, WORLD_ID
@@ -101,6 +101,52 @@ class EnergyActionTests(ActionsTestCase):
         self.actions.use_card(self.reload_account(self.alice), stack_id=stack_id)
         stacks = [s for s in self.profiles.list_inventory(self.alice.id, WORLD_ID) if s.card_def_id == "juicy-drink"]
         self.assertEqual(sum(stack.quantity for stack in stacks), 2)
+
+
+class DelegatedPropActionTests(ActionsTestCase):
+    """Cards naming a target_prop are delegated to world behavior."""
+
+    def test_target_prop_card_delegates(self) -> None:
+        stack_id = self._equipped(self.alice, "pooper-scooper")
+        result = self.actions.use_card(
+            self.reload_account(self.alice),
+            stack_id=stack_id,
+            target_prop=PropTarget(
+                instance_id="litter0", prop_id="litter-tray", room_id="bathroom"
+            ),
+            room_id="bathroom",
+        )
+        self.assertTrue(result.delegated)
+        self.assertFalse(result.consumed)
+
+    def test_target_prop_card_rejects_wrong_prop(self) -> None:
+        stack_id = self._equipped(self.alice, "pooper-scooper")
+        with self.assertRaises(ValueError):
+            self.actions.use_card(
+                self.reload_account(self.alice),
+                stack_id=stack_id,
+                target_prop=PropTarget(
+                    instance_id="bugs0", prop_id="centipedes", room_id="basement"
+                ),
+                room_id="basement",
+            )
+
+    def test_prop_target_card_without_target_prop_has_no_use(self) -> None:
+        stack_id = self._equipped(self.alice, "house-key")
+        with self.assertRaises(ValueError):
+            self.actions.use_card(self.reload_account(self.alice), stack_id=stack_id)
+
+
+class TiredChargeTests(ActionsTestCase):
+    """Costed cards are blocked while Tired; free cards are not."""
+
+    def test_costed_card_blocked_while_tired(self) -> None:
+        stack_id = self._equipped(self.alice, "tasty-toast")
+        self.stats.mutate(self.alice.id, health_delta=-20)
+        self.set_energy(self.alice, 0)
+        self.stats.reconcile(self.alice.id)
+        with self.assertRaises(ValueError):
+            self.actions.use_card(self.reload_account(self.alice), stack_id=stack_id)
 
 
 class PassiveAndDecorativeTests(ActionsTestCase):

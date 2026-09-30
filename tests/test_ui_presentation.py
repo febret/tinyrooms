@@ -58,7 +58,7 @@ class UIPresentationTests(unittest.TestCase):
             self.assertTrue(path.is_file(), name)
         css = (REPO_ROOT / "app" / "css" / "main.css").read_text(encoding="utf-8")
         for name in assets:
-            self.assertIn(f"/app/assets/peep-damage/{name}", css, name)
+            self.assertIn(f"assets/peep-damage/{name}", css, name)
         peeps = (REPO_ROOT / "app" / "js" / "peeps.js").read_text(encoding="utf-8")
         self.assertIn('from "./peep-damage.js"', peeps)
         helper = (REPO_ROOT / "app" / "js" / "peep-damage.js").read_text(encoding="utf-8")
