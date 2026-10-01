@@ -447,6 +447,7 @@ def _build_runtime(
         world.tasks,
         config.timezone,
         memories=memories,
+        cutscenes=cutscenes,
     )
     activity_results = ActivityResultService(
         hub, profiles, stats, progression, tasks, world.id, world.activities
@@ -854,7 +855,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         if payload.type not in {"activity.ready", "activity.attention", "activity.cancel", "activity.complete", "activity.result"}:
             raise HTTPException(status_code=400, detail="Unsupported activity bridge message type.")
         if payload.type == "activity.result":
-            return handle_activity_result(runtime, session, activity, dict(payload.payload))
+            return await handle_activity_result(runtime, session, activity, dict(payload.payload))
         if payload.type == "activity.attention":
             updated = runtime.activities.mark_attention(session.account_id)
             return {"ok": True, "activity": runtime.activities.serialize(updated)}

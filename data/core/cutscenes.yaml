@@ -27,8 +27,8 @@ pack-open:
 task-started:
   title: New Journal Task
   script: task-started.js
-  frame: movie
-  duration: 4200
+  frame: plain
+  duration: 3000
   audience: private
   room_bound: false
   skip: true
@@ -40,8 +40,8 @@ task-started:
 task-completed:
   title: Task Complete
   script: task-completed.js
-  frame: vs
-  duration: 4200
+  frame: plain
+  duration: 3000
   audience: private
   room_bound: false
   skip: true

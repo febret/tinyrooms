@@ -19,10 +19,10 @@ function spawnSparks(host, random, count) {
     const spark = document.createElement("span");
     spark.className = "cutscene-pack-spark";
     const angle = random() * Math.PI * 2;
-    const distance = 40 + random() * 120;
+    const distance = 30 + random() * 70;
     spark.style.setProperty("--spark-x", `${Math.cos(angle) * distance}px`);
     spark.style.setProperty("--spark-y", `${Math.sin(angle) * distance}px`);
-    spark.style.setProperty("--spark-delay", `${Math.floor(random() * 260)}ms`);
+    spark.style.setProperty("--spark-delay", `${Math.floor(random() * 220)}ms`);
     spark.style.background = SPARK_COLORS[index % SPARK_COLORS.length];
     host.append(spark);
     window.setTimeout(() => spark.remove(), 1100);
@@ -30,12 +30,12 @@ function spawnSparks(host, random, count) {
 }
 
 export default async function (ctx) {
-  const dom = beginCutscene("movie", {
+  const stage = beginCutscene("plain", {
     background: ctx.params.stage_background,
     accent: ctx.params.accent,
-    duration: 700,
   });
-  if (!dom) return;
+  if (!stage) return;
+  stage.classList.add("cutscene-task-toast");
 
   const random = makeRandom(ctx.params.random);
 
@@ -55,30 +55,30 @@ export default async function (ctx) {
   seal.className = "cutscene-task-seal";
   seal.textContent = "✦";
 
+  const body = document.createElement("div");
+  body.className = "cutscene-task-body";
+
   const eyebrow = document.createElement("p");
   eyebrow.className = "cutscene-task-eyebrow";
   eyebrow.textContent = "New Journal Task";
 
   const title = document.createElement("h2");
-  title.className = "cutscene-banner";
+  title.className = "cutscene-task-title";
   title.textContent = String(ctx.params.task_title || ctx.title || "A new task");
 
   const hint = document.createElement("p");
   hint.className = "cutscene-task-hint";
   hint.textContent = "Added to your journal.";
 
-  card.append(seal, eyebrow, title, hint);
+  body.append(eyebrow, title, hint);
+  card.append(seal, body);
   scene.append(card);
-  dom.append(scene);
+  stage.append(scene);
 
-  card.classList.add("is-dropping");
-  await wait(640);
-  card.classList.remove("is-dropping");
+  spawnSparks(scene, random, 12);
+  await wait(460);
   card.classList.add("is-landed");
-  spawnSparks(scene, random, 18);
-  await wait(400);
-  card.classList.remove("is-landed");
-  spawnSparks(scene, random, 10);
-  await wait(1800);
+  spawnSparks(scene, random, 8);
+  await wait(1500);
   endCutscene();
 }

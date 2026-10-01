@@ -19,10 +19,10 @@ function spawnSparks(host, random, count) {
     const spark = document.createElement("span");
     spark.className = "cutscene-pack-spark";
     const angle = random() * Math.PI * 2;
-    const distance = 50 + random() * 150;
+    const distance = 36 + random() * 90;
     spark.style.setProperty("--spark-x", `${Math.cos(angle) * distance}px`);
     spark.style.setProperty("--spark-y", `${Math.sin(angle) * distance}px`);
-    spark.style.setProperty("--spark-delay", `${Math.floor(random() * 320)}ms`);
+    spark.style.setProperty("--spark-delay", `${Math.floor(random() * 260)}ms`);
     spark.style.background = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
     host.append(spark);
     window.setTimeout(() => spark.remove(), 1200);
@@ -30,11 +30,12 @@ function spawnSparks(host, random, count) {
 }
 
 export default async function (ctx) {
-  const dom = beginCutscene("vs", {
+  const stage = beginCutscene("plain", {
     background: ctx.params.stage_background,
     accent: ctx.params.accent,
   });
-  if (!dom) return;
+  if (!stage) return;
+  stage.classList.add("cutscene-task-toast");
 
   const random = makeRandom(ctx.params.random);
   const wholeTask = ctx.params.task_complete === true;
@@ -48,25 +49,38 @@ export default async function (ctx) {
   halo.className = "cutscene-task-halo";
   scene.append(rays, halo);
 
+  const card = document.createElement("div");
+  card.className = "cutscene-task-card";
+
   const seal = document.createElement("div");
   seal.className = "cutscene-task-seal is-complete";
   seal.textContent = "✓";
 
-  const banner = document.createElement("h2");
-  banner.className = "cutscene-banner";
-  banner.textContent = wholeTask ? "Task Complete!" : "Step Complete!";
+  const body = document.createElement("div");
+  body.className = "cutscene-task-body";
 
-  const title = document.createElement("p");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "cutscene-task-eyebrow";
+  eyebrow.textContent = wholeTask ? "Task Complete!" : "Step Complete!";
+
+  const title = document.createElement("h2");
   title.className = "cutscene-task-title";
   const label = wholeTask ? ctx.params.task_title : (ctx.params.step_title || ctx.params.task_title);
   title.textContent = String(label || "");
 
-  scene.append(seal, banner, title);
-  dom.append(scene);
+  const hint = document.createElement("p");
+  hint.className = "cutscene-task-hint";
+  hint.textContent = "Nice work!";
 
-  spawnSparks(scene, random, 26);
-  await wait(760);
-  spawnSparks(scene, random, 16);
-  await wait(2100);
+  body.append(eyebrow, title, hint);
+  card.append(seal, body);
+  scene.append(card);
+  stage.append(scene);
+
+  spawnSparks(scene, random, 18);
+  await wait(460);
+  card.classList.add("is-landed");
+  spawnSparks(scene, random, 10);
+  await wait(1500);
   endCutscene();
 }
