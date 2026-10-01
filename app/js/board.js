@@ -15,7 +15,7 @@ import {
   propEffectKey,
   propModelKey,
 } from "./board-helpers.js";
-import { createGizmo, elevationDeltaForDrag, footprintRadius, projectGizmo, rotationDeltaForDrag } from "./editing/gizmo.js";
+import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "./editing/gizmo.js";
 import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
 import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
@@ -189,7 +189,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     editSelectionObject = editEnabled && editSelectionId
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
       : null;
-    if (editSelectionObject) {
+    if (editSelectionObject && !editSelectionLocked()) {
       gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
       gizmo.setVisible(true);
     } else {
@@ -269,6 +269,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return footprintRadius(record?.bounds, record?.group.scale.x);
   }
 
+  /** Whether the prop currently under the gizmo is locked against transforms. */
+  function editSelectionLocked() {
+    return Boolean(current?.props.get(editSelectionId)?.prop?.locked);
+  }
+
   /**
    * Resolve a dragged prop's final position, raising it onto the highest prop it
    * intersects. Only the room editor opts in via `stackProps`.
@@ -291,7 +296,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
 
   /** True when a screen point falls inside the selected prop's drag circle. */
   function pickDragCircle(event) {
-    if (!editSelectionObject || !editSelectionId || !(gizmo.circleRadius > 0) || !setRayFromEvent(event)) return null;
+    if (editSelectionLocked() || !editSelectionObject || !editSelectionId || !(gizmo.circleRadius > 0) || !setRayFromEvent(event)) return null;
     const point = raycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
     if (!point) return null;
     const dx = point.x - editSelectionObject.position.x;
@@ -860,12 +865,14 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         return;
       }
       const propId = pickPropId(event);
-      const id = propId || pickDragCircle(event);
-      editDrag = { id, pointerId: event.pointerId, moved: false, startX: event.clientX, startY: event.clientY };
-      if (id) {
-        suppressOrbit();
-        if (propId) onEditSelect?.(propId);
-      }
+      const locked = propId && Boolean(current?.props.get(propId)?.prop?.locked);
+      const id = locked ? null : (propId || pickDragCircle(event));
+      editDrag = {
+        id, propId, pointerId: event.pointerId, moved: false,
+        startX: event.clientX, startY: event.clientY,
+      };
+      if (id) suppressOrbit();
+      if (propId) onEditSelect?.(propId);
       return;
     }
     if (!pointers.size) gestureMoved = false;
@@ -916,7 +923,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         const drag = editDrag;
         editDrag = null;
         releaseOrbit();
-        if (!drag.moved && !drag.id) onEditSelect?.(null);
+        if (!drag.moved && !drag.id && !drag.propId) onEditSelect?.(null);
         return;
       }
       return;
@@ -1042,7 +1049,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
           selectionObject.position.z,
         );
       }
-      if (editSelectionObject) {
+      if (editSelectionObject && !editSelectionLocked()) {
         gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
       }
       if (!blocked) {
@@ -1135,10 +1142,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
-      const elevation = editEnabled && editSelectionId
-        ? String(current?.props.get(editSelectionId)?.prop?.position?.[2] ?? 0)
-        : "0";
-      if (canvas.dataset.editElevation !== elevation) canvas.dataset.editElevation = elevation;
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,
@@ -1146,12 +1149,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     projectPositionToScreen,
     /** Show or clear the floor marker used as a drag drop target. */
     setDropHint,
-    /** Test-only view of the gizmo's on-screen drag circle and rotate handle. */
-    editGizmo() {
-      if (!gizmo.group.visible || !editSelectionObject) return null;
-      const bounds = canvasBounds();
-      return bounds ? projectGizmo(gizmo, editSelectionObject.position, camera, bounds, ndcToScreen) : null;
-    },
     /** Cancel an in-progress edit gesture. Returns null when none was active, else whether an undo is owed. */
     cancelEditGesture() {
       const gesture = editGesture || editDrag;

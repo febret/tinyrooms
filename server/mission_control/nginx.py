@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from urllib.parse import urlparse
 import subprocess
 
+from server.mission_control import nginx_template
 from server.mission_control.config import MCConfig
 from server.mission_control.registry import STATUS_STOPPED, InstanceRecord
 
@@ -56,46 +56,21 @@ def service_entries(config: MCConfig, records: list[InstanceRecord]) -> list[dic
     return entries
 
 
-def _location(route: str, port: int) -> str:
-    return (
-        f"    location /{route}/ {{\n"
-        f"        proxy_pass https://127.0.0.1:{port};\n"
-        "        proxy_ssl_verify off;\n"
-        "        proxy_http_version 1.1;\n"
-        "        proxy_set_header Host $host;\n"
-        "        proxy_set_header X-Real-IP $remote_addr;\n"
-        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n"
-        "        proxy_set_header X-Forwarded-Proto $scheme;\n"
-        "        proxy_set_header Upgrade $http_upgrade;\n"
-        '        proxy_set_header Connection "upgrade";\n'
-        "    }\n"
-    )
-
-
 def render_site_config(config: MCConfig, records: list[InstanceRecord]) -> str:
     """Render the full nginx site configuration for the current services."""
 
     if config.nginx_conf_path is None:
         raise NginxConfigError("Nginx configuration path is not configured.")
     cert_dir = config.nginx_conf_path.parent / "certs"
-    locations = "\n".join(_location(str(entry["route"]), int(entry["port"])) for entry in service_entries(config, records))
-    return (
-        "server {\n"
-        "    listen 80;\n"
-        "    listen [::]:80;\n"
-        f"    server_name {config.server_name};\n"
-        "    location / { return 301 https://$host$request_uri; }\n"
-        "}\n\n"
-        "server {\n"
-        "    listen 443 ssl;\n"
-        "    listen [::]:443 ssl;\n"
-        f"    server_name {config.server_name};\n"
-        f"    ssl_certificate {cert_dir / 'server.crt'};\n"
-        f"    ssl_certificate_key {cert_dir / 'server.key'};\n"
-        "    client_max_body_size 64m;\n\n"
-        "    location = / { return 302 /home; }\n"
-        f"{locations}"
-        "}\n"
+    locations = [
+        (str(entry["route"]), int(entry["port"])) for entry in service_entries(config, records)
+    ]
+    return nginx_template.site_config(
+        server_name=config.server_name,
+        cert_path=str(cert_dir / "server.crt"),
+        key_path=str(cert_dir / "server.key"),
+        locations=locations,
+        root_redirect="/home",
     )
 
 

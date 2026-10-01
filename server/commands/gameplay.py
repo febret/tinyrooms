@@ -226,15 +226,13 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         room_id=context.connection.room_id,
     )
     behavior = None
-    if target_token is not None or result.delegated:
+    if target_token is not None:
         room_id = context.connection.room_id
-        target_ref = None
-        if target_token is not None:
-            target_ref = (
-                PeepRef(kind="npc", peep_id=target_peep_id, account_id=None)
-                if target_is_npc
-                else PeepRef(kind="user", peep_id=None, account_id=target_id)
-            )
+        target_ref = (
+            PeepRef(kind="npc", peep_id=target_peep_id, account_id=None)
+            if target_is_npc
+            else PeepRef(kind="user", peep_id=None, account_id=target_id)
+        )
         behavior = await context.behaviors.dispatch(
             BehaviorEvent(
                 type="card_play",

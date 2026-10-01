@@ -14,6 +14,7 @@ import random
 import re
 from typing import TYPE_CHECKING, Any
 
+from server.base_path import with_base
 from server.config import AppConfig
 from server.content.cutscenes import (
     CutsceneCatalog,
@@ -233,7 +234,7 @@ class CutsceneService:
         payload: dict[str, object] = {
             "id": definition.id,
             "title": definition.title,
-            "script_url": definition.script_url,
+            "script_url": with_base(self._config.base_path, definition.script_url),
             "frame": definition.frame,
             "duration": definition.duration_ms,
             "skip": definition.skip,

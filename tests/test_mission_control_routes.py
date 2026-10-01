@@ -69,6 +69,19 @@ class InstanceLifecycleTests(McHttpTestCase):
         )
         return response.json()["instance_id"]
 
+    def test_register_rejects_injected_base_path(self) -> None:
+        response = self.client.post(
+            "/api/mc/register",
+            json={
+                "instance_name": "evil",
+                "endpoint": "https://127.0.0.1:60001",
+                "base_path": "x\n    location /evil { return 200; }\n",
+            },
+            headers={"x-mc-token": self.config.token},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "base_path_invalid")
+
     def test_restart_spawned_keeps_id(self) -> None:
         record = self.add_spawned()
         response = self.client.post(

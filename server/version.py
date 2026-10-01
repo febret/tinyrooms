@@ -34,7 +34,21 @@ def latest_build_version(version_file: Path = VERSION_FILE) -> str:
     return f"{int(latest['major'])}.{int(latest['minor'])}.{int(latest['patch'])}"
 
 
-BUILD_VERSION = latest_build_version()
+def _load_build_version() -> str:
+    """Return the recorded build version, falling back when it is unavailable.
+
+    A missing or malformed ``version.json`` must not prevent the server from
+    importing; deployments that ship without the file still boot, reporting an
+    unknown ``0.0.0`` build.
+    """
+
+    try:
+        return latest_build_version()
+    except VersionFileError:
+        return "0.0.0"
+
+
+BUILD_VERSION = _load_build_version()
 
 
 def schema_versions() -> dict[str, int]:

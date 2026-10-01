@@ -120,11 +120,7 @@ class BehaviorDispatcher:
         if mapping is None:
             return
         trigger, fields = mapping
-        try:
-            changes = self._tasks.record(account_id, trigger, fields)
-        except Exception as exc:  # noqa: BLE001 - task recording must never break rooms
-            self._log("behavior.task.error", event_type=event.type, error=str(exc))
-            return
+        changes = self._tasks.record(account_id, trigger, fields)
         if not changes:
             return
         self._emit_task_update(account_id, result)

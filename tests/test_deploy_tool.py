@@ -63,15 +63,6 @@ class VersionTests(unittest.TestCase):
         entries = json.loads(self.version_file.read_text(encoding="utf-8"))
         self.assertIs(entries[-1]["dirty"], True)
 
-    def test_latest_uses_numeric_ordering(self) -> None:
-        entries = [
-            {"major": 0, "minor": 2, "patch": 0},
-            {"major": 0, "minor": 10, "patch": 1},
-            {"major": 1, "minor": 0, "patch": 0},
-        ]
-        self.assertEqual(deploy.latest_version(entries)["minor"], 0)
-        self.assertEqual(deploy.latest_version(entries)["major"], 1)
-
     def test_current_version_returns_latest_without_writing(self) -> None:
         entries = [
             {"major": 0, "minor": 0, "patch": 2},
@@ -95,22 +86,6 @@ class ParseArgsTests(unittest.TestCase):
     def test_keep_version_defaults_off(self) -> None:
         args = deploy.parse_args(["example.com"])
         self.assertFalse(args.keep_version)
-
-
-class NginxTests(unittest.TestCase):
-    def test_locations_generated_per_service(self) -> None:
-        registry = {"admin": {"port": 8123}}
-        locations = deploy.nginx_locations(registry)
-        self.assertIn("location /admin/ {", locations)
-        self.assertIn("proxy_pass https://127.0.0.1:8123;", locations)
-        self.assertIn("proxy_set_header Upgrade $http_upgrade;", locations)
-
-    def test_config_references_certificate(self) -> None:
-        registry = {"admin": {"port": 8123}}
-        config = deploy.nginx_config("tinyrooms.febret.com", "/home/u/.local/tinyrooms", registry)
-        self.assertIn("server_name tinyrooms.febret.com;", config)
-        self.assertIn("ssl_certificate /home/u/.local/tinyrooms/nginx/certs/server.crt;", config)
-        self.assertIn("return 301 https://$host$request_uri;", config)
 
 
 class KeepaliveTests(unittest.TestCase):

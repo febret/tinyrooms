@@ -39,20 +39,6 @@ export function footprintRadius(bounds, scale) {
   return Math.max(halfX, halfZ) * (Number(scale) || 1);
 }
 
-/** Project the drag circle centre, radius and rotate knob into canvas screen space. */
-export function projectGizmo(gizmo, center, camera, bounds, ndcToScreen) {
-  const project = world => {
-    const point = world.clone().project(camera);
-    return Number.isFinite(point.x) ? ndcToScreen(point, bounds) : null;
-  };
-  const screenCenter = project(center.clone());
-  const edge = project(new THREE.Vector3(center.x + gizmo.circleRadius, center.y, center.z));
-  const rotate = project(gizmo.rotateHandleWorldPosition());
-  const top = project(gizmo.topHandleWorldPosition());
-  if (!screenCenter || !edge || !rotate || !top) return null;
-  return { center: screenCenter, rotate, top, radiusPx: Math.hypot(edge.x - screenCenter.x, edge.y - screenCenter.y) };
-}
-
 function handleMesh(mesh, mode) {
   mesh.userData.editMode = mode;
   return mesh;
@@ -106,16 +92,6 @@ export function createGizmo() {
     /** World-space radius of the drag circle from the most recent setTarget. */
     get circleRadius() {
       return circleRadiusWorld;
-    },
-    /** Current world position of the rotate knob, for projecting its screen point. */
-    rotateHandleWorldPosition(target = new THREE.Vector3()) {
-      group.updateMatrixWorld(true);
-      return rotateKnob.getWorldPosition(target);
-    },
-    /** Current world position of the active top handle, for projecting its screen point. */
-    topHandleWorldPosition(target = new THREE.Vector3()) {
-      group.updateMatrixWorld(true);
-      return (verticalMode ? elevateArrow : scaleCube).getWorldPosition(target);
     },
     /** Swap the top handle between scaling (box) and vertical movement (arrow). */
     setVerticalMode(active) {

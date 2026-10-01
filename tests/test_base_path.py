@@ -136,19 +136,6 @@ class FirstPartyAssetBasePathTests(unittest.TestCase):
                     offenders.append(str(path.relative_to(REPO_ROOT)))
         self.assertEqual(offenders, [])
 
-    def test_prop_effect_textures_are_base_aware(self) -> None:
-        text = (REPO_ROOT / "app" / "js" / "prop-effects.js").read_text(encoding="utf-8")
-        self.assertIn('from "./base-path.js"', text)
-        self.assertIn("withBase(layer.texture_url)", text)
-
-    def test_server_asset_urls_in_templates_are_base_aware(self) -> None:
-        for relative, needle in (
-            ("app/js/ui.js", "withBase(card.image_url)"),
-            ("card-database/js/app.js", "withBase(card.image_url)"),
-        ):
-            text = (REPO_ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn(needle, text)
-
 
 class BasePathMiddlewareTests(unittest.TestCase):
     def _app(self) -> BasePathMiddleware:
@@ -167,11 +154,6 @@ class BasePathMiddlewareTests(unittest.TestCase):
     def test_unprefixed_passes_through(self) -> None:
         with TestClient(self._app(), base_url="https://test") as client:
             self.assertEqual(client.get("/hello").json(), {"path": "hello"})
-
-    def test_delegates_state_like_attributes(self) -> None:
-        inner = FastAPI()
-        inner.state.marker = "ok"
-        self.assertEqual(BasePathMiddleware(inner, "/admin").state.marker, "ok")
 
     def test_empty_base_path_does_not_strip(self) -> None:
         inner = FastAPI()

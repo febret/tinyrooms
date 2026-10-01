@@ -80,7 +80,7 @@ class TaskServiceTestCase(ServiceTestCase):
         self.progression = ProgressionService(self.hub, self.profiles, self.stats, self.catalog, self.content, WORLD_ID)
         self.memories = MemoryService(self.hub, self.profiles, WORLD_ID, UTC)
 
-    def build(self, definitions, *, memories=None, timezone=UTC):
+    def build(self, definitions, *, memories=None, timezone=UTC, cutscenes=None):
         """Construct a TaskService around custom definitions."""
 
         return TaskService(
@@ -93,6 +93,7 @@ class TaskServiceTestCase(ServiceTestCase):
             definitions,
             timezone,
             memories=self.memories if memories is None else memories,
+            cutscenes=cutscenes,
         )
 
     def ledger_count(self, account_id, task_id):
@@ -297,6 +298,36 @@ class TaskDefinitionLoaderTests(ServiceTestCase):
         )
         with self.assertRaises(ContentError):
             load_task_definitions(path, set(self.catalog.cards))
+
+class TaskFeedbackTests(TaskServiceTestCase):
+    """A task that starts and completes on one trigger queues a single cutscene."""
+
+    def _fake_cutscenes(self):
+        plays: list[dict[str, object]] = []
+
+        def resolve(reference):
+            return SimpleNamespace(id=reference)
+
+        def launch(*, definition, account, room_id, audience, origin, params):
+            event = {"type": "cutscene.play", "cutscene": {"id": definition.id, "params": params}}
+            plays.append(event)
+            return SimpleNamespace(event=event)
+
+        return SimpleNamespace(resolve=resolve, launch=launch), plays
+
+    def test_single_step_task_emits_only_the_completion_scene(self) -> None:
+        actor = self.create_account("actor")
+        cutscenes, plays = self._fake_cutscenes()
+        tasks = self.build(
+            {"one": make_task("one", [make_step("only", "enter_room", match={"room_id": "foyer"})])},
+            cutscenes=cutscenes,
+        )
+        changes = tasks.record(actor.id, "enter_room", {"room_id": "foyer"})
+        events = tasks.feedback_events(actor.id, changes, room_id="foyer")
+        self.assertEqual([event for event in events if event["type"] == "cutscene.play"], plays)
+        self.assertEqual(len(plays), 1)
+        self.assertTrue(plays[0]["cutscene"]["params"]["task_complete"])
+
 
 class TaskCommandIntegrationTests(RuntimeTestCase):
     """Bootstrap and websocket commands expose tasks and memories end to end."""

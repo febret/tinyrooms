@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
+from server.config import ConfigError, normalize_base_path
 from server.mission_control import nginx as nginx_config
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
 from server.mission_control.packages import MAX_UPLOAD_BYTES
@@ -218,7 +219,13 @@ async def fleet_register(request: Request, payload: RegisterPayload) -> dict[str
 
     _require_token(request)
     runtime = _runtime(request)
-    record = runtime.registry.register(payload.model_dump())
+    try:
+        base_path = normalize_base_path(payload.base_path)
+    except ConfigError as exc:
+        return _json_error(400, "base_path_invalid", str(exc))
+    data = payload.model_dump()
+    data["base_path"] = base_path
+    record = runtime.registry.register(data)
     runtime.registry.set_capabilities(record.instance_id, list(ALLOWED_ADMIN_COMMANDS))
     runtime.audit.record("world", "instance.register", target=record.instance_id, detail={"endpoint": record.endpoint})
     return {
@@ -621,14 +628,16 @@ async def nginx_update(request: Request) -> dict[str, object]:
     config = runtime.config
     if config.nginx_conf_path is None:
         return _json_error(400, "nginx_unconfigured", "Nginx management is not configured.")
-    records = runtime.registry.list()
-    text = nginx_config.render_site_config(config, records)
-    try:
-        result = nginx_config.apply_site_config(config, text)
-    except nginx_config.NginxConfigError as exc:
-        return _json_error(502, "nginx_reload_failed", str(exc))
+    result = _apply_nginx(runtime)
+    if not result.get("ok"):
+        return _json_error(502, "nginx_reload_failed", str(result.get("error", "nginx reload failed")))
     runtime.audit.record("operator", "nginx.update", target=str(config.nginx_conf_path))
-    return {"ok": True, **result, "services": nginx_config.service_entries(config, records)}
+    return {
+        "ok": True,
+        "path": result.get("path"),
+        "output": result.get("output"),
+        "services": nginx_config.service_entries(config, runtime.registry.list()),
+    }
 
 
 # --- Package Manager ----------------------------------------------------------

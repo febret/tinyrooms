@@ -2,7 +2,7 @@ import {
   beginCutscene,
   endCutscene,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 const CONFETTI_COLORS = ["#f0b429", "#ffe9a8", "#ff8f6b", "#7de07d", "#a1e0ff", "#f2a1ff"];
 

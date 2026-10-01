@@ -247,6 +247,7 @@ class WorldStateRepository:
                 "position": list(instance.pos),
                 "rotation": list(instance.rot),
                 "scale": float(instance.scale),
+                "locked": False,
             }
             for instance in room.props.values()
             if world.props[instance.prop_id].editable

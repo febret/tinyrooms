@@ -22,6 +22,7 @@ function normalizeInstance(entry) {
     position: Array.isArray(entry?.position) ? entry.position.map(Number) : [50, 50, 0],
     rotation: Array.isArray(entry?.rotation) ? entry.rotation.map(Number) : [0, 0, 0],
     scale: Number(entry?.scale ?? 1),
+    locked: Boolean(entry?.locked),
     effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
     activeEffect: typeof entry?.active_effect === "string" ? entry.active_effect : "",
   };
@@ -105,6 +106,7 @@ export function editorBoardProps(editor) {
       position: [...instance.position],
       rotation: [...instance.rotation],
       scale: instance.scale * (entry?.baseScale ?? 1),
+      locked: Boolean(instance.locked),
       behavior: "",
       modelUrl: entry?.modelUrl || "",
       label: entry?.label || "Prop",
@@ -211,6 +213,7 @@ export function editorReducer(state, action) {
       if (!editor) return state;
       const props = editor.props.map(instance => {
         if (instance.id !== action.id) return instance;
+        if (instance.locked) return instance;
         if (action.position) return { ...instance, position: snapPosition(editor, action.position) };
         if (action.rotation) return { ...instance, rotation: snapRotation(editor, action.rotation) };
         if (typeof action.scale === "number") {
@@ -224,7 +227,7 @@ export function editorReducer(state, action) {
     case "editor-nudge": {
       if (!editor) return state;
       const instance = selectedInstance(editor);
-      if (!instance) return state;
+      if (!instance || instance.locked) return state;
       const position = [
         instance.position[0] + Number(action.dx || 0),
         instance.position[1] + Number(action.dy || 0),
@@ -236,7 +239,7 @@ export function editorReducer(state, action) {
     case "editor-rotate": {
       if (!editor) return state;
       const instance = selectedInstance(editor);
-      if (!instance) return state;
+      if (!instance || instance.locked) return state;
       // Drag gestures push a single undo snapshot at `editor-begin`, then stream deltas.
       const next = action.gesture ? editor : pushUndo(editor);
       return {
@@ -250,7 +253,7 @@ export function editorReducer(state, action) {
     case "editor-scale": {
       if (!editor) return state;
       const instance = selectedInstance(editor);
-      if (!instance) return state;
+      if (!instance || instance.locked) return state;
       const entry = libraryEntry(editor, instance.propId);
       const factor = Number(action.factor || SCALE_STEP);
       const next = action.gesture ? editor : pushUndo(editor);
@@ -265,7 +268,7 @@ export function editorReducer(state, action) {
     case "editor-elevate": {
       if (!editor) return state;
       const instance = selectedInstance(editor);
-      if (!instance) return state;
+      if (!instance || instance.locked) return state;
       // Vertical handle drags change elevation only; x/y keep their snapped values.
       const next = action.gesture ? editor : pushUndo(editor);
       const elevation = clamp(Number(instance.position[2] || 0) + Number(action.delta || 0), 0, 50);
@@ -276,6 +279,15 @@ export function editorReducer(state, action) {
           position: [current.position[0], current.position[1], elevation],
         })),
       };
+    }
+    case "editor-lock": {
+      if (!editor) return state;
+      const instance = editor.props.find(entry => entry.id === action.id) || selectedInstance(editor);
+      if (!instance) return state;
+      const locked = action.locked === undefined ? !instance.locked : Boolean(action.locked);
+      if (locked === instance.locked) return state;
+      const next = pushUndo(editor);
+      return { ...state, editor: updateInstance(next, instance.id, current => ({ ...current, locked })) };
     }
     case "editor-env": {
       if (!editor) return state;

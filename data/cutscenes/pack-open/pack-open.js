@@ -3,7 +3,7 @@ import {
   endCutscene,
   sprite,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 const RARITY_CLASS = {
   common: "is-common",

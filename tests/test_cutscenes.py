@@ -394,6 +394,28 @@ class CutsceneLaunchTests(CutsceneServiceTestCase):
         self.assertEqual(payload["origin"], "command")
         self.assertEqual(payload["source"], {"id": self.account.id, "name": self.account.username_display})
 
+    def test_script_url_honors_base_path(self) -> None:
+        service = CutsceneService(
+            replace(self.config, base_path="/admin"),
+            world=lambda: self.world,
+            profiles=self.profiles,
+            cards=self.cards,
+            valid_stickers=frozenset({"s1", "s2"}),
+        )
+        account = self.create_account("based", room="playroom")
+        launch = service.launch(
+            definition=service.resolve("molly-greet"),
+            account=account,
+            room_id="playroom",
+            audience="private",
+            origin="command",
+            occupants=[account.id],
+        )
+        self.assertEqual(
+            launch.event["cutscene"]["script_url"],
+            "/admin/cutscenes/molly-greet/molly-greet.js",
+        )
+
     def test_room_wide_event_has_no_account_id(self) -> None:
         launch = self.launch("victory-dance", audience="room")
         self.assertNotIn("account_id", launch.event)

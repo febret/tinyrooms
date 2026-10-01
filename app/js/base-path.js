@@ -11,5 +11,3 @@ export function withBase(path) {
   }
   return `${BASE_PATH}${path}`;
 }
-
-export const basePath = BASE_PATH;

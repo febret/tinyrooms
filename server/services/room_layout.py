@@ -233,6 +233,7 @@ class RoomLayoutService:
                     "position": list(_vector(entry.get("position"), (50.0, 50.0, 0.0))),
                     "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
                     "scale": float(entry.get("scale", 1.0)),
+                    "locked": bool(entry.get("locked")),
                 }
                 for entry in live
                 if isinstance(entry, dict)
@@ -245,6 +246,7 @@ class RoomLayoutService:
                     "position": list(instance.pos),
                     "rotation": list(instance.rot),
                     "scale": float(instance.scale),
+                    "locked": False,
                 }
                 for instance in room.props.values()
                 if self._world.props[instance.prop_id].editable
@@ -371,6 +373,7 @@ class RoomLayoutService:
                     "position": list(instance.pos),
                     "rotation": list(instance.rot),
                     "scale": float(instance.scale),
+                    "locked": False,
                 }
         for entry in live:
             if not isinstance(entry, dict):
@@ -384,6 +387,7 @@ class RoomLayoutService:
                 "position": list(_vector(entry.get("position"), (50.0, 50.0, 0.0))),
                 "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
                 "scale": float(entry.get("scale", 1.0)),
+                "locked": bool(entry.get("locked")),
             }
         seen: set[str] = set()
         props: list[dict[str, object]] = []
@@ -414,6 +418,7 @@ class RoomLayoutService:
                     "position": self._validate_position(entry.get("position")),
                     "rotation": self._validate_rotation(entry.get("rotation")),
                     "scale": self._validate_scale(entry.get("scale"), definition),
+                    "locked": bool(entry.get("locked")),
                 }
             )
         for instance_id, entry in hidden_existing.items():

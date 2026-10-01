@@ -408,12 +408,17 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, o
     }
     const buttons = editorRoot.querySelector("[data-editor-buttons]");
     if (buttons) buttons.hidden = !selected;
+    const lock = editorRoot.querySelector("[data-editor-lock]");
+    if (lock) {
+      const locked = Boolean(selected?.locked);
+      lock.textContent = locked ? "Unlock" : "Lock";
+      lock.setAttribute("aria-pressed", String(locked));
+      lock.classList.toggle("primary", locked);
+    }
     const undo = editorRoot.querySelector("[data-editor-undo]");
     if (undo) undo.disabled = !editor.undo.length;
     const redo = editorRoot.querySelector("[data-editor-redo]");
     if (redo) redo.disabled = !editor.redo.length;
-    const save = editorRoot.querySelector("[data-editor-save]");
-    if (save) save.disabled = !editor.dirty;
     const status = editorRoot.querySelector("[data-editor-status]");
     if (status) status.textContent = editor.error || editor.status || (editor.dirty ? "Unsaved changes" : "All changes saved");
     const conflict = editorRoot.querySelector("[data-editor-conflict]");

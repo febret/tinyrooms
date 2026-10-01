@@ -2,7 +2,7 @@ import {
   beginCutscene,
   endCutscene,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 const SPARK_COLORS = ["#7ad0c8", "#bff3ee", "#f7d774", "#a1e0ff", "#ffffff"];
 

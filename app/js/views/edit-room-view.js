@@ -63,6 +63,7 @@ function selectionMarkup() {
   return `
     <p class="editor-meta editor-meta-empty" data-editor-meta>${editorMetaText(null)}</p>
     <div class="editor-buttons" data-editor-buttons hidden>
+      <button type="button" data-edit-action="lock" data-editor-lock aria-pressed="false">Lock</button>
       <button type="button" class="negative" data-edit-action="remove">Remove</button>
     </div>
   `;
@@ -112,9 +113,7 @@ export function editRoomView(state) {
         <button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>
         <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
         <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
-        <button type="button" class="primary" data-editor-save data-edit-action="save" disabled>Save layout</button>
         <span class="editor-status" role="status" data-editor-status>All changes saved</span>
-        <button type="button" class="quiet" data-close-view="1">Close</button>
         <div class="editor-heading-tags" role="group" aria-label="Filter by tag">
           ${libraryTagMarkup(library)}
           <span class="editor-library-count" role="status"></span>

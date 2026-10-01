@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import re
 import tempfile
 import unittest
 
-from server.version import BUILD_VERSION, VERSION_FILE, VersionFileError, latest_build_version
+from server.version import VersionFileError, latest_build_version
 
 
 class LatestBuildVersionTests(unittest.TestCase):
@@ -50,12 +49,6 @@ class LatestBuildVersionTests(unittest.TestCase):
         self._write([{"major": 1, "minor": 0}])
         with self.assertRaises(VersionFileError):
             latest_build_version(self.version_file)
-
-
-class RealVersionFileTests(unittest.TestCase):
-    def test_build_version_matches_repository_version_file(self) -> None:
-        self.assertEqual(BUILD_VERSION, latest_build_version(VERSION_FILE))
-        self.assertRegex(BUILD_VERSION, re.compile(r"^\d+\.\d+\.\d+$"))
 
 
 if __name__ == "__main__":

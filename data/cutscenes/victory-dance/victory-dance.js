@@ -4,7 +4,7 @@ import {
   registerCutsceneFrame,
   sprite,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 registerCutsceneFrame("victory-banner", {
   cssClass: "cutscene-frame-victory",

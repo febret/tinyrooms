@@ -230,14 +230,12 @@ function closeEditor() {
   store.dispatch({ type: "close-view" });
 }
 
-async function confirmCloseEditor() {
-  const accepted = await dialogs.confirm(
-    "Discard unsaved changes?",
-    "Your room layout changes have not been saved.",
-    "Discard",
-  );
-  if (accepted) closeEditor();
-  return accepted;
+/** Save any pending layout changes, then close. Stays open when the save conflicts or fails. */
+async function saveAndCloseEditor() {
+  const editor = store.getState().editor;
+  if (editor?.dirty && !(await saveRoomEditor())) return false;
+  closeEditor();
+  return true;
 }
 
 async function openShop(section = "cards") {
@@ -270,6 +268,7 @@ function editorPatch(editor) {
       position: instance.position,
       rotation: instance.rotation,
       scale: instance.scale,
+      locked: Boolean(instance.locked),
     })),
     environment: editor.environment,
   };
@@ -277,7 +276,7 @@ function editorPatch(editor) {
 
 async function saveRoomEditor() {
   const editor = store.getState().editor;
-  if (!editor) return;
+  if (!editor) return false;
   store.dispatch({ type: "editor-status", message: "Saving…", error: "" });
   try {
     const result = await api.saveRoomLayout(editor.roomId, {
@@ -287,13 +286,15 @@ async function saveRoomEditor() {
     if (result.conflict) {
       store.dispatch({ type: "editor-conflict", layout: result.layout });
       toast(result.message, "error");
-      return;
+      return false;
     }
     store.dispatch({ type: "editor-saved", view: result.layout });
     toast("Layout saved.", "success");
+    return true;
   } catch (error) {
     store.dispatch({ type: "editor-status", message: "", error: error instanceof Error ? error.message : String(error) });
     showError(error);
+    return false;
   }
 }
 
@@ -322,14 +323,17 @@ async function applyEditorAction(action) {
     case "remove":
       if (state.editor.selectedId) store.dispatch({ type: "editor-remove", id: state.editor.selectedId });
       break;
+    case "lock":
+      if (state.editor.selectedId) {
+        const selected = state.editor.props.find(entry => entry.id === state.editor.selectedId);
+        store.dispatch({ type: "editor-lock", id: state.editor.selectedId, locked: !selected?.locked });
+      }
+      break;
     case "rotate":
       store.dispatch({ type: "editor-rotate", delta: action.delta || 15 });
       break;
     case "scale":
       store.dispatch({ type: "editor-scale", factor: action.factor || 1.15 });
-      break;
-    case "save":
-      await saveRoomEditor();
       break;
     case "shop":
       try { await sendCommand(".shop props"); } catch (error) { showError(error); }
@@ -419,7 +423,14 @@ async function handleAction(action) {
   }
   if (action.type === "open-view" || action.type === "core-toggle") {
     const view = action.view || action.id;
-    const closing = store.getState().views.main === view;
+    const state = store.getState();
+    const closing = state.views.main === view;
+    // Leaving or closing the editor commits the layout first. The editor stays
+    // open when the save conflicts or fails so changes are never dropped.
+    if (state.editor && state.views.main === "edit-room") {
+      if (!(await saveAndCloseEditor())) return;
+      if (view === "edit-room") return;
+    }
     store.dispatch({
       type: closing ? "close-view" : "open-view",
       view,
@@ -435,8 +446,7 @@ async function handleAction(action) {
   } else if (["close-view", "close-details"].includes(action.type)) {
     const state = store.getState();
     if (action.type === "close-view" && state.views.main === "edit-room" && state.editor) {
-      if (state.editor.dirty) { await confirmCloseEditor(); return; }
-      closeEditor();
+      await saveAndCloseEditor();
       return;
     }
     store.dispatch({ type: action.type });
@@ -1140,8 +1150,7 @@ document.addEventListener("keydown", event => {
         if (cancelled.undo) store.dispatch({ type: "editor-undo" });
         return;
       }
-      if (state.editor.dirty) { void confirmCloseEditor(); return; }
-      closeEditor();
+      void saveAndCloseEditor();
       return;
     }
     if (handleEditorKey(event)) { event.preventDefault(); return; }

@@ -301,25 +301,26 @@ class Supervisor:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return []
-        entries = data.get("instances") if isinstance(data, dict) else data
-        if not isinstance(entries, list):
-            return []
-        return [entry for entry in entries if isinstance(entry, dict)]
+        entries = data.get("instances") if isinstance(data, dict) else None
+        return entries if isinstance(entries, list) else []
 
     def _write_resume(self, entries: list[dict[str, object]]) -> None:
         path = self._resume_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"instances": entries}, indent=2) + "\n", encoding="utf-8")
 
+    def _clear_resume(self) -> None:
+        try:
+            self._resume_path().unlink()
+        except OSError:
+            pass
+
     def _drop_resume_entry(self, instance_id: str) -> None:
         entries = [entry for entry in self._read_resume() if entry.get("instance_id") != instance_id]
         if entries:
             self._write_resume(entries)
         else:
-            try:
-                self._resume_path().unlink()
-            except OSError:
-                pass
+            self._clear_resume()
 
     def prepare_reboot(self) -> list[str]:
         """Record running children for resume, then stop them all."""
@@ -336,7 +337,10 @@ class Supervisor:
             entry["instance_dir"] = record.instance_dir
             entries.append(entry)
             names.append(record.name)
-        self._write_resume(entries)
+        if entries:
+            self._write_resume(entries)
+        else:
+            self._clear_resume()
         for record in self._registry.list():
             if record.source == SPAWNED:
                 self.stop(record.instance_id)
@@ -347,6 +351,7 @@ class Supervisor:
 
         entries = self._read_resume()
         if not entries:
+            self._clear_resume()
             return []
         started: list[str] = []
         for entry in entries:
@@ -368,8 +373,5 @@ class Supervisor:
                 started.append(record.instance_id)
             except (KeyError, OSError, ValueError):
                 continue
-        try:
-            self._resume_path().unlink()
-        except OSError:
-            pass
+        self._clear_resume()
         return started

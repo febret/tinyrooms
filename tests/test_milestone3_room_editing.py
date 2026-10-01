@@ -311,6 +311,37 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.assertEqual(update.revision, base + 1)
         self.assertIn(custom_id, {prop.id for prop in self.layout.effective_props("hub")})
 
+    def test_locked_flag_defaults_false_and_round_trips(self) -> None:
+        owner = self.owner()
+        view = self.layout.view(owner, "hub")
+        plant = next(prop for prop in view["props"] if prop["id"] == "welcome-plant")
+        self.assertFalse(plant["locked"])
+        locked = self.layout.save(
+            owner,
+            "hub",
+            view["revision"],
+            {"props": [self.editable_instance("plant", "welcome-plant") | {"locked": True}]},
+        )
+        self.assertEqual(locked.revision, view["revision"] + 1)
+        after = next(prop for prop in self.layout.view(owner, "hub")["props"] if prop["id"] == "welcome-plant")
+        self.assertTrue(after["locked"])
+        # A locked prop keeps its flag while other props are added.
+        unlocked = self.layout.save(
+            owner,
+            "hub",
+            locked.revision,
+            {
+                "props": [
+                    self.editable_instance("plant", "welcome-plant") | {"locked": False},
+                    self.editable_instance("plant", "custom:00000000-0000-4000-8000-000000000005"),
+                ]
+            },
+        )
+        self.assertEqual(unlocked.revision, locked.revision + 1)
+        final = {prop["id"]: prop["locked"] for prop in self.layout.view(owner, "hub")["props"]}
+        self.assertFalse(final["welcome-plant"])
+        self.assertFalse(final["custom:00000000-0000-4000-8000-000000000005"])
+
 
 class RoomLayoutHttpTests(Milestone2IntegrationTestCase):
     """The HTTP layout endpoints enforce session, CSRF, and revisions."""

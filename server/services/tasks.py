@@ -647,6 +647,14 @@ class TaskService:
 
         if not changes:
             return []
+        # A task that starts and completes on one trigger produces both changes;
+        # the completion supersedes the start so only one cutscene is queued.
+        completed = {change.task_id for change in changes if change.kind == "completed"}
+        changes = [
+            change
+            for change in changes
+            if not (change.kind == "started" and change.task_id in completed)
+        ]
         events: list[dict[str, object]] = []
         account = self._profiles.get_account_by_id(account_id)
         for change in changes:

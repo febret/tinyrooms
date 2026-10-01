@@ -27,9 +27,6 @@ export function createEditModifier(onChange) {
   window.addEventListener("blur", onBlur);
 
   return {
-    get vertical() {
-      return vertical;
-    },
     dispose() {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("keyup", onKey);

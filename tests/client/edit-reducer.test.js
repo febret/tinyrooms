@@ -56,3 +56,33 @@ test("elevate gestures stream under one undo, clamp to 0-50 and keep x/y", () =>
   const capped = editorReducer(floored, { type: "editor-elevate", delta: 99, gesture: true });
   assert.deepEqual(capped.editor.props[0].position, [50, 50, 50]);
 });
+
+test("editor-lock toggles, is undoable, and defaults off", () => {
+  const start = editorState();
+  assert.equal(start.editor.props[0].locked, false);
+  const locked = editorReducer(start, { type: "editor-lock", id: "p1" });
+  assert.equal(locked.editor.props[0].locked, true);
+  assert.equal(locked.editor.undo.length, start.editor.undo.length + 1);
+  const unlocked = editorReducer(locked, { type: "editor-lock", id: "p1" });
+  assert.equal(unlocked.editor.props[0].locked, false);
+  const undone = editorReducer(unlocked, { type: "editor-undo" });
+  assert.equal(undone.editor.props[0].locked, true);
+});
+
+test("locked instances reject move, nudge, rotate, scale and elevate", () => {
+  const locked = editorReducer(editorState(), { type: "editor-lock", id: "p1", locked: true });
+  const moved = editorReducer(locked, { type: "editor-transform", id: "p1", position: [10, 10, 0] });
+  assert.deepEqual(moved.editor.props[0].position, [50, 50, 0]);
+  const nudged = editorReducer(locked, { type: "editor-nudge", dx: 5, dy: 5 });
+  assert.deepEqual(nudged.editor.props[0].position, [50, 50, 0]);
+  const rotated = editorReducer(locked, { type: "editor-rotate", delta: 15 });
+  assert.equal(rotated.editor.props[0].rotation[1], 0);
+  const scaled = editorReducer(locked, { type: "editor-scale", factor: 2 });
+  assert.equal(scaled.editor.props[0].scale, 1);
+  const raised = editorReducer(locked, { type: "editor-elevate", delta: 10 });
+  assert.equal(raised.editor.props[0].position[2], 0);
+  // The lock itself stays reversible.
+  const unlocked = editorReducer(locked, { type: "editor-lock", id: "p1", locked: false });
+  const after = editorReducer(unlocked, { type: "editor-nudge", dx: 5, dy: 0 });
+  assert.deepEqual(after.editor.props[0].position, [55, 50, 0]);
+});
