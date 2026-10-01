@@ -31,6 +31,7 @@ class MCConfig:
     users_path: Path
     instances_path: Path
     versions_path: Path
+    content_root: Path
     ca_file: Path | None
     insecure_tls: bool
     heartbeat_seconds: float
@@ -59,6 +60,30 @@ class MCConfig:
             if hostname:
                 return hostname
         return self.host
+
+    @property
+    def shared_worlds_root(self) -> Path:
+        """Return the shared world-definition root outside any server version."""
+
+        return self.content_root / "worlds"
+
+    @property
+    def shared_cardsets_root(self) -> Path:
+        """Return the shared cardset root outside any server version."""
+
+        return self.content_root / "cardsets"
+
+    @property
+    def shared_propsets_root(self) -> Path:
+        """Return the shared propset root outside any server version."""
+
+        return self.content_root / "propsets"
+
+    @property
+    def releases_path(self) -> Path:
+        """Return the directory of deployed release artifacts."""
+
+        return self.content_root / "releases"
 
     @property
     def ui_path(self) -> Path:
@@ -136,6 +161,10 @@ def load_mc_config(
     ).expanduser()
     versions_path.mkdir(parents=True, exist_ok=True)
 
+    content_root = Path(
+        values.get("TRSERVER_MC_CONTENT_PATH", str(versions_path.parent))
+    ).expanduser()
+
     ca_raw = values.get("TRSERVER_MC_CA_FILE", "").strip()
     ca_file = Path(ca_raw).expanduser().resolve() if ca_raw else None
     insecure_tls = parse_bool(values.get("TRSERVER_MC_INSECURE_TLS", "0"))
@@ -171,6 +200,7 @@ def load_mc_config(
         users_path=users_path,
         instances_path=instances_path,
         versions_path=versions_path,
+        content_root=content_root,
         ca_file=ca_file,
         insecure_tls=insecure_tls,
         heartbeat_seconds=heartbeat_seconds,

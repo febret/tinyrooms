@@ -89,6 +89,24 @@ class SupervisorEnvTests(unittest.TestCase):
         env = self.start(features="dev_sample_activity,mission-control")
         self.assertEqual(env["TRSERVER_FEATURES"], "dev_sample_activity")
 
+    def test_spawned_child_forwards_shared_content_root(self) -> None:
+        env = self.start()
+        self.assertEqual(env["TRSERVER_SHARED_CONTENT_PATH"], str(self.config.content_root))
+
+    def test_spawned_child_runs_the_selected_version(self) -> None:
+        version_path = self.root / "versions" / "9.9.9"
+        with mock.patch.dict(os.environ, {"TRSERVER_FEATURES": "mission-control", "TRSERVER_MC_PASSPHRASE": "op-secret"}):
+            self.supervisor.start(
+                name="tutorial",
+                world_path=REPO_ROOT / "worlds" / "tutorial",
+                users_path=self.root / "users",
+                port=5099,
+                version_path=version_path,
+            )
+        command = self.captured["command"]
+        self.assertEqual(Path(command[1]), version_path / "run.py")  # type: ignore[arg-type]
+        self.assertEqual(self.captured["env"]["TRSERVER_WORLD_PATH"], str(REPO_ROOT / "worlds" / "tutorial"))  # type: ignore[index]
+
 
 class SupervisorLifecycleTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -117,6 +135,17 @@ class SupervisorLifecycleTests(unittest.TestCase):
     def test_base_path_is_persisted_in_spawn_config(self) -> None:
         record = self.spawn()
         self.assertEqual(record.spawn_config["base_path"], "/tutorial")
+
+    def test_version_path_is_persisted_in_spawn_config(self) -> None:
+        version_path = self.root / "versions" / "1.0.0"
+        record = self.supervisor.start(
+            name="versioned",
+            world_path=REPO_ROOT / "worlds" / "tutorial",
+            users_path=self.root / "users",
+            port=5099,
+            version_path=version_path,
+        )
+        self.assertEqual(record.spawn_config["version_path"], str(version_path))
 
     def test_restart_reuses_id_and_route(self) -> None:
         record = self.spawn()

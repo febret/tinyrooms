@@ -1,113 +1,166 @@
-"""Package manager scan, validation, and install tests."""
+"""Shared-content inventory and server-version management tests."""
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import json
 import unittest
-import zipfile
-from unittest import mock
 
 from server.mission_control.audit import McAuditLog
 from server.mission_control.config import load_mc_config
 from server.mission_control.packages import PackageManager
-from tests.common import REPO_ROOT
+from server.mission_control.registry import STATUS_STOPPED, InstanceRegistry
 from tests.mc_helpers import mc_env
 
 
-def _propset_zip(*, package_id: str = "testset", include_model: bool = True, manifest_kind: str = "propset") -> bytes:
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr(
-            "package.yaml",
-            f"kind: {manifest_kind}\nid: {package_id}\nversion: 1.2.3\nlabel: Test Set\n",
-        )
-        archive.writestr("props.yaml", "box:\n  label: Box\n  model: model.glb\n  decorative: true\n")
-        if include_model:
-            archive.writestr("model.glb", b"glTF")
-    return buffer.getvalue()
+def _write_propset(root: Path, package_id: str = "sharedbox", *, model: bool = True) -> Path:
+    directory = root / "propsets" / package_id
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "props.yaml").write_text(
+        "box:\n  label: Box\n  model: model.glb\n  decorative: true\n",
+        encoding="utf-8",
+    )
+    if model:
+        (directory / "model.glb").write_bytes(b"glTF")
+    return directory
 
 
-def _traversal_zip() -> bytes:
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("package.yaml", "kind: propset\nid: evil\n")
-        archive.writestr("../escape.txt", "nope")
-    return buffer.getvalue()
+def _write_world(root: Path, world_id: str) -> Path:
+    directory = root / world_id
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "world.yaml").write_text(f"id: {world_id}\nentry_room: hub\n", encoding="utf-8")
+    return directory
+
+
+def _write_version(root: Path, version_id: str) -> Path:
+    version = root / "versions" / version_id
+    (version / "server").mkdir(parents=True, exist_ok=True)
+    entry = {"major": 1, "minor": 0, "patch": 0}
+    (version / "version.json").write_text(json.dumps([entry]) + "\n", encoding="utf-8")
+    return version
 
 
 class PackageManagerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
-        self.root = Path(self.temporary_directory.name)
-        (self.root / "data" / "propsets").mkdir(parents=True)
-        (self.root / "data" / "cardsets").mkdir(parents=True)
-        (self.root / "worlds").mkdir(parents=True)
-        config = load_mc_config(env=mc_env(self.root), repo_root=self.root)
-        self.manager = PackageManager(config, McAuditLog())
+        self.root = Path(self.temporary_directory.name).resolve()
+        (self.root / "cardsets").mkdir()
+        (self.root / "propsets").mkdir()
+        (self.root / "worlds").mkdir()
+        (self.root / "versions").mkdir()
+        self.config = load_mc_config(env=mc_env(self.root), repo_root=self.root)
+        self.registry = InstanceRegistry()
+        self.manager = PackageManager(self.config, self.registry, McAuditLog())
 
-    def test_install_valid_propset(self) -> None:
-        record = self.manager.install("propset", _propset_zip(), actor="op")
-        self.assertEqual(record.id, "testset")
-        self.assertEqual(record.version, "1.2.3")
-        self.assertTrue((self.root / "data" / "propsets" / "testset" / "props.yaml").is_file())
+    def _register(self, version: str) -> None:
+        self.registry.register(
+            {
+                "instance_name": "world",
+                "endpoint": f"https://127.0.0.1:{5000 + len(self.registry.list())}",
+                "version": version,
+                "world": {"id": "tutorial"},
+            }
+        )
+
+    def test_inventory_lists_shared_propset(self) -> None:
+        _write_propset(self.root)
         inventory = self.manager.inventory()
-        self.assertEqual([item["id"] for item in inventory["propsets"]], ["testset"])
-
-    def test_install_rejects_non_zip(self) -> None:
-        with self.assertRaises(ValueError):
-            self.manager.install("propset", b"not a zip", actor="op")
-
-    def test_install_rejects_traversal(self) -> None:
-        with self.assertRaises(ValueError):
-            self.manager.install("propset", _traversal_zip(), actor="op")
-        self.assertFalse((self.root / "escape.txt").exists())
-
-    def test_install_rejects_kind_mismatch(self) -> None:
-        with self.assertRaises(ValueError):
-            self.manager.install("propset", _propset_zip(manifest_kind="world"), actor="op")
-
-    def test_install_validates_before_writing(self) -> None:
-        with self.assertRaises(ValueError):
-            self.manager.install("propset", _propset_zip(include_model=False), actor="op")
-        self.assertFalse((self.root / "data" / "propsets" / "testset").exists())
-
-    def test_install_rejects_duplicate(self) -> None:
-        self.manager.install("propset", _propset_zip(), actor="op")
-        with self.assertRaises(ValueError):
-            self.manager.install("propset", _propset_zip(), actor="op")
-
-    def test_install_enforces_size_limit(self) -> None:
-        with mock.patch("server.mission_control.packages.MAX_UPLOAD_BYTES", 10):
-            with self.assertRaises(ValueError):
-                self.manager.install("propset", _propset_zip(), actor="op")
-
-    def test_enable_disable_and_delete(self) -> None:
-        self.manager.install("propset", _propset_zip(), actor="op")
-        self.manager.set_enabled("propset", "testset", False, actor="op")
-        self.assertFalse(self.manager.record("propset", "testset").enabled)
-        self.manager.delete("propset", "testset", actor="op")
-        self.assertIsNone(self.manager.record("propset", "testset"))
-        self.assertFalse((self.root / "data" / "propsets" / "testset").exists())
-
-    def test_delete_refuses_path_escape(self) -> None:
-        with self.assertRaises(ValueError):
-            self.manager.delete("propset", "..", actor="op")
+        self.assertEqual([item["id"] for item in inventory["propsets"]], ["sharedbox"])
+        self.assertEqual(inventory["propsets"][0]["validation"]["status"], "ok")
 
     def test_inventory_reports_validation_errors(self) -> None:
-        broken = self.root / "data" / "propsets" / "broken"
-        broken.mkdir()
-        (broken / "props.yaml").write_text("box:\n  label: Box\n  model: missing.glb\n", encoding="utf-8")
+        _write_propset(self.root, "broken", model=False)
         inventory = self.manager.inventory()
         statuses = {item["id"]: item["validation"]["status"] for item in inventory["propsets"]}
         self.assertEqual(statuses.get("broken"), "error")
 
-    def test_inventory_includes_running_version(self) -> None:
-        inventory = self.manager.inventory()
-        self.assertTrue(inventory["server_versions"])
-        self.assertEqual(inventory["server_versions"][0]["id"], "running")
+    def test_inventory_excludes_version_bundled_content(self) -> None:
+        bundled = self.root / "versions" / "1.0.0" / "data" / "propsets" / "bundled"
+        bundled.mkdir(parents=True)
+        (bundled / "props.yaml").write_text("box:\n  label: Box\n  model: model.glb\n", encoding="utf-8")
+        (bundled / "model.glb").write_bytes(b"glTF")
+        self.assertEqual(self.manager.inventory()["propsets"], [])
+
+    def test_server_versions_reports_instance_counts(self) -> None:
+        _write_version(self.root, "1.0.0")
+        _write_version(self.root, "2.0.0")
+        self._register("2.0.0")
+        versions = {version["id"]: version for version in self.manager.server_versions()}
+        self.assertTrue(versions["running"]["running"])
+        self.assertFalse(versions["running"]["deletable"])
+        self.assertEqual(versions["1.0.0"]["instance_count"], 0)
+        self.assertTrue(versions["1.0.0"]["deletable"])
+        self.assertEqual(versions["2.0.0"]["instance_count"], 1)
+        self.assertFalse(versions["2.0.0"]["deletable"])
+
+    def test_stopped_instance_counts_as_registered_not_running(self) -> None:
+        _write_version(self.root, "1.0.0")
+        self._register("1.0.0")
+        instance_id = self.registry.list()[0].instance_id
+        self.registry.set_status(instance_id, STATUS_STOPPED)
+        version = {item["id"]: item for item in self.manager.server_versions()}["1.0.0"]
+        self.assertEqual(version["instance_count"], 0)
+        self.assertEqual(version["registered_count"], 1)
+        self.assertFalse(version["deletable"])
+
+    def test_delete_version_removes_directory_and_tarball(self) -> None:
+        version = _write_version(self.root, "1.0.0")
+        releases = self.root / "releases"
+        releases.mkdir()
+        tarball = releases / "tinyrooms-1.0.0.tar.gz"
+        tarball.write_bytes(b"release")
+        self.manager.delete_version("1.0.0", actor="op")
+        self.assertFalse(version.exists())
+        self.assertFalse(tarball.exists())
+
+    def test_delete_version_refuses_in_use(self) -> None:
+        _write_version(self.root, "1.0.0")
+        self._register("1.0.0")
+        with self.assertRaises(ValueError):
+            self.manager.delete_version("1.0.0", actor="op")
+
+    def test_delete_version_refuses_running(self) -> None:
+        with self.assertRaises(ValueError):
+            self.manager.delete_version("running", actor="op")
+
+    def test_delete_version_refuses_path_escape(self) -> None:
+        with self.assertRaises(ValueError):
+            self.manager.delete_version("..", actor="op")
+
+    def test_resolve_version_running_and_installed(self) -> None:
+        self.assertEqual(self.manager.resolve_version(None), self.root)
+        self.assertEqual(self.manager.resolve_version("running"), self.root)
+        version = _write_version(self.root, "1.0.0")
+        self.assertEqual(self.manager.resolve_version("1.0.0"), version)
+        with self.assertRaises(ValueError):
+            self.manager.resolve_version("..")
+        with self.assertRaises(ValueError):
+            self.manager.resolve_version("missing")
+
+    def test_resolve_world_prefers_shared(self) -> None:
+        shared = _write_world(self.root / "worlds", "town")
+        version = _write_version(self.root, "1.0.0")
+        bundled = _write_world(version / "worlds", "town")
+        self.assertEqual(self.manager.resolve_world("1.0.0", "town"), shared)
+        self.assertEqual(self.manager.resolve_world(None, "town"), shared)
+        self.assertNotEqual(self.manager.resolve_world("1.0.0", "town"), bundled)
+
+    def test_resolve_world_uses_version_bundle_when_not_shared(self) -> None:
+        version = _write_version(self.root, "1.0.0")
+        bundled = _write_world(version / "worlds", "garden")
+        self.assertEqual(self.manager.resolve_world("1.0.0", "garden"), bundled)
+        with self.assertRaises(ValueError):
+            self.manager.resolve_world("1.0.0", "missing")
+
+    def test_worlds_for_includes_shared_and_version(self) -> None:
+        _write_world(self.root / "worlds", "town")
+        version = _write_version(self.root, "1.0.0")
+        _write_world(version / "worlds", "garden")
+        worlds = {world["id"]: world for world in self.manager.worlds_for("1.0.0")}
+        self.assertEqual(worlds["town"]["source"], "shared")
+        self.assertEqual(worlds["garden"]["source"], "1.0.0")
 
 
 if __name__ == "__main__":

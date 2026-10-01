@@ -154,6 +154,7 @@ def ensure_dirs(host: str, root: str) -> None:
     """Create the deployment directory skeleton."""
 
     run_remote(host, f"mkdir -p {remote_path(root, 'mods')} {remote_path(root, 'worlds')} "
+                     f"{remote_path(root, 'cardsets')} {remote_path(root, 'propsets')} "
                      f"{remote_path(root, 'releases')} {remote_path(root, 'logs')} {remote_path(root, 'versions')}")
 
 
@@ -462,6 +463,7 @@ def admin_env_values(
         "TRSERVER_MC_USERS_PATH": f"{root.rstrip('/')}/users",
         "TRSERVER_MC_INSTANCES_PATH": f"{root.rstrip('/')}/logs/instances",
         "TRSERVER_MC_VERSIONS_PATH": f"{root.rstrip('/')}/versions",
+        "TRSERVER_MC_CONTENT_PATH": f"{root.rstrip('/')}",
         "TRSERVER_MC_NGINX_CONF": conf_path,
         "TRSERVER_MC_NGINX_RELOAD": reload_command,
         "TRSERVER_MC_KEEPALIVE": f"{root.rstrip('/')}/keepalive.sh",

@@ -629,6 +629,16 @@ def _validate_prop_effects(props: Mapping[str, PropDefinition], effects: Mapping
                     )
 
 
+def _as_paths(value: Path | Sequence[Path] | None) -> list[Path]:
+    """Normalize an optional single path or path sequence into a list."""
+
+    if value is None:
+        return []
+    if isinstance(value, (str, Path)):
+        return [Path(value)]
+    return [Path(root) for root in value]
+
+
 def load_propset(
     propset_path: Path,
     effects: Mapping[str, EffectDefinition] | None = None,
@@ -654,6 +664,7 @@ def load_world_definition(
     cutscene_roots: Sequence[Path] | None = None,
     known_features: frozenset[str] = frozenset(),
     propsets_root: Path | Sequence[Path] | None = None,
+    shared_propsets_root: Path | Sequence[Path] | None = None,
     mod_props: Sequence[tuple[str, Path]] | None = None,
     enabled_mods: frozenset[str] | None = None,
     fx_root: Path | None = None,
@@ -682,18 +693,20 @@ def load_world_definition(
     recipes = load_recipes(world_path, card_ids)
 
     props: dict[str, PropDefinition] = {}
-    propset_roots: list[Path] = []
-    if propsets_root is not None:
-        if isinstance(propsets_root, (str, Path)):
-            propset_roots.append(Path(propsets_root))
-        else:
-            propset_roots.extend(Path(root) for root in propsets_root)
-    for root in propset_roots:
+    for root in _as_paths(propsets_root):
         for propset_file in sorted(root.glob("*/props.yaml")):
             for prop_id, definition in _load_props_from_file(propset_file, propset_file.parent.name, "propset").items():
                 if prop_id in props:
                     raise ContentError(f"Duplicate prop id '{prop_id}'.")
                 props[prop_id] = definition
+    for root in _as_paths(shared_propsets_root):
+        shared_props: dict[str, PropDefinition] = {}
+        for propset_file in sorted(root.glob("*/props.yaml")):
+            for prop_id, definition in _load_props_from_file(propset_file, propset_file.parent.name, "propset").items():
+                if prop_id in shared_props:
+                    raise ContentError(f"Duplicate prop id '{prop_id}'.")
+                shared_props[prop_id] = definition
+        props.update(shared_props)
     for mod_id, props_dir in mod_props or ():
         mod_props_file = Path(props_dir) / "props.yaml"
         if not mod_props_file.is_file():

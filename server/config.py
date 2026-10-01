@@ -115,6 +115,7 @@ class AppConfig:
     tick_seconds: float = 1.0
     mods: frozenset[str] = frozenset()
     mods_path: Path | None = None
+    shared_content_path: Path | None = None
     stun_urls: tuple[str, ...] = ("stun:stun.l.google.com:19302",)
     mc_endpoint: str | None = None
     mc_token: str | None = None
@@ -153,6 +154,18 @@ class AppConfig:
         """Return the global cardsets directory."""
 
         return self.repo_root / "data" / "cardsets"
+
+    @property
+    def shared_cardsets_path(self) -> Path | None:
+        """Return the shared cardsets directory, if a shared root is configured."""
+
+        return None if self.shared_content_path is None else self.shared_content_path / "cardsets"
+
+    @property
+    def shared_propsets_path(self) -> Path | None:
+        """Return the shared propsets directory, if a shared root is configured."""
+
+        return None if self.shared_content_path is None else self.shared_content_path / "propsets"
 
     @property
     def is_wildcard_bind(self) -> bool:
@@ -323,6 +336,9 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if mods and not mods_path.is_dir():
         raise ConfigError(f"TRSERVER_MODS_PATH does not exist: {mods_path}")
 
+    shared_raw = values.get("TRSERVER_SHARED_CONTENT_PATH", "").strip()
+    shared_content_path = Path(shared_raw).expanduser().resolve() if shared_raw else None
+
     stun_urls = parse_ice_urls(
         values.get("TRSERVER_STUN_URLS", "stun:stun.l.google.com:19302")
     )
@@ -360,6 +376,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         tick_seconds=tick_seconds,
         mods=mods,
         mods_path=mods_path,
+        shared_content_path=shared_content_path,
         stun_urls=stun_urls,
         mc_endpoint=mc_endpoint,
         mc_token=mc_token,

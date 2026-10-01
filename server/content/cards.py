@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -280,18 +281,31 @@ def _sealed_pack_card(pack: PackDefinition) -> CardDefinition:
     )
 
 
-def load_card_catalog(cardsets_root: Path, world_path: Path) -> CardCatalog:
-    """Load all global and world-specific card and pack definitions."""
+def load_card_catalog(
+    cardsets_root: Path,
+    world_path: Path,
+    *,
+    extra_cardsets_roots: Sequence[Path] = (),
+) -> CardCatalog:
+    """Load all global and world-specific card and pack definitions.
+
+    ``extra_cardsets_roots`` are layered on top of ``cardsets_root`` in ascending
+    priority: a definition in a later root overrides an earlier one on id
+    collisions. Duplicate ids inside a single root remain an error.
+    """
 
     cards: dict[str, CardDefinition] = {}
     packs: dict[str, PackDefinition] = {}
 
-    for cards_file in sorted(cardsets_root.glob("*/cards.yaml")):
-        source = cards_file.parent.name
-        for card_id, definition in _load_cards_from_file(cards_file, source).items():
-            if card_id in cards:
-                raise ContentError(f"Duplicate card id '{card_id}'.")
-            cards[card_id] = definition
+    for root in (cardsets_root, *extra_cardsets_roots):
+        root_cards: dict[str, CardDefinition] = {}
+        for cards_file in sorted(root.glob("*/cards.yaml")):
+            source = cards_file.parent.name
+            for card_id, definition in _load_cards_from_file(cards_file, source).items():
+                if card_id in root_cards:
+                    raise ContentError(f"Duplicate card id '{card_id}'.")
+                root_cards[card_id] = definition
+        cards.update(root_cards)
 
     world_cards_file = world_path / "cards" / "cards.yaml"
     if world_cards_file.is_file():
@@ -300,11 +314,14 @@ def load_card_catalog(cardsets_root: Path, world_path: Path) -> CardCatalog:
                 raise ContentError(f"Duplicate card id '{card_id}'.")
             cards[card_id] = definition
 
-    for pack_file in sorted(cardsets_root.glob("*/pack.yaml")):
-        pack_id = pack_file.parent.name
-        if pack_id in packs:
-            raise ContentError(f"Duplicate pack id '{pack_id}'.")
-        packs[pack_id] = _load_pack_from_file(pack_file, pack_id, cards, pack_file.parent.name)
+    for root in (cardsets_root, *extra_cardsets_roots):
+        root_packs: dict[str, PackDefinition] = {}
+        for pack_file in sorted(root.glob("*/pack.yaml")):
+            pack_id = pack_file.parent.name
+            if pack_id in root_packs:
+                raise ContentError(f"Duplicate pack id '{pack_id}'.")
+            root_packs[pack_id] = _load_pack_from_file(pack_file, pack_id, cards, pack_file.parent.name)
+        packs.update(root_packs)
 
     world_pack_file = world_path / "cards" / "pack.yaml"
     if world_pack_file.is_file():

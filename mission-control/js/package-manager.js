@@ -16,43 +16,56 @@ export function createPackageManager(container, ctx) {
         el("h2", { text: "Package Manager" }),
         el("button", { type: "button", onclick: () => load().catch(showError), text: "Refresh" }),
       ]),
-      renderUpload(),
       renderVersions(),
-      renderGroup("World definitions", "world", packages.worlds),
-      renderGroup("Cardsets", "cardset", packages.cardsets),
-      renderGroup("Propsets", "propset", packages.propsets),
+      renderGroup("World definitions (shared)", "world", packages.worlds),
+      renderGroup("Cardsets (shared)", "cardset", packages.cardsets),
+      renderGroup("Propsets (shared)", "propset", packages.propsets),
     );
   }
 
-  function renderUpload() {
-    const kind = el("select", {}, [
-      el("option", { value: "world", text: "World" }),
-      el("option", { value: "cardset", text: "Cardset" }),
-      el("option", { value: "propset", text: "Propset" }),
+  function renderVersions() {
+    const versions = packages.server_versions;
+    return el("div", { class: "card package-group" }, [
+      el("h3", { text: "Server versions" }),
+      versions.length
+        ? el("table", {}, [
+            el("thead", {}, el("tr", {}, [
+              el("th", { text: "Id" }),
+              el("th", { text: "Build" }),
+              el("th", { text: "Protocol" }),
+              el("th", { text: "Commit" }),
+              el("th", { text: "Instances" }),
+              el("th", { text: "Path" }),
+              el("th", { text: "Actions" }),
+            ])),
+            el("tbody", {}, versions.map((version) => renderVersion(version))),
+          ])
+        : el("p", { class: "muted", text: "None installed." }),
     ]);
-    const file = el("input", { type: "file", accept: ".zip", "aria-label": "Package zip" });
-    const form = el("form", { class: "row", onsubmit: (event) => upload(event, kind, file) }, [
-      kind,
-      file,
-      el("button", { class: "primary", type: "submit", text: "Upload & install" }),
-    ]);
-    return el("div", { class: "card" }, [el("h3", { text: "Install a package" }), form]);
   }
 
-  function renderVersions() {
-    return el("div", { class: "card" }, [
-      el("h3", { text: "Server versions" }),
-      el("table", {}, [
-        el("thead", {}, el("tr", {}, [el("th", { text: "Id" }), el("th", { text: "Protocol" }), el("th", { text: "Commit" }), el("th", { text: "Path" })])),
-        el("tbody", {}, packages.server_versions.map((version) =>
-          el("tr", {}, [
-            el("td", { text: version.id }),
-            el("td", { text: String(version.protocol ?? "—") }),
-            el("td", { text: version.commit || "—" }),
-            el("td", { class: "muted", text: version.path }),
-          ]),
-        )),
+  function instanceLabel(version) {
+    const running = version.instance_count ?? 0;
+    const registered = version.registered_count ?? running;
+    if (registered > running) return `${running} running / ${registered} registered`;
+    return `${running} running`;
+  }
+
+  function renderVersion(version) {
+    const button = version.deletable
+      ? el("button", { class: "danger", type: "button", onclick: () => removeVersion(version), text: "Delete" })
+      : el("button", { class: "danger", type: "button", disabled: true, title: version.delete_reason || "In use", text: "Delete" });
+    return el("tr", {}, [
+      el("td", {}, [
+        el("span", { text: version.id }),
+        version.running ? el("span", { class: "badge ok", text: "running" }) : "",
       ]),
+      el("td", { text: version.build || "—" }),
+      el("td", { text: String(version.protocol ?? "—") }),
+      el("td", { text: version.commit || "—" }),
+      el("td", { text: instanceLabel(version) }),
+      el("td", { class: "muted", text: version.path }),
+      el("td", {}, el("div", { class: "row" }, button)),
     ]);
   }
 
@@ -61,7 +74,12 @@ export function createPackageManager(container, ctx) {
       el("h3", { text: title }),
       items.length
         ? el("table", {}, [
-            el("thead", {}, el("tr", {}, [el("th", { text: "Id" }), el("th", { text: "Version" }), el("th", { text: "Validation" }), el("th", { text: "Enabled" }), el("th", { text: "Actions" })])),
+            el("thead", {}, el("tr", {}, [
+              el("th", { text: "Id" }),
+              el("th", { text: "Version" }),
+              el("th", { text: "Validation" }),
+              el("th", { text: "Path" }),
+            ])),
             el("tbody", {}, items.map((item) => renderItem(kind, item))),
           ])
         : el("p", { class: "muted", text: "None installed." }),
@@ -74,43 +92,14 @@ export function createPackageManager(container, ctx) {
       el("td", { text: item.id }),
       el("td", { text: item.version || "—" }),
       el("td", {}, el("span", { class: `badge ${validation}`, title: item.validation.messages.join("\n"), text: validation })),
-      el("td", { text: item.enabled ? "yes" : "no" }),
-      el("td", {}, el("div", { class: "row" }, [
-        el("button", { type: "button", onclick: () => toggle(kind, item.id, !item.enabled), text: item.enabled ? "Disable" : "Enable" }),
-        el("button", { class: "danger", type: "button", onclick: () => remove(kind, item.id), text: "Delete" }),
-      ])),
+      el("td", { class: "muted", text: item.path }),
     ]);
   }
 
-  async function upload(event, kindSelect, fileInput) {
-    event.preventDefault();
-    const file = fileInput.files[0];
-    if (!file) {
-      ctx.setBanner("Choose a zip file first.");
-      return;
-    }
+  async function removeVersion(version) {
+    if (!window.confirm(`Delete server version ${version.id}? This removes the installed directory and release artifact.`)) return;
     try {
-      await api.upload(`/api/mission-control/packages?kind=${kindSelect.value}`, file);
-      fileInput.value = "";
-      await load();
-    } catch (error) {
-      ctx.setBanner(error.message);
-    }
-  }
-
-  async function toggle(kind, id, enabled) {
-    try {
-      await api.post(`/api/mission-control/packages/${kind}/${id}/enable`, { enabled });
-      await load();
-    } catch (error) {
-      ctx.setBanner(error.message);
-    }
-  }
-
-  async function remove(kind, id) {
-    if (!window.confirm(`Delete ${kind}/${id}? This removes the installed directory.`)) return;
-    try {
-      await api.del(`/api/mission-control/packages/${kind}/${id}`);
+      await api.del(`/api/mission-control/versions/${encodeURIComponent(version.id)}`);
       await load();
     } catch (error) {
       ctx.setBanner(error.message);

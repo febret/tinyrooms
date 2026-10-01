@@ -38,7 +38,8 @@ def load_world_bundle(
 ) -> WorldBundle:
     """Load catalog, gameplay content, and world definition for *world_path*."""
 
-    catalog = load_card_catalog(config.cardsets_path, world_path)
+    extra_cardsets = (config.shared_cardsets_path,) if config.shared_cardsets_path is not None else ()
+    catalog = load_card_catalog(config.cardsets_path, world_path, extra_cardsets_roots=extra_cardsets)
     content = load_gameplay_content(config.repo_root / "data" / "core")
     core_activities = load_activity_definitions(
         config.repo_root / "data" / "core" / "activities.yaml",
@@ -63,6 +64,7 @@ def load_world_bundle(
         cutscene_roots=mod_cutscene_roots,
         known_features=KNOWN_FEATURES,
         propsets_root=config.propsets_path,
+        shared_propsets_root=config.shared_propsets_path,
         mod_props=loaded_mods.mod_props() if loaded_mods is not None else (),
         enabled_mods=loaded_mods.ids if loaded_mods is not None else None,
         fx_root=config.fx_path,

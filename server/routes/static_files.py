@@ -30,7 +30,17 @@ def _activity_roots(runtime: RuntimeState) -> tuple[Path, ...]:
 
 
 def _propset_roots(runtime: RuntimeState) -> tuple[Path, ...]:
-    return (runtime.config.propsets_path,)
+    shared = runtime.config.shared_propsets_path
+    if shared is None:
+        return (runtime.config.propsets_path,)
+    return (shared, runtime.config.propsets_path)
+
+
+def _cardset_roots(runtime: RuntimeState) -> tuple[Path, ...]:
+    shared = runtime.config.shared_cardsets_path
+    if shared is None:
+        return (runtime.config.cardsets_path,)
+    return (shared, runtime.config.cardsets_path)
 
 
 def register_static_routes(app: FastAPI) -> None:
@@ -113,9 +123,10 @@ def register_static_routes(app: FastAPI) -> None:
     @app.get("/assets/{cardset}/{filename}")
     async def cardset_asset(cardset: str, filename: str, request: Request) -> Response:
         runtime = get_runtime(request)
-        candidate = _safe_path(runtime.config.cardsets_path, f"{cardset}/{filename}")
-        if candidate.is_file():
-            return FileResponse(candidate)
+        for root in _cardset_roots(runtime):
+            candidate = _safe_path(root, f"{cardset}/{filename}")
+            if candidate.is_file():
+                return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Cardset asset not found.")
 
     @app.get("/assets/propsets/{propset}/{filename}")

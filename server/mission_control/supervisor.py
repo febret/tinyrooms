@@ -91,6 +91,7 @@ class Supervisor:
         base_path: str | None = None,
         instance_id: str | None = None,
         instance_dir: str | None = None,
+        version_path: Path | None = None,
     ) -> InstanceRecord:
         """Spawn a child ``run.py`` and register it with the instance registry."""
 
@@ -111,6 +112,7 @@ class Supervisor:
             "admins": admins,
             "mods": mods if mods is not None else self._config.mods,
             "base_path": resolved_base_path,
+            "version_path": str(version_path) if version_path is not None else "",
         }
         process = self._spawn_process(config)
         endpoint = f"https://{host}:{allocated_port}"
@@ -150,9 +152,10 @@ class Supervisor:
             mods=config.get("mods") if isinstance(config.get("mods"), str) else None,
             base_path=str(config.get("base_path") or ""),
         )
+        version_root = Path(str(config.get("version_path") or self._config.repo_root))
         command = [
             sys.executable,
-            str(self._config.repo_root / "run.py"),
+            str(version_root / "run.py"),
             "--host",
             str(config["host"]),
             "--port",
@@ -160,7 +163,7 @@ class Supervisor:
         ]
         return self._spawn(
             command,
-            cwd=str(self._config.repo_root),
+            cwd=str(version_root),
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -198,6 +201,7 @@ class Supervisor:
         env["TRSERVER_MC_ENDPOINT"] = f"{self._config.host}:{self._config.port}"
         env["TRSERVER_MC_TOKEN"] = self._config.token
         env["TRSERVER_MC_NAME"] = name
+        env["TRSERVER_SHARED_CONTENT_PATH"] = str(self._config.content_root)
         if self._config.public_origins:
             env["TRSERVER_PUBLIC_ORIGIN"] = ",".join(self._config.public_origins)
         if self._config.ca_file is not None:
@@ -369,6 +373,7 @@ class Supervisor:
                     mods=entry.get("mods") if isinstance(entry.get("mods"), str) else None,
                     base_path=str(entry.get("base_path") or "") or None,
                     instance_dir=str(entry["instance_dir"]) if entry.get("instance_dir") else None,
+                    version_path=Path(str(entry["version_path"])) if entry.get("version_path") else None,
                 )
                 started.append(record.instance_id)
             except (KeyError, OSError, ValueError):

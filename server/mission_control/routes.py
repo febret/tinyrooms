@@ -22,7 +22,6 @@ from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.config import ConfigError, normalize_base_path
 from server.mission_control import nginx as nginx_config
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
-from server.mission_control.packages import MAX_UPLOAD_BYTES
 from server.mission_control.registry import EXTERNAL, SPAWNED, STATUS_RUNNING, STATUS_STOPPED, STATUS_UNREACHABLE
 from server.security import RateLimitError, require_matching_csrf, validate_origin
 from server.version import BUILD_VERSION
@@ -44,6 +43,7 @@ class StartInstancePayload(BaseModel):
     """Start-instance form payload."""
 
     world: str
+    version: str | None = None
     worldstate_db: str | None = None
     users_path: str | None = None
     name: str | None = None
@@ -58,12 +58,6 @@ class RenameInstancePayload(BaseModel):
     """Rename-instance payload."""
 
     name: str
-
-
-class EnablePayload(BaseModel):
-    """Package enable/disable payload."""
-
-    enabled: bool
 
 
 class EditUserPayload(BaseModel):
@@ -133,17 +127,6 @@ def _enforce_post(request: Request, session: McSession) -> None:
 def _client_key(request: Request) -> str:
     client = request.client
     return "unknown" if client is None else client.host
-
-
-async def _read_upload(request: Request, limit: int) -> bytes:
-    """Buffer a request body, aborting as soon as it exceeds *limit*."""
-
-    body = bytearray()
-    async for chunk in request.stream():
-        body.extend(chunk)
-        if len(body) > limit:
-            raise ValueError(f"Package exceeds the {limit // (1024 * 1024)} MB limit.")
-    return bytes(body)
 
 
 async def _world_call(
@@ -344,9 +327,11 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
     runtime = _runtime(request)
     session = _require_operator(request)
     _enforce_post(request, session)
-    record = runtime.packages.record("world", payload.world)
-    if record is None or record.validation_status == "error" or not record.enabled:
-        return _json_error(400, "world_unavailable", f"World '{payload.world}' is not available.")
+    try:
+        version_path = runtime.packages.resolve_version(payload.version)
+        world_path = runtime.packages.resolve_world(payload.version, payload.world)
+    except ValueError as exc:
+        return _json_error(400, "world_unavailable", str(exc))
     worldstate_path = Path(payload.worldstate_db).expanduser() if payload.worldstate_db else None
     if worldstate_path is not None and (not worldstate_path.is_file() or worldstate_path.is_dir()):
         return _json_error(400, "worldstate_invalid", "Worldstate DB must be an existing .sqlite3 file.")
@@ -354,7 +339,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
     name = payload.name or payload.world
     spawned = runtime.supervisor.start(
         name=name,
-        world_path=record.path,
+        world_path=world_path,
         worldstate_path=worldstate_path,
         users_path=users_path,
         host=payload.host,
@@ -362,6 +347,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         features=payload.features,
         admins=payload.admins,
         mods=payload.mods,
+        version_path=version_path,
     )
     return {"ok": True, "server": runtime.registry.snapshot(spawned), "nginx": _apply_nginx(runtime)}
 
@@ -645,53 +631,37 @@ async def nginx_update(request: Request) -> dict[str, object]:
 
 @router.get("/api/mission-control/packages")
 async def list_packages(request: Request) -> dict[str, object]:
-    """Return the package inventory."""
+    """Return the shared-content inventory and server versions."""
 
     _require_operator(request)
     runtime = _runtime(request)
     return {"ok": True, "packages": runtime.packages.inventory()}
 
 
-@router.post("/api/mission-control/packages")
-async def upload_package(request: Request, kind: str) -> dict[str, object]:
-    """Validate and install an uploaded package zip."""
+@router.get("/api/mission-control/worlds")
+async def list_worlds(request: Request, version: str | None = None) -> dict[str, object]:
+    """Return worlds available to a server version (shared plus bundled)."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    try:
+        worlds = runtime.packages.worlds_for(version)
+    except ValueError as exc:
+        return _json_error(400, "version_unavailable", str(exc))
+    return {"ok": True, "worlds": worlds}
+
+
+@router.delete("/api/mission-control/versions/{version_id}")
+async def delete_version(request: Request, version_id: str) -> dict[str, object]:
+    """Delete an unused installed server version and its release artifact."""
 
     runtime = _runtime(request)
     session = _require_operator(request)
     _enforce_post(request, session)
     try:
-        data = await _read_upload(request, MAX_UPLOAD_BYTES)
+        runtime.packages.delete_version(version_id, actor="operator")
     except ValueError as exc:
-        return _json_error(413, "package_too_large", str(exc))
-    try:
-        record = runtime.packages.install(kind, data, actor="operator")
-    except ValueError as exc:
-        return _json_error(400, "package_rejected", str(exc))
-    return {"ok": True, "package": record.to_dict()}
-
-
-@router.post("/api/mission-control/packages/{kind}/{package_id}/enable")
-async def enable_package(request: Request, kind: str, package_id: str, payload: EnablePayload) -> dict[str, object]:
-    """Enable or disable a package for this session."""
-
-    runtime = _runtime(request)
-    session = _require_operator(request)
-    _enforce_post(request, session)
-    runtime.packages.set_enabled(kind, package_id, payload.enabled, actor="operator")
-    return {"ok": True}
-
-
-@router.delete("/api/mission-control/packages/{kind}/{package_id}")
-async def delete_package(request: Request, kind: str, package_id: str) -> dict[str, object]:
-    """Delete an installed package directory."""
-
-    runtime = _runtime(request)
-    session = _require_operator(request)
-    _enforce_post(request, session)
-    try:
-        runtime.packages.delete(kind, package_id, actor="operator")
-    except ValueError as exc:
-        return _json_error(400, "package_delete_failed", str(exc))
+        return _json_error(400, "version_delete_failed", str(exc))
     return {"ok": True}
 
 

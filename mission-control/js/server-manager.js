@@ -103,11 +103,31 @@ export function createServerManager(container, ctx) {
   }
 
   function renderStartForm() {
+    const versionSelect = el("select", { id: "start-version", name: "version" },
+      ctx.versions().map((version) => el("option", {
+        value: version.id,
+        text: version.running ? `${version.label} (${version.build || "unknown"})` : version.id,
+      })),
+    );
     const worldSelect = el("select", { id: "start-world", name: "world" }, [
-      el("option", { value: "", text: "Select a world…" }),
-      ...ctx.worlds().map((world) => el("option", { value: world.id, text: `${world.label || world.id}` })),
+      el("option", { value: "", text: "Loading worlds…" }),
     ]);
+    const refreshWorlds = async () => {
+      let worlds = [];
+      try {
+        worlds = await ctx.worlds(versionSelect.value);
+      } catch (error) {
+        ctx.setBanner(error.message);
+      }
+      worldSelect.replaceChildren(el("option", { value: "", text: "Select a world…" }));
+      for (const world of worlds) {
+        worldSelect.append(el("option", { value: world.id, text: `${world.label || world.id} (${world.source})` }));
+      }
+    };
+    versionSelect.addEventListener("change", () => { refreshWorlds().catch(showError); });
+    refreshWorlds().catch(showError);
     const form = el("form", { class: "grid cols-2", onsubmit: (event) => submitStart(event, form) }, [
+      field("Server version", versionSelect),
       field("World definition", worldSelect),
       field("Worldstate DB (optional)", el("input", { name: "worldstate_db", placeholder: "existing .sqlite3" })),
       field("Users path (optional)", el("input", { name: "users_path", placeholder: "default" })),

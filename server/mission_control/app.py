@@ -62,7 +62,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
     audit = McAuditLog()
     registry = InstanceRegistry(stale_after_seconds=config.heartbeat_seconds * 3)
     supervisor = Supervisor(config, registry, audit)
-    packages = PackageManager(config, audit)
+    packages = PackageManager(config, registry, audit)
     users = UserManager(hub, profiles, audit)
     verify: object = True
     if config.insecure_tls:

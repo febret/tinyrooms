@@ -119,7 +119,9 @@ class MissionControlIntegrationTests(unittest.TestCase):
 
     def test_packages_and_users_endpoints(self) -> None:
         packages = self.mc_client.get("/api/mission-control/packages").json()["packages"]
-        self.assertTrue(any(world["id"] == "tutorial" for world in packages["worlds"]))
+        self.assertTrue(packages["server_versions"])
+        for key in ("worlds", "cardsets", "propsets"):
+            self.assertIsInstance(packages[key], list)
         self.mc_runtime.profiles.create_account("mcuser", "password123!", "tutorial", "hub")
         users = self.mc_client.get("/api/mission-control/users?q=mcuser").json()["users"]
         self.assertEqual([user["username"] for user in users], ["mcuser"])

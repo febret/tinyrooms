@@ -14,7 +14,7 @@ const loginError = document.getElementById("login-error");
 const logoutButton = document.getElementById("logout-button");
 
 let bannerTimer = null;
-let cachedWorlds = [];
+let cachedVersions = [];
 
 function setBanner(message) {
   banner.textContent = message || "";
@@ -25,16 +25,23 @@ function setBanner(message) {
 
 const ctx = {
   setBanner,
-  worlds: () => cachedWorlds,
+  versions: () => cachedVersions,
+  worlds: loadWorlds,
 };
 
-async function loadWorlds() {
+async function loadVersions() {
   try {
     const data = await api.get("/api/mission-control/packages");
-    cachedWorlds = data.packages.worlds.filter((world) => world.enabled && world.validation.status !== "error");
+    cachedVersions = data.packages.server_versions || [];
   } catch (error) {
-    cachedWorlds = [];
+    cachedVersions = [];
   }
+}
+
+async function loadWorlds(versionId) {
+  const suffix = versionId ? `?version=${encodeURIComponent(versionId)}` : "";
+  const data = await api.get(`/api/mission-control/worlds${suffix}`);
+  return data.worlds || [];
 }
 
 const views = {
@@ -93,7 +100,7 @@ async function showShell(session) {
   appShell.hidden = false;
   operatorLabel.textContent = session.operator || "operator";
   versionLabel.textContent = session.version ? `v${session.version}` : "";
-  await loadWorlds();
+  await loadVersions();
   showTab("servers");
 }
 

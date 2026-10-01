@@ -75,10 +75,19 @@ def git_describe(path: Path) -> str | None:
 
 
 def version_info(path: Path) -> dict[str, object]:
-    """Return build/protocol/schema/commit metadata for a checkout or package."""
+    """Return build/protocol/schema/commit metadata for a checkout or package.
 
+    The build label is read from *path*'s own ``version.json`` when present so
+    that additional installed checkouts report their own version rather than the
+    running build.
+    """
+
+    try:
+        build = latest_build_version(path / "version.json")
+    except VersionFileError:
+        build = BUILD_VERSION
     return {
-        "build": BUILD_VERSION,
+        "build": build,
         "protocol": PROTOCOL_VERSION,
         "commit": git_describe(path),
         "schema": schema_versions(),

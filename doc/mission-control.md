@@ -19,8 +19,8 @@ It has three sections:
 
 | Section | Purpose |
 | --- | --- |
-| **Server Manager** | List running world servers with runtime stats, loaded world, and online users; start new instances against a chosen world definition and optional worldstate DB; drill into one server to view its log and send admin commands. |
-| **Package Manager** | Inventory available Tinyrooms server versions, world definitions, cardsets, and propsets; upload/install, enable/disable, and delete content packages. |
+| **Server Manager** | List running world servers with runtime stats, loaded world, and online users; start new instances against a chosen server version, world definition, and optional worldstate DB; drill into one server to view its log and send admin commands. |
+| **Package Manager** | Inventory installed server versions (with running-instance counts and deletion of unused versions) and the shared world definitions, cardsets, and propsets installed outside any single version. |
 | **User Manager** | Query and modify accounts and related profile tables in the shared profile database; force running servers to resync user profile data. |
 
 Mission control is a development/operations tool. It is **not** a public
@@ -85,6 +85,7 @@ world server(s)  -- also self-register when started outside MC
 | `TRSERVER_MC_USERS_PATH` | No | `users` | Profile DB directory to manage (`profiles.sqlite3` inside it). |
 | `TRSERVER_MC_INSTANCES_PATH` | No | `.local/mc-instances` | Per-instance runtime dirs for MC-spawned servers. |
 | `TRSERVER_MC_VERSIONS_PATH` | No | `.local/mc-versions` | Directory of additional installed server checkouts to inventory. |
+| `TRSERVER_MC_CONTENT_PATH` | No | parent of `TRSERVER_MC_VERSIONS_PATH` | Deploy content root holding shared `worlds/`, `cardsets/`, and `propsets/` plus `releases/`. |
 | `TRSERVER_MC_CA_FILE` | No | — | PEM CA bundle used to verify world-server TLS. |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` | Dev-only: skip world-server cert verification. |
 | `TRSERVER_MC_HEARTBEAT_SECONDS` | No | `5` | Expected heartbeat interval; used for staleness. |
@@ -101,6 +102,7 @@ MC serves HTTPS with the existing self-signed cert helper (`run.py`), reusing
 | `TRSERVER_MC_ENDPOINT` | No | — | `host:port` of the MC server. When set, the world server registers and heartbeats. |
 | `TRSERVER_MC_TOKEN` | Yes* | — | Shared secret; required when `TRSERVER_MC_ENDPOINT` is set. |
 | `TRSERVER_MC_NAME` | No | derived | Display name for this instance (defaults to `world_id@host:port`). |
+| `TRSERVER_SHARED_CONTENT_PATH` | No | — | Deploy content root; its `cardsets/` and `propsets/` are layered over the checkout's bundled content (shared definitions win on id collisions). |
 | `TRSERVER_MC_CA_FILE` | No | — | CA bundle for verifying the MC server cert. |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` | Dev-only: skip MC cert verification. |
 
@@ -186,7 +188,10 @@ disconnect/error banner when world servers are unreachable.
 
 **Start instance form** — fields:
 
-- World definition (required): pick from installed world packages.
+- Server version (required): pick an installed version (defaults to the running
+  build). The child runs that checkout's `run.py`.
+- World definition (required): pick from shared worlds plus the selected
+  version's bundled worlds.
 - Worldstate DB (optional): pick an existing `.sqlite3` file, or leave blank
   for a fresh DB created on start.
 - Users path (optional): defaults to `TRSERVER_MC_USERS_PATH`.
@@ -235,26 +240,27 @@ and tracks the child handle.
 
 ### 5.4 Package Manager
 
-**Inventory view** — four groups, each item showing name/id, version, source
-path, and validation status (`ok`, `warning`, `error` with messages):
+**Server versions** — the running build plus any additional checkouts found
+under `TRSERVER_MC_VERSIONS_PATH` (skipping the `latest` symlink and any
+checkout that resolves to the running build). Each row shows its id (directory
+name), build label, protocol version, git commit/tag, the number of currently
+running instances on that build (plus the registered count when it differs),
+and path. The build label is read from each checkout's own `version.json`.
 
-- **Server versions**: the running build plus any additional checkouts found
-  under `TRSERVER_MC_VERSIONS_PATH`. Each row shows its id, protocol version,
-  git commit/tag, and path. The build label is the highest `major.minor.patch`
-  entry recorded in the repo's `version.json`.
-- **World definitions**: directories under `worlds/` containing `world.yaml`.
-- **Cardsets**: directories under `data/cardsets/` containing `cards.yaml`.
-- **Propsets**: directories under `data/propsets/` (new shared root, §8.3).
+**Delete version** — removes an unused version directory and its
+`releases/tinyrooms-<id>.tar.gz` artifact. The running version and any version
+with a registered instance (running, starting, unreachable, or stopped) are
+protected; the confirmation dialog states the deletion explicitly. Audited.
 
-**Install/upload**: upload a zip containing a manifest that declares the
-package kind and id. MC validates structure and runs the matching content
-loader **before** extraction; a package that fails validation is rejected with
-messages and nothing is written. On success, extract to the canonical root
-(`worlds/<id>`, `data/cardsets/<id>`, or `data/propsets/<id>`).
+**Shared content** — the world definitions, cardsets, and propsets installed
+**outside any single server version**, under the deploy content root (§8.3).
+Each row shows id, manifest version (when present), validation status
+(`ok`/`error` with messages), and source path. This view is read-only: deploy
+and content management happen on disk via `tools/deploy.py`, not the UI.
 
-**Manage**: enable/disable (tracked in memory for the session; disabled
-packages are hidden from start/new-instance pickers) and delete (removes the
-installed directory after confirmation). All actions are audited.
+**Start-instance worlds** — the Server Manager's version picker selects a code
+checkout; its world picker lists shared worlds plus that version's bundled
+worlds (§5.3).
 
 ### 5.5 User Manager
 
@@ -332,10 +338,9 @@ Mounted on the MC server, gated by the `mission-control` feature and MC auth.
 | `POST` | `/api/mission-control/resync` | Resync all instances. |
 | `GET` | `/api/mission-control/nginx` | Preview the generated nginx site config. |
 | `POST` | `/api/mission-control/nginx` | Write the config and reload nginx. |
-| `GET` | `/api/mission-control/packages` | Package inventory. |
-| `POST` | `/api/mission-control/packages` | Upload/install a package zip. |
-| `POST` | `/api/mission-control/packages/{kind}/{id}/enable` | Enable/disable. |
-| `DELETE` | `/api/mission-control/packages/{kind}/{id}` | Delete a package. |
+| `GET` | `/api/mission-control/packages` | Shared-content + server-version inventory. |
+| `GET` | `/api/mission-control/worlds?version=` | Worlds available to a server version. |
+| `DELETE` | `/api/mission-control/versions/{id}` | Delete an unused server version. |
 | `GET` | `/api/mission-control/users` | Search/list accounts. |
 | `GET` | `/api/mission-control/users/{id}` | Account detail + related rows. |
 | `PATCH` | `/api/mission-control/users/{id}` | Edit supported fields. |
@@ -378,23 +383,29 @@ InstanceRecord {
   and `BEGIN IMMEDIATE` transactions are already used; MC writes use the same
   repository transaction patterns and keep transactions short.
 
-### 8.3 Content roots and packages
+### 8.3 Content roots
 
-| Kind | Root | Detection |
+Inside a checkout, content lives at `<checkout>/worlds/`, `<checkout>/data/cardsets/`,
+and `<checkout>/data/propsets/`; each deployed server version bundles its own
+copy. The deploy content root (`TRSERVER_MC_CONTENT_PATH` for MC,
+`TRSERVER_SHARED_CONTENT_PATH` for world servers) additionally holds content
+installed **outside** any single version:
+
+| Kind | Shared root | Detection |
 | --- | --- | --- |
-| World | `worlds/<id>/` | `world.yaml` present. |
-| Cardset | `data/cardsets/<id>/` | `cards.yaml` present (optional `pack.yaml`). |
-| Propset | `data/propsets/<id>/` | `props.yaml` present (new shared root). |
+| World | `<root>/worlds/<id>/` | `world.yaml` present. |
+| Cardset | `<root>/cardsets/<id>/` | `cards.yaml` present (optional `pack.yaml`). |
+| Propset | `<root>/propsets/<id>/` | `props.yaml` present. |
 
-Introducing `data/propsets/` requires a loader change: the world loader must
-merge shared propsets with the world-local `props/` directory (world-local
-definitions win on id collisions, mirroring core/world activity merging). The
-package manager inventories both shared propsets and each world's local props.
+`tools/deploy.py` creates these directories and points MC at the deploy root;
+content is placed there on disk, not uploaded through the UI.
 
-Package zip layout: a top-level manifest (`package.json` or `package.yaml`)
-declaring `{kind, id, version, label}` plus the package files. Install
-validates by running the appropriate loader against the extracted-to-temp copy,
-then moves into the canonical root.
+At runtime the world loader layers shared cardsets and propsets over the
+checkout's bundled ones, with **shared definitions winning on id collisions**
+(duplicate ids *within* one root remain an error). World-local `props/` and
+card definitions are validated as before. A world definition may itself be
+shared or bundled; the Server Manager lists shared worlds plus the chosen
+version's bundled worlds and resolves the selected id accordingly.
 
 ### 8.4 Audit (in memory)
 
@@ -416,11 +427,13 @@ and user edits. Bounded ring; surfaced in the UI. Lost on MC restart by design.
 - **Admin commands**: dispatched through the existing command/admin pipeline;
   the MC actor must satisfy the world's power checks. MC cannot grant itself
   in-world powers through this path.
-- **Package upload**: enforce a max upload size, reject non-zip content, reject
-  absolute paths and `..` traversal in zip entries, extract to a temp dir,
-  validate with the content loader, then atomically move into place. Content
-  (including behavior scripts) is operator-installed trusted code; the
-  passphrase gate is the only barrier, so MC must never be exposed publicly.
+- **Version deletion**: restricted to installed version directories under
+  `TRSERVER_MC_VERSIONS_PATH`; refuses the running version, path escapes, and
+  versions with any registered instance; deletes the directory and the matching
+  release artifact. Audited.
+- **Shared content**: operator-installed trusted code (including behavior
+  scripts); the passphrase gate is the only barrier, so MC must never be
+  exposed publicly.
 - **User edits**: validated against the same field constraints the game
   enforces; every change audited.
 
@@ -453,10 +466,11 @@ and user edits. Bounded ring; surfaced in the UI. Lost on MC restart by design.
    refreshed instance count and notified clients. (Today the world reads
    profile data per request; this endpoint defines the forward-compatible
    contract and the live-refresh behavior.)
-6. **Package install**: operator uploads a zip → MC size-checks, scans for
-   traversal, extracts to temp, validates via loader → on success moves into
-   the canonical root and refreshes the package index; on failure returns
-   validation messages and writes nothing.
+6. **Version delete / content inventory**: operator deletes an unused version
+   → MC re-checks it is not running and has no registered instance → removes the
+   checkout and its release artifact and audits the action. Shared content is
+   scanned from the deploy content root and shown read-only with validation
+   status.
 7. **Stale eviction**: a spawned child exits or an external instance stops
    heartbeating → MC transitions the record to `stopped`/`unreachable` and
    surfaces it in the UI.
@@ -490,7 +504,7 @@ Follow existing harness patterns.
 | **A** | `mission-control` feature flag + `KNOWN_FEATURES`; `MCConfig`; `run.py` mode selection; MC app skeleton, passphrase auth, static UI shell with three tabs. |
 | **B** | World-side `mc_client.py` + `mc_api.py` (register/heartbeat/stats/logs/command); MC registry + heartbeat/staleness; instance list view. |
 | **C** | Server Manager drilldown: log capture/polling, admin console, start/stop/restart, spawn supervisor, optional worldstate selection. |
-| **D** | Package Manager: content scan, inventory view, zip upload/validate/install, enable/disable/delete; introduce `data/propsets/` loader support. |
+| **D** | Package Manager: server-version inventory with per-version instance counts and unused-version deletion; read-only shared world/cardset/propset inventory; shared-over-bundled content loading. |
 | **E** | User Manager: direct profile DB access, search/detail/edit, audit view, resync endpoint + UI. |
 | **F** | Full test coverage, README/config documentation, security review, polish. |
 
