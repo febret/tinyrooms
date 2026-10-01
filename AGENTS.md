@@ -100,7 +100,7 @@ python -m unittest discover -s tests -v
 ### Browser flows + visual snapshots
 ```powershell
 npx playwright install chromium       # or Chromium family browser of choice
-npm run test:browser                  # functional tests
+npm run test:browser                  # minimal functional smoke tests
 npm run test:visual                   # screenshot comparison
 ```
 
@@ -149,7 +149,7 @@ Browser harness settings (from `playwright.config.js`):
 
 1. **Python**: Add a module under `tests/` using `unittest.TestCase`; no external test framework. Service tests should subclass `tests/common.py:ServiceTestCase` for an isolated profile/world database and shared content.
 2. **Client logic**: Port applicable modules from `app/js/` to `server/client/` and add matching tests under `tests/client/`, using `unittest.TestCase`. Name files `test_*.py`.
-3. **Browser functional**: Edit `tests/browser/flows.spec.js`. Tests should use semantic selectors or stable IDs rather than pixel coordinates. Each test owns a fresh server fixture via helpers in `fixtures.js`.
+3. **Browser functional**: The functional suite is a deliberately minimal smoke set (`tests/browser/flows.spec.js` + `cutscenes.spec.js`) — it proves the app boots, the WebSocket round-trips, core views render, and one end-to-end gameplay flow works. Do **not** add gameplay/business-logic flows here: cover those with Python or client-logic tests, and cover rendered states with visual snapshots. Browser tests should use semantic selectors or stable IDs rather than pixel coordinates, and each test owns a fresh server fixture via helpers in `fixtures.js`.
 4. **Visual screenshots**: Add to `tests/browser/screenshots.spec.js` when capturing rendered board/UI states matters. Baselines live in `tests/browser/baselines/`. Always review before committing.
 
 ## Key Design Decisions

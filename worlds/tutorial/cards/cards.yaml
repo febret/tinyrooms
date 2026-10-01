@@ -65,8 +65,6 @@ pooper-scooper:
   target: prop
   tags: [scoop]
   consume_card: plastic-bag
-  output_card: poop
-  bagged_output_card: poop-in-a-bag
 seal-plushie:
   label: Seal Plushie
   description: A cute seal plushie, not stinky at all.

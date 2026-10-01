@@ -229,8 +229,6 @@ class BehaviorDispatcher:
             id=definition.id,
             tags=definition.tags,
             consume_card=definition.consume_card,
-            output_card=definition.output_card,
-            bagged_output_card=definition.bagged_output_card,
             hide_seconds=definition.hide_seconds,
             clears_source=definition.clears_source,
         )

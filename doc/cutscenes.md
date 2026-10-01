@@ -1134,23 +1134,15 @@ disables cutscenes entirely (§2.3). A third project is therefore required:
 | `portrait` | 390×844 touch | reduce | everything existing |
 | `desktop-motion` | 1280×800 | `no-preference` | `cutscenes.spec.js` only |
 
-`tests/browser/cutscenes.spec.js` (10 tests, `desktop-motion` only):
+`tests/browser/cutscenes.spec.js` (1 test, `desktop-motion` only):
 
 - `.cutscene` plays, the frame and stage appear, and the layer is torn down.
-- The scene's own DOM lands in the stage, the `$me` placeholder resolves to a
-  sticker `<img>`, and the custom caption line renders.
-- Caption cues from the definition text appear.
-- The Skip control and `Escape` each end playback.
-- The board is `inert` during playback while `#chat-input` stays enabled and a
-  chat line still reaches the log.
-- A room-audience cutscene plays in two browser contexts at once.
-- A cutscene emote plays from the Emotes view's `Cutscene` tab and produces no
-  emote bubble.
-- A room change clears playback.
-- An unknown cutscene is rejected with a message and builds no layer.
 
-Under `reducedMotion: 'reduce'` the default projects run one case in
-`flows.spec.js` asserting a `cutscene.play` never creates the layer.
+Cutscene *behavior* beyond real playback is covered by the Python suite
+(`tests/test_cutscenes.py`): commands, audience, placeholders, captions, emote
+targeting, room changes, pack-open, and unknown-id rejection. Under
+`reducedMotion: 'reduce'` the default projects run one case in `flows.spec.js`
+asserting a `cutscene.play` never creates the layer.
 
 *Still to do:* visual snapshots. The Emotes panel gains the `Cutscene` category
 tab, so `emotes.png` needs a deliberate baseline review and re-record once the

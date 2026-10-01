@@ -163,8 +163,8 @@ whether it handles the card, expressing the effect through `BehaviorContext`
 intents. The tutorial world implements scooping (`props/litter-tray.py`) and
 vacuuming (`props/centipedes.py`) this way, matching cards by their authored
 `tags`. Behavior scripts read the triggering card's fields from `context.card`
-(`id`, `tags`, `consume_card`, `output_card`, `bagged_output_card`,
-`hide_seconds`, `clears_source`) instead of duplicating them. A card used on an
+(`id`, `tags`, `consume_card`, `hide_seconds`, `clears_source`) and decide
+themselves which cards, if any, the interaction yields. A card used on an
 unrelated prop is a no-op, and Energy is charged / `one_use` copies are consumed
 only after the behavior actually resolves. World scripts can hide props
 (`hide_prop`), clear named sources from a room (`clear_source`), and remove a

@@ -221,8 +221,11 @@ python -m unittest discover -s tests -v
 npm run test:browser
 ```
 
-`npm test` runs the Playwright functional browser tests.
-For a targeted run use `npm run test:browser -- --project=portrait -g "quantity"`.
+`npm test` runs the Playwright functional browser tests: a deliberately minimal
+smoke set (boot, WebSocket round-trip, core views, one gameplay flow, one
+cutscene). Broader behavior is covered by the Python and client-logic suites, and
+rendered states by `npm run test:visual`.
+For a targeted run use `npm run test:browser -- -g "all core cards"`.
 The browser harness uses `.venv\Scripts\python.exe` automatically; override with
 `$env:TR_TEST_PYTHON = "C:\path\to\python.exe"` if needed.
 If browser downloads are unavailable, an installed Chrome or Edge can run

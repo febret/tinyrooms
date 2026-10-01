@@ -28,8 +28,6 @@ class CardView:
     id: str
     tags: frozenset[str] = frozenset()
     consume_card: str | None = None
-    output_card: str | None = None
-    bagged_output_card: str | None = None
     hide_seconds: int | None = None
     clears_source: str | None = None
 
