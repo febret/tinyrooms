@@ -215,7 +215,7 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
     exit_token = command.args[0]
     exit_id = parse_target(exit_token).value if exit_token.startswith("@") else exit_token
     navigation = await context.rooms.navigate(context.account, room_id, exit_id)
-    context.tasks.record(
+    changes = context.tasks.record(
         context.account.id,
         "go",
         {"exit_id": exit_id, "room_id": navigation.destination_room_id},
@@ -225,6 +225,13 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
         payload={"room_id": navigation.destination_room_id},
         snapshot=navigation.destination_snapshot,
     )
+    if changes:
+        outcome.private_events.append(
+            {"type": "task.updated", "tasks": context.tasks.view_payload(context.account.id), "account_id": context.account.id}
+        )
+        outcome.private_events.extend(
+            context.tasks.feedback_events(context.account.id, changes, room_id=navigation.destination_room_id)
+        )
     outcome.room_broadcasts.append(
         PendingRoomBroadcast(
             room_id=navigation.source_room_id,
@@ -557,7 +564,7 @@ def build_registry() -> CommandRegistry:
         usage=".buy_prop <prop_id>",
         help="Spend Bops to unlock a marketplace prop for every room you own.",
     )
-    registry.register("cancel", "Close the active activity window.", cancel_command, usage=".cancel")
+    registry.register("cancel", "Close the active activity window.", cancel_command, usage=".cancel", toast=False)
     registry.register(
         "claim_bops",
         "Claim today's Daily Bops allowance.",
@@ -570,6 +577,7 @@ def build_registry() -> CommandRegistry:
         props.craft_command,
         usage=".craft @prop:<instance_id>",
         help="Open a crafting station bound to its recipes.",
+        toast=False,
     )
     registry.register(
         "craft_make",
@@ -702,6 +710,7 @@ def build_registry() -> CommandRegistry:
         "Open a room activity or developer sample activity.",
         play_command,
         usage=".play <activity> [replace]",
+        toast=False,
     )
     registry.register(
         "cutscene",
@@ -724,6 +733,7 @@ def build_registry() -> CommandRegistry:
         "Open the Shop on its Props section.",
         prop_shop.prop_shop_command,
         usage=".prop_shop",
+        toast=False,
     )
     registry.register(
         "reload_world",
@@ -755,7 +765,7 @@ def build_registry() -> CommandRegistry:
         toast=False,
         log=False,
     )
-    registry.register("shop", "Open the Shop on its Cards or Props section.", gameplay.shop_command, usage=".shop [cards|props]")
+    registry.register("shop", "Open the Shop on its Cards or Props section.", gameplay.shop_command, usage=".shop [cards|props]", toast=False)
     registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command, usage=".skill @card:<stack_id> <slot>")
     registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command, usage=".split @card:<stack_id> <quantity>")
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")

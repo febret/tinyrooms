@@ -31,6 +31,7 @@ task-started:
   duration: 3000
   audience: private
   room_bound: false
+  hidden: true
   skip: true
   max_queue: 1
   params:
@@ -44,6 +45,7 @@ task-completed:
   duration: 3000
   audience: private
   room_bound: false
+  hidden: true
   skip: true
   max_queue: 1
   params:

@@ -71,6 +71,7 @@ class CutsceneLoaderTests(unittest.TestCase):
         self.assertEqual(definition.duration_ms, 0)
         self.assertTrue(definition.room_bound)
         self.assertTrue(definition.skip)
+        self.assertFalse(definition.hidden)
         self.assertEqual(definition.max_queue, 3)
         self.assertIsNotNone(definition.script_path)
         self.assertEqual(definition.script_url, "/cutscenes/demo/demo.js")
@@ -84,6 +85,7 @@ class CutsceneLoaderTests(unittest.TestCase):
             "  audience: room\n"
             "  room_bound: false\n"
             "  skip: false\n"
+            "  hidden: true\n"
             "  aliases: [party]\n"
             "  max_queue: 1\n"
             "  feature: world-editor\n"
@@ -98,6 +100,7 @@ class CutsceneLoaderTests(unittest.TestCase):
         self.assertEqual(definition.audience, "room")
         self.assertFalse(definition.room_bound)
         self.assertFalse(definition.skip)
+        self.assertTrue(definition.hidden)
         self.assertEqual(definition.aliases, ("party",))
         self.assertEqual(definition.max_queue, 1)
         self.assertEqual(definition.required_feature, "world-editor")
@@ -134,6 +137,10 @@ class CutsceneLoaderTests(unittest.TestCase):
     def test_rejects_zero_max_queue(self) -> None:
         with self.assertRaisesRegex(ContentError, "max_queue"):
             self.load("demo:\n  title: Demo\n  max_queue: 0\n")
+
+    def test_rejects_non_boolean_hidden(self) -> None:
+        with self.assertRaisesRegex(ContentError, "hidden must be a boolean"):
+            self.load("demo:\n  title: Demo\n  hidden: sometimes\n")
 
     def test_rejects_unknown_feature(self) -> None:
         with self.assertRaisesRegex(ContentError, "unknown feature"):
@@ -344,6 +351,13 @@ class CutsceneResolutionTests(CutsceneServiceTestCase):
         )
         for entry in entries:
             self.assertNotIn("script_url", entry)
+
+    def test_visible_catalog_hides_hidden_cutscenes(self) -> None:
+        entries = self.cutscenes.visible_catalog(room_id="hub")
+        self.assertNotIn("task-started", {entry["id"] for entry in entries})
+        self.assertNotIn("task-completed", {entry["id"] for entry in entries})
+        self.assertTrue(self.cutscenes.resolve("task-started").hidden)
+        self.assertTrue(self.cutscenes.resolve("task-completed").hidden)
 
 
 class CutsceneLaunchTests(CutsceneServiceTestCase):

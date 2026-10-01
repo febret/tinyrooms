@@ -48,6 +48,7 @@ class CutsceneDefinition:
     audience: str = "private"
     room_bound: bool = True
     skip: bool = True
+    hidden: bool = False
     aliases: tuple[str, ...] = ()
     max_queue: int = 3
     required_feature: str | None = None
@@ -236,6 +237,9 @@ def load_cutscene_definitions(
         skip = raw.get("skip", True)
         if not isinstance(skip, bool):
             raise ContentError(f"Cutscene '{cutscene_id}' skip must be a boolean.")
+        hidden = raw.get("hidden", False)
+        if not isinstance(hidden, bool):
+            raise ContentError(f"Cutscene '{cutscene_id}' hidden must be a boolean.")
         aliases = _string_list(raw.get("aliases"), f"Cutscene '{cutscene_id}' aliases", path)
         if len(set(aliases)) != len(aliases):
             raise ContentError(f"Cutscene '{cutscene_id}' repeats an alias in {path}.")
@@ -276,6 +280,7 @@ def load_cutscene_definitions(
             audience=audience,
             room_bound=room_bound,
             skip=skip,
+            hidden=hidden,
             aliases=aliases,
             max_queue=int(max_queue),
             required_feature=required_feature,

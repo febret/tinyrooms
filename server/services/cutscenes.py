@@ -157,6 +157,8 @@ class CutsceneService:
 
         entries: list[dict[str, object]] = []
         for definition in self.definitions().values():
+            if definition.hidden:
+                continue
             if definition.rooms and room_id not in definition.rooms:
                 continue
             entries.append(

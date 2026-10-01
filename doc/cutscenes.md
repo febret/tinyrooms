@@ -244,6 +244,7 @@ molly-greet:
 | `audience` | `private` \| `room` \| `any` | `private` | `any` may be promoted to `room` by a launcher (§7.4) |
 | `room_bound` | bool | `true` | Dropped from the queue on room change |
 | `skip` | bool | `true` | Render the Skip control and honour click/Escape |
+| `hidden` | bool | `false` | Exclude from the `/api/cutscenes` launch catalog; still resolvable and launchable by id (journal/system scenes) |
 | `aliases` | list[string] | `[]` | Alternative ids for `.cutscene` and for card `cutscene:` references |
 | `max_queue` | int | `3` | Per-definition queue capacity |
 | `feature` | string | _(none)_ | Feature flag required to play; validated against `KNOWN_FEATURES` |
@@ -670,7 +671,7 @@ telemetry requires a new design, not a retrofit of this one.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/cutscenes/{id}/{file}` | The scene module and its sibling assets |
-| `GET` | `/api/cutscenes` | The catalog visible to the signed-in account: `id`, `title`, `aliases`, `frame`, `audience`, `room_bound`, `rooms`, and the source. Used for the `.cutscene` command palette and for tests. Never includes `script_url` |
+| `GET` | `/api/cutscenes` | The catalog visible to the signed-in account: `id`, `title`, `aliases`, `frame`, `audience`, `room_bound`, `rooms`, and the source. Definitions marked `hidden` (journal/system scenes such as `task-started` and `task-completed`) are omitted. Used for the `.cutscene` command palette and for tests. Never includes `script_url` |
 
 *As built:* there is no `/cutscenes/{id}/` index route. A cutscene is a module,
 not a page, so there is nothing to serve; the runtime never loads HTML. The two
@@ -706,7 +707,7 @@ for `/activities/`. The flag gates *playback*, not delivery of inert files.
 
 `CutsceneDefinition` is a frozen dataclass in the shape of `ActivityDefinition`
 (`server/content/activities.py:12`): `id`, `title`, `script_name`, `frame`,
-`duration_ms`, `audience`, `room_bound`, `skip`, `aliases`, `max_queue`,
+`duration_ms`, `audience`, `room_bound`, `skip`, `hidden`, `aliases`, `max_queue`,
 `required_feature`, `power`, `rooms`, `energy_cost`, `params`, `text`,
 `source`, and the resolved `script_url`.
 
