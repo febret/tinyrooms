@@ -4,7 +4,7 @@ import {
   endCutscene,
   sprite,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 export default async function (ctx) {
   const dom = beginCutscene("movie", {

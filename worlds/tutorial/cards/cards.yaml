@@ -100,7 +100,6 @@ house-key:
   stack_limit: 1
   one_use: false
   quest: true
-  effect: unlock
   target: prop
 vacuum-cleaner:
   label: Vacuum Cleaner

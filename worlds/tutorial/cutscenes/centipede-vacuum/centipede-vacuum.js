@@ -4,7 +4,7 @@ import {
   endCutscene,
   sprite,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 const FIREWORK_COLORS = ["#7de07d", "#f7d774", "#8ac4db", "#f28f6b", "#d59cff"];
 

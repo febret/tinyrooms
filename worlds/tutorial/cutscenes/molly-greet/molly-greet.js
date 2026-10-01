@@ -4,7 +4,7 @@ import {
   endCutscene,
   sprite,
   wait,
-} from "/app/js/cutscenes/stage.js";
+} from "../../app/js/cutscenes/stage.js";
 
 const HEART_GLYPHS = ["❤️", "💖", "💕", "💗", "💓", "💞"];
 const DEFAULT_PEEP = "$peep:molly";
