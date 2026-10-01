@@ -11,9 +11,6 @@ explicitly delegates those values to them. Any remaining conflict between these
 sources must be clarified before implementation planning rather than resolved by
 assumption.
 
-Technical constraints and implementation notes are maintained separately in the
-[implementation brief](./prompt.md).
-
 Users interact with the room and other peeps primarily by using **cards**
 which can be collected, bought and found throughout the game. Cards represent
 items, actions, skills, emotes, and more.

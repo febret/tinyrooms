@@ -1,9 +1,7 @@
-# Tinyrooms — Milestone 1
+# Tinyrooms
 
 Tinyrooms is a multiplayer miniature-world game built with FastAPI, vanilla
-JavaScript, and Three.js. This repository currently implements the secure,
-persistent Milestone 1 vertical slice described in
-[doc/milestone-1.md](doc/milestone-1.md). The technical architecture
+JavaScript, and Three.js. The technical architecture
 (components, source files, protocol, game flows) is documented in
 [doc/architecture.md](doc/architecture.md).
 
@@ -151,7 +149,7 @@ passwordless SSH. It installs nginx, `python3-venv`, and `python3-pip` via apt
 when they are missing.
 
 ```bash
-python tools/deploy.py <host> [rootdir] [bootstrap|deploy] [-u USER] [--dirty]
+python tools/deploy.py <host> [rootdir] [bootstrap|deploy] [-u USER] [--dirty] [--keep-version]
 ```
 
 `host` may be a bare hostname or `user@host`; `-u/--user` overrides the SSH
@@ -164,7 +162,11 @@ version in `version.json`, packages the working tree (with its
 `requirements.txt`) into `./releases`, uploads it to
 `<rootdir>/versions/<version>`, and repoints `<rootdir>/versions/latest`.
 Pass `--dirty` to skip the clean-worktree check and git tagging and to mark the
-version dirty. A bootstrap on `tinyrooms.febret.com` exposes mission control at
+version dirty. Pass `--keep-version` to reuse the newest version recorded in
+`version.json` instead of bumping the patch; the local tarball and the remote
+`<rootdir>/versions/<version>` directory are overwritten in place (and created
+when absent), and it selects the `deploy` operation when no operation is given.
+A bootstrap on `tinyrooms.febret.com` exposes mission control at
 `https://tinyrooms.febret.com/admin/mission-control`. Bootstrap also sets
 `TRSERVER_MC_INSECURE_TLS=1` so mission control can manage the self-signed world
 servers it spawns on the same host, and writes

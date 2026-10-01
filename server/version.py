@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import subprocess
 
@@ -9,7 +10,31 @@ from server.protocol import PROTOCOL_VERSION
 from server.state.migrations import PROFILE_SCHEMA_VERSION, WORLD_SCHEMA_VERSION
 
 
-BUILD_VERSION = "1.0.0"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+VERSION_FILE = REPO_ROOT / "version.json"
+
+
+class VersionFileError(RuntimeError):
+    """Raised when the build version cannot be read from ``version.json``."""
+
+
+def latest_build_version(version_file: Path = VERSION_FILE) -> str:
+    """Return the highest ``major.minor.patch`` label recorded in *version_file*."""
+
+    try:
+        entries = json.loads(version_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise VersionFileError(f"Unable to read build version from {version_file}: {error}") from error
+    if not isinstance(entries, list) or not entries:
+        raise VersionFileError(f"{version_file} contains no version entries.")
+    try:
+        latest = max(entries, key=lambda entry: (int(entry["major"]), int(entry["minor"]), int(entry["patch"])))
+    except (KeyError, TypeError, ValueError) as error:
+        raise VersionFileError(f"{version_file} contains an invalid version entry: {error}") from error
+    return f"{int(latest['major'])}.{int(latest['minor'])}.{int(latest['patch'])}"
+
+
+BUILD_VERSION = latest_build_version()
 
 
 def schema_versions() -> dict[str, int]:

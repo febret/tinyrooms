@@ -5,6 +5,11 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import os
+import shlex
+import signal
+import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -46,6 +51,12 @@ class StartInstancePayload(BaseModel):
     features: str = ""
     admins: str = ""
     mods: str | None = None
+
+
+class RenameInstancePayload(BaseModel):
+    """Rename-instance payload."""
+
+    name: str
 
 
 class EnablePayload(BaseModel):
@@ -162,6 +173,40 @@ def _set_mc_cookies(response: Response, *, token: str, csrf_token: str, expires_
 def _clear_mc_cookies(response: Response) -> None:
     response.delete_cookie(MC_SESSION_COOKIE, path="/")
     response.delete_cookie(MC_CSRF_COOKIE, path="/")
+
+
+def _apply_nginx(runtime) -> dict[str, object]:
+    """Best-effort regenerate and reload the reverse-proxy config."""
+
+    config = runtime.config
+    if config.nginx_conf_path is None:
+        return {"ok": True, "skipped": True}
+    text = nginx_config.render_site_config(config, runtime.registry.list())
+    try:
+        result = nginx_config.apply_site_config(config, text)
+    except nginx_config.NginxConfigError as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "path": result.get("path"), "output": result.get("output")}
+
+
+def _launch_keepalive(keepalive: Path) -> None:
+    """Start a detached process that reruns the keepalive script after exit."""
+
+    script = shlex.quote(str(keepalive))
+    subprocess.Popen(
+        ["/bin/bash", "-c", f"sleep 4; exec {script}"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+
+
+def _exit_soon() -> None:
+    """Ask the running server to shut down gracefully."""
+
+    os.kill(os.getpid(), signal.SIGTERM)
 
 
 # --- Fleet channel (token authenticated) -------------------------------------
@@ -311,7 +356,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         admins=payload.admins,
         mods=payload.mods,
     )
-    return {"ok": True, "server": runtime.registry.snapshot(spawned)}
+    return {"ok": True, "server": runtime.registry.snapshot(spawned), "nginx": _apply_nginx(runtime)}
 
 
 @router.get("/api/mission-control/servers/{instance_id}")
@@ -351,7 +396,10 @@ async def stop_server(request: Request, instance_id: str) -> dict[str, object]:
     if record.source == SPAWNED:
         runtime.supervisor.stop(instance_id)
     else:
-        await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown", json_body={"actor": runtime.config.actor})
+        try:
+            await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown", json_body={"actor": runtime.config.actor})
+        except (httpx.HTTPError, ValueError) as exc:
+            return _json_error(502, "unreachable", f"{type(exc).__name__}")
         runtime.registry.set_status(instance_id, STATUS_STOPPED)
     runtime.audit.record("operator", "instance.stop", target=instance_id)
     return {"ok": True}
@@ -369,11 +417,77 @@ async def restart_server(request: Request, instance_id: str) -> dict[str, object
         raise HTTPException(status_code=404, detail="Instance not found.")
     if record.source == SPAWNED:
         restarted = runtime.supervisor.restart(instance_id)
+        if restarted is None:
+            return _json_error(502, "restart_unavailable", "Instance cannot be restarted automatically.")
         runtime.audit.record("operator", "instance.restart", target=instance_id)
-        return {"ok": True, "server": None if restarted is None else runtime.registry.snapshot(restarted)}
-    await _world_call(runtime, record.endpoint, "POST", "/api/mc/restart", json_body={"actor": runtime.config.actor})
+        return {"ok": True, "server": runtime.registry.snapshot(restarted)}
+    try:
+        await _world_call(runtime, record.endpoint, "POST", "/api/mc/restart", json_body={"actor": runtime.config.actor})
+    except (httpx.HTTPError, ValueError) as exc:
+        return _json_error(502, "unreachable", f"{type(exc).__name__}")
     runtime.audit.record("operator", "instance.restart", target=instance_id)
     return {"ok": True}
+
+
+@router.post("/api/mission-control/servers/{instance_id}/rename")
+async def rename_server(request: Request, instance_id: str, payload: RenameInstancePayload) -> dict[str, object]:
+    """Rename a spawned instance, changing its public route and reloading nginx."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    record = runtime.registry.get(instance_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Instance not found.")
+    if record.source != SPAWNED:
+        return _json_error(400, "rename_external", "Only spawned instances can be renamed.")
+    name = payload.name.strip()
+    if not name:
+        return _json_error(400, "name_empty", "A new name is required.")
+    renamed = runtime.supervisor.rename(instance_id, name)
+    if renamed is None:
+        return _json_error(502, "rename_unavailable", "Instance cannot be renamed.")
+    runtime.audit.record("operator", "instance.rename", target=instance_id, detail={"name": name})
+    return {"ok": True, "server": runtime.registry.snapshot(renamed), "nginx": _apply_nginx(runtime)}
+
+
+@router.delete("/api/mission-control/servers/{instance_id}")
+async def delete_server(request: Request, instance_id: str) -> dict[str, object]:
+    """Stop and remove an instance from mission control."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    record = runtime.registry.get(instance_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Instance not found.")
+    if record.source == SPAWNED:
+        runtime.supervisor.delete(instance_id)
+    else:
+        try:
+            await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown", json_body={"actor": runtime.config.actor})
+        except (httpx.HTTPError, ValueError):
+            pass
+        runtime.registry.remove(instance_id)
+    runtime.audit.record("operator", "instance.delete", target=instance_id)
+    return {"ok": True, "nginx": _apply_nginx(runtime)}
+
+
+@router.post("/api/mission-control/reboot")
+async def reboot(request: Request) -> dict[str, object]:
+    """Stop all spawned instances, then hand off to the keepalive to restart MC."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    keepalive = runtime.config.keepalive_path
+    if keepalive is None:
+        return _json_error(400, "reboot_unconfigured", "TRSERVER_MC_KEEPALIVE is not configured.")
+    resuming = runtime.supervisor.prepare_reboot()
+    runtime.audit.record("operator", "mc.reboot", detail={"resuming": resuming})
+    _launch_keepalive(keepalive)
+    threading.Timer(0.5, _exit_soon).start()
+    return {"ok": True, "resuming": resuming, "keepalive": str(keepalive)}
 
 
 @router.get("/api/mission-control/servers/{instance_id}/logs")

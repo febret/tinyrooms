@@ -1,13 +1,15 @@
 """Deploy Tinyrooms distributions to remote hosts over SSH.
 
 Usage:
-    python tools/deploy.py <host> [rootdir] [type] [-u USER] [--dirty]
+    python tools/deploy.py <host> [rootdir] [type] [-u USER] [--dirty] [--keep-version]
 
 ``host`` may be a bare hostname or ``user@host``; ``-u/--user`` overrides the
 SSH user. ``bootstrap`` prepares a host (directories, nginx reverse proxy, TLS
 certificate, mission-control keepalive) and then runs a ``deploy``. ``deploy``
 bumps the patch version, packages the working tree with its dependency manifest,
-uploads it, and repoints the ``latest`` symlink.
+uploads it, and repoints the ``latest`` symlink. ``--keep-version`` reuses the
+newest recorded version instead of bumping, overwriting that release both
+locally and on the server.
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ DEFAULT_TYPE = "bootstrap"
 ADMIN_SERVICE = "admin"
 SERVICE_BASE_PORT = 8001
 SSH_OPTIONS = ("-o", "BatchMode=yes", "-o", "ConnectTimeout=15")
+UPLOAD_ATTEMPTS = 3
 
 EXCLUDED_DIRS = frozenset(
     {
@@ -174,14 +177,32 @@ def latest_version(entries: list[dict[str, object]]) -> dict[str, object]:
     return max(entries, key=lambda entry: (int(entry["major"]), int(entry["minor"]), int(entry["patch"])))
 
 
+def read_version_entries() -> list[dict[str, object]]:
+    """Return the entries recorded in version.json, or an empty list."""
+
+    if not VERSION_FILE.is_file():
+        return []
+    raw = VERSION_FILE.read_text(encoding="utf-8").strip()
+    if not raw:
+        return []
+    entries: list[dict[str, object]] = json.loads(raw)
+    return entries
+
+
+def current_version() -> str:
+    """Return the newest recorded version label without modifying version.json."""
+
+    entries = read_version_entries()
+    if not entries:
+        raise DeployError("version.json has no version entries to keep.")
+    current = latest_version(entries)
+    return f"{int(current['major'])}.{int(current['minor'])}.{int(current['patch'])}"
+
+
 def bump_version(dirty: bool) -> tuple[str, bool]:
     """Increment the patch version, write version.json, and return the label."""
 
-    entries: list[dict[str, object]] = []
-    if VERSION_FILE.is_file():
-        raw = VERSION_FILE.read_text(encoding="utf-8").strip()
-        if raw:
-            entries = json.loads(raw)
+    entries = read_version_entries()
     if not entries:
         entries = [{"major": 0, "minor": 0, "patch": 0}]
     current = latest_version(entries)
@@ -236,29 +257,64 @@ def package(version: str, dirty: bool) -> Path:
     return tarball
 
 
-def upload_release(host: str, root: str, version: str, tarball: Path) -> None:
+def remote_file_size(host: str, path: str) -> int | None:
+    """Return the size of a remote file in bytes, or None when unavailable."""
+
+    result = run_remote(host, f"stat -c %s {path} 2>/dev/null || true", check=False)
+    text = result.stdout.strip()
+    return int(text) if text.isdigit() else None
+
+
+def upload_tarball(host: str, root: str, tarball: Path) -> None:
+    """Copy *tarball* to the remote releases directory, retrying interrupted uploads."""
+
+    releases_dir = remote_path(root, "releases")
+    remote_tarball = remote_path(root, "releases", tarball.name)
+    expected = tarball.stat().st_size
+    for attempt in range(1, UPLOAD_ATTEMPTS + 1):
+        try:
+            subprocess.run(["scp", *SSH_OPTIONS, str(tarball), f"{host}:{releases_dir}/"], check=True)
+        except subprocess.CalledProcessError:
+            pass
+        if remote_file_size(host, remote_tarball) == expected:
+            return
+        if attempt == UPLOAD_ATTEMPTS:
+            raise DeployError(f"Upload of {tarball.name} to {host} failed after {UPLOAD_ATTEMPTS} attempts.")
+        print(f"Upload of {tarball.name} interrupted; retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
+        run_remote(host, f"rm -f {remote_tarball}", check=False)
+
+
+def upload_release(host: str, root: str, version: str, tarball: Path, *, overwrite: bool = False) -> None:
     """Upload and extract a release into versions/<version>."""
 
     release_dir = remote_path(root, "versions", version)
-    releases_dir = remote_path(root, "releases")
-    subprocess.run(["scp", *SSH_OPTIONS, str(tarball), f"{host}:{releases_dir}/"], check=True)
-    run_remote(host, f"mkdir -p {release_dir} && tar -xzf {remote_path(root, 'releases', tarball.name)} -C {release_dir}")
+    upload_tarball(host, root, tarball)
+    if overwrite:
+        run_remote(host, f"rm -rf {release_dir} && mkdir -p {release_dir}")
+    else:
+        run_remote(host, f"mkdir -p {release_dir}")
+    run_remote(host, f"tar -xzf {remote_path(root, 'releases', tarball.name)} -C {release_dir}")
     run_remote(host, f"ln -sfn {release_dir} {remote_path(root, 'versions', 'latest')}")
     print(f"Deployed version {version} to {host}:{root}/versions/{version}")
 
 
-def deploy(host: str, server_name: str, root: str, dirty: bool, *, restart: bool = True) -> str:
-    """Package and deploy a new version, returning its label."""
+def deploy(
+    host: str, server_name: str, root: str, dirty: bool, *, restart: bool = True, keep_version: bool = False
+) -> str:
+    """Package and deploy a version, returning its label."""
 
     if not dirty and git_dirty():
         raise DeployError("Uncommitted tracked changes detected. Commit them or pass --dirty.")
-    version, dirty = bump_version(dirty)
-    if not dirty:
-        tag_version(version)
+    if keep_version:
+        version = current_version()
+    else:
+        version, dirty = bump_version(dirty)
+        if not dirty:
+            tag_version(version)
     tarball = package(version, dirty)
     ensure_dirs(host, root)
     ensure_python_env(host, root)
-    upload_release(host, root, version, tarball)
+    upload_release(host, root, version, tarball, overwrite=keep_version)
     install_requirements(host, root, version)
     registry = read_services(host, root)
     write_admin_env(host, root, server_name, registry)
@@ -393,16 +449,15 @@ def render_env_file(values: dict[str, str]) -> str:
     return "".join(f"{key}={shlex.quote(str(value))}\n" for key, value in values.items())
 
 
-def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, dict[str, object]]) -> None:
-    """Write the mission-control environment file, preserving secrets."""
+def admin_env_values(
+    root: str, host_name: str, registry: dict[str, dict[str, object]], existing: dict[str, str]
+) -> dict[str, str]:
+    """Return the mission-control environment, preserving existing secrets."""
 
-    entry = registry.get(ADMIN_SERVICE)
-    if not entry or not entry.get("port"):
-        return
-    existing = read_remote_env(host, root)
+    entry = registry[ADMIN_SERVICE]
+    port = int(entry["port"])  # type: ignore[arg-type]
     passphrase = existing.get("TRSERVER_MC_PASSPHRASE") or secrets.token_urlsafe(18)
     token = existing.get("TRSERVER_MC_TOKEN") or secrets.token_urlsafe(24)
-    port = int(entry["port"])  # type: ignore[arg-type]
     conf_path = f"{root.rstrip('/')}/nginx/tinyrooms.conf"
     reload_command = (
         f"sudo -n cp {conf_path} /etc/nginx/sites-available/tinyrooms"
@@ -424,6 +479,20 @@ def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, di
         "TRSERVER_MC_KEEPALIVE": f"{root.rstrip('/')}/keepalive.sh",
         "TRSERVER_MC_INSECURE_TLS": "1",
     }
+    new_account_passphrase = existing.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
+    if new_account_passphrase:
+        lines["TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE"] = new_account_passphrase
+    return lines
+
+
+def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, dict[str, object]]) -> None:
+    """Write the mission-control environment file, preserving secrets."""
+
+    entry = registry.get(ADMIN_SERVICE)
+    if not entry or not entry.get("port"):
+        return
+    existing = read_remote_env(host, root)
+    lines = admin_env_values(root, host_name, registry, existing)
     body = render_env_file(lines)
     run_remote(host, f"cat > {remote_path(root, 'admin.env')} <<'ENVEOF'\n{body}\nENVEOF")
     run_remote(host, f"chmod 600 {remote_path(root, 'admin.env')}")
@@ -496,15 +565,23 @@ def restart_admin(host: str, root: str) -> None:
     run_remote(host, f"bash {remote_path(root, 'keepalive.sh')}", check=False)
 
 
-def bootstrap(host: str, server_name: str, root: str, dirty: bool) -> None:
+def bootstrap(host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False) -> None:
     """Prepare the host and deploy the first version."""
 
     ensure_dirs(host, root)
     ensure_python_env(host, root)
     registry = write_services(host, root)
     ensure_nginx(host, server_name, root, registry)
-    deploy(host, server_name, root, dirty, restart=False)
+    deploy(host, server_name, root, dirty, restart=False, keep_version=keep_version)
     setup_mission_control(host, root, server_name, registry)
+
+
+def resolve_operation(operation: str | None, keep_version: bool) -> str:
+    """Return the operation to run, defaulting to ``deploy`` when keeping a version."""
+
+    if operation:
+        return operation
+    return "deploy" if keep_version else DEFAULT_TYPE
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -513,9 +590,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deploy Tinyrooms to a remote host.")
     parser.add_argument("host", help="Remote hostname or user@hostname (passwordless SSH access required).")
     parser.add_argument("rootdir", nargs="?", default=DEFAULT_ROOT, help=f"Deployment root (default: {DEFAULT_ROOT}).")
-    parser.add_argument("type", nargs="?", default=DEFAULT_TYPE, choices=("bootstrap", "deploy"), help="Operation to run.")
+    parser.add_argument(
+        "type",
+        nargs="?",
+        default=None,
+        choices=("bootstrap", "deploy"),
+        help=f"Operation to run (default: {DEFAULT_TYPE}, or deploy when --keep-version is set).",
+    )
     parser.add_argument("-u", "--user", help="SSH user; overrides any user embedded in the host argument.")
     parser.add_argument("--dirty", action="store_true", help="Package uncommitted changes and skip git tagging.")
+    parser.add_argument(
+        "--keep-version",
+        action="store_true",
+        help="Reuse the newest recorded version and overwrite that release instead of bumping it.",
+    )
     return parser.parse_args(argv)
 
 
@@ -537,10 +625,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         ssh_target, server_name = resolve_target(args.host, args.user)
         root = resolve_root(ssh_target, args.rootdir)
-        if args.type == "bootstrap":
-            bootstrap(ssh_target, server_name, root, args.dirty)
+        operation = resolve_operation(args.type, args.keep_version)
+        if operation == "bootstrap":
+            bootstrap(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version)
         else:
-            deploy(ssh_target, server_name, root, args.dirty)
+            deploy(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version)
     except DeployError as exc:
         print(f"deploy: {exc}", file=sys.stderr)
         return 1

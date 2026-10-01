@@ -238,9 +238,10 @@ and tracks the child handle.
 **Inventory view** — four groups, each item showing name/id, version, source
 path, and validation status (`ok`, `warning`, `error` with messages):
 
-- **Server versions**: the running build (version file/constant, git
-  commit/tag, protocol version, profile/world schema versions) plus any
-  additional checkouts found under `TRSERVER_MC_VERSIONS_PATH`.
+- **Server versions**: the running build plus any additional checkouts found
+  under `TRSERVER_MC_VERSIONS_PATH`. Each row shows its id, protocol version,
+  git commit/tag, and path. The build label is the highest `major.minor.patch`
+  entry recorded in the repo's `version.json`.
 - **World definitions**: directories under `worlds/` containing `world.yaml`.
 - **Cardsets**: directories under `data/cardsets/` containing `cards.yaml`.
 - **Propsets**: directories under `data/propsets/` (new shared root, §8.3).

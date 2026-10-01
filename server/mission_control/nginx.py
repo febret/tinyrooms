@@ -93,6 +93,7 @@ def render_site_config(config: MCConfig, records: list[InstanceRecord]) -> str:
         f"    ssl_certificate {cert_dir / 'server.crt'};\n"
         f"    ssl_certificate_key {cert_dir / 'server.key'};\n"
         "    client_max_body_size 64m;\n\n"
+        "    location = / { return 302 /home; }\n"
         f"{locations}"
         "}\n"
     )
