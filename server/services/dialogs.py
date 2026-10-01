@@ -11,6 +11,7 @@ from server.content.worlds import DialogChoice, DialogDefinition, WorldDefinitio
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.cards import grant_card_to_inventory
 from server.state.migrations import DatabaseHub
+from server.state.npc_peep_states import NpcPeepStateRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +36,7 @@ class DialogResult:
     duplicated: bool = False
     behavior_result: object | None = None
     events: list[dict[str, object]] = field(default_factory=list)
+    task_changes: list[object] = field(default_factory=list)
 
 
 class DialogService:
@@ -50,6 +52,7 @@ class DialogService:
         progression: object,
         world: WorldDefinition,
         tasks: object | None = None,
+        peep_states: NpcPeepStateRepository | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -58,6 +61,7 @@ class DialogService:
         self._progression = progression
         self._world = world
         self._tasks = tasks
+        self._peep_states = peep_states
         self._dispatcher: object | None = None
         self._active: dict[str, ActiveDialog] = {}
 
@@ -72,6 +76,15 @@ class DialogService:
         if remembered in self._world.rooms:
             return remembered
         return self._world.entry_room_id
+
+    def _peep_room(self, peep: object) -> str:
+        """Return the peep's current room, falling back to its spawn room."""
+
+        if self._peep_states is not None:
+            current = self._peep_states.room_for(peep.id)
+            if current in self._world.rooms:
+                return current
+        return peep.room_id
 
     def _require_dialog(self, peep_id: str) -> tuple[DialogDefinition, object]:
         peep = self._world.peeps.get(peep_id)
@@ -95,7 +108,7 @@ class DialogService:
 
         del connection
         dialog, peep = self._require_dialog(peep_id)
-        if peep.room_id != self._current_room(account.id):
+        if self._peep_room(peep) != self._current_room(account.id):
             raise ValueError("That peep is not in this room.")
         target_node = node_id or dialog.start_node_id
         if target_node not in dialog.nodes:
@@ -197,7 +210,9 @@ class DialogService:
                 )
         if choice.start_task is not None:
             if self._tasks is not None:
-                self._tasks.start_in_transaction(connection, account.id, choice.start_task)
+                change = self._tasks.start_in_transaction(connection, account.id, choice.start_task)
+                if change is not None:
+                    result.task_changes.append(change)
                 result.events.append(
                     {"type": "task.updated", "tasks": self._tasks.view_payload(account.id), "account_id": account.id}
                 )
@@ -266,7 +281,7 @@ class DialogService:
                 type="dialog_action",
                 actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
                 target=PeepRef(kind="npc", peep_id=active.peep_id, account_id=None),
-                room_id=peep.room_id,
+                room_id=self._peep_room(peep),
                 action=choice.action,
                 data={
                     "peep_id": active.peep_id,
@@ -281,4 +296,8 @@ class DialogService:
         refreshed = self.view(account.id)
         result.dialog = self.serialize(refreshed)
         result.node_id = None if refreshed is None else refreshed.node_id
+        if result.task_changes and self._tasks is not None:
+            result.events.extend(
+                self._tasks.feedback_events(account.id, result.task_changes, room_id=self._peep_room(peep))
+            )
         return result

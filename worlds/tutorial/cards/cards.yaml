@@ -35,7 +35,6 @@ juicy-drink:
   target: self
   effect: energy
   amount: 25
-  works_while_tired: true
 lucille:
   label: Lucille
   description: Lucille, a very distinguished seal plushie. Decorative; no effects.
@@ -64,8 +63,7 @@ pooper-scooper:
   one_use: false
   energy_cost: 0
   target: prop
-  effect: scoop
-  target_prop: litter-tray
+  tags: [scoop]
   consume_card: plastic-bag
   output_card: poop
   bagged_output_card: poop-in-a-bag
@@ -116,9 +114,8 @@ vacuum-cleaner:
   one_use: false
   energy_cost: 0
   quest: true
-  effect: vacuum
   target: prop
-  target_prop: centipedes
+  tags: [vacuum]
   hide_seconds: 3600
   clears_source: scary
   cutscene: centipede-vacuum

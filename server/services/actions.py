@@ -11,10 +11,19 @@ from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
 DEFAULT_CARD_ENERGY_COST = 2
-EMOTE_COSTS = {"Expression": 1, "Animation": 3, "Effects": 5, "Scene": 5}
+EMOTE_COSTS = {"Expression": 1, "Animation": 2, "Cutscene": 5}
 HEALTH_EFFECT = "health"
 ENERGY_EFFECT = "energy"
-SUPPORTED_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT})
+LIGHT_EFFECT = "light"
+
+
+@dataclass(frozen=True, slots=True)
+class PropTarget:
+    """A placed prop instance a card is used on."""
+
+    instance_id: str
+    prop_id: str
+    room_id: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,11 +34,14 @@ class ActionEffect:
     target_label: str
     health_delta: float = 0.0
     energy_delta: float = 0.0
+    cleanliness_delta: float = 0.0
     statuses: tuple[str, ...] = ()
     health: float = 0.0
     energy: float = 0.0
+    cleanliness: float = 0.0
     max_health: int = 0
     max_energy: int = 0
+    max_cleanliness: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,10 +54,11 @@ class ActionResult:
     message: str
     consumed: bool
     effects: tuple[ActionEffect, ...] = ()
-    room_effect: str | None = None
     bubble: dict[str, object] | None = None
     cutscene: str | None = None
     inventory: tuple[InventoryStack, ...] = field(default_factory=tuple)
+    room_event: dict[str, object] | None = None
+    delegated: bool = False
 
 
 class ActionsService:
@@ -58,12 +71,14 @@ class ActionsService:
         stats: StatsService,
         catalog: CardCatalog,
         world_id: str,
+        environment: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._stats = stats
         self._catalog = catalog
         self._world_id = world_id
+        self._environment = environment
 
     def _definition(self, card_def_id: str) -> CardDefinition:
         return require_definition(self._catalog, card_def_id)
@@ -80,17 +95,6 @@ class ActionsService:
             return EMOTE_COSTS.get(definition.category or "Expression", 0)
         return DEFAULT_CARD_ENERGY_COST
 
-    def can_use(self, definition: CardDefinition) -> bool:
-        """Return whether a card has an active Use action in this milestone."""
-
-        if definition.type in NON_EQUIP_TYPES:
-            return False
-        if definition.passive or definition.decorative:
-            return False
-        if definition.effect not in SUPPORTED_EFFECTS:
-            return False
-        return True
-
     def use_card(
         self,
         account: AccountRecord,
@@ -99,17 +103,19 @@ class ActionsService:
         target_account_id: str | None = None,
         target_label: str | None = None,
         target_is_npc: bool = False,
+        target_prop: PropTarget | None = None,
+        room_id: str | None = None,
     ) -> ActionResult:
         """Use one copy of an equipped item/action card."""
 
         with self._hub.transaction() as connection:
             stack = self._stack(account.id, stack_id)
             definition = self._definition(stack.card_def_id)
-            if not self.can_use(definition):
-                if definition.passive:
-                    raise ValueError(f"{definition.label} works automatically while equipped.")
-                if definition.decorative:
-                    raise ValueError(f"{definition.label} is a decorative keepsake.")
+            if definition.passive:
+                raise ValueError(f"{definition.label} works automatically while equipped.")
+            if definition.decorative:
+                raise ValueError(f"{definition.label} is a decorative keepsake.")
+            if definition.type in NON_EQUIP_TYPES:
                 raise ValueError(f"{definition.label} has no Use action.")
             if not stack.equipped:
                 raise ValueError(f"Equip {definition.label} before using it.")
@@ -117,9 +123,13 @@ class ActionsService:
             resolved_target = target_account_id or account.id
             resolved_label = target_label or account.username_display
             effects: list[ActionEffect] = []
+            room_event: dict[str, object] | None = None
+            delegated = False
             message: str
 
-            if definition.effect == ENERGY_EFFECT:
+            if definition.effect == LIGHT_EFFECT:
+                actor, message, room_event = self._use_light(connection, account, definition, room_id)
+            elif definition.effect == ENERGY_EFFECT:
                 if target_account_id is not None and target_account_id != account.id:
                     raise ValueError(f"{definition.label} can only be used on yourself.")
                 amount = float(definition.amount or 0)
@@ -170,15 +180,36 @@ class ActionsService:
                 else:
                     actor = self._stats.reconcile_in_transaction(connection, account.id)
                     message = f"You gave {resolved_label} {definition.label} (+{healed:.0f} Health)."
+            elif target_prop is not None:
+                # The card is used on a prop: the prop's world behavior owns the
+                # effect. Charge and consumption are deferred until the behavior
+                # actually resolves, so a card used on an unrelated prop costs
+                # nothing.
+                cost = self.energy_cost(definition)
+                if cost:
+                    actor = self._stats.can_charge_in_transaction(connection, account.id, cost)
+                else:
+                    actor = self._stats.reconcile_in_transaction(connection, account.id)
+                message = ""
+                delegated = True
             else:
-                raise ValueError(f"{definition.label} has no effect yet.")
+                raise ValueError(f"{definition.label} has no Use action.")
+
+            if delegated:
+                return ActionResult(
+                    actor=actor,
+                    card_id=definition.id,
+                    card_label=definition.label,
+                    message=message,
+                    consumed=False,
+                    cutscene=definition.cutscene,
+                    inventory=tuple(self._profiles.list_inventory(account.id, self._world_id)),
+                    delegated=True,
+                )
 
             cost = self.energy_cost(definition)
-            allow_while_tired = definition.effect == ENERGY_EFFECT
             if cost:
-                actor = self._stats.charge_in_transaction(
-                    connection, account.id, cost, allow_while_tired=allow_while_tired
-                )
+                actor = self._stats.charge_in_transaction(connection, account.id, cost)
             else:
                 actor = self._stats.reconcile_in_transaction(connection, account.id)
 
@@ -200,8 +231,71 @@ class ActionsService:
                 message=message,
                 consumed=consumed,
                 effects=tuple(effects),
+                cutscene=definition.cutscene,
                 inventory=inventory,
+                room_event=room_event,
+                delegated=delegated,
             )
+
+    def commit_delegated_use(self, account: AccountRecord, *, stack_id: str) -> ActionResult:
+        """Charge Energy and consume a delegated card once its behavior resolved."""
+
+        with self._hub.transaction() as connection:
+            stack = self._profiles.get_inventory_stack(account.id, self._world_id, stack_id)
+            if stack is None:
+                actor = self._stats.reconcile_in_transaction(connection, account.id)
+                return ActionResult(
+                    actor=actor,
+                    card_id="",
+                    card_label="",
+                    message="",
+                    consumed=False,
+                    inventory=tuple(self._profiles.list_inventory(account.id, self._world_id)),
+                )
+            definition = self._definition(stack.card_def_id)
+            cost = self.energy_cost(definition)
+            if cost:
+                actor = self._stats.charge_in_transaction(connection, account.id, cost)
+            else:
+                actor = self._stats.reconcile_in_transaction(connection, account.id)
+            consumed = False
+            if definition.one_use:
+                self._profiles.remove_inventory_quantity(
+                    connection,
+                    account_id=account.id,
+                    world_id=self._world_id,
+                    stack_id=stack_id,
+                    quantity=1,
+                )
+                consumed = True
+            return ActionResult(
+                actor=actor,
+                card_id=definition.id,
+                card_label=definition.label,
+                message="",
+                consumed=consumed,
+                cutscene=definition.cutscene,
+                inventory=tuple(self._profiles.list_inventory(account.id, self._world_id)),
+            )
+
+    def _use_light(
+        self,
+        connection,
+        account: AccountRecord,
+        definition: CardDefinition,
+        room_id: str | None,
+    ) -> tuple[PeepSnapshot, str, dict[str, object]]:
+        if room_id is None:
+            raise ValueError(f"Use the {definition.label} inside a room.")
+        if self._environment is None:
+            raise ValueError("Room lighting is unavailable.")
+        if self._environment.lighting(room_id) != "dark":
+            raise ValueError(f"{definition.label} is only needed in a dark room.")
+        update = self._environment.light_room_in_transaction(
+            connection, room_id, "normal", definition.duration
+        )
+        actor = self._stats.reconcile_in_transaction(connection, account.id)
+        return actor, f"You switched on the {definition.label}.", update.event()
 
     def use_emote(self, account: AccountRecord, *, stack_id: str) -> ActionResult:
         """Play an owned emote, charging its configured Energy cost."""
@@ -225,16 +319,6 @@ class ActionsService:
                     message=f"{account.username_display} used {definition.label}.",
                     consumed=False,
                     cutscene=definition.cutscene,
-                    inventory=tuple(self._profiles.list_inventory(account.id, self._world_id)),
-                )
-            if category == "Effects":
-                return ActionResult(
-                    actor=actor,
-                    card_id=definition.id,
-                    card_label=definition.label,
-                    message=f"{account.username_display} used {definition.label}.",
-                    consumed=False,
-                    room_effect=definition.effect or definition.id,
                     inventory=tuple(self._profiles.list_inventory(account.id, self._world_id)),
                 )
             bubble = {

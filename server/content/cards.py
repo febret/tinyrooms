@@ -44,7 +44,7 @@ class CardDefinition:
     quest: bool
     order: int | None
     source: str
-    target_prop: str | None = None
+    tags: frozenset[str] = frozenset()
     consume_card: str | None = None
     output_card: str | None = None
     bagged_output_card: str | None = None
@@ -149,6 +149,10 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             raise ContentError(f"Card '{card_id}' has invalid order {order}.")
         if order is not None and card_type != "core":
             raise ContentError(f"Card '{card_id}' can only define order when it is a core card.")
+        tags_raw = raw_card.get("tags", []) or []
+        if not isinstance(tags_raw, list):
+            raise ContentError(f"Card '{card_id}' tags must be a list.")
+        tags = frozenset(str(tag).strip() for tag in tags_raw if str(tag).strip())
         cards[card_id] = CardDefinition(
             id=card_id,
             label=label,
@@ -174,7 +178,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             quest=bool(raw_card.get("quest", False)),
             order=order,
             source=source,
-            target_prop=str(raw_card["target_prop"]) if "target_prop" in raw_card else None,
+            tags=tags,
             consume_card=str(raw_card["consume_card"]) if "consume_card" in raw_card else None,
             output_card=str(raw_card["output_card"]) if "output_card" in raw_card else None,
             bagged_output_card=str(raw_card["bagged_output_card"]) if "bagged_output_card" in raw_card else None,

@@ -12,7 +12,7 @@ import logging
 import sqlite3
 import time
 
-from server.behaviors.context import BehaviorContext, Intent
+from server.behaviors.context import BehaviorContext, CardView, Intent
 from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.behaviors.loader import BehaviorAttachment, BehaviorScripts
 from server.commands.outcomes import PendingRoomBroadcast
@@ -43,6 +43,7 @@ class BehaviorResult:
     room_broadcasts: list[PendingRoomBroadcast] = field(default_factory=list)
     rejected: bool = False
     inventory_changed_for: str | None = None
+    acted: bool = False
 
 
 class BehaviorDispatcher:
@@ -109,7 +110,7 @@ class BehaviorDispatcher:
             }
         return None
 
-    def _record_task_event(self, event: BehaviorEvent) -> None:
+    def _record_task_event(self, event: BehaviorEvent, result: BehaviorResult) -> None:
         if self._tasks is None:
             return
         account_id = event.actor.account_id
@@ -120,9 +121,14 @@ class BehaviorDispatcher:
             return
         trigger, fields = mapping
         try:
-            self._tasks.record(account_id, trigger, fields)
+            changes = self._tasks.record(account_id, trigger, fields)
         except Exception as exc:  # noqa: BLE001 - task recording must never break rooms
             self._log("behavior.task.error", event_type=event.type, error=str(exc))
+            return
+        if not changes:
+            return
+        self._emit_task_update(account_id, result)
+        result.private_events.extend(self._tasks.feedback_events(account_id, changes, room_id=event.room_id or ""))
 
     def _current_peep_room(self, peep_id: str) -> str | None:
         if self._peep_states is not None:
@@ -209,6 +215,25 @@ class BehaviorDispatcher:
             "equipped_ids": tuple(stack.card_def_id for stack in stacks if stack.equipped),
             "username": account.username_display if account is not None else "",
         }
+
+    def _card_view(self, event: BehaviorEvent) -> CardView | None:
+        """Return a read-only view of the card that triggered *event*, if any."""
+
+        card_id = event.data.get("card_id")
+        if not isinstance(card_id, str) or not card_id:
+            return None
+        definition = self._catalog.cards.get(card_id)
+        if definition is None:
+            return None
+        return CardView(
+            id=definition.id,
+            tags=definition.tags,
+            consume_card=definition.consume_card,
+            output_card=definition.output_card,
+            bagged_output_card=definition.bagged_output_card,
+            hide_seconds=definition.hide_seconds,
+            clears_source=definition.clears_source,
+        )
 
     def _load_state(self, namespace: str, instance_id: str) -> dict[str, object]:
         with self._hub.locked() as connection:
@@ -303,7 +328,7 @@ class BehaviorDispatcher:
 
     async def _dispatch(self, event: BehaviorEvent) -> BehaviorResult:
         result = BehaviorResult()
-        self._record_task_event(event)
+        self._record_task_event(event, result)
         contexts: list[tuple[BehaviorAttachment, BehaviorContext]] = []
         actor_view: dict[str, object] | None = None
         for attachment in self._attachments_for(event):
@@ -329,6 +354,7 @@ class BehaviorDispatcher:
                 equipped_ids=actor_view["equipped_ids"],
                 environment=self._environment,
                 actor_username=str(actor_view.get("username") or ""),
+                card=self._card_view(event),
             )
             contexts.append((attachment, context))
             try:
@@ -350,6 +376,7 @@ class BehaviorDispatcher:
         except Exception as exc:  # noqa: BLE001 - intent application failures roll back cleanly
             self._log("behavior.error", script="intents", event_type=event.type, error=str(exc))
             return BehaviorResult(rejected=True)
+        result.acted = any(context.intents for _, context in contexts)
         return result
 
     async def _apply(
@@ -844,11 +871,13 @@ class BehaviorDispatcher:
             result.private_events.append(event)
             return
         task_id = str(payload.get("task_id", ""))
+        room_id = context.event.room_id or ""
         if kind == "start_task":
 
             def start_operation(target_account: str = account_id, target_task: str = task_id) -> None:
-                self._tasks.start(target_account, target_task)
+                changes = self._tasks.start(target_account, target_task)
                 self._emit_task_update(target_account, result)
+                result.private_events.extend(self._tasks.feedback_events(target_account, changes, room_id=room_id))
 
             deferred.append(start_operation)
             return
@@ -862,8 +891,9 @@ class BehaviorDispatcher:
             target_step: str | None = step_id,
             target_amount: int = amount,
         ) -> None:
-            self._tasks.advance_step(target_account, target_task, target_step, target_amount)
+            changes = self._tasks.advance_step(target_account, target_task, target_step, target_amount)
             self._emit_task_update(target_account, result)
+            result.private_events.extend(self._tasks.feedback_events(target_account, changes, room_id=room_id))
 
         deferred.append(advance_operation)
 

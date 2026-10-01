@@ -434,6 +434,27 @@ class StatsService:
 
         return self._charge_energy(connection, account_id, amount, allow_while_tired=allow_while_tired)
 
+    def can_charge_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        amount: float,
+        *,
+        allow_while_tired: bool = False,
+    ) -> PeepSnapshot:
+        """Reconcile and reject an unaffordable charge without persisting it."""
+
+        snapshot = self._reconcile(connection, account_id, now=utc_now())
+        self._assert_can_charge(snapshot, amount, allow_while_tired=allow_while_tired)
+        return snapshot
+
+    @staticmethod
+    def _assert_can_charge(snapshot: PeepSnapshot, amount: float, *, allow_while_tired: bool) -> None:
+        if "tired" in snapshot.statuses and not allow_while_tired:
+            raise ValueError("You are too tired for that. Rest up first.")
+        if amount > snapshot.energy:
+            raise ValueError("You do not have enough Energy for that.")
+
     def _charge_energy(
         self,
         connection: sqlite3.Connection,
@@ -443,10 +464,7 @@ class StatsService:
         allow_while_tired: bool,
     ) -> PeepSnapshot:
         snapshot = self._reconcile(connection, account_id, now=utc_now())
-        if "tired" in snapshot.statuses and not allow_while_tired:
-            raise ValueError("You are too tired for that. Rest up first.")
-        if amount > snapshot.energy:
-            raise ValueError("You do not have enough Energy for that.")
+        self._assert_can_charge(snapshot, amount, allow_while_tired=allow_while_tired)
         energy = clamp_counter(snapshot.energy - max(0.0, amount), snapshot.effective.max_energy)
         return self._persist_counters(connection, snapshot, snapshot.health, energy, snapshot.cleanliness)
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.commands.activity_launch import resolve_activity, start_activity
 from server.commands.cutscenes import deliver, play_cutscene
@@ -191,6 +193,10 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                     data={"card_id": result.card_id, "stack_id": stack_id},
                 )
             )
+            if behavior is not None and behavior.acted:
+                result = context.actions.commit_delegated_use(context.account, stack_id=stack_id)
+            else:
+                result = replace(result, message="Nothing happens.", cutscene=None)
         outcome = _use_outcome(context, result, _behavior_message(behavior))
         if behavior is not None:
             outcome.private_events.extend(getattr(behavior, "private_events", []))

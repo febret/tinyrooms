@@ -17,6 +17,23 @@ class Intent:
     payload: dict[str, object]
 
 
+@dataclass(frozen=True, slots=True)
+class CardView:
+    """Read-only view of the card that triggered a behavior event.
+
+    Lets world scripts read authored card fields instead of duplicating them as
+    constants.
+    """
+
+    id: str
+    tags: frozenset[str] = frozenset()
+    consume_card: str | None = None
+    output_card: str | None = None
+    bagged_output_card: str | None = None
+    hide_seconds: int | None = None
+    clears_source: str | None = None
+
+
 def _target_payload(target: PeepRef | PropRef | None) -> dict[str, object]:
     if isinstance(target, PeepRef):
         return {"target_kind": target.kind, "target_peep_id": target.peep_id, "target_account_id": target.account_id}
@@ -48,10 +65,12 @@ class BehaviorContext:
         equipped_ids: tuple[str, ...] = (),
         environment: object | None = None,
         actor_username: str = "",
+        card: CardView | None = None,
     ) -> None:
         self.event = event
         self.actor = actor
         self.target = target
+        self.card = card
         self.room = room
         self.world = world
         self.state = state

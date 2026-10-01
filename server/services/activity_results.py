@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 import sqlite3
 
@@ -43,6 +43,7 @@ class CompleteResult:
     captured: bool
     seconds: float
     records: Records
+    private_events: list[dict[str, object]] = field(default_factory=list)
 
 
 class ActivityResultService:
@@ -156,17 +157,24 @@ class ActivityResultService:
                 self._record_best(connection, account.id, kind, seconds)
                 recorded = True
             records = self._read_records(connection, account.id, kind)
-        self._tasks.record(
+        changes = self._tasks.record(
             account.id,
             "activity_result",
             {**result_fields, "activity": kind},
         )
+        private_events: list[dict[str, object]] = []
+        if changes:
+            private_events.append(
+                {"type": "task.updated", "tasks": self._tasks.view_payload(account.id), "account_id": account.id}
+            )
+            private_events.extend(self._tasks.feedback_events(account.id, changes))
         return CompleteResult(
             kind=kind,
             recorded=recorded,
             captured=captured,
             seconds=seconds,
             records=records,
+            private_events=private_events,
         )
 
     def records(self, account_id: str, kind: str) -> Records:

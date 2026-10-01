@@ -512,6 +512,24 @@ class TutorialCardBehaviorTests(AsyncServiceTestCase):
         self.assertIn("poop", self.inventory_map(account))
         self.assertEqual(runtime.stats.reconcile(account.id).cleanliness, 0)
 
+    async def test_unrelated_card_does_nothing(self) -> None:
+        scripts = BehaviorLoader().load_world(self.world)
+        runtime = self.build(scripts)
+        account = self.create_account("unrelated")
+        self.equip_card(account, "ballet-shoes")
+        actor = PeepRef(kind="user", peep_id=None, account_id=account.id)
+        result = await runtime.dispatcher.dispatch(
+            BehaviorEvent(
+                type="card_play",
+                actor=actor,
+                target=scripts.prop_attachments["litter0"].ref,
+                room_id="bathroom",
+                action="use",
+                data={"card_id": "ballet-shoes", "stack_id": ""},
+            )
+        )
+        self.assertFalse(result.acted)
+
     async def test_vacuum_hides_centipedes_and_clears_scare(self) -> None:
         scripts = BehaviorLoader().load_world(self.world)
         runtime = self.build(scripts)

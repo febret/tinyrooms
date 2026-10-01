@@ -430,5 +430,65 @@ class MergeAllIntegrationTests(Milestone2IntegrationTestCase):
             self.assertEqual(stacks[0]["quantity"], 7)
 
 
+class PropCardDelegationIntegrationTests(Milestone2IntegrationTestCase):
+    """Using a card on a prop runs the world behavior and commits the charge."""
+
+    def _travel(self, socket, commands: list[str]) -> None:
+        for index, command in enumerate(commands):
+            result = self.command(socket, f"go-{index}", command)
+            self.assertTrue(result["ok"], result)
+            snapshot = socket.receive_json()
+            self.assertEqual(snapshot["type"], "room.snapshot")
+
+    def test_pooper_scooper_on_litter_tray_grants_poop(self) -> None:
+        credentials = self.create_ready_account("scoop")
+        account_id = self.account_id(credentials)
+        stack_id = self.grant_card(account_id, "pooper-scooper")
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            self.assertTrue(self.command(socket, "equip-1", f".equip @card:{stack_id}")["ok"])
+            self._travel(
+                socket,
+                [
+                    ".go @way:exit0",
+                    ".go @way:exit0",
+                    ".go @way:kitchen",
+                    ".go @way:utility",
+                    ".go @way:bathroom",
+                ],
+            )
+            result = self.command(socket, "use-1", f".use @card:{stack_id} @prop:litter0")
+            self.assertTrue(result["ok"], result)
+            card_ids = {entry["definition"]["id"] for entry in result["payload"]["inventory"]}
+            self.assertIn("poop", card_ids)
+
+    def test_card_on_unrelated_prop_is_a_noop(self) -> None:
+        credentials = self.create_ready_account("noop")
+        account_id = self.account_id(credentials)
+        stack_id = self.grant_card(account_id, "vacuum-cleaner")
+        with self.client.websocket_connect(
+            "/ws", headers=websocket_headers(credentials["session_token"], credentials["csrf_token"])
+        ) as socket:
+            socket.receive_json()
+            self.assertTrue(self.command(socket, "equip-1", f".equip @card:{stack_id}")["ok"])
+            self._travel(
+                socket,
+                [
+                    ".go @way:exit0",
+                    ".go @way:exit0",
+                    ".go @way:kitchen",
+                    ".go @way:utility",
+                    ".go @way:bathroom",
+                ],
+            )
+            result = self.command(socket, "use-1", f".use @card:{stack_id} @prop:litter0")
+            self.assertTrue(result["ok"], result)
+            self.assertEqual(result["message"], "Nothing happens.")
+            card_ids = {entry["definition"]["id"] for entry in result["payload"]["inventory"]}
+            self.assertNotIn("poop", card_ids)
+
+
 if __name__ == "__main__":
     unittest.main()

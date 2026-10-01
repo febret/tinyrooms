@@ -502,6 +502,7 @@ def _build_runtime(
         progression=progression,
         world=world,
         tasks=tasks,
+        peep_states=peep_states,
     )
     scripts = BehaviorLoader().load_world(world)
     behaviors = BehaviorDispatcher(

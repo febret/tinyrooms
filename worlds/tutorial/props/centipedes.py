@@ -5,16 +5,15 @@ World-authored so the core server stays free of tutorial-specific card logic.
 
 from __future__ import annotations
 
-VACUUM_CARD_ID = "vacuum-cleaner"
-SCARY_SOURCE = "scary"
-HIDE_SECONDS = 3600
-
 
 def on_card_play(context, event):
     """Resolve a vacuum cleaner used on the centipedes."""
 
-    if event.data.get("card_id") != VACUUM_CARD_ID:
+    card = context.card
+    if card is None or "vacuum" not in card.tags:
         return
-    context.hide_prop(HIDE_SECONDS)
-    context.clear_source(SCARY_SOURCE)
+    if card.hide_seconds is not None:
+        context.hide_prop(float(card.hide_seconds))
+    if card.clears_source:
+        context.clear_source(card.clears_source)
     context.feedback("You clear the centipedes.", "success")

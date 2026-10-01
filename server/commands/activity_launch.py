@@ -34,7 +34,7 @@ def resolve_activity(context: CommandContext, room_id: str, target: str) -> Reso
 
     key = target.casefold()
     for peep in context.world.peeps.values():
-        if peep.room_id != room_id or not peep.activity:
+        if not peep.activity or context.rooms.peep_room(peep) != room_id:
             continue
         if peep.id.casefold() == key or peep.label.casefold() == key:
             definition = context.world.activities[peep.activity]

@@ -104,9 +104,9 @@ class EnergyActionTests(ActionsTestCase):
 
 
 class DelegatedPropActionTests(ActionsTestCase):
-    """Cards naming a target_prop are delegated to world behavior."""
+    """Cards used on a prop are delegated to world behavior before charging."""
 
-    def test_target_prop_card_delegates(self) -> None:
+    def test_prop_card_delegates(self) -> None:
         stack_id = self._equipped(self.alice, "pooper-scooper")
         result = self.actions.use_card(
             self.reload_account(self.alice),
@@ -119,22 +119,30 @@ class DelegatedPropActionTests(ActionsTestCase):
         self.assertTrue(result.delegated)
         self.assertFalse(result.consumed)
 
-    def test_target_prop_card_rejects_wrong_prop(self) -> None:
+    def test_delegation_accepts_any_prop(self) -> None:
         stack_id = self._equipped(self.alice, "pooper-scooper")
-        with self.assertRaises(ValueError):
-            self.actions.use_card(
-                self.reload_account(self.alice),
-                stack_id=stack_id,
-                target_prop=PropTarget(
-                    instance_id="bugs0", prop_id="centipedes", room_id="basement"
-                ),
-                room_id="basement",
-            )
+        result = self.actions.use_card(
+            self.reload_account(self.alice),
+            stack_id=stack_id,
+            target_prop=PropTarget(
+                instance_id="bugs0", prop_id="centipedes", room_id="basement"
+            ),
+            room_id="basement",
+        )
+        self.assertTrue(result.delegated)
+        self.assertFalse(result.consumed)
 
-    def test_prop_target_card_without_target_prop_has_no_use(self) -> None:
+    def test_non_prop_card_without_target_has_no_use(self) -> None:
         stack_id = self._equipped(self.alice, "house-key")
         with self.assertRaises(ValueError):
             self.actions.use_card(self.reload_account(self.alice), stack_id=stack_id)
+
+    def test_commit_delegated_use_charges_and_consumes(self) -> None:
+        stack_id = self._equipped(self.alice, "tasty-toast")
+        before = self.stats.reconcile(self.alice.id)
+        result = self.actions.commit_delegated_use(self.reload_account(self.alice), stack_id=stack_id)
+        self.assertAlmostEqual(result.actor.energy, before.energy - 2, delta=0.5)
+        self.assertTrue(result.consumed)
 
 
 class TiredChargeTests(ActionsTestCase):

@@ -6,6 +6,8 @@ import hmac
 
 from fastapi.responses import JSONResponse
 
+from server.broadcast import deliver_behavior_result
+
 
 def _rejected(message: str) -> JSONResponse:
     return JSONResponse(
@@ -14,7 +16,7 @@ def _rejected(message: str) -> JSONResponse:
     )
 
 
-def handle_activity_result(runtime: object, session: object, activity: object, payload: dict[str, object]) -> object:
+async def handle_activity_result(runtime: object, session: object, activity: object, payload: dict[str, object]) -> object:
     """Validate a signed result, record it, and return the running activity.
 
     The signature is the session token issued to the iframe; a tampered or
@@ -35,6 +37,7 @@ def handle_activity_result(runtime: object, session: object, activity: object, p
         )
     except ValueError as exc:
         return _rejected(str(exc))
+    await deliver_behavior_result(runtime, outcome)
     return {
         "ok": True,
         "activity": runtime.activities.serialize(activity),

@@ -5,10 +5,6 @@ implemented** (Milestone 1 vertical slice). It is a general guide to the
 project components, a per-file inventory grouped by component, the
 client/server protocol, and the main game flows.
 
-Related docs: `doc/design.md` (product/design intent), `doc/milestone-1.md`
-(Milestone 1 scope), `doc/milestone-2.md` / `milestone-3.md` / `milestone-4.md`
-(future work), `doc/planning-hints.md`.
-
 ## 1. Overview
 
 Tinyrooms is a multiplayer miniature-world game:
@@ -160,16 +156,20 @@ deterministic. Sprites are reproducible via `tools/generate_fx_textures.py`.
 ### 2.4 World-resolved card effects
 
 `ActionsService` resolves the generic stat effects (`health`, `energy`) and room
-lighting (`light`) itself. Any other usable effect is delegated to world-authored
-behavior: the core validates the card, charges Energy, and consumes `one_use`
-copies, then `use_command` dispatches a prop-targeted `card_play` behavior event
-(`server/commands/gameplay.py`). The prop's behavior script owns the effect and
-expresses it through `BehaviorContext` intents. The tutorial world implements
-`scoop` (`props/litter-tray.py`) and `vacuum` (`props/centipedes.py`) this way.
-World scripts can hide props (`hide_prop`), clear named sources from a room
-(`clear_source`), and remove a specific number of card copies (`remove_card` with
-a quantity). The target-prop match is still enforced generically against the
-card definition's `target_prop` before dispatch.
+lighting (`light`) itself. Any other card the player uses on a prop is handed to
+that prop's world behavior: `use_command` dispatches a prop-targeted `card_play`
+behavior event (`server/commands/gameplay.py`) and the prop's script decides
+whether it handles the card, expressing the effect through `BehaviorContext`
+intents. The tutorial world implements scooping (`props/litter-tray.py`) and
+vacuuming (`props/centipedes.py`) this way, matching cards by their authored
+`tags`. Behavior scripts read the triggering card's fields from `context.card`
+(`id`, `tags`, `consume_card`, `output_card`, `bagged_output_card`,
+`hide_seconds`, `clears_source`) instead of duplicating them. A card used on an
+unrelated prop is a no-op, and Energy is charged / `one_use` copies are consumed
+only after the behavior actually resolves. World scripts can hide props
+(`hide_prop`), clear named sources from a room (`clear_source`), and remove a
+specific number of card copies (`remove_card` with a quantity). The core
+hardcodes no world effect names.
 
 
 ## 3. HTTP API (`server/app.py`, `app/js/api.js:PATHS`)
