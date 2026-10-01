@@ -1,4 +1,6 @@
-[
+{
+  "simplify": {"strategy": "auto", "target": 500, "flat_target": 100, "wall_target": 200, "bake_resolution": 1024, "remesh_resolution": 160, "max_deviation": 0.05},
+  "tasks": [
   {"label": "beige-terminal", "tool": "asset", "prompt": "a retro beige CRT computer terminal with a glowing green phosphor screen and chunky keys", "output": "C:/workspace/tinyrooms-noon/data/propsets/leet-base/beige-terminal.glb", "args": {"faces": 3000}},
   {"label": "hacker-desk", "tool": "asset", "prompt": "a cluttered workstation desk with three CRT monitors, tangled cables, and neon underglow", "output": "C:/workspace/tinyrooms-noon/data/propsets/leet-base/hacker-desk.glb", "args": {"faces": 3000}},
   {"label": "server-tower", "tool": "asset", "prompt": "a tall retro server tower with blinking red lights, vents, and a reel-to-reel tape on top", "output": "C:/workspace/tinyrooms-noon/data/propsets/leet-base/server-tower.glb", "args": {"faces": 3000}},
@@ -25,4 +27,5 @@
   {"label": "vr-headset-stand", "tool": "asset", "prompt": "a chunky 1970s-futuristic VR headset resting on a chrome display stand", "output": "C:/workspace/tinyrooms-noon/data/propsets/leet-base/vr-headset-stand.glb", "args": {"faces": 3000}},
   {"label": "plasma-globe", "tool": "asset", "prompt": "a plasma globe with purple lightning arcs on a chrome base", "output": "C:/workspace/tinyrooms-noon/data/propsets/leet-base/plasma-globe.glb", "args": {"faces": 3000}},
   {"label": "hover-stool", "tool": "asset", "prompt": "a retro-futuristic floating stool with a chrome base and neon underglow", "output": "C:/workspace/tinyrooms-noon/data/propsets/leet-base/hover-stool.glb", "args": {"faces": 3000}}
-]
+  ]
+}

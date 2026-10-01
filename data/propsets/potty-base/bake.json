@@ -1,4 +1,6 @@
-[
+{
+  "simplify": {"strategy": "auto", "target": 500, "flat_target": 100, "wall_target": 200, "bake_resolution": 1024, "remesh_resolution": 160, "max_deviation": 0.05},
+  "tasks": [
   {"label": "cottage-toilet", "tool": "asset", "prompt": "a classic white ceramic cottage toilet with a plain wooden seat and a simple cistern", "output": "C:/workspace/tinyrooms-noon/data/propsets/potty-base/cottage-toilet.glb", "args": {"seed": 4001, "faces": 2000}},
   {"label": "victorian-high-tank", "tool": "asset", "prompt": "an ornate victorian toilet with a tall flower-painted porcelain cistern and a brass pull chain", "output": "C:/workspace/tinyrooms-noon/data/propsets/potty-base/victorian-high-tank.glb", "args": {"seed": 4002, "faces": 2000}},
   {"label": "gilded-throne-toilet", "tool": "asset", "prompt": "an opulent gold-plated toilet like a royal throne with a tufted velvet seat and a small crown finial", "output": "C:/workspace/tinyrooms-noon/data/propsets/potty-base/gilded-throne-toilet.glb", "args": {"seed": 4003, "faces": 2000}},
@@ -9,4 +11,5 @@
   {"label": "shark-jaws-toilet", "tool": "asset", "prompt": "a quirky toilet rising from the open jaws of a grey great white shark with rows of white teeth", "output": "C:/workspace/tinyrooms-noon/data/propsets/potty-base/shark-jaws-toilet.glb", "args": {"seed": 4008, "faces": 2000}},
   {"label": "royal-frog-toilet", "tool": "asset", "prompt": "a whimsical green frog-shaped toilet wearing a tiny gold crown with a round lily-pad seat", "output": "C:/workspace/tinyrooms-noon/data/propsets/potty-base/royal-frog-toilet.glb", "args": {"seed": 4009, "faces": 2000}},
   {"label": "disco-glam-toilet", "tool": "asset", "prompt": "a dazzling mirror-ball disco toilet covered in tiny mirrored tiles with a glowing pink light-up seat", "output": "C:/workspace/tinyrooms-noon/data/propsets/potty-base/disco-glam-toilet.glb", "args": {"seed": 4010, "faces": 2000}}
-]
+  ]
+}

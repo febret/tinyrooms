@@ -1,4 +1,6 @@
-[
+{
+  "simplify": {"strategy": "auto", "target": 500, "flat_target": 100, "wall_target": 200, "bake_resolution": 1024, "remesh_resolution": 160, "max_deviation": 0.05},
+  "tasks": [
   {"label": "gilded-armchair", "tool": "asset", "prompt": "an overstuffed baroque armchair with gilded hand-carved wood and crimson damask upholstery", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilded-armchair.glb", "args": {"faces": 4000}},
   {"label": "crimson-chaise", "tool": "asset", "prompt": "a curved baroque chaise longue in crimson velvet with gold scrollwork and tasseled fringe", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/crimson-chaise.glb", "args": {"faces": 4000}},
   {"label": "marble-console-table", "tool": "asset", "prompt": "an ornate marble-topped console table with gilded cabriole legs and a carved shell motif", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/marble-console-table.glb", "args": {"faces": 4000}},
@@ -11,7 +13,7 @@
   {"label": "marquetry-cabinet", "tool": "asset", "prompt": "a baroque marquetry cabinet of tortoiseshell, brass inlay, and gilded ormolu mounts", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/marquetry-cabinet.glb", "args": {"faces": 4000}},
   {"label": "gilt-side-table", "tool": "asset", "prompt": "a small gilded side table with a marble top and slender carved cabriole legs", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilt-side-table.glb", "args": {"faces": 4000}},
   {"label": "baroque-dresser", "tool": "asset", "prompt": "an imposing baroque dresser carved with fruit and ribbons, gilded and topped with marble", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/baroque-dresser.glb", "args": {"faces": 4000}},
-  {"label": "gilded-birdcage", "tool": "asset", "prompt": "an ornate gilded baroque birdcage shaped like a little pavilion with a porcelain bird inside", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilded-birdcage.glb", "args": {"faces": 4000}},
+  {"label": "gilded-birdcage", "tool": "asset", "prompt": "an ornate gilded baroque birdcage shaped like a little pavilion with a porcelain bird inside", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilded-birdcage.glb", "args": {"faces": 4000}, "simplify": {"remesh_resolution": 80}},
   {"label": "marble-column", "tool": "asset", "prompt": "a veined marble column with a gilded capital resting on a square carved plinth", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/marble-column.glb", "args": {"aces": 4000}},
 
   {"label": "gilt-candelabra", "tool": "asset", "prompt": "a towering gilded baroque candelabra with five scrolled arms and dripping beeswax candles", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilt-candelabra.glb", "args": {"faces": 4000}},
@@ -53,4 +55,5 @@
   {"label": "crystal-candelabra", "tool": "asset", "prompt": "a sparkling crystal candelabra with silver arms and hanging prisms", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/crystal-candelabra.glb", "args": {"faces": 4000}},
   {"label": "gilt-floor-candlestick", "tool": "asset", "prompt": "a tall gilded baroque floor candlestick holding a single beeswax candle", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilt-floor-candlestick.glb", "args": {"faces": 4000}},
   {"label": "gilt-globe", "tool": "asset", "prompt": "a gilded baroque globe with painted continents on an ornate carved stand", "output": "C:/workspace/tinyrooms-noon/data/propsets/rococo-base/gilt-globe.glb", "args": {"faces": 4000}}
-]
+  ]
+}

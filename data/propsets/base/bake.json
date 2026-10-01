@@ -1,4 +1,6 @@
-[
+{
+  "simplify": {"strategy": "auto", "target": 500, "flat_target": 100, "wall_target": 200, "bake_resolution": 1024, "remesh_resolution": 160, "max_deviation": 0.05},
+  "tasks": [
   {"label": "mustard-armchair", "tool": "asset", "prompt": "a mustard-yellow armchair with rounded wooden legs and a tufted back", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/mustard-armchair.glb"},
   {"label": "patchwork-rocking-chair", "tool": "asset", "prompt": "a small wooden rocking chair with a hand-sewn patchwork quilt draped over it", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/patchwork-rocking-chair.glb"},
   {"label": "dusty-rose-sofa", "tool": "asset", "prompt": "a long dusty-rose velvet sofa with two mismatched floral throw pillows", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/dusty-rose-sofa.glb"},
@@ -36,7 +38,7 @@
   {"label": "venus-flytrap-pot", "tool": "asset", "prompt": "a cheeky venus flytrap with open jaws in a speckled pot", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/venus-flytrap-pot.glb"},
   {"label": "pink-orchid", "tool": "asset", "prompt": "a slender pink orchid with arching stems in a glazed pot", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/pink-orchid.glb"},
   {"label": "sunflower-bucket", "tool": "asset", "prompt": "a bunch of tall sunflowers in a galvanized metal bucket", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/sunflower-bucket.glb"},
-  {"label": "tulip-window-box", "tool": "asset", "prompt": "a wooden window box bursting with red and yellow tulips", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/tulip-window-box.glb"},
+  {"label": "tulip-window-box", "tool": "asset", "prompt": "a wooden window box bursting with red and yellow tulips", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/tulip-window-box.glb", "simplify": {"remesh_resolution": 100}},
   {"label": "wicker-fern-basket", "tool": "asset", "prompt": "a lush boston fern spilling from a woven wicker basket", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/wicker-fern-basket.glb"},
 
   {"label": "apothecary-cabinet", "tool": "asset", "prompt": "an apothecary cabinet with dozens of tiny labeled drawers", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/apothecary-cabinet.glb"},
@@ -83,4 +85,5 @@
   {"label": "stained-glass-window", "tool": "asset", "prompt": "an arched stained-glass window with jewel-toned diamond and roundel patterns, standing upright", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/stained-glass-window.glb"},
   {"label": "round-porthole-window", "tool": "asset", "prompt": "a round brass porthole window with a raised riveted rim, a deep round opening and a round blue glass pane, three-quarter view", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/round-porthole-window.glb"},
   {"label": "arched-cottage-window", "tool": "asset", "prompt": "an arched white cottage window with small diamond lattice panes, standing upright", "output": "C:/workspace/tinyrooms-noon/data/propsets/base/arched-cottage-window.glb"}
-]
+  ]
+}
