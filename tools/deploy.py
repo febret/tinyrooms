@@ -58,6 +58,11 @@ EXCLUDED_DIRS = frozenset(
 )
 EXCLUDED_SUFFIXES = (".pyc", ".sqlite", ".sqlite3", ".db")
 
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from server.mission_control.nginx_template import location_block, site_config  # noqa: E402
+
 
 class DeployError(RuntimeError):
     """Raised when a deployment step fails."""
@@ -185,7 +190,12 @@ def read_version_entries() -> list[dict[str, object]]:
     raw = VERSION_FILE.read_text(encoding="utf-8").strip()
     if not raw:
         return []
-    entries: list[dict[str, object]] = json.loads(raw)
+    try:
+        entries = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise DeployError(f"version.json is not valid JSON: {error}") from error
+    if not isinstance(entries, list):
+        raise DeployError("version.json must contain a list of version entries.")
     return entries
 
 
@@ -272,6 +282,9 @@ def upload_tarball(host: str, root: str, tarball: Path) -> None:
     remote_tarball = remote_path(root, "releases", tarball.name)
     expected = tarball.stat().st_size
     for attempt in range(1, UPLOAD_ATTEMPTS + 1):
+        # Clear any stale copy first: a same-named file of equal size would
+        # otherwise let a failed scp masquerade as a successful upload.
+        run_remote(host, f"rm -f {remote_tarball}", check=False)
         try:
             subprocess.run(["scp", *SSH_OPTIONS, str(tarball), f"{host}:{releases_dir}/"], check=True)
         except subprocess.CalledProcessError:
@@ -281,7 +294,6 @@ def upload_tarball(host: str, root: str, tarball: Path) -> None:
         if attempt == UPLOAD_ATTEMPTS:
             raise DeployError(f"Upload of {tarball.name} to {host} failed after {UPLOAD_ATTEMPTS} attempts.")
         print(f"Upload of {tarball.name} interrupted; retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
-        run_remote(host, f"rm -f {remote_tarball}", check=False)
 
 
 def upload_release(host: str, root: str, version: str, tarball: Path, *, overwrite: bool = False) -> None:
@@ -347,46 +359,22 @@ def write_services(host: str, root: str) -> dict[str, dict[str, object]]:
 def nginx_locations(registry: dict[str, dict[str, object]]) -> str:
     """Build the reverse-proxy location blocks for every service."""
 
-    blocks = []
-    for name, entry in registry.items():
-        port = int(entry["port"])  # type: ignore[arg-type]
-        blocks.append(
-            f"    location /{name}/ {{\n"
-            f"        proxy_pass https://127.0.0.1:{port};\n"
-            "        proxy_ssl_verify off;\n"
-            "        proxy_http_version 1.1;\n"
-            "        proxy_set_header Host $host;\n"
-            "        proxy_set_header X-Real-IP $remote_addr;\n"
-            "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n"
-            "        proxy_set_header X-Forwarded-Proto $scheme;\n"
-            "        proxy_set_header Upgrade $http_upgrade;\n"
-            '        proxy_set_header Connection "upgrade";\n'
-            "    }\n"
-        )
-    return "\n".join(blocks)
+    return "\n".join(
+        location_block(name, int(entry["port"]))  # type: ignore[arg-type]
+        for name, entry in registry.items()
+    )
 
 
 def nginx_config(server_name: str, root: str, registry: dict[str, dict[str, object]]) -> str:
     """Render the nginx site configuration."""
 
-    cert = f"{root.rstrip('/')}/nginx/certs/server.crt"
-    key = f"{root.rstrip('/')}/nginx/certs/server.key"
-    return (
-        "server {\n"
-        "    listen 80;\n"
-        "    listen [::]:80;\n"
-        f"    server_name {server_name};\n"
-        "    location / { return 301 https://$host$request_uri; }\n"
-        "}\n\n"
-        "server {\n"
-        "    listen 443 ssl;\n"
-        "    listen [::]:443 ssl;\n"
-        f"    server_name {server_name};\n"
-        f"    ssl_certificate {cert};\n"
-        f"    ssl_certificate_key {key};\n"
-        "    client_max_body_size 64m;\n\n"
-        f"{nginx_locations(registry)}"
-        "}\n"
+    base = root.rstrip("/")
+    return site_config(
+        server_name=server_name,
+        cert_path=f"{base}/nginx/certs/server.crt",
+        key_path=f"{base}/nginx/certs/server.key",
+        locations=[(name, int(entry["port"])) for name, entry in registry.items()],  # type: ignore[arg-type]
+        root_redirect="/home",
     )
 
 
