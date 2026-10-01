@@ -43,11 +43,10 @@ export function createPackageManager(container, ctx) {
     return el("div", { class: "card" }, [
       el("h3", { text: "Server versions" }),
       el("table", {}, [
-        el("thead", {}, el("tr", {}, [el("th", { text: "Id" }), el("th", { text: "Build" }), el("th", { text: "Protocol" }), el("th", { text: "Commit" }), el("th", { text: "Path" })])),
+        el("thead", {}, el("tr", {}, [el("th", { text: "Id" }), el("th", { text: "Protocol" }), el("th", { text: "Commit" }), el("th", { text: "Path" })])),
         el("tbody", {}, packages.server_versions.map((version) =>
           el("tr", {}, [
             el("td", { text: version.id }),
-            el("td", { text: version.build || "—" }),
             el("td", { text: String(version.protocol ?? "—") }),
             el("td", { text: version.commit || "—" }),
             el("td", { class: "muted", text: version.path }),
