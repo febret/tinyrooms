@@ -40,14 +40,25 @@ test.describe("account onboarding", () => {
   });
 });
 
-test("all core cards are always visible without an expander", async ({ page, runtime }) => {
+test("core cards live on the left rail and emotes beside the chat bar", async ({ page, runtime }) => {
   test.slow();
   await createReadyAccount(page, runtime);
-  await expect(page.locator("#card-hand [data-core-id]")).toHaveCount(3);
-  await expect(page.locator("#card-hand [data-core-expand]")).toHaveCount(0);
-  for (const id of ["emotes", "inventory", "journal"]) {
-    await expect(page.locator(`#card-hand [data-core-id="${id}"]`)).toBeVisible();
+  await expect(page.locator("#core-tools [data-core-id]")).toHaveCount(2);
+  await expect(page.locator("#card-hand [data-core-id], #card-hand [data-core-expand]")).toHaveCount(0);
+  for (const id of ["inventory", "journal"]) {
+    await expect(page.locator(`#core-tools [data-core-id="${id}"]`)).toBeVisible();
   }
+  await expect(page.locator("#peeps-panel")).toBeVisible();
+  await page.locator("#peeps-toggle").click();
+  await expect(page.locator("#peeps-panel")).toBeHidden();
+  await page.locator("#peeps-toggle").click();
+  await expect(page.locator("#peeps-panel")).toBeVisible();
+  await expect(page.locator("#emote-toggle")).toBeVisible();
+  await page.locator("#emote-toggle").click();
+  await expect(page.locator("#emote-menu")).toHaveClass(/open/);
+  await expect(page.locator("#emote-menu .emote-column")).toHaveCount(3);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#emote-menu")).not.toHaveClass(/open/);
   await openCore(page, "journal");
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 });

@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import { clear, el } from "./dom.js";
 import { createServerManager } from "./server-manager.js";
+import { createServerInfo } from "./server-info.js";
 import { createPackageManager } from "./package-manager.js";
 import { createUserManager } from "./user-manager.js";
 
@@ -46,6 +47,7 @@ async function loadWorlds(versionId) {
 
 const views = {
   servers: createServerManager(document.getElementById("panel-servers"), ctx),
+  server: createServerInfo(document.getElementById("panel-server"), ctx),
   packages: createPackageManager(document.getElementById("panel-packages"), ctx),
   users: createUserManager(document.getElementById("panel-users"), ctx),
   audit: { activate: renderAudit, deactivate: () => {} },

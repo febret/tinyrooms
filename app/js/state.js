@@ -1,5 +1,6 @@
 import { editorReducer } from "./editing/edit-reducer.js";
 import { withBase } from "./base-path.js";
+import { savedOutlineActiveProps, saveOutlineActiveProps } from "./preferences.js";
 
 const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia === "function"
   ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -839,7 +840,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null },
-    ui: { actionLogVisible: false, soundEnabled: true, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteCategory: "Expression", journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, peepsVisible: true, journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -898,15 +899,17 @@ function reduce(state, action) {
         propId: action.view === "prop-details" ? action.propId || null : null,
         skillStackId: action.view === "skills" ? action.stackId || null : null,
       },
-      ui: { ...state.ui, targeting: null, sellMode: false },
+      ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false },
     };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null, sellMode: false } };
-  if (action.type === "emote-category") return { ...state, ui: { ...state.ui, emoteCategory: action.category } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false } };
+  if (action.type === "toggle-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: !state.ui.emoteMenuOpen } };
+  if (action.type === "toggle-peeps") return { ...state, ui: { ...state.ui, peepsVisible: !state.ui.peepsVisible } };
+  if (action.type === "close-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: false } };
   if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
-  if (action.type === "start-targeting") return { ...state, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: { stackId: action.stackId, label: action.label } } };
+  if (action.type === "start-targeting") return { ...state, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: { stackId: action.stackId, label: action.label }, emoteMenuOpen: false } };
   if (action.type === "cancel-targeting") return { ...state, ui: { ...state.ui, targeting: null } };
   if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
   if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
@@ -917,6 +920,11 @@ function reduce(state, action) {
   if (action.type === "toast") return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(action.message, action.tone)] } };
   if (action.type === "toggle-log") return { ...state, ui: { ...state.ui, actionLogVisible: !state.ui.actionLogVisible } };
   if (action.type === "toggle-sound") return { ...state, ui: { ...state.ui, soundEnabled: !state.ui.soundEnabled } };
+  if (action.type === "toggle-outline-active-props") {
+    const enabled = !state.ui.outlineActiveProps;
+    saveOutlineActiveProps(enabled);
+    return { ...state, ui: { ...state.ui, outlineActiveProps: enabled } };
+  }
   if (action.type === "audio-state") return { ...state, ui: { ...state.ui, audioEnabled: Boolean(action.enabled), audioMuted: Boolean(action.muted) } };
   if (action.type === "dismiss-bubble" && state.room) {
     const mutate = peep => peep.id === action.id ? { ...peep, bubbleDismissed: true } : peep;
@@ -940,7 +948,7 @@ function reduce(state, action) {
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, details: null },
-      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false },
+      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false },
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };

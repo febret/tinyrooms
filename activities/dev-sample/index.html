@@ -6,11 +6,16 @@
     <title>Tinyrooms Sample Activity</title>
     <link rel="stylesheet" href="/activities/shared.css">
     <style>
-      .layout { display: grid; gap: 16px; }
-      .controls { display: flex; flex-wrap: wrap; gap: 10px; }
-      .statusbox { display: grid; gap: 8px; min-width: 0; padding: 16px; border-radius: 8px; border: 1px solid var(--line); background: #03181f; }
+      .layout { display: grid; gap: 10px; }
+      .controls { display: flex; flex-wrap: wrap; gap: 6px; }
+      .statusbox { display: grid; gap: 6px; min-width: 0; padding: 10px; border-radius: 5px; background: #03181f; }
       .statusbox code { font: 12px/1.5 Consolas, monospace; color: #d9eee8; overflow-wrap: anywhere; white-space: pre-wrap; }
-      .prompt { min-height: 44px; width: 100%; padding: 10px 12px; border-radius: 22px; border: 1px solid #2f869c; color: var(--ink); background: #020d12; }
+      .prompt { min-height: 44px; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #2f869c; color: var(--ink); background: #020d12; }
+      @media (max-width: 520px) {
+        .sample-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+        .sample-actions button { min-width: 0; padding: 6px 2px; font-size: clamp(10px, 2.7vw, 12px); white-space: nowrap; }
+        .sample-actions #countdown { grid-column: 1 / -1; justify-self: start; padding-inline: 9px; }
+      }
     </style>
   </head>
   <body>
@@ -23,8 +28,8 @@
       </header>
       <section class="paper layout reveal">
         <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
-        <p>This sample activity exists for lifecycle, postMessage, window-drag, minimize, maximize, and attention-flow testing. It only talks to its host through the shared TinyActivity bridge.</p>
-        <div class="controls">
+        <p>This sample activity exercises lifecycle, messaging, window controls, and attention flows through the shared TinyActivity bridge.</p>
+        <div class="controls sample-actions">
           <button type="button" class="primary" id="notify">Flash title bar</button>
           <button type="button" id="say">Send chat line</button>
           <button type="button" id="celebrate">Celebrate</button>

@@ -25,8 +25,10 @@ async function capture(page, testInfo, requested, remaining, name, options) {
   await settleArtwork(page, options);
   await page.evaluate(() => {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    // NPC wander notifications are time-driven; drop them so captures are not run dependent.
+    for (const node of document.querySelectorAll("#bubble-layer .bubble.move")) node.remove();
     // Reset horizontally scrollable card strips so captures are not scroll-position dependent.
-    for (const selector of ["#card-hand", ".card-hand-strip", ".equipped-hand", "#peeps-panel"]) {
+    for (const selector of ["#core-tools", "#card-hand", ".equipped-hand", "#peeps-panel"]) {
       for (const node of document.querySelectorAll(selector)) node.scrollLeft = 0;
     }
   });
@@ -85,13 +87,11 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
     await expect(page.locator(`#bubble-layer .${style}`)).toBeVisible();
     await capture(page, testInfo, requested, remaining, `bubble-${style}`);
   }
-  await page.locator("#bubble-layer .bubble").click();
-  await expect(page.locator("#bubble-layer .bubble")).toHaveCount(0);
-  for (const id of ["emotes", "journal"]) {
-    await openCore(page, id);
-    await capture(page, testInfo, requested, remaining, id);
-    await page.keyboard.press("Escape");
-  }
+  await page.locator("#bubble-layer .bubble:not(.move)").click();
+  await expect(page.locator("#bubble-layer .bubble:not(.move)")).toHaveCount(0);
+  await openCore(page, "journal");
+  await capture(page, testInfo, requested, remaining, "journal");
+  await page.keyboard.press("Escape");
   await openSkills(page);
   await capture(page, testInfo, requested, remaining, "skills");
   await page.keyboard.press("Escape");
@@ -109,6 +109,92 @@ test("reference matrix: auth, onboarding, main, room, details, inventory, peep, 
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect(page.locator("#toast-stack .error").first()).toContainText(/unknown command/i);
   await capture(page, testInfo, requested, remaining, "error-toast", { allowToasts: true });
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
+test("emote picker: the chat-adjacent emote menu", async ({ page, runtime }, testInfo) => {
+  test.setTimeout(120_000);
+  const { requested, remaining } = requestedFor();
+  await freezeClock(page);
+  await createReadyAccount(page, runtime);
+  await page.locator("#emote-toggle").click();
+  await expect(page.locator("#emote-menu")).toHaveClass(/open/);
+  await expect(page.locator("#emote-menu .emote-column")).toHaveCount(3);
+  await capture(page, testInfo, requested, remaining, "emote-menu");
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
+test("portrait sample activity uses the available board height and a compact action row", async ({ page, runtime }, testInfo) => {
+  test.skip(testInfo.project.name !== "portrait");
+  const { requested, remaining } = requestedFor();
+  await createReadyAccount(page, runtime);
+  await command(page, ".play sample");
+  const activity = page.locator(".activity-window");
+  const title = activity.locator(".activity-titlebar");
+  const frame = page.frameLocator('iframe[src*="dev-sample"]');
+  await expect(frame.locator("#state")).toContainText("sunbeam");
+  await expect(activity.locator(".activity-close")).toBeVisible();
+  await expect(activity.locator(".activity-min")).toBeHidden();
+  await expect(activity.locator(".activity-max")).toBeHidden();
+  const positions = await page.evaluate(() => {
+    const box = selector => document.querySelector(selector).getBoundingClientRect();
+    return { window: box(".activity-window").toJSON(), bar: box(".topbar").toJSON(), dock: box(".interaction-dock").toJSON() };
+  });
+  expect(positions.window.left).toBe(0);
+  expect(positions.window.right).toBe(390);
+  expect(positions.window.top).toBeGreaterThanOrEqual(positions.bar.bottom);
+  expect(positions.window.bottom).toBe(positions.dock.top);
+  const firstRow = await frame.locator(".sample-actions button").evaluateAll(buttons => buttons.slice(0, 3).map(button => button.getBoundingClientRect().top));
+  expect(firstRow.every(top => top === firstRow[0])).toBe(true);
+  const start = await activity.boundingBox();
+  await title.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 1, clientX: 180, clientY: 75 });
+  await title.dispatchEvent("pointermove", { pointerId: 1, clientX: 220, clientY: 130 });
+  expect(await activity.boundingBox()).toEqual(start);
+  if (!requested.size || requested.has("activity-portrait-compact")) {
+    remaining.delete("activity-portrait-compact");
+    await settleArtwork(page);
+    const candidate = testInfo.outputPath("activity-portrait-compact-candidate.png");
+    await activity.screenshot({ path: candidate, animations: "disabled" });
+    await testInfo.attach("activity-portrait-compact candidate (requires design review)", { path: candidate, contentType: "image/png" });
+    await expect.soft(activity).toHaveScreenshot("activity-portrait-compact.png", { animations: "disabled" });
+  }
+  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
+test("equipped hand and peep preview: tucked and revealed cards", async ({ page, runtime }, testInfo) => {
+  test.setTimeout(120_000);
+  const { requested, remaining } = requestedFor();
+  await createReadyAccount(page, runtime);
+  await travel(page);
+  await openRoomView(page);
+  await page.locator('#panel-layer [data-stack-id][data-scope="room"]').first().click();
+  await page.locator("#actions-bar").getByRole("button", { name: "Pick up 1", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await page.locator("#peeps-panel .peep-chip.self [data-peep-id]").click();
+
+  const geometry = () => page.evaluate(() => {
+    const bounds = selector => document.querySelector(selector)?.getBoundingClientRect();
+    const sidebar = bounds("#peeps-panel");
+    const marker = bounds("#peeps-panel .self .peep-marker");
+    const preview = bounds(".look-preview");
+    const card = bounds(".equipped-hand .game-card");
+    const dock = bounds(".interaction-dock");
+    return { markerRight: marker.right, sidebarRight: sidebar.right, previewRight: preview?.right, cardLeft: card.left, cardRight: card.right, cardBottom: card.bottom, dockTop: dock.top, viewportWidth: innerWidth };
+  });
+  const tucked = await geometry();
+  expect(tucked.markerRight).toBeLessThanOrEqual(tucked.sidebarRight);
+  expect(tucked.previewRight).toBeLessThan(tucked.cardLeft);
+  expect(tucked.cardRight).toBeGreaterThan(tucked.viewportWidth - 20);
+  expect(tucked.cardBottom).toBeGreaterThan(tucked.dockTop);
+  await capture(page, testInfo, requested, remaining, "equipped-tucked", { mask: [page.locator("#board-canvas")] });
+
+  const card = page.locator(".equipped-hand .game-card").first();
+  await card.click();
+  await expect(card).toHaveClass(/selected/);
+  const revealed = await geometry();
+  expect(revealed.cardBottom).toBeLessThanOrEqual(revealed.dockTop);
+  await page.mouse.move(0, 0);
+  await capture(page, testInfo, requested, remaining, "equipped-revealed", { mask: [page.locator("#board-canvas")] });
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });
 

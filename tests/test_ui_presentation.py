@@ -25,6 +25,7 @@ class UIPresentationTests(unittest.TestCase):
         javascript = "\n".join(
             path.read_text(encoding="utf-8")
             for path in sorted((REPO_ROOT / "app" / "js").glob("*.js"))
+            if path.name != "preferences.js"
         )
         self.assertIn('session: "/api/session"', javascript)
         self.assertIn('websocket: "/ws"', javascript)

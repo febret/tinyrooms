@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hmac
 import json
 import logging
@@ -663,6 +664,28 @@ async def delete_version(request: Request, version_id: str) -> dict[str, object]
     except ValueError as exc:
         return _json_error(400, "version_delete_failed", str(exc))
     return {"ok": True}
+
+
+# --- Server Info --------------------------------------------------------------
+
+
+@router.get("/api/mission-control/server")
+async def server_info(request: Request) -> dict[str, object]:
+    """Return host, CPU, memory, process, disk, and config information."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    return {"ok": True, **await asyncio.to_thread(runtime.server_info.snapshot)}
+
+
+@router.get("/api/mission-control/server/storage")
+async def server_storage(request: Request, refresh: int = 0) -> dict[str, object]:
+    """Return the install storage breakdown by top-level directory."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    result = await asyncio.to_thread(runtime.server_info.storage, force=bool(refresh))
+    return {"ok": True, **result}
 
 
 # --- User Manager -------------------------------------------------------------

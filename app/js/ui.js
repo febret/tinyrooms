@@ -5,6 +5,9 @@ import { createChatAutocomplete } from "./autocomplete.js";
 import { createChatHistory } from "./chat-history.js";
 import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
+import { createPropActionButton } from "./prop-action-button.js";
+import { syncEmoteChrome } from "./emote-chrome.js";
+import { syncPeepsChrome } from "./peeps-chrome.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import { createCutsceneManager } from "./cutscenes/manager.js";
 import {
@@ -46,6 +49,10 @@ const activityLayer = $("#activity-layer");
 const cutsceneLayer = $("#cutscene-layer");
 const authLayer = $("#auth-layer");
 const chatInput = $("#chat-input");
+const emoteToggle = $("#emote-toggle");
+const emoteToggleIcon = $("#emote-toggle-icon");
+const emoteMenu = $("#emote-menu");
+const peepsToggle = $("#peeps-toggle");
 const settings = $("#settings");
 const pushToTalk = $("#push-to-talk");
 const talkRingProgress = $("#push-to-talk .talk-ring-progress");
@@ -176,6 +183,13 @@ function connectSocket() {
         toast: envelope.toast,
         log: envelope.log,
       });
+      const opened = envelope.payload?.opened;
+      // The pack cutscene is presentation-only. Reduced motion suppresses it, and
+      // an idempotent replay has already played, so reveal inline in both cases no
+      // matter whether the open came from the UI action or a raw command.
+      if (opened && (opened.replayed || store.getState().ui.reducedMotion)) {
+        showPackReveal(opened.cards || []);
+      }
     },
   });
   socket.connect();
@@ -473,10 +487,8 @@ async function handleAction(action) {
     playTone("flip");
   } else if (action.type === "cancel-targeting") {
     store.dispatch({ type: "cancel-targeting" });
-  } else if (action.type === "emote-category") {
-    store.dispatch({ type: "emote-category", category: action.category });
   } else if (action.type === "play-emote") {
-    store.dispatch({ type: "close-view" });
+    store.dispatch({ type: "close-emote-menu" });
     try { await sendCommand(buildEmoteCommand(action.stackId)); } catch (error) { showError(error); }
   } else if (action.type === "journal-tab") {
     store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
@@ -640,13 +652,7 @@ function operationId(prefix) {
 async function openPack(stackId) {
   if (!stackId) return;
   try {
-    const envelope = await sendCommand(`.open_pack @card:${stackId} ${operationId("open")}`);
-    const opened = envelope?.payload?.opened;
-    // The pack cutscene is presentation-only. Reduced motion drops it entirely,
-    // and an idempotent replay has already played, so reveal inline instead.
-    if (opened && (opened.replayed || store.getState().ui.reducedMotion)) {
-      showPackReveal(opened.cards || []);
-    }
+    await sendCommand(`.open_pack @card:${stackId} ${operationId("open")}`);
   } catch (error) {
     showError(error);
   }
@@ -727,6 +733,7 @@ function renderTopBar(state) {
   if (!updateMarkup(top, `
     <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
+    <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
     ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="audio" aria-pressed="${state.ui.audioEnabled}">${state.ui.audioEnabled ? "Disable Audio Chat" : "Enable Audio Chat"}</button>` : ""}
     ${state.ui.audioEnabled ? `<button type="button" class="quiet" data-top-action="mute" aria-pressed="${state.ui.audioMuted}">${state.ui.audioMuted ? "Unmute" : "Mute"}</button>` : ""}
     <button type="button" class="quiet" data-top-action="commands">Commands</button>
@@ -737,6 +744,7 @@ function renderTopBar(state) {
       const which = button.dataset.topAction;
       if (which === "log") await toggleLog();
       if (which === "sound") store.dispatch({ type: "toggle-sound" });
+      if (which === "outlines") store.dispatch({ type: "toggle-outline-active-props" });
       if (which === "audio") {
         if (store.getState().ui.audioEnabled) {
           voice.disable();
@@ -920,6 +928,9 @@ function renderFeedback(state) {
   }
 }
 
+const propActionButton = createPropActionButton({
+  button: $("#prop-default-action"), getState: () => store.getState(), onAction: action => { void handleAction(action); },
+});
 // Clicking an already-selected entity fires its default quick action, if any.
 function activateSelection(selection) {
   const state = store.getState();
@@ -946,11 +957,12 @@ const peeps = createPeepsView({
 });
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
-  onSelect(selection) {
+  onSelect(selection, point) {
     const state = store.getState();
     if (state.views.main || state.views.details || dialogs.active || !state.user?.initialStickerComplete) return;
     if (targeting?.handle(selection)) return;
-    if (activateSelection(selection)) return;
+    if (activateSelection(selection)) { propActionButton.clear(); return; }
+    propActionButton.select(selection, point, state.room);
     store.dispatch({ type: "select", selection });
     playTone("flip");
   },
@@ -963,16 +975,13 @@ const board = createBoard({
   stackProps: true,
   dragHandles: true,
 });
-// Read-only handle for the performance suite's structural assertions. The
-// browser suite budgets GPU resource counts and drawn frames rather than
-// frame times, which keeps those budgets deterministic across machines.
 globalThis.__tinyroomsBoard = board;
 targeting = createTargetingController({
   board, boardFrame: $(".board-frame"), getState: () => store.getState(), store, sendCommand,
   onToast: toast, onError: showError,
 });
 const cards = createCardsView({
-  handRoot: $("#card-hand"), panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
+  coreRoot: $("#core-tools"), handRoot: $("#card-hand"), menuRoot: emoteMenu, panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
   onSelect(selection) {
     const sellState = store.getState();
     if (sellState.ui.sellMode && selection.kind === "inventory-card") {
@@ -1069,10 +1078,13 @@ async function render(state) {
   targeting?.sync(state);
   renderActionLog(state);
   renderTopBar(state);
+  propActionButton.sync(state);
   renderAuth(state);
   renderToasts(state);
   renderFeedback(state);
   cards.render(state);
+  syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
+  syncPeepsChrome(state, root, peepsToggle);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
@@ -1087,7 +1099,7 @@ async function render(state) {
     } else if (state.views.main && previousView !== state.views.main) {
       panelLayer.querySelector("[data-close-view]")?.focus({ preventScroll: true });
     } else if (!state.views.main && previousView) {
-      $("#card-hand").querySelector(`[data-core-id="${CSS.escape(previousView)}"]`)?.focus({ preventScroll: true });
+      $("#core-tools").querySelector(`[data-core-id="${CSS.escape(previousView)}"]`)?.focus({ preventScroll: true });
     }
   }
   previousView = state.views.main;
@@ -1117,6 +1129,8 @@ function renderEditorTransient(state) {
 const chatHistory = createChatHistory();
 const chatAutocomplete = createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help"), history: chatHistory });
 pushToTalk.onclick = () => { voice.toggleTalk(); };
+emoteToggle.onclick = () => { store.dispatch({ type: "toggle-emote-menu" }); playTone("tap"); };
+peepsToggle.onclick = () => { store.dispatch({ type: "toggle-peeps" }); playTone("tap"); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();
   const text = chatInput.value;
@@ -1137,6 +1151,14 @@ $("#chat-form").onsubmit = async event => {
 
 document.addEventListener("pointerdown", event => {
   if (settings.open && !settings.contains(event.target)) settings.open = false;
+  const state = store.getState();
+  if (
+    state.ui.emoteMenuOpen
+    && !emoteMenu.contains(event.target)
+    && !emoteToggle.contains(event.target)
+  ) {
+    store.dispatch({ type: "close-emote-menu" });
+  }
 });
 document.addEventListener("keydown", event => {
   const state = store.getState();
@@ -1159,6 +1181,12 @@ document.addEventListener("keydown", event => {
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
+  if (state.ui.emoteMenuOpen) {
+    event.preventDefault();
+    store.dispatch({ type: "close-emote-menu" });
+    emoteToggle.focus();
+    return;
+  }
   if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });

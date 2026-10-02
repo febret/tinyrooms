@@ -363,9 +363,7 @@ error toast.
   plane (`board.screenToBoardPosition`), shows a drop marker, sends the
   trailing `x y z`, and plays a DOM card-flight animation; pick-up from the
   board/Room view plays the reverse flight. Starter Smile/Sigh/Growl/Goof +
-  10 Bops only; core cards are non-transferable.
-- Core cards are always visible in a fixed authored order (Room, Emotes,
-  Inventory, Skills, Journal); there is no expander or favorites strip. Each
+  10 Bops only; core cards are non-transferable. Each
   room snapshot carries `editable` derived from the account's owned rooms; the
   Room selection offers `Edit Room` only when it is true. Escape priority:
   targeting → popup → main view.

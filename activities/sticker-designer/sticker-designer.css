@@ -20,17 +20,16 @@ body { min-height: 0; }
   display: inline-flex;
   gap: 4px;
   align-self: center;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  padding: 2px;
+  border-radius: 8px;
   background: #0a2630aa;
 }
 
 .editor-tabs .tab {
   min-height: 34px;
-  padding: 6px 16px;
+  padding: 6px 10px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 7px;
   background: transparent;
   box-shadow: none;
   color: var(--muted);
@@ -126,9 +125,9 @@ body { min-height: 0; }
 
 .starter-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .starter {
-  padding: 4px 10px;
+  padding: 4px 8px;
   min-height: 30px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: #10333f;
   color: var(--ink);
@@ -147,8 +146,8 @@ body { min-height: 0; }
 .cat-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
 .cat-tab {
   min-height: 34px;
-  padding: 6px 14px;
-  border-radius: 999px;
+  padding: 6px 9px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: #0a2630;
   color: var(--muted);
@@ -164,10 +163,9 @@ body { min-height: 0; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   gap: 6px;
-  padding: 6px;
+  padding: 4px;
   align-content: start;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 7px;
   background: #06202acc;
 }
 .part-card {

@@ -42,6 +42,12 @@ export function createActivityManager({
     return activity.kind === "sticker-designer" && !getState().user?.initialStickerComplete;
   }
 
+  const portraitMedia = window.matchMedia("(max-width: 780px) and (orientation: portrait)");
+
+  function portraitActivity(entry) {
+    return portraitMedia.matches && !entry.required;
+  }
+
   function syncModal() {
     const next = [...windows.values()].find(entry => entry.required) || null;
     const changed = next !== modalEntry;
@@ -101,6 +107,16 @@ export function createActivityManager({
 
   function applyGeometry(entry) {
     const frame = { width: layer.clientWidth, height: layer.clientHeight };
+    if (portraitActivity(entry)) {
+      const topBar = document.querySelector(".topbar");
+      const layerTop = layer.getBoundingClientRect().top;
+      const top = clamp((topBar?.getBoundingClientRect().bottom ?? layerTop) - layerTop, 0, frame.height);
+      entry.node.style.width = `${frame.width}px`;
+      entry.node.style.height = `${frame.height - top}px`;
+      entry.node.style.left = "0px";
+      entry.node.style.top = `${top}px`;
+      return;
+    }
     const margin = Math.min(8, frame.width / 4, frame.height / 4);
     let topMargin = margin;
     const settings = document.querySelector("#settings > summary");
@@ -138,7 +154,9 @@ export function createActivityManager({
 
   function updateControls(entry) {
     entry.required = requiredSticker(entry.activity);
-    if (entry.required) {
+    const portrait = portraitActivity(entry);
+    if (portrait && entry.titleBar.classList.contains("dragging")) entry.titleBar.classList.remove("dragging");
+    if (entry.required || portrait) {
       entry.minimized = false;
       entry.maximized = false;
     }
@@ -146,14 +164,16 @@ export function createActivityManager({
     entry.node.classList.toggle("minimized", entry.minimized);
     entry.node.classList.toggle("maximized", entry.maximized);
     entry.node.setAttribute("aria-modal", String(entry.required));
-    entry.min.hidden = entry.max.hidden = entry.close.hidden = entry.required;
+    entry.min.hidden = entry.max.hidden = entry.required || portrait;
+    entry.close.hidden = entry.required;
     entry.body.hidden = entry.minimized;
     entry.min.setAttribute("aria-label", entry.minimized ? "Restore activity" : "Minimize activity");
     entry.max.setAttribute("aria-label", entry.maximized ? "Restore activity size" : "Maximize activity");
     entry.max.setAttribute("aria-pressed", String(entry.maximized));
     entry.min.title = entry.min.getAttribute("aria-label");
     entry.max.title = entry.max.getAttribute("aria-label");
-    entry.titleBar.tabIndex = entry.required ? -1 : 0;
+    entry.titleBar.tabIndex = entry.required || portrait ? -1 : 0;
+    entry.titleBar.setAttribute("aria-label", portrait ? "Activity window" : "Activity window. Use arrow keys to move.");
     entry.iframe.title = entry.activity.title;
   }
 
@@ -257,7 +277,7 @@ export function createActivityManager({
     const titleBar = entry.titleBar;
     let drag = null;
     titleBar.addEventListener("pointerdown", event => {
-      if (event.target.closest("button") || event.button !== 0 || !event.isPrimary || entry.required || (entry.maximized && !entry.minimized)) return;
+      if (event.target.closest("button") || event.button !== 0 || !event.isPrimary || entry.required || portraitActivity(entry) || (entry.maximized && !entry.minimized)) return;
       event.preventDefault();
       titleBar.focus({ preventScroll: true });
       bringToFront(entry);
@@ -266,7 +286,7 @@ export function createActivityManager({
       titleBar.setPointerCapture(event.pointerId);
     });
     titleBar.addEventListener("pointermove", event => {
-      if (!drag || event.pointerId !== drag.id) return;
+      if (!drag || event.pointerId !== drag.id || portraitActivity(entry)) return;
       entry.left = drag.left + event.clientX - drag.x;
       entry.top = drag.top + event.clientY - drag.y;
       applyGeometry(entry);
@@ -281,7 +301,7 @@ export function createActivityManager({
     titleBar.addEventListener("pointercancel", endDrag);
     titleBar.addEventListener("lostpointercapture", endDrag);
     titleBar.addEventListener("keydown", event => {
-      if (event.target !== titleBar || entry.required || (entry.maximized && !entry.minimized)) return;
+      if (event.target !== titleBar || entry.required || portraitActivity(entry) || (entry.maximized && !entry.minimized)) return;
       const movement = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }[event.key];
       if (!movement) return;
       event.preventDefault();
@@ -290,7 +310,7 @@ export function createActivityManager({
       applyGeometry(entry);
     });
     entry.min.onclick = () => {
-      if (entry.required) return;
+      if (entry.required || portraitActivity(entry)) return;
       bringToFront(entry);
       entry.minimized = !entry.minimized;
       updateControls(entry);
@@ -298,7 +318,7 @@ export function createActivityManager({
       if (!entry.minimized) sendState(entry);
     };
     entry.max.onclick = () => {
-      if (entry.required) return;
+      if (entry.required || portraitActivity(entry)) return;
       bringToFront(entry);
       entry.maximized = !entry.maximized;
       entry.minimized = false;
@@ -438,6 +458,12 @@ export function createActivityManager({
   new ResizeObserver(() => {
     windows.forEach(entry => applyGeometry(entry));
   }).observe(layer);
+  portraitMedia.addEventListener("change", () => {
+    windows.forEach(entry => {
+      updateControls(entry);
+      applyGeometry(entry);
+    });
+  });
 
   return {
     async sync(activities) {

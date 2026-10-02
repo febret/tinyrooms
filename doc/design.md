@@ -148,7 +148,7 @@ displays a 3D room rendering in the center, peeps on the left, and a
 primary interaction area at the bottom. Overlay UIs can be displayed on top of
 the primary screen.
 
-Inventory, Room View, Skills View, Journal, Self View, Emotes View, and Prop Details
+Inventory, Room View, Skills View, Journal, Self View, and Prop Details
 View are **Board-modal views**: they block interaction with the Board behind them,
 but the Peeps List, Look Bar,
 Quick Actions Bar, and Chat Bar remain usable. Their bottom-bar actions apply to
@@ -200,6 +200,10 @@ floor texture, but other more complex room displays are also supported.
 #### The Peeps List
 The Peeps List shows the list of peeps in this room (both user-controlled peeps and NPCs).
 The user's own peep is displayed at the top left, slightly larger than the others.
+It is an overlay down the left edge of the Board: the Board stays visible behind
+it, and the Inventory, Journal, and activity windows may overlap it too. A toolbar
+button toggles the Peeps List; hiding it hides the peep standees but keeps their
+speech and emote bubbles anchored along the left edge.
 
 Users can **pin / unpin** peeps (through a quick action on a selected peep).
 Pinned peeps take precedence in the Peeps List ordering. When too many peeps are
@@ -208,23 +212,28 @@ individually, while unpinned peeps are collapsed into a single **peep group**
 entry that can be expanded to see the individual peeps.
 
 #### The Card View
-The Card View shows a list of cards, which represent actions the user can take.
-The Card View is split into core cards and equipped cards.
+The Card View shows the equipped item and action stacks, which represent actions
+the user can take. It sits at the bottom of the main screen.
 
-**Core** cards are displayed on the left and represent core gameplay actions or
-submenus like checking the inventory or opening the list of available emotes.
-They are non-collectible controls: they do not appear in card packs, cannot be
+**Core** controls are non-collectible buttons that open built-in gameplay actions
+or submenus. Inventory and Journal sit in a horizontal toolbar at the top of the
+screen, beside a button that toggles the Peeps sidebar; the Emotes control sits to
+the left of the Chat Bar. Core controls do not appear in card packs, cannot be
 dropped or traded, and use no equipment slots.
-Core card availability can depend on permissions and the room. Inventory,
+Core control availability can depend on permissions and the room. Inventory,
 Emotes, and Journal are available from the start in the tutorial and are always
 displayed in a fixed order. Room View and Skills are opened from quick actions
-rather than core cards. The tutorial teaches these views gradually rather than
+rather than core controls. The tutorial teaches these views gradually rather than
 locking them; Skills initially has no unlocked slots.
 
-**Equipped** item and action stacks are displayed beside the core cards. Their
+**Equipped** item and action stacks are displayed in the Card View. Their
 capacity, eligibility, and passive bonuses follow the [Equipment](#equipment)
-rules. Skills use a separate grid; owned emotes are available through Emotes View
-without equipping.
+rules. Skills use a separate grid; owned emotes are available through the Emote
+Picker without equipping. Equipped cards sit at the right edge of the tray, with
+only their artwork showing above the bottom dock until hovered or selected; they
+rise smoothly to reveal the full card. On narrow portrait screens, the cards
+shrink to fit while the selected peep sticker or prop preview remains in a
+separate lane on the left.
 
 The user's own peep offers `Open Self`, `Friends`, and `Skills` quick actions. A
 room the user owns offers an `Edit Room` quick action, which opens the
@@ -297,7 +306,7 @@ pickup.
 
 Skill and emote cards may also be dropped and picked up. A slotted skill copy
 must first be removed from its skill slot before it can be dropped. Dropping
-the last owned copy of an emote removes it from the user's Emotes View.
+the last owned copy of an emote removes it from the user's Emote Picker.
 Core cards cannot be transferred.
 
 
@@ -323,17 +332,17 @@ The longer description and equipment information reflect the card's current
 stats and status.
 
 
-### Emotes View
-![Emotes View](./images/emotes-view.png)
+### Emote Picker
+Selecting the Emotes button beside the Chat Bar expands the Emote Picker
+horizontally. The picker lets the user play emote cards, which produce visual
+effects, emojis, and animations without gameplay modifiers. Playing them still
+has the configured [Energy cost](#energy-costs).
 
-Selecting the Emotes core card opens the Emotes View. The Emotes View lets the
-user play emote cards, which produce visual effects, emojis, and animations
-without gameplay modifiers. Playing them still has the configured
-[Energy cost](#energy-costs).
-
-Emotes are grouped into three types (described below). A central set of buttons
-lets the user choose the type. Owned emote cards of the selected type are shown as a
-circle around the central buttons.
+Owned emotes are grouped under three headings — **Emotes** (Expressions),
+**Animations**, and **Scenes** (Cutscenes). Each heading shows the artwork of
+the owned cards in that group as clickable icons. Choosing an icon plays that
+emote immediately and closes the picker; clicking anywhere else closes the
+picker without playing anything.
 
 The emote types are:
 - **Expressions**: simple expressions displayed as large emojis in speech bubbles
@@ -679,7 +688,7 @@ one slot. For one-use cards, the stack size is the number of remaining uses.
 
 Skill cards use the separate [skill grid](#skills) and do not count toward this
 limit. Emotes do not need equipping; all owned emotes available in the current
-world can be played through Emotes View.
+world can be played through the Emote Picker.
 
 Cards may define passive equipment bonuses. Each copy in an equipped stack
 contributes its bonuses; unequipping ends them. Card definitions specify the
@@ -757,8 +766,9 @@ section. Props still use their own idempotent `.buy_prop` purchase.
 -------------------------------------------------------------------------------
 ## Card Actions
 Selecting an ordinary card selects it without playing it. The user must choose
-`Use` or another named quick action on the card to play it. Core cards remain an
-exception: selecting a core card opens its view or invokes its built-in action.
+`Use` or another named quick action on the card to play it. Core controls remain
+an exception: selecting a core control opens its view or invokes its built-in
+action.
 
 Cards can target props or peeps, including the user's own peep. A self-only
 action resolves when its quick action is chosen. An action requiring a target

@@ -23,6 +23,17 @@
       <aside id="peeps-panel" class="sidebar" aria-label="Peeps in this room"></aside>
       <main class="board-column">
         <header class="topbar">
+          <div class="topbar-core">
+            <button id="peeps-toggle" type="button" class="icon-button peeps-visibility" aria-label="Hide peeps" aria-expanded="true" aria-controls="peeps-panel" title="Toggle peep list">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                <circle cx="9" cy="8" r="3.2"></circle>
+                <path d="M3.5 19c0-3.1 2.6-5.2 5.5-5.2s5.5 2.1 5.5 5.2"></path>
+                <circle cx="17" cy="8.6" r="2.4"></circle>
+                <path d="M15.2 14.4c2.7-.3 5.3 1.5 5.3 4.6"></path>
+              </svg>
+            </button>
+            <nav id="core-tools" class="core-tools" aria-label="Core cards"></nav>
+          </div>
           <p id="connection-status" class="connection-status" aria-live="polite"></p>
           <details id="settings" class="settings">
             <summary class="icon-button" aria-label="Settings" title="Settings">&#9881;</summary>
@@ -31,6 +42,7 @@
         </header>
         <section class="board-frame" aria-label="Room board">
           <canvas id="board-canvas" aria-label="Three-dimensional room. Drag to rotate; scroll or pinch to zoom."></canvas>
+          <button id="prop-default-action" type="button" class="prop-default-action" hidden></button>
           <div id="target-line" class="target-line" hidden>
             <svg aria-hidden="true">
               <line class="target-line-stroke"></line>
@@ -46,11 +58,14 @@
           <div id="detail-layer" class="detail-layer"></div>
         </section>
         <section class="bottom-stack">
-          <section id="card-hand" class="card-hand" aria-label="Core and equipped cards"></section>
+          <section id="card-hand" class="card-hand" aria-label="Equipped cards"></section>
           <div class="interaction-dock">
             <section id="look-bar" class="look-bar" aria-label="Current selection" aria-live="polite"></section>
             <section id="actions-bar" class="actions-bar" aria-label="Actions for current selection"></section>
             <form id="chat-form" class="chat-bar">
+              <button id="emote-toggle" type="button" class="icon-button emote-button" aria-label="Emotes" aria-expanded="false" aria-controls="emote-menu" title="Emotes">
+                <img id="emote-toggle-icon" alt="" aria-hidden="true">
+              </button>
               <input id="chat-input" name="chat" autocomplete="off" maxlength="240" placeholder="Chat or command" aria-label="Chat message or command" role="combobox" aria-expanded="false" aria-controls="chat-completions" aria-autocomplete="list" aria-haspopup="listbox">
               <div id="chat-completions" class="chat-completions" role="listbox" aria-label="Completions" hidden></div>
               <button type="submit" class="icon-button send-button" aria-label="Send message" title="Send">&#8599;</button>
@@ -61,6 +76,7 @@
                 </svg>
                 <span class="talk-icon" aria-hidden="true">&#127908;</span>
               </button>
+              <div id="emote-menu" class="emote-menu" role="group" aria-label="Emotes" inert></div>
             </form>
           </div>
           <section id="editor-dock" class="editor-dock" aria-label="Room editor"></section>

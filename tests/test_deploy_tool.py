@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import importlib.util
 import json
 import tarfile
@@ -137,6 +138,24 @@ class AdminEnvTests(unittest.TestCase):
         )
         self.assertEqual(values["TRSERVER_MC_PASSPHRASE"], "operator-passphrase")
         self.assertEqual(values["TRSERVER_MC_TOKEN"], "shared-secret")
+
+
+class UploadTests(unittest.TestCase):
+    def test_partial_name_is_content_addressed(self) -> None:
+        name = deploy.partial_tarball_name("tinyrooms-1.2.3.tar.gz", "a" * 64)
+        self.assertEqual(name, ".tinyrooms-1.2.3.tar.gz.aaaaaaaaaaaa.part")
+
+    def test_partial_name_changes_with_digest(self) -> None:
+        first = deploy.partial_tarball_name("tinyrooms-1.2.3.tar.gz", "0" * 64)
+        second = deploy.partial_tarball_name("tinyrooms-1.2.3.tar.gz", "1" * 64)
+        self.assertNotEqual(first, second)
+
+    def test_local_sha256_matches_hashlib(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "blob.bin"
+            payload = b"tinyrooms" * 4096
+            path.write_bytes(payload)
+            self.assertEqual(deploy.local_sha256(path), hashlib.sha256(payload).hexdigest())
 
 
 class PackageTests(unittest.TestCase):

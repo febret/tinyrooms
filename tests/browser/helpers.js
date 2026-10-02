@@ -70,7 +70,7 @@ export async function closeOverlays(page) {
 
 export async function openCore(page, id) {
   await closeOverlays(page);
-  await page.locator(`#card-hand [data-core-id="${id}"]`).click();
+  await page.locator(`#core-tools [data-core-id="${id}"]`).click();
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
@@ -98,37 +98,36 @@ export async function createEditorAccount(page, runtime, username = "editor", po
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
 }
 
-// Select the room by clicking an empty board point, then open the editor.
+/** Click empty board points (clear of the Peeps sidebar and top toolbar) until the room is selected. */
+async function selectRoom(page, action) {
+  if (await action.count()) return;
+  const box = await page.locator("#board-canvas").boundingBox();
+  for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.18], [0.5, 0.9], [0.18, 0.5], [0.82, 0.5]]) {
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    if (await action.count()) return;
+  }
+}
+
+// The room is selected after loading or travelling; only probe the board if it is not.
 export async function openEditRoom(page) {
   await closeOverlays(page);
-  const box = await page.locator("#board-canvas").boundingBox();
   const action = page.locator("#actions-bar").getByRole("button", { name: "Edit Room", exact: true });
-  for (const [fx, fy] of [[0.5, 0.06], [0.5, 0.94], [0.08, 0.5], [0.92, 0.5], [0.5, 0.5]]) {
-    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
-    if (await action.count()) {
-      await action.click();
-      const panel = page.locator("#editor-dock .edit-room-view");
-      await expect(panel).toBeVisible();
-      await expect(panel.locator(".editor-library-grid")).toBeVisible();
-      return panel;
-    }
-  }
-  throw new Error("Could not open Edit Room: no board point selected the room.");
+  await selectRoom(page, action);
+  if (!(await action.count())) throw new Error("Could not open Edit Room: no board point selected the room.");
+  await action.click();
+  const panel = page.locator("#editor-dock .edit-room-view");
+  await expect(panel).toBeVisible();
+  await expect(panel.locator(".editor-library-grid")).toBeVisible();
+  return panel;
 }
 
 export async function openRoomView(page) {
   await closeOverlays(page);
-  const box = await page.locator("#board-canvas").boundingBox();
   const action = page.locator("#actions-bar").getByRole("button", { name: "Open Room View", exact: true });
-  for (const [fx, fy] of [[0.5, 0.06], [0.5, 0.94], [0.08, 0.5], [0.92, 0.5], [0.5, 0.5]]) {
-    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
-    if (await action.count()) {
-      await action.click();
-      await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
-      return;
-    }
-  }
-  throw new Error("Could not open Room View: no board point selected the room.");
+  await selectRoom(page, action);
+  if (!(await action.count())) throw new Error("Could not open Room View: no board point selected the room.");
+  await action.click();
+  await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
 async function openPeepAction(page, label) {
@@ -153,8 +152,10 @@ export async function openSkills(page) {
 // Click across the floor until a prop (not the room) is selected; returns whether one was found.
 export async function selectFirstProp(page) {
   const box = await page.locator("#board-canvas").boundingBox();
-  for (let fy = 0.05; fy <= 0.95; fy += 0.06) {
-    for (let fx = 0.05; fx <= 0.95; fx += 0.06) {
+  // Stay clear of the Peeps sidebar (left) and the top toolbar (top-right),
+  // which now overlay the full-width board.
+  for (let fy = 0.16; fy <= 0.92; fy += 0.06) {
+    for (let fx = 0.14; fx <= 0.88; fx += 0.06) {
       await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
       if (await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).count()) return true;
     }
@@ -165,8 +166,8 @@ export async function selectFirstProp(page) {
 // Click across the floor until the prop with the given label is selected; returns its point.
 export async function findPropByLabel(page, label) {
   const box = await page.locator("#board-canvas").boundingBox();
-  for (let fy = 0.05; fy <= 0.95; fy += 0.05) {
-    for (let fx = 0.05; fx <= 0.95; fx += 0.05) {
+  for (let fy = 0.16; fy <= 0.9; fy += 0.05) {
+    for (let fx = 0.14; fx <= 0.88; fx += 0.05) {
       const point = { x: box.x + box.width * fx, y: box.y + box.height * fy };
       await page.mouse.click(point.x, point.y);
       const name = await page.locator("#look-bar .look-name").textContent();

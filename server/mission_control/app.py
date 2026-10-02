@@ -24,6 +24,7 @@ from server.mission_control.auth import McSessionStore
 from server.mission_control.config import MCConfig
 from server.mission_control.packages import PackageManager
 from server.mission_control.registry import InstanceRegistry
+from server.mission_control.server_info import ServerInfoService
 from server.mission_control.supervisor import Supervisor
 from server.mission_control.users import UserManager
 from server.profiles import ProfileRepository
@@ -46,6 +47,7 @@ class McRuntime:
     registry: InstanceRegistry
     supervisor: Supervisor
     packages: PackageManager
+    server_info: ServerInfoService
     users: UserManager
     sessions: McSessionStore
     limiter: RateLimiter
@@ -63,6 +65,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
     registry = InstanceRegistry(stale_after_seconds=config.heartbeat_seconds * 3)
     supervisor = Supervisor(config, registry, audit)
     packages = PackageManager(config, registry, audit)
+    server_info = ServerInfoService(config)
     users = UserManager(hub, profiles, audit)
     verify: object = True
     if config.insecure_tls:
@@ -79,6 +82,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
         registry=registry,
         supervisor=supervisor,
         packages=packages,
+        server_info=server_info,
         users=users,
         sessions=McSessionStore(),
         limiter=RateLimiter(),

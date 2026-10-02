@@ -32,6 +32,7 @@ class MCConfig:
     instances_path: Path
     versions_path: Path
     content_root: Path
+    install_path: Path | None
     ca_file: Path | None
     insecure_tls: bool
     heartbeat_seconds: float
@@ -84,6 +85,23 @@ class MCConfig:
         """Return the directory of deployed release artifacts."""
 
         return self.content_root / "releases"
+
+    @property
+    def install_root(self) -> Path:
+        """Return the Tinyrooms install directory the storage view measures.
+
+        When the running checkout is nested inside the deploy content root (a
+        production deploy) the content root is the install; otherwise the
+        running checkout itself is the install (local development).
+        """
+
+        if self.install_path is not None:
+            return self.install_path
+        content = self.content_root.resolve()
+        repo = self.repo_root.resolve()
+        if repo == content or content in repo.parents:
+            return content
+        return repo
 
     @property
     def ui_path(self) -> Path:
@@ -165,6 +183,9 @@ def load_mc_config(
         values.get("TRSERVER_MC_CONTENT_PATH", str(versions_path.parent))
     ).expanduser()
 
+    install_raw = values.get("TRSERVER_MC_INSTALL_PATH", "").strip()
+    install_path = Path(install_raw).expanduser() if install_raw else None
+
     ca_raw = values.get("TRSERVER_MC_CA_FILE", "").strip()
     ca_file = Path(ca_raw).expanduser().resolve() if ca_raw else None
     insecure_tls = parse_bool(values.get("TRSERVER_MC_INSECURE_TLS", "0"))
@@ -201,6 +222,7 @@ def load_mc_config(
         instances_path=instances_path,
         versions_path=versions_path,
         content_root=content_root,
+        install_path=install_path,
         ca_file=ca_file,
         insecure_tls=insecure_tls,
         heartbeat_seconds=heartbeat_seconds,

@@ -21,6 +21,7 @@ It has three sections:
 | --- | --- |
 | **Server Manager** | List running world servers with runtime stats, loaded world, and online users; start new instances against a chosen server version, world definition, and optional worldstate DB; drill into one server to view its log and send admin commands. |
 | **Package Manager** | Inventory installed server versions (with running-instance counts and deletion of unused versions) and the shared world definitions, cardsets, and propsets installed outside any single version. |
+| **Server Info** | Show the host the MC process runs on: CPU, memory, process, and filesystem metrics, plus storage used by the Tinyrooms install broken down by top-level directory. |
 | **User Manager** | Query and modify accounts and related profile tables in the shared profile database; force running servers to resync user profile data. |
 
 Mission control is a development/operations tool. It is **not** a public
@@ -86,6 +87,7 @@ world server(s)  -- also self-register when started outside MC
 | `TRSERVER_MC_INSTANCES_PATH` | No | `.local/mc-instances` | Per-instance runtime dirs for MC-spawned servers. |
 | `TRSERVER_MC_VERSIONS_PATH` | No | `.local/mc-versions` | Directory of additional installed server checkouts to inventory. |
 | `TRSERVER_MC_CONTENT_PATH` | No | parent of `TRSERVER_MC_VERSIONS_PATH` | Deploy content root holding shared `worlds/`, `cardsets/`, and `propsets/` plus `releases/`. |
+| `TRSERVER_MC_INSTALL_PATH` | No | auto-detected | Directory whose storage the Server Info tab measures. Defaults to the deploy content root in a production deploy, otherwise the running checkout. |
 | `TRSERVER_MC_CA_FILE` | No | — | PEM CA bundle used to verify world-server TLS. |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` | Dev-only: skip world-server cert verification. |
 | `TRSERVER_MC_HEARTBEAT_SECONDS` | No | `5` | Expected heartbeat interval; used for staleness. |
@@ -279,6 +281,33 @@ Connects directly to the configured profile DB (§4, §8.2) and provides:
 - **Resync**: choose one running instance or "all instances" and force a
   profile reload (see §11.5). Shows per-instance success/failure.
 
+### 5.6 Server Info
+
+Describes the host the MC process runs on. Read-only and operator-only; no
+secrets (MC token/passphrase) are ever included.
+
+- **Host**: hostname, OS/release/machine, CPU model and logical count, Python
+  version, host uptime, and load average.
+- **CPU**: system busy percent and MC process CPU percent, sampled over a short
+  (~150 ms) window in a worker thread so the event loop is not blocked.
+- **Memory**: total/used/available and swap (host-wide).
+- **MC process**: pid, uptime, resident/virtual memory, thread count.
+- **Disk**: total/used/free and percent for the filesystem holding the install
+  root.
+- **Configuration**: MC version, protocol, profile/world schema versions,
+  listen address, actor, feature flags, nginx/keepalive configuration, and the
+  repo/content/install/versions/releases/users paths.
+- **Install storage**: recursive size of each top-level entry of the install
+  root (`TRSERVER_MC_INSTALL_PATH`, auto-detected — see §8.3), shown as a size
+  and share bar. The scan runs in a worker thread, does not follow symlinks, is
+  cached for 60 s, and can be forced with `?refresh=1`.
+
+**Linux-first**: system CPU, memory, swap, host uptime, and load average are
+read from `/proc` and `os.getloadavg` and therefore only appear on Linux hosts;
+other platforms show an em dash. Host, process, disk, and storage figures work
+everywhere. The UI auto-refreshes metrics every 5 s (toggleable) and rescans
+storage on demand.
+
 ## 6. World-server mission-control API (`server/mc_api.py`)
 
 Mounted only when `TRSERVER_MC_ENDPOINT` is set. All endpoints require the
@@ -341,6 +370,8 @@ Mounted on the MC server, gated by the `mission-control` feature and MC auth.
 | `GET` | `/api/mission-control/packages` | Shared-content + server-version inventory. |
 | `GET` | `/api/mission-control/worlds?version=` | Worlds available to a server version. |
 | `DELETE` | `/api/mission-control/versions/{id}` | Delete an unused server version. |
+| `GET` | `/api/mission-control/server` | Host/CPU/memory/process/disk/config snapshot. |
+| `GET` | `/api/mission-control/server/storage?refresh=` | Install storage breakdown by top-level directory. |
 | `GET` | `/api/mission-control/users` | Search/list accounts. |
 | `GET` | `/api/mission-control/users/{id}` | Account detail + related rows. |
 | `PATCH` | `/api/mission-control/users/{id}` | Edit supported fields. |

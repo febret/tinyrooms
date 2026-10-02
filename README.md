@@ -48,6 +48,7 @@ the port on trusted networks.
 | `TRSERVER_MC_ENDPOINT` | `host:port` of the mission-control server; enables the world's `/api/mc/*` client |
 | `TRSERVER_MC_TOKEN` | Shared secret for the mission-control channel (required with `TRSERVER_MC_ENDPOINT`) |
 | `TRSERVER_MC_NAME` | Display name for this instance; defaults to `world_id@host:port` |
+| `TRSERVER_SHARED_CONTENT_PATH` | Deploy content root whose `cardsets/` and `propsets/` layer over the checkout's bundled content (shared wins on collisions) |
 | `TRSERVER_MC_CA_FILE` | PEM CA bundle used to verify the mission-control server certificate |
 | `TRSERVER_MC_INSECURE_TLS` | Dev-only: skip mission-control certificate verification |
 | `TRSERVER_PEEP_AGENT_*` | Optional; required only for dynamic peeps. See [doc/dynamic-peeps.md](doc/dynamic-peeps.md) |
@@ -120,27 +121,6 @@ confirmation writes `TRSERVER_MC_NGINX_CONF` and runs
 regenerate the config automatically when nginx management is configured.
 **Reboot** stops every spawned instance, records them for resume, and shuts MC
 down; the keepalive restarts it and the recorded instances come back up.
-
-| Variable | Purpose |
-| --- | --- |
-| `TRSERVER_FEATURES` | Must include `mission-control` |
-| `TRSERVER_MC_PASSPHRASE` | Required operator login passphrase |
-| `TRSERVER_MC_TOKEN` | Required shared secret for the MC ↔ world channel |
-| `TRSERVER_MC_HOST` | Listener address; defaults to `127.0.0.1` |
-| `TRSERVER_MC_PORT` | HTTPS port; defaults to `8001` |
-| `TRSERVER_MC_USERS_PATH` | Profile DB directory to manage; defaults to `users` |
-| `TRSERVER_MC_INSTANCES_PATH` | Runtime dirs for MC-spawned servers; defaults to `.local/mc-instances` |
-| `TRSERVER_MC_VERSIONS_PATH` | Extra server checkouts to inventory; defaults to `.local/mc-versions` |
-| `TRSERVER_MC_CA_FILE` | PEM CA bundle used to verify world-server TLS |
-| `TRSERVER_MC_INSECURE_TLS` | Dev-only: skip world-server cert verification |
-| `TRSERVER_MC_HEARTBEAT_SECONDS` | Expected heartbeat interval; defaults to `5` |
-| `TRSERVER_MC_ACTOR` | World username used as the admin-console actor; defaults to `mission-control` |
-| `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE` | Invitation used for MC-spawned worlds; generated when unset |
-| `TRSERVER_MC_BASE_PATH` | Optional URL prefix for the MC UI behind a reverse proxy; e.g. `/admin` |
-| `TRSERVER_MC_PUBLIC_ORIGIN` | Comma-separated extra browser origins accepted behind a proxy |
-| `TRSERVER_MC_NGINX_CONF` | Path to the nginx site config the Server Manager regenerates |
-| `TRSERVER_MC_NGINX_RELOAD` | Command that installs the generated config and reloads nginx |
-| `TRSERVER_MC_KEEPALIVE` | Keepalive script rerun by the **Reboot** action; set by the deploy tool |
 
 ## Deploying
 

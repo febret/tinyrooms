@@ -21,6 +21,7 @@ import { snapPositionValue } from "./editing/edit-reducer.js";
 import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
 import { applyDarkLighting, createBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
+import { createBoardOutlines } from "./board-outlines.js";
 import { withBase } from "./base-path.js";
 export const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
@@ -88,7 +89,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
   const lights = createBoardLights(scene);
 
-  /** Pixel scale used by point-sprite effects so particle size is world-sized. */
   function effectPixelScale() {
     return renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI / 180) / 2));
   }
@@ -132,6 +132,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let editDrag = null;
   let orbitSuppressed = false;
   let reducedMotion = false;
+  let showActiveProps = false;
   let roomDark = false;
   let roomScared = false;
   let userAdjusted = false;
@@ -146,6 +147,8 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     needsRender = true;
     renderer.shadowMap.needsUpdate = true;
   }
+
+  const outlines = createBoardOutlines(renderer, scene, camera);
 
   const editModifier = createEditModifier(active => {
     gizmo.setVerticalMode(active);
@@ -182,9 +185,15 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     for (const object of current?.pickables || []) {
       if (object.userData.kind !== selection?.kind || object.userData.id !== selection?.id) continue;
       selectionObject = object;
-      selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
-      selectionRing.visible = true;
+      if (object.userData.kind !== "prop") {
+        selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
+        selectionRing.visible = true;
+      }
       break;
+    }
+    const showProps = !editEnabled && !roomDark;
+    for (const record of current?.props.values() || []) {
+      if (outlines.update(record, showProps && selection?.kind === "prop" && selection.id === record.id, showProps && showActiveProps)) invalidate();
     }
     editSelectionObject = editEnabled && editSelectionId
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
@@ -465,6 +474,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     stopRecordAnimations(record);
     record.effectController?.dispose();
     record.effectController = null;
+    outlines.remove(record);
     setGhosted(record, false);
     setDarkened(record, false);
     disposeBoardTree([record.group, ...(record.scenes || [])], { textures: false });
@@ -791,6 +801,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     width = nextWidth;
     height = nextHeight;
     renderer.setSize(width, height, false);
+    outlines.resize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     invalidate();
@@ -937,7 +948,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     // Props in a dark room cannot be interacted with, so they never take a click.
     if (owner?.userData.kind === "prop" && roomDark) owner = null;
     if (owner) {
-      onSelect({ kind: owner.userData.kind, id: owner.userData.id });
+      onSelect({ kind: owner.userData.kind, id: owner.userData.id }, { x: event.clientX, y: event.clientY });
       return;
     }
     if (roomId) onSelect({ kind: "room", id: roomId });
@@ -1060,7 +1071,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (needsRender || sceneIsAnimating()) {
         needsRender = false;
         renderedFrames += 1;
-        renderer.render(scene, camera);
+        outlines.render();
       }
       frame = requestAnimationFrame(animate);
     } catch {
@@ -1107,6 +1118,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (disposed) return;
       selection = state.selection;
       reducedMotion = Boolean(state.ui?.reducedMotion);
+      showActiveProps = Boolean(state.ui?.outlineActiveProps);
       controls.enableDamping = !state.ui?.reducedMotion;
       editEnabled = Boolean(state.editing);
       editSnapPosition = state.editor?.snapPosition ?? true;
@@ -1176,6 +1188,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       editModifier.dispose();
       clear();
       gizmo.dispose();
+      outlines.dispose();
       // GHOST_MATERIAL is a page-lifetime shared resource, so it is not disposed with one board.
       disposeBoardTree(selectionRing);
       disposeBoardTree(dropHint);

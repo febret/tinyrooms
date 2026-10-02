@@ -13,7 +13,7 @@ import { escapeHtml, updateMarkup } from "./presentation.js";
 import { longDescription, rarityLabel, tileMarkup } from "./views/view-helpers.js";
 import { roomView } from "./views/room-view.js";
 import { inventoryView } from "./views/inventory-view.js";
-import { emotesView } from "./views/emotes-view.js";
+import { emoteMenuMarkup } from "./views/emote-menu.js";
 import { skillsView } from "./views/skills-view.js";
 import { friendsView } from "./views/friends-view.js";
 import { selfView } from "./views/self-view.js";
@@ -27,7 +27,7 @@ function coreMarkup(definition, selected) {
   return `
     <button type="button" class="game-card core ${selected ? "selected" : ""}" data-core-id="${escapeHtml(definition.id)}"
       aria-label="${escapeHtml(definition.label)}" aria-pressed="${selected}" title="${escapeHtml(definition.label)}">
-      <img src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
+      <img src="${escapeHtml(definition.imageUrl)}" alt="">
     </button>
   `;
 }
@@ -77,8 +77,8 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-swap-sticker]").forEach(button => {
     button.onclick = () => onAction({ type: "swap-sticker" });
   });
-  root.querySelectorAll("[data-emote-category]").forEach(button => {
-    button.onclick = () => onAction({ type: "emote-category", category: button.dataset.emoteCategory });
+  root.querySelectorAll("[data-emote-play]").forEach(button => {
+    button.onclick = () => onAction({ type: "play-emote", stackId: button.dataset.emotePlay });
   });
   root.querySelectorAll("[data-journal-tab]").forEach(button => {
     button.onclick = () => onAction({ type: "journal-tab", tab: button.dataset.journalTab });
@@ -123,7 +123,6 @@ function boardModal(state) {
   if (!view || !state.room) return "";
   if (view === "room") return roomView(state);
   if (view === "inventory") return inventoryView(state);
-  if (view === "emotes") return emotesView(state);
   if (view === "skills") return skillsView(state);
   if (view === "friends") return friendsView(state);
   if (view === "self") return selfView(state);
@@ -354,8 +353,9 @@ function inventoryStackActions(stack) {
 }
 
 /** Render core cards, equipped/inventory previews, board-modal views, and card details. */
-export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
+export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
   const rendered = new WeakMap();
+  let lastEquippedSelection = null;
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
@@ -364,7 +364,7 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, o
     const value = identity ? active.dataset[identity] : null;
     const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
     const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .editor-workspace, .editor-env, .editor-propsets, .editor-heading-tags, .editor-library-grid, .journal-page-inner, .card-view, .card-view-info, .card-hand-strip, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .editor-workspace, .editor-env, .editor-propsets, .editor-heading-tags, .editor-library-grid, .journal-page-inner, .card-view, .card-view-info, .emote-menu-track, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -430,18 +430,31 @@ export function createCardsView({ handRoot, panelRoot, detailRoot, editorRoot, o
     renderEditor,
     render(state) {
       const coreCards = state.user?.coreCards || {};
-      const coreOrder = state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards);
+      // Emotes moved beside the chat bar, so the top toolbar carries the remaining
+      // core controls (inventory and journal) in their authored order.
+      const coreOrder = (state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards))
+        .filter(id => id !== "emotes");
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
-      update(handRoot, `
-        <div class="card-hand-section">
-          <div class="card-hand-strip" role="group" aria-label="Core cards">
-            ${coreOrder.map(id => coreMarkup(coreCards[id], state.views.main === id || state.selection.kind === "core" && state.selection.id === id)).join("")}
-          </div>
-          ${equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards">
-            ${equipped.map(stack => tileMarkup(stack.definition, stack, state.selection.kind === "inventory-card" && state.selection.id === stack.stackId, "inventory")).join("")}
-          </div>` : ""}
-        </div>
-      `);
+      update(coreRoot, coreOrder.map(id => coreMarkup(
+        coreCards[id],
+        state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
+      )).join(""));
+      const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
+        ${equipped.map(stack => tileMarkup(stack.definition, stack, false, "inventory")).join("")}
+      </div>` : "");
+      const equippedSelection = state.selection.kind === "inventory-card" ? state.selection.id : null;
+      if (handChanged || equippedSelection !== lastEquippedSelection) {
+        handRoot.querySelectorAll(".equipped-hand [data-stack-id]").forEach(button => {
+          const selected = equippedSelection === button.dataset.stackId;
+          if (button.classList.contains("selected") !== selected) button.classList.toggle("selected", selected);
+          if (button.getAttribute("aria-pressed") !== String(selected)) button.setAttribute("aria-pressed", String(selected));
+        });
+        lastEquippedSelection = equippedSelection;
+      }
+      if (menuRoot) {
+        update(menuRoot, state.room ? emoteMenuMarkup(state) : "");
+        menuRoot.classList.toggle("open", Boolean(state.room && state.ui.emoteMenuOpen));
+      }
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));
       renderEditor(state);
