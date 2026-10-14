@@ -1,14 +1,4 @@
-// Card targeting: with an equipped target card selected, clicking a matching
-// prop/peep enters targeting, previews a line from the card to that target, and
-// shows an inline "Use <card> on <target>" button. Clicking the target again or
-// the button confirms.
-//
-// Targeting state lives in `state.ui.targeting`. This controller arms targeting
-// and turns clicks on props/peeps into `.use` commands; opening another view or
-// Escape is handled by the store's reducers.
-
-import { armedTargetStack, findInventoryCard } from "./state.js";
-import { createTargetActionButton } from "./target-action-button.js";
+import { isTargetableStack, findInventoryCard } from "./state.js";
 
 export function createTargetingController({ board, boardFrame, getState, store, sendCommand, onToast, onError }) {
   const layer = boardFrame?.querySelector("#target-line") || null;
@@ -16,10 +6,8 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   const stroke = svg?.querySelector(".target-line-stroke") || null;
   const sourceDot = svg?.querySelector(".target-line-source") || null;
   const endDot = svg?.querySelector(".target-line-end") || null;
-  const confirmButton = createTargetActionButton({
-    button: boardFrame?.querySelector("#target-confirm") || null,
-    onConfirm: () => confirm(),
-  });
+  const button = boardFrame?.querySelector("#target-confirm") || null;
+  if (button) button.onclick = confirm;
   let preview = null;
   let sourceStackId = "";
   let sourcePoint = null;
@@ -27,7 +15,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
 
   function eligibleKind(state) {
     const stack = findInventoryCard(state, state.ui.targeting?.stackId);
-    return stack?.definition?.target || "";
+    return isTargetableStack(stack) ? stack.definition.target : "";
   }
 
   function toFrame(point) {
@@ -38,7 +26,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   }
 
   function captureSource(stackId) {
-    if (sourceStackId === stackId && sourcePoint) return;
+    if (sourceStackId !== stackId) preview = null;
     sourceStackId = stackId;
     const tile = document.querySelector(`#card-hand [data-stack-id="${CSS.escape(stackId)}"]`)
       || document.querySelector(`#panel-layer [data-stack-id="${CSS.escape(stackId)}"]`);
@@ -68,11 +56,12 @@ export function createTargetingController({ board, boardFrame, getState, store, 
 
   function draw() {
     const state = getState();
+    if (state.ui.targeting) captureSource(state.ui.targeting.stackId);
     const show = Boolean(preview && state.ui.targeting);
-    if (layer) layer.hidden = !show;
     const end = show ? targetPoint(preview.kind, preview.id) : null;
+    if (layer) layer.hidden = !end;
+    if (button) button.hidden = !end;
     if (!stroke || !sourcePoint || !end) {
-      confirmButton.clear();
       return;
     }
     stroke.setAttribute("x1", sourcePoint.x);
@@ -83,7 +72,18 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       dot?.setAttribute("cx", x);
       dot?.setAttribute("cy", y);
     }
-    confirmButton.sync(state, preview, end);
+    if (button) {
+      const entities = preview.kind === "prop" ? state.room.props : [...state.room.occupants, ...state.room.npcs];
+      const target = entities.find(entity => entity.id === preview.id);
+      if (!target) { button.hidden = true; return; }
+      const text = `Use ${state.ui.targeting.label} on ${target.label}`;
+      if (button.textContent !== text) button.textContent = text;
+      const bounds = boardFrame.getBoundingClientRect();
+      const left = `${Math.max(0, Math.min(bounds.width - button.offsetWidth, end.x + 14))}px`;
+      const top = `${Math.max(0, Math.min(bounds.height - button.offsetHeight, end.y + 14))}px`;
+      if (button.style.left !== left) button.style.left = left;
+      if (button.style.top !== top) button.style.top = top;
+    }
   }
 
   function confirm() {
@@ -107,21 +107,10 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   /** Absorb a board/sidebar selection while targeting; true when handled. */
   function handle(selection) {
     const state = getState();
-    if (!state.ui.targeting) {
-      const stack = armedTargetStack(state, selection);
-      if (!stack) return false;
-      store.dispatch({ type: "start-targeting", stackId: stack.stackId, label: stack.definition.label });
-      captureSource(stack.stackId);
-      choose(selection.kind, selection.id);
-      return true;
-    }
+    if (!state.ui.targeting) return false;
     const kind = eligibleKind(state);
-    if (kind === "prop" && selection.kind === "prop" && selection.id) {
-      choose("prop", selection.id);
-      return true;
-    }
-    if (kind === "peep" && selection.kind === "peep" && selection.id) {
-      choose("peep", selection.id);
+    if (kind === selection.kind && selection.id) {
+      choose(kind, selection.id);
       return true;
     }
     onToast(`Choose a ${kind === "peep" ? "peep" : "prop"} to use ${state.ui.targeting.label}.`, "info");
@@ -138,11 +127,12 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       sourceStackId = "";
       sourcePoint = null;
       if (layer) layer.hidden = true;
-      confirmButton.clear();
+      if (button) button.hidden = true;
       if (targeting && !eligibleKind(state)) store.dispatch({ type: "cancel-targeting" });
       return;
     }
     captureSource(targeting.stackId);
+    draw();
     if (!frame) frame = requestAnimationFrame(tick);
   }
 
@@ -152,7 +142,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     if (!state.ui.targeting) {
       preview = null;
       if (layer) layer.hidden = true;
-      confirmButton.clear();
+      if (button) button.hidden = true;
       return;
     }
     draw();

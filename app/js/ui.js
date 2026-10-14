@@ -483,9 +483,6 @@ async function handleAction(action) {
     if (action.propId) window.open(withBase(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`), "_blank", "noopener");
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
-  } else if (action.type === "start-targeting") {
-    store.dispatch({ type: "start-targeting", stackId: action.stackId, label: action.label });
-    playTone("flip");
   } else if (action.type === "cancel-targeting") {
     store.dispatch({ type: "cancel-targeting" });
   } else if (action.type === "play-emote") {
@@ -994,7 +991,7 @@ const cards = createCardsView({
     store.dispatch({ type: "select", selection });
     // While the card view is open, clicking another card retargets it instead of
     // leaving the old card on screen.
-    if (detailsOpen && (selection.kind === "room-card" || selection.kind === "inventory-card")) {
+    if (detailsOpen && !store.getState().ui.targeting && (selection.kind === "room-card" || selection.kind === "inventory-card")) {
       store.dispatch({ type: "open-details", stackId: selection.id });
     }
     playTone("flip");

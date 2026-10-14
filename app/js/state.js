@@ -888,8 +888,14 @@ function reduce(state, action) {
   if (action.type === "transport") return { ...state, transport: { ...state.transport, ...action.transport } };
   if (action.type === "stickers") return { ...state, stickers: Array.isArray(action.stickers) ? [...action.stickers] : [] };
   if (action.type === "select") {
-    const update = resolveSelection(state, action.selection);
-    return { ...state, selection: update.selection, ui: { ...state.ui, targeting: update.targeting } };
+    const selection = action.selection;
+    const stack = selection.kind === "inventory-card" ? findInventoryCard(state, selection.id) : null;
+    const targeting = isTargetableStack(stack) ? { stackId: stack.stackId, label: stack.definition.label } : null;
+    return {
+      ...state, selection,
+      views: targeting ? { ...state.views, main: null, details: null } : state.views,
+      ui: { ...state.ui, targeting, emoteMenuOpen: targeting ? false : state.ui.emoteMenuOpen },
+    };
   }
   if (action.type === "open-view") {
     return {
@@ -912,8 +918,7 @@ function reduce(state, action) {
   if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
-  if (action.type === "start-targeting") return { ...state, views: { ...state.views, main: null, details: null }, ui: { ...state.ui, targeting: { stackId: action.stackId, label: action.label }, emoteMenuOpen: false } };
-  if (action.type === "cancel-targeting") return { ...state, ui: { ...state.ui, targeting: null } };
+  if (action.type === "cancel-targeting") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" }, ui: { ...state.ui, targeting: null } };
   if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
   if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
@@ -1014,34 +1019,11 @@ export function findInventoryCard(state, stackId) {
     || null;
 }
 
-function isTargetableStack(stack) {
+export function isTargetableStack(stack) {
   const definition = stack?.definition;
   const type = definition?.type || "item";
-  return Boolean(stack?.equipped && definition?.target && (type === "item" || type === "action")
+  return Boolean(stack?.equipped && ["prop", "peep"].includes(definition?.target) && (type === "item" || type === "action")
     && !definition.passive && !definition.decorative);
-}
-
-export function armedTargetStack(state, selection) {
-  if (!state?.room || (selection?.kind !== "prop" && selection?.kind !== "peep")) return null;
-  if (state.selection?.kind !== "inventory-card") return null;
-  const stack = findInventoryCard(state, state.selection.id);
-  if (!isTargetableStack(stack)) return null;
-  return stack.definition.target === selection.kind ? stack : null;
-}
-
-/** Resolve the selection/targeting pair for a `select` action: re-clicking an armed card disarms it, and changing selection away from the targeting stack cancels targeting. */
-export function resolveSelection(state, selection) {
-  const current = state.selection;
-  const sameCard = selection?.kind === "inventory-card" && current.kind === "inventory-card" && current.id === selection.id;
-  if (sameCard && isTargetableStack(findInventoryCard(state, selection.id))) {
-    return {
-      selection: state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" },
-      targeting: null,
-    };
-  }
-  const targeting = state.ui.targeting;
-  const keepTargeting = Boolean(targeting && selection?.kind === "inventory-card" && selection.id === targeting.stackId);
-  return { selection, targeting: keepTargeting ? targeting : null };
 }
 
 export function findSelectedEntity(state) {

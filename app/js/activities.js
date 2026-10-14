@@ -105,7 +105,7 @@ export function createActivityManager({
     const label = `Restore ${entry.activity.title}`;
     entry.pill.hidden = !entry.minimized;
     if (entry.pill.textContent !== entry.activity.title) entry.pill.textContent = entry.activity.title;
-    entry.pill.classList.toggle("attention", entry.minimized && entry.node.classList.contains("attention"));
+    entry.pill.classList.toggle("attention", entry.minimized && Boolean(entry.activity.attention));
     if (entry.pill.getAttribute("aria-label") !== label) entry.pill.setAttribute("aria-label", label);
     entry.pill.title = label;
   }
@@ -143,15 +143,10 @@ export function createActivityManager({
     entry.required = requiredSticker(entry.activity);
     if (entry.required) entry.minimized = false;
     entry.node.classList.toggle("required", entry.required);
-    entry.node.classList.toggle("minimized", entry.minimized);
     entry.node.setAttribute("aria-modal", String(entry.required));
     entry.min.hidden = entry.required;
     entry.close.hidden = entry.required;
     entry.node.hidden = entry.minimized;
-    entry.titleBar.tabIndex = -1;
-    entry.min.setAttribute("aria-label", "Minimize activity");
-    entry.min.title = "Minimize activity";
-    entry.titleBar.setAttribute("aria-label", "Activity window");
     entry.iframe.title = entry.activity.title;
     syncPill(entry);
   }
@@ -200,7 +195,7 @@ export function createActivityManager({
           <span class="activity-subtitle"></span>
         </div>
         <div class="activity-controls">
-          <button type="button" class="quiet activity-min" aria-label="Minimize activity">—</button>
+          <button type="button" class="quiet activity-min" aria-label="Minimize activity" title="Minimize activity">—</button>
           <button type="button" class="quiet activity-close" aria-label="Close activity" title="Close activity">✕</button>
         </div>
       </header>
@@ -214,8 +209,6 @@ export function createActivityManager({
       iframe: node.querySelector("iframe"),
       title: node.querySelector("strong"),
       subtitle: node.querySelector(".activity-subtitle"),
-      titleBar: node.querySelector(".activity-titlebar"),
-      body: node.querySelector(".activity-body"),
       min: node.querySelector(".activity-min"),
       close: node.querySelector(".activity-close"),
       minimized: false,
@@ -388,14 +381,10 @@ export function createActivityManager({
       } catch (error) {
         onToast(`Activity attention could not be saved: ${error instanceof Error ? error.message : String(error)}`, "error");
         entry.subtitle.textContent = "Attention could not be saved";
-        if (entry.minimized) {
-          entry.node.classList.add("attention");
-          syncPill(entry);
-        }
         return;
       }
       entry.subtitle.textContent = String(event.data.message || "Needs attention");
-      if (entry.minimized) entry.node.classList.add("attention");
+      syncPill(entry);
       onToast(String(event.data.message || `${entry.activity.title} needs attention.`), "info");
       return;
     }

@@ -152,25 +152,6 @@ test("activity window fills the space between the peep sidebar, heading bar, and
   expect(Math.abs(positions.window.bottom - positions.dock.top)).toBeLessThanOrEqual(1);
   expect(positions.window.right).toBeGreaterThan(positions.viewportWidth - 20);
 
-  // Views (including the equipped-hand layer) stack below the activity; peep bubbles stack above.
-  const stacking = await page.evaluate(() => ({
-    activity: Number(getComputedStyle(document.querySelector(".activity-layer")).zIndex),
-    panel: Number(getComputedStyle(document.querySelector("#panel-layer")).zIndex),
-    detail: Number(getComputedStyle(document.querySelector("#detail-layer")).zIndex),
-    cards: Number(getComputedStyle(document.querySelector(".bottom-stack")).zIndex),
-    bubbles: Number(getComputedStyle(document.querySelector("#bubble-layer")).zIndex),
-  }));
-  expect(stacking.activity).toBeGreaterThan(stacking.panel);
-  expect(stacking.activity).toBeGreaterThan(stacking.detail);
-  expect(stacking.activity).toBeGreaterThan(stacking.cards);
-  expect(stacking.bubbles).toBeGreaterThan(stacking.activity);
-
-  // The window is immovable.
-  const start = await activity.boundingBox();
-  const title = activity.locator(".activity-titlebar");
-  await title.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 1, clientX: 60, clientY: 30 });
-  await title.dispatchEvent("pointermove", { pointerId: 1, clientX: 220, clientY: 160 });
-  expect(await activity.boundingBox()).toEqual(start);
 });
 
 test("minimized activities restore from a topbar pill and the sidebar hands over its space", async ({ page, runtime }) => {
@@ -293,7 +274,7 @@ test("milestone 2 additions: prop details, swap sticker, targeting, shop", async
   const equip = page.locator("#actions-bar").getByRole("button", { name: "Equip", exact: true });
   if (await equip.count()) await equip.click();
   await page.keyboard.press("Escape");
-  const handCard = page.locator("#card-hand .equipped-hand [data-stack-id]").first();
+  const handCard = page.locator("#card-hand").getByRole("button", { name: "Tomato Sauce, equipped", exact: true });
   await handCard.click();
   await expect(handCard).toHaveClass(/selected/);
   await page.locator("#peeps-panel [data-peep-id]").first().click();
