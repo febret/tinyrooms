@@ -25,10 +25,10 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import subprocess
 import sys
 import tarfile
-import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -51,8 +51,6 @@ SSH_OPTIONS = (
     "ServerAliveCountMax=3",
 )
 UPLOAD_ATTEMPTS = 5
-UPLOAD_SETTLE_SECONDS = 0.5
-UPLOAD_HASH_CHARS = 12
 
 EXCLUDED_DIRS = frozenset(
     {
@@ -284,14 +282,6 @@ def package(version: str, dirty: bool) -> Path:
     return tarball
 
 
-def remote_file_size(host: str, path: str) -> int | None:
-    """Return the size of a remote file in bytes, or None when unavailable."""
-
-    result = run_remote(host, f"stat -c %s {path} 2>/dev/null || true", check=False)
-    text = result.stdout.strip()
-    return int(text) if text.isdigit() else None
-
-
 def local_sha256(path: Path) -> str:
     """Return the SHA-256 hex digest of a local file."""
 
@@ -302,88 +292,62 @@ def local_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def remote_sha256(host: str, path: str) -> str | None:
-    """Return the SHA-256 hex digest of a remote file, or None when unavailable."""
+def stream_to_remote(host: str, command: str, tarball: Path) -> bool:
+    """Read the locked remote offset, then send the remaining bytes."""
 
-    result = run_remote(host, f"sha256sum {path} 2>/dev/null || true", check=False)
-    tokens = result.stdout.split()
-    if tokens and len(tokens[0]) == 64 and all(char in "0123456789abcdefABCDEF" for char in tokens[0]):
-        return tokens[0].lower()
-    return None
-
-
-def partial_tarball_name(name: str, digest: str) -> str:
-    """Return the content-addressed partial filename used during upload."""
-
-    return f".{name}.{digest[:UPLOAD_HASH_CHARS]}.part"
-
-
-def stream_to_remote(host: str, remote_command: str, local_path: Path, offset: int) -> None:
-    """Stream *local_path* from *offset* into a remote shell command's stdin."""
-
-    with local_path.open("rb") as handle:
-        handle.seek(offset)
-        subprocess.run(
-            ["ssh", *SSH_OPTIONS, host, remote_command],
-            stdin=handle,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            capture_output=True,
-            check=False,
-        )
-
-
-def wait_for_stable_size(host: str, path: str) -> int:
-    """Wait until a just-written remote file's size stops changing, then return it."""
-
-    previous = -1
-    for _ in range(10):
-        current = remote_file_size(host, path) or 0
-        if current == previous:
-            return current
-        previous = current
-        time.sleep(UPLOAD_SETTLE_SECONDS)
-    return previous
+    with subprocess.Popen(
+        ["ssh", *SSH_OPTIONS, host, command],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    ) as process:
+        offset = process.stdout.readline().strip()
+        if offset.isdigit() and int(offset) <= tarball.stat().st_size:
+            print(f"Uploading {tarball.name}: {int(offset)}/{tarball.stat().st_size} bytes...")
+            try:
+                with tarball.open("rb") as handle:
+                    handle.seek(int(offset))
+                    shutil.copyfileobj(handle, process.stdin)
+            except BrokenPipeError:
+                pass
+        try:
+            process.stdin.close()
+        except BrokenPipeError:
+            pass
+        process.stdin = None
+        _, stderr = process.communicate()
+        if stderr:
+            print(stderr.decode("utf-8", errors="replace").strip())
+        return process.returncode == 0 and offset.isdigit() and int(offset) <= tarball.stat().st_size
 
 
 def upload_tarball(host: str, root: str, tarball: Path) -> None:
-    """Stream *tarball* to the remote releases directory, resuming after drops.
+    """Resume a locked partial upload and promote it only after verification."""
 
-    The transfer goes over SSH into a partial file whose name embeds the local
-    digest, so an interrupted upload resumes at the remote byte offset instead of
-    restarting. The tarball is renamed into place only once its size and (when
-    ``sha256sum`` is available) digest match, so a failed transfer can never be
-    mistaken for a complete release.
-    """
-
-    releases_dir = remote_path(root, "releases")
     remote_tarball = remote_path(root, "releases", tarball.name)
     expected_size = tarball.stat().st_size
     expected_hash = local_sha256(tarball)
-    partial = remote_path(root, "releases", partial_tarball_name(tarball.name, expected_hash))
+    partial = remote_path(root, "releases", f".{tarball.name}.{expected_hash}.part")
+    lock = remote_path(root, "releases", f".{tarball.name}.lock")
+    script = (
+        "set -e\n"
+        "command -v sha256sum >/dev/null\n"
+        f"exec 9>{lock}\nflock -x 9\n"
+        f"offset=$(stat -c %s {partial} 2>/dev/null || printf 0)\n"
+        f"if [ \"$offset\" -gt {expected_size} ]; then rm -f {partial}; offset=0; fi\n"
+        "printf '%s\\n' \"$offset\"\n"
+        f"cat >> {partial}\n"
+        f"[ \"$(stat -c %s {partial})\" -eq {expected_size} ] || exit 1\n"
+        f"digest=$(sha256sum {partial})\n"
+        f"if [ \"${{digest%% *}}\" != {expected_hash} ]; then rm -f {partial}; exit 1; fi\n"
+        f"mv -f {partial} {remote_tarball}\n"
+    )
+    command = f"bash -c {shlex.quote(script)}"
     for attempt in range(1, UPLOAD_ATTEMPTS + 1):
-        offset = remote_file_size(host, partial) or 0
-        if offset > expected_size:
-            run_remote(host, f"rm -f {partial}", check=False)
-            offset = 0
-        if offset < expected_size:
-            print(f"Uploading {tarball.name}: {offset}/{expected_size} bytes...")
-            stream_to_remote(host, f"cat >> {partial}", tarball, offset)
-            wait_for_stable_size(host, partial)
-        size = remote_file_size(host, partial)
-        digest = remote_sha256(host, partial)
-        if size == expected_size and digest in (None, expected_hash):
-            run_remote(host, f"mv -f {partial} {remote_tarball}")
-            run_remote(host, f"rm -f {releases_dir}/.{tarball.name}.*.part", check=False)
+        if stream_to_remote(host, command, tarball):
             print(f"Uploaded {tarball.name} ({expected_size} bytes).")
             return
-        # A mismatched partial is unusable: discard it and retry from the start.
-        run_remote(host, f"rm -f {partial}", check=False)
         if attempt == UPLOAD_ATTEMPTS:
             raise DeployError(f"Upload of {tarball.name} to {host} failed after {UPLOAD_ATTEMPTS} attempts.")
-        print(f"Upload of {tarball.name} incomplete ({size or 0}/{expected_size} bytes); "
-              f"retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
+        print(f"Upload interrupted; retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
 
 
 def upload_release(host: str, root: str, version: str, tarball: Path, *, overwrite: bool = False) -> None:
@@ -618,13 +582,7 @@ def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, di
 
 
 def keepalive_script(root: str) -> str:
-    """Render the keepalive script that supervises the mission-control server.
-
-    The script restarts the server when ``admin.env`` changes so editing the
-    deployed environment (for example the operator passphrase) takes effect on
-    the next supervision tick instead of silently doing nothing while the old
-    process keeps running with the previous environment.
-    """
+    """Render the keepalive script that starts mission control when stopped."""
 
     base = root.rstrip("/")
     return (
@@ -632,45 +590,15 @@ def keepalive_script(root: str) -> str:
         "set -u\n"
         f'ROOT="{base}"\n'
         'PIDFILE="$ROOT/tinyrooms.pid"\n'
-        'ENVFILE="$ROOT/admin.env"\n'
-        'STAMPFILE="$ROOT/admin.env.hash"\n'
-        "env_hash() {\n"
-        '  if [ ! -f "$ENVFILE" ]; then echo none; return; fi\n'
-        "  if command -v sha256sum >/dev/null 2>&1; then\n"
-        '    sha256sum "$ENVFILE" 2>/dev/null | awk \'{print $1}\'\n'
-        "  else\n"
-        '    cksum "$ENVFILE" 2>/dev/null | awk \'{print $1 "-" $2}\'\n'
-        "  fi\n"
-        "}\n"
-        "stop_server() {\n"
-        '  if [ -f "$PIDFILE" ]; then\n'
-        '    pid="$(cat "$PIDFILE" 2>/dev/null || true)"\n'
-        '    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then\n'
-        '      kill "$pid" 2>/dev/null || true\n'
-        "      n=0\n"
-        '      while [ "$n" -lt 20 ] && kill -0 "$pid" 2>/dev/null; do\n'
-        "        sleep 0.5\n"
-        "        n=$((n + 1))\n"
-        "      done\n"
-        '      kill -9 "$pid" 2>/dev/null || true\n'
-        "    fi\n"
-        '    rm -f "$PIDFILE"\n'
-        "  fi\n"
-        "}\n"
-        'hash="$(env_hash)"\n'
         'if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then\n'
-        '  if [ "$(cat "$STAMPFILE" 2>/dev/null || true)" = "$hash" ]; then\n'
-        "    exit 0\n"
-        "  fi\n"
-        "  stop_server\n"
+        "  exit 0\n"
         "fi\n"
         "set -a\n"
-        'if [ -f "$ENVFILE" ]; then . "$ENVFILE"; fi\n'
+        'if [ -f "$ROOT/admin.env" ]; then . "$ROOT/admin.env"; fi\n'
         "set +a\n"
         'cd "$ROOT/versions/latest" || exit 1\n'
         'nohup "$ROOT/venv/bin/python" run.py >>"$ROOT/logs/admin.log" 2>&1 &\n'
         'echo $! > "$PIDFILE"\n'
-        'echo "$hash" > "$STAMPFILE"\n'
     )
 
 
@@ -704,29 +632,25 @@ def setup_mission_control(host: str, root: str, host_name: str, registry: dict[s
 
 
 def restart_admin(host: str, root: str) -> None:
-    """Restart the mission control server if it is running.
-
-    A stale or missing pidfile must not leave the previous listener bound to the
-    admin port: if it did, the new process would fail to start and the old
-    process (with the previous environment, including the operator passphrase)
-    would keep serving. Stop both the tracked pid and any untracked admin
-    process before handing off to the keepalive.
-    """
+    """Stop tracked or orphaned admin processes before starting the keepalive."""
 
     pidfile = remote_path(root, "tinyrooms.pid")
-    run_command = f"{root.rstrip('/')}/venv/bin/python run.py"
-    result = run_remote(host, f"cat {pidfile} 2>/dev/null || true", check=False)
-    pid = result.stdout.strip()
-    if pid.isdigit():
-        run_remote(host, f"kill {pid} 2>/dev/null || true", check=False)
-        for _ in range(20):
-            state = run_remote(host, f"kill -0 {pid} 2>/dev/null && echo yes || echo no", check=False)
-            if state.stdout.strip() != "yes":
-                break
-            time.sleep(0.5)
-    run_remote(host, f"pkill -f {shlex.quote(run_command)} 2>/dev/null || true", check=False)
-    run_remote(host, f"rm -f {pidfile}", check=False)
-    run_remote(host, f"bash {remote_path(root, 'keepalive.sh')}", check=False)
+    pattern = shlex.quote(f"^{re.escape(root.rstrip('/') + '/venv/bin/python')} run\\.py$")
+    script = (
+        f"pids=$( {{ cat {pidfile} 2>/dev/null; pgrep -f {pattern}; }} | sort -u)\n"
+        'for pid in $pids; do\n'
+        '  case "$pid" in *[!0-9]*|"") continue;; esac\n'
+        '  kill "$pid" 2>/dev/null || true\n'
+        "  n=0\n"
+        '  while [ "$n" -lt 20 ] && kill -0 "$pid" 2>/dev/null; do\n'
+        "    sleep 0.5; n=$((n + 1))\n"
+        "  done\n"
+        '  if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null || true; fi\n'
+        "done\n"
+        f"rm -f {pidfile}\n"
+        f"bash {remote_path(root, 'keepalive.sh')}\n"
+    )
+    run_remote(host, f"bash -c {shlex.quote(script)}")
 
 
 def bootstrap(host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False) -> None:

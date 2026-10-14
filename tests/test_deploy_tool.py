@@ -7,6 +7,9 @@ from unittest import mock
 import hashlib
 import importlib.util
 import json
+import shlex
+import shutil
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -103,17 +106,9 @@ class KeepaliveTests(unittest.TestCase):
     def test_script_sources_env_and_tracks_pid(self) -> None:
         script = deploy.keepalive_script("/home/u/.local/tinyrooms")
         self.assertIn('ROOT="/home/u/.local/tinyrooms"', script)
-        self.assertIn('ENVFILE="$ROOT/admin.env"', script)
-        self.assertIn('. "$ENVFILE"', script)
+        self.assertIn('. "$ROOT/admin.env"', script)
         self.assertIn('"$ROOT/venv/bin/python" run.py', script)
         self.assertIn('echo $! > "$PIDFILE"', script)
-
-    def test_script_restarts_when_env_changes(self) -> None:
-        script = deploy.keepalive_script("/home/u/.local/tinyrooms")
-        self.assertIn("env_hash", script)
-        self.assertIn('STAMPFILE="$ROOT/admin.env.hash"', script)
-        self.assertIn("stop_server", script)
-        self.assertIn('echo "$hash" > "$STAMPFILE"', script)
 
     def test_cron_entries_cover_reboot_and_periodic_supervision(self) -> None:
         entries = deploy.keepalive_cron_entries("/home/u/.local/tinyrooms")
@@ -199,57 +194,64 @@ class AdminEnvTests(unittest.TestCase):
 
 
 class RestartAdminTests(unittest.TestCase):
-    def _run(self, pidfile: str) -> list[str]:
-        commands: list[str] = []
-
-        def fake_run_remote(host: str, command: str, check: bool = True) -> _Result:
-            commands.append(command)
-            return _Result(pidfile)
-
-        with mock.patch.object(deploy, "run_remote", side_effect=fake_run_remote), \
-                mock.patch.object(deploy.time, "sleep", return_value=None):
+    def test_stop_script_waits_before_relaunch_and_scopes_orphan_lookup(self) -> None:
+        with mock.patch.object(deploy, "run_remote", return_value=_Result()) as remote:
             deploy.restart_admin("host", "/root")
-        return commands
-
-    def test_stops_tracked_and_untracked_admin_processes(self) -> None:
-        commands = self._run("136153\n")
-        joined = "\n".join(commands)
-        self.assertTrue(any(command.startswith("kill 136153") for command in commands))
-        self.assertIn("pkill -f", joined)
-        self.assertIn("/root/venv/bin/python run.py", joined)
-        self.assertTrue(any("keepalive.sh" in command for command in commands))
-
-    def test_recovers_from_missing_pidfile(self) -> None:
-        commands = self._run("")
-        joined = "\n".join(commands)
-        self.assertNotIn("kill -0", joined)
-        self.assertIn("pkill -f", joined)
-        self.assertTrue(any("keepalive.sh" in command for command in commands))
-
-
-class StartScriptTests(unittest.TestCase):
-    def test_start_script_sources_admin_env(self) -> None:
-        script = (REPO_ROOT / "start.sh").read_text(encoding="utf-8")
-        self.assertIn("TRSERVER_ADMIN_ENV", script)
-        self.assertIn("admin.env", script)
+        script = shlex.split(remote.call_args.args[1])[2]
+        self.assertIn("pgrep -f '^/root/venv/bin/python run\\.py$'", script)
+        self.assertIn('kill -9 "$pid"', script)
+        self.assertLess(script.index('kill -9 "$pid"'), script.index("bash /root/keepalive.sh"))
 
 
 class UploadTests(unittest.TestCase):
-    def test_partial_name_is_content_addressed(self) -> None:
-        name = deploy.partial_tarball_name("tinyrooms-1.2.3.tar.gz", "a" * 64)
-        self.assertEqual(name, ".tinyrooms-1.2.3.tar.gz.aaaaaaaaaaaa.part")
+    @unittest.skipUnless(shutil.which("bash"), "Upload protocol requires bash")
+    def test_resume_and_verification_protocol(self) -> None:
+        original_popen = subprocess.Popen
+        original_copy = shutil.copyfileobj
+        payload = bytes(range(256)) * 32
+        for scenario in ("interrupted", "corrupt", "oversized", "failed-checksum"):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                releases = root / "releases"
+                releases.mkdir()
+                tarball = root / "release.tar.gz"
+                tarball.write_bytes(payload)
+                digest = hashlib.sha256(payload).hexdigest()
+                partial = releases / f".{tarball.name}.{digest}.part"
+                if scenario == "corrupt":
+                    partial.write_bytes(b"x" * len(payload))
+                elif scenario == "oversized":
+                    partial.write_bytes(payload + b"x")
+                copied_sizes: list[int] = []
 
-    def test_partial_name_changes_with_digest(self) -> None:
-        first = deploy.partial_tarball_name("tinyrooms-1.2.3.tar.gz", "0" * 64)
-        second = deploy.partial_tarball_name("tinyrooms-1.2.3.tar.gz", "1" * 64)
-        self.assertNotEqual(first, second)
+                def spawn(args, **kwargs):
+                    # Windows Git Bash lacks flock; exercise the protocol locally,
+                    # while Linux uses the real lock implementation.
+                    prefix = "" if shutil.which("flock") else "flock() { :; }; export -f flock; "
+                    if scenario == "failed-checksum":
+                        prefix += "sha256sum() { return 127; }; export -f sha256sum; "
+                    return original_popen(["bash", "-c", prefix + args[-1]], **kwargs)
 
-    def test_local_sha256_matches_hashlib(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "blob.bin"
-            payload = b"tinyrooms" * 4096
-            path.write_bytes(payload)
-            self.assertEqual(deploy.local_sha256(path), hashlib.sha256(payload).hexdigest())
+                def copy(source, destination):
+                    copied_sizes.append(len(payload) - source.tell())
+                    if scenario == "interrupted" and len(copied_sizes) == 1:
+                        destination.write(source.read(len(payload) // 2))
+                        return
+                    original_copy(source, destination)
+
+                with mock.patch.object(deploy.subprocess, "Popen", side_effect=spawn), \
+                        mock.patch.object(deploy.shutil, "copyfileobj", side_effect=copy):
+                    if scenario == "failed-checksum":
+                        with self.assertRaises(deploy.DeployError):
+                            deploy.upload_tarball("host", root.as_posix(), tarball)
+                        self.assertFalse((releases / tarball.name).exists())
+                        self.assertEqual(copied_sizes, [len(payload), 0, 0, 0, 0])
+                    else:
+                        deploy.upload_tarball("host", root.as_posix(), tarball)
+                        self.assertEqual((releases / tarball.name).read_bytes(), payload)
+                        self.assertFalse(partial.exists())
+                        expected = [len(payload), len(payload) // 2] if scenario == "interrupted" else [0, len(payload)] if scenario == "corrupt" else [len(payload)]
+                        self.assertEqual(copied_sizes, expected)
 
 
 class PackageTests(unittest.TestCase):

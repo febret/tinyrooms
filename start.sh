@@ -1,17 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Honor a deployed environment file (for example the operator passphrase written
-# by tools/deploy.py's admin.env) regardless of how the server is launched.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-for candidate in "${TRSERVER_ADMIN_ENV:-}" "$SCRIPT_DIR/admin.env" "$SCRIPT_DIR/../admin.env"; do
-  if [ -n "$candidate" ] && [ -f "$candidate" ]; then
-    set -a
-    . "$candidate"
-    set +a
-    break
-  fi
-done
+if [ -n "${TRSERVER_ADMIN_ENV:-}" ]; then
+  set -a
+  . "$TRSERVER_ADMIN_ENV"
+  set +a
+fi
 
 export TRSERVER_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-deadbeef}"
 # Load every installed mod by default for local development.

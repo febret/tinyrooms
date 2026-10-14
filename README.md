@@ -107,9 +107,8 @@ development defaults for the passphrase and token:
 TRSERVER_FEATURES=mission-control ./start.sh
 ```
 
-`start.sh` loads an `admin.env` next to the script (or in the parent directory,
-or at `TRSERVER_ADMIN_ENV`) before applying those defaults, so a deployed
-environment file is honored however the server is launched.
+Set `TRSERVER_ADMIN_ENV` to an environment-file path to have `start.sh` load it
+before applying those defaults. The deployed keepalive loads `<rootdir>/admin.env`.
 
 Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
 passphrase. Mission control serves HTTPS with the same self-signed certificate
@@ -147,7 +146,7 @@ version in `version.json`, packages the working tree (with its
 `<rootdir>/versions/<version>`, and repoints `<rootdir>/versions/latest`.
 The upload is streamed over SSH and resumes from the remote byte offset when
 the connection drops, then verifies the tarball's size and SHA-256 digest
-before installing it, so a flaky link never leaves a truncated release.
+before installing it. The remote host must provide `flock`, `stat`, and `sha256sum`.
 Pass `--dirty` to skip the clean-worktree check and git tagging and to mark the
 version dirty. Pass `--keep-version` to reuse the newest version recorded in
 `version.json` instead of bumping the patch; the local tarball and the remote
@@ -163,8 +162,8 @@ servers it spawns on the same host, and writes
 Secrets live in `<rootdir>/admin.env`. Set `TRSERVER_MC_PASSPHRASE` and/or
 `TRSERVER_MC_TOKEN` in the deploying shell to choose them explicitly; otherwise
 the existing values are preserved (and generated on first deploy). The keepalive
-notices when `admin.env` changes and restarts mission control so an edited
-passphrase takes effect without a manual restart.
+loads this file on startup. After editing it, restart mission control explicitly
+using its **Reboot** action; deployment also restarts it.
 
 ## Mods
 
