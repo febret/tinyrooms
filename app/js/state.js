@@ -887,7 +887,10 @@ function reduce(state, action) {
   if (action.type === "auth-mode") return { ...state, auth: { ...state.auth, mode: action.mode, error: "" } };
   if (action.type === "transport") return { ...state, transport: { ...state.transport, ...action.transport } };
   if (action.type === "stickers") return { ...state, stickers: Array.isArray(action.stickers) ? [...action.stickers] : [] };
-  if (action.type === "select") return { ...state, selection: action.selection };
+  if (action.type === "select") {
+    const update = resolveSelection(state, action.selection);
+    return { ...state, selection: update.selection, ui: { ...state.ui, targeting: update.targeting } };
+  }
   if (action.type === "open-view") {
     return {
       ...state,
@@ -1009,6 +1012,36 @@ export function findInventoryCard(state, stackId) {
   return state.room?.inventory?.find(card => card.stackId === stackId)
     || state.user?.inventory?.find(card => card.stackId === stackId)
     || null;
+}
+
+function isTargetableStack(stack) {
+  const definition = stack?.definition;
+  const type = definition?.type || "item";
+  return Boolean(stack?.equipped && definition?.target && (type === "item" || type === "action")
+    && !definition.passive && !definition.decorative);
+}
+
+export function armedTargetStack(state, selection) {
+  if (!state?.room || (selection?.kind !== "prop" && selection?.kind !== "peep")) return null;
+  if (state.selection?.kind !== "inventory-card") return null;
+  const stack = findInventoryCard(state, state.selection.id);
+  if (!isTargetableStack(stack)) return null;
+  return stack.definition.target === selection.kind ? stack : null;
+}
+
+/** Resolve the selection/targeting pair for a `select` action: re-clicking an armed card disarms it, and changing selection away from the targeting stack cancels targeting. */
+export function resolveSelection(state, selection) {
+  const current = state.selection;
+  const sameCard = selection?.kind === "inventory-card" && current.kind === "inventory-card" && current.id === selection.id;
+  if (sameCard && isTargetableStack(findInventoryCard(state, selection.id))) {
+    return {
+      selection: state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" },
+      targeting: null,
+    };
+  }
+  const targeting = state.ui.targeting;
+  const keepTargeting = Boolean(targeting && selection?.kind === "inventory-card" && selection.id === targeting.stackId);
+  return { selection, targeting: keepTargeting ? targeting : null };
 }
 
 export function findSelectedEntity(state) {

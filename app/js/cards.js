@@ -323,16 +323,8 @@ function inventoryStackActions(stack) {
     actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary" });
   } else if (type === "item" || type === "action") {
     if (stack.equipped) {
-      if (!definition.passive && !definition.decorative) {
-        const targetKind = definition.target || "";
-        if (targetKind === "prop") {
-          actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "primary" });
-        } else {
-          actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
-          if (targetKind === "peep") {
-            actions.push({ label: "Use on…", local: { type: "start-targeting", stackId: stack.stackId, label: definition.label }, tone: "positive" });
-          }
-        }
+      if (!definition.passive && !definition.decorative && (definition.target || "") !== "prop") {
+        actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
       }
       actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });
     } else if (!definition.passive && !definition.decorative) {

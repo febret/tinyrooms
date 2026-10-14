@@ -124,41 +124,80 @@ test("emote picker: the chat-adjacent emote menu", async ({ page, runtime }, tes
   expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
 });
 
-test("portrait sample activity uses the available board height and a compact action row", async ({ page, runtime }, testInfo) => {
-  test.skip(testInfo.project.name !== "portrait");
-  const { requested, remaining } = requestedFor();
+test("activity window fills the space between the peep sidebar, heading bar, and dock", async ({ page, runtime }) => {
   await createReadyAccount(page, runtime);
   await command(page, ".play sample");
   const activity = page.locator(".activity-window");
-  const title = activity.locator(".activity-titlebar");
   const frame = page.frameLocator('iframe[src*="dev-sample"]');
   await expect(frame.locator("#state")).toContainText("sunbeam");
   await expect(activity.locator(".activity-close")).toBeVisible();
-  await expect(activity.locator(".activity-min")).toBeHidden();
-  await expect(activity.locator(".activity-max")).toBeHidden();
+  await expect(activity.locator(".activity-min")).toBeVisible();
+  await expect(activity.locator(".activity-max")).toHaveCount(0);
+
   const positions = await page.evaluate(() => {
     const box = selector => document.querySelector(selector).getBoundingClientRect();
-    return { window: box(".activity-window").toJSON(), bar: box(".topbar").toJSON(), dock: box(".interaction-dock").toJSON() };
+    const sidebar = document.querySelector("#peeps-panel");
+    return {
+      window: box(".activity-window").toJSON(),
+      bar: box(".topbar").toJSON(),
+      dock: box(".interaction-dock").toJSON(),
+      sidebar: sidebar.getBoundingClientRect().toJSON(),
+      sidebarVisible: getComputedStyle(sidebar).visibility !== "hidden",
+      viewportWidth: innerWidth,
+    };
   });
-  expect(positions.window.left).toBe(0);
-  expect(positions.window.right).toBe(390);
-  expect(positions.window.top).toBeGreaterThanOrEqual(positions.bar.bottom);
-  expect(positions.window.bottom).toBe(positions.dock.top);
-  const firstRow = await frame.locator(".sample-actions button").evaluateAll(buttons => buttons.slice(0, 3).map(button => button.getBoundingClientRect().top));
-  expect(firstRow.every(top => top === firstRow[0])).toBe(true);
+  expect(positions.sidebarVisible).toBe(true);
+  expect(positions.window.left).toBeGreaterThanOrEqual(positions.sidebar.right - 0.5);
+  expect(positions.window.top).toBeGreaterThanOrEqual(positions.bar.bottom - 0.5);
+  expect(Math.abs(positions.window.bottom - positions.dock.top)).toBeLessThanOrEqual(1);
+  expect(positions.window.right).toBeGreaterThan(positions.viewportWidth - 20);
+
+  // Views (including the equipped-hand layer) stack below the activity; peep bubbles stack above.
+  const stacking = await page.evaluate(() => ({
+    activity: Number(getComputedStyle(document.querySelector(".activity-layer")).zIndex),
+    panel: Number(getComputedStyle(document.querySelector("#panel-layer")).zIndex),
+    detail: Number(getComputedStyle(document.querySelector("#detail-layer")).zIndex),
+    cards: Number(getComputedStyle(document.querySelector(".bottom-stack")).zIndex),
+    bubbles: Number(getComputedStyle(document.querySelector("#bubble-layer")).zIndex),
+  }));
+  expect(stacking.activity).toBeGreaterThan(stacking.panel);
+  expect(stacking.activity).toBeGreaterThan(stacking.detail);
+  expect(stacking.activity).toBeGreaterThan(stacking.cards);
+  expect(stacking.bubbles).toBeGreaterThan(stacking.activity);
+
+  // The window is immovable.
   const start = await activity.boundingBox();
-  await title.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 1, clientX: 180, clientY: 75 });
-  await title.dispatchEvent("pointermove", { pointerId: 1, clientX: 220, clientY: 130 });
+  const title = activity.locator(".activity-titlebar");
+  await title.dispatchEvent("pointerdown", { button: 0, isPrimary: true, pointerId: 1, clientX: 60, clientY: 30 });
+  await title.dispatchEvent("pointermove", { pointerId: 1, clientX: 220, clientY: 160 });
   expect(await activity.boundingBox()).toEqual(start);
-  if (!requested.size || requested.has("activity-portrait-compact")) {
-    remaining.delete("activity-portrait-compact");
-    await settleArtwork(page);
-    const candidate = testInfo.outputPath("activity-portrait-compact-candidate.png");
-    await activity.screenshot({ path: candidate, animations: "disabled" });
-    await testInfo.attach("activity-portrait-compact candidate (requires design review)", { path: candidate, contentType: "image/png" });
-    await expect.soft(activity).toHaveScreenshot("activity-portrait-compact.png", { animations: "disabled" });
-  }
-  expect([...remaining], "Every requested screenshot name must exist in the matrix").toEqual([]);
+});
+
+test("minimized activities restore from a topbar pill and the sidebar hands over its space", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime);
+  await command(page, ".play sample");
+  const activity = page.locator(".activity-window");
+  const frame = page.frameLocator('iframe[src*="dev-sample"]');
+  await expect(frame.locator("#state")).toContainText("sunbeam");
+  const pills = page.locator("#activity-pills .activity-pill:visible");
+  await expect(pills).toHaveCount(0);
+
+  const leftWithSidebar = await page.evaluate(() => document.querySelector(".activity-window").getBoundingClientRect().left);
+  expect(leftWithSidebar).toBeGreaterThan(0);
+  await page.locator("#peeps-toggle").click();
+  await expect(page.locator("#app")).toHaveClass(/peeps-hidden/);
+  await expect.poll(async () => page.evaluate(() => document.querySelector(".activity-window").getBoundingClientRect().left)).toBeLessThanOrEqual(1);
+  await page.locator("#peeps-toggle").click();
+  await expect(page.locator("#app")).not.toHaveClass(/peeps-hidden/);
+  await expect.poll(async () => page.evaluate(() => document.querySelector(".activity-window").getBoundingClientRect().left)).toBeGreaterThan(0);
+
+  await activity.locator(".activity-min").click();
+  await expect(activity).toBeHidden();
+  await expect(pills).toHaveCount(1);
+  await expect(pills.first()).toHaveText(/sample/i);
+  await pills.first().click();
+  await expect(activity).toBeVisible();
+  await expect(pills).toHaveCount(0);
 });
 
 test("equipped hand and peep preview: tucked and revealed cards", async ({ page, runtime }, testInfo) => {
@@ -253,8 +292,13 @@ test("milestone 2 additions: prop details, swap sticker, targeting, shop", async
   await owned.click();
   const equip = page.locator("#actions-bar").getByRole("button", { name: "Equip", exact: true });
   if (await equip.count()) await equip.click();
-  await owned.click();
-  await page.locator("#actions-bar").getByRole("button", { name: "Use on…", exact: true }).click();
+  await page.keyboard.press("Escape");
+  const handCard = page.locator("#card-hand .equipped-hand [data-stack-id]").first();
+  await handCard.click();
+  await expect(handCard).toHaveClass(/selected/);
+  await page.locator("#peeps-panel [data-peep-id]").first().click();
+  await expect(page.locator("#target-confirm")).toBeVisible();
+  await expect(page.locator("#target-confirm")).toContainText("Use Tomato Sauce on");
   await expect(page.locator("#actions-bar .targeting-hint")).toBeVisible();
   await capture(page, testInfo, requested, remaining, "targeting");
   await page.keyboard.press("Escape");

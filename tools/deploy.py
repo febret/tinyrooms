@@ -10,11 +10,16 @@ bumps the patch version, packages the working tree with its dependency manifest,
 uploads it, and repoints the ``latest`` symlink. ``--keep-version`` reuses the
 newest recorded version instead of bumping, overwriting that release both
 locally and on the server.
+
+The tarball is streamed over SSH rather than copied with ``scp`` so that an
+interrupted connection resumes from the remote partial file's byte offset and
+the release is installed only after its size and SHA-256 digest verify.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -35,8 +40,19 @@ DEFAULT_ROOT = "~/.local/tinyrooms"
 DEFAULT_TYPE = "bootstrap"
 ADMIN_SERVICE = "admin"
 SERVICE_BASE_PORT = 8001
-SSH_OPTIONS = ("-o", "BatchMode=yes", "-o", "ConnectTimeout=15")
-UPLOAD_ATTEMPTS = 3
+SSH_OPTIONS = (
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=15",
+    "-o",
+    "ServerAliveInterval=15",
+    "-o",
+    "ServerAliveCountMax=3",
+)
+UPLOAD_ATTEMPTS = 5
+UPLOAD_SETTLE_SECONDS = 0.5
+UPLOAD_HASH_CHARS = 12
 
 EXCLUDED_DIRS = frozenset(
     {
@@ -276,25 +292,98 @@ def remote_file_size(host: str, path: str) -> int | None:
     return int(text) if text.isdigit() else None
 
 
+def local_sha256(path: Path) -> str:
+    """Return the SHA-256 hex digest of a local file."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def remote_sha256(host: str, path: str) -> str | None:
+    """Return the SHA-256 hex digest of a remote file, or None when unavailable."""
+
+    result = run_remote(host, f"sha256sum {path} 2>/dev/null || true", check=False)
+    tokens = result.stdout.split()
+    if tokens and len(tokens[0]) == 64 and all(char in "0123456789abcdefABCDEF" for char in tokens[0]):
+        return tokens[0].lower()
+    return None
+
+
+def partial_tarball_name(name: str, digest: str) -> str:
+    """Return the content-addressed partial filename used during upload."""
+
+    return f".{name}.{digest[:UPLOAD_HASH_CHARS]}.part"
+
+
+def stream_to_remote(host: str, remote_command: str, local_path: Path, offset: int) -> None:
+    """Stream *local_path* from *offset* into a remote shell command's stdin."""
+
+    with local_path.open("rb") as handle:
+        handle.seek(offset)
+        subprocess.run(
+            ["ssh", *SSH_OPTIONS, host, remote_command],
+            stdin=handle,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            check=False,
+        )
+
+
+def wait_for_stable_size(host: str, path: str) -> int:
+    """Wait until a just-written remote file's size stops changing, then return it."""
+
+    previous = -1
+    for _ in range(10):
+        current = remote_file_size(host, path) or 0
+        if current == previous:
+            return current
+        previous = current
+        time.sleep(UPLOAD_SETTLE_SECONDS)
+    return previous
+
+
 def upload_tarball(host: str, root: str, tarball: Path) -> None:
-    """Copy *tarball* to the remote releases directory, retrying interrupted uploads."""
+    """Stream *tarball* to the remote releases directory, resuming after drops.
+
+    The transfer goes over SSH into a partial file whose name embeds the local
+    digest, so an interrupted upload resumes at the remote byte offset instead of
+    restarting. The tarball is renamed into place only once its size and (when
+    ``sha256sum`` is available) digest match, so a failed transfer can never be
+    mistaken for a complete release.
+    """
 
     releases_dir = remote_path(root, "releases")
     remote_tarball = remote_path(root, "releases", tarball.name)
-    expected = tarball.stat().st_size
+    expected_size = tarball.stat().st_size
+    expected_hash = local_sha256(tarball)
+    partial = remote_path(root, "releases", partial_tarball_name(tarball.name, expected_hash))
     for attempt in range(1, UPLOAD_ATTEMPTS + 1):
-        # Clear any stale copy first: a same-named file of equal size would
-        # otherwise let a failed scp masquerade as a successful upload.
-        run_remote(host, f"rm -f {remote_tarball}", check=False)
-        try:
-            subprocess.run(["scp", *SSH_OPTIONS, str(tarball), f"{host}:{releases_dir}/"], check=True)
-        except subprocess.CalledProcessError:
-            pass
-        if remote_file_size(host, remote_tarball) == expected:
+        offset = remote_file_size(host, partial) or 0
+        if offset > expected_size:
+            run_remote(host, f"rm -f {partial}", check=False)
+            offset = 0
+        if offset < expected_size:
+            print(f"Uploading {tarball.name}: {offset}/{expected_size} bytes...")
+            stream_to_remote(host, f"cat >> {partial}", tarball, offset)
+            wait_for_stable_size(host, partial)
+        size = remote_file_size(host, partial)
+        digest = remote_sha256(host, partial)
+        if size == expected_size and digest in (None, expected_hash):
+            run_remote(host, f"mv -f {partial} {remote_tarball}")
+            run_remote(host, f"rm -f {releases_dir}/.{tarball.name}.*.part", check=False)
+            print(f"Uploaded {tarball.name} ({expected_size} bytes).")
             return
+        # A mismatched partial is unusable: discard it and retry from the start.
+        run_remote(host, f"rm -f {partial}", check=False)
         if attempt == UPLOAD_ATTEMPTS:
             raise DeployError(f"Upload of {tarball.name} to {host} failed after {UPLOAD_ATTEMPTS} attempts.")
-        print(f"Upload of {tarball.name} interrupted; retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
+        print(f"Upload of {tarball.name} incomplete ({size or 0}/{expected_size} bytes); "
+              f"retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
 
 
 def upload_release(host: str, root: str, version: str, tarball: Path, *, overwrite: bool = False) -> None:
@@ -415,6 +504,25 @@ def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dic
     print("nginx configured.")
 
 
+def unquote_env_value(raw: str) -> str:
+    """Return the value a bash-sourced env line assigns, preserving quotes.
+
+    ``render_env_file`` writes values with ``shlex.quote``; reading them back by
+    merely stripping the outer quotes corrupts any value that itself contains a
+    quote. Parsing the value as a shell word round-trips every rendered value and
+    also tolerates hand-edited ``export`` lines and trailing comments.
+    """
+
+    text = raw.strip()
+    if not text:
+        return ""
+    try:
+        parts = shlex.split(text, comments=False)
+    except ValueError:
+        return text
+    return parts[0] if parts else ""
+
+
 def read_remote_env(host: str, root: str) -> dict[str, str]:
     """Read the existing admin.env, if any."""
 
@@ -425,10 +533,10 @@ def read_remote_env(host: str, root: str) -> dict[str, str]:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-            value = value[1:-1]
-        values[key.strip()] = value
+        key = key.strip()
+        if key.startswith("export "):
+            key = key[len("export "):].strip()
+        values[key] = unquote_env_value(value)
     return values
 
 
@@ -439,14 +547,32 @@ def render_env_file(values: dict[str, str]) -> str:
 
 
 def admin_env_values(
-    root: str, host_name: str, registry: dict[str, dict[str, object]], existing: dict[str, str]
+    root: str,
+    host_name: str,
+    registry: dict[str, dict[str, object]],
+    existing: dict[str, str],
+    overrides: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Return the mission-control environment, preserving existing secrets."""
+    """Return the mission-control environment, preserving existing secrets.
 
+    Secrets come from, in order: the deployer's environment (so an operator can
+    set ``TRSERVER_MC_PASSPHRASE``/``TRSERVER_MC_TOKEN`` explicitly), the values
+    already on the host, or a freshly generated value on first deploy.
+    """
+
+    provided = overrides or {}
     entry = registry[ADMIN_SERVICE]
     port = int(entry["port"])  # type: ignore[arg-type]
-    passphrase = existing.get("TRSERVER_MC_PASSPHRASE") or secrets.token_urlsafe(18)
-    token = existing.get("TRSERVER_MC_TOKEN") or secrets.token_urlsafe(24)
+    passphrase = (
+        provided.get("TRSERVER_MC_PASSPHRASE")
+        or existing.get("TRSERVER_MC_PASSPHRASE")
+        or secrets.token_urlsafe(18)
+    )
+    token = (
+        provided.get("TRSERVER_MC_TOKEN")
+        or existing.get("TRSERVER_MC_TOKEN")
+        or secrets.token_urlsafe(24)
+    )
     conf_path = f"{root.rstrip('/')}/nginx/tinyrooms.conf"
     reload_command = (
         f"sudo -n cp {conf_path} /etc/nginx/sites-available/tinyrooms"
@@ -469,7 +595,10 @@ def admin_env_values(
         "TRSERVER_MC_KEEPALIVE": f"{root.rstrip('/')}/keepalive.sh",
         "TRSERVER_MC_INSECURE_TLS": "1",
     }
-    new_account_passphrase = existing.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
+    new_account_passphrase = (
+        provided.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
+        or existing.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
+    )
     if new_account_passphrase:
         lines["TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE"] = new_account_passphrase
     return lines
@@ -482,14 +611,20 @@ def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, di
     if not entry or not entry.get("port"):
         return
     existing = read_remote_env(host, root)
-    lines = admin_env_values(root, host_name, registry, existing)
+    lines = admin_env_values(root, host_name, registry, existing, overrides=dict(os.environ))
     body = render_env_file(lines)
     run_remote(host, f"cat > {remote_path(root, 'admin.env')} <<'ENVEOF'\n{body}\nENVEOF")
     run_remote(host, f"chmod 600 {remote_path(root, 'admin.env')}")
 
 
 def keepalive_script(root: str) -> str:
-    """Render the keepalive script that supervises the mission-control server."""
+    """Render the keepalive script that supervises the mission-control server.
+
+    The script restarts the server when ``admin.env`` changes so editing the
+    deployed environment (for example the operator passphrase) takes effect on
+    the next supervision tick instead of silently doing nothing while the old
+    process keeps running with the previous environment.
+    """
 
     base = root.rstrip("/")
     return (
@@ -497,15 +632,45 @@ def keepalive_script(root: str) -> str:
         "set -u\n"
         f'ROOT="{base}"\n'
         'PIDFILE="$ROOT/tinyrooms.pid"\n'
+        'ENVFILE="$ROOT/admin.env"\n'
+        'STAMPFILE="$ROOT/admin.env.hash"\n'
+        "env_hash() {\n"
+        '  if [ ! -f "$ENVFILE" ]; then echo none; return; fi\n'
+        "  if command -v sha256sum >/dev/null 2>&1; then\n"
+        '    sha256sum "$ENVFILE" 2>/dev/null | awk \'{print $1}\'\n'
+        "  else\n"
+        '    cksum "$ENVFILE" 2>/dev/null | awk \'{print $1 "-" $2}\'\n'
+        "  fi\n"
+        "}\n"
+        "stop_server() {\n"
+        '  if [ -f "$PIDFILE" ]; then\n'
+        '    pid="$(cat "$PIDFILE" 2>/dev/null || true)"\n'
+        '    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then\n'
+        '      kill "$pid" 2>/dev/null || true\n'
+        "      n=0\n"
+        '      while [ "$n" -lt 20 ] && kill -0 "$pid" 2>/dev/null; do\n'
+        "        sleep 0.5\n"
+        "        n=$((n + 1))\n"
+        "      done\n"
+        '      kill -9 "$pid" 2>/dev/null || true\n'
+        "    fi\n"
+        '    rm -f "$PIDFILE"\n'
+        "  fi\n"
+        "}\n"
+        'hash="$(env_hash)"\n'
         'if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then\n'
-        "  exit 0\n"
+        '  if [ "$(cat "$STAMPFILE" 2>/dev/null || true)" = "$hash" ]; then\n'
+        "    exit 0\n"
+        "  fi\n"
+        "  stop_server\n"
         "fi\n"
         "set -a\n"
-        'if [ -f "$ROOT/admin.env" ]; then . "$ROOT/admin.env"; fi\n'
+        'if [ -f "$ENVFILE" ]; then . "$ENVFILE"; fi\n'
         "set +a\n"
         'cd "$ROOT/versions/latest" || exit 1\n'
         'nohup "$ROOT/venv/bin/python" run.py >>"$ROOT/logs/admin.log" 2>&1 &\n'
         'echo $! > "$PIDFILE"\n'
+        'echo "$hash" > "$STAMPFILE"\n'
     )
 
 
@@ -539,9 +704,17 @@ def setup_mission_control(host: str, root: str, host_name: str, registry: dict[s
 
 
 def restart_admin(host: str, root: str) -> None:
-    """Restart the mission control server if it is running."""
+    """Restart the mission control server if it is running.
+
+    A stale or missing pidfile must not leave the previous listener bound to the
+    admin port: if it did, the new process would fail to start and the old
+    process (with the previous environment, including the operator passphrase)
+    would keep serving. Stop both the tracked pid and any untracked admin
+    process before handing off to the keepalive.
+    """
 
     pidfile = remote_path(root, "tinyrooms.pid")
+    run_command = f"{root.rstrip('/')}/venv/bin/python run.py"
     result = run_remote(host, f"cat {pidfile} 2>/dev/null || true", check=False)
     pid = result.stdout.strip()
     if pid.isdigit():
@@ -551,6 +724,7 @@ def restart_admin(host: str, root: str) -> None:
             if state.stdout.strip() != "yes":
                 break
             time.sleep(0.5)
+    run_remote(host, f"pkill -f {shlex.quote(run_command)} 2>/dev/null || true", check=False)
     run_remote(host, f"rm -f {pidfile}", check=False)
     run_remote(host, f"bash {remote_path(root, 'keepalive.sh')}", check=False)
 

@@ -139,6 +139,9 @@ h3 { font-size: 18px; }
 .prop-default-action { position: absolute; z-index: 3; max-width: min(220px, 80%); white-space: normal; text-align: center; box-shadow: 0 2px 12px #061923aa; }
 .prop-default-action[hidden] { display: none; }
 .app-shell.cutscene-playing .prop-default-action { display: none; }
+.target-confirm { position: absolute; z-index: 4; max-width: min(240px, 80%); white-space: normal; text-align: center; font-weight: 700; box-shadow: 0 2px 12px #061923aa; }
+.target-confirm[hidden] { display: none; }
+.app-shell.cutscene-playing .target-confirm { display: none; }
 .target-line { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .target-line[hidden] { display: none; }
 .target-line svg { width: 100%; height: 100%; overflow: visible; }
@@ -166,7 +169,7 @@ h3 { font-size: 18px; }
 }
 .board-overlay:empty { display: none; }
 .panel-layer, .detail-layer, .activity-layer { position: absolute; inset: 0 0 var(--tray-height); pointer-events: none; }
-.activity-layer { z-index: 37; }
+.activity-layer { z-index: 44; }
 .panel-layer { z-index: 30; }
 .detail-layer { z-index: 35; }
 .panel-layer:not(:empty), .detail-layer:not(:empty) { pointer-events: auto; }

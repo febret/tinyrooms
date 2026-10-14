@@ -1,12 +1,14 @@
-// Card targeting: preview a line from the played card to a chosen target and
-// confirm it by selecting that same target a second time.
+// Card targeting: with an equipped target card selected, clicking a matching
+// prop/peep enters targeting, previews a line from the card to that target, and
+// shows an inline "Use <card> on <target>" button. Clicking the target again or
+// the button confirms.
 //
-// Targeting state lives in `state.ui.targeting` (set when a card offers a
-// "Use on…" action). This controller only draws the preview and turns clicks
-// on props/peeps into `.use` commands; opening another view or Escape is
-// handled by the store's reducers.
+// Targeting state lives in `state.ui.targeting`. This controller arms targeting
+// and turns clicks on props/peeps into `.use` commands; opening another view or
+// Escape is handled by the store's reducers.
 
-import { findInventoryCard } from "./state.js";
+import { armedTargetStack, findInventoryCard } from "./state.js";
+import { createTargetActionButton } from "./target-action-button.js";
 
 export function createTargetingController({ board, boardFrame, getState, store, sendCommand, onToast, onError }) {
   const layer = boardFrame?.querySelector("#target-line") || null;
@@ -14,6 +16,10 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   const stroke = svg?.querySelector(".target-line-stroke") || null;
   const sourceDot = svg?.querySelector(".target-line-source") || null;
   const endDot = svg?.querySelector(".target-line-end") || null;
+  const confirmButton = createTargetActionButton({
+    button: boardFrame?.querySelector("#target-confirm") || null,
+    onConfirm: () => confirm(),
+  });
   let preview = null;
   let sourceStackId = "";
   let sourcePoint = null;
@@ -61,12 +67,14 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   }
 
   function draw() {
-    if (!stroke || !sourcePoint) return;
-    const show = Boolean(preview);
-    layer.hidden = !show;
-    if (!show) return;
-    const end = targetPoint(preview.kind, preview.id);
-    if (!end) return;
+    const state = getState();
+    const show = Boolean(preview && state.ui.targeting);
+    if (layer) layer.hidden = !show;
+    const end = show ? targetPoint(preview.kind, preview.id) : null;
+    if (!stroke || !sourcePoint || !end) {
+      confirmButton.clear();
+      return;
+    }
     stroke.setAttribute("x1", sourcePoint.x);
     stroke.setAttribute("y1", sourcePoint.y);
     stroke.setAttribute("x2", end.x);
@@ -75,6 +83,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       dot?.setAttribute("cx", x);
       dot?.setAttribute("cy", y);
     }
+    confirmButton.sync(state, preview, end);
   }
 
   function confirm() {
@@ -98,7 +107,14 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   /** Absorb a board/sidebar selection while targeting; true when handled. */
   function handle(selection) {
     const state = getState();
-    if (!state.ui.targeting) return false;
+    if (!state.ui.targeting) {
+      const stack = armedTargetStack(state, selection);
+      if (!stack) return false;
+      store.dispatch({ type: "start-targeting", stackId: stack.stackId, label: stack.definition.label });
+      captureSource(stack.stackId);
+      choose(selection.kind, selection.id);
+      return true;
+    }
     const kind = eligibleKind(state);
     if (kind === "prop" && selection.kind === "prop" && selection.id) {
       choose("prop", selection.id);
@@ -122,6 +138,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       sourceStackId = "";
       sourcePoint = null;
       if (layer) layer.hidden = true;
+      confirmButton.clear();
       if (targeting && !eligibleKind(state)) store.dispatch({ type: "cancel-targeting" });
       return;
     }
@@ -135,6 +152,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     if (!state.ui.targeting) {
       preview = null;
       if (layer) layer.hidden = true;
+      confirmButton.clear();
       return;
     }
     draw();

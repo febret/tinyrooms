@@ -18,6 +18,7 @@ function hostPayload(state, activity) {
 /** Host activity iframes and bridge strict same-origin messages to HTTP or WebSocket actions. */
 export function createActivityManager({
   layer,
+  pillRoot,
   getState,
   onActivityBridge,
   onCommand,
@@ -40,12 +41,6 @@ export function createActivityManager({
 
   function requiredSticker(activity) {
     return activity.kind === "sticker-designer" && !getState().user?.initialStickerComplete;
-  }
-
-  const portraitMedia = window.matchMedia("(max-width: 780px) and (orientation: portrait)");
-
-  function portraitActivity(entry) {
-    return portraitMedia.matches && !entry.required;
   }
 
   function syncModal() {
@@ -105,82 +100,77 @@ export function createActivityManager({
     }, window.location.origin);
   }
 
+  function syncPill(entry) {
+    if (!entry.pill) return;
+    const label = `Restore ${entry.activity.title}`;
+    entry.pill.hidden = !entry.minimized;
+    if (entry.pill.textContent !== entry.activity.title) entry.pill.textContent = entry.activity.title;
+    entry.pill.classList.toggle("attention", entry.minimized && entry.node.classList.contains("attention"));
+    if (entry.pill.getAttribute("aria-label") !== label) entry.pill.setAttribute("aria-label", label);
+    entry.pill.title = label;
+  }
+
+  /**
+   * Fill the space between the peep sidebar, the top heading bar, and the bottom
+   * interaction UI. The layer itself is inset to that region, so the window
+   * simply fills it edge to edge.
+   */
   function applyGeometry(entry) {
+    if (entry.minimized) return;
     const frame = { width: layer.clientWidth, height: layer.clientHeight };
-    if (portraitActivity(entry)) {
-      const topBar = document.querySelector(".topbar");
-      const layerTop = layer.getBoundingClientRect().top;
-      const top = clamp((topBar?.getBoundingClientRect().bottom ?? layerTop) - layerTop, 0, frame.height);
-      entry.node.style.width = `${frame.width}px`;
-      entry.node.style.height = `${frame.height - top}px`;
-      entry.node.style.left = "0px";
-      entry.node.style.top = `${top}px`;
-      return;
-    }
-    const margin = Math.min(8, frame.width / 4, frame.height / 4);
-    let topMargin = margin;
-    const settings = document.querySelector("#settings > summary");
-    if (!entry.required && settings && getComputedStyle(settings).visibility !== "hidden") {
-      const control = settings.getBoundingClientRect();
-      const bounds = layer.getBoundingClientRect();
-      if (control.width && control.right > bounds.left && control.left < bounds.right && control.bottom > bounds.top) {
-        topMargin = Math.min(Math.max(margin, control.bottom - bounds.top + margin), Math.max(margin, frame.height - margin));
-      }
-    }
-    const availableWidth = Math.max(0, frame.width - margin * 2);
-    const availableHeight = Math.max(0, frame.height - topMargin - margin);
-    const expanded = entry.maximized && !entry.minimized;
-    const width = Math.min(entry.required ? 900 : entry.width, availableWidth);
-    entry.node.style.width = `${expanded ? availableWidth : width}px`;
-    const titleHeight = (entry.titleBar.getBoundingClientRect().height || 50) + entry.node.offsetHeight - entry.node.clientHeight;
-    const height = Math.min(entry.minimized ? titleHeight : entry.height, availableHeight);
-    entry.node.style.height = `${expanded ? availableHeight : height}px`;
-    const actualWidth = entry.node.getBoundingClientRect().width;
-    const actualHeight = entry.node.getBoundingClientRect().height;
     if (entry.required) {
-      entry.left = Math.max(0, (frame.width - actualWidth) / 2);
-      entry.top = Math.max(0, (frame.height - actualHeight) / 2);
-    } else if (expanded) {
-      entry.node.style.left = `${margin}px`;
-      entry.node.style.top = `${topMargin}px`;
+      const margin = Math.min(8, frame.width / 4, frame.height / 4);
+      const availableWidth = Math.max(0, frame.width - margin * 2);
+      const availableHeight = Math.max(0, frame.height - margin * 2);
+      entry.node.style.width = `${Math.min(900, availableWidth)}px`;
+      entry.node.style.height = `${Math.min(entry.height, availableHeight)}px`;
+      const actualWidth = entry.node.getBoundingClientRect().width;
+      const actualHeight = entry.node.getBoundingClientRect().height;
+      entry.node.style.left = `${Math.max(0, (frame.width - actualWidth) / 2)}px`;
+      entry.node.style.top = `${Math.max(0, (frame.height - actualHeight) / 2)}px`;
       return;
-    } else {
-      entry.left = clamp(entry.left, margin, Math.max(margin, frame.width - actualWidth - margin));
-      entry.top = clamp(entry.top, topMargin, Math.max(topMargin, frame.height - actualHeight - margin));
     }
-    entry.node.style.left = `${entry.left}px`;
-    entry.node.style.top = `${entry.top}px`;
+    const topBar = document.querySelector(".topbar");
+    const layerTop = layer.getBoundingClientRect().top;
+    const top = clamp((topBar?.getBoundingClientRect().bottom ?? layerTop) - layerTop + 8, 0, frame.height);
+    entry.node.style.left = "0px";
+    entry.node.style.top = `${top}px`;
+    entry.node.style.width = `${frame.width}px`;
+    entry.node.style.height = `${Math.max(0, frame.height - top)}px`;
   }
 
   function updateControls(entry) {
     entry.required = requiredSticker(entry.activity);
-    const portrait = portraitActivity(entry);
-    if (portrait && entry.titleBar.classList.contains("dragging")) entry.titleBar.classList.remove("dragging");
-    if (entry.required || portrait) {
-      entry.minimized = false;
-      entry.maximized = false;
-    }
+    if (entry.required) entry.minimized = false;
     entry.node.classList.toggle("required", entry.required);
     entry.node.classList.toggle("minimized", entry.minimized);
-    entry.node.classList.toggle("maximized", entry.maximized);
     entry.node.setAttribute("aria-modal", String(entry.required));
-    entry.min.hidden = entry.max.hidden = entry.required || portrait;
+    entry.min.hidden = entry.required;
     entry.close.hidden = entry.required;
-    entry.body.hidden = entry.minimized;
-    entry.min.setAttribute("aria-label", entry.minimized ? "Restore activity" : "Minimize activity");
-    entry.max.setAttribute("aria-label", entry.maximized ? "Restore activity size" : "Maximize activity");
-    entry.max.setAttribute("aria-pressed", String(entry.maximized));
-    entry.min.title = entry.min.getAttribute("aria-label");
-    entry.max.title = entry.max.getAttribute("aria-label");
-    entry.titleBar.tabIndex = entry.required || portrait ? -1 : 0;
-    entry.titleBar.setAttribute("aria-label", portrait ? "Activity window" : "Activity window. Use arrow keys to move.");
+    entry.node.hidden = entry.minimized;
+    entry.titleBar.tabIndex = -1;
+    entry.min.setAttribute("aria-label", "Minimize activity");
+    entry.min.title = "Minimize activity";
+    entry.titleBar.setAttribute("aria-label", "Activity window");
     entry.iframe.title = entry.activity.title;
+    syncPill(entry);
+  }
+
+  function restoreActivity(entry) {
+    if (entry.required || !entry.minimized) return;
+    entry.minimized = false;
+    bringToFront(entry);
+    updateControls(entry);
+    applyGeometry(entry);
+    sendState(entry);
+    entry.node.focus({ preventScroll: true });
   }
 
   function removeWindow(id) {
     const entry = windows.get(id);
     if (!entry) return;
     entry.node.remove();
+    entry.pill?.remove();
     windows.delete(id);
   }
 
@@ -204,14 +194,13 @@ export function createActivityManager({
     node.setAttribute("role", "dialog");
     node.tabIndex = -1;
     node.innerHTML = `
-      <header class="activity-titlebar" aria-label="Activity window. Use arrow keys to move.">
+      <header class="activity-titlebar" aria-label="Activity window">
         <div class="activity-title">
           <strong></strong>
           <span class="activity-subtitle"></span>
         </div>
         <div class="activity-controls">
           <button type="button" class="quiet activity-min" aria-label="Minimize activity">—</button>
-          <button type="button" class="quiet activity-max" aria-label="Maximize activity">▢</button>
           <button type="button" class="quiet activity-close" aria-label="Close activity" title="Close activity">✕</button>
         </div>
       </header>
@@ -228,15 +217,18 @@ export function createActivityManager({
       titleBar: node.querySelector(".activity-titlebar"),
       body: node.querySelector(".activity-body"),
       min: node.querySelector(".activity-min"),
-      max: node.querySelector(".activity-max"),
       close: node.querySelector(".activity-close"),
       minimized: false,
-      maximized: false,
-      left: 28 + windows.size * 14,
-      top: 24 + windows.size * 14,
-      width: activity.kind === "sticker-designer" ? 880 : activity.kind === "bedrooms" ? 720 : activity.kind === "lazor-rush" ? 780 : activity.kind === "shop" ? 940 : 560,
-      height: activity.kind === "sticker-designer" ? 640 : activity.kind === "bedrooms" ? 520 : activity.kind === "lazor-rush" ? 600 : activity.kind === "shop" ? 620 : 420,
+      height: activity.kind === "sticker-designer" ? 640 : 560,
     };
+    if (pillRoot) {
+      entry.pill = document.createElement("button");
+      entry.pill.type = "button";
+      entry.pill.className = "activity-pill";
+      entry.pill.hidden = true;
+      entry.pill.onclick = () => restoreActivity(entry);
+      pillRoot.append(entry.pill);
+    }
     entry.title.textContent = activity.title;
     entry.title.id = `activity-title-${++titleSequence}`;
     node.setAttribute("aria-labelledby", entry.title.id);
@@ -274,57 +266,11 @@ export function createActivityManager({
     entry.iframe.src = activity.iframeUrl;
     node.addEventListener("pointerdown", () => bringToFront(entry));
     node.addEventListener("focusin", () => bringToFront(entry));
-    const titleBar = entry.titleBar;
-    let drag = null;
-    titleBar.addEventListener("pointerdown", event => {
-      if (event.target.closest("button") || event.button !== 0 || !event.isPrimary || entry.required || portraitActivity(entry) || (entry.maximized && !entry.minimized)) return;
-      event.preventDefault();
-      titleBar.focus({ preventScroll: true });
-      bringToFront(entry);
-      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: entry.left, top: entry.top };
-      node.classList.add("dragging");
-      titleBar.setPointerCapture(event.pointerId);
-    });
-    titleBar.addEventListener("pointermove", event => {
-      if (!drag || event.pointerId !== drag.id || portraitActivity(entry)) return;
-      entry.left = drag.left + event.clientX - drag.x;
-      entry.top = drag.top + event.clientY - drag.y;
-      applyGeometry(entry);
-    });
-    const endDrag = event => {
-      if (!drag || event.pointerId !== drag.id) return;
-      drag = null;
-      node.classList.remove("dragging");
-      if (titleBar.hasPointerCapture(event.pointerId)) titleBar.releasePointerCapture(event.pointerId);
-    };
-    titleBar.addEventListener("pointerup", endDrag);
-    titleBar.addEventListener("pointercancel", endDrag);
-    titleBar.addEventListener("lostpointercapture", endDrag);
-    titleBar.addEventListener("keydown", event => {
-      if (event.target !== titleBar || entry.required || portraitActivity(entry) || (entry.maximized && !entry.minimized)) return;
-      const movement = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }[event.key];
-      if (!movement) return;
-      event.preventDefault();
-      entry.left += movement[0];
-      entry.top += movement[1];
-      applyGeometry(entry);
-    });
     entry.min.onclick = () => {
-      if (entry.required || portraitActivity(entry)) return;
+      if (entry.required) return;
       bringToFront(entry);
-      entry.minimized = !entry.minimized;
+      entry.minimized = true;
       updateControls(entry);
-      applyGeometry(entry);
-      if (!entry.minimized) sendState(entry);
-    };
-    entry.max.onclick = () => {
-      if (entry.required || portraitActivity(entry)) return;
-      bringToFront(entry);
-      entry.maximized = !entry.maximized;
-      entry.minimized = false;
-      updateControls(entry);
-      applyGeometry(entry);
-      if (!entry.minimized) sendState(entry);
     };
     entry.close.onclick = () => {
       void closeActivity(entry);
@@ -442,7 +388,10 @@ export function createActivityManager({
       } catch (error) {
         onToast(`Activity attention could not be saved: ${error instanceof Error ? error.message : String(error)}`, "error");
         entry.subtitle.textContent = "Attention could not be saved";
-        if (entry.minimized) entry.node.classList.add("attention");
+        if (entry.minimized) {
+          entry.node.classList.add("attention");
+          syncPill(entry);
+        }
         return;
       }
       entry.subtitle.textContent = String(event.data.message || "Needs attention");
@@ -458,12 +407,6 @@ export function createActivityManager({
   new ResizeObserver(() => {
     windows.forEach(entry => applyGeometry(entry));
   }).observe(layer);
-  portraitMedia.addEventListener("change", () => {
-    windows.forEach(entry => {
-      updateControls(entry);
-      applyGeometry(entry);
-    });
-  });
 
   return {
     async sync(activities) {

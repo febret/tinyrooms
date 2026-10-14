@@ -46,6 +46,7 @@ const panelLayer = $("#panel-layer");
 const detailLayer = $("#detail-layer");
 const editorRoot = $("#editor-dock");
 const activityLayer = $("#activity-layer");
+const activityPills = $("#activity-pills");
 const cutsceneLayer = $("#cutscene-layer");
 const authLayer = $("#auth-layer");
 const chatInput = $("#chat-input");
@@ -679,7 +680,7 @@ function showPackReveal(cards) {
 function renderActions(state) {
   const bar = $("#actions-bar");
   if (state.ui.targeting) {
-    const markup = `<span class="targeting-hint">Choose a target for ${escapeHtml(state.ui.targeting.label)} — click it again to confirm</span>
+    const markup = `<span class="targeting-hint">Use ${escapeHtml(state.ui.targeting.label)} — confirm with the button or click the target again</span>
       <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
     if (!updateMarkup(bar, markup)) return;
     bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } });
@@ -1011,7 +1012,7 @@ const cardMotion = createCardMotion({
   onError: showError,
 });
 const activities = createActivityManager({
-  layer: activityLayer, getState: () => store.getState(),
+  layer: activityLayer, pillRoot: activityPills, getState: () => store.getState(),
   onActivityBridge: bridgeActivity, onCommand: sendCommand,
   onStickerConfirm: confirmSticker, onToast: toast,
 });

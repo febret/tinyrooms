@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest import mock
 import hashlib
 import importlib.util
 import json
@@ -16,6 +17,15 @@ SPEC = importlib.util.spec_from_file_location("deploy_tool", REPO_ROOT / "tools"
 deploy = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(deploy)
+
+
+class _Result:
+    """Minimal CompletedProcess stand-in for the mocked remote shell."""
+
+    def __init__(self, stdout: str = "", returncode: int = 0) -> None:
+        self.stdout = stdout
+        self.stderr = ""
+        self.returncode = returncode
 
 
 class RemotePathTests(unittest.TestCase):
@@ -93,9 +103,17 @@ class KeepaliveTests(unittest.TestCase):
     def test_script_sources_env_and_tracks_pid(self) -> None:
         script = deploy.keepalive_script("/home/u/.local/tinyrooms")
         self.assertIn('ROOT="/home/u/.local/tinyrooms"', script)
-        self.assertIn('. "$ROOT/admin.env"', script)
+        self.assertIn('ENVFILE="$ROOT/admin.env"', script)
+        self.assertIn('. "$ENVFILE"', script)
         self.assertIn('"$ROOT/venv/bin/python" run.py', script)
         self.assertIn('echo $! > "$PIDFILE"', script)
+
+    def test_script_restarts_when_env_changes(self) -> None:
+        script = deploy.keepalive_script("/home/u/.local/tinyrooms")
+        self.assertIn("env_hash", script)
+        self.assertIn('STAMPFILE="$ROOT/admin.env.hash"', script)
+        self.assertIn("stop_server", script)
+        self.assertIn('echo "$hash" > "$STAMPFILE"', script)
 
     def test_cron_entries_cover_reboot_and_periodic_supervision(self) -> None:
         entries = deploy.keepalive_cron_entries("/home/u/.local/tinyrooms")
@@ -111,6 +129,35 @@ class EnvFileTests(unittest.TestCase):
     def test_plain_values_stay_unquoted(self) -> None:
         body = deploy.render_env_file({"TRSERVER_FEATURES": "mission-control"})
         self.assertEqual(body, "TRSERVER_FEATURES=mission-control\n")
+
+
+class EnvFileRoundTripTests(unittest.TestCase):
+    def _read(self, body: str) -> dict[str, str]:
+        with mock.patch.object(deploy, "run_remote", return_value=_Result(body)):
+            return deploy.read_remote_env("host", "/root")
+
+    def test_every_rendered_value_round_trips(self) -> None:
+        secrets = {
+            "TRSERVER_MC_PASSPHRASE": "p@ss'word with spaces",
+            "TRSERVER_MC_TOKEN": "tok#en;still-one",
+            "TRSERVER_MC_NGINX_RELOAD": "sudo -n cp x && systemctl reload nginx",
+            "TRSERVER_MC_PUBLIC_ORIGIN": "https://tinyrooms.febret.com",
+        }
+        parsed = self._read(deploy.render_env_file(secrets))
+        for key, value in secrets.items():
+            self.assertEqual(parsed[key], value, key)
+
+    def test_accepts_export_prefix_and_trailing_comment(self) -> None:
+        parsed = self._read(
+            "export TRSERVER_MC_PASSPHRASE='letmein'\n"
+            "TRSERVER_MC_TOKEN=plain # operator note\n"
+        )
+        self.assertEqual(parsed["TRSERVER_MC_PASSPHRASE"], "letmein")
+        self.assertEqual(parsed["TRSERVER_MC_TOKEN"], "plain")
+
+    def test_keeps_literal_hash_in_quoted_value(self) -> None:
+        parsed = self._read(deploy.render_env_file({"TRSERVER_MC_PASSPHRASE": "a#b"}))
+        self.assertEqual(parsed["TRSERVER_MC_PASSPHRASE"], "a#b")
 
 
 class AdminEnvTests(unittest.TestCase):
@@ -138,6 +185,53 @@ class AdminEnvTests(unittest.TestCase):
         )
         self.assertEqual(values["TRSERVER_MC_PASSPHRASE"], "operator-passphrase")
         self.assertEqual(values["TRSERVER_MC_TOKEN"], "shared-secret")
+
+    def test_local_environment_overrides_existing_secret(self) -> None:
+        values = deploy.admin_env_values(
+            "/home/u/.local/tinyrooms",
+            "example.com",
+            self.REGISTRY,
+            {"TRSERVER_MC_PASSPHRASE": "stale", "TRSERVER_MC_TOKEN": "stale"},
+            overrides={"TRSERVER_MC_PASSPHRASE": "chosen", "TRSERVER_MC_TOKEN": "shared"},
+        )
+        self.assertEqual(values["TRSERVER_MC_PASSPHRASE"], "chosen")
+        self.assertEqual(values["TRSERVER_MC_TOKEN"], "shared")
+
+
+class RestartAdminTests(unittest.TestCase):
+    def _run(self, pidfile: str) -> list[str]:
+        commands: list[str] = []
+
+        def fake_run_remote(host: str, command: str, check: bool = True) -> _Result:
+            commands.append(command)
+            return _Result(pidfile)
+
+        with mock.patch.object(deploy, "run_remote", side_effect=fake_run_remote), \
+                mock.patch.object(deploy.time, "sleep", return_value=None):
+            deploy.restart_admin("host", "/root")
+        return commands
+
+    def test_stops_tracked_and_untracked_admin_processes(self) -> None:
+        commands = self._run("136153\n")
+        joined = "\n".join(commands)
+        self.assertTrue(any(command.startswith("kill 136153") for command in commands))
+        self.assertIn("pkill -f", joined)
+        self.assertIn("/root/venv/bin/python run.py", joined)
+        self.assertTrue(any("keepalive.sh" in command for command in commands))
+
+    def test_recovers_from_missing_pidfile(self) -> None:
+        commands = self._run("")
+        joined = "\n".join(commands)
+        self.assertNotIn("kill -0", joined)
+        self.assertIn("pkill -f", joined)
+        self.assertTrue(any("keepalive.sh" in command for command in commands))
+
+
+class StartScriptTests(unittest.TestCase):
+    def test_start_script_sources_admin_env(self) -> None:
+        script = (REPO_ROOT / "start.sh").read_text(encoding="utf-8")
+        self.assertIn("TRSERVER_ADMIN_ENV", script)
+        self.assertIn("admin.env", script)
 
 
 class UploadTests(unittest.TestCase):

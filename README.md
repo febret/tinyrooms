@@ -107,6 +107,10 @@ development defaults for the passphrase and token:
 TRSERVER_FEATURES=mission-control ./start.sh
 ```
 
+`start.sh` loads an `admin.env` next to the script (or in the parent directory,
+or at `TRSERVER_ADMIN_ENV`) before applying those defaults, so a deployed
+environment file is honored however the server is launched.
+
 Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
 passphrase. Mission control serves HTTPS with the same self-signed certificate
 helper as the game server (reusing `.local/cert.pem` / `key.pem`).
@@ -141,6 +145,9 @@ entry. `deploy` increments the patch
 version in `version.json`, packages the working tree (with its
 `requirements.txt`) into `./releases`, uploads it to
 `<rootdir>/versions/<version>`, and repoints `<rootdir>/versions/latest`.
+The upload is streamed over SSH and resumes from the remote byte offset when
+the connection drops, then verifies the tarball's size and SHA-256 digest
+before installing it, so a flaky link never leaves a truncated release.
 Pass `--dirty` to skip the clean-worktree check and git tagging and to mark the
 version dirty. Pass `--keep-version` to reuse the newest version recorded in
 `version.json` instead of bumping the patch; the local tarball and the remote
@@ -152,6 +159,12 @@ A bootstrap on `tinyrooms.febret.com` exposes mission control at
 servers it spawns on the same host, and writes
 `TRSERVER_MC_NGINX_CONF`/`TRSERVER_MC_NGINX_RELOAD` for the Server Manager's
 **Update nginx config** action.
+
+Secrets live in `<rootdir>/admin.env`. Set `TRSERVER_MC_PASSPHRASE` and/or
+`TRSERVER_MC_TOKEN` in the deploying shell to choose them explicitly; otherwise
+the existing values are preserved (and generated on first deploy). The keepalive
+notices when `admin.env` changes and restarts mission control so an edited
+passphrase takes effect without a manual restart.
 
 ## Mods
 
