@@ -81,9 +81,9 @@ class SupervisorEnvTests(unittest.TestCase):
         self.assertEqual(env["TRSERVER_WORLD_PATH"], str(REPO_ROOT / "worlds" / "tutorial"))
         self.assertEqual(env["TRSERVER_PORT"], "5099")
 
-    def test_spawned_child_gets_a_base_path(self) -> None:
+    def test_spawned_child_uses_root_base_path(self) -> None:
         env = self.start()
-        self.assertEqual(env["TRSERVER_BASE_PATH"], "/tutorial")
+        self.assertEqual(env["TRSERVER_BASE_PATH"], "")
 
     def test_operator_features_survive_but_mission_control_is_stripped(self) -> None:
         env = self.start(features="dev_sample_activity,mission-control")
@@ -134,7 +134,7 @@ class SupervisorLifecycleTests(unittest.TestCase):
 
     def test_base_path_is_persisted_in_spawn_config(self) -> None:
         record = self.spawn()
-        self.assertEqual(record.spawn_config["base_path"], "/tutorial")
+        self.assertEqual(record.spawn_config["base_path"], "")
 
     def test_version_path_is_persisted_in_spawn_config(self) -> None:
         version_path = self.root / "versions" / "1.0.0"
@@ -153,17 +153,17 @@ class SupervisorLifecycleTests(unittest.TestCase):
         restarted = self.supervisor.restart(record.instance_id)
         self.assertIsNotNone(restarted)
         self.assertEqual(restarted.instance_id, record.instance_id)
-        self.assertEqual(restarted.base_path, "/tutorial")
+        self.assertEqual(restarted.base_path, "")
         self.assertEqual(restarted.endpoint, record.endpoint)
         self.assertIsNot(restarted.process_handle, original_handle)
 
-    def test_rename_updates_route_and_restarts(self) -> None:
+    def test_rename_preserves_route_and_restarts(self) -> None:
         record = self.spawn()
         renamed = self.supervisor.rename(record.instance_id, "Sunny House")
         self.assertIsNotNone(renamed)
         self.assertEqual(renamed.name, "Sunny House")
-        self.assertEqual(renamed.base_path, "/sunny-house")
-        self.assertEqual(renamed.spawn_config["base_path"], "/sunny-house")
+        self.assertEqual(renamed.base_path, "")
+        self.assertEqual(renamed.spawn_config["base_path"], "")
         self.assertEqual(renamed.spawn_config["name"], "Sunny House")
 
     def test_delete_removes_record(self) -> None:
@@ -187,8 +187,8 @@ class SupervisorLifecycleTests(unittest.TestCase):
         started = self.supervisor.resume_pending()
         self.assertEqual(sorted(started), sorted([first.instance_id, second.instance_id]))
         self.assertFalse(resume_file.exists())
-        self.assertEqual(self.registry.get(first.instance_id).base_path, "/alpha")
-        self.assertEqual(self.registry.get(second.instance_id).base_path, "/beta")
+        self.assertEqual(self.registry.get(first.instance_id).base_path, "")
+        self.assertEqual(self.registry.get(second.instance_id).base_path, "")
 
 
 class RouteSlugTests(unittest.TestCase):

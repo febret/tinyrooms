@@ -77,7 +77,6 @@ class McConfigTests(unittest.TestCase):
             self.assertIn("https://127.0.0.1:8001", config.allowed_origins)
             self.assertTrue(config.users_path.is_dir())
             self.assertTrue(config.instances_path.is_dir())
-            self.assertEqual(config.actor, "mission-control")
             self.assertTrue(config.new_account_passphrase)
 
     def test_keepalive_path_is_optional(self) -> None:

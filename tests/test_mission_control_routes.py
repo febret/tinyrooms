@@ -41,6 +41,7 @@ class InstanceLifecycleTests(McHttpTestCase):
         self.addCleanup(self.spawn_patch.stop)
 
     def add_spawned(self, name: str = "tutorial", port: int = 5099, base_path: str = "/tutorial"):
+        (self.root / "instance").mkdir(exist_ok=True)
         return self.runtime.registry.register_spawned(
             name=name,
             endpoint=f"https://127.0.0.1:{port}",
@@ -94,7 +95,7 @@ class InstanceLifecycleTests(McHttpTestCase):
         self.assertEqual(server["instance_id"], record.instance_id)
         self.assertEqual(server["base_path"], "/tutorial")
 
-    def test_rename_spawned_updates_route(self) -> None:
+    def test_rename_spawned_preserves_route(self) -> None:
         record = self.add_spawned()
         response = self.client.post(
             f"/api/mission-control/servers/{record.instance_id}/rename",
@@ -104,7 +105,7 @@ class InstanceLifecycleTests(McHttpTestCase):
         self.assertEqual(response.status_code, 200)
         server = response.json()["server"]
         self.assertEqual(server["name"], "Sunny House")
-        self.assertEqual(server["base_path"], "/sunny-house")
+        self.assertEqual(server["base_path"], "/tutorial")
 
     def test_delete_spawned_removes_record(self) -> None:
         record = self.add_spawned()
