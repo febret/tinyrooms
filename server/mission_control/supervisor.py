@@ -28,7 +28,6 @@ from server.mission_control.registry import (
 
 
 RESUME_FILE = "resume.json"
-IDENTITY_FILE = "instance.json"
 
 
 def allocate_port(
@@ -98,7 +97,7 @@ class Supervisor:
     def _persist_identity(self, record: InstanceRecord) -> None:
         if record.instance_dir is None or record.spawn_config is None:
             return
-        path = Path(record.instance_dir) / IDENTITY_FILE
+        path = Path(record.instance_dir) / "instance.json"
         temporary = path.with_suffix(".tmp")
         temporary.write_text(json.dumps({
             "instance_id": record.instance_id,
@@ -107,7 +106,7 @@ class Supervisor:
         temporary.replace(path)
 
     def _restore_identities(self) -> None:
-        for path in self._config.instances_path.glob(f"*/{IDENTITY_FILE}"):
+        for path in self._config.instances_path.glob("*/instance.json"):
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 instance_id = validate_instance_id(str(data["instance_id"]))
@@ -156,7 +155,7 @@ class Supervisor:
         )
         resolved_dir = Path(instance_dir) if instance_dir else self._config.instances_path / (instance_id or f"mc-{uuid.uuid4().hex[:12]}")
         resolved_dir.mkdir(parents=True, exist_ok=True)
-        identity_path = resolved_dir / IDENTITY_FILE
+        identity_path = resolved_dir / "instance.json"
         if identity_path.is_file():
             saved_id = validate_instance_id(str(json.loads(identity_path.read_text(encoding="utf-8"))["instance_id"]))
             if instance_id is not None and saved_id != instance_id:
@@ -379,7 +378,7 @@ class Supervisor:
         self.stop(instance_id, actor=actor)
         self._registry.remove(instance_id)
         if record.instance_dir:
-            (Path(record.instance_dir) / IDENTITY_FILE).unlink(missing_ok=True)
+            (Path(record.instance_dir) / "instance.json").unlink(missing_ok=True)
         self._drop_resume_entry(instance_id)
         self._audit.record(actor, "instance.delete", target=instance_id)
         return True
