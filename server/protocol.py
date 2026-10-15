@@ -24,6 +24,8 @@ class ProtocolError(ValueError):
 class ClientCommandEnvelope:
     """A validated client command envelope."""
 
+    # Client-generated correlation key echoed in the private result, not an
+    # idempotency key for gameplay mutations or a room-event sequence number.
     request_id: str
     command: str
 
@@ -39,6 +41,7 @@ class ClientRtcPresenceEnvelope:
 class ClientRtcSignalEnvelope:
     """A validated WebRTC signaling payload addressed at one peer."""
 
+    # Peer account identity, not a socket ID; the relay checks same-room audio presence.
     to: str
     signal: dict[str, object]
 
@@ -85,6 +88,8 @@ def _validate_rtc_signal(signal: object) -> dict[str, object]:
             raise ProtocolError("'signal.candidate' must be a string.")
         if len(candidate) > MAX_SIGNAL_SIZE:
             raise ProtocolError("'signal.candidate' is too large.")
+        # SDP media-section identity/index accompany the ICE candidate; an empty
+        # candidate is valid for end-of-candidates rather than a malformed signal.
         return {
             "kind": kind,
             "candidate": candidate,
@@ -147,6 +152,9 @@ def result_envelope(
 
     ``toast`` and ``log`` are only serialized when disabled, so clients default
     to showing the acknowledgement in both places.
+    ``events`` are actor-private updates; ``payload`` is command-specific data.
+    ``code`` is the machine-readable rejection reason, while ``message`` is
+    presentation text. The result is not a broadcast or a playback acknowledgement.
     """
 
     envelope: dict[str, object] = {
@@ -170,13 +178,13 @@ def result_envelope(
 
 
 def room_snapshot_envelope(room: dict[str, object]) -> dict[str, object]:
-    """Build a full room snapshot envelope."""
+    """Build replacement room state, including viewer-specific quick actions."""
 
     return {"v": PROTOCOL_VERSION, "type": "room.snapshot", "room": room}
 
 
 def room_event_envelope(event: dict[str, object]) -> dict[str, object]:
-    """Build a room event envelope."""
+    """Build an incremental room update; ordering comes from the world process."""
 
     return {"v": PROTOCOL_VERSION, "type": "room.event", "event": event}
 

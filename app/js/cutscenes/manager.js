@@ -1,6 +1,7 @@
 import { closeSession, currentCutscene, openSession, resolveFrame } from "./stage.js";
 import { resetPlaceholders } from "./placeholders.js";
 
+// Pending entries only: active playback has already left the FIFO.
 const MAX_QUEUE = 6;
 const SHELL_SELECTOR = "#app";
 
@@ -71,6 +72,8 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
       logOnce(`stale:${eventRoom}`, "Ignored a room-bound cutscene for another room.");
       return;
     }
+    // Deduplication uses (scene id, triggering account id), excluding active play.
+    // Missing source ids share the empty-string identity.
     const entry = {
       id: String(cutscene.id || ""),
       sourceId: String(cutscene.source?.id || ""),
@@ -82,6 +85,8 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
       logOnce(`duplicate:${entry.id}:${entry.sourceId}`, `Already queued ${entry.id}.`);
       return;
     }
+    // Per-id overflow evicts oldest first; global overflow rejects the new entry.
+    // The service currently omits max_queue, so ordinary launches use three.
     const limit = Math.max(1, Number(cutscene.max_queue) || 3);
     while (queue.filter(queued => queued.id === entry.id).length >= limit) {
       const index = queue.findIndex(queued => queued.id === entry.id);
@@ -181,11 +186,14 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
     if (!entry) return;
     playing = true;
     const cutscene = entry.cutscene;
+    // Timing is captured before import; later beginCutscene frame/options changes
+    // do not update these phase waits (including plain's nonzero descriptor timing).
     const descriptor = resolveFrame(cutscene.frame);
     const parts = build(entry);
     let settled = false;
     let abandoned = false;
     let release;
+    // This completion gate is independent of the scene's returned promise below.
     const bodyDone = new Promise(resolve => {
       release = resolve;
     });
@@ -205,6 +213,10 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
       },
     };
     const controller = new AbortController();
+    // ctx and params are shallow-frozen only; nested params, text, assets, and
+    // source remain mutable objects and should be treated as read-only by authors.
+    // audience is actual delivery; roomId comes from the enclosing event.
+    // signal aborts at closeSession, normally after outro, not on stop/end request.
     const session = openSession({
       ctx: Object.freeze({
         id: entry.id,
@@ -246,12 +258,16 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
       const run = module?.default;
       if (typeof run !== "function") throw new Error("no default export");
       const capMs = Number(cutscene.duration) || 0;
+      // The cap starts before intro, not at body start, and currently respects
+      // skip=False through token.stop; it is not yet an unconditional safety cap.
       if (capMs > 0) cap = setTimeout(token.stop, capMs);
       const played = playPhase(parts.frame, "intro", descriptor.introMs).then(() => {
         parts.frame.dataset.phase = "body";
         layer.dataset.state = "playing";
         return run(session.ctx);
       });
+      // Return/resolution and rejection do not release bodyDone yet; authors need
+      // explicit endCutscene. Rejections are logged, except expected aborts.
       played.catch(error => {
         if (error?.name !== "AbortError") {
           console.error(`[Tinyrooms cutscene] ${entry.id} failed.`, error);
@@ -309,6 +325,7 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
     if (room !== lastRoomId) {
       lastRoomId = room;
       resetPlaceholders();
+      // Travel drops pending room-bound scenes only; active playback is untouched.
       if (queue.some(entry => entry.roomBound)) clearQueue({ roomBoundOnly: true });
     }
   }

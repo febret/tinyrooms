@@ -2,209 +2,95 @@
 
 ## Project Overview
 
-Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend, vanilla JavaScript + Three.js frontend, and YAML-based world definitions. This repo implements Milestone 2, a secure persistent vertical slice covering accounts, rooms, cards, WebSocket presence, chat, and activity windows plus the gameplay systems (stats/counters, inventory, skills, friends, shop, and the reward ledger). See [doc/architecture.md](doc/architecture.md) for the technical architecture (components, source-file inventory, protocol, game flows). [doc/dynamic-peeps.md](doc/dynamic-peeps.md) specifies the planned agent-evolved NPC behavior milestone (not yet implemented).
-
-## Tech Stack
-
-- **Backend**: Python 3.11+, FastAPI, Uvicorn, websockets, PyYAML, SQLite (live world state), cryptography (self-signed TLS)
-- **Frontend**: Vanilla JavaScript (ES modules), Three.js for the 3D board renderer
-- **Testing**: Python `unittest`, Node `--test` runner, Playwright (browser flows + visual snapshots)
-- **Dev tooling**: npm scripts, PowerShell launcher, vendored browser deps
-
-## Directory Structure
-
-| Path | Purpose |
-| --- | --- |
-| `server/` | Backend — accounts, protocol, services, commands, persistence, content loaders |
-| `server/services/` | Rooms, cards, activities business logic |
-| `server/state/` | SQLite world-state model and migrations |
-| `server/commands/` | Command parser, registry, core command implementations |
-| `server/client/` | Client-side logic ported to Python for browser-free tests |
-| `app/` | Browser UI — JavaScript modules, Three.js renderer, HTML/CSS |
-| `activities/` | Self-contained game activities (e.g. Sticker Designer) |
-| `data/` | Shared card definitions and sticker artwork assets, plus core cutscenes in `data/cutscenes/<id>/` |
-| `worlds/tutorial/` | Tutorial world YAML definitions (rooms, peeps, cards, recipes, props) and world cutscenes in `worlds/tutorial/cutscenes/<id>/` |
-| `tests/` | Python unit/integration tests, ported client-logic tests, and Playwright browser specs |
+Tinyrooms is a multiplayer miniature-world game with an HTTPS FastAPI backend,
+vanilla JavaScript + Three.js frontend, SQLite state, and YAML world definitions.
+Start with [architecture](doc/architecture.md) for components, protocol, and game
+flows; [README](README.md) owns setup, configuration, launch, and test commands.
+[Mission Control](doc/mission-control.md) owns fleet/player-entry operations and
+deployment contracts. [Dynamic peeps](doc/dynamic-peeps.md) describes future work.
 
 ## Code Conventions
 
-- **Python**: Type hints on all public functions. First-party source files kept under 1200 lines per codebase rule (static check), split them if they grow larger than this. No inline comments unless necessary to explain tricky logic. Imports: standard library, third-party, then local `server.*` — ordered groups separated by blank line. Use `from __future__ import annotations` at the top of every Python file.
-- **JavaScript**: Vanilla ES modules (`"type": "module"` in package.json). No build step for app code; only Three.js is version-pinned and Playwright is dev-only.
-- **YAML**: World definitions are authored as human-readable YAML files under `worlds/` and `data/`. Never edit these by hand without validating structure against the content loaders in `server/content/`.
-- **Naming**: Keep classes, modules, and functions descriptive. Avoid abbreviations beyond established ones (e.g. `peep`, `prop`).
-
-## Running Locally
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-npm ci
-npm run vendor
-$env:TRSERVER_NEW_ACCOUNT_PASSPHRASE = "choose-an-invitation"
-$env:TRSERVER_FEATURES = "dev_sample_activity"
-$env:TRSERVER_MODS = "*"
-python run.py
-```
-
-Open **https://127.0.0.1:5000** and accept the local dev certificate. The launcher auto-generates a 14-day self-signed cert under `.local/`.
-
-Environment variables (see README.md Configuration table):
-
-| Variable | Required? | Default |
-| --- | --- | --- |
-| `TRSERVER_NEW_ACCOUNT_PASSPHRASE` | Yes | — |
-| `TRSERVER_HOST` | No | `127.0.0.1` |
-| `TRSERVER_PORT` | No | `5000` |
-| `TRSERVER_USERS_PATH` | No | `users` |
-| `TRSERVER_WORLD_PATH` | No | `worlds/tutorial` |
-| `TRSERVER_WORLDSTATE_PATH` | No | `.local/worldstate.sqlite3` |
-| `TRSERVER_CUSTOM_STICKERS_PATH` | No | `.local/stickers` |
-| `TRSERVER_FEATURES` | No | _(none)_ — e.g. `dynamic_peeps` |
-| `TRSERVER_BASE_PATH` | No | _(none)_ — URL prefix when served behind a reverse proxy, e.g. `/admin` |
-| `TRSERVER_PUBLIC_ORIGIN` | No | _(none)_ — comma-separated extra allowed browser origins behind a proxy |
-| `TRSERVER_MODS` | No | _(none)_ — comma-separated names or `*` |
-| `TRSERVER_MODS_PATH` | No | `mods` |
-| `TRSERVER_ADMINS` | No | _(none)_ |
-| `TRSERVER_TIMEZONE` | No | `UTC` |
-| `TRSERVER_STUN_URLS` | No | `stun:stun.l.google.com:19302` — comma-separated STUN/TURN URLs for peer audio |
-| `TRSERVER_MC_ENDPOINT` | No | _(none)_ — enables the world-side `/api/mc/*` client |
-| `TRSERVER_MC_TOKEN` | Yes* | — — required when `TRSERVER_MC_ENDPOINT` is set |
-| `TRSERVER_MC_NAME` | No | `world_id@host:port` |
-| `TRSERVER_MC_INSTANCE_ID` | No | _(none)_ — stable instance identity for registration, health, and saved player destinations |
-| `TRSERVER_CLIENT_URL` | No | _(none)_ — advertised world browser URL; player entry requires same-hostname HTTPS |
-| `TRSERVER_ENTRY_URL` | No | _(none)_ — player-entry URL for root-page redirects |
-| `TRSERVER_MC_CA_FILE` | No | _(none)_ |
-| `TRSERVER_MC_INSECURE_TLS` | No | `0` |
-
-\* Mission-control server only (see [doc/mission-control.md](doc/mission-control.md)):
-`TRSERVER_MC_PASSPHRASE` and `TRSERVER_MC_TOKEN` are required; `TRSERVER_FEATURES`
-must include `mission-control`. Additional MC vars: `TRSERVER_MC_HOST` (`127.0.0.1`),
-`TRSERVER_MC_PORT` (`8001`), `TRSERVER_MC_USERS_PATH` (`users`),
-`TRSERVER_MC_INSTANCES_PATH` (`.local/mc-instances`), `TRSERVER_MC_VERSIONS_PATH`
-(`.local/mc-versions`), `TRSERVER_MC_HEARTBEAT_SECONDS` (`5`),
-`TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE`,
-`TRSERVER_MC_BASE_PATH` (URL prefix behind a proxy), `TRSERVER_MC_PUBLIC_ORIGIN`
-(comma-separated extra allowed browser origins), `TRSERVER_MC_KEEPALIVE`
-(keepalive script rerun by the UI **Reboot** action; set by `tools/deploy.py`).
-Direct-world settings: `TRSERVER_MC_INSTANCE_HOST` (local default `127.0.0.1`),
-`TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME` (defaults to the public-entry hostname;
-alias `TRSERVER_MC_INSTANCE_PUBLIC_HOST`), `TRSERVER_MC_INSTANCE_PORT_MIN` /
-`TRSERVER_MC_INSTANCE_PORT_MAX` (local defaults `5000` / `5999`), and paired
-`TRSERVER_MC_INSTANCE_CERTFILE` / `TRSERVER_MC_INSTANCE_KEYFILE` (optional TLS files).
-
-### Mission-control deployment topology
-
-- MC serves public player login/create at `/` and passphrase-protected operator
-  administration at `/mission-control`. nginx's fixed root proxy points only to
-  MC; worlds are reached directly over HTTPS ports on the same hostname. Player
-  cookies (`tr_session`, `tr_csrf`, path `/`) are shared across ports, and MC and
-  participating worlds must use the same profile database.
-- Player resolve uses `user_profiles.profile_json.last_instance_id` exactly.
-  Only legacy profiles lacking it may match a unique registered instance by
-  `last_world_id`; ambiguous, missing, or unavailable destinations fail rather
-  than falling back to the default. The Server Manager's **Make default**
-  persists `default_instance_id` in `TRSERVER_MC_INSTANCES_PATH/entry.json` for
-  new accounts. Spawned identity/launch settings persist in
-  `<instance-id>/instance.json`; `resume.json` records children to respawn.
-- `tools/deploy.py` configures wildcard world binding (`0.0.0.0`), direct public
-  hostname, ports `10000..10999`, and reuse of nginx's `server.crt` / `server.key`.
-  Host/provider firewalls must allow TCP 80, 443, and the configured world range;
-  deployment does not open them. There is no dynamic nginx-management API/UI;
-  legacy nginx configuration fields have no runtime management effect.
-- Upgrade deployment refreshes the fixed proxy. Legacy running worlds need
-  restart with stable identity and direct-public settings. Resume retains saved
-  host/port/base path/version: legacy loopback instances stay loopback-only,
-  and ports outside the configured range fail resume. Restart alone preserves
-  those launch settings; do not describe it as an automatic migration. See
-  [doc/mission-control.md](doc/mission-control.md#83-deployment-and-upgrades).
+- **Python**: Type-hint public functions; begin every Python file with
+  `from __future__ import annotations`. Group imports as standard library,
+  third-party, then local `server.*`, separated by blank lines. Avoid inline
+  comments unless needed to explain tricky logic.
+- Keep first-party source files **below 1200 lines**; split growing files.
+  [The static check](tests/test_ui_presentation.py) covers Python, JS, CSS, and
+  HTML under its listed roots. Do not add fragile CSS assertions to static tests.
+- **JavaScript**: Use vanilla ES modules; app code has no build step. Preserve
+  the modern browser floor (ES2020 + import maps: Chrome/Edge 89+, Samsung
+  Internet 15+, Firefox 108+, Safari 16.4+). Keep
+  [boot-guard.js](app/js/boot-guard.js) ES5-only: it must show diagnostics on
+  unsupported engines before the module entry can run.
+- **YAML**: Validate edits under `worlds/` and `data/` against the
+  [content loaders](server/content/), especially [worlds](server/content/worlds.py)
+  and [cards](server/content/cards.py).
+- Use descriptive class, module, and function names; avoid abbreviations beyond
+  established domain terms such as `peep` and `prop`.
 
 ## Testing
 
-Run tests from an activated virtual environment.
+Use an activated virtual environment and the [verification commands](README.md#verification).
+Run Python unittests, `npm test` (Node client tests + browser smoke), visual checks
+when rendering changes, and [performance budgets](doc/performance.md) as appropriate.
+Performance tests run separately from `npm test` and unittest discovery; deliberately
+re-record baselines only for an intentional change.
 
-### Python (server + client logic)
-```powershell
-python -m pip install -r requirements-dev.txt
-python -m unittest discover -s tests -v
-```
+### Writing New Tests
 
-### Browser flows + visual snapshots
-```powershell
-npx playwright install chromium       # or Chromium family browser of choice
-npm run test:browser                  # minimal functional smoke tests
-npm run test:visual                   # screenshot comparison
-```
-
-### Performance suite
-```powershell
-npm run test:perf                                 # all tiers, compared to the stored baseline
-python tools/run_perf.py --tiers server           # one tier
-TR_UPDATE_PERF_BASELINES=1 npm run test:perf      # re-record after an intentional change
-```
-
-See [doc/performance.md](doc/performance.md) for how a regression is decided, what
-each tier measures, and the recorded before/after numbers. It is excluded from
-`npm test` and `unittest discover` because it is slower and partly wall-clock.
-
-### Full suite
-```powershell
-python -m unittest discover -s tests -v   # server + client logic
-npm test                                  # browser flows
-npm run test:perf                         # performance budgets
-```
+1. **Server/business logic**: Add `tests/test_*.py` using `unittest.TestCase`,
+   without an external framework. Service tests should subclass
+   [ServiceTestCase](tests/common.py) for isolated profile/world databases.
+2. **Client logic**: Test the actual `app/js/` modules with Node's test runner
+   under [tests/client/](tests/client/) (`*.test.js`); use `npm run test:client`.
+3. **Browser functional**: Keep [flows](tests/browser/flows.spec.js) and
+   [cutscenes](tests/browser/cutscenes.spec.js) a minimal smoke set: boot,
+   WebSocket round-trip, core views, and an end-to-end gameplay flow. Do **not**
+   add broader gameplay/business-logic flows here; use server or client tests.
+   Use semantic selectors/stable IDs and each test's fresh HTTPS server from
+   [fixtures.js](tests/browser/fixtures.js), never a live/shared server.
+4. **Rendered states**: Add snapshots in
+   [screenshots.spec.js](tests/browser/screenshots.spec.js). Harness geometry,
+   determinism, and diff settings live in [playwright.config.js](playwright.config.js).
 
 ### Visual baselines (manual review required)
 
-Visual tests compare rendered boards and UI against PNG snapshots. They never auto-approve changes.
+Never auto-approve screenshots or alter baselines to mask content bugs. Follow
+the [baseline commands](README.md#playwright-tests-and-reference-screenshots),
+explicitly opting in only after manual design review. Review generated
+`tests/browser/baselines` PNGs against [design](doc/design.md) and
+[image references](doc/images/), obtain approval before committing, then rerun
+**without** the update flag.
 
-```powershell
-$env:TR_BROWSER_CHANNEL = "chrome"    # match baseline environment
-$env:TR_UPDATE_SCREENSHOTS = "1"      # explicit opt-in, only after manual design review
-npm run test:visual -- --update-snapshots
-Remove-Item Env:TR_UPDATE_SCREENSHOTS
-```
+## Design and Safety Constraints
 
-Review generated `tests\browser\baselines` PNGs against `doc/design.md` and `doc/images/` references before committing. Then re-run **without** the update flag to confirm clean pass.
-
-## Testing Architecture
-
-Each browser test spins up a fresh HTTPS Python subprocess on an OS-assigned loopback port with isolated users and SQLite in its own `.browser-runtime\run-*` directory. No live server or shared state is used. Test failures retain Playwright traces, screenshots, and server logs in `test-results/`.
-
-Browser harness settings (from `playwright.config.js`):
-- Two projects: desktop (1280×800) and portrait (390×844 mobile touch)
-- Fixed locale (`en-US`), timezone (`UTC`), reduced motion, SVG shader background for determinism
-- Software WebGL via `--use-angle=swiftshader`, single raster thread to prevent saturation
-- Visual diff: max 300 pixels / threshold 0.15 per screenshot
-
-## Writing New Tests
-
-1. **Python**: Add a module under `tests/` using `unittest.TestCase`; no external test framework. Service tests should subclass `tests/common.py:ServiceTestCase` for an isolated profile/world database and shared content.
-2. **Client logic**: Port applicable modules from `app/js/` to `server/client/` and add matching tests under `tests/client/`, using `unittest.TestCase`. Name files `test_*.py`.
-3. **Browser functional**: The functional suite is a deliberately minimal smoke set (`tests/browser/flows.spec.js` + `cutscenes.spec.js`) — it proves the app boots, the WebSocket round-trips, core views render, and one end-to-end gameplay flow works. Do **not** add gameplay/business-logic flows here: cover those with Python or client-logic tests, and cover rendered states with visual snapshots. Browser tests should use semantic selectors or stable IDs rather than pixel coordinates, and each test owns a fresh server fixture via helpers in `fixtures.js`.
-4. **Visual screenshots**: Add to `tests/browser/screenshots.spec.js` when capturing rendered board/UI states matters. Baselines live in `tests/browser/baselines/`. Always review before committing.
-
-## Key Design Decisions
-
-- **Authoritative server**: All world state lives in SQLite on the server. The client is a pure renderer + input dispatcher.
-- **In-process room ordering**: A single server process owns a world, so room broadcasts are ordered by the event loop; there is no per-room sequence counter. Command results are matched to clients by `request_id`.
-- **Invitation-gated accounts**: `TRSERVER_NEW_ACCOUNT_PASSPHRASE` controls who can register. Changing it after accounts exist has no effect on existing users.
-- **Feature flags**: The `TRSERVER_FEATURES` env var gates optional behavior (`dev_sample_activity`, `dynamic_peeps`, etc.). Never ship enabled-by-default dev features to production. Cutscenes are deliberately **not** flagged: the subsystem is always live and only the client's reduced-motion preference suppresses playback, so a cutscene can never be half-enabled.
-- **Dynamic peeps execute agent-generated Python in-process**: gated behind `dynamic_peeps`, a separate worker process (`tools/peep_agent.py`), and a dev-only warning. The authored floor is immutable and agent output is validated and layered on top. Never enable in production, and never widen the artifact import allowlist without re-reading [doc/dynamic-peeps.md](doc/dynamic-peeps.md) §9.
-- **Hot-reload disabled in prod**: A separate production launch path (not yet implemented) would use a different certificate and disable self-signed cert generation.
-- **Modern browser floor**: The client is ES modules plus ES2020 syntax and an import map (Chrome/Edge 89+, Samsung Internet 15+, Firefox 108+, Safari 16.4+). `app/js/boot-guard.js` is a plain ES5 classic script that runs before the module entry; on unsupported engines it renders a diagnostic overlay (engine/JS capability/error details) instead of a blank page. Keep it ES5-only — `tests/test_ui_presentation.py` rejects modern syntax in that file.
+- Keep the server authoritative: world state is in server SQLite; the client
+  renders and dispatches input. A single process owns a world; event-loop order
+  orders room broadcasts, and `request_id` matches command results.
+- Keep invitation-gated registration; changing its passphrase does not change
+  existing accounts. Never enable dev features by default in production.
+- Keep cutscenes always live, rather than feature-flagging half the subsystem;
+  the client's reduced-motion preference suppresses playback.
+- Dynamic peeps propose importing agent-generated Python **in-process**, with a
+  separate generation worker, immutable authored floor, validated overlays, and
+  a dev warning. Never enable in production or widen the artifact import
+  allowlist without rereading [the hardening gate](doc/dynamic-peeps.md) §9.
+- A separate production launch path remains future work: use a different
+  certificate and disable self-signed generation/hot reload there.
+- Preserve [MC entry and upgrade contracts](doc/mission-control.md#21-player-entry-and-destination-resolution):
+  direct same-host HTTPS worlds, shared profile DB, exact saved instance, durable
+  identities/default/resume, and explicit migration of legacy launch settings.
 
 ## Modifying World Content
 
-1. Edit YAML files under `worlds/<world>/` or `data/`. Validated by loaders in `server/content/worlds.py` and `server/content/cards.py`.
-2. After changes, run browser tests against the modified world: `npm run test:browser -- -g "<test name>"`.
-3. Never modify checked-in visual baselines to mask content bugs. Regenerate visuals only when the change is intentional and matches design docs.
+Validate YAML through loaders, run targeted browser smoke against the changed
+world (`npm run test:browser -- -g "<test name>"`), and validate it in the game
+client manually. Regenerate visuals only for intentional changes matching design.
 
 ## Before You Commit / PR
 
-- [ ] All automated tests pass locally: `npm test` + Python unittests
-- [ ] `npm run test:perf` shows no regression, or the baseline was deliberately re-recorded
-- [ ] Server static checks still clear (under-1200-line rule, no fragile CSS assertions in static checks)
-- [ ] New visual baselines are reviewed against `doc/design.md` and approved
-- [ ] No secrets or keys added (the self-signed cert under `.local/` remains gitignored)
-- [ ] World YAML edits validated by running the game client manually
+- Run Python unittests + `npm test`, relevant visuals, and performance budgets.
+- Keep static checks clear, review/approve new visual baselines, and manually
+  validate changed world YAML.
+- Never add secrets or keys; keep local self-signed material under ignored `.local/`.

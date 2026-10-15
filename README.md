@@ -1,240 +1,129 @@
 # Tinyrooms
 
 Tinyrooms is a multiplayer miniature-world game built with FastAPI, vanilla
-JavaScript, and Three.js. The technical architecture
-(components, source files, protocol, game flows) is documented in
-[doc/architecture.md](doc/architecture.md).
+JavaScript, and Three.js. See [architecture](doc/architecture.md) for components,
+protocol, game flows, and source layout; [AGENTS.md](AGENTS.md) for contributor rules.
 
 ## Quick Start
 
-Python 3.11+ and Node.js 20+ are required. From PowerShell:
+Requires Python 3.11+ and Node.js 20+. From PowerShell:
 
-```bash
-# Installs all required dependencies - run once
-./setup.sh
-# Starts a local server on https://127.0.0.1:5000
-./start.sh
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+npm ci
+npm run vendor
+$env:TRSERVER_NEW_ACCOUNT_PASSPHRASE = "choose-an-invitation"
+$env:TRSERVER_MODS = "*"
+python run.py
 ```
 
-Open **https://127.0.0.1:5000** and accept the local development certificate.
-The launcher stores a 14-day self-signed certificate under `.local`; it is not
-appropriate for public hosting.
+With an activated Python environment, Bash users can run `./setup.sh` once,
+then `./start.sh`. [start.sh](start.sh) supplies **local-development** invitation,
+mod, editor, and MC credential defaults; override them for real deployments.
 
-The server defaults to loopback. For a phone on a trusted local network, run
-`python run.py --host 0.0.0.0` and use the machine's LAN address. Only expose
-the port on trusted networks.
+Open **https://127.0.0.1:5000** and accept the development certificate.
+[run.py](run.py) stores a 14-day self-signed certificate under `.local/`; it is
+not appropriate for public hosting. For a phone on a trusted LAN, run
+`python run.py --host 0.0.0.0` and use the machine's LAN address. Expose the port
+only on trusted networks.
 
 ## Configuration
 
-| Variable | Purpose |
-| --- | --- |
-| `TRSERVER_NEW_ACCOUNT_PASSPHRASE` | Required invitation for account creation |
-| `TRSERVER_USERS_PATH` | Profile directory; defaults to `users` |
-| `TRSERVER_WORLD_PATH` | Loaded definitions; defaults to `worlds/tutorial` |
-| `TRSERVER_WORLDSTATE_PATH` | Live SQLite state; defaults to `.local/worldstate.sqlite3` |
-| `TRSERVER_CUSTOM_STICKERS_PATH` | Rendered custom peep stickers; defaults to `.local/stickers` |
-| `TRSERVER_PROPSETS_PATH` | Shared propset directory; defaults to `data/propsets` |
-| `TRSERVER_FX_PATH` | Shared effect definitions directory; defaults to `data/fx` |
-| `TRSERVER_FEATURES` | Optional flags such as `dev_sample_activity`, `world-editor`, `card-database`, `prop-editor` |
-| `TRSERVER_MODS` | Comma-separated mod names to load, or `*` for every installed mod |
-| `TRSERVER_MODS_PATH` | Mod search directory; defaults to `mods` |
-| `TRSERVER_ADMINS` | Comma-separated usernames bootstrapped with the `admin` power |
-| `TRSERVER_TIMEZONE` | Game timezone; defaults to `UTC` |
-| `TRSERVER_STUN_URLS` | Comma-separated STUN/TURN URLs for peer audio; defaults to a public STUN server |
-| `TRSERVER_HOST` | Listener address; defaults to `127.0.0.1` |
-| `TRSERVER_PORT` | HTTPS port; defaults to `5000` |
-| `TRSERVER_BASE_PATH` | Optional URL prefix when served behind a reverse proxy; e.g. `/admin` |
-| `TRSERVER_PUBLIC_ORIGIN` | Comma-separated extra browser origins accepted behind a proxy; e.g. `https://tinyrooms.febret.com` |
-| `TRSERVER_MC_ENDPOINT` | `host:port` of the mission-control server; enables the world's `/api/mc/*` client |
-| `TRSERVER_MC_TOKEN` | Shared secret for the mission-control channel (required with `TRSERVER_MC_ENDPOINT`) |
-| `TRSERVER_MC_NAME` | Display name for this instance; defaults to `world_id@host:port` |
-| `TRSERVER_MC_INSTANCE_ID` | Stable world-instance identity used in registration, health checks, and saved player destinations |
-| `TRSERVER_CLIENT_URL` | Advertised browser URL for this world; MC player entry requires HTTPS on the same hostname as entry |
-| `TRSERVER_ENTRY_URL` | Player-entry URL; when configured, the world's root redirects unauthenticated or mismatched-profile visitors there |
-| `TRSERVER_SHARED_CONTENT_PATH` | Deploy content root whose `cardsets/` and `propsets/` layer over the checkout's bundled content (shared wins on collisions) |
-| `TRSERVER_MC_CA_FILE` | PEM CA bundle used to verify the mission-control server certificate |
-| `TRSERVER_MC_INSECURE_TLS` | Dev-only: skip mission-control certificate verification |
-| `TRSERVER_PEEP_AGENT_*` | Optional; required only for dynamic peeps. See [doc/dynamic-peeps.md](doc/dynamic-peeps.md) |
+[server/config.py](server/config.py) is the complete world-server configuration
+reference (environment parsing, defaults, validation, and feature names).
+Common overrides are `TRSERVER_HOST`/`PORT` (loopback/5000), `TRSERVER_USERS_PATH`
+(`users`), `TRSERVER_WORLD_PATH` (`worlds/tutorial`), and `TRSERVER_WORLDSTATE_PATH`
+(`.local/worldstate.sqlite3`). `TRSERVER_NEW_ACCOUNT_PASSPHRASE` is required for
+registration; changing it does not affect existing accounts.
+
+Use `TRSERVER_FEATURES` for optional tools, `TRSERVER_ADMINS` for bootstrap admin
+usernames, and `TRSERVER_MODS` for mod selection. Reverse-proxy deployments can
+set `TRSERVER_BASE_PATH` and additional `TRSERVER_PUBLIC_ORIGIN` values.
+MC configuration, shared content, identity, and TLS settings are documented in
+[Mission Control](doc/mission-control.md#3-configuration).
 
 ## Dynamic Peeps
 
+The [dynamic-peeps specification](doc/dynamic-peeps.md) describes planned
+LLM-regenerated NPC behavior/dialogue, a separate generation worker, and its
+configuration/content examples. The current feature parser does not accept
+`dynamic_peeps`.
+
 > [!WARNING]
-> Dynamic peeps execute **agent-generated Python inside the game server
-> process**. This is dev-only and **not safe for production**. Enabling the
-> feature means trusting a language model to emit code that will be imported
-> and run. A blocking hardening gate is recorded in
-> [doc/dynamic-peeps.md](doc/dynamic-peeps.md) §9.
-
-Dynamic peeps are NPCs whose behavior script and dialog tree are periodically
-regenerated by an LLM agent from what they have observed since the last update.
-Generation runs in a separate worker process; the game loop is never blocked on
-a model call. See [doc/dynamic-peeps.md](doc/dynamic-peeps.md) for the full
-specification, the full configuration table, and the safety posture.
-
-```powershell
-$env:TRSERVER_FEATURES = "dynamic_peeps"
-$env:TRSERVER_PEEP_AGENT_ENDPOINT = "https://api.example.com/v1"
-$env:TRSERVER_PEEP_AGENT_MODEL = "some-model"
-$env:TRSERVER_PEEP_AGENT_API_KEY = "dev-only-key"
-python tools/peep_agent.py    # separate worker process
-```
-
-Mark individual peeps in `worlds/<world>/peeps/peeps.yaml`:
-
-```yaml
-molly:
-  dynamic:
-    cadence: daily     # daily (default) | hourly
-```
+> The design executes **agent-generated Python inside the game-server process**.
+> It is dev-only and **not safe for production**. Read the blocking hardening
+> gate in the specification's §9 before implementing or enabling it.
 
 ## Mission Control
 
-Mission control is an optional server providing public player login/account
-creation at `/`, operator administration at `/mission-control`, and management
-of world servers and their shared profile database. See
-[doc/mission-control.md](doc/mission-control.md) for the implemented topology.
-
-There is a single entry point: `run.py` launches mission control instead of the
-world server when `TRSERVER_FEATURES` includes `mission-control`.
+MC optionally serves public player entry at `/`, operator administration at
+`/mission-control`, and fleet/shared-profile management. `run.py` selects MC
+when `TRSERVER_FEATURES` includes `mission-control`:
 
 ```powershell
 $env:TRSERVER_FEATURES = "mission-control"
 $env:TRSERVER_MC_PASSPHRASE = "operator-passphrase"
 $env:TRSERVER_MC_TOKEN = "shared-secret"
+$env:TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE = "choose-an-invitation"
 python run.py
 ```
 
-On Linux/macOS the same works through `start.sh`, which supplies local
-development defaults for the passphrase and token:
+Open **https://127.0.0.1:8001/mission-control** for operators, or
+**https://127.0.0.1:8001/** for players. Bash users can run
+`TRSERVER_FEATURES=mission-control ./start.sh`; set `TRSERVER_ADMIN_ENV` to load
+an environment file before its development defaults.
 
-```bash
-TRSERVER_FEATURES=mission-control ./start.sh
-```
-
-Set `TRSERVER_ADMIN_ENV` to an environment-file path to have `start.sh` load it
-before applying those defaults. The deployed keepalive loads `<rootdir>/admin.env`.
-
-Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
-passphrase. Mission control serves HTTPS with the same self-signed certificate
-helper as the game server (reusing `.local/cert.pem` / `key.pem`).
-
-Open **https://127.0.0.1:8001/** for player entry. Login resolves the exact
-`last_instance_id` stored in the player's profile JSON; only legacy profiles
-without that field may use a unique match for their saved world. An unavailable
-or ambiguous destination produces an error rather than choosing another world.
-Player entry and worlds share `tr_session`/`tr_csrf` cookies across HTTPS ports
-on the **same hostname** and use the same profile database.
-
-The **Server Manager** tab exposes Stop / Restart / Rename / Resync / Delete,
-**Make default**, and **Reboot**. Select a running instance with **Make default**
-before creating players; the choice is persisted in
-`TRSERVER_MC_INSTANCES_PATH/entry.json` and is used for new accounts. Spawned
-identities and launch settings persist in `<instance-id>/instance.json`.
-**Reboot** records running children in `resume.json`, stops spawned instances,
-and shuts MC down; the keepalive restarts it and resumes the recorded children.
+Start a world and select **Make default** before creating players. Worlds use
+direct HTTPS ports on the same hostname as entry and share MC's profile DB.
+See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-destination-resolution),
+[lifecycle controls](doc/mission-control.md#53-server-manager), and
+[durable state](doc/mission-control.md#41-runtime-state-and-persisted-launch-settings).
 
 ## Deploying
 
-`tools/deploy.py` packages a version and deploys it to a remote host over
-passwordless SSH. It installs nginx, `python3-venv`, and `python3-pip` via apt
-when they are missing.
+[tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
 
 ```bash
 python tools/deploy.py <host> [rootdir] [bootstrap|deploy] [-u USER] [--dirty] [--keep-version]
 ```
 
-`host` may be a bare hostname or `user@host`; `-u/--user` overrides the SSH
-user. `bootstrap` creates the deployment directories (`mods`, `worlds`, `releases`,
-`logs`, `versions`), configures an nginx reverse proxy with a self-signed
-certificate, deploys a first version, and supervises a mission-control server
-under a keepalive script registered both at `@reboot` and on a per-minute cron
-entry. `deploy` increments the patch
-version in `version.json`, packages the working tree (with its
-`requirements.txt`) into `./releases`, uploads it to
-`<rootdir>/versions/<version>`, and repoints `<rootdir>/versions/latest`.
-The upload is streamed over SSH and resumes from the remote byte offset when
-the connection drops, then verifies the tarball's size and SHA-256 digest
-before installing it. The remote host must provide `flock`, `stat`, and `sha256sum`.
-Pass `--dirty` to skip the clean-worktree check and git tagging and to mark the
-version dirty. Pass `--keep-version` to reuse the newest version recorded in
-`version.json` instead of bumping the patch; the local tarball and the remote
-`<rootdir>/versions/<version>` directory are overwritten in place (and created
-when absent), and it selects the `deploy` operation when no operation is given.
-A bootstrap on `tinyrooms.febret.com` exposes player entry at
-`https://tinyrooms.febret.com/` and operator administration at
-`https://tinyrooms.febret.com/mission-control`. nginx has a fixed root proxy to
-MC only; worlds use direct HTTPS URLs such as
-`https://tinyrooms.febret.com:10000/`. Legacy `/admin` URLs redirect to the
-root-based routes. Instance lifecycle actions do not regenerate nginx, and
-there is no nginx-management API or UI.
+`host` accepts `user@host`; `-u` overrides the user. `bootstrap` (default) prepares
+nginx/TLS, directories, dependencies, and cron keepalive, then deploys a version.
+`deploy` bumps the patch version, packages the working tree, uploads it, and
+repoints `versions/latest`. `--dirty` skips the clean-tree check/tagging and marks
+the version dirty. `--keep-version` overwrites the newest recorded release
+locally/remotely and defaults to `deploy` when no operation is specified.
 
-Deployment writes `TRSERVER_MC_INSTANCE_HOST=0.0.0.0`,
-`TRSERVER_MC_INSTANCE_PUBLIC_HOST=<hostname>` (alias of
-`TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME`), and the inclusive allocation bounds
-`TRSERVER_MC_INSTANCE_PORT_MIN=10000` / `TRSERVER_MC_INSTANCE_PORT_MAX=10999`.
-Local MC defaults are loopback and ports `5000..5999`. Spawned worlds reuse
-nginx's `<rootdir>/nginx/certs/server.crt` and `server.key` through
-`TRSERVER_MC_INSTANCE_CERTFILE` / `TRSERVER_MC_INSTANCE_KEYFILE`. Bootstrap also
-sets `TRSERVER_MC_INSECURE_TLS=1` for the management channel.
-
-Allow inbound TCP **80** (HTTPS redirect), **443** (entry/admin), and
-**10000–10999** (direct worlds) in host and provider firewalls, adjusting the
-world range if configured differently. The deploy tool does not open firewall
-ports. Browsers must accept/trust the certificate on direct world connections.
-
-An upgrade deployment refreshes the fixed nginx proxy as well as restarting
-MC. Already-running legacy worlds need a restart with stable identity and
-direct-public URL/bind settings. **Resume preserves legacy host, port, base path,
-and version selections**: a resumed `127.0.0.1` instance remains loopback-only,
-and a legacy port outside the new range cannot resume. Updating `admin.env` or
-pressing Restart alone does not migrate saved launch settings. Ensure those
-settings and the world version support direct entry before using the instance
-as a player destination; see the upgrade notes in
-[doc/mission-control.md](doc/mission-control.md#83-deployment-and-upgrades).
-
-Secrets live in `<rootdir>/admin.env`. Set `TRSERVER_MC_PASSPHRASE` and/or
-`TRSERVER_MC_TOKEN` in the deploying shell to choose them explicitly; otherwise
-the existing values are preserved (and generated on first deploy). The keepalive
-loads this file on startup. After editing it, restart mission control explicitly
-using its **Reboot** action; deployment also restarts it.
+Read [deployment and upgrade instructions](doc/mission-control.md#83-deployment-and-upgrades)
+before hosting or upgrading: they cover direct world ports, certificates,
+firewalls, secrets, resumable uploads, and migration of saved legacy launch
+settings. Deployment does not open firewalls or automatically migrate instances.
 
 ## Mods
 
-Server mods live under `mods/` (override with `TRSERVER_MODS_PATH`). A mod is a
-directory containing a `mod.yaml` manifest that may contribute world content
-(`content/`), a props set (`props/`), activity iframes (`activities/`), and
-Python behaviour through an entrypoint (`mod.py`) exposing `register(api)`.
-Enable mods with `TRSERVER_MODS` (comma-separated names, or `*` for every
-installed mod). Worlds declare the mods they need with `requires_mods` in
-`world.yaml`; the tutorial world requires `infinite-bedrooms`.
+Mods under `mods/` (override `TRSERVER_MODS_PATH`) use a `mod.yaml` manifest and
+may contribute content, props, activity iframes, and Python `register(api)`
+behavior. Enable comma-separated names or `*` through `TRSERVER_MODS`. Worlds
+declare `requires_mods`; the tutorial requires `infinite-bedrooms`.
 
 ## Editors
 
-Content-authoring tools are gated by `TRSERVER_FEATURES` and power checks:
+Enable tools with `TRSERVER_FEATURES`; powers are also required:
 
-- **World Editor** (`/world-editor`, feature `world-editor`): draft, validate, and
-  publish world YAML. Requires `builder`, `game-master`, or `admin`.
-- **Card Database** (`/card-database`, feature `card-database`): read-only card
-  catalog. Requires `builder`, `game-master`, or `admin`.
-- **Prop Editor** (`/prop-editor`, feature `prop-editor`): edit any loaded prop
-  definition (world, mod, or shared propset `props.yaml`) and the `data/fx`
-  effect layer stacks, save them back to disk, and force a live world reload.
-  Requires the `admin` power.
+- `world-editor` at `/world-editor`, and read-only `card-database` at
+  `/card-database`: `builder`, `game-master`, or `admin`.
+- `prop-editor` at `/prop-editor`: `admin`; edits loaded world/mod/shared prop
+  definitions and `data/fx` effect stacks. Saves rewrite backing YAML without
+  preserving comments. Use **Save prop/effect**, then **Reload world** to publish.
 
-```powershell
-$env:TRSERVER_FEATURES = "prop-editor"
-$env:TRSERVER_ADMINS = "siteadmin"
-python run.py
-```
-
-Then open **https://127.0.0.1:5000/prop-editor**. Saves rewrite the backing YAML
-file (comments are not preserved), so publishing a change is a two-step flow:
-**Save prop/effect**, then **Reload world**.
+For example, set `$env:TRSERVER_FEATURES = "prop-editor"` and
+`$env:TRSERVER_ADMINS = "siteadmin"` before `python run.py`.
 
 ## Verification
 
-Activate the virtual environment first so `npm run vendor` uses its Python.
-No additional Python test framework is required:
+Activate the virtual environment first so vendoring uses its Python:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -243,56 +132,44 @@ npm ci
 npm run vendor
 npx playwright install chromium
 python -m unittest discover -s tests -v
-npm run test:browser
+npm test
 ```
 
-`npm test` runs the Playwright functional browser tests: a deliberately minimal
-smoke set (boot, WebSocket round-trip, core views, one gameplay flow, one
-cutscene). Broader behavior is covered by the Python and client-logic suites, and
-rendered states by `npm run test:visual`.
-For a targeted run use `npm run test:browser -- -g "all core cards"`.
-The browser harness uses `.venv\Scripts\python.exe` automatically; override with
-`$env:TR_TEST_PYTHON = "C:\path\to\python.exe"` if needed.
-If browser downloads are unavailable, an installed Chrome or Edge can run
-functional checks with `$env:TR_BROWSER_CHANNEL = "chrome"` (or `"msedge"`).
+[package.json](package.json) defines `test:client` (actual JS modules via Node),
+`test:browser` (minimal Playwright smoke), `test:visual` (rendered states), and
+`test:perf` ([separate performance budgets](doc/performance.md)). `npm test` runs
+client + browser tests. Target smoke with `npm run test:browser -- -g "all core cards"`.
 
-`requirements-dev.txt` includes the runtime requirements, including the explicit
-`websockets` dependency required by Uvicorn. If logs report “No supported WebSocket
-library detected” and `/ws` returns 404, restore dependencies with
-`python -m pip install -r requirements-dev.txt`, then restart that server.
-Installing bare `uvicorn` alone is not a complete Tinyrooms runtime setup.
+### Troubleshooting
+
+- The browser harness auto-selects `.venv\Scripts\python.exe`; override with
+  `$env:TR_TEST_PYTHON = "C:\path\to\python.exe"` if needed.
+- If browser downloads fail, use installed Chrome/Edge with
+  `$env:TR_BROWSER_CHANNEL = "chrome"` (or `"msedge"`).
+- “No supported WebSocket library detected” and `/ws` returning 404: reinstall
+  `requirements-dev.txt` and restart the server. It includes runtime requirements
+  and `websockets`; bare `uvicorn` is not a complete runtime installation.
+- MC destination failures: follow [entry checks](doc/mission-control.md#21-player-entry-and-destination-resolution)
+  and [upgrade warnings](doc/mission-control.md#83-deployment-and-upgrades).
 
 ### Playwright tests and reference screenshots
 
 Run `npm run test:visual` separately; functional tests never update screenshots.
-For the checked-in Windows/Chrome baseline:
+The checked-in baseline uses Windows/Chrome (`$env:TR_BROWSER_CHANNEL = "chrome"`).
+Set `$env:TR_VISUAL_ONLY = "onboarding,self"` for selected images and remove it
+with `Remove-Item Env:TR_VISUAL_ONLY` for the full matrix.
+
+Only after manual design review and approval (see [baseline rules](AGENTS.md#visual-baselines-manual-review-required)):
 
 ```powershell
-$env:TR_BROWSER_CHANNEL = "chrome"
+$env:TR_UPDATE_SCREENSHOTS = "1"
+npm run test:visual -- --update-snapshots
+Remove-Item Env:TR_UPDATE_SCREENSHOTS
 npm run test:visual
 ```
 
-To recheck only particular images while exercising the same real gameplay flow,
-set `$env:TR_VISUAL_ONLY = "onboarding,self"` before running the visual command.
-Remove it with `Remove-Item Env:TR_VISUAL_ONLY` for the complete matrix.
-
-To update the baseline screenshots:
-
-```bash
-TR_UPDATE_SCREENSHOTS=1 npm run test:visual -- --update-snapshots
-```
-
-
 ## Project layout
 
-- `app`: browser UI and Three.js tabletop renderer.
-- `server`: accounts, commands, protocol, services, and persistence.
-- `activities`: Sticker Designer and activity fixtures.
-- `data`: shared cards and sticker artwork, plus core cutscene definitions and
-  their scripts under `data/cutscenes/<id>/`.
-- `worlds/tutorial`: tutorial definitions and assets, including world cutscenes
-  under `worlds/tutorial/cutscenes/<id>/`. See
-  [doc/cutscenes.md](doc/cutscenes.md).
-- `tools`: reproducible browser dependency vendoring.
-- `doc`: design, milestone, and visual references. Start with
-  [doc/architecture.md](doc/architecture.md) for the technical overview.
+See [architecture](doc/architecture.md) for the source map and
+[cutscenes](doc/cutscenes.md) for core/world script placement. Design and visual
+references live under [doc/](doc/).

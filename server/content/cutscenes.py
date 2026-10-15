@@ -21,6 +21,8 @@ AUDIENCES = frozenset({"private", "room", "any"})
 MAX_PARAMS = 16
 MAX_PARAM_STRING = 200
 MAX_PARAMS_TEXT = 4000
+# Command arguments reject these server metadata names; definition/other trigger
+# mappings are not subject to this same reserved-name check.
 RESERVED_PARAM_KEYS = ("origin", "source_name", "room_id", "random")
 
 
@@ -28,7 +30,10 @@ RESERVED_PARAM_KEYS = ("origin", "source_name", "room_id", "random")
 class CutsceneCue:
     """One caption cue scheduled relative to the start of the scene body."""
 
+    # Authored offsets are milliseconds; parsing defaults missing at to zero and
+    # truncates numeric offsets. The client helper currently times from its call.
     at: int
+    # At least say or speaker must be non-empty; style is a caption CSS class.
     say: str = ""
     speaker: str = ""
     style: str = ""
@@ -44,17 +49,28 @@ class CutsceneDefinition:
     frame: str
     source: str
     script_path: Path | None = None
+    # YAML duration: requested playback cap in ms, zero for none, distinct from
+    # frame animation timing. The client's skip=False cap gap is in doc/cutscenes.md §8.
     duration_ms: int = 0
+    # any defaults to private but permits a room request; private forbids promotion.
     audience: str = "private"
+    # Client travel filtering applies to pending entries, not active playback yet.
     room_bound: bool = True
+    # Controls local Skip/click/Escape requests, not server-side cancellation.
     skip: bool = True
+    # Catalog visibility only: hidden scenes still resolve and launch by id/alias.
     hidden: bool = False
     aliases: tuple[str, ...] = ()
+    # Pending-entry budget per id; launch currently omits it from the play payload.
     max_queue: int = 3
+    # Per-definition launch gates, not a subsystem flag; empty rooms allows any room.
     required_feature: str | None = None
     power: str | None = None
     rooms: tuple[str, ...] = ()
+    # Callers charge this cost; constructing a launch does not debit Energy.
     energy_cost: int = 0
+    # Open scene-specific scalars, with frame_options as the sole mapping exception.
+    # Cues are optional author data, not automatically rendered by the manager.
     params: dict[str, Any] = field(default_factory=dict)
     text: tuple[CutsceneCue, ...] = ()
 
@@ -224,6 +240,7 @@ def load_cutscene_definitions(
             raise ContentError(f"Cutscene '{cutscene_id}' script must be a plain file name.")
         if not script_name.endswith(".js"):
             raise ContentError(f"Cutscene '{cutscene_id}' script must be a .js file.")
+        # Frame names are client-extensible; registration is not validated here.
         frame = str(raw.get("frame", "plain")).strip() or "plain"
         audience = str(raw.get("audience", "private")).strip() or "private"
         if audience not in AUDIENCES:
@@ -341,6 +358,8 @@ def parse_param_arguments(
 ) -> dict[str, Any]:
     """Parse ``key=value`` launch arguments into scalar params."""
 
+    # Unlike definition parsing, this currently allows scalar frame_options;
+    # consistent mapping-only trigger validation remains outstanding.
     params: dict[str, Any] = {}
     for raw in raw_arguments:
         key, separator, value = raw.partition("=")

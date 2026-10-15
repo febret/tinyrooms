@@ -23,17 +23,23 @@ test that produces them. A breach fails with a message naming the responsible
 test, so the cause is obvious without reading the report.
 
 **Relative baselines, compared afterwards.** Every tier writes its metrics to the
-JSON file named by `TR_PERF_OUT`; `tools/perf_report.py` merges them, compares
-against `tests/perf/baselines/perf-baselines.json` and prints a table. A metric
-is a regression when it exceeds `baseline * 1.2`, plus an absolute noise floor per
-unit.
+JSON file named by `TR_PERF_OUT`; the [runner](../tools/run_perf.py) merges them
+and [reporter](../tools/perf_report.py) compares against the
+[baseline](../tests/perf/baselines/perf-baselines.json). For lower-is-better
+metrics, regression means `current > max(baseline * 1.2, baseline + noise_floor)`;
+for higher-is-better, `current < min(baseline * 0.8, baseline - noise_floor)`.
+Thus a change must exceed both the 20% tolerance and the unit's absolute floor,
+not their sum. Floors are defined in the reporter; new/removed metrics are informational.
 
 Re-record after an intentional change:
 
 ```powershell
-TR_UPDATE_PERF_BASELINES=1 npm run test:perf     # merges; partial tiers keep the rest
-python tools/run_perf.py --update --replace-baseline   # full overwrite
+python tools/run_perf.py --update           # merges; partial tiers keep the rest
+python tools/perf_report.py --results "path/to/merged-results.json" --update --replace-baseline
 ```
+
+Full replacement is a **reporter** option requiring an existing merged results
+file, not a runner option. The runner deletes its temporary results on exit.
 
 ## Tiers
 
@@ -45,40 +51,29 @@ python tools/run_perf.py --update --replace-baseline   # full overwrite
 
 ### server
 
-`tests/perf/perf_snapshot.py` is the important one. `RoomService.build_snapshot`
-runs on connect, on every `snapshot.request`, on every `.go` and on every
-`.reset_room`, and it assembles data for *every* occupant while being invoked
-separately for *each* occupant. That combination is what made a busy room
-quadratic.
-
-The benchmarks count SQL statements through SQLite's own trace hook
-(`perfkit.sql_counter`), so they need no changes to the repositories under test
-and see statements issued inside transactions. They are therefore exact, fast,
-and immune to machine load — which is why the ceilings are tight.
-
-`tests/perf/synthetic.py` generates scaled copies of the tutorial world: N rooms,
-M props, K peeps, cards and auras. **Note** the world tree is hardlinked to
-avoid copying megabytes of artwork, so the generator unlinks a file before
-rewriting it; `perf_synthetic_world.py` guards that, because writing through a
-hardlink silently corrupts `worlds/tutorial`.
+The [snapshot benchmarks](../tests/perf/perf_snapshot.py) protect the former
+busy-room quadratic path: assembling every occupant's data separately for each
+recipient. [SQL counters](../tests/perf/perfkit.py) use SQLite's trace hook,
+including statements inside transactions, for exact, load-independent ceilings.
+The [synthetic-world generator](../tests/perf/synthetic.py) scales tutorial rooms,
+props, peeps, cards and auras. It hardlinks artwork and must unlink before
+rewriting; the [guard benchmark](../tests/perf/perf_synthetic_world.py) prevents
+corruption of `worlds/tutorial` through shared links.
 
 ### client
 
-`tests/client/*.test.js` already imports the real `app/js/` modules, so the
-reducer benchmarks do the same under `node --test` with no browser. They assert
-*identity* invariants as well as timings: a chat message must not replace the
-prop, occupant or room-card arrays, and re-normalising an unchanged chat log must
-not mint new identities. Those are exact and cannot flake.
+The [reducer benchmarks](../tests/perf/client/state-perf.test.js) import real
+`app/js/` modules under Node. Alongside timings, exact identity invariants require
+chat to preserve prop, occupant and room-card arrays, and unchanged chat-log
+normalisation to preserve identities.
 
 ### browser
 
-The browser tier asserts on **structure, not frame timing**. Wall-clock
-assertions against a software rasteriser are the least reliable signal in the
-suite, so instead it budgets what the board submits to the GPU
-(`renderer.info`), how many frames the loop produces, and how much DOM work a
-single state change causes.
+The [browser budgets](../tests/browser/perf/render.spec.js) assert on **structure,
+not frame timing**: GPU submissions (`renderer.info`), frames produced, and DOM
+work per state change. Software-rasteriser wall-clock timing is unreliable.
 
-`tests/browser/perf/dom-counters.js` counts DOM writes and layout-forcing reads,
+[DOM counters](../tests/browser/perf/dom-counters.js) count writes and layout-forcing reads,
 attributing an access only when an `/app/js/` frame appears in its stack.
 Without that filter the count is dominated by Chromium's own `scrollTop` reads
 during scroll anchoring and by Playwright's actionability checks — the first
@@ -135,7 +130,7 @@ What is known about the failure, for whoever picks it up:
   regardless, but the underlying difference survived that fix.
 
 The texture half of the problem is already solved independently:
-`shareModelTextures` in `app/js/board-resources.js` dedupes prop textures per
+`shareModelTextures` in [board resources](../app/js/board-resources.js) dedupes prop textures per
 asset without touching the model lifecycle, which is where the 205 → 101 came
 from.
 

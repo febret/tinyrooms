@@ -26,28 +26,58 @@ class MCConfig:
     repo_root: Path
     host: str
     port: int
+    # Operator UI login, independent of player invitations/accounts.
     passphrase: str
+    # Shared secret for token-authenticated MC <-> world management calls.
     token: str
+    # Shared profiles.sqlite3 directory for MC and all player destinations;
+    # external worlds need operator verification of the same database setup.
     users_path: Path
+    # Durable <id>/instance.json identities/launch settings, entry.json's new-user
+    # default, and reboot's resume.json. Restoring identities alone does not spawn.
     instances_path: Path
+    # Additional installed code checkouts, independent of shared content.
     versions_path: Path
+    # Outside version checkouts: shared worlds/, cardsets/, propsets/, releases/.
+    # Inventory detects <id>/world.yaml, cards.yaml (optional pack.yaml), props.yaml
+    # in the respective roots; selected shared world ids precede bundled ones.
     content_root: Path
+    # Server Info storage-measurement override, not the child code/content root.
     install_path: Path | None
+    # Outbound world-management TLS trust, not browser-facing listener certificates.
+    # Normal trust applies without a CA; the dev-only insecure switch overrides it.
     ca_file: Path | None
     insecure_tls: bool
+    # Negotiated world heartbeat interval; registry staleness is three times this.
     heartbeat_seconds: float
+    # Player invitation, also passed to children as TRSERVER_NEW_ACCOUNT_PASSPHRASE.
+    # Blank/unset randomizes on every config load; set explicitly to keep it stable.
+    # Invitation changes do not invalidate existing accounts.
     new_account_passphrase: str
     features: frozenset[str]
+    # Default child mod selection; a start request can override it.
     mods: str = "*"
+    # Optional MC URL prefix; independent of direct worlds' saved base paths.
     base_path: str = ""
+    # Extra Origin allowlist entries; the first also supplies the public entry
+    # origin. Direct-world URLs share its hostname so player cookies span ports.
     public_origins: tuple[str, ...] = ()
+    # Legacy parsed settings only: no runtime nginx management/reload uses these.
     nginx_conf_path: Path | None = None
     nginx_reload_command: str | None = None
+    # Script relaunched after MC exits for Reboot; absence disables that action.
     keepalive_path: Path | None = None
+    # Default bind for new worlds, separate from their advertised public hostname.
+    # Saved restart/resume settings retain their bind/base path/version selections;
+    # changing deployment defaults does not migrate existing launch settings.
     instance_host: str = "127.0.0.1"
     instance_public_hostname: str | None = None
+    # Inclusive bounds for automatic allocation and explicit start/resume ports.
+    # Resume rejects saved out-of-range ports; Restart reuses saved launch settings.
     instance_port_min: int = 5000
     instance_port_max: int = 5999
+    # Paired existing TLS files passed to child run.py, independently of MC's own
+    # listener cert. Deployment reuses nginx's certificate/key for direct worlds.
     instance_certfile: Path | None = None
     instance_keyfile: Path | None = None
 
@@ -208,6 +238,8 @@ def load_mc_config(
     install_raw = values.get("TRSERVER_MC_INSTALL_PATH", "").strip()
     install_path = Path(install_raw).expanduser() if install_raw else None
 
+    # Supervisor also passes the CA to children for their MC connection; without
+    # a CA (or with insecure_tls), it explicitly disables their TLS verification.
     ca_raw = values.get("TRSERVER_MC_CA_FILE", "").strip()
     ca_file = Path(ca_raw).expanduser().resolve() if ca_raw else None
     insecure_tls = parse_bool(values.get("TRSERVER_MC_INSECURE_TLS", "0"))
@@ -236,6 +268,8 @@ def load_mc_config(
     instance_host = values.get("TRSERVER_MC_INSTANCE_HOST", "127.0.0.1").strip()
     if not instance_host or any(character.isspace() for character in instance_host) or "/" in instance_host:
         raise ConfigError("TRSERVER_MC_INSTANCE_HOST must be a bind hostname or address.")
+    # Canonical setting wins over the deployment alias, even when explicitly blank.
+    # Omission falls back to the entry-origin hostname, without its port/path.
     instance_public_hostname = values.get(
         "TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME", values.get("TRSERVER_MC_INSTANCE_PUBLIC_HOST", "")
     ).strip() or None

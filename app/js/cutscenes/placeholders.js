@@ -5,7 +5,7 @@ const PAGE_ORIGIN = typeof window === "undefined" ? "" : window.location.origin;
 const elementCache = new Map();
 const rejected = new Set();
 
-/** Return whether a served URL may be used as a cutscene image source. */
+/** Accept same-origin assets and inline data URLs (including rendered prop art). */
 export function isSameOrigin(url) {
   if (typeof url !== "string" || !url) return false;
   if (url.startsWith("data:")) return true;
@@ -26,6 +26,8 @@ function warnOnce(key, message) {
 /** Return the still or animated art URL for a resolved asset record. */
 export function assetSource(asset) {
   if (!asset) return "";
+  // Animation replaces still art when present; a rejected animation URL does
+  // not silently fall back to the still image.
   const preferred = asset.animation_url || asset.url;
   if (!isSameOrigin(preferred)) {
     warnOnce(String(preferred), `Rejected image URL ${String(preferred)}.`);

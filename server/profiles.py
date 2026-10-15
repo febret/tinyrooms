@@ -38,6 +38,7 @@ _UNSET = object()
 
 
 def _default_profile() -> dict[str, object]:
+    """Defaults for the shared social/UI object, distinct from gameplay JSON blobs."""
     return {
         "friends": [],
         "friend_requests_sent": [],
@@ -52,6 +53,11 @@ def _default_profile() -> dict[str, object]:
 
 
 def _normalize_profile(raw: object) -> dict[str, object]:
+    """Merge defaults and repair known shapes while retaining extension keys.
+
+    Skills are ordered slot entries (inventory stack IDs or empty slots);
+    last_instance_id is an optional stable resume destination, not a world ID.
+    """
     defaults = _default_profile()
     if not isinstance(raw, dict):
         return defaults
@@ -135,7 +141,10 @@ class InventoryStack:
 
 @dataclass(frozen=True, slots=True)
 class UserProfileRecord:
-    """A persisted per-user profile row."""
+    """One account-wide profile, including navigation context for the last world.
+
+    Switching worlds preserves gameplay blobs; only resume context is refreshed.
+    """
 
     account_id: str
     last_world_id: str
@@ -1020,7 +1029,7 @@ class ProfileRepository:
         account_id: str,
         counters: dict[str, object],
     ) -> None:
-        """Persist the world-scoped counter values for a user."""
+        """Persist the user's base counters in the single account-wide profile."""
 
         connection.execute(
             "UPDATE user_profiles SET counters_json = ? WHERE account_id = ?",
@@ -1084,7 +1093,7 @@ class ProfileRepository:
         account_id: str,
         ownership: dict[str, object],
     ) -> None:
-        """Persist the world-scoped ownership claims for a user."""
+        """Persist the profile ownership mirror; world room state authorizes edits."""
 
         connection.execute(
             "UPDATE user_profiles SET ownership_json = ? WHERE account_id = ?",

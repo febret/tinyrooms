@@ -29,8 +29,11 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "id": account.id,
         "username": account.username_display,
         "sticker": account.sticker,
+        # Editable custom-sticker recipe, or null for a preset/absent design.
         "sticker_design": decode_design(account.sticker_design),
+        # Persistent onboarding gate: world entry requires first sticker confirmation.
         "initial_sticker_complete": account.initial_sticker_complete,
+        # Ownership comes from the account-wide user profile, not room presence.
         "owned_rooms": list(user_profile.owned_rooms),
         "unlocked_props": sorted(runtime.prop_shop.unlocked(account.id)),
         "level": account.level,
@@ -40,6 +43,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "max_equipped": level_definition.max_equipped,
         "bops": account.bops,
         "sticker_swap_cost": runtime.content.bops.sticker_swap_cost,
+        # Current authoritative energy from the stats view, not the raw account row.
         "shared_energy": snapshot.energy,
         "counters": snapshot.payload(),
         "stats": snapshot.effective.stats,
@@ -59,11 +63,17 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "pinned_peeps": list(user_profile.pinned_peeps),
         "friends": friends.as_dict(),
         "packs": [preview.as_dict() for preview in runtime.shop.packs()],
+        # Persisted user-profile preference for displaying the action log.
         "show_activity_log": user_profile.show_activity_log,
+        # This payload's loaded world; remembered_room is nullable saved navigation
+        # context from the profile, not proof of a live connection in that room.
         "world_id": runtime.world.id,
         "remembered_room": user_profile.remembered_room,
         "inventory": runtime.cards.list_inventory_payload(account.id),
+        # Non-transferable navigation/view card definitions in cards.yaml order,
+        # separate from owned inventory stacks (Room, Emotes, Inventory, etc.).
         "core_cards": runtime.cards.serialize_core_cards(),
+        # Current in-memory activity or null; incomplete onboarding ensures a designer.
         "activity": runtime.activities.serialize(activity),
         "tasks": runtime.tasks.view_payload(account.id),
         "journal": runtime.memories.journal_payload(account.id),

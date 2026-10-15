@@ -84,6 +84,7 @@ def _placeholder_tokens(value: Any) -> list[str]:
 def choose_audience(definition: CutsceneDefinition, requested: str | None = None) -> str:
     """Return the delivery audience for a launch, honouring the definition."""
 
+    # Explicit private delivery is always allowed; any has no room-wide default.
     if requested == AUDIENCE_ROOM:
         if definition.audience not in {AUDIENCE_ROOM, "any"}:
             raise CutsceneError(f"{definition.title} cannot be shown to the whole room.")
@@ -156,6 +157,8 @@ class CutsceneService:
     def visible_catalog(self, *, room_id: str) -> list[dict[str, object]]:
         """Return the catalog a client may offer for launching."""
 
+        # This visibility filter is not authorization: feature/power checks occur
+        # separately. Catalog origin is content provenance, not a launch trigger.
         entries: list[dict[str, object]] = []
         for definition in self.definitions().values():
             if definition.hidden:
@@ -210,7 +213,10 @@ class CutsceneService:
         fetch it because room membership is only readable asynchronously.
         """
 
+        # Gates, audience selection, and Energy charging are caller responsibilities.
         merged = self._merge_params(definition, params)
+        # Trigger metadata wins over authored/launch values, except random: an
+        # existing seed survives; otherwise all recipients get this play's 0..9999 seed.
         merged["origin"] = origin
         merged["source_name"] = account.username_display
         merged["room_id"] = room_id
@@ -227,10 +233,15 @@ class CutsceneService:
             asset = self._resolve_assets(token, room_id=room_id, account=account, occupants=room_accounts)
             if asset is not None:
                 resolved.append(asset)
+        # Keep param tokens for sprite lookup; only cue say text gets labels.
+        # Speaker tokens contribute assets above but remain literal in the payload.
         cues = tuple(
             {"at": cue.at, "say": self._substitute(cue.say, resolved), "speaker": cue.speaker, "style": cue.style}
             for cue in definition.text
         )
+        # Closed playback record: script_url is server-selected; extensions go in
+        # params. source identifies the triggering account, not content provenance.
+        # room_bound reaches the queue, but authored max_queue is currently absent.
         payload: dict[str, object] = {
             "id": definition.id,
             "title": definition.title,
@@ -252,6 +263,7 @@ class CutsceneService:
             "cutscene": payload,
         }
         if audience == AUDIENCE_PRIVATE:
+            # Private delivery uses account routing; room delivery uses a broadcast.
             event["account_id"] = account.id
         return CutsceneLaunch(
             definition=definition,
@@ -267,6 +279,7 @@ class CutsceneService:
         definition: CutsceneDefinition,
         overrides: Mapping[str, Any] | None,
     ) -> dict[str, Any]:
+        # Overrides replace whole values (including frame_options), not nested keys.
         merged: dict[str, Any] = dict(definition.params)
         for key, value in (overrides or {}).items():
             merged[str(key)] = value
@@ -297,6 +310,10 @@ class CutsceneService:
         account: AccountRecord,
         occupants: frozenset[str] | None = None,
     ) -> dict[str, object] | None:
+        # Missing references emit no record. ref preserves the exact lookup token;
+        # kind selects client rendering, id is asset identity, label supplies text/alt.
+        # Image records use url plus optional preferred animation_url; no dimensions
+        # are emitted. Props instead carry model_url, scale, and a null thumbnail.
         kind, _, value = token[1:].partition(":")
         value = value.strip()
         if kind == "me":
@@ -346,6 +363,7 @@ class CutsceneService:
         }
 
     def _peep_asset(self, ref: str, peep_id: str) -> dict[str, object] | None:
+        # Current lookup is world-wide, without a current-room peep membership check.
         world = self._world()
         peep = world.peeps.get(peep_id)
         if peep is None:
@@ -372,6 +390,7 @@ class CutsceneService:
         }
 
     def _card_asset(self, ref: str, value: str, account: AccountRecord) -> dict[str, object] | None:
+        # Direct definition ids bypass ownership; stack ids must be in this inventory.
         definition = None
         if self._cards.has_definition(value):
             definition = self._cards.definition(value)
@@ -409,6 +428,7 @@ class CutsceneService:
             model_url = f"/assets/propsets/{definition.source}/{definition.model_name}"
         else:
             model_url = f"/assets/world/{world.id}/props/{definition.model_name}"
+        # Thumbnails are rendered in the browser, using instance × definition scale.
         return {
             "ref": ref,
             "kind": "prop",

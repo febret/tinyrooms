@@ -31,30 +31,48 @@ LOG_RING_LIMIT = 1000
 class InstanceRecord:
     """One managed world-server instance."""
 
+    # Stable destination/restart identity, distinct from the display name and world id.
+    # Legacy registrations without an id receive only a transient registry identity.
     instance_id: str
     name: str
+    # Management HTTPS origin; client_url may advertise a different browser address.
     endpoint: str
+    # Source determines child-process versus cooperative lifecycle control.
     source: str = EXTERNAL
     token_source: str = "env"
+    # Heartbeat staleness means unreachable; child exit means stopped, not removal.
     status: str = STATUS_STARTING
     world_id: str | None = None
     world_label: str | None = None
     version: str | None = None
     protocol_version: int | None = None
+    # World-reported process start, unlike MC's registration/heartbeat receipt times.
     started_at: str | None = None
+    # Optional URL prefix retained in saved launches, including legacy routes.
     base_path: str = ""
     client_url: str | None = None
+    # Registered world's entry room, used when validating new-account destinations.
     entry_room_id: str | None = None
     registered_at: str | None = None
     last_heartbeat_at: str | None = None
+    # Last heartbeat's process age in seconds and live gameplay connection count;
+    # these are world-reported samples, not counts of persisted login sessions.
     uptime_seconds: float = 0.0
     users_online: int = 0
+    # Latest /api/mc/stats response, absent until fetched and possibly stale:
+    # uptime is seconds; users carry account/username/room; rooms and content
+    # counters are loaded counts; version/schema describe the reporting world.
     stats_cache: dict[str, object] | None = None
     stats_at: str | None = None
+    # Spawned-only process/runtime location and saved settings for in-place restart.
+    # Restored identities can have settings without a live process handle.
     process_handle: object | None = None
     instance_dir: str | None = None
     spawn_config: dict[str, object] | None = None
+    # Commands MC permits forwarding; world dispatch still enforces account powers.
     capabilities: list[str] = field(default_factory=list)
+    # Per-instance recent child stdout/stderr, bounded and lost on MC restart.
+    # External /api/mc/logs tails are polled directly rather than cached here.
     log_buffer: deque[str] = field(default_factory=lambda: deque(maxlen=LOG_RING_LIMIT))
 
 
@@ -290,7 +308,11 @@ class InstanceRegistry:
         return evicted
 
     def snapshot(self, record: InstanceRecord) -> dict[str, object]:
-        """Serialize a record for the mission-control UI."""
+        """Serialize a record for the mission-control UI.
+
+        last_heartbeat_seconds is age at serialization, or null before receipt.
+        has_stats indicates cache presence, not freshness or world readiness.
+        """
 
         last = _parse(record.last_heartbeat_at)
         age = None if last is None else round((utc_now() - last).total_seconds(), 1)

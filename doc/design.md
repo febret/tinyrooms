@@ -33,7 +33,8 @@ Support for custom worlds and mods is an extension capability, not a requirement
 to invent unlimited additional content. The content included with the initial
 release must be explicitly defined.
 Tutorial layouts, named-card catalogs, and tutorial-specific rewards belong in
-the [implementation brief](./prompt.md), not in this reusable gameplay design.
+a separate implementation brief, not in this reusable gameplay design. That
+brief is currently missing; shipped content is in [worlds/tutorial](../worlds/tutorial/).
 
 ### Terminology
 - **User**: a human participant. This document uses "user" rather than alternating
@@ -178,8 +179,7 @@ that view closed. Activity windows retain their own explicit Close control.
 ### Main Screen
 ![Main View, Core Cards, and Equipped Cards](./images/main-view.png)
 
-The Tinyrooms main screen has the following main components (labeled with red 
-boxes in the screenshot above):
+Main components (red labels above):
 - The Board (center)
 - The Peeps List (left)
 - The Card View (bottom)
@@ -212,8 +212,7 @@ individually, while unpinned peeps are collapsed into a single **peep group**
 entry that can be expanded to see the individual peeps.
 
 #### The Card View
-The Card View shows the equipped item and action stacks, which represent actions
-the user can take. It sits at the bottom of the main screen.
+The bottom Card View shows equipped item and action stacks.
 
 **Core** controls are non-collectible buttons that open built-in gameplay actions
 or submenus. Inventory and Journal sit in a horizontal toolbar at the top of the
@@ -226,10 +225,8 @@ displayed in a fixed order. Room View and Skills are opened from quick actions
 rather than core controls. The tutorial teaches these views gradually rather than
 locking them; Skills initially has no unlocked slots.
 
-**Equipped** item and action stacks are displayed in the Card View. Their
-capacity, eligibility, and passive bonuses follow the [Equipment](#equipment)
-rules. Skills use a separate grid; owned emotes are available through the Emote
-Picker without equipping. Equipped cards sit at the right edge of the tray, with
+Equipped stacks follow [Equipment](#equipment) capacity, eligibility, and bonus
+rules. They sit at the right edge of the tray, with
 only their artwork showing above the bottom dock until hovered or selected; they
 rise smoothly to reveal the full card. On narrow portrait screens, the cards
 shrink to fit while the selected peep sticker or prop preview remains in a
@@ -252,9 +249,8 @@ The Look Bar is also used to display minor action feedback (e.g., selecting
 
 
 #### The Quick Actions Bar
-The Quick Actions Bar shows a list of actions that the user can take on the
-currently selected entity. The available actions depend on factors such as the
-target and the user, and serve as the equivalent of a 'context menu' for entities.
+The Quick Actions Bar is the selected entity's context menu; available actions
+depend on the target and user.
 
 Quick actions are displayed as clickable pills with different colors to indicate
 the action category:
@@ -313,15 +309,13 @@ Core cards cannot be transferred.
 ### Card Details View
 ![Selected Card in the Room View](./images/selected-card.png)
 
-Selecting a card (either in the Room View or in any other card display) shows
-its name and short description in the Look Bar.
+Selecting a card in any display shows its name and short description in the Look Bar.
 
 ![Card Details View](./images/card-details.png)
 
 Selecting the `Inspect` quick action on a card shows the Card Details View.
 
-The Card Details View is shown as a popup with a book background, showing the following 
-information on the selected card:
+The popup has a book background and shows:
 - the card front and back in the popup's top-left and top-right corners, respectively.
 - the card rarity in the bottom-right corner.
 - the card name, short description, longer description, and stats on the book's
@@ -395,9 +389,7 @@ can look at and rotate the 3D model for a prop.
 ### Skills View
 ![Skills](./images/skills.png)
 
-Selecting the user's own peep and choosing the `Skills` quick action opens the
-Skills View. The Skills View allows the user to place special skill cards into a
-skill grid.
+The user's own peep's `Skills` quick action opens the skill grid.
 
 Selecting a slot lets the user choose a skill card from Inventory. Slot
 availability, rank eligibility, bonuses, and removal follow the [Skills](#skills)
@@ -441,10 +433,8 @@ action lets the user claim the daily allowance.
 ### Self View
 ![Self View](./images/self-view.png)
 
-Selecting the `Self` quick action on the user's own peep (in the Peeps List)
-opens the Self View. This view shows information 
-about the user's peep, including statuses, level, stats, and counters (see
-[Core Gameplay](#core-gameplay)).
+The user's own peep's `Self` quick action opens Self View, showing statuses,
+level, stats, and counters (see [Core Gameplay](#core-gameplay)).
 
 Self View provides a `Level Up` action for spending Kudos to increase the user's
 level.
@@ -482,13 +472,8 @@ friendship for both.
 
 -------------------------------------------------------------------------------
 ## Core Gameplay
-The following sections describe the main aspects of Tinyrooms gameplay mechanics.
-
-Tinyrooms is a sandbox, without a set goal. All of Tinyrooms' mechanics
-are designed to be customizable to support different types of gameplay. 
-
-Users control in-game characters (peeps) which have some unique properties compared
-to NPCs.
+Tinyrooms is a sandbox without a set goal; mechanics are customizable for
+different gameplay. User-controlled peeps have properties distinct from NPCs.
 
 ### Game Calendar
 Daily Bops, day-based buffs, and Journal dates and months use one configured
@@ -1077,12 +1062,10 @@ Activities are minigames, puzzles and other additional side content that can be
 played on top of the normal room gameplay. A user can have at most one activity
 running at a time.
 
-The initial release includes Sticker Designer, Lazor Rush, and a basic
-crafting-station activity. The Shop is a single activity with Card Packs and
-Props sections, opened from the Inventory, the room editor, or the `.shop`
-command; it replaces the earlier docked card-shop UI. Specialized shop or
-crafting variants are extension capabilities, not additional required
-activities.
+The initial release includes Sticker Designer, Lazor Rush, a basic
+crafting-station activity, and the [unified Shop](#card-packs-and-shops).
+Specialized shop or crafting variants are extension capabilities, not additional
+required activities.
 
 Activities can be launched through these contexts:
 - through a prop: a quick action defined on a prop can start an activity (e.g., a
@@ -1174,12 +1157,9 @@ explicitly define their repeat and reset rules.
 ### Memories
 ![Journal Memories view](./images/journal-memories.png)
 
-The Journal's Memories view shows both information on the user's progress and
-all memories collected by the user, organized by month. Memories are short messages
-that are added to the journal during various game activities. For instance, important
-dialogs and events can be recorded here. Memories that are related to specific tasks
-(for instance collected hints or progress points) are also recorded here and have
-a unique tag that links them to their task.
+Memories view organizes progress and collected memories by month. Memories are
+short messages from game activities, such as important dialogs and events.
+Task-related hints or progress points have a unique tag linking them to the task.
 
 The Memories view has two sections, the calendar and the memory list. The calendar
 (at the top) lets the user choose a month, shows a calendar view with markers on

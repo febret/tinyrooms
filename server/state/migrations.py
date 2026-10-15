@@ -15,45 +15,65 @@ _PROFILE_SCHEMA_SQL = """
 BEGIN;
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
+    -- Preserve display casing; normalize_username() casefolds the login/uniqueness key.
     username_display TEXT NOT NULL,
     username_key TEXT NOT NULL UNIQUE,
+    -- Encoded scrypt parameters, salt and digest; never the plaintext password.
     password_hash TEXT NOT NULL,
+    -- Preset or rendered custom sticker filename; confirmation gates world entry.
     sticker TEXT,
     initial_sticker_complete INTEGER NOT NULL DEFAULT 0 CHECK (initial_sticker_complete IN (0, 1)),
+    -- Live, account-wide progression: Kudos buys levels; Bops is spendable currency.
     level INTEGER NOT NULL DEFAULT 0 CHECK (level >= 0),
     kudos INTEGER NOT NULL DEFAULT 0 CHECK (kudos >= 0),
     bops INTEGER NOT NULL DEFAULT 10 CHECK (bops >= 0),
     shared_energy INTEGER NOT NULL DEFAULT 80 CHECK (shared_energy >= 0),
+    -- Recharge baseline for the shared energy pool, not a per-world counter.
     last_energy_at TEXT NOT NULL,
+    -- ISO claim timestamp (NULL before the first daily Bops claim).
     last_daily_claim TEXT,
+    -- Incremented by issue_session(); older socket generations lose gameplay authority.
     active_session_generation INTEGER NOT NULL DEFAULT 0 CHECK (active_session_generation >= 0),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
+    -- JSON array of granted power names; PowersService records changes in audit_log.
     powers TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(powers)),
+    -- Current mute expiry and applying moderator; NULL expiry means unmuted.
     muted_until TEXT,
     muted_by TEXT,
+    -- Optional JSON design recipe for re-editing a custom sticker, not rendered image data.
     sticker_design TEXT
 );
 CREATE TABLE IF NOT EXISTS sessions (
+    -- SHA-256 of the opaque token; only the HttpOnly tr_session cookie holds plaintext.
     token_hash TEXT PRIMARY KEY,
     account_id TEXT NOT NULL,
+    -- Matched against the tr_csrf cookie and X-CSRF-Token request header.
     csrf_token TEXT NOT NULL,
+    -- Snapshot of accounts.active_session_generation when this session was issued.
     generation INTEGER NOT NULL,
     created_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
+    -- touch_session() throttles activity writes by SESSION_TOUCH_INTERVAL_SECONDS.
     last_seen_at TEXT NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id);
 CREATE TABLE IF NOT EXISTS profile_card_stacks (
+    -- Command target identity: global:<account>:<card> starters, inv:<uuid> new stacks.
     stack_id TEXT PRIMARY KEY,
     account_id TEXT NOT NULL,
+    -- NULL stacks are visible across worlds; otherwise visible only in this world.
     world_id TEXT,
     card_def_id TEXT NOT NULL,
+    -- Repository merges/splits enforce the catalog definition's stack_limit.
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     scope TEXT NOT NULL CHECK (scope IN ('global', 'world')),
+    -- Live item/action equipment; equipped stacks are preferred inventory merge targets.
     equipped INTEGER NOT NULL DEFAULT 0 CHECK (equipped IN (0, 1)),
+    -- Excluded from inventory merges and rejected by the drop/removal path.
     pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+    -- Creation time orders listing and fills after equipped-first merge priority.
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
@@ -61,24 +81,40 @@ CREATE TABLE IF NOT EXISTS profile_card_stacks (
 CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id);
 CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope);
 CREATE TABLE IF NOT EXISTS user_profiles (
+    -- One unified row per account: gameplay blobs are not partitioned by world.
     account_id TEXT PRIMARY KEY,
+    -- Resume/navigation context; world changes reset the remembered room to entry.
     last_world_id TEXT NOT NULL,
     remembered_room TEXT,
+    -- Reserved compatibility object, initialized to {}; not live inventory storage.
     native_cards_json TEXT NOT NULL CHECK (json_valid(native_cards_json)),
+    -- Base stat object seeded from STARTING_WORLD_COUNTERS, shared across worlds.
     counters_json TEXT NOT NULL CHECK (json_valid(counters_json)),
+    -- Object with instances:[BuffInstance payloads] and sources:{name:[modifiers]}.
+    -- Initially {}; source contributions and timed instances are preserved separately.
     buffs_json TEXT NOT NULL CHECK (json_valid(buffs_json)),
+    -- Reserved {} compatibility blobs; active tasks/journal use task_progress/memories.
     tasks_json TEXT NOT NULL CHECK (json_valid(tasks_json)),
     memories_json TEXT NOT NULL CHECK (json_valid(memories_json)),
+    -- {rooms:[room_id,...]} mirror; room_states.owner_account_id is edit authority.
     ownership_json TEXT NOT NULL CHECK (json_valid(ownership_json)),
+    -- Extensible settings/social/skills object; _normalize_profile() supplies defaults.
+    -- last_instance_id records the stable destination instance, distinct from world ID.
     profile_json TEXT NOT NULL CHECK (json_valid(profile_json)),
+    -- Updated together with remembered_room/last_world_id on navigation.
     last_visit_at TEXT NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS reward_ledger (
+    -- Stable caller key (tasks/dialogs/etc.), unique per account across all worlds.
+    -- Encode any intended world/day distinction in the key itself.
     ledger_key TEXT NOT NULL,
     account_id TEXT NOT NULL,
+    -- Grant provenance only: world_id does not partition idempotency identity.
     world_id TEXT NOT NULL,
     kind TEXT NOT NULL,
+    -- {kudos:int,bops:int,cards:[card_id,...]}; monthly memories read Kudos totals.
+    -- Retained for broader audit/replay intent; not a general replay engine today.
     payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
     created_at TEXT NOT NULL,
     PRIMARY KEY (ledger_key, account_id),
@@ -86,9 +122,12 @@ CREATE TABLE IF NOT EXISTS reward_ledger (
 );
 CREATE INDEX IF NOT EXISTS idx_reward_ledger_owner ON reward_ledger(account_id, world_id);
 CREATE TABLE IF NOT EXISTS pack_purchases (
+    -- Client purchase key, per account across worlds; independent of pack_opens keys.
+    -- ShopService commits this claim with the Bops debit and sealed-pack grant.
     operation_id TEXT NOT NULL,
     account_id TEXT NOT NULL,
     pack_id TEXT NOT NULL,
+    -- Reserved, currently []; contents are drawn at open time, not purchase time.
     results_json TEXT NOT NULL CHECK (json_valid(results_json)),
     created_at TEXT NOT NULL,
     PRIMARY KEY (account_id, operation_id),
@@ -96,9 +135,12 @@ CREATE TABLE IF NOT EXISTS pack_purchases (
 );
 CREATE INDEX IF NOT EXISTS idx_pack_purchases_owner ON pack_purchases(account_id);
 CREATE TABLE IF NOT EXISTS pack_opens (
+    -- Client open key, per account across worlds; replay does not consume another pack.
     operation_id TEXT NOT NULL,
     account_id TEXT NOT NULL,
     pack_id TEXT NOT NULL,
+    -- Ordered list of drawn card definition IDs, persisted with consumption/grants.
+    -- Duplicate operations replay these results rather than drawing again.
     results_json TEXT NOT NULL CHECK (json_valid(results_json)),
     created_at TEXT NOT NULL,
     PRIMARY KEY (account_id, operation_id),
@@ -106,16 +148,22 @@ CREATE TABLE IF NOT EXISTS pack_opens (
 );
 CREATE INDEX IF NOT EXISTS idx_pack_opens_owner ON pack_opens(account_id);
 CREATE TABLE IF NOT EXISTS task_progress (
+    -- Identity is account/task, not account/world/task; world_id records task context.
     account_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
     world_id TEXT NOT NULL,
     scope TEXT NOT NULL CHECK (scope IN ('personal', 'shared')),
     status TEXT NOT NULL CHECK (status IN ('active', 'completed')),
+    -- Ordered [{step_id, progress}] entries reconciled against the task definition.
     steps_json TEXT NOT NULL CHECK (json_valid(steps_json)),
     started_at TEXT NOT NULL,
+    -- NULL while active; completed repeatable tasks reset by definition reset policy.
     completed_at TEXT,
+    -- Definition revision mismatch resets stale progress; daily resets use game timezone.
     definition_revision INTEGER NOT NULL DEFAULT 0,
+    -- Reward ledger key, e.g. task:<id> or a game-day-qualified repeat key.
     reward_operation_id TEXT,
+    -- World ID for shared tasks, NULL for personal; not a second account owner.
     shared_owner_id TEXT,
     PRIMARY KEY (account_id, task_id),
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
@@ -125,12 +173,15 @@ CREATE TABLE IF NOT EXISTS memories (
     memory_id TEXT PRIMARY KEY,
     account_id TEXT NOT NULL,
     world_id TEXT NOT NULL,
+    -- Display name captured at write time, not a live account-name lookup.
     author TEXT NOT NULL,
     source_type TEXT NOT NULL CHECK (source_type IN ('game', 'manual')),
     text TEXT NOT NULL,
+    -- JSON tag list, including task:<id> for task-generated journal entries.
     tags_json TEXT NOT NULL CHECK (json_valid(tags_json)),
     task_id TEXT,
     created_at TEXT NOT NULL,
+    -- Game memories are immutable; only owner-authored manual memories may be edited.
     editable INTEGER NOT NULL DEFAULT 0 CHECK (editable IN (0, 1)),
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
@@ -154,19 +205,34 @@ COMMIT;
 _WORLD_SCHEMA_SQL = """
 BEGIN;
 CREATE TABLE IF NOT EXISTS room_cards (
+    -- room:<seed key> is deterministic; player drops use room:<uuid> command targets.
+    -- No seed ledger: restart safety comes from room_states.initialized.
     stack_id TEXT PRIMARY KEY,
     room_id TEXT NOT NULL,
     card_def_id TEXT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
+    -- Board position [x,y,z]: x/y floor percentages, z elevation; YAML pos or drop input.
     position_json TEXT NOT NULL CHECK (json_valid(position_json)),
     scope TEXT NOT NULL DEFAULT 'room',
+    -- Pinned room stacks reject pickup (distinct from inventory drop/merge pinning).
     pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+    -- Snapshot order is creation time then stack ID.
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     placed_by_account_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id);
+-- door_json: bedroom: rooms store {style:{...},locked:bool}; ordinary rooms keep {}.
+-- idx_room_states_player_owner limits bedrooms to one per account in this world DB.
+-- initialized: missing/0 makes initialize_world() replace all cards AND reseed YAML props;
+-- 1 preserves collected seeds/player drops/layout across restarts and YAML edits.
+-- reset_room_cards() replaces all stacks (including drops), sets 1, leaves layout alone.
+-- Authored templates are skipped until materialized as live rooms.
+-- owner_account_id is world-local authority; grants/revokes update the profile mirror.
+-- props_json is an editable prop-instance list; default {} falls back to YAML.
+-- environment_json is an object of visual/gameplay overrides, separate from that list.
+-- layout_revision is the compare-and-swap revision; environment writers also use it.
 CREATE TABLE IF NOT EXISTS room_states (
     room_id TEXT PRIMARY KEY,
     initialized INTEGER NOT NULL DEFAULT 0 CHECK (initialized IN (0, 1)),
@@ -177,8 +243,10 @@ CREATE TABLE IF NOT EXISTS room_states (
     door_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(door_json))
 );
 CREATE TABLE IF NOT EXISTS behavior_state (
+    -- Trusted peep/prop script instance identity, scoped to this world database.
     namespace TEXT NOT NULL,
     instance_id TEXT NOT NULL,
+    -- Script-managed JSON persisted by BehaviorDispatcher inside the intent transaction.
     state_json TEXT NOT NULL CHECK (json_valid(state_json)),
     updated_at TEXT NOT NULL,
     PRIMARY KEY (namespace, instance_id)
@@ -197,7 +265,9 @@ CREATE TABLE IF NOT EXISTS activity_records (
 CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind);
 CREATE TABLE IF NOT EXISTS npc_peep_states (
     peep_id TEXT PRIMARY KEY,
+    -- Persisted location overrides the authored spawn room after an NPC moves.
     room_id TEXT NOT NULL,
+    -- Reserved per-NPC stats/buffs/memories objects; currently left at empty defaults.
     counters_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(counters_json)),
     buffs_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(buffs_json)),
     memories_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(memories_json)),
@@ -622,9 +692,10 @@ def _ensure_database(
 ) -> None:
     """Create *path* when empty, migrate forward, or fail on an unknown version.
 
-    Existing databases at a supported older version are upgraded in place with
-    additive migrations so accounts and world state survive Milestone upgrades.
-    Databases newer than this build are rejected rather than downgraded.
+    Supported older versions follow every available forward step in place;
+    migrations may copy/drop old tables, not just add columns. Newer versions,
+    missing steps/tables, and unexpected column names or order fail startup.
+    Use a compatible backup or fresh database when no supported upgrade exists.
     """
 
     connection = _connect(path)

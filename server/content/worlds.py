@@ -37,6 +37,8 @@ FREE_PROPSET_SOURCES = frozenset({"base"})
 class QuickAction:
     """A server-provided quick action template."""
 
+    # Authored as [label, command, optional default]; default enables activation
+    # on reselect. Command availability is filtered at runtime, not parsed here.
     label: str
     command: str
     default: bool = False
@@ -76,6 +78,10 @@ class PropDefinition:
     locked: bool = False
     hidden: bool = False
     requires_light: bool = False
+    # Set names select ordered lists of catalog effect ids, not gameplay effects.
+    # This active_effect is the authored default; RoomService can override it per
+    # room/instance in memory and broadcast room.prop.updated. Reduced motion
+    # suppresses client rendering without changing the authoritative selection.
     effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
     active_effect: str | None = None
 
@@ -84,6 +90,8 @@ class PropDefinition:
 class PropInstanceDefinition:
     """A prop instance placed into a room."""
 
+    # Instance scale multiplies the definition's already file-adjusted scale.
+    # activity names a catalog entry; launching through this prop is room-bound.
     id: str
     prop_id: str
     pos: tuple[float, float, float]
@@ -182,6 +190,9 @@ class DialogDefinition:
 class PeepDefinition:
     """An immutable NPC definition."""
 
+    # activity names a catalog entry; launching through this peep is room-bound.
+    # Cutscenes instead use explicit .cutscene actions (including any target
+    # placeholder); those command arguments are resolved only when invoked.
     id: str
     label: str
     description: str
@@ -198,6 +209,10 @@ class PeepDefinition:
 class WorldDefinition:
     """The fully loaded immutable world definition set."""
 
+    # These are authored seeds/catalogs, distinct from live SQLite room state.
+    # requires_mods is enforced against enabled mods when that set is supplied.
+    # Activities merge core/mod entries with world overrides; cutscene merging
+    # rejects duplicate ids/aliases, and card cutscene references are checked here.
     id: str
     label: str
     description: str
@@ -444,6 +459,8 @@ def _parse_dialog_choice(
     raw_grant = raw_choice.get("grant")
     if raw_grant is not None and (isinstance(raw_grant, bool) or not isinstance(raw_grant, int)):
         raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'grant' must be an integer.")
+    # Choice order participates in the persistent reward-ledger identity.
+    # Inserting or reordering choices can reassign rewards to different actions.
     return DialogChoice(
         index=index,
         label=label,
@@ -505,6 +522,8 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
 def load_props_scale_adjust(raw_config: Any, path: Path) -> float:
     """Read the reserved CONFIG block's optional file-wide scale multiplier."""
 
+    # CONFIG is never a prop. scale_adjust defaults to 1.0 for every world,
+    # propset, or mod props.yaml independently; other CONFIG keys are ignored.
     if raw_config is None:
         return 1.0
     if not isinstance(raw_config, dict):
@@ -892,6 +911,8 @@ def load_world_definition(
         known_powers=frozenset(POWER_NAMES),
     )
     cutscenes = merge_cutscene_definitions(core_cutscenes or {}, world_cutscenes)
+    # Cross-content validation currently accepts direct ids only, not aliases.
+    # Authored .cutscene quick-action strings are not cross-validated here.
     for card_id, cutscene_id in cutscene_cards:
         if cutscene_id not in cutscenes:
             raise ContentError(f"Card '{card_id}' references unknown cutscene '{cutscene_id}'.")

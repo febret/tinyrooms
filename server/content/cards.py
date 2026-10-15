@@ -21,6 +21,14 @@ DEFAULT_STACKABLE_LIMIT = 99
 class CardDefinition:
     """Immutable card definition."""
 
+    # image is required static card/thumbnail art even for animated/cutscene
+    # emotes; animation is optional bubble art, resolved beside cards.yaml.
+    # one_use consumes a copy only on successful use. Passive cards work while
+    # equipped; decorative keepsakes have no Use action. bonuses are per-copy
+    # equipment/skill modifiers, not effects applied by actively playing a card.
+    # An explicit energy_cost wins over the ordinary/emote-category default.
+    # effect health/energy and room light are core-resolved; duration for light
+    # is seconds. Other prop interactions are delegated to world behaviors.
     id: str
     label: str
     description: str
@@ -40,11 +48,17 @@ class CardDefinition:
     amount: int | None
     duration: int | None
     category: str | None
+    # Emotes with cutscene launch presentation instead of a speech bubble, using
+    # normal ownership/stacking and card Energy costs (Cutscene default: 5).
+    # Parsing forbids core cards only; non-emote cutscene fields are retained too.
     cutscene: str | None
     rank: str | None
     quest: bool
     order: int | None
     source: str
+    # BehaviorContext exposes id/tags/consume_card/hide_seconds/clears_source to
+    # world scripts. These are script-interpreted hints, not automatic core
+    # consumption, hiding, source removal, or reward-card rules.
     tags: frozenset[str] = frozenset()
     consume_card: str | None = None
     hide_seconds: int | None = None
@@ -189,6 +203,9 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
 def cutscene_card_references(catalog: CardCatalog) -> tuple[tuple[str, str], ...]:
     """Return every ``(card_id, cutscene)`` reference in a catalog."""
 
+    # Validation waits for the merged world's cutscene catalog; it currently
+    # requires direct ids even though launch-time resolution also accepts aliases.
+    # Cutscene feature/room/power access checks belong to the launch path.
     return tuple(
         (definition.id, definition.cutscene)
         for definition in catalog.cards.values()

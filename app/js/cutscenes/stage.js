@@ -24,6 +24,9 @@ export function registerCutsceneFrame(name, descriptor) {
     return;
   }
   const fallback = BUILTIN_FRAMES[key] || BUILTIN_FRAMES[DEFAULT_FRAME];
+  // Descriptor ms values feed manager phase waits; omitted values/from inherit
+  // the named built-in or plain. Custom duplicates are rejected; built-ins may
+  // currently be replaced. build decorates the stage with merged frame options.
   frames.set(key, {
     cssClass: descriptor.cssClass,
     introMs: Number.isFinite(descriptor.introMs) ? descriptor.introMs : fallback.introMs,
@@ -71,6 +74,10 @@ export function beginCutscene(frameType, options) {
   if (!active) return null;
   if (active.stageCreated) return active.stage;
   const frame = resolveFrame(frameType || active.ctx.frame);
+  // Explicit options shallowly override params.frame_options. from defaults to
+  // the descriptor edge; positive duration sets CSS animation ms, not the play
+  // cap or manager phase waits. background/accent are CSS colors; radius is px.
+  // Unset style options retain stylesheet defaults; extra keys reach frame.build.
   const settings = { ...(active.ctx.params?.frame_options || {}), ...(options || {}) };
   const from = typeof settings.from === "string" ? settings.from : frame.from;
   const duration = Number(settings.duration);
@@ -100,6 +107,7 @@ export function beginCutscene(frameType, options) {
   active.root.dataset.state = "playing";
   active.root.hidden = false;
   active.stageCreated = true;
+  // Return only the stage: the specified dom.frame/dom.root conveniences are absent.
   return active.stage;
 }
 
@@ -107,6 +115,7 @@ export function beginCutscene(frameType, options) {
 export function endCutscene(result) {
   const active = requireSession();
   if (!active) return;
+  // Requests body completion without awaiting outro; the manager ignores result.
   active.resolve(result);
 }
 
@@ -114,11 +123,14 @@ export function endCutscene(result) {
 export function skipCutscene() {
   const active = requireSession();
   if (!active) return;
+  // Despite the abort wording above, this currently only requests completion
+  // when ctx.skip allows it; signal abort is deferred until closeSession.
   active.skip();
 }
 
 /** Resolve after a delay, or reject when the cutscene is aborted. */
 export function wait(ms) {
+  // Abort rejects with AbortError; outside playback there is no session to cancel it.
   const delay = Math.max(0, Number(ms) || 0);
   return new Promise((resolve, reject) => {
     const signal = currentSignal();
@@ -144,6 +156,8 @@ export function wait(ms) {
 /** Write one caption into the frame's caption region. */
 export function caption(cue, options) {
   const active = requireSession();
+  // Render immediately (cue.at is ignored here). Missing text/speaker are empty;
+  // cue.style and options.className add classes. The handle hides only this line.
   const text = typeof cue === "string" ? cue : cue?.say || "";
   const speaker = typeof cue === "string" ? "" : cue?.speaker || "";
   const element = document.createElement("p");
@@ -166,6 +180,9 @@ export function caption(cue, options) {
 
 /** Play a cue list on its scheduled offsets, resolving when the last one clears. */
 export async function captions(cues) {
+  // Offsets are milliseconds from this call, not session/body start. Lines
+  // accumulate, then all clear 1600ms after the last cue. Closing before scheduled
+  // cues fire clears their timers without settling those cue promises.
   const list = Array.isArray(cues) ? cues : [];
   if (!list.length) return;
   const handles = [];
@@ -207,6 +224,9 @@ export function spriteUrl(ref) {
 
 /** Resolve one placeholder into a ready-to-insert element. */
 export async function sprite(ref, options) {
+  // Match the server's exact ref; never derive paths from tokens. Props await a
+  // thumbnail image, not a canvas. label supplies fallback text/alt; className
+  // replaces classes on resolved sprites. Missing records return a box directly.
   const record = findAsset(currentCutscene(), ref);
   if (!record) return placeholderBox(typeof options?.label === "string" ? { label: options.label } : null);
   const element = await spriteForAsset(record);
@@ -237,6 +257,7 @@ export function openSession({ ctx, root, frame, stage, captions: captionRegion, 
     controller,
     timers: new Set(),
     stageCreated: false,
+    // Session-open monotonic time, before import/intro; captions does not use it.
     startedAt: performance.now(),
   };
   return session;

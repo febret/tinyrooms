@@ -1,342 +1,174 @@
 # Tinyrooms — Database Reference
 
-This document describes the SQLite schemas for the two databases used by the
-Milestone 2 backend. The schema source of truth is
-`server/state/migrations.py`; the runtime access layer is
-`server/profiles.py` (profile DB) and `server/state/world_state.py` (world DB).
+This document records persistence ownership, operational guarantees, and
+reserved-field intent. Exact DDL, columns, indexes, current schema versions,
+and migration steps live in [migrations.py](../server/state/migrations.py)
+(`_PROFILE_SCHEMA_SQL`, `_WORLD_SCHEMA_SQL`, version constants, migration maps,
+and `ensure_*_database`). Repository/service links below replace parallel
+column tables and CRUD descriptions.
 
 ## 1. Overview
 
-| Database | File | Schema version | Initialization entrypoint |
-| --- | --- | --- | --- |
-| Profile (user) DB | `<users_path>/profiles.sqlite3` | 6 (`PROFILE_SCHEMA_VERSION`) | `ensure_profile_database()` |
-| World-state DB | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | 10 (`WORLD_SCHEMA_VERSION`) | `ensure_world_database()` |
-
-At runtime both files are accessed through a single shared connection,
-`server/state/migrations.py:DatabaseHub`, which opens the profile DB and
-`ATTACH`es the world DB as `world`. Both databases run in WAL mode
-(`PRAGMA journal_mode = WAL` on `main` plus `PRAGMA world.journal_mode = WAL`
-after attach). All repository SQL therefore addresses
-world tables as `world.room_cards`, `world.room_states`, and so on. `DatabaseHub`
-exposes `locked()` for reads and `transaction()` (`BEGIN IMMEDIATE`, commit or
-rollback) for writes; multi-table mutations such as pickup/drop
-(`server/services/cards.py`) and navigation (`server/services/rooms.py`) run
-inside one transaction spanning both databases.
-
-## 2. Profile (user) DB — `<users_path>/profiles.sqlite3`
-
-### 2.1 `accounts`
-
-One row per registered user. Created by
-`server/profiles.py:ProfileRepository.create_account()` (called from
-`server/accounts.py:AccountService.create_account()`); read by
-`get_account_by_id()` / `get_account_by_username()` / `get_accounts_by_ids()`
-(single-query batch used for room occupants); mutated by `set_sticker()` and
-`issue_session()` (bumps `active_session_generation`). Friends, and Action Log
-visibility live in `user_profiles.profile_json` (mutated by
-`set_show_activity_log()`); owned rooms live in `user_profiles.ownership_json`.
-Serialized to the client in `server/app.py:_serialize_account()` (wire
-`owned_rooms` / `show_activity_log` keys).
-
-| Column | Type | Description |
+| Database | Location | Ownership |
 | --- | --- | --- |
-| `id` | TEXT PK | Account UUID (`uuid4`). Referenced by `sessions`, `profile_card_stacks`, `user_profiles`. |
-| `username_display` | TEXT NOT NULL | Username with original casing, shown in UI/presence. |
-| `username_key` | TEXT NOT NULL UNIQUE | Casefolded username for uniqueness/login lookup (`normalize_username()`). |
-| `password_hash` | TEXT NOT NULL | scrypt hash (`scrypt$n$r$p$salt$digest`), see `server/security.py:hash_password()` / `verify_password()`. |
-| `sticker` | TEXT NULL | Chosen sticker filename under `data/stickers`; NULL until confirmed. Set once by `set_sticker()`. |
-| `initial_sticker_complete` | INTEGER NOT NULL DEFAULT 0 | Boolean. Gates world entry (`/ws` closes `4403` until true). |
-| _(removed)_ `favorites_json` | — | Core-card favorites were removed; all core cards are always visible. |
-| `level` | INTEGER NOT NULL DEFAULT 0 | Progression level (Milestone 1: always 0 for new users; future use per `data/core/levels.yaml`). |
-| `kudos` | INTEGER NOT NULL DEFAULT 0 | Kudos balance (future level-up currency). |
-| `bops` | INTEGER NOT NULL DEFAULT 10 | Bops balance (future spendable currency). |
-| `shared_energy` | INTEGER NOT NULL DEFAULT 80 | Shared energy pool (future juice system, cf. `data/core/juice.yaml`). |
-| `last_energy_at` | TEXT NOT NULL | ISO timestamp of last energy update/recharge baseline. |
-| `last_daily_claim` | TEXT NULL | ISO timestamp/date of last daily Bops claim; NULL if never claimed. |
-| _(removed)_ `friends_json` / `pending_friends_json` | — | Moved into `user_profiles.profile_json.friends` (Milestone 1: `[]`). |
-| `active_session_generation` | INTEGER NOT NULL DEFAULT 0 | Incremented on every `issue_session()`; enforces one live gameplay session (old sockets get `session.replaced`). |
-| _(removed)_ `show_activity_log` | — | Moved into `user_profiles.profile_json.show_activity_log` (boolean, hidden by default; toggled by `.settings action-log`). |
-| `created_at` | TEXT NOT NULL | ISO creation timestamp. |
-| `updated_at` | TEXT NOT NULL | ISO last-update timestamp (bumped on sticker/settings/session changes). |
-| `powers` | TEXT NOT NULL DEFAULT '[]' | JSON array of granted power names (`admin`, `realtor`, `builder`, `moderator`, `game-master`). Written by `server/services/powers.py:PowersService.grant()` / `revoke()`; each change is recorded in `audit_log`. |
-| `muted_until` | TEXT NULL | ISO mute-expiry timestamp; NULL when not muted. Written by `PowersService.mute()` / `unmute()`. |
-| `muted_by` | TEXT NULL | Account id of the moderator who applied the current mute. |
+| Profile | `<users_path>/profiles.sqlite3` | Accounts, sessions, inventory, per-user gameplay/profile state, idempotency logs, audit history |
+| World | `TRSERVER_WORLDSTATE_PATH` (default `.local/worldstate.sqlite3`) | Shared live room content, ownership/layout, behavior/NPC state, world metadata, activity records |
 
-### 2.2 `sessions`
+At runtime [DatabaseHub](../server/state/migrations.py) opens the profile DB as
+`main` and attaches the world DB as `world`. Both use WAL. Repository SQL
+therefore qualifies world tables as `world.room_cards`, etc. Reads use the
+shared lock; writes use `transaction()` (`BEGIN IMMEDIATE`, commit/rollback).
+[Card transfers](../server/services/cards.py) and
+[navigation](../server/services/rooms.py) use this connection to coordinate
+profile and world changes in one application transaction.
 
-Server-side login sessions. Written by
-`server/profiles.py:issue_session()` (deletes all prior rows for the account,
-bumps `active_session_generation`, inserts one row), read by
-`get_session_by_token()`, refreshed by `touch_session()`, deleted by
-`revoke_session()`. Session/auth orchestration is in
-`server/accounts.py:AccountService` (`login`, `authenticate`, `logout`);
-expiry is checked there against `expires_at`. Only the SHA-256 hash of the
-opaque token is stored (`server/security.py:hash_session_token()`); the
-plaintext token lives in the `tr_session` HttpOnly cookie.
+## 2. Profile (user) DB
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `token_hash` | TEXT PK | SHA-256 hex of the opaque session token (`SESSION_TOKEN_BYTES = 32`). Lookup key. |
-| `account_id` | TEXT NOT NULL FK → `accounts(id)` ON DELETE CASCADE | Owning account. Indexed via `idx_sessions_account_id`. |
-| `csrf_token` | TEXT NOT NULL | Per-session CSRF token, mirrored in the `tr_csrf` cookie and `X-CSRF-Token` header. |
-| `generation` | INTEGER NOT NULL | Copy of `accounts.active_session_generation` at issue time; stale generations lose WS authority. |
-| `created_at` | TEXT NOT NULL | ISO issue timestamp. |
-| `expires_at` | TEXT NOT NULL | ISO expiry (`utc_now() + 14 days`, `DEFAULT_SESSION_DAYS`). |
-| `last_seen_at` | TEXT NOT NULL | ISO last-activity timestamp, refreshed by `touch_session()` at most once per `SESSION_TOUCH_INTERVAL_SECONDS` (60s) to avoid a write transaction on every request. |
+### Identity, sessions, and inventory
 
-### 2.3 `profile_card_stacks`
+[ProfileRepository](../server/profiles.py) owns `accounts`, `sessions`,
+`profile_card_stacks`, and `user_profiles`; its records and normalization
+functions define their runtime shapes. Authentication policy is in
+[AccountService](../server/accounts.py), token/password handling in
+[security.py](../server/security.py), and moderation/audit operations in
+[PowersService](../server/services/powers.py).
 
-Per-account inventory card stacks. Listed/filtered by `list_inventory()` and
-`get_inventory_stack()` (visible stacks are `world_id IS NULL OR world_id = ?`);
-mutated atomically inside card transactions by `add_inventory_card()` /
-`remove_inventory_quantity()`, called from `server/services/cards.py:pickup()`
-and `drop()`. Serialized via `CardService.serialize_inventory_stack()`.
+Only the session token hash is stored; the plaintext token is in the HttpOnly
+cookie. Session generation enforces one authoritative gameplay session.
+Account progression fields are live gameplay state, not future placeholders;
+sticker design and moderation fields are included in the current schema.
 
-Starter rows (`stack_id = 'global:<account_id>:<card_id>'`) are seeded at
-account creation; picked-up cards get `stack_id = 'inv:<uuid4>'` and are merged
-up to the definition `stack_limit`. `add_inventory_card()` /
-`remove_inventory_quantity()` build their return values in Python instead of
-re-selecting each touched row; `pickup()` / `drop()` still re-list the full
-inventory once for the client payload. Besides `idx_profile_cards_owner`,
-`idx_profile_cards_lookup (account_id, card_def_id, scope)` covers the
-pickup-merge filter and the `.go` card-requirement scan.
+Inventory is physically in the profile DB even when a card is world-scoped.
+Visible stacks are global (`world_id IS NULL`) plus the current world's stacks.
+Card definitions determine scope/collectibility and stacking; see
+[card loading](../server/content/cards.py) and
+[CardService](../server/services/cards.py). `equipped` is implemented, not
+reserved: equipped stacks are preferred merge targets, and pinned stacks are
+excluded from merging/dropping by the repository.
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `stack_id` | TEXT PK | Stack identifier (`global:<account>:<card>` for starters, `inv:<uuid>` otherwise). Referenced by `.drop @card:<stack_id>` and `.look @card:<stack_id>`. |
-| `account_id` | TEXT NOT NULL FK → `accounts(id)` ON DELETE CASCADE | Owning account. Indexed via `idx_profile_cards_owner`. |
-| `world_id` | TEXT NULL | `NULL` for global (cross-world) cards, otherwise the world the collectible belongs to. Part of `idx_profile_cards_owner`. |
-| `card_def_id` | TEXT NOT NULL | Card definition ID from the catalog (`server/content/cards.py`). |
-| `quantity` | INTEGER NOT NULL | Cards in this stack; merges/splits respect the definition `stack_limit`. |
-| `scope` | TEXT NOT NULL | `'global'` (non-collectible, e.g. starters) or `'world'` (collectible). |
-| `equipped` | INTEGER NOT NULL DEFAULT 0 | Boolean. Reserved: equipped stacks are excluded from pickup-merge targets (future skill slots). |
-| `pinned` | INTEGER NOT NULL DEFAULT 0 | Boolean. Pinned stacks cannot be dropped (`remove_inventory_quantity()` rejects). |
-| `created_at` | TEXT NOT NULL | ISO creation timestamp; determines merge/fill and list ordering. |
-| `updated_at` | TEXT NOT NULL | ISO last-quantity-change timestamp. |
+### Unified user state and ownership
 
-### 2.4 `user_profiles`
+`user_profiles` has **one row per account**, not one per `(account, world)`.
+Counters, buffs, ownership, and profile settings therefore share that row
+across worlds. `last_world_id`, `remembered_room`, and `last_visit_at` track
+resume/navigation; stable destination identity is
+`profile_json.last_instance_id`. See [mission-control entry semantics](./mission-control.md)
+and the repository's `remember_instance` / `ensure_user_profile` paths.
 
-One row per user (PK `account_id`). Created by `create_account()` and lazily
-by `ensure_user_profile()`; read by `get_user_profile()` and
-`RoomService.current_room_for_account()`; `last_world_id` / `remembered_room`
-/ `last_visit_at` updated by `set_remembered_room()` on every `.go`
-(`server/services/rooms.py`) and used for resume on WS connect and
-`/api/bootstrap` (`server/app.py:_serialize_account()`). Tasks, memories,
-ownership, and the remaining gameplay blobs are unified per user rather than
-per `(account, world)`. The `*_json` gameplay blobs are Milestone 1
-placeholders (defaults below) reserved for later milestones.
+`profile_json` is extensible and normalized with defaults on read. Friends,
+requests, pinned peeps, skill slots, statuses, UI settings, and unlocked props
+are current consumers; do not treat all gameplay JSON as unused placeholders.
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `account_id` | TEXT PK, FK → `accounts(id)` ON DELETE CASCADE | Owning account; single row per user. |
-| `last_world_id` | TEXT NOT NULL | Last visited world (e.g. tutorial world). Set at signup; updated on world switch and every `.go`. |
-| `remembered_room` | TEXT NULL | Last room the user occupied; WS connect resumes here if still in the world, else falls back to the entry room. |
-| `native_cards_json` | TEXT NOT NULL | JSON dict of world-native card state (Milestone 1: `'{}'`). |
-| `counters_json` | TEXT NOT NULL | JSON dict of world counters; seeded with `STARTING_WORLD_COUNTERS` (health/max_health, cleanliness/max_cleanliness, constitution, dexterity, charisma, fanciness). |
-| `buffs_json` | TEXT NOT NULL | JSON dict of active buffs: `{"instances": [BuffInstance payloads]}` (`server/game/buffs.py`), empty `'{}'` until a buff is applied. |
-| `tasks_json` | TEXT NOT NULL | JSON dict of quest/task state (Milestone 1: `'{}'`). |
-| `memories_json` | TEXT NOT NULL | JSON dict of memory flags (Milestone 1: `'{}'`). |
-| `ownership_json` | TEXT NOT NULL | JSON dict of ownership claims: `{"rooms": [room_id, ...]}`. Drives the per-user `editable` flag on room snapshots. Empty `'{}'` until a realtor/task grants ownership (not yet wired). |
-| `profile_json` | TEXT NOT NULL | JSON user profile: `{friends[], friend_requests_sent[], friend_requests_received[], pinned_peeps[], skills[], statuses[], show_activity_log bool, ui_settings{}}`; extensible for UI settings. Read with defaults merged (`_normalize_profile()`). |
-| `last_visit_at` | TEXT NOT NULL | ISO timestamp of last room change; updated together with `remembered_room`. |
+Room authority is world-local: `room_states.owner_account_id` is read by
+[OwnershipService](../server/services/ownership.py). Its grant/revoke paths
+update the `ownership_json.rooms` profile mirror in the same transaction.
+Ownership grants and owner editing are implemented; the mirror is not a
+replacement for world-side authorization.
 
-### 2.5 `reward_ledger`
+### Idempotency scope
 
-Idempotency log guaranteeing that one-time rewards (kudos and/or cards) are
-granted **exactly once** per account. Written and read by
-`server/services/progression.py:ProgressionService` (`reward_once()` and the
-shared `_grant()` insert). The check and insert happen inside the same
-transaction as the balance update (`_grant()`), so a duplicate key returns
-`False` without re-granting. Callers pass a stable key such as `task:portal`
-or `seed:<index>:<card>` (`tools/seed_review_account.py`). Dialog choices also
-use this ledger for idempotency: `DialogService.choose()` claims a
-`dialog:<peep_id>:<action_id>` key so a replayed choice applies no side
-effects, and `ProgressionService.has_ledger_entry()` reads the key without
-writing.
-Note this table lives in the profile DB (not the world DB) so rewards are
-unified per account across worlds; `world_id` records where each grant occurred.
+The profile DB holds these logs so their identity is **per account across
+worlds**, not per world database:
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `ledger_key` | TEXT PK (composite) | Caller-supplied reward identity (e.g. `task:portal`). Unique per account, not globally. |
-| `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Rewarded account. Indexed via `idx_reward_ledger_owner`. |
-| `world_id` | TEXT NOT NULL | World active at grant time (informational). Part of `idx_reward_ledger_owner`. |
-| `kind` | TEXT NOT NULL | Reward category (`reward`, `kudos`, `seed`, …); not constrained. |
-| `payload_json` | TEXT NOT NULL CHECK `json_valid` | Placeholder for a future milestone: records grant details `{"kudos": int, "cards": [card_id, …]}` but is currently write-only (no reader), reserved for reward auditing/replay. |
-| `created_at` | TEXT NOT NULL | ISO grant timestamp. |
+- `reward_ledger`: `(ledger_key, account_id)`. A stable caller key makes the
+  ledger check/insert, currency updates, and card grants one transaction in
+  [ProgressionService](../server/services/progression.py). A duplicate returns
+  false without a second grant. `world_id` records where the grant happened;
+  it does **not** partition uniqueness. Callers must include any intended
+  world/day distinction in the key. Grants without a key are not idempotent.
+- `pack_purchases` and `pack_opens`: separate `(account_id, operation_id)`
+  identities in [ShopService](../server/services/shop.py). Purchase charges
+  Bops and grants a sealed pack once; open consumes a pack and grants its
+  draw once. Draws are decided at **open**, not purchase. Replays do not charge
+  or consume again; open results persist ordered card ids for replay.
 
-### 2.6 `pack_purchases`
+Tasks use stable reward keys (`task:<id>`, or a day-qualified repeat key), and
+[dialog choices](../server/services/dialogs.py) also use the reward ledger to
+prevent repeated side effects. Idempotency protects these server mutations;
+client presentation, including cutscenes, is never their completion signal.
 
-Idempotency log guaranteeing that a card-pack purchase charges Bops and grants
-the sealed pack item **exactly once** per `(account_id, operation_id)`. Written
-and read by `server/services/shop.py:ShopService.purchase()`; the replay lookup,
-the Bops debit, the sealed-pack grant, and the insert all run inside a single
-`DatabaseHub.transaction()`. A repeated `operation_id` returns the stored pack
-(`replayed = True`, `bops_spent = 0`) without mutating balances or inventory.
-Like `reward_ledger`, this table lives in the profile DB, so purchases are
-unified per account across worlds.
+### Tasks, memories, and reserved intent
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `operation_id` | TEXT PK (composite) | Client-supplied purchase identity from `.buy_pack <pack> <operation_id>` (1–80 chars). Unique per account, not globally. |
-| `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Purchasing account. Indexed via `idx_pack_purchases_owner`. |
-| `pack_id` | TEXT NOT NULL | Pack definition ID from the catalog (`server/content/cards.py`). |
-| `results_json` | TEXT NOT NULL CHECK `json_valid` | Reserved; currently an empty JSON list. The drawn cards are no longer decided at purchase. |
-| `created_at` | TEXT NOT NULL | ISO purchase timestamp. |
+[TaskService](../server/services/tasks.py) owns `task_progress`; rows are keyed
+by account/task, with definition revision and repeat/reset policy governing
+stale or repeatable progress. [MemoryService](../server/services/memories.py)
+owns the journal view and owner-edited manual memories. Game memories are
+immutable. Grouping and task game-day policy use the configured timezone.
 
-### 2.7 `pack_opens`
+Preserve these compatibility/future-intent distinctions:
 
-Idempotency log guaranteeing that opening a sealed pack consumes it and grants
-its drawn cards **exactly once** per `(account_id, operation_id)`. Written and
-read by `server/services/shop.py:ShopService.open_pack()`; the replay lookup, the
-stack decrement, the card grants, the draw, and the insert all run inside a
-single `DatabaseHub.transaction()`. A repeated `operation_id` returns the stored
-draw (`replayed = True`) without consuming another pack. Contents are decided at
-open time, so the drawn ids are persisted here for a deterministic replay.
+- `native_cards_json`, `tasks_json`, and `memories_json` remain initialized
+  compatibility/reserved blobs in the unified profile. Active task/journal
+  storage is in `task_progress` and `memories`, not those placeholder blobs.
+- `reward_ledger.payload_json` retains grant details for audit/replay intent.
+  It is **not write-only**: MemoryService reads Kudos grants for monthly
+  summaries. A general reward-replay/audit facility remains future work.
+- `pack_purchases.results_json` remains reserved and is currently written as
+  an empty list; it is not the drawn-card record. `pack_opens.results_json`
+  is the implemented replay record.
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `operation_id` | TEXT PK (composite) | Client-supplied open identity from `.open_pack <pack> <operation_id>` (1–80 chars). Unique per account, not globally. |
-| `account_id` | TEXT PK (composite), FK → `accounts(id)` ON DELETE CASCADE | Opening account. Indexed via `idx_pack_opens_owner`. |
-| `pack_id` | TEXT NOT NULL | Pack definition ID from the catalog (`server/content/cards.py`). |
-| `results_json` | TEXT NOT NULL CHECK `json_valid` | Ordered JSON list of drawn `card_def_id`s, replayed on a duplicate `operation_id`. |
-| `created_at` | TEXT NOT NULL | ISO open timestamp. |
+## 3. World-state DB
 
-### 2.8 `task_progress`
+[WorldStateRepository](../server/state/world_state.py) owns room cards,
+initialization, layouts/environment, player-bedroom records, and metadata.
+[BehaviorDispatcher](../server/behaviors/dispatcher.py) persists trusted
+script state through intent transactions; scripts do not access SQL directly.
+[NPC state](../server/state/npc_peep_states.py) and
+[activity records](../server/services/activity_results.py) have their own
+access layers. Consult the schema for the complete current table set.
 
-One row per `(account_id, task_id)` for every task a user has started. Owned by
-`server/services/tasks.py:TaskService` (started lazily by `start()` /
-`start_in_transaction()`, advanced by `record()` / `advance_step()`). `steps_json`
-stores ordered `[{step_id, progress}]`; completion grants its reward through
-`reward_ledger` (`ledger_key = "task:<id>"`, or `"task:<id>:<game_day>"` for
-repeatable tasks) exactly once and writes game memories. `definition_revision`
-lets an edited task definition reset a stale row; repeatable tasks reset only
-per `reset_policy` (currently `daily`, using the configured timezone).
+NPC location is implemented and overrides the authored spawn room once moved.
+Its `counters_json`, `buffs_json`, and `memories_json` columns are reserved for
+future per-NPC stats, buffs, and memories; they remain empty defaults today.
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `account_id` / `task_id` | TEXT PK (composite), FK → `accounts(id)` | Owning account and authored task ID. |
-| `world_id` | TEXT NOT NULL | World the task belongs to; indexed via `idx_task_progress_owner`. |
-| `scope` | TEXT NOT NULL | `personal` or `shared`. |
-| `status` | TEXT NOT NULL | `active` or `completed`. |
-| `steps_json` | TEXT NOT NULL CHECK `json_valid` | Ordered per-step progress. |
-| `started_at` / `completed_at` | TEXT | ISO timestamps; `completed_at` is NULL while active. |
-| `definition_revision` | INTEGER NOT NULL DEFAULT 0 | Revision the stored progress was written against. |
-| `reward_operation_id` | TEXT NULL | Ledger key of the granted reward (audit/replay). |
-| `shared_owner_id` | TEXT NULL | World ID for shared tasks; NULL for personal. |
+### Seed-once and reset loss
 
-### 2.9 `memories`
+`room_states.initialized` is the restart-safety gate. On initialization, a
+missing row or flag zero causes existing room cards to be deleted and YAML
+seeds inserted; initialized rooms are left alone. Thus collected seeds stay
+collected and player drops survive restarts. Templates are skipped until
+materialized. Seed stack ids are deterministic; there is no separate seed
+ledger or `initial_key` column in the live card table.
 
-Journal entries. Game memories are immutable (`editable = 0`) and written by
-`TaskService`; manual memories (`editable = 1`, `source_type = 'manual'`) are
-created/edited/deleted only by their owner through `server/services/memories.py:MemoryService`.
-Month grouping and summaries use the configured timezone.
+Changing YAML does not automatically replace initialized live cards/layouts.
+Clearing the initialization flag causes reseeding on initialization and also
+reseeds editable layout from the definition. Treat it as destructive state
+replacement, not a harmless content-refresh flag.
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `memory_id` | TEXT PK | `mem:<uuid4>`. |
-| `account_id` | TEXT NOT NULL FK → `accounts(id)` ON DELETE CASCADE | Owning account; indexed via `idx_memories_owner`. |
-| `world_id` | TEXT NOT NULL | World the memory belongs to. |
-| `author` | TEXT NOT NULL | Display name captured at write time. |
-| `source_type` | TEXT NOT NULL | `game` or `manual`. |
-| `text` | TEXT NOT NULL | Memory body. |
-| `tags_json` | TEXT NOT NULL CHECK `json_valid` | Tag list (includes `task:<id>` for task memories); indexed via `idx_memories_task`. |
-| `task_id` | TEXT NULL | Owning task for game memories. |
-| `created_at` | TEXT NOT NULL | ISO timestamp. |
-| `editable` | INTEGER NOT NULL DEFAULT 0 | Boolean; only manual memories are editable. |
+`.reset_room` / `reset_room_cards()` replaces **all** live room stacks,
+including player drops, with YAML seeds and marks the room initialized. This
+card reset does not itself reset the editable layout. Preserve that loss
+boundary when exposing reset tools.
 
-## 3. World-state DB — `TRSERVER_WORLDSTATE_PATH`
+Live room state includes owner, editable props, environment overrides, layout
+revision, and bedroom door settings. Layout saves use optimistic concurrency.
+`bedroom:` rooms reuse `room_states`; a partial unique index enforces one
+bedroom per account. See [room layouts](../server/services/room_layout.py)
+and the repository rather than a duplicated JSON/column inventory.
 
-The world-state DB persists durable, shared room content: live card stacks
-(`room_cards`) and per-room metadata (`room_states`). Chat history and broadcast
-ordering are **not** persisted — `WorldStateRepository` keeps chat history in
-memory, so it is lost on server restart. Because a single server process owns a
-world, room operations are already serialized in-process and no per-room
-sequence counter is needed.
+### Durability boundaries
 
-World-state databases at an older supported version are migrated forward
-additively; a fresh DB is required only for versions newer than this build
-(`WORLD_SCHEMA_VERSION = 10`).
+Room cards/layout/ownership, behavior state, NPC state, world metadata, and
+activity records survive ordinary server restarts. Chat history is deliberately
+process-local and bounded by the protocol history limit; it is lost on restart.
+Broadcast ordering is in-process, with no persisted per-room sequence counter.
 
-### 3.1 `room_states`
+[Dispenser cooldowns](../server/services/dispensers.py) are process-local by
+`(world_id, instance_id)`; dispensers restart ready. A legacy `prop_cooldowns`
+table can remain in an upgraded DB but is unused. Cutscene playback/queues are
+also transient, not room persistence.
 
-One row per room, created by
-`server/state/world_state.py:WorldStateRepository.initialize_world()`. The
-`initialized` flag controls YAML seeding: a room with `initialized = 0` (missing
-row, fresh database, or a manually cleared flag) has its live cards deleted and
-its YAML seed cards re-inserted on the next server start; a room with
-`initialized = 1` is left untouched, so collected seeds stay collected and
-dropped cards stay dropped across restarts. This replaces the former
-room-exists gate that lived in the removed `rooms` table.
+## 4. Migration compatibility
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `room_id` | TEXT PK | Room ID from `worlds/<world>/rooms/*.yaml` (every room in the loaded world definition is reachable, including materialized player bedrooms). |
-| `initialized` | INTEGER NOT NULL DEFAULT 0 | `0` = reseed cards from YAML on next server start; `1` = leave the room's live cards alone. |
-| `owner_account_id` | TEXT NULL | Owning account ID; written by `OwnershipService.grant/revoke` and read by `owner_of()` / `can_edit()` for room-owner editing and player bedrooms. |
-| `props_json` | TEXT NOT NULL DEFAULT `'{}'` | Live editable prop layout; seeded from the YAML definition and compare-and-swap saved by `RoomLayoutService`. |
-| `environment_json` | TEXT NOT NULL DEFAULT `'{}'` | Persisted visual/gameplay environment overrides; read and written by `EnvironmentService` and `RoomLayoutService`. |
-| `layout_revision` | INTEGER NOT NULL DEFAULT 0 | Monotonic layout revision used for optimistic-concurrency saves. |
-| `door_json` | TEXT NOT NULL DEFAULT `'{}'` | Player-bedroom door state `{"style": {...}, "locked": bool}`, written by the `infinite-bedrooms` mod. Empty for ordinary rooms. |
+Initialization creates fresh schemas or applies the available forward
+migration chain, then validates required tables and exact expected column
+lists and ensures indexes. Supported older DBs preserve state through these
+migrations; “all migrations are additive” is too strong (for example NPC-state
+migration copies then drops the old location table).
 
-Player bedrooms reuse this table: a room whose `room_id` starts with
-`bedroom:` is a player bedroom (`owner_account_id` is the owner, `door_json`
-holds the lock and customization). The partial unique index
-`idx_room_states_player_owner` enforces one bedroom per account.
-
-### 3.2 `room_cards`
-
-Live card stacks lying in rooms. Seeded from `room.initial_cards` by
-`initialize_world()` (uninitialized room) or `reset_room_cards()` (`.reset_room`);
-listed by `list_room_cards()` for snapshots; mutated by `take_room_card()`
-(pickup) and `add_room_card()` (drop) inside `CardService` transactions, each
-broadcasting `room.card.added/updated/removed` (`server/services/cards.py`,
-`server/commands/core.py`). `.reset_room` (`reset_room_cards()`) deletes every
-live stack in the caller's room — including player drops — re-inserts the YAML
-seeds, sets `room_states.initialized = 1`, and broadcasts `room.cards.reset`.
-
-| Column | Type | Description |
-| --- | --- | --- |
-| `stack_id` | TEXT PK | Stack ID: `room:<seed key>` for seeded stacks, `room:<uuid4>` for dropped cards. Referenced by `.pickup @card:<stack_id>` and `.look @card:<stack_id>`. |
-| `room_id` | TEXT NOT NULL | Containing room. Indexed via `idx_room_cards_room_id` and `idx_room_cards_order (room_id, created_at, stack_id)`, which covers the snapshot `ORDER BY`. |
-| `card_def_id` | TEXT NOT NULL | Card definition ID from the catalog. |
-| `quantity` | INTEGER NOT NULL | Cards in this stack. |
-| `position_json` | TEXT NOT NULL | JSON board position triple `[x, y, z]`; seeded from YAML `pos`, drops land at `(50, 50, 0)` (`core.py`). Serialized as `position: [x, y, z]`. |
-| `scope` | TEXT NOT NULL DEFAULT `'room'` | Always `'room'` in Milestone 1; mirrors the inventory `scope` vocabulary. |
-| `pinned` | INTEGER NOT NULL DEFAULT 0 | Boolean. Pinned stacks reject `.pickup` (`take_room_card()`). |
-| `created_at` | TEXT NOT NULL | ISO creation timestamp; list ordering key. |
-| `updated_at` | TEXT NOT NULL | ISO last-quantity-change timestamp. |
-
-Seeded stacks use a deterministic `stack_id` (`room:<seed key>`, where the
-seed key is `<room>:<index>:<card>` from the content loader in
-`server/content/worlds.py`); `room_cards` carries no `initial_key` column and
-there is no seed ledger table. Restart safety comes from
-`room_states.initialized`: only rooms flagged `0` are re-seeded, so collected
-seeds stay collected and dropped cards stay dropped.
-
-### 3.3 `behavior_state`
-
-Per-instance state for trusted behavior scripts, keyed by `(namespace,
-instance_id)` (`namespace` is `peep` or `prop`). Read and written by
-`server/behaviors/dispatcher.py:BehaviorDispatcher` inside the intent
-transaction; scripts never touch the database directly. State survives server
-restarts so counters and prop environment values persist.
-
-| Column | Type | Description |
-| --- | --- | --- |
-| `namespace` / `instance_id` | TEXT PK (composite) | Owning entity kind and ID. |
-| `state_json` | TEXT NOT NULL CHECK `json_valid` | Script-managed JSON state. |
-| `updated_at` | TEXT NOT NULL | ISO last-write timestamp. |
-
-### 3.4 In-memory state (not persisted)
-
-`WorldStateRepository` holds room chat history in a process-local dict, capped at
-`MAX_HISTORY_MESSAGES` (50) entries of `{speaker_id, speaker, style, text}`.
-`RoomService.say()` appends via `append_chat_message()`; snapshots include it via
-`read_room_view()`. It is intentionally lost on server restart.
-
-`DispenserService` keeps each dispenser prop's recharge instant in a process-local
-dict keyed by `(world_id, instance_id)` (`server/services/dispensers.py`). It is
-deliberately not persisted, so every dispenser starts ready after a server
-restart. (The former `prop_cooldowns` world table was removed; an older database
-may still contain it, unused.)
+Newer schema versions are rejected rather than downgraded. A missing migration
+step, missing table, or incompatible column layout also fails startup. A fresh
+DB is **not** required only for newer versions: restore a compatible backup or
+choose a fresh DB when no supported upgrade path exists. Use the version
+constants and migration maps in [migrations.py](../server/state/migrations.py)
+for compatibility decisions instead of stale version numbers in this document.

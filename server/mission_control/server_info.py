@@ -51,7 +51,11 @@ def _read_proc_stat() -> tuple[float, float] | None:
 
 
 def _cpu_percent() -> tuple[float | None, float | None]:
-    """Sample system busy percent and process CPU percent over a short window."""
+    """Sample system busy percent and MC process CPU over a ~150 ms window.
+
+    System percent spans all CPUs (0–100); process percent uses one CPU as 100%
+    and can exceed 100% when multiple cores are busy.
+    """
 
     system_before = _read_proc_stat()
     process_before = time.process_time()
@@ -76,7 +80,11 @@ def _cpu_percent() -> tuple[float | None, float | None]:
 
 
 def _meminfo() -> dict[str, object] | None:
-    """Return host memory figures from ``/proc/meminfo``, if present."""
+    """Return host-wide RAM/swap sizes in bytes, or None without proc data.
+
+    Used RAM is total minus available (free when availability is unavailable);
+    percentages use their respective totals, with null swap percent for no swap.
+    """
 
     text = _read_text("/proc/meminfo")
     if not text:
@@ -131,6 +139,8 @@ def _cpu_model() -> str | None:
 
 
 def _load_average() -> list[float] | None:
+    """Return 1/5/15-minute system load averages, or None if unsupported."""
+
     getloadavg = getattr(os, "getloadavg", None)
     if getloadavg is None:
         return None
@@ -151,6 +161,11 @@ def _kB_field(line: str) -> int | None:
 
 
 def _process_memory() -> dict[str, int | None]:
+    """Return MC resident/virtual bytes, null where probes are unavailable.
+
+    The resource fallback reports peak resident usage rather than current RSS.
+    """
+
     rss: int | None = None
     vms: int | None = None
     text = _read_text("/proc/self/status")
@@ -197,7 +212,12 @@ def _directory_size(path: Path) -> tuple[int, bool]:
 
 
 def collect_storage(install_root: Path) -> dict[str, object]:
-    """Return recursive sizes for the top-level entries of *install_root*."""
+    """Return recursive file bytes for each top-level install entry.
+
+    Symlinks contribute zero and are not followed. Percent is share of scanned
+    bytes, not filesystem capacity; partial means some paths were unreadable.
+    cached_at is the UTC scan timestamp, retained when serving a cached result.
+    """
 
     entries: list[dict[str, object]] = []
     total = 0
@@ -272,7 +292,15 @@ class ServerInfoService:
         return self._config.install_root
 
     def snapshot(self) -> dict[str, object]:
-        """Return host, CPU, memory, process, disk, and config information."""
+        """Return operator metrics for the MC host/process, not managed worlds.
+
+        The route runs this blocking sampler in a worker thread. Durations are
+        seconds; boot_time is Unix seconds; memory/disk sizes are bytes. Disk
+        describes the filesystem containing install_root, not install size.
+        Unsupported probes return null. threads counts active Python threads.
+        Config exposes versions, listener, features, keepalive presence and paths,
+        excluding the management token and operator passphrase.
+        """
 
         system_cpu, process_cpu = _cpu_percent()
         uptime = _uptime_seconds()
@@ -341,7 +369,10 @@ class ServerInfoService:
         }
 
     def storage(self, *, force: bool = False) -> dict[str, object]:
-        """Return cached install storage breakdown, rescanning after the TTL."""
+        """Return install storage cached for 60 seconds; force bypasses the TTL.
+
+        The worker-thread route maps ?refresh=1 to force for an on-demand scan.
+        """
 
         with self._lock:
             now = time.monotonic()

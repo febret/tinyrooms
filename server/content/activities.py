@@ -13,6 +13,15 @@ from server.content.common import ContentError, load_yaml_file, require_mapping
 class ActivityDefinition:
     """An authored activity that commands can launch."""
 
+    # id selects the iframe kind; title labels the window. aliases are alternative
+    # case-insensitive .play targets. Direct catalog launches use room_bound
+    # (default true); prop/peep launches force it true and close on room departure.
+    # rooms is a launch allowlist (empty means any room), independent of binding.
+    # YAML feature becomes required_feature: the launch requires that flag enabled,
+    # not merely known to the loader. No feature means no feature gate.
+    # start_cost is Energy per round start, not per window open. record enables
+    # personal/world best times for captured rounds lasting at least
+    # min_completed_round seconds; abandoned rounds do not qualify.
     id: str
     title: str
     room_bound: bool

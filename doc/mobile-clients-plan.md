@@ -1,12 +1,13 @@
 # Tinyrooms — Native Mobile Clients (Android + iOS) Plan
 
-Status: implementation plan. This document proposes two thin native shells that
+Status: implementation plan (not yet implemented). Proposes two thin native shells that
 host the existing browser client in a first-party WebView, pointed by default at
 `https://tinyrooms.febret.com/home`. Related docs:
 [architecture.md](./architecture.md) (components and protocol),
 [design.md](./design.md) (product/design intent),
-[android.md](./android.md) (separate, self-hosted LAN-server Android plan),
 [performance.md](./performance.md) (regression policy and budgets).
+The previously referenced `doc/android.md` (separate self-hosted LAN-server
+Android plan) is missing; recover or clarify that reference before relying on it.
 
 ## 1. Goal and constraints
 
@@ -23,21 +24,20 @@ host the existing browser client in a first-party WebView, pointed by default at
 
 ### 1.1 Why a plain WebView works
 
-The web client is pure ES modules plus Three.js with no build step. It derives
-every network URL from `window.location.origin` (`app/js/socket.js:websocketUrl`)
-and honors a URL prefix through `BasePathMiddleware`
-(`server/base_path.py`), which injects `window.__TR_BASE__` consumed by
-`app/js/base-path.js`. Loading the origin directly means:
+The ES-module/Three.js client has no build step. [Socket URLs](../app/js/socket.js)
+derive from `window.location.origin`; [middleware](../server/base_path.py) injects
+`window.__TR_BASE__` for [client base paths](../app/js/base-path.js).
+Loading the origin directly means:
 
-- The server's `Origin` check (`server/security.py:validate_origin`) sees the
+- The server's [Origin check](../server/security.py) sees the
   site's own origin and passes.
-- The `SameSite=Lax` session cookies set in `server/app.py:_set_session_cookies`
+- The `SameSite=Lax` session cookies set in [app](../server/app.py)
   are first-party and persist in the WebView cookie store.
 - No CORS work, no cookie work, no per-request host plumbing.
 
-The modern-browser floor is ES2020 syntax plus import maps
-(`app/index.html`), i.e. Android System WebView 89+ and iOS 16.4+. The existing
-`app/js/boot-guard.js` renders a diagnostic overlay on older engines.
+The browser floor is ES2020 plus import maps ([entry](../app/index.html)):
+Android System WebView 89+ and iOS 16.4+.
+[Boot guard](../app/js/boot-guard.js) diagnoses older engines.
 
 ## 2. Store-approval reality
 

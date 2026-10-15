@@ -100,6 +100,11 @@ def _vec3(raw_value: Any, label: str, *, default: tuple[float, float, float]) ->
 class TransformLayer:
     """Animated transformation applied to the effect host."""
 
+    # period is seconds per cycle; phase is an initial elapsed-seconds offset.
+    # bob amplitude is local Y distance; sway/shake use radians about normalized
+    # axis (zero falls back to Y). shake also offsets local X/Z by amplitude/4.
+    # pulse scales by 1 + sin(2*pi*elapsed/period) * amplitude * 0.1; spins make a
+    # full turn per period about axis and ignore amplitude. Axis defaults to Y.
     motion: str
     amplitude: float
     period: float
@@ -121,6 +126,10 @@ class TransformLayer:
 class MaterialLayer:
     """Emissive/opacity/colour changes applied to the host's meshes."""
 
+    # Missing emissive/color/opacity retain the model's values. Intensity defaults
+    # to 1; opacity is an optional 0..1 override enabling transparency. flicker
+    # (0..1, default 0) sinusoidally modulates emissive intensity, with flicker_hz
+    # cycles/second (default 6; the current client also uses 6 for explicit zero).
     emissive: str | None
     emissive_intensity: float
     color: str | None
@@ -144,6 +153,16 @@ class MaterialLayer:
 class ParticleLayer:
     """A procedural particle overlay emitted from an anchor on the host."""
 
+    # preset classifies smoke/fire/sparks; rendering uses the explicit fields.
+    # texture is relative to the YAML directory and serialized as an asset URL.
+    # rate is particles/second; lifetime is a random min/max in seconds. In
+    # contrast, size and opacity pairs interpolate from birth to death; a scalar
+    # becomes a constant pair. Size/offset use host-local units and scale with it.
+    # speed is initial units/second; spread is the cone angle from +Y in degrees;
+    # gravity is signed Y acceleration in units/second squared (negative falls).
+    # anchor selects base/center/top of the host bounds, plus XYZ offset.
+    # color tints the sprite; additive selects additive rather than normal blend.
+    # max_particles caps the pool; emission reuses slots cyclically when full.
     preset: str
     texture_name: str
     rate: float
@@ -206,6 +225,7 @@ def _load_transform_layer(raw_layer: Mapping[str, Any], effect_id: str, index: i
             f"{label} has unknown motion '{motion}'. Expected one of {', '.join(sorted(TRANSFORM_MOTIONS))}."
         )
     default_amplitude = 0.35 if motion in {"pulse"} else 0.08
+    # Defaults are motion-dependent amplitude, 3-second period, and zero phase.
     return TransformLayer(
         motion=motion,
         amplitude=_number(raw_layer.get("amplitude"), f"{label} amplitude", default=default_amplitude, minimum=0.0),

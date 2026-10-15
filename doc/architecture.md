@@ -1,526 +1,164 @@
-# Tinyrooms — Technical Architecture (Milestone 1)
+# Tinyrooms — Technical Architecture
 
-This document describes the technical architecture of Tinyrooms **as currently
-implemented** (Milestone 1 vertical slice). It is a general guide to the
-project components, a per-file inventory grouped by component, the
-client/server protocol, and the main game flows.
+This guide describes component boundaries and runtime contracts. Product
+requirements belong in [design](design.md); setup and verification commands in
+[README](../README.md). Source links below replace field, endpoint, and command
+inventories so those details have one authority.
 
 ## 1. Overview
 
-Tinyrooms is a multiplayer miniature-world game:
+The server owns gameplay state and validates every action. The browser renders
+snapshots/events and dispatches input; it does not invent authoritative state.
+One process owns a world, with SQLite persistence and validated YAML content.
+The frontend uses vanilla ES modules and Three.js, without an app build step.
 
-- **Authoritative server**: all world state lives in SQLite on the server.
-  The browser client is a pure renderer + input dispatcher; it never invents
-  game state.
-- **Backend**: Python 3.11+, FastAPI + Uvicorn, `websockets`, PyYAML, SQLite
-  (live world state), `cryptography` (self-signed TLS for local dev).
-- **Frontend**: vanilla JavaScript ES modules (no app build step), Three.js
-  for the 3D board renderer, same-origin iframe activities.
-- **Content**: human-readable YAML under `worlds/` and `data/`, validated by
-  loaders in `server/content/`.
-- **Transport**: HTTPS JSON API for accounts/session/bootstrap/stickers/
-  activities plus one ordered JSON WebSocket (`/ws`) per logged-in client
-  for commands, snapshots, and room events.
-- **World runtime topology** (one process per world):
-
-```
-browser (app/js + Three.js + activity iframes)
-  |  HTTPS: /api/*, /app/*, /activities/*, /assets/*
-  |  WSS: /ws (cookie session + Origin check)
+```text
+browser (app + Three.js + same-origin activity iframes)
+  | HTTPS: account/bootstrap APIs, assets, activity bridge
+  | WSS: commands, snapshots, room events
   v
-run.py (TLS cert + Uvicorn) -> server/app.py (FastAPI assembly)
-  -> server/commands (parse + dispatch)
-  -> server/services (rooms / cards / activities)
-  -> server/state (SQLite via DatabaseHub) + server/profiles.py (accounts)
-  -> server/content (YAML world + card catalogs)
+run.py -> server/app.py
+  -> commands -> services -> state / profiles
+  -> content loaders + mods + authored behaviors
 ```
 
-Key design decisions:
-
-- Invitation-gated accounts (`TRSERVER_NEW_ACCOUNT_PASSPHRASE`); changing it
-  later does not affect existing users.
-- Rotating opaque sessions (HttpOnly `tr_session` + `tr_csrf` cookies, CSRF
-  header on POSTs); one live gameplay session per account (generation
-  counter; old socket gets `session.replaced`).
-- Mandatory initial Sticker Designer activity gates world entry
-  (`initial_sticker_complete`, WS close `4403` until confirmed).
-- In-process room ordering: one server process owns a world, so room
-  operations are serialized by the event loop; no per-room sequence counter.
-- Feature flags via `TRSERVER_FEATURES` (`dev_sample_activity`, `world-editor`,
-  `card-database`, `prop-editor`, and the mission-control aliases). Editor
-  features are gated again by account power: the World Editor and Card Database
-  accept `builder`/`game-master`/`admin`, while the Prop Editor is admin-only.
-- All rooms in the loaded world definition are reachable; `.go` validates the
-  exit, its lock, and any required card (the Milestone 1 room allowlist was
-  removed in Milestone 2).
-
-Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
-(required), `HOST` (`127.0.0.1`), `PORT` (`5000`), `USERS_PATH` (`users`),
-`WORLD_PATH` (`worlds/tutorial`), `WORLDSTATE_PATH`
-(`.local/worldstate.sqlite3`), `FEATURES`, `MODS` (comma-separated names or `*`),
-`MODS_PATH` (`mods`), `STUN_URLS` (`stun:stun.l.google.com:19302`),
-`TIMEZONE` (`UTC`).
-
-### 1.1 Mission-control entry and deployed topology
-
-With `TRSERVER_FEATURES=mission-control`, `run.py` launches the mission control (MC) process.
-MC serves public player login/create at `/` and operator administration at
-`/mission-control`:
-
-```
-browser -> https://hostname/                 -> nginx :443 -> MC (loopback)
-        -> https://hostname/mission-control  -> nginx :443 -> MC admin UI
-        -> https://hostname:10000/           -> world (wildcard bind)
-MC <-> world: token-authenticated registration/heartbeat and management calls
-MC + worlds -> shared users/profiles.sqlite3; each world -> its own worldstate DB
-```
-
-MC player auth issues the same secure, path-`/` `tr_session` / `tr_csrf` cookies
-used by worlds.
-Resolve reads `last_instance_id` from `user_profiles.profile_json` and checks
-the registered world's identity against `last_world_id`.
-
-Deployment configures `TRSERVER_MC_INSTANCE_HOST=0.0.0.0`, public hostname via
-`TRSERVER_MC_INSTANCE_PUBLIC_HOST` (alias of `TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME`),
-ports `10000..10999` via `TRSERVER_MC_INSTANCE_PORT_MIN` /
-`TRSERVER_MC_INSTANCE_PORT_MAX`, and nginx certificate reuse via
-`TRSERVER_MC_INSTANCE_CERTFILE` / `TRSERVER_MC_INSTANCE_KEYFILE`.
-Worlds receive `TRSERVER_MC_INSTANCE_ID`, `TRSERVER_CLIENT_URL`,
-and `TRSERVER_ENTRY_URL`. See [mission-control.md](mission-control.md#83-deployment-and-upgrades).
+Mission Control is a separate optional process for player entry and fleet
+operations. MC and participating worlds share a profile database; each world
+has its own worldstate database. See the canonical
+[entry/topology contract](mission-control.md#2-terminology-and-topology) and
+[deployment/upgrade guidance](mission-control.md#83-deployment-and-upgrades).
 
 ## 2. Component guide
 
-| Component | Path(s) | Responsibility |
-| --- | --- | --- |
-| Launcher | `run.py` | Dev HTTPS entrypoint: cert reuse/generation, Uvicorn bootstrap, bounded shutdown. |
-| HTTP + WS assembly | `server/app.py` | FastAPI routes, auth enforcement, static/activity/asset serving, WS command loop. |
-| Config | `server/config.py` | Env parsing/validation, path containment, feature flags. |
-| Security | `server/security.py` | Password hashing, session/CSRF tokens, origin checks, rate limiting. |
-| Accounts | `server/accounts.py`, `server/profiles.py` | Auth service + SQLite account/session/inventory/world-profile repository. |
-| Protocol | `server/protocol.py` | WS envelope constants, validation, and serializer helpers. |
-| Live connections | `server/connections.py` | In-memory WS registry, per-account queue, room membership, session replacement. |
-| Commands | `server/commands/` | `.`-command/chat/`\admin` parser, name→handler registry, 11 core handlers + dispatcher. |
-| Content loaders | `server/content/` | Strict YAML loading for cards/packs, world/rooms/props/peeps, activity launch definitions, and cutscene definitions. |
-| Cutscene service | `server/services/cutscenes.py` | Cutscene definition resolution, audience selection, placeholder resolution, and `cutscene.play` payload building. See `doc/cutscenes.md`. |
-| Cutscene client | `app/js/cutscenes/`, `app/css/cutscenes.css` | Client-side cutscene queue, playback state machine, frame types, and the stage API cutscene code programs against. |
-| Mod loader | `server/mods.py` | Discovers `mods/<id>/mod.yaml`, validates `TRSERVER_MODS`, merges mod content/props/activities, registers mod commands + runtime state. |
-| Room service | `server/services/rooms.py` | Snapshots, presence, chat, navigation. |
-| NPC movement | `server/services/npc_movement.py`, `server/state/npc_peep_states.py` | Exit-validated NPC room changes (`npc_barrier`/locked rules) plus persisted per-NPC state. |
-| Bedroom mod | `mods/infinite-bedrooms/` | Player-room purchase/materialization, door locking, customization, access checks, and the Bedrooms activity. |
-| Card service | `server/services/cards.py` | Card serialization, atomic pickup/drop. |
-| Activity service | `server/services/activities.py` | One-live-activity-per-account lifecycle (in-memory). |
-| Audio chat | `server/services/rtc.py` | Room-scoped audio presence plus same-room WebRTC signaling relay and rate limiting. |
-| Persistence | `server/state/` | Dual-DB schema (`DatabaseHub`) + room cards/state (chat in memory). |
-| Browser UI | `app/` | Shell (`index.html`), styles, vanilla ES-module JS, vendored Three.js. Includes `app/js/voice.js` for P2P audio. |
-| Activities | `activities/` | Same-origin iframe games + shared `TinyActivity` bridge. |
-| Shared data | `data/` | Core tuning YAML, base card set + art, preset sticker choices, door catalog, core cutscenes (`cutscenes/<id>/`). Rendered custom stickers live under `TRSERVER_CUSTOM_STICKERS_PATH` (`.local/stickers`). |
-| Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes/cutscenes + art/models. |
-| Tests | `tests/` | Python `unittest` (server/integration/static) + Playwright browser specs. |
-| Tooling | `tools/`, root configs | Browser-test server, dep vendoring, Playwright/npm config. |
-| Mission control | `server/mission_control/`, `mission-control/` | Optional player-entry and fleet server: `entry.py` + `entry.html`/`js/entry.js` handle shared player auth and exact-instance resolve; registry/supervisor manage stable instances; package/user managers and operator auth serve the admin UI. `nginx_template.py` renders the deploy-time fixed MC proxy. See `doc/mission-control.md`. |
-| MC world client | `server/mc_client.py`, `server/mc_api.py` | Outbound register/heartbeat plus the token-gated `/api/mc/*` admin endpoints on a world server. |
-
-`server/client/` and `tests/client/` are referenced in `AGENTS.md` as the
-future home of browser-free ports of `app/js/` logic, but do not exist yet in
-this checkout.
-
-### 2.1 Mods
-
-A mod is a self-contained directory under the mods path (default `mods/`) with a
-`mod.yaml` manifest. `TRSERVER_MODS` selects mods by name or `*` (all);
-`TRSERVER_MODS_PATH` overrides the search root. Mods may contribute:
-
-- `content/activities.yaml` — merged into the activity catalog.
-- `props/props.yaml` (+ models) — a single props set, like a world; merged into
-  the world's props and served from `/assets/mods/<id>/props/…`.
-- `activities/<name>/` — served from `/activities/<name>/…`.
-- `mod.py` — a `register(api)` entrypoint that registers `.` commands and a
-  runtime state factory. State objects land in `RuntimeState.mods` /
-  `CommandContext.mods`; a state exposing `personal_actions(account, prop)`
-  contributes per-account prop quick actions. `prepare()` runs before world
-  seeding.
-
-Worlds declare required mods via `requires_mods` in `world.yaml`; startup fails
-with a clear error if a required mod is not enabled. The tutorial world requires
-`infinite-bedrooms`.
-
-### 2.2 Props files
-
-Every `props.yaml` (world, propset, or mod) is a mapping of prop id to prop
-definition. A reserved `CONFIG` key holds file-wide settings and is never loaded
-as a prop. Its optional `scale_adjust` (default `1.0`) multiplies the `scale` of
-every prop in that file; the per-prop value still scales with the room instance
-`scale`. Unknown `CONFIG` keys are ignored.
-
-### 2.3 Prop effects
-
-Props may carry named effect sets rendered on the 3D board. A prop definition
-declares `effects: {set_name: [effect_id, …]}` and an optional `active_effect`
-(defaulting to the first set); `active_effect` is authoritative per prop
-instance and can be switched at runtime through
-`RuntimeState.set_prop_active_effect` / `RoomService.set_prop_active_effect`,
-which stores an in-memory override and broadcasts `room.prop.updated`.
-
-Effect definitions live as `data/fx/<id>.yaml` (id matches the filename) with
-their sprite PNGs beside them; they are strictly loaded by
-`server/content/fx.py` and validated against prop references at world load.
-Each effect is an ordered list of layers:
-
-- `transform` — `bob`, `spin`, `spin-y`, `pulse`, `sway`, or `shake` with
-  `amplitude`, `period`, `phase`, and `axis`.
-- `material` — `emissive`, `emissive_intensity`, `color`, `opacity`, and
-  `flicker`/`flicker_hz`.
-- `particle` — `preset` (`smoke`, `fire`, `sparks`) plus `texture`, `rate`,
-  `lifetime`, `size`, `speed`, `spread`, `gravity`, `color`, `opacity`,
-  `additive`, `max_particles`, `anchor` (`base`/`center`/`top`), and `offset`.
-
-The server resolves descriptors (including `/assets/fx/<file>` texture URLs)
-into each prop's `effect_sets`/`active_effect` payload; the client renders them
-in `app/js/prop-effects.js`, driven by the board's animation loop. Effects are
-disabled entirely under `prefers-reduced-motion`, keeping visual baselines
-deterministic. Sprites are reproducible via `tools/generate_fx_textures.py`.
-
-### 2.4 World-resolved card effects
-
-`ActionsService` resolves the generic stat effects (`health`, `energy`) and room
-lighting (`light`) itself. Any other card the player uses on a prop is handed to
-that prop's world behavior: `use_command` dispatches a prop-targeted `card_play`
-behavior event (`server/commands/gameplay.py`) and the prop's script decides
-whether it handles the card, expressing the effect through `BehaviorContext`
-intents. The tutorial world implements scooping (`props/litter-tray.py`) and
-vacuuming (`props/centipedes.py`) this way, matching cards by their authored
-`tags`. Behavior scripts read the triggering card's fields from `context.card`
-(`id`, `tags`, `consume_card`, `hide_seconds`, `clears_source`) and decide
-themselves which cards, if any, the interaction yields. A card used on an
-unrelated prop is a no-op, and Energy is charged / `one_use` copies are consumed
-only after the behavior actually resolves. World scripts can hide props
-(`hide_prop`), clear named sources from a room (`clear_source`), and remove a
-specific number of card copies (`remove_card` with a quantity). The core
-hardcodes no world effect names.
-
-
-## 3. HTTP API (`server/app.py`, `app/js/api.js:PATHS`)
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | `{ok, protocol_version: 1}`. No auth. |
-| `GET` | `/api/stickers` | `{ok, stickers: [{name, image_url}]}` from `data/stickers`. No auth. |
-| `GET` | `/api/session` | `{ok, logged_in, csrf_token?, user?}` from `tr_session` cookie. |
-| `POST` | `/api/auth/create` | `{username, password, passphrase?}`; passphrase-gated, `Origin`-checked; sets `tr_session` + `tr_csrf`; returns `{ok, csrf_token, user}`. |
-| `POST` | `/api/auth/login` | Same minus passphrase; evicts old WS with `session.replaced`. |
-| `POST` | `/api/auth/logout` | Cookie + `Origin` + `X-CSRF-Token`; closes activity, revokes session, pushes `session.replaced`, clears cookies. |
-| `POST` | `/api/stickers/confirm` | `{sticker}` for a preset, or `{image, design}` for a custom render; first confirm is free, later confirms are charged swaps when the sticker changes; closes sticker activity; returns `{ok, user}`. |
-| `GET` | `/api/bootstrap` | Cookie auth (no CSRF); `{ok, user: {…, can_enter_world}}`. |
-| `GET` | `/api/activities/current` | `{ok, activity\|null}`; forces sticker activity when incomplete. |
-| `GET` | `/api/activities/{activity_id}` | Serialized activity or 404 on id mismatch. |
-| `POST` | `/api/activities/{activity_id}/bridge` | `{type, payload}`; `type ∈ {activity.ready, activity.attention, activity.cancel, activity.complete}`. |
-| `GET` | `/` | `app/index.html` or fallback text. |
-| `GET` | `/app/{path}` | Static app files (path-contained). |
-| `GET` | `/activities/{name}/`, `/activities/{name}/{path}`, `/activities/shared.js\|shared.css` | Activity hosting (fallback page outside Milestone 1). |
-| `GET` | `/assets/stickers/{file}`, `/assets/base/{file}`, `/assets/world/{world}/{cards\|rooms\|props\|peeps}/{file}` | Art serving; traversal → 404. `{file}` resolves against `data/stickers`, then the per-account custom renders under `TRSERVER_CUSTOM_STICKERS_PATH`. |
-| `GET` | `/assets/propsets/{propset}/{file}` | Global propset model serving (mirrors cardsets). |
-| `GET` | `/assets/fx/{file}` | Prop-effect sprite serving from `data/fx`. |
-| `GET` | `/assets/mods/{mod_id}/props/{file}` | Mod props-set model serving (like world props). |
-
-Serialized `user`: `{id, username, sticker, sticker_design, initial_sticker_complete,
-owned_rooms[], level, kudos, bops, shared_energy, show_activity_log, world_id,
-remembered_room, inventory[], core_cards[], activity}` (`owned_rooms`/
-`show_activity_log` sourced from `user_profiles`; `core_cards` are the
-Room/Emotes/Inventory/Skills/Journal definitions in their cards.yaml `order`).
-New users: level 0 “Guest”, 10 Bops, Smile/Sigh/Growl/Goof, no owned rooms.
-Authenticated POSTs require `Origin` + `X-CSRF-Token == tr_csrf ==
-session.csrf_token`.
-
-## 4. WebSocket protocol (`/ws`)
-
-Limits: `PROTOCOL_VERSION=1`, `MAX_COMMAND_SIZE=1024`,
-`MAX_CHAT_SIZE=280`, `MAX_HISTORY_MESSAGES=50`, `MAX_SEND_QUEUE=128`.
-Auth: `tr_session` cookie + `Origin` header. Close codes: `4401`
-(no/invalid session), `4403` (origin fail or sticker-incomplete). Per-message
-re-auth on generation mismatch (one gameplay session per account).
-
-### 4.1 Client → server (`parse_client_message`)
-
-| `type` | Fields |
+| Boundary | Source entry points |
 | --- | --- |
-| `command` | `{v:1, type:"command", request_id: str (non-empty, ≤80), command: str (non-empty, ≤1024)}` — raw command string, e.g. `.go @way:exit0`. One private `result` per `request_id` (`Date.now()-rand` on the client). |
-| `snapshot.request` | `{v:1, type:"snapshot.request"}` — sent by client on reconnect/presence change or manual refresh. |
-| `rtc.presence` | `{v:1, type:"rtc.presence", enabled: bool}` — announces audio chat on/off; server records it on the connection and broadcasts a `presence.audio` room event. |
-| `rtc.signal` | `{v:1, type:"rtc.signal", to: account_id, signal: {kind: offer\|answer\|candidate\|bye, …}}` — relayed to one same-room audio peer; `offer`/`answer` carry `sdp`, `candidate` carries `candidate`/`sdp_mid`/`sdp_m_line_index`. |
+| HTTPS launch and application assembly | [run.py](../run.py), [server/app.py](../server/app.py) |
+| Environment parsing and security | [config](../server/config.py), [security](../server/security.py) |
+| Accounts and profile persistence | [accounts](../server/accounts.py), [profiles](../server/profiles.py), [serialization](../server/serialization.py) |
+| Protocol and live connections | [protocol](../server/protocol.py), [connections](../server/connections.py) |
+| Command parsing/dispatch | [parser](../server/commands/parser.py), [registry](../server/commands/registry.py) |
+| Gameplay services | [server/services/](../server/services/) |
+| Persistence and migrations | [server/state/](../server/state/); [durability contracts](db.md) |
+| Content and extensions | [server/content/](../server/content/), [mods](../server/mods.py), [behaviors](../server/behaviors/) |
+| Browser rendering and state | [app/js/](../app/js/), [app/css/](../app/css/) |
+| Embedded activities | [activities](../activities/), [client host](../app/js/activities.js), [server lifecycle](../server/services/activities.py) |
+| MC and world management channel | [server/mission_control/](../server/mission_control/), [mission-control UI](../mission-control/), [mc_client](../server/mc_client.py), [mc_api](../server/mc_api.py) |
 
-### 4.2 Server → client
+### 2.1 Content and mods
 
-| `type` | Fields |
-| --- | --- |
-| `room.snapshot` | `{v:1, type:"room.snapshot", room: {...}}` — full state, replaces render. |
-| `room.event` | `{v:1, type:"room.event", event: {...}}` — incremental broadcast. |
-| `result` | `{v:1, type:"result", request_id, ok: bool, events: [...private], code?, message?, payload?, toast?, log?}` — per-command ack. `toast`/`log` appear only when `false`: the command's generic `message` is then suppressed as a top-center toast and/or an Action Log line (purely user-facing commands set both). |
-| `session.replaced` | `{v:1, type:"session.replaced", message}` — forced sign-out. |
-| `rtc.signal` | `{v:1, type:"rtc.signal", from: account_id, from_username, signal: {...}}` — a peer's relayed signaling payload. |
-| `error` | `{v:1, type:"error", code, message}` — protocol-level, no disconnect. |
+[Content loaders](../server/content/) define accepted YAML and validation.
+[Shared data](../data/) supplies core tuning, cards, artwork, effects, and scenes;
+[tutorial content](../worlds/tutorial/) supplies world-specific definitions.
 
-### 4.3 Ordering / ack
+[The mod loader](../server/mods.py) owns manifest discovery, enabled-mod selection,
+content merging, command registration, and runtime factories. Worlds declare
+`requires_mods`; startup rejects missing dependencies. The tutorial requires
+[infinite-bedrooms](../mods/infinite-bedrooms/). Mod `prepare()` runs before world
+seeding so persisted dynamically materialized rooms can receive their seeds.
 
-- Strict envelope `v==1`, else `protocol_error`.
-- Room broadcasts are ordered in-process (no sequence counter). Join: private
-  `room.snapshot` → broadcast `presence.enter` to others. `.go`: private dest
-  snapshot + `presence.leave` (old) + `presence.enter` (new). Chat/pickup/drop:
-  one broadcast. An NPC room change broadcasts `peep.leave` to the old room and
-  `peep.enter` to the new room; clients treat both like presence changes and
-  request a fresh snapshot.
-- The client sends `snapshot.request` when it needs a fresh snapshot (on
-  reconnect, after a presence change, or on manual refresh); the server replies
-  with a full `room.snapshot`.
-- Ack: `pending: Map<request_id → {resolve, reject}>`; `result.ok`
-  resolves, else rejects. Malformed JSON/version/type → `error` envelope,
-  connection stays open. Send path: `asyncio.Queue(128)`; full raises.
+Prop schema and file-wide scale settings are defined by
+[worlds.py](../server/content/worlds.py). Effect definitions are loaded by
+[fx.py](../server/content/fx.py) and rendered by
+[prop-effects.js](../app/js/prop-effects.js); reduced motion suppresses effects.
 
-### 4.4 Activity host↔guest bridge (same-origin `postMessage`)
+### 2.2 World-resolved card effects
 
-Host→guest: `tinyrooms.host.state {activityId, state:{user, room, stickers,
-activity, config}}`, `tinyrooms.host.result {activityId, requestId, ok,
-message, payload, state}`. Guest→host: `tinyrooms.activity.{ready, command,
-sticker.confirm, attention, close}` (strict origin + activityId +
-source-window match). `command` runs through the WS pipeline; `attention`
-→ `POST bridge activity.attention` → titlebar flash.
+Generic stat/lighting effects belong to core services. Other prop-targeted card
+plays are delegated through [gameplay commands](../server/commands/gameplay.py)
+to authored behaviors. The core must not hardcode world-specific effect names.
+An unrelated prop is a no-op: charge Energy and consume one-use cards only when
+the behavior resolves. See the tutorial's
+[litter tray](../worlds/tutorial/props/litter-tray.py) and
+[centipedes](../worlds/tutorial/props/centipedes.py) for authored examples.
 
-## 5. Command reference
+## 3. HTTP and session boundaries
 
-Grammar (`parser.py`, `app/js/commands.js`): bare text → `say` (client
-pre-wraps to `.say "<quoted>"` unless already `.`/`\`); `.name args…` via
-shlex (name lowercased); `\…` → `admin` → always rejected. Targets:
-`@card:<stack>`, `@prop:<instance>`, `@peep:<id>`, `@way:<exit>`,
-`@<username>`. Unknown `.name` → rejection.
+[Application assembly](../server/app.py), [route modules](../server/routes/), and
+[client API](../app/js/api.js) define endpoints and payloads; serializers live in
+[serialization.py](../server/serialization.py). Do not maintain parallel tables.
 
-| Command | Example | Effect |
-| --- | --- | --- |
-| `.help` | `.help` | Private `payload.commands:[{name, summary}]` (12 commands). |
-| `.look` / `.inspect` | `.look @card:<stack>` | Private `payload.entity`. No state change. |
-| `.go` | `.go @way:exit0` | Exit/lock/card + Milestone-1 room checks; updates `remembered_room`, moves WS room, closes room-bound activity; private dest snapshot + 2 broadcasts. |
-| `.say` | `.say "hi"`, `(!) hi` | `(.)`→`thinking`, `(!)`→`spiky`, else `normal`; appends to in-memory bounded history (lost on restart); broadcasts `chat.message`. Empty / >280 chars rejected. |
-| `.pickup` | `.pickup @card:<stack> 2` | Atomic room→inventory txn; private `payload.inventory`; broadcasts `room.card.updated/removed`. Pinned rejected; concurrent same-stack is single-winner. |
-| `.drop` | `.drop @card:<stack> 1 62 71 0` | Atomic inventory→room txn; optional trailing `x y z` floor coordinates (percent x/y, elevation z; clamped, defaults `50 50 0`); broadcasts `room.card.added`. |
-| `.play` | `.play sample`, `.play molly replace` | Resolves the target against room peeps/props (a peep/prop may declare an `activity`) and the merged core/world activity catalog (`data/core/activities.yaml` + `worlds/<world>/activities.yaml`); feature-gated definitions reject when the flag is off; occupied without `replace` → reject; private `activity.started` (+`closed reason:replaced`). |
-| `.cancel` | `.cancel` | Closes current activity (`reason:cancelled`); none-open → reject. |
-| `.settings` | `.settings action-log off` | Persists `show_activity_log`; `payload.{show_activity_log}`. |
-| `.reset_room` | `.reset_room` | Deletes all live cards in the current room and re-inserts the YAML seeds in one txn; private fresh snapshot + `room.cards.reset` broadcast. Open to anyone for now (TODO: admin-only once Milestone 2 roles exist). |
-| `.reload_world` | `.reload_world` | Admin power only: rebuilds the world bundle from disk (world/rooms/props/peeps, propsets, mods, `data/fx`), swaps the service graph in place, and broadcasts `world.reloaded`. |
-| `.door` | `.door buy`, `.door design color cobalt tag_text "Home"`, `.door lock on`, `.door enter bedroom:<id>` | Bedrooms door family (provided by the `infinite-bedrooms` mod): `list` (activity data), `buy` (10 Bops, one per account), `design` (validated customization), `lock on\|off`, and `enter` (access-checked move to a player bedroom). |
+- Account creation is invitation-gated; invitation changes do not affect existing
+  accounts. Password/session handling and Origin/CSRF checks belong to
+  [security](../server/security.py) and [accounts](../server/accounts.py).
+- A new login replaces the old gameplay session. Old sockets lose authority,
+  rather than merely showing a sign-out message.
+- Initial Sticker Designer completion is mandatory before world entry. Closing
+  or interrupting onboarding does not bypass the gate; subsequent login resumes
+  it. Later sticker swaps are cancellable and use configured pricing.
+- Custom renders and editable recipes are validated/stored by
+  [stickers.py](../server/services/stickers.py), not trusted from iframe input.
 
-Quick actions are server-provided (`Look`, `Pick up 1`, `Drop 1`, exit
-labels); the client only adds local view shortcuts such as
-`Open Self`, `Friends`, `Skills`, and the ownership-gated `Edit Room`.
+## 4. WebSocket and activity bridge
 
-## 6. Main game flows
+[protocol.py](../server/protocol.py) owns envelopes, validation, limits, and close
+codes. [connections.py](../server/connections.py) owns room membership and send
+queues; [socket.js](../app/js/socket.js) owns client transport.
 
-### 6.1 Account creation / login + session
+Room broadcasts are ordered by the single world process's event loop; there is
+no per-room sequence protocol. A private command result matches `request_id`.
+Snapshots replace room state, while events update it incrementally. Clients
+request a fresh snapshot after reconnect or presence changes, including NPC
+movement. Session validation remains authoritative throughout the connection.
 
-1. `GET /api/session` → `{logged_in:false}` → login screen.
-2. Create `POST /api/auth/create {username, password, passphrase}` +
-   `Origin`. Wrong passphrase → 401, duplicate (casefold) → 409, missing
-   origin → 403. Success persists the account, sets cookies, returns
-   `user{initial_sticker_complete:false}`.
-3. Login `POST /api/auth/login`; a live old WS gets `session.replaced` and
-   loses command authority (generation check per message).
-4. Logout `POST /api/auth/logout` → closes activity, revokes session,
-   pushes `session.replaced "You signed out."`, clears cookies. Later WS
-   messages → `session_missing` + close.
-5. Plain disconnect: `presence.leave` broadcast, activity closed,
-   `remembered_room` retained. Creation/login are source/username
-   rate-limited.
+Activity guests are same-origin iframes. The host validates origin, activity ID,
+and source window before accepting bridge messages. Guest commands use the
+normal server command pipeline; iframe isolation must not bypass authority.
+See [host bridge](../app/js/activities.js),
+[guest bridge](../activities/shared.js), and
+[server bridge](../server/routes/activity_bridge.py).
 
-### 6.2 Onboarding / Sticker Designer (mandatory)
+## 5. Commands and gameplay boundaries
 
-1. After create, `GET /api/activities/current` / `user.activity` =
-   `{kind:"sticker-designer", iframe_url:"/activities/sticker-designer/?session_id=<uuid>",
-   room_bound:false}`. Client opens a required modal iframe; chat is inert,
-   `Escape` cannot dismiss, no WS is opened yet.
-2. Preset choices come from `GET /api/stickers`, never hardcoded. The
-   `Design your own` mode composes original SVG parts (`activities/sticker-designer/parts/`)
-   — body, hair, shoes, back accessory, eyes, mouth, and face decorations — on a
-   canvas and exports a PNG plus a JSON `design` recipe.
-3. Interruption: every login re-ensures the designer; `/ws` closes `4403`
-   until confirmed.
-4. Confirm: guest `postMessage sticker.confirm` → host
-   `POST /api/stickers/confirm` with either `{sticker}` or `{image, design}` →
-   activity closed, `user{sticker, sticker_design, initial_sticker_complete:true}`
-   → modal removed, chat enabled. Custom renders are validated and written to
-   `TRSERVER_CUSTOM_STICKERS_PATH` under a server-derived `custom-<account>.png`.
-   Later “Swap Sticker” reopens the same kind as a cancellable non-modal, and its
-   dialog offers `Design a Custom Sticker…` for re-editing; a changed sticker is
-   charged the configured Bops swap cost.
+Use `.help` and [registry metadata](../server/commands/registry.py) for available
+commands, [parser.py](../server/commands/parser.py) for grammar/targets, and
+[handlers](../server/commands/) for permission and mutation rules. Admin console
+handling is in [admin.py](../server/commands/admin.py).
 
-### 6.3 Room enter / travel / presence
+Server snapshots supply gameplay quick actions. The browser may add local view
+shortcuts, but it must not infer action authority from presentation.
 
-1. WS connect → `current_room_for_account` (`remembered_room` if still in
-   world, else `hub`) → `set_room` → private `room.snapshot` →
-   broadcast `presence.enter` to others.
-2. Tutorial edges: `hub --exit0--> playroom`,
-   `playroom --hub--> hub` (plus non-Milestone `playroom→foyer`, filtered).
-3. `.go @way:exit0`: mover gets the dest snapshot; old room sees
-   `presence.leave{…, destination_room_id}`; new room sees
-   `presence.enter{…, source_room_id}`; room-bound activities auto-close
-   (`reason:room_changed`). Two clients observe join/leave/chat in order.
-4. Restart/resume: `remembered_room`, inventory, and room cards persist (e.g.
-   picking up `fancy-wallet` in playroom survives a server restart); room chat
-   history does not.
+- **Travel:** [rooms.py](../server/services/rooms.py) validates exits/locks/cards,
+  persists the destination, updates presence, and closes room-bound activities.
+  NPC travel uses [npc_movement.py](../server/services/npc_movement.py).
+- **Card transfers:** [cards.py](../server/services/cards.py) performs atomic
+  room/inventory transfers; concurrent claims cannot duplicate a stack. Pinned
+  and core-card restrictions are enforced server-side. Board drop placement is
+  dispatched by [drag.js](../app/js/drag.js), then validated and persisted.
+- **Activities:** [activities.py](../server/services/activities.py) owns one live
+  activity per account. Replacement/cancellation/travel/logout/disconnect must
+  close the appropriate session. Mandatory onboarding has stronger UI gates
+  than ordinary activity windows.
+- **Bedrooms:** [infinite-bedrooms](../mods/infinite-bedrooms/) owns purchase,
+  customization, materialization, and access checks. Entry shares the normal
+  room-change path; persisted rooms are prepared before initialization/seeding.
+- **Restart:** room cards, inventory, and remembered room persist; chat does not.
+  See [database durability](db.md#3-world-state-db).
 
-### 6.4 Chat
+The `.reset_room` handler's unrestricted-access TODO remains unresolved; do not
+interpret the existence of account powers as proof that reset is admin-only.
 
-Chat bar → `chatToCommand` → `command` envelope → `.say` →
-`result{ok, message:"Message sent."}` + `room.event chat.message`. Bubbles
-beside peeps (styles normal/thinking/spiky; click dismisses; capped list);
-`chat_history` capped at 50 server- and client-side. The command menu
-inserts verbs verbatim (not wrapped in `.say`); rejections surface as an
-error toast.
+## 6. Peer audio and cutscenes
 
-### 6.5 Card inspect / pickup / drop
+[voice.js](../app/js/voice.js) implements opt-in, gesture-unlocked push-to-talk;
+[rtc.py](../server/services/rtc.py) relays signaling only between audio-enabled
+connections in the same room. Media travels over WebRTC, not through gameplay
+logs. Audio presence is connection-local: travel retains it, refresh/new login
+does not. Offerer selection and autoplay rationale are documented in source.
 
-- Snapshot `room_cards[]` (`{stack_id, quantity, pinned, definition,
-  quick_actions:[Pick up 1], position}`) and `inventory[]`
-  (`{…, scope, world_id, equipped}` + `Drop 1`).
-- Inspect (`Inspect` / `.look @card:<stack>`) is a pure read (front/back,
-  rarity, descriptions).
-- Pickup (Room view → `Pick up` → qty dialog → `.pickup @card:<stack> n`)
-  → private `payload.inventory` + broadcast updated/removed. Pinned stacks
-  reject.
-- Drop (Inventory view → `Drop` → `.drop @card:<stack> n`, or dragging an
-  equipped hand tile onto the board) → broadcast `room.card.added` with the
-  persisted `position`. `app/js/drag.js` raycasts the pointer onto the floor
-  plane (`board.screenToBoardPosition`), shows a drop marker, sends the
-  trailing `x y z`, and plays a DOM card-flight animation; pick-up from the
-  board/Room view plays the reverse flight. Starter Smile/Sigh/Growl/Goof +
-  10 Bops only; core cards are non-transferable. Each
-  room snapshot carries `editable` derived from the account's owned rooms; the
-  Room selection offers `Edit Room` only when it is true. Escape priority:
-  targeting → popup → main view.
+Cutscenes remain available without a subsystem feature flag; reduced motion
+suppresses playback. Presentation cannot determine gameplay rewards or whether
+a transaction succeeded, and the server does not await playback acknowledgement.
+See [cutscene authoring/contracts](cutscenes.md), including its explicit
+outstanding implementation gaps, and the
+[service](../server/services/cutscenes.py) /
+[client manager](../app/js/cutscenes/manager.js).
 
-### 6.6 Activity window lifecycle
+## 7. Verification
 
-Server: one session/account
-`{id, kind, title, iframe_url, bridge_url, room_bound, room_id, attention}`.
-`.play` targets are resolved data-drivenly: a peep or prop in the current room
-may declare an `activity` (room-bound, e.g. Molly→`lazor-rush`), otherwise the
-target is matched by id or alias against the merged activity catalog
-(`data/core/activities.yaml` and `worlds/<world>/activities.yaml`, loaded by
-`server/content/activities.py`). Definitions supply `title`, `room_bound`,
-optional `rooms` allowlist, and an optional `feature` flag. `start` rejects when
-occupied unless `replace`; `close`, `close_if_room_bound` (on `.go`/logout/
-disconnect), `mark_attention`. Host iframe
-`/activities/<kind>/?session_id=…` with the §5.4 bridge; window chrome
-(drag/arrow-keys, minimize/maximize/close, z-order); mandatory sticker
-variant hides controls + traps focus/inert. `closed` is also appended to
-private result events for `.play replace`/`.cancel`/nav so the store clears
-`activities[]`.
-
-### 6.7 Player bedrooms and the Bedrooms corridor
-
-1. The tutorial hub's `archway0` prop (`archway.glb` from the mod's `props/`
-   set) offers `.play bedrooms`, a room-bound activity defined in the
-   `infinite-bedrooms` mod (`mods/infinite-bedrooms/content/activities.yaml`).
-   Once the viewer owns a bedroom, `BedroomService.personal_actions()` adds a
-   `Go to Bedroom` quick action (`.door enter bedroom:<account>`) to that same
-   prop in their snapshot.
-2. `mods/infinite-bedrooms/activities/bedrooms/` renders a client-side
-   "infinite" corridor of doors and calls `.door list` for the door catalog,
-   cost, and existing doors.
-3. `.door buy` spends 10 Bops, claims a `world.room_states` row for
-   `bedroom:<account_id>` (owner + `door_json`, one per account), grants
-   ownership through `OwnershipService`, and materializes a clone of the
-   `player-bedroom` template room from the world's `rooms.yaml` into
-   `world.rooms`.
-4. `.door design` validates the five dimensions against the mod's
-   `content/doors.yaml`; `.door lock on|off` toggles owner-only access.
-5. `.door enter <room_id>` checks `BedroomService.require_entry` (locked doors
-   reject non-owners) and moves the user with `RoomService.enter_room()`, which
-   shares the room-change path with `.go` (energy cost, `remembered_room`,
-   presence events, room-bound activity close).
-6. Player rooms are materialized on startup by `BedroomService.prepare()`
-   (the mod's `prepare` hook) before `initialize_world()` seeds them, so
-   persisted rooms survive restarts.
-
-### 6.8 Peer audio chat
-
-1. `GET /api/bootstrap` returns `rtc.ice_servers` (from
-   `TRSERVER_STUN_URLS`); the client configures `app/js/voice.js` with them.
-2. The settings menu offers `Enable Audio Chat`; the click gesture calls
-   `getUserMedia({audio})`, then sends `rtc.presence {enabled:true}`. The
-   server flags the connection and broadcasts `presence.audio
-   {account_id, enabled}` to the room (the room snapshot's occupants carry
-   `audio_enabled`). Toggling off or disconnecting clears it. The mic stays
-   silent until push-to-talk.
-3. While audio is on, the chat send button is replaced by a push-to-talk
-   button. Pressing it transmits for up to ten seconds (a radial ring drains
-   the remaining time); pressing again stops immediately. The local track is
-   only enabled during a talk window (`app/js/voice.js`).
-4. Clients reconcile the room's audio-enabled occupants: the peer with the
-   lexicographically smaller account id creates the offer, avoiding glare.
-   SDP/ICE are relayed through `rtc.signal`; the server only forwards between
-   connections that are in the same room and audio-enabled (rate-limited,
-   never logged). Media flows directly over WebRTC (DTLS-SRTP); remote tracks
-   play from hidden `<audio>` elements unlocked by the enable gesture.
-5. Audio survives room changes: the flag lives on the connection, so
-   `.go` / `.door enter` keeps it and the client re-reconciles against the new
-   room (dropping old peers via `presence.leave`, offering to new ones). Because
-   the flag is per-connection and in-memory, a browser refresh or a new login
-   (which replaces the connection) starts with audio disabled.
-
-### 6.9 Cutscene playback
-
-Always available; only the client's reduced-motion preference switches playback
-off. Definitions live in `data/core/cutscenes.yaml`,
-`mods/<id>/content/cutscenes.yaml`, and `worlds/<world>/cutscenes.yaml`; each
-script is a module in `cutscenes/<id>/<id>.js` under `data/cutscenes/`, the
-mod's `cutscenes/`, or the world's `cutscenes/`, served read-only from
-`/cutscenes/<id>/<file>`. A definition may still declare its own `feature:`
-gate, checked per launch.
-
-1. A launch resolves the definition by id or alias (`server/content/cutscenes.py`
-   is the strict loader), checks the `feature`/`rooms`/`power` gates, charges any
-   `energy_cost`, and merges launch `key=value` arguments over the definition's
-   `params` (`server/commands/cutscenes.py`).
-2. Every `$me`, `$user:`, `$peep:`, `$sticker:`, `$card:`, and `$prop:` token in
-   those params and in the caption cues is resolved **server-side** into an
-   asset record; `$prop:` thumbnails are rendered in the browser, so their
-   record carries `model_url`/`scale` and a null `thumbnail`.
-3. The resulting `cutscene.play` event is delivered as a room broadcast
-   (`room` audience) or in the actor's private `result.events[]` (`private`),
-   with `account_id` set so behavior-triggered private plays route through
-   `deliver_behavior_result`. `room_bound` rides along so the client can drop
-   queued scenes on travel. Nothing is acknowledged: the server never learns
-   whether a cutscene played.
-4. The client never routes the event through the store. `ui.js` intercepts
-   `cutscene.play` in both the room-event and command-result callbacks and hands
-   it to `createCutsceneManager` (`app/js/cutscenes/manager.js`), which owns a FIFO
-   queue (global cap 6, per-definition `max_queue`, dedupe by id+source),
-   dynamically imports the module, and runs the default export.
-5. The scene calls `beginCutscene(frameType, options)` from
-   `app/js/cutscenes/stage.js`, which returns the stage element inside a frame
-   that owns the intro/outro animation; `endCutscene()`/`skip`/the duration cap
-   each run the outro and tear the layer down. Frames are `movie`, `vs`,
-   `letterbox`, `caption`, and `plain`, and cutscene modules may register
-   their own from top level.
-6. Reduced motion disables cutscenes entirely (`prefers-reduced-motion` →
-   `state.ui.reducedMotion`): no layer is created, no module is imported, and
-   the queue is never filled. The cutscene layer sits at `z-index: 36`, below
-   the activity layer's `37`, and above the board-side panels; chat, the card
-   hand, and activities stay live and interactive throughout.
-
-Triggers: the `.cutscene` command (also authored as a prop/peep quick action),
-the `context.cutscene(...)` behavior intent, a cutscene emote card
-(`type: emote` + `cutscene:` field, shown under the Emotes view's `Cutscene`
-category), and opening a sealed card pack (`.open_pack`, which launches the core
-`pack-open` scene privately with the drawn card ids as `$card:` params).
-
-## 7. Testing architecture
-
-- Python `unittest`: `test_milestone1.py` (config/security/parser,
-  content/persistence, accounts/sessions, multiplayer gameplay via
-  TestClient + temp dirs), `test_launcher.py` (cert/shutdown),
-  `test_ui_presentation.py` (HTML landmarks, live-server contract,
-  stylesheet wiring, <1200-line rule).
-- Playwright (`tests/browser/`): per-test HTTPS subprocess fixture with
-  isolated `.browser-runtime/run-*` users/SQLite/certs; `flows.spec.js`
-  (functional), `screenshots.spec.js` (20 captures × desktop/portrait).
-  Baselines under `tests/browser/baselines/` require manual design review;
-  update only with `TR_UPDATE_SCREENSHOTS=1`.
+[AGENTS](../AGENTS.md#testing) owns test-placement policy;
+[README](../README.md#verification) owns commands. Tests cover actual browser
+modules under [tests/client/](../tests/client/), server logic under
+[tests/](../tests/), and minimal browser/visual flows under
+[tests/browser/](../tests/browser/). Browser tests use isolated HTTPS servers
+from [fixtures.js](../tests/browser/fixtures.js). Screenshot updates require
+manual design review, not automatic acceptance.

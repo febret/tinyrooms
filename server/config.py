@@ -14,6 +14,10 @@ _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _MOD_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _BASE_PATH_PATTERN = re.compile(r"^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
 MC_FEATURE_ALIASES = frozenset({"mission-control", "mission_control"})
+# MC aliases select the launcher process; they are not needed to enroll a world.
+# Editor flags enable routes, not powers: world-editor/card-database still require
+# builder, game-master, or admin; prop-editor requires admin.
+# Cutscenes have no subsystem flag; reduced motion suppresses client playback.
 KNOWN_FEATURES = frozenset(
     {
         "dev-sample-activity",
@@ -129,15 +133,22 @@ class AppConfig:
     local_path: Path
     drafts_path: Path
     revisions_path: Path
+    # Contains profiles.sqlite3; MC entry and participating worlds must share it.
     users_path: Path
+    # Authored YAML/assets, separate from the mutable SQLite worldstate file.
     world_path: Path
     worldstate_path: Path
+    # Rendered player stickers, separate from bundled preset artwork.
     custom_stickers_path: Path
+    # Bundled/search roots for propsets and prop-effect definitions/sprites.
     propsets_path: Path
     fx_path: Path
+    # Invitation for registration only; changing it does not affect existing accounts.
     new_account_passphrase: str
     features: frozenset[str]
+    # Case-folded usernames granted the admin power by PowersService.
     bootstrap_admins: frozenset[str]
+    # IANA game-calendar timezone for daily tasks and dated memories.
     timezone_name: str
     timezone: ZoneInfo
     host: str
@@ -145,17 +156,38 @@ class AppConfig:
     tick_seconds: float = 1.0
     mods: frozenset[str] = frozenset()
     mods_path: Path | None = None
+    # Deploy root: cardsets/ and propsets/ override bundled ids; duplicates within
+    # one root and collisions with world-local definitions remain errors.
+    # World selection is separate, via world_path rather than this root's worlds/.
     shared_content_path: Path | None = None
+    # Browser WebRTC peer-audio ICE URLs; an explicitly empty list supplies no servers.
     stun_urls: tuple[str, ...] = ("stun:stun.l.google.com:19302",)
+    # MC host:port (no scheme); enables registration/heartbeats and token-gated
+    # world /api/mc/* routes. Management outages do not stop gameplay.
     mc_endpoint: str | None = None
     mc_token: str | None = None
+    # Display label only; registration derives world_id@host:port when omitted.
     mc_name: str | None = None
+    # Outbound management TLS trust for MC, not the world's browser certificate.
+    # Use normal trust without a CA override; dev-only insecure TLS takes precedence.
     mc_ca_file: Path | None = None
     mc_insecure_tls: bool = False
+    # Optional URL prefix, normalized to empty at root; public origins add to the
+    # listener-derived Origin allowlist rather than changing the bind address.
     base_path: str = ""
     public_origins: tuple[str, ...] = ()
+    # Durable identity, distinct from world id/display name, advertised by /health
+    # and saved in player destinations. MC supplies it to children; external entry
+    # destinations must set it too. A transient registry id cannot satisfy health.
+    # Entry resolves the exact saved instance; only legacy profiles lacking one
+    # may match a unique world, never silently falling back to the default.
     mc_instance_id: str | None = None
+    # Browser destination, separate from the management endpoint; registration
+    # derives the world listener URL + base_path when omitted. Parsing allows
+    # HTTP, but MC player entry requires HTTPS on entry's hostname to share cookies.
     client_url: str | None = None
+    # Root-page redirect for unauthenticated or wrong-world/instance profiles;
+    # legacy profiles without an instance id may pass a matching world check.
     entry_url: str | None = None
 
     @property
@@ -226,7 +258,10 @@ class AppConfig:
 
 
 def parse_features(raw_value: str) -> frozenset[str]:
-    """Parse a comma-separated feature list."""
+    """Parse case-sensitive known flags; planned dynamic_peeps is not accepted.
+
+    Both dev_sample_activity and dev-sample-activity enable sample activities.
+    """
 
     features: set[str] = set()
     for item in raw_value.split(","):
@@ -301,6 +336,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     users_path = Path(values.get("TRSERVER_USERS_PATH", str(root / "users"))).expanduser()
     users_path.mkdir(parents=True, exist_ok=True)
 
+    # Accept a world directory or a file inside it; the directory needs world.yaml.
     world_value = values.get("TRSERVER_WORLD_PATH", str(root / "worlds" / "tutorial"))
     world_path = Path(world_value).expanduser()
     if world_path.is_file():

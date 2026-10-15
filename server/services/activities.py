@@ -14,18 +14,27 @@ from server.config import AppConfig
 
 @dataclass(frozen=True, slots=True)
 class ActivitySession:
-    """A live activity session owned by the server."""
+    """Server-owned, in-memory activity; only one is current per account.
+
+    The id identifies this launch in iframe/bridge traffic, not the activity kind.
+    Sessions are not persisted across process restarts.
+    """
 
     id: str
     account_id: str
     kind: str
     title: str
     iframe_url: str
+    # Travel away from room_id closes a bound activity; unbound launches normally
+    # carry no room_id (including mandatory initial sticker design).
     room_bound: bool
     room_id: str | None
     bridge_url: str
+    # Per-launch signing key stays server-side; clients receive only its token.
     secret: str
+    # Requests window attention (including a minimized-window indicator).
     attention: bool = False
+    # Launch-specific guest configuration, copied into the client descriptor.
     config: dict[str, object] = field(default_factory=dict)
 
     @property
