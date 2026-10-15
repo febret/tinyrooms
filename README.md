@@ -48,6 +48,9 @@ the port on trusted networks.
 | `TRSERVER_MC_ENDPOINT` | `host:port` of the mission-control server; enables the world's `/api/mc/*` client |
 | `TRSERVER_MC_TOKEN` | Shared secret for the mission-control channel (required with `TRSERVER_MC_ENDPOINT`) |
 | `TRSERVER_MC_NAME` | Display name for this instance; defaults to `world_id@host:port` |
+| `TRSERVER_MC_INSTANCE_ID` | Stable world-instance identity used in registration, health checks, and saved player destinations |
+| `TRSERVER_CLIENT_URL` | Advertised browser URL for this world; MC player entry requires HTTPS on the same hostname as entry |
+| `TRSERVER_ENTRY_URL` | Player-entry URL; when configured, the world's root redirects unauthenticated or mismatched-profile visitors there |
 | `TRSERVER_SHARED_CONTENT_PATH` | Deploy content root whose `cardsets/` and `propsets/` layer over the checkout's bundled content (shared wins on collisions) |
 | `TRSERVER_MC_CA_FILE` | PEM CA bundle used to verify the mission-control server certificate |
 | `TRSERVER_MC_INSECURE_TLS` | Dev-only: skip mission-control certificate verification |
@@ -86,9 +89,10 @@ molly:
 
 ## Mission Control
 
-Mission control is an optional operations server for managing a fleet of world
-servers and the shared profile database. See
-[doc/mission-control.md](doc/mission-control.md) for the full specification.
+Mission control is an optional server providing public player login/account
+creation at `/`, operator administration at `/mission-control`, and management
+of world servers and their shared profile database. See
+[doc/mission-control.md](doc/mission-control.md) for the implemented topology.
 
 There is a single entry point: `run.py` launches mission control instead of the
 world server when `TRSERVER_FEATURES` includes `mission-control`.
@@ -114,16 +118,20 @@ Open **https://127.0.0.1:8001/mission-control** and sign in with the operator
 passphrase. Mission control serves HTTPS with the same self-signed certificate
 helper as the game server (reusing `.local/cert.pem` / `key.pem`).
 
-The **Server Manager** tab lists instances and exposes Stop / Restart / Rename /
-Resync / Delete on each one, plus an **Update nginx config** button and a
-**Reboot** button. It renders an nginx site config with a reverse-proxy location
-for the mission-control UI and for every live instance (each spawned world is
-launched under its own URL prefix), shows the result for review, and on
-confirmation writes `TRSERVER_MC_NGINX_CONF` and runs
-`TRSERVER_MC_NGINX_RELOAD`. Starting, renaming, and deleting an instance
-regenerate the config automatically when nginx management is configured.
-**Reboot** stops every spawned instance, records them for resume, and shuts MC
-down; the keepalive restarts it and the recorded instances come back up.
+Open **https://127.0.0.1:8001/** for player entry. Login resolves the exact
+`last_instance_id` stored in the player's profile JSON; only legacy profiles
+without that field may use a unique match for their saved world. An unavailable
+or ambiguous destination produces an error rather than choosing another world.
+Player entry and worlds share `tr_session`/`tr_csrf` cookies across HTTPS ports
+on the **same hostname** and use the same profile database.
+
+The **Server Manager** tab exposes Stop / Restart / Rename / Resync / Delete,
+**Make default**, and **Reboot**. Select a running instance with **Make default**
+before creating players; the choice is persisted in
+`TRSERVER_MC_INSTANCES_PATH/entry.json` and is used for new accounts. Spawned
+identities and launch settings persist in `<instance-id>/instance.json`.
+**Reboot** records running children in `resume.json`, stops spawned instances,
+and shuts MC down; the keepalive restarts it and resumes the recorded children.
 
 ## Deploying
 
@@ -152,12 +160,37 @@ version dirty. Pass `--keep-version` to reuse the newest version recorded in
 `version.json` instead of bumping the patch; the local tarball and the remote
 `<rootdir>/versions/<version>` directory are overwritten in place (and created
 when absent), and it selects the `deploy` operation when no operation is given.
-A bootstrap on `tinyrooms.febret.com` exposes mission control at
-`https://tinyrooms.febret.com/admin/mission-control`. Bootstrap also sets
-`TRSERVER_MC_INSECURE_TLS=1` so mission control can manage the self-signed world
-servers it spawns on the same host, and writes
-`TRSERVER_MC_NGINX_CONF`/`TRSERVER_MC_NGINX_RELOAD` for the Server Manager's
-**Update nginx config** action.
+A bootstrap on `tinyrooms.febret.com` exposes player entry at
+`https://tinyrooms.febret.com/` and operator administration at
+`https://tinyrooms.febret.com/mission-control`. nginx has a fixed root proxy to
+MC only; worlds use direct HTTPS URLs such as
+`https://tinyrooms.febret.com:10000/`. Legacy `/admin` URLs redirect to the
+root-based routes. Instance lifecycle actions do not regenerate nginx, and
+there is no nginx-management API or UI.
+
+Deployment writes `TRSERVER_MC_INSTANCE_HOST=0.0.0.0`,
+`TRSERVER_MC_INSTANCE_PUBLIC_HOST=<hostname>` (alias of
+`TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME`), and the inclusive allocation bounds
+`TRSERVER_MC_INSTANCE_PORT_MIN=10000` / `TRSERVER_MC_INSTANCE_PORT_MAX=10999`.
+Local MC defaults are loopback and ports `5000..5999`. Spawned worlds reuse
+nginx's `<rootdir>/nginx/certs/server.crt` and `server.key` through
+`TRSERVER_MC_INSTANCE_CERTFILE` / `TRSERVER_MC_INSTANCE_KEYFILE`. Bootstrap also
+sets `TRSERVER_MC_INSECURE_TLS=1` for the management channel.
+
+Allow inbound TCP **80** (HTTPS redirect), **443** (entry/admin), and
+**10000–10999** (direct worlds) in host and provider firewalls, adjusting the
+world range if configured differently. The deploy tool does not open firewall
+ports. Browsers must accept/trust the certificate on direct world connections.
+
+An upgrade deployment refreshes the fixed nginx proxy as well as restarting
+MC. Already-running legacy worlds need a restart with stable identity and
+direct-public URL/bind settings. **Resume preserves legacy host, port, base path,
+and version selections**: a resumed `127.0.0.1` instance remains loopback-only,
+and a legacy port outside the new range cannot resume. Updating `admin.env` or
+pressing Restart alone does not migrate saved launch settings. Ensure those
+settings and the world version support direct entry before using the instance
+as a player destination; see the upgrade notes in
+[doc/mission-control.md](doc/mission-control.md#83-deployment-and-upgrades).
 
 Secrets live in `<rootdir>/admin.env`. Set `TRSERVER_MC_PASSPHRASE` and/or
 `TRSERVER_MC_TOKEN` in the deploying shell to choose them explicitly; otherwise

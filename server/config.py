@@ -87,6 +87,36 @@ def parse_origins(raw_value: str) -> tuple[str, ...]:
     return tuple(origins)
 
 
+def validate_public_url(raw_value: str, label: str) -> str | None:
+    """Validate an optional absolute browser URL without credentials or fragments."""
+
+    value = raw_value.strip().rstrip("/")
+    if not value:
+        return None
+    try:
+        parsed = urlparse(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise ConfigError(f"Invalid {label} '{raw_value}'.") from exc
+    if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+            or any(character.isspace() for character in value) or "\\" in value
+            or parsed.username is not None or parsed.password is not None
+            or parsed.query or parsed.fragment or (port is not None and not 1 <= port <= 65535)):
+        raise ConfigError(f"Invalid {label} '{raw_value}'.")
+    return value
+
+
+def validate_instance_id(raw_value: str) -> str | None:
+    """Validate an optional stable, filesystem-safe mission-control identity."""
+
+    value = raw_value.strip()
+    if not value:
+        return None
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", value):
+        raise ConfigError(f"Invalid mission-control instance id '{raw_value}'.")
+    return value
+
+
 class ConfigError(ValueError):
     """Raised when configuration is invalid."""
 
@@ -124,6 +154,9 @@ class AppConfig:
     mc_insecure_tls: bool = False
     base_path: str = ""
     public_origins: tuple[str, ...] = ()
+    mc_instance_id: str | None = None
+    client_url: str | None = None
+    entry_url: str | None = None
 
     @property
     def app_path(self) -> Path:
@@ -354,6 +387,9 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
 
     base_path = normalize_base_path(values.get("TRSERVER_BASE_PATH", ""))
     public_origins = parse_origins(values.get("TRSERVER_PUBLIC_ORIGIN", ""))
+    mc_instance_id = validate_instance_id(values.get("TRSERVER_MC_INSTANCE_ID", ""))
+    client_url = validate_public_url(values.get("TRSERVER_CLIENT_URL", ""), "TRSERVER_CLIENT_URL")
+    entry_url = validate_public_url(values.get("TRSERVER_ENTRY_URL", ""), "TRSERVER_ENTRY_URL")
 
     return AppConfig(
         repo_root=root,
@@ -385,4 +421,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         mc_insecure_tls=mc_insecure_tls,
         base_path=base_path,
         public_origins=public_origins,
+        mc_instance_id=mc_instance_id,
+        client_url=client_url,
+        entry_url=entry_url,
     )

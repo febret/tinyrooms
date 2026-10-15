@@ -21,7 +21,6 @@ from pydantic import BaseModel
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.config import ConfigError, normalize_base_path
-from server.mission_control import nginx as nginx_config
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
 from server.mission_control.registry import EXTERNAL, SPAWNED, STATUS_RUNNING, STATUS_STOPPED, STATUS_UNREACHABLE
 from server.security import RateLimitError, require_matching_csrf, validate_origin
@@ -48,7 +47,7 @@ class StartInstancePayload(BaseModel):
     worldstate_db: str | None = None
     users_path: str | None = None
     name: str | None = None
-    host: str = "127.0.0.1"
+    host: str | None = None
     port: int | None = None
     features: str = ""
     admins: str = ""
@@ -71,7 +70,9 @@ class RegisterPayload(BaseModel):
     """Instance registration payload (world -> mission control)."""
 
     instance_name: str
+    instance_id: str | None = None
     endpoint: str
+    client_url: str | None = None
     version: str | None = None
     protocol_version: int | None = None
     world: dict[str, object] = {}
@@ -158,20 +159,6 @@ def _set_mc_cookies(response: Response, *, token: str, csrf_token: str, expires_
 def _clear_mc_cookies(response: Response) -> None:
     response.delete_cookie(MC_SESSION_COOKIE, path="/")
     response.delete_cookie(MC_CSRF_COOKIE, path="/")
-
-
-def _apply_nginx(runtime) -> dict[str, object]:
-    """Best-effort regenerate and reload the reverse-proxy config."""
-
-    config = runtime.config
-    if config.nginx_conf_path is None:
-        return {"ok": True, "skipped": True}
-    text = nginx_config.render_site_config(config, runtime.registry.list())
-    try:
-        result = nginx_config.apply_site_config(config, text)
-    except nginx_config.NginxConfigError as exc:
-        return {"ok": False, "error": str(exc)}
-    return {"ok": True, "path": result.get("path"), "output": result.get("output")}
 
 
 def _launch_keepalive(keepalive: Path) -> None:
@@ -312,6 +299,9 @@ async def list_servers(request: Request) -> dict[str, object]:
     runtime = _runtime(request)
     records = runtime.registry.list()
     servers = [runtime.registry.snapshot(record) for record in records]
+    default_id = runtime.entry_settings.default_instance_id
+    for server in servers:
+        server["is_default"] = server["instance_id"] == default_id
     summary = {
         "total": len(servers),
         "running": sum(1 for item in servers if item["status"] == STATUS_RUNNING),
@@ -350,7 +340,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         mods=payload.mods,
         version_path=version_path,
     )
-    return {"ok": True, "server": runtime.registry.snapshot(spawned), "nginx": _apply_nginx(runtime)}
+    return {"ok": True, "server": runtime.registry.snapshot(spawned)}
 
 
 @router.get("/api/mission-control/servers/{instance_id}")
@@ -391,7 +381,7 @@ async def stop_server(request: Request, instance_id: str) -> dict[str, object]:
         runtime.supervisor.stop(instance_id)
     else:
         try:
-            await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown", json_body={"actor": runtime.config.actor})
+            await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown")
         except (httpx.HTTPError, ValueError) as exc:
             return _json_error(502, "unreachable", f"{type(exc).__name__}")
         runtime.registry.set_status(instance_id, STATUS_STOPPED)
@@ -416,7 +406,7 @@ async def restart_server(request: Request, instance_id: str) -> dict[str, object
         runtime.audit.record("operator", "instance.restart", target=instance_id)
         return {"ok": True, "server": runtime.registry.snapshot(restarted)}
     try:
-        await _world_call(runtime, record.endpoint, "POST", "/api/mc/restart", json_body={"actor": runtime.config.actor})
+        await _world_call(runtime, record.endpoint, "POST", "/api/mc/restart")
     except (httpx.HTTPError, ValueError) as exc:
         return _json_error(502, "unreachable", f"{type(exc).__name__}")
     runtime.audit.record("operator", "instance.restart", target=instance_id)
@@ -425,7 +415,7 @@ async def restart_server(request: Request, instance_id: str) -> dict[str, object
 
 @router.post("/api/mission-control/servers/{instance_id}/rename")
 async def rename_server(request: Request, instance_id: str, payload: RenameInstancePayload) -> dict[str, object]:
-    """Rename a spawned instance, changing its public route and reloading nginx."""
+    """Rename a spawned instance."""
 
     runtime = _runtime(request)
     session = _require_operator(request)
@@ -442,7 +432,7 @@ async def rename_server(request: Request, instance_id: str, payload: RenameInsta
     if renamed is None:
         return _json_error(502, "rename_unavailable", "Instance cannot be renamed.")
     runtime.audit.record("operator", "instance.rename", target=instance_id, detail={"name": name})
-    return {"ok": True, "server": runtime.registry.snapshot(renamed), "nginx": _apply_nginx(runtime)}
+    return {"ok": True, "server": runtime.registry.snapshot(renamed)}
 
 
 @router.delete("/api/mission-control/servers/{instance_id}")
@@ -459,12 +449,12 @@ async def delete_server(request: Request, instance_id: str) -> dict[str, object]
         runtime.supervisor.delete(instance_id)
     else:
         try:
-            await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown", json_body={"actor": runtime.config.actor})
+            await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown")
         except (httpx.HTTPError, ValueError):
             pass
         runtime.registry.remove(instance_id)
     runtime.audit.record("operator", "instance.delete", target=instance_id)
-    return {"ok": True, "nginx": _apply_nginx(runtime)}
+    return {"ok": True}
 
 
 @router.post("/api/mission-control/reboot")
@@ -525,7 +515,7 @@ async def server_command(request: Request, instance_id: str, payload: dict[str, 
             record.endpoint,
             "POST",
             "/api/mc/command",
-            json_body={"command": command, "actor": runtime.config.actor},
+            json_body={"command": command},
         )
     except (httpx.HTTPError, ValueError) as exc:
         return _json_error(502, "unreachable", f"{type(exc).__name__}")
@@ -549,7 +539,7 @@ async def resync_server(request: Request, instance_id: str) -> dict[str, object]
             record.endpoint,
             "POST",
             "/api/mc/resync",
-            json_body={"actor": runtime.config.actor, "scope": "instance"},
+            json_body={"scope": "instance"},
         )
     except (httpx.HTTPError, ValueError) as exc:
         return {"ok": False, "code": "unreachable", "message": f"{type(exc).__name__}", "instance_id": instance_id}
@@ -574,57 +564,13 @@ async def resync_all(request: Request) -> dict[str, object]:
                 record.endpoint,
                 "POST",
                 "/api/mc/resync",
-                json_body={"actor": runtime.config.actor, "scope": "all"},
+                json_body={"scope": "all"},
             )
             results.append({"instance_id": record.instance_id, "ok": True, "result": payload})
         except (httpx.HTTPError, ValueError) as exc:
             results.append({"instance_id": record.instance_id, "ok": False, "message": type(exc).__name__})
     runtime.audit.record("operator", "fleet.resync", detail={"count": len(results)})
     return {"ok": True, "results": results}
-
-
-# --- Reverse proxy configuration ----------------------------------------------
-
-
-@router.get("/api/mission-control/nginx")
-async def nginx_preview(request: Request) -> dict[str, object]:
-    """Render the nginx configuration for the admin UI and live instances."""
-
-    _require_operator(request)
-    runtime = _runtime(request)
-    config = runtime.config
-    if config.nginx_conf_path is None:
-        return {"ok": False, "code": "nginx_unconfigured", "message": "Nginx management is not configured."}
-    records = runtime.registry.list()
-    return {
-        "ok": True,
-        "path": str(config.nginx_conf_path),
-        "server_name": config.server_name,
-        "services": nginx_config.service_entries(config, records),
-        "config": nginx_config.render_site_config(config, records),
-    }
-
-
-@router.post("/api/mission-control/nginx")
-async def nginx_update(request: Request) -> dict[str, object]:
-    """Regenerate the nginx configuration and reload the live server."""
-
-    runtime = _runtime(request)
-    session = _require_operator(request)
-    _enforce_post(request, session)
-    config = runtime.config
-    if config.nginx_conf_path is None:
-        return _json_error(400, "nginx_unconfigured", "Nginx management is not configured.")
-    result = _apply_nginx(runtime)
-    if not result.get("ok"):
-        return _json_error(502, "nginx_reload_failed", str(result.get("error", "nginx reload failed")))
-    runtime.audit.record("operator", "nginx.update", target=str(config.nginx_conf_path))
-    return {
-        "ok": True,
-        "path": result.get("path"),
-        "output": result.get("output"),
-        "services": nginx_config.service_entries(config, runtime.registry.list()),
-    }
 
 
 # --- Package Manager ----------------------------------------------------------

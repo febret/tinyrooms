@@ -11,6 +11,7 @@ import logging
 import sqlite3
 import time
 import uuid
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
@@ -662,7 +663,22 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     @app.get("/health")
     async def health() -> dict[str, object]:
-        return {"ok": True, "protocol_version": PROTOCOL_VERSION}
+        runtime = app.state.runtime
+        return {"ok": True, "protocol_version": PROTOCOL_VERSION,
+                "world_id": runtime.world.id, "instance_id": runtime.config.mc_instance_id}
+
+    @app.get("/api/entry/ready")
+    async def entry_ready(request: Request) -> Response:
+        runtime = _get_runtime(request)
+        origin = request.headers.get("origin")
+        entry = urlsplit(runtime.config.entry_url or "")
+        entry_origin = f"{entry.scheme}://{entry.netloc}" if entry.netloc else None
+        if not origin or origin != entry_origin:
+            validate_origin(origin, runtime.config)
+        return JSONResponse(
+            {"ok": True, "world_id": runtime.world.id, "instance_id": runtime.config.mc_instance_id},
+            headers={"Access-Control-Allow-Origin": origin or "null", "Vary": "Origin", "Cache-Control": "no-store"},
+        )
 
     @app.get("/api/stickers")
     async def list_stickers(request: Request) -> dict[str, object]:
@@ -908,6 +924,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         runtime.auras.enter(account.id, room_id)
         snapshot = await runtime.rooms.build_snapshot(account, room_id)
         await connection.send(room_snapshot_envelope(snapshot))
+        if runtime.config.mc_instance_id:
+            runtime.profiles.remember_instance(account.id, runtime.config.mc_instance_id)
         await _broadcast_room_event(
             runtime,
             room_id=room_id,

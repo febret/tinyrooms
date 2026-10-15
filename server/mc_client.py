@@ -33,6 +33,8 @@ def _log(event: str, **fields: object) -> None:
 
 def _world_endpoint(host: str, port: int) -> str:
     advertised = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
+    if ":" in advertised:
+        advertised = f"[{advertised}]"
     return f"https://{advertised}:{port}"
 
 
@@ -45,7 +47,8 @@ class McClient:
         self._owns_client = client is None
         self._endpoint = runtime.config.mc_endpoint or ""
         self._token = runtime.config.mc_token or ""
-        self._instance_id: str | None = None
+        self._instance_id: str | None = runtime.config.mc_instance_id
+        self._registered = False
         self._heartbeat_seconds = 5.0
         self._stop = asyncio.Event()
         self._task: asyncio.Task[None] | None = None
@@ -72,11 +75,16 @@ class McClient:
 
         config = self._runtime.config
         return {
+            "instance_id": config.mc_instance_id or self._instance_id,
             "instance_name": config.mc_name or f"{self._runtime.world.id}@{config.host}:{config.port}",
             "endpoint": _world_endpoint(config.host, config.port),
             "version": BUILD_VERSION,
             "protocol_version": PROTOCOL_VERSION,
-            "world": {"id": self._runtime.world.id, "label": self._runtime.world.label},
+            "world": {"id": self._runtime.world.id, "label": self._runtime.world.label,
+                      "instance_id": config.mc_instance_id or self._instance_id,
+                      "entry_room_id": self._runtime.world.entry_room_id},
+            "entry_room_id": self._runtime.world.entry_room_id,
+            "client_url": config.client_url or f"{_world_endpoint(config.host, config.port)}{config.base_path}",
             "started_at": datetime.fromtimestamp(self._runtime.started_at, tz=UTC).isoformat(),
             "base_path": config.base_path,
         }
@@ -93,6 +101,7 @@ class McClient:
         response.raise_for_status()
         data = response.json()
         self._instance_id = str(data.get("instance_id") or "")
+        self._registered = True
         heartbeat = data.get("heartbeat_seconds")
         if isinstance(heartbeat, (int, float)) and heartbeat > 0:
             self._heartbeat_seconds = float(heartbeat)
@@ -129,6 +138,7 @@ class McClient:
         if isinstance(data, dict) and data.get("ok") is False:
             _log("mc.heartbeat_rejected", instance_id=self._instance_id, code=data.get("code"))
             self._instance_id = None
+            self._registered = False
         return data
 
     async def register_with_backoff(self) -> bool:
@@ -161,7 +171,7 @@ class McClient:
         """Register (re-registering on failure), then heartbeat until stopped."""
 
         while not self._stop.is_set():
-            if not self._instance_id:
+            if not self._registered:
                 if not await self.register_with_backoff():
                     if await self._pause(self._heartbeat_seconds):
                         return

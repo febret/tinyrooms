@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -12,6 +13,7 @@ from starlette.testclient import TestClient
 
 from server.app import create_app
 from server.config import load_config
+from server.mc_client import McClient
 from server.mission_control.app import create_mc_app
 from server.mission_control.config import load_mc_config
 from tests.common import REPO_ROOT
@@ -116,6 +118,21 @@ class MissionControlIntegrationTests(unittest.TestCase):
         ).json()
         self.assertTrue(resync["ok"])
         self.assertEqual(resync["result"]["refreshed"], 1)
+
+    def test_stable_world_registration_through_typed_route(self) -> None:
+        runtime = self.world_app.state.runtime
+        runtime.config = replace(runtime.config, mc_instance_id="mc-stable",
+                                 client_url="https://tiny.example:5100")
+        payload = McClient(runtime).registration_payload()
+        first = self.mc_client.post("/api/mc/register", headers={"X-MC-Token": "shared"}, json=payload)
+        self.assertEqual(first.json()["instance_id"], "mc-stable")
+        record = self.mc_runtime.registry.get("mc-stable")
+        snapshot = self.mc_runtime.registry.snapshot(record)
+        self.assertEqual(snapshot["client_url"], "https://tiny.example:5100")
+        self.assertEqual(snapshot["entry_room_id"], runtime.world.entry_room_id)
+        self.mc_runtime.registry.remove("mc-stable")
+        second = self.mc_client.post("/api/mc/register", headers={"X-MC-Token": "shared"}, json=payload)
+        self.assertEqual(second.json()["instance_id"], "mc-stable")
 
     def test_packages_and_users_endpoints(self) -> None:
         packages = self.mc_client.get("/api/mission-control/packages").json()["packages"]

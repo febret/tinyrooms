@@ -15,7 +15,9 @@ if TYPE_CHECKING:
 def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str, object]:
     """Build the full client-facing user payload for *account*."""
 
-    user_profile = runtime.profiles.user_profile_for(account.id, runtime.world.id, runtime.world.entry_room_id)
+    user_profile = runtime.profiles.get_user_profile(account.id) if runtime.config.mc_instance_id else None
+    if user_profile is None:
+        user_profile = runtime.profiles.user_profile_for(account.id, runtime.world.id, runtime.world.entry_room_id)
     activity = runtime.activities.get(account.id)
     if not account.initial_sticker_complete:
         activity = runtime.activities.ensure_initial_sticker(account.id)

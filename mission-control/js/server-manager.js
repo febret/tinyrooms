@@ -65,8 +65,8 @@ export function createServerManager(container, ctx) {
   function renderList() {
     const rows = state.servers.map((server) =>
       el("tr", { class: "clickable", onclick: () => select(server.instance_id) }, [
-        el("td", {}, server.name),
-        el("td", {}, server.endpoint),
+        el("td", {}, [server.name, server.is_default ? el("span", { class: "badge", text: "Default" }) : ""]),
+        el("td", {}, clientLink(server)),
         el("td", {}, statusBadge(server.status)),
         el("td", {}, server.world.label || server.world.id || "—"),
         el("td", {}, server.source),
@@ -80,7 +80,6 @@ export function createServerManager(container, ctx) {
         el("h2", { text: "Server Manager" }),
         el("div", { class: "row" }, [
           el("span", { class: "muted", text: `${state.summary.running || 0} running · ${state.summary.total || 0} known` }),
-          el("button", { type: "button", onclick: () => openNginxDialog(), text: "Update nginx config" }),
           el("button", { type: "button", onclick: () => reboot(), text: "Reboot" }),
           el("button", { type: "button", onclick: () => refreshList().catch(showError), text: "Refresh" }),
         ]),
@@ -90,7 +89,7 @@ export function createServerManager(container, ctx) {
         state.servers.length
           ? el("table", {}, [
               el("thead", {}, el("tr", {}, [
-                el("th", { text: "Name" }), el("th", { text: "Endpoint" }), el("th", { text: "Status" }),
+                 el("th", { text: "Name" }), el("th", { text: "Client URL" }), el("th", { text: "Status" }),
                 el("th", { text: "World" }), el("th", { text: "Source" }), el("th", { text: "Uptime" }),
                 el("th", { text: "Users" }), el("th", { text: "Heartbeat" }),
               ])),
@@ -132,7 +131,7 @@ export function createServerManager(container, ctx) {
       field("Worldstate DB (optional)", el("input", { name: "worldstate_db", placeholder: "existing .sqlite3" })),
       field("Users path (optional)", el("input", { name: "users_path", placeholder: "default" })),
       field("Name (optional)", el("input", { name: "name" })),
-      field("Host", el("input", { name: "host", value: "127.0.0.1" })),
+      field("Host (optional)", el("input", { name: "host", placeholder: "configured default" })),
       field("Port (optional)", el("input", { name: "port", type: "number", placeholder: "auto" })),
       field("Features (optional)", el("input", { name: "features", placeholder: "dev_sample_activity" })),
       field("Admins (optional)", el("input", { name: "admins", placeholder: "siteadmin" })),
@@ -158,10 +157,10 @@ export function createServerManager(container, ctx) {
       return;
     }
     try {
-      const data = await api.post("/api/mission-control/servers", payload);
+      await api.post("/api/mission-control/servers", payload);
       form.reset();
       await refreshList();
-      ctx.setBanner(nginxNote("Instance started", data.nginx));
+      ctx.setBanner("Instance started.");
     } catch (error) {
       ctx.setBanner(error.message);
     }
@@ -185,8 +184,10 @@ export function createServerManager(container, ctx) {
           el("button", { type: "button", onclick: () => { state.selectedId = null; if (state.timer) window.clearInterval(state.timer); render(); }, text: "← Back" }),
           el("h2", { text: detail.name }),
           statusBadge(detail.status),
+          detail.is_default ? el("span", { class: "badge", text: "Default" }) : "",
         ]),
         el("div", { class: "row" }, [
+          el("button", { type: "button", disabled: detail.is_default || !detail.client_url, onclick: () => makeDefault(), text: "Make default" }),
           el("button", { type: "button", onclick: () => lifecycle("stop"), text: "Stop" }),
           el("button", { type: "button", onclick: () => lifecycle("restart"), text: "Restart" }),
           el("button", { type: "button", onclick: () => renameInstance(), text: "Rename" }),
@@ -195,6 +196,7 @@ export function createServerManager(container, ctx) {
         ]),
       ]),
       el("div", { class: "card grid cols-2" }, [
+        el("div", {}, [el("div", { class: "muted", text: "Client URL" }), clientLink(detail)]),
         info("Endpoint", detail.endpoint),
         info("Source", detail.source),
         info("World", detail.world.label || detail.world.id || "—"),
@@ -223,6 +225,22 @@ export function createServerManager(container, ctx) {
 
   function info(label, value) {
     return el("div", {}, [el("div", { class: "muted", text: label }), el("div", { text: value })]);
+  }
+
+  function clientLink(server) {
+    return server.client_url
+      ? el("a", { href: server.client_url, target: "_blank", rel: "noopener noreferrer", onclick: (event) => event.stopPropagation(), text: server.client_url })
+      : el("span", { class: "muted", text: "—" });
+  }
+
+  async function makeDefault() {
+    try {
+      await api.post(`/api/mission-control/instances/${state.selectedId}/default`, {});
+      await refreshList();
+      ctx.setBanner("Default instance updated.");
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
   }
 
   function renderConsole() {
@@ -274,7 +292,7 @@ export function createServerManager(container, ctx) {
       const data = await api.post(`/api/mission-control/servers/${state.selectedId}/rename`, { name });
       if (data.server && data.server.instance_id) state.selectedId = data.server.instance_id;
       await refreshList();
-      ctx.setBanner(nginxNote("Instance renamed", data.nginx));
+      ctx.setBanner("Instance renamed.");
     } catch (error) {
       ctx.setBanner(error.message);
     }
@@ -285,12 +303,12 @@ export function createServerManager(container, ctx) {
     if (!detail) return;
     if (!window.confirm(`Delete "${detail.name}"?`)) return;
     try {
-      const data = await api.del(`/api/mission-control/servers/${state.selectedId}`);
+      await api.del(`/api/mission-control/servers/${state.selectedId}`);
       state.selectedId = null;
       state.detail = null;
       if (state.timer) window.clearInterval(state.timer);
       await refreshList();
-      ctx.setBanner(nginxNote("Instance deleted", data.nginx));
+      ctx.setBanner("Instance deleted.");
     } catch (error) {
       ctx.setBanner(error.message);
     }
@@ -307,13 +325,6 @@ export function createServerManager(container, ctx) {
     }
   }
 
-  function nginxNote(prefix, nginx) {
-    if (!nginx) return prefix;
-    if (nginx.skipped) return `${prefix} (nginx not configured).`;
-    if (nginx.ok === false) return `${prefix}, but nginx reload failed: ${nginx.error}`;
-    return `${prefix} and nginx reloaded.`;
-  }
-
   async function resync() {
     try {
       const data = await api.post(`/api/mission-control/servers/${state.selectedId}/resync`, {});
@@ -321,64 +332,6 @@ export function createServerManager(container, ctx) {
     } catch (error) {
       ctx.setBanner(error.message);
     }
-  }
-
-  async function openNginxDialog() {
-    let preview;
-    try {
-      preview = await api.get("/api/mission-control/nginx");
-    } catch (error) {
-      ctx.setBanner(error.message);
-      return;
-    }
-    if (!preview.ok) {
-      ctx.setBanner(preview.message || "Nginx management is not configured.");
-      return;
-    }
-    showNginxDialog(preview);
-  }
-
-  function showNginxDialog(preview) {
-    const overlay = el("div", { class: "modal-overlay" });
-    const close = () => overlay.remove();
-    const errorNode = el("p", { class: "error" });
-    const routes = preview.services.map((service) => `/${service.route}/ → 127.0.0.1:${service.port}`).join("   ");
-    const confirm = el("button", {
-      class: "primary",
-      type: "button",
-      text: "Apply and reload",
-      onclick: async () => {
-        confirm.disabled = true;
-        errorNode.textContent = "";
-        try {
-          const result = await api.post("/api/mission-control/nginx", {});
-          close();
-          await refreshList();
-          const detail = result.output ? `: ${result.output}` : "";
-          ctx.setBanner(`nginx configuration updated (${result.services.length} services)${detail}`);
-        } catch (error) {
-          confirm.disabled = false;
-          errorNode.textContent = error.message;
-        }
-      },
-    });
-    overlay.append(
-      el("div", { class: "modal" }, [
-        el("h3", { text: "Update nginx configuration" }),
-        el("p", { class: "muted", text: `${preview.path} · server_name ${preview.server_name}` }),
-        el("p", { class: "muted", text: routes }),
-        el("pre", { class: "nginx-config", text: preview.config }),
-        errorNode,
-        el("div", { class: "row" }, [
-          el("button", { type: "button", text: "Cancel", onclick: close }),
-          confirm,
-        ]),
-      ]),
-    );
-    overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) close();
-    });
-    document.body.append(overlay);
   }
 
   function showError(error) {

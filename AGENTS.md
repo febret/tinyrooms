@@ -71,6 +71,9 @@ Environment variables (see README.md Configuration table):
 | `TRSERVER_MC_ENDPOINT` | No | _(none)_ — enables the world-side `/api/mc/*` client |
 | `TRSERVER_MC_TOKEN` | Yes* | — — required when `TRSERVER_MC_ENDPOINT` is set |
 | `TRSERVER_MC_NAME` | No | `world_id@host:port` |
+| `TRSERVER_MC_INSTANCE_ID` | No | _(none)_ — stable instance identity for registration, health, and saved player destinations |
+| `TRSERVER_CLIENT_URL` | No | _(none)_ — advertised world browser URL; player entry requires same-hostname HTTPS |
+| `TRSERVER_ENTRY_URL` | No | _(none)_ — player-entry URL for root-page redirects |
 | `TRSERVER_MC_CA_FILE` | No | _(none)_ |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` |
 
@@ -80,12 +83,41 @@ must include `mission-control`. Additional MC vars: `TRSERVER_MC_HOST` (`127.0.0
 `TRSERVER_MC_PORT` (`8001`), `TRSERVER_MC_USERS_PATH` (`users`),
 `TRSERVER_MC_INSTANCES_PATH` (`.local/mc-instances`), `TRSERVER_MC_VERSIONS_PATH`
 (`.local/mc-versions`), `TRSERVER_MC_HEARTBEAT_SECONDS` (`5`),
-`TRSERVER_MC_ACTOR` (`mission-control`), `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE`,
+`TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE`,
 `TRSERVER_MC_BASE_PATH` (URL prefix behind a proxy), `TRSERVER_MC_PUBLIC_ORIGIN`
-(comma-separated extra allowed browser origins), `TRSERVER_MC_NGINX_CONF` (site
-config the Server Manager regenerates), `TRSERVER_MC_NGINX_RELOAD` (command to
-install the config and reload nginx), `TRSERVER_MC_KEEPALIVE` (keepalive script
-rerun by the UI **Reboot** action; set by `tools/deploy.py`).
+(comma-separated extra allowed browser origins), `TRSERVER_MC_KEEPALIVE`
+(keepalive script rerun by the UI **Reboot** action; set by `tools/deploy.py`).
+Direct-world settings: `TRSERVER_MC_INSTANCE_HOST` (local default `127.0.0.1`),
+`TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME` (defaults to the public-entry hostname;
+alias `TRSERVER_MC_INSTANCE_PUBLIC_HOST`), `TRSERVER_MC_INSTANCE_PORT_MIN` /
+`TRSERVER_MC_INSTANCE_PORT_MAX` (local defaults `5000` / `5999`), and paired
+`TRSERVER_MC_INSTANCE_CERTFILE` / `TRSERVER_MC_INSTANCE_KEYFILE` (optional TLS files).
+
+### Mission-control deployment topology
+
+- MC serves public player login/create at `/` and passphrase-protected operator
+  administration at `/mission-control`. nginx's fixed root proxy points only to
+  MC; worlds are reached directly over HTTPS ports on the same hostname. Player
+  cookies (`tr_session`, `tr_csrf`, path `/`) are shared across ports, and MC and
+  participating worlds must use the same profile database.
+- Player resolve uses `user_profiles.profile_json.last_instance_id` exactly.
+  Only legacy profiles lacking it may match a unique registered instance by
+  `last_world_id`; ambiguous, missing, or unavailable destinations fail rather
+  than falling back to the default. The Server Manager's **Make default**
+  persists `default_instance_id` in `TRSERVER_MC_INSTANCES_PATH/entry.json` for
+  new accounts. Spawned identity/launch settings persist in
+  `<instance-id>/instance.json`; `resume.json` records children to respawn.
+- `tools/deploy.py` configures wildcard world binding (`0.0.0.0`), direct public
+  hostname, ports `10000..10999`, and reuse of nginx's `server.crt` / `server.key`.
+  Host/provider firewalls must allow TCP 80, 443, and the configured world range;
+  deployment does not open them. There is no dynamic nginx-management API/UI;
+  legacy nginx configuration fields have no runtime management effect.
+- Upgrade deployment refreshes the fixed proxy. Legacy running worlds need
+  restart with stable identity and direct-public settings. Resume retains saved
+  host/port/base path/version: legacy loopback instances stay loopback-only,
+  and ports outside the configured range fail resume. Restart alone preserves
+  those launch settings; do not describe it as an automatic migration. See
+  [doc/mission-control.md](doc/mission-control.md#83-deployment-and-upgrades).
 
 ## Testing
 

@@ -75,7 +75,7 @@ EXCLUDED_SUFFIXES = (".pyc", ".sqlite", ".sqlite3", ".db")
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from server.mission_control.nginx_template import location_block, site_config  # noqa: E402
+from server.mission_control.nginx_template import site_config  # noqa: E402
 
 
 class DeployError(RuntimeError):
@@ -382,8 +382,10 @@ def deploy(
     ensure_python_env(host, root)
     upload_release(host, root, version, tarball, overwrite=keep_version)
     install_requirements(host, root, version)
-    registry = read_services(host, root)
+    registry = write_services(host, root)
     write_admin_env(host, root, server_name, registry)
+    if restart:
+        refresh_nginx(host, server_name, root, registry)
     ensure_keepalive(host, root)
     if restart:
         restart_admin(host, root)
@@ -401,22 +403,13 @@ def write_services(host: str, root: str) -> dict[str, dict[str, object]]:
 
     registry = read_services(host, root)
     entry = registry.setdefault(ADMIN_SERVICE, {})
-    entry["base_path"] = f"/{ADMIN_SERVICE}"
+    entry["base_path"] = ""
     entry["feature"] = "mission-control"
     if "port" not in entry or not entry["port"]:
         entry["port"] = find_free_port(host)
     payload = json.dumps(registry, indent=2)
     run_remote(host, f"cat > {remote_path(root, 'services.json')} <<'JSONEOF'\n{payload}\nJSONEOF")
     return registry
-
-
-def nginx_locations(registry: dict[str, dict[str, object]]) -> str:
-    """Build the reverse-proxy location blocks for every service."""
-
-    return "\n".join(
-        location_block(name, int(entry["port"]))  # type: ignore[arg-type]
-        for name, entry in registry.items()
-    )
 
 
 def nginx_config(server_name: str, root: str, registry: dict[str, dict[str, object]]) -> str:
@@ -427,8 +420,7 @@ def nginx_config(server_name: str, root: str, registry: dict[str, dict[str, obje
         server_name=server_name,
         cert_path=f"{base}/nginx/certs/server.crt",
         key_path=f"{base}/nginx/certs/server.key",
-        locations=[(name, int(entry["port"])) for name, entry in registry.items()],  # type: ignore[arg-type]
-        root_redirect="/home",
+        port=int(registry[ADMIN_SERVICE]["port"]),  # type: ignore[arg-type]
     )
 
 
@@ -454,6 +446,15 @@ def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dic
         f"-days 825 -subj {shlex.quote(f'/CN={server_name}')} "
         f"-addext {shlex.quote(f'subjectAltName=DNS:{server_name}')}",
     )
+    refresh_nginx(host, server_name, root, registry)
+    run_remote(host, "sudo -n systemctl enable nginx >/dev/null 2>&1 || true")
+    run_remote(host, "sudo -n systemctl restart nginx || sudo -n systemctl start nginx")
+    print("nginx configured.")
+
+
+def refresh_nginx(host: str, server_name: str, root: str, registry: dict[str, dict[str, object]]) -> None:
+    """Refresh an existing installation's fixed proxy without changing TLS files."""
+
     config = nginx_config(server_name, root, registry)
     run_remote(host, f"cat > {remote_path(root, 'nginx', 'tinyrooms.conf')} <<'NGINXEOF'\n{config}\nNGINXEOF")
     run_remote(
@@ -463,9 +464,7 @@ def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dic
         "sudo -n rm -f /etc/nginx/sites-enabled/default && "
         "sudo -n nginx -t",
     )
-    run_remote(host, "sudo -n systemctl enable nginx >/dev/null 2>&1 || true")
-    run_remote(host, "sudo -n systemctl restart nginx || sudo -n systemctl start nginx")
-    print("nginx configured.")
+    run_remote(host, "sudo -n systemctl reload nginx || sudo -n systemctl start nginx")
 
 
 def unquote_env_value(raw: str) -> str:
@@ -537,25 +536,24 @@ def admin_env_values(
         or existing.get("TRSERVER_MC_TOKEN")
         or secrets.token_urlsafe(24)
     )
-    conf_path = f"{root.rstrip('/')}/nginx/tinyrooms.conf"
-    reload_command = (
-        f"sudo -n cp {conf_path} /etc/nginx/sites-available/tinyrooms"
-        " && sudo -n nginx -t && sudo -n systemctl reload nginx"
-    )
     lines = {
         "TRSERVER_FEATURES": "mission-control",
         "TRSERVER_MC_PASSPHRASE": passphrase,
         "TRSERVER_MC_TOKEN": token,
         "TRSERVER_MC_HOST": "127.0.0.1",
         "TRSERVER_MC_PORT": str(port),
-        "TRSERVER_MC_BASE_PATH": f"/{ADMIN_SERVICE}",
+        "TRSERVER_MC_BASE_PATH": "",
         "TRSERVER_MC_PUBLIC_ORIGIN": f"https://{host_name}",
         "TRSERVER_MC_USERS_PATH": f"{root.rstrip('/')}/users",
         "TRSERVER_MC_INSTANCES_PATH": f"{root.rstrip('/')}/logs/instances",
         "TRSERVER_MC_VERSIONS_PATH": f"{root.rstrip('/')}/versions",
         "TRSERVER_MC_CONTENT_PATH": f"{root.rstrip('/')}",
-        "TRSERVER_MC_NGINX_CONF": conf_path,
-        "TRSERVER_MC_NGINX_RELOAD": reload_command,
+        "TRSERVER_MC_INSTANCE_HOST": "0.0.0.0",
+        "TRSERVER_MC_INSTANCE_PUBLIC_HOST": host_name,
+        "TRSERVER_MC_INSTANCE_PORT_MIN": "10000",
+        "TRSERVER_MC_INSTANCE_PORT_MAX": "10999",
+        "TRSERVER_MC_INSTANCE_CERTFILE": f"{root.rstrip('/')}/nginx/certs/server.crt",
+        "TRSERVER_MC_INSTANCE_KEYFILE": f"{root.rstrip('/')}/nginx/certs/server.key",
         "TRSERVER_MC_KEEPALIVE": f"{root.rstrip('/')}/keepalive.sh",
         "TRSERVER_MC_INSECURE_TLS": "1",
     }

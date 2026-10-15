@@ -1,9 +1,4 @@
-"""Render the nginx reverse-proxy site config shared by mission control and the deploy tool.
-
-The mission-control server owns live regeneration, while ``tools/deploy.py``
-bootstraps the host. Both must emit the same config, so the template lives here
-with no dependencies beyond the standard library.
-"""
+"""Render the fixed Mission Control entry point installed by the deploy tool."""
 
 from __future__ import annotations
 
@@ -19,11 +14,11 @@ _PROXY_HEADERS = (
 )
 
 
-def location_block(route: str, port: int) -> str:
-    """Return one ``location /<route>/`` proxy block."""
+def location_block(port: int) -> str:
+    """Proxy all paths to Mission Control without rewriting the request URI."""
 
     return (
-        f"    location /{route}/ {{\n"
+        "    location / {\n"
         f"        proxy_pass https://127.0.0.1:{port};\n"
         f"{_PROXY_HEADERS}"
         "    }\n"
@@ -35,13 +30,10 @@ def site_config(
     server_name: str,
     cert_path: str,
     key_path: str,
-    locations: list[tuple[str, int]],
-    root_redirect: str | None = None,
+    port: int,
 ) -> str:
     """Render the HTTP-to-HTTPS redirect and the proxied HTTPS server block."""
 
-    blocks = "\n".join(location_block(route, port) for route, port in locations)
-    redirect = f"    location = / {{ return 302 {root_redirect}; }}\n" if root_redirect else ""
     return (
         "server {\n"
         "    listen 80;\n"
@@ -56,7 +48,9 @@ def site_config(
         f"    ssl_certificate {cert_path};\n"
         f"    ssl_certificate_key {key_path};\n"
         "    client_max_body_size 64m;\n\n"
-        f"{redirect}"
-        f"{blocks}"
+        "    location = /admin { return 302 /mission-control; }\n"
+        "    location = /admin/ { return 302 /mission-control; }\n"
+        "    location ~ ^/admin/(.*)$ { return 302 /$1$is_args$args; }\n"
+        f"{location_block(port)}"
         "}\n"
     )

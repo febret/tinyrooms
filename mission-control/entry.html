@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Play Tinyrooms</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #263b40; background: #edf3ec; }
+    body { margin: 0; min-height: 100dvh; display: grid; place-items: center; }
+    main { box-sizing: border-box; width: min(100% - 2rem, 28rem); padding: 2rem; margin: 1rem; background: #fffdf7; border-radius: 1.5rem; box-shadow: 0 12px 45px #263b4018; }
+    h1 { margin-top: 0; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    input, button { box-sizing: border-box; font: inherit; border-radius: .5rem; padding: .75rem; }
+    input { width: 100%; margin-top: .35rem; border: 1px solid #758884; }
+    button { cursor: pointer; border: 1px solid #41635c; background: #41635c; color: white; margin-top: 1rem; }
+    button.secondary { background: transparent; color: #263b40; }
+    button:disabled { opacity: .6; cursor: wait; }
+    :focus-visible { outline: 3px solid #bc6b27; outline-offset: 3px; }
+    #error { color: #9c2a2a; overflow-wrap: anywhere; }
+    [hidden] { display: none !important; }
+  </style>
+  <script type="module" src="/mission-control/js/entry.js"></script>
+</head>
+<body>
+  <main aria-labelledby="title">
+    <h1 id="title">Welcome to Tinyrooms</h1>
+    <p>A little world is waiting for you.</p>
+    <p id="status" role="status" aria-live="polite">Checking your login…</p>
+    <p id="error" role="alert" hidden></p>
+    <form id="auth-form" hidden>
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <div id="invitation" hidden>
+        <label for="passphrase">Invitation passphrase</label>
+        <input id="passphrase" name="passphrase" type="password" autocomplete="off">
+      </div>
+      <button id="submit" type="submit">Log in and play</button>
+      <button id="toggle" class="secondary" type="button">Create an account</button>
+    </form>
+    <div id="player-actions" hidden>
+      <button id="retry" type="button">Retry connection</button>
+      <button id="logout" class="secondary" type="button">Log out</button>
+    </div>
+    <noscript><p>Enable JavaScript to log in and connect to your world.</p></noscript>
+  </main>
+</body>
+</html>

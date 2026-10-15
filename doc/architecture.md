@@ -21,7 +21,7 @@ Tinyrooms is a multiplayer miniature-world game:
 - **Transport**: HTTPS JSON API for accounts/session/bootstrap/stickers/
   activities plus one ordered JSON WebSocket (`/ws`) per logged-in client
   for commands, snapshots, and room events.
-- **Runtime topology** (single process):
+- **World runtime topology** (one process per world):
 
 ```
 browser (app/js + Three.js + activity iframes)
@@ -61,6 +61,33 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 `MODS_PATH` (`mods`), `STUN_URLS` (`stun:stun.l.google.com:19302`),
 `TIMEZONE` (`UTC`).
 
+### 1.1 Mission-control entry and deployed topology
+
+With `TRSERVER_FEATURES=mission-control`, `run.py` launches the mission control (MC) process.
+MC serves public player login/create at `/` and operator administration at
+`/mission-control`:
+
+```
+browser -> https://hostname/                 -> nginx :443 -> MC (loopback)
+        -> https://hostname/mission-control  -> nginx :443 -> MC admin UI
+        -> https://hostname:10000/           -> world (wildcard bind)
+MC <-> world: token-authenticated registration/heartbeat and management calls
+MC + worlds -> shared users/profiles.sqlite3; each world -> its own worldstate DB
+```
+
+MC player auth issues the same secure, path-`/` `tr_session` / `tr_csrf` cookies
+used by worlds.
+Resolve reads `last_instance_id` from `user_profiles.profile_json` and checks
+the registered world's identity against `last_world_id`.
+
+Deployment configures `TRSERVER_MC_INSTANCE_HOST=0.0.0.0`, public hostname via
+`TRSERVER_MC_INSTANCE_PUBLIC_HOST` (alias of `TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME`),
+ports `10000..10999` via `TRSERVER_MC_INSTANCE_PORT_MIN` /
+`TRSERVER_MC_INSTANCE_PORT_MAX`, and nginx certificate reuse via
+`TRSERVER_MC_INSTANCE_CERTFILE` / `TRSERVER_MC_INSTANCE_KEYFILE`.
+Worlds receive `TRSERVER_MC_INSTANCE_ID`, `TRSERVER_CLIENT_URL`,
+and `TRSERVER_ENTRY_URL`. See [mission-control.md](mission-control.md#83-deployment-and-upgrades).
+
 ## 2. Component guide
 
 | Component | Path(s) | Responsibility |
@@ -90,7 +117,7 @@ Configuration (`server/config.py`, env `TRSERVER_*`): `NEW_ACCOUNT_PASSPHRASE`
 | Tutorial world | `worlds/tutorial/` | `The Little House` rooms/props/peeps/cards/recipes/cutscenes + art/models. |
 | Tests | `tests/` | Python `unittest` (server/integration/static) + Playwright browser specs. |
 | Tooling | `tools/`, root configs | Browser-test server, dep vendoring, Playwright/npm config. |
-| Mission control | `server/mission_control/` | Optional fleet operations server (launched by `run.py` when `TRSERVER_FEATURES` includes `mission-control`): instance registry/supervisor, package manager, user manager, operator auth + UI. See `doc/mission-control.md`. |
+| Mission control | `server/mission_control/`, `mission-control/` | Optional player-entry and fleet server: `entry.py` + `entry.html`/`js/entry.js` handle shared player auth and exact-instance resolve; registry/supervisor manage stable instances; package/user managers and operator auth serve the admin UI. `nginx_template.py` renders the deploy-time fixed MC proxy. See `doc/mission-control.md`. |
 | MC world client | `server/mc_client.py`, `server/mc_api.py` | Outbound register/heartbeat plus the token-gated `/api/mc/*` admin endpoints on a world server. |
 
 `server/client/` and `tests/client/` are referenced in `AGENTS.md` as the

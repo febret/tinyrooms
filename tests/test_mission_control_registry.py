@@ -28,6 +28,21 @@ def _registration(endpoint: str = "https://127.0.0.1:5000", name: str = "tutoria
 
 
 class InstanceRegistryTests(unittest.TestCase):
+    def test_stable_id_survives_registry_restart_and_endpoint_changes(self) -> None:
+        payload = {**_registration(), "instance_id": "mc-stable",
+                   "client_url": "https://tiny.example:5100", "entry_room_id": "entry"}
+        first = InstanceRegistry().register(payload)
+        registry = InstanceRegistry()
+        restored = registry.register(payload)
+        self.assertEqual(first.instance_id, restored.instance_id)
+        updated = registry.register({**payload, "endpoint": "https://127.0.0.1:5101"})
+        self.assertIs(updated, restored)
+        self.assertEqual(updated.endpoint, "https://127.0.0.1:5101")
+        snapshot = registry.snapshot(updated)
+        self.assertEqual(snapshot["client_url"], "https://tiny.example:5100")
+        self.assertEqual(snapshot["entry_room_id"], "entry")
+        self.assertEqual(len(registry.list()), 1)
+
     def test_register_creates_and_updates_by_endpoint(self) -> None:
         registry = InstanceRegistry(stale_after_seconds=15)
         first = registry.register(_registration())

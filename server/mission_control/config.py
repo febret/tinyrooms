@@ -36,7 +36,6 @@ class MCConfig:
     ca_file: Path | None
     insecure_tls: bool
     heartbeat_seconds: float
-    actor: str
     new_account_passphrase: str
     features: frozenset[str]
     mods: str = "*"
@@ -45,6 +44,29 @@ class MCConfig:
     nginx_conf_path: Path | None = None
     nginx_reload_command: str | None = None
     keepalive_path: Path | None = None
+    instance_host: str = "127.0.0.1"
+    instance_public_hostname: str | None = None
+    instance_port_min: int = 5000
+    instance_port_max: int = 5999
+    instance_certfile: Path | None = None
+    instance_keyfile: Path | None = None
+
+    @property
+    def public_origin(self) -> str:
+        """Return the player entry origin, independently of the admin base path."""
+
+        if self.public_origins:
+            parsed = urlparse(self.public_origins[0])
+            return f"{parsed.scheme}://{parsed.netloc}"
+        host = "127.0.0.1" if self.is_wildcard_bind else self.host
+        host = f"[{host}]" if ":" in host else host
+        return f"https://{host}:{self.port}"
+
+    @property
+    def public_instance_hostname(self) -> str:
+        """Return the hostname advertised for direct world connections."""
+
+        return self.instance_public_hostname or urlparse(self.public_origin).hostname or "127.0.0.1"
 
     @property
     def admin_route(self) -> str:
@@ -198,7 +220,6 @@ def load_mc_config(
     if heartbeat_seconds <= 0:
         raise ConfigError(f"TRSERVER_MC_HEARTBEAT_SECONDS must be positive, got {heartbeat_seconds}.")
 
-    actor = values.get("TRSERVER_MC_ACTOR", "mission-control").strip() or "mission-control"
     new_account_passphrase = (
         values.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE", "").strip() or secrets.token_urlsafe(16)
     )
@@ -211,6 +232,39 @@ def load_mc_config(
 
     keepalive_raw = values.get("TRSERVER_MC_KEEPALIVE", "").strip()
     keepalive_path = Path(keepalive_raw).expanduser() if keepalive_raw else None
+
+    instance_host = values.get("TRSERVER_MC_INSTANCE_HOST", "127.0.0.1").strip()
+    if not instance_host or any(character.isspace() for character in instance_host) or "/" in instance_host:
+        raise ConfigError("TRSERVER_MC_INSTANCE_HOST must be a bind hostname or address.")
+    instance_public_hostname = values.get(
+        "TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME", values.get("TRSERVER_MC_INSTANCE_PUBLIC_HOST", "")
+    ).strip() or None
+    if instance_public_hostname is not None:
+        candidate = instance_public_hostname
+        authority = f"[{candidate}]" if ":" in candidate else candidate
+        try:
+            parsed = urlparse(f"https://{authority}")
+            valid = parsed.hostname == candidate.lower() and parsed.port is None
+        except ValueError:
+            valid = False
+        if not valid or any(character in candidate for character in "/@?#") or any(character.isspace() for character in candidate):
+            raise ConfigError("TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME must be a hostname without a port or path.")
+    try:
+        instance_port_min = int(values.get("TRSERVER_MC_INSTANCE_PORT_MIN", "5000"))
+        instance_port_max = int(values.get("TRSERVER_MC_INSTANCE_PORT_MAX", "5999"))
+    except ValueError as exc:
+        raise ConfigError("Mission-control instance port bounds must be integers.") from exc
+    if not 1 <= instance_port_min <= instance_port_max <= 65535:
+        raise ConfigError("Mission-control instance port bounds must satisfy 1 <= min <= max <= 65535.")
+    cert_raw = values.get("TRSERVER_MC_INSTANCE_CERTFILE", "").strip()
+    key_raw = values.get("TRSERVER_MC_INSTANCE_KEYFILE", "").strip()
+    if bool(cert_raw) != bool(key_raw):
+        raise ConfigError("TRSERVER_MC_INSTANCE_CERTFILE and TRSERVER_MC_INSTANCE_KEYFILE must be set together.")
+    instance_certfile = Path(cert_raw).expanduser().resolve() if cert_raw else None
+    instance_keyfile = Path(key_raw).expanduser().resolve() if key_raw else None
+    for path in (instance_certfile, instance_keyfile):
+        if path is not None and not path.is_file():
+            raise ConfigError(f"Instance TLS file does not exist: {path}")
 
     return MCConfig(
         repo_root=root,
@@ -226,7 +280,6 @@ def load_mc_config(
         ca_file=ca_file,
         insecure_tls=insecure_tls,
         heartbeat_seconds=heartbeat_seconds,
-        actor=actor,
         new_account_passphrase=new_account_passphrase,
         features=features,
         base_path=base_path,
@@ -234,4 +287,10 @@ def load_mc_config(
         nginx_conf_path=nginx_conf_path,
         nginx_reload_command=nginx_reload_command,
         keepalive_path=keepalive_path,
+        instance_host=instance_host,
+        instance_public_hostname=instance_public_hostname,
+        instance_port_min=instance_port_min,
+        instance_port_max=instance_port_max,
+        instance_certfile=instance_certfile,
+        instance_keyfile=instance_keyfile,
     )

@@ -329,8 +329,6 @@ class ServerInfoService:
                 "port": config.port,
                 "base_path": config.base_path,
                 "features": sorted(config.features),
-                "actor": config.actor,
-                "nginx_managed": config.nginx_conf_path is not None,
                 "keepalive_configured": config.keepalive_path is not None,
                 "repo_root": str(config.repo_root),
                 "content_root": str(config.content_root),

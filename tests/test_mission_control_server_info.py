@@ -36,6 +36,7 @@ class ServerInfoRouteTests(McHttpTestCase):
         self.assertGreaterEqual(payload["process"]["uptime_seconds"], 0)
         self.assertTrue(payload["host"]["hostname"])
         self.assertEqual(payload["config"]["version"], BUILD_VERSION)
+        self.assertNotIn("nginx_managed", payload["config"])
         self.assertIsNotNone(payload["disk"])
         self.assertGreater(payload["disk"]["total"], 0)
         serialized = json.dumps(payload)

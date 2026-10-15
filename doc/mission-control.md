@@ -1,21 +1,20 @@
 # Tinyrooms — Mission Control
 
-Status: design specification for a new optional server. Related docs:
+Status: implemented optional player-entry and operations server. Related docs:
 [architecture.md](./architecture.md) (current components/protocol),
 [db.md](./db.md) (profile and world schemas),
 [milestone-3.md](./milestone-3.md) (powers, world editor, cross-world travel).
 
-This document specifies **what** mission control must do and the contracts
-between components. Fine-grained implementation choices (module internals, exact
-SQL, CSS) are intentionally left to the build agent.
+This document describes the implemented mission-control topology and contracts.
 
 ## 1. Overview
 
 Mission control is a separate, optional server that lets an operator manage a
 fleet of Tinyrooms world servers and the shared user/profile database from one
-web UI.
+web UI. It also serves public player login and invitation-gated account creation
+at `/`; operator administration is at `/mission-control`.
 
-It has three sections:
+The operator UI has four sections:
 
 | Section | Purpose |
 | --- | --- |
@@ -24,9 +23,9 @@ It has three sections:
 | **Server Info** | Show the host the MC process runs on: CPU, memory, process, and filesystem metrics, plus storage used by the Tinyrooms install broken down by top-level directory. |
 | **User Manager** | Query and modify accounts and related profile tables in the shared profile database; force running servers to resync user profile data. |
 
-Mission control is a development/operations tool. It is **not** a public
-service, not a replacement for the in-world `\admin` console, and not a
-sandbox for untrusted code. It runs on a trusted host/network.
+Player entry is public in the deployed topology. The operations UI and API are
+protected by a separate operator passphrase/session; they are not a replacement
+for the in-world `\admin` console or a sandbox for untrusted code.
 
 ### 1.1 Enabling it
 
@@ -53,15 +52,22 @@ that is easy to reach:
 
 ```
 browser
-  |  HTTPS /mission-control, /api/mission-control/*
+  |  HTTPS https://hostname/ (player entry + /api/entry/*)
+  |  HTTPS https://hostname/mission-control (operator UI + /api/mission-control/*)
   v
-MC server (FastAPI, optional TLS)
+nginx :443 -- fixed root proxy, no per-world routes
+  v
+MC server (FastAPI, HTTPS on loopback in deployment)
   |  spawns + supervises (same host)      <-- Server Manager start/stop/restart
   |  REST admin calls  ----------------->  world server /api/mc/*
   ^
   |  register / heartbeat / stats / logs
   |  (world server -> MC, outbound when TRSERVER_MC_ENDPOINT is set)
 world server(s)  -- also self-register when started outside MC
+
+browser -- direct HTTPS https://hostname:<world-port>/ --> world server
+MC + participating worlds --> shared users/profiles.sqlite3
+each world --> its own worldstate.sqlite3
 ```
 
 - **MC → world**: REST calls for stats, log tail, admin command dispatch,
@@ -91,8 +97,16 @@ world server(s)  -- also self-register when started outside MC
 | `TRSERVER_MC_CA_FILE` | No | — | PEM CA bundle used to verify world-server TLS. |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` | Dev-only: skip world-server cert verification. |
 | `TRSERVER_MC_HEARTBEAT_SECONDS` | No | `5` | Expected heartbeat interval; used for staleness. |
-| `TRSERVER_MC_NGINX_CONF` | No | — | Site config file the Server Manager regenerates (enables nginx management). |
-| `TRSERVER_MC_NGINX_RELOAD` | No | — | Command that installs the generated config and reloads nginx. |
+| `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE` | No | random per config load | Invitation for player creation; also passed to spawned worlds as `TRSERVER_NEW_ACCOUNT_PASSPHRASE`. Set it explicitly for a stable invitation. |
+| `TRSERVER_MC_BASE_PATH` | No | empty | Optional URL prefix; deployment uses an empty prefix. |
+| `TRSERVER_MC_PUBLIC_ORIGIN` | No | — | Comma-separated extra allowed browser origins; the first determines the advertised player-entry origin. |
+| `TRSERVER_MC_KEEPALIVE` | No | — | Keepalive script rerun by Reboot; set by deployment. |
+| `TRSERVER_MC_INSTANCE_HOST` | No | `127.0.0.1` | Default bind address for newly spawned worlds; deployment sets `0.0.0.0`. |
+| `TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME` | No | entry-origin hostname | Hostname advertised for direct world URLs, without port/path. `TRSERVER_MC_INSTANCE_PUBLIC_HOST` is the supported alias used by deployment. |
+| `TRSERVER_MC_INSTANCE_PORT_MIN` | No | `5000` | Inclusive minimum allocated/explicit instance port; deployment sets `10000`. |
+| `TRSERVER_MC_INSTANCE_PORT_MAX` | No | `5999` | Inclusive maximum instance port; deployment sets `10999`. |
+| `TRSERVER_MC_INSTANCE_CERTFILE` | No | — | TLS certificate passed to spawned `run.py`; must be paired with the key setting and name an existing file. |
+| `TRSERVER_MC_INSTANCE_KEYFILE` | No | — | TLS key paired with the certificate; deployment reuses nginx's certificate/key files. |
 
 MC serves HTTPS with the existing self-signed cert helper (`run.py`), reusing
 `.local/cert.pem` / `key.pem` unless `--certfile/--keyfile` are supplied.
@@ -104,48 +118,54 @@ MC serves HTTPS with the existing self-signed cert helper (`run.py`), reusing
 | `TRSERVER_MC_ENDPOINT` | No | — | `host:port` of the MC server. When set, the world server registers and heartbeats. |
 | `TRSERVER_MC_TOKEN` | Yes* | — | Shared secret; required when `TRSERVER_MC_ENDPOINT` is set. |
 | `TRSERVER_MC_NAME` | No | derived | Display name for this instance (defaults to `world_id@host:port`). |
+| `TRSERVER_MC_INSTANCE_ID` | No | — | Stable instance identity for registration, health/readiness, and remembered destinations; MC supplies it to spawned children. External player destinations need a configured stable identity. |
+| `TRSERVER_CLIENT_URL` | No | endpoint + base path at registration | Advertised browser URL, separate from the management endpoint; player entry requires HTTPS and the same hostname as MC entry. |
+| `TRSERVER_ENTRY_URL` | No | — | Player-entry URL for world root redirects; MC supplies its public origin to children. |
 | `TRSERVER_SHARED_CONTENT_PATH` | No | — | Deploy content root; its `cardsets/` and `propsets/` are layered over the checkout's bundled content (shared definitions win on id collisions). |
 | `TRSERVER_MC_CA_FILE` | No | — | CA bundle for verifying the MC server cert. |
 | `TRSERVER_MC_INSECURE_TLS` | No | `0` | Dev-only: skip MC cert verification. |
 
 \* Missing token with an endpoint set is a configuration error.
 
-`KNOWN_FEATURES` in `server/config.py` gains `"mission-control"` (and keeps the
-existing underscore/hyphen normalization).
+`server/config.py` recognizes the mission-control feature aliases.
 
 ## 4. Components and file layout
 
-New first-party code (each file under the 1200-line rule):
+First-party components (each file under the 1200-line rule):
 
 | Path | Responsibility |
 | --- | --- |
 | `run.py` | Single HTTPS launcher; selects the MC server when `TRSERVER_FEATURES` includes `mission-control` (cert reuse, uvicorn bootstrap, bounded shutdown). |
 | `server/mission_control/config.py` | MC env parsing/validation (`MCConfig`). |
 | `server/mission_control/app.py` | FastAPI assembly: UI routes, UI API, auth middleware, static serving. |
+| `server/mission_control/entry.py` | Shared player authentication, exact-instance resolve, and persisted new-account default. |
+| `server/mission_control/nginx_template.py` | Fixed MC root-proxy template used by `tools/deploy.py`, not runtime nginx management. |
 | `server/mission_control/registry.py` | In-memory instance registry, heartbeat tracking, staleness eviction. |
 | `server/mission_control/supervisor.py` | Spawn/stop/restart child world servers, capture stdout/stderr. |
-| `server/mission_control/packages.py` | Content-root scanning, package index, upload validation/install. |
+| `server/mission_control/packages.py` | Content/version inventory, world selection, and unused-version deletion. |
 | `server/mission_control/users.py` | Read/write operations over the profile DB via existing repositories. |
 | `server/mission_control/audit.py` | In-memory audit ring for privileged MC actions. |
 | `server/mc_client.py` | World-side outbound client: register, heartbeat, stats. |
 | `server/mc_api.py` | World-side `/api/mc/*` admin endpoints. |
-| `mission-control/` | Static UI: `index.html`, `css/`, `js/` (no build step). |
+| `mission-control/` | Static operator UI (`index.html`) and public player entry (`entry.html`, `js/entry.js`), plus `css/`, `js/` (no build step). |
 
 Reused as-is: `server/security.py` (hashing, sessions, CSRF, origin checks,
 rate limiting), `server/profiles.py` + `server/state/migrations.py`
 (`DatabaseHub`, `ProfileRepository`), `server/content/` loaders for package
 validation, and the `run.py` cert/shutdown helpers.
 
-Outbound HTTP uses `httpx` (async). Add it to `requirements.txt`; it is already
-a dev dependency for `TestClient`.
+Outbound HTTP uses `httpx` (async).
 
-### 4.1 MC state is in memory
+### 4.1 Runtime state and persisted launch settings
 
-Per the design decision, MC keeps no database of its own. The instance
-registry, package index, and audit log live in process memory and are rebuilt
-on startup (registry from registration/heartbeat; package index from a content
-scan). MC restarting drops live instance records until servers re-heartbeat and
-requires no migrations. This is acceptable because MC is an operations tool.
+MC has no separate database. Live registration/metrics, package index, audit,
+and operator sessions are in memory. Spawned stable identities and launch
+settings persist in `<TRSERVER_MC_INSTANCES_PATH>/<instance-id>/instance.json`.
+Startup restores those records as unreachable until registration; merely
+restoring an identity does not spawn a process. `resume.json` records children
+to respawn after Reboot, and `entry.json` persists the new-account default.
+External records are rebuilt through registration. Player accounts/sessions
+remain in the shared profile database.
 
 ## 5. Mission-control UI
 
@@ -155,8 +175,8 @@ and more utilitarian than the game client.
 
 ### 5.1 Authentication
 
-- Unauthenticated requests to `/mission-control` or
-  `/api/mission-control/*` redirect/401 to a login screen.
+- `/mission-control` serves the operator login shell; protected
+  `/api/mission-control/*` requests return 401 without an operator session.
 - `POST /api/mission-control/auth/login` takes `{passphrase}` plus the `Origin`
   header; a correct passphrase (constant-time compare against
   `TRSERVER_MC_PASSPHRASE`) issues an MC session cookie and CSRF cookie using
@@ -168,7 +188,7 @@ and more utilitarian than the game client.
 
 ### 5.2 Tabbed shell
 
-A single page with three tabs (Server Manager, Package Manager, User Manager),
+A single page with four tabs (Server Manager, Package Manager, Server Info, User Manager),
 plus a persistent header showing the logged-in operator, MC version, and a
 disconnect/error banner when world servers are unreachable.
 
@@ -180,6 +200,7 @@ disconnect/error banner when world servers are unreachable.
 | --- | --- |
 | Name / instance id | Stable id; display name from `TRSERVER_MC_NAME` or spawned config. |
 | Endpoint | `https://host:port`. |
+| Client URL | Advertised direct browser URL; may differ from the management endpoint. |
 | Status | `starting`, `running`, `unreachable`, `stopped`, `external`. |
 | World | World id and label loaded by that server. |
 | Version | Server build + protocol version. |
@@ -197,15 +218,15 @@ disconnect/error banner when world servers are unreachable.
 - Worldstate DB (optional): pick an existing `.sqlite3` file, or leave blank
   for a fresh DB created on start.
 - Users path (optional): defaults to `TRSERVER_MC_USERS_PATH`.
-- Name, host, port (host/port default to an allocated free port on
-  `127.0.0.1`).
+- Name, host, port (host defaults to `TRSERVER_MC_INSTANCE_HOST`).
 - Feature flags / admins (optional passthrough).
 
 On submit, MC allocates an instance directory under
 `TRSERVER_MC_INSTANCES_PATH/<instance-id>/`, spawns `run.py` with the derived
 env (`TRSERVER_WORLD_PATH`, `TRSERVER_WORLDSTATE_PATH`, `TRSERVER_USERS_PATH`,
-`TRSERVER_MC_ENDPOINT`, `TRSERVER_MC_TOKEN`, `TRSERVER_MC_NAME`, port/host),
-and tracks the child handle.
+`TRSERVER_MC_ENDPOINT`, `TRSERVER_MC_TOKEN`, `TRSERVER_MC_NAME`,
+`TRSERVER_MC_INSTANCE_ID`, `TRSERVER_CLIENT_URL`, `TRSERVER_ENTRY_URL`, port/host),
+persists `instance.json`, and tracks the child handle.
 
 **Drilldown view** for a selected instance:
 
@@ -219,26 +240,24 @@ and tracks the child handle.
   commands.
 - **Lifecycle controls**: Start / Stop / Restart (spawned instances); for
   external instances, cooperative Shutdown/Restart via the world API. Restarting
-  a spawned instance reuses its instance id, port, and base path, so the UI keeps
-  tracking it and the nginx route is stable.
-- **Rename** (spawned only): changes the display name and derives a new unique
-  `/route` base path, restarts the child so it serves the new prefix, and
-  regenerates the nginx config. External instances are rejected because MC cannot
-  reconfigure their process.
-- **Delete**: stops a spawned child and removes it from the registry (data on
-  disk is left in place); external instances are cooperatively shut down and
-  dropped. The nginx config is regenerated so the route disappears.
+  a spawned instance preserves its instance id and saved launch settings,
+  including host, port, base path, client URL, and version selection.
+- **Rename** (spawned only): changes the display name, persists the identity
+  file, and restarts a non-stopped child. It preserves the id, direct URL, and
+  any legacy base path. External instances cannot be renamed through this action.
+- **Delete**: stops a spawned child and removes its registry record, identity
+  file, and resume entry; worldstate and other data are left on disk. External
+  instances are cooperatively shut down and dropped.
+- **Make default**: validates and persists the destination for new accounts
+  (§2.1); the list and drilldown show a Default badge.
 - **Resync** button (see §5.5).
 - **Reboot**: stops every running spawned instance, writes their launch configs
   to `TRSERVER_MC_INSTANCES_PATH/resume.json`, and shuts down the MC process. The
   keepalive script (per-minute cron and immediate trigger) restarts MC, which
   respawns the recorded instances on startup. External instances are not resumed.
-- **Update nginx config**: regenerates the reverse-proxy site config from the
-  admin UI route and every live instance (each spawned world runs under its own
-  `/route` base path), previews the rendered file in a confirmation dialog, then
-  writes `TRSERVER_MC_NGINX_CONF` and runs `TRSERVER_MC_NGINX_RELOAD`. Starting,
-  renaming, and deleting an instance also regenerate the config automatically
-  when nginx management is configured.
+
+There is no **Update nginx config** action. Start/stop/restart/rename/delete
+operate independently of nginx.
 
 ### 5.4 Package Manager
 
@@ -255,7 +274,7 @@ with a registered instance (running, starting, unreachable, or stopped) are
 protected; the confirmation dialog states the deletion explicitly. Audited.
 
 **Shared content** — the world definitions, cardsets, and propsets installed
-**outside any single server version**, under the deploy content root (§8.3).
+**outside any single server version**, under the deploy content root (§8.4).
 Each row shows id, manifest version (when present), validation status
 (`ok`/`error` with messages), and source path. This view is read-only: deploy
 and content management happen on disk via `tools/deploy.py`, not the UI.
@@ -295,10 +314,10 @@ secrets (MC token/passphrase) are ever included.
 - **Disk**: total/used/free and percent for the filesystem holding the install
   root.
 - **Configuration**: MC version, protocol, profile/world schema versions,
-  listen address, actor, feature flags, nginx/keepalive configuration, and the
+  listen address, feature flags, keepalive configuration, and the
   repo/content/install/versions/releases/users paths.
 - **Install storage**: recursive size of each top-level entry of the install
-  root (`TRSERVER_MC_INSTALL_PATH`, auto-detected — see §8.3), shown as a size
+  root (`TRSERVER_MC_INSTALL_PATH`, auto-detected — see §3.1), shown as a size
   and share bar. The scan runs in a worker thread, does not follow symlinks, is
   cached for 60 s, and can be forced with `?refresh=1`.
 
@@ -316,24 +335,22 @@ and are logged. These endpoints are never available to game clients.
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
-| `POST` | `/api/mc/register` | `{instance_name, endpoint, version, protocol_version, world{id,label}, started_at}` | `{ok, instance_id, heartbeat_seconds, capabilities[]}` |
-| `POST` | `/api/mc/heartbeat` | `{instance_id, uptime_seconds, users_online, world_id}` | `{ok, pending_commands?}` |
 | `GET` | `/api/mc/stats` | — | `{ok, uptime, users[], rooms, world, version, schema{profile,world}, counters}` |
 | `GET` | `/api/mc/logs?limit=` | — | `{ok, lines[]}` (server-local recent log ring) |
-| `POST` | `/api/mc/command` | `{command, actor, request_id}` | `{ok, result}` or `{ok:false, code, message}` |
-| `POST` | `/api/mc/restart` | `{actor}` | `{ok}` (cooperative restart) |
-| `POST` | `/api/mc/shutdown` | `{actor}` | `{ok}` (cooperative stop) |
-| `POST` | `/api/mc/resync` | `{actor, scope}` | `{ok, refreshed, notified_clients}` |
+| `POST` | `/api/mc/command` | `{command, request_id?}` | `{ok, result}` or `{ok:false, code, message}` |
+| `POST` | `/api/mc/restart` | No body | `{ok}` (cooperative restart) |
+| `POST` | `/api/mc/shutdown` | No body | `{ok}` (cooperative stop) |
+| `POST` | `/api/mc/resync` | `{scope}` | `{ok, refreshed, notified_clients}` |
 
 - `capabilities` declares which admin commands the instance accepts; MC's
   console uses it to validate input before sending.
 - `POST /api/mc/command` routes through the existing command/admin dispatch
   pipeline (`server/commands/admin.py`) so authorization, blocking (`\r`,
   `\k`), and audit behavior are identical to the in-game console. A command
-  that requires an actor account uses the operator's configured MC identity
-  mapped to a bootstrap-admin context; it never bypasses `PowersService`.
-- Registration/heartbeat are idempotent per `instance_id`; re-registration
-  after an MC restart replaces the prior record.
+  uses the first existing account in the world's `TRSERVER_ADMINS`, sorted by
+  username. If no configured admin account exists, it returns `admin_unavailable`.
+  It never bypasses `PowersService` or accepts a caller-selected execution account.
+- Registration and heartbeat are served by MC, not by the world API (§6.1).
 
 ### 6.1 World-side outbound client (`server/mc_client.py`)
 
@@ -344,9 +361,15 @@ and are logged. These endpoints are never available to game clients.
   MC management is degraded.
 - On graceful shutdown: best-effort deregister (or let MC evict by staleness).
 
+MC's token-authenticated fleet endpoints are `POST /api/mc/register`,
+`POST /api/mc/heartbeat`, and `POST /api/mc/deregister`. Registration includes
+`instance_id`, `instance_name`, management `endpoint`, public `client_url`,
+`base_path`, version/protocol, and `world` identity/entry-room data.
+
 ## 7. Mission-control UI API
 
-Mounted on the MC server, gated by the `mission-control` feature and MC auth.
+Mounted on the MC server, gated by the `mission-control` feature. Operator
+login validates the passphrase; protected operations require an MC session.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -358,15 +381,14 @@ Mounted on the MC server, gated by the `mission-control` feature and MC auth.
 | `GET` | `/api/mission-control/servers/{id}` | Instance detail. |
 | `POST` | `/api/mission-control/servers/{id}/stop` | Stop instance. |
 | `POST` | `/api/mission-control/servers/{id}/restart` | Restart instance in place. |
-| `POST` | `/api/mission-control/servers/{id}/rename` | Rename (spawned) + reload nginx. |
-| `DELETE` | `/api/mission-control/servers/{id}` | Stop/remove instance + reload nginx. |
+| `POST` | `/api/mission-control/servers/{id}/rename` | Rename a spawned instance, preserving its URL. |
+| `DELETE` | `/api/mission-control/servers/{id}` | Stop/remove instance. |
+| `POST` | `/api/mission-control/instances/{id}/default` | Validate and persist the new-account default. |
 | `POST` | `/api/mission-control/reboot` | Stop spawned instances and restart MC via keepalive. |
 | `GET` | `/api/mission-control/servers/{id}/logs` | Log tail. |
 | `POST` | `/api/mission-control/servers/{id}/command` | Send admin command. |
 | `POST` | `/api/mission-control/servers/{id}/resync` | Resync one instance. |
 | `POST` | `/api/mission-control/resync` | Resync all instances. |
-| `GET` | `/api/mission-control/nginx` | Preview the generated nginx site config. |
-| `POST` | `/api/mission-control/nginx` | Write the config and reload nginx. |
 | `GET` | `/api/mission-control/packages` | Shared-content + server-version inventory. |
 | `GET` | `/api/mission-control/worlds?version=` | Worlds available to a server version. |
 | `DELETE` | `/api/mission-control/versions/{id}` | Delete an unused server version. |
@@ -377,8 +399,22 @@ Mounted on the MC server, gated by the `mission-control` feature and MC auth.
 | `PATCH` | `/api/mission-control/users/{id}` | Edit supported fields. |
 | `GET` | `/api/mission-control/audit` | Recent MC audit entries. |
 
-All non-GET require `Origin` + `X-CSRF-Token`. Responses use a consistent
+Authenticated non-GET operations require `Origin` + `X-CSRF-Token`; login
+requires Origin and the passphrase. Responses use a consistent
 `{ok, ...}` / `{ok:false, code, message}` envelope.
+
+### 7.1 Public player-entry API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/entry/session` | Report shared player session and CSRF token when logged in. |
+| `POST` | `/api/entry/login` | Verify username/password and issue shared player cookies. |
+| `POST` | `/api/entry/create` | Verify invitation, validate default, create account and save its destination. |
+| `POST` | `/api/entry/logout` | Revoke player session and clear cookies. |
+| `GET` | `/api/entry/resolve` | Resolve the authenticated player's saved destination (§2.1). |
+
+Login/create require a valid Origin and are rate-limited. Logout requires Origin
+and matching session/header/cookie CSRF tokens.
 
 ## 8. Data model and storage
 
@@ -386,7 +422,7 @@ All non-GET require `Origin` + `X-CSRF-Token`. Responses use a consistent
 
 ```
 InstanceRecord {
-  instance_id, name, endpoint, token_source,
+  instance_id, name, endpoint, client_url, base_path, entry_room_id, token_source,
   source: spawned | external,
   status, world_id, world_label, version, protocol_version,
   started_at, last_heartbeat_at, uptime_seconds,
@@ -414,7 +450,28 @@ InstanceRecord {
   and `BEGIN IMMEDIATE` transactions are already used; MC writes use the same
   repository transaction patterns and keep transactions short.
 
-### 8.3 Content roots
+### 8.3 Deployment and upgrades
+
+`tools/deploy.py` installs a static nginx site: TCP 80 redirects to HTTPS;
+TCP 443 proxies the root and all application paths to the loopback MC port.
+Player entry is `https://<hostname>/`, operator administration is
+`https://<hostname>/mission-control`, and worlds are
+`https://<hostname>:<world-port>/`.
+
+Deployment writes these direct-world settings to `<rootdir>/admin.env`:
+
+- `TRSERVER_MC_INSTANCE_HOST=0.0.0.0` (worlds bind on all IPv4 interfaces).
+- `TRSERVER_MC_INSTANCE_PUBLIC_HOST=<public hostname>` (supported alias for
+  `TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME`).
+- `TRSERVER_MC_INSTANCE_PORT_MIN=10000` and
+  `TRSERVER_MC_INSTANCE_PORT_MAX=10999` (inclusive).
+- `TRSERVER_MC_INSTANCE_CERTFILE=<rootdir>/nginx/certs/server.crt` and
+  `TRSERVER_MC_INSTANCE_KEYFILE=<rootdir>/nginx/certs/server.key` (reuse the
+  nginx TLS files for child worlds).
+- Empty `TRSERVER_MC_BASE_PATH`, `TRSERVER_MC_PUBLIC_ORIGIN=https://<hostname>`,
+  shared users/content paths, and the keepalive path.
+
+### 8.4 Content roots
 
 Inside a checkout, content lives at `<checkout>/worlds/`, `<checkout>/data/cardsets/`,
 and `<checkout>/data/propsets/`; each deployed server version bundles its own
@@ -438,7 +495,7 @@ card definitions are validated as before. A world definition may itself be
 shared or bundled; the Server Manager lists shared worlds plus the chosen
 version's bundled worlds and resolves the selected id accordingly.
 
-### 8.4 Audit (in memory)
+### 8.5 Audit (in memory)
 
 MC records `{at, actor, action, target, result, detail}` for login attempts,
 instance start/stop/restart/command, resync, package install/enable/delete,
@@ -446,8 +503,8 @@ and user edits. Bounded ring; surfaced in the UI. Lost on MC restart by design.
 
 ## 9. Security model
 
-- **Trust boundary**: MC is an operator tool for trusted hosts/networks. It
-  defaults to loopback and is not hardened for public exposure.
+- **Trust boundary**: MC defaults to loopback behind nginx in deployment.
+  Player entry is public; privileged fleet/user operations require operator auth.
 - **UI auth**: separate MC passphrase, hashed/constant-time compared; MC
   session + CSRF cookies; `Origin` validation on state-changing requests.
 - **Channel auth**: shared `TRSERVER_MC_TOKEN` on every MC↔world request,
@@ -456,15 +513,14 @@ and user edits. Bounded ring; surfaced in the UI. Lost on MC restart by design.
   Peers verify against `*_CA_FILE` when provided; `*_INSECURE_TLS=1` is an
   explicit dev-only escape hatch and must log a warning at startup.
 - **Admin commands**: dispatched through the existing command/admin pipeline;
-  the MC actor must satisfy the world's power checks. MC cannot grant itself
+  the selected bootstrap-admin account must satisfy the world's power checks. MC cannot grant itself
   in-world powers through this path.
 - **Version deletion**: restricted to installed version directories under
   `TRSERVER_MC_VERSIONS_PATH`; refuses the running version, path escapes, and
   versions with any registered instance; deletes the directory and the matching
   release artifact. Audited.
 - **Shared content**: operator-installed trusted code (including behavior
-  scripts); the passphrase gate is the only barrier, so MC must never be
-  exposed publicly.
+  scripts); content inventory and privileged operations require operator auth.
 - **User edits**: validated against the same field constraints the game
   enforces; every change audited.
 
@@ -528,7 +584,7 @@ Follow existing harness patterns.
 - Keep every new file under 1200 lines (enforced by
   `tests/test_ui_presentation.py`).
 
-## 13. Delivery phases
+## 13. Original delivery phases
 
 | Phase | Scope |
 | --- | --- |
@@ -542,9 +598,10 @@ Follow existing harness patterns.
 ## 14. Open questions and future work
 
 - **Remote registry**: fetching package/version indexes from a remote source
-  (deferred; local inventory + upload only for now).
-- **MC persistence**: a durable MC DB for audit/registry across restarts
-  (currently in memory by design).
+  (deferred; current inventory is local, with deployment/content managed on disk).
+- **MC persistence**: a durable MC DB for audit/live registry across restarts;
+  currently those are in memory, while identity, launch, resume, and default
+  settings already persist as JSON files (§4.1).
 - **Multi-host orchestration**: managing instances on other machines,
   containers, or process supervisors beyond local children.
 - **Stronger operator identity**: per-operator accounts/roles instead of a

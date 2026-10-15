@@ -1,7 +1,7 @@
 """In-memory instance registry with heartbeat tracking and staleness eviction.
 
-Mission control keeps no database: records are rebuilt from registration and
-heartbeat traffic, and are dropped on restart by design.
+Records are rebuilt from trusted registration traffic and persisted spawned
+identities when mission control restarts.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from datetime import datetime
 import threading
 import uuid
 
+from server.config import validate_instance_id, validate_public_url
 from server.security import utc_now
 
 
@@ -42,6 +43,8 @@ class InstanceRecord:
     protocol_version: int | None = None
     started_at: str | None = None
     base_path: str = ""
+    client_url: str | None = None
+    entry_room_id: str | None = None
     registered_at: str | None = None
     last_heartbeat_at: str | None = None
     uptime_seconds: float = 0.0
@@ -99,18 +102,20 @@ class InstanceRegistry:
     def register(self, payload: dict[str, object], *, source: str = EXTERNAL, token_source: str = "env") -> InstanceRecord:
         """Upsert an instance from a registration payload.
 
-        Spawned children are matched to their pre-registered record by endpoint;
-        otherwise a new external record is created.
+        Callers authenticate the shared management token before registration.
+        Stable identities take precedence over legacy endpoint matching.
         """
 
         name = str(payload.get("instance_name") or "instance")
         endpoint = str(payload.get("endpoint") or "")
         world = payload.get("world") if isinstance(payload.get("world"), dict) else {}
+        instance_id = validate_instance_id(str(payload.get("instance_id") or world.get("instance_id") or ""))
+        client_url = validate_public_url(str(payload.get("client_url") or ""), "client_url")
         with self._lock:
-            record = self._find_by_endpoint(endpoint)
+            record = self._instances.get(instance_id) if instance_id else self._find_by_endpoint(endpoint)
             if record is None:
                 record = InstanceRecord(
-                    instance_id=self.allocate_id(),
+                    instance_id=instance_id or self.allocate_id(),
                     name=name,
                     endpoint=endpoint,
                     source=source,
@@ -118,6 +123,7 @@ class InstanceRegistry:
                 )
                 self._instances[record.instance_id] = record
             record.name = name
+            record.endpoint = endpoint
             record.world_id = str(world.get("id")) if world.get("id") else None
             record.world_label = str(world.get("label")) if world.get("label") else None
             record.version = str(payload.get("version")) if payload.get("version") else None
@@ -125,6 +131,9 @@ class InstanceRegistry:
             record.protocol_version = int(protocol) if isinstance(protocol, int) else None
             record.started_at = str(payload.get("started_at")) if payload.get("started_at") else None
             record.base_path = str(payload.get("base_path") or "")
+            record.client_url = client_url or record.client_url or f"{endpoint}{record.base_path}"
+            entry_room_id = payload.get("entry_room_id") or world.get("entry_room_id")
+            record.entry_room_id = str(entry_room_id) if entry_room_id else None
             record.registered_at = utc_now().isoformat()
             record.last_heartbeat_at = record.registered_at
             record.status = STATUS_RUNNING
@@ -144,7 +153,7 @@ class InstanceRegistry:
         name: str,
         endpoint: str,
         instance_dir: str,
-        process_handle: object,
+        process_handle: object | None,
         spawn_config: dict[str, object],
         base_path: str = "",
         instance_id: str | None = None,
@@ -163,6 +172,7 @@ class InstanceRegistry:
                 instance_dir=instance_dir,
                 spawn_config=spawn_config,
                 base_path=base_path,
+                client_url=str(spawn_config.get("client_url") or f"{endpoint}{base_path}"),
             )
             self._instances[record.instance_id] = record
             return record
@@ -298,6 +308,8 @@ class InstanceRegistry:
             "protocol_version": record.protocol_version,
             "started_at": record.started_at,
             "base_path": record.base_path,
+            "client_url": record.client_url,
+            "entry_room_id": record.entry_room_id,
             "uptime_seconds": record.uptime_seconds,
             "users_online": record.users_online,
             "last_heartbeat_seconds": age,

@@ -13,7 +13,7 @@ import sys
 import threading
 import uuid
 
-from server.config import selects_mission_control
+from server.config import normalize_base_path, selects_mission_control, validate_instance_id
 from server.mission_control.audit import McAuditLog
 from server.mission_control.config import MCConfig
 from server.mission_control.registry import (
@@ -21,20 +21,39 @@ from server.mission_control.registry import (
     STATUS_RUNNING,
     STATUS_STARTING,
     STATUS_STOPPED,
+    STATUS_UNREACHABLE,
     InstanceRecord,
     InstanceRegistry,
 )
 
 
 RESUME_FILE = "resume.json"
+IDENTITY_FILE = "instance.json"
 
 
-def allocate_port(host: str = "127.0.0.1") -> int:
-    """Allocate a free TCP port on *host*."""
+def allocate_port(
+    host: str = "127.0.0.1", minimum: int = 5000, maximum: int = 5999,
+    *, excluded: set[int] | None = None,
+) -> int:
+    """Find an available TCP port within the configured inclusive bounds."""
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind((host, 0))
-        return int(sock.getsockname()[1])
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    for port in range(minimum, maximum + 1):
+        if port in (excluded or set()):
+            continue
+        with socket.socket(family, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind((host, port))
+            except OSError:
+                continue
+            return port
+    raise ValueError(f"No available instance port in configured range {minimum}-{maximum}.")
+
+
+def _endpoint(host: str, port: int) -> str:
+    advertised = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
+    advertised = f"[{advertised}]" if ":" in advertised else advertised
+    return f"https://{advertised}:{port}"
 
 
 def route_slug(name: str, taken: set[str]) -> str:
@@ -74,6 +93,36 @@ class Supervisor:
         self._registry = registry
         self._audit = audit
         self._spawn = spawn or subprocess.Popen
+        self._restore_identities()
+
+    def _persist_identity(self, record: InstanceRecord) -> None:
+        if record.instance_dir is None or record.spawn_config is None:
+            return
+        path = Path(record.instance_dir) / IDENTITY_FILE
+        temporary = path.with_suffix(".tmp")
+        temporary.write_text(json.dumps({
+            "instance_id": record.instance_id,
+            "spawn_config": record.spawn_config,
+        }, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(path)
+
+    def _restore_identities(self) -> None:
+        for path in self._config.instances_path.glob(f"*/{IDENTITY_FILE}"):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                instance_id = validate_instance_id(str(data["instance_id"]))
+                config = data["spawn_config"]
+                if not instance_id or not isinstance(config, dict) or self._registry.get(instance_id):
+                    continue
+                record = self._registry.register_spawned(
+                    instance_id=instance_id, name=str(config["name"]),
+                    endpoint=_endpoint(str(config["host"]), int(config["port"])),
+                    instance_dir=str(path.parent), process_handle=None,
+                    spawn_config=config, base_path=str(config.get("base_path") or ""),
+                )
+                self._registry.set_status(record.instance_id, STATUS_UNREACHABLE)
+            except (KeyError, OSError, TypeError, ValueError):
+                continue
 
     def start(
         self,
@@ -82,7 +131,7 @@ class Supervisor:
         world_path: Path,
         worldstate_path: Path | None = None,
         users_path: Path | None = None,
-        host: str = "127.0.0.1",
+        host: str | None = None,
         port: int | None = None,
         features: str = "",
         admins: str = "",
@@ -95,13 +144,33 @@ class Supervisor:
     ) -> InstanceRecord:
         """Spawn a child ``run.py`` and register it with the instance registry."""
 
-        allocated_port = port or allocate_port(host)
-        resolved_dir = Path(instance_dir) if instance_dir else self._config.instances_path / f"mc-{uuid.uuid4().hex[:12]}"
+        instance_id = validate_instance_id(instance_id or "")
+        host = host or self._config.instance_host
+        if port is not None and not self._config.instance_port_min <= port <= self._config.instance_port_max:
+            raise ValueError("Instance port is outside the configured range.")
+        reserved = {int(record.spawn_config["port"]) for record in self._registry.list()
+                    if record.spawn_config and record.instance_id != instance_id}
+        reserved.add(self._config.port)
+        allocated_port = port if port is not None else allocate_port(
+            host, self._config.instance_port_min, self._config.instance_port_max, excluded=reserved,
+        )
+        resolved_dir = Path(instance_dir) if instance_dir else self._config.instances_path / (instance_id or f"mc-{uuid.uuid4().hex[:12]}")
         resolved_dir.mkdir(parents=True, exist_ok=True)
+        identity_path = resolved_dir / IDENTITY_FILE
+        if identity_path.is_file():
+            saved_id = validate_instance_id(str(json.loads(identity_path.read_text(encoding="utf-8"))["instance_id"]))
+            if instance_id is not None and saved_id != instance_id:
+                raise ValueError("Instance directory identity does not match the requested instance id.")
+            instance_id = saved_id
+        instance_id = validate_instance_id(instance_id or resolved_dir.name) or self._registry.allocate_id()
         resolved_worldstate = Path(worldstate_path) if worldstate_path else resolved_dir / "worldstate.sqlite3"
         resolved_users = Path(users_path) if users_path else self._config.users_path
-        resolved_base_path = base_path or f"/{route_slug(name, self._taken_routes())}"
+        resolved_base_path = normalize_base_path(base_path or "")
+        public_host = self._config.public_instance_hostname
+        client_url = f"{_endpoint(public_host, allocated_port)}{resolved_base_path}"
         config: dict[str, object] = {
+            "instance_id": instance_id,
+            "client_url": client_url,
             "name": name,
             "world_path": str(world_path),
             "worldstate_path": str(resolved_worldstate),
@@ -114,17 +183,23 @@ class Supervisor:
             "base_path": resolved_base_path,
             "version_path": str(version_path) if version_path is not None else "",
         }
-        process = self._spawn_process(config)
-        endpoint = f"https://{host}:{allocated_port}"
+        endpoint = _endpoint(host, allocated_port)
         record = self._registry.register_spawned(
             instance_id=instance_id,
             name=name,
             endpoint=endpoint,
             instance_dir=str(resolved_dir),
-            process_handle=process,
+            process_handle=None,
             base_path=resolved_base_path,
             spawn_config=config,
         )
+        self._persist_identity(record)
+        try:
+            process = self._spawn_process(config)
+        except Exception:
+            self._registry.set_status(record.instance_id, STATUS_STOPPED)
+            raise
+        record.process_handle = process
         self._capture_output(record, process)
         self._watch_process(record, process)
         self._audit.record(actor, "instance.start", target=record.instance_id, detail={"endpoint": endpoint})
@@ -151,6 +226,8 @@ class Supervisor:
             admins=str(config.get("admins") or ""),
             mods=config.get("mods") if isinstance(config.get("mods"), str) else None,
             base_path=str(config.get("base_path") or ""),
+            instance_id=str(config.get("instance_id") or ""),
+            client_url=str(config.get("client_url") or ""),
         )
         version_root = Path(str(config.get("version_path") or self._config.repo_root))
         command = [
@@ -161,6 +238,9 @@ class Supervisor:
             "--port",
             str(int(config["port"])),
         ]
+        if self._config.instance_certfile is not None and self._config.instance_keyfile is not None:
+            command.extend(["--certfile", str(self._config.instance_certfile),
+                            "--keyfile", str(self._config.instance_keyfile)])
         return self._spawn(
             command,
             cwd=str(version_root),
@@ -184,6 +264,8 @@ class Supervisor:
         admins: str,
         mods: str | None,
         base_path: str,
+        instance_id: str = "",
+        client_url: str = "",
     ) -> dict[str, str]:
         env = dict(os.environ)
         for key in [existing for existing in env if existing.startswith("TRSERVER_MC_")]:
@@ -198,12 +280,14 @@ class Supervisor:
         env["TRSERVER_FEATURES"] = sanitize_child_features(features)
         env["TRSERVER_ADMINS"] = admins
         env["TRSERVER_MODS"] = mods if mods is not None else self._config.mods
-        env["TRSERVER_MC_ENDPOINT"] = f"{self._config.host}:{self._config.port}"
+        env["TRSERVER_MC_ENDPOINT"] = _endpoint(self._config.host, self._config.port).removeprefix("https://")
+        env["TRSERVER_MC_INSTANCE_ID"] = instance_id
+        env["TRSERVER_CLIENT_URL"] = client_url
+        env["TRSERVER_ENTRY_URL"] = self._config.public_origin
         env["TRSERVER_MC_TOKEN"] = self._config.token
         env["TRSERVER_MC_NAME"] = name
         env["TRSERVER_SHARED_CONTENT_PATH"] = str(self._config.content_root)
-        if self._config.public_origins:
-            env["TRSERVER_PUBLIC_ORIGIN"] = ",".join(self._config.public_origins)
+        env["TRSERVER_PUBLIC_ORIGIN"] = _endpoint(self._config.public_instance_hostname, port)
         if self._config.ca_file is not None:
             env["TRSERVER_MC_CA_FILE"] = str(self._config.ca_file)
         if self._config.ca_file is None or self._config.insecure_tls:
@@ -257,6 +341,9 @@ class Supervisor:
         record = self._registry.get(instance_id)
         if record is None or record.spawn_config is None:
             return None
+        record.spawn_config["instance_id"] = record.instance_id
+        record.spawn_config.setdefault("client_url", record.client_url or f"{record.endpoint}{record.base_path}")
+        self._persist_identity(record)
         self.stop(instance_id, actor=actor)
         process = self._spawn_process(dict(record.spawn_config))
         revived = self._registry.revive(instance_id, process_handle=process, instance_dir=record.instance_dir)
@@ -268,15 +355,16 @@ class Supervisor:
         return revived
 
     def rename(self, instance_id: str, name: str, *, actor: str = "mission-control") -> InstanceRecord | None:
-        """Rename a spawned child, changing its public route and restarting it."""
+        """Rename a spawned child while preserving its direct URL and legacy route."""
 
         record = self._registry.get(instance_id)
         if record is None or record.spawn_config is None:
             return None
-        base_path = f"/{route_slug(name, self._taken_routes(exclude=instance_id))}"
+        base_path = record.base_path
         updated = self._registry.rename(instance_id, name, base_path)
         if updated is None:
             return None
+        self._persist_identity(updated)
         if updated.status != STATUS_STOPPED:
             self.restart(instance_id, actor=actor)
         self._audit.record(actor, "instance.rename", target=instance_id, detail={"name": name, "base_path": base_path})
@@ -290,6 +378,8 @@ class Supervisor:
             return False
         self.stop(instance_id, actor=actor)
         self._registry.remove(instance_id)
+        if record.instance_dir:
+            (Path(record.instance_dir) / IDENTITY_FILE).unlink(missing_ok=True)
         self._drop_resume_entry(instance_id)
         self._audit.record(actor, "instance.delete", target=instance_id)
         return True
@@ -366,12 +456,12 @@ class Supervisor:
                     world_path=Path(str(entry["world_path"])),
                     worldstate_path=Path(str(entry["worldstate_path"])) if entry.get("worldstate_path") else None,
                     users_path=Path(str(entry["users_path"])) if entry.get("users_path") else None,
-                    host=str(entry.get("host") or "127.0.0.1"),
+                    host=str(entry["host"]) if entry.get("host") else None,
                     port=int(entry["port"]) if entry.get("port") else None,
                     features=str(entry.get("features") or ""),
                     admins=str(entry.get("admins") or ""),
                     mods=entry.get("mods") if isinstance(entry.get("mods"), str) else None,
-                    base_path=str(entry.get("base_path") or "") or None,
+                    base_path=str(entry.get("base_path") or ""),
                     instance_dir=str(entry["instance_dir"]) if entry.get("instance_dir") else None,
                     version_path=Path(str(entry["version_path"])) if entry.get("version_path") else None,
                 )

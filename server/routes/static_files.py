@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING
 import mimetypes
 
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from server.base_path import render_html
 from server.config import ConfigError, ensure_contained
 from server.routes.common import get_runtime
 from server.routes.html_pages import render_fallback_activity
+from server.security import SESSION_COOKIE
 
 if TYPE_CHECKING:
     from server.app import RuntimeState
@@ -49,6 +50,12 @@ def register_static_routes(app: FastAPI) -> None:
     @app.get("/")
     async def index(request: Request) -> Response:
         runtime = get_runtime(request)
+        if runtime.config.entry_url:
+            session = runtime.accounts.authenticate(request.cookies.get(SESSION_COOKIE))
+            profile = runtime.profiles.get_user_profile(session.account_id) if session else None
+            if (profile is None or profile.last_world_id != runtime.world.id
+                    or profile.last_instance_id not in {None, runtime.config.mc_instance_id}):
+                return RedirectResponse(runtime.config.entry_url, headers={"Cache-Control": "no-store"})
         index_path = runtime.config.app_path / "index.html"
         if index_path.is_file():
             return render_html(index_path, runtime.config.base_path)

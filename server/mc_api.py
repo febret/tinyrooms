@@ -25,6 +25,7 @@ from server.commands.outcomes import CommandError
 from server.commands.parser import CommandParseError, parse_command
 from server.connections import SyntheticConnection
 from server.protocol import PROTOCOL_VERSION, profile_resync_envelope
+from server.profiles import AccountRecord
 from server.serialization import serialize_account
 from server.version import BUILD_VERSION, schema_versions
 
@@ -37,14 +38,12 @@ class CommandPayload(BaseModel):
     """Admin command dispatch payload."""
 
     command: str
-    actor: str
     request_id: str | None = None
 
 
 class ResyncPayload(BaseModel):
     """Profile resync payload."""
 
-    actor: str = "mission-control"
     scope: str = "all"
 
 
@@ -81,10 +80,9 @@ def _schedule_exit() -> None:
     threading.Timer(0.25, lambda: os._exit(0)).start()
 
 
-def _resolve_actor(runtime, actor: str):
-    account = runtime.profiles.resolve_account(actor)
-    if account is not None:
-        return account
+def _resolve_bootstrap_admin(runtime) -> AccountRecord | None:
+    """Select the first existing configured admin in sorted username order."""
+
     for username in sorted(runtime.config.bootstrap_admins):
         account = runtime.profiles.get_account_by_username(username)
         if account is not None:
@@ -140,14 +138,14 @@ async def command(request: Request, payload: CommandPayload) -> JSONResponse:
 
     _require_token(request)
     runtime = _runtime(request)
-    account = _resolve_actor(runtime, payload.actor)
+    account = _resolve_bootstrap_admin(runtime)
     if account is None:
         return JSONResponse(
             status_code=200,
             content={
                 "ok": False,
-                "code": "actor_unknown",
-                "message": f"No account or bootstrap admin matches actor '{payload.actor}'.",
+                "code": "admin_unavailable",
+                "message": "No configured bootstrap admin account exists. Create an account listed in TRSERVER_ADMINS.",
             },
         )
     room_id = runtime.rooms.current_room_for_account(account.id)

@@ -14,14 +14,15 @@ import time
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from server.base_path import BasePathMiddleware, render_html, with_base
+from server.base_path import BasePathMiddleware, render_html
 from server.config import ensure_contained
 from server.mission_control import routes as mc_routes
 from server.mission_control.audit import McAuditLog
 from server.mission_control.auth import McSessionStore
 from server.mission_control.config import MCConfig
+from server.mission_control.entry import EntrySettings, PlayerAuthService, router as entry_router
 from server.mission_control.packages import PackageManager
 from server.mission_control.registry import InstanceRegistry
 from server.mission_control.server_info import ServerInfoService
@@ -52,6 +53,8 @@ class McRuntime:
     sessions: McSessionStore
     limiter: RateLimiter
     http: httpx.AsyncClient
+    player_auth: PlayerAuthService
+    entry_settings: EntrySettings
     started_at: float = field(default_factory=time.time)
 
 
@@ -87,6 +90,8 @@ def build_runtime(config: MCConfig) -> McRuntime:
         sessions=McSessionStore(),
         limiter=RateLimiter(),
         http=http,
+        player_auth=PlayerAuthService(profiles, config.new_account_passphrase),
+        entry_settings=EntrySettings(config.instances_path),
     )
 
 
@@ -157,10 +162,11 @@ def create_mc_app(config: MCConfig) -> FastAPI:
         return JSONResponse(status_code=500, content={"ok": False, "code": "server_error", "message": "Server error."})
 
     app.include_router(mc_routes.router)
+    app.include_router(entry_router)
 
     @app.get("/")
-    async def root() -> RedirectResponse:
-        return RedirectResponse(url=with_base(config.base_path, "/mission-control"))
+    async def root() -> Response:
+        return render_html(config.ui_path / "entry.html", config.base_path)
 
     @app.get("/mission-control")
     @app.get("/mission-control/")

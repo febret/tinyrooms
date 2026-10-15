@@ -150,6 +150,11 @@ class UserProfileRecord:
     last_visit_at: str
 
     @property
+    def last_instance_id(self) -> str | None:
+        value = self.profile.get("last_instance_id")
+        return value if isinstance(value, str) and value else None
+
+    @property
     def owned_rooms(self) -> tuple[str, ...]:
         raw = self.ownership.get("rooms")
         return tuple(str(room_id) for room_id in raw) if isinstance(raw, list) else ()
@@ -877,6 +882,11 @@ class ProfileRepository:
                 (account_id,),
             ).fetchone()
         return None if row is None else self._user_profile_from_row(row)
+
+    def remember_instance(self, account_id: str, instance_id: str) -> None:
+        """Persist the stable instance without changing the remembered room."""
+
+        self.update_profile(account_id, lambda profile: profile.update(last_instance_id=instance_id))
 
     def user_profile_for(self, account_id: str, world_id: str, entry_room: str) -> UserProfileRecord:
         """Return the current profile, creating or refreshing it only when needed."""
