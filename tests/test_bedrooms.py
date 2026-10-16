@@ -11,9 +11,16 @@ from server.content.worlds import ContentError, prop_model_url
 from server.mods import discover_mods, load_mod_module
 from server.services.ownership import OwnershipService
 from server.state.world_state import WorldStateRepository
-from tests.common import REPO_ROOT, ServiceTestCase, WORLD_ID, load_test_world, load_world_activities, load_world_mod_props
-from tests.test_milestone1 import websocket_headers
-from tests.test_milestone2_integration import Milestone2IntegrationTestCase
+from tests.common import (
+    REPO_ROOT,
+    WORLD_ID,
+    load_test_world,
+    load_world_activities,
+    load_world_mod_props,
+    Milestone2IntegrationTestCase,
+    ServiceTestCase,
+    websocket_headers,
+)
 
 
 MOD = load_mod_module(discover_mods(REPO_ROOT / "mods")["infinite-bedrooms"])

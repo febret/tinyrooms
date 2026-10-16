@@ -15,8 +15,13 @@ from server.mods import (
     load_mods,
     resolve_mods,
 )
-from tests.common import REPO_ROOT, load_world_activities, load_world_mod_props, load_world_propsets
-from tests.test_milestone1 import RuntimeTestCase
+from tests.common import (
+    REPO_ROOT,
+    load_world_activities,
+    load_world_mod_props,
+    load_world_propsets,
+    RuntimeTestCase,
+)
 
 
 MODS_PATH = REPO_ROOT / "mods"

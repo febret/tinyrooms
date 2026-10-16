@@ -19,7 +19,7 @@ from __future__ import annotations
 import gc
 import time
 
-from tests.test_milestone1 import RuntimeTestCase, websocket_headers
+from tests.common import RuntimeTestCase, websocket_headers
 
 ACCOUNTS = 3
 CYCLES_PER_ACCOUNT = 3

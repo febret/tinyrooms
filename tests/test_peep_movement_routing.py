@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import unittest
-
-from tests.test_milestone1 import RuntimeTestCase, websocket_headers
+from tests.common import RuntimeTestCase, websocket_headers
 
 
 class WanderingPeepRoutingTests(RuntimeTestCase):

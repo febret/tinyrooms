@@ -7,15 +7,11 @@ import unittest
 
 from server.config import ConfigError, parse_ice_urls
 from server.protocol import (
+from tests.common import auth_cookies, RuntimeTestCase, websocket_headers
     ClientRtcPresenceEnvelope,
     ClientRtcSignalEnvelope,
     ProtocolError,
     parse_client_message,
-)
-from tests.test_milestone1 import (
-    RuntimeTestCase,
-    auth_cookies,
-    websocket_headers,
 )
 
 

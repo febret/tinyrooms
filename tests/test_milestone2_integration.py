@@ -3,70 +3,7 @@
 from __future__ import annotations
 
 import unittest
-
-from tests.test_milestone1 import (
-    RuntimeTestCase,
-    auth_cookies,
-    auth_headers,
-    websocket_headers,
-)
-
-
-class Milestone2IntegrationTestCase(RuntimeTestCase):
-    """Shared helpers for live-server Milestone 2 tests."""
-
-    def runtime(self):
-        return self.app.state.runtime
-
-    def bootstrap(self, credentials) -> dict[str, object]:
-        response = self.client.get(
-            "/api/bootstrap",
-            cookies=auth_cookies(credentials["session_token"], credentials["csrf_token"]),
-        )
-        self.assertEqual(response.status_code, 200, response.text)
-        return response.json()["user"]
-
-    def account_id(self, credentials) -> str:
-        return self.bootstrap(credentials)["id"]
-
-    def grant_card(self, account_id: str, card_id: str, quantity: int = 1) -> str:
-        runtime = self.runtime()
-        definition = runtime.catalog.cards[card_id]
-        scope = "world" if definition.source == runtime.world.id else "global"
-        world_id = runtime.world.id if scope == "world" else None
-        with runtime.hub.transaction() as connection:
-            stacks = runtime.profiles.add_inventory_card(
-                connection,
-                account_id=account_id,
-                world_id=world_id,
-                card_def_id=card_id,
-                quantity=quantity,
-                scope=scope,
-                stack_limit=definition.stack_limit,
-            )
-        return stacks[0].stack_id
-
-    def set_bops(self, account_id: str, bops: int) -> None:
-        runtime = self.runtime()
-        with runtime.hub.transaction() as connection:
-            account = runtime.profiles.get_account_by_id(account_id)
-            runtime.profiles.update_account_progress(
-                connection,
-                account_id,
-                level=account.level,
-                kudos=account.kudos,
-                bops=bops,
-                energy=account.shared_energy,
-                last_energy_at=account.last_energy_at,
-                last_daily_claim=account.last_daily_claim,
-            )
-
-    def drain_until(self, socket, event_type: str) -> dict[str, object]:
-        for _ in range(12):
-            message = socket.receive_json()
-            if message.get("type") == "room.event" and message["event"].get("type") == event_type:
-                return message["event"]
-        raise AssertionError(f"Never received room event {event_type!r}.")
+from tests.common import Milestone2IntegrationTestCase, websocket_headers
 
 
 class BootstrapPayloadTests(Milestone2IntegrationTestCase):

@@ -21,9 +21,15 @@ from server.services.cards import CardService
 from server.security import utc_now
 from server.services.cutscenes import CutsceneError, CutsceneService
 from server.services.pricing import CardPricingService
-from tests.common import REPO_ROOT, ServiceTestCase, WORLD_ID, load_test_world
-from tests.test_milestone1 import auth_cookies, websocket_headers
-from tests.test_milestone2_integration import Milestone2IntegrationTestCase
+from tests.common import (
+    REPO_ROOT,
+    WORLD_ID,
+    auth_cookies,
+    load_test_world,
+    Milestone2IntegrationTestCase,
+    ServiceTestCase,
+    websocket_headers,
+)
 from tests.test_milestone3_behaviors import AsyncServiceTestCase, make_script
 
 

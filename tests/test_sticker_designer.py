@@ -8,8 +8,8 @@ import io
 import os
 from pathlib import Path
 import unittest
+from tests.common import auth_cookies, auth_headers, RuntimeTestCase
 
-from tests.test_milestone1 import RuntimeTestCase, auth_cookies, auth_headers
 
 DESIGN = {
     "version": 1,

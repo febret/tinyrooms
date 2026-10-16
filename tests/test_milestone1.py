@@ -21,152 +21,19 @@ from server.profiles import ProfileRepository, STARTING_WORLD_COUNTERS
 from server.security import hash_password, normalize_username, verify_password
 from server.services.cards import CardService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
-from tests.common import REPO_ROOT, load_test_world, load_world_activities, load_world_mod_props, load_world_propsets
-
-TEST_ORIGIN = "https://testserver:5000"
-TEST_PASSWORD = "password123!"
-
-
-def auth_headers(csrf_token: str) -> dict[str, str]:
-    """Build authenticated request headers."""
-
-    return {"origin": TEST_ORIGIN, "x-csrf-token": csrf_token}
-
-
-def auth_cookies(session_token: str, csrf_token: str) -> dict[str, str]:
-    """Build authenticated request cookies."""
-
-    return {"tr_session": session_token, "tr_csrf": csrf_token}
-
-
-def websocket_headers(session_token: str, csrf_token: str) -> dict[str, str]:
-    """Build authenticated WebSocket headers."""
-
-    return {
-        "cookie": f"tr_session={session_token}; tr_csrf={csrf_token}",
-        "origin": TEST_ORIGIN,
-    }
-
-
-class RuntimeTestCase(unittest.TestCase):
-    """Provide an isolated app, profile directory, and world-state database."""
-
-    features = "dev_sample_activity"
-    world_path: Path | None = None
-
-    def setUp(self) -> None:
-        self.temporary_directory = TemporaryDirectory()
-        self.runtime_path = Path(self.temporary_directory.name)
-        self.config = load_config(
-            env={
-                "TRSERVER_NEW_ACCOUNT_PASSPHRASE": "open-sesame",
-                "TRSERVER_USERS_PATH": str(self.runtime_path / "users"),
-                "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
-                "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
-                "TRSERVER_FEATURES": self.features,
-                "TRSERVER_MODS": "infinite-bedrooms",
-                "TRSERVER_TIMEZONE": "UTC",
-                "TRSERVER_HOST": "testserver",
-                "TRSERVER_PORT": "5000",
-            },
-            repo_root=REPO_ROOT,
-        )
-        self.config = replace(
-            self.config,
-            local_path=self.runtime_path,
-            drafts_path=self.runtime_path / "drafts",
-            revisions_path=self.runtime_path / "revisions",
-        )
-        self._open_client()
-
-    def tearDown(self) -> None:
-        self._close_client()
-        self.temporary_directory.cleanup()
-
-    def _open_client(self) -> None:
-        self.app = create_app(self.config)
-        self.client_context = TestClient(self.app, base_url=TEST_ORIGIN)
-        self.client = self.client_context.__enter__()
-
-    def _close_client(self) -> None:
-        if hasattr(self, "client_context"):
-            self.client_context.__exit__(None, None, None)
-            del self.client_context
-
-    def restart(self) -> None:
-        """Restart the application while retaining disposable databases."""
-
-        self._close_client()
-        self._open_client()
-
-    def create_account(
-        self,
-        username: str,
-        password: str = TEST_PASSWORD,
-    ) -> dict[str, str]:
-        """Create an account and return its session credentials."""
-
-        response = self.client.post(
-            "/api/auth/create",
-            json={
-                "username": username,
-                "password": password,
-                "passphrase": "open-sesame",
-            },
-            headers={"origin": TEST_ORIGIN},
-        )
-        self.assertEqual(response.status_code, 200, response.text)
-        return {
-            "session_token": response.cookies["tr_session"],
-            "csrf_token": response.cookies["tr_csrf"],
-        }
-
-    def create_ready_account(self, username: str) -> dict[str, str]:
-        """Create an account and confirm its initial sticker."""
-
-        credentials = self.create_account(username)
-        self.confirm_sticker(credentials)
-        return credentials
-
-    def confirm_sticker(
-        self,
-        credentials: dict[str, str],
-        sticker: str = "s1.png",
-    ) -> dict[str, object]:
-        """Confirm an initial sticker for an account."""
-
-        response = self.client.post(
-            "/api/stickers/confirm",
-            json={"sticker": sticker},
-            headers=auth_headers(credentials["csrf_token"]),
-            cookies=auth_cookies(
-                credentials["session_token"],
-                credentials["csrf_token"],
-            ),
-        )
-        self.assertEqual(response.status_code, 200, response.text)
-        return response.json()
-
-    def command(
-        self,
-        socket,
-        request_id: str,
-        command: str,
-    ) -> dict[str, object]:
-        """Send a command and return its private result."""
-
-        socket.send_json(
-            {
-                "v": 1,
-                "type": "command",
-                "request_id": request_id,
-                "command": command,
-            }
-        )
-        result = socket.receive_json()
-        self.assertEqual(result["type"], "result")
-        self.assertEqual(result["request_id"], request_id)
-        return result
+from tests.common import (
+    REPO_ROOT,
+    TEST_ORIGIN,
+    TEST_PASSWORD,
+    auth_cookies,
+    auth_headers,
+    load_test_world,
+    load_world_activities,
+    load_world_mod_props,
+    load_world_propsets,
+    RuntimeTestCase,
+    websocket_headers,
+)
 
 
 class ConfigSecurityParserTests(unittest.TestCase):

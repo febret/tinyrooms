@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
+from fastapi.testclient import TestClient
+
+from server.app import create_app
 from server.content.cards import cutscene_card_references, load_card_catalog
 from server.content.gameplay import load_gameplay_content
+from server.config import load_config
 from server.profiles import AccountRecord, ProfileRepository
 from server.security import utc_now
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
@@ -16,6 +21,29 @@ from server.state.migrations import DatabaseHub, ensure_profile_database, ensure
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORLD_ID = "tutorial"
 ENTRY_ROOM = "hub"
+TEST_ORIGIN = "https://testserver:5000"
+TEST_PASSWORD = "password123!"
+
+
+def auth_headers(csrf_token: str) -> dict[str, str]:
+    """Build authenticated request headers."""
+
+    return {"origin": TEST_ORIGIN, "x-csrf-token": csrf_token}
+
+
+def auth_cookies(session_token: str, csrf_token: str) -> dict[str, str]:
+    """Build authenticated request cookies."""
+
+    return {"tr_session": session_token, "tr_csrf": csrf_token}
+
+
+def websocket_headers(session_token: str, csrf_token: str) -> dict[str, str]:
+    """Build authenticated WebSocket headers."""
+
+    return {
+        "cookie": f"tr_session={session_token}; tr_csrf={csrf_token}",
+        "origin": TEST_ORIGIN,
+    }
 
 
 def repo_mods():
@@ -191,3 +219,181 @@ class ServiceTestCase(unittest.TestCase):
                 quantity=quantity,
                 scope=scope,
             )
+
+
+class RuntimeTestCase(unittest.TestCase):
+    """Provide an isolated app, profile directory, and world-state database."""
+
+    features = "dev_sample_activity"
+    world_path: Path | None = None
+
+    def setUp(self) -> None:
+        self.temporary_directory = TemporaryDirectory()
+        self.runtime_path = Path(self.temporary_directory.name)
+        self.config = load_config(
+            env={
+                "TRSERVER_NEW_ACCOUNT_PASSPHRASE": "open-sesame",
+                "TRSERVER_USERS_PATH": str(self.runtime_path / "users"),
+                "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
+                "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
+                "TRSERVER_FEATURES": self.features,
+                "TRSERVER_MODS": "infinite-bedrooms",
+                "TRSERVER_TIMEZONE": "UTC",
+                "TRSERVER_HOST": "testserver",
+                "TRSERVER_PORT": "5000",
+            },
+            repo_root=REPO_ROOT,
+        )
+        self.config = replace(
+            self.config,
+            local_path=self.runtime_path,
+            drafts_path=self.runtime_path / "drafts",
+            revisions_path=self.runtime_path / "revisions",
+        )
+        self._open_client()
+
+    def tearDown(self) -> None:
+        self._close_client()
+        self.temporary_directory.cleanup()
+
+    def _open_client(self) -> None:
+        self.app = create_app(self.config)
+        self.client_context = TestClient(self.app, base_url=TEST_ORIGIN)
+        self.client = self.client_context.__enter__()
+
+    def _close_client(self) -> None:
+        if hasattr(self, "client_context"):
+            self.client_context.__exit__(None, None, None)
+            del self.client_context
+
+    def restart(self) -> None:
+        """Restart the application while retaining disposable databases."""
+
+        self._close_client()
+        self._open_client()
+
+    def create_account(
+        self,
+        username: str,
+        password: str = TEST_PASSWORD,
+    ) -> dict[str, str]:
+        """Create an account and return its session credentials."""
+
+        response = self.client.post(
+            "/api/auth/create",
+            json={
+                "username": username,
+                "password": password,
+                "passphrase": "open-sesame",
+            },
+            headers={"origin": TEST_ORIGIN},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        return {
+            "session_token": response.cookies["tr_session"],
+            "csrf_token": response.cookies["tr_csrf"],
+        }
+
+    def create_ready_account(self, username: str) -> dict[str, str]:
+        """Create an account and confirm its initial sticker."""
+
+        credentials = self.create_account(username)
+        self.confirm_sticker(credentials)
+        return credentials
+
+    def confirm_sticker(
+        self,
+        credentials: dict[str, str],
+        sticker: str = "s1.png",
+    ) -> dict[str, object]:
+        """Confirm an initial sticker for an account."""
+
+        response = self.client.post(
+            "/api/stickers/confirm",
+            json={"sticker": sticker},
+            headers=auth_headers(credentials["csrf_token"]),
+            cookies=auth_cookies(
+                credentials["session_token"],
+                credentials["csrf_token"],
+            ),
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    def command(
+        self,
+        socket,
+        request_id: str,
+        command: str,
+    ) -> dict[str, object]:
+        """Send a command and return its private result."""
+
+        socket.send_json(
+            {
+                "v": 1,
+                "type": "command",
+                "request_id": request_id,
+                "command": command,
+            }
+        )
+        result = socket.receive_json()
+        self.assertEqual(result["type"], "result")
+        self.assertEqual(result["request_id"], request_id)
+        return result
+
+
+class Milestone2IntegrationTestCase(RuntimeTestCase):
+    """Shared helpers for live-server Milestone 2 tests."""
+
+    def runtime(self):
+        return self.app.state.runtime
+
+    def bootstrap(self, credentials) -> dict[str, object]:
+        response = self.client.get(
+            "/api/bootstrap",
+            cookies=auth_cookies(credentials["session_token"], credentials["csrf_token"]),
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["user"]
+
+    def account_id(self, credentials) -> str:
+        return self.bootstrap(credentials)["id"]
+
+    def grant_card(self, account_id: str, card_id: str, quantity: int = 1) -> str:
+        runtime = self.runtime()
+        definition = runtime.catalog.cards[card_id]
+        scope = "world" if definition.source == runtime.world.id else "global"
+        world_id = runtime.world.id if scope == "world" else None
+        with runtime.hub.transaction() as connection:
+            stacks = runtime.profiles.add_inventory_card(
+                connection,
+                account_id=account_id,
+                world_id=world_id,
+                card_def_id=card_id,
+                quantity=quantity,
+                scope=scope,
+                stack_limit=definition.stack_limit,
+            )
+        return stacks[0].stack_id
+
+    def set_bops(self, account_id: str, bops: int) -> None:
+        runtime = self.runtime()
+        with runtime.hub.transaction() as connection:
+            account = runtime.profiles.get_account_by_id(account_id)
+            runtime.profiles.update_account_progress(
+                connection,
+                account_id,
+                level=account.level,
+                kudos=account.kudos,
+                bops=bops,
+                energy=account.shared_energy,
+                last_energy_at=account.last_energy_at,
+                last_daily_claim=account.last_daily_claim,
+            )
+
+    def drain_until(self, socket, event_type: str) -> dict[str, object]:
+        for _ in range(12):
+            message = socket.receive_json()
+            if message.get("type") == "room.event" and message["event"].get("type") == event_type:
+                return message["event"]
+        raise AssertionError(f"Never received room event {event_type!r}.")

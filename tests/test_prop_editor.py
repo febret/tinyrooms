@@ -21,11 +21,11 @@ from server.services.prop_editor import (
     PropEditorValidationError,
 )
 from tests.common import (
+from tests.common import auth_cookies, auth_headers, RuntimeTestCase
     REPO_ROOT,
     ServiceTestCase,
     load_world_activities,
 )
-from tests.test_milestone1 import RuntimeTestCase, auth_cookies, auth_headers
 
 
 WORLD_COPY_NAME = "tutorial"
