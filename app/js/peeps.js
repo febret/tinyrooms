@@ -1,6 +1,6 @@
 import { peepDamageTier } from "./peep-damage.js";
 import { withBase } from "./base-path.js";
-import { escapeHtml, updateMarkup } from "./presentation.js";
+import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { statusIconMarkup } from "./views/view-helpers.js";
 
 const MOVE_BUBBLE_LIFETIME = 5000;
@@ -91,20 +91,13 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       const left = Math.min(bounds.right + 2, window.innerWidth - size.width - 8);
       const top = Math.max(8, Math.min(rect.top + 4, bounds.bottom - size.height));
       if (item.bubble.hidden) item.bubble.hidden = false;
-      setStyle(item.bubble, "left", `${left}px`);
-      setStyle(item.bubble, "top", `${top}px`);
+      placeAt(item.bubble, `${left}px`, `${top}px`);
     }
   }
 
   function hideBubble(bubble) {
     if (!bubble.hidden) bubble.hidden = true;
     bubbleSizes.delete(bubble);
-  }
-
-  /** Write a style property only when it changed, to avoid needless invalidation. */
-  function setStyle(node, property, value) {
-    if (node.style[property] === value) return;
-    node.style[property] = value;
   }
 
   function captureRects(includeClone) {
@@ -152,14 +145,9 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     const ghost = first.clone;
     ghost.classList.add("peep-ghost");
     ghost.classList.remove("self", "selected", "pinned");
-    ghost.style.position = "fixed";
-    ghost.style.left = `${first.left}px`;
-    ghost.style.top = `${first.top}px`;
+    placeAt(ghost, `${first.left}px`, `${first.top}px`);
     ghost.style.width = `${first.width}px`;
     ghost.style.height = `${first.height}px`;
-    ghost.style.margin = "0";
-    ghost.style.pointerEvents = "none";
-    ghost.style.zIndex = "48";
     bubbleLayer.append(ghost);
     ghosts.add(ghost);
     requestAnimationFrame(() => {

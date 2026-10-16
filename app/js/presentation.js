@@ -5,6 +5,12 @@ export function escapeHtml(value) {
   })[character]);
 }
 
+/** Position a node by its left/top, writing only changed values to avoid needless style invalidation. */
+export function placeAt(node, left, top) {
+  if (node.style.left !== left) node.style.left = left;
+  if (node.style.top !== top) node.style.top = top;
+}
+
 const rendered = new WeakMap();
 
 /** Replace changed markup only, preserving scroll and focus for live updates. */

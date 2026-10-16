@@ -11,6 +11,8 @@ The server owns gameplay state and validates every action. The browser renders
 snapshots/events and dispatches input; it does not invent authoritative state.
 One process owns a world, with SQLite persistence and validated YAML content.
 The frontend uses vanilla ES modules and Three.js, without an app build step.
+`npm run vendor` copies Three.js and Drawflow (the World Editor's node graphs)
+into the ignored `app/vendor/`.
 
 ```text
 browser (app + Three.js + same-origin activity iframes)

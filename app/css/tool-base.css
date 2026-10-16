@@ -1,0 +1,5 @@
+:root { --bg: #061923; --ink: #f3f3ef; --muted: #b5bfc5; --gold: #efbb88; --line: #ffffff26; --panel-solid: #081720; --field-bg: #0b1a23; --error-ink: #ffd0c6; font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
+[hidden] { display: none !important; }
+.validation-list, .error-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }

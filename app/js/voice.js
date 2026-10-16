@@ -8,7 +8,7 @@ function audioContainer() {
     container = document.createElement("div");
     container.id = "voice-audio";
     container.setAttribute("aria-hidden", "true");
-    container.style.display = "none";
+    container.hidden = true;
     document.body.append(container);
   }
   return container;

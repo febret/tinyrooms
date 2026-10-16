@@ -42,18 +42,23 @@ export function placeholderBox(asset) {
   box.className = "cutscene-sprite-placeholder";
   box.dataset.spriteKind = asset?.kind || "missing";
   box.textContent = asset?.label || "";
-  if (asset?.kind) box.style.aspectRatio = "1 / 1";
   return box;
+}
+
+/** Build a sprite <img> showing `src` for an asset of `kind`. */
+function spriteImage(asset, kind, src) {
+  const image = document.createElement("img");
+  image.className = "cutscene-sprite-image";
+  image.dataset.spriteKind = kind;
+  image.alt = asset.label || "";
+  image.decoding = "async";
+  image.src = src;
+  return image;
 }
 
 /** Build a still <img> for a sticker or card asset. */
 function imageElement(asset) {
-  const image = document.createElement("img");
-  image.className = "cutscene-sprite-image";
-  image.dataset.spriteKind = asset.kind;
-  image.alt = asset.label || "";
-  image.decoding = "async";
-  image.src = assetSource(asset);
+  const image = spriteImage(asset, asset.kind, assetSource(asset));
   image.addEventListener("error", () => {
     warnOnce(String(asset.url), `Could not load image for ${String(asset.ref)}.`);
     image.replaceWith(placeholderBox(asset));
@@ -70,13 +75,8 @@ function propElement(asset) {
   }
   return thumbnailFor(url, Number(asset.scale) || 1).then(
     dataUrl => {
-      const image = document.createElement("img");
-      image.className = "cutscene-sprite-image";
-      image.dataset.spriteKind = "prop";
+      const image = spriteImage(asset, "prop", dataUrl);
       image.dataset.modelUrl = url;
-      image.alt = asset.label || "";
-      image.decoding = "async";
-      image.src = dataUrl;
       return image;
     },
     () => {

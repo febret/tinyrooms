@@ -1,3 +1,4 @@
+import { placeAt } from "./presentation.js";
 import { isTargetableStack, findInventoryCard } from "./state.js";
 
 export function createTargetingController({ board, boardFrame, getState, store, sendCommand, onToast, onError }) {
@@ -81,8 +82,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       const bounds = boardFrame.getBoundingClientRect();
       const left = `${Math.max(0, Math.min(bounds.width - button.offsetWidth, end.x + 14))}px`;
       const top = `${Math.max(0, Math.min(bounds.height - button.offsetHeight, end.y + 14))}px`;
-      if (button.style.left !== left) button.style.left = left;
-      if (button.style.top !== top) button.style.top = top;
+      placeAt(button, left, top);
     }
   }
 

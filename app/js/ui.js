@@ -30,7 +30,7 @@ import { resetLibraryFilter } from "./editing/library-filter.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
-import { escapeHtml, updateMarkup } from "./presentation.js";
+import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
 import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
@@ -885,8 +885,7 @@ function renderFeedback(state) {
       const rect = marker ? marker.getBoundingClientRect() : { top: bounds.top + 40, right: bounds.right };
       const top = `${Math.max(8, rect.top)}px`;
       const left = `${Math.min(window.innerWidth - 90, (rect.right || bounds.right) + 6)}px`;
-      if (node.style.top !== top) node.style.top = top;
-      if (node.style.left !== left) node.style.left = left;
+      placeAt(node, left, top);
     }
   }
   for (const number of numbers) {

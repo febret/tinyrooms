@@ -83,7 +83,7 @@ async function inlineAsset(url) {
 async function buildDoorVisual(style) {
   const visual = document.createElement("div");
   visual.className = "door-visual";
-  visual.style.color = colorValue("color", style?.color) || "#8a8a8a";
+  visual.style.color = colorValue("color", style?.color);
   visual.append(await inlineAsset(`${ASSET_ROOT}door-panel.svg`));
   const material = assetUrl("material", style?.material);
   if (material) visual.append(await inlineAsset(material));

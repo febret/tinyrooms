@@ -1,3 +1,4 @@
+import { placeAt } from "./presentation.js";
 import { defaultPropAction } from "./prop-actions.js";
 
 export function createPropActionButton({ button, getState, onAction }) {
@@ -22,8 +23,7 @@ export function createPropActionButton({ button, getState, onAction }) {
     const y = clickedProp.y - bounds.top + 12;
     const left = `${Math.max(0, Math.min(bounds.width - button.offsetWidth, x))}px`;
     const top = `${Math.max(0, Math.min(bounds.height - button.offsetHeight, y))}px`;
-    if (button.style.left !== left) button.style.left = left;
-    if (button.style.top !== top) button.style.top = top;
+    placeAt(button, left, top);
   }
 
   function clear() {

@@ -84,16 +84,11 @@ export function beginCutscene(frameType, options) {
   active.frame.className = `cutscene-frame ${frame.cssClass}`;
   active.frame.dataset.from = from;
   active.frame.dataset.cutscene = active.ctx.id;
-  if (duration > 0) active.frame.style.setProperty("--cutscene-frame-duration", `${duration}ms`);
-  if (typeof settings.background === "string") {
-    active.frame.style.setProperty("--cutscene-stage-background", settings.background);
-  }
-  if (typeof settings.accent === "string") {
-    active.frame.style.setProperty("--cutscene-accent", settings.accent);
-  }
-  if (typeof settings.radius === "number") {
-    active.stage.style.borderRadius = `${settings.radius}px`;
-  }
+  const frameStyle = active.frame.style;
+  if (duration > 0) frameStyle.setProperty("--cutscene-frame-duration", `${duration}ms`);
+  if (typeof settings.background === "string") frameStyle.setProperty("--cutscene-stage-background", settings.background);
+  if (typeof settings.accent === "string") frameStyle.setProperty("--cutscene-accent", settings.accent);
+  if (typeof settings.radius === "number") active.stage.style.borderRadius = `${settings.radius}px`;
   if (frame.build) {
     try {
       frame.build(active.stage, settings);
