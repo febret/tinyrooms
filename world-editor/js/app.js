@@ -20,8 +20,23 @@ import {
   renderTasks,
 } from "./panels/systems.js";
 import { createThumbnailManager } from "../../app/js/editing/prop-thumbnails.js";
+import { bindEditorControls, createEditorDock } from "../../app/js/editing/editor-dock.js";
+import { editorSettingsView } from "../../app/js/views/edit-room-view.js";
+import { createWorldRoomEditor, worldRoomEditor } from "./room-editor.js";
+import { editorKeyAction } from "../../app/js/editing/editor-keyboard.js";
+import { createCardSelector } from "./card-selector.js";
+import { reconcileRoomCards } from "./room-cards.js";
 
 const store = createStore();
+const cardSelector = createCardSelector({
+  getCards: () => {
+    const catalog = store.state.catalog;
+    const database = new Map((catalog?.card_database?.cards || []).map(card => [card.id, card]));
+    return (catalog?.cards || []).map(card => ({ ...card, ...database.get(card.id) }));
+  },
+  onChange: handleChange,
+  onError: error => store.status("", error),
+});
 const thumbnails = createThumbnailManager();
 let roomFilter = "";
 let previewing = false;
@@ -38,23 +53,25 @@ const elements = {
   validation: document.getElementById("we-validation"),
   modal: document.getElementById("we-modal"),
   toast: document.getElementById("we-toast"),
+  editorDock: document.getElementById("we-editor-dock"),
 };
+
+const roomEditor = createWorldRoomEditor(store, currentRoomId);
+const editorDock = createEditorDock({
+  root: elements.editorDock,
+  authoring: true,
+  onAction: action => { if (!previewing) roomEditor.onAction(action); },
+});
 
 const boardView = createBoardView({
   canvas: document.getElementById("we-canvas"),
   overlay: document.getElementById("we-overlay"),
   onSelect: selection => store.select(selection),
-  onBegin: () => store.beginGesture(),
-  onTransform: payload => updateInstance(instance => {
-    instance.pos = [payload.position[0], payload.position[1], instance.pos?.[2] ?? 0];
-  }, false),
-  onRotate: delta => updateInstance(instance => {
-    const rotation = Array.isArray(instance.rot) ? instance.rot : [0, 0, 0];
-    instance.rot = [rotation[0] || 0, ((rotation[1] || 0) + delta) % 360, rotation[2] || 0];
-  }),
-  onScale: factor => updateInstance(instance => {
-    instance.scale = Math.max(0.05, numberOr(instance.scale, 1) * factor);
-  }),
+  onBegin: () => roomEditor.dispatch({ type: "editor-begin" }),
+  onTransform: payload => roomEditor.dispatch({ type: "editor-transform", ...payload }),
+  onRotate: (delta, gesture) => roomEditor.dispatch({ type: "editor-rotate", delta, gesture }),
+  onScale: (factor, gesture) => roomEditor.dispatch({ type: "editor-scale", factor, gesture }),
+  onElevate: (delta, gesture) => roomEditor.dispatch({ type: "editor-elevate", delta, gesture }),
 });
 
 function currentRoomId() {
@@ -85,6 +102,10 @@ function render() {
     <button type="button" class="quiet" data-room-add>Add room</button>
   `;
   const roomId = currentRoomId();
+  const editor = worldRoomEditor(state, roomId);
+  elements.editorDock.hidden = previewing || !editor;
+  elements.boardPane.classList.toggle("is-previewing", previewing || !editor);
+  editorDock.render({ editor, room: { canEditRoom: true } });
   boardView.render({
     draft: state.draft,
     catalog: state.catalog,
@@ -92,10 +113,16 @@ function render() {
     roomId,
     selection: state.selection,
     editing: !previewing,
+    editor,
   });
   elements.mapPane.innerHTML = state.activeTab === "map" ? renderWorldMap(state.draft, state.selection) : "";
   elements.systemsPane.innerHTML = renderSystems(state);
-  elements.properties.innerHTML = renderProperties(state);
+  const propertiesScroll = elements.properties.scrollTop;
+  elements.properties.innerHTML = (state.activeTab === "board" ? editorSettingsView({ editor }) : "") + renderProperties(state);
+  bindEditorControls(elements.properties, roomEditor.onAction);
+  elements.properties.scrollTop = propertiesScroll;
+  cardSelector.bind(elements.properties);
+  cardSelector.bind(elements.systemsPane);
   elements.validation.innerHTML = renderValidation(state.validation);
   elements.toast.textContent = state.error || state.status || "";
   elements.toast.dataset.kind = state.error ? "error" : "info";
@@ -246,7 +273,8 @@ function changeRoomField(fieldName, target) {
   store.update(draft => {
     const room = draft.rooms?.[roomId];
     if (!room) return;
-    if (fieldName === "palette") room.palette = parseCsv(target.value);
+    if (fieldName === "cards") room.cards = reconcileRoomCards(room.cards, parseCsv(target.value));
+    else if (fieldName === "palette") room.palette = parseCsv(target.value);
     else if (fieldName === "aura") room.aura = parseJson(target.value, []);
     else if (fieldName === "dark" || fieldName === "template") room[fieldName] = target.checked;
     else room[fieldName] = target.value;
@@ -301,6 +329,9 @@ function changeExitField(spec, target) {
 }
 
 function changeInstanceField(fieldName, target) {
+  const editor = worldRoomEditor(store.state, currentRoomId());
+  if ((fieldName.startsWith("pos.") || fieldName.startsWith("rot.") || fieldName === "scale")
+    && editor?.props.find(prop => prop.id === editor.selectedId)?.locked) return;
   updateInstance(instance => {
     if (fieldName === "prop") instance.prop = target.value;
     else if (fieldName === "content") instance.content = parseCsv(target.value);
@@ -516,17 +547,7 @@ function deleteExit(exitId) {
 }
 
 function addProp(propId) {
-  const roomId = store.state.selection.id;
-  const definition = (store.state.catalog?.props || []).find(prop => prop.id === propId);
-  const existing = Object.keys(store.state.draft.rooms?.[roomId]?.props || {});
-  const instanceId = uniqueId(existing, propId);
-  store.update(draft => {
-    const room = draft.rooms?.[roomId];
-    if (!room) return;
-    if (!room.props) room.props = {};
-    room.props[instanceId] = { prop: propId, pos: [50, 50, 0], rot: [0, 0, 0], scale: definition?.scale ?? 1 };
-  });
-  store.select({ kind: "prop", id: roomId, sub: instanceId });
+  roomEditor.dispatch({ type: "editor-add", propId });
 }
 
 function deleteInstance() {
@@ -752,7 +773,14 @@ document.addEventListener("input", event => {
 
 document.addEventListener("keydown", event => {
   const modifier = event.ctrlKey || event.metaKey;
-  if (!modifier) return;
+  if (event.target.closest("input,textarea,select,[contenteditable=true]")) return;
+  if (!modifier) {
+    if (previewing || store.state.activeTab !== "board") return;
+    const editor = worldRoomEditor(store.state, currentRoomId());
+    const action = editorKeyAction(event, editor);
+    if (action) { event.preventDefault(); roomEditor.dispatch(action); }
+    return;
+  }
   if (event.key.toLowerCase() === "z" && !event.shiftKey) {
     event.preventDefault();
     store.undo();

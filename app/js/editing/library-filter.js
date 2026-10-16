@@ -1,10 +1,8 @@
+import { escapeHtml } from "../presentation.js";
+
 const SHOW_ALL = "";
 
-const libraryFilter = {
-  query: "",
-  source: SHOW_ALL,
-  tags: new Set(),
-};
+const libraryFilter = createLibraryFilter();
 
 function tagsOfEntry(entry) {
   return Array.isArray(entry?.tags) ? entry.tags : [];
@@ -17,7 +15,7 @@ function matchesQuery(entry, query) {
 }
 
 /** Pure predicate over a normalized library entry and the active criteria. */
-export function filterLibrary(entries, criteria = libraryFilter) {
+export function filterLibrary(entries, criteria = libraryFilter.getCriteria()) {
   const query = String(criteria.query || "").trim().toLowerCase();
   const source = String(criteria.source || "");
   const tags = criteria.tags instanceof Set ? criteria.tags : new Set(criteria.tags || []);
@@ -48,101 +46,152 @@ export function tagsOf(entries, source = "") {
 }
 
 export function setLibraryQuery(query) {
-  libraryFilter.query = String(query || "");
+  libraryFilter.setQuery(query);
 }
 
 export function setLibrarySource(source) {
-  libraryFilter.source = String(source || SHOW_ALL);
+  libraryFilter.setSource(source);
 }
 
 export function toggleLibraryTag(tag) {
-  const value = String(tag || "");
-  if (!value) return;
-  if (libraryFilter.tags.has(value)) libraryFilter.tags.delete(value);
-  else libraryFilter.tags.add(value);
+  libraryFilter.toggleTag(tag);
 }
 
 export function resetLibraryFilter() {
-  libraryFilter.query = "";
-  libraryFilter.source = SHOW_ALL;
-  libraryFilter.tags.clear();
+  libraryFilter.reset();
 }
 
 /**
  * Bind the search, source prop set, and tag controls, then apply the filter.
  *
- * Filtering mutates this module's state and syncs only the library markup, so
+ * Filtering mutates the compatibility controller and syncs only library markup, so
  * typing in the search box never triggers a store render (and never steals
  * focus or scroll).
  */
 export function bindEditorLibrary(root, library) {
-  if (!root) return;
-  const list = Array.isArray(library) ? library : [];
-  const search = root.querySelector("[data-edit-search]");
-  if (search) {
-    search.oninput = () => {
-      setLibraryQuery(search.value);
-      syncEditorLibrary(root, list);
-    };
-    search.onkeydown = event => {
-      if (event.key !== "Escape") return;
-      event.stopPropagation();
-      search.blur();
-    };
-  }
-  root.querySelectorAll("[data-edit-propset]").forEach(button => {
-    button.onclick = () => {
-      setLibrarySource(button.dataset.editPropset || "");
-      syncEditorLibrary(root, list);
-    };
-  });
-  root.querySelectorAll("[data-edit-tag]").forEach(pill => {
-    pill.onclick = () => {
-      toggleLibraryTag(pill.dataset.editTag || "");
-      syncEditorLibrary(root, list);
-    };
-  });
-  syncEditorLibrary(root, list);
+  libraryFilter.bind(root, library);
 }
 
-/**
- * Apply the active filter to the already-rendered editor markup.
- *
- * The library chrome is rendered independently of the filter so typing in the
- * search box never re-renders (and therefore never steals focus or scroll).
- */
+/** Apply the compatibility controller's criteria to already-rendered markup. */
 export function syncEditorLibrary(root, library) {
-  if (!root) return;
-  const entries = Array.isArray(library) ? library : [];
-  const tags = tagsOf(entries, libraryFilter.source);
-  for (const tag of [...libraryFilter.tags]) {
-    if (!tags.includes(tag)) libraryFilter.tags.delete(tag);
+  libraryFilter.sync(root, library);
+}
+
+/** Independent criteria and DOM bindings for an editor or shared library dock. */
+export function createLibraryFilter() {
+  const criteria = { query: "", source: SHOW_ALL, tags: new Set() };
+
+  function setQuery(query) {
+    criteria.query = String(query || "");
   }
-  const visible = filterLibrary(entries, libraryFilter);
-  const visibleIds = new Set(visible.map(entry => entry.propId));
 
-  const search = root.querySelector("[data-edit-search]");
-  if (search && search.value !== libraryFilter.query) search.value = libraryFilter.query;
+  function setSource(source) {
+    criteria.source = String(source || SHOW_ALL);
+  }
 
-  root.querySelectorAll(".editor-library-item").forEach(item => {
-    item.hidden = !visibleIds.has(item.dataset.editAdd);
-  });
-  root.querySelectorAll("[data-edit-propset]").forEach(button => {
-    const active = (button.dataset.editPropset || "") === (libraryFilter.source || "");
-    button.classList.toggle("is-active", active);
-    button.setAttribute("aria-pressed", active ? "true" : "false");
-  });
-  root.querySelectorAll("[data-edit-tag]").forEach(pill => {
-    const tag = pill.dataset.editTag || "";
-    const available = tags.includes(tag);
-    pill.hidden = !available;
-    const active = available && libraryFilter.tags.has(tag);
-    pill.classList.toggle("is-active", active);
-    pill.setAttribute("aria-pressed", active ? "true" : "false");
-  });
+  function toggleTag(tag) {
+    const value = String(tag || "");
+    setTag(criteria.tags.has(value) ? "" : value);
+  }
 
-  const count = root.querySelector(".editor-library-count");
-  if (count) count.textContent = `${visible.length} of ${entries.length} props`;
-  const empty = root.querySelector(".editor-library-empty");
-  if (empty) empty.hidden = visible.length > 0;
+  function setTag(tag) {
+    criteria.tags.clear();
+    if (tag) criteria.tags.add(String(tag));
+  }
+
+  function reset() {
+    criteria.query = "";
+    criteria.source = SHOW_ALL;
+    criteria.tags.clear();
+  }
+
+  // Return a snapshot so callers cannot accidentally mutate controller state.
+  function getCriteria() {
+    return { ...criteria, tags: new Set(criteria.tags) };
+  }
+
+  function filter(entries) {
+    return filterLibrary(entries, criteria);
+  }
+
+  function bind(root, library) {
+    if (!root) return;
+    const list = Array.isArray(library) ? library : [];
+    const search = root.querySelector("[data-edit-search]");
+    if (search) {
+      search.oninput = () => {
+        setQuery(search.value);
+        sync(root, list);
+      };
+      search.onkeydown = event => {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        search.blur();
+      };
+    }
+    root.querySelectorAll("[data-edit-propset]").forEach(button => {
+      button.onclick = () => {
+        setSource(button.dataset.editPropset || "");
+        sync(root, list);
+      };
+    });
+    const tagSearch = root.querySelector("[data-edit-tag-search]");
+    if (tagSearch) {
+      tagSearch.oninput = () => {
+        const value = tagSearch.value.trim().toLowerCase();
+        const tag = tagsOf(list, criteria.source).find(entry => entry.toLowerCase() === value);
+        if (value && !tag) return;
+        setTag(tag || "");
+        sync(root, list);
+      };
+      tagSearch.onchange = () => {
+        const value = tagSearch.value.trim().toLowerCase();
+        setTag(tagsOf(list, criteria.source).find(entry => entry.toLowerCase() === value) || "");
+        sync(root, list);
+      };
+      tagSearch.onkeydown = event => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          tagSearch.blur();
+        }
+      };
+    }
+    sync(root, list);
+  }
+
+  /** Apply criteria without re-rendering, preserving search focus and scroll. */
+  function sync(root, library) {
+    if (!root) return;
+    const entries = Array.isArray(library) ? library : [];
+    const tags = tagsOf(entries, criteria.source);
+    for (const tag of [...criteria.tags]) {
+      if (!tags.includes(tag)) criteria.tags.delete(tag);
+    }
+    const visible = filter(entries);
+    const visibleIds = new Set(visible.map(entry => entry.propId));
+
+    const search = root.querySelector("[data-edit-search]");
+    if (search && search.value !== criteria.query) search.value = criteria.query;
+
+    root.querySelectorAll(".editor-library-item").forEach(item => {
+      item.hidden = !visibleIds.has(item.dataset.editAdd);
+    });
+    root.querySelectorAll("[data-edit-propset]").forEach(button => {
+      const active = (button.dataset.editPropset || "") === (criteria.source || "");
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    const tagSearch = root.querySelector("[data-edit-tag-search]");
+    if (tagSearch) tagSearch.value = [...criteria.tags][0] || "";
+    const options = root.querySelector("[data-edit-tag-options]");
+    const markup = tags.map(tag => `<option value="${escapeHtml(tag)}"></option>`).join("");
+    if (options && options.innerHTML !== markup) options.innerHTML = markup;
+
+    const count = root.querySelector(".editor-library-count");
+    if (count) count.textContent = `${visible.length} of ${entries.length} props`;
+    const empty = root.querySelector(".editor-library-empty");
+    if (empty) empty.hidden = visible.length > 0;
+  }
+
+  return { bind, sync, reset, setQuery, setSource, setTag, toggleTag, getCriteria, filter };
 }

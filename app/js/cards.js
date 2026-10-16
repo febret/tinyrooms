@@ -9,7 +9,7 @@ import {
   buildUseCommand,
 } from "./commands.js";
 import { findInventoryCard, findRoomCard, findSelectedEntity, findTask } from "./state.js";
-import { escapeHtml, updateMarkup } from "./presentation.js";
+import { escapeHtml } from "./presentation.js";
 import { longDescription, rarityLabel, tileMarkup } from "./views/view-helpers.js";
 import { roomView } from "./views/room-view.js";
 import { inventoryView } from "./views/inventory-view.js";
@@ -19,9 +19,7 @@ import { friendsView } from "./views/friends-view.js";
 import { selfView } from "./views/self-view.js";
 import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
-import { editRoomView, editorConflictMarkup, editorMetaText, editorSelectedName } from "./views/edit-room-view.js";
-import { bindEditorLibrary } from "./editing/library-filter.js";
-import { availableLibrary, selectedInstance } from "./editing/edit-reducer.js";
+import { createEditorDock } from "./editing/editor-dock.js";
 
 function coreMarkup(definition, selected) {
   return `
@@ -94,27 +92,6 @@ function bindCardButtons(root, onSelect, onAction) {
   });
   root.querySelectorAll("[data-prop-command]").forEach(button => {
     button.onclick = () => onAction({ command: button.dataset.propCommand });
-  });
-  root.querySelectorAll("[data-edit-add]").forEach(button => {
-    button.onclick = () => onAction({ type: "edit-add", propId: button.dataset.editAdd });
-  });
-  root.querySelectorAll("[data-edit-action]").forEach(button => {
-    button.onclick = () => onAction({
-      type: "edit-action",
-      action: button.dataset.editAction,
-      delta: Number(button.dataset.editDelta || 0),
-      factor: Number(button.dataset.editFactor || 1),
-    });
-  });
-  root.querySelectorAll("[data-edit-snap]").forEach(input => {
-    input.onchange = () => onAction({ type: "edit-snap", which: input.dataset.editSnap, value: input.checked });
-  });
-  root.querySelectorAll("[data-edit-palette]").forEach(input => {
-    // Commit on `change` (picker dismissed) so re-rendering never closes it mid-pick.
-    input.onchange = () => onAction({ type: "edit-palette", index: Number(input.dataset.editPalette), value: input.value });
-  });
-  root.querySelectorAll("[data-edit-style]").forEach(select => {
-    select.onchange = () => onAction({ type: "edit-style", value: select.value });
   });
 }
 
@@ -346,17 +323,19 @@ function inventoryStackActions(stack) {
 
 /** Render core cards, equipped/inventory previews, board-modal views, and card details. */
 export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
+  const editorDock = createEditorDock({ root: editorRoot, onAction });
+  const renderEditor = (state, options) => editorDock.render(state, options);
   const rendered = new WeakMap();
   let lastEquippedSelection = null;
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage", "editSearch"]
+    const identity = active && ["stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
     const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .editor-workspace, .editor-env, .editor-propsets, .editor-heading-tags, .editor-library-grid, .journal-page-inner, .card-view, .card-view-info, .emote-menu-track, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .card-view, .card-view-info, .emote-menu-track, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -377,46 +356,6 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
     }
     bindCardButtons(root, onSelect, onAction);
     return true;
-  }
-  /**
-   * Mount the editor shell, then patch its dynamic regions in place.
-   *
-   * The shell only changes with the catalog/environment, so the prop library and
-   * its image tiles survive selection and prop-instance updates untouched.
-   */
-  function renderEditor(state, { shell = true } = {}) {
-    if (!editorRoot) return;
-    if (!state.editor) { if (shell) update(editorRoot, ""); return; }
-    const changed = shell ? update(editorRoot, editRoomView(state)) : false;
-    const editor = state.editor;
-    const selected = selectedInstance(editor);
-    if (changed) bindEditorLibrary(editorRoot, availableLibrary(editor, state.user?.unlockedProps));
-    const name = editorRoot.querySelector("[data-edit-selected-name]");
-    if (name) name.textContent = editorSelectedName(editor, selected);
-    const meta = editorRoot.querySelector("[data-editor-meta]");
-    if (meta) {
-      meta.textContent = editorMetaText(selected);
-      meta.classList.toggle("editor-meta-empty", !selected);
-    }
-    const buttons = editorRoot.querySelector("[data-editor-buttons]");
-    if (buttons) buttons.hidden = !selected;
-    const lock = editorRoot.querySelector("[data-editor-lock]");
-    if (lock) {
-      const locked = Boolean(selected?.locked);
-      lock.textContent = locked ? "Unlock" : "Lock";
-      lock.setAttribute("aria-pressed", String(locked));
-      lock.classList.toggle("primary", locked);
-    }
-    const undo = editorRoot.querySelector("[data-editor-undo]");
-    if (undo) undo.disabled = !editor.undo.length;
-    const redo = editorRoot.querySelector("[data-editor-redo]");
-    if (redo) redo.disabled = !editor.redo.length;
-    const status = editorRoot.querySelector("[data-editor-status]");
-    if (status) status.textContent = editor.error || editor.status || (editor.dirty ? "Unsaved changes" : "All changes saved");
-    const conflict = editorRoot.querySelector("[data-editor-conflict]");
-    if (conflict && updateMarkup(conflict, editorConflictMarkup(editor))) {
-      bindCardButtons(conflict, onSelect, onAction);
-    }
   }
   return {
     renderEditor,
@@ -445,7 +384,8 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
       }
       if (menuRoot) {
         update(menuRoot, state.room ? emoteMenuMarkup(state) : "");
-        menuRoot.classList.toggle("open", Boolean(state.room && state.ui.emoteMenuOpen));
+        const open = Boolean(state.room && state.ui.emoteMenuOpen);
+        if (menuRoot.classList.contains("open") !== open) menuRoot.classList.toggle("open", open);
       }
       update(panelRoot, boardModal(state));
       update(detailRoot, detailsModal(state));

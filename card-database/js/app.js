@@ -1,5 +1,6 @@
 import { escapeHtml } from "./util.js";
 import { withBase } from "../../app/js/base-path.js";
+import { cardGridMarkup, filterCards } from "../../app/js/editing/card-catalog-view.js";
 
 const content = document.getElementById("cdb-content");
 const status = document.getElementById("cdb-status");
@@ -8,51 +9,8 @@ const search = document.getElementById("cdb-search");
 let database = null;
 let query = "";
 
-function badges(card) {
-  const parts = [
-    `<span class="badge scope-${card.scope === "world" ? "world" : "base"}">${escapeHtml(card.scope)}</span>`,
-    `<span class="badge">${escapeHtml(card.type)}</span>`,
-  ];
-  if (card.rarity) parts.push(`<span class="badge rarity">${escapeHtml(card.rarity)}</span>`);
-  if (card.collectible) parts.push('<span class="badge">collectible</span>');
-  return `<div class="badges">${parts.join("")}</div>`;
-}
-
-function details(card) {
-  const lines = [];
-  if (card.bonuses && Object.keys(card.bonuses).length) {
-    lines.push(`Bonuses: ${Object.entries(card.bonuses).map(([key, value]) => `${key} +${value}`).join(", ")}`);
-  }
-  if (card.effect) lines.push(`Effect: ${card.effect}${card.amount != null ? ` (${card.amount})` : ""}`);
-  if (card.target) lines.push(`Target: ${card.target}`);
-  if (card.energy_cost != null) lines.push(`Energy: ${card.energy_cost}`);
-  if (card.packs.length) lines.push(`Packs: ${card.packs.join(", ")}`);
-  if (card.recipes.length) lines.push(`Recipes: ${card.recipes.join(", ")}`);
-  return lines.map(line => `<p class="detail-line">${escapeHtml(line)}</p>`).join("");
-}
-
 function renderCards() {
-  const cards = (database?.cards || []).filter(card => {
-    if (!query) return true;
-    const haystack = `${card.id} ${card.label} ${card.description} ${card.type} ${card.rarity || ""}`.toLowerCase();
-    return haystack.includes(query);
-  });
-  if (!cards.length) {
-    return '<p class="cdb-status">No matching cards.</p>';
-  }
-  return `
-    <div class="card-grid">
-      ${cards.map(card => `
-        <article class="card-tile">
-          <img src="${escapeHtml(withBase(card.image_url))}" alt="${escapeHtml(card.label)}" loading="lazy">
-          <h3>${escapeHtml(card.label)}</h3>
-          ${badges(card)}
-          <p>${escapeHtml(card.description || "")}</p>
-          ${details(card)}
-        </article>
-      `).join("")}
-    </div>
-  `;
+  return cardGridMarkup(filterCards(database?.cards || [], query));
 }
 
 function renderPacks() {

@@ -7,6 +7,8 @@
     <title>World Editor · Tinyrooms</title>
     <link rel="icon" href="/assets/stickers/s1.png">
     <link rel="stylesheet" href="/world-editor/editor.css">
+    <link rel="stylesheet" href="/app/css/editor-dock.css">
+    <link rel="stylesheet" href="/app/css/card-catalog.css">
     <script type="importmap">
       {
         "imports": {
@@ -27,6 +29,7 @@
               <canvas id="we-canvas" aria-label="Three-dimensional room preview"></canvas>
               <div id="we-overlay" class="board-overlay" aria-live="polite"></div>
             </div>
+            <div id="we-editor-dock" class="we-editor-dock"></div>
           </section>
           <section id="we-map-pane" class="we-map-pane" hidden aria-label="World map"></section>
           <section id="we-systems-pane" class="we-systems-pane" hidden aria-label="Content editors"></section>

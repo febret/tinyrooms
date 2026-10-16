@@ -19,7 +19,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
         propId: instance.prop,
         position: Array.isArray(instance.pos) ? instance.pos.map(Number) : [50, 50, 0],
         rotation: Array.isArray(instance.rot) ? instance.rot.map(Number) : [0, 0, 0],
-        scale: Number(instance.scale ?? 1),
+        scale: Number(instance.scale ?? 1) * Number(definition.scale ?? 1),
         modelUrl: withBase(definition.model_url || ""),
         label: definition.label || instance.prop,
         description: definition.description || "",
@@ -55,7 +55,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
   };
 }
 
-export function createBoardView({ canvas, overlay, onSelect, onBegin, onTransform, onRotate, onScale }) {
+export function createBoardView({ canvas, overlay, onSelect, onBegin, onTransform, onRotate, onScale, onElevate }) {
   let activeRoomId = null;
   const selectProp = instanceId => {
     if (instanceId) onSelect({ kind: "prop", id: activeRoomId, sub: instanceId });
@@ -74,19 +74,27 @@ export function createBoardView({ canvas, overlay, onSelect, onBegin, onTransfor
     onEditSelect: selectProp,
     onEditBegin: () => onBegin(),
     onEditTransform: payload => onTransform(payload),
-    onEditRotate: delta => onRotate(delta),
-    onEditScale: factor => onScale(factor),
+    onEditRotate: (delta, gesture) => onRotate(delta, gesture),
+    onEditScale: (factor, gesture) => onScale(factor, gesture),
+    onEditElevate: (delta, gesture) => onElevate(delta, gesture),
+    stackProps: true,
+    dragHandles: true,
   });
 
   return {
-    render({ draft, catalog, worldId, roomId, selection, editing = true }) {
+    render({ draft, catalog, worldId, roomId, selection, editing = true, editor }) {
       activeRoomId = roomId;
       const room = buildBoardRoom(draft, catalog, roomId, worldId);
+      if (room && editor) {
+        const locks = new Map(editor.props.map(prop => [prop.id, prop.locked]));
+        room.props = room.props.map(prop => ({ ...prop, locked: Boolean(locks.get(prop.id)) }));
+      }
       board.render({
         room,
         selection: null,
-        ui: { reducedMotion: true },
+        ui: { reducedMotion: Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) },
         editing,
+        editor,
         editSelection: selection?.kind === "prop" ? selection.sub : null,
         views: { main: editing ? "edit-room" : null, details: false, auth: false, commandPalette: false },
         user: { initialStickerComplete: true },

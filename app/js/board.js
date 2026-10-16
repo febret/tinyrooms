@@ -977,6 +977,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   }
 
   controls.addEventListener("start", markAdjusted);
+  controls.addEventListener("change", invalidate);
   canvas.addEventListener("pointerdown", pointerDown);
   canvas.addEventListener("pointermove", pointerMove);
   canvas.addEventListener("pointerup", pointerUp);
@@ -999,7 +1000,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
     }
   }
-
   /**
    * Whether the next frame has to be drawn.
    *
@@ -1034,7 +1034,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function pageIsHidden() {
     return typeof document !== "undefined" && document.hidden;
   }
-
   function animate() {
     if (disposed || renderFailed) return;
     try {
@@ -1179,6 +1178,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       cancelAnimationFrame(frame);
       observer.disconnect();
       controls.removeEventListener("start", markAdjusted);
+      controls.removeEventListener("change", invalidate);
       controls.dispose();
       canvas.removeEventListener("pointerdown", pointerDown);
       canvas.removeEventListener("pointermove", pointerMove);

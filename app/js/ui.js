@@ -25,6 +25,7 @@ import {
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
 import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
+import { editorKeyAction } from "./editing/editor-keyboard.js";
 import { resetLibraryFilter } from "./editing/library-filter.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createInertSweep, toggleClass } from "./inert.js";
@@ -366,31 +367,10 @@ async function applyEditorAction(action) {
 }
 
 function handleEditorKey(event) {
-  const state = store.getState();
-  const editor = state.editor;
-  if (!editor) return false;
-  const step = editor.snapPosition ? 5 : 1;
-  const moves = {
-    ArrowLeft: [-step, 0],
-    ArrowRight: [step, 0],
-    ArrowUp: [0, -step],
-    ArrowDown: [0, step],
-  };
-  if (moves[event.key]) {
-    const [dx, dy] = moves[event.key];
-    store.dispatch({ type: "editor-nudge", dx, dy });
-    return true;
-  }
-  if (event.key === "[" || event.key === "]") {
-    store.dispatch({ type: "editor-rotate", delta: event.key === "]" ? 15 : -15 });
-    return true;
-  }
-  if (event.key === "+" || event.key === "=" || event.key === "-" || event.key === "_") {
-    const factor = event.key === "-" || event.key === "_" ? 1 / 1.15 : 1.15;
-    store.dispatch({ type: "editor-scale", factor });
-    return true;
-  }
-  return false;
+  const action = editorKeyAction(event, store.getState().editor);
+  if (!action) return false;
+  store.dispatch(action);
+  return true;
 }
 
 async function openCommands() {
@@ -708,7 +688,9 @@ async function toggleLog() {
 }
 
 function renderActionLog(state) {
-  root.classList.toggle("log-open", state.ui.actionLogVisible);
+  if (root.classList.contains("log-open") !== state.ui.actionLogVisible) {
+    root.classList.toggle("log-open", state.ui.actionLogVisible);
+  }
   const log = $("#action-log");
   const oldLines = log.querySelector(".log-lines");
   const atBottom = !oldLines || oldLines.scrollTop + oldLines.clientHeight >= oldLines.scrollHeight - 8;

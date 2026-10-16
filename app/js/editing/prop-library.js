@@ -73,9 +73,14 @@ function memo(build) {
   };
 }
 
-const tagsMarkup = memo(list => tagsOf(list)
-  .map(tag => `<button type="button" class="editor-tag" data-edit-tag="${escapeHtml(tag)}" aria-pressed="false">${escapeHtml(tag)}</button>`)
-  .join(""));
+const tagsMarkup = memo(list => `
+  <label class="editor-tag-selector">Tag
+    <input type="search" data-edit-tag-search list="editor-tag-options"
+      placeholder="All tags" aria-label="Filter by tag" autocomplete="off">
+  </label>
+  <datalist id="editor-tag-options" data-edit-tag-options>
+    ${tagsOf(list).map(tag => `<option value="${escapeHtml(tag)}"></option>`).join("")}
+  </datalist>`);
 
 const propsetsMarkup = memo(list => {
   if (!list.length) return "";
@@ -88,7 +93,7 @@ const propsetsMarkup = memo(list => {
 
 const gridMarkup = memo(list => list.map(propTile).join(""));
 
-/** Tag filter pills shown in the editor heading. */
+/** Native searchable single-tag dropdown shown in the editor heading. */
 export function libraryTagMarkup(entries) {
   return tagsMarkup(entries);
 }

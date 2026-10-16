@@ -7,6 +7,7 @@
     <title>Card Database · Tinyrooms</title>
     <link rel="icon" href="/assets/stickers/s1.png">
     <link rel="stylesheet" href="/card-database/card-database.css">
+    <link rel="stylesheet" href="/app/css/card-catalog.css">
   </head>
   <body>
     <div class="cdb-shell">
@@ -14,7 +15,7 @@
         <h1>Card Database</h1>
         <input type="search" id="cdb-search" placeholder="Search cards" aria-label="Search cards">
       </header>
-      <main id="cdb-content" class="cdb-content" aria-live="polite"></main>
+       <main id="cdb-content" class="cdb-content card-catalog" aria-live="polite"></main>
       <p id="cdb-status" class="cdb-status"></p>
     </div>
     <script type="module" src="/card-database/js/app.js"></script>

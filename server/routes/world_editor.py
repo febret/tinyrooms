@@ -97,13 +97,14 @@ def _catalog_payload(runtime) -> dict[str, object]:
         if not definition.hidden
     ]
     cards = [
-        runtime.cards.serialize_definition(definition)
+        {**runtime.cards.serialize_definition(definition), "source": definition.source}
         for definition in runtime.catalog.cards.values()
     ]
     return {
         "world_id": world.id,
         "props": sorted(props, key=lambda item: item["id"]),
         "cards": sorted(cards, key=lambda item: item["id"]),
+        "card_database": runtime.card_database_service().payload(),
         "activities": sorted(world.activities),
         "recipes": sorted(world.recipes),
         "board_images": _image_names(world.root_path / "rooms"),

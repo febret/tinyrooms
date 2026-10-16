@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 2.0
+  scale_adjust: 2
 portal:
   label: A Glowing Portal
   description: A familiar doorway, shimmering with possibilities.
@@ -28,32 +28,37 @@ shower:
   scale: 1.306
 litter-tray:
   label: Molly's Litter Tray
-  description: A little chore. Equip a pooper scooper, then use it here. Bring a plastic bag to bag the mess.
+  description: A little chore. Equip a pooper scooper, then use it here. Bring a plastic
+    bag to bag the mess.
   model: litter-tray.glb
   decorative: false
   scale: 1.488
 locked-front-door:
   label: The Front Door
-  description: The way out of the house. The key is in the dark basement, once the centipedes are gone.
+  description: The way out of the house. The key is in the dark basement, once the
+    centipedes are gone.
   model: locked-front-door.glb
   decorative: false
   scale: 1.374
 keys-cabinet:
   label: Spare Key Cabinet
-  description: A tiny brass key hangs on the sunflower hook, but only once the centipedes are gone.
+  description: A tiny brass key hangs on the sunflower hook, but only once the centipedes
+    are gone.
   model: keys-cabinet.glb
   decorative: false
   scale: 1.636
 centipedes:
   label: House Centipedes
-  description: All those tiny feet! Borrow the utility-room vacuum and use it here to clear them out.
+  description: All those tiny feet! Borrow the utility-room vacuum and use it here
+    to clear them out.
   model: centipedes.glb
   decorative: false
   scale: 1.207
   requires_light: true
 vacuum-stand:
   label: Vacuum Corner
-  description: A trusty wheeled vacuum. Borrow it, then use it on the centipedes in the basement.
+  description: A trusty wheeled vacuum. Borrow it, then use it on the centipedes in
+    the basement.
   model: vacuum-stand.glb
   decorative: false
   scale: 1.229
@@ -91,7 +96,7 @@ plant:
   model: quaternius_cc0-cactus-775.glb
   decorative: true
   editable: true
-  scale: 0.32
+  scale: 0.76
 bookshelf:
   label: Story Shelf
   description: Hand-bound books and a tiny keepsake house.
@@ -106,7 +111,7 @@ framed-picture:
   model: framed-picture.glb
   decorative: true
   editable: true
-  scale: 0.53
+  scale: 1.593
 rug:
   label: Woven Flower Rug
   description: A scalloped rug with a cheerful embroidered flower.
@@ -133,4 +138,4 @@ stairs:
   description: Rounded wooden steps and a hand-painted banister.
   model: stairs.glb
   decorative: false
-  scale: 2.0
+  scale: 2

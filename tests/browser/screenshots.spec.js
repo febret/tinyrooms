@@ -311,6 +311,10 @@ test("milestone 3 phase F: world editor and card database", async ({ page, runti
   // The live WebGL board renders nondeterministically under SwiftShader; its
   // behavior is covered by flows.spec.js, so mask the canvas pixels here.
   await capture(page, testInfo, requested, remaining, "world-editor", { mask: [page.locator("#we-canvas")] });
+  if (requested.has("card-selector")) {
+    await page.locator('[data-room-field="cards"]').locator("..").getByRole("button", { name: "Choose cards…" }).click();
+    await capture(page, testInfo, requested, remaining, "card-selector", { mask: [page.locator("#we-canvas")] });
+  }
 
   await page.goto(`${runtime.baseURL}/card-database/`);
   await expect(page.locator(".card-tile").first()).toBeVisible();

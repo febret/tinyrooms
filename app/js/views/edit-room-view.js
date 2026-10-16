@@ -1,10 +1,10 @@
 import { escapeHtml } from "../presentation.js";
 import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "../editing/prop-library.js";
-import { availableLibrary, libraryEntry } from "../editing/edit-reducer.js";
+import { availableLibrary, libraryEntry, selectedInstance } from "../editing/edit-reducer.js";
 
 const BOARD_STYLES = ["stretch", "tile", "tile-w", "tile-h"];
 
-function paletteOf(state, editor) {
+export function editorPalette(state, editor = state.editor) {
   const current = editor.environment.palette || state.room?.board?.palette || [];
   const colors = Array.isArray(current) ? [...current] : [];
   while (colors.length < 3) colors.push("#d4be94");
@@ -14,18 +14,9 @@ function paletteOf(state, editor) {
 function environmentRow(state, editor) {
   const whitelist = editor.environmentWhitelist;
   if (!whitelist.length) return "";
-  const colors = paletteOf(state, editor);
   const style = editor.environment.board_image_style || state.room?.board?.imageStyle || "stretch";
   return `
     <div class="editor-env-row">
-      ${whitelist.includes("palette") ? `
-        <div class="editor-palette" role="group" aria-label="Board palette">
-          ${colors.map((color, index) => `
-            <label class="editor-color" title="Palette color ${index + 1}">
-              <input type="color" value="${escapeHtml(color)}" data-edit-palette="${index}" aria-label="Palette color ${index + 1}">
-            </label>
-          `).join("")}
-        </div>` : ""}
       ${whitelist.includes("board_image_style") ? `
         <label class="editor-style">Style
           <select data-edit-style>
@@ -59,14 +50,28 @@ export function editorConflictMarkup(editor) {
   </div>`;
 }
 
-function selectionMarkup() {
+function selectionMarkup(editor) {
+  const selected = selectedInstance(editor);
   return `
-    <p class="editor-meta editor-meta-empty" data-editor-meta>${editorMetaText(null)}</p>
-    <div class="editor-buttons" data-editor-buttons hidden>
-      <button type="button" data-edit-action="lock" data-editor-lock aria-pressed="false">Lock</button>
+    <p class="editor-meta${selected ? "" : " editor-meta-empty"}">${escapeHtml(editorMetaText(selected))}</p>
+    <div class="editor-buttons" data-editor-buttons ${selected ? "" : "hidden"}>
+      <button type="button" data-edit-action="lock" aria-pressed="${Boolean(selected?.locked)}">${selected?.locked ? "Unlock" : "Lock"}</button>
       <button type="button" class="negative" data-edit-action="remove">Remove</button>
     </div>
   `;
+}
+
+/** World-authoring sidebar settings, deliberately absent from the gameplay dock. */
+export function editorSettingsView(state) {
+  const editor = state.editor;
+  if (!editor) return "";
+  return `<section class="editor-settings" aria-label="Room editing settings">
+    <strong>Room appearance</strong>
+    ${environmentRow(state, editor)}
+    <strong>${escapeHtml(editorSelectedName(editor, selectedInstance(editor)))}</strong>
+    ${selectionMarkup(editor)}
+    ${snapRow(editor)}
+  </section>`;
 }
 
 function snapRow(editor) {
@@ -83,11 +88,11 @@ function snapRow(editor) {
  *
  * Prop-instance and selection data are deliberately excluded: the panel's
  * dynamic regions (selected name, meta line, undo/save chrome, conflict banner)
- * are patched in place by `cards.renderEditor` so the prop library, its image
+ * are patched in place by `createEditorDock` so the prop library, its image
  * tiles, and scroll/focus are mounted once per catalog change.
  */
-export function editRoomView(state) {
-  const canEdit = Boolean(state?.room?.canEditRoom);
+export function editRoomView(state, { authoring = false } = {}) {
+  const canEdit = authoring || Boolean(state?.room?.canEditRoom);
   if (!canEdit) {
     return `
       <section class="edit-room-view editor-dock-panel locked-state" role="region" aria-label="Edit Room">
@@ -110,27 +115,22 @@ export function editRoomView(state) {
         <strong>Edit Room</strong>
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
-        <button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>
+        ${authoring ? "" : '<button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>'}
         <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
         <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
-        <span class="editor-status" role="status" data-editor-status>All changes saved</span>
+        <span class="editor-status" role="status" data-editor-status>${authoring ? "Draft saved" : "All changes saved"}</span>
+      </header>
         <div class="editor-heading-tags" role="group" aria-label="Filter by tag">
           ${libraryTagMarkup(library)}
           <span class="editor-library-count" role="status"></span>
         </div>
-      </header>
       <div data-editor-conflict>${editorConflictMarkup(editor)}</div>
       <div class="editor-workspace">
-        <div class="editor-env">
-          ${environmentRow(state, editor)}
-          <div class="editor-selection" data-editor-selection>${selectionMarkup()}</div>
-          ${snapRow(editor)}
-        </div>
         <div class="editor-propsets" role="list" aria-label="Prop sets">
           ${libraryPropsetMarkup(library)}
         </div>
         <section class="editor-library-section">
-          <div class="editor-library-grid" role="list" aria-label="Approved decorative props">
+          <div class="editor-library-grid" role="list" aria-label="${authoring ? "World props" : "Approved decorative props"}">
             ${libraryGridMarkup(library)}
           </div>
           <p class="editor-library-empty empty-state" hidden>No props match your filters.</p>

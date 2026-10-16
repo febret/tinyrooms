@@ -33,7 +33,6 @@ function roomPanel(state) {
   const environment = room.editor && Array.isArray(room.editor.environment) ? room.editor.environment : [];
   const initialCards = Array.isArray(room.cards) ? room.cards : [];
   const exits = Object.entries(room.exits || {});
-  const cards = (catalog?.cards || []).map(card => ({ value: card.id, label: `${card.label} (${card.id})` }));
   const roomOptions = Object.keys(draft.rooms || {}).map(id => ({ value: id, label: id }));
   return `
     ${panelHeader(room.label || roomId, `Room · ${roomId}`)}
@@ -43,8 +42,6 @@ function roomPanel(state) {
       ${field("Description", textarea(room.description, `data-room-field="description"`, 3))}
       ${field("Board type", textInput(room.board_type || "basic", `data-room-field="board_type"`))}
       ${field("Board image", `<select data-room-field="board_image">${selectOptions(catalog?.board_images || [], room.board_image)}</select>`)}
-      ${field("Board image style", `<select data-room-field="board_image_style">${selectOptions(catalog?.board_image_styles || [], room.board_image_style || "stretch")}</select>`)}
-      ${field("Palette (comma-separated hex)", textInput((room.palette || []).join(", "), `data-room-field="palette"`))}
       <div class="field-row">
         <label class="mini-check">${checkbox(Boolean(room.dark), `data-room-field="dark"`)} dark</label>
         <label class="mini-check">${checkbox(Boolean(room.template), `data-room-field="template"`)} template</label>
@@ -55,17 +52,7 @@ function roomPanel(state) {
         <label class="mini-check">${checkbox(environment.includes("board_image_style"), `data-room-editor-env="board_image_style"`)} board_image_style</label>
       </fieldset>
       ${field("Aura (JSON list)", textarea(JSON.stringify(room.aura || []), `data-room-field="aura"`, 3))}
-      <fieldset class="subgroup">
-        <legend>Initial room cards</legend>
-        ${initialCards.map((card, index) => `
-          <div class="list-row">
-            <select data-card-field="${index}:card">${selectOptions(cards, card.card)}</select>
-            <input type="number" data-card-field="${index}:quantity" min="1" value="${escapeHtml(card.quantity ?? 1)}" aria-label="Quantity">
-            <button type="button" class="icon-button" data-card-delete="${index}" aria-label="Delete card">✕</button>
-          </div>
-        `).join("") || '<p class="empty-state">No initial cards.</p>'}
-        <button type="button" class="quiet" data-card-add>Add card</button>
-      </fieldset>
+      ${field("Initial room cards (comma)", textInput(initialCards.map(card => card.card).join(", "), `data-room-field="cards"`))}
       <fieldset class="subgroup">
         <legend>Exits</legend>
         ${exits.map(([exitId, exit]) => `
@@ -78,17 +65,6 @@ function roomPanel(state) {
           </div>
         `).join("") || '<p class="empty-state">No exits.</p>'}
         <button type="button" class="quiet" data-exit-add>Add exit</button>
-      </fieldset>
-      <fieldset class="subgroup">
-        <legend>Prop library</legend>
-        <div class="prop-library" role="list">
-          ${(catalog?.props || []).map(prop => `
-            <button type="button" class="prop-tile" role="listitem" data-prop-add="${escapeHtml(prop.id)}" title="${escapeHtml(prop.label)}">
-              <img data-thumb-model="${escapeHtml(prop.model_url)}" data-thumb-scale="${escapeHtml(prop.scale)}" alt="" aria-hidden="true">
-              <span>${escapeHtml(prop.label)}</span>
-            </button>
-          `).join("")}
-        </div>
       </fieldset>
       <button type="button" class="negative" data-room-delete="${escapeHtml(roomId)}">Delete room</button>
     </div>

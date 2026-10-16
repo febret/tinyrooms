@@ -93,7 +93,26 @@ body {
   grid-template-rows: auto 1fr;
   min-height: 0;
   position: relative;
+  min-width: 0;
 }
+
+.we-board-pane { display: grid; grid-template-rows: minmax(160px, 1fr) 240px; }
+.we-editor-dock { min-width: 0; min-height: 0; background: #030b0e; border-top: 1px solid var(--line); }
+.we-board-pane[hidden] { display: none; }
+.we-board-pane.is-previewing { grid-template-rows: minmax(160px, 1fr); }
+.we-editor-dock[hidden] { display: none; }
+.we-toast:empty { display: none; }
+.card-select-button { padding: 2px 5px; font-size: 11px; white-space: nowrap; }
+.card-selector { width: min(1100px, 96vw); max-height: 92vh; padding: 12px; background: #061923; color: #f3f3ef; border: 1px solid #ffffff26; }
+.card-selector::backdrop { background: #000a; }
+.card-selector header, .card-selector footer, .card-selector-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.card-selector header h2 { flex: 1; margin: 0; font-size: 18px; }
+.card-selector footer { margin: 8px 0 0; justify-content: flex-end; }
+.card-selector-filters input, .card-selector-filters select { padding: 5px; background: #0b1a23; color: inherit; border: 1px solid #ffffff26; }
+.card-selector [data-card-results] { overflow: auto; max-height: 65vh; }
+.card-selector .card-tile { cursor: pointer; }
+.card-selector .card-tile.is-selected { border-color: #6faea4; background: #12332f; }
+.we-editor-dock .editor-status { display: none; }
 
 .we-tabs {
   display: flex;
@@ -564,4 +583,6 @@ button.quiet {
   .board-frame {
     min-height: 50vh;
   }
+
+  .we-board-pane { grid-template-rows: minmax(50vh, 1fr) 240px; }
 }

@@ -25,6 +25,7 @@ export function createStore() {
     status: "",
     error: "",
     savedSnapshot: null,
+    editorSettings: { snapPosition: true, snapRotation: false, locks: {} },
   };
   const listeners = new Set();
 
@@ -111,6 +112,9 @@ export function createStore() {
     },
     activeTab(tab) {
       set({ activeTab: tab });
+    },
+    editorSettings(settings) {
+      set({ editorSettings: { ...state.editorSettings, ...settings } });
     },
   };
 }
