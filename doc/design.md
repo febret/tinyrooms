@@ -1016,6 +1016,21 @@ currently loaded world. Through the World Editor they can:
 - edit room connections through exits
 - place, edit and delete NPCs
 
+Prop arrangement uses the same compact dock, prop filters, transform handles,
+stacking, and keyboard shortcuts as the in-game room editor.
+World authors can browse all available authoring props without player unlocks.
+The properties sidebar holds appearance controls, selected-prop controls,
+snapping, board images, prop behaviors, exits, and initial cards. Appearance,
+lock/remove buttons, and snap toggles are absent from the in-game dock.
+Transform locks are session-only in
+the world editor; its undo history covers the whole world draft.
+
+Card-valued settings offer a searchable selector using the Card Database grid,
+with all loaded server cardsets available. Single-card fields choose one card;
+contents, rewards, and recipe/weight mappings allow multiple cards. Selection
+survives search and cardset changes, and Apply preserves existing quantities or
+weights for retained cards. Initial room cards can also be added in a batch.
+
 Edits do not affect the running world until an explicit `Publish` action.
 Publishing updates the live world while preserving unrelated inventories, task
 progress, and room-card ownership. Deleting a room requires a single explicit

@@ -270,12 +270,19 @@ See [migrations](../server/state/migrations.py) and [profiles](../server/profile
 ### 8.3 Deployment and upgrades
 
 [Deploy invocation](../README.md#deploying) and [tools/deploy.py](../tools/deploy.py)
-are the entry points. Passwordless SSH is required; missing nginx and Python
+are the entry points. One command handles fresh hosts and upgrades, with default
+root `~/tinyrooms`; there is no operation selector. Existing installs under
+`~/.local/tinyrooms` must continue passing that root explicitly or be migrated
+separately. Passwordless SSH is required; missing nginx and Python
 venv/pip packages are installed via apt/noninteractive sudo. Remote uploads
 require `flock`, `stat`, and `sha256sum`: interrupted streams resume from their
 remote byte offset and verify size/SHA-256 before installation. Releases include
-their requirements; deployment installs them in the shared venv and repoints
-`versions/latest`. Cron runs keepalive at reboot and every minute.
+their requirements; deployment installs them in the shared venv before repointing
+`versions/latest`. It refreshes the fixed proxy and keepalive, restarts MC once,
+and waits up to a minute for the expected version to answer its session API over
+loopback HTTPS, then verifies operator login using the passphrase sourced from
+`admin.env`. Failed readiness reports the MC log path. Cron runs keepalive at
+reboot and every minute.
 
 nginx has a **fixed root proxy to loopback MC only**: TCP 80 redirects to HTTPS;
 443 serves player entry `https://<hostname>/` and operator UI
@@ -290,8 +297,11 @@ Deployment writes `<rootdir>/admin.env` with wildcard world bind
 port bounds `10000..10999`, empty MC base path, public entry origin, shared
 users/content, and keepalive path. Worlds reuse nginx's
 `<rootdir>/nginx/certs/server.crt` / `server.key` through the paired instance TLS
-settings. Bootstrap uses self-signed TLS and `TRSERVER_MC_INSECURE_TLS=1` for
-management; this is not the future hardened production launch path.
+settings. On a fresh host, deployment generates self-signed TLS and defaults to
+`TRSERVER_MC_INSECURE_TLS=1` for management. Existing certificate/key files are
+reused and checked for readability, certificate expiry, and matching public keys;
+an incomplete/invalid pair fails deployment rather than being overwritten.
+This is not the future hardened production launch path.
 
 **Operator requirements:**
 
@@ -304,6 +314,10 @@ management; this is not the future hardened production launch path.
   `TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE` for a stable invitation. Keepalive sources
   the file on startup; after editing, explicitly **Reboot** MC. Deployment also
   restarts it. Coordinate token changes with participating external worlds.
+- Direct-world bind, hostname, port-range, TLS, heartbeat, management TLS, install
+  path, and mod settings in `admin.env` are retained across upgrades; corresponding
+  deploying-shell settings override them. Deployment-owned paths, MC listener,
+  root base path, entry origin, and keepalive path are regenerated for the target.
 - Upgrades refresh the fixed nginx proxy and restart MC. Already-running legacy
   worlds require stable identity, direct-public bind/URL settings, and a world
   version supporting direct entry before use as player destinations.

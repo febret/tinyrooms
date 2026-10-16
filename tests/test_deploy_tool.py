@@ -94,12 +94,16 @@ class VersionTests(unittest.TestCase):
 
 class ParseArgsTests(unittest.TestCase):
     def test_keep_version_flag(self) -> None:
-        args = deploy.parse_args(["example.com", "~/.local/tinyrooms", "deploy", "--keep-version"])
-        self.assertTrue(args.keep_version)
+        for flag in ("--keep-version", "--keepversion"):
+            with self.subTest(flag=flag):
+                args = deploy.parse_args(["example.com", "~/tinyrooms", flag])
+                self.assertTrue(args.keep_version)
+                self.assertEqual(args.rootdir, "~/tinyrooms")
 
     def test_keep_version_defaults_off(self) -> None:
         args = deploy.parse_args(["example.com"])
         self.assertFalse(args.keep_version)
+        self.assertEqual(args.rootdir, "~/tinyrooms")
 
 
 class KeepaliveTests(unittest.TestCase):
@@ -172,14 +176,20 @@ class AdminEnvTests(unittest.TestCase):
         self.assertNotIn("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE", values)
 
     def test_preserves_operator_secrets(self) -> None:
+        existing = {
+            "TRSERVER_MC_PASSPHRASE": "operator-passphrase", "TRSERVER_MC_TOKEN": "shared-secret",
+            "TRSERVER_MC_INSTANCE_PORT_MIN": "12000", "TRSERVER_MC_INSTANCE_PORT_MAX": "12099",
+            "TRSERVER_MC_INSTANCE_CERTFILE": "/custom/cert.pem", "TRSERVER_MC_INSTANCE_KEYFILE": "/custom/key.pem",
+            "TRSERVER_MC_HEARTBEAT_SECONDS": "10",
+        }
         values = deploy.admin_env_values(
             "/home/u/.local/tinyrooms",
             "example.com",
             self.REGISTRY,
-            {"TRSERVER_MC_PASSPHRASE": "operator-passphrase", "TRSERVER_MC_TOKEN": "shared-secret"},
+            existing,
         )
-        self.assertEqual(values["TRSERVER_MC_PASSPHRASE"], "operator-passphrase")
-        self.assertEqual(values["TRSERVER_MC_TOKEN"], "shared-secret")
+        for key, value in existing.items():
+            self.assertEqual(values[key], value, key)
 
     def test_local_environment_overrides_existing_secret(self) -> None:
         values = deploy.admin_env_values(

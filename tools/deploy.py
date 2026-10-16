@@ -1,13 +1,12 @@
 """Deploy Tinyrooms distributions to remote hosts over SSH.
 
 Usage:
-    python tools/deploy.py <host> [rootdir] [type] [-u USER] [--dirty] [--keep-version]
+    python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version]
 
 ``host`` may be a bare hostname or ``user@host``; ``-u/--user`` overrides the
-SSH user. ``bootstrap`` prepares a host (directories, nginx reverse proxy, TLS
-certificate, mission-control keepalive) and then runs a ``deploy``. ``deploy``
-bumps the patch version, packages the working tree with its dependency manifest,
-uploads it, and repoints the ``latest`` symlink. ``--keep-version`` reuses the
+SSH user. Each deployment prepares missing host infrastructure, packages and
+uploads the release, installs dependencies, then activates it and checks Mission
+Control readiness. The default root is ``~/tinyrooms``. ``--keep-version`` reuses the
 newest recorded version instead of bumping, overwriting that release both
 locally and on the server.
 
@@ -36,8 +35,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = REPO_ROOT / "version.json"
 RELEASES_DIR = REPO_ROOT / "releases"
-DEFAULT_ROOT = "~/.local/tinyrooms"
-DEFAULT_TYPE = "bootstrap"
+DEFAULT_ROOT = "~/tinyrooms"
 ADMIN_SERVICE = "admin"
 SERVICE_BASE_PORT = 8001
 SSH_OPTIONS = (
@@ -170,6 +168,13 @@ def ensure_dirs(host: str, root: str) -> None:
     run_remote(host, f"mkdir -p {remote_path(root, 'mods')} {remote_path(root, 'worlds')} "
                      f"{remote_path(root, 'cardsets')} {remote_path(root, 'propsets')} "
                      f"{remote_path(root, 'releases')} {remote_path(root, 'logs')} {remote_path(root, 'versions')}")
+
+
+def check_remote_prerequisites(host: str) -> None:
+    """Fail before preparing a release if required remote tools are missing."""
+
+    run_remote(host, "for tool in bash python3 openssl tar stat sha256sum flock ss crontab systemctl sudo pgrep; do "
+                     'command -v "$tool" >/dev/null || { printf "Missing required tool: %s\\n" "$tool" >&2; exit 1; }; done')
 
 
 def ensure_python_env(host: str, root: str) -> None:
@@ -360,17 +365,21 @@ def upload_release(host: str, root: str, version: str, tarball: Path, *, overwri
     else:
         run_remote(host, f"mkdir -p {release_dir}")
     run_remote(host, f"tar -xzf {remote_path(root, 'releases', tarball.name)} -C {release_dir}")
-    run_remote(host, f"ln -sfn {release_dir} {remote_path(root, 'versions', 'latest')}")
-    print(f"Deployed version {version} to {host}:{root}/versions/{version}")
+    print(f"Uploaded version {version} to {host}:{root}/versions/{version}")
 
 
 def deploy(
-    host: str, server_name: str, root: str, dirty: bool, *, restart: bool = True, keep_version: bool = False
+    host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False
 ) -> str:
     """Package and deploy a version, returning its label."""
 
     if not dirty and git_dirty():
         raise DeployError("Uncommitted tracked changes detected. Commit them or pass --dirty.")
+    check_remote_prerequisites(host)
+    ensure_dirs(host, root)
+    ensure_python_env(host, root)
+    registry = write_services(host, root)
+    ensure_nginx(host, server_name, root, registry)
     if keep_version:
         version = current_version()
     else:
@@ -378,17 +387,14 @@ def deploy(
         if not dirty:
             tag_version(version)
     tarball = package(version, dirty)
-    ensure_dirs(host, root)
-    ensure_python_env(host, root)
     upload_release(host, root, version, tarball, overwrite=keep_version)
     install_requirements(host, root, version)
-    registry = write_services(host, root)
     write_admin_env(host, root, server_name, registry)
-    if restart:
-        refresh_nginx(host, server_name, root, registry)
     ensure_keepalive(host, root)
-    if restart:
-        restart_admin(host, root)
+    run_remote(host, f"ln -sfn {remote_path(root, 'versions', version)} {remote_path(root, 'versions', 'latest')}")
+    restart_admin(host, root)
+    wait_for_admin(host, root, int(registry[ADMIN_SERVICE]["port"]), version)
+    print(f"Deployed version {version}; Mission Control is ready at https://{server_name}/")
     return version
 
 
@@ -436,19 +442,26 @@ def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dic
         print("Installing nginx via apt...")
         run_remote(host, "sudo -n apt-get update && sudo -n apt-get install -y nginx")
     cert_dir = remote_path(root, "nginx", "certs")
+    cert = remote_path(root, "nginx", "certs", "server.crt")
+    key = remote_path(root, "nginx", "certs", "server.key")
     run_remote(
         host,
-        f"mkdir -p {cert_dir} && "
-        f"test -f {remote_path(root, 'nginx', 'certs', 'server.crt')} || "
+        "set -e; "
+        f"mkdir -p {cert_dir}; "
+        f"if [ ! -e {cert} ] && [ ! -e {key} ]; then "
+        "umask 077; "
         f"openssl req -x509 -newkey rsa:2048 -nodes "
-        f"-keyout {remote_path(root, 'nginx', 'certs', 'server.key')} "
-        f"-out {remote_path(root, 'nginx', 'certs', 'server.crt')} "
+        f"-keyout {key} -out {cert} "
         f"-days 825 -subj {shlex.quote(f'/CN={server_name}')} "
-        f"-addext {shlex.quote(f'subjectAltName=DNS:{server_name}')}",
+        f"-addext {shlex.quote(f'subjectAltName=DNS:{server_name}')} || exit 1; fi; "
+        f"test -r {cert} && test -r {key} && "
+        f"openssl x509 -in {cert} -noout -checkend 0 && "
+        f"cert_public=$(openssl x509 -in {cert} -pubkey -noout) && "
+        f"key_public=$(openssl pkey -in {key} -passin pass: -pubout) && "
+        '[ "$cert_public" = "$key_public" ]',
     )
-    refresh_nginx(host, server_name, root, registry)
     run_remote(host, "sudo -n systemctl enable nginx >/dev/null 2>&1 || true")
-    run_remote(host, "sudo -n systemctl restart nginx || sudo -n systemctl start nginx")
+    refresh_nginx(host, server_name, root, registry)
     print("nginx configured.")
 
 
@@ -557,6 +570,16 @@ def admin_env_values(
         "TRSERVER_MC_KEEPALIVE": f"{root.rstrip('/')}/keepalive.sh",
         "TRSERVER_MC_INSECURE_TLS": "1",
     }
+    for key in (
+        "TRSERVER_MC_HEARTBEAT_SECONDS", "TRSERVER_MC_CA_FILE", "TRSERVER_MC_INSECURE_TLS",
+        "TRSERVER_MC_INSTALL_PATH", "TRSERVER_MC_INSTANCE_HOST", "TRSERVER_MC_INSTANCE_PUBLIC_HOST",
+        "TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME", "TRSERVER_MC_INSTANCE_PORT_MIN", "TRSERVER_MC_INSTANCE_PORT_MAX",
+        "TRSERVER_MC_INSTANCE_CERTFILE", "TRSERVER_MC_INSTANCE_KEYFILE", "TRSERVER_MODS",
+    ):
+        if key in provided:
+            lines[key] = provided[key]
+        elif key in existing:
+            lines[key] = existing[key]
     new_account_passphrase = (
         provided.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
         or existing.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
@@ -621,14 +644,6 @@ def ensure_keepalive(host: str, root: str) -> None:
         )
 
 
-def setup_mission_control(host: str, root: str, host_name: str, registry: dict[str, dict[str, object]]) -> None:
-    """Install the keepalive script, crontab entries, and start the server."""
-
-    ensure_keepalive(host, root)
-    run_remote(host, f"bash {remote_path(root, 'keepalive.sh')}")
-    print("Mission control keepalive installed and started.")
-
-
 def restart_admin(host: str, root: str) -> None:
     """Stop tracked or orphaned admin processes before starting the keepalive."""
 
@@ -651,23 +666,45 @@ def restart_admin(host: str, root: str) -> None:
     run_remote(host, f"bash -c {shlex.quote(script)}")
 
 
-def bootstrap(host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False) -> None:
-    """Prepare the host and deploy the first version."""
+def wait_for_admin(host: str, root: str, port: int, version: str) -> None:
+    """Verify the running build and operator login against the deployed env file."""
 
-    ensure_dirs(host, root)
-    ensure_python_env(host, root)
-    registry = write_services(host, root)
-    ensure_nginx(host, server_name, root, registry)
-    deploy(host, server_name, root, dirty, restart=False, keep_version=keep_version)
-    setup_mission_control(host, root, server_name, registry)
-
-
-def resolve_operation(operation: str | None, keep_version: bool) -> str:
-    """Return the operation to run, defaulting to ``deploy`` when keeping a version."""
-
-    if operation:
-        return operation
-    return "deploy" if keep_version else DEFAULT_TYPE
+    script = (
+        "import http.cookiejar, json, os, ssl, time, urllib.request\n"
+        f"base = 'https://127.0.0.1:{port}'\n"
+        "url = base + '/api/mission-control/session'\n"
+        "context = ssl._create_unverified_context()\n"
+        "deadline = time.monotonic() + 60\n"
+        "error = 'No response'\n"
+        "while time.monotonic() < deadline:\n"
+        "    try:\n"
+        "        with urllib.request.urlopen(url, context=context, timeout=2) as response:\n"
+        "            data = json.load(response)\n"
+        f"        if data.get('ok') is True and data.get('version') == {version!r}:\n"
+        "            break\n"
+        "        error = 'Unexpected Mission Control response: ' + repr(data)\n"
+        "    except Exception as exc:\n"
+        "        error = str(exc)\n"
+        "    time.sleep(1)\n"
+        "else:\n"
+        f"    raise SystemExit('Mission Control did not become ready; check ' + {root + '/logs/admin.log'!r} + ': ' + error)\n"
+        "opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context),\n"
+        "    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))\n"
+        "request = urllib.request.Request(base + '/api/mission-control/auth/login',\n"
+        "    data=json.dumps({'passphrase': os.environ['TRSERVER_MC_PASSPHRASE']}).encode(),\n"
+        "    headers={'Content-Type': 'application/json', 'Origin': os.environ['TRSERVER_MC_PUBLIC_ORIGIN']})\n"
+        "try:\n"
+        "    with opener.open(request, timeout=5) as response:\n"
+        "        authenticated = json.load(response).get('ok') is True\n"
+        "    with opener.open(url, timeout=5) as response:\n"
+        "        authenticated = authenticated and json.load(response).get('logged_in') is True\n"
+        "    if not authenticated:\n"
+        "        raise ValueError('Operator session was not established')\n"
+        "except Exception as exc:\n"
+        "    raise SystemExit('Mission Control operator login does not match admin.env: ' + str(exc))\n"
+    )
+    run_remote(host, f"set -a; . {remote_path(root, 'admin.env')}; set +a; "
+                     f"{remote_path(root, 'venv', 'bin', 'python')} -c {shlex.quote(script)}")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -676,17 +713,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deploy Tinyrooms to a remote host.")
     parser.add_argument("host", help="Remote hostname or user@hostname (passwordless SSH access required).")
     parser.add_argument("rootdir", nargs="?", default=DEFAULT_ROOT, help=f"Deployment root (default: {DEFAULT_ROOT}).")
-    parser.add_argument(
-        "type",
-        nargs="?",
-        default=None,
-        choices=("bootstrap", "deploy"),
-        help=f"Operation to run (default: {DEFAULT_TYPE}, or deploy when --keep-version is set).",
-    )
     parser.add_argument("-u", "--user", help="SSH user; overrides any user embedded in the host argument.")
     parser.add_argument("--dirty", action="store_true", help="Package uncommitted changes and skip git tagging.")
     parser.add_argument(
         "--keep-version",
+        "--keepversion",
         action="store_true",
         help="Reuse the newest recorded version and overwrite that release instead of bumping it.",
     )
@@ -705,17 +736,13 @@ def resolve_target(host_spec: str, user: str | None) -> tuple[str, str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the requested deployment operation."""
+    """Prepare the remote host and deploy a release."""
 
     args = parse_args(argv)
     try:
         ssh_target, server_name = resolve_target(args.host, args.user)
         root = resolve_root(ssh_target, args.rootdir)
-        operation = resolve_operation(args.type, args.keep_version)
-        if operation == "bootstrap":
-            bootstrap(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version)
-        else:
-            deploy(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version)
+        deploy(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version)
     except DeployError as exc:
         print(f"deploy: {exc}", file=sys.stderr)
         return 1
