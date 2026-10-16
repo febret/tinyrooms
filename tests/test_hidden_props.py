@@ -79,20 +79,20 @@ class HiddenRoomLayoutTests(ServiceTestCase):
             self.environment,
             self.prop_shop,
         )
-        self.owner = self.create_account("alice", room="hub")
-        self.ownership.grant("hub", self.owner.id)
+        self.owner = self.create_account("alice", room="bathroom")
+        self.ownership.grant("bathroom", self.owner.id)
 
     def test_hidden_prop_is_absent_from_editor_library_and_instances(self) -> None:
-        view = self.layout.view(self.owner, "hub")
+        view = self.layout.view(self.owner, "bathroom")
         self.assertNotIn("plant", {entry["prop_id"] for entry in view["library"]})
-        self.assertNotIn("welcome-plant", {entry["id"] for entry in view["props"]})
-        self.assertNotIn("welcome-plant", {prop.id for prop in self.layout.effective_props("hub")})
+        self.assertNotIn("fern0", {entry["id"] for entry in view["props"]})
+        self.assertNotIn("fern0", {prop.id for prop in self.layout.effective_props("bathroom")})
 
     def test_saving_visible_layout_preserves_hidden_instances(self) -> None:
-        base = self.layout.view(self.owner, "hub")["revision"]
-        self.layout.save(self.owner, "hub", base, {"props": []})
-        stored = self.world_state.read_room_layout("hub")["props"] or []
-        self.assertIn("welcome-plant", {entry["id"] for entry in stored})
+        base = self.layout.view(self.owner, "bathroom")["revision"]
+        self.layout.save(self.owner, "bathroom", base, {"props": []})
+        stored = self.world_state.read_room_layout("bathroom")["props"] or []
+        self.assertIn("fern0", {entry["id"] for entry in stored})
 
 
 class HiddenPropShopTests(ServiceTestCase):
@@ -121,6 +121,7 @@ class HiddenWorldEditorTests(ServiceTestCase):
             world=world,
             cards=SimpleNamespace(serialize_definition=lambda definition: {"id": definition.id}),
             catalog=SimpleNamespace(cards={}),
+            card_database_service=lambda: SimpleNamespace(payload=lambda: {}),
         )
         payload = _catalog_payload(runtime)
         self.assertNotIn("plant", {prop["id"] for prop in payload["props"]})

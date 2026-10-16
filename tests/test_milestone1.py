@@ -71,6 +71,12 @@ class RuntimeTestCase(unittest.TestCase):
             },
             repo_root=REPO_ROOT,
         )
+        self.config = replace(
+            self.config,
+            local_path=self.runtime_path,
+            drafts_path=self.runtime_path / "drafts",
+            revisions_path=self.runtime_path / "revisions",
+        )
         self._open_client()
 
     def tearDown(self) -> None:
@@ -260,7 +266,7 @@ class ContentPersistenceTests(unittest.TestCase):
         self.assertEqual(world.props["portal"].animation, "auto")
         self.assertIsNone(world.rooms["hub"].props["portal0"].animation)
         self.assertIsNone(world.props["plant"].animation)
-        self.assertIsNone(world.rooms["hub"].props["welcome-plant"].animation)
+        self.assertIsNone(world.rooms["kitchen"].props["kitchen-plant"].animation)
 
     def test_quick_action_default_flag_loader(self) -> None:
         from server.content.worlds import _load_actions
@@ -611,8 +617,6 @@ class MultiplayerGameplayTests(RuntimeTestCase):
             archway = next(entry for entry in room["props"] if entry["id"] == "archway0")
             archway_action = next(action for action in archway["quick_actions"] if action["label"] == "Enter the Bedrooms")
             self.assertNotIn("default", archway_action)
-            plant = next(entry for entry in room["props"] if entry["id"] == "welcome-plant")
-            self.assertIsNone(plant["animation"])
 
     def test_two_clients_chat_and_navigate(self) -> None:
         alice = self.create_ready_account("alice")

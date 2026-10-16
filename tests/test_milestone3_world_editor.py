@@ -118,7 +118,7 @@ class DraftLifecycleTests(WorldEditorServiceTestCase):
         self.assertEqual(info.draft_revision, 1)
         self.assertEqual(rooms_file.read_bytes(), before)
         self.assertTrue(self.service.draft_path().is_file())
-        self.assertEqual(load_test_world(self.world_root).rooms["hub"].label, "The Hub")
+        self.assertEqual(load_test_world(self.world_root).rooms["hub"].label, self.world.rooms["hub"].label)
 
     def test_discard_draft_rebuilds_from_published(self) -> None:
         draft = self.draft()
@@ -126,7 +126,7 @@ class DraftLifecycleTests(WorldEditorServiceTestCase):
         self.service.save_draft(draft)
         self.assertTrue(self.service.discard_draft())
         rebuilt = self.draft()
-        self.assertEqual(rebuilt["rooms"]["hub"]["label"], "The Hub")
+        self.assertEqual(rebuilt["rooms"]["hub"]["label"], self.world.rooms["hub"].label)
         self.assertEqual(rebuilt["draft_revision"], 0)
 
     def test_invalid_structure_is_rejected_on_save(self) -> None:

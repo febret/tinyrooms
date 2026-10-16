@@ -13,6 +13,9 @@ from tests.common import REPO_ROOT, ServiceTestCase, WORLD_ID, load_test_world
 from tests.test_milestone1 import auth_cookies, auth_headers, websocket_headers
 from tests.test_milestone2_integration import Milestone2IntegrationTestCase
 
+PLANT_ROOM = "bathroom"
+PLANT_INSTANCE = "fern0"
+
 
 class RoomLayoutServiceTests(ServiceTestCase):
     """Validation, permission, and atomicity of the layout service."""
@@ -72,38 +75,38 @@ class RoomLayoutServiceTests(ServiceTestCase):
             self.layout.save(stranger, "hub", 0, {"props": []})
 
     def test_transform_bounds_scale_and_rotation_are_validated(self) -> None:
-        owner = self.owner()
-        base = self.layout.view(owner, "hub")["revision"]
+        owner = self.owner(room=PLANT_ROOM)
+        base = self.layout.view(owner, PLANT_ROOM)["revision"]
         with self.assertRaises(ValueError):
-            self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "welcome-plant") | {"position": [150, 10, 0]}]})
+            self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"position": [150, 10, 0]}]})
         with self.assertRaises(ValueError):
-            self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "welcome-plant") | {"position": [10, 10, 99]}]})
+            self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"position": [10, 10, 99]}]})
         with self.assertRaises(ValueError):
-            self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "welcome-plant") | {"scale": 99}]})
+            self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"scale": 99}]})
         update = self.layout.save(
             owner,
-            "hub",
+            PLANT_ROOM,
             base,
-            {"props": [self.editable_instance("plant", "welcome-plant") | {"rotation": [0, 400, -30]}]},
+            {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"rotation": [0, 400, -30]}]},
         )
         self.assertEqual(update.revision, base + 1)
-        plant = next(prop for prop in self.layout.effective_props("hub") if prop.id == "welcome-plant")
+        plant = next(prop for prop in self.layout.effective_props(PLANT_ROOM) if prop.id == PLANT_INSTANCE)
         self.assertEqual(plant.rot, (0.0, 40.0, 330.0))
 
     def test_invalid_and_duplicate_instance_ids_are_rejected(self) -> None:
-        owner = self.owner()
-        base = self.layout.view(owner, "hub")["revision"]
+        owner = self.owner(room=PLANT_ROOM)
+        base = self.layout.view(owner, PLANT_ROOM)["revision"]
         with self.assertRaises(ValueError):
             self.layout.save(
                 owner,
-                "hub",
+                PLANT_ROOM,
                 base,
-                {"props": [self.editable_instance("plant", "welcome-plant"), self.editable_instance("plant", "welcome-plant")]},
+                {"props": [self.editable_instance("plant", PLANT_INSTANCE), self.editable_instance("plant", PLANT_INSTANCE)]},
             )
         with self.assertRaises(ValueError):
-            self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "made-up-id")]})
+            self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", "made-up-id")]})
         with self.assertRaises(ValueError):
-            self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "custom:not-a-uuid")]})
+            self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", "custom:not-a-uuid")]})
 
     def test_non_editable_props_are_rejected_atomically(self) -> None:
         owner = self.owner()
@@ -120,12 +123,12 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.assertEqual(after["props"], before["props"])
 
     def test_stale_revision_conflict_commits_nothing(self) -> None:
-        owner = self.owner()
-        base = self.layout.view(owner, "hub")["revision"]
-        self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "welcome-plant") | {"position": [11, 11, 0]}]})
+        owner = self.owner(room=PLANT_ROOM)
+        base = self.layout.view(owner, PLANT_ROOM)["revision"]
+        self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"position": [11, 11, 0]}]})
         with self.assertRaises(LayoutRevisionConflict):
-            self.layout.save(owner, "hub", base, {"props": []})
-        layout = self.world_state.read_room_layout("hub")
+            self.layout.save(owner, PLANT_ROOM, base, {"props": []})
+        layout = self.world_state.read_room_layout(PLANT_ROOM)
         self.assertEqual(layout["revision"], base + 1)
         self.assertEqual(layout["props"][0]["position"], [11.0, 11.0, 0.0])
 
@@ -154,39 +157,39 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.assertNotIn("lighting", update.environment)
 
     def test_atomic_save_failure_preserves_previous_layout(self) -> None:
-        owner = self.owner()
-        base = self.layout.view(owner, "hub")["revision"]
-        first = self.layout.save(owner, "hub", base, {"props": [self.editable_instance("plant", "welcome-plant") | {"position": [25, 25, 0]}]})
+        owner = self.owner(room=PLANT_ROOM)
+        base = self.layout.view(owner, PLANT_ROOM)["revision"]
+        first = self.layout.save(owner, PLANT_ROOM, base, {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"position": [25, 25, 0]}]})
         with self.assertRaises(ValueError):
             self.layout.save(
                 owner,
-                "hub",
+                PLANT_ROOM,
                 first.revision,
                 {
                     "props": [
-                        self.editable_instance("plant", "welcome-plant") | {"position": [30, 30, 0]},
+                        self.editable_instance("plant", PLANT_INSTANCE) | {"position": [30, 30, 0]},
                         self.editable_instance("portal", "portal0"),
                     ]
                 },
             )
-        plant = next(prop for prop in self.layout.effective_props("hub") if prop.id == "welcome-plant")
+        plant = next(prop for prop in self.layout.effective_props(PLANT_ROOM) if prop.id == PLANT_INSTANCE)
         self.assertEqual(plant.pos, (25.0, 25.0, 0.0))
-        self.assertEqual(self.world_state.read_room_layout("hub")["revision"], first.revision)
+        self.assertEqual(self.world_state.read_room_layout(PLANT_ROOM)["revision"], first.revision)
 
     def test_effective_props_merge_non_editable_and_allow_removal(self) -> None:
-        owner = self.owner()
-        initial = {prop.id for prop in self.layout.effective_props("hub")}
-        self.assertIn("portal0", initial)
-        self.assertIn("welcome-plant", initial)
-        base = self.layout.view(owner, "hub")["revision"]
-        self.layout.save(owner, "hub", base, {"props": []})
-        remaining = {prop.id for prop in self.layout.effective_props("hub")}
-        self.assertIn("portal0", remaining)
-        self.assertNotIn("welcome-plant", remaining)
+        owner = self.owner(room=PLANT_ROOM)
+        initial = {prop.id for prop in self.layout.effective_props(PLANT_ROOM)}
+        self.assertIn("litter0", initial)
+        self.assertIn(PLANT_INSTANCE, initial)
+        base = self.layout.view(owner, PLANT_ROOM)["revision"]
+        self.layout.save(owner, PLANT_ROOM, base, {"props": []})
+        remaining = {prop.id for prop in self.layout.effective_props(PLANT_ROOM)}
+        self.assertIn("litter0", remaining)
+        self.assertNotIn(PLANT_INSTANCE, remaining)
 
     def test_view_library_exposes_editable_and_propset_props(self) -> None:
-        owner = self.owner()
-        view = self.layout.view(owner, "hub")
+        owner = self.owner(room=PLANT_ROOM)
+        view = self.layout.view(owner, PLANT_ROOM)
         library = {entry["prop_id"] for entry in view["library"]}
         propset_props = {
             definition.id
@@ -299,47 +302,47 @@ class RoomLayoutServiceTests(ServiceTestCase):
         self.assertIn(custom_id, {prop.id for prop in self.layout.effective_props("hub")})
 
     def test_custom_prop_instances_can_be_added(self) -> None:
-        owner = self.owner()
-        base = self.layout.view(owner, "hub")["revision"]
+        owner = self.owner(room=PLANT_ROOM)
+        base = self.layout.view(owner, PLANT_ROOM)["revision"]
         custom_id = "custom:00000000-0000-4000-8000-000000000001"
         update = self.layout.save(
             owner,
-            "hub",
+            PLANT_ROOM,
             base,
             {"props": [self.editable_instance("plant", custom_id)]},
         )
         self.assertEqual(update.revision, base + 1)
-        self.assertIn(custom_id, {prop.id for prop in self.layout.effective_props("hub")})
+        self.assertIn(custom_id, {prop.id for prop in self.layout.effective_props(PLANT_ROOM)})
 
     def test_locked_flag_defaults_false_and_round_trips(self) -> None:
-        owner = self.owner()
-        view = self.layout.view(owner, "hub")
-        plant = next(prop for prop in view["props"] if prop["id"] == "welcome-plant")
+        owner = self.owner(room=PLANT_ROOM)
+        view = self.layout.view(owner, PLANT_ROOM)
+        plant = next(prop for prop in view["props"] if prop["id"] == PLANT_INSTANCE)
         self.assertFalse(plant["locked"])
         locked = self.layout.save(
             owner,
-            "hub",
+            PLANT_ROOM,
             view["revision"],
-            {"props": [self.editable_instance("plant", "welcome-plant") | {"locked": True}]},
+            {"props": [self.editable_instance("plant", PLANT_INSTANCE) | {"locked": True}]},
         )
         self.assertEqual(locked.revision, view["revision"] + 1)
-        after = next(prop for prop in self.layout.view(owner, "hub")["props"] if prop["id"] == "welcome-plant")
+        after = next(prop for prop in self.layout.view(owner, PLANT_ROOM)["props"] if prop["id"] == PLANT_INSTANCE)
         self.assertTrue(after["locked"])
         # A locked prop keeps its flag while other props are added.
         unlocked = self.layout.save(
             owner,
-            "hub",
+            PLANT_ROOM,
             locked.revision,
             {
                 "props": [
-                    self.editable_instance("plant", "welcome-plant") | {"locked": False},
+                    self.editable_instance("plant", PLANT_INSTANCE) | {"locked": False},
                     self.editable_instance("plant", "custom:00000000-0000-4000-8000-000000000005"),
                 ]
             },
         )
         self.assertEqual(unlocked.revision, locked.revision + 1)
-        final = {prop["id"]: prop["locked"] for prop in self.layout.view(owner, "hub")["props"]}
-        self.assertFalse(final["welcome-plant"])
+        final = {prop["id"]: prop["locked"] for prop in self.layout.view(owner, PLANT_ROOM)["props"]}
+        self.assertFalse(final[PLANT_INSTANCE])
         self.assertFalse(final["custom:00000000-0000-4000-8000-000000000005"])
 
 
@@ -356,18 +359,18 @@ class RoomLayoutHttpTests(Milestone2IntegrationTestCase):
 
     def test_get_and_save_layout_round_trip(self) -> None:
         credentials = self.create_ready_account("erin")
-        self.grant_ownership(credentials)
+        self.grant_ownership(credentials, PLANT_ROOM)
         cookies = auth_cookies(credentials["session_token"], credentials["csrf_token"])
         headers = auth_headers(credentials["csrf_token"])
-        fetched = self.client.get("/api/rooms/hub/layout", cookies=cookies)
+        fetched = self.client.get(f"/api/rooms/{PLANT_ROOM}/layout", cookies=cookies)
         self.assertEqual(fetched.status_code, 200, fetched.text)
         layout = fetched.json()["layout"]
         self.assertTrue(layout["can_edit"])
         saved = self.client.post(
-            "/api/rooms/hub/layout",
+            f"/api/rooms/{PLANT_ROOM}/layout",
             json={
                 "base_revision": layout["revision"],
-                "patch": {"props": [{"id": "welcome-plant", "prop_id": "plant", "position": [20, 20, 0], "rotation": [0, 0, 0], "scale": 1.0}]},
+                "patch": {"props": [{"id": PLANT_INSTANCE, "prop_id": "plant", "position": [20, 20, 0], "rotation": [0, 0, 0], "scale": 1.0}]},
             },
             headers=headers,
             cookies=cookies,
