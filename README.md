@@ -44,18 +44,6 @@ set `TRSERVER_BASE_PATH` and additional `TRSERVER_PUBLIC_ORIGIN` values.
 MC configuration, shared content, identity, and TLS settings are documented in
 [Mission Control](doc/mission-control.md#3-configuration).
 
-## Dynamic Peeps
-
-The [dynamic-peeps specification](doc/dynamic-peeps.md) describes planned
-LLM-regenerated NPC behavior/dialogue, a separate generation worker, and its
-configuration/content examples. The current feature parser does not accept
-`dynamic_peeps`.
-
-> [!WARNING]
-> The design executes **agent-generated Python inside the game-server process**.
-> It is dev-only and **not safe for production**. Read the blocking hardening
-> gate in the specification's §9 before implementing or enabling it.
-
 ## Mission Control
 
 MC optionally serves public player entry at `/`, operator administration at
@@ -86,20 +74,46 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 [tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
 
 ```bash
-python tools/deploy.py <host> [rootdir] [bootstrap|deploy] [-u USER] [--dirty] [--keep-version]
+python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version]
 ```
 
-`host` accepts `user@host`; `-u` overrides the user. `bootstrap` (default) prepares
-nginx/TLS, directories, dependencies, and cron keepalive, then deploys a version.
-`deploy` bumps the patch version, packages the working tree, uploads it, and
-repoints `versions/latest`. `--dirty` skips the clean-tree check/tagging and marks
-the version dirty. `--keep-version` overwrites the newest recorded release
-locally/remotely and defaults to `deploy` when no operation is specified.
+`host` accepts `user@host`; `-u` overrides the user. The default root is
+`~/tinyrooms`. The same command prepares a fresh host or updates an existing
+installation: it ensures nginx/TLS, directories, and the Python environment,
+uploads a release, installs dependencies, refreshes configuration and cron
+keepalive, then repoints `versions/latest` and restarts Mission Control once.
+It reports success only after the expected MC version answers its session API
+and the operator passphrase sourced from `admin.env` establishes a session.
+Existing TLS files, secrets, and supported operator settings are preserved.
+`--dirty` skips the clean-tree check/tagging and marks the version dirty.
+`--keep-version` (also `--keepversion`) overwrites the newest recorded release locally/remotely instead
+of bumping the patch version.
+
+There is no separate `bootstrap`/`deploy` argument. For an existing installation
+under the former default, pass `~/.local/tinyrooms` explicitly; changing the
+default does not move existing data.
 
 Read [deployment and upgrade instructions](doc/mission-control.md#83-deployment-and-upgrades)
 before hosting or upgrading: they cover direct world ports, certificates,
 firewalls, secrets, resumable uploads, and migration of saved legacy launch
 settings. Deployment does not open firewalls or automatically migrate instances.
+
+### Firewall settings
+To open ports used by multi-world tinyroom setups on google cloud use the gcloud CLI like in the example below:
+```
+gcloud compute instances add-tags tinyrooms-w1 \
+  --project=tinyrooms \
+  --zone=us-east5-a \
+  --tags=tinyrooms-worlds
+
+gcloud compute firewall-rules create tinyrooms-worlds \
+  --project=tinyrooms \
+  --network=default \
+  --direction=INGRESS \
+  --allow=tcp:10000-10999 \
+  --source-ranges=0.0.0.0/0 \
+  --target-tags=tinyrooms-worlds
+```
 
 ## Mods
 
