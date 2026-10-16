@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#061923">
     <title>World Editor · Tinyrooms</title>
     <link rel="icon" href="/assets/stickers/s1.png">
+    <link rel="stylesheet" href="/app/css/tool-base.css">
+    <link rel="stylesheet" href="/app/vendor/drawflow/drawflow.min.css">
     <link rel="stylesheet" href="/world-editor/editor.css">
     <link rel="stylesheet" href="/app/css/editor-dock.css">
     <link rel="stylesheet" href="/app/css/card-catalog.css">
@@ -29,10 +31,25 @@
               <canvas id="we-canvas" aria-label="Three-dimensional room preview"></canvas>
               <div id="we-overlay" class="board-overlay" aria-live="polite"></div>
             </div>
-            <div id="we-editor-dock" class="we-editor-dock"></div>
+            <div id="we-lower" class="we-lower">
+              <div class="we-splitter" role="separator" aria-orientation="horizontal" aria-label="Resize bottom panel" tabindex="0"></div>
+              <nav class="we-tabs" aria-label="Board tools">
+                <button type="button" class="tab" data-lower-tab="props">Props</button>
+                <button type="button" class="tab" data-lower-tab="map">World map</button>
+                <button type="button" class="quiet graph-fit" data-graph-fit="map">Fit</button>
+              </nav>
+              <div id="we-editor-dock" class="we-editor-dock"></div>
+              <div id="we-map-graph" class="we-graph" aria-label="World map graph" hidden></div>
+            </div>
           </section>
-          <section id="we-map-pane" class="we-map-pane" hidden aria-label="World map"></section>
-          <section id="we-systems-pane" class="we-systems-pane" hidden aria-label="Content editors"></section>
+          <section id="we-systems-pane" class="we-systems-pane" hidden aria-label="Content editors">
+            <div id="we-systems-content" class="we-systems-content"></div>
+            <div id="we-dialog-panel" class="we-lower" hidden>
+              <div class="we-splitter" role="separator" aria-orientation="horizontal" aria-label="Resize bottom panel" tabindex="0"></div>
+              <header id="we-dialog-head" class="we-tabs dialog-head"></header>
+              <div id="we-dialog-graph" class="we-graph" aria-label="Dialog graph"></div>
+            </div>
+          </section>
         </main>
         <aside id="we-properties" class="we-properties" aria-label="Properties"></aside>
       </div>

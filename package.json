@@ -12,6 +12,7 @@
     "test:report": "playwright show-report"
   },
   "dependencies": {
+    "drawflow": "^0.0.60",
     "three": "^0.179.1"
   },
   "devDependencies": {

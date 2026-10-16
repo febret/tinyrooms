@@ -8,8 +8,16 @@ import {
 } from "./api.js";
 import { createBoardView } from "./board-view.js";
 import { createStore } from "./store.js";
-import { escapeHtml, parseCsv, parseJson, numberOr, textToActions } from "./util.js";
-import { renderWorldMap } from "./world-map.js";
+import { escapeHtml, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
+import {
+  applyDialogGraphChanges,
+  applyRoomGraphChanges,
+  dialogGraph,
+  removeRoom,
+  roomGraph,
+} from "./graph-model.js";
+import { createGraphView } from "./graph-view.js";
+import { bindPanelSplitters } from "./panel-splitter.js";
 import { renderRoomList } from "./panels/rooms.js";
 import { renderProperties } from "./panels/properties.js";
 import { renderValidation } from "./panels/validation.js";
@@ -41,20 +49,44 @@ const thumbnails = createThumbnailManager();
 let roomFilter = "";
 let previewing = false;
 let pendingConfirm = null;
+let lowerTab = "props";
 
 const elements = {
   toolbar: document.getElementById("we-toolbar"),
   rooms: document.getElementById("we-rooms"),
   tabs: document.getElementById("we-tabs"),
   boardPane: document.getElementById("we-board-pane"),
-  mapPane: document.getElementById("we-map-pane"),
+  lower: document.getElementById("we-lower"),
+  mapGraph: document.getElementById("we-map-graph"),
   systemsPane: document.getElementById("we-systems-pane"),
+  systemsContent: document.getElementById("we-systems-content"),
+  dialogPanel: document.getElementById("we-dialog-panel"),
+  dialogHead: document.getElementById("we-dialog-head"),
+  dialogGraph: document.getElementById("we-dialog-graph"),
   properties: document.getElementById("we-properties"),
   validation: document.getElementById("we-validation"),
   modal: document.getElementById("we-modal"),
   toast: document.getElementById("we-toast"),
   editorDock: document.getElementById("we-editor-dock"),
 };
+
+const mapView = createGraphView({
+  container: elements.mapGraph,
+  onSelectNode: id => store.select({ kind: "room", id }),
+  onSelectLink: (id, sub) => store.select({ kind: "exit", id, sub }),
+  onChange: changes => commitGraph(draft => applyRoomGraphChanges(draft, changes)),
+});
+
+const selectDialogNode = sub => store.select({ kind: "peep", id: store.state.selection.id, sub });
+const dialogView = createGraphView({
+  container: elements.dialogGraph,
+  onSelectNode: selectDialogNode,
+  onSelectLink: selectDialogNode,
+  onChange: changes => {
+    const peepId = store.state.selection.id;
+    commitGraph(draft => applyDialogGraphChanges(draft.peeps?.[peepId]?.dialog, changes));
+  },
+});
 
 const roomEditor = createWorldRoomEditor(store, currentRoomId);
 const editorDock = createEditorDock({
@@ -76,9 +108,14 @@ const boardView = createBoardView({
 
 function currentRoomId() {
   const selection = store.state.selection;
-  if (selection.kind === "prop" || selection.kind === "card") return selection.id;
-  if (selection.kind === "room") return selection.id;
+  if (["prop", "card", "room", "exit"].includes(selection.kind)) return selection.id;
   return Object.keys(store.state.draft?.rooms || {})[0] || null;
+}
+
+function commitGraph(mutator) {
+  const probe = structuredClone(store.state.draft);
+  if (mutator(probe)) store.update(mutator);
+  else render();
 }
 
 function updateInstance(mutator, undoable = true) {
@@ -103,8 +140,14 @@ function render() {
   `;
   const roomId = currentRoomId();
   const editor = worldRoomEditor(state, roomId);
-  elements.editorDock.hidden = previewing || !editor;
-  elements.boardPane.classList.toggle("is-previewing", previewing || !editor);
+  elements.lower.hidden = previewing;
+  elements.boardPane.classList.toggle("is-previewing", previewing);
+  elements.editorDock.hidden = lowerTab !== "props";
+  elements.mapGraph.hidden = lowerTab !== "map";
+  for (const button of elements.lower.querySelectorAll("[data-lower-tab]")) {
+    button.classList.toggle("is-active", button.dataset.lowerTab === lowerTab);
+  }
+  elements.lower.querySelector("[data-graph-fit]").hidden = lowerTab !== "map";
   editorDock.render({ editor, room: { canEditRoom: true } });
   boardView.render({
     draft: state.draft,
@@ -115,8 +158,11 @@ function render() {
     editing: !previewing,
     editor,
   });
-  elements.mapPane.innerHTML = state.activeTab === "map" ? renderWorldMap(state.draft, state.selection) : "";
-  elements.systemsPane.innerHTML = renderSystems(state);
+  if (state.activeTab === "board" && !previewing && lowerTab === "map") {
+    mapView.render({ graph: roomGraph(state.draft), activeId: roomId });
+  }
+  elements.systemsContent.innerHTML = renderSystems(state);
+  renderDialogPanel(state);
   const propertiesScroll = elements.properties.scrollTop;
   elements.properties.innerHTML = (state.activeTab === "board" ? editorSettingsView({ editor }) : "") + renderProperties(state);
   bindEditorControls(elements.properties, roomEditor.onAction);
@@ -127,6 +173,23 @@ function render() {
   elements.toast.textContent = state.error || state.status || "";
   elements.toast.dataset.kind = state.error ? "error" : "info";
   thumbnails.sync(document);
+}
+
+function renderDialogPanel(state) {
+  const { selection } = state;
+  const peep = selection.kind === "peep" ? state.draft.peeps?.[selection.id] : null;
+  elements.dialogPanel.hidden = state.activeTab !== "peeps" || !peep;
+  if (elements.dialogPanel.hidden) return;
+  const pendingId = document.getElementById("dialog-new-node")?.value || "";
+  elements.dialogHead.innerHTML = `
+    <strong>Dialog · ${escapeHtml(peep.label || selection.id)}</strong>
+    ${peep.dialog ? `
+      <input type="text" id="dialog-new-node" placeholder="New node id" aria-label="New node id" value="${escapeHtml(pendingId)}">
+      <button type="button" class="quiet" data-dialog-node-add>Add node</button>
+      <button type="button" class="quiet" data-graph-fit="dialog">Fit</button>
+    ` : '<button type="button" class="quiet" data-dialog-create>Add dialog</button>'}
+  `;
+  dialogView.render({ graph: dialogGraph(peep.dialog), scope: selection.id, activeId: selection.sub });
 }
 
 function renderToolbar(state) {
@@ -148,15 +211,14 @@ function renderToolbar(state) {
   `;
 }
 
-const TABS = ["board", "map", "peeps", "tasks", "recipes", "activities", "environment"];
+const TABS = ["board", "peeps", "tasks", "recipes", "activities", "environment"];
 
 function renderTabs(state) {
   elements.tabs.innerHTML = TABS.map(tab => `
     <button type="button" class="tab${state.activeTab === tab ? " is-active" : ""}" data-tab="${tab}">${tab[0].toUpperCase()}${tab.slice(1)}</button>
   `).join("");
   elements.boardPane.hidden = state.activeTab !== "board";
-  elements.mapPane.hidden = state.activeTab !== "map";
-  elements.systemsPane.hidden = !["peeps", "tasks", "recipes", "activities", "environment"].includes(state.activeTab);
+  elements.systemsPane.hidden = state.activeTab === "board";
 }
 
 function renderSystems(state) {
@@ -194,16 +256,6 @@ function renderPeepsList(state) {
   `;
 }
 
-function uniqueId(existing, base) {
-  let index = 1;
-  let candidate = `${base}-${index}`;
-  while (existing.includes(candidate)) {
-    index += 1;
-    candidate = `${base}-${index}`;
-  }
-  return candidate;
-}
-
 function setPath(object, path, value) {
   const parts = path.split(".");
   let cursor = object;
@@ -213,13 +265,6 @@ function setPath(object, path, value) {
   }
   const last = parts[parts.length - 1];
   cursor[/^\d+$/.test(last) ? Number(last) : last] = value;
-}
-
-function getPath(object, path) {
-  return path.split(".").reduce((cursor, key) => {
-    if (cursor == null) return undefined;
-    return cursor[/^\d+$/.test(key) ? Number(key) : key];
-  }, object);
 }
 
 function toggleArrayValue(array, value, enabled) {
@@ -390,15 +435,18 @@ function changeDialogChoice(spec, target) {
     const dialog = dialogNodes(draft, peepId);
     const choice = dialog?.[nodeId]?.choices?.[index];
     if (!choice) return;
-    if (fieldName === "end") {
-      if (target.checked) {
-        choice.end = true;
-        delete choice.next;
-      } else {
+    if (fieldName === "next") {
+      if (target.value) {
         delete choice.end;
+        choice.next = target.value;
+      } else {
+        delete choice.next;
+        choice.end = true;
       }
     } else if (fieldName === "grant") {
-      choice.grant = Number(target.value) || 0;
+      const grant = Number(target.value) || 0;
+      if (grant) choice.grant = grant;
+      else delete choice.grant;
     } else if (fieldName === "when") {
       const parsed = parseJson(target.value, null);
       if (parsed && typeof parsed === "object") choice.when = parsed;
@@ -448,6 +496,7 @@ function handleClick(target) {
   if (dataset.peepDelete !== undefined) return deletePeep();
   if (dataset.peepSelect !== undefined) return store.select({ kind: "peep", id: dataset.peepSelect });
   if (dataset.dialogNodeAdd !== undefined) return addDialogNode();
+  if (dataset.dialogCreate !== undefined) return createDialog();
   if (dataset.dialogNodeDelete !== undefined) return deleteDialogNode(dataset.dialogNodeDelete);
   if (dataset.dialogChoiceAdd !== undefined) return addDialogChoice(dataset.dialogChoiceAdd);
   if (dataset.dialogChoiceDelete !== undefined) return deleteDialogChoice(dataset.dialogChoiceDelete);
@@ -457,11 +506,11 @@ function handleClick(target) {
   if (dataset.recipeDelete !== undefined) return deleteSystemItem("recipes", dataset.recipeDelete);
   if (dataset.activityAdd !== undefined) return addSystemItem("activities", { title: "New activity", room_bound: true });
   if (dataset.activityDelete !== undefined) return deleteSystemItem("activities", dataset.activityDelete);
-  if (dataset.mapRoom !== undefined) return store.select({ kind: "room", id: dataset.mapRoom });
-  if (dataset.mapExit !== undefined) {
-    const [roomId, exitId] = dataset.mapExit.split(":");
-    return store.select({ kind: "exit", id: roomId, sub: exitId });
+  if (dataset.lowerTab !== undefined) {
+    lowerTab = dataset.lowerTab;
+    return render();
   }
+  if (dataset.graphFit !== undefined) return (dataset.graphFit === "map" ? mapView : dialogView).fit();
   if (dataset.confirmPublish !== undefined) return confirmPublish();
   if (dataset.cancelPublish !== undefined) {
     pendingConfirm = null;
@@ -494,15 +543,7 @@ function addRoom() {
 }
 
 function deleteRoom(roomId) {
-  store.update(draft => {
-    delete draft.rooms[roomId];
-    for (const room of Object.values(draft.rooms)) {
-      for (const [exitId, exit] of Object.entries(room.exits || {})) {
-        if (exit.target === roomId) delete room.exits[exitId];
-      }
-    }
-    if (draft.world.entry_room === roomId) draft.world.entry_room = Object.keys(draft.rooms)[0] || "";
-  });
+  store.update(draft => removeRoom(draft, roomId));
   store.select({ kind: "room", id: firstRoomId() });
 }
 
@@ -586,20 +627,29 @@ function deletePeep() {
 function addDialogNode() {
   const input = document.getElementById("dialog-new-node");
   const nodeId = (input?.value || "").trim();
-  if (!nodeId) return;
+  const peepId = store.state.selection.id;
+  if (!nodeId || store.state.draft.peeps?.[peepId]?.dialog?.[nodeId]) return;
+  input.value = "";
+  store.update(draft => {
+    const dialog = dialogNodes(draft, peepId);
+    if (dialog) dialog[nodeId] = { text: "", choices: [] };
+  });
+  store.select({ kind: "peep", id: peepId, sub: nodeId });
+}
+
+function createDialog() {
   const peepId = store.state.selection.id;
   store.update(draft => {
     const dialog = dialogNodes(draft, peepId);
-    if (dialog && !dialog[nodeId]) dialog[nodeId] = { text: "", choices: [] };
+    if (dialog && !dialog.start) dialog.start = { text: "Hello!", choices: [] };
   });
+  store.select({ kind: "peep", id: peepId, sub: "start" });
 }
 
 function deleteDialogNode(nodeId) {
   const peepId = store.state.selection.id;
-  store.update(draft => {
-    const dialog = dialogNodes(draft, peepId);
-    if (dialog) delete dialog[nodeId];
-  });
+  store.update(draft => applyDialogGraphChanges(draft.peeps?.[peepId]?.dialog, [{ type: "remove", node: nodeId }]));
+  store.select({ kind: "peep", id: peepId });
 }
 
 function addDialogChoice(nodeId) {
@@ -608,7 +658,7 @@ function addDialogChoice(nodeId) {
     const node = dialogNodes(draft, peepId)?.[nodeId];
     if (!node) return;
     if (!Array.isArray(node.choices)) node.choices = [];
-    node.choices.push({ label: "Choice", next: "start" });
+    node.choices.push({ label: "Choice", end: true });
   });
 }
 
@@ -754,7 +804,7 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("click", event => {
-  const target = event.target.closest("[data-action],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-map-room],[data-map-exit],[data-confirm-publish],[data-cancel-publish]");
+  const target = event.target.closest("[data-action],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
   if (!target) return;
   if (target.dataset.room !== undefined && target.dataset.roomAdd === undefined && target.dataset.roomDelete === undefined) {
     store.select({ kind: "room", id: target.dataset.room });
@@ -773,9 +823,9 @@ document.addEventListener("input", event => {
 
 document.addEventListener("keydown", event => {
   const modifier = event.ctrlKey || event.metaKey;
-  if (event.target.closest("input,textarea,select,[contenteditable=true]")) return;
+  if (event.defaultPrevented || event.target.closest("input,textarea,select,[contenteditable=true]")) return;
   if (!modifier) {
-    if (previewing || store.state.activeTab !== "board") return;
+    if (previewing || store.state.activeTab !== "board" || event.target.closest(".we-graph")) return;
     const editor = worldRoomEditor(store.state, currentRoomId());
     const action = editorKeyAction(event, editor);
     if (action) { event.preventDefault(); roomEditor.dispatch(action); }
@@ -794,6 +844,7 @@ document.addEventListener("keydown", event => {
 });
 
 store.subscribe(render);
+bindPanelSplitters(document.querySelector(".we-stage"));
 
 async function boot() {
   try {

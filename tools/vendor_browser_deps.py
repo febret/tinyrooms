@@ -5,23 +5,29 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NODE_MODULES = ROOT / "node_modules" / "three"
-TARGET = ROOT / "app" / "vendor" / "three"
+NODE_MODULES = ROOT / "node_modules"
+TARGET = ROOT / "app" / "vendor"
+THREE = NODE_MODULES / "three"
+DRAWFLOW = NODE_MODULES / "drawflow"
 
 FILES = {
-    NODE_MODULES / "build" / "three.module.js": TARGET / "three.module.js",
-    NODE_MODULES / "build" / "three.core.js": TARGET / "three.core.js",
-    NODE_MODULES / "examples" / "jsm" / "controls" / "OrbitControls.js": TARGET / "examples" / "jsm" / "controls" / "OrbitControls.js",
-    NODE_MODULES / "examples" / "jsm" / "loaders" / "GLTFLoader.js": TARGET / "examples" / "jsm" / "loaders" / "GLTFLoader.js",
-    NODE_MODULES / "examples" / "jsm" / "utils" / "BufferGeometryUtils.js": TARGET / "examples" / "jsm" / "utils" / "BufferGeometryUtils.js",
+    THREE / "build" / "three.module.js": TARGET / "three" / "three.module.js",
+    THREE / "build" / "three.core.js": TARGET / "three" / "three.core.js",
+    THREE / "examples" / "jsm" / "controls" / "OrbitControls.js": TARGET / "three" / "examples" / "jsm" / "controls" / "OrbitControls.js",
+    THREE / "examples" / "jsm" / "loaders" / "GLTFLoader.js": TARGET / "three" / "examples" / "jsm" / "loaders" / "GLTFLoader.js",
+    THREE / "examples" / "jsm" / "utils" / "BufferGeometryUtils.js": TARGET / "three" / "examples" / "jsm" / "utils" / "BufferGeometryUtils.js",
+    DRAWFLOW / "dist" / "drawflow.min.js": TARGET / "drawflow" / "drawflow.min.js",
+    DRAWFLOW / "dist" / "drawflow.min.css": TARGET / "drawflow" / "drawflow.min.css",
+    DRAWFLOW / "LICENSE": TARGET / "drawflow" / "LICENSE",
 }
 
 
 def main() -> None:
-    if not NODE_MODULES.exists():
-        raise SystemExit(
-            "Missing node_modules\\three. Run `npm install` before vendoring browser dependencies."
-        )
+    for package in (THREE, DRAWFLOW):
+        if not package.exists():
+            raise SystemExit(
+                f"Missing node_modules\\{package.name}. Run `npm install` before vendoring browser dependencies."
+            )
     for source, destination in FILES.items():
         if not source.exists():
             raise SystemExit(f"Missing expected dependency file: {source}")

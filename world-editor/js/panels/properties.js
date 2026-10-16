@@ -1,5 +1,5 @@
 import { escapeHtml, selectOptions, actionsToText } from "../util.js";
-import { renderDialogEditor } from "./dialog.js";
+import { renderDialogNodeEditor } from "./dialog.js";
 
 function field(label, input) {
   return `<label class="field"><span>${escapeHtml(label)}</span>${input}</label>`;
@@ -121,10 +121,7 @@ function peepPanel(state) {
       ${field("Script", textInput(peep.script || "", `data-peep-field="script"`, "molly.py"))}
       ${field("Activity", `<select data-peep-field="activity">${selectOptions([{ value: "", label: "(none)" }, ...(catalog?.activities || []).map(id => ({ value: id, label: id }))], peep.activity || "")}</select>`)}
       ${field("Actions (label | command per line)", textarea(actionsToText(peep.actions), `data-peep-field="actions"`, 3))}
-      <fieldset class="subgroup">
-        <legend>Dialog</legend>
-        ${renderDialogEditor(peep.dialog)}
-      </fieldset>
+      ${peep.dialog ? renderDialogNodeEditor(peep.dialog, selection.sub) : ""}
       <button type="button" class="negative" data-peep-delete>Delete peep</button>
     </div>
   `;

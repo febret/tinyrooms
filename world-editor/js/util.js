@@ -31,6 +31,12 @@ export function parseJson(value, fallback) {
   }
 }
 
+export function uniqueId(existing, base) {
+  let index = 1;
+  while (existing.includes(`${base}-${index}`)) index += 1;
+  return `${base}-${index}`;
+}
+
 export function numberOr(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
