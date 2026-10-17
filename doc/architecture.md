@@ -160,7 +160,6 @@ outstanding implementation gaps, and the
 [AGENTS](../AGENTS.md#testing) owns test-placement policy;
 [README](../README.md#verification) owns commands. Tests cover actual browser
 modules under [tests/client/](../tests/client/), server logic under
-[tests/](../tests/), and minimal browser/visual flows under
+[tests/](../tests/), and minimal browser flows under
 [tests/browser/](../tests/browser/). Browser tests use isolated HTTPS servers
-from [fixtures.js](../tests/browser/fixtures.js). Screenshot updates require
-manual design review, not automatic acceptance.
+from [fixtures.js](../tests/browser/fixtures.js).

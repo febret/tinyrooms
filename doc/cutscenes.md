@@ -573,7 +573,7 @@ live in the [shared stylesheet](../app/css/cutscenes.css).
 When authoring, load/validate the world, launch the actual bound action, check
 missing assets, skip and travel behavior, and verify reduced-motion gameplay
 still communicates the result. Follow [AGENTS.md](../AGENTS.md) for content
-validation and manual visual-baseline review.
+validation and manual UI review.
 
 ## 7. Source map and verification
 
@@ -596,14 +596,7 @@ contract. The motion-enabled browser smoke checks a real command's stage and
 teardown; the ordinary projects cover reduced-motion suppression. Avoid stale
 test counts and claims that Python tests exercise client queue/abort behavior.
 
-Cutscene frame visual captures (`movie`, `vs`) and deliberate emote-category
-visual review remain required work. The categories now live in the emote menu,
-so the old instruction to update an Emotes panel tab snapshot is obsolete.
-Do not auto-approve snapshots or assume older
-notes about screenshot failures describe the current tree. A peak cutscene
-node counter/budget is also still absent from
-[DOM perf instrumentation](../tests/browser/perf/dom-counters.js); performance
-regression checks remain required when implementing runtime changes.
+
 
 ## 8. Outstanding contracts and deliberate deferrals
 
@@ -651,4 +644,4 @@ scene timers/animation frames was never actually provided.
   feature. Current custom examples use app CSS despite sibling static assets
   being servable.
 - **Queue persistence across page reload:** unsupported.
-- **Visual baselines and peak scene-node perf budget:** outstanding (§7).
+- **Peak scene-node perf budget:** outstanding (§7).

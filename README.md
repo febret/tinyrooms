@@ -150,7 +150,7 @@ npm test
 ```
 
 [package.json](package.json) defines `test:client` (actual JS modules via Node),
-`test:browser` (minimal Playwright smoke), `test:visual` (rendered states), and
+`test:browser` (minimal Playwright smoke), and
 `test:perf` ([separate performance budgets](doc/performance.md)). `npm test` runs
 client + browser tests. Target smoke with `npm run test:browser -- -g "all core cards"`.
 
@@ -165,22 +165,6 @@ client + browser tests. Target smoke with `npm run test:browser -- -g "all core 
   and `websockets`; bare `uvicorn` is not a complete runtime installation.
 - MC destination failures: follow [entry checks](doc/mission-control.md#21-player-entry-and-destination-resolution)
   and [upgrade warnings](doc/mission-control.md#83-deployment-and-upgrades).
-
-### Playwright tests and reference screenshots
-
-Run `npm run test:visual` separately; functional tests never update screenshots.
-The checked-in baseline uses Windows/Chrome (`$env:TR_BROWSER_CHANNEL = "chrome"`).
-Set `$env:TR_VISUAL_ONLY = "onboarding,self"` for selected images and remove it
-with `Remove-Item Env:TR_VISUAL_ONLY` for the full matrix.
-
-Only after manual design review and approval (see [baseline rules](AGENTS.md#visual-baselines-manual-review-required)):
-
-```powershell
-$env:TR_UPDATE_SCREENSHOTS = "1"
-npm run test:visual -- --update-snapshots
-Remove-Item Env:TR_UPDATE_SCREENSHOTS
-npm run test:visual
-```
 
 ## Project layout
 

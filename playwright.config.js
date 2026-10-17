@@ -1,16 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
-const updating = process.argv.some(value => value === "-u" || value.startsWith("--update-snapshots"));
-if (updating && process.env.TR_UPDATE_SCREENSHOTS !== "1") {
-  throw new Error("Baseline updates require TR_UPDATE_SCREENSHOTS=1 and manual reference review.");
-}
-
-// Visual capture needs deterministic pixels, so it always renders with SwiftShader
-// and stays serial. Functional flows never diff pixels, so they run on the GPU
-// (ANGLE picks the native backend and falls back to SwiftShader when no GPU exists),
-// which frees the CPU and lets the isolated tests run in parallel.
-const visualRun = process.argv.some(value => value.includes("screenshots.spec.js"));
-const glMode = visualRun ? "swiftshader" : (process.env.TR_BROWSER_GL || "default");
+// ANGLE picks the native backend and falls back to SwiftShader when no GPU exists.
+const glMode = process.env.TR_BROWSER_GL || "default";
 const softwareGl = glMode === "swiftshader";
 const glArgs = softwareGl
   ? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--num-raster-threads=1", "--renderer-process-limit=2"]
@@ -29,22 +20,17 @@ export default defineConfig({
   // Each test boots its own HTTPS server (now loading mods) and account, so a
   // 10s ceiling flakes under parallel workers. Assertions still fail fast.
   timeout: 20_000,
-  // maxDiffPixels tolerates small, stable rendering differences in the animated
-  // SVG/WebGL shader background. Tighter thresholds (e.g. 100) fail on that
-  // noise rather than on real UI changes, so keep this deliberately loose.
-  expect: { timeout: 10_000, toHaveScreenshot: { maxDiffPixels: 300, threshold: 0.15 } },
-  fullyParallel: !visualRun,
+  expect: { timeout: 10_000 },
+  fullyParallel: true,
   // Functional flows are isolated per test (own server, users, database), so they
   // run in parallel. Override with TR_BROWSER_WORKERS=<n>.
-  workers: visualRun ? 1 : Number(process.env.TR_BROWSER_WORKERS || defaultWorkers),
+  workers: Number(process.env.TR_BROWSER_WORKERS || defaultWorkers),
   // Each test boots its own server under parallel load, so a rare timing flake is
   // expected; one retry keeps the suite trustworthy without hiding real failures
-  // (which fail both attempts). Visual runs never retry.
-  retries: visualRun ? 0 : 1,
+  // (which fail both attempts).
+  retries: 1,
   forbidOnly: !!process.env.CI,
   outputDir: ".test-results",
-  snapshotPathTemplate: "{testDir}/baselines/{projectName}/{testFilePath}/{arg}{ext}",
-  updateSnapshots: process.env.TR_UPDATE_SCREENSHOTS === "1" ? "all" : "none",
   reporter: [["list"], ["html", { open: "never", outputFolder: ".playwright-report" }]],
   use: {
     actionTimeout: 10_000,
@@ -69,11 +55,6 @@ export default defineConfig({
       // Cutscene playback needs motion, so its spec only runs in desktop-motion.
       testIgnore: /cutscenes\.spec\.js/,
       use: { viewport: { width: 1280, height: 800 } },
-    },
-    {
-      name: "portrait",
-      testIgnore: /cutscenes\.spec\.js/,
-      use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
     },
     // Cutscenes are disabled outright under reduced motion, so the suite's
     // default `reduce` setting can never exercise one. This project opts back

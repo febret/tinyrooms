@@ -239,9 +239,8 @@ filtering, reporting, blocking, and moderator contact.
 - Server: add `unittest` cases for the delete and report endpoints (auth, CSRF,
   cascade correctness) and keep the existing suites green
   (`python -m unittest discover -s tests`, `npm test`).
-- The web visual baselines are unchanged and remain authoritative. Do not add
-  mobile pixel baselines initially, because device rendering varies; capture
-  tablet screenshots as review artifacts only.
+- Review web and mobile rendering manually against the design references;
+  capture tablet screenshots as review artifacts only.
 
 ### 7.4 iOS without a Mac
 

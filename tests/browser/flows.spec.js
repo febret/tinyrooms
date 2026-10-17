@@ -4,12 +4,7 @@ import { PASSWORD, command, confirmSticker, createAccount, createReadyAccount, o
 // This functional suite is a deliberately minimal smoke set: it proves the app
 // boots, the real WebSocket round-trips, core views render, and one end-to-end
 // gameplay flow works. Comprehensive behavior lives in the Python
-// (tests/test_*.py) and Node (tests/client/*.test.js) suites, and rendered
-// states are captured by screenshots.spec.js (`npm run test:visual`).
-// Portrait layout is covered by the visual baselines, so these run desktop-only.
-test.beforeEach(({ isMobile }) => {
-  test.skip(Boolean(isMobile), "Desktop-only smoke flow; portrait is covered by test:visual.");
-});
+// (tests/test_*.py) and Node (tests/client/*.test.js) suites.
 
 test.describe("account onboarding", () => {
   test.slow();
@@ -140,6 +135,11 @@ test.describe("bedrooms and doors", () => {
     await expect(page.locator('iframe[src*="bedrooms"]')).toHaveCount(0);
 
     // The owner can edit their own room.
-    await openEditRoom(page);
+    const editor = await openEditRoom(page);
+    await expect(page.locator("#card-hand")).toBeHidden();
+    await editor.getByRole("button", { name: "Close room editor", exact: true }).click();
+    await expect(editor).toHaveCount(0);
+    await expect(page.locator("#card-hand")).toBeVisible();
+    await expect(page.locator(".interaction-dock")).toBeVisible();
   });
 });

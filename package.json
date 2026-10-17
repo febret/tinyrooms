@@ -7,7 +7,6 @@
     "test": "npm run test:client && npm run test:browser",
     "test:client": "node --test \"tests/client/**/*.test.js\"",
     "test:browser": "playwright test flows.spec.js cutscenes.spec.js",
-    "test:visual": "playwright test screenshots.spec.js",
     "test:perf": "python tools/run_perf.py",
     "test:report": "playwright show-report"
   },

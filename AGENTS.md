@@ -32,7 +32,7 @@ deployment contracts. [Dynamic peeps](doc/dynamic-peeps.md) describes future wor
 ## Testing
 
 Use an activated virtual environment and the [verification commands](README.md#verification).
-Run Python unittests, `npm test` (Node client tests + browser smoke), visual checks
+Run Python unittests, `npm test` (Node client tests + browser smoke), manual UI checks
 when rendering changes, and [performance budgets](doc/performance.md) as appropriate.
 Performance tests run separately from `npm test` and unittest discovery; deliberately
 re-record baselines only for an intentional change.
@@ -50,18 +50,7 @@ re-record baselines only for an intentional change.
    add broader gameplay/business-logic flows here; use server or client tests.
    Use semantic selectors/stable IDs and each test's fresh HTTPS server from
    [fixtures.js](tests/browser/fixtures.js), never a live/shared server.
-4. **Rendered states**: Add snapshots in
-   [screenshots.spec.js](tests/browser/screenshots.spec.js). Harness geometry,
-   determinism, and diff settings live in [playwright.config.js](playwright.config.js).
 
-### Visual baselines (manual review required)
-
-Never auto-approve screenshots or alter baselines to mask content bugs. Follow
-the [baseline commands](README.md#playwright-tests-and-reference-screenshots),
-explicitly opting in only after manual design review. Review generated
-`tests/browser/baselines` PNGs against [design](doc/design.md) and
-[image references](doc/images/), obtain approval before committing, then rerun
-**without** the update flag.
 
 ## Design and Safety Constraints
 
@@ -86,11 +75,11 @@ explicitly opting in only after manual design review. Review generated
 
 Validate YAML through loaders, run targeted browser smoke against the changed
 world (`npm run test:browser -- -g "<test name>"`), and validate it in the game
-client manually. Regenerate visuals only for intentional changes matching design.
+client manually.
 
 ## Before You Commit / PR
 
-- Run Python unittests + `npm test`, relevant visuals, and performance budgets.
-- Keep static checks clear, review/approve new visual baselines, and manually
+- Run Python unittests + `npm test`, relevant manual UI checks, and performance budgets.
+- Keep static checks clear and manually
   validate changed world YAML.
 - Never add secrets or keys; keep local self-signed material under ignored `.local/`.

@@ -44,14 +44,12 @@ function createCardViewer({ canvas, frontUrl, backUrl, interactive, reducedMotio
     if (disposed) return;
     pending -= 1;
     if (pending <= 0) {
-      canvas.dataset.cardReady = "true";
       stage.renderFrame(0, false);
     }
   }
 
   function loadTexture(url, material) {
     if (!url) {
-      canvas.dataset.cardError = "true";
       settle();
       return;
     }
@@ -68,7 +66,6 @@ function createCardViewer({ canvas, frontUrl, backUrl, interactive, reducedMotio
       settle();
     }, undefined, () => {
       if (disposed) return;
-      canvas.dataset.cardError = "true";
       settle();
     });
   }

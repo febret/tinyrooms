@@ -918,7 +918,13 @@ function reduce(state, action) {
   if (action.type === "journal-tab") return { ...state, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
-  if (action.type === "cancel-targeting") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" }, ui: { ...state.ui, targeting: null } };
+  if (action.type === "cancel-targeting") {
+    const stack = findInventoryCard(state, state.ui.targeting?.stackId);
+    const selection = stack && action.restoreSelection !== false
+      ? { kind: "inventory-card", id: stack.stackId }
+      : state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" };
+    return { ...state, selection, ui: { ...state.ui, targeting: null } };
+  }
   if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
   if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
@@ -1023,7 +1029,7 @@ export function isTargetableStack(stack) {
   const definition = stack?.definition;
   const type = definition?.type || "item";
   return Boolean(stack?.equipped && ["prop", "peep"].includes(definition?.target) && (type === "item" || type === "action")
-    && !definition.passive && !definition.decorative);
+    && (definition.target === "prop" || definition.effect) && !definition.passive && !definition.decorative);
 }
 
 export function findSelectedEntity(state) {

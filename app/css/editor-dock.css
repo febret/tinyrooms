@@ -4,6 +4,7 @@
 .editor-dock-header { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; min-width: 0; padding: 2px; border-bottom: 1px solid #2b4652; }
 .editor-dock-header > strong { color: #f2b489; font-size: 13px; white-space: nowrap; }
 .editor-dock-header button { flex: 0 0 auto; padding: 2px 5px; font-size: 11px; }
+.editor-dock-header .editor-close { margin-left: auto; min-height: 32px; padding-inline: 10px; }
 .editor-shop-button { border-color: #c9904366 !important; background: #241708 !important; color: #ffd9a8; }
 .editor-search, .editor-tag-selector input, .editor-style select { border: 1px solid #2b4652; background: #0a1d26; color: #f5f5f1; }
 .editor-search { flex: 1 1 100px; min-width: 60px; max-width: 200px; padding: 2px 4px; font-size: 12px; }

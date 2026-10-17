@@ -94,7 +94,6 @@ function memoryMarkup(memory) {
       <span class="memory-author">${escapeHtml(memory.author)}</span>
     </header>
     <p class="memory-text">${escapeHtml(memory.text)}</p>
-    ${memory.tags.length ? `<div class="memory-tags">${memory.tags.map(tag => `<span class="memory-tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
     ${memory.editable ? `<div class="memory-actions">
       <button type="button" data-memory-action="edit" data-memory-id="${escapeHtml(memory.memoryId)}">Edit</button>
       <button type="button" class="quiet" data-memory-action="delete" data-memory-id="${escapeHtml(memory.memoryId)}">Delete</button>

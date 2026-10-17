@@ -4,7 +4,6 @@ import {
   buildEmoteCommand,
   buildEquipCommand,
   buildFriendCommand,
-  buildPinCommand,
   buildUnequipCommand,
   buildUseCommand,
 } from "./commands.js";
@@ -230,15 +229,16 @@ export function selectionActions(state) {
   if (state.selection.kind === "peep") {
     const peep = findSelectedEntity(state);
     if (!peep) return [];
-    const actions = (peep.quickActions || []).map(action => ({ ...action, tone: "neutral" }));
-    if (state.user && peep.id === state.user.id) {
+    const isSelf = state.user && peep.id === state.user.id;
+    const actions = (peep.quickActions || [])
+      .filter(action => !isSelf || !/^\.(?:look|pin|friend\s+add)(?:\s|$)/.test(action.command))
+      .map(action => ({ ...action, tone: "neutral" }));
+    if (isSelf) {
       actions.unshift(
         { label: "Open Self", local: { type: "open-view", view: "self" }, tone: "primary" },
         { label: "Friends", local: { type: "open-view", view: "friends" }, tone: "neutral" },
         { label: "Skills", local: { type: "open-view", view: "skills" }, tone: "neutral", icon: withBase("/assets/base/skills-icon.png") },
       );
-      const pinned = (state.user.pinnedPeeps || []).includes(peep.id);
-      actions.push({ label: pinned ? "Unpin" : "Pin", command: buildPinCommand(peep.id), tone: "neutral" });
       actions.push({ label: "Swap Sticker…", local: { type: "swap-sticker" }, tone: "positive" });
     } else if (peep.kind === "user") {
       actions.push({ label: "Add Friend", command: buildFriendCommand("add", peep.id), tone: "positive" });
@@ -300,7 +300,7 @@ function inventoryStackActions(stack) {
     actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary" });
   } else if (type === "item" || type === "action") {
     if (stack.equipped) {
-      if (!definition.passive && !definition.decorative && (definition.target || "") !== "prop") {
+      if (definition.effect && !definition.passive && !definition.decorative && (definition.target || "") !== "prop") {
         actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
       }
       actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });

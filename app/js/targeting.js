@@ -91,7 +91,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     const target = preview;
     preview = null;
     if (!targeting || !target) return;
-    store.dispatch({ type: "cancel-targeting" });
+    store.dispatch({ type: "cancel-targeting", restoreSelection: false });
     void sendCommand(`.use @card:${targeting.stackId} @${target.kind}:${target.id}`).catch(onError);
   }
 
@@ -128,7 +128,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       sourcePoint = null;
       if (layer) layer.hidden = true;
       if (button) button.hidden = true;
-      if (targeting && !eligibleKind(state)) store.dispatch({ type: "cancel-targeting" });
+      if (targeting && !eligibleKind(state)) store.dispatch({ type: "cancel-targeting", restoreSelection: false });
       return;
     }
     captureSource(targeting.stackId);

@@ -33,15 +33,6 @@ async function provisionAccount(page, runtime, username) {
   expect(confirmed.ok(), await confirmed.text()).toBeTruthy();
 }
 
-export async function loginAs(page, runtime, username) {
-  const origin = new URL(runtime.baseURL).origin;
-  const response = await page.request.post(`${runtime.baseURL}/api/auth/login`, {
-    data: { username, password: PASSWORD },
-    headers: { Origin: origin },
-  });
-  expect(response.ok(), await response.text()).toBeTruthy();
-}
-
 export async function createReadyAccount(page, runtime, username = "sunbeam") {
   await provisionAccount(page, runtime, username);
   await page.goto(runtime.baseURL);
@@ -74,30 +65,6 @@ export async function openCore(page, id) {
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
-// Create an account and grant it builder power through the bootstrap admin.
-// One browser context is reused: boot as siteadmin, run the grant, then sign
-// back in as the editor. This avoids the cost of a second context and app boot.
-// Sign in as the bootstrap admin and hand a card to another account, so a
-// flow can exercise owned-card behaviour without a pack draw.
-export async function grantCardAsAdmin(page, runtime, username, cardId, quantity = 1) {
-  await provisionAccount(page, runtime, "siteadmin");
-  await loginAs(page, runtime, "siteadmin");
-  await page.goto(runtime.baseURL);
-  await command(page, `.gm give @${username} @card:${cardId} ${quantity}`);
-}
-
-export async function createEditorAccount(page, runtime, username = "editor", power = "builder") {
-  await provisionAccount(page, runtime, username);
-  await provisionAccount(page, runtime, "siteadmin");
-  await loginAs(page, runtime, "siteadmin");
-  await page.goto(runtime.baseURL);
-  await command(page, `.builder grant @${username}`);
-  await loginAs(page, runtime, username);
-  await page.goto(runtime.baseURL);
-  await expect(page.getByRole("button", { name: `Select ${username}`, exact: true })).toBeVisible();
-  await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
-}
-
 /** Click empty board points (clear of the Peeps sidebar and top toolbar) until the room is selected. */
 async function selectRoom(page, action) {
   if (await action.count()) return;
@@ -121,164 +88,8 @@ export async function openEditRoom(page) {
   return panel;
 }
 
-export async function openRoomView(page) {
-  await closeOverlays(page);
-  const action = page.locator("#actions-bar").getByRole("button", { name: "Open Room View", exact: true });
-  await selectRoom(page, action);
-  if (!(await action.count())) throw new Error("Could not open Room View: no board point selected the room.");
-  await action.click();
-  await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
-}
-
-async function openPeepAction(page, label) {
-  await closeOverlays(page);
-  await page.locator("#peeps-panel .peep-chip.self [data-peep-id]").click();
-  await page.locator("#actions-bar").getByRole("button", { name: label, exact: true }).click();
-  await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
-}
-
-export async function openSelf(page) {
-  await openPeepAction(page, "Open Self");
-}
-
-export async function openFriends(page) {
-  await openPeepAction(page, "Friends");
-}
-
-export async function openSkills(page) {
-  await openPeepAction(page, "Skills");
-}
-
-// Click across the floor until a prop (not the room) is selected; returns whether one was found.
-export async function selectFirstProp(page) {
-  const box = await page.locator("#board-canvas").boundingBox();
-  // Stay clear of the Peeps sidebar (left) and the top toolbar (top-right),
-  // which now overlay the full-width board.
-  for (let fy = 0.16; fy <= 0.92; fy += 0.06) {
-    for (let fx = 0.14; fx <= 0.88; fx += 0.06) {
-      await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
-      if (await page.locator("#actions-bar").getByRole("button", { name: "Inspect", exact: true }).count()) return true;
-    }
-  }
-  return false;
-}
-
-// Click across the floor until the prop with the given label is selected; returns its point.
-export async function findPropByLabel(page, label) {
-  const box = await page.locator("#board-canvas").boundingBox();
-  for (let fy = 0.16; fy <= 0.9; fy += 0.05) {
-    for (let fx = 0.14; fx <= 0.88; fx += 0.05) {
-      const point = { x: box.x + box.width * fx, y: box.y + box.height * fy };
-      await page.mouse.click(point.x, point.y);
-      const name = await page.locator("#look-bar .look-name").textContent();
-      if (name?.trim() === label) return point;
-    }
-  }
-  throw new Error(`Could not find prop "${label}" on the board.`);
-}
-
 export async function travel(page, exit = "exit0", label = "The Playroom") {
   await command(page, `.go @way:${exit}`);
   await expect(page.locator("#look-bar")).toContainText(label);
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
-}
-
-export async function bootstrap(page) {
-  const response = await page.request.get("/api/bootstrap");
-  expect(response.ok()).toBeTruthy();
-  return response.json();
-}
-
-export async function settleArtwork(page, { allowToasts = false } = {}) {
-  if (await page.locator("#peeps-panel .self").count()) {
-    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
-  }
-  const pendingModels = page.locator("canvas[data-prop-model]:not([data-model-ready='true']):not([data-model-error='true'])");
-  if (await pendingModels.count()) {
-    await expect(pendingModels).toHaveCount(0, { timeout: 20_000 });
-  }
-  const pendingCards = page.locator("canvas[data-card-front]:not([data-card-ready='true']):not([data-card-error='true'])");
-  if (await pendingCards.count()) {
-    await expect(pendingCards).toHaveCount(0, { timeout: 20_000 });
-  }
-  // The prop library lazily renders only thumbnails near the viewport, so wait
-  // for the tiles the manager actually started rendering, not every clipped tile.
-  const pendingThumbnails = page.locator('img[data-thumb-model][data-thumb-pending="true"]:not([data-thumb-ready="true"]):not([data-thumb-error="true"])');
-  if (await pendingThumbnails.count()) {
-    await expect(pendingThumbnails).toHaveCount(0, { timeout: 30_000 });
-  }
-  for (const frame of page.frames()) {
-    await frame.evaluate(async () => {
-      await document.fonts.ready;
-      const visible = [...document.images].filter(image => {
-        if (!image.currentSrc) return false;
-        const box = image.getBoundingClientRect();
-        return box.width && box.height && box.bottom > 0 && box.right > 0
-          && box.top < innerHeight && box.left < innerWidth;
-      });
-      await Promise.all(visible.map(image => image.decode().catch(() => {})));
-    });
-  }
-  if (!allowToasts) await expect(page.locator("#toast-stack .toast")).toHaveCount(0);
-}
-
-// Brute-force the board until a prop whose meta text matches `expected` is selected.
-export async function findEditorProp(page, panel, expected) {
-  const box = await page.locator("#board-canvas").boundingBox();
-  // Deselect first so a hit can only be the prop body, never a visible gizmo handle.
-  await page.mouse.click(box.x + box.width * 0.95, box.y + box.height * 0.9);
-  const candidates = [];
-  for (let fy = 0.25; fy <= 0.8; fy += 0.03) {
-    for (let fx = 0.38; fx <= 0.85; fx += 0.03) {
-      candidates.push([fx, fy, Math.hypot(fx - 0.55, fy - 0.42)]);
-    }
-  }
-  candidates.sort((left, right) => left[2] - right[2]);
-  const metaLocator = panel.locator(".editor-meta");
-  for (const [fx, fy] of candidates) {
-    const x = box.x + box.width * fx;
-    const y = box.y + box.height * fy;
-    await page.mouse.click(x, y);
-    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
-    if (text?.includes(expected)) return { x, y };
-  }
-  throw new Error(`Could not locate prop at ${expected} on the board.`);
-}
-
-export async function dragProp(page, panel, expected, delta, { touch = false } = {}) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const point = await findEditorProp(page, panel, expected);
-    const target = { x: point.x + delta.x, y: point.y + delta.y };
-    if (touch) {
-      await touchDrag(page, point, target);
-    } else {
-      await page.mouse.move(point.x, point.y);
-      await page.mouse.down();
-      await page.mouse.move(target.x, target.y, { steps: 8 });
-      await page.mouse.up();
-    }
-    const metaLocator = panel.locator(".editor-meta");
-    const text = await metaLocator.count() ? await metaLocator.textContent() : "";
-    if (text && !text.includes(expected)) return text;
-  }
-  throw new Error(`Drag did not move the prop from ${expected}.`);
-}
-
-export async function touchDrag(page, from, to) {
-  const client = await page.context().newCDPSession(page);
-  const point = (x, y) => [{ x, y, radiusX: 2, radiusY: 2, force: 1, id: 1 }];
-  await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
-  try {
-    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from.x, from.y) });
-    for (let step = 1; step <= 6; step += 1) {
-      await client.send("Input.dispatchTouchEvent", {
-        type: "touchMove",
-        touchPoints: point(from.x + (to.x - from.x) * step / 6, from.y + (to.y - from.y) * step / 6),
-      });
-    }
-    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  } finally {
-    await client.send("Emulation.setTouchEmulationEnabled", { enabled: false });
-    await client.detach();
-  }
 }

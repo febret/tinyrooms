@@ -59,8 +59,6 @@ export function createPreviewViewer({ canvas }) {
     host = null;
     visual = null;
     modelScenes = [];
-    delete canvas.dataset.modelReady;
-    delete canvas.dataset.modelError;
     canvas.dataset.fxCount = "0";
   }
 
@@ -83,7 +81,6 @@ export function createPreviewViewer({ canvas }) {
       const bounds = new THREE.Box3().setFromObject(model);
       if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
         disposeBoardTree(gltf.scenes || [model]);
-        canvas.dataset.modelError = "true";
         return;
       }
       const size = bounds.getSize(new THREE.Vector3());
@@ -114,12 +111,8 @@ export function createPreviewViewer({ canvas }) {
         pixelScale,
       });
       canvas.dataset.fxCount = String(effects?.activeCount || 0);
-      canvas.dataset.modelReady = "true";
       stage.renderFrame(0, false);
       start();
-    }, undefined, () => {
-      if (key !== signature) return;
-      canvas.dataset.modelError = "true";
     });
   }
 

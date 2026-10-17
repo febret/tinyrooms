@@ -109,30 +109,19 @@ export function createThumbnailManager() {
     : null;
 
   function apply(image) {
-    image.dataset.thumbPending = "true";
     const modelUrl = image.dataset.thumbModel;
     const scale = Number(image.dataset.thumbScale) || 1;
     const cached = cachedThumbnail(modelUrl, scale);
     if (cached) {
       image.src = cached;
-      image.dataset.thumbReady = "true";
       return;
     }
-    thumbnailFor(modelUrl, scale).then(async url => {
+    thumbnailFor(modelUrl, scale).then(url => {
       if (!image.isConnected) return;
-      if (!url) {
-        image.dataset.thumbError = "true";
-        return;
-      }
+      if (!url) return;
       image.src = url;
-      try {
-        await image.decode();
-      } catch {
-        // Decoding may fail if the tile was removed before paint.
-      }
-      if (image.isConnected) image.dataset.thumbReady = "true";
-    }).catch(() => {
-      image.dataset.thumbError = "true";
+    }).catch(error => {
+      console.warn("Unable to render prop thumbnail.", error);
     });
   }
 

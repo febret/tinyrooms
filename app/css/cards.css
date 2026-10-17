@@ -175,7 +175,7 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 .journal-page-right { border-radius: 2px 6px 6px 2px; box-shadow: inset 22px 0 26px -20px rgba(80, 54, 30, .55); background: url("../assets/journal-paper.svg") center / 220px repeat, repeating-linear-gradient(to bottom, transparent 0 27px, var(--journal-tint) 27px 28px), radial-gradient(ellipse at 50% -10%, #fbf4e2, #f1e4c8 72%, #e7d5b0); }
 .journal-page-inner { height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--journal-edge) transparent; padding-right: 4px; }
 .journal-spine { background: linear-gradient(90deg, rgba(70, 48, 28, 0) 0%, rgba(70, 48, 28, .22) 40%, rgba(38, 24, 13, .5) 50%, rgba(70, 48, 28, .22) 60%, rgba(70, 48, 28, 0) 100%); }
-.journal-flourish { display: block; width: min(220px, 80%); height: auto; margin: 10px auto 2px; opacity: .75; }
+.journal-flourish { display: block; width: min(150px, 60%); height: auto; margin: 2px auto; opacity: .75; }
 .journal-calendar { font-family: var(--journal-serif); }
 .cal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .cal-header strong { font-size: clamp(16px, 1.8vw, 21px); font-weight: 600; color: var(--journal-ink); letter-spacing: .01em; }
@@ -193,26 +193,24 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 .memory-list h3, .task-list h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 19px; font-weight: 600; color: var(--journal-ink); }
 .memory-count { color: var(--journal-accent); font-weight: 700; font-size: 14px; }
 .memory-filter { margin: 4px 0 10px; font-family: var(--journal-hand); font-size: 13px; color: var(--journal-accent); }
-.memory-entry { padding: 10px 4px 12px; margin: 0; border: 0; border-bottom: 1px dashed var(--journal-rule); background: transparent; }
-.memory-entry.manual { border-left: 3px solid rgba(169, 116, 58, .5); padding-left: 10px; }
+.memory-entry { padding: 6px 2px 8px; margin: 0; border: 0; border-bottom: 1px dashed var(--journal-rule); background: transparent; }
+.memory-entry.manual { border-left: 2px solid rgba(169, 116, 58, .5); padding-left: 8px; }
 .memory-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #8a7358; }
-.memory-text { margin: 6px 0 4px; font-family: var(--journal-hand); font-size: 15px; line-height: 1.75; color: var(--journal-ink); overflow-wrap: anywhere; }
-.memory-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.memory-tag { padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(169, 116, 58, .4); background: rgba(169, 116, 58, .14); color: #7d5427; font-size: 10px; font-family: "Segoe UI", Arial, sans-serif; }
-.memory-actions { display: flex; gap: 6px; margin-top: 8px; }
+.memory-text { margin: 3px 0; font-family: var(--journal-hand); font-size: 14px; line-height: 1.45; color: var(--journal-ink); overflow-wrap: anywhere; }
+.memory-actions { display: flex; gap: 6px; margin-top: 4px; }
 .memory-actions button { min-height: 34px; min-width: 34px; padding: 3px 9px; background: rgba(255, 255, 255, .4); font-size: 13px; }
-.task-list { margin-bottom: 18px; }
-.task-card { padding: 11px 13px; margin-bottom: 10px; border: 1px solid var(--journal-rule); border-radius: 6px; background: rgba(255, 255, 255, .42); box-shadow: 1px 2px 0 var(--journal-tint); color: var(--journal-ink); }
-.task-card.selected { border-color: var(--journal-accent); box-shadow: 0 0 0 1px var(--journal-accent); }
-.task-select { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; }
+.task-list { margin-bottom: 12px; }
+.task-card { padding: 7px 4px 9px; margin-bottom: 4px; border: 0; border-bottom: 1px solid var(--journal-rule); background: transparent; color: var(--journal-ink); }
+.task-card.selected { background: var(--journal-tint); }
+.task-select { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 34px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit; text-align: left; }
 .task-select strong { font-size: 16px; font-weight: 600; }
 .task-meta { font-size: 11px; color: var(--journal-ink-soft); }
-.task-description { margin: 6px 0; font-family: var(--journal-hand); font-size: 14px; line-height: 1.6; color: #4d3b28; }
-.task-steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
-.task-step { display: grid; grid-template-columns: 1fr 90px 38px; align-items: center; gap: 8px; font-size: 12px; color: var(--journal-ink-soft); }
+.task-description { margin: 4px 0; font-family: var(--journal-hand); font-size: 13px; line-height: 1.4; color: #4d3b28; }
+.task-steps { list-style: none; margin: 5px 0 0; padding: 0; display: grid; gap: 3px; }
+.task-step { display: grid; grid-template-columns: minmax(0, 1fr) 64px 32px; align-items: center; gap: 6px; font-size: 12px; color: var(--journal-ink-soft); }
 .task-step-label { overflow-wrap: anywhere; }
 .task-step.complete .task-step-label { color: #5c7a45; }
-.task-step-track { height: 6px; border-radius: 4px; border: 1px solid var(--journal-rule); background: var(--journal-tint); overflow: hidden; }
+.task-step-track { height: 5px; border-radius: 4px; background: var(--journal-tint); overflow: hidden; }
 .task-step-fill { display: block; height: 100%; background: linear-gradient(90deg, #b07b3e, #d8b06a); }
 .task-step-count { text-align: right; }
 .journal-view .empty-state { padding: 22px 8px; color: var(--journal-ink-soft); font-family: var(--journal-hand); font-size: 14px; line-height: 1.6; text-align: center; }
@@ -225,6 +223,7 @@ body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
 .app-shell.editing { --dock-height: calc(204px + env(safe-area-inset-bottom, 0px)); }
 .app-shell.editing .editor-dock { display: block; }
 .app-shell.editing .interaction-dock { display: none; }
+.app-shell.editing .card-hand { display: none; }
 .pack-reveal { max-width: min(640px, 92vw); text-align: center; }
 .pack-reveal-cards { display: flex; flex-wrap: nowrap; justify-content: center; gap: 10px; margin: 12px 0; overflow-x: auto; }
 .pack-reveal-card { margin: 0; flex: 0 1 130px; min-width: 0; }

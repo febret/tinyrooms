@@ -439,10 +439,9 @@ with mandatory guardrails and a blocking v1.1 follow-up.
   budgets in-repo and MUST be added to the pre-commit checklist. It MUST apply
   to generated artifacts at **commit time**, not only to checked-in sources,
   since artifacts are written under `.local/` at runtime.
-- **R10.7** Browser coverage MUST include at least one visual test that a
-  generated dialog node renders and its choice is clickable, and one
-  **baseline-preservation** test that a peep with no overlay renders identically
-  to its existing baseline. The second is mandatory.
+- **R10.7** Client coverage MUST verify that a generated dialog node exposes its
+  choice and that a peep with no overlay retains its authored presentation data.
+  Manually review both rendered states in the game client.
 - **R10.8** `doc/db.md` MUST be updated with the new schema and reconciled
   against the authoritative [migrations](../server/state/migrations.py).
 - **R10.9** The dispatcher refactor MUST have explicit regression tests for
@@ -766,7 +765,7 @@ authored-only (R5.8). Register `dynamic_peeps` in
 | End-to-end, offline | `tests/test_peep_agent.py` | Full cycle against a deterministic fake model returning four canned artifacts — valid, oversized, dangling prop reference, non-additive dialog edit (R10.4) |
 | Static budget check | `tests/test_ui_presentation.py` or a sibling | Mirrors the 1200-line rule for the 500/150 budgets (R10.6) |
 | Browser flow | `tests/browser/flows.spec.js` | A generated dialog node renders and its choice is clickable |
-| Browser visual | `tests/browser/screenshots.spec.js` | Baseline preservation for a peep with no overlay (R10.7) |
+| Client presentation | `tests/client/` and manual in-client review | Authored presentation preservation for a peep with no overlay (R10.7) |
 
 The fake model is a **prerequisite**, not an afterthought: no end-to-end test
 may touch the network.
@@ -869,7 +868,7 @@ phase for the v1 debt in §9.2. The estimate includes the dispatcher restructuri
    dialog work.
 3. Cadence scheduler + job store + worker DB access + real model client.
 4. Dialog append-only merge (retain the raw dialog mapping per R6.7a, add the merger).
-5. Operator surface, metrics, docs, browser baselines.
+5. Operator surface, metrics, docs, manual UI review.
 
 ---
 

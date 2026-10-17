@@ -6,6 +6,9 @@ import { availableLibrary, selectedInstance } from "./edit-reducer.js";
 import { bindEditorLibrary, createLibraryFilter } from "./library-filter.js";
 
 export function bindEditorControls(root, onAction) {
+  root.querySelectorAll("[data-close-view]").forEach(button => {
+    button.onclick = () => onAction({ type: "close-view" });
+  });
   root.querySelectorAll("[data-edit-add]").forEach(button => {
     button.onclick = () => onAction({ type: "edit-add", propId: button.dataset.editAdd });
   });

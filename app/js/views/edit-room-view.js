@@ -119,6 +119,7 @@ export function editRoomView(state, { authoring = false } = {}) {
         <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
         <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
         <span class="editor-status" role="status" data-editor-status>${authoring ? "Draft saved" : "All changes saved"}</span>
+        ${authoring ? "" : '<button type="button" class="quiet editor-close" data-close-view aria-label="Close room editor">Close</button>'}
       </header>
         <div class="editor-heading-tags" role="group" aria-label="Filter by tag">
           ${libraryTagMarkup(library)}

@@ -41,10 +41,7 @@ function createModelViewer({ canvas, modelUrl, scale, interactive, reducedMotion
       stage.addDisposable(...modelScenes);
       stage.frame(displayWidth, displayHeight);
       stage.resize();
-      canvas.dataset.modelReady = "true";
       stage.renderFrame(0, false);
-    }, undefined, () => {
-      canvas.dataset.modelError = "true";
     });
   }
 

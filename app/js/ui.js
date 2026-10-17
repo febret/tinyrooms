@@ -408,7 +408,7 @@ function renderLook(state) {
 async function handleAction(action) {
   if (!action) return;
   if (action.local) action = action.local;
-  if (action.type !== "sell-click") playTone("tap");
+  if (!["sell-click", "open-view", "core-toggle", "close-view", "open-details", "close-details"].includes(action.type)) playTone("tap");
   if (action.command) {
     try {
       cardMotion.animatePickupCommand(action.command);
@@ -432,7 +432,6 @@ async function handleAction(action) {
       propId: action.propId,
       stackId: action.stackId,
     });
-    playTone("flip");
     if (!closing && view === "edit-room") await openRoomEditor();
     if (view === "journal") {
       await refreshTasks();
@@ -968,14 +967,16 @@ const cards = createCardsView({
       return;
     }
     if (activateSelection(selection)) return;
-    const detailsOpen = Boolean(store.getState().views.details);
+    const previousViews = store.getState().views;
+    const detailsOpen = Boolean(previousViews.details);
     store.dispatch({ type: "select", selection });
     // While the card view is open, clicking another card retargets it instead of
     // leaving the old card on screen.
     if (detailsOpen && !store.getState().ui.targeting && (selection.kind === "room-card" || selection.kind === "inventory-card")) {
       store.dispatch({ type: "open-details", stackId: selection.id });
     }
-    playTone("flip");
+    const views = store.getState().views;
+    if (views.main === previousViews.main && views.details === previousViews.details) playTone("flip");
   },
   onAction: action => { void handleAction(action); },
 });
@@ -1062,6 +1063,7 @@ async function render(state) {
   renderToasts(state);
   renderFeedback(state);
   cards.render(state);
+  if (state.views.main !== previousView || state.views.details !== previousDetails) playTone("tap");
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root, peepsToggle);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
