@@ -1,644 +1,826 @@
-# Base propset: shared decorative room furnishings.
-# Models generated with the bake pipeline live beside this file and are served
-# at /assets/propsets/base/<model>. Props are decorative + editable, so owners
-# can add, move, and scale them from the room editor.
-# CONFIG: reserved key for file-wide settings (never loaded as a prop).
-#         `scale_adjust` multiplies every prop's `scale` in this file.
-#         Example:
-#         CONFIG:
-#           scale_adjust: 1.0
-
-# --- Chairs and couches -----------------------------------------------------
 CONFIG:
   scale_adjust: 2.0
-
 mustard-armchair:
   label: Mustard Armchair
-  description: "The color of ballpark mustard and the energy of a 1996 fast-food interior. Sit back, dude."
+  description: The color of ballpark mustard and the energy of a 1996 fast-food interior.
+    Sit back, dude.
   model: mustard-armchair.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [seating, chair, furniture]
+  tags:
+  - seating
+  - chair
+  - furniture
 patchwork-rocking-chair:
   label: Patchwork Rocking Chair
-  description: "Grandma went full DIY and stitched this rocker out of every flannel in the house. Rad."
+  description: Grandma went full DIY and stitched this rocker out of every flannel
+    in the house. Rad.
   model: patchwork-rocking-chair.glb
   decorative: true
   editable: true
   scale: 1.15
-  tags: [seating, chair, furniture]
+  tags:
+  - seating
+  - chair
+  - furniture
 dusty-rose-sofa:
   label: Dusty Rose Sofa
-  description: "Velvet throne for two mismatched floral pillows that clearly came from different friend groups."
+  description: Velvet throne for two mismatched floral pillows that clearly came from
+    different friend groups.
   model: dusty-rose-sofa.glb
   decorative: true
   editable: true
   scale: 1.4
-  tags: [seating, sofa, furniture]
+  tags:
+  - seating
+  - sofa
+  - furniture
 teal-egg-chair:
   label: Teal Egg Chair
-  description: "Swivels a full 360. This is the chair that invented spin me right round, baby."
+  description: Swivels a full 360. This is the chair that invented spin me right round,
+    baby.
   model: teal-egg-chair.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [seating, chair, furniture]
+  tags:
+  - seating
+  - chair
+  - furniture
 window-daybed:
   label: Window Daybed
-  description: "Crocheted blanket plus embroidered cushions equals maximum cozy. NGL, you may never get up."
+  description: Crocheted blanket plus embroidered cushions equals maximum cozy. NGL,
+    you may never get up.
   model: window-daybed.glb
   decorative: true
   editable: true
   scale: 1.3
-  tags: [seating, bed, furniture]
-
-# --- Rugs -------------------------------------------------------------------
+  tags:
+  - seating
+  - bed
+  - furniture
 braided-rainbow-rug:
   label: Braided Rainbow Rug
-  description: "A rag rug coiled into a rainbow spiral. Step on it. Taste it. Be the rainbow."
+  description: A rag rug coiled into a rainbow spiral. Step on it. Taste it. Be the
+    rainbow.
   model: braided-rainbow-rug.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [rug, decoration]
+  tags:
+  - rug
+  - decoration
 persian-medallion-rug:
   label: Persian Medallion Rug
-  description: "Deep red, deep indigo, deep vibes. So classic it basically writes its own ASMR."
+  description: Deep red, deep indigo, deep vibes. So classic it basically writes its
+    own ASMR.
   model: persian-medallion-rug.glb
   decorative: true
   editable: true
   scale: 1.45
-  tags: [rug, decoration]
+  tags:
+  - rug
+  - decoration
 sheepskin-rug:
   label: Sheepskin Rug
-  description: "Fluffy cream cloud energy. Toe beans engaged. This rug is a whole entire mood."
+  description: Fluffy cream cloud energy. Toe beans engaged. This rug is a whole entire
+    mood.
   model: sheepskin-rug.glb
   decorative: true
   editable: true
   scale: 1.3
-  tags: [rug, decoration]
+  tags:
+  - rug
+  - decoration
 sunset-runner-rug:
   label: Sunset Runner Rug
-  description: "Sunset orange and cream, woven long. Basically a Windows 95 screensaver for your floor."
+  description: Sunset orange and cream, woven long. Basically a Windows 95 screensaver
+    for your floor.
   model: sunset-runner-rug.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [rug, decoration]
+  tags:
+  - rug
+  - decoration
 leaf-rug:
   label: Leaf Rug
-  description: "It is a leaf. It is a rug. It is leaf rug, obviously. Embroidered veins for botanical flex."
+  description: It is a leaf. It is a rug. It is leaf rug, obviously. Embroidered veins
+    for botanical flex.
   model: leaf-rug.glb
   decorative: true
   editable: true
   scale: 1.4
-  tags: [rug, decoration]
-
-# --- Lamps ------------------------------------------------------------------
+  tags:
+  - rug
+  - decoration
 mushroom-table-lamp:
   label: Mushroom Lamp
-  description: "Spotted cap, soft glow, toad approved. Toadstool plus nightlight equals pure rad."
+  description: Spotted cap, soft glow, toad approved. Toadstool plus nightlight equals
+    pure rad.
   model: mushroom-table-lamp.glb
   decorative: true
   editable: true
   scale: 0.7
-  tags: [lighting, lamp]
+  tags:
+  - lighting
+  - lamp
 blossom-paper-lantern:
   label: Blossom Paper Lantern
-  description: "Cherry blossoms on paper, hanging like it is hosting a 90s anime opening."
+  description: Cherry blossoms on paper, hanging like it is hosting a 90s anime opening.
   model: blossom-paper-lantern.glb
   decorative: true
   editable: true
   scale: 0.95
-  tags: [lighting, lantern]
+  tags:
+  - lighting
+  - lantern
 dragonfly-tiffany-lamp:
   label: Dragonfly Tiffany Lamp
-  description: "Stained-glass dragonfly shade. Art nouveau called and wants its swag back."
+  description: Stained-glass dragonfly shade. Art nouveau called and wants its swag
+    back.
   model: dragonfly-tiffany-lamp.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [lighting, lamp]
+  tags:
+  - lighting
+  - lamp
 purple-lava-lamp:
   label: Purple Lava Lamp
-  description: "Purple blobs going bloop-bloop-bloop through glowing orange. Watch it long enough and you are legally hypnotized."
+  description: Purple blobs going bloop-bloop-bloop through glowing orange. Watch
+    it long enough and you are legally hypnotized.
   model: purple-lava-lamp.glb
   decorative: true
   editable: true
   scale: 0.85
-  tags: [lighting, lamp]
+  tags:
+  - lighting
+  - lamp
 brass-arc-floor-lamp:
   label: Brass Arc Floor Lamp
-  description: "A tall brass arc bending over a cream drum shade like, sup. Peak reading lamp, no notes."
+  description: A tall brass arc bending over a cream drum shade like, sup. Peak reading
+    lamp, no notes.
   model: brass-arc-floor-lamp.glb
   decorative: true
   editable: true
   scale: 1.35
-  tags: [lighting, lamp]
+  tags:
+  - lighting
+  - lamp
 beeswax-candle-sconce:
   label: Beeswax Candle Sconce
-  description: "Three drippy beeswax candles. The bees worked overtime for this ambiance and they know it."
+  description: Three drippy beeswax candles. The bees worked overtime for this ambiance
+    and they know it.
   model: beeswax-candle-sconce.glb
   decorative: true
   editable: true
   scale: 0.6
-  tags: [lighting, sconce]
+  tags:
+  - lighting
+  - sconce
   effects:
-    lit: [fire]
-    smoking: [smoke]
+    lit:
+    - fire
+    smoking:
+    - smoke
   active_effect: lit
 orange-gooseneck-lamp:
   label: Orange Gooseneck Lamp
-  description: "Glossy orange and fully bendy. Built for 3am reading and 3am questionable internet decisions."
+  description: Glossy orange and fully bendy. Built for 3am reading and 3am questionable
+    internet decisions.
   model: orange-gooseneck-lamp.glb
   decorative: true
   editable: true
   scale: 0.9
-  tags: [lighting, lamp]
+  tags:
+  - lighting
+  - lamp
   effects:
-    idle: [ember-glow]
-    faulty: [sparks]
+    idle:
+    - ember-glow
+    faulty:
+    - sparks
   active_effect: idle
 brass-oil-lantern:
   label: Brass Oil Lantern
-  description: "Weathered brass, flickering flame, old-school cool. Ye olde mood lighting has entered the chat."
+  description: Weathered brass, flickering flame, old-school cool. Ye olde mood lighting
+    has entered the chat.
   model: brass-oil-lantern.glb
   decorative: true
   editable: true
   scale: 0.95
-  tags: [lighting, lantern]
+  tags:
+  - lighting
+  - lantern
   effects:
-    lit: [fire, ember-glow]
-    smoking: [smoke]
+    lit:
+    - fire
+    - ember-glow
+    smoking:
+    - smoke
   active_effect: lit
 cat-night-lamp:
   label: Cat Night Lamp
-  description: "A ceramic cat. After dark, the eyes glow. It is watching. It is always watching. Awww."
+  description: A ceramic cat. After dark, the eyes glow. It is watching. It is always
+    watching. Awww.
   model: cat-night-lamp.glb
   decorative: true
   editable: true
   scale: 0.65
-  tags: [lighting, lamp]
+  tags:
+  - lighting
+  - lamp
 bookstack-floor-lamp:
   label: Bookstack Floor Lamp
-  description: "A floor lamp stacked from colorful books. Knowledge, illuminating. Literally."
+  description: A floor lamp stacked from colorful books. Knowledge, illuminating.
+    Literally.
   model: bookstack-floor-lamp.glb
   decorative: true
   editable: true
   scale: 1.25
-  tags: [lighting, lamp]
-
-# --- Side tables ------------------------------------------------------------
+  tags:
+  - lighting
+  - lamp
 rattan-side-table:
   label: Rattan Side Table
-  description: "It is giving breezy sunroom realness."
+  description: It is giving breezy sunroom realness.
   model: rattan-side-table.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [table, furniture]
+  tags:
+  - table
+  - furniture
 milking-stool-table:
   label: Stool Table
-  description: "Fake it till you make it, little buddy."
+  description: Fake it till you make it, little buddy.
   model: milking-stool-table.glb
   decorative: true
   editable: true
   scale: 0.9
-  tags: [stool, table, furniture]
+  tags:
+  - stool
+  - table
+  - furniture
 floral-nightstand:
   label: Floral Nightstand
-  description: "Stores your retainer and your biggest dreams."
+  description: Stores your retainer and your biggest dreams.
   model: floral-nightstand.glb
   decorative: true
   editable: true
   scale: 0.75
-  tags: [nightstand, storage, furniture]
+  tags:
+  - nightstand
+  - storage
+  - furniture
 live-edge-slab-table:
   label: Live-Edge Slab Table
-  description: "Live-edgy."
+  description: Live-edgy.
   model: live-edge-slab-table.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [table, furniture]
+  tags:
+  - table
+  - furniture
 terrazzo-tripod-table:
   label: Terrazzo Tripod Table
-  description: "It is terrazzo-core."
+  description: It is terrazzo-core.
   model: terrazzo-tripod-table.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [table, furniture]
-
-# --- Plants and flowers -----------------------------------------------------
+  tags:
+  - table
+  - furniture
 monstera-in-pot:
   label: Pot of Monstera
-  description: "That leaf looked at the camera and said, I am the main character."
+  description: That leaf looked at the camera and said, I am the main character.
   model: monstera-in-pot.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [plant, decoration]
+  tags:
+  - plant
+  - decoration
 cactus-trio:
   label: Cactus Trio
-  description: "A Spice Girls lineup, but spikier."
+  description: A Spice Girls lineup, but spikier.
   model: cactus-trio.glb
   decorative: true
   editable: true
   scale: 0.7
-  tags: [plant, succulent]
+  tags:
+  - plant
+  - succulent
 hanging-pothos:
   label: Hanging Pothos
-  description: "70s plant energy that never once left."
+  description: 70s plant energy that never once left.
   model: hanging-pothos.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [plant, decoration]
+  tags:
+  - plant
+  - decoration
 snake-plant:
   label: Snake Plant
-  description: "Please do not water it with soda."
+  description: Please do not water it with soda.
   model: snake-plant.glb
   decorative: true
   editable: true
   scale: 1.15
-  tags: [plant, decoration]
+  tags:
+  - plant
+  - decoration
 potted-bonsai:
   label: Potted Bonsai
-  description: "Twenty years of patience in one teacup-sized vibe."
+  description: Twenty years of patience in one teacup-sized vibe.
   model: potted-bonsai.glb
   decorative: true
   editable: true
   scale: 0.6
-  tags: [plant, bonsai]
+  tags:
+  - plant
+  - bonsai
 venus-flytrap-pot:
   label: Venus Flytrap
-  description: "Feed me, Seymour. Nom nom nom."
+  description: Feed me, Seymour. Nom nom nom.
   model: venus-flytrap-pot.glb
   decorative: true
   editable: true
   scale: 0.65
-  tags: [plant, decoration]
+  tags:
+  - plant
+  - decoration
 pink-orchid:
   label: Pink Orchid
-  description: "Elegant, dramatic, completely unbothered."
+  description: Elegant, dramatic, completely unbothered.
   model: pink-orchid.glb
   decorative: true
   editable: true
   scale: 0.6
-  tags: [plant, flower]
+  tags:
+  - plant
+  - flower
 sunflower-bucket:
   label: Bucket of Sunflowers
-  description: "Summer said, hold my lemonade."
+  description: Summer said, hold my lemonade.
   model: sunflower-bucket.glb
   decorative: true
   editable: true
   scale: 0.8
-  tags: [plant, flower]
+  tags:
+  - plant
+  - flower
 tulip-window-box:
   label: Tulip Window Box
-  description: "Spring is doing the running man."
+  description: Spring is doing the running man.
   model: tulip-window-box.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [plant, flower]
+  tags:
+  - plant
+  - flower
 wicker-fern-basket:
   label: Wicker Fern Basket
-  description: "Chaotic good."
+  description: Chaotic good.
   model: wicker-fern-basket.glb
   decorative: true
   editable: true
   scale: 0.75
-  tags: [plant, fern]
-
-# --- Cabinets ---------------------------------------------------------------
+  tags:
+  - plant
+  - fern
 apothecary-cabinet:
   label: Apothecary Cabinet
-  description: "Dozens of tiny labeled drawers. What is inside? Nobody knows. That is the fun part."
+  description: Dozens of tiny labeled drawers. What is inside? Nobody knows. That
+    is the fun part.
   model: apothecary-cabinet.glb
   decorative: true
   editable: true
   scale: 1.35
-  tags: [storage, cabinet, furniture]
+  tags:
+  - storage
+  - cabinet
+  - furniture
 china-hutch:
   label: China Hutch
-  description: "A glass hutch showing off stacked teacups. For looking, not touching. Nana said so."
+  description: A glass hutch showing off stacked teacups. For looking, not touching.
+    Nana said so.
   model: china-hutch.glb
   decorative: true
   editable: true
   scale: 1.2
-  tags: [storage, cabinet, furniture]
+  tags:
+  - storage
+  - cabinet
+  - furniture
 record-cabinet:
   label: Record Cabinet
-  description: "Vinyl sleeves, a mini turntable, and room for more. This is where the bangers live."
+  description: Vinyl sleeves, a mini turntable, and room for more. This is where the
+    bangers live.
   model: record-cabinet.glb
   decorative: true
   editable: true
   scale: 1.2
-  tags: [storage, cabinet, furniture]
+  tags:
+  - storage
+  - cabinet
+  - furniture
 tall-wardrobe:
   label: Tall Wardrobe
-  description: "A tall painted wardrobe with a brass keyhole. Might lead to Narnia. Probably just coats."
+  description: A tall painted wardrobe with a brass keyhole. Might lead to Narnia.
+    Probably just coats.
   model: tall-wardrobe.glb
   decorative: true
   editable: true
   scale: 1.4
-  tags: [storage, wardrobe, furniture]
+  tags:
+  - storage
+  - wardrobe
+  - furniture
 medicine-cabinet:
   label: Medicine Cabinet
-  description: "Mirrored cabinet crammed with tiny bottles. Ninety percent mystery, one hundred percent mood."
+  description: Mirrored cabinet crammed with tiny bottles. Ninety percent mystery,
+    one hundred percent mood.
   model: medicine-cabinet.glb
   decorative: true
   editable: true
   scale: 0.8
-  tags: [storage, cabinet, mirror]
+  tags:
+  - storage
+  - cabinet
+  - mirror
 filing-cabinet:
   label: Filing Cabinet
-  description: "Vintage green filing cabinet. Home of important documents and one expired coupon from 2003."
+  description: Vintage green filing cabinet. Home of important documents and one expired
+    coupon from 2003.
   model: filing-cabinet.glb
   decorative: true
   editable: true
-  scale: 1.0
-  tags: [storage, cabinet, furniture]
+  scale: 1
+  tags:
+  - storage
+  - cabinet
+  - furniture
+  effects:
+    set:
+    - fire
+    - gentle-bob
+    - smoke
 kitchen-dresser:
   label: Kitchen Dresser
-  description: "Open shelves stacked with jars and cheerful crockery. The kitchen's official trophy case."
+  description: Open shelves stacked with jars and cheerful crockery. The kitchen's
+    official trophy case.
   model: kitchen-dresser.glb
   decorative: true
   editable: true
   scale: 1.2
-  tags: [storage, shelf, furniture]
+  tags:
+  - storage
+  - shelf
+  - furniture
 butterfly-curio-cabinet:
   label: Butterfly Curio Cabinet
-  description: "A hexagonal cabinet of pinned butterflies. Fascinating, educational, and slightly haunted."
+  description: A hexagonal cabinet of pinned butterflies. Fascinating, educational,
+    and slightly haunted.
   model: butterfly-curio-cabinet.glb
   decorative: true
   editable: true
   scale: 1.3
-  tags: [storage, cabinet, furniture]
+  tags:
+  - storage
+  - cabinet
+  - furniture
 shoe-cabinet:
   label: Shoe Cabinet
-  description: "A slatted cabinet with sneakers peeking out. Your kicks deserve better. They got this."
+  description: A slatted cabinet with sneakers peeking out. Your kicks deserve better.
+    They got this.
   model: shoe-cabinet.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [storage, cabinet, furniture]
+  tags:
+  - storage
+  - cabinet
+  - furniture
 gym-lockers:
   label: Gym Lockers
-  description: "Two numbered metal lockers, doors slightly ajar. Smells like 1997 PE class and big ambition."
+  description: Two numbered metal lockers, doors slightly ajar. Smells like 1997 PE
+    class and big ambition.
   model: gym-lockers.glb
   decorative: true
   editable: true
   scale: 1.45
-  tags: [storage, cabinet, furniture]
-
-# --- Stairwells -------------------------------------------------------------
+  tags:
+  - storage
+  - cabinet
+  - furniture
 oak-stairwell-landing:
   label: Oak Stairwell Landing
-  description: "Warm oak steps up to a proper landing. The banquet spot at the top of the house."
+  description: Warm oak steps up to a proper landing. The banquet spot at the top
+    of the house.
   model: oak-stairwell-landing.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [stairs, building]
+  tags:
+  - stairs
+  - building
 stone-spiral-stairwell:
   label: Stone Spiral Stairwell
-  description: "Winds around a central newel like a corkscrew. Take it slowly after snack time."
+  description: Winds around a central newel like a corkscrew. Take it slowly after
+    snack time.
   model: stone-spiral-stairwell.glb
   decorative: true
   editable: true
   scale: 1.4
-  tags: [stairs, building]
+  tags:
+  - stairs
+  - building
 white-cottage-stairwell:
   label: White Cottage Stairwell
-  description: "Whitewashed treads and turned spindles. Half-landing, full cottagecore."
+  description: Whitewashed treads and turned spindles. Half-landing, full cottagecore.
   model: white-cottage-stairwell.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [stairs, building]
+  tags:
+  - stairs
+  - building
 metal-industrial-stairwell:
   label: Metal Industrial Stairwell
-  description: "Open grated treads and pipe rails. Every step makes a satisfying clang."
+  description: Open grated treads and pipe rails. Every step makes a satisfying clang.
   model: metal-industrial-stairwell.glb
   decorative: true
   editable: true
   scale: 1.6
-  tags: [stairs, building]
+  tags:
+  - stairs
+  - building
 garden-deck-stairwell:
   label: Garden Deck Stairwell
-  description: "Outdoor timber steps up to a little deck. Sunsets included at no extra charge."
+  description: Outdoor timber steps up to a little deck. Sunsets included at no extra
+    charge.
   model: garden-deck-stairwell.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [stairs, building]
-
-# --- Walls ------------------------------------------------------------------
+  tags:
+  - stairs
+  - building
 red-brick-wall:
   label: Red Brick Wall
-  description: "Classic red brick, running bond, zero nonsense. Instant sturdy."
+  description: Classic red brick, running bond, zero nonsense. Instant sturdy.
   model: red-brick-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 white-plaster-wall:
   label: White Plaster Wall
-  description: "Smooth matte white. The blank canvas of room building."
+  description: Smooth matte white. The blank canvas of room building.
   model: white-plaster-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 exposed-stone-wall:
   label: Exposed Stone Wall
-  description: "Rough fieldstone with character in every single stone."
+  description: Rough fieldstone with character in every single stone.
   model: exposed-stone-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 shiplap-wood-wall:
   label: Shiplap Wood Wall
-  description: "Whitewashed horizontal boards. Fixer-upper energy, but make it cozy."
+  description: Whitewashed horizontal boards. Fixer-upper energy, but make it cozy.
   model: shiplap-wood-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 floral-wallpaper-wall:
   label: Floral Wallpaper Wall
-  description: "Vintage wallpaper dotted with tiny red roses. Grandma approved."
+  description: Vintage wallpaper dotted with tiny red roses. Grandma approved.
   model: floral-wallpaper-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 subway-tile-wall:
   label: Subway Tile Wall
-  description: "Glossy white subway tiles and clean grout lines. Extremely deli-coded."
+  description: Glossy white subway tiles and clean grout lines. Extremely deli-coded.
   model: subway-tile-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 concrete-wall:
   label: Concrete Wall
-  description: "Raw grey poured concrete. Brutalist, but keep it friendly."
+  description: Raw grey poured concrete. Brutalist, but keep it friendly.
   model: concrete-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 log-cabin-wall:
   label: Log Cabin Wall
-  description: "Stacked round timbers. Rustic with a capital R."
+  description: Stacked round timbers. Rustic with a capital R.
   model: log-cabin-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 sage-green-wall:
   label: Sage Green Wall
-  description: "Muted sage paint. Calm, herbal, and extremely now."
+  description: Muted sage paint. Calm, herbal, and extremely now.
   model: sage-green-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 beadboard-wainscot-wall:
   label: Beadboard Wainscot Wall
-  description: "Beadboard below, cream above. Porch-core for your indoors."
+  description: Beadboard below, cream above. Porch-core for your indoors.
   model: beadboard-wainscot-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 stucco-wall:
   label: Stucco Wall
-  description: "Warm ochre stucco with all the texture of a sunny villa."
+  description: Warm ochre stucco with all the texture of a sunny villa.
   model: stucco-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 river-rock-wall:
   label: River Rock Wall
-  description: "Smooth rounded river stones. Nature's own pebble dash."
+  description: Smooth rounded river stones. Nature's own pebble dash.
   model: river-rock-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 bamboo-wall:
   label: Bamboo Wall
-  description: "Vertical bamboo poles lashed tight. Tropical and tidy."
+  description: Vertical bamboo poles lashed tight. Tropical and tidy.
   model: bamboo-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 navy-blue-wall:
   label: Navy Blue Wall
-  description: "Deep navy with a subtle sheen. Moody in the best possible way."
+  description: Deep navy with a subtle sheen. Moody in the best possible way.
   model: navy-blue-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
+  tags:
+  - wall
+  - building
 whitewashed-brick-wall:
   label: Whitewashed Brick Wall
-  description: "Brick with a soft whitewash. Aged, tasteful, slightly trendy."
+  description: Brick with a soft whitewash. Aged, tasteful, slightly trendy.
   model: whitewashed-brick-wall.glb
   decorative: true
   editable: true
   scale: 1.5
-  tags: [wall, building]
-
-# --- Doors ------------------------------------------------------------------
+  tags:
+  - wall
+  - building
 oak-panel-door:
   label: Oak Panel Door
-  description: "Solid oak, raised panels, one very knobbable brass knob."
+  description: Solid oak, raised panels, one very knobbable brass knob.
   model: oak-panel-door.glb
   decorative: true
   editable: true
   scale: 1.35
-  tags: [door, building]
+  tags:
+  - door
+  - building
 red-front-door:
   label: Red Front Door
-  description: "Glossy red and cheerful. The official color of coming home."
+  description: Glossy red and cheerful. The official color of coming home.
   model: red-front-door.glb
   decorative: true
   editable: true
   scale: 1.35
-  tags: [door, building]
+  tags:
+  - door
+  - building
 glass-french-door:
   label: Glass French Door
-  description: "White mullions and divided glass. Light in, drama out."
+  description: White mullions and divided glass. Light in, drama out.
   model: glass-french-door.glb
   decorative: true
   editable: true
   scale: 1.4
-  tags: [door, building]
+  tags:
+  - door
+  - building
 rustic-barn-door:
   label: Rustic Barn Door
-  description: "Weathered planks and black iron cross-braces. Slides right into your heart."
+  description: Weathered planks and black iron cross-braces. Slides right into your
+    heart.
   model: rustic-barn-door.glb
   decorative: true
   editable: true
   scale: 1.4
-  tags: [door, building]
+  tags:
+  - door
+  - building
 arched-iron-door:
   label: Arched Iron Door
-  description: "Arched oak with iron bands and a ring pull. Very castle, very cozy."
+  description: Arched oak with iron bands and a ring pull. Very castle, very cozy.
   model: arched-iron-door.glb
   decorative: true
   editable: true
   scale: 1.35
-  tags: [door, building]
-
-# --- Windows ----------------------------------------------------------------
+  tags:
+  - door
+  - building
 bay-window:
   label: Bay Window
-  description: "Three angled panes and a seat ledge. Prime people-watching real estate."
+  description: Three angled panes and a seat ledge. Prime people-watching real estate.
   model: bay-window.glb
   decorative: true
   editable: true
   scale: 1.2
-  tags: [window, building]
+  tags:
+  - window
+  - building
 casement-window:
   label: Casement Window
-  description: "White frame, side-hinged sashes, maximum breeze."
+  description: White frame, side-hinged sashes, maximum breeze.
   model: casement-window.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [window, building]
+  tags:
+  - window
+  - building
 stained-glass-window:
   label: Stained Glass Window
-  description: "Jewel-toned diamonds and roundels. Instant cathedral."
+  description: Jewel-toned diamonds and roundels. Instant cathedral.
   model: stained-glass-window.glb
   decorative: true
   editable: true
   scale: 1.15
-  tags: [window, building]
+  tags:
+  - window
+  - building
 round-porthole-window:
   label: Round Porthole Window
-  description: "Riveted brass circle. Set sail for the living room."
+  description: Riveted brass circle. Set sail for the living room.
   model: round-porthole-window.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [window, building]
+  tags:
+  - window
+  - building
 arched-cottage-window:
   label: Arched Cottage Window
-  description: "Arched top, diamond lattice. Storybook, but functional."
+  description: Arched top, diamond lattice. Storybook, but functional.
   model: arched-cottage-window.glb
   decorative: true
   editable: true
   scale: 1.1
-  tags: [window, building]
+  tags:
+  - window
+  - building
