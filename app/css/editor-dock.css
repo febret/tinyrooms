@@ -10,7 +10,6 @@
 .editor-search { flex: 1 1 100px; min-width: 60px; max-width: 200px; padding: 2px 4px; font-size: 12px; }
 .editor-status { font-size: 11px; color: #9fb7bd; white-space: nowrap; }
 .editor-selected-name { min-width: 0; max-width: 140px; color: #f2bb8e; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.editor-heading-tags { flex: 0 0 auto; min-width: 0; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #2b4652; }
 .editor-tag-selector { display: flex; align-items: center; gap: 4px; color: #bcd0d6; font-size: 11px; }
 .editor-tag-selector input { width: 150px; min-width: 0; padding: 2px 4px; font: inherit; }
 .editor-library-count { margin-left: auto; font-size: 10px; color: #9fb7bd; white-space: nowrap; }

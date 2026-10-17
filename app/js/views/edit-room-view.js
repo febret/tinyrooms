@@ -114,17 +114,16 @@ export function editRoomView(state, { authoring = false } = {}) {
       <header class="editor-dock-header">
         <strong>Edit Room</strong>
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
+        ${libraryTagMarkup(library)}
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
         ${authoring ? "" : '<button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>'}
         <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
         <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
+        <button type="button" class="negative" data-editor-delete data-edit-action="remove" aria-label="Delete selected prop" disabled>Delete</button>
         <span class="editor-status" role="status" data-editor-status>${authoring ? "Draft saved" : "All changes saved"}</span>
+        <span class="editor-library-count" role="status"></span>
         ${authoring ? "" : '<button type="button" class="quiet editor-close" data-close-view aria-label="Close room editor">Close</button>'}
       </header>
-        <div class="editor-heading-tags" role="group" aria-label="Filter by tag">
-          ${libraryTagMarkup(library)}
-          <span class="editor-library-count" role="status"></span>
-        </div>
       <div data-editor-conflict>${editorConflictMarkup(editor)}</div>
       <div class="editor-workspace">
         <div class="editor-propsets" role="list" aria-label="Prop sets">

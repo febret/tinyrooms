@@ -28,7 +28,7 @@ export function bindEditorControls(root, onAction) {
   });
 }
 
-const SCROLL_REGIONS = ".editor-workspace, .editor-propsets, .editor-heading-tags, .editor-library-grid";
+const SCROLL_REGIONS = ".editor-workspace, .editor-propsets, .editor-library-grid";
 
 /** Shared gameplay/authoring dock. Actions use the gameplay editor payloads. */
 export function createEditorDock({
@@ -76,6 +76,8 @@ export function createEditorDock({
       const selected = selectedInstance(editor);
       const name = root.querySelector("[data-edit-selected-name]");
       if (name) name.textContent = editorSelectedName(editor, selected);
+      const deleteButton = root.querySelector("[data-editor-delete]");
+      if (deleteButton) deleteButton.disabled = !selected;
       const undo = root.querySelector("[data-editor-undo]");
       if (undo) undo.disabled = !editor.undo.length;
       const redo = root.querySelector("[data-editor-redo]");
