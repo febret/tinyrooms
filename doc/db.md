@@ -110,7 +110,7 @@ Preserve these compatibility/future-intent distinctions:
 ## 3. World-state DB
 
 [WorldStateRepository](../server/state/world_state.py) owns room cards,
-initialization, layouts/environment, player-bedroom records, and metadata.
+initialization, layouts/environment, player-classroom records, and metadata.
 [BehaviorDispatcher](../server/behaviors/dispatcher.py) persists trusted
 script state through intent transactions; scripts do not access SQL directly.
 [NPC state](../server/state/npc_peep_states.py) and
@@ -141,9 +141,9 @@ card reset does not itself reset the editable layout. Preserve that loss
 boundary when exposing reset tools.
 
 Live room state includes owner, editable props, environment overrides, layout
-revision, and bedroom door settings. Layout saves use optimistic concurrency.
-`bedroom:` rooms reuse `room_states`; a partial unique index enforces one
-bedroom per account. See [room layouts](../server/services/room_layout.py)
+revision, and classroom door settings. Layout saves use optimistic concurrency.
+`classroom:` rooms reuse `room_states`; a partial unique index enforces one
+classroom per account. See [room layouts](../server/services/room_layout.py)
 and the repository rather than a duplicated JSON/column inventory.
 
 ### Durability boundaries

@@ -55,6 +55,7 @@ from server.protocol import (
     ProtocolError,
     error_envelope,
     parse_client_message,
+    presence_enter_event,
     presence_leave_event,
     result_envelope,
     room_snapshot_envelope,
@@ -946,15 +947,17 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         await connection.send(room_snapshot_envelope(snapshot))
         if runtime.config.mc_instance_id:
             runtime.profiles.remember_instance(account.id, runtime.config.mc_instance_id)
+        arrival = runtime.profiles.take_world_arrival(account.id)
         await _broadcast_room_event(
             runtime,
             room_id=room_id,
-            event={
-                "type": "presence.enter",
-                "room_id": room_id,
-                "account_id": account.id,
-                "username": account.username_display,
-            },
+            event=presence_enter_event(
+                account_id=account.id,
+                username=account.username_display,
+                room_id=room_id,
+                source_room_id=str(arrival["room_id"]) if arrival and arrival.get("room_id") else None,
+                source_room_label=str(arrival["room_label"]) if arrival and arrival.get("room_label") else None,
+            ),
             exclude_account_id=account.id,
         )
         enter_result = await runtime.behaviors.dispatch(

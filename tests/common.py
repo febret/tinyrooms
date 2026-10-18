@@ -47,7 +47,7 @@ def websocket_headers(session_token: str, csrf_token: str) -> dict[str, str]:
 
 
 def repo_mods():
-    """Discover the checked-in mods used by the tutorial world."""
+    """Discover the checked-in mods used by the test worlds."""
 
     from server.mods import discover_mods
 
@@ -237,7 +237,7 @@ class RuntimeTestCase(unittest.TestCase):
                 "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
                 "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
                 "TRSERVER_FEATURES": self.features,
-                "TRSERVER_MODS": "infinite-bedrooms",
+                "TRSERVER_MODS": "classrooms",
                 "TRSERVER_TIMEZONE": "UTC",
                 "TRSERVER_HOST": "testserver",
                 "TRSERVER_PORT": "5000",

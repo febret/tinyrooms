@@ -69,6 +69,33 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 [lifecycle controls](doc/mission-control.md#53-server-manager), and
 [durable state](doc/mission-control.md#41-runtime-state-and-persisted-launch-settings).
 
+## Multiworld
+
+[Bash users] `./start_multiworld.sh` starts a local Mission Control plus the
+tutorial and scammon-academia world servers sharing one profile database and
+one advertised hostname. The tutorial hub portal and the scammon-academia hall
+portal link the two worlds. It uses development credentials and self-signed
+certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`, or
+`PUBLIC_HOST` as needed.
+
+```bash
+./start_multiworld.sh
+# Mission Control:  https://127.0.0.1:8001/mission-control
+# Tutorial world:   https://127.0.0.1:5100/
+# Scammon Academia: https://127.0.0.1:5101/
+
+# To accept connections from other machines, pass a reachable address. This also
+# binds the three listeners to 0.0.0.0; the browser uses the advertised host so
+# the shared session cookie keeps working across ports:
+./start_multiworld.sh --public-host 192.168.1.50
+```
+
+Author cross-world exits in a room's `rooms.yaml` with `target_world: <world-id>`
+and an optional `target: <room>` (defaulting to the destination world's entry
+room). Both worlds must share a profile database, advertise client URLs on
+Mission Control's hostname, and be connected to the same Mission Control
+instance. See [fleet destination discovery](doc/mission-control.md#7-mission-control-ui-api).
+
 ## Deploying
 
 [tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
@@ -120,7 +147,7 @@ gcloud compute firewall-rules create tinyrooms-worlds \
 Mods under `mods/` (override `TRSERVER_MODS_PATH`) use a `mod.yaml` manifest and
 may contribute content, props, activity iframes, and Python `register(api)`
 behavior. Enable comma-separated names or `*` through `TRSERVER_MODS`. Worlds
-declare `requires_mods`; the tutorial requires `infinite-bedrooms`.
+declare `requires_mods`; the scammon-academia world requires `classrooms`.
 
 ## Editors
 

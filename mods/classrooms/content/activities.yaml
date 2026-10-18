@@ -1,4 +1,4 @@
-bedrooms:
-  title: The Bedrooms
+classrooms:
+  title: Classrooms
   room_bound: true
-  rooms: [hub]
+  rooms: [hall]

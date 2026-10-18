@@ -41,6 +41,16 @@ class NavigationResult:
 
 
 @dataclass(frozen=True, slots=True)
+class WorldDeparture:
+    """Outcome of leaving a room to travel to another world."""
+
+    source_room_id: str
+    source_event: dict[str, object]
+    closed_activity: dict[str, object] | None
+    behavior_results: list[object] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
 class NpcMoveResult:
     """Outcome of moving an NPC peep between rooms."""
 
@@ -598,6 +608,55 @@ class RoomService:
             source_room=source_room,
             destination_room=destination_room,
             direction=direction,
+        )
+
+    async def depart_to_world(
+        self,
+        account: AccountRecord,
+        source_room_id: str,
+        *,
+        direction: str,
+        destination_room_id: str | None = None,
+    ) -> WorldDeparture:
+        """Remove a connected user from a room when leaving for another world.
+
+        This mirrors the departure half of :meth:`_move`, so the source room
+        drops the peep immediately and broadcasts a ``presence.leave`` instead of
+        waiting for the browser to close its socket. The destination world
+        announces the matching ``presence.enter`` when the browser reconnects.
+        """
+
+        behavior_results: list[object] = []
+        if self._behaviors is not None:
+            behavior_results.append(
+                await self._behaviors.dispatch(
+                    BehaviorEvent(
+                        type="leave",
+                        actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+                        target=None,
+                        room_id=source_room_id,
+                        action=None,
+                        data={"destination_room_id": None},
+                    )
+                )
+            )
+        if self._dialogs is not None:
+            self._dialogs.end(account.id, "room_changed")
+        if self._auras is not None:
+            self._auras.leave(account.id, source_room_id)
+        await self._connections.set_room(account.id, None)
+        closed = self._activities.close(account.id)
+        return WorldDeparture(
+            source_room_id=source_room_id,
+            source_event=presence_leave_event(
+                account_id=account.id,
+                username=account.username_display,
+                room_id=source_room_id,
+                destination_room_id=destination_room_id,
+                direction=direction,
+            ),
+            closed_activity=None if closed is None else self._activities.serialize(closed),
+            behavior_results=behavior_results,
         )
 
     async def _move(

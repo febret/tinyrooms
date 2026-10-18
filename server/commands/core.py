@@ -220,8 +220,31 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
     exit_id = parse_target(exit_token).value if exit_token.startswith("@") else exit_token
     exit_definition = context.rooms.room_definition(room_id).exits.get(exit_id)
     if exit_definition is not None and exit_definition.target_world_id is not None:
-        payload = await context.cross_world.travel(context.account, exit_definition)
-        return CommandOutcome(message="You step through the portal.", payload=payload)
+        plan = await context.cross_world.prepare(context.account, exit_definition)
+        departure = await context.rooms.depart_to_world(
+            context.account,
+            room_id,
+            direction=exit_definition.label,
+            destination_room_id=plan.room_id or None,
+        )
+        payload = context.cross_world.commit(
+            context.account,
+            plan,
+            source_room_id=room_id,
+            source_room_label=context.rooms.room_definition(room_id).label,
+            source_world_label=context.world.label,
+        )
+        outcome = CommandOutcome(message="You step through the portal.", payload=payload)
+        outcome.room_broadcasts.append(
+            PendingRoomBroadcast(room_id=departure.source_room_id, event=departure.source_event)
+        )
+        if departure.closed_activity is not None:
+            outcome.private_events.append(
+                {"type": "activity.closed", "activity": departure.closed_activity, "reason": "room_changed"}
+            )
+        for behavior in departure.behavior_results:
+            _merge_behavior(context, outcome, behavior)
+        return outcome
     navigation = await context.rooms.navigate(context.account, room_id, exit_id)
     changes = context.tasks.record(
         context.account.id,

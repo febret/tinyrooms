@@ -1,5 +1,6 @@
-# Door customization catalog for the Bedrooms activity.
-# `cost` is the one-time Bops price for a player's door.
+# Door customization catalog for the Classrooms activity.
+# Defaults lean on the school colors: blue doors, yellow trim.
+# `cost` is the one-time Bops price for a player's classroom.
 cost: 10
 tag:
   max_length: 16
@@ -9,37 +10,37 @@ dimensions:
     label: Door Color
     kind: choice
     options:
-      - {id: crimson, label: Crimson, value: "#c0392b"}
-      - {id: cobalt, label: Cobalt, value: "#2f6fb0"}
-      - {id: moss, label: Moss, value: "#4a8f5b"}
-      - {id: amber, label: Amber, value: "#d59a3a"}
-      - {id: plum, label: Plum, value: "#7b4a86"}
+      - {id: blue, label: Husky Blue, value: "#2b4c9b"}
+      - {id: yellow, label: School Bus Yellow, value: "#f4c430"}
+      - {id: sky, label: Sky Blue, value: "#5b8def"}
+      - {id: navy, label: Deep Navy, value: "#1d3a7a"}
+      - {id: cream, label: Cream, value: "#f4e6c8"}
   material:
     label: Material
     kind: choice
     options:
-      - {id: plain, label: Plain, asset: /activities/bedrooms/assets/material-plain.svg}
-      - {id: wood, label: Wood, asset: /activities/bedrooms/assets/material-wood.svg}
-      - {id: stone, label: Stone, asset: /activities/bedrooms/assets/material-stone.svg}
-      - {id: metal, label: Metal, asset: /activities/bedrooms/assets/material-metal.svg}
-      - {id: glass, label: Glass, asset: /activities/bedrooms/assets/material-glass.svg}
+      - {id: plain, label: Plain, asset: /activities/classrooms/assets/material-plain.svg}
+      - {id: wood, label: Wood, asset: /activities/classrooms/assets/material-wood.svg}
+      - {id: tile, label: Tile, asset: /activities/classrooms/assets/material-tile.svg}
+      - {id: metal, label: Metal, asset: /activities/classrooms/assets/material-metal.svg}
+      - {id: glass, label: Glass, asset: /activities/classrooms/assets/material-glass.svg}
   handle:
     label: Handle
     kind: choice
     options:
-      - {id: knob, label: Round Knob, asset: /activities/bedrooms/assets/handle-knob.svg}
-      - {id: lever, label: Lever, asset: /activities/bedrooms/assets/handle-lever.svg}
-      - {id: ring, label: Ring, asset: /activities/bedrooms/assets/handle-ring.svg}
-      - {id: bar, label: Bar, asset: /activities/bedrooms/assets/handle-bar.svg}
-      - {id: none, label: None, asset: /activities/bedrooms/assets/handle-none.svg}
+      - {id: knob, label: Round Knob, asset: /activities/classrooms/assets/handle-knob.svg}
+      - {id: lever, label: Lever, asset: /activities/classrooms/assets/handle-lever.svg}
+      - {id: ring, label: Ring, asset: /activities/classrooms/assets/handle-ring.svg}
+      - {id: bar, label: Bar, asset: /activities/classrooms/assets/handle-bar.svg}
+      - {id: none, label: None, asset: /activities/classrooms/assets/handle-none.svg}
   tag_color:
     label: Tag Color
     kind: choice
     options:
+      - {id: yellow, label: School Bus Yellow, value: "#f4c430"}
+      - {id: blue, label: Husky Blue, value: "#2b4c9b"}
       - {id: cream, label: Cream, value: "#f4e6c8"}
-      - {id: gold, label: Gold, value: "#e0b352"}
-      - {id: rose, label: Rose, value: "#d98a9a"}
-      - {id: mint, label: Mint, value: "#9fd3b8"}
+      - {id: sky, label: Sky Blue, value: "#8fb8f0"}
       - {id: slate, label: Slate, value: "#8fa3ad"}
   tag_text:
     label: Tag Text

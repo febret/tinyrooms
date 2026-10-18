@@ -1,13 +1,13 @@
 id: scammon-academia
 label: Scammon Academia
-description: A cheery little elementary school where the gray husky is always on
-  the wall. Wander The Hall and peek into the classroom, cafeteria, office, and
-  bathroom.
+description: A cheery little elementary school where the gray husky is always on the
+  wall. Wander The Hall and peek into the classroom, cafeteria, office, and bathroom.
 entry_room: hall
 palette:
 - '#2b4c9b'
 - '#f4c430'
 - '#d8dbe0'
 - '#f4f6f8'
-requires_mods: []
+requires_mods:
+- classrooms
 powers: {}

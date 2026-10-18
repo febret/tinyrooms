@@ -178,10 +178,15 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
                         _issue(issues, exit_path, "Exit must be a mapping.")
                         continue
                     target = exit_definition.get("target")
-                    if not isinstance(target, str) or not target:
+                    target_world = exit_definition.get("target_world")
+                    has_world = isinstance(target_world, str) and bool(target_world)
+                    if target_world is not None and not has_world:
+                        _issue(issues, f"{exit_path}.target_world", "Exit target world must be a non-empty string.")
+                    if isinstance(target, str) and target:
+                        if not has_world and target not in room_ids:
+                            _issue(issues, f"{exit_path}.target", f"Exit target '{target}' is not a room.")
+                    elif not has_world:
                         _issue(issues, f"{exit_path}.target", "Exit target is required.")
-                    elif target not in room_ids:
-                        _issue(issues, f"{exit_path}.target", f"Exit target '{target}' is not a room.")
         cards = room.get("cards")
         if cards is not None:
             if not isinstance(cards, list):

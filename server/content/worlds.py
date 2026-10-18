@@ -61,6 +61,7 @@ class ExitDefinition:
     locked: bool
     requires_card_id: str | None
     npc_barrier: bool = False
+    target_world_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -859,13 +860,18 @@ def load_world_definition(
             if requires_card_id is not None and requires_card_id not in card_ids:
                 warn_unknown_card(f"Exit '{room_id}.{exit_id}' requires", requires_card_id)
                 requires_card_id = None
+            target_world_id = str(raw_exit["target_world"]).strip() if raw_exit.get("target_world") else None
+            target_room_id = str(raw_exit.get("target", "")).strip()
+            if target_world_id is None and not target_room_id:
+                raise ContentError(f"Exit '{room_id}.{exit_id}' must define a target room or target world.")
             room_exits[exit_id] = ExitDefinition(
                 id=exit_id,
                 label=str(raw_exit.get("label", "")).strip(),
-                target_room_id=str(raw_exit.get("target", "")).strip(),
+                target_room_id=target_room_id,
                 locked=bool(raw_exit.get("locked", False)),
                 requires_card_id=requires_card_id,
                 npc_barrier=bool(raw_exit.get("npc_barrier", False)),
+                target_world_id=target_world_id,
             )
         room_cards: list[InitialRoomCard] = []
         for index, raw_card in enumerate(raw_room.get("cards", []) or []):
@@ -908,6 +914,8 @@ def load_world_definition(
         raise ContentError(f"World entry room '{entry_room_id}' does not exist.")
     for room in rooms.values():
         for exit_definition in room.exits.values():
+            if exit_definition.target_world_id is not None:
+                continue
             if exit_definition.target_room_id not in rooms:
                 raise ContentError(
                     f"Room '{room.id}' exit '{exit_definition.id}' targets unknown room "

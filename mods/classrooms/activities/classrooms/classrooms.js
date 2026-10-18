@@ -1,7 +1,8 @@
+import { GRADE_COUNT, floorsOf, gradeName, isAcquirable } from "./classroom-floors.js";
+
 const Tiny = window.TinyActivity;
 
-const corridor = document.querySelector("#corridor");
-const track = document.querySelector("#track");
+const floorsEl = document.querySelector("#floors");
 const bopsLabel = document.querySelector("#bops");
 const myDoorButton = document.querySelector("#my-door");
 const getDoorButton = document.querySelector("#get-door");
@@ -20,7 +21,7 @@ function withBase(path) {
   return `${BASE_PATH}${path}`;
 }
 
-const ASSET_ROOT = `${BASE_PATH}/activities/bedrooms/assets/`;
+const ASSET_ROOT = `${BASE_PATH}/activities/classrooms/assets/`;
 
 const state = {
   user: null,
@@ -28,6 +29,7 @@ const state = {
   catalog: null,
   doors: [],
   cost: 10,
+  maxGrade: GRADE_COUNT,
   ownDoor: null,
   draft: null,
   started: false,
@@ -90,7 +92,7 @@ async function buildDoorVisual(style) {
   const handle = assetUrl("handle", style?.handle);
   if (handle) visual.append(await inlineAsset(handle));
   const tag = await inlineAsset(`${ASSET_ROOT}tag.svg`);
-  tag.style.color = colorValue("tag_color", style?.tag_color) || "#f4e6c8";
+  tag.style.color = colorValue("tag_color", style?.tag_color) || "#f4c430";
   visual.append(tag);
   const text = document.createElement("span");
   text.className = "door-tag-text";
@@ -102,11 +104,11 @@ async function buildDoorVisual(style) {
 
 async function enterDoor(door) {
   if (door.locked && !door.is_owner) {
-    Tiny.toast("That bedroom door is locked.", true);
+    Tiny.toast("That classroom door is locked.", true);
     return;
   }
   try {
-    await Tiny.command(`.door enter ${door.room_id}`);
+    await Tiny.command(`.classroom enter ${door.room_id}`);
   } catch (error) {
     Tiny.toast(error instanceof Error ? error.message : String(error), true);
   }
@@ -114,9 +116,9 @@ async function enterDoor(door) {
 
 async function buyDoor() {
   try {
-    const response = await Tiny.command(".door buy");
+    const response = await Tiny.command(".classroom buy");
     Tiny.celebrate();
-    Tiny.toast(response.message || "Door purchased.");
+    Tiny.toast(response.message || "Classroom purchased.");
     await refresh();
   } catch (error) {
     Tiny.toast(error instanceof Error ? error.message : String(error), true);
@@ -176,31 +178,87 @@ function buildEmptySlot() {
     button.type = "button";
     button.className = "door-buy";
     button.textContent = "+";
-    button.title = `Get a door (${state.cost} Bops)`;
-    button.setAttribute("aria-label", `Get a bedroom door for ${state.cost} Bops`);
+    button.title = `Get a classroom (${state.cost} Bops)`;
+    button.setAttribute("aria-label", `Get a classroom for ${state.cost} Bops`);
     button.addEventListener("click", buyDoor);
     slot.append(button);
   }
   return slot;
 }
 
-async function renderCorridor() {
-  const token = ++renderToken;
-  buyButtonPlaced = false;
-  track.innerHTML = "";
-  const doors = state.doors;
-  const slots = Math.max(doors.length + 5, 12);
-  for (let index = 0; index < slots; index += 1) {
-    if (token !== renderToken) return;
-    const door = doors[index];
-    track.append(door ? await buildDoorCard(door) : buildEmptySlot());
-  }
+function wireCorridorDrag(corridor) {
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartScroll = 0;
+  corridor.addEventListener("pointerdown", event => {
+    if (event.target.closest("button")) return;
+    dragging = true;
+    dragStartX = event.clientX;
+    dragStartScroll = corridor.scrollLeft;
+    corridor.setPointerCapture(event.pointerId);
+  });
+  corridor.addEventListener("pointermove", event => {
+    if (!dragging) return;
+    corridor.scrollLeft = dragStartScroll - (event.clientX - dragStartX);
+  });
+  const endDrag = () => {
+    dragging = false;
+  };
+  corridor.addEventListener("pointerup", endDrag);
+  corridor.addEventListener("pointercancel", endDrag);
 }
 
-function appendSlots(count) {
-  if (!state.catalog) return;
-  for (let index = 0; index < count; index += 1) {
+async function buildFloor(grade, doors) {
+  const floor = document.createElement("section");
+  floor.className = "floor";
+  floor.dataset.grade = String(grade);
+  floor.setAttribute("aria-label", gradeName(grade));
+
+  const head = document.createElement("div");
+  head.className = "floor-head";
+  const label = document.createElement("h2");
+  label.className = "floor-label";
+  label.textContent = gradeName(grade);
+  head.append(label);
+  const count = document.createElement("span");
+  count.className = "floor-count";
+  count.textContent = `${doors.length} classroom${doors.length === 1 ? "" : "s"}`;
+  head.append(count);
+  floor.append(head);
+
+  const corridor = document.createElement("div");
+  corridor.className = "corridor";
+  corridor.tabIndex = 0;
+  const track = document.createElement("div");
+  track.className = "corridor-track";
+  corridor.append(track);
+
+  for (const door of doors) {
+    track.append(await buildDoorCard(door));
+  }
+  if (isAcquirable(grade) && !state.ownDoor) {
     track.append(buildEmptySlot());
+  }
+  if (!doors.length && !(isAcquirable(grade) && !state.ownDoor)) {
+    const empty = document.createElement("p");
+    empty.className = "floor-empty";
+    empty.textContent = isAcquirable(grade) ? "No classrooms yet." : "This floor is locked for now.";
+    track.append(empty);
+  }
+  floor.append(corridor);
+  wireCorridorDrag(corridor);
+  return floor;
+}
+
+async function renderFloors() {
+  const token = ++renderToken;
+  buyButtonPlaced = false;
+  const gradeCount = Math.min(Math.max(state.maxGrade || GRADE_COUNT, 1), GRADE_COUNT);
+  const grouped = floorsOf(state.doors, gradeCount);
+  floorsEl.innerHTML = "";
+  for (let index = 0; index < gradeCount; index += 1) {
+    if (token !== renderToken) return;
+    floorsEl.append(await buildFloor(index + 1, grouped[index]));
   }
 }
 
@@ -210,24 +268,26 @@ function updateTopBar() {
   if (state.ownDoor) {
     myDoorButton.hidden = false;
     getDoorButton.hidden = true;
+    myDoorButton.textContent = `My classroom \u00b7 ${gradeName(state.ownDoor.grade)}`;
   } else {
     myDoorButton.hidden = true;
     getDoorButton.hidden = !state.catalog;
-    getDoorButton.textContent = `Get a door \u00b7 ${state.cost} Bops`;
+    getDoorButton.textContent = `Get a classroom \u00b7 ${state.cost} Bops`;
   }
 }
 
 async function refresh() {
   try {
-    const response = await Tiny.command(".door list");
+    const response = await Tiny.command(".classroom list");
     const payload = response.payload || {};
     state.doors = Array.isArray(payload.doors) ? payload.doors : [];
     state.catalog = payload.catalog || state.catalog;
     state.cost = Number.isFinite(payload.cost) ? payload.cost : state.cost;
+    state.maxGrade = Number.isFinite(payload.max_grade) ? payload.max_grade : state.maxGrade;
     state.ownDoor = payload.own_door || null;
     connection.textContent = "";
     updateTopBar();
-    await renderCorridor();
+    await renderFloors();
   } catch (error) {
     connection.textContent = error instanceof Error ? error.message : String(error);
   }
@@ -312,7 +372,7 @@ async function saveDesign() {
     tokens.push(entry.id, quote(String(state.draft?.[entry.id] ?? "")));
   }
   try {
-    const response = await Tiny.command(`.door design ${tokens.join(" ")}`);
+    const response = await Tiny.command(`.classroom design ${tokens.join(" ")}`);
     Tiny.toast(response.message || "Door updated.");
     closeDesigner();
     await refresh();
@@ -329,7 +389,7 @@ designer.addEventListener("click", event => {
 
 lockInput.addEventListener("change", async () => {
   try {
-    await Tiny.command(`.door lock ${lockInput.checked ? "on" : "off"}`);
+    await Tiny.command(`.classroom lock ${lockInput.checked ? "on" : "off"}`);
     Tiny.toast(lockInput.checked ? "Your door is locked." : "Your door is unlocked.");
     await refresh();
   } catch (error) {
@@ -339,37 +399,12 @@ lockInput.addEventListener("change", async () => {
 });
 
 myDoorButton.addEventListener("click", () => {
-  const card = track.querySelector(".door-card.own");
-  card?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  const floor = floorsEl.querySelector(`.floor[data-grade="${state.ownDoor?.grade || 1}"]`);
+  floor?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  floor?.querySelector(".door-card.own")?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
 });
 
 getDoorButton.addEventListener("click", buyDoor);
-
-corridor.addEventListener("scroll", () => {
-  if (corridor.scrollLeft + corridor.clientWidth > corridor.scrollWidth - 240) {
-    appendSlots(6);
-  }
-});
-
-let dragging = false;
-let dragStartX = 0;
-let dragStartScroll = 0;
-corridor.addEventListener("pointerdown", event => {
-  if (event.target.closest("button")) return;
-  dragging = true;
-  dragStartX = event.clientX;
-  dragStartScroll = corridor.scrollLeft;
-  corridor.setPointerCapture(event.pointerId);
-});
-corridor.addEventListener("pointermove", event => {
-  if (!dragging) return;
-  corridor.scrollLeft = dragStartScroll - (event.clientX - dragStartX);
-});
-const endDrag = () => {
-  dragging = false;
-};
-corridor.addEventListener("pointerup", endDrag);
-corridor.addEventListener("pointercancel", endDrag);
 
 Tiny.subscribe(nextState => {
   state.user = nextState?.user || null;

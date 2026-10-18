@@ -259,12 +259,18 @@ def presence_enter_event(
     account_id: str,
     username: str,
     room_id: str,
-    source_room_id: str,
+    source_room_id: str | None = None,
     source_room_label: str | None = None,
 ) -> dict[str, object]:
-    """Build the room presence-enter event payload."""
+    """Build the room presence-enter event payload.
 
-    event = {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username, "source_room_id": source_room_id}
+    ``source_room_id``/``source_room_label`` describe where the peep arrived
+    from. They are omitted for a fresh login, whose source is unknown.
+    """
+
+    event = {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username}
+    if source_room_id is not None:
+        event["source_room_id"] = source_room_id
     if source_room_label is not None:
         event["source_room_label"] = source_room_label
     return event

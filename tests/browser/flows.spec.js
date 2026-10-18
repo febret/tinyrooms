@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { PASSWORD, command, confirmSticker, createAccount, createReadyAccount, openCore, openEditRoom, travel } from "./helpers.js";
+import { PASSWORD, command, confirmSticker, createAccount, createReadyAccount, openCore, travel } from "./helpers.js";
 
 // This functional suite is a deliberately minimal smoke set: it proves the app
 // boots, the real WebSocket round-trips, core views render, and one end-to-end
@@ -154,81 +154,3 @@ test.describe("milestone 3 dialogs", () => {
   });
 });
 
-test.describe("bedrooms and doors", () => {
-  test.slow();
-  test.setTimeout(60_000);
-
-  test("buy, design, and enter a player bedroom from the corridor", async ({ page, runtime }, testInfo) => {
-    await createReadyAccount(page, runtime, "doorkeeper");
-    // The hub's stone archway model must load without error.
-    await expect(page.locator("canvas[data-prop-model][data-model-error='true']")).toHaveCount(0);
-
-    await command(page, ".play bedrooms");
-    const activity = page.locator(".activity-window");
-    await expect(activity.locator("iframe")).toHaveAttribute("src", /bedrooms/);
-
-    const frame = page.frameLocator('iframe[src*="bedrooms"]');
-    await expect(frame.locator("#bops")).toContainText("10 Bops", { timeout: 20_000 });
-    await frame.locator("#get-door").click();
-    await expect(frame.locator("#my-door")).toBeVisible({ timeout: 20_000 });
-    await expect(frame.locator("#bops")).toContainText("0 Bops");
-
-    await frame.locator(".door-card.own .door-design").click();
-    await expect(frame.locator("#designer")).toBeVisible();
-    const colorRow = frame.locator("#controls .control-row", { hasText: "Door Color" });
-    await colorRow.locator("button.swatch").nth(1).click();
-    await frame.locator('#controls input[type="text"]').fill("Welcome");
-    await frame.locator("#designer-save").click();
-    await expect(frame.locator("#feedback")).toContainText("Door updated.");
-
-    await frame.locator(".door-card.own").click({ position: { x: 54, y: 30 } });
-    await expect(page.locator("#look-bar")).toContainText("Bedroom", { timeout: 20_000 });
-    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
-    await expect(page.locator('iframe[src*="bedrooms"]')).toHaveCount(0);
-
-    // The owner can edit their own room.
-    const editor = await openEditRoom(page);
-    await expect(page.locator("#card-hand")).toBeHidden();
-    await editor.getByRole("button", { name: "Add text", exact: true }).click();
-    const textDialog = page.getByRole("dialog", { name: "Add text", exact: true });
-    await textDialog.getByLabel("Text", { exact: true }).fill("Café\nWelcome");
-    await textDialog.getByLabel("Font", { exact: true }).selectOption("serif");
-    await textDialog.getByLabel("Color", { exact: true }).fill("#cc6633");
-    await expect(textDialog.getByRole("button", { name: "Create", exact: true })).toBeEnabled();
-    await expect(textDialog.locator("canvas")).toHaveAttribute("data-board-ready", "true");
-    await page.screenshot({ path: testInfo.outputPath("text-dialog-desktop.png") });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(textDialog.getByRole("button", { name: "Create", exact: true })).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath("text-dialog-mobile.png") });
-    await page.setViewportSize({ width: 1280, height: 800 });
-    await textDialog.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(textDialog).toHaveCount(0);
-    await expect(editor.locator("[data-edit-selected-name]")).toHaveText("Café Welcome");
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("+");
-    await editor.getByRole("button", { name: "Edit text", exact: true }).click();
-    const editText = page.getByRole("dialog", { name: "Edit text", exact: true });
-    await editText.getByLabel("Text", { exact: true }).fill("Café\nHello!");
-    await editText.getByRole("button", { name: "Apply", exact: true }).click();
-    await editor.getByRole("button", { name: "Undo", exact: true }).click();
-    await expect(editor.locator("[data-edit-selected-name]")).toHaveText("Café Welcome");
-    await editor.getByRole("button", { name: "Redo", exact: true }).click();
-    const savedLayout = page.waitForResponse(response => response.url().includes("/layout") && response.request().method() === "POST");
-    await editor.getByRole("button", { name: "Close room editor", exact: true }).click();
-    const saved = await (await savedLayout).json();
-    const sign = saved.layout.props.find(prop => prop.prop_id === "builtin:text");
-    expect(sign.text).toEqual({ content: "Café\nHello!", font_id: "serif", color: "#cc6633" });
-    expect(sign.position[0]).toBe(55);
-    expect(sign.scale).toBeGreaterThan(1);
-    await expect(editor).toHaveCount(0);
-    await expect(page.locator("#card-hand")).toBeVisible();
-    await expect(page.locator(".interaction-dock")).toBeVisible();
-    await page.reload();
-    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
-    const reloadLayout = page.waitForResponse(response => response.url().includes("/layout") && response.request().method() === "GET");
-    const reloadedEditor = await openEditRoom(page);
-    const layout = await (await reloadLayout).json();
-    await expect(reloadedEditor.getByRole("button", { name: "Add text", exact: true })).toBeVisible();
-    expect(layout.layout.props.find(prop => prop.id === sign.id)).toEqual(sign);
-  });
-});

@@ -1,7 +1,7 @@
 hall:
   label: The Hall
-  description: The school's one and only hall, tiled in blue and yellow. Bits of
-    every room spill into it, and the gray husky grins down from the wall.
+  description: The school's one and only hall, tiled in blue and yellow. Bits of every
+    room spill into it, and the gray husky grins down from the wall.
   board_type: basic
   board_image: hall.png
   board_image_style: stretch
@@ -17,154 +17,119 @@ hall:
     mascot-banner0:
       prop: mascot-banner
       pos:
-      - 50
-      - 8
+      - 100
       - 0
-      scale: 1.0
-    mascot-sign0:
-      prop: mascot-logo-sign
+      - 0
+      scale: 1.5256185942402805
+      rot:
+      - 0
+      - 0.048000488281672915
+      - 0
+    portal0:
+      prop: portal
       pos:
-      - 88
-      - 20
+      - 95
+      - 100
       - 0
-      scale: 1.0
-    hall-clock:
-      prop: wall-clock
+      scale: 1.2510710194283619
+      actions:
+      - - Go across
+        - .go to_tutorial
+    classroom-door0:
+      prop: oak-panel-door
       pos:
-      - 58
-      - 10
       - 0
-      scale: 1.0
-    bulletin0:
-      prop: alphabet-bulletin-board
+      - 55
+      - 0
+      scale: 1.2510710194283634
+      activity: classrooms
+      actions:
+      - - Enter the classroom
+        - .play classrooms
+      rot:
+      - 0
+      - 1.6000000000001364
+      - 0
+    custom:c45570d1-4afb-43a1-a019-99a01badb3a2:
+      prop: builtin:text
       pos:
-      - 40
-      - 12
+      - 45
       - 0
-      scale: 1.0
+      - 8.743279903447126
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.5354139021599977
+      text:
+        content: 'SCAMMON
+
+          ACADEMY'
+        font_id: sans
+        color: '#fccb1d'
+  exits:
+    to_tutorial:
+      label: Step through the portal
+      target_world: tutorial
+player-classroom:
+  label: A Player Classroom
+  description: A bright classroom of your very own. Make it yours.
+  board_type: basic
+  board_image: hall.png
+  board_image_style: stretch
+  palette:
+  - '#2b4c9b'
+  - '#f4c430'
+  - '#d8dbe0'
+  editor:
+    environment:
+    - palette
+    - board_image_style
+  template: true
+  props:
     chalkboard0:
       prop: chalkboard
       pos:
-      - 72
-      - 12
+      - 50
+      - 10
       - 0
-      scale: 1.0
-    books0:
-      prop: classroom-bookshelf
-      pos:
-      - 12
-      - 24
-      - 0
-      scale: 1.0
-    desk0:
-      prop: student-desk
-      pos:
-      - 22
-      - 32
-      - 0
-      scale: 1.0
-    desk1:
-      prop: student-desk
-      pos:
-      - 38
-      - 30
-      - 0
-      scale: 1.0
+      scale: 1
     teacher-desk0:
       prop: teacher-desk
       pos:
       - 74
       - 28
       - 0
-      scale: 1.0
-    office-chair0:
-      prop: office-chair
+      scale: 1
+    books0:
+      prop: classroom-bookshelf
       pos:
-      - 63
-      - 30
+      - 12
+      - 28
       - 0
-      scale: 1.0
-    filing0:
-      prop: office-filing-cabinet
+      scale: 1
+    desk0:
+      prop: student-desk
       pos:
-      - 8
-      - 66
+      - 32
+      - 56
       - 0
-      scale: 1.0
-    principal-desk0:
-      prop: principal-desk
-      pos:
-      - 20
-      - 80
-      - 0
-      scale: 1.0
-    cafeteria0:
-      prop: cafeteria-table
-      pos:
-      - 34
-      - 60
-      - 0
-      scale: 1.0
-    serving0:
-      prop: serving-counter
-      pos:
-      - 66
-      - 58
-      - 0
-      scale: 1.0
-    trays0:
-      prop: lunch-tray-stack
+      scale: 1
+    desk1:
+      prop: student-desk
       pos:
       - 52
-      - 74
+      - 56
       - 0
-      scale: 1.0
-    crate0:
-      prop: milk-crate
+      scale: 1
+    bulletin0:
+      prop: alphabet-bulletin-board
       pos:
-      - 76
-      - 74
+      - 84
+      - 56
       - 0
-      scale: 1.0
-    recycling0:
-      prop: recycling-bin
-      pos:
-      - 88
-      - 64
-      - 0
-      scale: 1.0
-    sink0:
-      prop: school-sink
-      pos:
-      - 58
-      - 88
-      - 0
-      scale: 1.0
-    fountain0:
-      prop: drinking-fountain
-      pos:
-      - 72
-      - 86
-      - 0
-      scale: 1.0
-    toilet0:
-      prop: school-toilet
-      pos:
-      - 44
-      - 90
-      - 0
-      scale: 1.0
-    dispenser0:
-      prop: paper-towel-dispenser
-      pos:
-      - 66
-      - 90
-      - 0
-      scale: 1.0
-    speaker0:
-      prop: pa-speaker
-      pos:
-      - 92
-      - 40
-      - 0
-      scale: 1.0
+      scale: 1
+  exits:
+    hall:
+      label: Back to the hall
+      target: hall

@@ -31,6 +31,28 @@ class WorldDestination:
     entry_room_id: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class TravelPlan:
+    """A validated cross-world transfer ready to commit."""
+
+    world_id: str
+    instance_id: str
+    client_url: str
+    room_id: str
+
+    def payload(self) -> dict[str, object]:
+        """Return the command payload that tells the client where to travel."""
+
+        return {
+            "travel": {
+                "url": self.client_url,
+                "world_id": self.world_id,
+                "instance_id": self.instance_id,
+                "room_id": self.room_id,
+            }
+        }
+
+
 class CrossWorldService:
     """Resolve and travel between mission-control-linked worlds."""
 
@@ -109,15 +131,8 @@ class CrossWorldService:
             entry_room_id=str(entry_room) if entry_room else None,
         )
 
-    async def travel(
-        self,
-        account: AccountRecord,
-        exit_definition: ExitDefinition,
-    ) -> dict[str, object]:
-        """Resolve the exit's target world and return a browser redirect payload."""
-
-        target_world_id = exit_definition.target_world_id
-        if target_world_id is None:
+    def _check_exit(self, account: AccountRecord, exit_definition: ExitDefinition) -> None:
+        if exit_definition.target_world_id is None:
             raise CommandError("That exit does not lead to another world.")
         if exit_definition.locked:
             raise CommandError("That way is locked.")
@@ -125,16 +140,61 @@ class CrossWorldService:
             inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world_id)}
             if exit_definition.requires_card_id not in inventory_ids:
                 raise CommandError(f"You need {exit_definition.requires_card_id} to go that way.")
-        destination = await self.resolve_destination(target_world_id)
+
+    async def prepare(self, account: AccountRecord, exit_definition: ExitDefinition) -> TravelPlan:
+        """Validate the exit and resolve its destination without side effects."""
+
+        self._check_exit(account, exit_definition)
+        destination = await self.resolve_destination(exit_definition.target_world_id or "")
         room_id = exit_definition.target_room_id or destination.entry_room_id or ""
+        return TravelPlan(
+            world_id=destination.world_id,
+            instance_id=destination.instance_id,
+            client_url=destination.client_url,
+            room_id=room_id,
+        )
+
+    def commit(
+        self,
+        account: AccountRecord,
+        plan: TravelPlan,
+        *,
+        source_room_id: str | None = None,
+        source_room_label: str | None = None,
+        source_world_label: str | None = None,
+    ) -> dict[str, object]:
+        """Persist the remembered destination and arrival source, then return the payload."""
+
         with self._hub.transaction() as connection:
-            self._profiles.set_remembered_room(connection, account.id, destination.world_id, room_id)
-        self._profiles.remember_instance(account.id, destination.instance_id)
-        return {
-            "travel": {
-                "url": destination.client_url,
-                "world_id": destination.world_id,
-                "instance_id": destination.instance_id,
-                "room_id": room_id,
-            }
-        }
+            self._profiles.set_remembered_room(connection, account.id, plan.world_id, plan.room_id)
+            if source_room_id is not None:
+                self._profiles.record_world_arrival_in_transaction(
+                    connection,
+                    account.id,
+                    source_world_id=self._world_id,
+                    source_room_id=source_room_id,
+                    source_room_label=source_room_label,
+                    source_world_label=source_world_label,
+                )
+        self._profiles.remember_instance(account.id, plan.instance_id)
+        return plan.payload()
+
+    async def travel(
+        self,
+        account: AccountRecord,
+        exit_definition: ExitDefinition,
+        *,
+        source_room_id: str | None = None,
+        source_room_label: str | None = None,
+        source_world_label: str | None = None,
+    ) -> dict[str, object]:
+        """Resolve and commit a cross-world transfer, returning the client payload."""
+
+        plan = await self.prepare(account, exit_definition)
+        return self.commit(
+            account,
+            plan,
+            source_room_id=source_room_id,
+            source_room_label=source_room_label,
+            source_world_label=source_world_label,
+        )

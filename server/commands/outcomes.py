@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from server.commands.registry import CommandRegistry
 from server.connections import LiveConnection
@@ -35,6 +36,10 @@ from server.services.shop import ShopService
 from server.services.stats import StatsService
 from server.services.tasks import TaskService
 from server.state.world_state import WorldStateRepository
+
+
+if TYPE_CHECKING:
+    from server.services.cross_world import CrossWorldService
 
 
 class CommandError(ValueError):
@@ -102,6 +107,7 @@ class CommandContext:
     crafting: CraftingService
     recipes: dict[str, RecipeDefinition]
     mods: dict[str, object]
+    cross_world: CrossWorldService
     reload_world: Callable[[], Awaitable[None]] | None = None
 
 

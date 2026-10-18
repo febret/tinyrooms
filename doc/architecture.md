@@ -54,9 +54,10 @@ has its own worldstate database. See the canonical
 
 [The mod loader](../server/mods.py) owns manifest discovery, enabled-mod selection,
 content merging, command registration, and runtime factories. Worlds declare
-`requires_mods`; startup rejects missing dependencies. The tutorial requires
-[infinite-bedrooms](../mods/infinite-bedrooms/). Mod `prepare()` runs before world
-seeding so persisted dynamically materialized rooms can receive their seeds.
+`requires_mods`; startup rejects missing dependencies. The scammon-academia
+world requires [classrooms](../mods/classrooms/). Mod `prepare()` runs before
+world seeding so persisted dynamically materialized rooms can receive their
+seeds.
 
 Prop schema and file-wide scale settings are defined by
 [worlds.py](../server/content/worlds.py). Effect definitions are loaded by
@@ -130,9 +131,10 @@ shortcuts, but it must not infer action authority from presentation.
   activity per account. Replacement/cancellation/travel/logout/disconnect must
   close the appropriate session. Mandatory onboarding has stronger UI gates
   than ordinary activity windows.
-- **Bedrooms:** [infinite-bedrooms](../mods/infinite-bedrooms/) owns purchase,
-  customization, materialization, and access checks. Entry shares the normal
-  room-change path; persisted rooms are prepared before initialization/seeding.
+- **Classrooms:** [classrooms](../mods/classrooms/) owns purchase,
+  customization, grade floors, materialization, and access checks. Entry shares
+  the normal room-change path; persisted rooms are prepared before
+  initialization/seeding.
 - **Restart:** room cards, inventory, and remembered room persist; chat does not.
   See [database durability](db.md#3-world-state-db).
 

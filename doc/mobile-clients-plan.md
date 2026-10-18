@@ -169,8 +169,8 @@ the default `serverUrl`, and one native overflow menu with `Reload`,
 
 - `POST /api/auth/delete` — authenticated, requires `Origin` plus
   `X-CSRF-Token`, and password re-entry. Purge order:
-  1. Account-owned **world-database** rows: bedroom door and `world.room_states`
-     (`mods/infinite-bedrooms/`), room ownership, room-layout locks, memories
+  1. Account-owned **world-database** rows: classroom door and `world.room_states`
+     (`mods/classrooms/`), room ownership, room-layout locks, memories
      (`server/services/memories.py`), prop unlocks, and pack purchases.
   2. The profile account row; the `accounts` foreign keys already
      `ON DELETE CASCADE` (`server/state/migrations.py`).

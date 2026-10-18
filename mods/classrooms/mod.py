@@ -1,9 +1,13 @@
-"""Infinite Bedrooms mod: per-player bedrooms, doors, and the Bedrooms activity.
+"""Classrooms mod: per-player classrooms, doors, and the Classrooms activity.
 
 This module is self-contained and loaded by ``server.mods`` at startup. It
-contributes the ``.door`` command, the door customization catalog, and the
+contributes the ``.classroom`` command, the door customization catalog, and the
 runtime state that materializes player rooms from the world's
-``player-bedroom`` template.
+``player-classroom`` template.
+
+Classrooms are organized into grades 1-8; each grade is a floor in the activity
+corridor. New classrooms start at grade 1, and future quests may raise them via
+:meth:`ClassroomService.set_grade`.
 """
 
 from __future__ import annotations
@@ -28,10 +32,14 @@ from server.state.migrations import DatabaseHub
 from server.state.world_state import PLAYER_ROOM_PREFIX, PlayerRoomRecord, WorldStateRepository
 
 
-MOD_ID = "infinite-bedrooms"
+MOD_ID = "classrooms"
 DOORS_FILENAME = "content/doors.yaml"
-DEFAULT_TEMPLATE_ROOM_ID = "player-bedroom"
+DEFAULT_TEMPLATE_ROOM_ID = "player-classroom"
 ROOM_ID_PREFIX = PLAYER_ROOM_PREFIX
+
+MIN_GRADE = 1
+MAX_GRADE = 8
+STARTING_GRADE = 1
 
 DIMENSION_KINDS = frozenset({"choice", "text"})
 _HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
@@ -220,13 +228,14 @@ def load_door_catalog(path: Path) -> DoorCatalog:
 
 @dataclass(frozen=True, slots=True)
 class DoorView:
-    """A serialized player door for the Bedrooms activity."""
+    """A serialized player classroom door for the Classrooms activity."""
 
     room_id: str
     owner_id: str
     owner_username: str
     label: str
     locked: bool
+    grade: int
     style: dict[str, str]
 
     def payload(self, *, is_owner: bool) -> dict[str, object]:
@@ -238,13 +247,14 @@ class DoorView:
             "owner_username": self.owner_username,
             "label": self.label,
             "locked": self.locked,
+            "grade": self.grade,
             "is_owner": is_owner,
             "style": dict(self.style),
         }
 
 
-class BedroomService:
-    """Owns player-room records, materialization, and door rules."""
+class ClassroomService:
+    """Owns player-classroom records, materialization, and door rules."""
 
     def __init__(
         self,
@@ -270,7 +280,7 @@ class BedroomService:
 
     @property
     def cost(self) -> int:
-        """Return the one-time Bops cost of a door."""
+        """Return the one-time Bops cost of a classroom."""
 
         return self._catalog.cost
 
@@ -283,7 +293,7 @@ class BedroomService:
     def _template(self) -> RoomDefinition:
         template = self._world.rooms.get(DEFAULT_TEMPLATE_ROOM_ID)
         if template is None or not template.template:
-            raise ValueError("The player-bedroom template is not loaded.")
+            raise ValueError("The player-classroom template is not loaded.")
         return template
 
     def _clone(self, room_id: str, label: str) -> RoomDefinition:
@@ -292,14 +302,14 @@ class BedroomService:
             template,
             id=room_id,
             label=label,
-            description="A quiet little room of your very own.",
+            description="A bright classroom of your very own.",
             template=False,
         )
 
     def _label_for(self, account_id: str) -> str:
         account = self._profiles.get_account_by_id(account_id)
         username = account.username_display if account is not None else "A peep"
-        return f"{username}'s Bedroom"
+        return f"{username}'s Classroom"
 
     @staticmethod
     def _door_style(record: PlayerRoomRecord) -> dict[str, Any]:
@@ -310,13 +320,21 @@ class BedroomService:
     def _door_locked(record: PlayerRoomRecord) -> bool:
         return bool(record.door.get("locked", False))
 
+    @staticmethod
+    def _door_grade(record: PlayerRoomRecord) -> int:
+        try:
+            grade = int(record.door.get("grade", STARTING_GRADE))
+        except (TypeError, ValueError):
+            grade = STARTING_GRADE
+        return min(max(grade, MIN_GRADE), MAX_GRADE)
+
     def _materialize(self, record: PlayerRoomRecord) -> RoomDefinition:
         template = self._template()
         return replace(
             template,
             id=record.room_id,
             label=self._label_for(record.owner_account_id),
-            description="A quiet little room of your very own.",
+            description="A bright classroom of your very own.",
             template=False,
         )
 
@@ -353,8 +371,9 @@ class BedroomService:
             room_id=record.room_id,
             owner_id=record.owner_account_id,
             owner_username=username,
-            label=f"{username}'s Bedroom",
+            label=f"{username}'s Classroom",
             locked=self._door_locked(record),
+            grade=self._door_grade(record),
             style=style,
         )
 
@@ -371,23 +390,23 @@ class BedroomService:
         account: AccountRecord,
         prop: PropInstanceDefinition,
     ) -> tuple[QuickAction, ...]:
-        """Return account-specific quick actions for a bedroom-entry prop."""
+        """Return account-specific quick actions for a classroom-entry prop."""
 
-        if prop.activity != "bedrooms":
+        if prop.activity != "classrooms":
             return ()
         record = self._world_state.get_player_room_for_account(account.id)
         if record is None:
             return ()
-        return (QuickAction(label="Go to Bedroom", command=f".door enter {record.room_id}"),)
+        return (QuickAction(label="Go to Classroom", command=f".classroom enter {record.room_id}"),)
 
     def purchase(self, account: AccountRecord) -> DoorView:
-        """Buy a bedroom door for the catalog cost (one per account)."""
+        """Buy a classroom door for the catalog cost (one per account, grade 1)."""
 
         if self._world_state.get_player_room_for_account(account.id) is not None:
-            raise ValueError("You already have a bedroom door.")
+            raise ValueError("You already have a classroom.")
         room_id = self.room_id_for(account.id)
         style = self._catalog.default_style()
-        label = f"{account.username_display}'s Bedroom"
+        label = f"{account.username_display}'s Classroom"
         self._world.rooms[room_id] = self._clone(room_id, label)
         try:
             with self._hub.transaction() as connection:
@@ -395,15 +414,15 @@ class BedroomService:
                 if current is None:
                     raise ValueError("That account no longer exists.")
                 if self._world_state.get_player_room_for_account(account.id) is not None:
-                    raise ValueError("You already have a bedroom door.")
+                    raise ValueError("You already have a classroom.")
                 if current.bops < self._catalog.cost:
-                    raise ValueError(f"You need {self._catalog.cost} Bops to get a door.")
+                    raise ValueError(f"You need {self._catalog.cost} Bops to get a classroom.")
                 self._profiles.update_progress(connection, current, bops=current.bops - self._catalog.cost)
                 record = self._world_state.insert_player_room(
                     connection,
                     room_id=room_id,
                     owner_account_id=account.id,
-                    door={"style": style, "locked": False},
+                    door={"style": style, "locked": False, "grade": STARTING_GRADE},
                 )
                 self._ownership.grant_in_transaction(connection, room_id, account.id)
         except Exception:
@@ -416,14 +435,26 @@ class BedroomService:
     def _require_own(self, account: AccountRecord) -> PlayerRoomRecord:
         record = self._world_state.get_player_room_for_account(account.id)
         if record is None:
-            raise ValueError("You do not have a bedroom door yet.")
+            raise ValueError("You do not have a classroom yet.")
         return record
 
     def set_locked(self, account: AccountRecord, locked: bool) -> DoorView:
-        """Lock or unlock the account's bedroom door."""
+        """Lock or unlock the account's classroom door."""
 
         record = self._require_own(account)
         door = {**record.door, "locked": locked}
+        with self._hub.transaction() as connection:
+            self._world_state.update_player_room(connection, room_id=record.room_id, door=door)
+        updated = self._world_state.get_player_room(record.room_id)
+        return self._view(updated if updated is not None else record)
+
+    def set_grade(self, account: AccountRecord, grade: int) -> DoorView:
+        """Move the account's classroom to a grade floor (reserved for quests)."""
+
+        if not isinstance(grade, int) or not (MIN_GRADE <= grade <= MAX_GRADE):
+            raise ValueError(f"Grade must be between {MIN_GRADE} and {MAX_GRADE}.")
+        record = self._require_own(account)
+        door = {**record.door, "grade": grade}
         with self._hub.transaction() as connection:
             self._world_state.update_player_room(connection, room_id=record.room_id, door=door)
         updated = self._world_state.get_player_room(record.room_id)
@@ -446,9 +477,9 @@ class BedroomService:
 
         record = self._world_state.get_player_room(room_id)
         if record is None:
-            raise ValueError("That bedroom does not exist.")
+            raise ValueError("That classroom does not exist.")
         if self._door_locked(record) and record.owner_account_id != account.id:
-            raise ValueError("That bedroom door is locked.")
+            raise ValueError("That classroom door is locked.")
         return record
 
 
@@ -463,18 +494,18 @@ def _user_payload(context: CommandContext) -> dict[str, object]:
     return context.serialize_user(account)
 
 
-def _service(context: CommandContext) -> BedroomService:
+def _service(context: CommandContext) -> ClassroomService:
     service = context.mods.get(MOD_ID)
-    if not isinstance(service, BedroomService):
-        raise CommandError("The Bedrooms are not available here.")
+    if not isinstance(service, ClassroomService):
+        raise CommandError("The Classrooms are not available here.")
     return service
 
 
-async def door_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    """List, buy, customize, lock, or enter player bedroom doors."""
+async def classroom_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """List, buy, customize, lock, or enter player classroom doors."""
 
     if not command.args:
-        raise CommandError("Use '.door <list|buy|design|lock|enter> ...'.")
+        raise CommandError("Use '.classroom <list|buy|design|lock|enter> ...'.")
     action = command.args[0].lower()
     service = _service(context)
 
@@ -486,6 +517,7 @@ async def door_command(context: CommandContext, command: ParsedCommand) -> Comma
                 "doors": service.list_doors(viewer_id=context.account.id),
                 "catalog": service.catalog.serialize(),
                 "cost": service.cost,
+                "max_grade": MAX_GRADE,
                 "own_door": None if own_view is None else own_view.payload(is_owner=True),
             },
             toast=False,
@@ -495,15 +527,15 @@ async def door_command(context: CommandContext, command: ParsedCommand) -> Comma
     if action == "buy":
         view = service.purchase(context.account)
         return CommandOutcome(
-            message="Your bedroom door is ready.",
+            message="Your classroom door is ready.",
             payload={"door": view.payload(is_owner=True), "user": _user_payload(context)},
-            private_events=[{"type": "toast", "tone": "success", "text": "Your door appears in the Bedrooms."}],
+            private_events=[{"type": "toast", "tone": "success", "text": "Your classroom appears in the corridor."}],
         )
 
     if action == "design":
         tokens = list(command.args[1:])
         if not tokens or len(tokens) % 2 != 0:
-            raise CommandError("Use '.door design <setting> <value> ...'.")
+            raise CommandError("Use '.classroom design <setting> <value> ...'.")
         patch = {tokens[index]: tokens[index + 1] for index in range(0, len(tokens), 2)}
         view = service.design(context.account, patch)
         return CommandOutcome(
@@ -513,7 +545,7 @@ async def door_command(context: CommandContext, command: ParsedCommand) -> Comma
 
     if action == "lock":
         if len(command.args) < 2:
-            raise CommandError("Use '.door lock <on|off>'.")
+            raise CommandError("Use '.classroom lock <on|off>'.")
         value = command.args[1].lower()
         if value in _LOCK_ON:
             locked = True
@@ -529,14 +561,14 @@ async def door_command(context: CommandContext, command: ParsedCommand) -> Comma
 
     if action == "enter":
         if len(command.args) < 2:
-            raise CommandError("Use '.door enter <room_id>'.")
+            raise CommandError("Use '.classroom enter <room_id>'.")
         room_id = command.args[1]
         service.require_entry(context.account, room_id)
         navigation = await context.rooms.enter_room(
             context.account,
             _room_id(context),
             room_id,
-            direction="a bedroom door",
+            direction="a classroom door",
         )
         outcome = CommandOutcome(
             message="You step through the door.",
@@ -559,13 +591,13 @@ async def door_command(context: CommandContext, command: ParsedCommand) -> Comma
             _merge_behavior(context, outcome, behavior)
         return outcome
 
-    raise CommandError("Unknown door command.")
+    raise CommandError("Unknown classroom command.")
 
 
-def _build_state(runtime: object) -> BedroomService:
+def _build_state(runtime: object) -> ClassroomService:
     catalog_path = Path(__file__).resolve().parent / DOORS_FILENAME
     catalog = load_door_catalog(catalog_path)
-    return BedroomService(
+    return ClassroomService(
         runtime.hub,
         runtime.profiles,
         runtime.world_state,
@@ -579,10 +611,10 @@ def register(api: object) -> None:
     """Register the mod's command and runtime state factory."""
 
     api.register_command(
-        "door",
-        "Manage your Bedrooms door.",
-        door_command,
-        usage=".door <list|buy|design|lock|enter> ...",
-        help="List, buy, customize, lock, or enter player bedroom doors.",
+        "classroom",
+        "Manage your classroom door.",
+        classroom_command,
+        usage=".classroom <list|buy|design|lock|enter> ...",
+        help="List, buy, customize, lock, or enter player classroom doors.",
     )
     api.register_state_factory(_build_state)

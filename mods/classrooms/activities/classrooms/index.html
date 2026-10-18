@@ -3,28 +3,26 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>The Bedrooms</title>
+    <title>Classrooms</title>
     <link rel="stylesheet" href="/activities/shared.css">
-    <link rel="stylesheet" href="./bedrooms.css">
+    <link rel="stylesheet" href="./classrooms.css">
   </head>
   <body>
-    <main class="shell viewport-column bedrooms-shell">
-      <header class="bedrooms-top">
-        <div class="bedrooms-heading">
-          <h1 class="heading">The Bedrooms</h1>
+    <main class="shell viewport-column classrooms-shell">
+      <header class="classrooms-top">
+        <div class="classrooms-heading">
+          <h1 class="heading">Classrooms</h1>
           <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
         </div>
-        <div class="bedrooms-actions">
+        <div class="classrooms-actions">
           <span class="bops" id="bops" aria-live="polite"></span>
-          <button type="button" class="quiet small" id="my-door" hidden>My door</button>
-          <button type="button" class="primary small" id="get-door" hidden>Get a door</button>
+          <button type="button" class="quiet small" id="my-door" hidden>My classroom</button>
+          <button type="button" class="primary small" id="get-door" hidden>Get a classroom</button>
         </div>
       </header>
 
-      <div class="corridor" id="corridor" role="region" aria-label="Bedroom corridor" tabindex="0">
-        <div class="corridor-track" id="track"></div>
-      </div>
-      <p class="hint muted" id="hint">Scroll or drag along the corridor. A door opens a peep's room.</p>
+      <div class="floors" id="floors" role="region" aria-label="Classroom floors" tabindex="0"></div>
+      <p class="hint muted" id="hint">Classrooms fill the eight grades, one floor each. A door opens a peep's classroom.</p>
 
       <div class="dialog-shade" id="designer" hidden>
         <section class="paper designer" role="dialog" aria-modal="true" aria-labelledby="designer-title">
@@ -49,6 +47,6 @@
       </div>
     </main>
     <script src="/activities/shared.js"></script>
-    <script type="module" src="./bedrooms.js"></script>
+    <script type="module" src="./classrooms.js"></script>
   </body>
 </html>

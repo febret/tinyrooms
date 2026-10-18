@@ -7,6 +7,5 @@ palette:
 - '#dd755e'
 - '#78ae99'
 - '#4d6887'
-requires_mods:
-- infinite-bedrooms
+requires_mods: []
 powers: {}

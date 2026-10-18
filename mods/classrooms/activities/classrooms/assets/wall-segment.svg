@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" role="img" aria-label="Corridor wall">
-  <rect width="120" height="200" fill="#3c4a50"/>
-  <g fill="#46555c">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" role="img" aria-label="Classroom wall">
+  <rect width="120" height="200" fill="#1f3a78"/>
+  <g fill="#2b4c9b">
     <rect x="4" y="8" width="52" height="20" rx="2"/>
     <rect x="62" y="8" width="52" height="20" rx="2"/>
     <rect x="4" y="34" width="36" height="20" rx="2"/>
@@ -16,5 +16,6 @@
     <rect x="4" y="164" width="64" height="20" rx="2"/>
     <rect x="74" y="164" width="40" height="20" rx="2"/>
   </g>
-  <rect width="120" height="200" fill="none" stroke="#2c373c" stroke-width="4"/>
+  <rect y="2" width="120" height="3" fill="#f4c430"/>
+  <rect width="120" height="200" fill="none" stroke="#16294f" stroke-width="4"/>
 </svg>

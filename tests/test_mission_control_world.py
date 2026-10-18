@@ -140,7 +140,7 @@ class WorldMcApiTests(unittest.TestCase):
             "TRSERVER_WORLDSTATE_PATH": str(root / "worldstate.sqlite3"),
             "TRSERVER_USERS_PATH": str(root / "users"),
             "TRSERVER_FEATURES": "dev_sample_activity",
-            "TRSERVER_MODS": "infinite-bedrooms",
+            "TRSERVER_MODS": "classrooms",
             "TRSERVER_ADMINS": "mcadmin",
             "TRSERVER_HOST": "127.0.0.1",
             "TRSERVER_PORT": "5000",

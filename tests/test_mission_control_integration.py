@@ -32,7 +32,7 @@ class MissionControlIntegrationTests(unittest.TestCase):
             "TRSERVER_WORLDSTATE_PATH": str(root / "world" / "worldstate.sqlite3"),
             "TRSERVER_USERS_PATH": str(root / "world" / "users"),
             "TRSERVER_FEATURES": "dev_sample_activity",
-            "TRSERVER_MODS": "infinite-bedrooms",
+            "TRSERVER_MODS": "classrooms",
             "TRSERVER_ADMINS": "mcadmin",
             "TRSERVER_HOST": "127.0.0.1",
             "TRSERVER_PORT": "5000",

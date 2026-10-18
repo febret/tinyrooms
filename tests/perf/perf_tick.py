@@ -8,7 +8,7 @@ Two properties were unguarded:
   already applied -- one query per occupant per second, forever, to establish
   that nothing had changed.
 * ``RoomTicker.start`` created one asyncio task per room in the world, all of
-  them waking every second, including every player bedroom ever created and
+  them waking every second, including every player classroom ever created and
   almost all of them permanently empty.
 """
 

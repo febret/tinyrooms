@@ -897,6 +897,72 @@ class ProfileRepository:
 
         self.update_profile(account_id, lambda profile: profile.update(last_instance_id=instance_id))
 
+    def record_world_arrival(
+        self,
+        account_id: str,
+        *,
+        source_world_id: str,
+        source_room_id: str,
+        source_room_label: str | None = None,
+        source_world_label: str | None = None,
+    ) -> None:
+        """Remember which world and room a cross-world traveler came from.
+
+        Stored transiently in the shared profile so the destination world can
+        announce where the peep arrived from; consumed by
+        :meth:`take_world_arrival`.
+        """
+
+        self.update_profile(
+            account_id,
+            lambda profile: profile.update(
+                world_arrival={
+                    "world_id": source_world_id,
+                    "world_label": source_world_label,
+                    "room_id": source_room_id,
+                    "room_label": source_room_label,
+                }
+            ),
+        )
+
+    def record_world_arrival_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        *,
+        source_world_id: str,
+        source_room_id: str,
+        source_room_label: str | None = None,
+        source_world_label: str | None = None,
+    ) -> None:
+        """Record a cross-world arrival inside an existing transaction."""
+
+        self._update_profile_json(
+            connection,
+            account_id,
+            lambda profile: profile.update(
+                world_arrival={
+                    "world_id": source_world_id,
+                    "world_label": source_world_label,
+                    "room_id": source_room_id,
+                    "room_label": source_room_label,
+                }
+            ),
+        )
+
+    def take_world_arrival(self, account_id: str) -> dict[str, object] | None:
+        """Read and clear the pending cross-world arrival marker."""
+
+        record = self.get_user_profile(account_id)
+        if record is None:
+            return None
+        value = record.profile.get("world_arrival")
+        if not isinstance(value, dict) or not value:
+            return None
+        with self._hub.transaction() as connection:
+            self._update_profile_json(connection, account_id, lambda profile: profile.pop("world_arrival", None))
+        return dict(value)
+
     def user_profile_for(self, account_id: str, world_id: str, entry_room: str) -> UserProfileRecord:
         """Return the current profile, creating or refreshing it only when needed."""
 
