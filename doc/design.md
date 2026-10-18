@@ -417,9 +417,10 @@ bonuses, and removal follow the [Skills](#skills) rules.
 ![Inventory](./images/inventory.png)
 
 The Inventory core card opens the user's inventory. It shows owned cards
-available in the current world, grouped by card type, with basic filtering / sorting
-options available. Inventory capacity is unlimited in the initial release;
-per-card stack limits and equipped/skill-slot limits still apply.
+available in the current world, split into Items, Emotes, and Skills tabs. Packs
+owned in the current world appear in their own section above the tabs. Inventory
+capacity is unlimited in the initial release; per-card stack limits and
+equipped/skill-slot limits still apply.
 Copies of stackable cards are displayed in stacks up to the
 card's stack limit, with the stack size shown on top of the card. Non-stackable
 cards are displayed individually. From the inventory, it is possible to
@@ -599,6 +600,11 @@ end when they are removed. Removing or replacing a skill costs nothing.
 Multiple owned copies of the same skill card may be slotted at the same time,
 and their bonuses stack. Each slotted copy occupies its own eligible skill slot;
 a single owned copy cannot occupy multiple slots.
+
+Clicking an empty, unlocked skill slot opens the room-view picker over the
+Journal, listing the skill cards in the user's inventory. Choosing a card slots
+it in that slot. The Inventory `Slot…` action remains available as an alternative
+workflow.
 
 
 ### Juice and Energy

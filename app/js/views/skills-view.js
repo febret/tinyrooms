@@ -8,10 +8,10 @@ function skillRankMarkup(state, rank, slots, pending) {
     <div class="skill-slots">${slots.map(slot => {
       const stack = slot.stackId ? findInventoryCard(state, slot.stackId) : null;
       const selected = Boolean(stack && state.selection?.kind === "inventory-card" && state.selection.id === stack.stackId);
-      const actionable = slot.unlocked && (slot.stackId || pending);
+      const actionable = slot.unlocked;
       const description = !slot.unlocked ? `Locked ${rank} slot ${slot.index + 1}. Unlocks at level ${slot.index + 1}.`
         : slot.stackId ? `${stack?.definition.label || "Slotted skill"}, ${rank} slot ${slot.index + 1}. Activate to remove it.`
-          : `Empty ${rank} slot ${slot.index + 1}.${pending ? " Place the selected skill here." : " Choose a skill in Inventory first."}`;
+          : `Empty ${rank} slot ${slot.index + 1}.${pending ? " Place the selected skill here." : " Click to choose a skill card."}`;
       return `<button type="button" class="skill-slot ${slot.unlocked ? "" : "locked"} ${slot.stackId ? "filled" : ""} ${selected ? "selected" : ""} ${actionable ? "actionable" : ""}"
         data-skill-slot="${escapeHtml(slot.index)}" data-stack-id="${escapeHtml(slot.stackId || "")}"
         aria-label="${escapeHtml(description)}" title="${escapeHtml(description)}" ${slot.unlocked ? "" : "disabled"}>
@@ -32,7 +32,7 @@ export function skillsPagesMarkup(state) {
     leftLabel: "Skill slots, first ranks",
     rightLabel: "More skill slots and effective stats",
     left: `<p class="journal-eyebrow">Make room for your talents</p><h3 class="journal-page-title">Your Skills</h3>
-      <p class="skills-hint" ${pending ? 'role="status"' : ""}>${pending ? `Ready to slot${pendingStack ? `: ${escapeHtml(pendingStack.definition.label)}` : " your selected skill"}. Choose an empty, unlocked slot.` : "Select a skill card in Inventory and choose Slot…, then pick an empty slot here."}</p>
+      <p class="skills-hint" ${pending ? 'role="status"' : ""}>${pending ? `Ready to slot${pendingStack ? `: ${escapeHtml(pendingStack.definition.label)}` : " your selected skill"}. Choose an empty, unlocked slot.` : "Click an empty, unlocked slot to choose a skill card, or select one in Inventory and choose Slot…."}</p>
       ${rows.slice(0, split).join("") || '<p class="empty-state">No skill slots available yet.</p>'}`,
     right: `<p class="journal-eyebrow">A growing collection of talents</p>
       ${rows.slice(split).join("")}

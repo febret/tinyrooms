@@ -848,8 +848,8 @@ function createInitialState() {
     activities: [],
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
-    views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
+    views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -871,7 +871,7 @@ function reduce(state, action) {
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
       ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false },
-      views: { auth: !action.loggedIn, main: null, details: null, commandPalette: false },
+      views: { auth: !action.loggedIn, main: null, details: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
       commandCatalog: action.loggedIn ? state.commandCatalog : [],
@@ -923,17 +923,20 @@ function reduce(state, action) {
         details: null,
         propId: action.view === "prop-details" ? action.propId || null : null,
         skillStackId: action.view === "skills" ? action.stackId || null : null,
+        skillPickerSlot: null,
       },
       ui: { ...state.ui, journalTab: journalTab || state.ui.journalTab, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
     };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null, skillStackId: null }, ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
-  if (action.type === "toggle-room-picker") return { ...state, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
-  if (action.type === "close-room-picker") return { ...state, ui: { ...state.ui, roomPickerOpen: false } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
+  if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
+  if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
+  if (action.type === "open-skill-picker") return { ...state, views: { ...state.views, details: null, skillPickerSlot: Number(action.slot) }, ui: { ...state.ui, roomPickerOpen: true, emoteMenuOpen: false } };
+  if (action.type === "inventory-tab") return { ...state, ui: { ...state.ui, inventoryTab: action.tab } };
   if (action.type === "toggle-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: !state.ui.emoteMenuOpen, roomPickerOpen: false } };
   if (action.type === "toggle-peeps") return { ...state, ui: { ...state.ui, peepsVisible: !state.ui.peepsVisible } };
   if (action.type === "close-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: false } };
-  if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: action.tab === "Skills" ? state.views.skillStackId : null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "" } };
+  if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: action.tab === "Skills" ? state.views.skillStackId : null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
   if (action.type === "cancel-targeting") {
@@ -983,7 +986,7 @@ function reduce(state, action) {
       ...state,
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
-      views: sameRoom ? state.views : { ...state.views, main: null, details: null },
+      views: sameRoom ? state.views : { ...state.views, main: null, details: null, skillStackId: null, skillPickerSlot: null },
       ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,

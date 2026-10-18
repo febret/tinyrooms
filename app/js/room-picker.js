@@ -26,8 +26,32 @@ function cardMarkup(stack, selection) {
   </div>`;
 }
 
+function skillCardMarkup(stack) {
+  const tile = tileMarkup(stack.definition, stack, false, "inventory", { face: "illustration" })
+    .replace('<img class="card-illustration"', '<span class="room-picker-fallback" aria-hidden="true">▧</span><img class="card-illustration"');
+  return `<div class="room-picker-entry" role="listitem">${tile}
+    <span class="room-picker-label" aria-hidden="true">${escapeHtml(stack.definition.label)}</span>
+  </div>`;
+}
+
+function skillPickerMarkup(state, slot) {
+  const skills = (state.room?.inventory || []).filter(stack => stack.definition?.type === "skill");
+  return `<header class="room-picker-header">
+      <h2 id="room-picker-title">Choose a skill card</h2>
+      <button type="button" class="room-picker-close quiet" data-room-picker-close aria-label="Close skill picker">×</button>
+    </header>
+    <p class="room-picker-hint">Pick a skill for slot ${Number(slot) + 1}.</p>
+    <div class="room-picker-track">
+      <div class="room-picker-grid" role="list" aria-label="Skill cards">${skills.length
+        ? skills.map(skillCardMarkup).join("")
+        : '<p class="room-picker-empty">No skill cards in your inventory.</p>'}</div>
+    </div>`;
+}
+
 /** Pure markup builder; callers only need to render it while the picker is open. */
 export function roomPickerMarkup(state) {
+  const slot = state.views?.skillPickerSlot;
+  if (slot !== null && slot !== undefined) return skillPickerMarkup(state, slot);
   const props = (state.room?.props || []).filter(prop => hasActivePropActions(prop)
     && prop.selectable !== false);
   const cards = (state.room?.roomCards || []).filter(card => card.selectable !== false);
@@ -43,11 +67,12 @@ export function roomPickerMarkup(state) {
 }
 
 /** The parent owns state subscription, Escape priority, and the toolbar markup. */
-export function createRoomPicker({ root, store, onSelect, thumbnails }) {
+export function createRoomPicker({ root, store, onSelect, onSkillPick, thumbnails }) {
   const document = root.ownerDocument;
   let markup = "";
   const trigger = () => document.querySelector("#core-tools #room-picker-toggle");
   const isOpen = () => Boolean(store.getState().room && store.getState().ui.roomPickerOpen);
+  const skillSlot = () => store.getState().views?.skillPickerSlot ?? null;
   const itemButtons = () => [...root.querySelectorAll("[data-room-picker-prop], [data-stack-id]")];
   const identity = button => button?.hasAttribute("data-room-picker-prop")
     ? `prop:${button.dataset.roomPickerProp}`
@@ -64,8 +89,11 @@ export function createRoomPicker({ root, store, onSelect, thumbnails }) {
   }
 
   function close({ restoreFocus = false } = {}) {
+    const slot = skillSlot();
     store.dispatch({ type: "close-room-picker" });
-    if (restoreFocus) focusTrigger();
+    if (!restoreFocus) return;
+    if (slot !== null) document.querySelector(`[data-skill-slot="${slot}"]`)?.focus({ preventScroll: true });
+    else focusTrigger();
   }
 
   function sync(state) {
@@ -75,7 +103,8 @@ export function createRoomPicker({ root, store, onSelect, thumbnails }) {
     if (root.getAttribute("aria-hidden") !== String(!open)) root.setAttribute("aria-hidden", String(!open));
     const toggle = trigger();
     if (toggle) {
-      if (toggle.getAttribute("aria-expanded") !== String(open)) toggle.setAttribute("aria-expanded", String(open));
+      const expanded = open && skillSlot() === null;
+      if (toggle.getAttribute("aria-expanded") !== String(expanded)) toggle.setAttribute("aria-expanded", String(expanded));
       if (toggle.disabled !== !state.room) toggle.disabled = !state.room;
     }
     if (!open) {
@@ -129,6 +158,11 @@ export function createRoomPicker({ root, store, onSelect, thumbnails }) {
     }
     const button = event.target.closest("[data-room-picker-prop], [data-stack-id]");
     if (!button || !root.contains(button)) return;
+    const slot = skillSlot();
+    if (slot !== null) {
+      if (button.hasAttribute("data-stack-id")) onSkillPick?.({ stackId: button.dataset.stackId, slot });
+      return;
+    }
     const selection = button.hasAttribute("data-room-picker-prop")
       ? { kind: "prop", id: button.dataset.roomPickerProp }
       : { kind: "room-card", id: button.dataset.stackId };

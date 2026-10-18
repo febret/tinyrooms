@@ -367,6 +367,8 @@ async function handleAction(action) {
     store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
     if (action.tab === "Tasks") await refreshTasks();
     if (action.tab === "Memories") await refreshJournalMonth();
+  } else if (action.type === "inventory-tab") {
+    store.dispatch({ type: "inventory-tab", tab: action.tab });
   } else if (action.type === "journal-month") {
     store.dispatch({ type: "journal-month", delta: action.delta });
     await refreshJournalMonth();
@@ -400,7 +402,12 @@ async function handleAction(action) {
       if (pending) {
         try { await sendCommand(buildSkillCommand(pending, action.index)); } catch (error) { showError(error); }
       } else {
-        toast("Open a skill card in your Inventory and choose Slot… first.", "info");
+        store.dispatch({ type: "open-skill-picker", slot: action.index });
+        queueMicrotask(() => {
+          const picker = $("#room-picker");
+          (picker.querySelector("[data-stack-id]") || picker.querySelector("[data-room-picker-close]") || picker)
+            .focus({ preventScroll: true });
+        });
       }
     }
   } else if (action.type === "merge") {
@@ -887,6 +894,14 @@ const roomPicker = createRoomPicker({
   onSelect(selection) {
     if (targeting?.handle(selection) || activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
+  },
+  onSkillPick({ stackId, slot }) {
+    void sendCommand(buildSkillCommand(stackId, slot))
+      .then(() => {
+        store.dispatch({ type: "close-room-picker" });
+        panelLayer.querySelector(`[data-skill-slot="${slot}"]`)?.focus({ preventScroll: true });
+      })
+      .catch(showError);
   },
 });
 const cardMotion = createCardMotion({

@@ -76,6 +76,9 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-journal-tab]").forEach(button => {
     button.onclick = () => onAction({ type: "journal-tab", tab: button.dataset.journalTab });
   });
+  root.querySelectorAll("[data-inventory-tab]").forEach(button => {
+    button.onclick = () => onAction({ type: "inventory-tab", tab: button.dataset.inventoryTab });
+  });
   root.querySelectorAll("[data-journal-month]").forEach(button => {
     button.onclick = () => onAction({ type: "journal-month", delta: Number(button.dataset.journalMonth) });
   });
@@ -314,7 +317,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;
