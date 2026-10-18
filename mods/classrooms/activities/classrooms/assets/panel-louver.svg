@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Louvered door">
+  <defs>
+    <g id="louvBottom">
+      <rect x="1" y="1" width="62" height="60" rx="2" fill="#00000033"/>
+      <rect x="-1" y="-1" width="62" height="60" rx="2" fill="#ffffff3d"/>
+      <rect x="0" y="0" width="62" height="60" rx="2" fill="#00000016"/>
+      <rect x="1" y="1" width="60" height="58" rx="1.5" fill="none" stroke="#ffffff30" stroke-width="1.2"/>
+    </g>
+  </defs>
+  <rect x="18" y="18" width="64" height="54" rx="2" fill="#0000001c"/>
+  <g stroke="#00000038" stroke-width="3">
+    <path d="M20 24H80M20 31H80M20 38H80M20 45H80M20 52H80M20 59H80M20 66H80"/>
+  </g>
+  <g stroke="#ffffff30" stroke-width="1">
+    <path d="M20 25.6H80M20 32.6H80M20 39.6H80M20 46.6H80M20 53.6H80M20 60.6H80M20 67.6H80"/>
+  </g>
+  <rect x="18" y="18" width="64" height="54" rx="2" fill="none" stroke="#00000044" stroke-width="1.5"/>
+  <rect x="19.2" y="19.2" width="61.6" height="51.6" rx="1.5" fill="none" stroke="#ffffff30" stroke-width="1"/>
+  <use href="#louvBottom" transform="translate(18,80)"/>
+</svg>

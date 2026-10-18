@@ -1,8 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Wood finish">
-  <g stroke="#00000026" stroke-width="1.5" fill="none">
-    <path d="M24 12V158M34 12V158M44 12V158M54 12V158M64 12V158M74 12V158M84 12V158"/>
+  <g stroke="#00000026" stroke-width="1.4" fill="none">
+    <path d="M22 12V148M31 12V148M40 12V148M49 12V148M58 12V148M67 12V148M76 12V148"/>
   </g>
-  <g stroke="#ffffff1c" stroke-width="1" fill="none">
-    <path d="M29 12V158M49 12V158M69 12V158"/>
+  <g stroke="#ffffff22" stroke-width="1" fill="none">
+    <path d="M26 12V148M45 12V148M64 12V148"/>
+  </g>
+  <g stroke="#00000018" stroke-width="0.7" fill="none">
+    <path d="M17 12V148M35 12V148M54 12V148M72 12V148M81 12V148"/>
   </g>
 </svg>

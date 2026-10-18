@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Steel kickplate">
+  <defs>
+    <linearGradient id="steelK" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2f5f8"/>
+      <stop offset="0.5" stop-color="#b9c3cd"/>
+      <stop offset="1" stop-color="#7d8894"/>
+    </linearGradient>
+  </defs>
+  <rect x="14" y="130" width="72" height="16" rx="1.5" fill="url(#steelK)"/>
+  <rect x="14" y="130" width="72" height="2" fill="#ffffffcc"/>
+  <rect x="14" y="144" width="72" height="2" fill="#00000055"/>
+  <rect x="14.6" y="130.6" width="70.8" height="14.8" rx="1.2" fill="none" stroke="#5c6874" stroke-width="1"/>
+  <g fill="#e8edf2" opacity="0.9">
+    <circle cx="19" cy="133" r="1"/><circle cx="50" cy="133" r="1"/><circle cx="81" cy="133" r="1"/>
+    <circle cx="19" cy="143" r="1"/><circle cx="50" cy="143" r="1"/><circle cx="81" cy="143" r="1"/>
+  </g>
+</svg>

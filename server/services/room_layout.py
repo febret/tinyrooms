@@ -182,21 +182,24 @@ class RoomLayoutService:
             definition = self._world.props.get(str(entry.get("prop_id")))
             if definition is None or definition.hidden:
                 continue
+            instance_id = str(entry.get("id"))
+            source = room.props.get(instance_id)
             base.append(
                 PropInstanceDefinition(
-                    id=str(entry.get("id")),
+                    id=instance_id,
                     prop_id=definition.id,
                     pos=_vector(entry.get("position"), (50.0, 50.0, 0.0)),
                     rot=_vector(entry.get("rotation"), (0.0, 0.0, 0.0)),
                     scale=float(entry.get("scale", 1.0)),
-                    behavior=None,
-                    actions=(),
-                    content=(),
-                    cooldown=None,
-                    personal=False,
-                    recipes=(),
-                    animation=None,
-                    activity=None,
+                    behavior=source.behavior if source else None,
+                    actions=source.actions if source else (),
+                    content=source.content if source else (),
+                    cooldown=source.cooldown if source else None,
+                    personal=source.personal if source else False,
+                    recipes=source.recipes if source else (),
+                    animation=source.animation if source else None,
+                    activity=source.activity if source else None,
+                    draw_weight=source.draw_weight if source else {},
                     text=dict(entry["text"]) if definition.render_kind == "text" else None,
                 )
             )

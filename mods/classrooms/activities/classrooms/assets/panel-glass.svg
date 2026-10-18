@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Glazed door">
+  <defs>
+    <linearGradient id="glassPane" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6f3ff" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#aed2f4" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#7fb0e0" stop-opacity="0.82"/>
+    </linearGradient>
+    <g id="glassBottom">
+      <rect x="1" y="1" width="62" height="60" rx="2" fill="#00000033"/>
+      <rect x="-1" y="-1" width="62" height="60" rx="2" fill="#ffffff3d"/>
+      <rect x="0" y="0" width="62" height="60" rx="2" fill="#00000016"/>
+      <rect x="1" y="1" width="60" height="58" rx="1.5" fill="none" stroke="#ffffff30" stroke-width="1.2"/>
+    </g>
+  </defs>
+  <rect x="18" y="18" width="64" height="54" rx="2" fill="url(#glassPane)"/>
+  <path d="M18 72 L52 18 L68 18 L34 72 Z" fill="#ffffff40"/>
+  <path d="M36 72 L70 18 L78 18 L44 72 Z" fill="#ffffff2e"/>
+  <rect x="18" y="18" width="64" height="54" rx="2" fill="none" stroke="#00000044" stroke-width="1.5"/>
+  <rect x="19.2" y="19.2" width="61.6" height="51.6" rx="1.5" fill="none" stroke="#ffffff66" stroke-width="1"/>
+  <use href="#glassBottom" transform="translate(18,80)"/>
+</svg>

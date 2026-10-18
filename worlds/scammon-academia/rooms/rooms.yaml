@@ -46,6 +46,7 @@ hall:
       actions:
       - - Enter the classroom
         - .play classrooms
+        - true
       rot:
       - 0
       - 1.6000000000001364

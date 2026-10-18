@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Plate knocker">
+  <defs>
+    <radialGradient id="knockPlate" cx="0.4" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#f8e6a2"/>
+      <stop offset="0.6" stop-color="#d9b24e"/>
+      <stop offset="1" stop-color="#a9822f"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="50" cy="52" rx="7.5" ry="10" fill="url(#knockPlate)" stroke="#7d5d1c" stroke-width="0.8"/>
+  <circle cx="50" cy="66" r="4.2" fill="url(#knockPlate)" stroke="#7d5d1c" stroke-width="0.8"/>
+</svg>

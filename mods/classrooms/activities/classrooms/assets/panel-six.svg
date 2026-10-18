@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Six-panel door">
+  <defs>
+    <g id="sixA">
+      <rect x="1" y="1" width="28" height="26" rx="1.5" fill="#00000033"/>
+      <rect x="-1" y="-1" width="28" height="26" rx="1.5" fill="#ffffff3d"/>
+      <rect x="0" y="0" width="28" height="26" rx="1.5" fill="#00000016"/>
+      <rect x="0.7" y="0.7" width="26.6" height="24.6" rx="1" fill="none" stroke="#ffffff30" stroke-width="1.2"/>
+    </g>
+    <g id="sixB">
+      <rect x="1" y="1" width="28" height="34" rx="1.5" fill="#00000033"/>
+      <rect x="-1" y="-1" width="28" height="34" rx="1.5" fill="#ffffff3d"/>
+      <rect x="0" y="0" width="28" height="34" rx="1.5" fill="#00000016"/>
+      <rect x="0.7" y="0.7" width="26.6" height="32.6" rx="1" fill="none" stroke="#ffffff30" stroke-width="1.2"/>
+    </g>
+    <g id="sixC">
+      <rect x="1" y="1" width="28" height="46" rx="1.5" fill="#00000033"/>
+      <rect x="-1" y="-1" width="28" height="46" rx="1.5" fill="#ffffff3d"/>
+      <rect x="0" y="0" width="28" height="46" rx="1.5" fill="#00000016"/>
+      <rect x="0.7" y="0.7" width="26.6" height="44.6" rx="1" fill="none" stroke="#ffffff30" stroke-width="1.2"/>
+    </g>
+  </defs>
+  <use href="#sixA" transform="translate(18,18)"/>
+  <use href="#sixA" transform="translate(52,18)"/>
+  <use href="#sixB" transform="translate(18,52)"/>
+  <use href="#sixB" transform="translate(52,52)"/>
+  <use href="#sixC" transform="translate(18,94)"/>
+  <use href="#sixC" transform="translate(52,94)"/>
+</svg>

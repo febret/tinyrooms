@@ -1,3 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Plain finish">
-  <rect x="12" y="10" width="76" height="150" rx="3" fill="#ffffff10"/>
+  <path d="M10 10 L48 10 L20 150 L10 150 Z" fill="#ffffff10"/>
+  <path d="M90 10 L80 10 L52 150 L90 150 Z" fill="#00000012"/>
 </svg>

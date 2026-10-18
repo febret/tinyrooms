@@ -62,17 +62,29 @@ function assetUrl(dimensionId, optionId) {
   return optionFor(dimensionId, optionId)?.asset || "";
 }
 
+function readableInk(hex) {
+  const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(hex || "");
+  if (!match) return "#10224d";
+  let value = match[1];
+  if (value.length === 3) value = value.split("").map(char => char + char).join("");
+  const r = Number.parseInt(value.slice(0, 2), 16) / 255;
+  const g = Number.parseInt(value.slice(2, 4), 16) / 255;
+  const b = Number.parseInt(value.slice(4, 6), 16) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6 ? "#10224d" : "#f7f3e6";
+}
+
 function loadAsset(url) {
   if (!url) return Promise.resolve("");
-  if (!assetCache.has(url)) {
+  const resolved = withBase(url);
+  if (!assetCache.has(resolved)) {
     assetCache.set(
-      url,
-      fetch(url)
+      resolved,
+      fetch(resolved)
         .then(response => (response.ok ? response.text() : ""))
         .catch(() => ""),
     );
   }
-  return assetCache.get(url);
+  return assetCache.get(resolved);
 }
 
 async function inlineAsset(url) {
@@ -82,21 +94,25 @@ async function inlineAsset(url) {
   return layer;
 }
 
+const LAYER_DIMENSIONS = ["panel", "material", "kick", "hinge", "handle", "knocker"];
+
 async function buildDoorVisual(style) {
   const visual = document.createElement("div");
   visual.className = "door-visual";
-  visual.style.color = colorValue("color", style?.color);
-  visual.append(await inlineAsset(`${ASSET_ROOT}door-panel.svg`));
-  const material = assetUrl("material", style?.material);
-  if (material) visual.append(await inlineAsset(material));
-  const handle = assetUrl("handle", style?.handle);
-  if (handle) visual.append(await inlineAsset(handle));
-  const tag = await inlineAsset(`${ASSET_ROOT}tag.svg`);
-  tag.style.color = colorValue("tag_color", style?.tag_color) || "#f4c430";
-  visual.append(tag);
+  const signColor = colorValue("tag_color", style?.tag_color) || "#f4c430";
+  visual.style.setProperty("--door-color", colorValue("color", style?.color) || "#2b4c9b");
+  visual.style.setProperty("--trim-color", colorValue("frame_color", style?.frame_color) || "#f4c430");
+  visual.style.setProperty("--sign-color", signColor);
+  visual.append(await inlineAsset(`${ASSET_ROOT}door-slab.svg`));
+  for (const dimensionId of LAYER_DIMENSIONS) {
+    const url = assetUrl(dimensionId, style?.[dimensionId]);
+    if (url) visual.append(await inlineAsset(url));
+  }
+  visual.append(await inlineAsset(`${ASSET_ROOT}tag.svg`));
   const text = document.createElement("span");
   text.className = "door-tag-text";
   text.textContent = String(style?.tag_text || "");
+  text.style.color = readableInk(signColor);
   visual.append(text);
   visual.append(await inlineAsset(`${ASSET_ROOT}door-frame.svg`));
   return visual;

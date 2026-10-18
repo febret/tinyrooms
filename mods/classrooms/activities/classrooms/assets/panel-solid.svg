@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Solid door">
+  <rect x="15" y="15" width="70" height="130" rx="2" fill="none" stroke="#00000033" stroke-width="1.6"/>
+  <rect x="16" y="16" width="68" height="128" rx="2" fill="none" stroke="#ffffff30" stroke-width="1"/>
+  <rect x="15" y="72" width="70" height="2" fill="#00000022"/>
+</svg>

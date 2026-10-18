@@ -3,28 +3,29 @@
 .classrooms-heading h1 { margin: 0; font-size: 18px; color: var(--gold); }
 .classrooms-actions { display: flex; align-items: center; gap: 6px; }
 .bops { color: var(--gold); font-weight: 600; font-size: 13px; white-space: nowrap; }
-.floors { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-color: #3f63b5 #0a1733; }
+.floors { display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-color: #3f63b5 #0a1733; }
 .floor { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
 .floor-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .floor-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #f4c430; margin: 0; }
 .floor-count { font-size: 11px; color: var(--muted); }
 .corridor { position: relative; overflow-x: auto; overflow-y: hidden; border-radius: 10px; border: 1px solid #2b4c9b66; background: #0d1e46; scrollbar-color: #6e8fd6 #0a1733; }
 .corridor:focus-visible { outline: 2px solid #f4c430; outline-offset: 2px; }
-.corridor-track { position: relative; display: flex; align-items: flex-end; min-height: 150px; padding: 12px 20px 30px; background: url("assets/wall-segment.svg") bottom / 120px 100% repeat-x; width: max-content; min-width: 100%; }
-.corridor-track::after { content: ""; position: absolute; inset: auto 0 0; height: 28px; background: url("assets/floor-segment.svg") 0% 0% / 120px 28px repeat-x; pointer-events: none; }
-.door-slot, .door-card { position: relative; flex: 0 0 auto; width: 104px; margin: 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.corridor-track { position: relative; display: flex; align-items: flex-end; min-height: 196px; padding: 14px 22px 40px; background: url("assets/wall-segment.svg") bottom / 120px 100% repeat-x; width: max-content; min-width: 100%; }
+.corridor-track::after { content: ""; position: absolute; inset: auto 0 0; height: 44px; background: url("assets/floor-segment.svg") 0% 0% / 120px 44px repeat-x; pointer-events: none; z-index: 0; }
+.door-slot, .door-card { position: relative; flex: 0 0 auto; width: 106px; margin: 0 7px; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 1; }
+.door-slot { align-self: stretch; }
 .door-card { background: none; border: 0; padding: 0; color: inherit; }
-.door-card.own .door-visual { filter: drop-shadow(0 0 8px #f4c43066); }
-.door-visual { position: relative; width: 100%; aspect-ratio: 100 / 160; color: #2b4c9b; }
+.door-visual { position: relative; width: 100%; aspect-ratio: 100 / 160; filter: drop-shadow(0 9px 7px rgba(4, 12, 26, 0.5)); }
+.door-card.own .door-visual { filter: drop-shadow(0 0 10px #f4c43099) drop-shadow(0 9px 7px rgba(4, 12, 26, 0.55)); }
 .door-layer { position: absolute; inset: 0; display: block; }
 .door-layer svg { width: 100%; height: 100%; display: block; }
-.door-tag-text { position: absolute; top: 13.5%; left: 26%; width: 48%; height: 12%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; line-height: 1; color: #10224d; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
-.door-name { font-size: 11px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.door-tag-text { position: absolute; top: 9.4%; left: 26%; width: 48%; height: 13.7%; display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; line-height: 1; color: #10224d; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.door-name { position: absolute; top: 100%; left: 0; right: 0; margin-top: 3px; text-align: center; font-size: 11px; color: #eef4ff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .door-lock { position: absolute; top: 6px; right: 10px; font-size: 13px; }
 .door-design { position: absolute; bottom: 32px; font-size: 10px; padding: 1px 6px; border-radius: 999px; background: #10224dcc; border: 1px solid #f4c43066; color: #f4c430; }
 .door-buy { width: 54px; height: 54px; margin: auto; border-radius: 50%; font-size: 26px; line-height: 1; border: 2px dashed #f4c430aa; background: #2b4c9b44; color: #f7dc7a; }
 .door-buy:hover { background: #2b4c9b77; border-color: #f4c430; }
-.floor-empty { margin: auto; padding: 0 16px; font-size: 12px; color: var(--muted); }
+.floor-empty { margin: auto; padding: 8px 16px; font-size: 12px; color: #463616; background: #f7ecc8dd; border: 1px solid #00000022; border-radius: 999px; box-shadow: inset 0 1px 0 #ffffffaa; }
 .hint { flex: 0 0 auto; font-size: 11px; }
 .designer { display: flex; flex-direction: column; gap: 8px; }
 .designer-head { display: flex; align-items: center; justify-content: space-between; }
@@ -36,9 +37,9 @@
 .control-row { display: flex; flex-direction: column; gap: 4px; }
 .control-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .control-options { display: flex; flex-wrap: wrap; gap: 6px; }
-.swatch { width: 30px; height: 30px; border-radius: 8px; border: 2px solid #ffffff33; padding: 0; background: #ffffff14; overflow: hidden; }
-.swatch.asset { display: flex; align-items: center; justify-content: center; }
-.swatch.asset img { width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+.swatch { width: 34px; height: 34px; border-radius: 8px; border: 2px solid #ffffff33; padding: 0; background: #ffffff14; overflow: hidden; }
+.swatch.asset { display: flex; align-items: center; justify-content: center; background: #0a1733; }
+.swatch.asset img { width: 100%; height: 100%; object-fit: contain; }
 .swatch[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 2px #e0b35255; }
 .control-row input[type="text"] { width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid #ffffff33; background: #0d1e46; color: inherit; }
 .designer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

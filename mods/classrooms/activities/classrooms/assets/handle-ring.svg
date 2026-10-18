@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Ring handle">
-  <circle cx="81" cy="78" r="2.6" fill="#f4c430" stroke="#24408a" stroke-width="1"/>
-  <circle cx="81" cy="88" r="7.5" fill="none" stroke="#4f77cf" stroke-width="3"/>
+  <defs>
+    <linearGradient id="ringBrass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8e6a2"/>
+      <stop offset="0.5" stop-color="#d9b24e"/>
+      <stop offset="1" stop-color="#a9822f"/>
+    </linearGradient>
+  </defs>
+  <rect x="74" y="72" width="9" height="14" rx="3" fill="url(#ringBrass)" stroke="#7d5d1c" stroke-width="0.8"/>
+  <circle cx="78.5" cy="82" r="2.4" fill="#a9822f"/>
+  <circle cx="78.5" cy="90" r="6.4" fill="none" stroke="url(#ringBrass)" stroke-width="3"/>
 </svg>

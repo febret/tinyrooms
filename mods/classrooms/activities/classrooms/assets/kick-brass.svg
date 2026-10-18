@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Brass kickplate">
+  <defs>
+    <linearGradient id="brassK" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8e6a2"/>
+      <stop offset="0.5" stop-color="#d9b24e"/>
+      <stop offset="1" stop-color="#a9822f"/>
+    </linearGradient>
+  </defs>
+  <rect x="14" y="130" width="72" height="16" rx="1.5" fill="url(#brassK)"/>
+  <rect x="14" y="130" width="72" height="2" fill="#fff8d8aa"/>
+  <rect x="14" y="144" width="72" height="2" fill="#00000044"/>
+  <rect x="14.6" y="130.6" width="70.8" height="14.8" rx="1.2" fill="none" stroke="#7d5d1c" stroke-width="1"/>
+  <g fill="#fff2c4" opacity="0.85">
+    <circle cx="19" cy="133" r="1"/><circle cx="50" cy="133" r="1"/><circle cx="81" cy="133" r="1"/>
+    <circle cx="19" cy="143" r="1"/><circle cx="50" cy="143" r="1"/><circle cx="81" cy="143" r="1"/>
+  </g>
+</svg>

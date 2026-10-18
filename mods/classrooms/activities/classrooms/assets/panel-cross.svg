@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Cross-braced door">
+  <g stroke="#00000030" stroke-width="7">
+    <path d="M14 16L86 144M86 16L14 144"/>
+  </g>
+  <g stroke="#ffffff28" stroke-width="2">
+    <path d="M14 16L86 144M86 16L14 144"/>
+  </g>
+  <g fill="#00000040" stroke="#ffffff33" stroke-width="0.8">
+    <circle cx="15" cy="17" r="2.2"/><circle cx="85" cy="17" r="2.2"/>
+    <circle cx="15" cy="143" r="2.2"/><circle cx="85" cy="143" r="2.2"/>
+    <circle cx="50" cy="80" r="2.2"/>
+  </g>
+</svg>

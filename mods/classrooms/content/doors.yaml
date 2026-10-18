@@ -1,5 +1,5 @@
 # Door customization catalog for the Classrooms activity.
-# Defaults lean on the school colors: blue doors, yellow trim.
+# Defaults lean on the school colors: a husky-blue door in a yellow frame.
 # `cost` is the one-time Bops price for a player's classroom.
 cost: 10
 tag:
@@ -12,18 +12,54 @@ dimensions:
     options:
       - {id: blue, label: Husky Blue, value: "#2b4c9b"}
       - {id: yellow, label: School Bus Yellow, value: "#f4c430"}
-      - {id: sky, label: Sky Blue, value: "#5b8def"}
+      - {id: sky, label: Sky Blue, value: "#4f8fe6"}
       - {id: navy, label: Deep Navy, value: "#1d3a7a"}
+      - {id: teal, label: Teal, value: "#1f8a8a"}
+      - {id: coral, label: Coral, value: "#e2604a"}
       - {id: cream, label: Cream, value: "#f4e6c8"}
+      - {id: charcoal, label: Charcoal, value: "#3a4250"}
+  frame_color:
+    label: Trim Color
+    kind: choice
+    options:
+      - {id: yellow, label: School Bus Yellow, value: "#f4c430"}
+      - {id: blue, label: Husky Blue, value: "#2b4c9b"}
+      - {id: cream, label: Cream, value: "#f4e6c8"}
+      - {id: white, label: Bright White, value: "#f4f6f8"}
+      - {id: charcoal, label: Charcoal, value: "#3a4250"}
+  panel:
+    label: Panel Style
+    kind: choice
+    options:
+      - {id: six, label: Six Panel, asset: /activities/classrooms/assets/panel-six.svg}
+      - {id: two, label: Two Panel, asset: /activities/classrooms/assets/panel-two.svg}
+      - {id: glass, label: Glazed, asset: /activities/classrooms/assets/panel-glass.svg}
+      - {id: louver, label: Louvered, asset: /activities/classrooms/assets/panel-louver.svg}
+      - {id: cross, label: Cross Brace, asset: /activities/classrooms/assets/panel-cross.svg}
+      - {id: solid, label: Solid, asset: /activities/classrooms/assets/panel-solid.svg}
   material:
     label: Material
     kind: choice
     options:
-      - {id: plain, label: Plain, asset: /activities/classrooms/assets/material-plain.svg}
+      - {id: plain, label: Painted, asset: /activities/classrooms/assets/material-plain.svg}
       - {id: wood, label: Wood, asset: /activities/classrooms/assets/material-wood.svg}
       - {id: tile, label: Tile, asset: /activities/classrooms/assets/material-tile.svg}
       - {id: metal, label: Metal, asset: /activities/classrooms/assets/material-metal.svg}
       - {id: glass, label: Glass, asset: /activities/classrooms/assets/material-glass.svg}
+  kick:
+    label: Kickplate
+    kind: choice
+    options:
+      - {id: none, label: None, asset: /activities/classrooms/assets/kick-none.svg}
+      - {id: brass, label: Brass, asset: /activities/classrooms/assets/kick-brass.svg}
+      - {id: steel, label: Steel, asset: /activities/classrooms/assets/kick-steel.svg}
+  hinge:
+    label: Hinges
+    kind: choice
+    options:
+      - {id: none, label: Hidden, asset: /activities/classrooms/assets/hinge-none.svg}
+      - {id: brass, label: Brass, asset: /activities/classrooms/assets/hinge-brass.svg}
+      - {id: steel, label: Steel, asset: /activities/classrooms/assets/hinge-steel.svg}
   handle:
     label: Handle
     kind: choice
@@ -32,17 +68,25 @@ dimensions:
       - {id: lever, label: Lever, asset: /activities/classrooms/assets/handle-lever.svg}
       - {id: ring, label: Ring, asset: /activities/classrooms/assets/handle-ring.svg}
       - {id: bar, label: Bar, asset: /activities/classrooms/assets/handle-bar.svg}
+      - {id: pull, label: Pull, asset: /activities/classrooms/assets/handle-pull.svg}
       - {id: none, label: None, asset: /activities/classrooms/assets/handle-none.svg}
+  knocker:
+    label: Knocker
+    kind: choice
+    options:
+      - {id: none, label: None, asset: /activities/classrooms/assets/knocker-none.svg}
+      - {id: ring, label: Ring, asset: /activities/classrooms/assets/knocker-ring.svg}
+      - {id: plate, label: Plate, asset: /activities/classrooms/assets/knocker-plate.svg}
   tag_color:
-    label: Tag Color
+    label: Sign Color
     kind: choice
     options:
       - {id: yellow, label: School Bus Yellow, value: "#f4c430"}
       - {id: blue, label: Husky Blue, value: "#2b4c9b"}
       - {id: cream, label: Cream, value: "#f4e6c8"}
-      - {id: sky, label: Sky Blue, value: "#8fb8f0"}
-      - {id: slate, label: Slate, value: "#8fa3ad"}
+      - {id: white, label: Bright White, value: "#f4f6f8"}
+      - {id: charcoal, label: Charcoal, value: "#3a4250"}
   tag_text:
-    label: Tag Text
+    label: Sign Text
     kind: text
     max_length: 16

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Ring knocker">
+  <defs>
+    <linearGradient id="knockRing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8e6a2"/>
+      <stop offset="0.5" stop-color="#d9b24e"/>
+      <stop offset="1" stop-color="#a9822f"/>
+    </linearGradient>
+  </defs>
+  <rect x="45" y="42" width="10" height="7" rx="2" fill="url(#knockRing)" stroke="#7d5d1c" stroke-width="0.8"/>
+  <circle cx="50" cy="56" r="7" fill="none" stroke="url(#knockRing)" stroke-width="3"/>
+  <circle cx="50" cy="49" r="1.6" fill="#a9822f"/>
+</svg>

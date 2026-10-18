@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Pull handle">
+  <defs>
+    <linearGradient id="pullBrass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f8e6a2"/>
+      <stop offset="0.5" stop-color="#d9b24e"/>
+      <stop offset="1" stop-color="#a9822f"/>
+    </linearGradient>
+  </defs>
+  <path d="M80 68 C 92 80 92 92 80 104" fill="none" stroke="url(#pullBrass)" stroke-width="4.6" stroke-linecap="round"/>
+  <circle cx="80" cy="68" r="3.2" fill="url(#pullBrass)" stroke="#7d5d1c" stroke-width="0.8"/>
+  <circle cx="80" cy="104" r="3.2" fill="url(#pullBrass)" stroke="#7d5d1c" stroke-width="0.8"/>
+</svg>

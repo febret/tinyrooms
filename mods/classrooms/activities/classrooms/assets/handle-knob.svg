@@ -1,5 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" role="img" aria-label="Round knob handle">
-  <rect x="75" y="76" width="3" height="16" rx="1.5" fill="#24408a"/>
-  <circle cx="81" cy="84" r="7" fill="#4f77cf" stroke="#24408a" stroke-width="1.5"/>
-  <circle cx="79" cy="82" r="2.2" fill="#f4c430"/>
+  <defs>
+    <radialGradient id="knobBrass" cx="0.35" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#fff6cf"/>
+      <stop offset="0.5" stop-color="#d9b24e"/>
+      <stop offset="1" stop-color="#8a6820"/>
+    </radialGradient>
+  </defs>
+  <rect x="74" y="72" width="9" height="28" rx="3" fill="url(#knobBrass)" stroke="#7d5d1c" stroke-width="0.8"/>
+  <rect x="81" y="83" width="3.5" height="6" rx="1" fill="#8a6820"/>
+  <circle cx="84.5" cy="86" r="5.4" fill="url(#knobBrass)" stroke="#7d5d1c" stroke-width="0.9"/>
+  <circle cx="82.7" cy="84" r="1.6" fill="#fff7d8" opacity="0.85"/>
 </svg>
