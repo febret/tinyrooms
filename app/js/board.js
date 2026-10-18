@@ -665,9 +665,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       target: group.position.clone(),
     });
     // BoxGeometry's +Y/-Y groups are the upper/lower faces, not +Z/-Z.
-    const mesh = box(group, [0.62, 0.045, 0.88], [0, 0.028, 0], [edge, edge, front, back, edge, edge]);
+    // Room cards are square illustration tiles; the full composed face is
+    // reserved for inspection, previews, and the inventory (card-face.js).
+    const mesh = box(group, [0.72, 0.045, 0.72], [0, 0.028, 0], [edge, edge, front, back, edge, edge]);
     mesh.rotation.y = -0.08;
-    texture(entry, card.definition?.imageUrl, `${card.definition?.label || "Card"} artwork`, map => {
+    texture(entry, card.definition?.imageUrl, `${card.definition?.label || "Card"} illustration`, map => {
       front.map = map;
       front.color.set("#ffffff");
       front.needsUpdate = true;

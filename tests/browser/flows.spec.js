@@ -78,6 +78,13 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await roomCard.click();
   await expect(picker).toBeHidden();
   await expect(page.locator("#look-bar")).toContainText(cardLabel);
+  const preview = page.locator('[data-look-inspect="card"]');
+  await expect(preview.locator("svg.card-face")).toBeVisible();
+  await preview.click();
+  const details = page.getByRole("dialog", { name: `Card Details: ${cardLabel}` });
+  await expect(details.locator("canvas[data-card-face]")).toBeVisible();
+  await details.locator("[data-close-details]").click();
+  await expect(details).toBeHidden();
   await expect(page.locator("#emote-toggle")).toBeVisible();
   await page.locator("#emote-toggle").click();
   await expect(page.locator("#emote-menu")).toHaveClass(/open/);

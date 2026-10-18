@@ -21,8 +21,10 @@ DEFAULT_STACKABLE_LIMIT = 99
 class CardDefinition:
     """Immutable card definition."""
 
-    # image is required static card/thumbnail art even for animated/cutscene
-    # emotes; animation is optional bubble art, resolved beside cards.yaml.
+    # image is the required card illustration only (no frame, title, or stats):
+    # clients compose full faces from metadata (app/js/card-face.js). Sealed
+    # packs use their back art; animation is optional bubble art. Both resolve
+    # beside cards.yaml. See doc/card-art.md.
     # one_use consumes a copy only on successful use. Passive cards work while
     # equipped; decorative keepsakes have no Use action. bonuses are per-copy
     # equipment/skill modifiers, not effects applied by actively playing a card.

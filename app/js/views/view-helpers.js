@@ -1,3 +1,4 @@
+import { cardFaceSvg } from "../card-face.js";
 import { escapeHtml } from "../presentation.js";
 
 export function rarityLabel(definition) {
@@ -20,13 +21,14 @@ export function longDescription(definition) {
   return lines.join(" ");
 }
 
-export function tileMarkup(definition, stack, selected, scope) {
+/** Card button; `face: "full"` composes the SVG card, `"illustration"` shows only the art. */
+export function tileMarkup(definition, stack, selected, scope, { face = "full" } = {}) {
   const label = `${definition.label}${stack.quantity > 1 ? `, ${stack.quantity} copies` : ""}${stack.pinned ? ", pinned" : ""}${stack.equipped ? ", equipped" : ""}`;
   return `
     <button type="button" class="game-card ${selected ? "selected" : ""} ${stack.equipped ? "is-equipped" : ""}"
       data-stack-id="${escapeHtml(stack.stackId)}" data-scope="${scope}" aria-label="${escapeHtml(label)}"
       aria-pressed="${selected}" title="${escapeHtml(`${definition.label} · ${rarityLabel(definition)}`)}">
-      <img src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
+      ${face === "full" ? cardFaceSvg(definition) : `<img class="card-illustration" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">`}
       ${stack.quantity > 1 ? `<span class="card-badge quantity-badge" aria-hidden="true">×${escapeHtml(stack.quantity)}</span>` : ""}
       ${stack.pinned ? '<span class="card-badge pin-badge" aria-hidden="true">◆</span>' : ""}
       ${stack.equipped ? '<span class="card-badge equipped-badge" aria-hidden="true">✓</span>' : ""}

@@ -37,6 +37,8 @@ function normalizeCardDefinition(definition) {
     oneUse: Boolean(definition.one_use),
     passive: Boolean(definition.passive),
     imageUrl: assetOrEmpty(definition.image_url),
+    backUrl: assetOrEmpty(definition.back_url),
+    energyCost: typeof definition.energy_cost === "number" ? definition.energy_cost : null,
     rarity: String(definition.rarity || ""),
     target: String(definition.target || ""),
     effect: String(definition.effect || ""),

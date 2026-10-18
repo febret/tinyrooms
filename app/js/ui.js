@@ -34,6 +34,7 @@ import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
+import { cardFaceSvg } from "./card-face.js";
 import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
@@ -530,7 +531,7 @@ function showPackReveal(cards) {
     `<section class="global-dialog pack-reveal" role="dialog" aria-modal="true" aria-labelledby="pack-reveal-title">
       <h2 id="pack-reveal-title">Your ${escapeHtml(cards.length)} cards</h2>
       <div class="pack-reveal-cards">${cards.map(card => `
-        <figure class="pack-reveal-card"><img src="${escapeHtml(withBase(card.image_url))}" alt="${escapeHtml(card.label)}"><figcaption>${escapeHtml(card.label)}</figcaption></figure>
+        <figure class="pack-reveal-card">${cardFaceSvg(card, { label: card.label })}<figcaption>${escapeHtml(card.label)}</figcaption></figure>
       `).join("")}</div>
       <div class="dialog-actions"><button type="button" class="primary pack-reveal-close">Continue</button></div>
     </section>`,

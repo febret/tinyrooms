@@ -19,26 +19,26 @@ journal:
 smile:
   label: Smile
   description: Expresses a smile
-  image: smile.webp
+  image: smile-art.webp
 sigh:
   label: Sigh
   description: Expresses a sigh
-  image: sigh.webp
+  image: sigh-art.webp
 goof:
   label: Goof
   description: Expresses a goof
-  image: goof.webp
+  image: goof-art.webp
 growl:
   label: Growl
   description: Expresses a growl
-  image: growl.webp
+  image: growl-art.webp
 
 
 # Base skill cards
 sturdy:
   label: Sturdy
   description: Increases physical resilience, Constitution +1
-  image: sturdy.webp
+  image: sturdy-art.webp
   type: skill
   rank: Script Kiddo
   rarity: Common
@@ -47,7 +47,7 @@ sturdy:
 nimble:
   label: Nimble
   description: Light on your feet. Dexterity +1 while slotted.
-  image: nimble.webp
+  image: nimble-art.webp
   type: skill
   rank: Script Kiddo
   rarity: Common
@@ -55,7 +55,7 @@ nimble:
 charming:
   label: Charming
   description: A little everyday warmth. Charisma +1 while slotted.
-  image: charming.webp
+  image: charming-art.webp
   type: skill
   rank: Script Kiddo
   rarity: Common
@@ -63,7 +63,7 @@ charming:
 stylish:
   label: Stylish
   description: Make your own entrance. Fanciness +1 while slotted.
-  image: stylish.webp
+  image: stylish-art.webp
   type: skill
   rank: Script Kiddo
   rarity: Common
@@ -71,7 +71,7 @@ stylish:
 spirited:
   label: Spirited
   description: A little extra get-up-and-go. Maximum Energy +10 while slotted.
-  image: spirited.webp
+  image: spirited-art.webp
   type: skill
   rank: Script Kiddo
   rarity: Uncommon
@@ -79,21 +79,21 @@ spirited:
 wave:
   label: Little Wave
   description: An animated hello, made for sharing.
-  image: wave.webp
+  image: wave-art.webp
   animation: wave.gif
   type: emote
   rarity: Common
 happy-dance:
   label: Happy Dance
   description: A tiny, looping victory dance.
-  image: happy-dance.webp
+  image: happy-dance-art.webp
   animation: happy-dance.gif
   type: emote
   rarity: Common
 heart:
   label: Warm Heart
   description: Send a hand-drawn heart floating into the room.
-  image: heart.webp
+  image: heart-art.webp
   animation: heart.gif
   type: emote
   rarity: Common

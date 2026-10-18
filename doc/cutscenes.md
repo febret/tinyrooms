@@ -501,7 +501,11 @@ The small working set for authors is:
 - `caption(...)`, `captions(...)`: optional cue rendering.
 - `sprite(ref, options)`, `sprites(refs)`: asynchronously prepared elements,
   ready to append and style. Prop loading may require a thumbnail render.
-- `spriteUrl(ref)`: synchronous sticker/card URL, empty for props.
+  Card sprites show the illustration (or animation) only, for cards acting as
+  scene objects.
+- `cardFace(ref, options)`: the full composed card face (SVG in a wrapper), for
+  reveals that present the card itself; non-card refs fall back to `sprite`.
+- `spriteUrl(ref)`: synchronous sticker/card illustration URL, empty for props.
 - `asset(ref)`: raw record or undefined.
 - `registerCutsceneFrame(...)`, `frameNames()`, `currentCutscene()`: extension
   and introspection without reaching into manager internals.

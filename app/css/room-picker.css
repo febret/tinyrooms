@@ -35,8 +35,8 @@
 .room-picker-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 30px; pointer-events: none; }
 .room-picker img { opacity: 0; }
 .room-picker img.room-picker-image-ready { opacity: 1; }
-.room-picker .game-card { aspect-ratio: 3 / 4; }
-.room-picker .game-card > img { position: relative; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.room-picker .game-card { aspect-ratio: 1; }
+.room-picker .game-card > img { position: relative; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .room-picker .card-badge { display: none; }
 .room-picker-has-image > .room-picker-fallback { visibility: hidden; }
 .room-picker-prop[aria-pressed="true"], .room-picker .game-card.selected { background: #8ac4db2e; }

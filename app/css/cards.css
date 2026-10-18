@@ -1,7 +1,8 @@
 @import "./editor-dock.css";
 
 .game-card { position: relative; display: inline-block; flex: 0 0 auto; width: 132px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #fff; box-shadow: 0 4px 9px #0009; vertical-align: bottom; transition: transform .18s ease, filter .18s ease, box-shadow .18s ease; }
-.game-card > img { display: block; width: 100%; height: auto; border-radius: inherit; }
+.game-card > .card-face, .game-card > .card-illustration { display: block; width: 100%; height: auto; border-radius: inherit; }
+.card-face { display: block; max-width: 100%; height: auto; }
 .game-card.selected { transform: translateY(-5px); box-shadow: 0 0 0 2px #8ac4db, 0 0 13px #83cde3b3; }
 .game-card.is-equipped { box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
 .game-card.is-equipped.selected { box-shadow: 0 0 0 2px #f0c88a, 0 0 14px #f0c88a99; }
@@ -15,7 +16,7 @@
 .hand-icon { position: relative; flex: 0 0 auto; width: var(--hand-icon-size); height: var(--hand-icon-size); min-width: 0; min-height: 0; padding: 0; border: 1px solid #29505d; border-radius: 12px; background: var(--field-bg); overflow: hidden; box-shadow: 0 2px 5px #0007; pointer-events: auto; transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
 .hand-icon.selected { transform: translateY(-4px); border-color: #f0c88a; box-shadow: 0 0 0 2px #f0c88a, 0 0 12px #f0c88a99; }
 .hand-icon:focus-visible { outline: 3px solid #d4f3ff; outline-offset: 2px; z-index: 2; }
-.card-icon-art { position: absolute; left: -20%; top: -24%; display: block; width: 140%; max-width: none; height: auto; pointer-events: none; }
+.card-icon-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .panel-layer:not(:empty), .detail-layer:not(:empty) { pointer-events: auto; isolation: isolate; }
 .panel-layer:not(:empty)::before, .detail-layer:not(:empty)::before { content: ""; position: absolute; inset: 0 0 calc(-1 * var(--tray-height)); z-index: -1; background: radial-gradient(ellipse at 50% 40%, #000 0%, #000 20%, rgba(0, 0, 0, .68) 56%, rgba(0, 0, 0, 0) 82%); pointer-events: none; }
 .detail-layer:not(:empty)::before { background: radial-gradient(ellipse at 50% 40%, #000 0%, rgba(0, 0, 0, .72) 42%, rgba(0, 0, 0, 0) 80%); }
@@ -227,7 +228,7 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .pack-reveal { max-width: min(640px, 92vw); text-align: center; }
 .pack-reveal-cards { display: flex; flex-wrap: nowrap; justify-content: center; gap: 10px; margin: 12px 0; overflow-x: auto; }
 .pack-reveal-card { margin: 0; flex: 0 1 130px; min-width: 0; }
-.pack-reveal-card img { width: 100%; border-radius: 8px; box-shadow: 0 8px 18px #0008; }
+.pack-reveal-card .card-face { width: 100%; filter: drop-shadow(0 8px 12px #0008); }
 .pack-reveal-card figcaption { font-size: 12px; margin-top: 6px; }
 @media (max-width: 780px), (orientation: portrait) {
   .journal-view { padding: 10px 10px 14px; }

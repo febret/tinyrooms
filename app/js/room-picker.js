@@ -19,8 +19,8 @@ function propMarkup(prop, selection) {
 
 function cardMarkup(stack, selection) {
   const selected = selection?.kind === "room-card" && selection.id === stack.stackId;
-  const tile = tileMarkup(stack.definition, stack, selected, "room")
-    .replace("<img ", '<span class="room-picker-fallback" aria-hidden="true">▧</span><img ');
+  const tile = tileMarkup(stack.definition, stack, selected, "room", { face: "illustration" })
+    .replace('<img class="card-illustration"', '<span class="room-picker-fallback" aria-hidden="true">▧</span><img class="card-illustration"');
   return `<div class="room-picker-entry" role="listitem">${tile}
     <span class="room-picker-label" aria-hidden="true">${escapeHtml(stack.definition.label)}</span>
   </div>`;

@@ -1,5 +1,5 @@
 import { escapeHtml } from "../presentation.js";
-import { withBase } from "../base-path.js";
+import { cardFaceSvg } from "../card-face.js";
 
 export function filterCards(cards, query = "", source = "") {
   const search = query.trim().toLowerCase();
@@ -18,7 +18,7 @@ export function cardGridMarkup(cards, { selectable = false, selected = new Set()
     if (card.packs?.length) details.push(`Packs: ${card.packs.join(", ")}`);
     if (card.recipes?.length) details.push(`Recipes: ${card.recipes.join(", ")}`);
     const content = `
-      <img src="${escapeHtml(withBase(card.image_url || ""))}" alt="${escapeHtml(card.label)}" loading="lazy">
+      ${cardFaceSvg(card, { label: `${card.label} card` })}
       <h3>${escapeHtml(card.label)}</h3>
       <div class="badges"><span class="badge scope-${card.scope === "world" ? "world" : "base"}">${escapeHtml(card.scope || card.source || "")}</span>
         <span class="badge">${escapeHtml(card.type)}</span>

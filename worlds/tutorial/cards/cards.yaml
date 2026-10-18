@@ -1,7 +1,7 @@
 ballet-shoes:
   label: Ballet Shoes
   description: Ribbon-tied shoes. Charisma +1 and Fanciness +2 while equipped.
-  image: ballet-shoes.webp
+  image: ballet-shoes-art.webp
   type: item
   rarity: Common
   stack_limit: 1
@@ -11,12 +11,12 @@ ballet-shoes:
 fancy-wallet:
   label: Fancy Wallet
   description: A little golden clasp and room for dreams. A decorative collectible.
-  image: fancy-wallet.webp
+  image: fancy-wallet-art.webp
   decorative: true
 hand-light:
   label: Flashlight
   description: Use in a dark room to light it for 10 minutes. One use.
-  image: hand-light.webp
+  image: hand-light-art.webp
   type: item
   stack_limit: 10
   one_use: true
@@ -27,7 +27,7 @@ hand-light:
 juicy-drink:
   label: Juicy Drink
   description: Restore 25 Energy, even when Tired. Free to use on yourself.
-  image: juicy-drink.webp
+  image: juicy-drink-art.webp
   type: item
   stack_limit: 10
   one_use: true
@@ -38,17 +38,17 @@ juicy-drink:
 lucille:
   label: Lucille
   description: Lucille, a very distinguished seal plushie. Decorative; no effects.
-  image: lucille.webp
+  image: lucille-art.webp
   decorative: true
 plastic-bag:
   label: Plastic Bag
   description: A simple plastic bag
-  image: pastic-bag.webp
+  image: pastic-bag-art.webp
   stack_limit: 10
 poop-in-a-bag:
   label: Poop in a Bag
   description: A neatly bagged mess. Equip it, then drag it onto the garden trashcan or Use it on the bin.
-  image: poop-in-bag.webp
+  image: poop-in-bag-art.webp
   stack_limit: 10
   one_use: true
   energy_cost: 0
@@ -56,7 +56,7 @@ poop-in-a-bag:
 teleporter-instruction-manual:
   label: Teleporter Instruction Manual
   description: A surprisingly pristine manual rescued from the garden bin. Diagrams explain destination alignment, return coordinates, and why you should keep your elbows inside the portal. Save it for a future quest.
-  image: teleporter-instruction-manual.webp
+  image: teleporter-instruction-manual-art.webp
   type: item
   rarity: Uncommon
   stack_limit: 1
@@ -66,13 +66,13 @@ teleporter-instruction-manual:
 poop:
   label: Poop
   description: A piece of poop. Holding it is a messy business.
-  image: poop.webp
+  image: poop-art.webp
   stack_limit: 10
   soils: true
 pooper-scooper:
   label: Pooper Scooper
   description: Equip it, then use it on Molly's litter tray. A plastic bag is equipped? The mess gets bagged.
-  image: pooper-scooper.webp
+  image: pooper-scooper-art.webp
   one_use: false
   energy_cost: 0
   target: prop
@@ -81,12 +81,12 @@ pooper-scooper:
 seal-plushie:
   label: Seal Plushie
   description: A cute seal plushie, not stinky at all.
-  image: seal-plushie.webp
+  image: seal-plushie-art.webp
   decorative: true
 tasty-toast:
   label: Tasty Toast
   description: Restore 10 Health to yourself or another peep. Costs 2 Energy.
-  image: tasty-toast.webp
+  image: tasty-toast-art.webp
   stack_limit: 10
   one_use: true
   energy_cost: 2
@@ -96,7 +96,7 @@ tasty-toast:
 tomato-sauce:
   label: Tomato Sauce
   description: Restore 25 Health to yourself or another peep. Costs 2 Energy.
-  image: tomato-sauce.webp
+  image: tomato-sauce-art.webp
   stack_limit: 10
   one_use: true
   energy_cost: 2
@@ -107,7 +107,7 @@ tomato-sauce:
 house-key:
   label: House Key
   description: A brass sunflower key. Opens the front door in the foyer.
-  image: house-key.webp
+  image: house-key-art.webp
   type: item
   rarity: Common
   stack_limit: 1
@@ -117,7 +117,7 @@ house-key:
 vacuum-cleaner:
   label: Vacuum Cleaner
   description: A cheerful little vacuum. Equip it, then use it on the basement centipedes. Reusable.
-  image: vacuum-cleaner.webp
+  image: vacuum-cleaner-art.webp
   type: item
   rarity: Common
   stack_limit: 1

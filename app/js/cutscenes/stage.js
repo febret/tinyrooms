@@ -1,5 +1,6 @@
 import { BUILTIN_FRAMES, DEFAULT_FRAME } from "./frames.js";
 import { assetSource, placeholderBox, spriteForAsset } from "./placeholders.js";
+import { cardFaceSvg } from "../card-face.js";
 
 const frames = new Map(Object.entries(BUILTIN_FRAMES));
 let session = null;
@@ -228,6 +229,20 @@ export async function sprite(ref, options) {
   if (typeof options?.className === "string") element.className = options.className;
   if (options?.label) element.alt = options.label;
   return element;
+}
+
+/**
+ * Resolve a card placeholder into its full composed face (an SVG inside a
+ * wrapper element). `sprite()` stays the illustration/animation for cards used
+ * as scene objects; use this for reveals that present the card itself.
+ */
+export async function cardFace(ref, options) {
+  const record = findAsset(currentCutscene(), ref);
+  if (record?.kind !== "card" || !record.definition) return sprite(ref, options);
+  const wrapper = document.createElement("div");
+  wrapper.className = typeof options?.className === "string" ? options.className : "cutscene-card-face";
+  wrapper.innerHTML = cardFaceSvg(record.definition, { label: options?.label || record.label || "" });
+  return wrapper;
 }
 
 /** Resolve several placeholders together. */

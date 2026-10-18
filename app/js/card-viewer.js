@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { cardFaceCanvas } from "./card-face-texture.js";
 import { createViewerStage } from "./viewer-stage.js";
 
 const CARD_WIDTH = 0.62;
@@ -6,8 +7,8 @@ const CARD_HEIGHT = 0.88;
 const CARD_DEPTH = 0.005;
 const textureLoader = new THREE.TextureLoader();
 
-/** Create one rotatable WebGL card viewer bound to a canvas showing front and back art. */
-function createCardViewer({ canvas, frontUrl, backUrl, interactive, reducedMotion }) {
+/** Create one rotatable WebGL card viewer showing a composed SVG front and back art. */
+function createCardViewer({ canvas, faceKey, backUrl, interactive, reducedMotion }) {
   const stage = createViewerStage({ canvas, interactive });
   if (stage.controls) {
     // Keep the card upright while allowing a full turn to reach the back face.
@@ -48,33 +49,51 @@ function createCardViewer({ canvas, frontUrl, backUrl, interactive, reducedMotio
     }
   }
 
+  function applyTexture(map, material) {
+    if (disposed) {
+      map.dispose();
+      return;
+    }
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = Math.min(8, stage.renderer.capabilities.getMaxAnisotropy());
+    material.map = map;
+    material.color.set("#ffffff");
+    material.needsUpdate = true;
+    settle();
+  }
+
   function loadTexture(url, material) {
     if (!url) {
       settle();
       return;
     }
-    textureLoader.load(url, map => {
-      if (disposed) {
-        map.dispose();
-        return;
-      }
-      map.colorSpace = THREE.SRGBColorSpace;
-      map.anisotropy = Math.min(8, stage.renderer.capabilities.getMaxAnisotropy());
-      material.map = map;
-      material.color.set("#ffffff");
-      material.needsUpdate = true;
-      settle();
-    }, undefined, () => {
-      if (disposed) return;
-      settle();
+    textureLoader.load(url, map => applyTexture(map, material), undefined, () => {
+      if (!disposed) settle();
     });
   }
 
-  loadTexture(frontUrl, front);
+  let definition = null;
+  try {
+    definition = JSON.parse(faceKey || "null");
+  } catch {
+    definition = null;
+  }
+  if (definition) {
+    // Each viewer owns its CanvasTexture; the rasterized canvas is a shared cache entry.
+    cardFaceCanvas(definition).then(
+      faceCanvas => applyTexture(new THREE.CanvasTexture(faceCanvas), front),
+      error => {
+        console.warn(`[Tinyrooms] ${error.message}`);
+        if (!disposed) settle();
+      },
+    );
+  } else {
+    settle();
+  }
   loadTexture(backUrl, back);
 
   return {
-    frontUrl,
+    faceKey,
     backUrl,
     render(delta) {
       stage.renderFrame(delta, !interactive && !reducedMotion);
@@ -88,7 +107,7 @@ function createCardViewer({ canvas, frontUrl, backUrl, interactive, reducedMotio
 }
 
 /**
- * Keep WebGL card viewers in sync with canvases carrying `data-card-front`.
+ * Keep WebGL card viewers in sync with canvases carrying `data-card-face` JSON.
  * One shared animation frame drives every mounted viewer.
  */
 export function createCardViewerManager() {
@@ -117,7 +136,7 @@ export function createCardViewerManager() {
   }
 
   function sync(root, reducedMotion) {
-    const canvases = [...root.querySelectorAll("canvas[data-card-front]")];
+    const canvases = [...root.querySelectorAll("canvas[data-card-face]")];
     // Drop viewers whose canvas left the DOM (details closed or replaced).
     for (const [canvas, viewer] of viewers) {
       if (!canvas.isConnected) {
@@ -126,14 +145,14 @@ export function createCardViewerManager() {
       }
     }
     for (const canvas of canvases) {
-      const frontUrl = canvas.dataset.cardFront;
+      const faceKey = canvas.dataset.cardFace;
       const backUrl = canvas.dataset.cardBack;
       const existing = viewers.get(canvas);
-      if (existing && existing.frontUrl === frontUrl && existing.backUrl === backUrl) continue;
+      if (existing && existing.faceKey === faceKey && existing.backUrl === backUrl) continue;
       existing?.dispose();
       viewers.set(canvas, createCardViewer({
         canvas,
-        frontUrl,
+        faceKey,
         backUrl,
         interactive: canvas.dataset.cardInteractive === "true",
         reducedMotion: Boolean(reducedMotion),

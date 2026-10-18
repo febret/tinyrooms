@@ -2,70 +2,70 @@
 beach-day:
   label: Beach Day
   description: Soak up the sun and let the sand do the rest.
-  image: beach-day.webp
+  image: beach-day-art.webp
   animation: 4897.gif
   type: emote
   rarity: Common
 cherry-cat:
   label: Cherry Cat
   description: A pixel kitty balanced with a cherry on top. Delightfully wobbly.
-  image: cherry-cat.webp
+  image: cherry-cat-art.webp
   animation: 5d526c55e610a00.webp
   type: emote
   rarity: Common
 bitaroo-blaze:
   label: Bitaroo Blaze
   description: Everything is fine. Absolutely nothing is on fire.
-  image: bitaroo-blaze.webp
+  image: bitaroo-blaze-art.webp
   animation: bitcoin-bitaroo.gif
   type: emote
   rarity: Common
 tina-uhh:
   label: Uhh... Tina
   description: A long, thoughtful uhh. Take your time.
-  image: tina-uhh.webp
+  image: tina-uhh-art.webp
   animation: bobs-burgers-tina-belcher.gif
   type: emote
   rarity: Common
 troll-dance:
   label: Troll Dance
   description: A triumphant little jig for when the plan comes together.
-  image: troll-dance.webp
+  image: troll-dance-art.webp
   animation: download.png
   type: emote
   rarity: Common
 masked-laugh:
   label: Masked Laugh
   description: An uproarious cackle from somewhere very toasty.
-  image: masked-laugh.webp
+  image: masked-laugh-art.webp
   animation: giphy.gif
   type: emote
   rarity: Common
 ok-hamster:
   label: OK Hamster
   description: Wide-eyed agreement. It is, in fact, OK.
-  image: ok-hamster.webp
+  image: ok-hamster-art.webp
   animation: hamster.gif
   type: emote
   rarity: Common
 troll-problem:
   label: Troll Problem
   description: Ask nicely and the internet will explain that it is, somehow, your fault.
-  image: troll-problem.webp
+  image: troll-problem-art.webp
   animation: hilarious-internet-troll-face-h96vg67m33zwomzh.gif
   type: emote
   rarity: Common
 pixel-hamster:
   label: Pixel Hamster
   description: A plump little rodent rendered in loving chunky pixels.
-  image: pixel-hamster.webp
+  image: pixel-hamster-art.webp
   animation: tumblr_mit6l0CKMR1rfjowdo1_500.gif
   type: emote
   rarity: Common
 grumpy-munchkin:
   label: Grumpy Munchkin
   description: Deal with it. Preferably from a respectful distance.
-  image: grumpy-munchkin.webp
+  image: grumpy-munchkin-art.webp
   animation: tumblr_nmu6r4U9XW1s3lkzpo1_400.gif
   type: emote
   rarity: Common

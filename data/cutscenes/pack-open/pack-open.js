@@ -1,5 +1,6 @@
 import {
   beginCutscene,
+  cardFace,
   endCutscene,
   sprite,
   wait,
@@ -101,7 +102,7 @@ export default async function (ctx) {
     back.className = "cutscene-pack-card-back";
     const front = document.createElement("div");
     front.className = "cutscene-pack-card-front";
-    const cardSprite = await sprite(ref, { label: rarity });
+    const cardSprite = await cardFace(ref);
     if (cardSprite) front.append(cardSprite);
     flipper.append(back, front);
     slot.append(flipper);

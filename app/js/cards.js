@@ -1,5 +1,5 @@
 import { CARD_BACK } from "./board.js";
-import { withBase } from "./base-path.js";
+import { cardFaceFields } from "./card-face.js";
 import {
   buildEmoteCommand,
   buildEquipCommand,
@@ -105,13 +105,14 @@ function detailsModal(state) {
   const stack = roomCard || inventoryCard;
   if (!stack) return "";
   const definition = stack.definition;
-  const backUrl = definition.imageUrl.startsWith(withBase("/assets/world/")) ? CARD_BACK : withBase("/assets/base/base-pack-back.webp");
+  const backUrl = definition.backUrl || CARD_BACK;
+  const faceKey = JSON.stringify(cardFaceFields(definition));
   return `
     <section class="card-view" role="dialog" aria-modal="false" aria-label="Card Details: ${escapeHtml(definition.label)}">
       <button type="button" class="quiet card-view-close" data-close-details="1" aria-label="Close card details">Close</button>
       <div class="card-view-panels">
         <section class="card-view-panel card-view-panel-left" aria-label="Card preview">
-          <canvas class="card-preview-canvas" data-card-front="${escapeHtml(definition.imageUrl)}" data-card-back="${escapeHtml(backUrl)}"
+          <canvas class="card-preview-canvas" data-card-face="${escapeHtml(faceKey)}" data-card-back="${escapeHtml(backUrl)}"
             data-card-interactive="true" aria-label="${escapeHtml(definition.label)} card. Drag to rotate."></canvas>
         </section>
         <div class="card-view-spine" aria-hidden="true"></div>

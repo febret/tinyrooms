@@ -162,11 +162,22 @@ class CardService:
         animation = f"/assets/{asset_kind}/{definition.animation_name}" if definition.animation_name else None
         return still, animation
 
+    def back_url(self, definition: CardDefinition) -> str | None:
+        """Return the served card-back art: the pack back of the card's source set."""
+
+        for pack in self._catalog.packs.values():
+            if pack.source == definition.source:
+                asset_kind = pack.source if pack.source != self._world_id else f"world/{self._world_id}/cards"
+                return f"/assets/{asset_kind}/{pack.back_image_name}"
+        return None
+
     def serialize_definition(self, definition: CardDefinition) -> dict[str, object]:
         """Serialize a card definition for clients."""
 
         asset_kind = definition.source if definition.source != self._world_id else f"world/{self._world_id}/cards"
         payload = {
+            "back_url": self.back_url(definition),
+            "energy_cost": definition.energy_cost,
             "id": definition.id,
             "label": definition.label,
             "description": definition.description,

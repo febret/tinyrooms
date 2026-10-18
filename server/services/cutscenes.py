@@ -409,6 +409,7 @@ class CutsceneService:
             "label": definition.label,
             "url": image_url,
             "animation_url": animation_url,
+            "definition": self._cards.serialize_definition(definition),
         }
 
     def _prop_asset(self, ref: str, instance_id: str, room_id: str) -> dict[str, object] | None:

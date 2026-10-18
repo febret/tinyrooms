@@ -1,3 +1,4 @@
+import { cardFaceSvg } from "./card-face.js";
 import { escapeHtml } from "./presentation.js";
 import { findInventoryCard, findRoomCard } from "./state.js";
 
@@ -19,11 +20,10 @@ export function lookPreview(state, description) {
   }
   if (selection.kind === "room-card" || selection.kind === "inventory-card") {
     const stack = selection.kind === "room-card" ? findRoomCard(state, selection.id) : findInventoryCard(state, selection.id);
-    const imageUrl = stack?.definition?.imageUrl;
-    if (!imageUrl) return { markup: "", action: null };
+    if (!stack?.definition) return { markup: "", action: null };
     const label = stack.definition.label || "card";
     return {
-      markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}"><img src="${escapeHtml(imageUrl)}" alt=""></button>`,
+      markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}">${cardFaceSvg(stack.definition)}</button>`,
       action: { type: "open-details", stackId: stack.stackId },
     };
   }
