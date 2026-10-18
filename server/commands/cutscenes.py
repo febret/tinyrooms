@@ -180,6 +180,8 @@ async def cutscene_command(context: CommandContext, command: ParsedCommand) -> C
     if not reference or reference.startswith("-"):
         raise CommandError("Choose a cutscene to play.")
     room_id = _current_room(context)
+    if target and target.startswith("@prop:"):
+        context.rooms.require_prop_target(room_id, parse_target(target).value)
     try:
         params = parse_param_arguments(overrides)
     except ContentError as exc:

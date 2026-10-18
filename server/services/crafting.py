@@ -79,6 +79,7 @@ class CraftingService:
         content: GameplayContent,
         world: WorldDefinition,
         recipes: dict[str, RecipeDefinition],
+        environment: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -89,6 +90,7 @@ class CraftingService:
         self._world = world
         self._recipes = recipes
         self._world_id = world.id
+        self._environment = environment
 
     def _prop(self, room_id: str, prop_instance_id: str) -> PropInstanceDefinition:
         room = self._world.rooms.get(room_id)
@@ -97,6 +99,8 @@ class CraftingService:
         prop = room.props.get(prop_instance_id)
         if prop is None:
             raise ValueError("That crafting station is not in this room.")
+        if self._environment is not None:
+            self._environment.require_prop_target(room_id, prop.id, prop.prop_id)
         if prop.behavior != "crafting":
             raise ValueError("That prop is not a crafting station.")
         return prop

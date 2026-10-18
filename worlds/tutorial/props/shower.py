@@ -8,12 +8,6 @@ def on_quick_action(context, event):
 
     if event.action not in {"shower", "use"}:
         return
-    if context.room_lighting() == "dark":
-        context.feedback("It is too dark to find the shower.", "error")
-        return
-    if context.has_status("scared"):
-        context.feedback("You are too scared to step into the shower.", "error")
-        return
     if context.has_equipped_card("poop"):
         context.feedback("Put that poop away before you step into the shower.", "error")
         return

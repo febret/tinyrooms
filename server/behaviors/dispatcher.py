@@ -225,8 +225,6 @@ class BehaviorDispatcher:
             id=definition.id,
             tags=definition.tags,
             consume_card=definition.consume_card,
-            hide_seconds=definition.hide_seconds,
-            clears_source=definition.clears_source,
         )
 
     def _load_state(self, namespace: str, instance_id: str) -> dict[str, object]:
@@ -322,6 +320,15 @@ class BehaviorDispatcher:
 
     async def _dispatch(self, event: BehaviorEvent) -> BehaviorResult:
         result = BehaviorResult()
+        if (
+            self._environment is not None
+            and event.actor.kind == "user"
+            and event.type in {"quick_action", "card_play"}
+            and isinstance(event.target, PropRef)
+        ):
+            self._environment.require_prop_target(
+                event.target.room_id, event.target.instance_id, event.target.prop_id
+            )
         self._record_task_event(event, result)
         contexts: list[tuple[BehaviorAttachment, BehaviorContext]] = []
         actor_view: dict[str, object] | None = None

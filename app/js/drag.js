@@ -93,7 +93,6 @@ export function createCardMotion({ board, handRoot, getState, sendCommand, onErr
       startY: event.clientY,
       moved: false,
       ghost: null,
-      drop: null,
     };
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -112,8 +111,18 @@ export function createCardMotion({ board, handRoot, getState, sendCommand, onErr
       drag.ghost.style.left = `${event.clientX}px`;
       drag.ghost.style.top = `${event.clientY}px`;
     }
-    drag.drop = board.screenToBoardPosition(event.clientX, event.clientY);
-    board.setDropHint(drag.drop?.position || null);
+    const target = dragTarget(drag.stackId, event);
+    board.setDropHint(target?.position || null);
+  }
+
+  function dragTarget(stackId, event) {
+    const stack = findInventoryCard(getState(), stackId);
+    if (!stack?.equipped) return null;
+    if (stack.definition?.target === "prop") {
+      const prop = board.screenToPropTarget?.(event.clientX, event.clientY);
+      if (prop) return { prop, screen: { x: event.clientX, y: event.clientY } };
+    }
+    return board.screenToBoardPosition(event.clientX, event.clientY);
   }
 
   function stopTracking() {
@@ -133,9 +142,8 @@ export function createCardMotion({ board, handRoot, getState, sendCommand, onErr
     if (!finished.moved) return;
     suppressClick = true;
     window.setTimeout(() => { suppressClick = false; }, CLICK_SUPPRESSION_MS);
-    const point = finished.drop || board.screenToBoardPosition(event.clientX, event.clientY);
+    const point = dragTarget(finished.stackId, event);
     if (!point) return;
-    const [x, y, z] = point.position;
     animateFlight({
       imageUrl: finished.imageUrl,
       fromRect: finished.rect,
@@ -145,7 +153,9 @@ export function createCardMotion({ board, handRoot, getState, sendCommand, onErr
       opacityFrom: 1,
       opacityTo: 0.2,
     });
-    const command = `.drop @card:${finished.stackId} 1 ${Number(x).toFixed(2)} ${Number(y).toFixed(2)} ${Number(z).toFixed(2)}`;
+    const command = point.prop
+      ? `.use @card:${finished.stackId} @prop:${point.prop.id}`
+      : `.drop @card:${finished.stackId} 1 ${point.position.map(value => Number(value).toFixed(2)).join(" ")}`;
     Promise.resolve()
       .then(() => sendCommand(command))
       .catch(error => onError?.(error));

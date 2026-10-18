@@ -88,7 +88,7 @@ export async function openEditRoom(page) {
   return panel;
 }
 
-export async function travel(page, exit = "exit0", label = "The Playroom") {
+export async function travel(page, exit = "exit0", label = "Sunflower Foyer") {
   await command(page, `.go @way:${exit}`);
   await expect(page.locator("#look-bar")).toContainText(label);
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });

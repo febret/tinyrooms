@@ -495,9 +495,6 @@ basement:
     - palette
     - board_image_style
   dark: true
-  aura:
-  - source: scary
-    requires_prop: bugs0
   props:
     key0:
       prop: keys-cabinet
@@ -524,8 +521,8 @@ basement:
       target: utility
 garden:
   label: The Pocket Garden
-  description: You made it outside! Check your Journal, share an emote, and make the
-    bedroom your own.
+  description: You made it outside! The green city trashcan takes bagged litter-tray messes.
+    Check your Journal, share an emote, and make the bedroom your own.
   board_type: basic
   board_image: garden.png
   board_image_style: stretch
@@ -545,6 +542,12 @@ garden:
       - 24
       - 0
       scale: 1.3
+    garden-trashcan:
+      prop: city-trashcan
+      pos: [18, 58, 0]
+      rot: [0, 15, 0]
+      scale: 1.2
+      behavior: trashcan
     garden-plant1:
       prop: plant
       pos:

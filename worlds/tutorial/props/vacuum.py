@@ -8,9 +8,6 @@ def on_quick_action(context, event):
 
     if event.action not in {"take_vacuum", "borrow", "use"}:
         return
-    if context.room_lighting() == "dark":
-        context.feedback("It is too dark to find the vacuum.", "error")
-        return
     if context.has_card("vacuum-cleaner"):
         context.feedback("You already have the vacuum cleaner.")
         return

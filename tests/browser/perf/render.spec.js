@@ -85,6 +85,9 @@ test.describe("board resource budgets", () => {
     await waitForProps(page, PROPS);
 
     const settling = await diagnostics(page);
+    // Static rooms correctly idle; resizing explicitly requests a fresh frame.
+    const viewport = page.viewportSize();
+    await page.setViewportSize({ ...viewport, width: viewport.width - 1 });
     await expect
       .poll(async () => (await diagnostics(page))?.frames ?? 0, { timeout: 20_000 })
       .toBeGreaterThan(settling.frames);
@@ -97,6 +100,8 @@ test.describe("board resource budgets", () => {
     });
     await page.waitForTimeout(500);
     const hiddenBefore = await diagnostics(page);
+    // Queue another redraw while hidden so restoring visibility must resume work.
+    await page.setViewportSize(viewport);
     await page.waitForTimeout(3000);
     const hiddenAfter = await diagnostics(page);
     const drawn = hiddenAfter.frames - hiddenBefore.frames;

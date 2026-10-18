@@ -1,5 +1,5 @@
 import { placeAt } from "./presentation.js";
-import { isTargetableStack, findInventoryCard } from "./state.js";
+import { isTargetableStack, findInventoryCard, findEntity } from "./state.js";
 
 export function createTargetingController({ board, boardFrame, getState, store, sendCommand, onToast, onError }) {
   const layer = boardFrame?.querySelector("#target-line") || null;
@@ -41,16 +41,18 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   }
 
   function targetPoint(kind, id) {
+    const entity = findEntity(getState(), { kind, id });
+    if (!entity) return null;
     if (kind === "prop") {
-      const prop = getState().room?.props?.find(entry => entry.id === id);
       const project = board.projectPositionToScreen;
-      return prop && typeof project === "function" ? toFrame(project.call(board, prop.position)) : null;
+      const point = typeof project === "function" ? toFrame(project.call(board, entity.position)) : null;
+      return point ? { ...point, entity } : null;
     }
     if (kind === "peep") {
       const chip = document.querySelector(`#peeps-panel [data-peep-id="${CSS.escape(id)}"]`);
       if (!chip) return null;
       const bounds = chip.getBoundingClientRect();
-      return toFrame({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
+      return { ...toFrame({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }), entity };
     }
     return null;
   }
@@ -60,6 +62,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     if (state.ui.targeting) captureSource(state.ui.targeting.stackId);
     const show = Boolean(preview && state.ui.targeting);
     const end = show ? targetPoint(preview.kind, preview.id) : null;
+    if (show && !end) preview = null;
     if (layer) layer.hidden = !end;
     if (button) button.hidden = !end;
     if (!stroke || !sourcePoint || !end) {
@@ -74,10 +77,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       dot?.setAttribute("cy", y);
     }
     if (button) {
-      const entities = preview.kind === "prop" ? state.room.props : [...state.room.occupants, ...state.room.npcs];
-      const target = entities.find(entity => entity.id === preview.id);
-      if (!target) { button.hidden = true; return; }
-      const text = `Use ${state.ui.targeting.label} on ${target.label}`;
+      const text = `Use ${state.ui.targeting.label} on ${end.entity.label}`;
       if (button.textContent !== text) button.textContent = text;
       const bounds = boardFrame.getBoundingClientRect();
       const left = `${Math.max(0, Math.min(bounds.width - button.offsetWidth, end.x + 14))}px`;
@@ -91,11 +91,13 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     const target = preview;
     preview = null;
     if (!targeting || !target) return;
+    if (eligibleKind(getState()) !== target.kind || !targetPoint(target.kind, target.id)) return;
     store.dispatch({ type: "cancel-targeting", restoreSelection: false });
     void sendCommand(`.use @card:${targeting.stackId} @${target.kind}:${target.id}`).catch(onError);
   }
 
   function choose(kind, id) {
+    captureSource(getState().ui.targeting.stackId);
     if (preview && preview.kind === kind && preview.id === id) {
       confirm();
       return;

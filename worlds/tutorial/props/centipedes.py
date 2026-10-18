@@ -1,4 +1,4 @@
-"""Centipede behavior: vacuuming the nest clears the basement's scare.
+"""Centipede behavior: vacuuming hides the nest for five minutes.
 
 World-authored so the core server stays free of tutorial-specific card logic.
 """
@@ -12,8 +12,5 @@ def on_card_play(context, event):
     card = context.card
     if card is None or "vacuum" not in card.tags:
         return
-    if card.hide_seconds is not None:
-        context.hide_prop(float(card.hide_seconds))
-    if card.clears_source:
-        context.clear_source(card.clears_source)
+    context.hide_prop(300)
     context.feedback("You clear the centipedes.", "success")

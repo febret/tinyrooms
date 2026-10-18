@@ -133,6 +133,7 @@ class CardService:
         world_id: str,
         equipped_caps: dict[int, int] | None = None,
         pricing: CardPricingService | None = None,
+        environment: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -141,6 +142,7 @@ class CardService:
         self._world_id = world_id
         self._equipped_caps = equipped_caps or {}
         self._pricing = pricing
+        self._environment = environment
 
     def definition(self, card_def_id: str) -> CardDefinition:
         """Return a loaded card definition by ID."""
@@ -298,6 +300,8 @@ class CardService:
     def pickup(self, account: AccountRecord, room_id: str, stack_id: str, quantity: int) -> CardMutationResult:
         """Move cards from a room stack into inventory atomically."""
 
+        if self._environment is not None:
+            self._environment.require_room_target(room_id)
         with self._hub.transaction() as connection:
             stack, deleted = self._world_state.take_room_card(
                 connection,

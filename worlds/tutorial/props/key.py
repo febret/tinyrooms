@@ -8,12 +8,6 @@ def on_quick_action(context, event):
 
     if event.action not in {"take_key", "take", "use"}:
         return
-    if context.room_lighting() == "dark":
-        context.feedback("It is too dark to find the cabinet.", "error")
-        return
-    if context.has_status("scared"):
-        context.feedback("You are too scared to reach for the key.", "error")
-        return
     if context.prop_visible("bugs0"):
         context.feedback("Something is skittering around the cabinet. Deal with it first.", "error")
         return

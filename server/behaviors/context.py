@@ -28,8 +28,6 @@ class CardView:
     id: str
     tags: frozenset[str] = frozenset()
     consume_card: str | None = None
-    hide_seconds: int | None = None
-    clears_source: str | None = None
 
 
 def _target_payload(target: PeepRef | PropRef | None) -> dict[str, object]:

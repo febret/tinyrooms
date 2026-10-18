@@ -47,9 +47,22 @@ plastic-bag:
   stack_limit: 10
 poop-in-a-bag:
   label: Poop in a Bag
-  description: A bag containing poop
+  description: A neatly bagged mess. Equip it, then drag it onto the garden trashcan or Use it on the bin.
   image: poop-in-bag.webp
   stack_limit: 10
+  one_use: true
+  energy_cost: 0
+  target: prop
+teleporter-instruction-manual:
+  label: Teleporter Instruction Manual
+  description: A surprisingly pristine manual rescued from the garden bin. Diagrams explain destination alignment, return coordinates, and why you should keep your elbows inside the portal. Save it for a future quest.
+  image: teleporter-instruction-manual.webp
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  decorative: true
+  quest: true
 poop:
   label: Poop
   description: A piece of poop. Holding it is a messy business.
@@ -113,8 +126,6 @@ vacuum-cleaner:
   quest: true
   target: prop
   tags: [vacuum]
-  hide_seconds: 3600
-  clears_source: scary
   cutscene: centipede-vacuum
 
 # Cutscene emote: playing it broadcasts a scripted cutscene to the room.

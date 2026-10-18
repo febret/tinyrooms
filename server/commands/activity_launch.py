@@ -43,6 +43,7 @@ def resolve_activity(context: CommandContext, room_id: str, target: str) -> Reso
     if room is not None:
         for prop in room.props.values():
             if prop.activity and prop.id.casefold() == key:
+                context.rooms.require_prop_target(room_id, prop.id)
                 definition = context.world.activities[prop.activity]
                 return ResolvedActivity(definition=definition, room_bound=True)
     definition = _find_definition(context.world.activities, key)

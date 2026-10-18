@@ -28,8 +28,9 @@ function cardMarkup(stack, selection) {
 
 /** Pure markup builder; callers only need to render it while the picker is open. */
 export function roomPickerMarkup(state) {
-  const props = (state.room?.props || []).filter(hasActivePropActions);
-  const cards = state.room?.roomCards || [];
+  const props = (state.room?.props || []).filter(prop => hasActivePropActions(prop)
+    && prop.selectable !== false);
+  const cards = (state.room?.roomCards || []).filter(card => card.selectable !== false);
   return `<header class="room-picker-header">
       <h2 id="room-picker-title">${escapeHtml(state.room?.label || "Look around")}</h2>
       <button type="button" class="room-picker-close quiet" data-room-picker-close aria-label="Close room picker">×</button>

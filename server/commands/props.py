@@ -28,6 +28,7 @@ def _craft_binding(context: CommandContext) -> tuple[str, str]:
     room_id = context.connection.room_id
     if room_id is None:
         raise CommandError("You are not currently in a room.")
+    context.rooms.require_prop_target(room_id, prop_instance_id)
     return room_id, prop_instance_id
 
 
@@ -89,6 +90,7 @@ async def dispense_command(context: CommandContext, command: ParsedCommand) -> C
         raise CommandError("Choose a dispenser to use.")
     room_id = require_room_id(context)
     prop_instance_id = _prop_instance_id(command.args[0])
+    context.rooms.require_prop_target(room_id, prop_instance_id)
     result = context.dispensers.dispense(context.account, room_id, prop_instance_id)
     if not result.granted:
         remaining = int(round(result.remaining_seconds))
@@ -111,9 +113,7 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
         raise CommandError("Choose a crafting station.")
     room_id = require_room_id(context)
     prop_instance_id = _prop_instance_id(command.args[0])
-    prop = context.rooms.room_definition(room_id).props.get(prop_instance_id)
-    if prop is None:
-        raise CommandError("That crafting station is not in this room.")
+    prop = context.rooms.require_prop_target(room_id, prop_instance_id)
     if prop.behavior != "crafting":
         raise CommandError("That prop is not a crafting station.")
     if not prop.recipes:

@@ -186,7 +186,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     selectionRing.visible = false;
     selectionObject = null;
     for (const object of current?.pickables || []) {
-      if (object.userData.kind !== selection?.kind || object.userData.id !== selection?.id) continue;
+      if (roomDark || object.userData.kind !== selection?.kind || object.userData.id !== selection?.id) continue;
       selectionObject = object;
       if (object.userData.kind !== "prop") {
         selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
@@ -640,7 +640,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   }
 
   function syncProps(entry, room) {
-    syncRecords(entry.props, room.props || [], {
+    syncRecords(entry.props, (room.props || []).filter(prop => prop.visible !== false), {
       keyOf: prop => prop.id,
       modelKeyOf: propModelKey,
       create: prop => addProp(entry, prop),
@@ -827,6 +827,10 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     return object;
   }
 
+  function pickGameplayOwner() {
+    return roomDark ? null : pickOwner(current?.pickables || [], "kind");
+  }
+
   function pickEditMode(event) {
     if (!gizmo.group.visible || !setRayFromEvent(event)) return null;
     return pickOwner(gizmo.pickables, "editMode")?.userData.editMode ?? null;
@@ -930,9 +934,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
-    let owner = pickOwner(current?.pickables || [], "kind");
-    // Props in a dark room cannot be interacted with, so they never take a click.
-    if (owner?.userData.kind === "prop" && roomDark) owner = null;
+    const owner = pickGameplayOwner();
     if (owner) {
       onSelect({ kind: owner.userData.kind, id: owner.userData.id }, { x: event.clientX, y: event.clientY });
       return;
@@ -1128,7 +1130,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         }
         return;
       }
-      roomDark = Boolean(state.room.board?.dark);
+      roomDark = Boolean(state.room.board.dark);
       roomScared = selfIsScared(state);
       if (!roomScared && current) settleShake(current.root);
       if (applyDarkLighting(lights, roomDark)) invalidate();
@@ -1142,6 +1144,16 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,
+    /** Raycast the nearest eligible prop at a canvas client point. */
+    screenToPropTarget(clientX, clientY) {
+      if (disposed || renderFailed || !current || blocked) return null;
+      const bounds = canvasBounds();
+      if (!bounds || clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) return null;
+      if (!setRayFromEvent({ clientX, clientY })) return null;
+      const owner = pickGameplayOwner();
+      return owner?.userData.kind === "prop"
+        ? { kind: "prop", id: owner.userData.id } : null;
+    },
     /** Project an authoritative [x%, y%, z] position into canvas screen coordinates. */
     projectPositionToScreen,
     /** Show or clear the floor marker used as a drag drop target. */

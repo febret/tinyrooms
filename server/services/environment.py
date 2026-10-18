@@ -173,7 +173,25 @@ class EnvironmentService:
         """Return whether a prop instance is visible in the room."""
 
         hidden = self.get(room_id).get("hidden_props")
-        return not isinstance(hidden, dict) or prop_instance_id not in hidden
+        return (
+            not isinstance(hidden, dict)
+            or prop_instance_id not in hidden
+            or _is_expired(hidden[prop_instance_id], utc_now())
+        )
+
+    def require_room_target(self, room_id: str) -> None:
+        """Reject interactions with room props and floor cards in the dark."""
+
+        if self.lighting(room_id) == "dark":
+            raise ValueError("It is too dark to make anything out.")
+
+    def require_prop_target(self, room_id: str, prop_instance_id: str, prop_id: str) -> None:
+        """Require a lit room and a visible prop before any player interaction."""
+
+        self.require_room_target(room_id)
+        definition = self._world.props.get(prop_id)
+        if definition is None or definition.hidden or not self.is_prop_visible(room_id, prop_instance_id):
+            raise ValueError("That prop is not visible right now.")
 
     def is_exit_enabled(self, room_id: str, exit_id: str) -> bool:
         """Return whether an exit is currently available."""

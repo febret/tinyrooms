@@ -41,6 +41,7 @@ class DispenserService:
         world: WorldDefinition,
         rng: random.Random | None = None,
         equipped_caps: dict[int, int] | None = None,
+        environment: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -48,6 +49,7 @@ class DispenserService:
         self._world = world
         self._rng = rng or random.Random()
         self._equipped_caps = equipped_caps or {}
+        self._environment = environment
         self._cooldowns: dict[tuple[str, str], datetime] = {}
 
     def _prop(self, room_id: str, prop_instance_id: str) -> PropInstanceDefinition:
@@ -57,6 +59,8 @@ class DispenserService:
         prop = room.props.get(prop_instance_id)
         if prop is None:
             raise ValueError("That dispenser is not in this room.")
+        if self._environment is not None:
+            self._environment.require_prop_target(room_id, prop.id, prop.prop_id)
         if prop.behavior != "dispenser":
             raise ValueError("That prop is not a dispenser.")
         if not prop.content:

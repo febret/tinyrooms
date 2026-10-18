@@ -89,7 +89,7 @@ function candidateKind(state, kind) {
   }
   if (kind === "card") {
     return [
-      ...(room.roomCards || []).map(card => ({
+      ...(room.roomCards || []).filter(card => card.selectable !== false).map(card => ({
         token: `@card:${card.stackId}`,
         value: card.stackId,
         label: card.definition?.label || card.stackId,
@@ -104,7 +104,7 @@ function candidateKind(state, kind) {
     ];
   }
   if (kind === "prop") {
-    return (room.props || []).map(prop => ({
+    return (room.props || []).filter(prop => prop.selectable !== false).map(prop => ({
       token: `@prop:${prop.id}`,
       value: prop.id,
       label: prop.label,

@@ -136,6 +136,28 @@ class RoomService:
 
         return self._world.props[prop_id]
 
+    def require_room_target(self, room_id: str) -> None:
+        """Require effective lighting for a room prop or floor-card target."""
+
+        if self._environment is not None:
+            self._environment.require_room_target(room_id)
+        elif self._world.rooms[room_id].dark:
+            raise ValueError("It is too dark to make anything out.")
+
+    def require_prop_target(self, room_id: str, instance_id: str) -> PropInstanceDefinition:
+        """Resolve an eligible placed prop, including effective layout props."""
+
+        room = self._world.rooms[room_id]
+        prop = next((prop for prop in self._effective_props(room) if prop.id == instance_id), None)
+        if prop is None:
+            raise ValueError("That prop is not in this room.")
+        self.require_room_target(room_id)
+        if self._environment is not None:
+            self._environment.require_prop_target(room_id, prop.id, prop.prop_id)
+        elif self._world.props[prop.prop_id].hidden:
+            raise ValueError("That prop is not visible right now.")
+        return prop
+
     def _effect_sets_payload(self, definition: PropDefinition) -> dict[str, list[dict[str, object]]]:
         return {
             set_name: [
@@ -482,6 +504,7 @@ class RoomService:
                 "image_style": board_style,
                 "palette": board_palette,
                 "dark": dark,
+                "base_dark": room.dark,
             },
             "metadata": {"note": note},
             "environment": environment,

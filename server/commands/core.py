@@ -108,9 +108,7 @@ async def _resolve_action_target(context: CommandContext, token: str) -> PeepRef
     parsed = parse_target(token) if token.startswith("@") else None
     if parsed is not None and parsed.kind == "prop":
         room_id = require_room_id(context)
-        prop = context.rooms.room_definition(room_id).props.get(parsed.value)
-        if prop is None:
-            raise CommandError("That prop is not in this room.")
+        prop = context.rooms.require_prop_target(room_id, parsed.value)
         return PropRef(instance_id=prop.id, prop_id=prop.prop_id, room_id=room_id)
     return await _resolve_peep_ref(context, token)
 
@@ -166,6 +164,7 @@ async def look_command(context: CommandContext, command: ParsedCommand) -> Comma
         if target.kind == "card":
             room_stack = next((stack for stack in context.world_state.list_room_cards(room_id) if stack.stack_id == target.value), None)
             if room_stack is not None:
+                context.rooms.require_room_target(room_id)
                 if not context.cards.has_definition(room_stack.card_def_id):
                     raise CommandError("That card is not visible right now.")
                 definition = context.cards.definition(room_stack.card_def_id)
@@ -178,9 +177,7 @@ async def look_command(context: CommandContext, command: ParsedCommand) -> Comma
             definition = context.cards.definition(inventory_stack.card_def_id)
             return _entity_outcome("Card details loaded.", context.cards.serialize_definition(definition))
         if target.kind == "prop":
-            prop = room.props.get(target.value)
-            if prop is None:
-                raise CommandError("That prop is not in this room.")
+            prop = context.rooms.require_prop_target(room_id, target.value)
             prop_definition = context.rooms.prop_definition(prop.prop_id)
             return _entity_outcome("Prop details loaded.", _describe_prop(prop, prop_definition))
         if target.kind in {"peep", "username"}:
@@ -198,7 +195,7 @@ async def look_command(context: CommandContext, command: ParsedCommand) -> Comma
     if target_token in room.exits:
         return _entity_outcome("Exit details loaded.", _describe_exit(room.exits[target_token]))
     if target_token in room.props:
-        prop = room.props[target_token]
+        prop = context.rooms.require_prop_target(room_id, target_token)
         prop_definition = context.rooms.prop_definition(prop.prop_id)
         return _entity_outcome("Prop details loaded.", _describe_prop(prop, prop_definition))
     raise CommandError("That target is not visible right now.")
@@ -329,6 +326,7 @@ async def pickup_command(context: CommandContext, command: ParsedCommand) -> Com
     if target is None or target.kind != "card":
         raise CommandError("Pickup requires a @card target.")
     quantity = _parse_quantity(command.args)
+    context.rooms.require_room_target(room_id)
     mutation = context.cards.pickup(context.account, room_id, target.value, quantity)
     return CommandOutcome(
         message="Card picked up.",

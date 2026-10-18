@@ -17,9 +17,9 @@ class AuraService:
     """Applies a room's aura while present and removes it immediately on leave.
 
     An aura entry may also declare a named ``source``; while present, that source
-    is active and any status keyed to it (for example the ``scared`` status) is
-    applied. An entry may be gated by ``requires_prop``: when that prop is not
-    visible (hidden or, for a dark room, unlit) the whole aura is suppressed.
+    is active and any authored status keyed to it is applied. An entry may be
+    gated by ``requires_prop``: when that prop is not visible (hidden or, for a
+    dark room, unlit) the whole aura is suppressed.
     """
 
     def __init__(

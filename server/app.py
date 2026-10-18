@@ -429,7 +429,8 @@ def _build_runtime(
     connections = connections or ConnectionRegistry()
     equipped_caps = {level: definition.max_equipped for level, definition in content.levels.levels.items()}
     pricing = CardPricingService(hub, profiles, catalog, content, world.id)
-    cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps, pricing)
+    environment = EnvironmentService(hub, world, world_state)
+    cards = CardService(hub, profiles, world_state, catalog, world.id, equipped_caps, pricing, environment)
     cutscenes = CutsceneService(
         config, world=lambda: world, profiles=profiles, cards=cards,
         valid_stickers=frozenset(accounts.list_stickers()),
@@ -453,7 +454,6 @@ def _build_runtime(
     activity_results = ActivityResultService(
         hub, profiles, stats, progression, tasks, world.id, world.activities
     )
-    environment = EnvironmentService(hub, world, world_state)
     actions = ActionsService(hub, profiles, stats, catalog, world.id, environment=environment)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
     shop = ShopService(hub, profiles, catalog, content, world.id)
@@ -464,8 +464,8 @@ def _build_runtime(
     room_effects = RoomEffectService()
     layout = RoomLayoutService(hub, world, world_state, ownership, environment, prop_shop, room_effects)
     auras = AuraService(hub, stats, world, environment=environment)
-    dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps)
-    crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes)
+    dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment)
+    crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes, environment=environment)
     registry = build_registry()
     for spec in mods.command_specs():
         registry.register(

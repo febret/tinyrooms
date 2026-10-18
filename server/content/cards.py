@@ -56,13 +56,10 @@ class CardDefinition:
     quest: bool
     order: int | None
     source: str
-    # BehaviorContext exposes id/tags/consume_card/hide_seconds/clears_source to
-    # world scripts. These are script-interpreted hints, not automatic core
-    # consumption, hiding, source removal, or reward-card rules.
+    # BehaviorContext exposes id/tags/consume_card to world scripts. These are
+    # script-interpreted hints, not automatic core consumption or reward rules.
     tags: frozenset[str] = frozenset()
     consume_card: str | None = None
-    hide_seconds: int | None = None
-    clears_source: str | None = None
     soils: bool = False
     opens_pack: str | None = None
 
@@ -193,8 +190,6 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             source=source,
             tags=tags,
             consume_card=str(raw_card["consume_card"]) if "consume_card" in raw_card else None,
-            hide_seconds=int(raw_card["hide_seconds"]) if "hide_seconds" in raw_card else None,
-            clears_source=str(raw_card["clears_source"]) if "clears_source" in raw_card else None,
             soils=bool(raw_card.get("soils", False)),
         )
     return cards

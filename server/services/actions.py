@@ -108,6 +108,8 @@ class ActionsService:
     ) -> ActionResult:
         """Use one copy of an equipped item/action card."""
 
+        if target_prop is not None and self._environment is not None:
+            self._environment.require_prop_target(target_prop.room_id, target_prop.instance_id, target_prop.prop_id)
         with self._hub.transaction() as connection:
             stack = self._stack(account.id, stack_id)
             definition = self._definition(stack.card_def_id)

@@ -130,16 +130,8 @@ def _resolve_prop_target(context: CommandContext, token: str) -> PropTarget:
     room_id = context.connection.room_id
     if room_id is None:
         raise CommandError("You are not currently in a room.")
-    prop = context.rooms.room_definition(room_id).props.get(parsed.value)
-    if prop is None:
-        raise CommandError("That prop is not in this room.")
+    prop = context.rooms.require_prop_target(room_id, parsed.value)
     return PropTarget(instance_id=prop.id, prop_id=prop.prop_id, room_id=room_id)
-
-
-def _require_prop_interaction(context: CommandContext, target: PropTarget, card_id: str) -> None:
-    del card_id
-    if context.environment.lighting(target.room_id) == "dark":
-        raise CommandError("It is too dark to make anything out.")
 
 
 def _use_outcome(
@@ -170,7 +162,6 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         if room_id is None:
             raise CommandError("You are not currently in a room.")
         prop_target = _resolve_prop_target(context, target_token)
-        _require_prop_interaction(context, prop_target, "")
         result = context.actions.use_card(
             context.account,
             stack_id=stack_id,

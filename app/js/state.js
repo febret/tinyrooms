@@ -1,4 +1,5 @@
 import { editorReducer } from "./editing/edit-reducer.js";
+import { annotateRoom } from "./eligibility.js";
 import { withBase } from "./base-path.js";
 import { savedOutlineActiveProps, saveOutlineActiveProps } from "./preferences.js";
 
@@ -93,6 +94,7 @@ function normalizeExit(exit) {
 function normalizeProp(prop) {
   return {
     id: String(prop?.id || ""),
+    hidden: Boolean(prop?.hidden),
     propId: String(prop?.prop_id || ""),
     label: String(prop?.label || "Prop"),
     description: String(prop?.description || ""),
@@ -397,6 +399,7 @@ function normalizeRoom(room, previousRoom = null) {
       imageStyle: String(room.board?.image_style || ""),
       palette: Array.isArray(room.board?.palette) ? [...room.board.palette] : [],
       dark: Boolean(room.board?.dark),
+      baseDark: Boolean(room.board?.base_dark ?? room.board?.dark),
     },
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
@@ -597,15 +600,12 @@ function applyServerEvent(state, event) {
     const revision = Number(event.revision || 0);
     if (revision <= Number(state.room.environmentRevision || 0)) return state;
     const environment = event.environment && typeof event.environment === "object" ? { ...event.environment } : {};
-    const lighting = environment.lighting;
-    const dark = lighting === "dark" ? true : lighting === "normal" ? false : state.room.board.dark;
     return {
       ...state,
       room: {
         ...state.room,
         environment,
         environmentRevision: revision,
-        board: { ...state.room.board, dark },
       },
     };
   }
@@ -807,22 +807,27 @@ function mergeResultPayload(state, payload) {
 
 function dismissInvalidSelection(state) {
   if (!state.room) return state;
-  if (state.ui.targeting && !findInventoryCard(state, state.ui.targeting.stackId)) {
-    state = { ...state, ui: { ...state.ui, targeting: null } };
+  if (!selectionIsEligible(state, state.selection)) {
+    state = {
+      ...state,
+      selection: { kind: "room", id: state.room.id },
+      views: { ...state.views, main: state.views.main === "prop-details" ? null : state.views.main, propId: null },
+    };
   }
-  if (state.views.details && ![...state.room.roomCards, ...state.room.inventory].some(card => card.stackId === state.views.details)) {
+  if (state.views.main === "prop-details" && !selectionIsEligible(state, { kind: "prop", id: state.views.propId })) {
+    state = { ...state, views: { ...state.views, main: null, propId: null } };
+  }
+  if (state.views.details && !selectionIsEligible(state, { kind: "room-card", id: state.views.details })
+      && !findInventoryCard(state, state.views.details)) {
     state = { ...state, views: { ...state.views, details: null } };
   }
-  if (state.selection.kind === "room-card" && !state.room.roomCards.some(card => card.stackId === state.selection.id)) {
-    return { ...state, selection: { kind: "room", id: state.room.id }, views: { ...state.views, details: null } };
+  if (state.ui.targeting && !findInventoryCard(state, state.ui.targeting.stackId)) {
+    state = { ...state, ui: { ...state.ui, targeting: null } };
   }
   if (state.selection.kind === "inventory-card" && !state.room.inventory.some(card => card.stackId === state.selection.id)) {
     return { ...state, selection: { kind: "room", id: state.room.id }, views: { ...state.views, details: null } };
   }
   if (state.selection.kind === "peep" && ![...state.room.occupants, ...state.room.npcs].some(peep => peep.id === state.selection.id)) {
-    return { ...state, selection: { kind: "room", id: state.room.id } };
-  }
-  if (state.selection.kind === "prop" && !state.room.props.some(prop => prop.id === state.selection.id)) {
     return { ...state, selection: { kind: "room", id: state.room.id } };
   }
   return state;
@@ -890,6 +895,7 @@ function reduce(state, action) {
   if (action.type === "transport") return { ...state, transport: { ...state.transport, ...action.transport } };
   if (action.type === "stickers") return { ...state, stickers: Array.isArray(action.stickers) ? [...action.stickers] : [] };
   if (action.type === "select") {
+    if (!selectionIsEligible(state, action.selection)) return state;
     return { ...state, selection: action.selection, ui: { ...state.ui, targeting: null } };
   }
   if (action.type === "start-targeting") {
@@ -903,6 +909,7 @@ function reduce(state, action) {
     };
   }
   if (action.type === "open-view") {
+    if (action.view === "prop-details" && !selectionIsEligible(state, { kind: "prop", id: action.propId })) return state;
     const journalTab = { self: "Self", skills: "Skills", friends: "Friends" }[action.view];
     const view = journalTab ? "journal" : action.view;
     return {
@@ -934,7 +941,11 @@ function reduce(state, action) {
       : state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" };
     return { ...state, selection, ui: { ...state.ui, targeting: null } };
   }
-  if (action.type === "open-details") return { ...state, views: { ...state.views, details: action.stackId } };
+  if (action.type === "open-details") {
+    if (!findInventoryCard(state, action.stackId)
+        && !selectionIsEligible(state, { kind: "room-card", id: action.stackId })) return state;
+    return { ...state, views: { ...state.views, details: action.stackId } };
+  }
   if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
   if (action.type === "dismiss-toast") return { ...state, ui: { ...state.ui, toasts: state.ui.toasts.filter(toast => toast.id !== action.id) } };
@@ -975,7 +986,7 @@ function reduce(state, action) {
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };
-    return dismissInvalidSelection(next);
+    return next;
   }
   if (action.type === "result") {
     let next = mergeResultPayload(state, action.payload);
@@ -989,9 +1000,9 @@ function reduce(state, action) {
     if (!action.ok && action.message && !next.ui.toasts.some(item => item.tone === "error" && item.message === action.message)) {
       next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(action.message, "error")] } };
     }
-    return dismissInvalidSelection(next);
+    return next;
   }
-  if (action.type === "room-event") return dismissInvalidSelection(applyServerEvent(state, action.event));
+  if (action.type === "room-event") return applyServerEvent(state, action.event);
   if (action.type === "session-replaced") {
     const state = createInitialState();
     return {
@@ -1004,9 +1015,34 @@ function reduce(state, action) {
   return state;
 }
 
-export function createStore() {
+export function createStore({ now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   let state = createInitialState();
   const listeners = new Set();
+  let timer = null;
+  let deadline = null;
+  let disposed = false;
+  function dispatch(action) {
+    if (disposed) return state;
+    const previous = state.room;
+    let next = reduce(state, action);
+    const room = next.room;
+    if (room && (action.type === "eligibility-expired" || !previous || room.board !== previous.board
+        || room.environment !== previous.environment || room.props !== previous.props || room.roomCards !== previous.roomCards)) {
+      const annotated = annotateRoom(room, now());
+      if (annotated !== room) next = { ...next, room: annotated };
+    }
+    state = next.room !== previous || action.type === "result" ? dismissInvalidSelection(next) : next;
+    const expires = state.room?.eligibilityExpiresAt ?? null;
+    if (expires !== deadline || action.type === "eligibility-expired") {
+      if (timer !== null) clearTimer(timer);
+      deadline = expires;
+      timer = expires === null ? null : setTimer(() => dispatch({ type: "eligibility-expired" }),
+        Math.min(2147483647, Math.max(0, expires - now())));
+      timer?.unref?.();
+    }
+    listeners.forEach(listener => listener(state, action));
+    return state;
+  }
   return {
     getState() {
       return state;
@@ -1016,10 +1052,12 @@ export function createStore() {
       listener(state);
       return () => listeners.delete(listener);
     },
-    dispatch(action) {
-      state = reduce(state, action);
-      listeners.forEach(listener => listener(state, action));
-      return state;
+    dispatch,
+    dispose() {
+      disposed = true;
+      if (timer !== null) clearTimer(timer);
+      timer = null;
+      listeners.clear();
     },
   };
 }
@@ -1043,13 +1081,28 @@ export function isTargetableStack(stack) {
 
 export function findSelectedEntity(state) {
   if (!state.room) return null;
-  if (state.selection.kind === "room") return state.room;
-  if (state.selection.kind === "core") return state.user?.coreCards?.[state.selection.id] || null;
-  if (state.selection.kind === "task") return findTask(state, state.selection.id);
-  if (state.selection.kind === "room-card") return findRoomCard(state, state.selection.id);
-  if (state.selection.kind === "inventory-card") return findInventoryCard(state, state.selection.id);
-  if (state.selection.kind === "prop") return state.room.props.find(prop => prop.id === state.selection.id) || null;
-  if (state.selection.kind === "peep") return [...state.room.occupants, ...state.room.npcs].find(peep => peep.id === state.selection.id) || null;
+  return findEntity(state, state.selection);
+}
+
+function selectionIsEligible(state, selection) {
+  return !["prop", "room-card"].includes(selection?.kind) || Boolean(findEntity(state, selection));
+}
+
+export function findEntity(state, selection) {
+  const entity = resolveEntity(state, selection);
+  return entity?.selectable === false ? null : entity;
+}
+
+function resolveEntity(state, selection) {
+  if (!state.room) return null;
+  if (selection.kind === "room") return state.room;
+  if (selection.kind === "core") return state.user?.coreCards?.[selection.id] || null;
+  if (selection.kind === "task") return findTask(state, selection.id);
+  if (selection.kind === "room-card") return findRoomCard(state, selection.id);
+  if (selection.kind === "inventory-card") return findInventoryCard(state, selection.id);
+  if (selection.kind === "prop") return state.room.props.find(prop => prop.id === selection.id) || null;
+  if (selection.kind === "peep") return state.room.occupants.find(peep => peep.id === selection.id)
+    || state.room.npcs.find(peep => peep.id === selection.id) || null;
   return null;
 }
 
