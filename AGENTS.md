@@ -77,6 +77,10 @@ Validate YAML through loaders, run targeted browser smoke against the changed
 world (`npm run test:browser -- -g "<test name>"`), and validate it in the game
 client manually.
 
+Asset source tasks live in `bake.json` files; (re)bake them with
+[tools/bake_assets.py](tools/bake_assets.py) — see
+[Baking assets](README.md#baking-assets).
+
 ## Before You Commit / PR
 
 - Run Python unittests + `npm test`, relevant manual UI checks, and performance budgets.
