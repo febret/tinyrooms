@@ -11,10 +11,13 @@ import {
   detachBoardTree,
   disposeBoardTree,
   fitBoardCamera,
+  loadPropModel,
   positionKey,
   propEffectKey,
   propModelKey,
+  syncRecords,
 } from "./board-helpers.js";
+import { isTextProp } from "./text-props.js";
 import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "./editing/gizmo.js";
 import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
@@ -524,15 +527,16 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
-    if (!prop.modelUrl) {
+    if (!isTextProp(prop) && !prop.modelUrl) {
       fail(entry, `${prop.label} model is missing`);
       return;
     }
     entry.pending += 1;
-    loader.load(withBase(prop.modelUrl), gltf => {
+    loadPropModel(prop, loader).then(gltf => {
       if (!isCurrent(entry) || entry.props.get(prop.id) !== record) {
         entry.pending -= 1;
         disposeBoardTree(gltf.scenes || [gltf.scene]);
+        status(entry);
         return;
       }
       const model = gltf.scene;
@@ -549,7 +553,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       }
       // The server sends the combined definition + instance scale, applied by `group`;
       // here we only ground the model so its base rests on the floor.
-      shareModelTextures(model, prop.modelUrl);
+      if (!isTextProp(prop)) shareModelTextures(model, prop.modelUrl);
       const visual = new THREE.Group();
       visual.position.y = -bounds.min.y;
       visual.add(model);
@@ -572,9 +576,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       if (!userAdjusted) scheduleFit();
       updateSelection();
       status(entry);
-    }, undefined, () => {
+    }, () => {
       entry.pending -= 1;
-      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) return;
+      if (!isCurrent(entry) || entry.props.get(prop.id) !== record) {
+        status(entry);
+        return;
+      }
       fail(entry, `Could not load ${prop.label} model`);
     });
   }
@@ -630,27 +637,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.props.delete(id);
     if (selectionObject === record.group) selectionObject = null;
-  }
-
-  /** Reconcile a record map against authoritative items, recreating on model-key change. */
-  function syncRecords(map, items, handlers) {
-    const seen = new Set();
-    for (const item of items) {
-      const key = handlers.keyOf(item);
-      seen.add(key);
-      const record = map.get(key);
-      if (!record) {
-        handlers.create(item);
-      } else if (record.modelKey !== handlers.modelKeyOf(item)) {
-        handlers.remove(key);
-        handlers.create(item);
-      } else {
-        handlers.update(record, item);
-      }
-    }
-    for (const key of [...map.keys()]) {
-      if (!seen.has(key)) handlers.remove(key);
-    }
   }
 
   function syncProps(entry, room) {

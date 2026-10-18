@@ -37,6 +37,7 @@ export function editorMetaText(selected) {
 /** Display name of the current selection, or the empty placeholder. */
 export function editorSelectedName(editor, selected) {
   if (!selected) return "No prop selected";
+  if (selected.text) return selected.text.content.replace(/\n/g, " ");
   return libraryEntry(editor, selected.propId)?.label || selected.propId;
 }
 
@@ -117,6 +118,7 @@ export function editRoomView(state, { authoring = false } = {}) {
         ${libraryTagMarkup(library)}
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
         ${authoring ? "" : '<button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>'}
+        ${editor.textOptions ? '<button type="button" data-edit-action="add-text">Add text</button><button type="button" data-editor-text data-edit-action="edit-text" disabled>Edit text</button>' : ""}
         <button type="button" data-editor-undo data-edit-action="undo" disabled>Undo</button>
         <button type="button" data-editor-redo data-edit-action="redo" disabled>Redo</button>
         <button type="button" class="negative" data-editor-delete data-edit-action="remove" aria-label="Delete selected prop" disabled>Delete</button>

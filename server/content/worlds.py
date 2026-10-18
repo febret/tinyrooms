@@ -22,6 +22,7 @@ from server.content.cutscenes import (
 from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.tasks import TaskDefinition, load_task_definitions
+from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS, TEXT_PROP_ID, validate_text
 from server.game.modifiers import MODIFIER_TARGETS
 
 
@@ -63,8 +64,8 @@ class PropDefinition:
     id: str
     label: str
     description: str
-    model_name: str
-    model_path: Path
+    model_name: str | None
+    model_path: Path | None
     decorative: bool
     animation: str | None
     scale: float
@@ -84,6 +85,7 @@ class PropDefinition:
     # suppresses client rendering without changing the authoritative selection.
     effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
     active_effect: str | None = None
+    render_kind: str = "model"
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,6 +108,7 @@ class PropInstanceDefinition:
     animation: str | None
     activity: str | None
     draw_weight: dict[str, float] = field(default_factory=dict)
+    text: dict[str, str] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -231,9 +234,36 @@ class WorldDefinition:
     effects: dict[str, EffectDefinition] = field(default_factory=dict)
 
 
-def prop_model_url(world_id: str, definition: PropDefinition) -> str:
+def _load_text_recipe(
+    raw_instance: dict[str, Any], prop_id: str, room_id: str, instance_id: str,
+) -> dict[str, str] | None:
+    context = f"Room '{room_id}' prop '{instance_id}' text"
+    if prop_id != TEXT_PROP_ID:
+        if "text" in raw_instance:
+            raise ContentError(f"{context}: Only builtin:text props may have a text recipe.")
+        return None
+    try:
+        return validate_text(raw_instance.get("text"))
+    except ValueError as exc:
+        raise ContentError(f"{context}: {exc}") from exc
+
+
+def builtin_prop_definitions() -> dict[str, PropDefinition]:
+    """Register procedural props independently of authored model catalogs."""
+
+    return {TEXT_PROP_ID: PropDefinition(
+        id=TEXT_PROP_ID, label="Text", description="Custom three-dimensional text.",
+        model_name=None, model_path=None, decorative=True, animation=None,
+        scale=1.0, editable=True, source="builtin", source_kind="builtin",
+        tags=("text",), price=0, locked=False, render_kind="text",
+    )}
+
+
+def prop_model_url(world_id: str, definition: PropDefinition) -> str | None:
     """Return the served URL for a prop model from a world, propset, or mod."""
 
+    if definition.render_kind != "model":
+        return None
     if definition.source_kind == "mod":
         return f"/assets/mods/{definition.source}/props/{definition.model_name}"
     if definition.source_kind == "propset":
@@ -552,6 +582,8 @@ def load_prop_definition(
 
     if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
         raise ContentError(f"{props_file} contains an invalid prop entry.")
+    if prop_id.startswith("builtin:"):
+        raise ContentError(f"Prop id '{prop_id}' is reserved for built-in procedural props.")
     model_name = str(raw_prop.get("model", "")).strip()
     if not model_name:
         raise ContentError(f"Prop '{prop_id}' is missing its model.")
@@ -738,6 +770,7 @@ def load_world_definition(
         if prop_id in props:
             raise ContentError(f"Duplicate prop id '{prop_id}'.")
         props[prop_id] = definition
+    props.update(builtin_prop_definitions())
     effects = load_effect_catalog(fx_root)
     if fx_root is not None:
         _validate_prop_effects(props, effects)
@@ -794,6 +827,14 @@ def load_world_definition(
                 ),
                 activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
                 draw_weight=_load_draw_weight(raw_instance.get("draw_weight"), prop_instance_id, card_ids),
+                text=_load_text_recipe(raw_instance, prop_id, room_id, prop_instance_id),
+            )
+        texts = [instance.text for instance in room_props.values() if instance.text is not None]
+        if len(texts) > MAX_TEXT_PROPS:
+            raise ContentError(f"Room '{room_id}' may contain at most {MAX_TEXT_PROPS} text props.")
+        if sum(len(text["content"]) for text in texts) > MAX_ROOM_TEXT_LENGTH:
+            raise ContentError(
+                f"Room '{room_id}' text props may contain at most {MAX_ROOM_TEXT_LENGTH} total characters."
             )
         raw_exits = raw_room.get("exits", {}) or {}
         if not isinstance(raw_exits, dict):

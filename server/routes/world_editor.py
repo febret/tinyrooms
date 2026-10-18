@@ -11,7 +11,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server.base_path import render_html
+from server.behaviors import builtin as builtin_behaviors_module
+from server.behaviors.builtin import BUILTIN_BEHAVIORS
 from server.config import ConfigError, ensure_contained
+from server.content.text_props import text_options
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
 from server.routes.common import (
     enforce_authenticated_post,
@@ -74,6 +77,35 @@ def _image_names(directory: Path) -> list[str]:
     )
 
 
+def _display_path(path: Path, repo_root: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return path.resolve().as_posix()
+
+
+def behavior_options(world_root: Path, repo_root: Path) -> list[dict[str, str]]:
+    """List selectable prop behaviors: built-ins plus world ``props/*.py`` scripts."""
+
+    builtin_source = _display_path(Path(builtin_behaviors_module.__file__), repo_root)
+    options = [
+        {"id": name, "kind": "builtin", "source": builtin_source}
+        for name in sorted(BUILTIN_BEHAVIORS)
+    ]
+    props_dir = world_root / "props"
+    if props_dir.is_dir():
+        scripts = sorted(
+            entry for entry in props_dir.iterdir()
+            if entry.is_file() and entry.suffix == ".py" and not entry.name.startswith("_")
+        )
+        options.extend(
+            {"id": entry.stem, "kind": "script", "source": _display_path(entry, repo_root)}
+            for entry in scripts
+            if entry.stem not in BUILTIN_BEHAVIORS
+        )
+    return options
+
+
 def _catalog_payload(runtime) -> dict[str, object]:
     world = runtime.world
     props = [
@@ -82,6 +114,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "label": definition.label,
             "description": definition.description,
             "model_url": prop_model_url(world.id, definition),
+            "render_kind": definition.render_kind,
             "source": definition.source,
             "source_kind": definition.source_kind,
             "decorative": definition.decorative,
@@ -107,6 +140,8 @@ def _catalog_payload(runtime) -> dict[str, object]:
         "card_database": runtime.card_database_service().payload(),
         "activities": sorted(world.activities),
         "recipes": sorted(world.recipes),
+        "text_options": text_options(),
+        "behaviors": behavior_options(world.root_path, runtime.config.repo_root),
         "board_images": _image_names(world.root_path / "rooms"),
         "peep_images": _image_names(world.root_path / "peeps"),
         "board_image_styles": sorted(BOARD_IMAGE_STYLES),

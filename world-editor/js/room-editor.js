@@ -12,6 +12,7 @@ export function worldRoomEditor(state, roomId) {
     label: prop.label,
     description: prop.description,
     model_url: withBase(prop.model_url || ""),
+    render_kind: prop.render_kind,
     base_scale: prop.scale,
     // Authors can arrange functional props and retain the existing authoring bounds.
     scale_min: 0.05,
@@ -25,9 +26,11 @@ export function worldRoomEditor(state, roomId) {
     room_id: roomId,
     can_edit: true,
     library,
+    text_options: state.catalog?.text_options,
     props: Object.entries(room.props || {}).filter(([, prop]) => visible.has(prop.prop)).map(([id, prop]) => ({
       id, prop_id: prop.prop, position: prop.pos, rotation: prop.rot, scale: prop.scale,
       locked: Boolean(settings.locks?.[roomId]?.[id]),
+      ...(prop.text ? { text: { ...prop.text } } : {}),
     })),
     environment_whitelist: ["palette", "board_image_style"],
     environment: { palette: room.palette || [], board_image_style: room.board_image_style || "stretch" },
@@ -57,6 +60,7 @@ export function applyRoomEditorChanges(room, before, after) {
     const old = previous.get(prop.id);
     if (!old) {
       room.props[prop.id] = { prop: prop.propId, pos: prop.position, rot: prop.rotation, scale: prop.scale };
+      if (prop.text) room.props[prop.id].text = { ...prop.text };
       continue;
     }
     const target = room.props[prop.id];
@@ -66,6 +70,7 @@ export function applyRoomEditorChanges(room, before, after) {
       target.rot = [rotation[0], prop.rotation[1], rotation[2]];
     }
     if (old.scale !== prop.scale) target.scale = prop.scale;
+    if (JSON.stringify(old.text) !== JSON.stringify(prop.text) && prop.text) target.text = { ...prop.text };
   }
   for (const key of ["palette", "board_image_style"]) {
     if (JSON.stringify(before.environment[key]) !== JSON.stringify(after.environment[key])) {

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from server.content.text_props import DEFAULT_TEXT
 from server.content.worlds import PropDefinition, WorldDefinition, prop_model_url
 from server.profiles import AccountRecord, ProfileRepository
 from server.state.migrations import DatabaseHub
@@ -22,6 +23,8 @@ def serialize_prop_entry(
         "label": definition.label,
         "description": definition.description,
         "model_url": prop_model_url(world.id, definition),
+        "render_kind": definition.render_kind,
+        **({"text": dict(DEFAULT_TEXT)} if definition.render_kind == "text" else {}),
         "base_scale": definition.scale,
         "scale_min": definition.editor_scale_min,
         "scale_max": definition.editor_scale_max,

@@ -15,11 +15,18 @@ FILES = {
     THREE / "build" / "three.core.js": TARGET / "three" / "three.core.js",
     THREE / "examples" / "jsm" / "controls" / "OrbitControls.js": TARGET / "three" / "examples" / "jsm" / "controls" / "OrbitControls.js",
     THREE / "examples" / "jsm" / "loaders" / "GLTFLoader.js": TARGET / "three" / "examples" / "jsm" / "loaders" / "GLTFLoader.js",
+    THREE / "examples" / "jsm" / "loaders" / "FontLoader.js": TARGET / "three" / "examples" / "jsm" / "loaders" / "FontLoader.js",
+    THREE / "examples" / "jsm" / "geometries" / "TextGeometry.js": TARGET / "three" / "examples" / "jsm" / "geometries" / "TextGeometry.js",
+    THREE / "examples" / "fonts" / "LICENSE": TARGET / "three" / "examples" / "fonts" / "LICENSE",
     THREE / "examples" / "jsm" / "utils" / "BufferGeometryUtils.js": TARGET / "three" / "examples" / "jsm" / "utils" / "BufferGeometryUtils.js",
     DRAWFLOW / "dist" / "drawflow.min.js": TARGET / "drawflow" / "drawflow.min.js",
     DRAWFLOW / "dist" / "drawflow.min.css": TARGET / "drawflow" / "drawflow.min.css",
     DRAWFLOW / "LICENSE": TARGET / "drawflow" / "LICENSE",
 }
+
+for font in ("helvetiker_regular", "optimer_regular", "gentilis_regular"):
+    filename = f"{font}.typeface.json"
+    FILES[THREE / "examples" / "fonts" / filename] = TARGET / "three" / "examples" / "fonts" / filename
 
 
 def main() -> None:

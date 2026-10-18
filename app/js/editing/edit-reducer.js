@@ -85,6 +85,22 @@ export function normalizeEditorView(view) {
   };
 }
 
+/** Serialize the editable draft, including procedural recipes, for the layout API. */
+export function editorPatch(editor) {
+  return {
+    props: editor.props.map(instance => ({
+      id: instance.id,
+      prop_id: instance.propId,
+      position: instance.position,
+      rotation: instance.rotation,
+      scale: instance.scale,
+      locked: Boolean(instance.locked),
+      ...(instance.text ? { text: { ...instance.text } } : {}),
+    })),
+    environment: editor.environment,
+  };
+}
+
 export function editablePropIds(editor) {
   return new Set((editor?.library || []).map(entry => entry.propId));
 }

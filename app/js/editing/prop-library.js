@@ -13,6 +13,7 @@ function sampleEntries(entries, count) {
 }
 
 function thumbnailMarkup(entry, className) {
+  if (entry.renderKind === "text") return `<span class="${className} text-prop-thumbnail" aria-hidden="true">Aa</span>`;
   return `<img class="${className}" data-thumb-model="${escapeHtml(entry.modelUrl)}"
     data-thumb-scale="${escapeHtml(entry.baseScale)}" alt="" aria-hidden="true">`;
 }

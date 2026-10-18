@@ -404,6 +404,8 @@ class RoomService:
             "scale": prop.scale * prop_definition.scale,
             "behavior": None if dark else prop.behavior,
             "model_url": prop_model_url(self._world.id, prop_definition),
+            "render_kind": prop_definition.render_kind,
+            **({"text": dict(prop.text)} if prop.text is not None else {}),
             "label": "Something in the dark" if dark else prop_definition.label,
             "description": "" if dark else prop_definition.description,
             "animation": animation,

@@ -84,13 +84,14 @@ class PropEditorService:
     def catalog(self, world: WorldDefinition) -> dict[str, object]:
         """Return every loaded prop plus effect, source, and enum metadata."""
 
-        props = [self._prop_summary(world, definition) for definition in world.props.values()]
+        definitions = [definition for definition in world.props.values() if definition.source_kind != "builtin"]
+        props = [self._prop_summary(world, definition) for definition in definitions]
         props.sort(key=lambda item: str(item["id"]))
-        tags = sorted({tag for definition in world.props.values() for tag in definition.tags})
+        tags = sorted({tag for definition in definitions for tag in definition.tags})
         sources = [
             self._source_descriptor(world, kind, source)
             for kind, source in sorted(
-                {(definition.source_kind, definition.source) for definition in world.props.values()}
+                {(definition.source_kind, definition.source) for definition in definitions}
             )
         ]
         return {

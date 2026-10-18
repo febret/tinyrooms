@@ -7,6 +7,13 @@ import json
 import re
 import uuid
 
+from server.content.text_props import (
+    MAX_ROOM_TEXT_LENGTH,
+    MAX_TEXT_PROPS,
+    TEXT_PROP_ID,
+    text_options,
+    validate_text,
+)
 from server.content.worlds import (
     BOARD_IMAGE_STYLES,
     PropDefinition,
@@ -89,7 +96,7 @@ class RoomLayoutService:
         # from; world and mod props stay curated by the room's own instances.
         approved: dict[str, PropDefinition] = {}
         for definition in self._world.props.values():
-            if definition.editable and not definition.hidden and definition.source_kind == "propset":
+            if definition.editable and not definition.hidden and definition.source_kind in {"propset", "builtin"}:
                 approved.setdefault(definition.id, definition)
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
@@ -172,6 +179,7 @@ class RoomLayoutService:
                     recipes=(),
                     animation=None,
                     activity=None,
+                    text=dict(entry["text"]) if definition.render_kind == "text" else None,
                 )
             )
         return base
@@ -212,6 +220,8 @@ class RoomLayoutService:
             "scale": instance.scale * definition.scale,
             "behavior": instance.behavior,
             "model_url": prop_model_url(self._world.id, definition),
+            "render_kind": definition.render_kind,
+            **({"text": dict(instance.text)} if instance.text is not None else {}),
             "label": definition.label,
             "description": definition.description,
             "animation": animation,
@@ -234,6 +244,7 @@ class RoomLayoutService:
                     "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
                     "scale": float(entry.get("scale", 1.0)),
                     "locked": bool(entry.get("locked")),
+                    **({"text": dict(entry["text"])} if isinstance(entry.get("text"), dict) else {}),
                 }
                 for entry in live
                 if isinstance(entry, dict)
@@ -247,6 +258,7 @@ class RoomLayoutService:
                     "rotation": list(instance.rot),
                     "scale": float(instance.scale),
                     "locked": False,
+                    **({"text": dict(instance.text)} if instance.text is not None else {}),
                 }
                 for instance in room.props.values()
                 if self._world.props[instance.prop_id].editable
@@ -261,6 +273,7 @@ class RoomLayoutService:
         for entry in entries:
             definition = self._world.props.get(str(entry["prop_id"]))
             if definition is not None:
+                entry["render_kind"] = definition.render_kind
                 entry.update(self._effect_payload(room.id, str(entry["id"]), definition))
         return entries
 
@@ -280,6 +293,7 @@ class RoomLayoutService:
             ],
             "environment_whitelist": list(room.editor_environment),
             "environment": self.visual_environment(room_id),
+            "text_options": text_options(),
         }
 
     def save(
@@ -403,6 +417,9 @@ class RoomLayoutService:
             instance_id = str(entry.get("id") or "")
             if not instance_id or instance_id in seen:
                 raise ValueError("Layout prop IDs must be unique and non-empty.")
+            authored = room.props.get(instance_id)
+            if authored is not None and not self._world.props[authored.prop_id].editable:
+                raise ValueError(f"Layout prop ID '{instance_id}' belongs to an immutable gameplay prop.")
             if instance_id.startswith("custom:"):
                 try:
                     uuid.UUID(instance_id[7:])
@@ -411,6 +428,11 @@ class RoomLayoutService:
             elif instance_id not in known:
                 raise ValueError(f"Unknown layout prop '{instance_id}'.")
             seen.add(instance_id)
+            text = None
+            if prop_id == TEXT_PROP_ID:
+                text = validate_text(entry.get("text"))
+            elif "text" in entry:
+                raise ValueError("Only builtin:text props may have a text recipe.")
             props.append(
                 {
                     "id": instance_id,
@@ -419,11 +441,17 @@ class RoomLayoutService:
                     "rotation": self._validate_rotation(entry.get("rotation")),
                     "scale": self._validate_scale(entry.get("scale"), definition),
                     "locked": bool(entry.get("locked")),
+                    **({"text": text} if text is not None else {}),
                 }
             )
         for instance_id, entry in hidden_existing.items():
             if instance_id not in seen:
                 props.append(entry)
+        texts = [entry["text"] for entry in props if entry["prop_id"] == TEXT_PROP_ID]
+        if len(texts) > MAX_TEXT_PROPS:
+            raise ValueError(f"A room may contain at most {MAX_TEXT_PROPS} text props.")
+        if sum(len(text["content"]) for text in texts) > MAX_ROOM_TEXT_LENGTH:
+            raise ValueError(f"A room's text props may contain at most {MAX_ROOM_TEXT_LENGTH} total characters.")
         return props
 
     @staticmethod

@@ -8,7 +8,9 @@ import { createBoard } from "./board.js";
 import { createPropActionButton } from "./prop-action-button.js";
 import { syncEmoteChrome } from "./emote-chrome.js";
 import { syncPeepsChrome } from "./peeps-chrome.js";
+import { createRoomPicker } from "./room-picker.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
+import { lookPreview } from "./look-preview.js";
 import { createCutsceneManager } from "./cutscenes/manager.js";
 import {
   COMMANDS,
@@ -24,8 +26,9 @@ import {
 } from "./commands.js";
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
-import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
+import { editorBoardProps, editablePropIds, editorPatch } from "./editing/edit-reducer.js";
 import { editorKeyAction } from "./editing/editor-keyboard.js";
+import { openTextPropDialog } from "./editing/text-prop-dialog.js";
 import { resetLibraryFilter } from "./editing/library-filter.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createInertSweep, toggleClass } from "./inert.js";
@@ -54,7 +57,6 @@ const chatInput = $("#chat-input");
 const emoteToggle = $("#emote-toggle");
 const emoteToggleIcon = $("#emote-toggle-icon");
 const emoteMenu = $("#emote-menu");
-const peepsToggle = $("#peeps-toggle");
 const settings = $("#settings");
 const pushToTalk = $("#push-to-talk");
 const talkRingProgress = $("#push-to-talk .talk-ring-progress");
@@ -276,20 +278,6 @@ async function openRoomEditor() {
   }
 }
 
-function editorPatch(editor) {
-  return {
-    props: editor.props.map(instance => ({
-      id: instance.id,
-      prop_id: instance.propId,
-      position: instance.position,
-      rotation: instance.rotation,
-      scale: instance.scale,
-      locked: Boolean(instance.locked),
-    })),
-    environment: editor.environment,
-  };
-}
-
 async function saveRoomEditor() {
   const editor = store.getState().editor;
   if (!editor) return false;
@@ -330,6 +318,12 @@ async function applyEditorAction(action) {
   const state = store.getState();
   if (!state.editor) return;
   switch (action.action) {
+    case "add-text":
+      openTextPropDialog({ dialogs, store });
+      break;
+    case "edit-text":
+      openTextPropDialog({ dialogs, store, id: state.editor.selectedId });
+      break;
     case "undo":
       store.dispatch({ type: "editor-undo" });
       break;
@@ -388,21 +382,16 @@ function renderLook(state) {
   const description = dialog
     ? { tag: "Conversation", title: dialog.peepLabel || selectedPeep?.label || "Conversation", description: dialog.text, imageUrl: selectedPeep?.stickerUrl || "" }
     : describeSelection(state);
-  const peepPreview = (state.selection.kind === "peep" || dialog) && description.imageUrl
-    ? `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">` : "";
-  const selectedProp = state.selection.kind === "prop"
-    ? state.room?.props.find(prop => prop.id === state.selection.id)
-    : null;
-  const propPreview = selectedProp?.modelUrl
-    ? `<canvas class="look-preview look-preview-3d" data-prop-model="${escapeHtml(selectedProp.modelUrl)}" data-prop-scale="${escapeHtml(selectedProp.scale)}" aria-hidden="true"></canvas>`
-    : "";
+  const preview = lookPreview(state, description);
   const look = $("#look-bar");
-  if (updateMarkup(look, `${peepPreview}${propPreview}<div class="look-copy">
+  if (updateMarkup(look, `${preview.markup}<div class="look-copy">
     <strong class="look-name" title="${escapeHtml(description.title)}">${escapeHtml(description.title)}</strong>
     <button type="button" class="look-description" data-focus-key="description" title="${escapeHtml(description.description)}" aria-label="Read full description">${escapeHtml(description.description)}</button>
     </div>`)) {
-    look.querySelector("button").onclick = () => dialogs.description(description.title, description.description);
+    look.querySelector(".look-description").onclick = () => dialogs.description(description.title, description.description);
   }
+  const inspect = look.querySelector("[data-look-inspect]");
+  if (inspect) inspect.onclick = () => handleAction(preview.action);
 }
 
 async function handleAction(action) {
@@ -433,9 +422,10 @@ async function handleAction(action) {
       stackId: action.stackId,
     });
     if (!closing && view === "edit-room") await openRoomEditor();
-    if (view === "journal") {
-      await refreshTasks();
-      if (store.getState().ui.journalTab === "Memories") await refreshJournalMonth();
+    if (!closing && view === "journal") {
+      const tab = store.getState().ui.journalTab;
+      if (tab === "Tasks") await refreshTasks();
+      if (tab === "Memories") await refreshJournalMonth();
     }
   } else if (["close-view", "close-details"].includes(action.type)) {
     const state = store.getState();
@@ -449,7 +439,8 @@ async function handleAction(action) {
   } else if (action.type === "open-pack") {
     await openPack(action.stackId);
   } else if (action.type === "edit-add") {
-    store.dispatch({ type: "editor-add", propId: action.propId });
+    if (action.propId === "builtin:text") openTextPropDialog({ dialogs, store });
+    else store.dispatch({ type: "editor-add", propId: action.propId });
   } else if (action.type === "edit-snap") {
     store.dispatch({ type: "editor-snap", which: action.which, value: action.value });
   } else if (action.type === "edit-palette") {
@@ -462,6 +453,8 @@ async function handleAction(action) {
     if (action.propId) window.open(withBase(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`), "_blank", "noopener");
   } else if (action.type === "open-details") {
     store.dispatch({ type: "open-details", stackId: action.stackId });
+  } else if (action.type === "start-targeting") {
+    store.dispatch({ type: "start-targeting", stackId: action.stackId });
   } else if (action.type === "cancel-targeting") {
     store.dispatch({ type: "cancel-targeting" });
   } else if (action.type === "play-emote") {
@@ -469,7 +462,7 @@ async function handleAction(action) {
     try { await sendCommand(buildEmoteCommand(action.stackId)); } catch (error) { showError(error); }
   } else if (action.type === "journal-tab") {
     store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
-    await refreshTasks();
+    if (action.tab === "Tasks") await refreshTasks();
     if (action.tab === "Memories") await refreshJournalMonth();
   } else if (action.type === "journal-month") {
     store.dispatch({ type: "journal-month", delta: action.delta });
@@ -710,6 +703,7 @@ function renderTopBar(state) {
   connection.dataset.status = state.transport.status || "idle";
   const top = $("#top-actions");
   if (!updateMarkup(top, `
+    <button type="button" class="quiet" data-top-action="peeps" aria-pressed="${state.ui.peepsVisible !== false}" aria-controls="peeps-panel">Show peeps sidebar</button>
     <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
     <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
@@ -721,6 +715,7 @@ function renderTopBar(state) {
   top.querySelectorAll("button").forEach(button => {
     button.onclick = async () => {
       const which = button.dataset.topAction;
+      if (which === "peeps") store.dispatch({ type: "toggle-peeps" });
       if (which === "log") await toggleLog();
       if (which === "sound") store.dispatch({ type: "toggle-sound" });
       if (which === "outlines") store.dispatch({ type: "toggle-outline-active-props" });
@@ -961,6 +956,7 @@ targeting = createTargetingController({
 const cards = createCardsView({
   coreRoot: $("#core-tools"), handRoot: $("#card-hand"), menuRoot: emoteMenu, panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
   onSelect(selection) {
+    if (targeting?.handle(selection)) return;
     const sellState = store.getState();
     if (sellState.ui.sellMode && selection.kind === "inventory-card") {
       void sellInventoryCard(selection.id, { store, sendCommand, playCoin: () => playTone("coin"), onError: showError, onToast: toast });
@@ -983,6 +979,13 @@ const cards = createCardsView({
 const propViewers = createPropViewerManager();
 const cardViewers = createCardViewerManager();
 const thumbnails = createThumbnailManager();
+const roomPicker = createRoomPicker({
+  root: $("#room-picker"), store, thumbnails,
+  onSelect(selection) {
+    if (targeting?.handle(selection) || activateSelection(selection)) return;
+    store.dispatch({ type: "select", selection });
+  },
+});
 const cardMotion = createCardMotion({
   board,
   handRoot: $("#card-hand"),
@@ -1065,7 +1068,8 @@ async function render(state) {
   cards.render(state);
   if (state.views.main !== previousView || state.views.details !== previousDetails) playTone("tap");
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
-  syncPeepsChrome(state, root, peepsToggle);
+  syncPeepsChrome(state, root);
+  roomPicker.sync(state);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
@@ -1111,7 +1115,6 @@ const chatHistory = createChatHistory();
 const chatAutocomplete = createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help"), history: chatHistory });
 pushToTalk.onclick = () => { voice.toggleTalk(); };
 emoteToggle.onclick = () => { store.dispatch({ type: "toggle-emote-menu" }); playTone("tap"); };
-peepsToggle.onclick = () => { store.dispatch({ type: "toggle-peeps" }); playTone("tap"); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();
   const text = chatInput.value;
@@ -1161,6 +1164,7 @@ document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
+  if (roomPicker.handleEscape(event)) return;
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
   if (state.ui.emoteMenuOpen) {
     event.preventDefault();

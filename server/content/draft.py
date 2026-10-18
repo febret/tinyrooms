@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from server.content.common import ContentError
+from server.content.text_props import TEXT_PROP_ID, validate_text
 from server.content.worlds import PROPS_CONFIG_KEY
 
 
@@ -145,6 +146,13 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
                         _issue(issues, f"{instance_path}.prop", "Prop reference is required.")
                     elif references.prop_ids and prop_id not in references.prop_ids:
                         _issue(issues, f"{instance_path}.prop", f"Unknown prop '{prop_id}'.")
+                    if prop_id == TEXT_PROP_ID:
+                        try:
+                            validate_text(instance.get("text"))
+                        except ValueError as exc:
+                            _issue(issues, f"{instance_path}.text", str(exc))
+                    elif "text" in instance:
+                        _issue(issues, f"{instance_path}.text", "Only builtin:text props may have a text recipe.")
                     _check_identifier_list(
                         issues, instance.get("content"), f"{instance_path}.content",
                         references.card_ids, "cards",

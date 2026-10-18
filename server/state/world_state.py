@@ -248,6 +248,7 @@ class WorldStateRepository:
                 "rotation": list(instance.rot),
                 "scale": float(instance.scale),
                 "locked": False,
+                **({"text": dict(instance.text)} if instance.text is not None else {}),
             }
             for instance in room.props.values()
             if world.props[instance.prop_id].editable

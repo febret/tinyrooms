@@ -34,6 +34,8 @@ import { createWorldRoomEditor, worldRoomEditor } from "./room-editor.js";
 import { editorKeyAction } from "../../app/js/editing/editor-keyboard.js";
 import { createCardSelector } from "./card-selector.js";
 import { reconcileRoomCards } from "./room-cards.js";
+import { createDialogs } from "../../app/js/dialogs.js";
+import { openTextPropDialog } from "../../app/js/editing/text-prop-dialog.js";
 
 const store = createStore();
 const cardSelector = createCardSelector({
@@ -89,10 +91,25 @@ const dialogView = createGraphView({
 });
 
 const roomEditor = createWorldRoomEditor(store, currentRoomId);
+const dialogs = createDialogs(elements.modal);
+const textStore = {
+  getState: () => ({ editor: worldRoomEditor(store.state, currentRoomId()) }),
+  dispatch: action => roomEditor.dispatch(action),
+};
+function handleEditorAction(action) {
+  if (previewing || dialogs.active || pendingConfirm) return;
+  if ((action.type === "edit-add" && action.propId === "builtin:text") || action.action === "add-text") {
+    return openTextPropDialog({ dialogs, store: textStore });
+  }
+  if (action.action === "edit-text") {
+    return openTextPropDialog({ dialogs, store: textStore, id: worldRoomEditor(store.state, currentRoomId())?.selectedId });
+  }
+  roomEditor.onAction(action);
+}
 const editorDock = createEditorDock({
   root: elements.editorDock,
   authoring: true,
-  onAction: action => { if (!previewing) roomEditor.onAction(action); },
+  onAction: handleEditorAction,
 });
 
 const boardView = createBoardView({
@@ -165,7 +182,7 @@ function render() {
   renderDialogPanel(state);
   const propertiesScroll = elements.properties.scrollTop;
   elements.properties.innerHTML = (state.activeTab === "board" ? editorSettingsView({ editor }) : "") + renderProperties(state);
-  bindEditorControls(elements.properties, roomEditor.onAction);
+  bindEditorControls(elements.properties, handleEditorAction);
   elements.properties.scrollTop = propertiesScroll;
   cardSelector.bind(elements.properties);
   cardSelector.bind(elements.systemsPane);
@@ -378,7 +395,9 @@ function changeInstanceField(fieldName, target) {
   if ((fieldName.startsWith("pos.") || fieldName.startsWith("rot.") || fieldName === "scale")
     && editor?.props.find(prop => prop.id === editor.selectedId)?.locked) return;
   updateInstance(instance => {
-    if (fieldName === "prop") instance.prop = target.value;
+    if (fieldName === "prop") {
+      if (instance.prop !== "builtin:text" && target.value !== "builtin:text") instance.prop = target.value;
+    }
     else if (fieldName === "content") instance.content = parseCsv(target.value);
     else if (fieldName === "recipes") instance.recipes = parseCsv(target.value);
     else if (fieldName === "actions") instance.actions = textToActions(target.value);
@@ -588,7 +607,7 @@ function deleteExit(exitId) {
 }
 
 function addProp(propId) {
-  roomEditor.dispatch({ type: "editor-add", propId });
+  handleEditorAction({ type: "edit-add", propId });
 }
 
 function deleteInstance() {
@@ -787,6 +806,7 @@ function showConfirm(body) {
 }
 
 async function refresh() {
+  dialogs.closeAll();
   const body = await loadDraft();
   store.init({
     draft: body.draft,
@@ -822,6 +842,10 @@ document.addEventListener("input", event => {
 });
 
 document.addEventListener("keydown", event => {
+  if (dialogs.active) {
+    if (event.key === "Escape") { event.preventDefault(); dialogs.cancel(); }
+    return;
+  }
   const modifier = event.ctrlKey || event.metaKey;
   if (event.defaultPrevented || event.target.closest("input,textarea,select,[contenteditable=true]")) return;
   if (!modifier) {

@@ -21,6 +21,8 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
         rotation: Array.isArray(instance.rot) ? instance.rot.map(Number) : [0, 0, 0],
         scale: Number(instance.scale ?? 1) * Number(definition.scale ?? 1),
         modelUrl: withBase(definition.model_url || ""),
+        renderKind: definition.render_kind || "model",
+        ...(instance.text ? { text: { ...instance.text } } : {}),
         label: definition.label || instance.prop,
         description: definition.description || "",
         animation: instance.animation || "",

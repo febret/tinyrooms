@@ -71,6 +71,24 @@ function roomPanel(state) {
   `;
 }
 
+export function behaviorOptions(behaviors, current) {
+  const options = [{ value: "", label: "(none)" }];
+  for (const behavior of behaviors || []) {
+    const kind = behavior.kind === "builtin" ? "built-in" : "script";
+    options.push({ value: behavior.id, label: `${behavior.id} (${kind}) — ${behavior.source}` });
+  }
+  if (current && !options.some(option => option.value === current)) {
+    options.push({ value: current, label: `${current} (missing script)` });
+  }
+  return options;
+}
+
+function behaviorSelect(catalog, current) {
+  const options = behaviorOptions(catalog?.behaviors, current);
+  const source = (catalog?.behaviors || []).find(behavior => behavior.id === current)?.source || "";
+  return `<select data-instance-field="behavior" title="${escapeHtml(source)}">${selectOptions(options, current)}</select>`;
+}
+
 function propPanel(state) {
   const { draft, catalog, selection } = state;
   const room = draft.rooms?.[selection.id];
@@ -79,11 +97,14 @@ function propPanel(state) {
   const propId = selection.sub;
   const position = Array.isArray(instance.pos) ? instance.pos : [50, 50, 0];
   const rotation = Array.isArray(instance.rot) ? instance.rot : [0, 0, 0];
-  const propOptions = (catalog?.props || []).map(prop => ({ value: prop.id, label: prop.label }));
+  const isText = instance.prop === "builtin:text";
+  const propOptions = (catalog?.props || []).filter(prop => isText ? prop.id === instance.prop : prop.render_kind !== "text")
+    .map(prop => ({ value: prop.id, label: prop.label }));
   return `
     ${panelHeader(propId, `Prop · ${selection.id}`)}
     <div class="properties-body">
-      ${field("Prop type", `<select data-instance-field="prop">${selectOptions(propOptions, instance.prop)}</select>`)}
+      ${field("Prop type", `<select data-instance-field="prop" ${isText ? "disabled" : ""}>${selectOptions(propOptions, instance.prop)}</select>`)}
+      ${isText ? `<p class="text-prop-content">${escapeHtml(instance.text?.content || "")}</p><button type="button" data-edit-action="edit-text" ${state.editorSettings?.locks?.[selection.id]?.[propId] ? "disabled" : ""}>Edit text</button>` : ""}
       <div class="field-row">
         ${field("X", numberInput(position[0], `data-instance-field="pos.0"`))}
         ${field("Y", numberInput(position[1], `data-instance-field="pos.1"`))}
@@ -93,7 +114,7 @@ function propPanel(state) {
         ${field("Rot Y", numberInput(rotation[1], `data-instance-field="rot.1"`, "15"))}
         ${field("Scale", numberInput(instance.scale ?? 1, `data-instance-field="scale"`))}
       </div>
-      ${field("Behavior", textInput(instance.behavior || "", `data-instance-field="behavior"`, "dispenser / script"))}
+      ${field("Behavior", behaviorSelect(catalog, instance.behavior || ""))}
       ${field("Animation", textInput(instance.animation || "", `data-instance-field="animation"`))}
       ${field("Activity", `<select data-instance-field="activity">${selectOptions([{ value: "", label: "(none)" }, ...(catalog?.activities || []).map(id => ({ value: id, label: id }))], instance.activity || "")}</select>`)}
       ${field("Cooldown (seconds)", numberInput(instance.cooldown ?? 0, `data-instance-field="cooldown"`, "1"))}
