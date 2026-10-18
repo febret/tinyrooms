@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.common import (
+    LOGGER,
+    ContentError,
+    load_yaml_file,
+    require_mapping,
+    warn_unknown_card,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,8 +48,11 @@ def _load_ingredients(raw_value: Any, recipe_id: str, field: str, card_ids: set[
         raise ContentError(f"Recipe '{recipe_id}' must define a {field} mapping.")
     ingredients: list[Ingredient] = []
     for card_id, quantity in entries:
-        if not isinstance(card_id, str) or card_id not in card_ids:
+        if not isinstance(card_id, str):
             raise ContentError(f"Recipe '{recipe_id}' {field} references unknown card '{card_id}'.")
+        if card_id not in card_ids:
+            warn_unknown_card(f"Recipe '{recipe_id}' {field}", card_id)
+            continue
         if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
             raise ContentError(f"Recipe '{recipe_id}' {field} for '{card_id}' must be a positive integer.")
         ingredients.append(Ingredient(card_id=card_id, quantity=int(quantity)))
@@ -65,10 +74,12 @@ def load_recipes(world_path: Path, card_ids: set[str]) -> dict[str, RecipeDefini
             raise ContentError(f"{recipes_file} defines duplicate recipe '{recipe_id}'.")
         ingredients = _load_ingredients(raw_recipe.get("ingredients"), recipe_id, "ingredients", card_ids)
         if not ingredients:
-            raise ContentError(f"Recipe '{recipe_id}' must define at least one ingredient.")
+            LOGGER.warning("Recipe '%s' has no resolvable ingredients; skipping it.", recipe_id)
+            continue
         output = _load_ingredients(raw_recipe.get("output"), recipe_id, "output", card_ids)
         if not output:
-            raise ContentError(f"Recipe '{recipe_id}' must define a non-empty output.")
+            LOGGER.warning("Recipe '%s' has no resolvable output; skipping it.", recipe_id)
+            continue
         raw_cost = raw_recipe.get("energy_cost", 0)
         if isinstance(raw_cost, bool) or not isinstance(raw_cost, (int, float)) or float(raw_cost) < 0:
             raise ContentError(f"Recipe '{recipe_id}' energy_cost must be a non-negative number.")

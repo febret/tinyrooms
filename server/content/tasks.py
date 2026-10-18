@@ -7,7 +7,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.common import (
+    ContentError,
+    drop_unknown_card_ids,
+    load_yaml_file,
+    require_mapping,
+)
 
 
 TASK_TRIGGERS = frozenset(
@@ -152,10 +157,13 @@ def _parse_reward(raw_reward: Any, task_id: str, card_ids: set[str], path: Path)
     raw_cards = raw_reward.get("cards", []) or []
     if not isinstance(raw_cards, list):
         raise ContentError(f"Task '{task_id}' reward cards must be a list.")
-    cards = tuple(str(card_id) for card_id in raw_cards)
-    for card_id in cards:
-        if card_id not in card_ids:
-            raise ContentError(f"Task '{task_id}' reward references unknown card '{card_id}'.")
+    cards = tuple(
+        drop_unknown_card_ids(
+            (str(card_id) for card_id in raw_cards),
+            card_ids,
+            f"Task '{task_id}' reward",
+        )
+    )
     return TaskReward(kudos=int(raw_kudos), cards=cards)
 
 

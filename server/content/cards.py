@@ -7,7 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.common import (
+    ContentError,
+    drop_unknown_card_ids,
+    load_yaml_file,
+    require_mapping,
+    warn_unknown_card,
+)
 
 CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart"})
@@ -210,7 +216,12 @@ def cutscene_card_references(catalog: CardCatalog) -> tuple[tuple[str, str], ...
     )
 
 
-def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefinition], source: str) -> PackDefinition:
+def _load_pack_from_file(
+    path: Path,
+    pack_id: str,
+    cards: dict[str, CardDefinition],
+    source: str,
+) -> PackDefinition | None:
     payload = require_mapping(load_yaml_file(path), path)
     label = str(payload.get("label", "")).strip()
     description = str(payload.get("description", "")).strip()
@@ -225,9 +236,12 @@ def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefiniti
     card_ids = payload.get("cards")
     if not isinstance(card_ids, list) or not card_ids:
         raise ContentError(f"Pack '{pack_id}' must define a non-empty cards list.")
-    for card_id in card_ids:
-        if card_id not in cards:
-            raise ContentError(f"Pack '{pack_id}' references unknown card '{card_id}'.")
+    card_ids = drop_unknown_card_ids(
+        (str(card_id) for card_id in card_ids), set(cards), f"Pack '{pack_id}'"
+    )
+    if not card_ids:
+        warn_unknown_card(f"Pack '{pack_id}'", "every listed card")
+        return None
     size = int(payload.get("size", 0))
     raw_guaranteed = payload.get("guaranteed") or []
     if not isinstance(raw_guaranteed, list):
@@ -237,7 +251,8 @@ def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefiniti
         if not isinstance(card_id, str) or not card_id:
             raise ContentError(f"Pack '{pack_id}' guaranteed entries must be card ids.")
         if card_id not in card_ids:
-            raise ContentError(f"Pack '{pack_id}' guarantees card '{card_id}' that is not in the pack.")
+            warn_unknown_card(f"Pack '{pack_id}' guaranteed", card_id)
+            continue
         if card_id in guaranteed:
             raise ContentError(f"Pack '{pack_id}' repeats guaranteed card '{card_id}'.")
         guaranteed.append(card_id)
@@ -251,7 +266,7 @@ def _load_pack_from_file(path: Path, pack_id: str, cards: dict[str, CardDefiniti
         back_image_path=back_image_path,
         price=int(payload.get("price", 0)),
         size=size,
-        cards=tuple(str(card_id) for card_id in card_ids),
+        cards=tuple(card_ids),
         source=source,
         guaranteed=tuple(guaranteed),
     )
@@ -334,7 +349,9 @@ def load_card_catalog(
             pack_id = pack_file.parent.name
             if pack_id in root_packs:
                 raise ContentError(f"Duplicate pack id '{pack_id}'.")
-            root_packs[pack_id] = _load_pack_from_file(pack_file, pack_id, cards, pack_file.parent.name)
+            pack = _load_pack_from_file(pack_file, pack_id, cards, pack_file.parent.name)
+            if pack is not None:
+                root_packs[pack_id] = pack
         packs.update(root_packs)
 
     world_pack_file = world_path / "cards" / "pack.yaml"
@@ -342,7 +359,9 @@ def load_card_catalog(
         pack_id = world_path.name
         if pack_id in packs:
             raise ContentError(f"Duplicate pack id '{pack_id}'.")
-        packs[pack_id] = _load_pack_from_file(world_pack_file, pack_id, cards, world_path.name)
+        pack = _load_pack_from_file(world_pack_file, pack_id, cards, world_path.name)
+        if pack is not None:
+            packs[pack_id] = pack
 
     for pack in packs.values():
         sealed = _sealed_pack_card(pack)

@@ -12,7 +12,13 @@ from server.content.activities import (
     load_activity_definitions,
     merge_activity_definitions,
 )
-from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.common import (
+    ContentError,
+    drop_unknown_card_ids,
+    load_yaml_file,
+    require_mapping,
+    warn_unknown_card,
+)
 from server.content.conditions import StatusCondition, parse_status_condition
 from server.content.cutscenes import (
     CutsceneDefinition,
@@ -302,8 +308,11 @@ def _load_draw_weight(raw_value: Any, prop_instance_id: str, card_ids: set[str])
         raise ContentError(f"Prop '{prop_instance_id}' draw_weight must be a mapping.")
     draw_weight: dict[str, float] = {}
     for card_id, weight in raw_value.items():
-        if not isinstance(card_id, str) or card_id not in card_ids:
+        if not isinstance(card_id, str):
             raise ContentError(f"Prop '{prop_instance_id}' draw_weight references unknown card '{card_id}'.")
+        if card_id not in card_ids:
+            warn_unknown_card(f"Prop '{prop_instance_id}' draw_weight", card_id)
+            continue
         if isinstance(weight, bool) or not isinstance(weight, (int, float)) or float(weight) < 0:
             raise ContentError(f"Prop '{prop_instance_id}' draw_weight for '{card_id}' must be a non-negative number.")
         draw_weight[card_id] = float(weight)
@@ -801,10 +810,13 @@ def load_world_definition(
             prop_id = str(raw_instance.get("prop", "")).strip()
             if prop_id not in props:
                 raise ContentError(f"Room '{room_id}' references unknown prop '{prop_id}'.")
-            content = tuple(str(card_id) for card_id in raw_instance.get("content", []) or [])
-            for card_id in content:
-                if card_id not in card_ids:
-                    raise ContentError(f"Prop '{prop_instance_id}' references unknown card '{card_id}'.")
+            content = tuple(
+                drop_unknown_card_ids(
+                    (str(card_id) for card_id in raw_instance.get("content", []) or []),
+                    card_ids,
+                    f"Prop '{prop_instance_id}'",
+                )
+            )
             instance_recipes = tuple(str(value) for value in raw_instance.get("recipes", []) or [])
             for recipe_id in instance_recipes:
                 if recipe_id not in recipes:
@@ -845,7 +857,8 @@ def load_world_definition(
                 raise ContentError(f"Room '{room_id}' has an invalid exit '{exit_id}'.")
             requires_card_id = str(raw_exit["requires"]) if "requires" in raw_exit else None
             if requires_card_id is not None and requires_card_id not in card_ids:
-                raise ContentError(f"Exit '{room_id}.{exit_id}' requires unknown card '{requires_card_id}'.")
+                warn_unknown_card(f"Exit '{room_id}.{exit_id}' requires", requires_card_id)
+                requires_card_id = None
             room_exits[exit_id] = ExitDefinition(
                 id=exit_id,
                 label=str(raw_exit.get("label", "")).strip(),
@@ -860,7 +873,8 @@ def load_world_definition(
                 raise ContentError(f"Room '{room_id}' contains an invalid card entry.")
             card_id = str(raw_card.get("card", "")).strip()
             if card_id not in card_ids:
-                raise ContentError(f"Room '{room_id}' references unknown card '{card_id}'.")
+                warn_unknown_card(f"Room '{room_id}'", card_id)
+                continue
             quantity = int(raw_card.get("quantity", 1))
             if quantity < 1:
                 raise ContentError(f"Room '{room_id}' has invalid quantity {quantity} for '{card_id}'.")

@@ -35,11 +35,6 @@ juicy-drink:
   target: self
   effect: energy
   amount: 25
-lucille:
-  label: Lucille
-  description: Lucille, a very distinguished seal plushie. Decorative; no effects.
-  image: lucille-art.webp
-  decorative: true
 plastic-bag:
   label: Plastic Bag
   description: A simple plastic bag
