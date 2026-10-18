@@ -182,6 +182,12 @@ function connectSocket() {
     },
     onErrorEnvelope(envelope) { toast(envelope.message || "The room rejected that message.", "error"); },
     onResult(envelope) {
+      const travelUrl = envelope.payload?.travel?.url;
+      if (travelUrl) {
+        toast("Stepping through the portal...");
+        window.location.assign(String(travelUrl));
+        return;
+      }
       const events = Array.isArray(envelope.events) ? envelope.events : [];
       // `cutscene.play` is handled out of band, so it is filtered out before the
       // store sees it and never becomes view state.

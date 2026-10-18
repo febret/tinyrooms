@@ -77,6 +77,7 @@ from server.services.auras import AuraService
 from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
 from server.services.crafting import CraftingService
+from server.services.cross_world import CrossWorldService
 from server.services.dialogs import DialogService
 from server.services.dispensers import DispenserService
 from server.services.environment import EnvironmentService
@@ -196,6 +197,7 @@ class RuntimeState:
     layout: RoomLayoutService
     room_effects: RoomEffectService
     auras: AuraService
+    cross_world: CrossWorldService
     mods: dict[str, object]
     mod_definitions: tuple[ModDefinition, ...]
     dispensers: DispenserService
@@ -479,6 +481,7 @@ def _build_runtime(
             log=spec["log"],
         )
     peep_states = NpcPeepStateRepository(hub, world)
+    cross_world = CrossWorldService(config=config, hub=hub, profiles=profiles, world_id=world.id)
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -576,6 +579,7 @@ def _build_runtime(
         layout=layout,
         room_effects=room_effects,
         auras=auras,
+        cross_world=cross_world,
         mods={},
         mod_definitions=mods.definitions,
         dispensers=dispensers,

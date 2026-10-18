@@ -9,7 +9,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 8
-WORLD_SCHEMA_VERSION = 14
+WORLD_SCHEMA_VERSION = 15
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -223,8 +223,8 @@ CREATE TABLE IF NOT EXISTS room_cards (
 );
 CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id);
 CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id);
--- door_json: bedroom: rooms store {style:{...},locked:bool}; ordinary rooms keep {}.
--- idx_room_states_player_owner limits bedrooms to one per account in this world DB.
+-- door_json: classroom: rooms store {style:{...},locked:bool,grade:int}; ordinary rooms keep {}.
+-- idx_room_states_player_owner limits classrooms to one per account in this world DB.
 -- initialized: missing/0 makes initialize_world() replace all cards AND reseed YAML props;
 -- 1 preserves collected seeds/player drops/layout across restarts and YAML edits.
 -- reset_room_cards() replaces all stacks (including drops), sets 1, leaves layout alone.
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS npc_peep_states (
     memories_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(memories_json)),
     updated_at TEXT NOT NULL
 );
-PRAGMA user_version = 14;
+PRAGMA user_version = 15;
 COMMIT;
 """
 
@@ -484,6 +484,12 @@ _WORLD_MIGRATIONS: dict[int, str] = {
         SELECT peep_id, room_id, updated_at FROM peep_locations;
     DROP TABLE peep_locations;
     PRAGMA user_version = 14;
+    COMMIT;
+    """,
+    15: """
+    BEGIN;
+    DROP INDEX IF EXISTS idx_room_states_player_owner;
+    PRAGMA user_version = 15;
     COMMIT;
     """,
 }
@@ -800,7 +806,7 @@ def ensure_world_database(path: Path) -> None:
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",
             "CREATE INDEX IF NOT EXISTS idx_room_cards_order ON room_cards(room_id, created_at, stack_id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_room_states_player_owner "
-            "ON room_states(owner_account_id) WHERE room_id LIKE 'bedroom:%'",
+            "ON room_states(owner_account_id) WHERE room_id LIKE 'classroom:%'",
             "CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind)",
         ),
         migrations=_WORLD_MIGRATIONS,

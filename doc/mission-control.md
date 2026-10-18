@@ -243,6 +243,16 @@ payload inventory. Operator mutations require session + Origin + CSRF; fleet
 registration/heartbeat/deregistration use the shared token instead. Responses
 use `{ok, ...}` or `{ok:false, code, message}` envelopes.
 
+The fleet channel also exposes cross-world discovery:
+`GET /api/mc/instances/{world_id}/destination` (token-authenticated) resolves a
+running instance serving `world_id` and returns `{ok, instance_id, world_id,
+client_url, entry_room_id}`. A participating world calls it when a player uses
+an authored cross-world exit, then redirects the browser to `client_url` after
+verifying the hostname matches so the host-only session cookie is shared.
+Validation reuses the entry-destination checks (running/registered, world
+identity, shared database for spawned instances, and a matching `/health`).
+Unknown worlds return 404; unreachable/invalid destinations return 503/409.
+
 ### 7.1 Public player-entry API
 
 [entry.py](../server/mission_control/entry.py) owns `/api/entry/` session,

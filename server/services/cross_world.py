@@ -1,0 +1,140 @@
+"""Cross-world travel resolution and browser redirect.
+
+A world server discovers a running instance for another world through mission
+control's token-authenticated fleet channel, then updates the shared profile so
+the destination accepts the browser session. The client performs the actual
+navigation with the returned ``travel`` payload. Energy costs and shared-loadout
+reconciliation are intentionally out of scope for this minimal transfer.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from urllib.parse import urlsplit
+
+import httpx
+
+from server.commands.outcomes import CommandError
+from server.config import AppConfig
+from server.content.worlds import ExitDefinition
+from server.profiles import AccountRecord, ProfileRepository
+from server.state.migrations import DatabaseHub
+
+
+@dataclass(frozen=True, slots=True)
+class WorldDestination:
+    """A resolved running instance serving a target world."""
+
+    world_id: str
+    instance_id: str
+    client_url: str
+    entry_room_id: str | None
+
+
+class CrossWorldService:
+    """Resolve and travel between mission-control-linked worlds."""
+
+    def __init__(
+        self,
+        *,
+        config: AppConfig,
+        hub: DatabaseHub,
+        profiles: ProfileRepository,
+        world_id: str,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
+        self._config = config
+        self._hub = hub
+        self._profiles = profiles
+        self._world_id = world_id
+        self._client = client
+
+    @property
+    def available(self) -> bool:
+        """Return True when this server can reach mission control."""
+
+        return bool(self._config.mc_endpoint and self._config.mc_token)
+
+    def _client_or_create(self) -> httpx.AsyncClient:
+        if self._client is None:
+            verify: object = True
+            if self._config.mc_insecure_tls:
+                verify = False
+            elif self._config.mc_ca_file is not None:
+                verify = str(self._config.mc_ca_file)
+            self._client = httpx.AsyncClient(verify=verify, timeout=5.0)
+        return self._client
+
+    def _local_hostname(self) -> str:
+        if self._config.client_url:
+            hostname = urlsplit(self._config.client_url).hostname
+            if hostname:
+                return hostname
+        if self._config.host in {"0.0.0.0", "::"}:
+            return "127.0.0.1"
+        return self._config.host
+
+    async def resolve_destination(self, world_id: str) -> WorldDestination:
+        """Return a validated running instance for *world_id*, or raise."""
+
+        if not self.available:
+            raise CommandError("Cross-world travel is unavailable on this server.")
+        client = self._client_or_create()
+        try:
+            response = await client.get(
+                f"https://{self._config.mc_endpoint}/api/mc/instances/{world_id}/destination",
+                headers={"X-MC-Token": self._config.mc_token or ""},
+            )
+        except httpx.HTTPError as exc:
+            raise CommandError("The destination world could not be reached right now.") from exc
+        if response.status_code != 200:
+            raise CommandError("That destination is unavailable right now.")
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise CommandError("That destination returned an invalid response.") from exc
+        if not isinstance(data, dict) or not data.get("ok"):
+            raise CommandError("That destination is unavailable right now.")
+        client_url = str(data.get("client_url") or "")
+        instance_id = str(data.get("instance_id") or "")
+        if not client_url or not instance_id:
+            raise CommandError("That destination is unavailable right now.")
+        if urlsplit(client_url).hostname != self._local_hostname():
+            raise CommandError("That destination cannot share this session's login.")
+        entry_room = data.get("entry_room_id")
+        return WorldDestination(
+            world_id=world_id,
+            instance_id=instance_id,
+            client_url=client_url,
+            entry_room_id=str(entry_room) if entry_room else None,
+        )
+
+    async def travel(
+        self,
+        account: AccountRecord,
+        exit_definition: ExitDefinition,
+    ) -> dict[str, object]:
+        """Resolve the exit's target world and return a browser redirect payload."""
+
+        target_world_id = exit_definition.target_world_id
+        if target_world_id is None:
+            raise CommandError("That exit does not lead to another world.")
+        if exit_definition.locked:
+            raise CommandError("That way is locked.")
+        if exit_definition.requires_card_id is not None:
+            inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world_id)}
+            if exit_definition.requires_card_id not in inventory_ids:
+                raise CommandError(f"You need {exit_definition.requires_card_id} to go that way.")
+        destination = await self.resolve_destination(target_world_id)
+        room_id = exit_definition.target_room_id or destination.entry_room_id or ""
+        with self._hub.transaction() as connection:
+            self._profiles.set_remembered_room(connection, account.id, destination.world_id, room_id)
+        self._profiles.remember_instance(account.id, destination.instance_id)
+        return {
+            "travel": {
+                "url": destination.client_url,
+                "world_id": destination.world_id,
+                "instance_id": destination.instance_id,
+                "room_id": room_id,
+            }
+        }

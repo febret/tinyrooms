@@ -39,6 +39,8 @@ def resolve_npc_move(
         raise ValueError("That exit is not available from this room.")
     if exit_definition.npc_barrier:
         raise ValueError("That way is blocked for peeps.")
+    if exit_definition.target_world_id is not None:
+        raise ValueError("Peeps cannot cross into another world.")
     if exit_definition.locked:
         raise ValueError("That way is locked.")
     destination_room = world.rooms.get(exit_definition.target_room_id)

@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from server.mission_control.registry import SPAWNED, STATUS_RUNNING, InstanceRecord
-from server.mission_control.routes import _client_key, _enforce_post, _require_operator
+from server.mission_control.routes import _client_key, _enforce_post, _require_operator, _require_token
 from server.profiles import ProfileRepository, SessionRecord
 from server.security import (
     CSRF_COOKIE, SESSION_COOKIE, RateLimitError, RateLimiter, normalize_username,
@@ -126,7 +126,7 @@ def _issue(runtime, account_id: str) -> Response:
     return response
 
 
-def _client_url(request: Request, record: InstanceRecord) -> str:
+def _format_client_url(record: InstanceRecord) -> str:
     value = record.client_url or ""
     try:
         parsed = urlsplit(value)
@@ -138,16 +138,12 @@ def _client_url(request: Request, record: InstanceRecord) -> str:
         valid = False
     if not valid:
         raise HTTPException(409, "Destination client_url must be an HTTPS URL without credentials, query, or fragment.")
-    if parsed.hostname != request.url.hostname:
-        raise HTTPException(409, "Destination must use the same hostname as player entry so the login cookie can be shared across ports.")
     return value
 
 
-async def _destination(request: Request, instance_id: str) -> tuple[InstanceRecord, str]:
-    runtime = request.app.state.mc
-    record = runtime.registry.get(instance_id)
-    if record is None:
-        raise HTTPException(409, "The saved instance is no longer registered. Ask an operator to restore it.")
+async def _validate_running_destination(runtime, record: InstanceRecord) -> str:
+    """Validate a running instance's identity and client URL, without host checks."""
+
     if runtime.registry.snapshot(record)["status"] != STATUS_RUNNING or not record.registered_at:
         raise HTTPException(503, "The selected instance is unavailable. Please retry when it is running.")
     if not record.world_id:
@@ -156,7 +152,7 @@ async def _destination(request: Request, instance_id: str) -> tuple[InstanceReco
         users_path = (record.spawn_config or {}).get("users_path")
         if not users_path or Path(str(users_path)).resolve() != runtime.config.users_path.resolve():
             raise HTTPException(409, "The selected instance does not use the shared player database.")
-    client_url = _client_url(request, record)
+    client_url = _format_client_url(record)
     try:
         response = await runtime.http.get(f"{record.endpoint.rstrip('/')}{record.base_path}/health", timeout=5.0)
         response.raise_for_status()
@@ -165,6 +161,17 @@ async def _destination(request: Request, instance_id: str) -> tuple[InstanceReco
         raise HTTPException(503, "The selected instance could not be reached. Please retry.") from exc
     if not isinstance(data, dict) or data.get("world_id") != record.world_id or data.get("instance_id") != record.instance_id:
         raise HTTPException(409, "The selected instance health identity does not match its registration.")
+    return client_url
+
+
+async def _destination(request: Request, instance_id: str) -> tuple[InstanceRecord, str]:
+    runtime = request.app.state.mc
+    record = runtime.registry.get(instance_id)
+    if record is None:
+        raise HTTPException(409, "The saved instance is no longer registered. Ask an operator to restore it.")
+    client_url = await _validate_running_destination(runtime, record)
+    if urlsplit(client_url).hostname != request.url.hostname:
+        raise HTTPException(409, "Destination must use the same hostname as player entry so the login cookie can be shared across ports.")
     return record, client_url
 
 
@@ -278,3 +285,45 @@ async def set_default(request: Request, instance_id: str) -> dict[str, object]:
     runtime.entry_settings.set_default(instance_id)
     runtime.audit.record("operator", "instance.default", target=instance_id)
     return {"ok": True, "default_instance_id": instance_id}
+
+
+@router.get("/api/mc/instances/{world_id}/destination")
+async def fleet_world_destination(request: Request, world_id: str) -> Response:
+    """Resolve a running instance serving *world_id* for cross-world travel.
+
+    Token-authenticated fleet endpoint: a participating world asks mission
+    control which instance currently serves a target world so the browser can be
+    redirected there. The caller still enforces same-host client URLs.
+    """
+
+    _require_token(request)
+    runtime = request.app.state.mc
+    candidates = [record for record in runtime.registry.list() if record.world_id == world_id]
+    if not candidates:
+        return JSONResponse(status_code=404, content={
+            "ok": False, "code": "world_not_found",
+            "message": f"No instance is registered for world '{world_id}'.",
+        })
+    running = [
+        record for record in candidates
+        if runtime.registry.snapshot(record)["status"] == STATUS_RUNNING and record.registered_at
+    ]
+    if not running:
+        return JSONResponse(status_code=503, content={
+            "ok": False, "code": "world_unavailable",
+            "message": f"World '{world_id}' is not currently running.",
+        })
+    record = running[0]
+    try:
+        client_url = await _validate_running_destination(runtime, record)
+    except HTTPException as exc:
+        return JSONResponse(status_code=exc.status_code, content={
+            "ok": False, "code": "destination_invalid", "message": str(exc.detail),
+        })
+    return JSONResponse(status_code=200, content={
+        "ok": True,
+        "instance_id": record.instance_id,
+        "world_id": record.world_id,
+        "client_url": client_url,
+        "entry_room_id": record.entry_room_id,
+    }, headers={"Cache-Control": "no-store"})

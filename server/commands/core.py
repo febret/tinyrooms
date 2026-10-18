@@ -56,11 +56,18 @@ def require_room_id(context: CommandContext) -> str:
 
 
 def _describe_exit(exit_definition: ExitDefinition) -> dict[str, object]:
+    if exit_definition.target_world_id is not None:
+        if exit_definition.target_room_id:
+            description = f"Leads to {exit_definition.target_room_id} in {exit_definition.target_world_id}."
+        else:
+            description = f"Leads to the world {exit_definition.target_world_id}."
+    else:
+        description = f"Leads to {exit_definition.target_room_id}."
     return {
         "kind": "exit",
         "id": exit_definition.id,
         "label": exit_definition.label,
-        "description": f"Leads to {exit_definition.target_room_id}.",
+        "description": description,
         "locked": exit_definition.locked,
     }
 
@@ -211,6 +218,10 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
         raise CommandError("Choose an exit to use.")
     exit_token = command.args[0]
     exit_id = parse_target(exit_token).value if exit_token.startswith("@") else exit_token
+    exit_definition = context.rooms.room_definition(room_id).exits.get(exit_id)
+    if exit_definition is not None and exit_definition.target_world_id is not None:
+        payload = await context.cross_world.travel(context.account, exit_definition)
+        return CommandOutcome(message="You step through the portal.", payload=payload)
     navigation = await context.rooms.navigate(context.account, room_id, exit_id)
     changes = context.tasks.record(
         context.account.id,

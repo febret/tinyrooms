@@ -390,6 +390,7 @@ class RoomService:
             "id": exit_definition.id,
             "label": exit_definition.label,
             "target_room_id": exit_definition.target_room_id,
+            "target_world_id": exit_definition.target_world_id,
             "locked": exit_definition.locked,
             "requires_card_id": exit_definition.requires_card_id,
             "npc_barrier": exit_definition.npc_barrier,

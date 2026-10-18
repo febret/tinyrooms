@@ -16,7 +16,7 @@ from server.security import utc_now
 from server.state.migrations import DatabaseHub
 
 
-PLAYER_ROOM_PREFIX = "bedroom:"
+PLAYER_ROOM_PREFIX = "classroom:"
 
 
 def _position_from_json(raw: str) -> tuple[float, float, float]:
@@ -54,10 +54,10 @@ class RoomCardStack:
 
 @dataclass(frozen=True, slots=True)
 class PlayerRoomRecord:
-    """A persisted per-player bedroom, backed by a ``room_states`` row.
+    """A persisted per-player classroom, backed by a ``room_states`` row.
 
-    ``door`` carries both the lock state and the validated customization:
-    ``{"style": {...}, "locked": bool}``.
+    ``door`` carries the lock state, the grade floor, and the validated
+    customization: ``{"style": {...}, "locked": bool, "grade": int}``.
     """
 
     room_id: str
@@ -101,7 +101,7 @@ class WorldStateRepository:
         )
 
     def list_player_rooms(self) -> list[PlayerRoomRecord]:
-        """Return every persisted player room in creation order."""
+        """Return every persisted player classroom in creation order."""
 
         with self._hub.locked() as connection:
             rows = connection.execute(
@@ -160,14 +160,14 @@ class WorldStateRepository:
         room_id: str,
         door: dict[str, Any],
     ) -> None:
-        """Update a player room's door customization and lock state."""
+        """Update a player room's door customization, lock, and grade."""
 
         cursor = connection.execute(
             "UPDATE world.room_states SET door_json = ? WHERE room_id = ? AND room_id LIKE ?",
             (json.dumps(door), room_id, f"{PLAYER_ROOM_PREFIX}%"),
         )
         if cursor.rowcount != 1:
-            raise ValueError("That bedroom no longer exists.")
+            raise ValueError("That classroom no longer exists.")
 
     @staticmethod
     def _mark_room_initialized(connection: sqlite3.Connection, room_id: str) -> None:
