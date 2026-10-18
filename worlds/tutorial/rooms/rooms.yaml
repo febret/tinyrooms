@@ -1,6 +1,6 @@
 hub:
-  label: HTTP Hub
-  description: A sunlit pocket plaza. Cross the glowing portal to begin.
+  label: The Hub
+  description: ''
   board_type: basic
   board_image: hub.jpg
   board_image_style: stretch
@@ -13,39 +13,24 @@ hub:
     - palette
     - board_image_style
   props:
-    portal0:
-      prop: portal
+    custom:6df0fc7e-febf-42bd-af42-8cc5e63b085c:
+      prop: dollhouse
       pos:
-      - 26
-      - 42
+      - 50
+      - 45
       - 0
       rot:
       - 0
+      - 357.7800000000009
       - 0
-      - 0
-      scale: 1.1
+      scale: 1.6615683448199627
       actions:
-      - - Go across
+      - - Enter
         - .go exit0
-    archway0:
-      prop: archway
-      pos:
-      - 55
-      - 5
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1
-      activity: bedrooms
-      actions:
-      - - Enter the Bedrooms
-        - .play bedrooms
   exits:
     exit0:
-      label: Cross the portal
-      target: playroom
+      label: Enter the Dollhouse
+      target: foyer
 playroom:
   label: The Playroom
   description: Molly keeps watch over a dollhouse. Pet, chat, or play a round of Lazor
@@ -128,45 +113,25 @@ foyer:
     - palette
     - board_image_style
   props:
-    front-door0:
-      prop: locked-front-door
+    custom:bf14a86a-8069-4f8d-b684-f0aa3cbf1da3:
+      prop: oak-panel-door
       pos:
-      - 51
-      - 16
+      - 50
       - 0
-      scale: 1
-      behavior: front-door
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.4333294145603401
       actions:
       - - Open the front door
         - .go @way:garden
-    upstairs0:
-      prop: stairs
-      pos:
-      - 83
-      - 38
-      - 0
-      scale: 0.95
-      actions:
-      - - Up to bedroom
-        - .go bedroom
-    foyer-picture:
-      prop: framed-picture
-      pos:
-      - 18
-      - 22
-      - 0
-      scale: 0.8
-    foyer-rug:
-      prop: rug
-      pos:
-      - 47
-      - 61
-      - 0
-      scale: 1.5
+      behavior: locked-door
   exits:
     playroom:
       label: Out of the dollhouse
-      target: playroom
+      target: hub
     kitchen:
       label: Into the kitchen
       target: kitchen
@@ -515,7 +480,7 @@ utility:
       label: Down to the basement
       target: basement
 basement:
-  label: The Blue-Hour Basement
+  label: The Basement
   description: Too dark to make out the props. Equip a Flashlight in Inventory, then
     Use it; it lasts ten minutes. Something skitters once the light is on.
   board_type: basic
@@ -553,13 +518,6 @@ basement:
       - 0
       scale: 1.25
       behavior: centipedes
-    basement-shelf:
-      prop: bookshelf
-      pos:
-      - 77
-      - 24
-      - 0
-      scale: 0.9
   exits:
     utility:
       label: Back upstairs
