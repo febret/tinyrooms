@@ -59,6 +59,10 @@ export function publishDraft(draft, confirm = false) {
   return request("POST", "/api/world-editor/publish", { draft, confirm });
 }
 
+export function resetRoom(roomId) {
+  return request("POST", "/api/world-editor/reset-room", { room_id: roomId });
+}
+
 export function loadCardDatabase() {
   return request("GET", "/api/card-database");
 }

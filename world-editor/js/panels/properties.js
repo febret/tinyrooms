@@ -56,12 +56,14 @@ function roomPanel(state) {
       <fieldset class="subgroup">
         <legend>Exits</legend>
         ${exits.map(([exitId, exit]) => `
-          <div class="list-row">
-            <code>${escapeHtml(exitId)}</code>
-            <input type="text" data-exit-field="${escapeHtml(exitId)}:label" value="${escapeHtml(exit.label || "")}" placeholder="Label" aria-label="Exit label">
-            <select data-exit-field="${escapeHtml(exitId)}:target">${selectOptions(roomOptions, exit.target)}</select>
+          <div class="list-card">
+            <div class="list-card-head">
+              <code title="${escapeHtml(exitId)}">${escapeHtml(exitId)}</code>
+              <button type="button" class="icon-button" data-exit-delete="${escapeHtml(exitId)}" aria-label="Delete exit">✕</button>
+            </div>
+            ${field("Label", textInput(exit.label || "", `data-exit-field="${escapeHtml(exitId)}:label"`, "Label"))}
+            ${field("Target room", `<select data-exit-field="${escapeHtml(exitId)}:target">${selectOptions(roomOptions, exit.target)}</select>`)}
             <label class="mini-check">${checkbox(Boolean(exit.locked), `data-exit-field="${escapeHtml(exitId)}:locked"`)} locked</label>
-            <button type="button" class="icon-button" data-exit-delete="${escapeHtml(exitId)}" aria-label="Delete exit">✕</button>
           </div>
         `).join("") || '<p class="empty-state">No exits.</p>'}
         <button type="button" class="quiet" data-exit-add>Add exit</button>
@@ -98,12 +100,21 @@ function propPanel(state) {
   const position = Array.isArray(instance.pos) ? instance.pos : [50, 50, 0];
   const rotation = Array.isArray(instance.rot) ? instance.rot : [0, 0, 0];
   const isText = instance.prop === "builtin:text";
-  const propOptions = (catalog?.props || []).filter(prop => isText ? prop.id === instance.prop : prop.render_kind !== "text")
-    .map(prop => ({ value: prop.id, label: prop.label }));
+  const currentLabel = (catalog?.props || []).find(prop => prop.id === instance.prop)?.label || instance.prop;
+  const picker = state.editorSettings?.picker;
+  const picking = Boolean(picker && picker.roomId === selection.id && picker.sub === selection.sub);
   return `
     ${panelHeader(propId, `Prop · ${selection.id}`)}
     <div class="properties-body">
-      ${field("Prop type", `<select data-instance-field="prop" ${isText ? "disabled" : ""}>${selectOptions(propOptions, instance.prop)}</select>`)}
+      <div class="field">
+        <span>Prop type</span>
+        <div class="prop-type-row">
+          <code class="prop-type-current" title="${escapeHtml(instance.prop)}">${escapeHtml(currentLabel)}</code>
+          ${isText
+            ? ""
+            : `<button type="button" data-prop-pick${picking ? ' class="is-active"' : ""}>${picking ? "Picking…" : "Choose prop…"}</button>${picking ? '<button type="button" class="quiet" data-prop-pick-cancel>Cancel</button>' : ""}`}
+        </div>
+      </div>
       ${isText ? `<p class="text-prop-content">${escapeHtml(instance.text?.content || "")}</p><button type="button" data-edit-action="edit-text" ${state.editorSettings?.locks?.[selection.id]?.[propId] ? "disabled" : ""}>Edit text</button>` : ""}
       <div class="field-row">
         ${field("X", numberInput(position[0], `data-instance-field="pos.0"`))}

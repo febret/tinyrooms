@@ -26,6 +26,8 @@
 .editor-library-item:hover { background: #12384a; }
 .editor-thumb { width: 64px; height: 64px; display: block; object-fit: contain; }
 .editor-library-empty { flex: 0 0 auto; margin: 2px; }
+.editor-pick-hint { flex: 0 0 auto; margin: 0; padding: 4px 6px; background: #241708; color: #ffd9a8; border-bottom: 1px solid #c9904366; font-size: 11px; }
+.editor-library-grid.is-picking .editor-library-item { box-shadow: inset 0 0 0 1px #c9904366; }
 .editor-dock-panel > [data-editor-conflict] { display: contents; }
 .editor-conflict { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; padding: 2px; border-bottom: 1px solid #7a5a2a; background: #2a2113; color: #f2d9a8; font-size: 12px; }
 .editor-settings { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-bottom: 1px solid #2b4652; }

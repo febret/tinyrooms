@@ -3,6 +3,7 @@ import {
   loadDraft,
   loadSession,
   publishDraft,
+  resetRoom,
   saveDraft,
   validateDraft,
 } from "./api.js";
@@ -98,6 +99,11 @@ const textStore = {
 };
 function handleEditorAction(action) {
   if (previewing || dialogs.active || pendingConfirm) return;
+  if (action.action === "reset") { store.editorSettings({ resetArmed: true }); return; }
+  if (action.action === "reset-cancel") { store.editorSettings({ resetArmed: false }); return; }
+  if (action.action === "reset-confirm") { void runResetRoom(); return; }
+  const picker = store.state.editorSettings?.picker;
+  if (picker && action.type === "edit-add") return replaceSelectedProp(action.propId, picker);
   if ((action.type === "edit-add" && action.propId === "builtin:text") || action.action === "add-text") {
     return openTextPropDialog({ dialogs, store: textStore });
   }
@@ -106,6 +112,33 @@ function handleEditorAction(action) {
   }
   roomEditor.onAction(action);
 }
+
+function replaceSelectedProp(propId, picker) {
+  if (propId === "builtin:text") {
+    store.status("Text props cannot replace a prop type.");
+    return;
+  }
+  store.update(draft => {
+    const instance = draft.rooms?.[picker.roomId]?.props?.[picker.sub];
+    if (instance && instance.prop !== "builtin:text") instance.prop = propId;
+  });
+  store.editorSettings({ picker: null });
+  store.select({ kind: "prop", id: picker.roomId, sub: picker.sub });
+}
+
+async function runResetRoom() {
+  const roomId = currentRoomId();
+  if (!roomId) return;
+  store.status("Resetting…");
+  try {
+    await resetRoom(roomId);
+    store.editorSettings({ resetArmed: false });
+    store.status(`Room '${roomId}' reset to its definition.`);
+  } catch (error) {
+    store.status("", error.message);
+  }
+}
+
 const editorDock = createEditorDock({
   root: elements.editorDock,
   authoring: true,
@@ -501,6 +534,12 @@ function changeSystemField(section, spec, target) {
 function handleClick(target) {
   const dataset = target.dataset;
   if (dataset.action) return handleAction(dataset.action);
+  if (dataset.propPick !== undefined) {
+    const { kind, id, sub } = store.state.selection;
+    if (kind === "prop" && sub) store.editorSettings({ picker: { roomId: id, sub } });
+    return;
+  }
+  if (dataset.propPickCancel !== undefined) return store.editorSettings({ picker: null });
   if (dataset.tab) return store.activeTab(dataset.tab);
   if (dataset.room !== undefined) return store.select({ kind: "room", id: dataset.room });
   if (dataset.roomAdd !== undefined) return addRoom();
@@ -824,7 +863,7 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("click", event => {
-  const target = event.target.closest("[data-action],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
+  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
   if (!target) return;
   if (target.dataset.room !== undefined && target.dataset.roomAdd === undefined && target.dataset.roomDelete === undefined) {
     store.select({ kind: "room", id: target.dataset.room });

@@ -55,6 +55,24 @@ class LayoutUpdate:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class RoomReset:
+    """A committed room reset ready to broadcast."""
+
+    room_id: str
+    revision: int
+    prop_instance_ids: tuple[str, ...]
+
+    def event(self) -> dict[str, object]:
+        """Serialize the reset as a room broadcast event."""
+
+        return {
+            "type": "room.reset",
+            "room_id": self.room_id,
+            "revision": self.revision,
+        }
+
+
 def _vector(raw_value: object, fallback: tuple[float, float, float]) -> tuple[float, float, float]:
     if not isinstance(raw_value, (list, tuple)) or len(raw_value) != 3:
         return fallback
@@ -332,6 +350,34 @@ class RoomLayoutService:
             revision=revision,
             props=[self._serialize_instance(room_id, instance) for instance in effective],
             environment=self.visual_environment(room_id),
+        )
+
+    def reset(
+        self,
+        account: AccountRecord,
+        room_id: str,
+        *,
+        authorized_override: bool = False,
+    ) -> RoomReset:
+        """Restore a room's live state to its definition and return the update.
+
+        ``authorized_override`` lets an already-gated editor route (World
+        Editor) reset rooms the actor does not own; ordinary room editors use
+        the standard ownership check.
+        """
+
+        room = self._room(room_id)
+        if not authorized_override and not self.can_edit(account, room_id):
+            raise ValueError("You do not have permission to edit this room.")
+        if room.template:
+            raise ValueError("Template rooms cannot be reset.")
+        revision = self._world_state.reset_room_state(self._world, room_id)
+        if self._room_effects is not None:
+            self._room_effects.clear_room(room_id)
+        return RoomReset(
+            room_id=room_id,
+            revision=revision,
+            prop_instance_ids=tuple(room.props.keys()),
         )
 
     @staticmethod

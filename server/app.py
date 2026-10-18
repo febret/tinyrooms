@@ -842,6 +842,22 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         await _broadcast_room_event(runtime, room_id=room_id, event=update.event())
         return JSONResponse(content={"ok": True, "layout": runtime.layout.view(account, room_id)})
 
+    @app.post("/api/rooms/{room_id}/reset")
+    async def reset_room_layout(request: Request, room_id: str) -> Response:
+        runtime = _get_runtime(request)
+        session = _require_session(runtime, request)
+        _enforce_authenticated_post(runtime, request, session)
+        if room_id not in runtime.world.rooms:
+            raise HTTPException(status_code=404, detail="Room not found.")
+        account = runtime.profiles.get_account_by_id(session.account_id)
+        try:
+            reset = runtime.layout.reset(account, room_id)
+        except ValueError as exc:
+            return _json_error(400, "reset_rejected", str(exc))
+        runtime.dispensers.clear_room(reset.prop_instance_ids)
+        await _broadcast_room_event(runtime, room_id=room_id, event=reset.event())
+        return JSONResponse(content={"ok": True, "layout": runtime.layout.view(account, room_id)})
+
     @app.get("/api/activities/current")
     async def current_activity(request: Request) -> dict[str, object]:
         runtime = _get_runtime(request)

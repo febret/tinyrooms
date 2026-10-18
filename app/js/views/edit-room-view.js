@@ -110,8 +110,13 @@ export function editRoomView(state, { authoring = false } = {}) {
     `;
   }
   const library = availableLibrary(editor, state.user?.unlockedProps);
+  const picking = Boolean(editor.picker);
+  const resetMarkup = editor.resetArmed
+    ? `<button type="button" class="negative" data-edit-action="reset-confirm" data-editor-reset-confirm>Confirm reset</button>
+       <button type="button" class="quiet" data-edit-action="reset-cancel">Cancel</button>`
+    : '<button type="button" class="quiet editor-reset" data-edit-action="reset" data-editor-reset>Reset</button>';
   return `
-    <section class="edit-room-view editor-dock-panel" role="region" aria-label="Edit Room">
+    <section class="edit-room-view editor-dock-panel${picking ? " is-picking" : ""}" role="region" aria-label="Edit Room">
       <header class="editor-dock-header">
         <strong>Edit Room</strong>
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
@@ -124,15 +129,17 @@ export function editRoomView(state, { authoring = false } = {}) {
         <button type="button" class="negative" data-editor-delete data-edit-action="remove" aria-label="Delete selected prop" disabled>Delete</button>
         <span class="editor-status" role="status" data-editor-status>${authoring ? "Draft saved" : "All changes saved"}</span>
         <span class="editor-library-count" role="status"></span>
+        ${resetMarkup}
         ${authoring ? "" : '<button type="button" class="quiet editor-close" data-close-view aria-label="Close room editor">Close</button>'}
       </header>
       <div data-editor-conflict>${editorConflictMarkup(editor)}</div>
+      ${picking ? '<p class="editor-pick-hint" role="status">Choose a prop from the grid below to replace the selected prop\u2019s type.</p>' : ""}
       <div class="editor-workspace">
         <div class="editor-propsets" role="list" aria-label="Prop sets">
           ${libraryPropsetMarkup(library)}
         </div>
         <section class="editor-library-section">
-          <div class="editor-library-grid" role="list" aria-label="${authoring ? "World props" : "Approved decorative props"}">
+          <div class="editor-library-grid${picking ? " is-picking" : ""}" role="list" aria-label="${authoring ? "World props" : "Approved decorative props"}">
             ${libraryGridMarkup(library)}
           </div>
           <p class="editor-library-empty empty-state" hidden>No props match your filters.</p>

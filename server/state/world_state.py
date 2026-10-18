@@ -221,6 +221,60 @@ class WorldStateRepository:
             self._mark_room_initialized(connection, room_id)
         return stacks
 
+    def reset_room_state(self, world: WorldDefinition, room_id: str) -> int:
+        """Restore a room's persisted state to its definition.
+
+        Re-seeds the authored room cards and editable prop layout, clears
+        environment overrides and room-local prop script state, and bumps the
+        layout revision. Ownership, door customization, and player progression
+        are preserved.
+        """
+
+        room = world.rooms.get(room_id)
+        if room is None:
+            raise ValueError("That room does not exist.")
+        prop_instance_ids = set(room.props.keys())
+        with self._hub.transaction() as connection:
+            connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            self._insert_seed_cards(connection, room_id, room.initial_cards)
+            self._mark_room_initialized(connection, room_id)
+            self._seed_room_layout(connection, room_id, room, world)
+            self._clear_prop_behavior_state(connection, prop_instance_ids)
+            revision = self._reset_room_environment(connection, room_id)
+        self.invalidate_room_environment(room_id)
+        return revision
+
+    @staticmethod
+    def _clear_prop_behavior_state(
+        connection: sqlite3.Connection,
+        instance_ids: set[str],
+    ) -> None:
+        """Delete persisted script state for a room's prop instances."""
+
+        if not instance_ids:
+            return
+        ids = sorted(instance_ids)
+        placeholders = ",".join("?" for _ in ids)
+        connection.execute(
+            f"DELETE FROM world.behavior_state WHERE namespace = 'prop' AND instance_id IN ({placeholders})",
+            ids,
+        )
+
+    @staticmethod
+    def _reset_room_environment(connection: sqlite3.Connection, room_id: str) -> int:
+        """Clear a room's environment overrides and advance its layout revision."""
+
+        row = connection.execute(
+            "SELECT layout_revision FROM world.room_states WHERE room_id = ?",
+            (room_id,),
+        ).fetchone()
+        revision = (int(row["layout_revision"]) if row is not None else 0) + 1
+        connection.execute(
+            "UPDATE world.room_states SET environment_json = '{}', layout_revision = ? WHERE room_id = ?",
+            (revision, room_id),
+        )
+        return revision
+
     def seed_player_room(self, room_id: str, room, world: WorldDefinition) -> None:
         """Initialize a dynamically created room from its definition."""
 

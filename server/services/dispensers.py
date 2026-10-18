@@ -52,6 +52,12 @@ class DispenserService:
         self._environment = environment
         self._cooldowns: dict[tuple[str, str], datetime] = {}
 
+    def clear_room(self, prop_instance_ids: tuple[str, ...]) -> None:
+        """Drop recharging cooldowns for the given prop instances in this world."""
+
+        for instance_id in prop_instance_ids:
+            self._cooldowns.pop((self._world.id, instance_id), None)
+
     def _prop(self, room_id: str, prop_instance_id: str) -> PropInstanceDefinition:
         room = self._world.rooms.get(room_id)
         if room is None:

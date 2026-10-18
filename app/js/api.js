@@ -131,6 +131,13 @@ export function createApiClient() {
       }
       return { conflict: false, layout: body.layout || null };
     },
+    async resetRoomLayout(roomId) {
+      const body = await requestJson(`/api/rooms/${encodeURIComponent(roomId)}/reset`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      return body;
+    },
     async bridgeActivity(activity, type, payload = {}) {
       if (!activity?.bridgeUrl) {
         throw new Error("This activity cannot be bridged right now.");

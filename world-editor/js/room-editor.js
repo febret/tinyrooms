@@ -40,6 +40,8 @@ export function worldRoomEditor(state, roomId) {
     selectedId: state.selection.kind === "prop" && state.selection.id === roomId ? state.selection.sub : null,
     snapPosition: settings.snapPosition ?? true,
     snapRotation: settings.snapRotation ?? false,
+    picker: settings.picker && settings.picker.roomId === roomId ? { ...settings.picker } : null,
+    resetArmed: Boolean(settings.resetArmed),
     undo: state.undo,
     redo: state.redo,
     dirty: state.dirty,

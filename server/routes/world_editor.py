@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from server.base_path import render_html
 from server.behaviors import builtin as builtin_behaviors_module
 from server.behaviors.builtin import BUILTIN_BEHAVIORS
+from server.broadcast import broadcast_room_event
 from server.config import ConfigError, ensure_contained
 from server.content.text_props import text_options
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
@@ -45,6 +46,12 @@ class PublishPayload(BaseModel):
 
     draft: dict[str, object] = Field(default_factory=dict)
     confirm: bool = False
+
+
+class ResetRoomPayload(BaseModel):
+    """Live-room reset request payload."""
+
+    room_id: str
 
 
 def _editor_root(runtime) -> Path:
@@ -222,6 +229,28 @@ async def validate_draft(request: Request, payload: DraftPayload) -> dict[str, o
     enforce_authenticated_post(runtime, request, session)
     report = runtime.editor_service().validate(payload.draft)
     return {"ok": True, "report": report.to_payload()}
+
+
+@router.post("/api/world-editor/reset-room")
+async def reset_live_room(request: Request, payload: ResetRoomPayload) -> JSONResponse:
+    """Reset a live room to its current YAML definition and refresh clients."""
+
+    runtime = get_runtime(request)
+    account = require_editor_access(runtime, request, feature="world-editor")
+    session = require_session(runtime, request)
+    enforce_authenticated_post(runtime, request, session)
+    if payload.room_id not in runtime.world.rooms:
+        raise HTTPException(status_code=404, detail="Room not found.")
+    try:
+        reset = runtime.layout.reset(account, payload.room_id, authorized_override=True)
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "code": "reset_rejected", "message": str(exc)},
+        )
+    runtime.dispensers.clear_room(reset.prop_instance_ids)
+    await broadcast_room_event(runtime, room_id=payload.room_id, event=reset.event())
+    return JSONResponse(content={"ok": True, "revision": reset.revision})
 
 
 @router.post("/api/world-editor/publish")

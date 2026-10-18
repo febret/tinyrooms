@@ -495,6 +495,9 @@ basement:
     - palette
     - board_image_style
   dark: true
+  aura:
+  - source: scary
+    requires_prop: bugs0
   props:
     key0:
       prop: keys-cabinet
@@ -520,9 +523,9 @@ basement:
       label: Back upstairs
       target: utility
 garden:
-  label: The Pocket Garden
-  description: You made it outside! The green city trashcan takes bagged litter-tray messes.
-    Check your Journal, share an emote, and make the bedroom your own.
+  label: The Backyard
+  description: You made it outside! Check your Journal, share an emote, and make the
+    bedroom your own.
   board_type: basic
   board_image: garden.png
   board_image_style: stretch
@@ -535,52 +538,21 @@ garden:
     - palette
     - board_image_style
   props:
-    garden-plant0:
-      prop: plant
+    custom:0ff53339-813c-4c9c-84e5-88af66283442:
+      prop: locked-front-door
       pos:
-      - 23
-      - 24
+      - 55
+      - 5
       - 0
-      scale: 1.3
-    garden-trashcan:
-      prop: city-trashcan
-      pos: [18, 58, 0]
-      rot: [0, 15, 0]
-      scale: 1.2
-      behavior: trashcan
-    garden-plant1:
-      prop: plant
-      pos:
-      - 80
-      - 65
+      rot:
       - 0
-      scale: 1.5
-    garden-bench:
-      prop: sofa
-      pos:
-      - 65
-      - 24
       - 0
-      scale: 1.1
-  cards:
-  - card: happy-dance
-    quantity: 1
-    pos:
-    - 41
-    - 54
-    - 0
-  - card: heart
-    quantity: 1
-    pos:
-    - 60
-    - 70
-    - 0
-  - card: spirited
-    quantity: 1
-    pos:
-    - 29
-    - 73
-    - 0
+      - 0
+      scale: 1.7228846360108903
+      actions:
+      - - Enter
+        - .go foyer
+  cards: []
   exits:
     foyer:
       label: Back inside

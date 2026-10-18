@@ -79,6 +79,7 @@ export function normalizeEditorView(view) {
     undo: [],
     redo: [],
     dirty: false,
+    resetArmed: false,
     conflict: null,
     status: "",
     error: "",
@@ -354,6 +355,8 @@ export function editorReducer(state, action) {
     }
     case "editor-snap":
       return editor ? { ...state, editor: { ...editor, [action.which === "rotation" ? "snapRotation" : "snapPosition"]: Boolean(action.value) } } : state;
+    case "editor-reset-arm":
+      return editor ? { ...state, editor: { ...editor, resetArmed: Boolean(action.armed) } } : state;
     case "editor-saved":
       return editor ? { ...state, editor: applySaved(editor, action.view) } : state;
     case "editor-conflict":
