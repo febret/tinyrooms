@@ -44,12 +44,13 @@ brief is currently missing; shipped content is in [worlds/tutorial](../worlds/tu
 - **User-controlled peep**: the character controlled by a user.
 - **NPC**: a peep not controlled by a user.
 - **Board**: the central 3D room scene, including its floor and props.
-- **Room View**: the overlay listing cards placed in the current room, opened
-  from the selected room's `Open Room View` quick action.
+- **Room Picker**: the toolbar popup listing interactive props and cards placed
+  in the current room for selection.
 - **Inventory**: all cards owned by a user, including equipped cards.
 - **Equipped cards**: owned item or action card stacks selected for active use in
   the Card View. Each stack uses one equipped-card slot, regardless of its size.
-  Skill cards are slotted separately; emote cards do not need equipping.
+  Skill cards are slotted separately; emote cards do not need equipping. The
+  bottom-right hand shows equipped cards as cropped artwork icons.
 - **Task**: an objective tracked in the Journal, which may contain multiple steps.
   Quests are not a separate gameplay concept.
 - **Card type**: a card's gameplay role, such as an item, emote, or skill.
@@ -149,7 +150,7 @@ displays a 3D room rendering in the center, peeps on the left, and a
 primary interaction area at the bottom. Overlay UIs can be displayed on top of
 the primary screen.
 
-Inventory, Room View, Skills View, Journal, Self View, and Prop Details
+Inventory, Journal, and Prop Details
 View are **Board-modal views**: they block interaction with the Board behind them,
 but the Peeps List, Look Bar,
 Quick Actions Bar, and Chat Bar remain usable. Their bottom-bar actions apply to
@@ -171,6 +172,9 @@ Every Board-modal view and nested popup has a visible `Close` control. On a
 keyboard, Escape cancels active targeting first; otherwise it closes the topmost
 popup or view. Re-selecting the core card for the currently open view toggles
 that view closed. Activity windows retain their own explicit Close control.
+Close controls live in the views themselves, rather than the Quick Actions Bar.
+The Room Picker and Emote Picker are mutually exclusive popups; dismissing either
+preserves the current selection.
 
 > NOTE: In the screenshots below, red boxes with white text are labels/notes; they
 > are NOT part of the UI.
@@ -190,8 +194,7 @@ Main components (red labels above):
 
 #### The Board
 The Board is displayed in the middle of the game screen. The "Room View" label
-in the screenshot above is outdated and refers to the Board, not the Room View
-overlay. A room is displayed as
+in the screenshot above is outdated and refers to the Board. A room is displayed as
 a floor that can be freely rotated / zoomed by the user. The floor may have 
 3D objects and other features on it (Props). At minimum, rooms can have a different 
 floor texture, but other more complex room displays are also supported.
@@ -201,8 +204,9 @@ floor texture, but other more complex room displays are also supported.
 The Peeps List shows the list of peeps in this room (both user-controlled peeps and NPCs).
 The user's own peep is displayed at the top left, slightly larger than the others.
 It is an overlay down the left edge of the Board: the Board stays visible behind
-it, and the Inventory, Journal, and activity windows may overlap it too. A toolbar
-button toggles the Peeps List; hiding it hides the peep standees but keeps their
+it, and the Inventory, Journal, and activity windows may overlap it too. The
+`Show peeps sidebar` toggle in Settings exposes its state as pressed or unpressed;
+hiding it hides the peep standees but keeps their
 speech and emote bubbles anchored along the left edge.
 
 Users can **pin / unpin** peeps (through a quick action on a selected peep).
@@ -216,14 +220,15 @@ The bottom Card View shows equipped item and action stacks.
 
 **Core** controls are non-collectible buttons that open built-in gameplay actions
 or submenus. Inventory and Journal sit in a horizontal toolbar at the top of the
-screen, beside a button that toggles the Peeps sidebar; the Emotes control sits to
+screen, with a `Look around` Room Picker button immediately to the right of
+Inventory; the Emotes control sits to
 the left of the Chat Bar. Core controls do not appear in card packs, cannot be
 dropped or traded, and use no equipment slots.
 Core control availability can depend on permissions and the room. Inventory,
 Emotes, and Journal are available from the start in the tutorial and are always
-displayed in a fixed order. Room View and Skills are opened from quick actions
-rather than core controls. The tutorial teaches these views gradually rather than
-locking them; Skills initially has no unlocked slots.
+displayed in a fixed order. Self, Skills, and Friends are sections of the Journal.
+The tutorial teaches these sections gradually rather than locking them; Skills
+initially has no unlocked slots.
 
 Equipped stacks follow [Equipment](#equipment) capacity, eligibility, and bonus
 rules. They sit at the right edge of the tray, with
@@ -232,9 +237,9 @@ rise smoothly to reveal the full card. On narrow portrait screens, the cards
 shrink to fit while the selected peep sticker or prop preview remains in a
 separate lane on the left.
 
-The user's own peep offers `Open Self`, `Friends`, and `Skills` quick actions. A
-room the user owns offers an `Edit Room` quick action, which opens the
-room-editing view; a selected room offers `Open Room View`.
+The user's own peep offers only `Swap Sticker…` as its built-in quick action.
+A room the user owns offers an `Edit Room` quick action, which opens the
+room-editing view. Room selection retains its exit actions.
 
 
 #### The Look Bar
@@ -277,12 +282,17 @@ scrolling text lines. It is hidden by default and can be toggled through the
 client settings.
 
 
-### The Room View
-![The Room View](./images/room-view.png)
+### The Room Picker
+The `Look around` toolbar button opens a compact popup with **Props** and **Cards**
+sections. Props appear only when they have an active gameplay action; decorative
+props and props offering only Look or Inspect are excluded. Cards show artwork,
+stack quantities, and pinning state. Selecting a prop or card closes the picker
+and selects that entity for the Look Bar and Quick Actions Bar. Escape, the
+picker's Close control, or clicking outside dismisses it without changing selection.
+There is no separate Room View overlay or `Open Room View` quick action.
 
-Selecting the room and choosing `Open Room View` opens the Room View, listing
-cards placed in the room. Peeps can add or remove cards through drop and pickup
-interactions, subject to the ownership, pinning, and skill-slot rules below.
+Peeps can add or remove room cards through drop and pickup interactions, subject
+to the ownership, pinning, and skill-slot rules below.
 
 The room owner and other users authorized to edit the room can pin or unpin room
 card stacks. Pinning applies to the whole stack and prevents everyone, including
@@ -307,13 +317,14 @@ Core cards cannot be transferred.
 
 
 ### Card Details View
-![Selected Card in the Room View](./images/selected-card.png)
+![Selected room card (earlier layout)](./images/selected-card.png)
 
-Selecting a card in any display shows its name and short description in the Look Bar.
+Selecting a card in any display shows its name and short description in the Look Bar,
+and its full card image above the left side of the Look Bar.
 
 ![Card Details View](./images/card-details.png)
 
-Selecting the `Inspect` quick action on a card shows the Card Details View.
+Clicking the selected card's preview above the Look Bar shows the Card Details View.
 
 The popup has a book background and shows:
 - the card front and back in the popup's top-left and top-right corners, respectively.
@@ -382,18 +393,21 @@ second click takes the exit.
 
 #### Prop Details View
 ![Prop Details](./images/prop-details.png)
-Selecting `Inspect` on a prop opens the Prop Details View. In this view the user
+Clicking the selected prop's 3D preview above the Look Bar opens the Prop Details
+View. In this view the user
 can look at and rotate the 3D model for a prop.
 
 
-### Skills View
+### Journal: Skills
 ![Skills](./images/skills.png)
 
-The user's own peep's `Skills` quick action opens the skill grid.
+The Journal's **Skills** tab shows the skill grid across a full two-page spread,
+with effective stats alongside it. Choosing `Slot…` on an inventory skill opens
+this tab with that card ready for placement in an unlocked slot.
 
-Selecting a slot lets the user choose a skill card from Inventory. Slot
-availability, rank eligibility, bonuses, and removal follow the [Skills](#skills)
-rules.
+After choosing a skill in Inventory, selecting an empty unlocked slot places it;
+activating a filled slot removes its skill. Slot availability, rank eligibility,
+bonuses, and removal follow the [Skills](#skills) rules.
 
 > NOTE: The skills screenshot above shows "Level 1 – 1/2 available"; the
 > level-based slot rule in [Skills](#skills) takes precedence over the screenshot.
@@ -430,14 +444,17 @@ The Inventory header shows the user's Bops balance. A `Claim Daily Bops` quick
 action lets the user claim the daily allowance.
 
 
-### Self View
+### Journal: Self
 ![Self View](./images/self-view.png)
 
-The user's own peep's `Self` quick action opens Self View, showing statuses,
-level, stats, and counters (see [Core Gameplay](#core-gameplay)).
+The Journal's **Self** tab shows identity, level, and Kudos on the left page,
+with statuses, stats, counters, and Bops on the right page
+(see [Core Gameplay](#core-gameplay)).
 
-Self View provides a `Level Up` action for spending Kudos to increase the user's
-level.
+The Self spread provides a `Level Up` button for spending Kudos to increase the
+user's level. Counter and Kudos progress bars retain readable values while their
+fills stay within capacity. Surplus Kudos remain visible; at maximum level the
+balance remains visible and leveling is disabled.
 
 The `Swap Sticker` quick action (also available when the user's own peep is
 selected) reopens the Sticker Designer activity, letting the user change their
@@ -458,13 +475,12 @@ the current one.
 
 ### Friends
 Users can add other users as friends. The friends list is managed through a
-separate Friends panel, opened with the `Friends` quick action on the user's own
-peep. From the Friends panel the user can see their friends (including which
+two-page **Friends** tab in the Journal. From this spread the user can see their friends (including which
 ones are online), and remove friends. Friends can be added through the
 `Add Friend` quick action on another user's peep (the other user must accept the
 request). The friends list is part of the shared user profile, and Journal
 monthly progress includes the number of new friends made in the month.
-Incoming and outgoing requests are managed in the Friends panel and remain
+Incoming and outgoing requests occupy the right page of the Friends spread and remain
 pending until accepted, declined, or cancelled, including while a user is
 offline. Acceptance creates a mutual friendship; either user can remove the
 friendship for both.
@@ -558,7 +574,7 @@ as the per-level `kudos_to_next` field). The same file also defines the per-leve
 equipped-card slot limit (`max_equipped`), counted as equipped stacks rather than
 individual copies.
 
-Level advancement is manual: the user selects `Level Up` in Self View to spend
+Level advancement is manual: the user selects `Level Up` in the Journal's Self tab to spend
 the required Kudos and advance to the next level. Earning Kudos does not
 automatically increase the user's level.
 
@@ -756,7 +772,9 @@ an exception: selecting a core control opens its view or invokes its built-in
 action.
 
 Cards can target props or peeps, including the user's own peep. A self-only
-action resolves when its quick action is chosen. An action requiring a target
+action resolves when its quick action is chosen. Selecting a card never enters
+targeting mode on its own; choosing the `Use` quick action on an equipped card
+requiring a target
 enters targeting mode: clicking or touching a valid target previews an animated
 line from the card to the target. Selecting that same target again confirms the
 action. Selecting a different target changes the preview rather than confirming
@@ -867,7 +885,7 @@ Energy-consuming action restriction described in **Juice and Energy**.
 Each core status can occur only once per peep. Repeated application does not
 stack its penalties. Different statuses may coexist.
 
-Active statuses are also listed in the Self View (e.g., "You are Stinky, Tired").
+Active statuses are also listed in the Journal's Self tab (e.g., "You are Stinky, Tired").
 Worlds and mods can define additional statuses.
 
 
@@ -903,7 +921,7 @@ automatically undone when the peep leaves.
 
 ### Room Ownership
 Rooms can be owned by users. Owners have the [limited editing](#room-editing)
-and [room-card pinning](#the-room-view) permissions described in this document.
+and [room-card pinning](#the-room-picker) permissions described in this document.
 How ownership is acquired is world-defined: worlds can grant rooms through
 realtor users, task rewards, purchases or other custom mechanics. The core game
 only provides the ownership mechanism and the realtor commands to grant, remove,
@@ -1147,7 +1165,12 @@ no oversized invisible capture area.
 -------------------------------------------------------------------------------
 ## The Journal
 Selecting the Journal core card opens the Journal, which lets the user see
-active and past **Tasks** and **Memories**.
+five tabs in order: **Tasks**, **Memories**, **Self**, **Skills**, and **Friends**.
+Every tab fills the same two-page book, with independently scrollable page
+contents. Tasks and Memories share the calendar on the left and show their
+respective lists on the right; the other tabs use both pages for their content.
+Changing tabs resets stale task selection and task-memory filters, and leaving
+Skills clears pending skill placement.
 The Journal is private to its owner by default. Shared tasks may expose their
 explicitly shared progress, but do not expose participants' private memories.
 
@@ -1176,13 +1199,13 @@ Memories view organizes progress and collected memories by month. Memories are
 short messages from game activities, such as important dialogs and events.
 Task-related hints or progress points have a unique tag linking them to the task.
 
-The Memories view has two sections, the calendar and the memory list. The calendar
-(at the top) lets the user choose a month, shows a calendar view with markers on
+The Memories spread has two sections, the calendar and the memory list. The calendar
+(on the left page) lets the user choose a month, shows a calendar view with markers on
 days that indicate how many memories have been collected on that day, and shows
 information about progress for the user in that month (for instance, the number
 of tasks completed in the month, collected Kudos, new friends, etc.).
 
-The bottom part of the Memories view shows a scrollable list of memories for the
+The right page of the Memories spread shows a scrollable list of memories for the
 selected month.
 
 Users can also create memories manually: the `New Memory` quick action (shown

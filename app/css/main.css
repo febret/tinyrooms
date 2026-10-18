@@ -13,7 +13,7 @@
   --shell-bg: radial-gradient(ellipse at center, #0c3040, #061923 78%);
   --sidebar-width: 128px;
   --tray-height: 152px;
-  --equipped-card-width: 132px;
+  --hand-icon-size: 60px;
   --preview-lane-width: 144px;
   --dock-height: calc(156px + env(safe-area-inset-bottom, 0px));
   font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
@@ -57,7 +57,6 @@ h3 { font-size: 18px; }
 .core-tools .game-card, .core-tools .game-card:hover:not(:disabled), .core-tools .game-card:active:not(:disabled) { transform: none; }
 .core-tools:empty { display: none; }
 .peeps-visibility svg { width: 26px; height: 26px; }
-.app-shell.peeps-hidden .peeps-visibility { opacity: .55; }
 .app-shell.peeps-hidden .sidebar { visibility: hidden; }
 #board-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .prop-default-action, .target-confirm { position: absolute; white-space: normal; text-align: center; box-shadow: 0 2px 12px #061923aa; }
@@ -91,6 +90,11 @@ h3 { font-size: 18px; }
 .look-description { color: var(--ink); font-size: 17px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; }
 .look-preview { position: absolute; bottom: calc(100% + 14px); left: 4px; width: 90px; height: 115px; object-fit: contain; filter: drop-shadow(0 0 5px #8acb87); pointer-events: none; }
 .look-preview-3d { width: 124px; height: 124px; }
+.look-preview-button { z-index: 2; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 10px; background: none; box-shadow: none; pointer-events: auto; cursor: zoom-in; transition: transform .15s ease, filter .15s ease; }
+.look-preview-button:hover:not(:disabled) { transform: translateY(-3px); filter: drop-shadow(0 0 8px #a6dafa) brightness(1.08); }
+.look-preview-button > canvas { display: block; width: 100%; height: 100%; pointer-events: none; }
+.look-preview-card { width: 96px; height: auto; filter: drop-shadow(0 4px 8px #000a); }
+.look-preview-card > img { width: 100%; height: auto; border-radius: 7px; }
 .actions-bar { display: flex; align-items: center; gap: 6px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .actions-bar button { flex-shrink: 0; font-size: 15px; }
 .actions-bar button.icon-action { padding: 0; }
@@ -243,7 +247,7 @@ h3 { font-size: 18px; }
   .peep-name { font-size: 8px; }
 }
 @media (max-width: 780px), (orientation: portrait) {
-  :root { --tray-height: 112px; --preview-lane-width: 100px; --equipped-card-width: 96px; }
+  :root { --tray-height: 112px; --preview-lane-width: 100px; --hand-icon-size: 50px; }
   .sidebar { padding: 0 1px 10px; top: 12px; }
   .peep-list { gap: 14px; }
   .peep-marker { height: 34px; margin-bottom: 6px; }
@@ -264,6 +268,7 @@ h3 { font-size: 18px; }
   .look-description { font-size: 14px; }
   .look-preview { width: 54px; height: 68px; left: 6px; }
   .look-preview-3d { width: 84px; height: 84px; }
+  .look-preview-card { width: 62px; height: auto; }
   .actions-bar { gap: 4px; }
   .actions-bar button { padding: 6px 9px; font-size: 13px; }
   .topbar { top: 8px; padding: 0 8px; }

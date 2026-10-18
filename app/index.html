@@ -8,6 +8,8 @@
     <link rel="icon" href="/assets/stickers/s1.png">
     <link rel="stylesheet" href="/app/css/main.css">
     <link rel="stylesheet" href="/app/css/cards.css">
+    <link rel="stylesheet" href="/app/css/journal.css">
+    <link rel="stylesheet" href="/app/css/room-picker.css">
     <link rel="stylesheet" href="/app/css/activities.css">
     <link rel="stylesheet" href="/app/css/cutscenes.css">
     <script type="importmap">
@@ -24,14 +26,6 @@
       <main class="board-column">
         <header class="topbar">
           <div class="topbar-core">
-            <button id="peeps-toggle" type="button" class="icon-button peeps-visibility" aria-label="Hide peeps" aria-expanded="true" aria-controls="peeps-panel" title="Toggle peep list">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-                <circle cx="9" cy="8" r="3.2"></circle>
-                <path d="M3.5 19c0-3.1 2.6-5.2 5.5-5.2s5.5 2.1 5.5 5.2"></path>
-                <circle cx="17" cy="8.6" r="2.4"></circle>
-                <path d="M15.2 14.4c2.7-.3 5.3 1.5 5.3 4.6"></path>
-              </svg>
-            </button>
             <nav id="core-tools" class="core-tools" aria-label="Core cards"></nav>
             <nav id="activity-pills" class="activity-pills" aria-label="Minimized activities"></nav>
           </div>
@@ -86,6 +80,7 @@
       </main>
       <aside id="action-log" class="log-panel" aria-label="Action Log"></aside>
       <div id="bubble-layer" class="bubble-layer"></div>
+      <div id="room-picker" class="room-picker" hidden inert></div>
       <div id="global-modal-layer" class="global-modal-layer"></div>
       <div id="auth-layer" class="auth-layer"></div>
       <div id="toast-stack" class="toast-stack" aria-live="polite"></div>

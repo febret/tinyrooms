@@ -11,11 +11,11 @@
 .quantity-badge { right: -4px; bottom: -3px; }
 .pin-badge { left: -4px; top: -4px; color: #f2c68c; }
 .equipped-badge { right: -4px; top: -4px; color: #c7f092; }
-.equipped-hand { --hand-gap: 8px; display: flex; align-items: flex-end; justify-content: flex-end; gap: var(--hand-gap); width: min(100%, calc(var(--equipped-count) * (var(--equipped-card-width) + var(--hand-gap)))); min-width: 0; padding: 12px 5px 6px; pointer-events: none; }
-.equipped-hand .game-card { flex: 1 1 0; width: var(--equipped-card-width); max-width: var(--equipped-card-width); min-width: 0; pointer-events: auto; transform: translateY(38%); transition: transform .3s cubic-bezier(.22, .78, .28, 1), filter .18s ease, box-shadow .18s ease; }
-.equipped-hand .game-card.selected, .equipped-hand .game-card:focus-visible { transform: none; z-index: 2; }
-.equipped-hand .game-card:active:not(:disabled) { transform: translateY(38%); }
-.equipped-hand .game-card.selected:active:not(:disabled) { transform: none; }
+.equipped-hand { --hand-gap: 8px; display: flex; flex-wrap: wrap-reverse; align-items: flex-end; justify-content: flex-end; gap: var(--hand-gap); max-width: 100%; max-height: 100%; min-width: 0; padding: 8px 5px 8px; overflow: auto; scrollbar-width: none; pointer-events: none; }
+.hand-icon { position: relative; flex: 0 0 auto; width: var(--hand-icon-size); height: var(--hand-icon-size); min-width: 0; min-height: 0; padding: 0; border: 1px solid #29505d; border-radius: 12px; background: var(--field-bg); overflow: hidden; box-shadow: 0 2px 5px #0007; pointer-events: auto; transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
+.hand-icon.selected { transform: translateY(-4px); border-color: #f0c88a; box-shadow: 0 0 0 2px #f0c88a, 0 0 12px #f0c88a99; }
+.hand-icon:focus-visible { outline: 3px solid #d4f3ff; outline-offset: 2px; z-index: 2; }
+.card-icon-art { position: absolute; left: -20%; top: -24%; display: block; width: 140%; max-width: none; height: auto; pointer-events: none; }
 .panel-layer:not(:empty), .detail-layer:not(:empty) { pointer-events: auto; isolation: isolate; }
 .panel-layer:not(:empty)::before, .detail-layer:not(:empty)::before { content: ""; position: absolute; inset: 0 0 calc(-1 * var(--tray-height)); z-index: -1; background: radial-gradient(ellipse at 50% 40%, #000 0%, #000 20%, rgba(0, 0, 0, .68) 56%, rgba(0, 0, 0, 0) 82%); pointer-events: none; }
 .detail-layer:not(:empty)::before { background: radial-gradient(ellipse at 50% 40%, #000 0%, rgba(0, 0, 0, .72) 42%, rgba(0, 0, 0, 0) 80%); }
@@ -63,7 +63,7 @@
 .card-view .rarity-pill { display: inline-block; margin: 20px 0 0; padding: 5px 14px; background: linear-gradient(#323435, #020202); color: #fff; box-shadow: 0 3px 6px #0007; border-radius: 10px; text-transform: uppercase; font-size: 14px; font-weight: bold; }
 @media (hover: hover) {
   .game-card:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 0 0 2px #89c4d1, 0 0 15px #83cde399; z-index: 2; filter: brightness(1.08); }
-  .equipped-hand .game-card:hover:not(:disabled) { transform: none; z-index: 2; }
+  .hand-icon:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.14); z-index: 2; }
 }
 /* These compact blocks must precede the journal rules, whose .journal-view overrides win over .board-modal. */
 @media (max-width: 780px), (orientation: portrait) {
@@ -94,7 +94,7 @@
   .details-metrics { font-size: 14px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
-  :root { --equipped-card-width: 66px; }
+  :root { --hand-icon-size: 44px; }
   .equipped-hand { padding-top: 7px; }
   .board-modal { padding-block: 12px; }
 }
@@ -109,7 +109,7 @@
 .coin-10 { width: 64px; height: 64px; font-size: 11px; border-width: 5px; box-shadow: 0 4px 8px #0007, inset 0 0 0 3px #ffe487, inset 0 0 0 5px #b9821f88, inset 0 -4px 6px #a96f13aa; }
 .coin-100 { width: 92px; height: 92px; font-size: 14px; border-width: 8px; box-shadow: 0 5px 10px #0008, inset 0 0 0 4px #ffe487, inset 0 0 0 7px #b9821f88, inset 0 -5px 8px #a96f13aa; }
 body.card-dragging { cursor: grabbing; user-select: none; }
-body.card-dragging .equipped-hand .game-card { cursor: grabbing; }
+body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .status-icons, .peep-statuses { display: inline-flex; gap: 2px; font-size: 12px; line-height: 1; }
 .peep-statuses { position: absolute; top: -6px; left: -4px; z-index: 3; background: var(--panel-solid); border-radius: 10px; padding: 1px 5px; font-size: 36px; white-space: nowrap; box-shadow: 0 2px 6px #0008; }
 .peep-chip.tired .peep-marker img { filter: grayscale(1) brightness(.8); }

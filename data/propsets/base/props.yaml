@@ -468,10 +468,7 @@ filing-cabinet:
   - cabinet
   - furniture
   effects:
-    set:
-    - fire
-    - gentle-bob
-    - smoke
+    set: []
 kitchen-dresser:
   label: Kitchen Dresser
   description: Open shelves stacked with jars and cheerful crockery. The kitchen's

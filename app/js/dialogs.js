@@ -31,7 +31,8 @@ export function createDialogs(layer) {
     refreshInert();
     shade.addEventListener("keydown", event => {
       if (event.key !== "Tab") return;
-      const controls = [...shade.querySelectorAll('button:not(:disabled),input:not(:disabled),[tabindex="0"]')];
+      const controls = [...shade.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')]
+        .filter(control => !control.hidden && control.getClientRects().length);
       if (!controls.length) return;
       const first = controls[0], last = controls[controls.length - 1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

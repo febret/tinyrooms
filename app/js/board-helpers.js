@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { createTextProp, isTextProp } from "./text-props.js";
+import { withBase } from "./base-path.js";
 
 export const FLOOR_WIDTH = 12.05;
 export const FLOOR_HEIGHT = 10.05;
@@ -170,7 +172,40 @@ export function fitBoardCamera(camera, controls, root, {
 
 /** Key that captures everything about a prop that requires re-creating its model. */
 export function propModelKey(prop) {
-  return JSON.stringify([prop.propId, prop.modelUrl, prop.label]);
+  return JSON.stringify([
+    prop.propId, prop.modelUrl, prop.label, prop.renderKind || prop.render_kind,
+    isTextProp(prop) ? [prop.text?.content, prop.text?.font_id, prop.text?.color] : null,
+  ]);
+}
+
+/** Load either a procedural model or a GLTF into the same per-instance lifecycle. */
+export async function loadPropModel(prop, loader) {
+  if (isTextProp(prop)) {
+    const scene = await createTextProp(prop.text);
+    return { scene, scenes: [scene], animations: [] };
+  }
+  return loader.loadAsync(withBase(prop.modelUrl));
+}
+
+/** Reconcile a record map, recreating only when its model recipe changes. */
+export function syncRecords(map, items, handlers) {
+  const seen = new Set();
+  for (const item of items) {
+    const key = handlers.keyOf(item);
+    seen.add(key);
+    const record = map.get(key);
+    if (!record) {
+      handlers.create(item);
+    } else if (record.modelKey !== handlers.modelKeyOf(item)) {
+      handlers.remove(key);
+      handlers.create(item);
+    } else {
+      handlers.update(record, item);
+    }
+  }
+  for (const key of [...map.keys()]) {
+    if (!seen.has(key)) handlers.remove(key);
+  }
 }
 
 /** Key of a prop's currently rendered effect set, independent of its model. */

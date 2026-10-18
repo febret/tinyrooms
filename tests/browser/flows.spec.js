@@ -35,7 +35,7 @@ test.describe("account onboarding", () => {
   });
 });
 
-test("core cards live on the left rail and emotes beside the chat bar", async ({ page, runtime }) => {
+test("core toolbar, room picker, settings peeps, and Journal spreads render", async ({ page, runtime }) => {
   test.slow();
   await createReadyAccount(page, runtime);
   await expect(page.locator("#core-tools [data-core-id]")).toHaveCount(2);
@@ -44,10 +44,39 @@ test("core cards live on the left rail and emotes beside the chat bar", async ({
     await expect(page.locator(`#core-tools [data-core-id="${id}"]`)).toBeVisible();
   }
   await expect(page.locator("#peeps-panel")).toBeVisible();
-  await page.locator("#peeps-toggle").click();
+  await page.locator("#settings summary").click();
+  const peeps = page.locator('[data-top-action="peeps"]');
+  await expect(peeps).toHaveAttribute("aria-pressed", "true");
+  await peeps.click();
   await expect(page.locator("#peeps-panel")).toBeHidden();
-  await page.locator("#peeps-toggle").click();
+  await expect(peeps).toHaveAttribute("aria-pressed", "false");
+  await peeps.click();
   await expect(page.locator("#peeps-panel")).toBeVisible();
+  await expect(peeps).toHaveAttribute("aria-pressed", "true");
+  await page.locator("#settings summary").click();
+  const pickerToggle = page.locator("#room-picker-toggle");
+  const picker = page.locator("#room-picker");
+  await expect(page.locator('#core-tools [data-core-id="inventory"] + #room-picker-toggle')).toBeVisible();
+  await pickerToggle.click();
+  await expect(picker).toBeVisible();
+  await expect(pickerToggle).toHaveAttribute("aria-expanded", "true");
+  const prop = picker.locator("[data-room-picker-prop]").first();
+  const propLabel = await prop.getAttribute("aria-label");
+  await prop.click();
+  await expect(picker).toBeHidden();
+  await expect(page.locator("#look-bar")).toContainText(propLabel);
+  await pickerToggle.click();
+  await page.keyboard.press("Escape");
+  await expect(picker).toBeHidden();
+  await expect(pickerToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#look-bar")).toContainText(propLabel);
+  await travel(page);
+  await pickerToggle.click();
+  const roomCard = picker.locator('[data-stack-id][data-scope="room"]').first();
+  const cardLabel = await roomCard.getAttribute("aria-label");
+  await roomCard.click();
+  await expect(picker).toBeHidden();
+  await expect(page.locator("#look-bar")).toContainText(cardLabel);
   await expect(page.locator("#emote-toggle")).toBeVisible();
   await page.locator("#emote-toggle").click();
   await expect(page.locator("#emote-menu")).toHaveClass(/open/);
@@ -55,7 +84,24 @@ test("core cards live on the left rail and emotes beside the chat bar", async ({
   await page.keyboard.press("Escape");
   await expect(page.locator("#emote-menu")).not.toHaveClass(/open/);
   await openCore(page, "journal");
-  await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
+  const journal = page.getByRole("dialog", { name: "Journal", exact: true });
+  await expect(journal).toBeVisible();
+  await expect(journal.locator("[data-journal-tab]")).toHaveCount(5);
+  for (const tab of ["Tasks", "Memories", "Self", "Skills", "Friends"]) {
+    const button = journal.locator(`[data-journal-tab="${tab}"]`);
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(journal.locator(".journal-page")).toHaveCount(2);
+    await expect(journal.locator(".journal-page-left")).toBeVisible();
+    await expect(journal.locator(".journal-page-right")).toBeVisible();
+    if (tab === "Self") {
+      await expect(journal.getByRole("progressbar", { name: "Next level", exact: true })).toBeVisible();
+      for (const name of ["Health", "Energy", "Cleanliness"]) {
+        await expect(journal.getByRole("progressbar", { name, exact: true })).toBeVisible();
+      }
+      await expect(journal.locator("[data-level-up]")).toBeDisabled();
+    }
+  }
 });
 
 test.describe("cutscenes under reduced motion", () => {
@@ -106,7 +152,7 @@ test.describe("bedrooms and doors", () => {
   test.slow();
   test.setTimeout(60_000);
 
-  test("buy, design, and enter a player bedroom from the corridor", async ({ page, runtime }) => {
+  test("buy, design, and enter a player bedroom from the corridor", async ({ page, runtime }, testInfo) => {
     await createReadyAccount(page, runtime, "doorkeeper");
     // The hub's stone archway model must load without error.
     await expect(page.locator("canvas[data-prop-model][data-model-error='true']")).toHaveCount(0);
@@ -137,9 +183,46 @@ test.describe("bedrooms and doors", () => {
     // The owner can edit their own room.
     const editor = await openEditRoom(page);
     await expect(page.locator("#card-hand")).toBeHidden();
+    await editor.getByRole("button", { name: "Add text", exact: true }).click();
+    const textDialog = page.getByRole("dialog", { name: "Add text", exact: true });
+    await textDialog.getByLabel("Text", { exact: true }).fill("Café\nWelcome");
+    await textDialog.getByLabel("Font", { exact: true }).selectOption("serif");
+    await textDialog.getByLabel("Color", { exact: true }).fill("#cc6633");
+    await expect(textDialog.getByRole("button", { name: "Create", exact: true })).toBeEnabled();
+    await expect(textDialog.locator("canvas")).toHaveAttribute("data-board-ready", "true");
+    await page.screenshot({ path: testInfo.outputPath("text-dialog-desktop.png") });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(textDialog.getByRole("button", { name: "Create", exact: true })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("text-dialog-mobile.png") });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await textDialog.getByRole("button", { name: "Create", exact: true }).click();
+    await expect(textDialog).toHaveCount(0);
+    await expect(editor.locator("[data-edit-selected-name]")).toHaveText("Café Welcome");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("+");
+    await editor.getByRole("button", { name: "Edit text", exact: true }).click();
+    const editText = page.getByRole("dialog", { name: "Edit text", exact: true });
+    await editText.getByLabel("Text", { exact: true }).fill("Café\nHello!");
+    await editText.getByRole("button", { name: "Apply", exact: true }).click();
+    await editor.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(editor.locator("[data-edit-selected-name]")).toHaveText("Café Welcome");
+    await editor.getByRole("button", { name: "Redo", exact: true }).click();
+    const savedLayout = page.waitForResponse(response => response.url().includes("/layout") && response.request().method() === "POST");
     await editor.getByRole("button", { name: "Close room editor", exact: true }).click();
+    const saved = await (await savedLayout).json();
+    const sign = saved.layout.props.find(prop => prop.prop_id === "builtin:text");
+    expect(sign.text).toEqual({ content: "Café\nHello!", font_id: "serif", color: "#cc6633" });
+    expect(sign.position[0]).toBe(55);
+    expect(sign.scale).toBeGreaterThan(1);
     await expect(editor).toHaveCount(0);
     await expect(page.locator("#card-hand")).toBeVisible();
     await expect(page.locator(".interaction-dock")).toBeVisible();
+    await page.reload();
+    await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true");
+    const reloadLayout = page.waitForResponse(response => response.url().includes("/layout") && response.request().method() === "GET");
+    const reloadedEditor = await openEditRoom(page);
+    const layout = await (await reloadLayout).json();
+    await expect(reloadedEditor.getByRole("button", { name: "Add text", exact: true })).toBeVisible();
+    expect(layout.layout.props.find(prop => prop.id === sign.id)).toEqual(sign);
   });
 });

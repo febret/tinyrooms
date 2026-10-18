@@ -78,6 +78,8 @@ export function createEditorDock({
       if (name) name.textContent = editorSelectedName(editor, selected);
       const deleteButton = root.querySelector("[data-editor-delete]");
       if (deleteButton) deleteButton.disabled = !selected;
+      const textButton = root.querySelector("[data-editor-text]");
+      if (textButton) textButton.disabled = !selected?.text || selected.locked;
       const undo = root.querySelector("[data-editor-undo]");
       if (undo) undo.disabled = !editor.undo.length;
       const redo = root.querySelector("[data-editor-redo]");

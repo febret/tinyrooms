@@ -34,6 +34,16 @@ export function tileMarkup(definition, stack, selected, scope) {
   `;
 }
 
+export function handIconMarkup(definition, stack) {
+  const label = `${definition.label}${stack.quantity > 1 ? `, ${stack.quantity} copies` : ""}${stack.pinned ? ", pinned" : ""}, equipped`;
+  return `
+    <button type="button" class="hand-icon" data-stack-id="${escapeHtml(stack.stackId)}" data-scope="inventory"
+      aria-label="${escapeHtml(label)}" aria-pressed="false" title="${escapeHtml(definition.label)}">
+      <img class="card-icon-art" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
+    </button>
+  `;
+}
+
 export function cardsGrid(stacks, scope, selection, emptyText) {
   const kind = scope === "room" ? "room-card" : "inventory-card";
   return `
@@ -81,15 +91,29 @@ export function statusIconsMarkup(statuses, definitions) {
   return `<span class="status-icons">${statusIconMarkup(statuses, definitions)}</span>`;
 }
 
-export function counterBar(label, value, maximum) {
-  const percent = maximum > 0 ? Math.max(0, Math.min(100, (value / maximum) * 100)) : 0;
+export function journalSpreadMarkup({ left, right, leftLabel, rightLabel }) {
+  return `<div class="journal-book"><div class="journal-pages">
+    <section class="journal-page journal-page-left" aria-label="${escapeHtml(leftLabel)}">
+      <div class="journal-page-inner" tabindex="0">${left}</div>
+    </section>
+    <div class="journal-spine" aria-hidden="true"></div>
+    <section class="journal-page journal-page-right" aria-label="${escapeHtml(rightLabel)}">
+      <div class="journal-page-inner" tabindex="0">${right}</div>
+    </section>
+  </div></div>`;
+}
+
+export function counterBar(label, value, maximum, { tone = "", valueText = null } = {}) {
+  const current = Number.isFinite(value) ? value : 0;
+  const limit = Number.isFinite(maximum) ? Math.max(0, maximum) : 0;
+  const clamped = Math.max(0, Math.min(limit, current));
+  const text = valueText ?? `${Math.floor(current)}/${limit}`;
   return `
-    <div class="counter-row">
+    <div class="counter-row ${escapeHtml(tone)}">
       <span class="counter-label">${escapeHtml(label)}</span>
-      <span class="counter-track"><span class="counter-fill" style="width:${percent}%"></span></span>
-      <span class="counter-value">${Math.floor(value)}/${maximum}</span>
+      <progress class="counter-track" value="${clamped}" max="${limit || 1}" aria-label="${escapeHtml(label)}" aria-valuetext="${escapeHtml(limit > 0 ? text : `${text}; no capacity`)}">${escapeHtml(text)}</progress>
+      <span class="counter-value">${escapeHtml(text)}</span>
     </div>
   `;
 }
-
 

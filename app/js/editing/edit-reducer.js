@@ -23,6 +23,7 @@ function normalizeInstance(entry) {
     rotation: Array.isArray(entry?.rotation) ? entry.rotation.map(Number) : [0, 0, 0],
     scale: Number(entry?.scale ?? 1),
     locked: Boolean(entry?.locked),
+    ...(entry?.text ? { text: { ...entry.text } } : {}),
     effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
     activeEffect: typeof entry?.active_effect === "string" ? entry.active_effect : "",
   };
@@ -35,6 +36,7 @@ function normalizeLibrary(entries) {
       label: String(entry?.label || entry?.prop_id || "Prop"),
       description: String(entry?.description || ""),
       modelUrl: String(entry?.model_url || ""),
+      renderKind: String(entry?.render_kind || "model"),
       baseScale: Number(entry?.base_scale || 1),
       scaleMin: Number(entry?.scale_min ?? 0.25),
       scaleMax: Number(entry?.scale_max ?? 4),
@@ -64,6 +66,7 @@ export function normalizeEditorView(view) {
     revision,
     canEdit: Boolean(view?.can_edit),
     library: normalizeLibrary(view?.library),
+    textOptions: view?.text_options || null,
     environmentWhitelist: Array.isArray(view?.environment_whitelist) ? [...view.environment_whitelist] : [],
     environment,
     savedEnvironment: { ...environment },
@@ -109,6 +112,8 @@ export function editorBoardProps(editor) {
       locked: Boolean(instance.locked),
       behavior: "",
       modelUrl: entry?.modelUrl || "",
+      renderKind: entry?.renderKind || "model",
+      ...(instance.text ? { text: { ...instance.text } } : {}),
       label: entry?.label || "Prop",
       description: entry?.description || "",
       animation: "",
@@ -186,20 +191,29 @@ export function editorReducer(state, action) {
     case "editor-select":
       return editor ? { ...state, editor: { ...editor, selectedId: action.id || null } } : state;
     case "editor-add": {
-      if (!editor) return state;
+      if (!editor?.canEdit) return state;
       const entry = libraryEntry(editor, action.propId);
       if (!entry) return state;
+      if (entry.renderKind === "text" && !action.text) return state;
       const instance = {
         id: `custom:${crypto.randomUUID()}`,
         propId: entry.propId,
         position: snapPosition(editor, action.position || [50, 50, 0]),
         rotation: [0, 0, 0],
         scale: clamp(1, entry.scaleMin, entry.scaleMax),
+        ...(action.text ? { text: { ...action.text } } : {}),
       };
       const next = pushUndo(editor);
       const props = [...next.props, instance];
       const withNew = withProps(next, props);
       return { ...state, editor: { ...withNew, selectedId: instance.id } };
+    }
+    case "editor-text": {
+      if (!editor?.canEdit) return state;
+      const instance = editor.props.find(entry => entry.id === action.id);
+      if (!instance?.text || instance.locked || !action.text) return state;
+      if (JSON.stringify(instance.text) === JSON.stringify(action.text)) return state;
+      return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, text: { ...action.text } })) };
     }
     case "editor-remove": {
       if (!editor) return state;

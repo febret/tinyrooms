@@ -11,12 +11,11 @@ export function propDetailsView(state) {
     subtitleHtml: `<p>${escapeHtml(prop.description)}</p>`,
     body: `
       <div class="prop-details-body">
-        <canvas class="prop-preview-canvas" data-prop-model="${escapeHtml(prop.modelUrl || "")}" data-prop-scale="${escapeHtml(prop.scale)}" data-prop-interactive="true" aria-label="${escapeHtml(prop.label)} model. Drag to rotate."></canvas>
+        ${prop.text ? `<p class="text-prop-content">${escapeHtml(prop.text.content)}</p>` : `<canvas class="prop-preview-canvas" data-prop-model="${escapeHtml(prop.modelUrl || "")}" data-prop-scale="${escapeHtml(prop.scale)}" data-prop-interactive="true" aria-label="${escapeHtml(prop.label)} model. Drag to rotate."></canvas>`}
         <dl class="details-metrics">
           <div><dt>Type</dt><dd>${prop.behavior ? escapeHtml(prop.behavior) : (prop.quickActions.length ? "Interactive" : "Decorative")}</dd></div>
           <div><dt>Animation</dt><dd>${escapeHtml(prop.animation || "None")}</dd></div>
         </dl>
-        ${prop.quickActions.length ? `<div class="action-pills">${prop.quickActions.map(action => `<button type="button" class="quiet" data-prop-command="${escapeHtml(action.command)}">${escapeHtml(action.label)}</button>`).join("")}</div>` : ""}
       </div>
     `,
   });

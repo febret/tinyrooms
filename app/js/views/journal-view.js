@@ -1,32 +1,29 @@
 import { calendarMarkup, memoriesMarkup, tasksMarkup } from "../journal.js";
 import { escapeHtml } from "../presentation.js";
-import { modalShell } from "./view-helpers.js";
+import { friendsPagesMarkup } from "./friends-view.js";
+import { selfPagesMarkup } from "./self-view.js";
+import { skillsPagesMarkup } from "./skills-view.js";
+import { journalSpreadMarkup, modalShell } from "./view-helpers.js";
+
+const JOURNAL_TABS = ["Tasks", "Memories", "Self", "Skills", "Friends"];
 
 export function journalView(state) {
-  const tab = state.ui.journalTab || "Tasks";
-  const tabs = `<div class="journal-tabs">
-    <button type="button" class="${tab === "Tasks" ? "selected" : ""}" data-journal-tab="Tasks">Tasks</button>
-    <button type="button" class="${tab === "Memories" ? "selected" : ""}" data-journal-tab="Memories">Memories</button>
+  const tab = JOURNAL_TABS.includes(state.ui?.journalTab) ? state.ui.journalTab : "Tasks";
+  const tabs = `<div class="journal-tabs" role="group" aria-label="Journal sections">
+    ${JOURNAL_TABS.map(label => `<button type="button" class="${tab === label ? "selected" : ""}" data-journal-tab="${label}" aria-pressed="${tab === label}">${escapeHtml(label)}</button>`).join("")}
   </div>`;
-  const pageLabel = tab === "Memories" ? "Memories" : "Tasks";
-  const body = tab === "Memories" ? memoriesMarkup(state) : tasksMarkup(state);
+  const pageRenderers = { Self: selfPagesMarkup, Skills: skillsPagesMarkup, Friends: friendsPagesMarkup };
+  const pages = pageRenderers[tab] ? pageRenderers[tab](state) : {
+    leftLabel: "Calendar",
+    rightLabel: tab,
+    left: calendarMarkup(state),
+    right: tab === "Memories" ? memoriesMarkup(state) : tasksMarkup(state),
+  };
   return modalShell({
     extraClass: "journal-view",
     ariaLabel: "Journal",
     title: "Your Journal",
     subtitleHtml: tabs,
-    body: `
-      <div class="journal-book">
-        <div class="journal-pages">
-          <section class="journal-page journal-page-left" aria-label="Calendar">
-            <div class="journal-page-inner">${calendarMarkup(state)}</div>
-          </section>
-          <div class="journal-spine" aria-hidden="true"></div>
-          <section class="journal-page journal-page-right" aria-label="${escapeHtml(pageLabel)}">
-            <div class="journal-page-inner">${body}</div>
-          </section>
-        </div>
-      </div>
-    `,
+    body: journalSpreadMarkup(pages),
   });
 }

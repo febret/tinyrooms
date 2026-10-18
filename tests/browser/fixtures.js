@@ -22,7 +22,8 @@ async function limitAnimationFrameRate(context) {
     const nativeRequestAnimationFrame = globalThis.requestAnimationFrame.bind(globalThis);
     let lastFrame = Number.NEGATIVE_INFINITY;
     globalThis.requestAnimationFrame = callback => nativeRequestAnimationFrame(timestamp => {
-      if (timestamp - lastFrame >= 200) {
+      // All callbacks in an admitted frame must run, including secondary previews.
+      if (timestamp === lastFrame || timestamp - lastFrame >= 200) {
         lastFrame = timestamp;
         callback(timestamp);
       } else {
