@@ -33,6 +33,7 @@ import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createEditorActions } from "./editor-actions.js";
 import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
+import { BUBBLE_TIMEOUT_CHOICES, bubbleTimeoutLabel } from "./preferences.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
 import { cardFaceSvg } from "./card-face.js";
@@ -145,6 +146,15 @@ function playJournalOpen() {
   book.addEventListener("animationend", () => book.classList.remove("journal-opening"), { once: true });
 }
 
+function logCutscene(cutscene) {
+  const title = String(cutscene?.title || "").trim();
+  if (!title) return;
+  const text = cutscene?.audience === "room"
+    ? `${title} played for the room.`
+    : `${title} played.`;
+  store.dispatch({ type: "log-line", text });
+}
+
 function connectSocket() {
   socket?.disconnect();
   socket = createSocketClient({
@@ -156,6 +166,7 @@ function connectSocket() {
     onRoomEvent(envelope) {
       if (envelope.event?.type === "cutscene.play") {
         cutscenes.enqueue(envelope.event);
+        logCutscene(envelope.event.cutscene);
         return;
       }
       store.dispatch({ type: "room-event", event: envelope.event });
@@ -197,6 +208,7 @@ function connectSocket() {
       const handled = events.filter(event => {
         if (event?.type === "cutscene.play") {
           cutscenes.enqueue(event);
+          logCutscene(event.cutscene);
           return false;
         }
         return true;
@@ -249,7 +261,13 @@ async function sendCommand(rawCommand) {
     command = `${command} replace`;
   }
   if (!socket || !store.getState().transport.connected) throw new Error("Connect to the room before sending commands.");
-  return socket.sendCommand(command);
+  const newMemory = command.startsWith(".memory_new ");
+  const screenshot = newMemory ? (board.capture?.() || "") : "";
+  const result = await socket.sendCommand(command);
+  if (newMemory && screenshot) {
+    await attachNewMemoryScreenshot(result, command.slice(".memory_new ".length).trim(), screenshot);
+  }
+  return result;
 }
 
 async function bridgeActivity(activity, type, payload = {}) {
@@ -467,6 +485,23 @@ async function handleMemoryAction(action) {
   }
 }
 
+/** Attach the pre-creation board screenshot to the manual memory just saved. */
+async function attachNewMemoryScreenshot(result, text, image) {
+  const memories = result?.payload?.journal?.memories;
+  if (!image || !Array.isArray(memories)) return;
+  const created = memories
+    .filter(memory => memory?.source_type === "manual" && String(memory.text || "") === text)
+    .sort((left, right) => String(left.created_at || "").localeCompare(String(right.created_at || "")))
+    .at(-1);
+  if (!created?.memory_id) return;
+  try {
+    await api.attachMemoryImage(created.memory_id, image);
+    store.dispatch({ type: "memory-image", memoryId: created.memory_id });
+  } catch (error) {
+    toast("Memory saved, but its screenshot could not be attached.", "error");
+  }
+}
+
 async function mergeStack(stackId) {
   const state = store.getState();
   const stack = state.user?.inventory?.find(entry => entry.stackId === stackId);
@@ -621,6 +656,7 @@ function renderTopBar(state) {
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
     <button type="button" class="quiet" data-top-action="fullscreen" aria-pressed="${state.ui.fullscreen}"${canFullscreen ? "" : ` disabled title="Fullscreen is not supported on this device"`}>${state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"}</button>
     <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
+    <button type="button" class="quiet" data-top-action="bubble">Speech bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}</button>
     ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="audio" aria-pressed="${state.ui.audioEnabled}">${state.ui.audioEnabled ? "Disable Audio Chat" : "Enable Audio Chat"}</button>` : ""}
     ${state.ui.audioEnabled ? `<button type="button" class="quiet" data-top-action="mute" aria-pressed="${state.ui.audioMuted}">${state.ui.audioMuted ? "Unmute" : "Mute"}</button>` : ""}
     <button type="button" class="quiet" data-top-action="commands">Commands</button>
@@ -641,6 +677,14 @@ function renderTopBar(state) {
         } catch (error) { showError(error); }
       }
       if (which === "outlines") store.dispatch({ type: "toggle-outline-active-props" });
+      if (which === "bubble") {
+        const current = store.getState().ui.bubbleTimeout;
+        const index = BUBBLE_TIMEOUT_CHOICES.indexOf(current);
+        store.dispatch({
+          type: "set-bubble-timeout",
+          timeout: BUBBLE_TIMEOUT_CHOICES[(index + 1) % BUBBLE_TIMEOUT_CHOICES.length],
+        });
+      }
       if (which === "audio") {
         if (store.getState().ui.audioEnabled) {
           voice.disable();

@@ -422,6 +422,23 @@ class StatsService:
             energy = clamp_counter(snapshot.energy + energy_delta, snapshot.effective.max_energy)
             return self._persist_counters(connection, snapshot, health, energy, cleanliness)
 
+    def charge(
+        self,
+        account: AccountRecord,
+        amount: float,
+        *,
+        allow_while_tired: bool = False,
+    ) -> PeepSnapshot:
+        """Charge Energy in its own transaction."""
+
+        with self._hub.transaction() as connection:
+            return self.charge_in_transaction(
+                connection,
+                account.id,
+                amount,
+                allow_while_tired=allow_while_tired,
+            )
+
     def charge_in_transaction(
         self,
         connection: sqlite3.Connection,

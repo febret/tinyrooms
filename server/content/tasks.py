@@ -33,6 +33,8 @@ class TaskStep:
     amount: int = 1
     title: str = ""
     memory_tag: str | None = None
+    # Optional authored first-person journal text used when this step completes.
+    memory: str = ""
     match: Mapping[str, str] = field(default_factory=dict)
 
     def matches(self, fields: Mapping[str, object]) -> bool:
@@ -52,6 +54,7 @@ class TaskStep:
             "amount": self.amount,
             "title": self.title,
             "memory_tag": self.memory_tag,
+            "memory": self.memory,
             "match": dict(self.match),
         }
 
@@ -86,6 +89,8 @@ class TaskDefinition:
     credit: str = "actor"
     reward_recipients: str = "actor"
     revision: int = 1
+    # Optional authored first-person journal text used when the task completes.
+    memory: str = ""
 
     def to_payload(self) -> dict[str, object]:
         """Serialize the definition without runtime progress."""
@@ -104,6 +109,7 @@ class TaskDefinition:
             "credit": self.credit,
             "reward_recipients": self.reward_recipients,
             "revision": self.revision,
+            "memory": self.memory,
         }
 
 
@@ -142,6 +148,7 @@ def _parse_step(raw_step: Any, task_id: str, index: int, path: Path) -> TaskStep
         amount=int(raw_amount),
         title=str(raw_step.get("title", "")).strip(),
         memory_tag=str(memory_tag).strip() if memory_tag is not None else None,
+        memory=str(raw_step.get("memory", "")).strip(),
         match=_parse_match(raw_step.get("match"), task_id, step_id, path),
     )
 
@@ -230,6 +237,7 @@ def _parse_definition(task_id: str, raw: Any, card_ids: set[str], path: Path) ->
         credit=credit,
         reward_recipients=reward_recipients,
         revision=int(raw_revision),
+        memory=str(raw.get("memory", "")).strip(),
     )
 
 

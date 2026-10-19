@@ -19,7 +19,10 @@ html.embedded .heading { justify-content: flex-end; margin-bottom: 8px; padding-
 body { margin: 0; min-height: 100vh; min-height: 100dvh; color: var(--ink); background: radial-gradient(ellipse at top, #10333f, #04171d); }
 .full-height, .full-height body { height: 100%; }
 .full-height body { min-height: 0; }
-.viewport-column { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+/* 100% (not 100dvh) so iframe activities size to the iframe, not the top-level
+   visual viewport; dvh inside an iframe can exceed the embedded height on
+   mobile and silently disable the inner scrollers. */
+.viewport-column { height: 100%; min-height: 0; display: flex; flex-direction: column; }
 button, input { font: inherit; }
 button { cursor: pointer; min-height: 44px; max-width: 100%; padding: 7px 12px; border: 1px solid #55b5d54d; border-radius: 10px; color: #fff; background: linear-gradient(#229bc0, #096080); box-shadow: inset 0 1px 0 #ffffff24, 0 2px 3px #0005; transition: filter .15s, transform .15s; }
 button:hover:not(:disabled) { filter: brightness(1.15); }

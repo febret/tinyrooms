@@ -215,6 +215,12 @@ class AppConfig:
         return self.repo_root / "data" / "stickers"
 
     @property
+    def memory_images_path(self) -> Path:
+        """Return the directory holding memory screenshot PNGs."""
+
+        return self.local_path / "memory-images"
+
+    @property
     def cardsets_path(self) -> Path:
         """Return the global cardsets directory."""
 

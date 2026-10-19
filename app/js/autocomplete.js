@@ -124,7 +124,7 @@ function candidateKind(state, kind) {
       token: `@memory:${memory.memoryId}`,
       value: memory.memoryId,
       label: memory.text ? truncate(memory.text, 40) : memory.memoryId,
-      summary: memory.author ? `By ${memory.author}` : "Memory from your journal",
+      summary: memory.worldLabel ? `Memory from ${memory.worldLabel}` : "Memory from your journal",
     }));
   }
   return [];

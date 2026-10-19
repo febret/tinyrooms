@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from pathlib import Path
 import sqlite3
 import uuid
 from zoneinfo import ZoneInfo
@@ -11,6 +12,7 @@ from zoneinfo import ZoneInfo
 from server.game_time import current_game_month, game_date, game_month
 from server.profiles import ProfileRepository
 from server.security import utc_now
+from server.services.stickers import decode_screenshot_data_url, write_custom_sticker
 from server.state.migrations import DatabaseHub
 
 
@@ -30,6 +32,9 @@ class MemoryView:
     created_at: str
     editable: bool
     local_date: str
+    world_id: str = ""
+    world_label: str = ""
+    image_file: str | None = None
 
     def to_payload(self) -> dict[str, object]:
         """Serialize the memory for the client."""
@@ -44,6 +49,9 @@ class MemoryView:
             "created_at": self.created_at,
             "editable": self.editable,
             "local_date": self.local_date,
+            "world_id": self.world_id,
+            "world_label": self.world_label,
+            "has_image": bool(self.image_file),
         }
 
 
@@ -56,11 +64,16 @@ class MemoryService:
         profiles: ProfileRepository,
         world_id: str,
         timezone: ZoneInfo,
+        *,
+        world_label: str = "",
+        images_path: Path | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._world_id = world_id
+        self._world_label = str(world_label or world_id)
         self._timezone = timezone
+        self._images_path = images_path
 
     def local_date_of(self, iso_timestamp: str) -> str:
         """Return the configured-timezone game date for a stored UTC timestamp."""
@@ -94,6 +107,9 @@ class MemoryService:
             created_at=row["created_at"],
             editable=bool(row["editable"]),
             local_date=local_date,
+            world_id=row["world_id"],
+            world_label=row["world_label"] or row["world_id"],
+            image_file=row["image_file"],
         )
 
     def _view_for(self, row: sqlite3.Row) -> MemoryView:
@@ -120,8 +136,8 @@ class MemoryService:
             """
             INSERT INTO memories (
                 memory_id, account_id, world_id, author, source_type, text,
-                tags_json, task_id, created_at, editable
-            ) VALUES (?, ?, ?, ?, 'game', ?, ?, ?, ?, 0)
+                tags_json, task_id, created_at, editable, world_label
+            ) VALUES (?, ?, ?, ?, 'game', ?, ?, ?, ?, 0, ?)
             """,
             (
                 memory_id,
@@ -132,6 +148,7 @@ class MemoryService:
                 json.dumps(tag_list),
                 task_id,
                 now,
+                self._world_label,
             ),
         )
         row = connection.execute("SELECT * FROM memories WHERE memory_id = ?", (memory_id,)).fetchone()
@@ -168,13 +185,99 @@ class MemoryService:
                 """
                 INSERT INTO memories (
                     memory_id, account_id, world_id, author, source_type, text,
-                    tags_json, task_id, created_at, editable
-                ) VALUES (?, ?, ?, ?, 'manual', ?, '[]', NULL, ?, 1)
+                    tags_json, task_id, created_at, editable, world_label
+                ) VALUES (?, ?, ?, ?, 'manual', ?, '[]', NULL, ?, 1, ?)
                 """,
-                (memory_id, account_id, self._world_id, account.username_display, cleaned, now),
+                (memory_id, account_id, self._world_id, account.username_display, cleaned, now, self._world_label),
             )
             row = connection.execute("SELECT * FROM memories WHERE memory_id = ?", (memory_id,)).fetchone()
         return self._view_for(row)
+
+    def record_cutscene_first_view(
+        self,
+        account_id: str,
+        cutscene_id: str,
+        title: str,
+        seen_key: str,
+    ) -> bool:
+        """Record a cutscene view and, only the first time, write a journal memory.
+
+        Returns True when the memory was created. The profile metadata and the
+        memory are committed in one transaction so a retry cannot duplicate it.
+        """
+
+        def _write(connection: sqlite3.Connection) -> bool:
+            first = False
+
+            def _mark_seen(profile: dict[str, object]) -> None:
+                nonlocal first
+                seen = profile.get("seen_cutscenes")
+                if not isinstance(seen, list):
+                    seen = []
+                    profile["seen_cutscenes"] = seen
+                if seen_key in seen:
+                    return
+                seen.append(seen_key)
+                first = True
+
+            self._profiles.update_profile_in_transaction(connection, account_id, _mark_seen)
+            if first:
+                self.create_game_in_transaction(
+                    connection,
+                    account_id,
+                    f"I watched {str(title).strip()}.",
+                    ("cutscene", f"cutscene:{cutscene_id}"),
+                )
+            return first
+
+        # Behavior launches already run inside a dispatcher transaction; reusing
+        # that connection avoids an illegal nested BEGIN. The lock is reentrant,
+        # so this is safe from within the dispatcher's own transaction.
+        with self._hub.locked() as connection:
+            if connection.in_transaction:
+                return _write(connection)
+        with self._hub.transaction() as connection:
+            return _write(connection)
+
+    def _image_filename(self, memory_id: str) -> str:
+        safe = "".join(character if character.isalnum() else "_" for character in memory_id)
+        return f"{safe}.png"
+
+    def add_image(self, account_id: str, memory_id: str, image: str) -> MemoryView:
+        """Attach a screenshot to any owned memory, replacing any previous one."""
+
+        if self._images_path is None:
+            raise ValueError("Screenshots are unavailable.")
+        png_bytes = decode_screenshot_data_url(image)
+        filename = self._image_filename(memory_id)
+        with self._hub.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM memories WHERE memory_id = ? AND account_id = ?",
+                (memory_id, account_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError("That memory is not in your journal.")
+            if row["source_type"] != "manual" or not bool(row["editable"]):
+                raise ValueError("Screenshots can only be attached to custom memories.")
+            connection.execute("UPDATE memories SET image_file = ? WHERE memory_id = ?", (filename, memory_id))
+            write_custom_sticker(self._images_path, filename, png_bytes)
+            updated = connection.execute("SELECT * FROM memories WHERE memory_id = ?", (memory_id,)).fetchone()
+        return self._view_for(updated)
+
+    def image_path_for(self, account_id: str, memory_id: str) -> Path | None:
+        """Return the stored screenshot path for an owned memory, if any."""
+
+        if self._images_path is None:
+            return None
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT image_file FROM memories WHERE memory_id = ? AND account_id = ?",
+                (memory_id, account_id),
+            ).fetchone()
+        if row is None or not row["image_file"]:
+            return None
+        candidate = self._images_path / str(row["image_file"])
+        return candidate if candidate.is_file() else None
 
     def _require_owned_manual(self, connection: sqlite3.Connection, account_id: str, memory_id: str) -> sqlite3.Row:
         row = connection.execute(
@@ -209,12 +312,12 @@ class MemoryService:
             connection.execute("DELETE FROM memories WHERE memory_id = ?", (memory_id,))
 
     def list_month(self, account_id: str, year: int, month: int) -> list[MemoryView]:
-        """List the account's memories for one game month, oldest first."""
+        """List the account's memories for one game month across all worlds."""
 
         with self._hub.locked() as connection:
             rows = connection.execute(
-                "SELECT * FROM memories WHERE account_id = ? AND world_id = ? ORDER BY created_at, memory_id",
-                (account_id, self._world_id),
+                "SELECT * FROM memories WHERE account_id = ? ORDER BY created_at, memory_id",
+                (account_id,),
             ).fetchall()
         # TODO: filter by a stored local_date column once memory volume justifies it.
         views = [self._view_for(row) for row in rows]

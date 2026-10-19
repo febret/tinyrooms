@@ -54,7 +54,7 @@ class TaskStepView:
 
 @dataclass(frozen=True, slots=True)
 class TaskView:
-    """A task definition joined with one account's progress."""
+    """A task (from any world) joined with one account's progress."""
 
     id: str
     scope: str
@@ -69,6 +69,8 @@ class TaskView:
     reset_policy: str | None
     started_at: str
     completed_at: str | None
+    world_id: str = ""
+    world_label: str = ""
 
     def to_payload(self) -> dict[str, object]:
         """Serialize the task and its progress for the client."""
@@ -87,7 +89,57 @@ class TaskView:
             "reset_policy": self.reset_policy,
             "started_at": self.started_at,
             "completed_at": self.completed_at,
+            "world_id": self.world_id,
+            "world_label": self.world_label,
         }
+
+
+def _json_list(raw: object) -> list[object]:
+    try:
+        value = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return []
+    return value if isinstance(value, list) else []
+
+
+def _json_dict(raw: object) -> dict[str, object]:
+    try:
+        value = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _steps_meta_from_definition(definition: TaskDefinition) -> list[dict[str, object]]:
+    return [
+        {
+            "step_id": step.step_id,
+            "title": step.title,
+            "trigger": step.trigger,
+            "amount": step.amount,
+            "memory_tag": step.memory_tag,
+        }
+        for step in definition.steps
+    ]
+
+
+def _first_person_fallback(text: str) -> str:
+    """Derive a first-person memory sentence from an authored label."""
+
+    cleaned = str(text or "").strip().rstrip(".")
+    if not cleaned:
+        return ""
+    return f"I {cleaned[0].lower()}{cleaned[1:]}."
+
+
+def _reward_from_payload(payload: dict[str, object]) -> TaskReward:
+    try:
+        kudos = int(payload.get("kudos", 0) or 0)
+    except (TypeError, ValueError):
+        kudos = 0
+    raw_cards = payload.get("cards")
+    cards = tuple(str(card) for card in raw_cards) if isinstance(raw_cards, list) else ()
+    return TaskReward(kudos=max(0, kudos), cards=cards)
 
 
 class TaskService:
@@ -105,6 +157,7 @@ class TaskService:
         timezone: ZoneInfo,
         memories: object | None = None,
         cutscenes: object | None = None,
+        world_label: str = "",
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -112,6 +165,7 @@ class TaskService:
         self._progression = progression
         self._content = content
         self._world_id = world_id
+        self._world_label = str(world_label or world_id)
         self._definitions = dict(task_definitions)
         self._timezone = timezone
         self._memories = memories
@@ -183,10 +237,16 @@ class TaskService:
             return False
         return self._local_date(completed_at) < self._today()
 
-    def _load_row(self, connection: sqlite3.Connection, account_id: str, task_id: str) -> sqlite3.Row | None:
+    def _load_row(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        task_id: str,
+        world_id: str | None = None,
+    ) -> sqlite3.Row | None:
         return connection.execute(
-            "SELECT * FROM task_progress WHERE account_id = ? AND task_id = ?",
-            (account_id, task_id),
+            "SELECT * FROM task_progress WHERE account_id = ? AND task_id = ? AND world_id = ?",
+            (account_id, task_id, world_id or self._world_id),
         ).fetchone()
 
     def _write_row(
@@ -203,13 +263,23 @@ class TaskService:
         connection.execute(
             """
             INSERT INTO task_progress (
-                account_id, task_id, world_id, scope, status, steps_json, started_at,
+                account_id, task_id, world_id, world_label, title, description,
+                scope, status, steps_json, steps_meta_json, reward_json,
+                memory_tags_json, repeatable, reset_policy, started_at,
                 completed_at, definition_revision, reward_operation_id, shared_owner_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(account_id, task_id) DO UPDATE SET
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id, world_id, task_id) DO UPDATE SET
+                world_label = excluded.world_label,
+                title = excluded.title,
+                description = excluded.description,
                 scope = excluded.scope,
                 status = excluded.status,
                 steps_json = excluded.steps_json,
+                steps_meta_json = excluded.steps_meta_json,
+                reward_json = excluded.reward_json,
+                memory_tags_json = excluded.memory_tags_json,
+                repeatable = excluded.repeatable,
+                reset_policy = excluded.reset_policy,
                 started_at = excluded.started_at,
                 completed_at = excluded.completed_at,
                 definition_revision = excluded.definition_revision,
@@ -220,9 +290,17 @@ class TaskService:
                 account_id,
                 definition.id,
                 self._world_id,
+                self._world_label,
+                definition.title,
+                definition.description,
                 definition.scope,
                 status,
                 json.dumps(steps),
+                json.dumps(_steps_meta_from_definition(definition)),
+                json.dumps(definition.reward.to_payload()),
+                json.dumps(list(definition.memory_tags)),
+                1 if definition.repeatable else 0,
+                definition.reset_policy,
                 started_at,
                 completed_at,
                 definition.revision,
@@ -288,7 +366,7 @@ class TaskService:
         if self._memories is None or not step.memory_tag:
             return None
         tags = (step.memory_tag, f"task:{definition.id}")
-        text = step.title or step.step_id
+        text = step.memory or _first_person_fallback(step.title) or step.step_id
         self._memories.create_game_in_transaction(connection, account_id, text, tags, task_id=definition.id)
         return text
 
@@ -301,7 +379,7 @@ class TaskService:
         if self._memories is None:
             return None
         tags = tuple(definition.memory_tags) + (f"task:{definition.id}",)
-        text = f"Completed: {definition.title}"
+        text = definition.memory or f"I completed {definition.title}."
         self._memories.create_game_in_transaction(
             connection,
             account_id,
@@ -391,41 +469,84 @@ class TaskService:
 
     def _view_from_row(
         self,
-        definition: TaskDefinition,
         row: sqlite3.Row | None,
+        definition: TaskDefinition | None = None,
     ) -> TaskView | None:
+        """Build a view from a row, preferring the live definition when available.
+
+        Rows created by another world only carry the denormalized snapshot, so
+        the shared journal can render every world without loading its content.
+        """
+
         if row is None:
             return None
-        try:
-            raw = json.loads(row["steps_json"])
-        except (TypeError, ValueError):
-            raw = []
-        reconciled = self._reconcile_steps(definition, raw)
+        raw = _json_list(row["steps_json"])
+        if definition is not None:
+            reconciled = self._reconcile_steps(definition, raw)
+            meta = [
+                {
+                    "step_id": step.step_id,
+                    "title": step.title,
+                    "trigger": step.trigger,
+                    "amount": step.amount,
+                    "memory_tag": step.memory_tag,
+                }
+                for step in definition.steps
+            ]
+            title = definition.title
+            description = definition.description
+            scope = definition.scope
+            reward = definition.reward
+            memory_tags = tuple(definition.memory_tags)
+            repeatable = definition.repeatable
+            reset_policy = definition.reset_policy
+            revision = definition.revision
+        else:
+            meta = [_json_dict(entry) for entry in _json_list(row["steps_meta_json"])]
+            progress_by_step = {
+                str(entry.get("step_id", "")): int(entry.get("progress", 0) or 0)
+                for entry in raw
+                if isinstance(entry, dict) and entry.get("step_id")
+            }
+            reconciled = [
+                {"step_id": str(entry.get("step_id", "")), "progress": progress_by_step.get(str(entry.get("step_id", "")), 0)}
+                for entry in meta
+            ]
+            title = str(row["title"] or row["task_id"])
+            description = str(row["description"] or "")
+            scope = str(row["scope"])
+            reward = _reward_from_payload(_json_dict(row["reward_json"]))
+            memory_tags = tuple(str(tag) for tag in _json_list(row["memory_tags_json"]) if str(tag))
+            repeatable = bool(row["repeatable"])
+            reset_policy = row["reset_policy"]
+            revision = int(row["definition_revision"])
         steps = tuple(
             TaskStepView(
-                step_id=step.step_id,
-                title=step.title,
-                trigger=step.trigger,
-                amount=step.amount,
-                progress=int(reconciled[index]["progress"]),
-                memory_tag=step.memory_tag,
+                step_id=str(entry.get("step_id", "")),
+                title=str(entry.get("title", "")),
+                trigger=str(entry.get("trigger", "")),
+                amount=int(entry.get("amount", 1) or 1),
+                progress=max(0, min(int(reconciled[index]["progress"]), int(entry.get("amount", 1) or 1))),
+                memory_tag=str(entry["memory_tag"]) if entry.get("memory_tag") else None,
             )
-            for index, step in enumerate(definition.steps)
+            for index, entry in enumerate(meta)
         )
         return TaskView(
-            id=definition.id,
-            scope=definition.scope,
-            title=definition.title,
-            description=definition.description,
+            id=str(row["task_id"]),
+            scope=scope,
+            title=title,
+            description=description,
             status=str(row["status"]),
-            revision=definition.revision,
+            revision=revision,
             steps=steps,
-            reward=definition.reward,
-            memory_tags=tuple(definition.memory_tags),
-            repeatable=definition.repeatable,
-            reset_policy=definition.reset_policy,
+            reward=reward,
+            memory_tags=memory_tags,
+            repeatable=repeatable,
+            reset_policy=reset_policy,
             started_at=row["started_at"],
             completed_at=row["completed_at"],
+            world_id=str(row["world_id"]),
+            world_label=str(row["world_label"] or row["world_id"]),
         )
 
     def _reset_if_due(self, account_id: str, definition: TaskDefinition, row: sqlite3.Row) -> None:
@@ -450,29 +571,27 @@ class TaskService:
             )
 
     def list_for_account(self, account_id: str) -> list[TaskView]:
-        """List every started task for the account, newest definitions included."""
+        """List every started task across all worlds for the account."""
 
         if self._profiles.get_account_by_id(account_id) is None:
             return []
         with self._hub.locked() as connection:
             rows = connection.execute(
-                "SELECT * FROM task_progress WHERE account_id = ? AND world_id = ?",
-                (account_id, self._world_id),
+                "SELECT * FROM task_progress WHERE account_id = ?",
+                (account_id,),
             ).fetchall()
-        by_task = {row["task_id"]: row for row in rows}
         views: list[TaskView] = []
-        for task_id in sorted(self._definitions):
-            definition = self._definitions[task_id]
-            row = by_task.get(task_id)
-            if row is None:
-                continue
-            if str(row["status"]) == "completed" and self._reset_due(definition, row["completed_at"]):
+        for row in rows:
+            world_id = str(row["world_id"])
+            definition = self._definitions.get(str(row["task_id"])) if world_id == self._world_id else None
+            if definition is not None and str(row["status"]) == "completed" and self._reset_due(definition, row["completed_at"]):
                 self._reset_if_due(account_id, definition, row)
                 with self._hub.locked() as connection:
-                    row = self._load_row(connection, account_id, task_id)
-            view = self._view_from_row(definition, row)
+                    row = self._load_row(connection, account_id, str(row["task_id"]), world_id)
+            view = self._view_from_row(row, definition)
             if view is not None:
                 views.append(view)
+        views.sort(key=lambda view: (view.status != "active", view.world_label.lower(), view.title.lower(), view.id))
         return views
 
     def view_payload(self, account_id: str) -> dict[str, object]:
@@ -488,11 +607,16 @@ class TaskService:
         """Return a single serialized task view, or None when unknown or unstarted."""
 
         definition = self._definitions.get(task_id)
-        if definition is None:
-            return None
         with self._hub.locked() as connection:
-            row = self._load_row(connection, account_id, task_id)
-        view = self._view_from_row(definition, row)
+            if definition is not None:
+                row = self._load_row(connection, account_id, task_id)
+            else:
+                row = connection.execute(
+                    "SELECT * FROM task_progress WHERE account_id = ? AND task_id = ? "
+                    "ORDER BY completed_at IS NOT NULL, started_at DESC",
+                    (account_id, task_id),
+                ).fetchone()
+        view = self._view_from_row(row, definition)
         return None if view is None else view.to_payload()
 
     def start(self, account_id: str, task_id: str) -> list[TaskChange]:

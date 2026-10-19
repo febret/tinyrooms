@@ -5,6 +5,7 @@ house-tour:
   revision: 1
   memory_tags:
   - house-tour
+  memory: I finished the tour of the little house.
   reward:
     kudos: 2
     cards:
@@ -16,23 +17,27 @@ house-tour:
       room_id: foyer
     title: Step through the dollhouse into the foyer
     memory_tag: tour-start
+    memory: I stepped through the dollhouse into the foyer.
   - step_id: meet-pip
     trigger: dialog_action
     match:
       peep_id: caretaker
     title: Ask Pip how to begin
     memory_tag: met-pip
+    memory: I asked Pip how to begin.
   - step_id: find-utility
     trigger: enter_room
     match:
       room_id: utility
     title: Find the utility room
+    memory: I found the utility room.
   - step_id: reach-garden
     trigger: enter_room
     match:
       room_id: garden
     title: Make it out to the garden
     memory_tag: outside
+    memory: I made it out to the garden.
 meet-molly:
   title: A Word with Molly
   description: Chat with the playroom cat and share a Tasty Toast.
@@ -40,6 +45,7 @@ meet-molly:
   revision: 1
   memory_tags:
   - molly
+  memory: I made a new friend in the playroom.
   reward:
     kudos: 1
   steps:
@@ -49,9 +55,11 @@ meet-molly:
       peep_id: molly
     title: Chat with Molly in the playroom
     memory_tag: molly-hello
+    memory: I chatted with Molly in the playroom.
   - step_id: share-toast
     trigger: card_play
     match:
       card_id: tasty-toast
     title: Share a Tasty Toast
     memory_tag: molly-toast
+    memory: I shared a Tasty Toast with Molly.

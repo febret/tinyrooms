@@ -78,7 +78,7 @@ topic-reading-alphabet:
   image: topic-reading-alphabet.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-alphabet
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -88,7 +88,7 @@ topic-reading-phonics:
   image: topic-reading-phonics.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-phonics
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -98,7 +98,7 @@ topic-reading-sight-words:
   image: topic-reading-sight-words.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-sight-words
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -108,7 +108,7 @@ topic-reading-story-time:
   image: topic-reading-story-time.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-story-time
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -118,7 +118,7 @@ topic-reading-rhyming:
   image: topic-reading-rhyming.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-rhyming
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -128,7 +128,7 @@ topic-reading-comprehension:
   image: topic-reading-comprehension.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-comprehension
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -138,7 +138,7 @@ topic-reading-poetry:
   image: topic-reading-poetry.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-poetry
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -148,7 +148,7 @@ topic-reading-fairy-tales:
   image: topic-reading-fairy-tales.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-fairy-tales
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -158,7 +158,7 @@ topic-reading-vocabulary:
   image: topic-reading-vocabulary.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-vocabulary
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -168,7 +168,7 @@ topic-reading-book-clubs:
   image: topic-reading-book-clubs.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-reading-book-clubs
   tags: [topic, subject:reading, skill:skill-reading]
 
@@ -178,7 +178,7 @@ topic-writing-handwriting:
   image: topic-writing-handwriting.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-handwriting
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -188,7 +188,7 @@ topic-writing-spelling:
   image: topic-writing-spelling.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-spelling
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -198,7 +198,7 @@ topic-writing-sentences:
   image: topic-writing-sentences.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-sentences
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -208,7 +208,7 @@ topic-writing-punctuation:
   image: topic-writing-punctuation.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-punctuation
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -218,7 +218,7 @@ topic-writing-paragraphs:
   image: topic-writing-paragraphs.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-paragraphs
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -228,7 +228,7 @@ topic-writing-storytelling:
   image: topic-writing-storytelling.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-storytelling
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -238,7 +238,7 @@ topic-writing-letters:
   image: topic-writing-letters.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-letters
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -248,7 +248,7 @@ topic-writing-journaling:
   image: topic-writing-journaling.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-journaling
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -258,7 +258,7 @@ topic-writing-grammar:
   image: topic-writing-grammar.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-grammar
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -268,7 +268,7 @@ topic-writing-creative-writing:
   image: topic-writing-creative-writing.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-writing-creative-writing
   tags: [topic, subject:writing, skill:skill-writing]
 
@@ -278,7 +278,7 @@ topic-math-counting:
   image: topic-math-counting.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-counting
   tags: [topic, subject:math, skill:skill-math]
 
@@ -288,7 +288,7 @@ topic-math-addition:
   image: topic-math-addition.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-addition
   tags: [topic, subject:math, skill:skill-math]
 
@@ -298,7 +298,7 @@ topic-math-subtraction:
   image: topic-math-subtraction.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-subtraction
   tags: [topic, subject:math, skill:skill-math]
 
@@ -308,7 +308,7 @@ topic-math-multiplication:
   image: topic-math-multiplication.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-multiplication
   tags: [topic, subject:math, skill:skill-math]
 
@@ -318,7 +318,7 @@ topic-math-division:
   image: topic-math-division.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-division
   tags: [topic, subject:math, skill:skill-math]
 
@@ -328,7 +328,7 @@ topic-math-fractions:
   image: topic-math-fractions.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-fractions
   tags: [topic, subject:math, skill:skill-math]
 
@@ -338,7 +338,7 @@ topic-math-shapes:
   image: topic-math-shapes.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-shapes
   tags: [topic, subject:math, skill:skill-math]
 
@@ -348,7 +348,7 @@ topic-math-measurement:
   image: topic-math-measurement.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-measurement
   tags: [topic, subject:math, skill:skill-math]
 
@@ -358,7 +358,7 @@ topic-math-time:
   image: topic-math-time.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-time
   tags: [topic, subject:math, skill:skill-math]
 
@@ -368,7 +368,7 @@ topic-math-word-problems:
   image: topic-math-word-problems.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-math-word-problems
   tags: [topic, subject:math, skill:skill-math]
 
@@ -378,7 +378,7 @@ topic-history-ancient-egypt:
   image: topic-history-ancient-egypt.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-ancient-egypt
   tags: [topic, subject:history, skill:skill-history]
 
@@ -388,7 +388,7 @@ topic-history-knights:
   image: topic-history-knights.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-knights
   tags: [topic, subject:history, skill:skill-history]
 
@@ -398,7 +398,7 @@ topic-history-vikings:
   image: topic-history-vikings.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-vikings
   tags: [topic, subject:history, skill:skill-history]
 
@@ -408,7 +408,7 @@ topic-history-explorers:
   image: topic-history-explorers.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-explorers
   tags: [topic, subject:history, skill:skill-history]
 
@@ -418,7 +418,7 @@ topic-history-castles:
   image: topic-history-castles.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-castles
   tags: [topic, subject:history, skill:skill-history]
 
@@ -428,7 +428,7 @@ topic-history-ancient-rome:
   image: topic-history-ancient-rome.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-ancient-rome
   tags: [topic, subject:history, skill:skill-history]
 
@@ -438,7 +438,7 @@ topic-history-revolution:
   image: topic-history-revolution.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-revolution
   tags: [topic, subject:history, skill:skill-history]
 
@@ -448,7 +448,7 @@ topic-history-pioneers:
   image: topic-history-pioneers.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-pioneers
   tags: [topic, subject:history, skill:skill-history]
 
@@ -458,7 +458,7 @@ topic-history-pharaohs:
   image: topic-history-pharaohs.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-pharaohs
   tags: [topic, subject:history, skill:skill-history]
 
@@ -468,7 +468,7 @@ topic-history-timelines:
   image: topic-history-timelines.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-history-timelines
   tags: [topic, subject:history, skill:skill-history]
 
@@ -478,7 +478,7 @@ topic-geography-continents:
   image: topic-geography-continents.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-continents
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -488,7 +488,7 @@ topic-geography-oceans:
   image: topic-geography-oceans.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-oceans
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -498,7 +498,7 @@ topic-geography-mountains:
   image: topic-geography-mountains.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-mountains
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -508,7 +508,7 @@ topic-geography-rivers:
   image: topic-geography-rivers.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-rivers
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -518,7 +518,7 @@ topic-geography-deserts:
   image: topic-geography-deserts.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-deserts
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -528,7 +528,7 @@ topic-geography-capitals:
   image: topic-geography-capitals.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-capitals
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -538,7 +538,7 @@ topic-geography-maps:
   image: topic-geography-maps.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-maps
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -548,7 +548,7 @@ topic-geography-climates:
   image: topic-geography-climates.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-climates
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -558,7 +558,7 @@ topic-geography-volcanoes:
   image: topic-geography-volcanoes.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-volcanoes
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -568,7 +568,7 @@ topic-geography-landmarks:
   image: topic-geography-landmarks.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-geography-landmarks
   tags: [topic, subject:geography, skill:skill-geography]
 
@@ -578,7 +578,7 @@ topic-chemistry-atoms:
   image: topic-chemistry-atoms.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-atoms
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -588,7 +588,7 @@ topic-chemistry-molecules:
   image: topic-chemistry-molecules.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-molecules
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -598,7 +598,7 @@ topic-chemistry-reactions:
   image: topic-chemistry-reactions.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-reactions
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -608,7 +608,7 @@ topic-chemistry-acids-bases:
   image: topic-chemistry-acids-bases.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-acids-bases
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -618,7 +618,7 @@ topic-chemistry-periodic-table:
   image: topic-chemistry-periodic-table.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-periodic-table
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -628,7 +628,7 @@ topic-chemistry-mixtures:
   image: topic-chemistry-mixtures.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-mixtures
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -638,7 +638,7 @@ topic-chemistry-gases:
   image: topic-chemistry-gases.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-gases
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -648,7 +648,7 @@ topic-chemistry-crystals:
   image: topic-chemistry-crystals.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-crystals
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -658,7 +658,7 @@ topic-chemistry-solutions:
   image: topic-chemistry-solutions.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-solutions
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -668,7 +668,7 @@ topic-chemistry-safe-lab:
   image: topic-chemistry-safe-lab.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-chemistry-safe-lab
   tags: [topic, subject:chemistry, skill:skill-chemistry]
 
@@ -678,7 +678,7 @@ topic-tech-coding:
   image: topic-tech-coding.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-coding
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -688,7 +688,7 @@ topic-tech-robots:
   image: topic-tech-robots.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-robots
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -698,7 +698,7 @@ topic-tech-internet:
   image: topic-tech-internet.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-internet
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -708,7 +708,7 @@ topic-tech-circuits:
   image: topic-tech-circuits.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-circuits
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -718,7 +718,7 @@ topic-tech-rockets:
   image: topic-tech-rockets.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-rockets
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -728,7 +728,7 @@ topic-tech-ai:
   image: topic-tech-ai.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-ai
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -738,7 +738,7 @@ topic-tech-3d-printing:
   image: topic-tech-3d-printing.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-3d-printing
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -748,7 +748,7 @@ topic-tech-keyboards:
   image: topic-tech-keyboards.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-keyboards
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -758,7 +758,7 @@ topic-tech-cybersecurity:
   image: topic-tech-cybersecurity.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-cybersecurity
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -768,7 +768,7 @@ topic-tech-solar-power:
   image: topic-tech-solar-power.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-tech-solar-power
   tags: [topic, subject:tech, skill:skill-tech]
 
@@ -778,7 +778,7 @@ topic-sport-soccer:
   image: topic-sport-soccer.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-soccer
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -788,7 +788,7 @@ topic-sport-basketball:
   image: topic-sport-basketball.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-basketball
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -798,7 +798,7 @@ topic-sport-running:
   image: topic-sport-running.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-running
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -808,7 +808,7 @@ topic-sport-swimming:
   image: topic-sport-swimming.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-swimming
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -818,7 +818,7 @@ topic-sport-gymnastics:
   image: topic-sport-gymnastics.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-gymnastics
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -828,7 +828,7 @@ topic-sport-yoga:
   image: topic-sport-yoga.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-yoga
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -838,7 +838,7 @@ topic-sport-tennis:
   image: topic-sport-tennis.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-tennis
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -848,7 +848,7 @@ topic-sport-cycling:
   image: topic-sport-cycling.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-cycling
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -858,7 +858,7 @@ topic-sport-team-spirit:
   image: topic-sport-team-spirit.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-team-spirit
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -868,7 +868,7 @@ topic-sport-warm-ups:
   image: topic-sport-warm-ups.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-sport-warm-ups
   tags: [topic, subject:sport, skill:skill-sport]
 
@@ -878,7 +878,7 @@ topic-biology-cells:
   image: topic-biology-cells.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-cells
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -888,7 +888,7 @@ topic-biology-plants:
   image: topic-biology-plants.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-plants
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -898,7 +898,7 @@ topic-biology-animals:
   image: topic-biology-animals.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-animals
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -908,7 +908,7 @@ topic-biology-ecosystems:
   image: topic-biology-ecosystems.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-ecosystems
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -918,7 +918,7 @@ topic-biology-photosynthesis:
   image: topic-biology-photosynthesis.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-photosynthesis
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -928,7 +928,7 @@ topic-biology-human-body:
   image: topic-biology-human-body.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-human-body
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -938,7 +938,7 @@ topic-biology-insects:
   image: topic-biology-insects.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-insects
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -948,7 +948,7 @@ topic-biology-dinosaurs:
   image: topic-biology-dinosaurs.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-dinosaurs
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -958,7 +958,7 @@ topic-biology-food-chains:
   image: topic-biology-food-chains.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-food-chains
   tags: [topic, subject:biology, skill:skill-biology]
 
@@ -968,6 +968,6 @@ topic-biology-habitats:
   image: topic-biology-habitats.png
   type: item
   rarity: Common
-  energy_cost: 0
+  energy_cost: 10
   cutscene: topic-biology-habitats
   tags: [topic, subject:biology, skill:skill-biology]

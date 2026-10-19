@@ -208,7 +208,9 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .memory-entry { padding: 6px 2px 8px; margin: 0; border: 0; border-bottom: 1px dashed var(--journal-rule); background: transparent; }
 .memory-entry.manual { border-left: 2px solid rgba(169, 116, 58, .5); padding-left: 8px; }
 .memory-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #8a7358; }
+.memory-world { color: var(--journal-accent); }
 .memory-text { margin: 3px 0; font-family: var(--journal-hand); font-size: 14px; line-height: 1.45; color: var(--journal-ink); overflow-wrap: anywhere; }
+.memory-image { display: block; width: 100%; max-height: 190px; object-fit: cover; margin: 6px 0; border: 1px solid var(--journal-edge); border-radius: 6px; background: #0006; }
 .memory-actions { display: flex; gap: 6px; margin-top: 4px; }
 .memory-actions button { min-height: 34px; min-width: 34px; padding: 3px 9px; background: rgba(255, 255, 255, .4); font-size: 13px; }
 .task-list { margin-bottom: 12px; }

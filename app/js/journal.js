@@ -1,5 +1,6 @@
 import { escapeHtml } from "./presentation.js";
 import { withBase } from "./base-path.js";
+import { memoryImageUrl } from "./api.js";
 
 function stepMarkup(step) {
   const pct = step.amount > 0 ? Math.min(100, Math.round((step.progress / step.amount) * 100)) : 0;
@@ -16,6 +17,7 @@ function taskMarkup(task, selected) {
     ...task.reward.cards,
   ].filter(Boolean).join(", ");
   const meta = [
+    task.worldLabel || "",
     task.scope === "shared" ? "Shared" : "Personal",
     task.repeatable ? "Repeatable" : "",
     reward ? `Reward: ${reward}` : "",
@@ -88,12 +90,19 @@ export function calendarMarkup(state) {
 }
 
 function memoryMarkup(memory) {
+  const world = memory.worldLabel
+    ? `<span class="memory-world">${escapeHtml(memory.worldLabel)}</span>`
+    : "";
+  const image = memory.hasImage
+    ? `<img class="memory-image" src="${escapeHtml(memoryImageUrl(memory.memoryId))}" alt="Memory screenshot" loading="lazy">`
+    : "";
   return `<article class="memory-entry ${memory.editable ? "manual" : "game"}">
     <header class="memory-head">
       <span class="memory-date">${escapeHtml(memory.localDate || memory.createdAt.slice(0, 10))}</span>
-      <span class="memory-author">${escapeHtml(memory.author)}</span>
+      ${world}
     </header>
     <p class="memory-text">${escapeHtml(memory.text)}</p>
+    ${image}
     ${memory.editable ? `<div class="memory-actions">
       <button type="button" data-memory-action="edit" data-memory-id="${escapeHtml(memory.memoryId)}">Edit</button>
       <button type="button" class="quiet" data-memory-action="delete" data-memory-id="${escapeHtml(memory.memoryId)}">Delete</button>

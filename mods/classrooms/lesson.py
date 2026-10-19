@@ -248,6 +248,12 @@ class LessonService:
             self._peep_states.record(student.student_id, room_id)
         return tuple(chosen)
 
+    def has_active_lesson(self, room_id: str) -> bool:
+        """Return whether a lesson is currently running in a room."""
+
+        session = self._repo.get_session(room_id)
+        return session is not None and session.get("status") == SESSION_ACTIVE
+
     def cancel_lesson(self, account: AccountRecord, room_id: str) -> None:
         """End a lesson without test scores."""
 
@@ -473,6 +479,13 @@ async def teach_command(context: CommandContext, command: ParsedCommand) -> Comm
     if skill_id is not None and not context.progression.has_slotted_skill(context.account, skill_id):
         subject = SUBJECT_LABELS.get(_first_tag(definition, "subject:") or "", "that subject")
         raise CommandError(f"Slot the {subject} skill before teaching it.")
+    classroom = context.mods.get("classrooms")
+    lessons = getattr(classroom, "lessons", None)
+    if lessons is None or not lessons.has_active_lesson(room_id):
+        raise CommandError("There is no class to teach right now.")
+    cost = int(definition.energy_cost or 0)
+    if cost:
+        context.stats.charge(context.account, cost)
     behavior = await context.behaviors.dispatch(
         BehaviorEvent(
             type="card_play",

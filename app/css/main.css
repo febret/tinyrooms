@@ -138,26 +138,25 @@ h3 { font-size: 18px; }
 .app-shell.audio-mode .send-button { display: none; }
 .app-shell.audio-mode .talk-button { display: inline-grid; }
 .sidebar { position: absolute; inset: 16px auto calc(var(--dock-height) + var(--tray-height)) 0; width: var(--sidebar-width); padding: 0 8px 15px; z-index: 25; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #234e71 transparent; }
-.peep-list { display: flex; flex-direction: column; gap: 22px; align-items: center; }
+.peep-list { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .peep-chip { position: relative; width: 100%; text-align: center; }
 .peep-chip.self { position: sticky; top: 0; z-index: 2; padding-bottom: 4px; background: linear-gradient(var(--bg) 85%, transparent); }
 .peep-ghost { position: fixed; margin: 0; pointer-events: none; z-index: 48; will-change: transform, opacity; }
 .peep-main { width: 100%; background: none; border: 0; padding: 0; box-shadow: none; border-radius: 8px; }
-.peep-marker { position: relative; display: block; width: 70px; height: 90px; margin: 0 auto 12px; background: linear-gradient(130deg, #408ccb, #194986); border: 3px solid #bfccd9; border-radius: 40px 40px 5px 5px; box-shadow: 2px 4px 0 #a78251, 3px 7px 0 #65472a, 4px 10px 10px #0007; transform: rotate(3deg); transition: transform .18s, filter .18s; }
-.peep-marker::before { content: ""; position: absolute; inset: 3px; border: 1px solid #ffffff26; border-radius: inherit; }
-.peep-marker img { position: absolute; height: 87%; width: 100%; object-fit: contain; bottom: 3px; left: 0; image-rendering: pixelated; filter: drop-shadow(1px 2px 0 #0004); }
+.peep-marker { position: relative; display: block; width: 60px; height: 77px; margin: 0 auto 4px; background: none; border: 0; border-radius: 0; box-shadow: none; transition: transform .18s, filter .18s; }
+.peep-marker img { position: absolute; height: 100%; width: 100%; object-fit: contain; bottom: 0; left: 0; image-rendering: pixelated; filter: drop-shadow(1px 2px 0 #0004); }
 .peep-damage { position: absolute; inset: -3px; pointer-events: none; background-repeat: no-repeat; background-size: 100% 100%; z-index: 1; }
 .peep-damage.wear { mix-blend-mode: multiply; }
 .peep-marker:not([data-damage="0"]) .peep-damage.wear { background-image: url("../assets/peep-damage/scuffs.svg"); }
 .peep-marker[data-damage="2"] .peep-damage.gashes { background-image: url("../assets/peep-damage/splats.svg"); }
 .peep-marker[data-damage="3"] .peep-damage.gashes { background-image: url("../assets/peep-damage/cracks.svg"), url("../assets/peep-damage/splats.svg"); }
 .peep-marker[data-damage="4"] .peep-damage.gashes { background-image: url("../assets/peep-damage/broken.svg"), url("../assets/peep-damage/cracks.svg"), url("../assets/peep-damage/splats.svg"); }
-.peep-chip.self .peep-marker { width: 88px; height: 112px; background: linear-gradient(130deg, #f7edd2, #d5c3a1); border-color: #ebdbb8; transform: rotate(-3deg); }
-.peep-chip.selected .peep-marker { filter: drop-shadow(0 0 8px #81cf5e); transform: rotate(0); }
+.peep-chip.self .peep-marker { width: 75px; height: 95px; }
+.peep-chip.selected .peep-marker { filter: drop-shadow(0 0 8px #81cf5e); }
 .peep-name { display: block; font-size: 16px; line-height: 1.2; overflow-wrap: anywhere; }
 .peep-chip.self .peep-name, .peep-chip.selected .peep-name { color: #edffe5; text-shadow: 0 0 5px #5ea548; }
 .peep-audio { display: inline-block; margin-top: 2px; font-size: 13px; line-height: 1; filter: drop-shadow(0 0 3px #5ea548); }
-.peeps-toggle { font-size: 12px; padding: 8px; width: 100%; margin-top: 18px; }
+.peeps-toggle { font-size: 12px; padding: 8px; width: 100%; margin-top: 8px; }
 /* Keep speech bubbles beneath cutscenes (cutscene-layer is z-index 36). */
 .bubble-layer { z-index: 34; }
 .bubble { --bubble-fill: #bcc1c3; position: absolute; z-index: 34; width: max-content; max-width: min(220px, calc(100vw - var(--sidebar-width) - 12px)); padding: 12px 16px; color: #17262c; background: var(--bubble-fill); border: 2px solid #123744; border-radius: 15px; box-shadow: 0 3px 9px #0008; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; line-height: 1.4; text-align: left; pointer-events: auto; animation: bubble-in .18s ease-out; }
@@ -236,26 +235,27 @@ h3 { font-size: 18px; }
 @keyframes bubble-in { from { opacity: 0; scale: .9; } to { opacity: 1; scale: 1; } }
 @keyframes emote-in { 0% { opacity: 0; scale: .3; } 55% { opacity: 1; scale: 1.14; } 75% { scale: .94; } 100% { opacity: 1; scale: 1; } }
 @keyframes bubble-out { to { opacity: 0; scale: .75; } }
-@media (hover: hover) { .peep-main:hover .peep-marker { transform: rotate(0) translateY(-3px); } }
+@media (hover: hover) { .peep-main:hover .peep-marker { transform: translateY(-3px); } }
 @media (min-width: 1600px) { :root { --sidebar-width: 152px; --tray-height: 190px; } }
 @media (max-width: 780px), (orientation: portrait), (max-height: 550px) {
   :root { --sidebar-width: 36px; }
   .peep-chip, .peep-main { min-width: 0; }
   .peep-main { min-height: 0; }
-  .peep-marker { width: 24px; border-width: 2px; transform: none; box-shadow: 1px 2px 0 #a78251, 2px 3px 5px #0007; }
-  .peep-chip.self .peep-marker { width: 28px; transform: none; }
+  .peep-marker { width: 20px; }
+  .peep-chip.self .peep-marker { width: 24px; }
   .peep-name { font-size: 8px; }
 }
 @media (max-width: 780px), (orientation: portrait) {
   :root { --tray-height: 112px; --preview-lane-width: 100px; --hand-icon-size: 50px; }
-  .sidebar { padding: 0 1px 10px; top: 12px; }
-  .peep-list { gap: 14px; }
-  .peep-marker { height: 34px; margin-bottom: 6px; }
-  .peep-chip.self .peep-marker { height: 40px; }
+  .sidebar { padding: 0 1px 4px; top: 8px; }
+  .peep-list { gap: 6px; }
+  .peep-chip.self { padding-bottom: 2px; }
+  .peep-marker { height: 29px; margin-bottom: 3px; }
+  .peep-chip.self .peep-marker { height: 34px; }
   .peep-name { line-height: 1.1; word-break: break-word; }
-  .sidebar .peep-statuses { font-size: 14px; padding: 0 3px; }
-  .peep-audio { font-size: 10px; }
-  .peeps-toggle { min-width: 0; font-size: 9px; padding: 3px; margin-top: 10px; }
+  .sidebar .peep-statuses { font-size: 12px; padding: 0 2px; }
+  .peep-audio { font-size: 9px; }
+  .peeps-toggle { min-width: 0; font-size: 9px; padding: 3px; margin-top: 6px; }
   .board-frame { right: 4px; }
   .core-tools .game-card { width: 38px; height: 38px; }
   .card-hand { padding-right: 6px; }
@@ -286,9 +286,9 @@ h3 { font-size: 18px; }
   .core-tools .game-card { width: 36px; height: 36px; }
   .interaction-dock { gap: 2px; padding-top: 2px; padding-bottom: 8px; }
   .sidebar { padding-inline: 1px; }
-  .peep-marker { height: 32px; margin-bottom: 5px; }
-  .peep-chip.self .peep-marker { height: 38px; }
-  .peep-list { gap: 10px; }
+  .peep-marker { height: 27px; margin-bottom: 3px; }
+  .peep-chip.self .peep-marker { height: 32px; }
+  .peep-list { gap: 5px; }
   .auth-layer { align-items: start; }
   .auth-card { padding: 18px; }
 }

@@ -49,6 +49,8 @@ def _default_profile() -> dict[str, object]:
         "show_activity_log": False,
         "ui_settings": {},
         "unlocked_props": [],
+        # "<world_id>:<cutscene_id>" keys already seen; gates first-view memories.
+        "seen_cutscenes": [],
     }
 
 
@@ -84,6 +86,10 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["unlocked_props"] = []
     else:
         merged["unlocked_props"] = [str(prop_id) for prop_id in merged["unlocked_props"] if str(prop_id)]
+    if not isinstance(merged.get("seen_cutscenes"), list):
+        merged["seen_cutscenes"] = []
+    else:
+        merged["seen_cutscenes"] = [str(key) for key in merged["seen_cutscenes"] if str(key)]
     return merged
 
 

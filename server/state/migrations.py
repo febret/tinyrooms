@@ -8,7 +8,7 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 8
+PROFILE_SCHEMA_VERSION = 9
 WORLD_SCHEMA_VERSION = 15
 
 _PROFILE_SCHEMA_SQL = """
@@ -148,14 +148,27 @@ CREATE TABLE IF NOT EXISTS pack_opens (
 );
 CREATE INDEX IF NOT EXISTS idx_pack_opens_owner ON pack_opens(account_id);
 CREATE TABLE IF NOT EXISTS task_progress (
-    -- Identity is account/task, not account/world/task; world_id records task context.
+    -- Identity is account/world/task; world_id identifies which world defined it.
     account_id TEXT NOT NULL,
     task_id TEXT NOT NULL,
     world_id TEXT NOT NULL,
+    -- Display label of the defining world, denormalized so any world can render it.
+    world_label TEXT NOT NULL DEFAULT '',
+    -- Definition snapshot, denormalized so the shared journal spans all worlds.
+    title TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
     scope TEXT NOT NULL CHECK (scope IN ('personal', 'shared')),
     status TEXT NOT NULL CHECK (status IN ('active', 'completed')),
     -- Ordered [{step_id, progress}] entries reconciled against the task definition.
     steps_json TEXT NOT NULL CHECK (json_valid(steps_json)),
+    -- Ordered [{step_id, title, trigger, amount, memory_tag}] definition snapshot.
+    steps_meta_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(steps_meta_json)),
+    -- {kudos:int, cards:[card_id,...]} definition snapshot for display.
+    reward_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(reward_json)),
+    -- Task-level memory tags snapshot.
+    memory_tags_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(memory_tags_json)),
+    repeatable INTEGER NOT NULL DEFAULT 0 CHECK (repeatable IN (0, 1)),
+    reset_policy TEXT,
     started_at TEXT NOT NULL,
     -- NULL while active; completed repeatable tasks reset by definition reset policy.
     completed_at TEXT,
@@ -165,7 +178,7 @@ CREATE TABLE IF NOT EXISTS task_progress (
     reward_operation_id TEXT,
     -- World ID for shared tasks, NULL for personal; not a second account owner.
     shared_owner_id TEXT,
-    PRIMARY KEY (account_id, task_id),
+    PRIMARY KEY (account_id, world_id, task_id),
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id);
@@ -183,6 +196,10 @@ CREATE TABLE IF NOT EXISTS memories (
     created_at TEXT NOT NULL,
     -- Game memories are immutable; only owner-authored manual memories may be edited.
     editable INTEGER NOT NULL DEFAULT 0 CHECK (editable IN (0, 1)),
+    -- Display label of the world that captured it, for the cross-world journal.
+    world_label TEXT NOT NULL DEFAULT '',
+    -- Stored screenshot filename (in memory_images_path) or NULL.
+    image_file TEXT,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at);
@@ -198,7 +215,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-PRAGMA user_version = 8;
+PRAGMA user_version = 9;
 COMMIT;
 """
 
@@ -404,6 +421,48 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 8;
     COMMIT;
     """,
+    9: """
+    BEGIN;
+    -- Rebuild task_progress to scope identities by world and denormalize the task
+    -- definition so one shared profile database can render a journal across worlds.
+    CREATE TABLE task_progress_new (
+        account_id TEXT NOT NULL,
+        task_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        world_label TEXT NOT NULL DEFAULT '',
+        title TEXT NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        scope TEXT NOT NULL CHECK (scope IN ('personal', 'shared')),
+        status TEXT NOT NULL CHECK (status IN ('active', 'completed')),
+        steps_json TEXT NOT NULL CHECK (json_valid(steps_json)),
+        steps_meta_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(steps_meta_json)),
+        reward_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(reward_json)),
+        memory_tags_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(memory_tags_json)),
+        repeatable INTEGER NOT NULL DEFAULT 0 CHECK (repeatable IN (0, 1)),
+        reset_policy TEXT,
+        started_at TEXT NOT NULL,
+        completed_at TEXT,
+        definition_revision INTEGER NOT NULL DEFAULT 0,
+        reward_operation_id TEXT,
+        shared_owner_id TEXT,
+        PRIMARY KEY (account_id, world_id, task_id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    INSERT INTO task_progress_new (
+        account_id, task_id, world_id, scope, status, steps_json,
+        started_at, completed_at, definition_revision, reward_operation_id, shared_owner_id
+    )
+    SELECT account_id, task_id, world_id, scope, status, steps_json,
+        started_at, completed_at, definition_revision, reward_operation_id, shared_owner_id
+    FROM task_progress;
+    DROP TABLE task_progress;
+    ALTER TABLE task_progress_new RENAME TO task_progress;
+    CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id);
+    ALTER TABLE memories ADD COLUMN world_label TEXT NOT NULL DEFAULT '';
+    ALTER TABLE memories ADD COLUMN image_file TEXT;
+    PRAGMA user_version = 9;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -523,9 +582,17 @@ _TASK_PROGRESS_COLUMNS = (
     "account_id",
     "task_id",
     "world_id",
+    "world_label",
+    "title",
+    "description",
     "scope",
     "status",
     "steps_json",
+    "steps_meta_json",
+    "reward_json",
+    "memory_tags_json",
+    "repeatable",
+    "reset_policy",
     "started_at",
     "completed_at",
     "definition_revision",
@@ -544,6 +611,8 @@ _MEMORIES_COLUMNS = (
     "task_id",
     "created_at",
     "editable",
+    "world_label",
+    "image_file",
 )
 
 _AUDIT_LOG_COLUMNS = (

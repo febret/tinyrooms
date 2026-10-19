@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
+import logging
 import random
 import re
 from typing import TYPE_CHECKING, Any
@@ -27,11 +28,14 @@ from server.content.worlds import WorldDefinition, prop_model_url
 if TYPE_CHECKING:
     from server.profiles import AccountRecord, ProfileRepository
     from server.services.cards import CardService
+    from server.services.memories import MemoryService
 
 
 AUDIENCE_PRIVATE = "private"
 AUDIENCE_ROOM = "room"
 MAX_PLACEHOLDERS = 24
+
+LOGGER = logging.getLogger("tinyrooms.cutscenes")
 
 
 class CutsceneError(ValueError):
@@ -107,12 +111,14 @@ class CutsceneService:
         profiles: ProfileRepository,
         cards: CardService,
         valid_stickers: frozenset[str],
+        memories: MemoryService | None = None,
     ) -> None:
         self._config = config
         self._world = world
         self._profiles = profiles
         self._cards = cards
         self._valid_stickers = valid_stickers
+        self._memories = memories
 
     @property
     def valid_stickers(self) -> frozenset[str]:
@@ -265,6 +271,7 @@ class CutsceneService:
         if audience == AUDIENCE_PRIVATE:
             # Private delivery uses account routing; room delivery uses a broadcast.
             event["account_id"] = account.id
+        self._record_first_view(account, definition, room_accounts)
         return CutsceneLaunch(
             definition=definition,
             audience=audience,
@@ -273,6 +280,37 @@ class CutsceneService:
             assets=tuple(resolved),
             event=event,
         )
+
+    def _record_first_view(
+        self,
+        account: AccountRecord,
+        definition: CutsceneDefinition,
+        occupants: frozenset[str] | None,
+    ) -> None:
+        """Write a first-view journal memory for every recipient of a launch.
+
+        Delivery is the signal, not playback; hidden system scenes are skipped so
+        task feedback never spams the journal. Failures never break a launch.
+        """
+
+        if self._memories is None or definition.hidden:
+            return
+        world_id = self._world().id
+        seen_key = f"{world_id}:{definition.id}"
+        targets = [account.id]
+        if occupants:
+            targets.extend(sorted(entry for entry in occupants if entry != account.id))
+        for account_id in targets:
+            try:
+                self._memories.record_cutscene_first_view(
+                    account_id,
+                    definition.id,
+                    definition.title,
+                    seen_key,
+                )
+            except Exception as exc:  # noqa: BLE001 - journal feedback must not break launches
+                LOGGER.warning("cutscene.memory.failed cutscene_id=%s account_id=%s error=%s",
+                               definition.id, account_id, exc)
 
     def _merge_params(
         self,

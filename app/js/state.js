@@ -1,7 +1,7 @@
 import { editorReducer } from "./editing/edit-reducer.js";
 import { annotateRoom } from "./eligibility.js";
 import { withBase } from "./base-path.js";
-import { savedOutlineActiveProps, saveOutlineActiveProps } from "./preferences.js";
+import { saveBubbleTimeout, savedBubbleTimeout, savedOutlineActiveProps, saveOutlineActiveProps } from "./preferences.js";
 
 const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia === "function"
   ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -293,6 +293,8 @@ function normalizeTask(task) {
     resetPolicy: task.reset_policy ? String(task.reset_policy) : "",
     startedAt: String(task.started_at || ""),
     completedAt: task.completed_at ? String(task.completed_at) : "",
+    worldId: String(task.world_id || ""),
+    worldLabel: String(task.world_label || ""),
     steps: Array.isArray(task.steps) ? task.steps.map(normalizeTaskStep) : [],
   };
 }
@@ -314,6 +316,9 @@ function normalizeMemory(memory) {
     createdAt: String(memory?.created_at || ""),
     editable: Boolean(memory?.editable),
     localDate: String(memory?.local_date || ""),
+    worldId: String(memory?.world_id || ""),
+    worldLabel: String(memory?.world_label || ""),
+    hasImage: Boolean(memory?.has_image),
   };
 }
 
@@ -536,11 +541,19 @@ function applyServerEvent(state, event) {
   }
   if (event.type === "emote.bubble") {
     const bubble = event.bubble || {};
-    const updatedOccupants = applyBubble(state.room.occupants, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"), String(bubble.image_url || ""));
-    const updatedNpcs = applyBubble(state.room.npcs, String(event.source_id || ""), event.source, String(bubble.text || ""), String(bubble.kind || "expression"), String(bubble.image_url || ""));
+    const sourceId = String(event.source_id || "");
+    const text = String(bubble.text || "");
+    const updatedOccupants = applyBubble(state.room.occupants, sourceId, event.source, text, String(bubble.kind || "expression"), String(bubble.image_url || ""));
+    const updatedNpcs = applyBubble(state.room.npcs, sourceId, event.source, text, String(bubble.kind || "expression"), String(bubble.image_url || ""));
+    // User emotes are already logged via their command result; NPC speech and
+    // emote labels have no such line, so add a label-derived log entry for them.
+    const isUser = state.room.occupants.some(occupant => occupant.id === sourceId);
+    const chatHistory = !isUser && text
+      ? [...state.room.chatHistory, normalizeChatEntry({ speaker: event.source, text, style: String(bubble.kind || "expression") })].slice(-50)
+      : state.room.chatHistory;
     return {
       ...state,
-      room: { ...state.room, occupants: updatedOccupants, npcs: updatedNpcs },
+      room: { ...state.room, occupants: updatedOccupants, npcs: updatedNpcs, chatHistory },
     };
   }
   if (event.type === "effect.queued") {
@@ -867,7 +880,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -987,7 +1000,28 @@ function reduce(state, action) {
     saveOutlineActiveProps(enabled);
     return { ...state, ui: { ...state.ui, outlineActiveProps: enabled } };
   }
+  if (action.type === "set-bubble-timeout") {
+    const timeout = Number(action.timeout) || 0;
+    saveBubbleTimeout(timeout);
+    return { ...state, ui: { ...state.ui, bubbleTimeout: timeout } };
+  }
   if (action.type === "audio-state") return { ...state, ui: { ...state.ui, audioEnabled: Boolean(action.enabled), audioMuted: Boolean(action.muted) } };
+  if (action.type === "log-line" && state.room && action.text) {
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        chatHistory: [...state.room.chatHistory, asSystemHistory(String(action.text))].slice(-50),
+      },
+    };
+  }
+  if (action.type === "memory-image" && state.user?.journal) {
+    const journal = state.user.journal;
+    const memories = journal.memories.map(memory => (
+      memory.memoryId === action.memoryId ? { ...memory, hasImage: true } : memory
+    ));
+    return { ...state, user: { ...state.user, journal: { ...journal, memories } } };
+  }
   if (action.type === "dismiss-bubble" && state.room) {
     const mutate = peep => peep.id === action.id ? { ...peep, bubbleDismissed: true } : peep;
     return { ...state, room: { ...state.room, occupants: state.room.occupants.map(mutate), npcs: state.room.npcs.map(mutate) } };

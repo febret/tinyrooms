@@ -184,7 +184,7 @@ def write_cards() -> None:
             f"  image: {card_id}.png",
             "  type: item",
             "  rarity: Common",
-            "  energy_cost: 0",
+            "  energy_cost: 10",
             f"  cutscene: {card_id}",
             f"  tags: [topic, subject:{subject_id}, skill:skill-{subject_id}]",
             "",

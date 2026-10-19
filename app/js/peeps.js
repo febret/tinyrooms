@@ -390,9 +390,29 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       }
       const label = `${peep.label}: ${hasImage ? `${peep.bubble.text} emote` : peep.bubble.text}. Dismiss message`;
       if (bubble.getAttribute("aria-label") !== label) bubble.setAttribute("aria-label", label);
+      const timeout = Number(latest?.ui?.bubbleTimeout || 0);
+      if (timeout > 0) {
+        if (bubbleChanged || !bubble._autoTimer) {
+          clearTimeout(bubble._autoTimer);
+          bubble._autoTimer = setTimeout(() => {
+            bubble._autoTimer = 0;
+            const current = [...(latest.room?.occupants || []), ...(latest.room?.npcs || [])].find(item => item.id === peep.id);
+            if (bubbleKey(current) !== nextKey) { render(latest); return; }
+            onDismiss(peep.id);
+          }, timeout);
+        }
+      } else if (bubble._autoTimer) {
+        clearTimeout(bubble._autoTimer);
+        bubble._autoTimer = 0;
+      }
     }
     for (const [id, bubble] of bubbles) {
-      if (!visibleIds.has(id)) { bubble.remove(); bubbles.delete(id); dismissing.delete(id); }
+      if (!visibleIds.has(id)) {
+        clearTimeout(bubble._autoTimer);
+        bubble.remove();
+        bubbles.delete(id);
+        dismissing.delete(id);
+      }
     }
     positionBubbles();
   }
@@ -407,7 +427,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     panel.removeEventListener("scroll", positionBubbles);
     panelObserver.disconnect();
     window.removeEventListener("resize", positionBubbles);
-    for (const bubble of bubbles.values()) bubble.remove();
+    for (const bubble of bubbles.values()) { clearTimeout(bubble._autoTimer); bubble.remove(); }
     bubbles.clear();
     bubbleSizes.clear();
     for (const ghost of ghosts) ghost.remove();

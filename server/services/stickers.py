@@ -106,22 +106,29 @@ def sticker_identity(sticker_name: str | None, design_json: str | None) -> str:
     return f"preset:{sticker_name or ''}"
 
 
-def decode_png_data_url(image: str) -> bytes:
+def decode_png_data_url(
+    image: str,
+    *,
+    max_bytes: int = MAX_IMAGE_BYTES,
+    min_dimension: int = MIN_DIMENSION,
+    max_dimension: int = MAX_DIMENSION,
+    label: str = "sticker",
+) -> bytes:
     """Validate a base64 PNG data URL and return canonical RGBA PNG bytes."""
 
     if not isinstance(image, str) or not image.startswith(_DATA_URL_PREFIX):
-        raise ValueError("A custom sticker must be a PNG image.")
+        raise ValueError(f"That {label} must be a PNG image.")
     encoded = image[len(_DATA_URL_PREFIX):].strip()
     try:
         raw = base64.b64decode(encoded, validate=True)
     except (binascii.Error, ValueError) as exc:
-        raise ValueError("That sticker image could not be read.") from exc
+        raise ValueError(f"That {label} image could not be read.") from exc
     if not raw:
-        raise ValueError("That sticker image was empty.")
-    if len(raw) > MAX_IMAGE_BYTES:
-        raise ValueError("That sticker image is too large.")
+        raise ValueError(f"That {label} image was empty.")
+    if len(raw) > max_bytes:
+        raise ValueError(f"That {label} image is too large.")
     if not raw.startswith(_PNG_MAGIC):
-        raise ValueError("That sticker image must be a PNG.")
+        raise ValueError(f"That {label} image must be a PNG.")
 
     try:
         from PIL import Image, UnidentifiedImageError
@@ -133,18 +140,34 @@ def decode_png_data_url(image: str) -> bytes:
             probe.verify()
         with Image.open(io.BytesIO(raw)) as source:
             width, height = source.size
-            if not (MIN_DIMENSION <= width <= MAX_DIMENSION):
-                raise ValueError("That sticker image has an invalid width.")
-            if not (MIN_DIMENSION <= height <= MAX_DIMENSION):
-                raise ValueError("That sticker image has an invalid height.")
+            if not (min_dimension <= width <= max_dimension):
+                raise ValueError(f"That {label} image has an invalid width.")
+            if not (min_dimension <= height <= max_dimension):
+                raise ValueError(f"That {label} image has an invalid height.")
             normalized = source.convert("RGBA")
             buffer = io.BytesIO()
             normalized.save(buffer, format="PNG")
     except UnidentifiedImageError as exc:
-        raise ValueError("That sticker image could not be read.") from exc
+        raise ValueError(f"That {label} image could not be read.") from exc
     except OSError as exc:
-        raise ValueError("That sticker image could not be read.") from exc
+        raise ValueError(f"That {label} image could not be read.") from exc
     return buffer.getvalue()
+
+
+MAX_SCREENSHOT_BYTES = 2 * 1024 * 1024
+MAX_SCREENSHOT_DIMENSION = 2048
+
+
+def decode_screenshot_data_url(image: str) -> bytes:
+    """Validate a room screenshot, allowing larger PNGs than a sticker."""
+
+    return decode_png_data_url(
+        image,
+        max_bytes=MAX_SCREENSHOT_BYTES,
+        min_dimension=16,
+        max_dimension=MAX_SCREENSHOT_DIMENSION,
+        label="screenshot",
+    )
 
 
 def write_custom_sticker(directory: Path, filename: str, png_bytes: bytes) -> Path:

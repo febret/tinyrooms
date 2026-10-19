@@ -56,7 +56,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   canvas.dataset.boardReady = "false";
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    // preserveDrawingBuffer keeps the rendered frame readable for memory
+    // screenshots; the cost is one copy of the framebuffer per frame.
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   } catch {
     overlay.textContent = "3D rendering is unavailable. Room cards and room exits remain available.";
     overlay.dataset.status = "error";
@@ -1101,6 +1103,25 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         pixelRatio: renderer.getPixelRatio(),
         renderFailed,
       };
+    },
+    /** Return a downscaled PNG data URL of the current board view, or "". */
+    capture() {
+      if (disposed || renderFailed) return "";
+      try {
+        outlines.render();
+        const maxDimension = 960;
+        const scale = Math.min(1, maxDimension / Math.max(canvas.width, canvas.height));
+        if (scale >= 1) return canvas.toDataURL("image/png");
+        const target = document.createElement("canvas");
+        target.width = Math.max(1, Math.round(canvas.width * scale));
+        target.height = Math.max(1, Math.round(canvas.height * scale));
+        const context = target.getContext("2d");
+        if (!context) return canvas.toDataURL("image/png");
+        context.drawImage(canvas, 0, 0, target.width, target.height);
+        return target.toDataURL("image/png");
+      } catch {
+        return "";
+      }
     },
     /** Diff normalized server state into the scene: only changed floor/props/cards are touched. */
     async render(state) {

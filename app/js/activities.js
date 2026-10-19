@@ -2,6 +2,12 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+const MOBILE_LAYOUT_QUERY = "(max-width: 780px), (orientation: portrait), (max-height: 550px)";
+
+function mobileLayout() {
+  return typeof window.matchMedia === "function" && window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+}
+
 function hostPayload(state, activity) {
   return {
     user: state.user,
@@ -130,9 +136,12 @@ export function createActivityManager({
       entry.node.style.top = `${Math.max(0, (frame.height - actualHeight) / 2)}px`;
       return;
     }
-    const topBar = document.querySelector(".topbar");
-    const layerTop = layer.getBoundingClientRect().top;
-    const top = clamp((topBar?.getBoundingClientRect().bottom ?? layerTop) - layerTop + 8, 0, frame.height);
+    // On phones the window fills the whole client, including the topbar and the
+    // bottom interaction bars; on desktop it starts below the topbar.
+    const top = mobileLayout()
+      ? 0
+      : clamp((document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? layer.getBoundingClientRect().top)
+        - layer.getBoundingClientRect().top + 8, 0, frame.height);
     entry.node.style.left = "0px";
     entry.node.style.top = `${top}px`;
     entry.node.style.width = `${frame.width}px`;

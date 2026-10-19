@@ -8,6 +8,7 @@ get-a-classroom:
   revision: 1
   memory_tags:
   - scammon-classroom
+  memory: I bought my own classroom at Scammon Academia.
   reward:
     kudos: 3
     cards:
@@ -19,6 +20,7 @@ get-a-classroom:
       event: classroom_bought
     title: Get a classroom
     memory_tag: got-classroom
+    memory: I got a classroom.
 
 first-lesson:
   title: First Day of School
@@ -27,6 +29,7 @@ first-lesson:
   revision: 1
   memory_tags:
   - scammon-first-lesson
+  memory: I taught my first class at Scammon Academia.
   reward:
     kudos: 2
   steps:
@@ -36,12 +39,14 @@ first-lesson:
       event: lesson_started
     title: Start your first lesson
     memory_tag: first-lesson-started
+    memory: I started my first lesson.
   - step_id: finish-lesson
     trigger: signal
     match:
       event: lesson_completed
     title: Give the class a test
     memory_tag: first-lesson-complete
+    memory: I gave the class a test.
 
 gpa-3-0:
   title: Honor Roll Teacher
@@ -50,6 +55,7 @@ gpa-3-0:
   revision: 1
   memory_tags:
   - scammon-honor-roll
+  memory: I earned a 3.0 GPA lesson.
   reward:
     kudos: 5
     cards:
@@ -61,6 +67,7 @@ gpa-3-0:
       event: lesson_gpa_3
     title: Earn a 3.0 GPA lesson
     memory_tag: honor-roll
+    memory: I earned a 3.0 GPA lesson.
 
 ten-lessons:
   title: Ten Lessons In
@@ -69,6 +76,7 @@ ten-lessons:
   revision: 1
   memory_tags:
   - scammon-ten-lessons
+  memory: I completed ten lessons across the school year.
   reward:
     kudos: 10
     cards:
@@ -81,6 +89,7 @@ ten-lessons:
     amount: 10
     title: Complete ten lessons
     memory_tag: ten-lessons
+    memory: I completed ten lessons.
 
 # One task per subject; the engine advances only the first incomplete step of a
 # task, so order-independent objectives must be separate tasks.
@@ -89,6 +98,7 @@ teach-reading:
   description: Teach at least one Reading topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Reading in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -96,11 +106,13 @@ teach-reading:
     match: {event: subject_taught, subject: reading}
     title: Teach Reading
     memory_tag: taught-reading
+    memory: I taught Reading.
 teach-writing:
   title: Teach Writing
   description: Teach at least one Writing topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Writing in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -112,6 +124,7 @@ teach-math:
   description: Teach at least one Math topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Math in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -119,11 +132,13 @@ teach-math:
     match: {event: subject_taught, subject: math}
     title: Teach Math
     memory_tag: taught-math
+    memory: I taught Math.
 teach-history:
   title: Teach History
   description: Teach at least one History topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught History in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -135,6 +150,7 @@ teach-geography:
   description: Teach at least one Geography topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Geography in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -146,6 +162,7 @@ teach-chemistry:
   description: Teach at least one Chemistry topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Chemistry in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -157,6 +174,7 @@ teach-tech:
   description: Teach at least one Tech topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Tech in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -168,6 +186,7 @@ teach-sport:
   description: Teach at least one Sport topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Sport in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
@@ -179,6 +198,7 @@ teach-biology:
   description: Teach at least one Biology topic in a lesson.
   scope: personal
   revision: 1
+  memory: I taught Biology in a lesson.
   reward: {kudos: 3}
   steps:
   - step_id: teach
