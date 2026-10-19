@@ -866,7 +866,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -976,6 +976,11 @@ function reduce(state, action) {
   if (action.type === "toast") return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(action.message, action.tone)] } };
   if (action.type === "toggle-log") return { ...state, ui: { ...state.ui, actionLogVisible: !state.ui.actionLogVisible } };
   if (action.type === "toggle-sound") return { ...state, ui: { ...state.ui, soundEnabled: !state.ui.soundEnabled } };
+  if (action.type === "fullscreen-state") {
+    const active = Boolean(action.active);
+    if (state.ui.fullscreen === active) return state;
+    return { ...state, ui: { ...state.ui, fullscreen: active } };
+  }
   if (action.type === "toggle-outline-active-props") {
     const enabled = !state.ui.outlineActiveProps;
     saveOutlineActiveProps(enabled);

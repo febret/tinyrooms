@@ -7,6 +7,7 @@ import { playSound } from "./audio.js";
 import { createBoard } from "./board.js";
 import { createPropActionButton } from "./prop-action-button.js";
 import { syncEmoteChrome } from "./emote-chrome.js";
+import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, onFullscreenChange } from "./fullscreen.js";
 import { syncPeepsChrome } from "./peeps-chrome.js";
 import { createRoomPicker } from "./room-picker.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
@@ -86,6 +87,8 @@ let previousDetails = null;
 let renderRevision = 0;
 let refreshPromise = null;
 let targeting = null;
+const canFullscreen = fullscreenSupported();
+store.dispatch({ type: "fullscreen-state", active: isFullscreen() });
 
 function playTone(kind = "tap") {
   playSound(kind, store.getState().ui.soundEnabled);
@@ -616,6 +619,7 @@ function renderTopBar(state) {
     <button type="button" class="quiet" data-top-action="peeps" aria-pressed="${state.ui.peepsVisible !== false}" aria-controls="peeps-panel">Show peeps sidebar</button>
     <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
+    <button type="button" class="quiet" data-top-action="fullscreen" aria-pressed="${state.ui.fullscreen}"${canFullscreen ? "" : ` disabled title="Fullscreen is not supported on this device"`}>${state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"}</button>
     <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
     ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="audio" aria-pressed="${state.ui.audioEnabled}">${state.ui.audioEnabled ? "Disable Audio Chat" : "Enable Audio Chat"}</button>` : ""}
     ${state.ui.audioEnabled ? `<button type="button" class="quiet" data-top-action="mute" aria-pressed="${state.ui.audioMuted}">${state.ui.audioMuted ? "Unmute" : "Mute"}</button>` : ""}
@@ -628,6 +632,14 @@ function renderTopBar(state) {
       if (which === "peeps") store.dispatch({ type: "toggle-peeps" });
       if (which === "log") await toggleLog();
       if (which === "sound") store.dispatch({ type: "toggle-sound" });
+      if (which === "fullscreen") {
+        if (!canFullscreen) return;
+        try {
+          if (isFullscreen()) await exitFullscreen();
+          else await enterFullscreen();
+          settings.open = false;
+        } catch (error) { showError(error); }
+      }
       if (which === "outlines") store.dispatch({ type: "toggle-outline-active-props" });
       if (which === "audio") {
         if (store.getState().ui.audioEnabled) {
@@ -1093,6 +1105,7 @@ document.addEventListener("keydown", event => {
   if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });
+onFullscreenChange(() => store.dispatch({ type: "fullscreen-state", active: isFullscreen() }));
 store.subscribe((state, action) => {
   if (isTransientEditorAction(action)) { renderEditorTransient(state); return; }
   void render(state).catch(showError);
