@@ -159,7 +159,7 @@ function connectSocket() {
       if (["presence.enter", "presence.leave", "peep.enter", "peep.leave"].includes(envelope.event?.type)) {
         peeps.noteMove(envelope.event);
         socket?.requestSnapshot();
-      } else if (envelope.event?.type === "room.environment") {
+      } else if (envelope.event?.type === "room.environment" || envelope.event?.type === "room.refresh") {
         socket?.requestSnapshot();
       } else if (envelope.event?.type === "room.reset") {
         socket?.requestSnapshot();

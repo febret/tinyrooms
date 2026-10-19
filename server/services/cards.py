@@ -197,6 +197,7 @@ class CardService:
             "cutscene": definition.cutscene,
             "rank": definition.rank,
             "bonuses": definition.bonuses,
+            "tags": sorted(definition.tags),
             "quest": definition.quest,
             "sell_price": (
                 self._pricing.sell_value(definition)

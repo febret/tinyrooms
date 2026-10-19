@@ -80,6 +80,26 @@ class ProgressionService:
             )
         return slots
 
+    def slotted_skill_ids(self, account: AccountRecord) -> set[str]:
+        """Return the card definition ids currently occupying a skill slot."""
+
+        profile = self._profiles.get_user_profile(account.id)
+        if profile is None:
+            return set()
+        slot_stack_ids = {stack_id for stack_id in profile.skills if stack_id}
+        if not slot_stack_ids:
+            return set()
+        stacks = {
+            stack.stack_id: stack.card_def_id
+            for stack in self._profiles.list_inventory(account.id, self._world_id)
+        }
+        return {stacks[stack_id] for stack_id in slot_stack_ids if stack_id in stacks}
+
+    def has_slotted_skill(self, account: AccountRecord, card_def_id: str) -> bool:
+        """Return whether a specific skill card is currently slotted."""
+
+        return card_def_id in self.slotted_skill_ids(account)
+
     def _write_skills(self, connection: sqlite3.Connection, account_id: str, slots: list[str | None]) -> None:
         self._profiles.update_profile_in_transaction(
             connection,

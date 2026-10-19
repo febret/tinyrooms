@@ -173,6 +173,7 @@ class RuntimeState:
     world: WorldDefinition
     profiles: ProfileRepository
     world_state: WorldStateRepository
+    peep_states: NpcPeepStateRepository
     accounts: AccountService
     cards: CardService
     activities: ActivityService
@@ -526,7 +527,8 @@ def _build_runtime(
         tasks=tasks,
         peep_states=peep_states,
     )
-    scripts = BehaviorLoader().load_world(world)
+    behavior_loader = BehaviorLoader()
+    scripts = behavior_loader.load_world(world)
     behaviors = BehaviorDispatcher(
         hub=hub,
         profiles=profiles,
@@ -543,6 +545,7 @@ def _build_runtime(
         environment=environment,
         peep_states=peep_states,
         equipped_caps=equipped_caps,
+        loader=behavior_loader,
     )
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)
@@ -571,6 +574,7 @@ def _build_runtime(
         world=world,
         profiles=profiles,
         world_state=world_state,
+        peep_states=peep_states,
         accounts=accounts,
         cards=cards,
         activities=activities,

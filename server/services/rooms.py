@@ -613,8 +613,23 @@ class RoomService:
             "dialog": self._dialog_payload(account.id),
             "quick_actions": [
                 *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],
+                *self._mod_room_actions(account, room),
             ],
         }
+
+    def _mod_room_actions(self, account: AccountRecord, room: RoomDefinition) -> list[dict[str, object]]:
+        """Collect room-level quick actions contributed by mod runtime states."""
+
+        actions: list[dict[str, object]] = []
+        for state in self._mod_states:
+            hook = getattr(state, "room_quick_actions", None)
+            if hook is None:
+                continue
+            for action in hook(account, room) or ():
+                normalized = self._normalize_quick_action(room, action)
+                if normalized is not None:
+                    actions.append(normalized)
+        return actions
 
     def _dialog_payload(self, account_id: str) -> dict[str, object] | None:
         if self._dialogs is None:

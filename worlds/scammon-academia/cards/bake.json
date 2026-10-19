@@ -1,0 +1,1204 @@
+{
+  "tasks": [
+    {
+      "label": "academia-pack-back",
+      "tool": "image",
+      "prompt": "a symmetrical card back, a smiling gray husky dog crest inside a yellow circle on a deep blue field with a thin yellow border, flat simple shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/academia-pack-back.png",
+      "args": {
+        "width": 768,
+        "height": 1152,
+        "seed": 89999,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-reading",
+      "tool": "image",
+      "prompt": "a centered school emblem showing an open storybook with a golden bookmark, the Reading subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-reading.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90000,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-writing",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a pencil writing on lined paper, the Writing subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-writing.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90001,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-math",
+      "tool": "image",
+      "prompt": "a centered school emblem showing bright numbers beside a plus and a minus sign, the Math subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-math.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90002,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-history",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a rolled scroll and an hourglass, the History subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-history.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90003,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-geography",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a globe with green continents and blue oceans, the Geography subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-geography.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90004,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-chemistry",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a bubbling round flask and two test tubes, the Chemistry subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-chemistry.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90005,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-tech",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a small laptop beside a toy robot, the Tech subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-tech.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90006,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-sport",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a soccer ball beside a silver whistle, the Sport subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-sport.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90007,
+        "steps": 28
+      }
+    },
+    {
+      "label": "skill-biology",
+      "tool": "image",
+      "prompt": "a centered school emblem showing a green leaf and an orange butterfly, the Biology subject, blue and yellow school colors on a plain deep blue field, bold flat shapes",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-biology.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90008,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-alphabet",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Alphabet Adventure, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-alphabet.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90009,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-phonics",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Phonics Pop, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-phonics.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90010,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-sight-words",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Sight Words, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-sight-words.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90011,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-story-time",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Story Time, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-story-time.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90012,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-rhyming",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Rhyme Time, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-rhyming.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90013,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-comprehension",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Comprehension, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-comprehension.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90014,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-poetry",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Poetry Corner, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-poetry.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90015,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-fairy-tales",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Fairy Tales, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-fairy-tales.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90016,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-vocabulary",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Big Vocabulary, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-vocabulary.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90017,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-reading-book-clubs",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Book Club, a Reading lesson showing an open storybook with a golden bookmark, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-book-clubs.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90018,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-handwriting",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Neat Handwriting, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-handwriting.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90019,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-spelling",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Spelling Bee, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-spelling.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90020,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-sentences",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Great Sentences, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-sentences.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90021,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-punctuation",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Punctuation Power, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-punctuation.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90022,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-paragraphs",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Paragraph Builder, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-paragraphs.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90023,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-storytelling",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Storytelling, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-storytelling.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90024,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-letters",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Friendly Letters, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-letters.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90025,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-journaling",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Journaling, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-journaling.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90026,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-grammar",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Grammar Puzzle, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-grammar.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90027,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-writing-creative-writing",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Creative Writing, a Writing lesson showing a pencil writing on lined paper, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-creative-writing.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90028,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-counting",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Count With Me, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-counting.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90029,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-addition",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Addition Action, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-addition.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90030,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-subtraction",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Subtraction Slide, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-subtraction.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90031,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-multiplication",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Times Tables, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-multiplication.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90032,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-division",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Division Dash, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-division.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90033,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-fractions",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Fraction Slices, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-fractions.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90034,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-shapes",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Shape Safari, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-shapes.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90035,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-measurement",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Measuring Things, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-measurement.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90036,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-time",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Telling Time, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-time.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90037,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-math-word-problems",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Word Problems, a Math lesson showing bright numbers beside a plus and a minus sign, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-word-problems.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90038,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-ancient-egypt",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Ancient Egypt, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-ancient-egypt.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90039,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-knights",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Knights & Castles, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-knights.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90040,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-vikings",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Viking Voyages, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-vikings.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90041,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-explorers",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Brave Explorers, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-explorers.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90042,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-castles",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Castle Life, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-castles.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90043,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-ancient-rome",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Ancient Rome, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-ancient-rome.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90044,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-revolution",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Revolutions, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-revolution.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90045,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-pioneers",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Pioneers, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-pioneers.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90046,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-pharaohs",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Pharaohs, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-pharaohs.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90047,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-history-timelines",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Timelines, a History lesson showing a rolled scroll and an hourglass, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-timelines.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90048,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-continents",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Seven Continents, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-continents.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90049,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-oceans",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Oceans Deep, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-oceans.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90050,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-mountains",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Mighty Mountains, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-mountains.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90051,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-rivers",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Rivers Run, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-rivers.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90052,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-deserts",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Deserts, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-deserts.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90053,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-capitals",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Capital Cities, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-capitals.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90054,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-maps",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Reading Maps, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-maps.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90055,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-climates",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Climates, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-climates.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90056,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-volcanoes",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Volcanoes, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-volcanoes.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90057,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-geography-landmarks",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of World Landmarks, a Geography lesson showing a globe with green continents and blue oceans, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-landmarks.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90058,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-atoms",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Tiny Atoms, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-atoms.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90059,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-molecules",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Molecules, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-molecules.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90060,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-reactions",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Reactions, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-reactions.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90061,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-acids-bases",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Acids & Bases, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-acids-bases.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90062,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-periodic-table",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Periodic Table, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-periodic-table.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90063,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-mixtures",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Mixtures, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-mixtures.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90064,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-gases",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Gases, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-gases.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90065,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-crystals",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Crystals, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-crystals.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90066,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-solutions",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Solutions, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-solutions.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90067,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-chemistry-safe-lab",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Lab Safety, a Chemistry lesson showing a bubbling round flask and two test tubes, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-safe-lab.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90068,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-coding",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Coding, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-coding.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90069,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-robots",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Robots, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-robots.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90070,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-internet",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of The Internet, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-internet.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90071,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-circuits",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Circuits, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-circuits.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90072,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-rockets",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Rockets, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-rockets.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90073,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-ai",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Friendly AI, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-ai.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90074,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-3d-printing",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of 3D Printing, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-3d-printing.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90075,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-keyboards",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Keyboards, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-keyboards.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90076,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-cybersecurity",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Cyber Safety, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-cybersecurity.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90077,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-tech-solar-power",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Solar Power, a Tech lesson showing a small laptop beside a toy robot, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-solar-power.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90078,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-soccer",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Soccer, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-soccer.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90079,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-basketball",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Basketball, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-basketball.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90080,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-running",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Running, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-running.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90081,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-swimming",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Swimming, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-swimming.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90082,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-gymnastics",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Gymnastics, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-gymnastics.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90083,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-yoga",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Yoga, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-yoga.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90084,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-tennis",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Tennis, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-tennis.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90085,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-cycling",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Cycling, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-cycling.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90086,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-team-spirit",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Team Spirit, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-team-spirit.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90087,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-sport-warm-ups",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Warm Ups, a Sport lesson showing a soccer ball beside a silver whistle, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-warm-ups.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90088,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-cells",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Cells, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-cells.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90089,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-plants",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Plants, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-plants.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90090,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-animals",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Animals, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-animals.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90091,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-ecosystems",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Ecosystems, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-ecosystems.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90092,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-photosynthesis",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Photosynthesis, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-photosynthesis.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90093,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-human-body",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Human Body, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-human-body.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90094,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-insects",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Insects, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-insects.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90095,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-dinosaurs",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Dinosaurs, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-dinosaurs.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90096,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-food-chains",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Food Chains, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-food-chains.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90097,
+        "steps": 28
+      }
+    },
+    {
+      "label": "topic-biology-habitats",
+      "tool": "image",
+      "prompt": "a bright children's textbook illustration of Habitats, a Biology lesson showing a green leaf and an orange butterfly, bold cheerful shapes on a plain light background",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-habitats.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 90098,
+        "steps": 28
+      }
+    }
+  ]
+}

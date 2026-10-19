@@ -13,6 +13,11 @@ const preview = document.querySelector("#preview");
 const controls = document.querySelector("#controls");
 const lockInput = document.querySelector("#lock");
 const connection = document.querySelector("#connection");
+const standingsButton = document.querySelector("#standings");
+const standingsDialog = document.querySelector("#standings-dialog");
+const standingsClose = document.querySelector("#standings-close");
+const standingsList = document.querySelector("#standings-list");
+const standingsBest = document.querySelector("#standings-best");
 
 const BASE_PATH = window.__TR_BASE__ || "";
 
@@ -396,6 +401,64 @@ async function saveDesign() {
     Tiny.toast(error instanceof Error ? error.message : String(error), true);
   }
 }
+
+function renderStandings(board) {
+  standingsList.innerHTML = "";
+  if (!board.length) {
+    const empty = document.createElement("li");
+    empty.className = "standings-empty";
+    empty.textContent = "No lessons taught yet. Be the first!";
+    standingsList.append(empty);
+    return;
+  }
+  for (const entry of board) {
+    const row = document.createElement("li");
+    row.className = `standings-row${entry.is_you ? " you" : ""}`;
+    const rank = document.createElement("span");
+    rank.className = "standings-rank";
+    rank.textContent = String(entry.rank ?? "");
+    const name = document.createElement("span");
+    name.className = "standings-name";
+    const lessonsCount = Number(entry.lessons) || 0;
+    name.textContent = `${entry.username || "A teacher"}${entry.is_you ? " (You)" : ""} · ${lessonsCount} lesson${lessonsCount === 1 ? "" : "s"}`;
+    const gpa = document.createElement("span");
+    gpa.className = "standings-gpa";
+    gpa.textContent = Number(entry.best_gpa || 0).toFixed(2);
+    row.append(rank, name, gpa);
+    standingsList.append(row);
+  }
+}
+
+async function openStandings() {
+  standingsDialog.hidden = false;
+  standingsBest.textContent = "";
+  standingsList.innerHTML = '<li class="standings-empty">Loading…</li>';
+  try {
+    const response = await Tiny.command(".classroom lesson scores");
+    const payload = response.payload || {};
+    const best = Number(payload.best_gpa);
+    standingsBest.textContent = Number.isFinite(best)
+      ? `Your best GPA: ${best.toFixed(2)}`
+      : "Run a lesson to put yourself on the board.";
+    renderStandings(Array.isArray(payload.scoreboard) ? payload.scoreboard : []);
+  } catch (error) {
+    standingsList.innerHTML = "";
+    const failed = document.createElement("li");
+    failed.className = "standings-empty";
+    failed.textContent = error instanceof Error ? error.message : String(error);
+    standingsList.append(failed);
+  }
+}
+
+function closeStandings() {
+  standingsDialog.hidden = true;
+}
+
+standingsButton.addEventListener("click", openStandings);
+standingsClose.addEventListener("click", closeStandings);
+standingsDialog.addEventListener("click", event => {
+  if (event.target === standingsDialog) closeStandings();
+});
 
 designerClose.addEventListener("click", closeDesigner);
 designerSave.addEventListener("click", saveDesign);

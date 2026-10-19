@@ -68,6 +68,10 @@ export function buildUseCommand(stackId) {
   return `.use @card:${stackId}`;
 }
 
+export function buildTeachCommand(stackId) {
+  return `.teach @card:${stackId}`;
+}
+
 export function buildEmoteCommand(stackId) {
   return `.emote @card:${stackId}`;
 }

@@ -223,6 +223,16 @@ def _load_pack_from_file(
     source: str,
 ) -> PackDefinition | None:
     payload = require_mapping(load_yaml_file(path), path)
+    return _load_pack_payload(path, pack_id, payload, cards, source)
+
+
+def _load_pack_payload(
+    path: Path,
+    pack_id: str,
+    payload: dict[str, Any],
+    cards: dict[str, CardDefinition],
+    source: str,
+) -> PackDefinition | None:
     label = str(payload.get("label", "")).strip()
     description = str(payload.get("description", "")).strip()
     if not label or not description:
@@ -362,6 +372,24 @@ def load_card_catalog(
         pack = _load_pack_from_file(world_pack_file, pack_id, cards, world_path.name)
         if pack is not None:
             packs[pack_id] = pack
+
+    # A world may also define several named packs in one mapping file.
+    world_packs_file = world_path / "cards" / "packs.yaml"
+    if world_packs_file.is_file():
+        packs_payload = require_mapping(load_yaml_file(world_packs_file), world_packs_file)
+        for raw_pack_id, raw_pack in packs_payload.items():
+            pack_id = str(raw_pack_id)
+            if pack_id in packs:
+                raise ContentError(f"Duplicate pack id '{pack_id}'.")
+            pack = _load_pack_payload(
+                world_packs_file,
+                pack_id,
+                require_mapping(raw_pack, world_packs_file),
+                cards,
+                world_path.name,
+            )
+            if pack is not None:
+                packs[pack_id] = pack
 
     for pack in packs.values():
         sealed = _sealed_pack_card(pack)

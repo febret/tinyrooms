@@ -63,6 +63,18 @@ classroom-bookshelf:
     intact: classroom-bookshelf.glb
     broken: classroom-bookshelf-broken.glb
   active_state: intact
+alphabet-bulletin-board:
+  label: Alphabet Bulletin Board
+  description: A blue-framed cork board pinned with a neat row of yellow alphabet
+    cards and a little husky mascot at the top.
+  model: alphabet-bulletin-board.glb
+  decorative: true
+  editable: true
+  scale: 1
+  tags:
+  - classroom
+  - bulletin
+  - wall
 cafeteria-table:
   label: Cafeteria Table
   description: A long folding table with a row of round blue stools. Mind the cafeteria

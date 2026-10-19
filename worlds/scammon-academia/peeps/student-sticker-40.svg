@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g>
+  <g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M100 140 L84 60 M100 140 L110 44 M100 140 L132 66" fill="none" stroke-width="2"/>
+    <ellipse cx="84" cy="48" rx="15" ry="18" fill="#3f6b3f"/>
+    <ellipse cx="110" cy="30" rx="15" ry="18" fill="#294a29"/>
+    <ellipse cx="132" cy="54" rx="14" ry="17" fill="#3f6b3f"/>
+    <path d="M84 64 L80 70 L88 70 Z M110 46 L106 52 L114 52 Z M132 69 L128 75 L136 75 Z" fill="#241a12"/>
+    <circle cx="79" cy="42" r="3" fill="#ffffff" opacity="0.7"/>
+    <circle cx="105" cy="24" r="3" fill="#ffffff" opacity="0.7"/>
+    <circle cx="127" cy="48" r="3" fill="#ffffff" opacity="0.7"/>
+  </g>
+</g><g>
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M48 118 C40 100 40 74 54 56 C50 72 60 76 62 62 C74 42 88 34 100 34 C112 34 128 42 140 62 C142 76 152 72 148 56 C162 74 162 100 154 118 L146 100 L132 116 L122 98 L108 118 L92 98 L82 116 L70 100 L58 118 Z" fill="#3f5fa0"/>
+    <path d="M66 66 L80 50 M134 66 L120 50" fill="none" stroke="#2a4272"/>
+  </g>
+</g><g>
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M88 126 L88 150 L112 150 L112 126 Z" fill="#f4d3b0"/>
+    <rect x="56" y="148" width="16" height="42" rx="8" fill="#f4d3b0"/>
+    <rect x="128" y="148" width="16" height="42" rx="8" fill="#f4d3b0"/>
+    <path d="M100 24 C62 24 48 56 48 86 C48 118 70 140 100 140 C130 140 152 118 152 86 C152 56 138 24 100 24 Z" fill="#f4d3b0"/>
+    <path d="M74 142 C74 136 86 132 100 132 C114 132 126 136 126 142 L128 182 C128 188 114 192 100 192 C86 192 72 188 72 182 Z" fill="#3a3a42"/>
+    <path d="M74 140 C66 143 61 151 59 159 L75 163 C77 155 78 148 80 143 Z" fill="#3a3a42"/>
+    <path d="M126 140 C134 143 139 151 141 159 L125 163 C123 155 122 148 120 143 Z" fill="#3a3a42"/>
+    <rect x="80" y="156" width="40" height="34" rx="4" fill="#6b6b2f"/>
+    <path d="M84 156 L88 134 L96 134 L94 156 Z" fill="#6b6b2f"/>
+    <path d="M116 156 L112 134 L104 134 L106 156 Z" fill="#6b6b2f"/>
+    <path d="M80 172 L120 172" fill="none" stroke="#4a4a1f"/>
+    <circle cx="86" cy="166" r="2.4" fill="#3f6b3f"/>
+    <circle cx="114" cy="166" r="2.4" fill="#3f6b3f"/>
+    <circle cx="64" cy="188" r="9" fill="#f4d3b0"/>
+    <circle cx="136" cy="188" r="9" fill="#f4d3b0"/>
+    <rect x="82" y="186" width="17" height="30" rx="5" fill="#6b6b2f"/>
+    <rect x="101" y="186" width="17" height="30" rx="5" fill="#6b6b2f"/>
+  </g>
+</g><g>
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M80 194 L98 194 L100 206 C116 210 128 214 128 216 L74 216 C74 208 76 200 80 194 Z" fill="#2f8f86"/>
+    <path d="M120 194 L102 194 L100 206 C84 210 72 214 72 216 L126 216 C126 208 124 200 120 194 Z" fill="#2f8f86"/>
+    <path d="M80 200 L96 200 M104 200 L120 200" fill="none" stroke="#1f6560"/>
+  </g>
+</g><g>
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M48 88 C46 44 72 20 100 20 L112 34 L126 20 L134 42 L150 32 L148 62 C136 54 122 60 110 68 L98 50 L86 70 C72 60 56 68 48 88 Z" fill="#3f5fa0"/>
+    <path d="M64 70 L80 60 M120 58 L136 50" fill="none" stroke="#2a4272"/>
+  </g>
+</g><g>
+  <g fill="none" stroke="#241a12" stroke-width="3" stroke-linecap="round">
+    <path d="M82 86 C92 86 94 104 82 106 C72 108 70 90 82 90 C90 90 88 100 82 100"/>
+    <path d="M118 86 C128 86 130 104 118 106 C108 108 106 90 118 90 C126 90 124 100 118 100"/>
+  </g>
+</g><g>
+  <g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round">
+    <rect x="86" y="114" width="28" height="16" rx="4" fill="#ffffff"/>
+    <path d="M95 115 L95 129 M105 115 L105 129" fill="none"/>
+  </g>
+</g><g>
+  <g fill="#d9b04a" stroke="none">
+    <circle cx="72" cy="106" r="2.2"/>
+    <circle cx="78" cy="110" r="2.2"/>
+    <circle cx="74" cy="114" r="2.2"/>
+    <circle cx="84" cy="112" r="2.2"/>
+    <circle cx="128" cy="106" r="2.2"/>
+    <circle cx="122" cy="110" r="2.2"/>
+    <circle cx="126" cy="114" r="2.2"/>
+    <circle cx="116" cy="112" r="2.2"/>
+  </g>
+</g></svg>

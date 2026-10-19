@@ -75,7 +75,10 @@ class NpcPeepStateRepository:
         )
 
     def record(self, peep_id: str, room_id: str) -> None:
-        """Update the in-memory map after a committed location write."""
+        """Update the in-memory map after a committed location write.
 
-        if peep_id in self._rooms:
-            self._rooms[peep_id] = room_id
+        Runtime-registered NPCs (for example generated students) are not in the
+        initial map, so this records them too rather than dropping the update.
+        """
+
+        self._rooms[peep_id] = room_id

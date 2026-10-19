@@ -5,6 +5,7 @@ import {
   buildEquipCommand,
   buildFriendCommand,
   buildUnequipCommand,
+  buildTeachCommand,
   buildUseCommand,
 } from "./commands.js";
 import { findInventoryCard, findRoomCard, findSelectedEntity, findTask, isTargetableStack } from "./state.js";
@@ -279,8 +280,16 @@ function inventoryStackActions(stack) {
     actions.push({ label: "Open", local: { type: "open-pack", stackId: stack.stackId }, tone: "primary" });
     return actions;
   }
+  const tags = Array.isArray(definition.tags) ? definition.tags : [];
   if (type === "emote") {
     actions.push({ label: "Play", command: buildEmoteCommand(stack.stackId), tone: "primary" });
+  } else if (tags.includes("topic")) {
+    actions.push({ label: "Teach", command: buildTeachCommand(stack.stackId), tone: "primary" });
+    if (stack.equipped) {
+      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });
+    } else if (!definition.passive && !definition.decorative) {
+      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive" });
+    }
   } else if (type === "skill") {
     actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary" });
   } else if (type === "item" || type === "action") {

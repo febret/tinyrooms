@@ -16,6 +16,7 @@
         </div>
         <div class="classrooms-actions">
           <span class="bops" id="bops" aria-live="polite"></span>
+          <button type="button" class="quiet small" id="standings">Standings</button>
           <button type="button" class="quiet small" id="my-door" hidden>My classroom</button>
           <button type="button" class="primary small" id="get-door" hidden>Get a classroom</button>
         </div>
@@ -23,6 +24,17 @@
 
       <div class="floors" id="floors" role="region" aria-label="Classroom floors" tabindex="0"></div>
       <p class="hint muted" id="hint">Classrooms fill the eight grades, one floor each. A door opens a peep's classroom.</p>
+
+      <div class="dialog-shade" id="standings-dialog" hidden>
+        <section class="paper standings" role="dialog" aria-modal="true" aria-labelledby="standings-title">
+          <header class="standings-head">
+            <h2 id="standings-title">Teacher standings</h2>
+            <button type="button" class="quiet small" id="standings-close" aria-label="Close standings">✕</button>
+          </header>
+          <p class="standings-best" id="standings-best"></p>
+          <ol class="standings-list" id="standings-list"></ol>
+        </section>
+      </div>
 
       <div class="dialog-shade" id="designer" hidden>
         <section class="paper designer" role="dialog" aria-modal="true" aria-labelledby="designer-title">

@@ -59,7 +59,7 @@ class BehaviorLoader:
         digest = sha1(str(path).encode("utf-8")).hexdigest()
         return f"tinyrooms_behavior_{digest}"
 
-    def _import(self, path: Path) -> BehaviorScript:
+    def import_script(self, path: Path) -> BehaviorScript:
         resolved = path.resolve()
         cached = self._cache.get(resolved)
         if cached is not None:
@@ -99,7 +99,7 @@ class BehaviorLoader:
         for peep in world.peeps.values():
             if not peep.script_name:
                 continue
-            script = self._import(self._resolve_peep(world, peep.script_name, peep.id))
+            script = self.import_script(self._resolve_peep(world, peep.script_name, peep.id))
             scripts[script.script_id] = script
             peep_attachments[peep.id] = BehaviorAttachment(
                 script_id=script.script_id,
@@ -116,7 +116,7 @@ class BehaviorLoader:
                     script_id = BUILTIN_BEHAVIORS[prop.behavior]
                     scripts.setdefault(script_id, BehaviorScript(script_id=script_id, path=None, module=self._builtin.module))
                 else:
-                    script = self._import(self._resolve_prop(world, prop.behavior, prop.id))
+                    script = self.import_script(self._resolve_prop(world, prop.behavior, prop.id))
                     scripts[script.script_id] = script
                     script_id = script.script_id
                 prop_attachments[prop.id] = BehaviorAttachment(

@@ -67,6 +67,7 @@ class BehaviorDispatcher:
         environment: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
         equipped_caps: dict[int, int] | None = None,
+        loader: object | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         self._hub = hub
@@ -84,6 +85,7 @@ class BehaviorDispatcher:
         self._environment = environment
         self._peep_states = peep_states
         self._equipped_caps = equipped_caps or {}
+        self._loader = loader
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self.erroring: set[str] = set()
         self._lock: asyncio.Lock | None = None
@@ -92,6 +94,31 @@ class BehaviorDispatcher:
 
     def _log(self, event: str, **fields: object) -> None:
         self._logger.info(json.dumps({"event": event, **fields}, separators=(",", ":"), default=str))
+
+    def register_peep(self, peep_id: str, script_path) -> None:
+        """Attach a shared behavior script to a runtime-registered NPC peep.
+
+        Used by mods that materialize NPCs after world load (for example, the
+        classrooms mod's generated students). The script is imported through the
+        loader used at startup so module identity stays stable.
+        """
+
+        loader = self._loader
+        if loader is None or not hasattr(loader, "import_script"):
+            raise RuntimeError("Runtime peep registration requires a behavior loader.")
+        script = loader.import_script(script_path)
+        self._scripts.scripts[script.script_id] = script
+        self._scripts.peep_attachments[peep_id] = BehaviorAttachment(
+            script_id=script.script_id,
+            namespace="peep",
+            instance_id=peep_id,
+            ref=PeepRef(kind="npc", peep_id=peep_id, account_id=None),
+        )
+
+    def unregister_peep(self, peep_id: str) -> None:
+        """Detach a runtime-registered NPC peep's behavior attachment."""
+
+        self._scripts.peep_attachments.pop(peep_id, None)
 
     def _event_task_trigger(self, event: BehaviorEvent) -> tuple[str, dict[str, object]] | None:
         if event.type == "enter":
@@ -159,6 +186,10 @@ class BehaviorDispatcher:
             if isinstance(target, PropRef):
                 attachment = self._scripts.prop_attachments.get(target.instance_id)
                 return [attachment] if attachment is not None else []
+            if event.type == "card_play" and target is None:
+                # A card used with no target is a room-level action: every script
+                # in the room observes it (for example, each student reacts).
+                return self._room_attachments_for(event.room_id or "")
             return []
         if event.type == "dialog_action":
             attachments: list[BehaviorAttachment] = []

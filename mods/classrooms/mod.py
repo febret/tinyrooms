@@ -17,6 +17,7 @@ from pathlib import Path
 import re
 from typing import Any
 
+from server.commands.cutscenes import deliver, play_cutscene
 from server.commands.outcomes import (
     CommandContext,
     CommandError,
@@ -26,6 +27,7 @@ from server.commands.outcomes import (
 from server.commands.parser import ParsedCommand
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.worlds import PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
+from mods.classrooms.lesson import LessonService, teach_command
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.ownership import OwnershipService
 from server.state.migrations import DatabaseHub
@@ -264,6 +266,7 @@ class ClassroomService:
         ownership: OwnershipService,
         world: WorldDefinition,
         catalog: DoorCatalog,
+        lessons: LessonService | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -271,12 +274,28 @@ class ClassroomService:
         self._ownership = ownership
         self._world = world
         self._catalog = catalog
+        self._lessons = lessons
 
     @property
     def catalog(self) -> DoorCatalog:
         """Return the loaded door customization catalog."""
 
         return self._catalog
+
+    @property
+    def lessons(self) -> LessonService:
+        """Return the lesson engine, raising if it is not wired."""
+
+        if self._lessons is None:
+            raise ValueError("Lessons are unavailable.")
+        return self._lessons
+
+    def room_quick_actions(self, account: AccountRecord, room: RoomDefinition) -> tuple[QuickAction, ...]:
+        """Return lesson controls for the account's own classroom."""
+
+        if self._lessons is None:
+            return ()
+        return self._lessons.room_quick_actions(account, room)
 
     @property
     def cost(self) -> int:
@@ -346,6 +365,8 @@ class ClassroomService:
 
         for record in self._world_state.list_player_rooms():
             self._register(record)
+        if self._lessons is not None:
+            self._lessons.prepare()
 
     def record_for_account(self, account_id: str) -> PlayerRoomRecord | None:
         """Return the account's player room record, if any."""
@@ -591,12 +612,94 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
             _merge_behavior(context, outcome, behavior)
         return outcome
 
+    if action == "lesson":
+        if len(command.args) < 2:
+            raise CommandError("Use '.classroom lesson <start|test|cancel|scores>'.")
+        sub = command.args[1].lower()
+        room_id = _room_id(context)
+        lessons = service.lessons
+        if sub == "start":
+            students = lessons.start_lesson(context.account, room_id)
+            snapshot = await context.rooms.build_snapshot(context.account, room_id)
+            outcome = CommandOutcome(
+                message="Class is in session.",
+                payload={"students": [student.label for student in students]},
+                snapshot=snapshot,
+            )
+            outcome.room_broadcasts.append(
+                PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id})
+            )
+            return outcome
+        if sub == "test":
+            result = lessons.give_test(context.account, room_id)
+            snapshot = await context.rooms.build_snapshot(context.account, room_id)
+            honors = sum(1 for student in result.results if all(letter == "A" for letter in student.subjects.values()))
+            outcome = CommandOutcome(
+                message=f"Test over: GPA {result.gpa:.2f} (+{result.bops} Bops).",
+                payload={
+                    "gpa": result.gpa,
+                    "bops": result.bops,
+                    "grade": result.grade,
+                    "student_count": len(result.results),
+                },
+                snapshot=snapshot,
+            )
+            outcome.room_broadcasts.append(
+                PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id})
+            )
+            launch = await play_cutscene(
+                context,
+                reference="lesson-test",
+                room_id=room_id,
+                audience="room",
+                origin="lesson",
+                params={
+                    "gpa": f"{result.gpa:.2f}",
+                    "grade": str(result.grade),
+                    "bops": str(result.bops),
+                    "students": str(len(result.results)),
+                    "honors": str(honors),
+                },
+            )
+            private_events, room_broadcasts = deliver(launch)
+            outcome.private_events.extend(private_events)
+            outcome.room_broadcasts.extend(room_broadcasts)
+            return outcome
+        if sub == "cancel":
+            lessons.cancel_lesson(context.account, room_id)
+            snapshot = await context.rooms.build_snapshot(context.account, room_id)
+            outcome = CommandOutcome(message="Class dismissed.", snapshot=snapshot)
+            outcome.room_broadcasts.append(
+                PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id})
+            )
+            return outcome
+        if sub == "scores":
+            return CommandOutcome(
+                message=None,
+                payload={
+                    "scoreboard": lessons.scoreboard(context.account),
+                    "best_gpa": lessons.personal_best(context.account),
+                },
+                toast=False,
+                log=False,
+            )
+        raise CommandError("Use '.classroom lesson <start|test|cancel|scores>'.")
+
     raise CommandError("Unknown classroom command.")
 
 
 def _build_state(runtime: object) -> ClassroomService:
     catalog_path = Path(__file__).resolve().parent / DOORS_FILENAME
     catalog = load_door_catalog(catalog_path)
+    lessons = LessonService(
+        hub=runtime.hub,
+        profiles=runtime.profiles,
+        world_state=runtime.world_state,
+        world=runtime.world,
+        peep_states=runtime.peep_states,
+        behaviors=runtime.behaviors,
+        progression=runtime.progression,
+    )
     return ClassroomService(
         runtime.hub,
         runtime.profiles,
@@ -604,6 +707,7 @@ def _build_state(runtime: object) -> ClassroomService:
         runtime.ownership,
         runtime.world,
         catalog,
+        lessons=lessons,
     )
 
 
@@ -614,7 +718,14 @@ def register(api: object) -> None:
         "classroom",
         "Manage your classroom door.",
         classroom_command,
-        usage=".classroom <list|buy|design|lock|enter> ...",
-        help="List, buy, customize, lock, or enter player classroom doors.",
+        usage=".classroom <list|buy|design|lock|enter|lesson> ...",
+        help="List, buy, customize, lock, enter, or run lessons in player classroom doors.",
+    )
+    api.register_command(
+        "teach",
+        "Teach a topic card to your class.",
+        teach_command,
+        usage=".teach @card:<stack_id>",
+        help="Teach a topic item card to the students in your classroom.",
     )
     api.register_state_factory(_build_state)
