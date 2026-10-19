@@ -7,7 +7,7 @@ const TOP = 0.045;
 const SPRITE_HEIGHT = 1.25;
 const SPRITE_MOVE_SMOOTHING = 5;
 const FALLBACK_ASPECT = 0.78;
-const BUBBLE_REFERENCE_PX = 155;
+const BUBBLE_REFERENCE_PX = 100;
 
 /** Keep a bubble at a fixed size ratio to the peep sprite it belongs to. */
 export function spriteBubbleScale(pixelHeight) {
@@ -191,27 +191,29 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     if (!entry?.sprites?.size || !canvas) return result;
     const bounds = canvas.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return result;
+    camera.updateMatrixWorld();
     const world = new THREE.Vector3();
-    const bottom = new THREE.Vector3();
-    const top = new THREE.Vector3();
+    const view = new THREE.Vector3();
+    const projected = new THREE.Vector3();
+    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     for (const record of entry.sprites.values()) {
       const sprite = record.sprite;
       if (!sprite?.visible || record.failed) continue;
       sprite.getWorldPosition(world);
-      bottom.copy(world);
-      top.copy(world);
-      top.y += sprite.scale.y;
-      bottom.project(camera);
-      top.project(camera);
-      if (![top.x, top.y, top.z, bottom.x, bottom.y, bottom.z].every(Number.isFinite)) continue;
-      if (top.z > 1 || bottom.z > 1) continue;
-      const left = (top.x + 1) / 2 * bounds.width + bounds.left;
-      const head = (1 - top.y) / 2 * bounds.height + bounds.top;
-      const feet = (1 - bottom.y) / 2 * bounds.height + bounds.top;
-      const pixelHeight = Math.max(1, feet - head);
+      // A Sprite is camera-facing, so its screen height follows view depth, not
+      // the world-space vertical axis. Projecting a world-space top point made
+      // bubbles shrink toward nothing as the board rotated to top-down.
+      view.copy(world).applyMatrix4(camera.matrixWorldInverse);
+      const depth = -view.z;
+      if (depth <= 0.05) continue;
+      const pixelHeight = sprite.scale.y * bounds.height * (camera.zoom || 1) / (2 * depth * tanHalfFov);
+      projected.copy(world).project(camera);
+      if (![projected.x, projected.y, projected.z].every(Number.isFinite) || projected.z > 1) continue;
+      const x = (projected.x + 1) / 2 * bounds.width + bounds.left;
+      const feet = (1 - projected.y) / 2 * bounds.height + bounds.top;
       result.set(record.id, {
-        x: left,
-        y: head,
+        x,
+        y: feet - pixelHeight,
         scale: spriteBubbleScale(pixelHeight),
       });
     }
