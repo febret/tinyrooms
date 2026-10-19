@@ -1,5 +1,6 @@
 import { peepDamageTier } from "./peep-damage.js";
 import { withBase } from "./base-path.js";
+import { layoutPeeps } from "./peep-groups.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { statusIconMarkup } from "./views/view-helpers.js";
 
@@ -11,9 +12,30 @@ function bubbleKey(peep) {
   return bubble ? `${bubble.text || ""}\u0000${bubble.imageUrl || ""}` : "";
 }
 
+function isSpritePeep(peep) {
+  return Boolean(latest?.room?.board?.spritesEnabled && Array.isArray(peep?.spritePosition));
+}
+
 function lowerFirst(text) {
   const value = String(text || "");
   return value ? value.charAt(0).toLowerCase() + value.slice(1) : value;
+}
+
+function peepSticker(peep) {
+  return escapeHtml(peep.stickerUrl || withBase("/assets/stickers/s1.png"));
+}
+
+function groupMarkup(grouped) {
+  if (!grouped.length) return "";
+  const minis = grouped.slice(0, 4).map(peep => `<img src="${peepSticker(peep)}" alt="" draggable="false">`).join("");
+  const label = grouped.length === 1 ? "1 more peep" : `${grouped.length} more peeps`;
+  return `
+      <article class="peep-chip peep-group-chip">
+        <button type="button" class="peep-main peep-group" data-peep-group aria-label="Show ${label}" aria-expanded="false">
+          <span class="peep-group-grid" aria-hidden="true">${minis}<span class="peep-group-count">+${grouped.length}</span></span>
+          <span class="peep-name">${label}</span>
+        </button>
+      </article>`;
 }
 
 function peepDamage(peep, state) {
@@ -25,6 +47,7 @@ function peepDamage(peep, state) {
 export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMove, onSound }) {
   let expanded = false;
   let latest = null;
+  let spriteAnchors = new Map();
   let prevIds = null;
   let prevOrder = null;
   let prevRoomId = null;
@@ -55,15 +78,31 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     for (const node of panel.querySelectorAll("[data-peep-id]")) {
       markers.set(node.dataset.peepId, node);
     }
-    if (!markers.size) {
+    const boardSprites = latest?.room?.board?.spritesEnabled ? spriteAnchors : null;
+    if (!markers.size && !boardSprites?.size) {
       for (const bubble of bubbles.values()) hideBubble(bubble);
       return;
     }
+    const spritePeepIds = new Set(
+      [...(latest?.room?.occupants || []), ...(latest?.room?.npcs || [])]
+        .filter(peep => isSpritePeep(peep))
+        .map(peep => peep.id),
+    );
     // Measure everything first: any write below would otherwise invalidate
     // these reads.
     const bounds = panel.getBoundingClientRect();
     const measurements = [];
     for (const [id, bubble] of bubbles) {
+      const anchor = spritePeepIds.has(id) ? boardSprites?.get(id) : null;
+      if (anchor) {
+        let size = bubbleSizes.get(bubble);
+        if (!size) {
+          size = { width: bubble.offsetWidth, height: bubble.offsetHeight };
+          bubbleSizes.set(bubble, size);
+        }
+        measurements.push({ bubble, visible: true, anchor, size, sprite: true });
+        continue;
+      }
       const marker = markers.get(id);
       if (!marker) {
         measurements.push({ bubble, visible: false });
@@ -87,10 +126,16 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
         hideBubble(item.bubble);
         continue;
       }
+      if (item.bubble.hidden) item.bubble.hidden = false;
+      if (item.sprite) {
+        item.bubble.style.setProperty("--bubble-scale", item.anchor.scale.toFixed(3));
+        placeAt(item.bubble, `${item.anchor.x}px`, `${item.anchor.y}px`);
+        continue;
+      }
       const { rect, size } = item;
+      item.bubble.style.removeProperty("--bubble-scale");
       const left = Math.min(bounds.right + 2, window.innerWidth - size.width - 8);
       const top = Math.max(8, Math.min(rect.top + 4, bounds.bottom - size.height));
-      if (item.bubble.hidden) item.bubble.hidden = false;
       placeAt(item.bubble, `${left}px`, `${top}px`);
     }
   }
@@ -269,6 +314,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     latest = state;
     const roomId = state.room?.id || "";
     if (prevRoomId !== null && roomId !== prevRoomId) {
+      expanded = false;
       clearMoves();
       prevIds = null;
       prevOrder = null;
@@ -276,12 +322,8 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     prevRoomId = roomId;
     const peeps = state.room ? [...state.room.occupants, ...state.room.npcs] : [];
     const pinned = new Set(state.user?.pinnedPeeps || []);
-    const self = peeps.filter(peep => peep.id === state.user?.id);
-    const others = peeps.filter(peep => peep.id !== state.user?.id);
-    const pinnedOthers = others.filter(peep => pinned.has(peep.id));
-    const unpinnedOthers = others.filter(peep => !pinned.has(peep.id));
-    const shownUnpinned = expanded ? unpinnedOthers : unpinnedOthers.slice(0, 4);
-    const shown = [...self, ...pinnedOthers, ...shownUnpinned];
+    const layout = layoutPeeps(peeps, { selfId: state.user?.id || "", pinned, expanded });
+    const shown = layout.visible;
     const definitions = state.user?.statusDefinitions || {};
     const markup = `<div class="peep-list">${shown.map(peep => {
       const statuses = peep.statuses || [];
@@ -290,14 +332,14 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       return `
       <article class="peep-chip ${peep.id === state.user?.id ? "self" : ""} ${pinned.has(peep.id) ? "pinned" : ""} ${tired ? "tired" : ""} ${state.selection.kind === "peep" && state.selection.id === peep.id ? "selected" : ""}">
         <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
-          <span class="peep-marker" data-damage="${damage}"><img src="${escapeHtml(peep.stickerUrl || withBase("/assets/stickers/s1.png"))}" alt=""><span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
+          <span class="peep-marker" data-damage="${damage}"><img src="${peepSticker(peep)}" alt=""><span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
           <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
           ${peep.audioEnabled ? `<span class="peep-audio" role="img" aria-label="Audio chat on" title="Audio chat on">&#128266;</span>` : ""}
           ${statuses.length ? `<span class="peep-statuses">${statusIconMarkup(statuses, definitions)}</span>` : ""}
         </button>
       </article>`;
-    }).join("")}</div>
-      ${unpinnedOthers.length > 4 ? `<button type="button" class="quiet peeps-toggle" aria-expanded="${expanded}">${expanded ? "Show fewer" : `+${unpinnedOthers.length - 4} peeps`}</button>` : ""}`;
+    }).join("")}${groupMarkup(layout.grouped)}</div>
+      ${expanded && layout.canCollapse ? `<button type="button" class="quiet peeps-toggle" aria-expanded="true">Show fewer</button>` : ""}`;
     // The FLIP animation only means anything when the list actually reordered or
     // someone is arriving or leaving. Measuring every chip's rect before and
     // after the write forced two synchronous layouts per chip on every socket
@@ -313,8 +355,10 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       panel.querySelectorAll("[data-peep-id]").forEach(button => {
         button.onclick = () => { onSelect({ kind: "peep", id: button.dataset.peepId }); onSound(); };
       });
+      const group = panel.querySelector("[data-peep-group]");
+      if (group) group.onclick = () => { expanded = true; onSound(); render(latest); };
       const toggle = panel.querySelector(".peeps-toggle");
-      if (toggle) toggle.onclick = () => { expanded = !expanded; render(latest); };
+      if (toggle) toggle.onclick = () => { expanded = false; onSound(); render(latest); };
     }
     const currentIds = new Set(currentOrder);
     if (firstRects && panel.querySelector(".peep-list")) {
@@ -367,7 +411,7 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       }
       bubble.dataset.bubbleKey = nextKey;
       const emoteClass = hasImage ? ` emote emote-${peep.bubble.style}` : "";
-      const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
+      const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${isSpritePeep(peep) ? "sprite-bubble" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
       // These run for every visible bubble on every render, so each write is
       // guarded. Assigning an unchanged className still invalidates style and
       // makes the activity layer's MutationObserver do a sibling sweep.
