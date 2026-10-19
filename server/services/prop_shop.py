@@ -22,7 +22,7 @@ def serialize_prop_entry(
         "prop_id": definition.id,
         "label": definition.label,
         "description": definition.description,
-        "model_url": prop_model_url(world.id, definition),
+        "model_url": prop_model_url(world.id, definition, definition.active_state),
         "render_kind": definition.render_kind,
         **({"text": dict(DEFAULT_TEXT)} if definition.render_kind == "text" else {}),
         "base_scale": definition.scale,
@@ -32,6 +32,11 @@ def serialize_prop_entry(
         "tags": list(definition.tags),
         "price": definition.price,
         "locked": definition.locked if locked is None else locked,
+        "states": {
+            state_name: prop_model_url(world.id, definition, state_name) or ""
+            for state_name in definition.states
+        },
+        "active_state": definition.active_state,
         "effect_sets": {
             set_name: [
                 world.effects[effect_id].serialize()

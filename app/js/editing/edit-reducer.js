@@ -24,6 +24,8 @@ function normalizeInstance(entry) {
     scale: Number(entry?.scale ?? 1),
     locked: Boolean(entry?.locked),
     ...(entry?.text ? { text: { ...entry.text } } : {}),
+    state: typeof entry?.state === "string" ? entry.state : "",
+    states: entry?.states && typeof entry.states === "object" ? { ...entry.states } : {},
     effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
     activeEffect: typeof entry?.active_effect === "string" ? entry.active_effect : "",
   };
@@ -44,6 +46,8 @@ function normalizeLibrary(entries) {
       tags: (Array.isArray(entry?.tags) ? entry.tags : []).map(tag => String(tag).trim().toLowerCase()).filter(Boolean),
       price: Number(entry?.price ?? 5),
       locked: Boolean(entry?.locked),
+      activeState: typeof entry?.active_state === "string" ? entry.active_state : "",
+      states: entry?.states && typeof entry.states === "object" ? { ...entry.states } : {},
       effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
       activeEffect: typeof entry?.active_effect === "string" ? entry.active_effect : "",
     }))
@@ -134,6 +138,8 @@ export function editorBoardProps(editor) {
       label: entry?.label || "Prop",
       description: entry?.description || "",
       animation: "",
+      state: instance.state || entry?.activeState || "",
+      states: instance.states && Object.keys(instance.states).length ? instance.states : (entry?.states || {}),
       effectSets: Object.keys(instance.effectSets || {}).length ? instance.effectSets : (entry?.effectSets || {}),
       activeEffect: instance.activeEffect || entry?.activeEffect || "",
       quickActions: [],

@@ -91,8 +91,9 @@ from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.prop_editor import PropEditorService
 from server.services.prop_shop import PropShopService
-from server.services.room_layout import RoomLayoutService
+from server.services.prop_states import PropStateService
 from server.services.room_effects import RoomEffectService
+from server.services.room_layout import RoomLayoutService
 from server.services.rooms import RoomService
 from server.services.rtc import relay_signal as _relay_rtc_signal
 from server.services.rtc import set_audio_presence as _set_audio_presence
@@ -197,6 +198,7 @@ class RuntimeState:
     environment: EnvironmentService
     layout: RoomLayoutService
     room_effects: RoomEffectService
+    prop_states: PropStateService
     auras: AuraService
     cross_world: CrossWorldService
     mods: dict[str, object]
@@ -245,6 +247,17 @@ class RuntimeState:
 
         event = self.rooms.set_prop_active_effect(room_id, prop_instance_id, set_name)
         await _broadcast_room_event(self, room_id=room_id, event=event)
+
+    async def set_prop_state(self, room_id: str, prop_instance_id: str, state_name: str) -> None:
+        """Switch a prop's active mesh state and broadcast it to the room."""
+
+        event = self.rooms.set_prop_state(room_id, prop_instance_id, state_name)
+        await _broadcast_room_event(self, room_id=room_id, event=event)
+
+    async def set_prop_active_state(self, room_id: str, prop_instance_id: str, state_name: str) -> None:
+        """Alias for :meth:`set_prop_state` mirroring active-effect naming."""
+
+        await self.set_prop_state(room_id, prop_instance_id, state_name)
 
     async def reload_world(self) -> None:
         """Swap in the published world without rewriting unrelated live state.
@@ -465,7 +478,10 @@ def _build_runtime(
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     room_effects = RoomEffectService()
-    layout = RoomLayoutService(hub, world, world_state, ownership, environment, prop_shop, room_effects)
+    prop_states = PropStateService()
+    layout = RoomLayoutService(
+        hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states
+    )
     auras = AuraService(hub, stats, world, environment=environment)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes, environment=environment)
@@ -497,6 +513,7 @@ def _build_runtime(
         auras=auras,
         layout=layout,
         room_effects=room_effects,
+        prop_states=prop_states,
         peep_states=peep_states,
     )
     dialogs = DialogService(
@@ -579,6 +596,7 @@ def _build_runtime(
         environment=environment,
         layout=layout,
         room_effects=room_effects,
+        prop_states=prop_states,
         auras=auras,
         cross_world=cross_world,
         mods={},

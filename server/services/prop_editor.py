@@ -111,7 +111,7 @@ class PropEditorService:
             "source": definition.source,
             "source_kind": definition.source_kind,
             "model": definition.model_name,
-            "model_url": prop_model_url(world.id, definition),
+            "model_url": prop_model_url(world.id, definition, definition.active_state),
             "scale": definition.scale,
             "decorative": definition.decorative,
             "editable": definition.editable,
@@ -122,6 +122,11 @@ class PropEditorService:
             "hidden": definition.hidden,
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,
+            "states": {
+                state_name: prop_model_url(world.id, definition, state_name) or ""
+                for state_name in definition.states
+            },
+            "active_state": definition.active_state,
             "effects": {name: list(ids) for name, ids in definition.effect_sets.items()},
             "active_effect": definition.active_effect,
         }
@@ -232,7 +237,7 @@ class PropEditorService:
                 "kind": resolved_kind,
                 "source": resolved_source,
                 "raw": raw_prop,
-                "model_url": prop_model_url(world.id, definition),
+                "model_url": prop_model_url(world.id, definition, definition.active_state),
                 "scale": definition.scale,
             },
             "file": {
@@ -311,7 +316,7 @@ class PropEditorService:
                 "kind": resolved_kind,
                 "source": resolved_source,
                 "raw": candidate,
-                "model_url": prop_model_url(world.id, definition),
+                "model_url": prop_model_url(world.id, definition, definition.active_state),
                 "scale": definition.scale,
             },
             "file": {

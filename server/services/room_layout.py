@@ -94,6 +94,7 @@ class RoomLayoutService:
         environment: EnvironmentService,
         prop_shop: PropShopService,
         room_effects: object | None = None,
+        prop_states: object | None = None,
     ) -> None:
         self._hub = hub
         self._world = world
@@ -102,6 +103,7 @@ class RoomLayoutService:
         self._environment = environment
         self._prop_shop = prop_shop
         self._room_effects = room_effects
+        self._prop_states = prop_states
 
     def _room(self, room_id: str) -> RoomDefinition:
         room = self._world.rooms.get(room_id)
@@ -205,6 +207,28 @@ class RoomLayoutService:
             )
         return base
 
+    def _state_payload(
+        self,
+        room_id: str,
+        instance_id: str,
+        definition: PropDefinition,
+    ) -> dict[str, object]:
+        if not definition.states:
+            return {}
+        active = definition.active_state
+        if self._prop_states is not None:
+            active = self._prop_states.state_for(room_id, instance_id, active)
+        if active not in definition.states:
+            active = definition.active_state
+        return {
+            "state": active,
+            "active_state": active,
+            "states": {
+                state_name: prop_model_url(self._world.id, definition, state_name) or ""
+                for state_name in definition.states
+            },
+        }
+
     def _effect_payload(
         self,
         room_id: str,
@@ -233,6 +257,8 @@ class RoomLayoutService:
     def _serialize_instance(self, room_id: str, instance: PropInstanceDefinition) -> dict[str, object]:
         definition = self._world.props[instance.prop_id]
         animation = instance.animation if instance.animation is not None else definition.animation
+        state_payload = self._state_payload(room_id, instance.id, definition)
+        active_state = state_payload.get("state")
         return {
             "id": instance.id,
             "prop_id": instance.prop_id,
@@ -240,13 +266,18 @@ class RoomLayoutService:
             "rotation": list(instance.rot),
             "scale": instance.scale * definition.scale,
             "behavior": instance.behavior,
-            "model_url": prop_model_url(self._world.id, definition),
+            "model_url": prop_model_url(
+                self._world.id,
+                definition,
+                active_state if isinstance(active_state, str) else None,
+            ),
             "render_kind": definition.render_kind,
             **({"text": dict(instance.text)} if instance.text is not None else {}),
             "label": definition.label,
             "description": definition.description,
             "animation": animation,
             "quick_actions": [],
+            **state_payload,
             **self._effect_payload(room_id, instance.id, definition),
         }
 
@@ -377,6 +408,8 @@ class RoomLayoutService:
         revision = self._world_state.reset_room_state(self._world, room_id)
         if self._room_effects is not None:
             self._room_effects.clear_room(room_id)
+        if self._prop_states is not None:
+            self._prop_states.clear_room(room_id)
         return RoomReset(
             room_id=room_id,
             revision=revision,

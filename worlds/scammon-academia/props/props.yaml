@@ -12,6 +12,10 @@ student-desk:
   - classroom
   - desk
   - furniture
+  states:
+    intact: student-desk.glb
+    broken: student-desk-broken.glb
+  active_state: intact
 chalkboard:
   label: Classroom Chalkboard
   description: A green board in a yellow wooden frame. The chalk tray is always a
@@ -24,6 +28,10 @@ chalkboard:
   - classroom
   - chalkboard
   - wall
+  states:
+    intact: chalkboard.glb
+    broken: chalkboard-broken.glb
+  active_state: intact
 teacher-desk:
   label: Teacher Desk
   description: Solid oak with blue drawers and yellow knobs. The best seat in the
@@ -36,6 +44,10 @@ teacher-desk:
   - classroom
   - desk
   - furniture
+  states:
+    intact: teacher-desk.glb
+    broken: teacher-desk-broken.glb
+  active_state: intact
 classroom-bookshelf:
   label: Classroom Bookshelf
   description: Picture books on top, blue and yellow supply bins down below.
@@ -47,30 +59,10 @@ classroom-bookshelf:
   - classroom
   - bookshelf
   - furniture
-wall-clock:
-  label: Hall Clock
-  description: A round clock with a blue rim and yellow hands. Almost time for recess.
-  model: wall-clock.glb
-  decorative: true
-  editable: true
-  scale: 0.75
-  tags:
-  - classroom
-  - clock
-  - wall
-alphabet-bulletin-board:
-  label: Alphabet Bulletin Board
-  description: Yellow letter cards pinned in a neat row, with the gray husky mascot
-    watching from the corner.
-  model: alphabet-bulletin-board.glb
-  decorative: true
-  editable: true
-  scale: 1
-  tags:
-  - classroom
-  - bulletin-board
-  - wall
-  - mascot
+  states:
+    intact: classroom-bookshelf.glb
+    broken: classroom-bookshelf-broken.glb
+  active_state: intact
 cafeteria-table:
   label: Cafeteria Table
   description: A long folding table with a row of round blue stools. Mind the cafeteria
@@ -83,6 +75,10 @@ cafeteria-table:
   - cafeteria
   - table
   - furniture
+  states:
+    intact: cafeteria-table.glb
+    broken: cafeteria-table-broken.glb
+  active_state: intact
 lunch-tray-stack:
   label: Lunch Tray Stack
   description: A tidy stack of blue trays with two little milk cartons on top.
@@ -94,6 +90,10 @@ lunch-tray-stack:
   - cafeteria
   - tray
   - supplies
+  states:
+    intact: lunch-tray-stack.glb
+    broken: lunch-tray-stack-broken.glb
+  active_state: intact
 milk-crate:
   label: Milk Crate
   description: A bright yellow crate of cold milk cartons, straight from the lunch
@@ -106,6 +106,10 @@ milk-crate:
   - cafeteria
   - crate
   - supplies
+  states:
+    intact: milk-crate.glb
+    broken: milk-crate-broken.glb
+  active_state: intact
 serving-counter:
   label: Lunch Line Counter
   description: A stainless counter under a sneeze guard, with hot lunch waiting in
@@ -118,6 +122,10 @@ serving-counter:
   - cafeteria
   - counter
   - furniture
+  states:
+    intact: serving-counter.glb
+    broken: serving-counter-broken.glb
+  active_state: intact
 recycling-bin:
   label: Recycling Bin
   description: A blue bin with a yellow lid. The husky sticker says sort your paper.
@@ -129,6 +137,10 @@ recycling-bin:
   - cafeteria
   - bin
   - mascot
+  states:
+    intact: recycling-bin.glb
+    broken: recycling-bin-broken.glb
+  active_state: intact
 principal-desk:
   label: Principal Desk
   description: A heavy wooden desk with blue drawers and a yellow nameplate. A desk
@@ -141,6 +153,10 @@ principal-desk:
   - office
   - desk
   - furniture
+  states:
+    intact: principal-desk.glb
+    broken: principal-desk-broken.glb
+  active_state: intact
 office-filing-cabinet:
   label: Office Filing Cabinet
   description: Four gray drawers with blue labels and yellow pulls. Every pupil file
@@ -153,6 +169,10 @@ office-filing-cabinet:
   - office
   - cabinet
   - storage
+  states:
+    intact: filing-cabinet.glb
+    broken: filing-cabinet-broken.glb
+  active_state: intact
 office-chair:
   label: Office Chair
   description: A blue rolling chair with a yellow cushion. Spin once for luck.
@@ -164,6 +184,10 @@ office-chair:
   - office
   - chair
   - furniture
+  states:
+    intact: office-chair.glb
+    broken: office-chair-broken.glb
+  active_state: intact
 pa-speaker:
   label: Intercom Speaker
   description: A blue intercom box with yellow knobs. Crackles to life for morning
@@ -176,6 +200,10 @@ pa-speaker:
   - office
   - speaker
   - wall
+  states:
+    intact: pa-speaker.glb
+    broken: pa-speaker-broken.glb
+  active_state: intact
 school-sink:
   label: Bathroom Sink
   description: A child-height sink with a blue tiled backsplash and a yellow soap
@@ -188,6 +216,10 @@ school-sink:
   - bathroom
   - sink
   - fixture
+  states:
+    intact: school-sink.glb
+    broken: school-sink-broken.glb
+  active_state: intact
 school-toilet:
   label: School Toilet
   description: A small white toilet with a blue flush button. Just the right size.
@@ -199,6 +231,10 @@ school-toilet:
   - bathroom
   - toilet
   - fixture
+  states:
+    intact: school-toilet.glb
+    broken: school-toilet-broken.glb
+  active_state: intact
 paper-towel-dispenser:
   label: Paper Towel Dispenser
   description: A blue dispenser with a yellow band. One paper towel, then scrub for
@@ -211,6 +247,10 @@ paper-towel-dispenser:
   - bathroom
   - dispenser
   - wall
+  states:
+    intact: paper-towel-dispenser.glb
+    broken: paper-towel-dispenser-broken.glb
+  active_state: intact
 drinking-fountain:
   label: Drinking Fountain
   description: A chrome bubbler on a blue basin. Count to five before the next person
@@ -223,6 +263,10 @@ drinking-fountain:
   - bathroom
   - fountain
   - fixture
+  states:
+    intact: drinking-fountain.glb
+    broken: drinking-fountain-broken.glb
+  active_state: intact
 mascot-banner:
   label: Husky Pennant
   description: A blue triangle pennant with yellow trim, the gray husky mascot on
@@ -235,6 +279,10 @@ mascot-banner:
   - mascot
   - banner
   - decor
+  states:
+    intact: mascot-banner.glb
+    broken: mascot-banner-broken.glb
+  active_state: intact
 mascot-logo-sign:
   label: Husky Mascot Sign
   description: A round enamel badge of the gray husky mascot on a blue field, ringed
@@ -247,6 +295,10 @@ mascot-logo-sign:
   - mascot
   - sign
   - decor
+  states:
+    intact: mascot-logo-sign.glb
+    broken: mascot-logo-sign-broken.glb
+  active_state: intact
 portal:
   label: A Glowing Portal
   description: A familiar doorway, shimmering with possibilities.
@@ -261,3 +313,7 @@ portal:
     active:
     - sparks
   active_effect: idle
+  states:
+    intact: portal.glb
+    broken: portal-broken.glb
+  active_state: intact

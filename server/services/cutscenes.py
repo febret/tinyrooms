@@ -22,7 +22,7 @@ from server.content.cutscenes import (
     build_cutscene_catalog,
     resolve_cutscene_id,
 )
-from server.content.worlds import WorldDefinition
+from server.content.worlds import WorldDefinition, prop_model_url
 
 if TYPE_CHECKING:
     from server.profiles import AccountRecord, ProfileRepository
@@ -423,12 +423,9 @@ class CutsceneService:
         definition = world.props.get(instance.prop_id)
         if definition is None:
             return None
-        if definition.source_kind == "mod":
-            model_url = f"/assets/mods/{definition.source}/props/{definition.model_name}"
-        elif definition.source_kind == "propset":
-            model_url = f"/assets/propsets/{definition.source}/{definition.model_name}"
-        else:
-            model_url = f"/assets/world/{world.id}/props/{definition.model_name}"
+        model_url = prop_model_url(world.id, definition, definition.active_state)
+        if model_url is None:
+            return None
         # Thumbnails are rendered in the browser, using instance × definition scale.
         return {
             "ref": ref,

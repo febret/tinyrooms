@@ -65,6 +65,15 @@ class ExitDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class PropStateDefinition:
+    """A named mesh variant a prop instance can switch to at runtime."""
+
+    name: str
+    model_name: str
+    model_path: Path
+
+
+@dataclass(frozen=True, slots=True)
 class PropDefinition:
     """An immutable prop definition."""
 
@@ -93,6 +102,11 @@ class PropDefinition:
     effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
     active_effect: str | None = None
     render_kind: str = "model"
+    # Named mesh variants. This active_state is the authored starting state;
+    # RoomService can override it per room/instance in memory and broadcast
+    # room.prop.updated so clients reload the active model.
+    states: dict[str, PropStateDefinition] = field(default_factory=dict)
+    active_state: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,16 +280,33 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
     )}
 
 
-def prop_model_url(world_id: str, definition: PropDefinition) -> str | None:
-    """Return the served URL for a prop model from a world, propset, or mod."""
+def _prop_model_name(definition: PropDefinition, state: str | None) -> str | None:
+    if state is not None:
+        state_definition = definition.states.get(state)
+        if state_definition is not None:
+            return state_definition.model_name
+    return definition.model_name
+
+
+def prop_model_url(
+    world_id: str,
+    definition: PropDefinition,
+    state: str | None = None,
+) -> str | None:
+    """Return the served URL for a prop model from a world, propset, or mod.
+
+    Pass *state* to resolve the mesh associated with a named prop state. Unknown
+    states fall back to the prop's base model, matching runtime validation.
+    """
 
     if definition.render_kind != "model":
         return None
+    model_name = _prop_model_name(definition, state)
     if definition.source_kind == "mod":
-        return f"/assets/mods/{definition.source}/props/{definition.model_name}"
+        return f"/assets/mods/{definition.source}/props/{model_name}"
     if definition.source_kind == "propset":
-        return f"/assets/propsets/{definition.source}/{definition.model_name}"
-    return f"/assets/world/{world_id}/props/{definition.model_name}"
+        return f"/assets/propsets/{definition.source}/{model_name}"
+    return f"/assets/world/{world_id}/props/{model_name}"
 
 
 def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str, ...]]:
@@ -415,6 +446,73 @@ def _load_animation(raw_value: Any, label: str) -> str | None:
         raise ContentError(f"{label} must be a string.")
     text = raw_value.strip()
     return text or None
+
+
+def _load_prop_states(
+    raw_value: Any,
+    props_file: Path,
+    prop_id: str,
+) -> dict[str, PropStateDefinition]:
+    """Parse a prop's named mesh states: ``{state_name: model_file}``.
+
+    Values may be a model filename directly or a mapping with a ``model`` key,
+    leaving room for future per-state options without changing the shorthand.
+    """
+
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, dict):
+        raise ContentError(f"Prop '{prop_id}' states must be a mapping of state names to models.")
+    states: dict[str, PropStateDefinition] = {}
+    for raw_name, raw_state in raw_value.items():
+        state_name = str(raw_name).strip()
+        if not state_name:
+            raise ContentError(f"Prop '{prop_id}' contains an empty state name.")
+        if isinstance(raw_state, str):
+            model_name = raw_state.strip()
+        elif isinstance(raw_state, dict):
+            model_name = str(raw_state.get("model", "")).strip()
+        else:
+            raise ContentError(
+                f"Prop '{prop_id}' state '{state_name}' must be a model filename "
+                "or a mapping with a model."
+            )
+        if not model_name:
+            raise ContentError(f"Prop '{prop_id}' state '{state_name}' is missing its model.")
+        model_path = (props_file.parent / model_name).resolve()
+        if not model_path.is_file():
+            raise ContentError(
+                f"Prop '{prop_id}' state '{state_name}' references missing model '{model_name}'."
+            )
+        states[state_name] = PropStateDefinition(
+            name=state_name,
+            model_name=model_name,
+            model_path=model_path,
+        )
+    return states
+
+
+def _load_active_state(
+    raw_value: Any,
+    states: dict[str, PropStateDefinition],
+    prop_id: str,
+) -> str | None:
+    """Resolve the authored starting state, defaulting to the first declared one."""
+
+    if not states:
+        if raw_value is not None:
+            raise ContentError(f"Prop '{prop_id}' declares active_state without any states.")
+        return None
+    if raw_value is None:
+        return next(iter(states))
+    if not isinstance(raw_value, str):
+        raise ContentError(f"Prop '{prop_id}' active_state must be a string.")
+    active_state = raw_value.strip()
+    if active_state not in states:
+        raise ContentError(
+            f"Prop '{prop_id}' active_state '{active_state}' is not one of its states."
+        )
+    return active_state
 
 
 def _load_effect_sets(raw_value: Any, label: str) -> dict[str, tuple[str, ...]]:
@@ -594,12 +692,20 @@ def load_prop_definition(
         raise ContentError(f"{props_file} contains an invalid prop entry.")
     if prop_id.startswith("builtin:"):
         raise ContentError(f"Prop id '{prop_id}' is reserved for built-in procedural props.")
+    states = _load_prop_states(raw_prop.get("states"), props_file, prop_id)
+    raw_active_state = raw_prop.get("active_state", raw_prop.get("default_state"))
+    active_state = _load_active_state(raw_active_state, states, prop_id)
     model_name = str(raw_prop.get("model", "")).strip()
     if not model_name:
-        raise ContentError(f"Prop '{prop_id}' is missing its model.")
-    model_path = (props_file.parent / model_name).resolve()
-    if not model_path.is_file():
-        raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
+        if not states:
+            raise ContentError(f"Prop '{prop_id}' is missing its model.")
+        active_definition = states[active_state] if active_state is not None else next(iter(states.values()))
+        model_name = active_definition.model_name
+        model_path = active_definition.model_path
+    else:
+        model_path = (props_file.parent / model_name).resolve()
+        if not model_path.is_file():
+            raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
     raw_scale = raw_prop.get("scale", 1.0)
     if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
         raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
@@ -655,6 +761,8 @@ def load_prop_definition(
         requires_light=requires_light,
         effect_sets=effect_sets,
         active_effect=active_effect,
+        states=states,
+        active_state=active_state,
     )
 
 

@@ -63,6 +63,9 @@ Prop schema and file-wide scale settings are defined by
 [worlds.py](../server/content/worlds.py). Effect definitions are loaded by
 [fx.py](../server/content/fx.py) and rendered by
 [prop-effects.js](../app/js/prop-effects.js); reduced motion suppresses effects.
+Props may also declare named mesh `states` and an authored `active_state`.
+[rooms.py](../server/services/rooms.py) can switch a room instance's state at
+runtime and broadcasts `room.prop.updated`; clients reload the active model.
 
 ### 2.2 World-resolved card effects
 

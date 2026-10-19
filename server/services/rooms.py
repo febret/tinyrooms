@@ -80,6 +80,7 @@ class RoomService:
         auras: object | None = None,
         layout: object | None = None,
         room_effects: object | None = None,
+        prop_states: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
     ) -> None:
         self._hub = hub
@@ -98,6 +99,7 @@ class RoomService:
         self._auras = auras
         self._layout = layout
         self._room_effects = room_effects
+        self._prop_states = prop_states
         self._mod_states: list[object] = []
 
     def attach_dispatcher(self, dispatcher: object) -> None:
@@ -168,6 +170,27 @@ class RoomService:
             raise ValueError("That prop is not visible right now.")
         return prop
 
+    def _states_payload(self, definition: PropDefinition) -> dict[str, str]:
+        return {
+            state_name: prop_model_url(self._world.id, definition, state_name) or ""
+            for state_name in definition.states
+        }
+
+    def _active_state(
+        self,
+        room_id: str,
+        prop_instance_id: str,
+        definition: PropDefinition,
+    ) -> str | None:
+        if not definition.states:
+            return None
+        active = definition.active_state
+        if self._prop_states is not None:
+            active = self._prop_states.state_for(room_id, prop_instance_id, active)
+        if active not in definition.states:
+            return definition.active_state
+        return active
+
     def _effect_sets_payload(self, definition: PropDefinition) -> dict[str, list[dict[str, object]]]:
         return {
             set_name: [
@@ -192,6 +215,56 @@ class RoomService:
         if default not in definition.effect_sets:
             return definition.active_effect
         return default
+
+    def set_prop_state(
+        self,
+        room_id: str,
+        prop_instance_id: str,
+        state_name: str,
+    ) -> dict[str, object]:
+        """Switch the mesh state of a prop instance at runtime.
+
+        Returns the room event a caller should broadcast. Raises ``ValueError``
+        for unknown rooms, props, or states.
+        """
+
+        room = self._world.rooms.get(room_id)
+        if room is None:
+            raise ValueError("That room does not exist.")
+        instance = next(
+            (prop for prop in self._effective_props(room) if prop.id == prop_instance_id),
+            None,
+        )
+        if instance is None:
+            raise ValueError("That prop does not exist.")
+        definition = self._world.props[instance.prop_id]
+        if not definition.states:
+            raise ValueError(f"{definition.label} has no states.")
+        if state_name not in definition.states:
+            raise ValueError(f"{definition.label} has no state '{state_name}'.")
+        if self._prop_states is None:
+            raise ValueError("Prop states are unavailable.")
+        self._prop_states.set(room_id, prop_instance_id, state_name)
+        return {
+            "type": "room.prop.updated",
+            "room_id": room_id,
+            "prop": {
+                "id": prop_instance_id,
+                "state": state_name,
+                "active_state": state_name,
+                "model_url": prop_model_url(self._world.id, definition, state_name),
+            },
+        }
+
+    def set_prop_active_state(
+        self,
+        room_id: str,
+        prop_instance_id: str,
+        state_name: str,
+    ) -> dict[str, object]:
+        """Switch a prop instance's mesh state (alias of :meth:`set_prop_state`)."""
+
+        return self.set_prop_state(room_id, prop_instance_id, state_name)
 
     def set_prop_active_effect(
         self,
@@ -418,6 +491,7 @@ class RoomService:
     ) -> dict[str, object]:
         prop_definition = self._world.props[prop.prop_id]
         animation = prop.animation if prop.animation is not None else prop_definition.animation
+        active_state = None if dark else self._active_state(room.id, prop.id, prop_definition)
         if dark or disable_actions:
             quick_actions: list[dict[str, object]] = []
         else:
@@ -436,13 +510,16 @@ class RoomService:
             "rotation": list(prop.rot),
             "scale": prop.scale * prop_definition.scale,
             "behavior": None if dark else prop.behavior,
-            "model_url": prop_model_url(self._world.id, prop_definition),
+            "model_url": prop_model_url(self._world.id, prop_definition, active_state),
             "render_kind": prop_definition.render_kind,
             **({"text": dict(prop.text)} if prop.text is not None else {}),
             "label": "Something in the dark" if dark else prop_definition.label,
             "description": "" if dark else prop_definition.description,
             "animation": animation,
             "quick_actions": quick_actions,
+            "state": active_state,
+            "active_state": active_state,
+            "states": {} if dark else self._states_payload(prop_definition),
             "effect_sets": {} if dark else self._effect_sets_payload(prop_definition),
             "active_effect": None if dark else self._active_effect(room.id, prop.id, prop_definition),
         }
