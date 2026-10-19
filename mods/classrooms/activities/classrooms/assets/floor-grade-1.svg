@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 44" preserveAspectRatio="none" role="img" aria-label="Honey wood floor">
+  <defs>
+    <linearGradient id="g1Floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a6a44"/>
+      <stop offset="0.3" stop-color="#a98253"/>
+      <stop offset="1" stop-color="#cda36a"/>
+    </linearGradient>
+    <linearGradient id="g1FloorEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.45"/>
+      <stop offset="0.2" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="44" fill="url(#g1Floor)"/>
+  <g stroke="#6f5232" stroke-width="1.2" opacity="0.75">
+    <path d="M0 14H120M0 30H120"/>
+  </g>
+  <g stroke="#e1c28b" stroke-width="0.8" opacity="0.45">
+    <path d="M0 15.3H120M0 31.3H120"/>
+  </g>
+  <g stroke="#6f5232" stroke-width="1" opacity="0.5">
+    <path d="M30 0V14M90 14V30M50 30V44M10 0V14M70 14V30M100 30V44"/>
+  </g>
+  <g stroke="#3d2a18" stroke-width="0.6" opacity="0.2">
+    <path d="M0 5H120M0 21H120M0 37H120"/>
+  </g>
+  <rect width="120" height="44" fill="url(#g1FloorEdge)"/>
+</svg>

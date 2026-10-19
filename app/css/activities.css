@@ -1,5 +1,5 @@
-.activity-layer { position: absolute; inset: 0 0 0 var(--sidebar-width); z-index: 44; isolation: isolate; pointer-events: none; }
-.app-shell.peeps-hidden .activity-layer { left: 0; }
+.activity-layer { position: fixed; inset: 0; z-index: 44; isolation: isolate; pointer-events: none; }
+.app-shell.activity-maximized .sidebar, .app-shell.activity-maximized .bottom-stack { visibility: hidden; }
 .activity-layer > .activity-window { pointer-events: auto; }
 .activity-pills { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .activity-pills:empty { display: none; }

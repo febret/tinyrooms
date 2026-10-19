@@ -68,10 +68,119 @@ hall:
           ACADEMY'
         font_id: sans
         color: '#fccb1d'
+    cafeteria-door0:
+      prop: oak-panel-door
+      pos:
+      - 100
+      - 55
+      - 0
+      scale: 1.25
+      rot:
+      - 0
+      - -1.6
+      - 0
+      actions:
+      - - Enter the cafeteria
+        - .go @way:cafeteria
   exits:
     to_tutorial:
       label: Step through the portal
       target_world: tutorial
+    cafeteria:
+      label: Enter the cafeteria
+      target: cafeteria
+cafeteria:
+  label: The Cafeteria
+  description: Blue trays, warm lunch, and a floor full of students. The hall door
+    swings both ways.
+  board_type: basic
+  board_image: cafeteria.png
+  board_image_style: stretch
+  sprites_enabled: true
+  palette:
+  - '#2b4c9b'
+  - '#f4c430'
+  - '#d8dbe0'
+  editor:
+    environment:
+    - palette
+    - board_image_style
+  props:
+    hall-door0:
+      prop: oak-panel-door
+      pos:
+      - 0
+      - 55
+      - 0
+      scale: 1.25
+      rot:
+      - 0
+      - 1.6
+      - 0
+      actions:
+      - - Back to the hall
+        - .go @way:hall
+    serving-counter0:
+      prop: serving-counter
+      pos:
+      - 50
+      - 8
+      - 0
+      scale: 1
+      behavior: cafeteria
+    cafeteria-table0:
+      prop: cafeteria-table
+      pos:
+      - 25
+      - 35
+      - 0
+      scale: 1
+    cafeteria-table1:
+      prop: cafeteria-table
+      pos:
+      - 75
+      - 35
+      - 0
+      scale: 1
+    cafeteria-table2:
+      prop: cafeteria-table
+      pos:
+      - 25
+      - 72
+      - 0
+      scale: 1
+    cafeteria-table3:
+      prop: cafeteria-table
+      pos:
+      - 75
+      - 72
+      - 0
+      scale: 1
+    lunch-tray-stack0:
+      prop: lunch-tray-stack
+      pos:
+      - 10
+      - 14
+      - 0
+      scale: 1
+    milk-crate0:
+      prop: milk-crate
+      pos:
+      - 90
+      - 14
+      - 0
+      scale: 1
+    recycling-bin0:
+      prop: recycling-bin
+      pos:
+      - 91
+      - 91
+      - 0
+      scale: 1
+  exits:
+    hall:
+      label: Back to the hall
+      target: hall
 player-classroom:
   label: A Player Classroom
   description: A bright classroom of your very own. Make it yours.

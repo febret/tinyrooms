@@ -12,10 +12,6 @@ function bubbleKey(peep) {
   return bubble ? `${bubble.text || ""}\u0000${bubble.imageUrl || ""}` : "";
 }
 
-function isSpritePeep(peep) {
-  return Boolean(latest?.room?.board?.spritesEnabled && Array.isArray(peep?.spritePosition));
-}
-
 function lowerFirst(text) {
   const value = String(text || "");
   return value ? value.charAt(0).toLowerCase() + value.slice(1) : value;
@@ -49,6 +45,11 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
   let latest = null;
   let spriteAnchors = new Map();
   let prevIds = null;
+
+  function isSpritePeep(peep) {
+    return Boolean(latest?.room?.board?.spritesEnabled && Array.isArray(peep?.spritePosition));
+  }
+
   let prevOrder = null;
   let prevRoomId = null;
   const bubbles = new Map();
@@ -78,23 +79,23 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     for (const node of panel.querySelectorAll("[data-peep-id]")) {
       markers.set(node.dataset.peepId, node);
     }
-    const boardSprites = latest?.room?.board?.spritesEnabled ? spriteAnchors : null;
+    const spriteMode = Boolean(latest?.room?.board?.spritesEnabled);
+    const boardSprites = spriteMode ? spriteAnchors : null;
     if (!markers.size && !boardSprites?.size) {
       for (const bubble of bubbles.values()) hideBubble(bubble);
       return;
     }
-    const spritePeepIds = new Set(
-      [...(latest?.room?.occupants || []), ...(latest?.room?.npcs || [])]
-        .filter(peep => isSpritePeep(peep))
-        .map(peep => peep.id),
-    );
     // Measure everything first: any write below would otherwise invalidate
     // these reads.
     const bounds = panel.getBoundingClientRect();
     const measurements = [];
     for (const [id, bubble] of bubbles) {
-      const anchor = spritePeepIds.has(id) ? boardSprites?.get(id) : null;
-      if (anchor) {
+      if (spriteMode) {
+        const anchor = boardSprites?.get(id);
+        if (!anchor) {
+          measurements.push({ bubble, visible: false });
+          continue;
+        }
         let size = bubbleSizes.get(bubble);
         if (!size) {
           size = { width: bubble.offsetWidth, height: bubble.offsetHeight };
@@ -460,6 +461,11 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     }
     positionBubbles();
   }
+  function setSpriteAnchors(anchors) {
+    spriteAnchors = anchors instanceof Map ? anchors : new Map();
+    positionBubbles();
+  }
+
   // Listeners are kept so the view can actually be torn down; an observer and a
   // window listener that outlive their view keep the whole closure alive.
   const panelObserver = new ResizeObserver(positionBubbles);
@@ -478,5 +484,5 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     ghosts.clear();
   }
 
-  return { render, noteMove, destroy };
+  return { render, noteMove, positionBubbles, setSpriteAnchors, destroy };
 }

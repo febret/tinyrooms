@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" preserveAspectRatio="none" role="img" aria-label="Mint classroom corridor wall">
+  <defs>
+    <linearGradient id="g2Upper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e7fbee"/>
+      <stop offset="0.55" stop-color="#c9eed7"/>
+      <stop offset="1" stop-color="#a9ddbd"/>
+    </linearGradient>
+    <linearGradient id="g2Wain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#33897d"/>
+      <stop offset="1" stop-color="#1d5e58"/>
+    </linearGradient>
+    <linearGradient id="g2Rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="0.5" stop-color="#d8f1df"/>
+      <stop offset="1" stop-color="#aacdb8"/>
+    </linearGradient>
+    <linearGradient id="g2AO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.09"/>
+      <stop offset="0.18" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.76" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.17"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="200" fill="url(#g2Upper)"/>
+  <rect y="116" width="120" height="84" fill="url(#g2Wain)"/>
+  <g stroke="#174b46" stroke-width="1.3" opacity="0.45">
+    <path d="M0 138H120M0 164H120M0 188H120"/>
+  </g>
+  <g stroke="#63b3a5" stroke-width="0.9" opacity="0.45">
+    <path d="M0 139.2H120M0 165.2H120M0 189.2H120"/>
+  </g>
+  <g opacity="0.6">
+    <rect x="16" y="37" width="38" height="48" rx="3" fill="#f8fff9" stroke="#6ca98c" stroke-width="1.5"/>
+    <path d="M20 42h30M20 47h24M20 52h27" stroke="#8fc7ac" stroke-width="1.5"/>
+    <circle cx="90" cy="57" r="16" fill="#e8f8cc" stroke="#79aa84" stroke-width="1.5"/>
+    <path d="M90 43v28M76 57h28" stroke="#8bbf93" stroke-width="1"/>
+  </g>
+  <g fill="#2f7e70" opacity="0.45">
+    <circle cx="24" cy="99" r="2"/><circle cx="40" cy="99" r="2"/><circle cx="56" cy="99" r="2"/>
+    <circle cx="72" cy="99" r="2"/><circle cx="88" cy="99" r="2"/><circle cx="104" cy="99" r="2"/>
+  </g>
+  <rect y="110" width="120" height="9" fill="url(#g2Rail)"/>
+  <rect y="118.5" width="120" height="2.5" fill="#00000030"/>
+  <rect y="191" width="120" height="9" fill="#d9edda"/>
+  <rect y="191" width="120" height="9" fill="url(#g2Rail)" opacity="0.45"/>
+  <rect y="191" width="120" height="1.5" fill="#ffffff88"/>
+  <rect y="198.4" width="120" height="1.6" fill="#00000044"/>
+  <rect width="120" height="200" fill="url(#g2AO)"/>
+</svg>

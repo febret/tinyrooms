@@ -8,6 +8,7 @@ them independently and they react in character.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import random
 
 from mods.classrooms.lessons import (
@@ -22,6 +23,18 @@ from mods.classrooms.lessons import (
 # Five students each roll once per tick, so ~1/5 per tick is one comment per
 # five seconds across the class.
 COMMENT_CHANCE = 0.04
+CAFETERIA_MOVE_INTERVAL = (10.0, 15.0)
+CAFETERIA_COMMENT_CHANCE = 0.012
+
+CAFETERIA_LINES = (
+    "These fries are so good.",
+    "Is it recess yet?",
+    "I saved you a seat!",
+    "Somebody took the last chocolate milk.",
+    "The mashed potatoes are looking back at me.",
+    "Trade you my carrots for your cookie?",
+    "I hope it is pizza day again tomorrow.",
+)
 
 LIKED_LINES = (
     "{subject}? Yes! My favorite.",
@@ -157,9 +170,42 @@ def on_card_play(context, event):
         _say(context, _pick(NEUTRAL_LINES, subject=display))
 
 
+def _cafeteria_deadline(context, event):
+    """Return the next sprite-move deadline for this cafeteria visit."""
+
+    state = context.state
+    if state.get("sprite_move_room") != event.room_id:
+        state["sprite_move_room"] = event.room_id
+        seconds = random.uniform(*CAFETERIA_MOVE_INTERVAL)
+        state["next_sprite_move_at"] = (context.now + timedelta(seconds=seconds)).isoformat()
+        return None
+    raw = state.get("next_sprite_move_at")
+    if not isinstance(raw, str):
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _cafeteria_tick(context, event):
+    """Wander the cafeteria and occasionally chat over lunch."""
+
+    deadline = _cafeteria_deadline(context, event)
+    if deadline is not None and context.now >= deadline:
+        context.move_sprite_random()
+        seconds = random.uniform(*CAFETERIA_MOVE_INTERVAL)
+        context.state["next_sprite_move_at"] = (context.now + timedelta(seconds=seconds)).isoformat()
+    if random.random() < CAFETERIA_COMMENT_CHANCE:
+        _say(context, _pick(CAFETERIA_LINES))
+
+
 def on_tick(context, event):
     """Comment on the class at an average of about one line per five seconds."""
 
+    if context.sprites_enabled:
+        _cafeteria_tick(context, event)
+        return
     if not _active(context, event):
         return
 

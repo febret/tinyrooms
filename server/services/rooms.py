@@ -18,6 +18,7 @@ from server.protocol import (
 from server.services.activities import ActivityService
 from server.services.cards import CardService
 from server.services.npc_movement import NpcMove, resolve_npc_move
+from server.services.sprite_rooms import SpriteService
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 from server.state.npc_peep_states import NpcPeepStateRepository
@@ -82,6 +83,7 @@ class RoomService:
         room_effects: object | None = None,
         prop_states: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
+        sprites: SpriteService | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -100,7 +102,14 @@ class RoomService:
         self._layout = layout
         self._room_effects = room_effects
         self._prop_states = prop_states
+        self._sprites = sprites or SpriteService(world, layout=layout)
         self._mod_states: list[object] = []
+
+    @property
+    def sprites(self) -> SpriteService:
+        """Return the shared sprite placement service."""
+
+        return self._sprites
 
     def attach_dispatcher(self, dispatcher: object) -> None:
         """Wire the behavior dispatcher used for navigation events."""
@@ -391,9 +400,14 @@ class RoomService:
                     "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
                     "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(account),
+                    **self._user_sprite_payload(account.id, room_id),
                 }
             )
         return occupants
+
+    def _user_sprite_payload(self, account_id: str, room_id: str) -> dict[str, object]:
+        position = self._sprites.ensure_user(account_id, room_id)
+        return {} if position is None else {"sprite": {"position": list(position)}}
 
     @staticmethod
     def _user_quick_actions(account: AccountRecord) -> list[dict[str, object]]:
@@ -426,6 +440,10 @@ class RoomService:
         room = self._world.rooms.get(resolved_room_id)
         quick_actions = self._visible_prop_actions(room, peep.actions) if room is not None else []
         quick_actions.append({"label": "Look", "command": f".look @peep:{peep.id}"})
+        sprite_payload: dict[str, object] = {}
+        position = self._sprites.ensure_npc(peep.id, resolved_room_id)
+        if position is not None:
+            sprite_payload["sprite"] = {"position": list(position)}
         return {
             "id": peep.id,
             "kind": "npc",
@@ -434,6 +452,7 @@ class RoomService:
             "room_id": resolved_room_id,
             "image_url": f"/assets/world/{self._world.id}/peeps/{peep.image_name}",
             "quick_actions": quick_actions,
+            **sprite_payload,
         }
 
     async def move_npc(self, peep_id: str, exit_id: str) -> NpcMoveResult:
@@ -449,6 +468,7 @@ class RoomService:
         with self._hub.transaction() as connection:
             self._peep_states.set_in_transaction(connection, peep_id, move.destination_room_id)
         self._peep_states.record(peep_id, move.destination_room_id)
+        self._sprites.forget_npc(peep_id)
         source_room = self._world.rooms[move.source_room_id]
         return NpcMoveResult(
             move=move,
@@ -467,6 +487,23 @@ class RoomService:
                 source_room_label=source_room.label,
             ),
         )
+
+    def move_user_sprite(
+        self,
+        account: AccountRecord,
+        room_id: str,
+        x: float,
+        y: float,
+    ) -> dict[str, object]:
+        """Move a user's board sprite and return the room event to broadcast."""
+
+        position = self._sprites.set_user_position(account.id, room_id, x, y)
+        return {
+            "type": "peep.sprite",
+            "room_id": room_id,
+            "account_id": account.id,
+            "position": list(position),
+        }
 
     def _serialize_exit(self, exit_definition: ExitDefinition) -> dict[str, object]:
         return {
@@ -554,6 +591,7 @@ class RoomService:
                     "counters": counters,
                     "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(occupant),
+                    **self._user_sprite_payload(occupant.id, room_id),
                 }
             )
         visible_definitions = self._visible_exits(room)
@@ -593,6 +631,7 @@ class RoomService:
                 "palette": board_palette,
                 "dark": dark,
                 "base_dark": room.dark,
+                "sprites_enabled": room.sprites_enabled,
             },
             "metadata": {"note": note},
             "environment": environment,
@@ -737,6 +776,7 @@ class RoomService:
         if self._auras is not None:
             self._auras.leave(account.id, source_room_id)
         await self._connections.set_room(account.id, None)
+        self._sprites.forget_user(account.id)
         closed = self._activities.close(account.id)
         return WorldDeparture(
             source_room_id=source_room_id,
@@ -785,6 +825,7 @@ class RoomService:
                 self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
+        self._sprites.forget_user(account.id)
         if self._auras is not None:
             self._auras.enter(account.id, destination_room.id)
         closed = self._activities.close_if_room_bound(account.id, destination_room.id)

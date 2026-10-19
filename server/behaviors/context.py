@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -62,6 +62,7 @@ class BehaviorContext:
         environment: object | None = None,
         actor_username: str = "",
         card: CardView | None = None,
+        peeps_in: Callable[[str], list[dict[str, object]]] | None = None,
     ) -> None:
         self.event = event
         self.actor = actor
@@ -76,8 +77,37 @@ class BehaviorContext:
         self._card_ids = frozenset(card_ids)
         self._equipped_ids = frozenset(equipped_ids)
         self._environment = environment
+        self._peeps_in = peeps_in
         self.actor_username = str(actor_username or "")
         self.intents: list[Intent] = []
+
+    @property
+    def sprites_enabled(self) -> bool:
+        """Return whether the acting room uses 2D peep sprites."""
+
+        return bool(self.room.get("sprites_enabled"))
+
+    def peeps_in(self, room_id: str) -> list[dict[str, object]]:
+        """Return lightweight NPC references currently in *room_id*."""
+
+        if self._peeps_in is None:
+            return []
+        return self._peeps_in(str(room_id))
+
+    def move_sprite(self, x: float, y: float) -> None:
+        """Queue moving the attached NPC sprite to a board position."""
+
+        self._append("move_sprite", {"position": [float(x), float(y)]})
+
+    def move_sprite_random(self) -> None:
+        """Queue moving the attached NPC sprite to a random valid position."""
+
+        self._append("move_sprite_random", {})
+
+    def move_peep(self, peep_id: str, room_id: str) -> None:
+        """Queue moving an NPC peep directly to another room."""
+
+        self._append("move_peep", {"peep_id": str(peep_id), "room_id": str(room_id)})
 
     @property
     def actor_name(self) -> str:

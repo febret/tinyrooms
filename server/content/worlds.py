@@ -107,6 +107,9 @@ class PropDefinition:
     # room.prop.updated so clients reload the active model.
     states: dict[str, PropStateDefinition] = field(default_factory=dict)
     active_state: str | None = None
+    # Half-extents in board percent at the definition's authored scale, used by
+    # sprite-mode rooms to keep peeps off furniture.
+    sprite_footprint: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,6 +177,7 @@ class RoomDefinition:
     aura: tuple[AuraDefinition, ...] = ()
     editor_environment: tuple[str, ...] = ()
     template: bool = False
+    sprites_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -437,6 +441,24 @@ def _load_vec3(raw_value: Any, label: str) -> tuple[float, float, float]:
     if not isinstance(raw_value, list) or len(raw_value) != 3:
         raise ContentError(f"{label} must be a 3-item list.")
     return (float(raw_value[0]), float(raw_value[1]), float(raw_value[2]))
+
+
+def _load_sprite_footprint(raw_value: Any, prop_id: str) -> tuple[float, float] | None:
+    """Read optional per-prop half-extents in board percent at authored scale."""
+
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, list) or len(raw_value) != 2:
+        raise ContentError(f"Prop '{prop_id}' sprite_footprint must be a 2-item list.")
+    values: list[float] = []
+    for raw_value_item in raw_value:
+        if isinstance(raw_value_item, bool) or not isinstance(raw_value_item, (int, float)):
+            raise ContentError(f"Prop '{prop_id}' sprite_footprint values must be numbers.")
+        value = float(raw_value_item)
+        if value <= 0:
+            raise ContentError(f"Prop '{prop_id}' sprite_footprint values must be positive.")
+        values.append(value)
+    return (values[0], values[1])
 
 
 def _load_animation(raw_value: Any, label: str) -> str | None:
@@ -740,6 +762,7 @@ def load_prop_definition(
     requires_light = bool(raw_prop.get("requires_light", False))
     effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
     active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
+    sprite_footprint = _load_sprite_footprint(raw_prop.get("sprite_footprint"), prop_id)
     return PropDefinition(
         id=prop_id,
         label=str(raw_prop.get("label", "")).strip(),
@@ -763,6 +786,7 @@ def load_prop_definition(
         active_effect=active_effect,
         states=states,
         active_state=active_state,
+        sprite_footprint=sprite_footprint,
     )
 
 
@@ -1016,6 +1040,7 @@ def load_world_definition(
             aura=_load_aura(raw_room.get("aura"), room_id),
             editor_environment=_load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
+            sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
         )
 
     if entry_room_id not in rooms:

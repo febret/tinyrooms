@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" preserveAspectRatio="none" role="img" aria-label="Locker commons classroom corridor wall">
+  <defs>
+    <linearGradient id="g4Upper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dff2fb"/>
+      <stop offset="0.55" stop-color="#b9dff0"/>
+      <stop offset="1" stop-color="#8fc5df"/>
+    </linearGradient>
+    <linearGradient id="g4Locker" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#517fa1"/>
+      <stop offset="1" stop-color="#315b7c"/>
+    </linearGradient>
+    <linearGradient id="g4Rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="0.5" stop-color="#c9dbe6"/>
+      <stop offset="1" stop-color="#8ba9bb"/>
+    </linearGradient>
+    <linearGradient id="g4AO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.12"/>
+      <stop offset="0.18" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.74" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="200" fill="url(#g4Upper)"/>
+  <rect y="112" width="120" height="88" fill="url(#g4Locker)"/>
+  <g stroke="#224764" stroke-width="1.5" opacity="0.7">
+    <path d="M0 112V200M30 112V200M60 112V200M90 112V200M120 112V200"/>
+  </g>
+  <g stroke="#7fa6bf" stroke-width="1" opacity="0.55">
+    <path d="M31.7 112V200M61.7 112V200M91.7 112V200"/>
+  </g>
+  <g fill="#22415a" opacity="0.65">
+    <rect x="7" y="122" width="16" height="2" rx="1"/><rect x="37" y="122" width="16" height="2" rx="1"/>
+    <rect x="67" y="122" width="16" height="2" rx="1"/><rect x="97" y="122" width="16" height="2" rx="1"/>
+  </g>
+  <g fill="#9dc3d8" opacity="0.7">
+    <rect x="11" y="136" width="8" height="4" rx="2"/><rect x="41" y="136" width="8" height="4" rx="2"/>
+    <rect x="71" y="136" width="8" height="4" rx="2"/><rect x="101" y="136" width="8" height="4" rx="2"/>
+  </g>
+  <g opacity="0.72">
+    <rect x="9" y="40" width="32" height="40" rx="2" fill="#f5f1de" stroke="#7d9dae" stroke-width="1.3"/>
+    <path d="M14 48h22M14 56h16M14 64h20M14 72h12" stroke="#a7b7b6" stroke-width="1.4"/>
+    <rect x="68" y="34" width="40" height="46" rx="2" fill="#e2f1e4" stroke="#7ba37f" stroke-width="1.3"/>
+    <path d="M74 44h28M74 54h22M74 64h26" stroke="#89ae8b" stroke-width="1.5"/>
+    <circle cx="55" cy="94" r="4" fill="#f4c430" stroke="#c49a25" stroke-width="1"/>
+  </g>
+  <rect y="106" width="120" height="9" fill="url(#g4Rail)"/>
+  <rect y="114.5" width="120" height="2.5" fill="#00000030"/>
+  <rect y="191" width="120" height="9" fill="#c3d7e3"/>
+  <rect y="191" width="120" height="9" fill="url(#g4Rail)" opacity="0.45"/>
+  <rect y="191" width="120" height="1.5" fill="#ffffff88"/>
+  <rect y="198.4" width="120" height="1.6" fill="#00000044"/>
+  <rect width="120" height="200" fill="url(#g4AO)"/>
+</svg>

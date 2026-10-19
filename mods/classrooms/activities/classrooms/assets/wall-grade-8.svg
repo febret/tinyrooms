@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" preserveAspectRatio="none" role="img" aria-label="Hyper advanced spaceship corridor wall">
+  <defs>
+    <linearGradient id="g8Hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101a25"/>
+      <stop offset="0.45" stop-color="#07111a"/>
+      <stop offset="1" stop-color="#03080e"/>
+    </linearGradient>
+    <linearGradient id="g8Rib" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#263b49"/>
+      <stop offset="0.45" stop-color="#101e28"/>
+      <stop offset="1" stop-color="#2b4655"/>
+    </linearGradient>
+    <linearGradient id="g8Cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00d9ff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#6bf7ff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#00d9ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="g8Magenta" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff2bd6" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ff77e4" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#ff2bd6" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="g8Screen" cx="0.5" cy="0.5" r="0.75">
+      <stop offset="0" stop-color="#63f8ff" stop-opacity="0.35"/>
+      <stop offset="0.62" stop-color="#0c8fa8" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#04141d" stop-opacity="0.9"/>
+    </radialGradient>
+    <linearGradient id="g8AO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.7"/>
+      <stop offset="0.22" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.62"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="200" fill="url(#g8Hull)"/>
+  <g opacity="0.95">
+    <path d="M0 0h120v24l-12 8H12L0 24z" fill="#0b1720"/>
+    <path d="M0 0h120v6H0z" fill="#21323e"/>
+    <path d="M0 26h120v2H0z" fill="#3d5f6e" opacity="0.55"/>
+    <path d="M0 40l24-12h30l-18 24H0z" fill="#122531"/>
+    <path d="M120 40L96 28H66l18 24h36z" fill="#122531"/>
+    <path d="M0 40l24-12h30" fill="none" stroke="#3b6675" stroke-width="1" opacity="0.65"/>
+    <path d="M120 40L96 28H66" fill="none" stroke="#3b6675" stroke-width="1" opacity="0.65"/>
+  </g>
+  <g fill="url(#g8Rib)" opacity="0.9">
+    <rect x="4" y="44" width="16" height="68" rx="2"/>
+    <rect x="26" y="44" width="16" height="68" rx="2"/>
+    <rect x="48" y="44" width="16" height="68" rx="2"/>
+    <rect x="70" y="44" width="16" height="68" rx="2"/>
+    <rect x="92" y="44" width="16" height="68" rx="2"/>
+  </g>
+  <g stroke="#4e7b8c" stroke-width="0.9" opacity="0.5">
+    <path d="M7 49v58M29 49v58M51 49v58M73 49v58M95 49v58"/>
+  </g>
+  <g fill="#08131b" stroke="#2e5e6e" stroke-width="0.9">
+    <path d="M12 56h30l6 6v22l-6 6H12z"/>
+    <path d="M62 50h44l8 8v22l-8 8H62z"/>
+  </g>
+  <rect x="16" y="61" width="24" height="24" rx="2" fill="url(#g8Screen)"/>
+  <path d="M19 79l6-8 5 5 7-11" fill="none" stroke="#8ffbff" stroke-width="1" opacity="0.8"/>
+  <rect x="66" y="55" width="40" height="25" rx="2" fill="url(#g8Screen)"/>
+  <g fill="#8ffbff" opacity="0.7">
+    <rect x="71" y="61" width="12" height="1.5"/><rect x="71" y="65" width="22" height="1.2"/>
+    <rect x="71" y="69" width="17" height="1.2"/><rect x="71" y="73" width="28" height="1.2"/>
+  </g>
+  <rect x="10" y="91" width="100" height="1.6" fill="url(#g8Cyan)"/>
+  <rect x="10" y="97" width="100" height="1.2" fill="url(#g8Magenta)" opacity="0.75"/>
+  <g opacity="0.9">
+    <path d="M0 104h120v8H0z" fill="#0a1822"/>
+    <path d="M0 104h120v1.4H0z" fill="#82f7ff" opacity="0.55"/>
+    <path d="M0 110h120v2H0z" fill="#02070b"/>
+  </g>
+  <rect y="112" width="120" height="88" fill="#06111a"/>
+  <g stroke="#142c39" stroke-width="1.4" opacity="0.9">
+    <path d="M0 112V200M15 112V200M30 112V200M45 112V200M60 112V200M75 112V200M90 112V200M105 112V200M120 112V200"/>
+  </g>
+  <g stroke="#2e6172" stroke-width="0.7" opacity="0.55">
+    <path d="M15.7 112V200M30.7 112V200M45.7 112V200M60.7 112V200M75.7 112V200M90.7 112V200M105.7 112V200"/>
+  </g>
+  <g fill="#0b2431" stroke="#2b5e6e" stroke-width="0.9">
+    <path d="M5 124h28l5 5v30l-5 5H5z"/>
+    <path d="M54 120h34l6 6v40l-6 6H54z"/>
+    <path d="M12 174h24l4 4v16l-4 4H12z"/>
+    <path d="M68 170h34l5 5v19l-5 5H68z"/>
+  </g>
+  <g stroke="#45e6ef" stroke-width="1.2" opacity="0.7">
+    <path d="M9 131v27M60 127v39M18 179v11M74 176v16"/>
+  </g>
+  <g fill="#ff69e2" opacity="0.75">
+    <circle cx="28" cy="164" r="1.5"/><circle cx="101" cy="151" r="1.5"/><circle cx="43" cy="180" r="1.2"/>
+  </g>
+  <rect y="112" width="120" height="1.4" fill="url(#g8Magenta)" opacity="0.8"/>
+  <rect y="192" width="120" height="8" fill="#08151e"/>
+  <rect y="192" width="120" height="1.4" fill="#6ff7ff" opacity="0.6"/>
+  <rect y="198.4" width="120" height="1.6" fill="#000000aa"/>
+  <rect width="120" height="200" fill="url(#g8AO)"/>
+</svg>

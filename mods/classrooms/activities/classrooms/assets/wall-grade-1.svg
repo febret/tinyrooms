@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" preserveAspectRatio="none" role="img" aria-label="Sunny elementary classroom corridor wall">
+  <defs>
+    <linearGradient id="g1Upper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6d9"/>
+      <stop offset="0.55" stop-color="#f8e8ae"/>
+      <stop offset="1" stop-color="#edda93"/>
+    </linearGradient>
+    <linearGradient id="g1Wain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4169b6"/>
+      <stop offset="1" stop-color="#274483"/>
+    </linearGradient>
+    <linearGradient id="g1Rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="0.5" stop-color="#edd58b"/>
+      <stop offset="1" stop-color="#c6a954"/>
+    </linearGradient>
+    <linearGradient id="g1AO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.10"/>
+      <stop offset="0.15" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.78" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+    <filter id="g1Grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="11" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.055" intercept="0"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="120" height="200" fill="url(#g1Upper)"/>
+  <rect y="118" width="120" height="82" fill="url(#g1Wain)"/>
+  <g stroke="#1c336b" stroke-width="1.5" opacity="0.45">
+    <path d="M15 118V200M45 118V200M75 118V200M105 118V200"/>
+  </g>
+  <g stroke="#5c7dc0" stroke-width="1" opacity="0.55">
+    <path d="M16.7 118V200M46.7 118V200M76.7 118V200M106.7 118V200"/>
+  </g>
+  <g fill="#d8e4ff" opacity="0.28">
+    <circle cx="26" cy="58" r="9"/>
+    <circle cx="94" cy="42" r="6"/>
+    <path d="M58 32l4 8 9 1-7 6 2 9-8-4-8 4 2-9-7-6 9-1z"/>
+  </g>
+  <rect y="112" width="120" height="9" fill="url(#g1Rail)"/>
+  <rect y="120.5" width="120" height="2.5" fill="#00000033"/>
+  <rect y="192" width="120" height="8" fill="#f6e7c2"/>
+  <rect y="192" width="120" height="8" fill="url(#g1Rail)" opacity="0.5"/>
+  <rect y="192" width="120" height="1.6" fill="#ffffff88"/>
+  <rect y="198.6" width="120" height="1.4" fill="#00000044"/>
+  <rect width="120" height="200" fill="url(#g1AO)"/>
+  <rect width="120" height="200" filter="url(#g1Grain)"/>
+</svg>

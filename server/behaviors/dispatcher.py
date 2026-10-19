@@ -13,6 +13,7 @@ import sqlite3
 import time
 
 from server.behaviors.context import BehaviorContext, CardView, Intent
+from server.behaviors import sprite_actions
 from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.behaviors.loader import BehaviorAttachment, BehaviorScripts
 from server.commands.outcomes import PendingRoomBroadcast
@@ -27,6 +28,7 @@ from server.security import utc_now
 from server.services.cards import auto_equip_new_stacks, grant_card_to_inventory
 from server.services.npc_movement import resolve_npc_move
 from server.state.migrations import DatabaseHub
+from server.services.sprite_rooms import SpriteService
 from server.state.npc_peep_states import NpcPeepStateRepository
 
 
@@ -66,6 +68,7 @@ class BehaviorDispatcher:
         tasks: object | None = None,
         environment: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
+        sprites: SpriteService | None = None,
         equipped_caps: dict[int, int] | None = None,
         loader: object | None = None,
         logger: logging.Logger | None = None,
@@ -84,6 +87,7 @@ class BehaviorDispatcher:
         self._tasks = tasks
         self._environment = environment
         self._peep_states = peep_states
+        self._sprites = sprites
         self._equipped_caps = equipped_caps or {}
         self._loader = loader
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
@@ -288,11 +292,19 @@ class BehaviorDispatcher:
         room = self._world.rooms.get(key)
         if static is None:
             if room is None:
-                static = {"id": room_id, "label": "", "props": [], "peeps": [], "exits": []}
+                static = {
+                    "id": room_id,
+                    "label": "",
+                    "sprites_enabled": False,
+                    "props": [],
+                    "peeps": [],
+                    "exits": [],
+                }
             else:
                 static = {
                     "id": room.id,
                     "label": room.label,
+                    "sprites_enabled": room.sprites_enabled,
                     "props": [
                         {
                             "id": prop.id,
@@ -321,6 +333,15 @@ class BehaviorDispatcher:
             if self._current_peep_room(peep.id) == key
         ]
         return {**static, "peeps": peeps}
+
+    def _peeps_in_view(self, room_id: str) -> list[dict[str, object]]:
+        """Return lightweight NPC references for a room, including absent states."""
+
+        return [
+            {"id": peep.id, "label": peep.label}
+            for peep in self._world.peeps.values()
+            if self._current_peep_room(peep.id) == room_id
+        ]
 
     def _build_world_view(self) -> dict[str, object]:
         return {"id": self._world.id, "label": self._world.label}
@@ -387,6 +408,7 @@ class BehaviorDispatcher:
                 environment=self._environment,
                 actor_username=str(actor_view.get("username") or ""),
                 card=self._card_view(event),
+                peeps_in=self._peeps_in_view,
             )
             contexts.append((attachment, context))
             try:
@@ -471,6 +493,12 @@ class BehaviorDispatcher:
             self._apply_request_move(connection, payload, context, deferred)
         elif kind == "move_through":
             self._apply_move_through(connection, payload, context, result, deferred)
+        elif kind == "move_sprite":
+            self._apply_move_sprite(payload, context, event, result, random_position=False)
+        elif kind == "move_sprite_random":
+            self._apply_move_sprite(payload, context, event, result, random_position=True)
+        elif kind == "move_peep":
+            self._apply_move_peep(connection, payload, context, result, deferred)
         elif kind == "set_environment":
             self._apply_set_environment(connection, payload, context, event, result)
         elif kind == "hide_prop":
@@ -984,6 +1012,8 @@ class BehaviorDispatcher:
             self._log("behavior.intent.skipped", kind="move_through", reason=str(exc))
             return
         self._peep_states.set_in_transaction(connection, peep.id, move.destination_room_id)
+        if self._sprites is not None:
+            self._sprites.forget_npc(peep.id)
         source_room = self._world.rooms[move.source_room_id]
         result.room_broadcasts.append(
             PendingRoomBroadcast(
@@ -1016,6 +1046,46 @@ class BehaviorDispatcher:
             self._peep_states.record(target_peep, target_room)
 
         deferred.append(record_move)
+
+    def _apply_move_sprite(
+        self,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        event: BehaviorEvent,
+        result: BehaviorResult,
+        *,
+        random_position: bool,
+    ) -> None:
+        sprite_actions.apply_move_sprite(
+            sprites=self._sprites,
+            payload=payload,
+            context=context,
+            event=event,
+            result=result,
+            random_position=random_position,
+            log=self._log,
+        )
+
+    def _apply_move_peep(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        result: BehaviorResult,
+        deferred: list[object],
+    ) -> None:
+        del context
+        sprite_actions.apply_move_peep(
+            world=self._world,
+            peep_states=self._peep_states,
+            sprites=self._sprites,
+            current_room=self._current_peep_room,
+            connection=connection,
+            payload=payload,
+            result=result,
+            deferred=deferred,
+            log=self._log,
+        )
 
     def _apply_set_environment(
         self,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import sqlite3
 
 from server.content.worlds import PeepDefinition, WorldDefinition
@@ -31,6 +32,12 @@ class NpcPeepStateRepository:
             if peep.room_id in world.rooms
         }
         self._load(world)
+        self._on_room_change: Callable[[str], None] | None = None
+
+    def set_room_change_listener(self, listener: Callable[[str], None] | None) -> None:
+        """Notify *listener* after a committed room change for an NPC."""
+
+        self._on_room_change = listener
 
     def _load(self, world: WorldDefinition) -> None:
         with self._hub.locked() as connection:
@@ -81,4 +88,7 @@ class NpcPeepStateRepository:
         initial map, so this records them too rather than dropping the update.
         """
 
+        previous = self._rooms.get(peep_id)
         self._rooms[peep_id] = room_id
+        if previous is not None and previous != room_id and self._on_room_change is not None:
+            self._on_room_change(peep_id)

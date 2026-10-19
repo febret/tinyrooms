@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 44" preserveAspectRatio="none" role="img" aria-label="Colorful terrazzo classroom floor">
+  <defs>
+    <linearGradient id="g3Floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9c2b8"/>
+      <stop offset="0.35" stop-color="#dfd9cf"/>
+      <stop offset="1" stop-color="#efe9df"/>
+    </linearGradient>
+    <linearGradient id="g3FloorEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.38"/>
+      <stop offset="0.22" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="g3Chips" width="30" height="22" patternUnits="userSpaceOnUse">
+      <path d="M4 5l3 1-1 3-3-1z" fill="#d0644e"/>
+      <path d="M18 3l2 2-1 3-3-1z" fill="#3f8f82"/>
+      <path d="M11 14l3 1-1 2-3-1z" fill="#d8a83b"/>
+      <path d="M25 15l2 1-1 3-3-1z" fill="#5775a9"/>
+      <circle cx="7" cy="18" r="1" fill="#7c6d5b"/>
+      <circle cx="22" cy="8" r="1" fill="#f7f3ea"/>
+    </pattern>
+  </defs>
+  <rect width="120" height="44" fill="url(#g3Floor)"/>
+  <rect width="120" height="44" fill="url(#g3Chips)"/>
+  <g stroke="#a49b90" stroke-width="1" opacity="0.5">
+    <path d="M0 11H120M0 33H120M30 0V11M90 11V33M60 33V44"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="0.8" opacity="0.55">
+    <path d="M0 12.2H120M0 34.2H120"/>
+  </g>
+  <rect width="120" height="44" fill="url(#g3FloorEdge)"/>
+</svg>

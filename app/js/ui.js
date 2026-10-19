@@ -905,6 +905,17 @@ const board = createBoard({
     store.dispatch({ type: "select", selection });
     playTone("flip");
   },
+  onMoveSprite(position) {
+    const state = store.getState();
+    if (!state.room?.board?.spritesEnabled || state.views.main || state.views.details
+      || dialogs.active || state.ui.targeting || !state.user?.initialStickerComplete) return;
+    const self = state.room.occupants.find(occupant => occupant.id === state.user.id);
+    if (!self?.spritePosition) return;
+    const x = Math.round(Number(position?.[0] || 0) * 10) / 10;
+    const y = Math.round(Number(position?.[1] || 0) * 10) / 10;
+    void sendCommand(`.sprite move ${x} ${y}`).catch(showError);
+  },
+  onPeepAnchors(anchors) { peeps.setSpriteAnchors(anchors); },
   onEditSelect(id) { store.dispatch({ type: "editor-select", id }); },
   onEditBegin() { store.dispatch({ type: "editor-begin" }); },
   onEditTransform({ id, position }) { store.dispatch({ type: "editor-transform", id, position }); },

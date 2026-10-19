@@ -533,6 +533,7 @@ def _build_runtime(
         prop_states=prop_states,
         peep_states=peep_states,
     )
+    peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(
         hub=hub,
         profiles=profiles,
@@ -560,6 +561,7 @@ def _build_runtime(
         tasks=tasks,
         environment=environment,
         peep_states=peep_states,
+        sprites=rooms.sprites,
         equipped_caps=equipped_caps,
         loader=behavior_loader,
     )

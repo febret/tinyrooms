@@ -87,6 +87,9 @@ cafeteria-table:
   - cafeteria
   - table
   - furniture
+  sprite_footprint:
+  - 9.6
+  - 10.6
   states:
     intact: cafeteria-table.glb
     broken: cafeteria-table-broken.glb
@@ -102,6 +105,9 @@ lunch-tray-stack:
   - cafeteria
   - tray
   - supplies
+  sprite_footprint:
+  - 3.3
+  - 4.0
   states:
     intact: lunch-tray-stack.glb
     broken: lunch-tray-stack-broken.glb
@@ -118,6 +124,9 @@ milk-crate:
   - cafeteria
   - crate
   - supplies
+  sprite_footprint:
+  - 8.4
+  - 10.4
   states:
     intact: milk-crate.glb
     broken: milk-crate-broken.glb
@@ -134,6 +143,9 @@ serving-counter:
   - cafeteria
   - counter
   - furniture
+  sprite_footprint:
+  - 9.5
+  - 5.5
   states:
     intact: serving-counter.glb
     broken: serving-counter-broken.glb
@@ -149,6 +161,9 @@ recycling-bin:
   - cafeteria
   - bin
   - mascot
+  sprite_footprint:
+  - 5.0
+  - 6.6
   states:
     intact: recycling-bin.glb
     broken: recycling-bin-broken.glb

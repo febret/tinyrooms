@@ -1,17 +1,30 @@
-.classrooms-shell { gap: 6px; padding: 8px 10px 10px; }
+.classrooms-shell { width: 100%; max-width: none; gap: 6px; padding: 8px 10px 10px; }
 .classrooms-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex: 0 0 auto; }
 .classrooms-heading h1 { margin: 0; font-size: 18px; color: var(--gold); }
 .classrooms-actions { display: flex; align-items: center; gap: 6px; }
 .bops { color: var(--gold); font-weight: 600; font-size: 13px; white-space: nowrap; }
 .floors { display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-color: #3f63b5 #0a1733; }
 .floor { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.floor[data-grade="1"] { --grade-wall: url("assets/wall-grade-1.svg"); --grade-floor: url("assets/floor-grade-1.svg"); --grade-accent: #f4c430; --grade-base: #10254d; --grade-border: #2b4c9b88; --grade-glow: #f4c4302e; --grade-ambient: linear-gradient(180deg, #fff6d92b, transparent 48%, #0000001c); }
+.floor[data-grade="2"] { --grade-wall: url("assets/wall-grade-2.svg"); --grade-floor: url("assets/floor-grade-2.svg"); --grade-accent: #8ee3c2; --grade-base: #0c2b26; --grade-border: #2e7b6a88; --grade-glow: #77e0ba2e; --grade-ambient: linear-gradient(180deg, #eafff12e, transparent 46%, #04140f1c); }
+.floor[data-grade="3"] { --grade-wall: url("assets/wall-grade-3.svg"); --grade-floor: url("assets/floor-grade-3.svg"); --grade-accent: #ffb347; --grade-base: #2b2618; --grade-border: #a56a2a88; --grade-glow: #ffb3472e; --grade-ambient: linear-gradient(180deg, #ffeec42e, transparent 50%, #1e0e001c); }
+.floor[data-grade="4"] { --grade-wall: url("assets/wall-grade-4.svg"); --grade-floor: url("assets/floor-grade-4.svg"); --grade-accent: #8fd3ee; --grade-base: #102938; --grade-border: #4f89a488; --grade-glow: #8fd3ee2e; --grade-ambient: linear-gradient(180deg, #e7f8ff2a, transparent 48%, #04121a1c); }
+.floor[data-grade="5"] { --grade-wall: url("assets/wall-grade-5.svg"); --grade-floor: url("assets/floor-grade-5.svg"); --grade-accent: #76d6c3; --grade-base: #0b2a27; --grade-border: #3f9a8a88; --grade-glow: #76d6c32e; --grade-ambient: linear-gradient(180deg, #e1fbf52b, transparent 46%, #041a181c); }
+.floor[data-grade="6"] { --grade-wall: url("assets/wall-grade-6.svg"); --grade-floor: url("assets/floor-grade-6.svg"); --grade-accent: #e8d39a; --grade-base: #111838; --grade-border: #6d7fba88; --grade-glow: #8c9dff33; --grade-ambient: radial-gradient(ellipse at 50% 0%, #6d7fd43d, transparent 58%), linear-gradient(180deg, transparent 60%, #03040f2e); }
+.floor[data-grade="7"] { --grade-wall: url("assets/wall-grade-7.svg"); --grade-floor: url("assets/floor-grade-7.svg"); --grade-accent: #5ff4ec; --grade-base: #07161d; --grade-border: #31b7bd88; --grade-glow: #31e6e03d; --grade-ambient: radial-gradient(ellipse at 50% 0%, #18c9d83d, transparent 55%), linear-gradient(180deg, transparent 58%, #00101633); }
+.floor[data-grade="8"] { --grade-wall: url("assets/wall-grade-8.svg"); --grade-floor: url("assets/floor-grade-8.svg"); --grade-accent: #7ffaff; --grade-base: #03080e; --grade-border: #2f7f8f; --grade-glow: #00d9ff4d; --grade-ambient: radial-gradient(ellipse at 50% 0%, #14e7ff3b, transparent 52%), linear-gradient(180deg, transparent 48%, #ff2bd618 72%, transparent); }
 .floor-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.floor-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #f4c430; margin: 0; }
+.floor-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--grade-accent, #f4c430); margin: 0; text-shadow: 0 0 9px var(--grade-glow, transparent), 0 1px 2px #000a; }
+.floor[data-grade="7"] .floor-label, .floor[data-grade="8"] .floor-label { letter-spacing: .12em; }
 .floor-count { font-size: 11px; color: var(--muted); }
-.corridor { position: relative; overflow-x: auto; overflow-y: hidden; border-radius: 10px; border: 1px solid #2b4c9b66; background: #0d1e46; scrollbar-color: #6e8fd6 #0a1733; }
-.corridor:focus-visible { outline: 2px solid #f4c430; outline-offset: 2px; }
-.corridor-track { position: relative; display: flex; align-items: flex-end; min-height: 196px; padding: 14px 22px 40px; background: url("assets/wall-segment.svg") bottom / 120px 100% repeat-x; width: max-content; min-width: 100%; }
-.corridor-track::after { content: ""; position: absolute; inset: auto 0 0; height: 44px; background: url("assets/floor-segment.svg") 0% 0% / 120px 44px repeat-x; pointer-events: none; z-index: 0; }
+.corridor { position: relative; overflow-x: auto; overflow-y: hidden; border-radius: 10px; border: 1px solid var(--grade-border, #2b4c9b66); background: var(--grade-base, #0d1e46); box-shadow: inset 0 0 26px var(--grade-glow, transparent); scrollbar-color: var(--grade-accent, #6e8fd6) #0a1733; }
+.corridor:focus-visible { outline: 2px solid var(--grade-accent, #f4c430); outline-offset: 2px; }
+.corridor-track { position: relative; display: flex; align-items: flex-end; min-height: 196px; padding: 14px 22px 40px; background-image: var(--grade-wall, url("assets/wall-grade-1.svg")); background-position: bottom; background-size: 120px 100%; background-repeat: repeat-x; width: max-content; min-width: 100%; }
+.corridor-track::before { content: ""; position: absolute; inset: 0; background: var(--grade-ambient, transparent); pointer-events: none; z-index: 0; }
+.corridor-track::after { content: ""; position: absolute; inset: auto 0 0; height: 44px; background-image: var(--grade-floor, url("assets/floor-grade-1.svg")); background-position: 0 0; background-size: 120px 44px; background-repeat: repeat-x; pointer-events: none; z-index: 0; }
+.floor[data-grade="8"] .corridor { box-shadow: inset 0 0 34px #00d9ff2e, 0 0 18px #00d9ff1f; }
+.floor[data-grade="8"] .corridor-track::before { animation: grade-8-alert 4.8s ease-in-out infinite; }
+@keyframes grade-8-alert { 0%, 100% { opacity: .58; } 50% { opacity: 1; } }
 .door-slot, .door-card { position: relative; flex: 0 0 auto; width: 106px; margin: 0 7px; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 1; }
 .door-slot { align-self: stretch; }
 .door-card { background: none; border: 0; padding: 0; color: inherit; }
@@ -61,4 +74,7 @@
 @media (max-width: 480px) {
   .designer-body { flex-direction: column; }
   .designer-preview { flex: 0 0 auto; width: 108px; align-self: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .floor[data-grade="8"] .corridor-track::before { animation: none; }
 }

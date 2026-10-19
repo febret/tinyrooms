@@ -67,6 +67,14 @@ Props may also declare named mesh `states` and an authored `active_state`.
 [rooms.py](../server/services/rooms.py) can switch a room instance's state at
 runtime and broadcasts `room.prop.updated`; clients reload the active model.
 
+Rooms may set `sprites_enabled: true` to draw every present peep as a
+camera-facing 2D sprite on the board. [sprite_rooms.py](../server/services/sprite_rooms.py)
+owns the in-memory, server-authoritative floor positions, keeps them clear of
+authored prop footprints, and re-randomizes on room entry. Behavior scripts can
+read `context.sprites_enabled` and queue `move_sprite`, `move_sprite_random`, or
+`move_peep`; the client projects sprite heads to anchor scaled speech and emote
+bubbles over them.
+
 ### 2.2 World-resolved card effects
 
 Generic stat/lighting effects belong to core services. Other prop-targeted card

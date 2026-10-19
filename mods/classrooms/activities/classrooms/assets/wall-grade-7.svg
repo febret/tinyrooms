@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" preserveAspectRatio="none" role="img" aria-label="Cyber academy classroom corridor wall">
+  <defs>
+    <linearGradient id="g7Upper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#223540"/>
+      <stop offset="0.52" stop-color="#14262f"/>
+      <stop offset="1" stop-color="#0a181f"/>
+    </linearGradient>
+    <linearGradient id="g7Panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d3b45"/>
+      <stop offset="1" stop-color="#0b2029"/>
+    </linearGradient>
+    <linearGradient id="g7Rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8be8ed" stop-opacity="0.85"/>
+      <stop offset="0.5" stop-color="#2b9da8"/>
+      <stop offset="1" stop-color="#10606c"/>
+    </linearGradient>
+    <linearGradient id="g7Glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#31e6e0" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#31e6e0" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#31e6e0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="g7AO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.4"/>
+      <stop offset="0.2" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.65" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.4"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="200" fill="url(#g7Upper)"/>
+  <g fill="none" stroke="#2c5361" stroke-width="1.4" opacity="0.8">
+    <path d="M0 18L38 0M0 58L58 0M0 98L78 0M0 138L98 0M0 178L118 0M0 200L120 160"/>
+    <path d="M120 42L82 0M120 82L62 0M120 122L42 0M120 162L22 0"/>
+  </g>
+  <g fill="#112832" stroke="#3c7784" stroke-width="1">
+    <path d="M8 42h34l8 8v42l-8 8H8z"/>
+    <path d="M58 32h44l10 10v54l-10 10H58z"/>
+    <path d="M18 132h30l7 7v28l-7 7H18z"/>
+    <path d="M70 126h36l8 8v36l-8 8H70z"/>
+  </g>
+  <g stroke="#42e4df" stroke-width="1.6" opacity="0.85">
+    <path d="M8 49v37M58 40v57M18 139v27M70 133v37"/>
+  </g>
+  <g stroke="#218e9a" stroke-width="1" opacity="0.6">
+    <path d="M18 54h20M68 48h26M28 146h14M80 142h18"/>
+  </g>
+  <g fill="#49f2e6">
+    <circle cx="17" cy="91" r="1.7"/><circle cx="104" cy="103" r="1.7"/><circle cx="51" cy="171" r="1.5"/><circle cx="110" cy="174" r="1.5"/>
+  </g>
+  <rect y="112" width="120" height="88" fill="url(#g7Panel)"/>
+  <g stroke="#08141a" stroke-width="1.5" opacity="0.8">
+    <path d="M0 112V200M20 112V200M40 112V200M60 112V200M80 112V200M100 112V200"/>
+  </g>
+  <g stroke="#2b6674" stroke-width="0.9" opacity="0.55">
+    <path d="M20.8 112V200M40.8 112V200M60.8 112V200M80.8 112V200M100.8 112V200"/>
+  </g>
+  <rect x="8" y="126" width="104" height="2" fill="url(#g7Glow)"/>
+  <rect x="8" y="164" width="104" height="1.4" fill="url(#g7Glow)" opacity="0.6"/>
+  <rect y="106" width="120" height="8" fill="url(#g7Rail)"/>
+  <rect y="114" width="120" height="2" fill="#00000055"/>
+  <rect y="192" width="120" height="8" fill="#0c2029"/>
+  <rect y="192" width="120" height="1.4" fill="#6be9e4" opacity="0.65"/>
+  <rect y="198.4" width="120" height="1.6" fill="#00000088"/>
+  <rect width="120" height="200" fill="url(#g7AO)"/>
+</svg>

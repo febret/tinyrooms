@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 44" preserveAspectRatio="none" role="img" aria-label="Checkerboard classroom floor">
+  <defs>
+    <linearGradient id="g4FloorEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.42"/>
+      <stop offset="0.2" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="g4Checks" width="24" height="22" patternUnits="userSpaceOnUse">
+      <rect width="24" height="22" fill="#dfe7ea"/>
+      <rect width="12" height="11" fill="#5d7b8b"/>
+      <rect x="12" y="11" width="12" height="11" fill="#5d7b8b"/>
+      <rect x="12" width="12" height="11" fill="#cfdbe0" opacity="0.6"/>
+      <rect y="11" width="12" height="11" fill="#cfdbe0" opacity="0.6"/>
+    </pattern>
+  </defs>
+  <rect width="120" height="44" fill="url(#g4Checks)"/>
+  <g stroke="#425d6b" stroke-width="0.8" opacity="0.35">
+    <path d="M0 11H120M0 33H120M24 0V44M48 0V44M72 0V44M96 0V44"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="0.6" opacity="0.35">
+    <path d="M0 1H120"/>
+  </g>
+  <rect width="120" height="44" fill="url(#g4FloorEdge)"/>
+</svg>

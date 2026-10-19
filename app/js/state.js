@@ -159,6 +159,7 @@ function normalizeActor(entity, { kind, labelSource }) {
     counters: normalizeCounters(entity?.counters),
     pinned: Boolean(entity?.pinned),
     audioEnabled: Boolean(entity?.audio_enabled),
+    spritePosition: Array.isArray(entity?.sprite?.position) ? entity.sprite.position.map(Number) : null,
     bubble: null,
     bubbleDismissed: false,
   };
@@ -414,6 +415,7 @@ function normalizeRoom(room, previousRoom = null) {
       palette: Array.isArray(room.board?.palette) ? [...room.board.palette] : [],
       dark: Boolean(room.board?.dark),
       baseDark: Boolean(room.board?.base_dark ?? room.board?.dark),
+      spritesEnabled: Boolean(room.board?.sprites_enabled),
     },
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
@@ -538,6 +540,20 @@ function applyServerEvent(state, event) {
     };
     if (!amount) return withCounters;
     return { ...withCounters, ui: pushFloating(state, entry) };
+  }
+  if (event.type === "peep.sprite") {
+    const targetId = String(event.peep_id || event.account_id || "");
+    const position = Array.isArray(event.position) ? event.position.map(Number) : null;
+    if (!targetId || !position) return state;
+    const update = peep => peep.id === targetId ? { ...peep, spritePosition: position } : peep;
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        occupants: state.room.occupants.map(update),
+        npcs: state.room.npcs.map(update),
+      },
+    };
   }
   if (event.type === "emote.bubble") {
     const bubble = event.bubble || {};

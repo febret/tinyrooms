@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" preserveAspectRatio="none" role="img" aria-label="Observatory classroom corridor wall">
+  <defs>
+    <radialGradient id="g6Sky" cx="0.5" cy="0.24" r="0.85">
+      <stop offset="0" stop-color="#3a468c"/>
+      <stop offset="0.55" stop-color="#20285f"/>
+      <stop offset="1" stop-color="#101638"/>
+    </radialGradient>
+    <linearGradient id="g6Wain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2753"/>
+      <stop offset="1" stop-color="#111a3b"/>
+    </linearGradient>
+    <linearGradient id="g6Rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4e3b0" stop-opacity="0.8"/>
+      <stop offset="0.5" stop-color="#b79c62"/>
+      <stop offset="1" stop-color="#6f5a31"/>
+    </linearGradient>
+    <linearGradient id="g6AO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.2"/>
+      <stop offset="0.2" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.28"/>
+    </linearGradient>
+    <filter id="g6Stars" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.25" numOctaves="1" seed="8"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.2 -0.55"/>
+    </filter>
+  </defs>
+  <rect width="120" height="200" fill="url(#g6Sky)"/>
+  <rect width="120" height="110" filter="url(#g6Stars)" opacity="0.9"/>
+  <g fill="#f7e7ae">
+    <circle cx="16" cy="26" r="1.3"/><circle cx="38" cy="14" r="0.9"/><circle cx="58" cy="34" r="1.2"/>
+    <circle cx="82" cy="18" r="1"/><circle cx="104" cy="42" r="1.3"/><circle cx="28" cy="58" r="0.9"/>
+    <circle cx="70" cy="66" r="1"/><circle cx="96" cy="78" r="0.9"/>
+  </g>
+  <g stroke="#e9d8a0" stroke-width="1" opacity="0.65">
+    <path d="M16 26L38 14L58 34L70 66M82 18L104 42L96 78"/>
+    <path d="M58 34L82 18M28 58L58 34"/>
+  </g>
+  <g fill="#e9d8a0" opacity="0.8">
+    <circle cx="38" cy="14" r="2"/><circle cx="58" cy="34" r="2"/><circle cx="82" cy="18" r="2"/>
+  </g>
+  <rect y="110" width="120" height="90" fill="url(#g6Wain)"/>
+  <g stroke="#0b1230" stroke-width="1.4" opacity="0.7">
+    <path d="M20 110V200M60 110V200M100 110V200"/>
+  </g>
+  <g stroke="#45568c" stroke-width="0.9" opacity="0.45">
+    <path d="M21.7 110V200M61.7 110V200M101.7 110V200"/>
+  </g>
+  <g opacity="0.85">
+    <rect x="12" y="126" width="26" height="38" rx="2" fill="#223066" stroke="#7283bd" stroke-width="1.2"/>
+    <circle cx="25" cy="145" r="9" fill="#141f49" stroke="#a79460" stroke-width="1.2"/>
+    <path d="M20 140l10 10M30 140l-10 10M25 136v18" stroke="#a79460" stroke-width="0.8"/>
+    <rect x="70" y="122" width="32" height="42" rx="2" fill="#1b285c" stroke="#6d7fba" stroke-width="1.2"/>
+    <path d="M76 132h20M76 140h14M76 148h18M76 156h10" stroke="#8494c8" stroke-width="1.2"/>
+  </g>
+  <rect y="104" width="120" height="9" fill="url(#g6Rail)"/>
+  <rect y="112.5" width="120" height="2.5" fill="#00000044"/>
+  <rect y="191" width="120" height="9" fill="#1b2448"/>
+  <rect y="191" width="120" height="9" fill="url(#g6Rail)" opacity="0.35"/>
+  <rect y="191" width="120" height="1.5" fill="#f4e3b088"/>
+  <rect y="198.4" width="120" height="1.6" fill="#00000066"/>
+  <rect width="120" height="200" fill="url(#g6AO)"/>
+</svg>

@@ -800,6 +800,14 @@ def build_registry() -> CommandRegistry:
     registry.register("shop", "Open the Shop on its Cards or Props section.", gameplay.shop_command, usage=".shop [cards|props]", toast=False)
     registry.register("skill", "Slot a skill card into an unlocked skill slot.", gameplay.skill_command, usage=".skill @card:<stack_id> <slot>")
     registry.register("split", "Split a stack into a new unequipped stack.", gameplay.split_command, usage=".split @card:<stack_id> <quantity>")
+    registry.register(
+        "sprite",
+        "Move your peep sprite on the room board.",
+        gameplay.sprite_command,
+        usage=".sprite move <x> <y>",
+        toast=False,
+        log=False,
+    )
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")
     registry.register("talk", "Talk to a peep and open its dialog.", talk_command, usage=".talk <peep>", toast=False, log=False)
     registry.register("task", "View one journal task.", task_command, usage=".task <task_id>", toast=False, log=False)

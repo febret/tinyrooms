@@ -33,9 +33,14 @@ export function createActivityManager({
 }) {
   const windows = new Map();
   const inertBackground = new Set();
+  const shell = layer.closest(".app-shell") || document.body;
   let modalEntry = null;
   let previousFocus = null;
   let titleSequence = 0;
+
+  function syncMaximized() {
+    shell.classList.toggle("activity-maximized", [...windows.values()].some(entry => !entry.minimized));
+  }
 
   function bringToFront(entry) {
     const ordered = [...windows.values()].filter(item => item !== entry);
@@ -167,6 +172,7 @@ export function createActivityManager({
     updateControls(entry);
     applyGeometry(entry);
     sendState(entry);
+    syncMaximized();
     entry.node.focus({ preventScroll: true });
   }
 
@@ -176,6 +182,7 @@ export function createActivityManager({
     entry.node.remove();
     entry.pill?.remove();
     windows.delete(id);
+    syncMaximized();
   }
 
   async function closeActivity(entry, bridgeType = "activity.cancel") {
@@ -217,7 +224,6 @@ export function createActivityManager({
       node,
       iframe: node.querySelector("iframe"),
       title: node.querySelector("strong"),
-      subtitle: node.querySelector(".activity-subtitle"),
       min: node.querySelector(".activity-min"),
       close: node.querySelector(".activity-close"),
       minimized: false,
@@ -234,7 +240,6 @@ export function createActivityManager({
     entry.title.textContent = activity.title;
     entry.title.id = `activity-title-${++titleSequence}`;
     node.setAttribute("aria-labelledby", entry.title.id);
-    entry.subtitle.textContent = activity.roomBound ? "Room activity" : "";
     updateControls(entry);
     const iframeControls = () => [...(entry.iframe.contentDocument?.querySelectorAll(
       'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
@@ -273,6 +278,7 @@ export function createActivityManager({
       bringToFront(entry);
       entry.minimized = true;
       updateControls(entry);
+      syncMaximized();
     };
     entry.close.onclick = () => {
       void closeActivity(entry);
@@ -281,6 +287,7 @@ export function createActivityManager({
     windows.set(activity.id, entry);
     applyGeometry(entry);
     bringToFront(entry);
+    syncMaximized();
     return entry;
   }
 
@@ -416,7 +423,7 @@ export function createActivityManager({
         const entry = windows.get(activity.id) || makeWindow(activity);
         entry.activity = activity;
         entry.title.textContent = activity.title;
-        entry.subtitle.textContent = activity.attention ? "Needs attention" : activity.roomBound ? "Room activity" : "";
+        entry.subtitle.textContent = activity.attention ? "Needs attention" : "";
         entry.node.classList.toggle("attention", Boolean(activity.attention));
         updateControls(entry);
         const nextUrl = new URL(activity.iframeUrl, window.location.origin).href;
@@ -424,6 +431,7 @@ export function createActivityManager({
         applyGeometry(entry);
         sendState(entry);
       }
+      syncMaximized();
       syncModal();
     },
   };

@@ -604,6 +604,27 @@ async def swap_sticker_command(context: CommandContext, command: ParsedCommand) 
     )
 
 
+async def sprite_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Move the acting user's sprite on a sprite-mode room board."""
+
+    if len(command.args) < 3 or command.args[0].lower() != "move":
+        raise CommandError("Use '.sprite move <x> <y>'.")
+    try:
+        x = float(command.args[1])
+        y = float(command.args[2])
+    except ValueError as exc:
+        raise CommandError("Sprite coordinates must be numbers.") from exc
+    room_id = context.connection.room_id
+    if room_id is None:
+        raise CommandError("You are not currently in a room.")
+    event = context.rooms.move_user_sprite(context.account, room_id, x, y)
+    return CommandOutcome(
+        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=event)],
+        toast=False,
+        log=False,
+    )
+
+
 async def packs_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     return CommandOutcome(

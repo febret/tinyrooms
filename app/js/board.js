@@ -25,10 +25,11 @@ import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
 import { applyDarkLighting, createBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import { createBoardOutlines } from "./board-outlines.js";
+import { createBoardSprites } from "./board-sprites.js";
+import { playPropAnimation } from "./board-animations.js";
 import { withBase } from "./base-path.js";
 export const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
-const RANDOM_ANIMATION_PAUSE_MS = 1000;
 const PROP_MOVE_SMOOTHING = 9;
 const SCALE_DRAG_SENSITIVITY = 0.008;
 
@@ -50,7 +51,7 @@ function boardPositionFromWorld(point) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnchors, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -116,6 +117,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   scene.add(gizmo.group);
   const loader = new GLTFLoader();
   const textureLoader = new THREE.TextureLoader();
+  const spriteLayer = createBoardSprites({ textureLoader, invalidate });
   const clock = new THREE.Clock();
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -127,6 +129,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   let revision = 0;
   let current = null;
   let roomId = "";
+  let spritesEnabled = false;
   let selection = null;
   let selectionObject = null;
   let editEnabled = false;
@@ -402,68 +405,6 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     record.mixers.length = 0;
   }
 
-  /** Create an animation mixer for `model` and register it for teardown. */
-  function createRecordMixer(record, model) {
-    const mixer = new THREE.AnimationMixer(model);
-    record.mixers.push(mixer);
-    return mixer;
-  }
-
-  function startLoopedClip(record, model, clip) {
-    createRecordMixer(record, model).clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
-  }
-
-  function startRandomClips(entry, record, model, clips) {
-    const mixer = createRecordMixer(record, model);
-    let lastIndex = -1;
-    function pick() {
-      if (!isCurrent(entry) || entry.props.get(record.id) !== record) return;
-      let index = Math.floor(Math.random() * clips.length);
-      if (clips.length > 1) {
-        while (index === lastIndex) index = Math.floor(Math.random() * clips.length);
-      }
-      lastIndex = index;
-      const action = mixer.clipAction(clips[index]);
-      action.reset();
-      action.setLoop(THREE.LoopOnce, 1);
-      action.clampWhenFinished = true;
-      const onFinished = event => {
-        if (event.action !== action) return;
-        mixer.removeEventListener("finished", onFinished);
-        if (!isCurrent(entry) || entry.props.get(record.id) !== record) return;
-        record.animTimers.push(setTimeout(pick, RANDOM_ANIMATION_PAUSE_MS));
-      };
-      mixer.addEventListener("finished", onFinished);
-      action.play();
-    }
-    pick();
-  }
-
-  function playPropAnimation(entry, record, prop, model, clips) {
-    // Respect reduced-motion preferences; also keeps rendered frames deterministic.
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const mode = typeof prop.animation === "string" ? prop.animation.trim() : "";
-    if (!mode) return;
-    if (!clips || !clips.length) {
-      console.warn(`Prop ${prop.id} requests animation "${mode}" but the model has no animations.`);
-      return;
-    }
-    if (mode === "auto") {
-      startLoopedClip(record, model, clips[0]);
-      return;
-    }
-    if (mode === "random") {
-      startRandomClips(entry, record, model, clips);
-      return;
-    }
-    const clip = clips.find(candidate => candidate.name === mode);
-    if (!clip) {
-      console.warn(`Prop ${prop.id} requests unknown animation "${mode}".`);
-      return;
-    }
-    startLoopedClip(record, model, clip);
-  }
-
   /** Point a record at its authoritative position, tweening there unless motion is reduced. */
   function setRecordTarget(record, position) {
     const key = positionKey(position);
@@ -571,7 +512,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       record.scenes = gltf.scenes || [model];
       setGhosted(record, Boolean(record.prop.ghost));
       setDarkened(record, roomDark);
-      playPropAnimation(entry, record, record.prop, model, record.clips);
+      playPropAnimation(entry, record, record.prop, model, record.clips, isCurrent);
       buildRecordEffects(record, record.prop, model, bounds, visual);
       entry.pending -= 1;
       invalidate();
@@ -625,7 +566,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if ((prop.animation || "") !== record.animation) {
       record.animation = prop.animation || "";
       stopRecordAnimations(record);
-      if (record.model) playPropAnimation(entry, record, prop, record.model, record.clips);
+      if (record.model) playPropAnimation(entry, record, prop, record.model, record.clips, isCurrent);
     }
   }
 
@@ -713,6 +654,12 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     });
   }
 
+  function syncSprites(entry, room) {
+    const enabled = Boolean(room.board?.spritesEnabled);
+    const actors = enabled ? [...(room.occupants || []), ...(room.npcs || [])] : [];
+    spriteLayer.sync(entry, actors, roomDark);
+  }
+
   /** Replace the floor only when the board artwork or palette actually changes. */
   function applyFloor(entry, room) {
     invalidate();
@@ -740,6 +687,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     if (!current) return;
     for (const record of current.props.values()) disposePropRecord(record);
     for (const record of current.cards.values()) record.front?.dispose();
+    spriteLayer.clear(current);
     canvas.dataset.fxCount = "0";
     scene.remove(current.root);
     // Shared box geometry, card faces and textures are page-lifetime caches, so
@@ -758,10 +706,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     revision += 1;
     clear();
     roomId = room.id;
+    spritesEnabled = Boolean(room.board?.spritesEnabled);
     userAdjusted = false;
     const entry = {
       root: new THREE.Group(), revision, pickables: [],
-      props: new Map(), cards: new Map(), floor: null,
+      props: new Map(), cards: new Map(), sprites: new Map(), floor: null,
       pending: 0, errors: new Set(), label: room.label,
     };
     current = entry;
@@ -770,6 +719,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     applyFloor(entry, room);
     syncProps(entry, room);
     syncCards(entry, room);
+    syncSprites(entry, room);
     if (!userAdjusted) fit(true);
     status(entry);
   }
@@ -777,9 +727,11 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
   function syncRoom(room) {
     const entry = current;
     entry.label = room.label;
+    spritesEnabled = Boolean(room.board?.spritesEnabled);
     applyFloor(entry, room);
     syncProps(entry, room);
     syncCards(entry, room);
+    syncSprites(entry, room);
     status(entry);
   }
 
@@ -943,7 +895,9 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
       onSelect({ kind: owner.userData.kind, id: owner.userData.id }, { x: event.clientX, y: event.clientY });
       return;
     }
+    const floor = spritesEnabled ? screenToBoardPosition(event.clientX, event.clientY) : null;
     if (roomId) onSelect({ kind: "room", id: roomId });
+    if (floor) onMoveSprite?.(floor.position);
   }
 
   function pointerCancel(event) {
@@ -1015,7 +969,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
     for (const record of current.cards.values()) {
       if (record.target && !record.group.position.equals(record.target)) return true;
     }
-    return false;
+    return spriteLayer.isAnimating(current);
   }
 
   /**
@@ -1043,6 +997,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         }
         advanceRecords(current.props.values(), delta);
         advanceRecords(current.cards.values(), delta);
+        spriteLayer.advance(current, delta, reducedMotion);
       }
       if (selectionRing.visible && selectionObject) {
         selectionRing.position.set(
@@ -1063,6 +1018,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         needsRender = false;
         renderedFrames += 1;
         outlines.render();
+        if (current?.sprites?.size) onPeepAnchors?.(spriteLayer.anchors(current, camera, canvas));
       }
       frame = requestAnimationFrame(animate);
     } catch {
@@ -1095,6 +1051,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         nodes,
         props: current ? current.props.size : 0,
         cards: current ? current.cards.size : 0,
+        sprites: current ? current.sprites.size : 0,
         pickables: current ? current.pickables.length : 0,
         editEnabled,
         blocked,
@@ -1146,6 +1103,7 @@ export function createBoard({ canvas, overlay, onSelect, onEditSelect, onEditBeg
         revision += 1;
         clear();
         roomId = "";
+        spritesEnabled = false;
         canvas.dataset.boardReady = "false";
         if (!renderFailed) {
           overlay.textContent = "Your room will appear here.";
