@@ -48,6 +48,7 @@ function normalizeCardDefinition(definition) {
     cutscene: String(definition.cutscene || ""),
     rank: String(definition.rank || ""),
     bonuses: definition.bonuses || {},
+    tags: Array.isArray(definition.tags) ? definition.tags.map(String) : [],
     quest: Boolean(definition.quest),
     sellPrice: typeof definition.sell_price === "number" ? definition.sell_price : null,
     order: typeof definition.order === "number" ? definition.order : null,
