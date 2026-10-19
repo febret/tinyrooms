@@ -13,11 +13,9 @@ const preview = document.querySelector("#preview");
 const controls = document.querySelector("#controls");
 const lockInput = document.querySelector("#lock");
 const connection = document.querySelector("#connection");
-const standingsButton = document.querySelector("#standings");
-const standingsDialog = document.querySelector("#standings-dialog");
-const standingsClose = document.querySelector("#standings-close");
 const standingsList = document.querySelector("#standings-list");
 const standingsBest = document.querySelector("#standings-best");
+const standingsQuarter = document.querySelector("#standings-quarter");
 
 const BASE_PATH = window.__TR_BASE__ || "";
 
@@ -309,6 +307,7 @@ async function refresh() {
     connection.textContent = "";
     updateTopBar();
     await renderFloors();
+    await loadStandings();
   } catch (error) {
     connection.textContent = error instanceof Error ? error.message : String(error);
   }
@@ -402,63 +401,64 @@ async function saveDesign() {
   }
 }
 
-function renderStandings(board) {
+function renderStandings(payload) {
   standingsList.innerHTML = "";
+  const board = Array.isArray(payload.scoreboard) ? payload.scoreboard : [];
   if (!board.length) {
     const empty = document.createElement("li");
     empty.className = "standings-empty";
-    empty.textContent = "No lessons taught yet. Be the first!";
+    empty.textContent = "No lessons this quarter yet. Be the first!";
     standingsList.append(empty);
-    return;
+  } else {
+    for (const entry of board) {
+      const row = document.createElement("li");
+      row.className = `standings-row${entry.is_you ? " you" : ""}`;
+      const rank = document.createElement("span");
+      rank.className = "standings-rank";
+      rank.textContent = String(entry.rank ?? "");
+      const sticker = document.createElement("img");
+      sticker.className = "standings-sticker";
+      sticker.alt = "";
+      sticker.src = withBase(`/assets/stickers/${entry.sticker || "s1.png"}`);
+      const name = document.createElement("span");
+      name.className = "standings-name";
+      const lessonsCount = Number(entry.lessons) || 0;
+      name.textContent = `${entry.username || "A teacher"}${entry.is_you ? " (You)" : ""} `;
+      const detail = document.createElement("span");
+      detail.textContent = `· ${lessonsCount} lesson${lessonsCount === 1 ? "" : "s"}`;
+      name.append(detail);
+      const gpa = document.createElement("span");
+      gpa.className = "standings-gpa";
+      gpa.textContent = Number(entry.average_gpa || 0).toFixed(2);
+      row.append(rank, sticker, name, gpa);
+      standingsList.append(row);
+    }
   }
-  for (const entry of board) {
-    const row = document.createElement("li");
-    row.className = `standings-row${entry.is_you ? " you" : ""}`;
-    const rank = document.createElement("span");
-    rank.className = "standings-rank";
-    rank.textContent = String(entry.rank ?? "");
-    const name = document.createElement("span");
-    name.className = "standings-name";
-    const lessonsCount = Number(entry.lessons) || 0;
-    name.textContent = `${entry.username || "A teacher"}${entry.is_you ? " (You)" : ""} · ${lessonsCount} lesson${lessonsCount === 1 ? "" : "s"}`;
-    const gpa = document.createElement("span");
-    gpa.className = "standings-gpa";
-    gpa.textContent = Number(entry.best_gpa || 0).toFixed(2);
-    row.append(rank, name, gpa);
-    standingsList.append(row);
-  }
+
+  const average = Number(payload.average_gpa);
+  standingsBest.textContent = Number.isFinite(average)
+    ? `Your average GPA: ${average.toFixed(2)}`
+    : "Run a lesson to join this quarter's standings.";
+  const quarter = payload.quarter || {};
+  const number = Number(quarter.number);
+  standingsQuarter.textContent = Number.isFinite(number)
+    ? `Quarter ${number} · ${Number(quarter.lessons) || 0}/${Number(quarter.size) || 100} lessons`
+    : "";
 }
 
-async function openStandings() {
-  standingsDialog.hidden = false;
-  standingsBest.textContent = "";
-  standingsList.innerHTML = '<li class="standings-empty">Loading…</li>';
+async function loadStandings() {
   try {
     const response = await Tiny.command(".classroom lesson scores");
-    const payload = response.payload || {};
-    const best = Number(payload.best_gpa);
-    standingsBest.textContent = Number.isFinite(best)
-      ? `Your best GPA: ${best.toFixed(2)}`
-      : "Run a lesson to put yourself on the board.";
-    renderStandings(Array.isArray(payload.scoreboard) ? payload.scoreboard : []);
+    renderStandings(response.payload || {});
   } catch (error) {
     standingsList.innerHTML = "";
+    standingsBest.textContent = "";
     const failed = document.createElement("li");
     failed.className = "standings-empty";
     failed.textContent = error instanceof Error ? error.message : String(error);
     standingsList.append(failed);
   }
 }
-
-function closeStandings() {
-  standingsDialog.hidden = true;
-}
-
-standingsButton.addEventListener("click", openStandings);
-standingsClose.addEventListener("click", closeStandings);
-standingsDialog.addEventListener("click", event => {
-  if (event.target === standingsDialog) closeStandings();
-});
 
 designerClose.addEventListener("click", closeDesigner);
 designerSave.addEventListener("click", saveDesign);

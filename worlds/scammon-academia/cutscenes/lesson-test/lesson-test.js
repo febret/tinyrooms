@@ -1,76 +1,96 @@
-// The automatic end-of-lesson test: grades stamp down and the teacher's GPA
-// is revealed. The server has already recorded the score before playback.
+// The automatic end-of-lesson test. Grades and the teacher GPA are already
+// committed server-side; this scene presents each student's result in turn.
 
 import { beginCutscene, endCutscene, sprite, wait } from "../../app/js/cutscenes/stage.js";
 
-const LETTERS = ["A", "B", "C", "D"];
+const MAX_STUDENTS = 5;
 
-function stamp(scene, letter, index, total) {
-  const node = document.createElement("span");
-  node.textContent = letter;
-  node.style.cssText = `position:absolute;left:${8 + (index / Math.max(1, total - 1)) * 84}%;top:38%;` +
-    "font:800 3rem/1 Georgia, serif;color:#ff5a4a;border:5px solid #ff5a4a;" +
-    "border-radius:12px;padding:0.1rem 0.5rem;transform:rotate(-14deg);";
-  scene.append(node);
+function panel(styles) {
+  const node = document.createElement("div");
+  Object.assign(node.style, {
+    position: "absolute",
+    inset: "0",
+    display: "grid",
+    placeItems: "center",
+    gap: "0.6rem",
+    textAlign: "center",
+    ...styles,
+  });
+  return node;
+}
+
+function popIn(node) {
   node.animate(
     [
-      { transform: "rotate(-14deg) scale(2.2)", opacity: 0 },
-      { transform: "rotate(-14deg) scale(1)", opacity: 1, offset: 0.5 },
-      { transform: "rotate(-14deg) scale(1)", opacity: 0 },
+      { opacity: 0, transform: "translateY(18px) scale(0.86)" },
+      { opacity: 1, transform: "translateY(0) scale(1)" },
     ],
-    { duration: 1100, delay: index * 160, easing: "ease-in", fill: "forwards" },
+    { duration: 360, easing: "cubic-bezier(.2,1.4,.4,1)", fill: "forwards" },
   );
 }
 
 export default async function (ctx) {
-  const scene = beginCutscene("movie", {
-    background: ctx.params.stage_background || "#0b2545",
+  const params = ctx.params || {};
+  const stage = beginCutscene("movie", {
+    background: params.stage_background || "#0b2545",
     accent: "#f4c430",
     duration: 700,
   });
 
-  const title = document.createElement("h2");
-  title.textContent = "Class Test!";
-  title.style.cssText = "position:absolute;top:14%;left:50%;transform:translateX(-50%);margin:0;" +
-    "font:800 2rem/1.2 system-ui, sans-serif;color:#f4c430;letter-spacing:0.04em;";
-  scene.append(title);
-  title.animate([{ opacity: 0, transform: "translateX(-50%) translateY(-16px)" }, { opacity: 1, transform: "translateX(-50%) translateY(0)" }],
-    { duration: 500, easing: "ease-out", fill: "forwards" });
-
-  const pencils = document.createElement("div");
-  pencils.style.cssText = "position:absolute;bottom:12%;left:0;right:0;display:flex;justify-content:center;gap:1.2rem;font-size:2.4rem;";
-  for (const glyph of ["✏️", "📝", "✅"]) {
-    const span = document.createElement("span");
-    span.textContent = glyph;
-    pencils.append(span);
-  }
-  scene.append(pencils);
-  pencils.animate([{ transform: "translateY(20px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
-    { duration: 500, delay: 250, easing: "ease-out", fill: "forwards" });
-
-  await wait(700);
-  const count = Math.max(3, Number(ctx.params.students) || 5);
-  for (let index = 0; index < count; index += 1) {
-    stamp(scene, LETTERS[index % LETTERS.length], index, count);
-  }
-
-  await wait(1500);
+  const title = panel({ gap: "0.2rem" });
+  title.innerHTML =
+    '<div style="font:800 2.1rem/1.15 system-ui,sans-serif;color:#f4c430;letter-spacing:.04em">Class Test!</div>' +
+    '<div style="font:600 0.95rem/1.3 system-ui,sans-serif;color:#9ad0ff">Every student gets a grade.</div>';
+  stage.append(title);
+  popIn(title);
+  await wait(850);
   title.remove();
-  pencils.remove();
 
-  const gpa = ctx.params.gpa || "2.00";
-  const reveal = document.createElement("div");
-  reveal.style.cssText = "position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#fff;";
-  reveal.innerHTML = `<div><div style="font:600 1rem/1.4 system-ui,sans-serif;letter-spacing:0.12em;text-transform:uppercase;color:#9ad0ff">Teacher GPA</div>` +
-    `<div style="font:800 5rem/1 Georgia, serif;color:#f4c430">${gpa}</div>` +
-    `<div style="font:600 1.1rem/1.6 system-ui,sans-serif;color:#f4c430">+${ctx.params.bops || "0"} Bops</div></div>`;
-  scene.append(reveal);
+  const count = Math.min(MAX_STUDENTS, Math.max(1, Number(params.students) || MAX_STUDENTS));
+  for (let index = 1; index <= count; index += 1) {
+    const ref = typeof params[`s${index}`] === "string" ? params[`s${index}`] : "";
+    const result = typeof params[`r${index}`] === "string" ? params[`r${index}`] : "";
+
+    const card = panel({ gap: "0.5rem", padding: "0 6%" });
+    const student = await sprite(ref, { label: "Student" });
+    student.style.cssText = "width:min(26vmin,190px);height:min(26vmin,190px);object-fit:contain;filter:drop-shadow(0 12px 22px #000a);";
+
+    const line = document.createElement("div");
+    line.textContent = result;
+    line.style.cssText =
+      "font:700 clamp(0.9rem,2.2vmin,1.35rem)/1.35 system-ui,sans-serif;color:#f7f5ed;" +
+      "padding:0.45rem 0.9rem;border-radius:12px;background:#04080cd0;max-width:88%;" +
+      "box-shadow:0 8px 22px #0009;";
+
+    const stamp = document.createElement("span");
+    stamp.textContent = String(index).padStart(2, "0");
+    stamp.style.cssText =
+      "position:absolute;top:12%;right:12%;font:900 1.2rem/1 Georgia,serif;color:#ff5a4a;" +
+      "border:4px solid #ff5a4a;border-radius:12px;padding:0.15rem 0.5rem;transform:rotate(-12deg);";
+
+    card.append(student, line, stamp);
+    stage.append(card);
+    popIn(card);
+    await wait(1700);
+    card.animate([{ opacity: 1 }, { opacity: 0, transform: "translateY(-14px)" }], {
+      duration: 280,
+      easing: "ease-in",
+      fill: "forwards",
+    });
+    await wait(280);
+    card.remove();
+  }
+
+  const reveal = panel({ gap: "0.15rem" });
+  reveal.innerHTML =
+    '<div style="font:600 0.95rem/1.4 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#9ad0ff">Teacher GPA</div>' +
+    `<div style="font:800 5rem/1 Georgia,serif;color:#f4c430">${params.gpa || "2.00"}</div>` +
+    `<div style="font:700 1.15rem/1.5 system-ui,sans-serif;color:#f4c430">+${params.bops || "0"} Bops</div>`;
   const seal = await sprite("$me");
-  seal.style.cssText = "position:absolute;right:8%;bottom:8%;width:5rem;height:5rem;border-radius:50%;";
-  scene.append(seal);
-  reveal.animate([{ opacity: 0, transform: "scale(0.7)" }, { opacity: 1, transform: "scale(1)" }],
-    { duration: 600, easing: "cubic-bezier(.2,1.4,.4,1)", fill: "forwards" });
-
-  await wait(1600);
+  seal.style.cssText = "width:4.5rem;height:4.5rem;object-fit:contain;margin-top:0.4rem;";
+  reveal.append(seal);
+  stage.append(reveal);
+  popIn(reveal);
+  await wait(1800);
   endCutscene();
 }

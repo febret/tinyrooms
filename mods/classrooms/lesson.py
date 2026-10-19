@@ -12,7 +12,7 @@ import json
 import random
 import sqlite3
 
-from mods.classrooms.lesson_state import LessonStateRepository, StudentRecord
+from mods.classrooms.lesson_state import QUARTER_AWARDS, LessonStateRepository, StudentRecord
 from mods.classrooms.lessons import (
     GRADE_POINTS,
     SUBJECT_IDS,
@@ -312,12 +312,26 @@ class LessonService:
                 ledger_key=f"lesson:{room_id}:{session.get('started_at', '')}",
                 kind="lesson",
             )
+            quarter_number, _lessons, quarter_ended = self._repo.bump_quarter(connection)
+            if quarter_ended:
+                scores = self._repo.read_scores(connection, self._world.id)
+                ranked = self._repo.rank_scores(scores, limit=len(QUARTER_AWARDS))
+                for index, entry in enumerate(ranked):
+                    self._progression.grant_in_transaction(
+                        connection,
+                        str(entry["account_id"]),
+                        bops=QUARTER_AWARDS[index],
+                        ledger_key=f"quarter:{self._world.id}:{quarter_number}:{entry['account_id']}",
+                        kind="lesson",
+                    )
+                self._repo.reset_scores(connection)
+                self._repo.reset_quarter(connection)
             self._clear_student_states(connection, student_ids)
         self._end_session_peeps(student_ids, room_id)
         return LessonTestResult(grade=grade, gpa=gpa, bops=bops, results=tuple(results))
 
-    def scoreboard(self, account: AccountRecord, *, limit: int = 20) -> list[dict[str, object]]:
-        """Return the world scoreboard with teacher usernames resolved."""
+    def scoreboard(self, account: AccountRecord, *, limit: int = 5) -> list[dict[str, object]]:
+        """Return the quarter's top teachers ranked by average GPA."""
 
         rows = self._repo.scoreboard(self._world.id, limit=limit)
         accounts = self._profiles.get_accounts_by_ids([str(row["account_id"]) for row in rows])
@@ -329,8 +343,9 @@ class LessonService:
                     "rank": rank,
                     "account_id": row["account_id"],
                     "username": account_record.username_display if account_record is not None else "A teacher",
-                    "best_gpa": row["best_gpa"],
+                    "sticker": account_record.sticker if account_record is not None else None,
                     "average_gpa": row["average_gpa"],
+                    "best_gpa": row["best_gpa"],
                     "lessons": row["lessons"],
                     "total_bops": row["total_bops"],
                     "is_you": str(row["account_id"]) == account.id,
@@ -338,10 +353,15 @@ class LessonService:
             )
         return board
 
-    def personal_best(self, account: AccountRecord) -> float | None:
-        """Return the account's best GPA in this world."""
+    def personal_average(self, account: AccountRecord) -> float | None:
+        """Return the account's average GPA in the current quarter."""
 
-        return self._repo.teacher_best_gpa(account.id, self._world.id)
+        return self._repo.teacher_average_gpa(account.id, self._world.id)
+
+    def quarter(self) -> dict[str, int]:
+        """Return the current quarter number and lesson progress."""
+
+        return self._repo.quarter_state()
 
     # -- Internals -----------------------------------------------------------
 

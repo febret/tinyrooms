@@ -20,6 +20,9 @@ from server.state.migrations import DatabaseHub
 ROSTER_KEY = "lesson.roster"
 SCORE_PREFIX = "lesson.score."
 SESSION_NAMESPACE = "lesson"
+QUARTER_KEY = "lesson.quarter"
+QUARTER_LESSONS = 100
+QUARTER_AWARDS = (5, 4, 3, 2, 1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,12 +208,13 @@ class LessonStateRepository:
             (key, json.dumps(payload)),
         )
 
-    def _read_scores(self, world_id: str) -> list[dict[str, object]]:
-        with self._hub.locked() as connection:
-            rows = connection.execute(
-                "SELECT value FROM world.world_meta WHERE key LIKE ?",
-                (f"{SCORE_PREFIX}%",),
-            ).fetchall()
+    def read_scores(self, connection: sqlite3.Connection, world_id: str) -> list[dict[str, object]]:
+        """Read every score in the current quarter for one world."""
+
+        rows = connection.execute(
+            "SELECT value FROM world.world_meta WHERE key LIKE ?",
+            (f"{SCORE_PREFIX}%",),
+        ).fetchall()
         scores: list[dict[str, object]] = []
         for row in rows:
             payload = _decode_json(row["value"])
@@ -218,11 +222,12 @@ class LessonStateRepository:
                 scores.append(payload)
         return scores
 
-    def scoreboard(self, world_id: str, *, limit: int = 20) -> list[dict[str, object]]:
-        """Return the top teachers by best GPA across all their lessons."""
+    @staticmethod
+    def rank_scores(scores: list[dict[str, object]], *, limit: int = 5) -> list[dict[str, object]]:
+        """Aggregate scores per teacher and rank by average GPA."""
 
         grouped: dict[str, dict[str, object]] = {}
-        for score in self._read_scores(world_id):
+        for score in scores:
             account_id = str(score.get("account_id", ""))
             if not account_id:
                 continue
@@ -237,21 +242,88 @@ class LessonStateRepository:
             entry["total_bops"] = int(entry["total_bops"]) + int(score.get("bops", 0))
         ranked = sorted(
             grouped.values(),
-            key=lambda entry: (-float(entry["best_gpa"]), -float(entry["total_gpa"]), str(entry["account_id"])),
+            key=lambda entry: (
+                -float(entry["total_gpa"]) / max(1, int(entry["lessons"])),
+                -float(entry["best_gpa"]),
+                str(entry["account_id"]),
+            ),
         )[: max(1, int(limit))]
         return [
             {
                 "account_id": str(entry["account_id"]),
-                "best_gpa": round(float(entry["best_gpa"]), 3),
                 "average_gpa": round(float(entry["total_gpa"]) / max(1, int(entry["lessons"])), 3),
+                "best_gpa": round(float(entry["best_gpa"]), 3),
                 "lessons": int(entry["lessons"]),
                 "total_bops": int(entry["total_bops"]),
             }
             for entry in ranked
         ]
 
-    def teacher_best_gpa(self, account_id: str, world_id: str) -> float | None:
-        """Return the account's best recorded GPA in a world, if any."""
+    def scoreboard(self, world_id: str, *, limit: int = 5) -> list[dict[str, object]]:
+        """Return the top teachers by average GPA in the current quarter."""
 
-        relevant = [float(score.get("gpa", 0.0)) for score in self._read_scores(world_id) if score.get("account_id") == account_id]
-        return round(max(relevant), 3) if relevant else None
+        with self._hub.locked() as connection:
+            scores = self.read_scores(connection, world_id)
+        return self.rank_scores(scores, limit=limit)
+
+    def teacher_average_gpa(self, account_id: str, world_id: str) -> float | None:
+        """Return the account's average GPA in the current quarter, if any."""
+
+        with self._hub.locked() as connection:
+            scores = self.read_scores(connection, world_id)
+        relevant = [float(score.get("gpa", 0.0)) for score in scores if score.get("account_id") == account_id]
+        return round(sum(relevant) / len(relevant), 3) if relevant else None
+
+    # -- Quarter --------------------------------------------------------------
+
+    @staticmethod
+    def read_quarter(connection: sqlite3.Connection) -> dict[str, int]:
+        """Return the current quarter number and completed lesson count."""
+
+        row = connection.execute(
+            "SELECT value FROM world.world_meta WHERE key = ?", (QUARTER_KEY,)
+        ).fetchone()
+        payload = _decode_json(row["value"]) if row is not None else {}
+        return {
+            "number": int(payload.get("number", 1)),
+            "lessons": int(payload.get("lessons", 0)),
+        }
+
+    @staticmethod
+    def write_quarter(connection: sqlite3.Connection, number: int, lessons: int) -> None:
+        """Persist the quarter counter."""
+
+        connection.execute(
+            "INSERT INTO world.world_meta (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (QUARTER_KEY, json.dumps({"number": int(number), "lessons": int(lessons)})),
+        )
+
+    def bump_quarter(self, connection: sqlite3.Connection) -> tuple[int, int, bool]:
+        """Count one completed lesson and report whether the quarter just ended."""
+
+        quarter = self.read_quarter(connection)
+        lessons = quarter["lessons"] + 1
+        ended = lessons >= QUARTER_LESSONS
+        self.write_quarter(connection, quarter["number"], lessons)
+        return quarter["number"], lessons, ended
+
+    def reset_quarter(self, connection: sqlite3.Connection) -> None:
+        """Start the next quarter with a zeroed lesson count."""
+
+        quarter = self.read_quarter(connection)
+        self.write_quarter(connection, quarter["number"] + 1, 0)
+
+    def reset_scores(self, connection: sqlite3.Connection) -> None:
+        """Clear every GPA score so the next quarter starts fresh."""
+
+        connection.execute(
+            "DELETE FROM world.world_meta WHERE key LIKE ?", (f"{SCORE_PREFIX}%",)
+        )
+
+    def quarter_state(self) -> dict[str, int]:
+        """Return the current quarter for read-only callers."""
+
+        with self._hub.locked() as connection:
+            quarter = self.read_quarter(connection)
+        return {**quarter, "size": QUARTER_LESSONS}

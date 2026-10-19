@@ -27,17 +27,20 @@
 .door-buy:hover { background: #2b4c9b77; border-color: #f4c430; }
 .floor-empty { margin: auto; padding: 8px 16px; font-size: 12px; color: #463616; background: #f7ecc8dd; border: 1px solid #00000022; border-radius: 999px; box-shadow: inset 0 1px 0 #ffffffaa; }
 .hint { flex: 0 0 auto; font-size: 11px; }
-.standings { display: flex; flex-direction: column; gap: 8px; min-width: min(420px, 84vw); }
-.standings-head { display: flex; align-items: center; justify-content: space-between; }
-.standings-head h2 { font-size: 16px; margin: 0; }
-.standings-best { margin: 0; font-size: 12px; color: var(--gold); }
-.standings-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; }
-.standings-row { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: #0d1e46; border: 1px solid #2b4c9b66; font-size: 13px; }
+.standings-panel { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: 10px; border: 1px solid #2b4c9b66; background: #0d1e46; }
+.standings-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.standings-head h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .04em; color: #f4c430; }
+.standings-quarter { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.standings-best { margin: 0; font-size: 11px; color: var(--gold); }
+.standings-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; max-height: 30vh; overflow-y: auto; }
+.standings-row { display: grid; grid-template-columns: 22px 30px 1fr auto; align-items: center; gap: 7px; padding: 3px 6px; border-radius: 7px; background: #0a1733; border: 1px solid #2b4c9b55; font-size: 12px; }
 .standings-row.you { border-color: var(--gold); box-shadow: 0 0 0 1px #e0b35255; }
 .standings-rank { font-weight: 700; color: #f4c430; text-align: center; }
+.standings-sticker { width: 28px; height: 28px; border-radius: 50%; object-fit: contain; background: #12244d; }
 .standings-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.standings-gpa { font-weight: 700; color: #f7dc7a; }
-.standings-empty { margin: 0; padding: 10px; font-size: 12px; color: var(--muted); text-align: center; }
+.standings-name span { color: var(--muted); font-size: 11px; }
+.standings-gpa { font-weight: 700; color: #f7dc7a; white-space: nowrap; }
+.standings-empty { margin: 0; padding: 6px; font-size: 11px; color: var(--muted); text-align: center; }
 .designer { display: flex; flex-direction: column; gap: 8px; }
 .designer-head { display: flex; align-items: center; justify-content: space-between; }
 .designer-head h2 { font-size: 16px; }

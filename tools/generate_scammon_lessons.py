@@ -212,7 +212,7 @@ def write_cutscenes() -> None:
         "  title: Class Test",
         "  script: lesson-test.js",
         "  frame: movie",
-        "  duration: 6000",
+        "  duration: 12000",
         "  audience: room",
         "  room_bound: true",
         "  params:",

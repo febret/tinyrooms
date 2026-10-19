@@ -16,7 +16,7 @@ from server.content.common import (
 
 
 TASK_TRIGGERS = frozenset(
-    {"go", "card_play", "dialog_action", "activity_result", "prop_action", "enter_room"}
+    {"go", "card_play", "dialog_action", "activity_result", "prop_action", "enter_room", "signal"}
 )
 TASK_SCOPES = frozenset({"personal", "shared"})
 TASK_CREDIT_POLICIES = frozenset({"actor", "participants"})

@@ -28,6 +28,7 @@ from server.commands.parser import ParsedCommand
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.worlds import PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
 from mods.classrooms.lesson import LessonService, teach_command
+from mods.classrooms.lessons import SUBJECT_LABELS
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.ownership import OwnershipService
 from server.state.migrations import DatabaseHub
@@ -522,6 +523,19 @@ def _service(context: CommandContext) -> ClassroomService:
     return service
 
 
+def _record_task_signals(
+    context: CommandContext,
+    events: list[dict[str, object]],
+    room_id: str,
+) -> list[dict[str, object]]:
+    """Advance journal tasks from generic lesson signals."""
+
+    changes = []
+    for event in events:
+        changes.extend(context.tasks.record(context.account.id, "signal", event))
+    return context.tasks.feedback_events(context.account.id, changes, room_id=room_id)
+
+
 async def classroom_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     """List, buy, customize, lock, or enter player classroom doors."""
 
@@ -547,11 +561,15 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
 
     if action == "buy":
         view = service.purchase(context.account)
-        return CommandOutcome(
+        outcome = CommandOutcome(
             message="Your classroom door is ready.",
             payload={"door": view.payload(is_owner=True), "user": _user_payload(context)},
             private_events=[{"type": "toast", "tone": "success", "text": "Your classroom appears in the corridor."}],
         )
+        outcome.private_events.extend(
+            _record_task_signals(context, [{"event": "classroom_bought"}], _room_id(context))
+        )
+        return outcome
 
     if action == "design":
         tokens = list(command.args[1:])
@@ -626,6 +644,9 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
                 payload={"students": [student.label for student in students]},
                 snapshot=snapshot,
             )
+            outcome.private_events.extend(
+                _record_task_signals(context, [{"event": "lesson_started"}], room_id)
+            )
             outcome.room_broadcasts.append(
                 PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id})
             )
@@ -634,6 +655,7 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
             result = lessons.give_test(context.account, room_id)
             snapshot = await context.rooms.build_snapshot(context.account, room_id)
             honors = sum(1 for student in result.results if all(letter == "A" for letter in student.subjects.values()))
+            taught = sorted({subject for student in result.results for subject in student.subjects})
             outcome = CommandOutcome(
                 message=f"Test over: GPA {result.gpa:.2f} (+{result.bops} Bops).",
                 payload={
@@ -644,22 +666,37 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
                 },
                 snapshot=snapshot,
             )
+            signals: list[dict[str, object]] = [
+                {"event": "lesson_completed", "gpa": f"{result.gpa:.2f}"}
+            ]
+            signals.extend({"event": "subject_taught", "subject": subject} for subject in taught)
+            if result.gpa >= 3.0:
+                signals.append({"event": "lesson_gpa_3"})
+            outcome.private_events.extend(_record_task_signals(context, signals, room_id))
             outcome.room_broadcasts.append(
                 PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id})
             )
+            params: dict[str, object] = {
+                "gpa": f"{result.gpa:.2f}",
+                "grade": str(result.grade),
+                "bops": str(result.bops),
+                "students": str(len(result.results)),
+                "honors": str(honors),
+            }
+            for index, student_result in enumerate(result.results[:5], start=1):
+                subjects = ", ".join(
+                    f"{SUBJECT_LABELS.get(subject, subject)} {letter}"
+                    for subject, letter in student_result.subjects.items()
+                )
+                params[f"s{index}"] = f"$peep:{student_result.student.student_id}"
+                params[f"r{index}"] = f"{student_result.student.label} · {subjects}"
             launch = await play_cutscene(
                 context,
                 reference="lesson-test",
                 room_id=room_id,
                 audience="room",
                 origin="lesson",
-                params={
-                    "gpa": f"{result.gpa:.2f}",
-                    "grade": str(result.grade),
-                    "bops": str(result.bops),
-                    "students": str(len(result.results)),
-                    "honors": str(honors),
-                },
+                params=params,
             )
             private_events, room_broadcasts = deliver(launch)
             outcome.private_events.extend(private_events)
@@ -677,8 +714,9 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
             return CommandOutcome(
                 message=None,
                 payload={
-                    "scoreboard": lessons.scoreboard(context.account),
-                    "best_gpa": lessons.personal_best(context.account),
+                    "scoreboard": lessons.scoreboard(context.account, limit=5),
+                    "average_gpa": lessons.personal_average(context.account),
+                    "quarter": lessons.quarter(),
                 },
                 toast=False,
                 log=False,

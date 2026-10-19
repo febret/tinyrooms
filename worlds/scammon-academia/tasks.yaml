@@ -1,1 +1,187 @@
-{}
+# Scammon Academia quests. The principal points new teachers at these, and the
+# journal tracks each one. Steps advance from generic lesson signals emitted by
+# the classrooms mod.
+get-a-classroom:
+  title: A Classroom of Your Own
+  description: Open the Classrooms activity and buy your own classroom door.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-classroom
+  reward:
+    kudos: 3
+    cards:
+    - topic-reading-alphabet
+  steps:
+  - step_id: buy-classroom
+    trigger: signal
+    match:
+      event: classroom_bought
+    title: Get a classroom
+    memory_tag: got-classroom
+
+first-lesson:
+  title: First Day of School
+  description: Start a lesson in your classroom and teach the class a topic.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-first-lesson
+  reward:
+    kudos: 2
+  steps:
+  - step_id: start-lesson
+    trigger: signal
+    match:
+      event: lesson_started
+    title: Start your first lesson
+    memory_tag: first-lesson-started
+  - step_id: finish-lesson
+    trigger: signal
+    match:
+      event: lesson_completed
+    title: Give the class a test
+    memory_tag: first-lesson-complete
+
+gpa-3-0:
+  title: Honor Roll Teacher
+  description: Finish a lesson with a teacher GPA of 3.0 or better.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-honor-roll
+  reward:
+    kudos: 5
+    cards:
+    - topic-math-counting
+  steps:
+  - step_id: honor-roll
+    trigger: signal
+    match:
+      event: lesson_gpa_3
+    title: Earn a 3.0 GPA lesson
+    memory_tag: honor-roll
+
+ten-lessons:
+  title: Ten Lessons In
+  description: Complete ten lessons across the school year.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-ten-lessons
+  reward:
+    kudos: 10
+    cards:
+    - topic-biology-plants
+  steps:
+  - step_id: ten-lessons
+    trigger: signal
+    match:
+      event: lesson_completed
+    amount: 10
+    title: Complete ten lessons
+    memory_tag: ten-lessons
+
+# One task per subject; the engine advances only the first incomplete step of a
+# task, so order-independent objectives must be separate tasks.
+teach-reading:
+  title: Teach Reading
+  description: Teach at least one Reading topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: reading}
+    title: Teach Reading
+    memory_tag: taught-reading
+teach-writing:
+  title: Teach Writing
+  description: Teach at least one Writing topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: writing}
+    title: Teach Writing
+teach-math:
+  title: Teach Math
+  description: Teach at least one Math topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: math}
+    title: Teach Math
+    memory_tag: taught-math
+teach-history:
+  title: Teach History
+  description: Teach at least one History topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: history}
+    title: Teach History
+teach-geography:
+  title: Teach Geography
+  description: Teach at least one Geography topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: geography}
+    title: Teach Geography
+teach-chemistry:
+  title: Teach Chemistry
+  description: Teach at least one Chemistry topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: chemistry}
+    title: Teach Chemistry
+teach-tech:
+  title: Teach Tech
+  description: Teach at least one Tech topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: tech}
+    title: Teach Tech
+teach-sport:
+  title: Teach Sport
+  description: Teach at least one Sport topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: sport}
+    title: Teach Sport
+teach-biology:
+  title: Teach Biology
+  description: Teach at least one Biology topic in a lesson.
+  scope: personal
+  revision: 1
+  reward: {kudos: 3}
+  steps:
+  - step_id: teach
+    trigger: signal
+    match: {event: subject_taught, subject: biology}
+    title: Teach Biology
