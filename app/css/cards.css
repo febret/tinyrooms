@@ -205,13 +205,19 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .memory-list h3, .task-list h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 19px; font-weight: 600; color: var(--journal-ink); }
 .memory-count { color: var(--journal-accent); font-weight: 700; font-size: 14px; }
 .memory-filter { margin: 4px 0 10px; font-family: var(--journal-hand); font-size: 13px; color: var(--journal-accent); }
-.memory-entry { padding: 6px 2px 8px; margin: 0; border: 0; border-bottom: 1px dashed var(--journal-rule); background: transparent; }
-.memory-entry.manual { border-left: 2px solid rgba(169, 116, 58, .5); padding-left: 8px; }
-.memory-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #8a7358; }
-.memory-world { color: var(--journal-accent); }
-.memory-text { margin: 3px 0; font-family: var(--journal-hand); font-size: 14px; line-height: 1.45; color: var(--journal-ink); overflow-wrap: anywhere; }
-.memory-image { display: block; width: 100%; max-height: 190px; object-fit: cover; margin: 6px 0; border: 1px solid var(--journal-edge); border-radius: 6px; background: #0006; }
-.memory-actions { display: flex; gap: 6px; margin-top: 4px; }
+.memory-section { margin: 0 0 10px; }
+.memory-section:last-child { margin-bottom: 0; }
+.memory-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 3px; padding-bottom: 2px; border-bottom: 1px solid rgba(120, 92, 58, .22); }
+.memory-section-date { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #6d563f; }
+.memory-section-date time { font: inherit; }
+.memory-section-world { font-size: 11px; color: var(--journal-accent); }
+.memory-section-entries { display: grid; gap: 2px; }
+.memory-entry { padding: 2px 2px 3px; margin: 0; border: 0; background: transparent; }
+.memory-entry.manual { border-left: 2px solid rgba(169, 116, 58, .5); padding-left: 7px; }
+.memory-text { margin: 1px 0; font-family: var(--journal-hand); font-size: 14px; line-height: 1.45; color: var(--journal-ink); overflow-wrap: anywhere; }
+.memory-collage { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.memory-collage-image { flex: 1 1 88px; width: min(100%, 148px); max-width: 148px; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--journal-edge); border-radius: 6px; background: #0006; }
+.memory-actions { display: flex; gap: 6px; margin-top: 2px; }
 .memory-actions button { min-height: 34px; min-width: 34px; padding: 3px 9px; background: rgba(255, 255, 255, .4); font-size: 13px; }
 .task-list { margin-bottom: 12px; }
 .task-card { padding: 7px 4px 9px; margin-bottom: 4px; border: 0; border-bottom: 1px solid var(--journal-rule); background: transparent; color: var(--journal-ink); }

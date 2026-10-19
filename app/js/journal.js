@@ -89,25 +89,61 @@ export function calendarMarkup(state) {
   `;
 }
 
-function memoryMarkup(memory) {
-  const world = memory.worldLabel
-    ? `<span class="memory-world">${escapeHtml(memory.worldLabel)}</span>`
-    : "";
-  const image = memory.hasImage
-    ? `<img class="memory-image" src="${escapeHtml(memoryImageUrl(memory.memoryId))}" alt="Memory screenshot" loading="lazy">`
-    : "";
+function memoryDateLabel(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value || "Unknown date";
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+export function groupMemoriesByDayAndWorld(memories) {
+  const groups = [];
+  const groupsByKey = new Map();
+  for (const memory of memories) {
+    const date = memory.localDate || memory.createdAt.slice(0, 10) || "";
+    const world = memory.worldLabel || memory.worldId || "Unknown world";
+    const key = `${date}\u0000${world}`;
+    let group = groupsByKey.get(key);
+    if (!group) {
+      group = { date, world, memories: [], images: [] };
+      groupsByKey.set(key, group);
+      groups.push(group);
+    }
+    group.memories.push(memory);
+    if (memory.hasImage) group.images.push(memory);
+  }
+  return groups;
+}
+
+function memoryEntryMarkup(memory) {
   return `<article class="memory-entry ${memory.editable ? "manual" : "game"}">
-    <header class="memory-head">
-      <span class="memory-date">${escapeHtml(memory.localDate || memory.createdAt.slice(0, 10))}</span>
-      ${world}
-    </header>
     <p class="memory-text">${escapeHtml(memory.text)}</p>
-    ${image}
     ${memory.editable ? `<div class="memory-actions">
       <button type="button" data-memory-action="edit" data-memory-id="${escapeHtml(memory.memoryId)}">Edit</button>
       <button type="button" class="quiet" data-memory-action="delete" data-memory-id="${escapeHtml(memory.memoryId)}">Delete</button>
     </div>` : ""}
   </article>`;
+}
+
+function memorySectionMarkup(group) {
+  const date = escapeHtml(group.date);
+  const world = escapeHtml(group.world);
+  const label = escapeHtml(memoryDateLabel(group.date));
+  const count = group.images.length;
+  const collageLabel = `${count} memory screenshot${count === 1 ? "" : "s"}`;
+  const collage = count
+    ? `<div class="memory-collage" role="group" aria-label="${collageLabel}">
+      ${group.images.map(memory => `<img class="memory-collage-image" src="${escapeHtml(memoryImageUrl(memory.memoryId))}" alt="Memory screenshot from ${label} in ${world}" loading="lazy">`).join("")}
+    </div>`
+    : "";
+  return `<section class="memory-section">
+    <header class="memory-section-head">
+      <h4 class="memory-section-date"><time datetime="${date}">${label}</time></h4>
+      <span class="memory-section-world">${world}</span>
+    </header>
+    <div class="memory-section-entries">${group.memories.map(memoryEntryMarkup).join("")}</div>
+    ${collage}
+  </section>`;
 }
 
 export function memoriesMarkup(state) {
@@ -116,6 +152,7 @@ export function memoriesMarkup(state) {
   const memories = filter
     ? journal.memories.filter(memory => memory.tags.includes(`task:${filter}`))
     : journal.memories;
+  const groups = groupMemoriesByDayAndWorld(memories);
   const filterBanner = filter
     ? `<p class="memory-filter">Showing memories for task <strong>${escapeHtml(filter)}</strong></p>`
     : "";
@@ -124,8 +161,8 @@ export function memoriesMarkup(state) {
       <h3>Memories <span class="memory-count">${memories.length}</span></h3>
       <img class="journal-flourish" src="${withBase("/app/assets/journal-flourish.svg")}" alt="" aria-hidden="true">
       ${filterBanner}
-      ${memories.length
-        ? memories.map(memoryMarkup).join("")
+      ${groups.length
+        ? groups.map(memorySectionMarkup).join("")
         : `<div class="empty-state">No memories this month. Type in the chat bar and choose New Memory.</div>`}
     </section>
   `;
