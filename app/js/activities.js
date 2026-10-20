@@ -224,6 +224,7 @@ export function createActivityManager({
       node,
       iframe: node.querySelector("iframe"),
       title: node.querySelector("strong"),
+      subtitle: node.querySelector(".activity-subtitle"),
       min: node.querySelector(".activity-min"),
       close: node.querySelector(".activity-close"),
       minimized: false,
