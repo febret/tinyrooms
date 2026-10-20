@@ -114,7 +114,6 @@ class PropEditorService:
             "model_url": prop_model_url(world.id, definition, definition.active_state),
             "scale": definition.scale,
             "decorative": definition.decorative,
-            "editable": definition.editable,
             "animation": definition.animation,
             "tags": list(definition.tags),
             "price": definition.price,

@@ -67,7 +67,6 @@ export function renderPropsPanel(state) {
       </div>
       <div class="pe-field-row pe-checks">
         <label class="pe-check">${checkbox(Boolean(prop.decorative), `data-pe-prop="decorative" data-pe-kind="bool"`)} decorative</label>
-        <label class="pe-check">${checkbox(Boolean(prop.editable), `data-pe-prop="editable" data-pe-kind="bool"`)} editable</label>
         <label class="pe-check">${checkbox(Boolean(prop.locked), `data-pe-prop="locked" data-pe-kind="bool"`)} locked</label>
         <label class="pe-check" title="Hide from the room editor, prop shop, and all in-game prop lists and renders.">${checkbox(Boolean(prop.hidden), `data-pe-prop="hidden" data-pe-kind="bool"`)} hidden</label>
       </div>

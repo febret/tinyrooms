@@ -116,11 +116,11 @@ class RoomLayoutService:
         # from; world and mod props stay curated by the room's own instances.
         approved: dict[str, PropDefinition] = {}
         for definition in self._world.props.values():
-            if definition.editable and not definition.hidden and definition.source_kind in {"propset", "builtin"}:
+            if definition.decorative and not definition.hidden and definition.source_kind in {"propset", "builtin"}:
                 approved.setdefault(definition.id, definition)
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
-            if definition.editable and not definition.hidden:
+            if definition.decorative and not definition.hidden:
                 approved.setdefault(definition.id, definition)
         return sorted(approved.values(), key=lambda definition: definition.id)
 
@@ -167,14 +167,14 @@ class RoomLayoutService:
         base = [
             instance
             for instance in room.props.values()
-            if not self._world.props[instance.prop_id].editable
+            if not self._world.props[instance.prop_id].decorative
             and not self._world.props[instance.prop_id].hidden
         ]
         if live is None:
             base.extend(
                 instance
                 for instance in room.props.values()
-                if self._world.props[instance.prop_id].editable
+                if self._world.props[instance.prop_id].decorative
                 and not self._world.props[instance.prop_id].hidden
             )
             return base
@@ -313,7 +313,7 @@ class RoomLayoutService:
                     **({"text": dict(instance.text)} if instance.text is not None else {}),
                 }
                 for instance in room.props.values()
-                if self._world.props[instance.prop_id].editable
+                if self._world.props[instance.prop_id].decorative
                 and not self._world.props[instance.prop_id].hidden
             ]
         entries = [
@@ -451,18 +451,18 @@ class RoomLayoutService:
         approved.update(
             instance.prop_id
             for instance in room.props.values()
-            if self._world.props[instance.prop_id].editable
+            if self._world.props[instance.prop_id].decorative
         )
         live = self._world_state.read_room_layout(room.id)["props"] or []
         approved.update(str(entry.get("prop_id")) for entry in live if isinstance(entry, dict))
-        known = {instance.id for instance in room.props.values() if self._world.props[instance.prop_id].editable}
+        known = {instance.id for instance in room.props.values() if self._world.props[instance.prop_id].decorative}
         known.update(str(entry.get("id")) for entry in live if isinstance(entry, dict))
         # Hidden props are invisible to the room editor, so a saved visible
         # layout must carry them forward rather than dropping them from state.
         hidden_existing: dict[str, dict[str, object]] = {}
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
-            if definition.editable and definition.hidden:
+            if definition.decorative and definition.hidden:
                 hidden_existing[instance.id] = {
                     "id": instance.id,
                     "prop_id": instance.prop_id,
@@ -492,15 +492,15 @@ class RoomLayoutService:
                 raise ValueError("Each layout prop must be a mapping.")
             prop_id = str(entry.get("prop_id") or "")
             definition = self._world.props.get(prop_id)
-            if definition is not None and not definition.editable:
-                raise ValueError(f"Prop '{prop_id}' is not editable.")
+            if definition is not None and not definition.decorative:
+                raise ValueError(f"Prop '{prop_id}' is not decorative.")
             if prop_id not in approved:
                 raise ValueError(f"Prop '{prop_id}' is not approved for editing.")
             instance_id = str(entry.get("id") or "")
             if not instance_id or instance_id in seen:
                 raise ValueError("Layout prop IDs must be unique and non-empty.")
             authored = room.props.get(instance_id)
-            if authored is not None and not self._world.props[authored.prop_id].editable:
+            if authored is not None and not self._world.props[authored.prop_id].decorative:
                 raise ValueError(f"Layout prop ID '{instance_id}' belongs to an immutable gameplay prop.")
             if instance_id.startswith("custom:"):
                 try:

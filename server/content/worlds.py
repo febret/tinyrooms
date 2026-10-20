@@ -85,7 +85,6 @@ class PropDefinition:
     decorative: bool
     animation: str | None
     scale: float
-    editable: bool = False
     editor_scale_min: float = 0.25
     editor_scale_max: float = 4.0
     source: str = ""
@@ -279,7 +278,7 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
     return {TEXT_PROP_ID: PropDefinition(
         id=TEXT_PROP_ID, label="Text", description="Custom three-dimensional text.",
         model_name=None, model_path=None, decorative=True, animation=None,
-        scale=1.0, editable=True, source="builtin", source_kind="builtin",
+        scale=1.0, source="builtin", source_kind="builtin",
         tags=("text",), price=0, locked=False, render_kind="text",
     )}
 
@@ -733,9 +732,6 @@ def load_prop_definition(
         raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
     scale = float(raw_scale) * scale_adjust
     decorative = bool(raw_prop.get("decorative", False))
-    editable = bool(raw_prop.get("editable", False))
-    if editable and not decorative:
-        raise ContentError(f"Prop '{prop_id}' is editable but not decorative.")
     editor_scale_min = float(raw_prop.get("editor_scale_min", 0.25))
     editor_scale_max = float(raw_prop.get("editor_scale_max", 4.0))
     if editor_scale_min <= 0 or editor_scale_max < editor_scale_min:
@@ -772,7 +768,6 @@ def load_prop_definition(
         decorative=decorative,
         animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
         scale=scale,
-        editable=editable,
         editor_scale_min=editor_scale_min,
         editor_scale_max=editor_scale_max,
         source=source,

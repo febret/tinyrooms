@@ -305,7 +305,7 @@ class WorldStateRepository:
                 **({"text": dict(instance.text)} if instance.text is not None else {}),
             }
             for instance in room.props.values()
-            if world.props[instance.prop_id].editable
+            if world.props[instance.prop_id].decorative
         ]
         connection.execute(
             "UPDATE world.room_states SET props_json = ? WHERE room_id = ?",

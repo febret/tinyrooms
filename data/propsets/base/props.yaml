@@ -6,7 +6,6 @@ city-trashcan:
     bag at a time.
   model: city-trashcan.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - outdoor
@@ -17,7 +16,6 @@ galvanized-trashcan:
   description: A classic ribbed silver can with a clattery lid. Oscar would approve.
   model: galvanized-trashcan.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags:
   - trashcan
@@ -29,7 +27,6 @@ mustard-armchair:
     Sit back, dude.
   model: mustard-armchair.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - seating
@@ -41,7 +38,6 @@ patchwork-rocking-chair:
     in the house. Rad.
   model: patchwork-rocking-chair.glb
   decorative: true
-  editable: true
   scale: 1.15
   tags:
   - seating
@@ -53,7 +49,6 @@ dusty-rose-sofa:
     different friend groups.
   model: dusty-rose-sofa.glb
   decorative: true
-  editable: true
   scale: 1.4
   tags:
   - seating
@@ -65,7 +60,6 @@ teal-egg-chair:
     baby.
   model: teal-egg-chair.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - seating
@@ -77,7 +71,6 @@ window-daybed:
     you may never get up.
   model: window-daybed.glb
   decorative: true
-  editable: true
   scale: 1.3
   tags:
   - seating
@@ -89,7 +82,6 @@ braided-rainbow-rug:
     rainbow.
   model: braided-rainbow-rug.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - rug
@@ -100,7 +92,6 @@ persian-medallion-rug:
     own ASMR.
   model: persian-medallion-rug.glb
   decorative: true
-  editable: true
   scale: 1.45
   tags:
   - rug
@@ -111,7 +102,6 @@ sheepskin-rug:
     mood.
   model: sheepskin-rug.glb
   decorative: true
-  editable: true
   scale: 1.3
   tags:
   - rug
@@ -122,7 +112,6 @@ sunset-runner-rug:
     for your floor.
   model: sunset-runner-rug.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - rug
@@ -133,7 +122,6 @@ leaf-rug:
     for botanical flex.
   model: leaf-rug.glb
   decorative: true
-  editable: true
   scale: 1.4
   tags:
   - rug
@@ -144,7 +132,6 @@ mushroom-table-lamp:
     pure rad.
   model: mushroom-table-lamp.glb
   decorative: true
-  editable: true
   scale: 0.7
   tags:
   - lighting
@@ -154,7 +141,6 @@ blossom-paper-lantern:
   description: Cherry blossoms on paper, hanging like it is hosting a 90s anime opening.
   model: blossom-paper-lantern.glb
   decorative: true
-  editable: true
   scale: 0.95
   tags:
   - lighting
@@ -165,7 +151,6 @@ dragonfly-tiffany-lamp:
     back.
   model: dragonfly-tiffany-lamp.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - lighting
@@ -176,7 +161,6 @@ purple-lava-lamp:
     it long enough and you are legally hypnotized.
   model: purple-lava-lamp.glb
   decorative: true
-  editable: true
   scale: 0.85
   tags:
   - lighting
@@ -187,7 +171,6 @@ brass-arc-floor-lamp:
     lamp, no notes.
   model: brass-arc-floor-lamp.glb
   decorative: true
-  editable: true
   scale: 1.35
   tags:
   - lighting
@@ -198,7 +181,6 @@ beeswax-candle-sconce:
     and they know it.
   model: beeswax-candle-sconce.glb
   decorative: true
-  editable: true
   scale: 0.6
   tags:
   - lighting
@@ -215,7 +197,6 @@ orange-gooseneck-lamp:
     internet decisions.
   model: orange-gooseneck-lamp.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags:
   - lighting
@@ -232,7 +213,6 @@ brass-oil-lantern:
     has entered the chat.
   model: brass-oil-lantern.glb
   decorative: true
-  editable: true
   scale: 0.95
   tags:
   - lighting
@@ -250,7 +230,6 @@ cat-night-lamp:
     watching. Awww.
   model: cat-night-lamp.glb
   decorative: true
-  editable: true
   scale: 0.65
   tags:
   - lighting
@@ -261,7 +240,6 @@ bookstack-floor-lamp:
     Literally.
   model: bookstack-floor-lamp.glb
   decorative: true
-  editable: true
   scale: 1.25
   tags:
   - lighting
@@ -271,7 +249,6 @@ rattan-side-table:
   description: It is giving breezy sunroom realness.
   model: rattan-side-table.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - table
@@ -281,7 +258,6 @@ milking-stool-table:
   description: Fake it till you make it, little buddy.
   model: milking-stool-table.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags:
   - stool
@@ -292,7 +268,6 @@ floral-nightstand:
   description: Stores your retainer and your biggest dreams.
   model: floral-nightstand.glb
   decorative: true
-  editable: true
   scale: 0.75
   tags:
   - nightstand
@@ -307,7 +282,6 @@ live-edge-slab-table:
   description: Live-edgy.
   model: live-edge-slab-table.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags:
   - table
@@ -317,7 +291,6 @@ terrazzo-tripod-table:
   description: It is terrazzo-core.
   model: terrazzo-tripod-table.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - table
@@ -327,7 +300,6 @@ monstera-in-pot:
   description: That leaf looked at the camera and said, I am the main character.
   model: monstera-in-pot.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags:
   - plant
@@ -337,7 +309,6 @@ cactus-trio:
   description: A Spice Girls lineup, but spikier.
   model: cactus-trio.glb
   decorative: true
-  editable: true
   scale: 0.7
   tags:
   - plant
@@ -347,7 +318,6 @@ hanging-pothos:
   description: 70s plant energy that never once left.
   model: hanging-pothos.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags:
   - plant
@@ -357,7 +327,6 @@ snake-plant:
   description: Please do not water it with soda.
   model: snake-plant.glb
   decorative: true
-  editable: true
   scale: 1.15
   tags:
   - plant
@@ -367,7 +336,6 @@ potted-bonsai:
   description: Twenty years of patience in one teacup-sized vibe.
   model: potted-bonsai.glb
   decorative: true
-  editable: true
   scale: 0.6
   tags:
   - plant
@@ -377,7 +345,6 @@ venus-flytrap-pot:
   description: Feed me, Seymour. Nom nom nom.
   model: venus-flytrap-pot.glb
   decorative: true
-  editable: true
   scale: 0.65
   tags:
   - plant
@@ -387,7 +354,6 @@ pink-orchid:
   description: Elegant, dramatic, completely unbothered.
   model: pink-orchid.glb
   decorative: true
-  editable: true
   scale: 0.6
   tags:
   - plant
@@ -397,7 +363,6 @@ sunflower-bucket:
   description: Summer said, hold my lemonade.
   model: sunflower-bucket.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags:
   - plant
@@ -407,7 +372,6 @@ tulip-window-box:
   description: Spring is doing the running man.
   model: tulip-window-box.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags:
   - plant
@@ -417,7 +381,6 @@ wicker-fern-basket:
   description: Chaotic good.
   model: wicker-fern-basket.glb
   decorative: true
-  editable: true
   scale: 0.75
   tags:
   - plant
@@ -428,7 +391,6 @@ apothecary-cabinet:
     is the fun part.
   model: apothecary-cabinet.glb
   decorative: true
-  editable: true
   scale: 1.35
   tags:
   - storage
@@ -440,19 +402,18 @@ china-hutch:
     Nana said so.
   model: china-hutch.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags:
   - storage
   - cabinet
   - furniture
+  hidden: true
 record-cabinet:
   label: Record Cabinet
   description: Vinyl sleeves, a mini turntable, and room for more. This is where the
     bangers live.
   model: record-cabinet.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags:
   - storage
@@ -464,7 +425,6 @@ tall-wardrobe:
     Probably just coats.
   model: tall-wardrobe.glb
   decorative: true
-  editable: true
   scale: 1.4
   tags:
   - storage
@@ -476,19 +436,18 @@ medicine-cabinet:
     one hundred percent mood.
   model: medicine-cabinet.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags:
   - storage
   - cabinet
   - mirror
+  hidden: false
 filing-cabinet:
   label: Filing Cabinet
   description: Vintage green filing cabinet. Home of important documents and one expired
     coupon from 2003.
   model: filing-cabinet.glb
   decorative: true
-  editable: true
   scale: 1
   tags:
   - storage
@@ -502,7 +461,6 @@ kitchen-dresser:
     official trophy case.
   model: kitchen-dresser.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags:
   - storage
@@ -514,7 +472,6 @@ butterfly-curio-cabinet:
     and slightly haunted.
   model: butterfly-curio-cabinet.glb
   decorative: true
-  editable: true
   scale: 1.3
   tags:
   - storage
@@ -525,20 +482,19 @@ shoe-cabinet:
   description: A slatted cabinet with sneakers peeking out. Your kicks deserve better.
     They got this.
   model: shoe-cabinet.glb
-  decorative: true
-  editable: true
+  decorative: false
   scale: 1.1
   tags:
   - storage
   - cabinet
   - furniture
+  hidden: true
 gym-lockers:
   label: Gym Lockers
   description: Two numbered metal lockers, doors slightly ajar. Smells like 1997 PE
     class and big ambition.
   model: gym-lockers.glb
   decorative: true
-  editable: true
   scale: 1.45
   tags:
   - storage
@@ -550,7 +506,6 @@ oak-stairwell-landing:
     of the house.
   model: oak-stairwell-landing.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - stairs
@@ -561,7 +516,6 @@ stone-spiral-stairwell:
     snack time.
   model: stone-spiral-stairwell.glb
   decorative: true
-  editable: true
   scale: 1.4
   tags:
   - stairs
@@ -571,7 +525,6 @@ white-cottage-stairwell:
   description: Whitewashed treads and turned spindles. Half-landing, full cottagecore.
   model: white-cottage-stairwell.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - stairs
@@ -581,7 +534,6 @@ metal-industrial-stairwell:
   description: Open grated treads and pipe rails. Every step makes a satisfying clang.
   model: metal-industrial-stairwell.glb
   decorative: true
-  editable: true
   scale: 1.6
   tags:
   - stairs
@@ -592,7 +544,6 @@ garden-deck-stairwell:
     charge.
   model: garden-deck-stairwell.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - stairs
@@ -602,7 +553,6 @@ red-brick-wall:
   description: Classic red brick, running bond, zero nonsense. Instant sturdy.
   model: red-brick-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -612,17 +562,16 @@ white-plaster-wall:
   description: Smooth matte white. The blank canvas of room building.
   model: white-plaster-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
   - building
+  hidden: true
 exposed-stone-wall:
   label: Exposed Stone Wall
   description: Rough fieldstone with character in every single stone.
   model: exposed-stone-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -632,17 +581,16 @@ shiplap-wood-wall:
   description: Whitewashed horizontal boards. Fixer-upper energy, but make it cozy.
   model: shiplap-wood-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
   - building
+  hidden: true
 floral-wallpaper-wall:
   label: Floral Wallpaper Wall
   description: Vintage wallpaper dotted with tiny red roses. Grandma approved.
   model: floral-wallpaper-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -652,27 +600,26 @@ subway-tile-wall:
   description: Glossy white subway tiles and clean grout lines. Extremely deli-coded.
   model: subway-tile-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
   - building
+  hidden: true
 concrete-wall:
   label: Concrete Wall
   description: Raw grey poured concrete. Brutalist, but keep it friendly.
   model: concrete-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
   - building
+  hidden: true
 log-cabin-wall:
   label: Log Cabin Wall
   description: Stacked round timbers. Rustic with a capital R.
   model: log-cabin-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -682,7 +629,6 @@ sage-green-wall:
   description: Muted sage paint. Calm, herbal, and extremely now.
   model: sage-green-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -692,7 +638,6 @@ beadboard-wainscot-wall:
   description: Beadboard below, cream above. Porch-core for your indoors.
   model: beadboard-wainscot-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -702,7 +647,6 @@ stucco-wall:
   description: Warm ochre stucco with all the texture of a sunny villa.
   model: stucco-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -712,7 +656,6 @@ river-rock-wall:
   description: Smooth rounded river stones. Nature's own pebble dash.
   model: river-rock-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -722,7 +665,6 @@ bamboo-wall:
   description: Vertical bamboo poles lashed tight. Tropical and tidy.
   model: bamboo-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -732,17 +674,16 @@ navy-blue-wall:
   description: Deep navy with a subtle sheen. Moody in the best possible way.
   model: navy-blue-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
   - building
+  hidden: true
 whitewashed-brick-wall:
   label: Whitewashed Brick Wall
   description: Brick with a soft whitewash. Aged, tasteful, slightly trendy.
   model: whitewashed-brick-wall.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags:
   - wall
@@ -752,7 +693,6 @@ oak-panel-door:
   description: Solid oak, raised panels, one very knobbable brass knob.
   model: oak-panel-door.glb
   decorative: true
-  editable: true
   scale: 1.35
   tags:
   - door
@@ -762,7 +702,6 @@ red-front-door:
   description: Glossy red and cheerful. The official color of coming home.
   model: red-front-door.glb
   decorative: true
-  editable: true
   scale: 1.35
   tags:
   - door
@@ -772,7 +711,6 @@ glass-french-door:
   description: White mullions and divided glass. Light in, drama out.
   model: glass-french-door.glb
   decorative: true
-  editable: true
   scale: 1.4
   tags:
   - door
@@ -783,7 +721,6 @@ rustic-barn-door:
     heart.
   model: rustic-barn-door.glb
   decorative: true
-  editable: true
   scale: 1.4
   tags:
   - door
@@ -793,7 +730,6 @@ arched-iron-door:
   description: Arched oak with iron bands and a ring pull. Very castle, very cozy.
   model: arched-iron-door.glb
   decorative: true
-  editable: true
   scale: 1.35
   tags:
   - door
@@ -803,7 +739,6 @@ bay-window:
   description: Three angled panes and a seat ledge. Prime people-watching real estate.
   model: bay-window.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags:
   - window
@@ -813,7 +748,6 @@ casement-window:
   description: White frame, side-hinged sashes, maximum breeze.
   model: casement-window.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags:
   - window
@@ -823,7 +757,6 @@ stained-glass-window:
   description: Jewel-toned diamonds and roundels. Instant cathedral.
   model: stained-glass-window.glb
   decorative: true
-  editable: true
   scale: 1.15
   tags:
   - window
@@ -833,7 +766,6 @@ round-porthole-window:
   description: Riveted brass circle. Set sail for the living room.
   model: round-porthole-window.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags:
   - window
@@ -843,7 +775,6 @@ arched-cottage-window:
   description: Arched top, diamond lattice. Storybook, but functional.
   model: arched-cottage-window.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags:
   - window

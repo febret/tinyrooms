@@ -11,7 +11,6 @@ ancient-oak:
   description: A broad old oak with a gnarled trunk and a generous canopy.
   model: ancient-oak.glb
   decorative: true
-  editable: true
   scale: 2.2
   tags: [tree, plant]
 silver-birch:
@@ -19,7 +18,6 @@ silver-birch:
   description: A slender birch in pale peeling bark.
   model: silver-birch.glb
   decorative: true
-  editable: true
   scale: 2.0
   tags: [tree, plant]
 scots-pine:
@@ -27,7 +25,6 @@ scots-pine:
   description: A red-trunked pine with a single tuft of needles.
   model: scots-pine.glb
   decorative: true
-  editable: true
   scale: 2.0
   tags: [tree, plant]
 weeping-willow:
@@ -35,7 +32,6 @@ weeping-willow:
   description: A willow trailing long leafy fingers to the ground.
   model: weeping-willow.glb
   decorative: true
-  editable: true
   scale: 2.0
   tags: [tree, plant]
 sugar-maple:
@@ -43,7 +39,6 @@ sugar-maple:
   description: A maple caught mid-autumn in orange and red.
   model: sugar-maple.glb
   decorative: true
-  editable: true
   scale: 1.7
   tags: [tree, plant]
 palm-tree:
@@ -51,7 +46,6 @@ palm-tree:
   description: A leaning palm with a crown of fanned fronds.
   model: palm-tree.glb
   decorative: true
-  editable: true
   scale: 1.8
   tags: [tree, plant]
 italian-cypress:
@@ -59,7 +53,6 @@ italian-cypress:
   description: A dark green spire of a tree.
   model: italian-cypress.glb
   decorative: true
-  editable: true
   scale: 1.8
   tags: [tree, plant]
 cherry-blossom-tree:
@@ -67,7 +60,6 @@ cherry-blossom-tree:
   description: A tree of soft pink petals that will not sit still.
   model: cherry-blossom-tree.glb
   decorative: true
-  editable: true
   scale: 1.659
   tags: [tree, plant, flower]
 twisted-dead-tree:
@@ -75,7 +67,6 @@ twisted-dead-tree:
   description: A bare grey tree that still looks striking.
   model: twisted-dead-tree.glb
   decorative: true
-  editable: true
   scale: 1.6
   tags: [tree, decoration]
 mini-pine-bonsai:
@@ -83,7 +74,6 @@ mini-pine-bonsai:
   description: A tiny pine trained into a shallow stone tray.
   model: mini-pine-bonsai.glb
   decorative: true
-  editable: true
   scale: 0.7
   tags: [bonsai, tree, plant]
 
@@ -93,7 +83,6 @@ boxwood-ball:
   description: A bush clipped into a perfect green sphere.
   model: boxwood-ball.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags: [shrub, topiary]
 hedgerow-shrub:
@@ -101,7 +90,6 @@ hedgerow-shrub:
   description: A wild leafy shrub dusted with small white flowers.
   model: hedgerow-shrub.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [shrub, plant, flower]
 berry-bush:
@@ -109,7 +97,6 @@ berry-bush:
   description: A bush weighed down with red currants.
   model: berry-bush.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [shrub, plant]
 gorse-bush:
@@ -117,7 +104,6 @@ gorse-bush:
   description: A prickly bush wearing yellow flowers.
   model: gorse-bush.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [shrub, plant, flower]
 cube-hedge:
@@ -125,7 +111,6 @@ cube-hedge:
   description: A hedge trimmed to a very tidy cube.
   model: cube-hedge.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags: [shrub, topiary]
 spiral-topiary:
@@ -133,7 +118,6 @@ spiral-topiary:
   description: A shrub trained into a green corkscrew.
   model: spiral-topiary.glb
   decorative: true
-  editable: true
   scale: 1.3
   tags: [shrub, topiary]
 hydrangea-bush:
@@ -141,7 +125,6 @@ hydrangea-bush:
   description: Big blue and pink flower heads on a leafy bush.
   model: hydrangea-bush.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags: [shrub, plant, flower]
 fern-bush:
@@ -149,7 +132,6 @@ fern-bush:
   description: A mound of arching green fern fronds.
   model: fern-bush.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [shrub, fern]
 
@@ -159,7 +141,6 @@ tulip-patch:
   description: Red and yellow tulips pushing up from dark soil.
   model: tulip-patch.glb
   decorative: true
-  editable: true
   scale: 0.75
   tags: [flower, plant]
 sunflower-stalk:
@@ -167,7 +148,6 @@ sunflower-stalk:
   description: A tall sunflower following the light.
   model: sunflower-stalk.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [flower, plant]
 rose-bush:
@@ -175,7 +155,6 @@ rose-bush:
   description: Deep red blooms guarded by thorny stems.
   model: rose-bush.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags: [flower, shrub, plant]
 daisy-cluster:
@@ -183,7 +162,6 @@ daisy-cluster:
   description: A handful of white daisies with yellow centers.
   model: daisy-cluster.glb
   decorative: true
-  editable: true
   scale: 0.6
   tags: [flower, plant]
 lavender-row:
@@ -191,7 +169,6 @@ lavender-row:
   description: Fragrant purple spikes in a tidy row.
   model: lavender-row.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags: [flower, plant]
 poppy-patch:
@@ -199,7 +176,6 @@ poppy-patch:
   description: Bright red poppies nodding on slender stems.
   model: poppy-patch.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags: [flower, plant]
 bluebell-patch:
@@ -207,7 +183,6 @@ bluebell-patch:
   description: Bluebells nodding in the shade.
   model: bluebell-patch.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags: [flower, plant]
 wildflower-meadow:
@@ -215,7 +190,6 @@ wildflower-meadow:
   description: A cheerful patch of mixed wildflowers.
   model: wildflower-meadow.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [flower, plant, grass]
 lotus-pond:
@@ -223,7 +197,6 @@ lotus-pond:
   description: A lotus resting on round leaves over a still pool.
   model: lotus-pond.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [flower, plant]
 marigold-cluster:
@@ -231,7 +204,6 @@ marigold-cluster:
   description: A warm cluster of orange marigolds.
   model: marigold-cluster.glb
   decorative: true
-  editable: true
   scale: 0.85
   tags: [flower, plant]
 
@@ -241,7 +213,6 @@ granite-boulder:
   description: A big rounded boulder with patches of moss.
   model: granite-boulder.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags: [rock, mineral]
 pebble-pile:
@@ -249,7 +220,6 @@ pebble-pile:
   description: A little heap of smooth river pebbles.
   model: pebble-pile.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags: [rock]
 standing-stone:
@@ -257,7 +227,6 @@ standing-stone:
   description: A weathered stone standing tall, runes faintly carved.
   model: standing-stone.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags: [rock, ornament]
 crystal-cluster:
@@ -265,7 +234,6 @@ crystal-cluster:
   description: Violet crystals glowing from a crack in the rock.
   model: crystal-cluster.glb
   decorative: true
-  editable: true
   scale: 0.8
   tags: [rock, mineral]
 slate-stack:
@@ -273,7 +241,6 @@ slate-stack:
   description: Flat grey slates stacked into a cairn.
   model: slate-stack.glb
   decorative: true
-  editable: true
   scale: 0.7
   tags: [rock]
 mossy-rock:
@@ -281,7 +248,6 @@ mossy-rock:
   description: A low rock wearing a coat of soft moss.
   model: mossy-rock.glb
   decorative: true
-  editable: true
   scale: 1.2
   tags: [rock, plant]
 stepping-stones:
@@ -289,7 +255,6 @@ stepping-stones:
   description: Flat stones laid into a little garden path.
   model: stepping-stones.glb
   decorative: true
-  editable: true
   scale: 1.3
   tags: [rock]
 amethyst-geode:
@@ -297,7 +262,6 @@ amethyst-geode:
   description: A cracked geode sparkling with amethyst.
   model: amethyst-geode.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags: [rock, mineral]
 
@@ -307,7 +271,6 @@ fern-clump:
   description: Tall ferns arching out of the undergrowth.
   model: fern-clump.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [fern, plant]
 tall-grass-tuft:
@@ -315,7 +278,6 @@ tall-grass-tuft:
   description: Wild grass caught mid-sway.
   model: tall-grass-tuft.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags: [grass, plant]
 cattails:
@@ -323,7 +285,6 @@ cattails:
   description: Brown cattails standing in the marsh.
   model: cattails.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [grass, plant]
 river-reeds:
@@ -331,7 +292,6 @@ river-reeds:
   description: Thin green reeds at the water's edge.
   model: river-reeds.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [grass, plant]
 bamboo-cluster:
@@ -339,7 +299,6 @@ bamboo-cluster:
   description: A stand of slim green bamboo.
   model: bamboo-cluster.glb
   decorative: true
-  editable: true
   scale: 1.5
   tags: [grass, plant]
 horsetail-reeds:
@@ -347,7 +306,6 @@ horsetail-reeds:
   description: Jointed reeds rising in a neat clump.
   model: horsetail-reeds.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags: [grass, plant]
 
@@ -357,7 +315,6 @@ mushroom-ring:
   description: A fairy ring of little red-capped mushrooms.
   model: mushroom-ring.glb
   decorative: true
-  editable: true
   scale: 0.7
   tags: [decoration, plant]
 toadstool-cluster:
@@ -365,7 +322,6 @@ toadstool-cluster:
   description: Spotted toadstools sprouting from a mossy stump.
   model: toadstool-cluster.glb
   decorative: true
-  editable: true
   scale: 0.65
   tags: [decoration, plant]
 mossy-log:
@@ -373,7 +329,6 @@ mossy-log:
   description: A fallen log furred with moss and tiny mushrooms.
   model: mossy-log.glb
   decorative: true
-  editable: true
   scale: 1.0
   tags: [decoration, foliage]
 tree-stump:
@@ -381,7 +336,6 @@ tree-stump:
   description: A cut stump showing its rings.
   model: tree-stump.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags: [tree, decoration]
 driftwood:
@@ -389,7 +343,6 @@ driftwood:
   description: Pale wood smoothed by wind and water.
   model: driftwood.glb
   decorative: true
-  editable: true
   scale: 1.1
   tags: [decoration, foliage]
 ivy-vine:
@@ -397,7 +350,6 @@ ivy-vine:
   description: Climbing ivy winding up a small frame.
   model: ivy-vine.glb
   decorative: true
-  editable: true
   scale: 1.3
   tags: [plant, foliage]
 wild-beehive:
@@ -405,7 +357,6 @@ wild-beehive:
   description: A honeycomb hive abuzz with a few busy bees.
   model: wild-beehive.glb
   decorative: true
-  editable: true
   scale: 0.9
   tags: [decoration, ornament]
 birds-nest:
@@ -413,6 +364,5 @@ birds-nest:
   description: A woven nest cradling a clutch of speckled eggs.
   model: birds-nest.glb
   decorative: true
-  editable: true
   scale: 0.5
   tags: [decoration, ornament]

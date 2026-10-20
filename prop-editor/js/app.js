@@ -18,6 +18,7 @@ import { createThumbnailManager } from "../../app/js/editing/prop-thumbnails.js"
 import { withBase } from "../../app/js/base-path.js";
 
 const thumbnails = createThumbnailManager();
+const hiddenOverrides = new Map();
 
 const state = {
   worldId: "",
@@ -34,6 +35,7 @@ const state = {
   effectDraft: null,
   effectSnapshot: null,
   activeTab: "props",
+  hideHidden: false,
   status: "",
   error: "",
 };
@@ -114,11 +116,27 @@ function renderTabs() {
   elements.effectPane.hidden = state.activeTab !== "effects";
 }
 
+function entryIsHidden(entry) {
+  if (state.selected?.id === entry.propId && state.propDraft) {
+    return Boolean(state.propDraft.hidden);
+  }
+  return hiddenOverrides.has(entry.propId)
+    ? hiddenOverrides.get(entry.propId)
+    : Boolean(entry.hidden);
+}
+
 function renderLibrary() {
-  const entries = state.entries;
+  const entries = state.hideHidden
+    ? state.entries.filter(entry => !entryIsHidden(entry))
+    : state.entries;
   elements.library.innerHTML = `
     <div class="pe-search-row">
       <input type="search" data-edit-search placeholder="Search props" aria-label="Search props">
+    </div>
+    <div class="pe-filter-row">
+      <label class="pe-check pe-hidden-filter" title="Hide props marked hidden">
+        <input type="checkbox" data-pe-hide-hidden ${state.hideHidden ? "checked" : ""}> Hide hidden
+      </label>
       <span class="editor-library-count" role="status"></span>
     </div>
     <div class="editor-propsets" role="list" aria-label="Prop sources">
@@ -136,7 +154,7 @@ function renderLibrary() {
   for (const entry of entries) {
     const tile = elements.library.querySelector(`.editor-library-item[data-edit-add="${CSS.escape(entry.propId)}"]`);
     if (!tile) continue;
-    if (entry.hidden) tile.classList.add("is-hidden");
+    if (entryIsHidden(entry)) tile.classList.add("is-hidden");
     if (state.selected && state.selected.id === entry.propId) tile.classList.add("is-selected");
   }
   thumbnails.sync(elements.library);
@@ -221,15 +239,28 @@ async function refreshCatalog() {
   }));
 }
 
-async function selectProp(propId) {
+async function selectProp(propId, { force = false } = {}) {
+  if (!force && state.selected?.id === propId) return;
   const summary = (state.catalog?.props || []).find(prop => prop.id === propId);
   if (!summary) return;
+  if (!force && propDirty() && state.selected) {
+    state.status = `Saving ${state.selected.id}…`;
+    state.error = "";
+    render();
+    try {
+      await persistCurrentProp();
+    } catch (error) {
+      fail(error);
+      return;
+    }
+  }
   const body = await loadProp(summary.source_kind, summary.source, propId);
   state.selected = { id: propId, kind: summary.source_kind, source: summary.source };
   state.propDraft = clone(body.prop.raw);
   state.propSnapshot = clone(body.prop.raw);
   state.propScale = body.prop.scale;
   state.file = body.file;
+  hiddenOverrides.set(propId, Boolean(body.prop.raw.hidden));
   state.activeTab = "props";
   state.error = "";
   state.status = `Editing ${propId}.`;
@@ -378,25 +409,31 @@ function moveLayer(spec) {
   render();
 }
 
+async function persistCurrentProp() {
+  const body = await saveProp({
+    kind: state.selected.kind,
+    source: state.selected.source,
+    prop_id: state.selected.id,
+    prop: state.propDraft,
+    scale_adjust: state.file?.scale_adjust ?? null,
+  });
+  state.propDraft = clone(body.prop.raw);
+  state.propSnapshot = clone(body.prop.raw);
+  state.propScale = body.prop.scale;
+  state.file = body.file;
+  hiddenOverrides.set(state.selected.id, Boolean(body.prop.raw.hidden));
+  await refreshCatalog();
+  return body;
+}
+
 async function saveCurrentProp() {
   if (!state.selected) return;
   state.status = "Saving prop…";
   state.error = "";
   render();
   try {
-    const body = await saveProp({
-      kind: state.selected.kind,
-      source: state.selected.source,
-      prop_id: state.selected.id,
-      prop: state.propDraft,
-      scale_adjust: state.file?.scale_adjust ?? null,
-    });
-    state.propDraft = clone(body.prop.raw);
-    state.propSnapshot = clone(body.prop.raw);
-    state.propScale = body.prop.scale;
-    state.file = body.file;
+    await persistCurrentProp();
     state.status = "Prop saved to YAML. Use Reload world to apply.";
-    await refreshCatalog();
     render();
   } catch (error) {
     fail(error);
@@ -429,9 +466,10 @@ async function runReload() {
   render();
   try {
     const body = await reloadWorld();
+    hiddenOverrides.clear();
     await refreshCatalog();
     if (state.selected && (state.catalog?.props || []).some(prop => prop.id === state.selected.id)) {
-      await selectProp(state.selected.id);
+      await selectProp(state.selected.id, { force: true });
     }
     state.status = `World reloaded (revision ${body.revision ?? "?"}).`;
     render();
@@ -504,6 +542,11 @@ function handleClick(target) {
 
 document.addEventListener("change", event => {
   const target = event.target;
+  if (target?.dataset?.peHideHidden !== undefined) {
+    state.hideHidden = target.checked;
+    renderLibrary();
+    return;
+  }
   if (target?.dataset && Object.keys(target.dataset).length) handleChange(target);
 });
 

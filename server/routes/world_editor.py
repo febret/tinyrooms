@@ -125,7 +125,6 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "source": definition.source,
             "source_kind": definition.source_kind,
             "decorative": definition.decorative,
-            "editable": definition.editable,
             "scale": definition.scale,
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,

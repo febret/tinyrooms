@@ -68,13 +68,13 @@ class PropShopService:
         self._world = world
 
     def catalog(self) -> list[PropDefinition]:
-        """Return every editable propset prop offered in the marketplace."""
+        """Return every decorative propset prop offered in the marketplace."""
 
         definitions = [
             definition
             for definition in self._world.props.values()
             if definition.source_kind == "propset"
-            and definition.editable
+            and definition.decorative
             and not definition.hidden
         ]
         return sorted(definitions, key=lambda definition: (definition.source, definition.id))
@@ -97,7 +97,7 @@ class PropShopService:
         if (
             definition is None
             or definition.source_kind != "propset"
-            or not definition.editable
+            or not definition.decorative
             or definition.hidden
         ):
             raise ValueError("That prop is not sold here.")
