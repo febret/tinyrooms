@@ -391,6 +391,16 @@ function normalizeUser(user) {
           outgoing: Array.isArray(user.friends.outgoing) ? [...user.friends.outgoing] : [],
         }
       : { friends: [], incoming: [], outgoing: [] },
+    beacons: Array.isArray(user.beacons) ? user.beacons.map(beacon => ({
+      fromAccountId: String(beacon.from_account_id || ""),
+      fromUsername: String(beacon.from_username || ""),
+      worldId: String(beacon.world_id || ""),
+      worldLabel: String(beacon.world_label || ""),
+      roomId: String(beacon.room_id || ""),
+      roomLabel: String(beacon.room_label || ""),
+      createdAt: String(beacon.created_at || ""),
+      crossWorld: Boolean(beacon.cross_world),
+    })) : [],
     packs: Array.isArray(user.packs) ? user.packs.map(normalizePack) : [],
     unlockedProps: Array.isArray(user.unlocked_props) ? user.unlocked_props.map(propId => String(propId)) : [],
     tasks: normalizeTasks(user.tasks),

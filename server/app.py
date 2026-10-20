@@ -75,6 +75,7 @@ from server.services.activity_results import ActivityResultService
 from server.services.actions import ActionsService
 from server.services.audit import AuditService
 from server.services.auras import AuraService
+from server.services.beacons import BeaconService
 from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
 from server.services.crafting import CraftingService
@@ -187,6 +188,7 @@ class RuntimeState:
     progression: ProgressionService
     actions: ActionsService
     friends: FriendsService
+    beacons: BeaconService
     shop: ShopService
     prop_shop: PropShopService
     pricing: CardPricingService
@@ -481,6 +483,7 @@ def _build_runtime(
     )
     actions = ActionsService(hub, profiles, stats, catalog, world.id, environment=environment)
     friends = FriendsService(hub, profiles, is_online=connections.is_online)
+    beacons = BeaconService(profiles)
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
     audit = AuditService(hub, world.id)
@@ -507,7 +510,13 @@ def _build_runtime(
             log=spec["log"],
         )
     peep_states = NpcPeepStateRepository(hub, world)
-    cross_world = CrossWorldService(config=config, hub=hub, profiles=profiles, world_id=world.id)
+    cross_world = CrossWorldService(
+        config=config,
+        hub=hub,
+        profiles=profiles,
+        world_id=world.id,
+        progression=progression,
+    )
     rooms = RoomService(
         hub=hub,
         profiles=profiles,
@@ -598,6 +607,7 @@ def _build_runtime(
         progression=progression,
         actions=actions,
         friends=friends,
+        beacons=beacons,
         shop=shop,
         prop_shop=prop_shop,
         pricing=pricing,

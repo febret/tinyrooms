@@ -15,6 +15,7 @@ import { lookPreview } from "./look-preview.js";
 import { createCutsceneManager } from "./cutscenes/manager.js";
 import {
   COMMANDS,
+  buildBeaconCommand,
   buildEmoteCommand,
   buildFriendCommand,
   buildMergeCommand,
@@ -401,6 +402,7 @@ async function handleAction(action) {
       const tab = store.getState().ui.journalTab;
       if (tab === "Tasks") await refreshTasks();
       if (tab === "Memories") await refreshJournalMonth();
+      if (tab === "Friends") await refreshBeacons();
     }
   } else if (["close-view", "close-details"].includes(action.type)) {
     const state = store.getState();
@@ -439,6 +441,7 @@ async function handleAction(action) {
     store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
     if (action.tab === "Tasks") await refreshTasks();
     if (action.tab === "Memories") await refreshJournalMonth();
+    if (action.tab === "Friends") await refreshBeacons();
   } else if (action.type === "inventory-tab") {
     store.dispatch({ type: "inventory-tab", tab: action.tab });
   } else if (action.type === "journal-month") {
@@ -465,6 +468,10 @@ async function handleAction(action) {
     try { await sendCommand(".level_up"); } catch (error) { showError(error); }
   } else if (action.type === "friend-action") {
     try { await sendCommand(buildFriendCommand(action.action, action.accountId)); } catch (error) { showError(error); }
+  } else if (action.type === "beacon-action") {
+    try { await sendCommand(buildBeaconCommand(action.action, action.accountId)); } catch (error) { showError(error); }
+  } else if (action.type === "beacon-refresh") {
+    await refreshBeacons();
   } else if (action.type === "skill-slot") {
     const state = store.getState();
     if (action.stackId) {
@@ -505,6 +512,12 @@ async function handleAction(action) {
 async function refreshTasks() {
   try {
     await sendCommand(".tasks");
+  } catch (error) { showError(error); }
+}
+
+async function refreshBeacons() {
+  try {
+    await sendCommand(buildBeaconCommand("list"));
   } catch (error) { showError(error); }
 }
 

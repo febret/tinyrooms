@@ -76,6 +76,16 @@ spirited:
   rank: Script Kiddo
   rarity: Uncommon
   bonuses: {max_energy: 10}
+# Tutorial reward. Kept out of the base pack draw list so every peep earns one.
+multiverse-map:
+  label: Multiverse Map
+  description: A folded map of every world. Slot it to cross between worlds and follow beacons across the multiverse.
+  image: multiverse-map-art.png
+  type: skill
+  rank: Script Kiddo
+  rarity: Uncommon
+  stack_limit: 1
+  quest: true
 wave:
   label: Little Wave
   description: An animated hello, made for sharing.

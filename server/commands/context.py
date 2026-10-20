@@ -43,6 +43,7 @@ def build_command_context(
         progression=runtime.progression,
         actions=runtime.actions,
         friends=runtime.friends,
+        beacons=runtime.beacons,
         shop=runtime.shop,
         prop_shop=runtime.prop_shop,
         pricing=runtime.pricing,

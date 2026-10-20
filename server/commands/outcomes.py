@@ -17,6 +17,7 @@ from server.content.recipes import RecipeDefinition
 from server.services.activities import ActivityService
 from server.services.activity_results import ActivityResultService
 from server.services.audit import AuditService
+from server.services.beacons import BeaconService
 from server.services.cards import CardService
 from server.services.crafting import CraftingService
 from server.services.cutscenes import CutsceneService
@@ -87,6 +88,7 @@ class CommandContext:
     progression: ProgressionService
     actions: ActionsService
     friends: FriendsService
+    beacons: BeaconService
     shop: ShopService
     prop_shop: PropShopService
     pricing: CardPricingService
@@ -132,3 +134,20 @@ def apply_behavior_inventory(
     payload["inventory"] = context.cards.serialize_inventory_stacks(stacks)
     payload["user"] = context.serialize_user(account)
     outcome.payload = payload
+
+
+def merge_behavior_result(
+    context: CommandContext,
+    outcome: CommandOutcome,
+    result: object | None,
+) -> None:
+    """Fold a dispatched behavior result into a command outcome."""
+
+    if result is None:
+        return
+    outcome.private_events.extend(getattr(result, "private_events", []))
+    outcome.room_broadcasts.extend(getattr(result, "room_broadcasts", []))
+    for message in getattr(result, "messages", []):
+        if message and not outcome.message:
+            outcome.message = message
+    apply_behavior_inventory(context, outcome, result)

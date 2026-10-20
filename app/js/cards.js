@@ -53,6 +53,12 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-friend-action]").forEach(button => {
     button.onclick = () => onAction({ type: "friend-action", action: button.dataset.friendAction, accountId: button.dataset.accountId });
   });
+  root.querySelectorAll("[data-beacon-action]").forEach(button => {
+    button.onclick = () => onAction({ type: "beacon-action", action: button.dataset.beaconAction, accountId: button.dataset.accountId });
+  });
+  root.querySelectorAll("[data-beacon-refresh]").forEach(button => {
+    button.onclick = () => onAction({ type: "beacon-refresh" });
+  });
   root.querySelectorAll("[data-claim-bops]").forEach(button => {
     button.onclick = () => onAction({ type: "claim-bops" });
   });

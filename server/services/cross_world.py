@@ -18,7 +18,10 @@ from server.commands.outcomes import CommandError
 from server.config import AppConfig
 from server.content.worlds import ExitDefinition
 from server.profiles import AccountRecord, ProfileRepository
+from server.services.progression import ProgressionService
 from server.state.migrations import DatabaseHub
+
+MULTIVERSE_MAP_CARD_ID = "multiverse-map"
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,12 +66,14 @@ class CrossWorldService:
         hub: DatabaseHub,
         profiles: ProfileRepository,
         world_id: str,
+        progression: ProgressionService,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._config = config
         self._hub = hub
         self._profiles = profiles
         self._world_id = world_id
+        self._progression = progression
         self._client = client
 
     @property
@@ -131,6 +136,12 @@ class CrossWorldService:
             entry_room_id=str(entry_room) if entry_room else None,
         )
 
+    def check_multiverse_map(self, account: AccountRecord) -> None:
+        """Require the Multiverse Map skill to be slotted for cross-world travel."""
+
+        if not self._progression.has_slotted_skill(account, MULTIVERSE_MAP_CARD_ID):
+            raise CommandError("Slot the Multiverse Map skill to cross between worlds.")
+
     def _check_exit(self, account: AccountRecord, exit_definition: ExitDefinition) -> None:
         if exit_definition.target_world_id is None:
             raise CommandError("That exit does not lead to another world.")
@@ -140,6 +151,7 @@ class CrossWorldService:
             inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world_id)}
             if exit_definition.requires_card_id not in inventory_ids:
                 raise CommandError(f"You need {exit_definition.requires_card_id} to go that way.")
+        self.check_multiverse_map(account)
 
     async def prepare(self, account: AccountRecord, exit_definition: ExitDefinition) -> TravelPlan:
         """Validate the exit and resolve its destination without side effects."""
@@ -152,6 +164,23 @@ class CrossWorldService:
             instance_id=destination.instance_id,
             client_url=destination.client_url,
             room_id=room_id,
+        )
+
+    async def prepare_world(
+        self,
+        account: AccountRecord,
+        world_id: str,
+        room_id: str | None = None,
+    ) -> TravelPlan:
+        """Resolve a cross-world destination, requiring the slotted map."""
+
+        self.check_multiverse_map(account)
+        destination = await self.resolve_destination(world_id)
+        return TravelPlan(
+            world_id=destination.world_id,
+            instance_id=destination.instance_id,
+            client_url=destination.client_url,
+            room_id=room_id or destination.entry_room_id or "",
         )
 
     def commit(

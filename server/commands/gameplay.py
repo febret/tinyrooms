@@ -15,9 +15,12 @@ from server.commands.outcomes import (
     apply_behavior_inventory,
 )
 from server.commands.parser import ParsedCommand, parse_target
+from server.commands.travel import departure_outcome, navigation_outcome
+from server.profiles import AccountRecord
 from server.services.actions import ActionResult, PropTarget
 
 VALID_FRIEND_ACTIONS = {"add", "accept", "decline", "cancel", "remove"}
+VALID_BEACON_ACTIONS = {"send", "use", "dismiss", "list"}
 MAX_PINNED_PEEPS = 25
 
 
@@ -121,6 +124,21 @@ def _behavior_message(result: object | None) -> str | None:
 def _user_payload(context: CommandContext) -> dict[str, object]:
     account = context.profiles.get_account_by_id(context.account.id) or context.account
     return context.serialize_user(account)
+
+
+def _resolve_account_target(context: CommandContext, token: str) -> AccountRecord:
+    """Resolve a username or @peep target to an account."""
+
+    parsed = parse_target(token) if token.startswith("@") else None
+    account_id = parsed.value if parsed and parsed.kind == "peep" else None
+    if account_id is not None:
+        target = context.profiles.get_account_by_id(account_id)
+    else:
+        username = parsed.value if parsed else token
+        target = context.profiles.get_account_by_username(username)
+    if target is None:
+        raise CommandError("That peep could not be found.")
+    return target
 
 
 def _resolve_prop_target(context: CommandContext, token: str) -> PropTarget:
@@ -527,17 +545,7 @@ async def friend_command(context: CommandContext, command: ParsedCommand) -> Com
     action = command.args[0].lower()
     if action not in VALID_FRIEND_ACTIONS:
         raise CommandError("Unknown friend action.")
-    token = command.args[1]
-    parsed = parse_target(token) if token.startswith("@") else None
-    account_id = parsed.value if parsed and parsed.kind == "peep" else None
-    target = None
-    if account_id is not None:
-        target = context.profiles.get_account_by_id(account_id)
-    else:
-        username = parsed.value if parsed else token
-        target = context.profiles.get_account_by_username(username)
-    if target is None:
-        raise CommandError("That peep could not be found.")
+    target = _resolve_account_target(context, command.args[1])
     if action == "add":
         context.friends.send_request(context.account, target)
         message = f"Friend request sent to {target.username_display}."
@@ -554,6 +562,92 @@ async def friend_command(context: CommandContext, command: ParsedCommand) -> Com
         context.friends.remove_friend(context.account, target.id)
         message = f"Removed {target.username_display} from your friends."
     return CommandOutcome(message=message, payload={"user": _user_payload(context)})
+
+
+async def beacon_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    if not command.args:
+        raise CommandError("Use '.beacon <send|use|dismiss|list> [peep]'.")
+    action = command.args[0].lower()
+    if action not in VALID_BEACON_ACTIONS:
+        raise CommandError("Unknown beacon action.")
+    if action == "list":
+        return CommandOutcome(payload={"user": _user_payload(context)}, toast=False)
+    if len(command.args) < 2:
+        raise CommandError("Choose a peep.")
+    target = _resolve_account_target(context, command.args[1])
+    if action == "send":
+        room_id = context.connection.room_id
+        if room_id is None:
+            raise CommandError("You are not currently in a room.")
+        room = context.rooms.room_definition(room_id)
+        context.beacons.send(
+            context.account,
+            target,
+            world_id=context.world.id,
+            world_label=context.world.label,
+            room_id=room_id,
+            room_label=room.label,
+        )
+        return CommandOutcome(
+            message=f"Beacon sent to {target.username_display}.",
+            payload={"user": _user_payload(context)},
+        )
+    if action == "dismiss":
+        if not context.beacons.remove(context.account.id, target.id):
+            raise CommandError("There is no beacon from that peep.")
+        return CommandOutcome(
+            message=f"Dismissed {target.username_display}'s beacon.",
+            payload={"user": _user_payload(context)},
+        )
+    beacon = context.beacons.find(context.account.id, target.id)
+    if beacon is None:
+        raise CommandError("There is no beacon from that peep.")
+    room_id = context.connection.room_id
+    if room_id is None:
+        raise CommandError("You are not currently in a room.")
+    beacon_world_id = str(beacon.get("world_id") or "")
+    beacon_room_id = str(beacon.get("room_id") or "")
+    if not beacon_world_id or not beacon_room_id:
+        raise CommandError("That beacon is no longer valid.")
+    beacon_room_label = str(beacon.get("room_label") or beacon_room_id)
+    if beacon_world_id == context.world.id:
+        navigation = await context.rooms.enter_room(
+            context.account,
+            room_id,
+            beacon_room_id,
+            direction=f"{target.username_display}'s beacon",
+        )
+        context.beacons.remove(context.account.id, target.id)
+        return navigation_outcome(
+            context,
+            navigation,
+            message=f"You follow {target.username_display}'s beacon to {beacon_room_label}.",
+        )
+    plan = await context.cross_world.prepare_world(
+        context.account,
+        beacon_world_id,
+        beacon_room_id,
+    )
+    departure = await context.rooms.depart_to_world(
+        context.account,
+        room_id,
+        direction=f"{target.username_display}'s beacon",
+        destination_room_id=plan.room_id or None,
+    )
+    payload = context.cross_world.commit(
+        context.account,
+        plan,
+        source_room_id=room_id,
+        source_room_label=context.rooms.room_definition(room_id).label,
+        source_world_label=context.world.label,
+    )
+    context.beacons.remove(context.account.id, target.id)
+    return departure_outcome(
+        context,
+        departure,
+        payload,
+        message=f"You follow {target.username_display}'s beacon across worlds.",
+    )
 
 
 async def pin_peep_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

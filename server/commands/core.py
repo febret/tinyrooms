@@ -11,10 +11,11 @@ from server.commands.outcomes import (
     CommandError,
     CommandOutcome,
     PendingRoomBroadcast,
-    apply_behavior_inventory,
+    merge_behavior_result,
 )
 from server.commands.parser import ParsedCommand, parse_target
 from server.commands.registry import CommandRegistry
+from server.commands.travel import departure_outcome, navigation_outcome
 from server.content.worlds import ExitDefinition, PropDefinition, PropInstanceDefinition
 
 
@@ -78,17 +79,6 @@ def _describe_prop(prop: PropInstanceDefinition, prop_definition: PropDefinition
 
 def _entity_outcome(message: str, entity: dict[str, object]) -> CommandOutcome:
     return CommandOutcome(message=message, payload={"entity": entity})
-
-
-def _merge_behavior(context: CommandContext, outcome: CommandOutcome, result: object | None) -> None:
-    if result is None:
-        return
-    outcome.private_events.extend(getattr(result, "private_events", []))
-    outcome.room_broadcasts.extend(getattr(result, "room_broadcasts", []))
-    for message in getattr(result, "messages", []):
-        if message and not outcome.message:
-            outcome.message = message
-    apply_behavior_inventory(context, outcome, result)
 
 
 async def _resolve_peep_ref(context: CommandContext, token: str) -> PeepRef:
@@ -234,27 +224,22 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
             source_room_label=context.rooms.room_definition(room_id).label,
             source_world_label=context.world.label,
         )
-        outcome = CommandOutcome(message="You step through the portal.", payload=payload)
-        outcome.room_broadcasts.append(
-            PendingRoomBroadcast(room_id=departure.source_room_id, event=departure.source_event)
+        return departure_outcome(
+            context,
+            departure,
+            payload,
+            message="You step through the portal.",
         )
-        if departure.closed_activity is not None:
-            outcome.private_events.append(
-                {"type": "activity.closed", "activity": departure.closed_activity, "reason": "room_changed"}
-            )
-        for behavior in departure.behavior_results:
-            _merge_behavior(context, outcome, behavior)
-        return outcome
     navigation = await context.rooms.navigate(context.account, room_id, exit_id)
     changes = context.tasks.record(
         context.account.id,
         "go",
         {"exit_id": exit_id, "room_id": navigation.destination_room_id},
     )
-    outcome = CommandOutcome(
+    outcome = navigation_outcome(
+        context,
+        navigation,
         message=f"You moved to {navigation.destination_room_id}.",
-        payload={"room_id": navigation.destination_room_id},
-        snapshot=navigation.destination_snapshot,
     )
     if changes:
         outcome.private_events.append(
@@ -263,22 +248,6 @@ async def go_command(context: CommandContext, command: ParsedCommand) -> Command
         outcome.private_events.extend(
             context.tasks.feedback_events(context.account.id, changes, room_id=navigation.destination_room_id)
         )
-    outcome.room_broadcasts.append(
-        PendingRoomBroadcast(
-            room_id=navigation.source_room_id,
-            event=navigation.source_event,
-        )
-    )
-    outcome.room_broadcasts.append(
-        PendingRoomBroadcast(
-            room_id=navigation.destination_room_id,
-            event=navigation.destination_event,
-        )
-    )
-    if navigation.closed_activity is not None:
-        outcome.private_events.append({"type": "activity.closed", "activity": navigation.closed_activity, "reason": "room_changed"})
-    for behavior in navigation.behavior_results:
-        _merge_behavior(context, outcome, behavior)
     return outcome
 
 
@@ -304,7 +273,7 @@ async def talk_command(context: CommandContext, command: ParsedCommand) -> Comma
         message="Conversation started.",
         payload={"dialog": context.dialogs.serialize(context.dialogs.view(context.account.id))},
     )
-    _merge_behavior(context, outcome, behavior)
+    merge_behavior_result(context, outcome, behavior)
     return outcome
 
 async def act_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
@@ -326,7 +295,7 @@ async def act_command(context: CommandContext, command: ParsedCommand) -> Comman
         )
     )
     outcome = CommandOutcome()
-    _merge_behavior(context, outcome, behavior)
+    merge_behavior_result(context, outcome, behavior)
     if not outcome.message:
         outcome.message = f"You {action}."
     return outcome
@@ -341,7 +310,7 @@ async def dialog_command(context: CommandContext, command: ParsedCommand) -> Com
         raise CommandError("Dialog choice must be an index.") from exc
     result = await context.dialogs.choose(context.account, index)
     outcome = CommandOutcome(message="Conversation updated.", payload={"dialog": result.dialog})
-    _merge_behavior(context, outcome, result.behavior_result)
+    merge_behavior_result(context, outcome, result.behavior_result)
     outcome.private_events.extend(result.events)
     return outcome
 
@@ -656,6 +625,12 @@ def build_registry() -> CommandRegistry:
     )
     registry.register("emote", "Play an owned emote card.", gameplay.emote_command, usage=".emote @card:<stack_id>", toast=False)
     registry.register("equip", "Equip an item or action stack.", gameplay.equip_command, usage=".equip @card:<stack_id>")
+    registry.register(
+        "beacon",
+        "Send, follow, dismiss, or list friend beacons.",
+        gameplay.beacon_command,
+        usage=".beacon <send|use|dismiss|list> [peep]",
+    )
     registry.register(
         "friend",
         "Manage friends and friend requests.",

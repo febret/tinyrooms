@@ -25,6 +25,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
     level_definition = runtime.content.levels.get(account.level)
     skills = runtime.progression.skill_slots(account, user_profile)
     friends = runtime.friends.serialize(account.id)
+    beacons = runtime.beacons.serialize(account.id, runtime.world.id)
     return {
         "id": account.id,
         "username": account.username_display,
@@ -62,6 +63,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         ],
         "pinned_peeps": list(user_profile.pinned_peeps),
         "friends": friends.as_dict(),
+        "beacons": beacons,
         "packs": [preview.as_dict() for preview in runtime.shop.packs()],
         # Persisted user-profile preference for displaying the action log.
         "show_activity_log": user_profile.show_activity_log,
