@@ -202,10 +202,10 @@ function renderPreview() {
   `;
 }
 
-function render() {
+function render({ library = true } = {}) {
   renderToolbar();
   renderTabs();
-  renderLibrary();
+  if (library) renderLibrary();
   elements.propPane.innerHTML = renderPropsPanel({ ...state, propDirty: propDirty() });
   elements.effectPane.innerHTML = renderEffectsPanel({ ...state, effectDirty: effectDirty() });
   renderPreview();
@@ -288,7 +288,7 @@ function changeProp(target) {
   else setPath(state.propDraft, path, value);
   state.status = "Unsaved prop changes.";
   state.error = "";
-  render();
+  render({ library: path === "hidden" });
 }
 
 function changeEffect(target) {
@@ -296,7 +296,7 @@ function changeEffect(target) {
   setPath(state.effectDraft, path, readValue(target, target.dataset.peKind));
   state.status = "Unsaved effect changes.";
   state.error = "";
-  render();
+  render({ library: false });
 }
 
 function renameSet(index, value) {
