@@ -722,6 +722,13 @@ def build_registry() -> CommandRegistry:
         power="admin",
     )
     registry.register(
+        "summon",
+        "Move an NPC peep directly into your current room.",
+        privileged.summon_command,
+        usage=".summon @peep:<peep_id>",
+        power="admin",
+    )
+    registry.register(
         "open_pack",
         "Open a sealed card pack from your inventory.",
         gameplay.open_pack_command,

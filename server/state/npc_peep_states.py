@@ -47,8 +47,16 @@ class NpcPeepStateRepository:
         for row in rows:
             peep_id = str(row["peep_id"])
             room_id = str(row["room_id"])
-            if peep_id in self._rooms and room_id in world.rooms:
+            if peep_id in world.peeps and room_id in world.rooms:
                 self._rooms[peep_id] = room_id
+
+    def sync_world(self, world: WorldDefinition) -> None:
+        """Reload persisted rooms after runtime peeps have been registered."""
+
+        for peep_id, peep in world.peeps.items():
+            if peep.room_id in world.rooms:
+                self._rooms.setdefault(peep_id, peep.room_id)
+        self._load(world)
 
     @staticmethod
     def default_room(peep: PeepDefinition) -> str:

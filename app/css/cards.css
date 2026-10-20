@@ -215,8 +215,6 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .memory-entry { padding: 2px 2px 3px; margin: 0; border: 0; background: transparent; }
 .memory-entry.manual { border-left: 2px solid rgba(169, 116, 58, .5); padding-left: 7px; }
 .memory-text { margin: 1px 0; font-family: var(--journal-hand); font-size: 14px; line-height: 1.45; color: var(--journal-ink); overflow-wrap: anywhere; }
-.memory-collage { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.memory-collage-image { flex: 1 1 88px; width: min(100%, 148px); max-width: 148px; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--journal-edge); border-radius: 6px; background: #0006; }
 .memory-actions { display: flex; gap: 6px; margin-top: 2px; }
 .memory-actions button { min-height: 34px; min-width: 34px; padding: 3px 9px; background: rgba(255, 255, 255, .4); font-size: 13px; }
 .task-list { margin-bottom: 12px; }

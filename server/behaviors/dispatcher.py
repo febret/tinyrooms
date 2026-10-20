@@ -119,11 +119,6 @@ class BehaviorDispatcher:
             ref=PeepRef(kind="npc", peep_id=peep_id, account_id=None),
         )
 
-    def unregister_peep(self, peep_id: str) -> None:
-        """Detach a runtime-registered NPC peep's behavior attachment."""
-
-        self._scripts.peep_attachments.pop(peep_id, None)
-
     def _event_task_trigger(self, event: BehaviorEvent) -> tuple[str, dict[str, object]] | None:
         if event.type == "enter":
             return "enter_room", {
@@ -327,12 +322,7 @@ class BehaviorDispatcher:
                     ],
                 }
             self._room_view_cache[key] = static
-        peeps = [
-            {"id": peep.id, "label": peep.label}
-            for peep in self._world.peeps.values()
-            if self._current_peep_room(peep.id) == key
-        ]
-        return {**static, "peeps": peeps}
+        return {**static, "peeps": self._peeps_in_view(key)}
 
     def _peeps_in_view(self, room_id: str) -> list[dict[str, object]]:
         """Return lightweight NPC references for a room, including absent states."""

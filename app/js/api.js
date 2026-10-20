@@ -10,13 +10,8 @@ export const PATHS = {
   logout: "/api/auth/logout",
   stickers: "/api/stickers",
   confirmSticker: "/api/stickers/confirm",
-  memoryImage: "/api/memories/image",
   websocket: "/ws",
 };
-
-export function memoryImageUrl(memoryId) {
-  return withBase(`/api/memories/${encodeURIComponent(memoryId)}/image`);
-}
 
 function parseJson(response) {
   return response.headers.get("content-type")?.includes("application/json")
@@ -114,15 +109,6 @@ export function createApiClient() {
         headers: { ...request.headers, ...authHeaders() },
       });
       return body;
-    },
-    async attachMemoryImage(memoryId, image) {
-      const request = withJson({ memory_id: memoryId, image });
-      const body = await requestJson(PATHS.memoryImage, {
-        method: "POST",
-        ...request,
-        headers: { ...request.headers, ...authHeaders() },
-      });
-      return body.memory || null;
     },
     async getRoomLayout(roomId) {
       const body = await requestJson(`/api/rooms/${encodeURIComponent(roomId)}/layout`);

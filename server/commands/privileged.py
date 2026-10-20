@@ -165,6 +165,48 @@ async def npc_move_command(context: CommandContext, command: ParsedCommand) -> C
     return outcome
 
 
+async def summon_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Admin command: move an NPC peep into the caller's current room."""
+
+    if len(command.args) != 1:
+        raise CommandError("Use '.summon @peep:<peep_id>'.")
+    token = command.args[0]
+    if token.startswith("@"):
+        target = parse_target(token)
+        if target.kind != "peep":
+            raise CommandError("Peep targets must use @peep:<peep_id>.")
+        peep_id = target.value
+    else:
+        peep_id = token
+    room_id = context.connection.room_id or context.rooms.current_room_for_account(context.account.id)
+    try:
+        result = await context.rooms.summon_npc(peep_id, room_id)
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    context.audit.safe_record(
+        context.account.id,
+        "admin.npc_summon",
+        peep_id,
+        "ok",
+        {"source_room_id": result.source_room_id, "room_id": result.destination_room_id},
+    )
+    outcome = CommandOutcome(
+        message=f"{result.label} summoned to {result.destination_room_id}.",
+        payload={
+            "peep_id": result.peep_id,
+            "room_id": result.destination_room_id,
+            "source_room_id": result.source_room_id,
+        },
+    )
+    outcome.room_broadcasts.append(
+        PendingRoomBroadcast(room_id=result.source_room_id, event=result.source_event)
+    )
+    outcome.room_broadcasts.append(
+        PendingRoomBroadcast(room_id=result.destination_room_id, event=result.destination_event)
+    )
+    return outcome
+
+
 async def mute_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     """Moderator mute command."""
 

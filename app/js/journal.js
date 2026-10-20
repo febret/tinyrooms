@@ -1,6 +1,5 @@
 import { escapeHtml } from "./presentation.js";
 import { withBase } from "./base-path.js";
-import { memoryImageUrl } from "./api.js";
 
 function stepMarkup(step) {
   const pct = step.amount > 0 ? Math.min(100, Math.round((step.progress / step.amount) * 100)) : 0;
@@ -105,12 +104,11 @@ export function groupMemoriesByDayAndWorld(memories) {
     const key = `${date}\u0000${world}`;
     let group = groupsByKey.get(key);
     if (!group) {
-      group = { date, world, memories: [], images: [] };
+      group = { date, world, memories: [] };
       groupsByKey.set(key, group);
       groups.push(group);
     }
     group.memories.push(memory);
-    if (memory.hasImage) group.images.push(memory);
   }
   return groups;
 }
@@ -129,20 +127,12 @@ function memorySectionMarkup(group) {
   const date = escapeHtml(group.date);
   const world = escapeHtml(group.world);
   const label = escapeHtml(memoryDateLabel(group.date));
-  const count = group.images.length;
-  const collageLabel = `${count} memory screenshot${count === 1 ? "" : "s"}`;
-  const collage = count
-    ? `<div class="memory-collage" role="group" aria-label="${collageLabel}">
-      ${group.images.map(memory => `<img class="memory-collage-image" src="${escapeHtml(memoryImageUrl(memory.memoryId))}" alt="Memory screenshot from ${label} in ${world}" loading="lazy">`).join("")}
-    </div>`
-    : "";
   return `<section class="memory-section">
     <header class="memory-section-head">
       <h4 class="memory-section-date"><time datetime="${date}">${label}</time></h4>
       <span class="memory-section-world">${world}</span>
     </header>
     <div class="memory-section-entries">${group.memories.map(memoryEntryMarkup).join("")}</div>
-    ${collage}
   </section>`;
 }
 

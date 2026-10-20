@@ -148,7 +148,7 @@ function playJournalOpen() {
 
 function logCutscene(cutscene) {
   const title = String(cutscene?.title || "").trim();
-  if (!title) return;
+  if (!title || cutscene?.hidden) return;
   const text = cutscene?.audience === "room"
     ? `${title} played for the room.`
     : `${title} played.`;
@@ -261,13 +261,7 @@ async function sendCommand(rawCommand) {
     command = `${command} replace`;
   }
   if (!socket || !store.getState().transport.connected) throw new Error("Connect to the room before sending commands.");
-  const newMemory = command.startsWith(".memory_new ");
-  const screenshot = newMemory ? (board.capture?.() || "") : "";
-  const result = await socket.sendCommand(command);
-  if (newMemory && screenshot) {
-    await attachNewMemoryScreenshot(result, command.slice(".memory_new ".length).trim(), screenshot);
-  }
-  return result;
+  return socket.sendCommand(command);
 }
 
 async function bridgeActivity(activity, type, payload = {}) {
@@ -482,23 +476,6 @@ async function handleMemoryAction(action) {
     const cleaned = String(text).trim();
     if (!cleaned || cleaned === memory.text) return;
     try { await sendCommand(`.memory_edit @memory:${memory.memoryId} ${cleaned}`); } catch (error) { showError(error); }
-  }
-}
-
-/** Attach the pre-creation board screenshot to the manual memory just saved. */
-async function attachNewMemoryScreenshot(result, text, image) {
-  const memories = result?.payload?.journal?.memories;
-  if (!image || !Array.isArray(memories)) return;
-  const created = memories
-    .filter(memory => memory?.source_type === "manual" && String(memory.text || "") === text)
-    .sort((left, right) => String(left.created_at || "").localeCompare(String(right.created_at || "")))
-    .at(-1);
-  if (!created?.memory_id) return;
-  try {
-    await api.attachMemoryImage(created.memory_id, image);
-    store.dispatch({ type: "memory-image", memoryId: created.memory_id });
-  } catch (error) {
-    toast("Memory saved, but its screenshot could not be attached.", "error");
   }
 }
 
@@ -911,9 +888,11 @@ const board = createBoard({
       || dialogs.active || state.ui.targeting || !state.user?.initialStickerComplete) return;
     const self = state.room.occupants.find(occupant => occupant.id === state.user.id);
     if (!self?.spritePosition) return;
-    const x = Math.round(Number(position?.[0] || 0) * 10) / 10;
-    const y = Math.round(Number(position?.[1] || 0) * 10) / 10;
-    void sendCommand(`.sprite move ${x} ${y}`).catch(showError);
+    const x = Number(position?.[0]);
+    const y = Number(position?.[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    const clamp = value => Math.min(94, Math.max(6, value));
+    void sendCommand(`.sprite move ${clamp(x)} ${clamp(y)}`).catch(showError);
   },
   onPeepAnchors(anchors) { peeps.setSpriteAnchors(anchors); },
   onEditSelect(id) { store.dispatch({ type: "editor-select", id }); },

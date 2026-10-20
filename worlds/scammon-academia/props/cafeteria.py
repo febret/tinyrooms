@@ -5,8 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import random
 
+from mods.classrooms.lessons import OFFSTAGE_ROOM
+
 CAFETERIA_ROOM = "cafeteria"
-STAGING_ROOM = "scammon-staffroom"
 MAX_STUDENTS = 10
 JOIN_TARGET = (5, 8)
 CHANGE_INTERVAL = (3.0, 7.0)
@@ -20,10 +21,10 @@ def _students(context) -> list[dict[str, object]]:
     ]
 
 
-def _staging_students(context) -> list[dict[str, object]]:
+def _offstage_students(context) -> list[dict[str, object]]:
     return [
         peep
-        for peep in context.peeps_in(STAGING_ROOM)
+        for peep in context.peeps_in(OFFSTAGE_ROOM)
         if str(peep.get("id", "")).startswith("student:")
     ]
 
@@ -47,7 +48,7 @@ def _join(context, peep_id: str) -> None:
 
 
 def _leave(context, peep_id: str) -> None:
-    context.move_peep(peep_id, STAGING_ROOM)
+    context.move_peep(peep_id, OFFSTAGE_ROOM)
 
 
 def on_enter(context, event):
@@ -55,7 +56,7 @@ def on_enter(context, event):
 
     if not context.sprites_enabled or _students(context):
         return
-    candidates = _staging_students(context)
+    candidates = _offstage_students(context)
     random.shuffle(candidates)
     target = min(MAX_STUDENTS, random.randint(*JOIN_TARGET))
     for peep in candidates[:target]:
@@ -76,7 +77,7 @@ def on_tick(context, event):
     context.state["next_change_at"] = _next_deadline(context)
 
     students = _students(context)
-    candidates = _staging_students(context)
+    candidates = _offstage_students(context)
     if len(students) < MAX_STUDENTS and candidates and (not students or random.random() < 0.6):
         _join(context, str(random.choice(candidates)["id"]))
         return

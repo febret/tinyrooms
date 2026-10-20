@@ -8,7 +8,7 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 9
+PROFILE_SCHEMA_VERSION = 10
 WORLD_SCHEMA_VERSION = 15
 
 _PROFILE_SCHEMA_SQL = """
@@ -198,8 +198,6 @@ CREATE TABLE IF NOT EXISTS memories (
     editable INTEGER NOT NULL DEFAULT 0 CHECK (editable IN (0, 1)),
     -- Display label of the world that captured it, for the cross-world journal.
     world_label TEXT NOT NULL DEFAULT '',
-    -- Stored screenshot filename (in memory_images_path) or NULL.
-    image_file TEXT,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at);
@@ -215,7 +213,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-PRAGMA user_version = 9;
+PRAGMA user_version = 10;
 COMMIT;
 """
 
@@ -459,8 +457,38 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     ALTER TABLE task_progress_new RENAME TO task_progress;
     CREATE INDEX IF NOT EXISTS idx_task_progress_owner ON task_progress(account_id, world_id);
     ALTER TABLE memories ADD COLUMN world_label TEXT NOT NULL DEFAULT '';
-    ALTER TABLE memories ADD COLUMN image_file TEXT;
     PRAGMA user_version = 9;
+    COMMIT;
+    """,
+    10: """
+    BEGIN;
+    -- Drop the unused screenshot column while preserving every memory row.
+    CREATE TABLE memories_new (
+        memory_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        world_id TEXT NOT NULL,
+        author TEXT NOT NULL,
+        source_type TEXT NOT NULL CHECK (source_type IN ('game', 'manual')),
+        text TEXT NOT NULL,
+        tags_json TEXT NOT NULL CHECK (json_valid(tags_json)),
+        task_id TEXT,
+        created_at TEXT NOT NULL,
+        editable INTEGER NOT NULL DEFAULT 0 CHECK (editable IN (0, 1)),
+        world_label TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    INSERT INTO memories_new (
+        memory_id, account_id, world_id, author, source_type, text,
+        tags_json, task_id, created_at, editable, world_label
+    )
+    SELECT memory_id, account_id, world_id, author, source_type, text,
+        tags_json, task_id, created_at, editable, world_label
+    FROM memories;
+    DROP TABLE memories;
+    ALTER TABLE memories_new RENAME TO memories;
+    CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id);
+    PRAGMA user_version = 10;
     COMMIT;
     """,
 }
@@ -612,7 +640,6 @@ _MEMORIES_COLUMNS = (
     "created_at",
     "editable",
     "world_label",
-    "image_file",
 )
 
 _AUDIT_LOG_COLUMNS = (

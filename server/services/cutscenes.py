@@ -255,6 +255,7 @@ class CutsceneService:
             "frame": definition.frame,
             "duration": definition.duration_ms,
             "skip": definition.skip,
+            "hidden": definition.hidden,
             "room_bound": definition.room_bound,
             "audience": audience,
             "origin": origin,
@@ -271,7 +272,8 @@ class CutsceneService:
         if audience == AUDIENCE_PRIVATE:
             # Private delivery uses account routing; room delivery uses a broadcast.
             event["account_id"] = account.id
-        self._record_first_view(account, definition, room_accounts)
+        recipients = room_accounts if audience == AUDIENCE_ROOM else None
+        self._record_first_view(account, definition, recipients)
         return CutsceneLaunch(
             definition=definition,
             audience=audience,

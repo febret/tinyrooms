@@ -35,6 +35,11 @@ MAX_ATTENTION = 10
 TIRED_ENERGY = 3
 VERY_TIRED_ENERGY = 1
 
+# Generated students wait here when they are not in a lesson. This is
+# deliberately not a real room: nobody can enter it, and room snapshots and
+# behavior routing treat it as offstage.
+OFFSTAGE_ROOM = "scammon-staffroom"
+
 # Trait ids are stable, kebab-cased identifiers used in generated rosters.
 TRAITS: dict[str, dict[str, object]] = {
     "superfocused": {"label": "Superfocused", "attention": 8},
@@ -45,23 +50,11 @@ TRAITS: dict[str, dict[str, object]] = {
 }
 TRAIT_IDS: tuple[str, ...] = tuple(TRAITS)
 
-# Maps a trait id to the social component ("Subject Skill") card id that
-# unlocks a subject's topic cards. Topic cards carry a ``skill:<id>`` tag.
-SUBJECT_SKILL_IDS: dict[str, str] = {
-    subject_id: f"skill-{subject_id}" for subject_id in SUBJECT_IDS
-}
 # Topic cards carry these tags; the skill is derived from the subject.
 SUBJECT_TAG_PREFIX = "subject:"
 SKILL_TAG_PREFIX = "skill:"
 
 GRADE_POINTS: dict[str, float] = {"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0}
-
-
-def trait_label(trait_id: str | None) -> str | None:
-    """Return the human label for a trait id, if known."""
-
-    entry = TRAITS.get(str(trait_id)) if trait_id is not None else None
-    return str(entry["label"]) if entry is not None else None
 
 
 def starting_energy(trait_id: str | None) -> int:

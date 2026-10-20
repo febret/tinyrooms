@@ -319,7 +319,6 @@ function normalizeMemory(memory) {
     localDate: String(memory?.local_date || ""),
     worldId: String(memory?.world_id || ""),
     worldLabel: String(memory?.world_label || ""),
-    hasImage: Boolean(memory?.has_image),
   };
 }
 
@@ -1030,13 +1029,6 @@ function reduce(state, action) {
         chatHistory: [...state.room.chatHistory, asSystemHistory(String(action.text))].slice(-50),
       },
     };
-  }
-  if (action.type === "memory-image" && state.user?.journal) {
-    const journal = state.user.journal;
-    const memories = journal.memories.map(memory => (
-      memory.memoryId === action.memoryId ? { ...memory, hasImage: true } : memory
-    ));
-    return { ...state, user: { ...state.user, journal: { ...journal, memories } } };
   }
   if (action.type === "dismiss-bubble" && state.room) {
     const mutate = peep => peep.id === action.id ? { ...peep, bubbleDismissed: true } : peep;

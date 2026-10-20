@@ -14,6 +14,7 @@ import random
 from mods.classrooms.lessons import (
     MAX_ATTENTION,
     SUBJECT_LABELS,
+    SUBJECT_TAG_PREFIX,
     TIRED_ENERGY,
     VERY_TIRED_ENERGY,
     affinity,
@@ -103,8 +104,8 @@ def _topic_subject(card) -> str | None:
     if card is None:
         return None
     for tag in card.tags:
-        if tag.startswith("subject:"):
-            return tag.split(":", 1)[1]
+        if tag.startswith(SUBJECT_TAG_PREFIX):
+            return tag[len(SUBJECT_TAG_PREFIX):]
     return None
 
 

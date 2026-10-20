@@ -15,8 +15,11 @@ import sqlite3
 from mods.classrooms.lesson_state import QUARTER_AWARDS, LessonStateRepository, StudentRecord
 from mods.classrooms.lessons import (
     GRADE_POINTS,
+    OFFSTAGE_ROOM,
+    SKILL_TAG_PREFIX,
     SUBJECT_IDS,
     SUBJECT_LABELS,
+    SUBJECT_TAG_PREFIX,
     affinity,
     letter_grade,
     max_energy_for,
@@ -72,7 +75,6 @@ LAST_NAMES = (
 STUDENTS_PER_GRADE = 15
 CLASS_SIZE = 5
 STUDENT_SCRIPT = "student.py"
-STAGING_ROOM = "scammon-staffroom"
 BOPS_PER_GPA = 5
 # Random peep sticker images composed by tools/generate_student_stickers.mjs
 # from the sticker designer's own part catalog.
@@ -142,6 +144,7 @@ class LessonService:
             self._repo.insert_students(self._generate_roster())
         for student in self._repo.all_students():
             self._register_student(student)
+        self._peep_states.sync_world(self._world)
 
     def _register_student(self, student: StudentRecord) -> None:
         if student.student_id in self._world.peeps:
@@ -151,7 +154,7 @@ class LessonService:
             id=student.student_id,
             label=student.label,
             description=self._describe(student),
-            room_id=STAGING_ROOM,
+            room_id=OFFSTAGE_ROOM,
             image_name=student.avatar,
             image_path=image_path,
             script_name=STUDENT_SCRIPT,
@@ -332,7 +335,7 @@ class LessonService:
                     )
                 self._repo.reset_scores(connection)
                 self._repo.reset_quarter(connection)
-            self._clear_student_states(connection, student_ids)
+            self._finish_session(connection, room_id, student_ids)
         self._end_session_peeps(student_ids, room_id)
         return LessonTestResult(grade=grade, gpa=gpa, bops=bops, results=tuple(results))
 
@@ -435,19 +438,24 @@ class LessonService:
                 (student_id,),
             )
 
+    def _finish_session(self, connection: sqlite3.Connection, room_id: str, student_ids: list[str]) -> None:
+        """Clear student lesson state and the room session in one transaction."""
+
+        self._clear_student_states(connection, student_ids)
+        self._repo.clear_session(connection, room_id)
+
     def _end_session(self, student_ids: object, room_id: str) -> None:
         ids = [str(value) for value in student_ids] if isinstance(student_ids, list) else []
         with self._hub.transaction() as connection:
-            self._clear_student_states(connection, ids)
-            self._repo.clear_session(connection, room_id)
+            self._finish_session(connection, room_id, ids)
         self._end_session_peeps(ids, room_id)
 
     def _end_session_peeps(self, student_ids: list[str], room_id: str) -> None:
         with self._hub.transaction() as connection:
             for student_id in student_ids:
-                self._peep_states.set_in_transaction(connection, student_id, STAGING_ROOM)
+                self._peep_states.set_in_transaction(connection, student_id, OFFSTAGE_ROOM)
         for student_id in student_ids:
-            self._peep_states.record(student_id, STAGING_ROOM)
+            self._peep_states.record(student_id, OFFSTAGE_ROOM)
 
 
 def _first_tag(definition: object, prefix: str) -> str | None:
@@ -475,9 +483,9 @@ async def teach_command(context: CommandContext, command: ParsedCommand) -> Comm
     definition = context.cards.definition(stack.card_def_id)
     if "topic" not in definition.tags:
         raise CommandError(f"{definition.label} is not a topic card.")
-    skill_id = _first_tag(definition, "skill:")
+    skill_id = _first_tag(definition, SKILL_TAG_PREFIX)
     if skill_id is not None and not context.progression.has_slotted_skill(context.account, skill_id):
-        subject = SUBJECT_LABELS.get(_first_tag(definition, "subject:") or "", "that subject")
+        subject = SUBJECT_LABELS.get(_first_tag(definition, SUBJECT_TAG_PREFIX) or "", "that subject")
         raise CommandError(f"Slot the {subject} skill before teaching it.")
     classroom = context.mods.get("classrooms")
     lessons = getattr(classroom, "lessons", None)

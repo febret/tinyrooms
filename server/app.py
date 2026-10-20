@@ -14,7 +14,7 @@ import uuid
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server.accounts import AccountConflictError, AccountService, AuthenticationError, LoginResult
@@ -146,13 +146,6 @@ class StickerConfirmRequest(BaseModel):
     sticker: str | None = None
     image: str | None = None
     design: dict[str, object] | None = None
-
-
-class MemoryImageRequest(BaseModel):
-    """Screenshot attachment for a journal memory."""
-
-    memory_id: str = Field(min_length=1, max_length=128)
-    image: str
 
 
 class ActivityBridgeRequest(BaseModel):
@@ -461,7 +454,6 @@ def _build_runtime(
         world.id,
         config.timezone,
         world_label=world.label,
-        images_path=config.memory_images_path,
     )
     cutscenes = CutsceneService(
         config, world=lambda: world, profiles=profiles, cards=cards,
@@ -839,26 +831,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         runtime.activities.close(session.account_id)
         return {"ok": True, "user": _serialize_account(runtime, account)}
-
-    @app.post("/api/memories/image")
-    async def attach_memory_image(request: Request, payload: MemoryImageRequest) -> dict[str, object]:
-        runtime = _get_runtime(request)
-        session = _require_session(runtime, request)
-        _enforce_authenticated_post(runtime, request, session)
-        try:
-            view = runtime.memories.add_image(session.account_id, payload.memory_id, payload.image)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return {"ok": True, "memory": view.to_payload()}
-
-    @app.get("/api/memories/{memory_id}/image")
-    async def memory_image_asset(memory_id: str, request: Request) -> Response:
-        runtime = _get_runtime(request)
-        session = _require_session(runtime, request)
-        path = runtime.memories.image_path_for(session.account_id, memory_id)
-        if path is None:
-            raise HTTPException(status_code=404, detail="Memory image not found.")
-        return FileResponse(path)
 
     @app.get("/api/bootstrap")
     async def bootstrap(request: Request) -> dict[str, object]:

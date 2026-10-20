@@ -2,12 +2,16 @@ CONFIG:
   scale_adjust: 2.0
 city-trashcan:
   label: City Trashcan
-  description: A sturdy green city bin. Keeping the neighborhood tidy, one little bag at a time.
+  description: A sturdy green city bin. Keeping the neighborhood tidy, one little
+    bag at a time.
   model: city-trashcan.glb
   decorative: true
   editable: true
   scale: 1.0
-  tags: [outdoor, trashcan, utility]
+  tags:
+  - outdoor
+  - trashcan
+  - utility
 galvanized-trashcan:
   label: Galvanized Trashcan
   description: A classic ribbed silver can with a clattery lid. Oscar would approve.
@@ -15,7 +19,10 @@ galvanized-trashcan:
   decorative: true
   editable: true
   scale: 0.9
-  tags: [trashcan, utility, household]
+  tags:
+  - trashcan
+  - utility
+  - household
 mustard-armchair:
   label: Mustard Armchair
   description: The color of ballpark mustard and the energy of a 1996 fast-food interior.
@@ -291,6 +298,10 @@ floral-nightstand:
   - nightstand
   - storage
   - furniture
+  effects:
+    set:
+    - ember-glow
+    - fire
 live-edge-slab-table:
   label: Live-Edge Slab Table
   description: Live-edgy.

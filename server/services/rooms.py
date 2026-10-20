@@ -60,6 +60,18 @@ class NpcMoveResult:
     destination_event: dict[str, object]
 
 
+@dataclass(frozen=True, slots=True)
+class NpcSummonResult:
+    """Outcome of moving an NPC peep directly into a room."""
+
+    peep_id: str
+    label: str
+    source_room_id: str
+    destination_room_id: str
+    source_event: dict[str, object]
+    destination_event: dict[str, object]
+
+
 class RoomService:
     """Authoritative room state assembly and mutations."""
 
@@ -484,6 +496,46 @@ class RoomService:
                 label=peep.label,
                 room_id=move.destination_room_id,
                 source_room_id=move.source_room_id,
+                source_room_label=source_room.label,
+            ),
+        )
+
+    async def summon_npc(self, peep_id: str, room_id: str) -> NpcSummonResult:
+        """Move an NPC directly into a room and return its room events."""
+
+        peep = self._world.peeps.get(peep_id)
+        if peep is None:
+            raise ValueError("That peep does not exist.")
+        if self._peep_states is None:
+            raise ValueError("NPC movement is unavailable.")
+        if room_id not in self._world.rooms:
+            raise ValueError("That room does not exist.")
+        source_room_id = self.peep_room(peep)
+        if source_room_id == room_id:
+            raise ValueError("That peep is already in that room.")
+        source_room = self._world.rooms.get(source_room_id)
+        if source_room is None:
+            raise ValueError("That peep is not in a known room.")
+        with self._hub.transaction() as connection:
+            self._peep_states.set_in_transaction(connection, peep_id, room_id)
+        self._peep_states.record(peep_id, room_id)
+        self._sprites.forget_npc(peep_id)
+        return NpcSummonResult(
+            peep_id=peep.id,
+            label=peep.label,
+            source_room_id=source_room_id,
+            destination_room_id=room_id,
+            source_event=peep_leave_event(
+                peep_id=peep.id,
+                label=peep.label,
+                room_id=source_room_id,
+                destination_room_id=room_id,
+            ),
+            destination_event=peep_enter_event(
+                peep_id=peep.id,
+                label=peep.label,
+                room_id=room_id,
+                source_room_id=source_room_id,
                 source_room_label=source_room.label,
             ),
         )
