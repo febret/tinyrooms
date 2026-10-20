@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round">
-    <path d="M86 116 C92 126 108 126 114 116 Z" fill="#241a12"/>
-    <path d="M94 122 C94 132 106 132 106 122 Z" fill="{{face}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"><path d="M85 114 C91 127 109 127 115 114 C104 119 96 119 85 114 Z" fill="#241a12"/><path d="M93 123 C92 134 108 134 107 123 C102 121 98 121 93 123 Z" fill="{{face}}"/><path d="M97 125 C100 127 104 127 106 125" fill="none" stroke="{{faceDark}}" stroke-width="1.4"/></g><g fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.6"><path d="M88 116 L88 119"/><path d="M96 118 L96 121"/><path d="M104 118 L104 121"/><path d="M112 116 L112 119"/></g></svg>

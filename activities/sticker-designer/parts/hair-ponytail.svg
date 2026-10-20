@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M48 90 C48 46 72 22 100 22 C130 22 154 46 152 90 C146 76 138 66 126 62 C112 58 96 60 84 68 C72 62 58 72 48 90 Z" fill="{{hair}}"/>
-    <path d="M128 60 C142 54 154 62 154 76" fill="none" stroke="{{hairDark}}"/>
-    <path d="M60 74 C72 62 88 58 102 64" fill="none" stroke="{{hairDark}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M48 84 C46 42 69 18 100 18 C131 18 154 42 152 84 C146 66 137 55 126 52 C114 58 102 60 91 58 C78 63 62 72 48 84 Z" fill="{{hair}}"/><path d="M54 72 C47 88 44 106 46 124 L58 122 C56 106 58 90 65 78 Z" fill="{{hair}}"/><path d="M146 66 C160 58 170 68 166 82 C162 96 150 106 138 108 C148 94 152 78 146 66 Z" fill="{{hair}}"/></g><g stroke="none"><path d="M58 68 C66 50 80 37 96 31 C80 43 70 57 66 74 Z" fill="#ffffff" opacity="0.18"/><path d="M140 72 C152 72 160 80 160 90 C154 80 146 76 138 78 Z" fill="{{hairDark}}" opacity="0.45"/></g><g fill="none" stroke="{{hairDark}}" stroke-width="2.4" stroke-linecap="round"><path d="M62 68 C74 56 90 52 104 59"/><path d="M54 92 C52 106 53 116 56 122"/><path d="M148 70 C158 76 162 86 158 96"/></g><g stroke="#241a12" stroke-width="2.4"><path d="M151 64 C158 60 164 64 164 71 C164 77 159 81 153 78 C147 75 145 68 151 64 Z" fill="{{accent}}"/></g></svg>

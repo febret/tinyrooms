@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g fill="{{face}}" stroke="#241a12" stroke-width="2.4" stroke-linejoin="round">
-    <path d="M82 88 C78 82 68 82 68 90 C68 98 82 106 82 106 C82 106 96 98 96 90 C96 82 86 82 82 88 Z"/>
-    <path d="M118 88 C114 82 104 82 104 90 C104 98 118 106 118 106 C118 106 132 98 132 90 C132 82 122 82 118 88 Z"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g fill="{{face}}" stroke="#241a12" stroke-width="2.2" stroke-linejoin="round"><path d="M82 89 C77 82 66 83 66 92 C66 101 82 110 82 110 C82 110 98 101 98 92 C98 83 87 82 82 89 Z"/><path d="M118 89 C113 82 102 83 102 92 C102 101 118 110 118 110 C118 110 134 101 134 92 C134 83 123 82 118 89 Z"/></g><g fill="#ffffff" stroke="none" opacity="0.7"><path d="M74 89 C72 86 69 88 70 91" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M110 89 C108 86 105 88 106 91" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none"/></g></svg>

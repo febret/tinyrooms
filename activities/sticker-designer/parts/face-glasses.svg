@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g fill="none" stroke="{{face}}" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round">
-    <rect x="66" y="84" width="32" height="22" rx="9" fill="#ffffff" fill-opacity="0.35"/>
-    <rect x="102" y="84" width="32" height="22" rx="9" fill="#ffffff" fill-opacity="0.35"/>
-    <path d="M98 95 L102 95"/>
-    <path d="M66 92 L56 88"/>
-    <path d="M134 92 L144 88"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g fill="none" stroke="{{face}}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"><rect x="64" y="85" width="34" height="25" rx="9" fill="#ffffff" fill-opacity="0.18"/><rect x="102" y="85" width="34" height="25" rx="9" fill="#ffffff" fill-opacity="0.18"/><path d="M98 96 C99 94 101 94 102 96"/><path d="M64 93 L55 89"/><path d="M136 93 L145 89"/><path d="M70 88 L78 88" stroke="#ffffff" stroke-width="2" opacity="0.65"/><path d="M108 88 L116 88" stroke="#ffffff" stroke-width="2" opacity="0.65"/></g><g fill="none" stroke="{{faceDark}}" stroke-width="1.4" stroke-linecap="round" opacity="0.55"><path d="M69 101 C74 104 80 104 84 101"/><path d="M116 101 C120 104 126 104 131 101"/></g></svg>

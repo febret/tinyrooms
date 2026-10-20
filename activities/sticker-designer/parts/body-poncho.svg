@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M88 126 L88 150 L112 150 L112 126 Z" fill="{{skin}}"/>
-    <rect x="56" y="148" width="16" height="44" rx="8" fill="{{skin}}"/>
-    <rect x="128" y="148" width="16" height="44" rx="8" fill="{{skin}}"/>
-    <rect x="82" y="188" width="16" height="28" rx="7" fill="{{skin}}"/>
-    <rect x="102" y="188" width="16" height="28" rx="7" fill="{{skin}}"/>
-    <path d="M100 24 C62 24 48 56 48 86 C48 118 70 140 100 140 C130 140 152 118 152 86 C152 56 138 24 100 24 Z" fill="{{skin}}"/>
-    <path d="M100 30 C76 30 60 44 54 62 C48 80 44 104 40 128 L58 138 L50 160 L74 168 L68 190 L100 198 L132 190 L126 168 L150 160 L142 138 L160 128 C156 104 152 80 146 62 C140 44 124 30 100 30 Z" fill="{{shirt}}"/>
-    <path d="M56 96 L144 96 L148 112 L52 112 Z" fill="{{shirtDark}}" stroke="none"/>
-    <path d="M74 168 L68 190 L100 198 L132 190 L126 168 Z" fill="{{accent}}"/>
-    <circle cx="64" cy="190" r="9" fill="{{skin}}"/>
-    <circle cx="136" cy="190" r="9" fill="{{skin}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M100 152 C88 152 80 156 74 162 L58 178 C48 188 44 198 46 204 C62 210 78 212 100 212 C122 212 138 210 154 204 C156 198 152 188 142 178 L126 162 C120 156 112 152 100 152 Z" fill="{{shirt}}"/><path d="M82 156 C88 164 94 168 100 168 C106 168 112 164 118 156 C112 152 106 150 100 150 C94 150 88 152 82 156 Z" fill="{{shirtDark}}"/><path d="M74 158 C63 162 56 174 54 185 L53 186 C53 191 57 194 62 193 C67 192 70 188 70 183 L78 171 Z" fill="{{shirt}}"/><path d="M126 158 C137 162 144 174 146 185 L147 186 C147 191 143 194 138 193 C133 192 130 188 130 183 L122 171 Z" fill="{{shirt}}"/></g><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><circle cx="60" cy="198" r="9" fill="{{skin}}"/><circle cx="140" cy="198" r="9" fill="{{skin}}"/></g><g stroke="none"><path d="M66 168 C82 174 118 174 134 168 L140 180 C118 188 82 188 60 180 Z" fill="{{shirtDark}}" opacity="0.75"/><path d="M48 196 C74 204 126 204 152 196 L154 204 C138 210 122 212 100 212 C78 212 62 210 46 204 Z" fill="{{shirtDark}}" opacity="0.35"/><path d="M74 162 C68 178 60 194 50 204 L46 204 C48 188 58 172 68 160 Z" fill="#ffffff" opacity="0.12"/></g><g fill="none" stroke="{{accent}}" stroke-width="3" stroke-linecap="round"><path d="M62 182 C82 188 118 188 138 182"/><path d="M50 202 C76 209 124 209 150 202"/></g><g fill="none" stroke="{{shirtDark}}" stroke-width="2.2" stroke-linecap="round"><path d="M74 162 C80 174 86 186 94 198"/><path d="M126 162 C120 174 114 186 106 198"/><path d="M72 204 L68 214"/><path d="M88 207 L86 216"/><path d="M112 207 L114 216"/><path d="M128 204 L132 214"/></g><g fill="none" stroke="{{accentDark}}" stroke-width="2.2" stroke-linecap="round"><path d="M78 176 C84 180 92 182 100 182"/><path d="M122 176 C116 180 108 182 100 182"/></g><g fill="{{accent}}" stroke="#241a12" stroke-width="2.2"><path d="M92 170 L100 164 L108 170 L104 178 L96 178 Z"/></g></svg>

@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round">
-    <path d="M76 98 L80 108 L91 109 L83 116 L85 127 L76 121 L67 127 L69 116 L61 109 L72 108 Z" fill="{{face}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="2.4" stroke-linejoin="round"><path d="M77 97 L81 107 L92 108 L84 115 L86 126 L77 120 L68 126 L70 115 L62 108 L73 107 Z" fill="{{face}}"/><path d="M77 103 L78 108 L83 109 L79 112 L80 117 L77 114 L74 117 L75 112 L71 109 L76 108 Z" fill="#ffffff" stroke="none" opacity="0.35"/></g></svg>

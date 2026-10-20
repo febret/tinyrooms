@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
+  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M80 190 L80 207 C80 214 84 217 89 217 L95 217 C98 217 99 215 99 212 L99 190 Z" fill="{{skin}}"/>
+    <path d="M120 190 L120 207 C120 214 116 217 111 217 L105 217 C102 217 101 215 101 212 L101 190 Z" fill="{{skin}}"/>
+    <path d="M74 158 C63 162 56 174 54 188 C53 194 56 198 62 199 C67 199 70 196 71 191 L78 170 Z" fill="{{skin}}"/>
+    <path d="M126 158 C137 162 144 174 146 188 C147 194 144 198 138 199 C133 199 130 196 129 191 L122 170 Z" fill="{{skin}}"/>
+    <path d="M78 154 C71 156 67 162 66 169 L69 201 C80 206 120 206 131 201 L134 169 C133 162 129 156 122 154 C114 160 106 163 100 163 C94 163 86 160 78 154 Z" fill="{{shirt}}"/>
+    <path d="M88 133 L88 158 C88 164 94 168 100 168 C106 168 112 164 112 158 L112 133 Z" fill="{{skinDark}}"/>
+    <path d="M52 80 C45 77 40 81 40 89 C40 98 45 105 52 102 Z" fill="{{skin}}"/>
+    <path d="M148 80 C155 77 160 81 160 89 C160 98 155 105 148 102 Z" fill="{{skin}}"/>
+    <path d="M100 32 C72 32 51 51 48 78 C48 98 51 116 61 129 C72 143 86 149 100 149 C114 149 128 143 139 129 C149 116 152 98 152 78 C149 51 128 32 100 32 Z" fill="{{skin}}"/>
+    <circle cx="60" cy="198" r="9" fill="{{skin}}"/>
+    <circle cx="140" cy="198" r="9" fill="{{skin}}"/>
+  </g>
+  <g stroke="none">
+    <path d="M139 129 C149 116 152 97 152 76 C152 65 150 55 146 47 C150 63 146 86 139 103 C132 120 121 132 107 139 C119 140 132 135 139 129 Z" fill="{{skinDark}}" opacity="0.28"/>
+    <path d="M58 74 C62 54 77 38 96 34 C81 38 66 51 60 66 C57 75 56 84 57 93 C54 86 55 79 58 74 Z" fill="#ffffff" opacity="0.18"/>
+    <ellipse cx="76" cy="113" rx="11" ry="6" fill="#df7f6e" opacity="0.16"/>
+    <ellipse cx="124" cy="113" rx="11" ry="6" fill="#df7f6e" opacity="0.16"/>
+    <path d="M83 196 C88 200 94 201 98 199 L98 205 C92 207 86 206 82 203 Z" fill="{{skinDark}}" opacity="0.22"/>
+    <path d="M117 196 C112 200 106 201 102 199 L102 205 C108 207 114 206 118 203 Z" fill="{{skinDark}}" opacity="0.22"/>
+    <path d="M78 158 C86 164 94 167 100 167 C106 167 114 164 122 158 L122 163 C114 169 106 172 100 172 C94 172 86 169 78 163 Z" fill="{{shirtDark}}" opacity="0.55"/>
+    <path d="M69 193 C80 198 120 198 131 193 L131 201 C120 206 80 206 69 201 Z" fill="{{shirtDark}}" opacity="0.25"/>
+    <path d="M74 176 C77 182 78 189 77 196 L72 195 C73 187 72 181 70 176 Z" fill="{{shirtDark}}" opacity="0.35"/>
+    <path d="M126 176 C123 182 122 189 123 196 L128 195 C127 187 128 181 130 176 Z" fill="{{shirtDark}}" opacity="0.35"/>
+  </g>
+  <g fill="none" stroke="{{skinDark}}" stroke-width="2.2" stroke-linecap="round">
+    <path d="M47 84 C44 88 44 95 47 99"/>
+    <path d="M153 84 C156 88 156 95 153 99"/>
+    <path d="M98 105 C99 108 101 109 104 107"/>
+    <path d="M92 91 C94 95 94 99 93 103" opacity="0.35"/>
+  </g>
+</svg>

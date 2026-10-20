@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M74 198 C74 194 82 192 90 192 L98 192 C106 192 110 196 110 201 L111 210 C111 214 108 216 104 216 L80 216 C76 216 74 214 74 210 Z" fill="{{shoes}}"/>
-    <path d="M126 198 C126 194 118 192 110 192 L102 192 C94 192 90 196 90 201 L89 210 C89 214 92 216 96 216 L120 216 C124 216 126 214 126 210 Z" fill="{{shoes}}"/>
-    <path d="M84 200 L106 197" fill="none" stroke="{{shoesDark}}"/>
-    <path d="M116 200 L94 197" fill="none" stroke="{{shoesDark}}"/>
-    <circle cx="86" cy="204" r="2.2" fill="{{shoesDark}}"/>
-    <circle cx="94" cy="204" r="2.2" fill="{{shoesDark}}"/>
-    <circle cx="114" cy="204" r="2.2" fill="{{shoesDark}}"/>
-    <circle cx="106" cy="204" r="2.2" fill="{{shoesDark}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g transform="translate(0,3)"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M70 200 C70 195 78 192 87 192 L93 192 C98 192 101 196 101 201 L102 211 C102 215 99 216 96 216 L75 216 C72 216 70 214 70 211 Z" fill="{{shoes}}"/><path d="M130 200 C130 195 122 192 113 192 L107 192 C102 192 99 196 99 201 L98 211 C98 215 101 216 104 216 L125 216 C128 216 130 214 130 211 Z" fill="{{shoes}}"/><path d="M79 200 C88 197 96 197 100 199" fill="none" stroke="{{shoesDark}}" stroke-width="2.4"/><path d="M121 200 C112 197 104 197 100 199" fill="none" stroke="{{shoesDark}}" stroke-width="2.4"/></g><g fill="{{shoesDark}}" stroke="#241a12" stroke-width="1.5"><circle cx="79" cy="204" r="2"/><circle cx="88" cy="204" r="2"/><circle cx="96" cy="204" r="2"/><circle cx="121" cy="204" r="2"/><circle cx="112" cy="204" r="2"/><circle cx="104" cy="204" r="2"/></g><path d="M76 211 C84 215 94 215 100 211" fill="none" stroke="{{shoesDark}}" stroke-width="2"/><path d="M124 211 C116 215 106 215 100 211" fill="none" stroke="{{shoesDark}}" stroke-width="2"/><path d="M80 197 C86 195 93 195 98 197" fill="none" stroke="#ffffff" stroke-width="1.4" opacity="0.4"/></g></svg>

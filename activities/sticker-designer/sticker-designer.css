@@ -17,7 +17,7 @@
 .custom-pane { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 12px; }
 .preview-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; align-items: center; }
 .preview-frame { flex: 1 1 auto; min-height: 0; width: 100%; display: grid; place-items: center; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: radial-gradient(ellipse at 50% 8%, #ffffff22, transparent 60%), var(--cream-stage); box-shadow: var(--cream-stage-shadow); }
-.preview-frame canvas { height: 100%; max-height: 100%; max-width: 100%; aspect-ratio: 10 / 11; }
+.preview-frame canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; min-height: 0; aspect-ratio: 10 / 11; object-fit: contain; }
 .preview-actions { display: flex; gap: 6px; }
 .preview-actions button { flex: 1; }
 .starter-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }

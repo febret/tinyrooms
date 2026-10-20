@@ -51,10 +51,23 @@ def _leave(context, peep_id: str) -> None:
     context.move_peep(peep_id, OFFSTAGE_ROOM)
 
 
+def _trim(context, students: list[dict[str, object]]) -> None:
+    """Send any students over the room cap back offstage."""
+
+    for peep in students[MAX_STUDENTS:]:
+        _leave(context, str(peep["id"]))
+
+
 def on_enter(context, event):
     """Seed a lunch crowd when someone first walks into the cafeteria."""
 
-    if not context.sprites_enabled or _students(context):
+    if not context.sprites_enabled:
+        return
+    students = _students(context)
+    if len(students) > MAX_STUDENTS:
+        _trim(context, students)
+        return
+    if students:
         return
     candidates = _offstage_students(context)
     random.shuffle(candidates)
@@ -69,6 +82,10 @@ def on_tick(context, event):
 
     if not context.sprites_enabled:
         return
+    students = _students(context)
+    if len(students) > MAX_STUDENTS:
+        _trim(context, students)
+        return
     deadline = _deadline(context.state.get("next_change_at"))
     if deadline is None or context.now < deadline:
         if deadline is None:
@@ -76,7 +93,6 @@ def on_tick(context, event):
         return
     context.state["next_change_at"] = _next_deadline(context)
 
-    students = _students(context)
     candidates = _offstage_students(context)
     if len(students) < MAX_STUDENTS and candidates and (not students or random.random() < 0.6):
         _join(context, str(random.choice(candidates)["id"]))

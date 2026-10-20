@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M80 140 L58 154 L46 176 M58 154 L40 166" fill="none" stroke="{{accentDark}}" stroke-width="9"/>
-    <path d="M80 140 L58 154 L46 176 M58 154 L40 166" fill="none" stroke="{{accent}}"/>
-    <circle cx="46" cy="176" r="7" fill="{{accentDark}}"/>
-    <path d="M120 140 L142 154 L154 176 M142 154 L160 166" fill="none" stroke="{{accentDark}}" stroke-width="9"/>
-    <path d="M120 140 L142 154 L154 176 M142 154 L160 166" fill="none" stroke="{{accent}}"/>
-    <circle cx="154" cy="176" r="7" fill="{{accentDark}}"/>
-    <circle cx="58" cy="154" r="4" fill="#f5f4ec"/>
-    <circle cx="142" cy="154" r="4" fill="#f5f4ec"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g fill="none" stroke="#241a12" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"><path d="M76 142 L48 160 L32 190 M48 160 L26 174"/><path d="M124 142 L152 160 L168 190 M152 160 L174 174"/></g><g fill="none" stroke="{{accent}}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M76 142 L48 160 L32 190 M48 160 L26 174"/><path d="M124 142 L152 160 L168 190 M152 160 L174 174"/></g><g fill="{{accentDark}}" stroke="#241a12" stroke-width="2.4"><circle cx="32" cy="190" r="8"/><circle cx="26" cy="174" r="5.5"/><circle cx="168" cy="190" r="8"/><circle cx="174" cy="174" r="5.5"/></g><g fill="#f5f0df" stroke="#241a12" stroke-width="1.8"><circle cx="48" cy="160" r="4.5"/><circle cx="152" cy="160" r="4.5"/></g><g fill="none" stroke="{{accentDark}}" stroke-width="2" stroke-linecap="round"><path d="M64 146 L50 156"/><path d="M136 146 L150 156"/></g></svg>

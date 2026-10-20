@@ -116,33 +116,38 @@ export const SHOE_PARTS = [
 export const BACK_PARTS = [
   { id: "back-none", label: "None" },
   { id: "back-wings", label: "Wings", file: "back-wings.svg" },
-  { id: "back-cape", label: "Cape", file: "back-cape.svg" },
-  { id: "back-pack", label: "Backpack", file: "back-pack.svg" },
-  { id: "back-jetpack", label: "Jetpack", file: "back-jetpack.svg" },
+  { id: "back-cape", label: "Cape", file: "back-cape.svg", front: "back-cape-front.svg" },
+  { id: "back-pack", label: "Backpack", file: "back-pack.svg", front: "back-pack-front.svg" },
+  { id: "back-jetpack", label: "Jetpack", file: "back-jetpack.svg", front: "back-jetpack-front.svg" },
   { id: "back-shell", label: "Turtle Shell", file: "back-shell.svg" },
   { id: "back-fairy", label: "Fairy Wings", file: "back-fairy.svg" },
   { id: "back-balloons", label: "Balloons", file: "back-balloons.svg" },
   { id: "back-tail", label: "Dino Tail", file: "back-tail.svg" },
   { id: "back-robotarms", label: "Robot Arms", file: "back-robotarms.svg" },
-  { id: "back-surfboard", label: "Surfboard", file: "back-surfboard.svg" },
-  { id: "back-guitar", label: "Guitar Case", file: "back-guitar.svg" },
+  { id: "back-surfboard", label: "Surfboard", file: "back-surfboard.svg", front: "back-surfboard-front.svg" },
+  { id: "back-guitar", label: "Guitar Case", file: "back-guitar.svg", front: "back-guitar-front.svg" },
   { id: "back-dragon", label: "Dragon Wings", file: "back-dragon.svg" },
   { id: "back-banner", label: "Hero Banner", file: "back-banner.svg" },
-  { id: "back-propeller", label: "Propeller", file: "back-propeller.svg" },
+  { id: "back-propeller", label: "Propeller", file: "back-propeller.svg", front: "back-propeller-front.svg" },
 ];
 
 export const FACE_PARTS = [
   { id: "face-none", label: "None" },
-  { id: "face-blush", label: "Blush", file: "face-blush.svg" },
+  { id: "face-blush", label: "Blush", file: "face-blush.svg", layer: "under" },
   { id: "face-glasses", label: "Glasses", file: "face-glasses.svg" },
+  { id: "face-goggles", label: "Goggles", file: "face-goggles.svg" },
   { id: "face-mask", label: "Mask", file: "face-mask.svg" },
-  { id: "face-freckles", label: "Freckles", file: "face-freckles.svg" },
-  { id: "face-mustache", label: "Mustache", file: "face-mustache.svg" },
-  { id: "face-goatee", label: "Goatee", file: "face-goatee.svg" },
-  { id: "face-beard", label: "Beard", file: "face-beard.svg" },
-  { id: "face-scar", label: "Scar", file: "face-scar.svg" },
+  { id: "face-freckles", label: "Freckles", file: "face-freckles.svg", layer: "under" },
+  { id: "face-mustache", label: "Mustache", file: "face-mustache.svg", layer: "under" },
+  { id: "face-goatee", label: "Goatee", file: "face-goatee.svg", layer: "under" },
+  { id: "face-beard", label: "Beard", file: "face-beard.svg", layer: "under" },
+  { id: "face-tired", label: "Tired Eyes", file: "face-tired.svg", layer: "under" },
+  { id: "face-scar", label: "Scar", file: "face-scar.svg", layer: "under" },
   { id: "face-bandage", label: "Bandage", file: "face-bandage.svg" },
-  { id: "face-warpaint", label: "Warpaint", file: "face-warpaint.svg" },
+  { id: "face-warpaint", label: "Warpaint", file: "face-warpaint.svg", layer: "under" },
+  { id: "face-sweat", label: "Sweat Drop", file: "face-sweat.svg" },
+  { id: "face-pencil", label: "Pencil", file: "face-pencil.svg" },
+  { id: "face-headband", label: "Headband", file: "face-headband.svg" },
   { id: "face-shades", label: "Shades", file: "face-shades.svg" },
   { id: "face-eyepatch", label: "Eye Patch", file: "face-eyepatch.svg" },
   { id: "face-monocle", label: "Monocle", file: "face-monocle.svg" },
@@ -268,23 +273,28 @@ export function partEntry(slot, id) {
   return (PART_LOOKUP[slot] || []).find(part => part.id === id) || null;
 }
 
+export const BASE_BODY_FILE = "base-body.svg";
+
 export function resolveLayers(design) {
   const layers = [];
   const back = partEntry("back", design.back);
   if (back?.file) layers.push(back.file);
   const hair = partEntry("hair", design.hair);
   if (hair?.back) layers.push(hair.back);
+  layers.push(BASE_BODY_FILE);
   const body = partEntry("body", design.body);
   if (body?.file) layers.push(body.file);
+  if (back?.front) layers.push(back.front);
   const shoes = partEntry("shoes", design.shoes);
   if (shoes?.file) layers.push(shoes.file);
-  if (hair?.front) layers.push(hair.front);
+  const face = partEntry("face", design.face);
+  if (face?.file && face.layer === "under") layers.push(face.file);
   const eyes = partEntry("eyes", design.eyes);
   if (eyes?.file) layers.push(eyes.file);
   const mouth = partEntry("mouth", design.mouth);
   if (mouth?.file) layers.push(mouth.file);
-  const face = partEntry("face", design.face);
-  if (face?.file) layers.push(face.file);
+  if (hair?.front) layers.push(hair.front);
+  if (face?.file && face.layer !== "under") layers.push(face.file);
   return layers;
 }
 
@@ -307,11 +317,12 @@ export function defaultDesign() {
       pantsDark: FABRIC[4][1],
       hair: HAIR[1][0],
       hairDark: HAIR[1][1],
-      shoes: FABRIC[10][0],
-      shoesDark: FABRIC[10][1],
+      shoes: FABRIC[6][0],
+      shoesDark: FABRIC[6][1],
       accent: FABRIC[8][0],
       accentDark: FABRIC[8][1],
-      face: FACE[0][0],
+      face: FACE[1][0],
+      faceDark: FACE[1][1],
     },
   };
 }
@@ -330,7 +341,7 @@ export const STARTER_PRESETS = [
         hair: "#6b3f22", hairDark: "#482814",
         shoes: "#a63f3f", shoesDark: "#772828",
         accent: "#4f8fc0", accentDark: "#356a94",
-        face: "#e07a7a",
+        face: "#e07a7a", faceDark: "#b45252",
       },
     },
   },
@@ -347,7 +358,7 @@ export const STARTER_PRESETS = [
         hair: "#7a4b8f", hairDark: "#563364",
         shoes: "#2b2b2b", shoesDark: "#141414",
         accent: "#5a9ad0", accentDark: "#3a6b9a",
-        face: "#efeae0",
+        face: "#efeae0", faceDark: "#c2bcae",
       },
     },
   },
@@ -364,7 +375,7 @@ export const STARTER_PRESETS = [
         hair: "#4f8a4a", hairDark: "#356330",
         shoes: "#6b6b2f", shoesDark: "#4a4a1f",
         accent: "#c79a3a", accentDark: "#936f24",
-        face: "#2b2b2b",
+        face: "#2b2b2b", faceDark: "#161616",
       },
     },
   },
@@ -395,7 +406,7 @@ export function randomDesign(rng = Math.random) {
       hair: hairPair[0], hairDark: hairPair[1],
       shoes: shoePair[0], shoesDark: shoePair[1],
       accent: accentPair[0], accentDark: accentPair[1],
-      face: facePair[0],
+      face: facePair[0], faceDark: facePair[1],
     },
   };
 }
@@ -412,6 +423,9 @@ export function hydrateDesign(partial) {
   }
   design.version = DESIGN_VERSION;
   design.colors = { ...base.colors, ...(partial.colors && typeof partial.colors === "object" ? partial.colors : {}) };
+  if (typeof design.colors.faceDark !== "string" || design.colors.faceDark.length !== 7) {
+    design.colors.faceDark = darken(design.colors.face);
+  }
   return design;
 }
 

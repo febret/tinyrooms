@@ -45,6 +45,7 @@ _COLOR_SLOTS = (
     "accent",
     "accentDark",
     "face",
+    "faceDark",
 )
 
 
@@ -54,6 +55,15 @@ def custom_sticker_name(account_id: str) -> str:
     if not _ACCOUNT_ID_PATTERN.match(account_id):
         raise ValueError("Unknown account.")
     return f"{CUSTOM_STICKER_PREFIX}{account_id}.png"
+
+
+def _darken_hex(value: str, amount: float = 0.28) -> str:
+    """Return a slightly darker version of a validated #rrggbb color."""
+
+    channels = [int(value[index:index + 2], 16) for index in (1, 3, 5)]
+    return "#" + "".join(
+        f"{max(0, round(channel * (1 - amount))):02x}" for channel in channels
+    )
 
 
 def normalize_design(design: object) -> str:
@@ -75,6 +85,9 @@ def normalize_design(design: object) -> str:
     colors: dict[str, str] = {}
     for slot in _COLOR_SLOTS:
         value = colors_raw.get(slot)
+        if slot == "faceDark" and value is None:
+            colors[slot] = _darken_hex(colors["face"])
+            continue
         if not isinstance(value, str) or not _COLOR_PATTERN.match(value):
             raise ValueError(f"Invalid sticker design color '{slot}'.")
         colors[slot] = value.lower()

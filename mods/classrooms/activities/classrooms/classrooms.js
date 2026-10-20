@@ -1,4 +1,5 @@
 import { GRADE_COUNT, floorsOf, gradeName, isAcquirable } from "./classroom-floors.js";
+import { podiumOrder } from "./standings.js";
 
 const Tiny = window.TinyActivity;
 
@@ -410,29 +411,61 @@ function renderStandings(payload) {
     empty.textContent = "No lessons this quarter yet. Be the first!";
     standingsList.append(empty);
   } else {
-    for (const entry of board) {
-      const row = document.createElement("li");
-      row.className = `standings-row${entry.is_you ? " you" : ""}`;
-      const rank = document.createElement("span");
-      rank.className = "standings-rank";
-      rank.textContent = String(entry.rank ?? "");
-      const sticker = document.createElement("img");
-      sticker.className = "standings-sticker";
-      sticker.alt = "";
-      sticker.src = withBase(`/assets/stickers/${entry.sticker || "s1.png"}`);
-      const name = document.createElement("span");
-      name.className = "standings-name";
+    const order = podiumOrder(board.length);
+    board.forEach((entry, index) => {
+      const rankValue = Number(entry.rank) || index + 1;
       const lessonsCount = Number(entry.lessons) || 0;
-      name.textContent = `${entry.username || "A teacher"}${entry.is_you ? " (You)" : ""} `;
-      const detail = document.createElement("span");
-      detail.textContent = `· ${lessonsCount} lesson${lessonsCount === 1 ? "" : "s"}`;
-      name.append(detail);
+      const gpaValue = Number(entry.average_gpa || 0).toFixed(2);
+      const username = String(entry.username || "A teacher");
+      const youSuffix = entry.is_you ? " (You)" : "";
+
+      const row = document.createElement("li");
+      row.className = `standing${entry.is_you ? " you" : ""}`;
+      row.dataset.rank = String(rankValue);
+      row.style.order = String(order[index] ?? index);
+      row.setAttribute(
+        "aria-label",
+        `Rank ${rankValue}: ${username}${youSuffix}, ${gpaValue} GPA, ${lessonsCount} lesson${lessonsCount === 1 ? "" : "s"}`,
+      );
+
+      const stickerWrap = document.createElement("span");
+      stickerWrap.className = "standing-sticker-wrap";
+      const sticker = document.createElement("img");
+      sticker.className = "standing-sticker";
+      sticker.alt = "";
+      const stickerName = String(entry.sticker || "s1.png");
+      const fallbackSticker = withBase("/assets/stickers/s1.png");
+      sticker.src = withBase(`/assets/stickers/${stickerName}`);
+      if (stickerName !== "s1.png") {
+        sticker.addEventListener("error", () => {
+          sticker.src = fallbackSticker;
+        }, { once: true });
+      }
+      stickerWrap.append(sticker);
+      const rank = document.createElement("span");
+      rank.className = "standing-rank";
+      rank.setAttribute("aria-hidden", "true");
+      rank.textContent = String(rankValue);
+      stickerWrap.append(rank);
+
+      const pedestal = document.createElement("div");
+      pedestal.className = "standing-pedestal";
+      pedestal.setAttribute("aria-hidden", "true");
       const gpa = document.createElement("span");
-      gpa.className = "standings-gpa";
-      gpa.textContent = Number(entry.average_gpa || 0).toFixed(2);
-      row.append(rank, sticker, name, gpa);
+      gpa.className = "standing-gpa";
+      gpa.textContent = gpaValue;
+      pedestal.append(gpa);
+
+      const name = document.createElement("span");
+      name.className = "standing-name";
+      name.textContent = `${username}${youSuffix}`;
+      const detail = document.createElement("span");
+      detail.className = "standing-lessons";
+      detail.textContent = `${lessonsCount} lesson${lessonsCount === 1 ? "" : "s"}`;
+
+      row.append(stickerWrap, pedestal, name, detail);
       standingsList.append(row);
-    }
+    });
   }
 
   const average = Number(payload.average_gpa);

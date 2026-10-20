@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3">
-    <ellipse cx="100" cy="122" rx="13" ry="10" fill="#241a12"/>
-    <path d="M92 128 C95 134 105 134 108 128 Z" fill="{{face}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"><ellipse cx="100" cy="123" rx="13" ry="10.5" fill="#241a12"/><path d="M90 128 C94 135 106 135 110 128 C106 125 94 125 90 128 Z" fill="{{face}}"/><path d="M92 126 C96 129 104 129 108 126" fill="none" stroke="{{faceDark}}" stroke-width="1.4"/></g><g fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.55"><path d="M91 120 C94 118 98 117 100 117"/><path d="M109 120 C106 118 102 117 100 117"/></g></svg>

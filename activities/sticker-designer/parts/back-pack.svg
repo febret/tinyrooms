@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <rect x="72" y="140" width="56" height="54" rx="14" fill="{{accent}}"/>
-    <path d="M100 140 L100 194" fill="none" stroke="{{accentDark}}"/>
-    <rect x="82" y="160" width="36" height="20" rx="6" fill="{{accentDark}}"/>
-    <path d="M78 142 C74 130 80 122 90 120" fill="none" stroke="{{accentDark}}"/>
-    <path d="M122 142 C126 130 120 122 110 120" fill="none" stroke="{{accentDark}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="62" y="130" width="76" height="70" rx="18" fill="{{accent}}"/><path d="M62 154 C62 138 76 128 100 128 C124 128 138 138 138 154" fill="{{accentDark}}"/><rect x="72" y="164" width="24" height="20" rx="7" fill="{{accentDark}}"/><rect x="104" y="164" width="24" height="20" rx="7" fill="{{accentDark}}"/></g><g fill="none" stroke="{{accentDark}}" stroke-width="2.2" stroke-linecap="round"><path d="M100 132 L100 194"/><path d="M76 173 L92 173"/><path d="M108 173 L124 173"/></g><g fill="{{accentDark}}" stroke="#241a12" stroke-width="2"><rect x="76" y="137" width="10" height="5" rx="2"/><rect x="114" y="137" width="10" height="5" rx="2"/></g><g fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.28"><path d="M70 146 C76 138 86 134 98 134"/></g></svg>

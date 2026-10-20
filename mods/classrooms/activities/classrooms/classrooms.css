@@ -45,14 +45,31 @@
 .standings-head h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .04em; color: #f4c430; }
 .standings-quarter { font-size: 11px; color: var(--muted); white-space: nowrap; }
 .standings-best { margin: 0; font-size: 11px; color: var(--gold); }
-.standings-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; max-height: 30vh; overflow-y: auto; }
-.standings-row { display: grid; grid-template-columns: 22px 30px 1fr auto; align-items: center; gap: 7px; padding: 3px 6px; border-radius: 7px; background: #0a1733; border: 1px solid #2b4c9b55; font-size: 12px; }
-.standings-row.you { border-color: var(--gold); box-shadow: 0 0 0 1px #e0b35255; }
-.standings-rank { font-weight: 700; color: #f4c430; text-align: center; }
-.standings-sticker { width: 28px; height: 28px; border-radius: 50%; object-fit: contain; background: #12244d; }
-.standings-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.standings-name span { color: var(--muted); font-size: 11px; }
-.standings-gpa { font-weight: 700; color: #f7dc7a; white-space: nowrap; }
+.standings-list { margin: 0; padding: 6px 2px 2px; list-style: none; display: flex; align-items: flex-end; justify-content: center; gap: clamp(4px, 1.6vw, 16px); overflow-x: auto; overflow-y: hidden; border-radius: 8px; background: radial-gradient(ellipse at 50% 100%, #f4c43014, transparent 70%); scrollbar-color: #3f63b5 #0a1733; }
+.standing { --sticker-size: clamp(44px, 7vw, 64px); --pedestal-height: 14px; position: relative; flex: 1 1 0; min-width: 62px; max-width: 118px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 2px; text-align: center; }
+.standing[data-rank="1"] { --sticker-size: clamp(64px, 11vw, 96px); --pedestal-height: 30px; flex-grow: 1.5; }
+.standing[data-rank="2"], .standing[data-rank="3"] { --sticker-size: clamp(52px, 9vw, 78px); --pedestal-height: 21px; flex-grow: 1.15; }
+.standing[data-rank="4"], .standing[data-rank="5"] { --sticker-size: clamp(44px, 7vw, 64px); --pedestal-height: 14px; }
+.standing-sticker-wrap { position: relative; display: grid; place-items: center; width: min(calc(var(--sticker-size) + 14px), 100%); aspect-ratio: 1; border-radius: 50%; border: 1px solid #ffffff22; background: radial-gradient(circle at 50% 38%, #ffffff22, #0a1733dd 68%); box-shadow: inset 0 1px 0 #ffffff2b, 0 4px 8px #0006; }
+.standing[data-rank="1"] .standing-sticker-wrap { border-color: #f4c430aa; background: radial-gradient(circle at 50% 35%, #fff0b855, #3a2a08cc 70%); box-shadow: 0 0 18px #f4c43066, inset 0 1px 0 #ffffff44; }
+.standing[data-rank="2"] .standing-sticker-wrap { border-color: #c8d3df88; background: radial-gradient(circle at 50% 35%, #eef4ff44, #17202fdd 70%); }
+.standing[data-rank="3"] .standing-sticker-wrap { border-color: #d9955b88; background: radial-gradient(circle at 50% 35%, #ffd6af44, #2a1a0ddd 70%); }
+.standing.you .standing-sticker-wrap { border-color: var(--gold); box-shadow: 0 0 0 1px #f4c43088, 0 4px 8px #0006; }
+.standing-sticker { width: calc(100% - 14px); height: calc(100% - 14px); object-fit: contain; filter: drop-shadow(0 4px 3px #0008); }
+.standing-rank { position: absolute; top: -1px; right: -1px; min-width: 20px; height: 20px; padding: 0 4px; display: grid; place-items: center; border-radius: 999px; border: 1px solid #ffffffcc; background: var(--gold); color: #10224d; font-size: 11px; font-weight: 700; box-shadow: 0 2px 4px #0007; }
+.standing[data-rank="2"] .standing-rank { background: #c8d3df; }
+.standing[data-rank="3"] .standing-rank { background: #d9955b; }
+.standing[data-rank="4"] .standing-rank, .standing[data-rank="5"] .standing-rank { background: #9fb3c8; }
+.standing-pedestal { width: 100%; height: var(--pedestal-height); min-height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 6px 6px 3px 3px; border: 1px solid #ffffff1f; border-bottom-color: #00000055; background: linear-gradient(180deg, #3b5c9e, #1a2f5c); box-shadow: inset 0 1px 0 #ffffff2e, 0 3px 5px #0005; }
+.standing[data-rank="1"] .standing-pedestal { border-color: #fff4b866; background: linear-gradient(180deg, #ffdd70, #a87716); }
+.standing[data-rank="2"] .standing-pedestal { border-color: #ffffff66; background: linear-gradient(180deg, #e8eef6, #8d9bad); }
+.standing[data-rank="3"] .standing-pedestal { border-color: #ffd0a566; background: linear-gradient(180deg, #e8a46c, #9a5a2d); }
+.standing.you .standing-pedestal { box-shadow: 0 0 0 1px #f4c43099, 0 3px 5px #0005; }
+.standing-gpa { font-size: clamp(10px, 1.5vw, 13px); font-weight: 700; color: #10224d; text-shadow: 0 1px 0 #ffffff55; }
+.standing[data-rank="4"] .standing-gpa, .standing[data-rank="5"] .standing-gpa { color: #eef4ff; text-shadow: 0 1px 2px #0008; }
+.standing-name { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #eef4ff; font-size: 11px; text-shadow: 0 1px 2px #000a; }
+.standing.you .standing-name { color: var(--gold); font-weight: 700; }
+.standing-lessons { color: var(--muted); font-size: 10px; white-space: nowrap; }
 .standings-empty { margin: 0; padding: 6px; font-size: 11px; color: var(--muted); text-align: center; }
 .designer { display: flex; flex-direction: column; gap: 8px; }
 .designer-head { display: flex; align-items: center; justify-content: space-between; }
@@ -72,6 +89,8 @@
 .designer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .lock-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 @media (max-width: 480px) {
+  .standings-list { gap: 3px; padding-left: 0; padding-right: 0; }
+  .standing { min-width: 56px; }
   .designer-body { flex-direction: column; }
   .designer-preview { flex: 0 0 auto; width: 108px; align-self: center; }
 }

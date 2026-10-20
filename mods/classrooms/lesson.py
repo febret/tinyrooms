@@ -26,6 +26,7 @@ from mods.classrooms.lessons import (
     starting_attention,
     starting_energy,
 )
+from mods.classrooms.roster import load_student_manifest, random_roster
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.cutscenes import deliver, play_cutscene
 from server.commands.outcomes import (
@@ -44,41 +45,9 @@ from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import PlayerRoomRecord, WorldStateRepository
 
 
-FIRST_NAMES = (
-    "Jack",
-    "Jill",
-    "Lisa",
-    "Tom",
-    "Luca",
-    "Jimmy",
-    "Lana",
-    "Rose",
-    "Blue",
-    "Red",
-    "Gigi",
-    "Toto",
-    "Tato",
-    "Robert",
-)
-LAST_NAMES = (
-    "Pesto",
-    "Spaghetto",
-    "Toto",
-    "Tato",
-    "Crickets",
-    "Hearts",
-    "Malinki",
-    "BamBam",
-    "Obert",
-)
-
-STUDENTS_PER_GRADE = 15
 CLASS_SIZE = 5
 STUDENT_SCRIPT = "student.py"
 BOPS_PER_GPA = 5
-# Random peep sticker images composed by tools/generate_student_stickers.mjs
-# from the sticker designer's own part catalog.
-AVATARS = tuple(f"student-sticker-{index:02d}.svg" for index in range(1, 41))
 
 SESSION_ACTIVE = "active"
 
@@ -138,10 +107,16 @@ class LessonService:
     # -- Setup ---------------------------------------------------------------
 
     def prepare(self) -> None:
-        """Generate the roster if needed and register every student as a peep."""
+        """Load the authored roster (or generate a fallback) and register peeps."""
 
-        if not self._repo.has_roster():
-            self._repo.insert_students(self._generate_roster())
+        manifest = load_student_manifest(self._world.root_path)
+        if manifest is not None:
+            current = [student.to_payload() for student in self._repo.all_students()]
+            wanted = [student.to_payload() for student in manifest]
+            if current != wanted:
+                self._repo.insert_students(manifest)
+        elif not self._repo.has_roster():
+            self._repo.insert_students(random_roster())
         for student in self._repo.all_students():
             self._register_student(student)
         self._peep_states.sync_world(self._world)
@@ -171,37 +146,6 @@ class LessonService:
         loves = " and ".join(SUBJECT_LABELS.get(subject, subject) for subject in student.favorites) or "school"
         tricky = SUBJECT_LABELS.get(student.tricky, student.tricky)
         return f"A Grade {student.grade} student. Loves {loves}. Finds {tricky} tricky."
-
-    def _generate_roster(self) -> list[StudentRecord]:
-        """Create a fresh roster of unique students for every grade."""
-
-        combos = [(first, last) for first in FIRST_NAMES for last in LAST_NAMES]
-        random.shuffle(combos)
-        students: list[StudentRecord] = []
-        cursor = 0
-        for grade in range(1, 9):
-            for index in range(STUDENTS_PER_GRADE):
-                if cursor < len(combos):
-                    first_name, last_name = combos[cursor]
-                else:
-                    first_name, last_name = random.choice(FIRST_NAMES), random.choice(LAST_NAMES)
-                cursor += 1
-                favorites = tuple(random.sample(SUBJECT_IDS, k=2))
-                tricky = random.choice([subject for subject in SUBJECT_IDS if subject not in favorites])
-                trait = random.choice(("superfocused", "head-in-the-clouds", "extra-gas", "bad-sleeper", "runs-hot")) if random.random() < 0.5 else None
-                students.append(
-                    StudentRecord(
-                        student_id=f"student:{grade}:{index:02d}",
-                        grade=grade,
-                        first_name=first_name,
-                        last_name=last_name,
-                        favorites=favorites,
-                        tricky=tricky,
-                        trait=trait,
-                        avatar=random.choice(AVATARS),
-                    )
-                )
-        return students
 
     # -- Quick actions -------------------------------------------------------
 

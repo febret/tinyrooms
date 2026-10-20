@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="2.8" stroke-linejoin="round">
-    <path d="M62 96 C58 116 62 134 78 142 C86 146 114 146 122 142 C138 134 142 116 138 96 C134 108 130 114 124 116 C122 128 112 134 100 134 C88 134 78 128 76 116 C70 114 66 108 62 96 Z" fill="{{face}}"/>
-    <path d="M88 112 C92 110 108 110 112 112" fill="none" stroke="{{face}}" stroke-width="4" stroke-linecap="round"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round"><path d="M61 98 C58 116 62 134 78 143 C86 147 92 148 100 148 C108 148 114 147 122 143 C138 134 142 116 139 98 C136 109 131 116 124 119 C121 128 117 132 111 134 C107 136 103 136 100 136 C97 136 93 136 89 134 C83 132 79 128 76 119 C69 116 64 109 61 98 Z" fill="{{face}}"/><path d="M68 112 C70 122 74 130 80 136" fill="none" stroke="{{faceDark}}" stroke-width="1.7" opacity="0.6"/><path d="M132 112 C130 122 126 130 120 136" fill="none" stroke="{{faceDark}}" stroke-width="1.7" opacity="0.6"/><path d="M80 141 C86 145 93 147 100 147" fill="none" stroke="{{faceDark}}" stroke-width="1.6" opacity="0.45"/><path d="M120 141 C114 145 107 147 100 147" fill="none" stroke="{{faceDark}}" stroke-width="1.6" opacity="0.45"/><path d="M86 124 C90 127 94 128 100 128 C106 128 110 127 114 124" fill="none" stroke="{{faceDark}}" stroke-width="1.4" opacity="0.35"/></g></svg>

@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M78 190 L97 190 L98 202 C103 204 108 208 108 213 C108 215 106 216 103 216 L80 216 C77 216 76 214 76 211 Z" fill="{{shoes}}"/>
-    <path d="M122 190 L103 190 L102 202 C97 204 92 208 92 213 C92 215 94 216 97 216 L120 216 C123 216 124 214 124 211 Z" fill="{{shoes}}"/>
-    <path d="M76 208 L108 208 L108 212 L76 212 Z" fill="{{shoesDark}}"/>
-    <path d="M124 208 L92 208 L92 212 L124 212 Z" fill="{{shoesDark}}"/>
-    <circle cx="85" cy="215" r="4" fill="{{shoesDark}}"/>
-    <circle cx="99" cy="215" r="4" fill="{{shoesDark}}"/>
-    <circle cx="115" cy="215" r="4" fill="{{shoesDark}}"/>
-    <circle cx="101" cy="215" r="4" fill="{{shoesDark}}"/>
-    <path d="M82 196 L96 196 M104 196 L118 196" fill="none" stroke="{{shoesDark}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g transform="translate(0,3)"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M76 191 L97 191 L98 204 C103 206 106 209 106 213 L106 216 L73 216 L73 201 Z" fill="{{shoes}}"/><path d="M124 191 L103 191 L102 204 C97 206 94 209 94 213 L94 216 L127 216 L127 201 Z" fill="{{shoes}}"/><path d="M73 207 L106 207 L106 212 L73 212 Z" fill="{{shoesDark}}"/><path d="M127 207 L94 207 L94 212 L127 212 Z" fill="{{shoesDark}}"/></g><g fill="{{shoesDark}}" stroke="#241a12" stroke-width="2.2"><circle cx="79" cy="214" r="3.2"/><circle cx="90" cy="214" r="3.2"/><circle cx="99" cy="214" r="3.2"/><circle cx="121" cy="214" r="3.2"/><circle cx="110" cy="214" r="3.2"/><circle cx="101" cy="214" r="3.2"/></g><g fill="#f5f0df" stroke="none"><circle cx="79" cy="214" r="1"/><circle cx="90" cy="214" r="1"/><circle cx="99" cy="214" r="1"/><circle cx="121" cy="214" r="1"/><circle cx="110" cy="214" r="1"/><circle cx="101" cy="214" r="1"/></g><g fill="none" stroke="{{shoesDark}}" stroke-width="2" stroke-linecap="round"><path d="M80 198 L95 198"/><path d="M120 198 L105 198"/></g><g stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" opacity="0.5"><path d="M78 194 L95 194"/><path d="M122 194 L105 194"/></g></g></svg>

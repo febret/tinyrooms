@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3">
-    <circle cx="82" cy="96" r="9" fill="{{face}}"/>
-    <circle cx="118" cy="96" r="9" fill="{{face}}"/>
-    <circle cx="82" cy="96" r="3.4" fill="#241a12" stroke="none"/>
-    <circle cx="118" cy="96" r="3.4" fill="#241a12" stroke="none"/>
-    <g fill="#ffffff" stroke="none">
-      <path d="M78 90 L79.4 93.4 L83 94 L79.4 95 L78 98.4 L76.6 95 L73 94 L76.6 93.4 Z"/>
-      <path d="M114 90 L115.4 93.4 L119 94 L115.4 95 L114 98.4 L112.6 95 L109 94 L112.6 93.4 Z"/>
-    </g>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="82" cy="96" r="9.5" fill="{{face}}"/><circle cx="118" cy="96" r="9.5" fill="{{face}}"/><circle cx="82" cy="96" r="4" fill="#241a12" stroke="none"/><circle cx="118" cy="96" r="4" fill="#241a12" stroke="none"/><path d="M77 88 L79 92 L83 93 L79 94.5 L77 98.5 L75.5 94.5 L71.5 93 L75.5 92 Z" fill="#ffffff" stroke="none"/><path d="M113 88 L115 92 L119 93 L115 94.5 L113 98.5 L111.5 94.5 L107.5 93 L111.5 92 Z" fill="#ffffff" stroke="none"/><circle cx="121" cy="101" r="1.6" fill="#ffffff" stroke="none"/><circle cx="85" cy="101" r="1.2" fill="#ffffff" stroke="none"/></g></svg>

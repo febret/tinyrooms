@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M74 136 C56 150 46 184 50 214 L150 214 C154 184 144 150 126 136 C120 148 110 154 100 154 C90 154 80 148 74 136 Z" fill="{{accent}}"/>
-    <path d="M74 136 C80 148 90 154 100 154 C110 154 120 148 126 136" fill="none" stroke="{{accentDark}}"/>
-    <path d="M100 156 L100 212" fill="none" stroke="{{accentDark}}"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M74 136 C54 152 44 186 48 216 L152 216 C156 186 146 152 126 136 C120 150 110 156 100 156 C90 156 80 150 74 136 Z" fill="{{accent}}"/></g><g stroke="none"><path d="M74 140 C60 160 54 190 56 214 L48 216 C44 186 54 152 74 136 Z" fill="{{accentDark}}" opacity="0.4"/><path d="M100 158 L100 214" stroke="{{accentDark}}" stroke-width="2" opacity="0.5"/></g><g fill="none" stroke="{{accentDark}}" stroke-width="2.2" stroke-linecap="round"><path d="M80 150 C70 168 64 192 64 214"/><path d="M120 150 C130 168 136 192 136 214"/><path d="M72 138 C80 150 90 156 100 156 C110 156 120 150 128 138"/></g><g fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.2"><path d="M84 158 C76 176 72 196 72 210"/></g></svg>

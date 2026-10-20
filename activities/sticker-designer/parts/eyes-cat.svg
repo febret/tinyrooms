@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round">
-    <path d="M70 96 C74 86 90 86 94 96 C90 106 74 106 70 96 Z" fill="{{face}}"/>
-    <path d="M106 96 C110 86 126 86 130 96 C126 106 110 106 106 96 Z" fill="{{face}}"/>
-    <ellipse cx="82" cy="96" rx="2" ry="6.5" fill="#241a12" stroke="none"/>
-    <ellipse cx="118" cy="96" rx="2" ry="6.5" fill="#241a12" stroke="none"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g stroke="#241a12" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M69 96 C73 84 91 84 95 96 C91 108 73 108 69 96 Z" fill="{{face}}"/><path d="M105 96 C109 84 127 84 131 96 C127 108 109 108 105 96 Z" fill="{{face}}"/><path d="M82 86 L82 90" stroke-width="2"/><path d="M118 86 L118 90" stroke-width="2"/><ellipse cx="82" cy="96" rx="2.2" ry="7" fill="#241a12" stroke="none"/><ellipse cx="118" cy="96" rx="2.2" ry="7" fill="#241a12" stroke="none"/><circle cx="81" cy="91" r="1.2" fill="#ffffff" stroke="none"/><circle cx="117" cy="91" r="1.2" fill="#ffffff" stroke="none"/></g></svg>

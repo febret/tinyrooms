@@ -21,11 +21,15 @@ from mods.classrooms.lessons import (
     topic_energy_cost,
 )
 
-# Five students each roll once per tick, so ~1/5 per tick is one comment per
-# five seconds across the class.
+# Students each roll once per 1-second tick. The room-wide cooldown below keeps
+# ambient chatter to at most one comment every five seconds in a class.
 COMMENT_CHANCE = 0.04
+CLASSROOM_CHAT_INTERVAL = timedelta(seconds=5)
+TOPIC_REACTION_LIMIT = 2
 CAFETERIA_MOVE_INTERVAL = (10.0, 15.0)
 CAFETERIA_COMMENT_CHANCE = 0.012
+
+_last_classroom_chat: dict[str, datetime] = {}
 
 CAFETERIA_LINES = (
     "These fries are so good.",
@@ -122,6 +126,46 @@ def _say(context, text: str, style: str = "expression") -> None:
     context.npc_say(text, style=style)
 
 
+def _claim_classroom_chat(context, event) -> bool:
+    """Claim the room's ambient-chatter slot when five seconds have passed."""
+
+    room_id = str(event.room_id or "")
+    if not room_id:
+        return False
+    previous = _last_classroom_chat.get(room_id)
+    if previous is not None and context.now - previous < CLASSROOM_CHAT_INTERVAL:
+        return False
+    _last_classroom_chat[room_id] = context.now
+    return True
+
+
+def _topic_reactor_ids(context, event) -> set[str]:
+    """Return at most two student ids chosen to react to this topic."""
+
+    student_ids = sorted(
+        str(peep.get("id", ""))
+        for peep in (context.room.get("peeps") or [])
+        if str(peep.get("id", "")).startswith("student:")
+    )
+    targeted = getattr(getattr(event, "target", None), "peep_id", None)
+    if isinstance(targeted, str) and targeted in student_ids:
+        return {targeted}
+    if len(student_ids) <= TOPIC_REACTION_LIMIT:
+        return set(student_ids)
+    card_id = context.card.id if context.card is not None else ""
+    seed = sum((index + 1) * ord(char) for index, char in enumerate(card_id)) + id(event)
+    start = seed % len(student_ids)
+    return {
+        student_ids[(start + offset) % len(student_ids)]
+        for offset in range(TOPIC_REACTION_LIMIT)
+    }
+
+
+def _may_react_to_topic(context, event) -> bool:
+    peep_id = getattr(context.target, "peep_id", None)
+    return isinstance(peep_id, str) and peep_id in _topic_reactor_ids(context, event)
+
+
 def on_card_play(context, event):
     """React to a topic taught to the class."""
 
@@ -158,6 +202,11 @@ def on_card_play(context, event):
     if subject not in topics:
         topics.append(subject)
     state["topics"] = topics
+
+    if not _may_react_to_topic(context, event):
+        return
+    if event.room_id:
+        _last_classroom_chat[event.room_id] = context.now
 
     display = SUBJECT_LABELS.get(subject, subject)
     if energy <= VERY_TIRED_ENERGY:
@@ -202,7 +251,7 @@ def _cafeteria_tick(context, event):
 
 
 def on_tick(context, event):
-    """Comment on the class at an average of about one line per five seconds."""
+    """Comment on the class at most once every five seconds."""
 
     if context.sprites_enabled:
         _cafeteria_tick(context, event)
@@ -220,6 +269,8 @@ def on_tick(context, event):
         state["attention"] = attention
 
     if random.random() >= COMMENT_CHANCE:
+        return
+    if not _claim_classroom_chat(context, event):
         return
     favorites = tuple(item for item in state.get("favorites", []) if isinstance(item, str))
     subjects = [item for item in state.get("topics", []) if isinstance(item, str)]

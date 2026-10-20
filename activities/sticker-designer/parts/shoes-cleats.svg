@@ -1,10 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220">
-  <g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M76 204 C76 199 82 196 89 196 L97 196 C104 196 108 200 109 206 L110 211 L76 211 Z" fill="{{shoes}}"/>
-    <path d="M124 204 C124 199 118 196 111 196 L103 196 C96 196 92 200 91 206 L90 211 L124 211 Z" fill="{{shoes}}"/>
-    <path d="M76 208 L110 208 L110 212 L76 212 Z" fill="{{shoesDark}}"/>
-    <path d="M124 208 L90 208 L90 212 L124 212 Z" fill="{{shoesDark}}"/>
-    <path d="M82 199 L96 199 M104 199 L118 199" fill="none" stroke="{{shoesDark}}"/>
-    <path d="M80 212 L80 217 M92 212 L92 217 M104 212 L104 217 M116 212 L116 217" fill="none" stroke="{{shoesDark}}" stroke-width="2.4"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="220" viewBox="0 0 200 220"><g transform="translate(0,3)"><g stroke="#241a12" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M71 204 C71 199 78 196 85 196 L91 196 C96 196 99 199 99 204 L100 210 L71 210 Z" fill="{{shoes}}"/><path d="M129 204 C129 199 122 196 115 196 L109 196 C104 196 101 199 101 204 L100 210 L129 210 Z" fill="{{shoes}}"/><path d="M71 207 L100 207 L100 212 L71 212 Z" fill="{{shoesDark}}"/><path d="M129 207 L100 207 L100 212 L129 212 Z" fill="{{shoesDark}}"/></g><g fill="none" stroke="{{shoesDark}}" stroke-width="2" stroke-linecap="round"><path d="M78 200 L94 200"/><path d="M122 200 L106 200"/></g><g stroke="#f5f0df" stroke-width="2" stroke-linecap="round"><path d="M80 201 L94 201"/><path d="M120 201 L106 201"/></g><g fill="{{shoesDark}}" stroke="#241a12" stroke-width="1.5"><path d="M76 212 L76 217 L80 217 L80 212 Z"/><path d="M87 212 L87 217 L91 217 L91 212 Z"/><path d="M109 212 L109 217 L113 217 L113 212 Z"/><path d="M120 212 L120 217 L124 217 L124 212 Z"/></g><path d="M74 205 C84 209 116 209 126 205" fill="none" stroke="#ffffff" stroke-width="1.3" opacity="0.3"/></g></svg>
