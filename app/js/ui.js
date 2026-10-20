@@ -33,7 +33,7 @@ import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createEditorActions } from "./editor-actions.js";
 import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
-import { BUBBLE_TIMEOUT_CHOICES, bubbleTimeoutLabel } from "./preferences.js";
+import { BUBBLE_TIMEOUT_CHOICES, bubbleTimeoutLabel, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
 import { cardFaceSvg } from "./card-face.js";
@@ -89,7 +89,64 @@ let renderRevision = 0;
 let refreshPromise = null;
 let targeting = null;
 const canFullscreen = fullscreenSupported();
+const fullscreenButton = $("#fullscreen-toggle");
+let fullscreenFlashTimer = null;
+let fullscreenRestoreArmed = false;
+let leavingPage = false;
 store.dispatch({ type: "fullscreen-state", active: isFullscreen() });
+
+function clearFullscreenFlash() {
+  clearTimeout(fullscreenFlashTimer);
+  fullscreenFlashTimer = null;
+  fullscreenButton?.classList.remove("flash");
+}
+
+function flashFullscreenButton() {
+  if (!fullscreenButton) return;
+  fullscreenButton.classList.remove("flash");
+  // Restart the animation when the button becomes visible again.
+  void fullscreenButton.offsetWidth;
+  fullscreenButton.classList.add("flash");
+  clearTimeout(fullscreenFlashTimer);
+  fullscreenFlashTimer = setTimeout(clearFullscreenFlash, 2000);
+}
+
+function syncFullscreenButton(state) {
+  if (!fullscreenButton) return;
+  const visible = Boolean(state.loggedIn && canFullscreen && !state.ui.fullscreen);
+  fullscreenButton.hidden = !visible;
+  if (!visible) {
+    clearFullscreenFlash();
+    return;
+  }
+  if (!fullscreenButton.dataset.flashed) {
+    fullscreenButton.dataset.flashed = "true";
+    flashFullscreenButton();
+  }
+}
+
+function armFullscreenRestoreFallback() {
+  if (fullscreenRestoreArmed) return;
+  fullscreenRestoreArmed = true;
+  const cleanup = () => {
+    document.removeEventListener("pointerdown", retry, true);
+    document.removeEventListener("keydown", retry, true);
+  };
+  const retry = event => {
+    if (event?.target && fullscreenButton?.contains(event.target)) return;
+    cleanup();
+    if (savedFullscreenIntent() && !isFullscreen() && canFullscreen) {
+      enterFullscreen().catch(() => {});
+    }
+  };
+  document.addEventListener("pointerdown", retry, true);
+  document.addEventListener("keydown", retry, true);
+}
+
+function restoreFullscreenIntent() {
+  if (!canFullscreen || !savedFullscreenIntent() || isFullscreen()) return;
+  enterFullscreen().catch(armFullscreenRestoreFallback);
+}
 
 function playTone(kind = "tap") {
   playSound(kind, store.getState().ui.soundEnabled);
@@ -1025,6 +1082,7 @@ async function render(state) {
   targeting?.sync(state);
   renderActionLog(state);
   renderTopBar(state);
+  syncFullscreenButton(state);
   propActionButton.sync(state);
   renderAuth(state);
   renderToasts(state);
@@ -1139,9 +1197,28 @@ document.addEventListener("keydown", event => {
   if (state.views.details) store.dispatch({ type: "close-details" });
   else if (state.views.main) store.dispatch({ type: "close-view" });
 });
-onFullscreenChange(() => store.dispatch({ type: "fullscreen-state", active: isFullscreen() }));
+onFullscreenChange(() => {
+  const active = isFullscreen();
+  store.dispatch({ type: "fullscreen-state", active });
+  // A reload can drop element fullscreen before unload; keep the last intent.
+  if (!leavingPage) saveFullscreenIntent(active);
+});
+fullscreenButton?.addEventListener("click", async () => {
+  if (!canFullscreen) return;
+  settings.open = false;
+  try { await enterFullscreen(); }
+  catch (error) { showError(error); }
+});
+const markLeavingPage = () => {
+  leavingPage = true;
+  if (isFullscreen()) saveFullscreenIntent(true);
+};
+window.addEventListener("beforeunload", markLeavingPage);
+window.addEventListener("pagehide", markLeavingPage);
+window.addEventListener("pageshow", () => { leavingPage = false; });
 store.subscribe((state, action) => {
   if (isTransientEditorAction(action)) { renderEditorTransient(state); return; }
   void render(state).catch(showError);
 });
+restoreFullscreenIntent();
 void loadApp().catch(showError);

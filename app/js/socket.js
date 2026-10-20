@@ -12,12 +12,43 @@ function requestId() {
 }
 
 /** Connect to /ws, route envelopes, and resolve one promise per command request_id. */
-export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onRtcSignal, onSessionReplaced, onProfileResync, onErrorEnvelope, onResult }) {
+export function createSocketClient({
+  onStatus,
+  onSnapshot,
+  onRoomEvent,
+  onRtcSignal,
+  onSessionReplaced,
+  onProfileResync,
+  onErrorEnvelope,
+  onResult,
+  reconnectBaseMs = 1000,
+  reconnectMaxMs = 30000,
+}) {
   let socket = null;
   const pending = new Map();
+  let reconnectTimer = null;
+  let reconnectAttempt = 0;
+  let manualClose = false;
 
   function status(transport) {
     onStatus?.(transport);
+  }
+
+  function clearReconnectTimer() {
+    if (reconnectTimer === null) return;
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  function scheduleReconnect() {
+    if (reconnectTimer !== null) return;
+    reconnectAttempt += 1;
+    const delay = Math.min(reconnectMaxMs, reconnectBaseMs * 2 ** (reconnectAttempt - 1));
+    status({ connected: false, status: "reconnecting", message: "Connection lost. Reconnecting…" });
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      open();
+    }, delay);
   }
 
   function settlePending(envelope) {
@@ -40,68 +71,106 @@ export function createSocketClient({ onStatus, onSnapshot, onRoomEvent, onRtcSig
     socket.send(JSON.stringify(payload));
   }
 
+  function open() {
+    clearReconnectTimer();
+    manualClose = false;
+    status({
+      connected: false,
+      status: reconnectAttempt > 0 ? "reconnecting" : "connecting",
+      message: reconnectAttempt > 0 ? "Reconnecting to the room…" : "Connecting to the room…",
+    });
+    let next;
+    try {
+      next = new WebSocket(websocketUrl());
+    } catch {
+      scheduleReconnect();
+      return;
+    }
+    socket = next;
+    next.onopen = () => {
+      if (socket !== next) return;
+      reconnectAttempt = 0;
+      status({ connected: true, status: "connected", message: "Connected." });
+    };
+    next.onclose = event => {
+      if (socket !== next) return;
+      socket = null;
+      clearPending("The room connection closed.");
+      if (manualClose) return;
+      const message = event.code === 4403
+        ? "World entry is blocked until your sticker is confirmed."
+        : event.code === 4401
+          ? "Sign in again before reconnecting."
+          : "Connection lost.";
+      if (event.code === 4401 || event.code === 4403) {
+        status({ connected: false, status: "closed", message });
+        return;
+      }
+      scheduleReconnect();
+    };
+    next.onerror = () => {
+      if (socket !== next) return;
+      status({ connected: false, status: "error", message: "The room connection encountered an error." });
+    };
+    next.onmessage = event => {
+      const envelope = JSON.parse(String(event.data || "{}"));
+      if (envelope.type === "room.snapshot") {
+        onSnapshot?.(envelope);
+        return;
+      }
+      if (envelope.type === "room.event") {
+        onRoomEvent?.(envelope);
+        return;
+      }
+      if (envelope.type === "rtc.signal") {
+        onRtcSignal?.(envelope);
+        return;
+      }
+      if (envelope.type === "profile.resync") {
+        onProfileResync?.(envelope);
+        return;
+      }
+      if (envelope.type === "session.replaced") {
+        clearPending(envelope.message || "This session was replaced elsewhere.");
+        onSessionReplaced?.(envelope);
+        manualDisconnect();
+        return;
+      }
+      if (envelope.type === "error") {
+        onErrorEnvelope?.(envelope);
+        return;
+      }
+      if (envelope.type === "result") {
+        onResult?.(envelope);
+        settlePending(envelope);
+      }
+    };
+  }
+
+  function manualDisconnect() {
+    manualClose = true;
+    clearReconnectTimer();
+    reconnectAttempt = 0;
+    if (socket) {
+      const current = socket;
+      socket = null;
+      current.onopen = null;
+      current.onclose = null;
+      current.onerror = null;
+      current.onmessage = null;
+      current.close();
+    }
+    clearPending("The room connection was replaced.");
+    status({ connected: false, status: "idle", message: "" });
+  }
+
   return {
     connect() {
-      this.disconnect();
-      status({ connected: false, status: "connecting", message: "Connecting to the room…" });
-      socket = new WebSocket(websocketUrl());
-      socket.onopen = () => {
-        status({ connected: true, status: "connected", message: "Connected." });
-      };
-      socket.onclose = event => {
-        clearPending("The room connection closed.");
-        const message = event.code === 4403
-          ? "World entry is blocked until your sticker is confirmed."
-          : event.code === 4401
-            ? "Sign in again before reconnecting."
-            : "Connection lost.";
-        status({ connected: false, status: "closed", message });
-      };
-      socket.onerror = () => {
-        status({ connected: false, status: "error", message: "The room connection encountered an error." });
-      };
-      socket.onmessage = event => {
-        const envelope = JSON.parse(String(event.data || "{}"));
-        if (envelope.type === "room.snapshot") {
-          onSnapshot?.(envelope);
-          return;
-        }
-        if (envelope.type === "room.event") {
-          onRoomEvent?.(envelope);
-          return;
-        }
-        if (envelope.type === "rtc.signal") {
-          onRtcSignal?.(envelope);
-          return;
-        }
-        if (envelope.type === "profile.resync") {
-          onProfileResync?.(envelope);
-          return;
-        }
-        if (envelope.type === "session.replaced") {
-          clearPending(envelope.message || "This session was replaced elsewhere.");
-          onSessionReplaced?.(envelope);
-          this.disconnect();
-          return;
-        }
-        if (envelope.type === "error") {
-          onErrorEnvelope?.(envelope);
-          return;
-        }
-        if (envelope.type === "result") {
-          onResult?.(envelope);
-          settlePending(envelope);
-        }
-      };
+      manualDisconnect();
+      open();
     },
     disconnect() {
-      if (socket) {
-        socket.onclose = null;
-        socket.close();
-        socket = null;
-      }
-      clearPending("The room connection was replaced.");
-      status({ connected: false, status: "idle", message: "" });
+      manualDisconnect();
     },
     requestSnapshot() {
       try {

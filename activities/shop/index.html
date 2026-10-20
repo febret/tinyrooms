@@ -13,11 +13,11 @@
   <body>
     <main class="shop-shell viewport-column">
       <header class="shop-bar">
-        <div class="shop-brand">
-          <span class="shop-badge">Tinyrooms marketplace</span>
-          <h1>Shop</h1>
-        </div>
-        <label class="shop-search" id="search-wrap">
+        <nav class="shop-tabs" id="tabs" role="tablist" aria-label="Shop sections">
+          <button type="button" class="shop-tab" role="tab" data-tab="cards" aria-selected="true">Cards</button>
+          <button type="button" class="shop-tab" role="tab" data-tab="props" aria-selected="false">Props</button>
+        </nav>
+        <label class="shop-search" id="search-wrap" hidden>
           <span class="shop-search-icon" aria-hidden="true">⌕</span>
           <input id="search" type="search" placeholder="Search props…" aria-label="Search props">
         </label>
@@ -27,10 +27,6 @@
           <span>Bops</span>
         </div>
       </header>
-      <nav class="shop-tabs" id="tabs" role="tablist" aria-label="Shop sections">
-        <button type="button" class="shop-tab" role="tab" data-tab="cards" aria-selected="true">Card Packs</button>
-        <button type="button" class="shop-tab" role="tab" data-tab="props" aria-selected="false">Props</button>
-      </nav>
       <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
       <section class="shop-section shop-cards-section" id="cards-section" role="tabpanel" aria-label="Card packs">
         <div class="shop-grid shop-pack-grid" id="pack-grid" role="list" aria-label="Card packs for sale"></div>

@@ -1,5 +1,6 @@
 const OUTLINE_ACTIVE_PROPS_KEY = "tinyrooms:outline-active-props";
 const BUBBLE_TIMEOUT_KEY = "tinyrooms:bubble-timeout";
+const FULLSCREEN_KEY = "tinyrooms:fullscreen";
 
 export const BUBBLE_TIMEOUT_CHOICES = [15000, 30000, 0];
 
@@ -29,4 +30,14 @@ export function saveBubbleTimeout(timeoutMs) {
 
 export function bubbleTimeoutLabel(timeoutMs) {
   return timeoutMs > 0 ? `${Math.round(timeoutMs / 1000)}s` : "Off";
+}
+
+export function savedFullscreenIntent() {
+  try { return localStorage.getItem(FULLSCREEN_KEY) === "true"; }
+  catch { return false; }
+}
+
+export function saveFullscreenIntent(enabled) {
+  try { localStorage.setItem(FULLSCREEN_KEY, String(Boolean(enabled))); }
+  catch { /* Storage may be unavailable. */ }
 }
