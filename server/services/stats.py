@@ -9,6 +9,7 @@ import sqlite3
 from server.content.cards import NON_EQUIP_TYPES, CardCatalog
 from server.content.gameplay import GameplayContent
 from server.game.buffs import BuffInstance, active_modifiers, expire
+from server.game.decals import decals_payload, normalize_decals
 from server.game.modifiers import Modifier, bonuses_to_modifiers, clamp_counter
 from server.game.state import EffectivePeepState, compute_effective_state
 from server.profiles import AccountRecord, ProfileRepository, UserProfileRecord
@@ -28,6 +29,7 @@ class PeepSnapshot:
     health: float
     energy: float
     cleanliness: float
+    decals: tuple[dict[str, object], ...] = ()
 
     @property
     def statuses(self) -> tuple[str, ...]:
@@ -47,6 +49,7 @@ class PeepSnapshot:
             "max_cleanliness": self.effective.max_cleanliness,
             "stats": self.effective.stats,
             "statuses": list(self.effective.statuses),
+            "decals": decals_payload(list(self.decals)),
         }
 
 
@@ -327,6 +330,7 @@ class StatsService:
             health=health,
             energy=energy,
             cleanliness=cleanliness,
+            decals=normalize_decals(profile.decals),
         )
 
     def reconcile(self, account_id: str) -> PeepSnapshot:
@@ -396,6 +400,7 @@ class StatsService:
             health=health,
             energy=energy,
             cleanliness=cleanliness,
+            decals=normalize_decals(profile.decals),
         )
 
     def reconcile_in_transaction(self, connection: sqlite3.Connection, account_id: str) -> PeepSnapshot:
@@ -551,6 +556,7 @@ class StatsService:
             health=health,
             energy=energy,
             cleanliness=cleanliness,
+            decals=normalize_decals(profile.decals),
         )
 
     def add_buff(self, account_id: str, instance: BuffInstance) -> PeepSnapshot:

@@ -21,6 +21,7 @@ from server.content.cards import CardCatalog
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.content.worlds import WorldDefinition
 from server.game.buffs import BuffInstance, DAILY, TIMED
+from server.game.decals import clear_decals, decals_payload, upsert_decal
 from server.game.buffs import apply_buff as apply_buff_instances
 from server.profiles import ProfileRepository
 from server.protocol import peep_enter_event, peep_leave_event
@@ -416,6 +417,7 @@ class BehaviorDispatcher:
                     "dexterity": snapshot.effective.stat("dexterity"),
                     "health": snapshot.health,
                     "cleanliness": snapshot.cleanliness,
+                    "max_cleanliness": snapshot.effective.max_cleanliness,
                 }
             )
         return users
@@ -562,6 +564,15 @@ class BehaviorDispatcher:
             self._apply_set_counter(connection, payload, context, event, result)
         elif kind == "apply_buff":
             self._apply_buff(connection, payload, context)
+        elif kind in {"apply_decal", "clear_decals"}:
+            self._apply_decals(
+                connection,
+                payload,
+                context,
+                event,
+                result,
+                active=kind == "apply_decal",
+            )
         elif kind == "grant":
             self._apply_grant(connection, payload, context)
         elif kind == "learn_recipes":
@@ -802,6 +813,7 @@ class BehaviorDispatcher:
                         "max_energy": snapshot.effective.max_energy,
                         "max_cleanliness": snapshot.effective.max_cleanliness,
                         "statuses": list(snapshot.statuses),
+                        "decals": decals_payload(list(snapshot.decals)),
                         "source_id": context.actor.account_id,
                     },
                 )
@@ -855,6 +867,7 @@ class BehaviorDispatcher:
                     "max_energy": updated.effective.max_energy,
                     "max_cleanliness": updated.effective.max_cleanliness,
                     "statuses": list(updated.statuses),
+                    "decals": decals_payload(list(updated.decals)),
                     "source_id": context.actor.account_id,
                 },
             )
@@ -892,6 +905,72 @@ class BehaviorDispatcher:
         )
         updated = apply_buff_instances(instances, incoming, now)
         self._profiles.write_buffs(connection, account_id, [item.to_payload() for item in updated])
+
+    def _apply_decals(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        event: BehaviorEvent,
+        result: BehaviorResult,
+        *,
+        active: bool,
+    ) -> None:
+        """Attach, update, or clear persistent cosmetic decals on a peep."""
+
+        account_id = self._account_for(payload, context)
+        if account_id is None:
+            self._log("behavior.intent.skipped", kind="decals", reason="no_account")
+            return
+        profile = self._profiles.get_user_profile(account_id)
+        if profile is None:
+            return
+        if active:
+            decals = upsert_decal(
+                list(profile.decals),
+                {
+                    "id": str(payload.get("decal_id", "")).strip(),
+                    "kind": str(payload.get("kind", "")).strip(),
+                    "count": payload.get("count", 1),
+                    "color": payload.get("color", ""),
+                    "data": payload.get("data") if isinstance(payload.get("data"), dict) else {},
+                },
+            )
+        else:
+            raw_kind = payload.get("kind")
+            decals = clear_decals(
+                list(profile.decals),
+                kind=str(raw_kind).strip() if raw_kind else None,
+            )
+        self._profiles.update_profile_in_transaction(
+            connection,
+            account_id,
+            lambda data: data.__setitem__("decals", list(decals)),
+        )
+        snapshot = self._stats.reconcile_in_transaction(connection, account_id)
+        if event.room_id is None:
+            return
+        account = self._profiles.get_account_by_id(account_id)
+        result.room_broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=event.room_id,
+                event={
+                    "type": "counter.updated",
+                    "room_id": event.room_id,
+                    "target_id": account_id,
+                    "target_label": account.username_display if account else "",
+                    "health": snapshot.health,
+                    "energy": snapshot.energy,
+                    "cleanliness": snapshot.cleanliness,
+                    "max_health": snapshot.effective.max_health,
+                    "max_energy": snapshot.effective.max_energy,
+                    "max_cleanliness": snapshot.effective.max_cleanliness,
+                    "statuses": list(snapshot.statuses),
+                    "decals": decals_payload(list(snapshot.decals)),
+                    "source_id": context.actor.account_id,
+                },
+            )
+        )
 
     def _apply_grant(self, connection: sqlite3.Connection, payload: Mapping[str, object], context: BehaviorContext) -> None:
         account_id = self._account_for(payload, context)

@@ -318,3 +318,4 @@ h3 { font-size: 18px; }
   .auth-card { padding: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.peep-decals { z-index: 2; pointer-events: none; }

@@ -262,6 +262,40 @@ class BehaviorContext:
         payload.update(_target_payload(self._resolve(target)))
         self._append("apply_buff", payload)
 
+    def apply_decal(
+        self,
+        decal_id: str,
+        kind: str,
+        *,
+        count: int = 1,
+        color: str = "",
+        data: Mapping[str, object] | None = None,
+        target: PeepRef | PropRef | None = None,
+    ) -> None:
+        """Queue attaching or updating a persistent cosmetic decal."""
+
+        payload: dict[str, object] = {
+            "decal_id": str(decal_id),
+            "kind": str(kind),
+            "count": int(count),
+            "color": str(color),
+            "data": dict(data or {}),
+        }
+        payload.update(_target_payload(self._resolve(target)))
+        self._append("apply_decal", payload)
+
+    def clear_decals(
+        self,
+        *,
+        kind: str | None = None,
+        target: PeepRef | PropRef | None = None,
+    ) -> None:
+        """Queue removing all decals, or only decals of one kind."""
+
+        payload: dict[str, object] = {"kind": str(kind) if kind else None}
+        payload.update(_target_payload(self._resolve(target)))
+        self._append("clear_decals", payload)
+
     def learn_recipes(
         self,
         *,

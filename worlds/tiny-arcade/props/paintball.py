@@ -59,6 +59,8 @@ MAX_SPLATS = 80
 X_PER_PERCENT = 0.105
 Z_PER_PERCENT = 0.085
 GUN_TAG = "paintgun"
+PAINT_DECAL_ID = "paint"
+PAINT_DECAL_KIND = "paint"
 CUTSCENE_ID = "paintball-podium"
 HUMAN = "user"
 BOT = "bot"
@@ -688,6 +690,16 @@ async def _run_bots(context, state: dict[str, Any], now: datetime) -> None:
                 victim_ref = PeepRef(kind="user", peep_id=None, account_id=str(victim.get("id")))
                 context.apply_counter("health", -1, target=victim_ref)
                 context.apply_counter("cleanliness", -10, target=victim_ref)
+                context.apply_decal(
+                    PAINT_DECAL_ID,
+                    PAINT_DECAL_KIND,
+                    count=_paint_decal_count(
+                        float(victim.get("cleanliness", 100) or 0) - 10,
+                        float(victim.get("max_cleanliness", 100) or 100),
+                    ),
+                    color=random.choice(colors) if colors else "#ff4d6d",
+                    target=victim_ref,
+                )
         if record is not None:
             low, high = bot_config["shot_seconds"]
             record["next_shot_at"] = (now + timedelta(seconds=random.uniform(low, high))).isoformat()
@@ -727,6 +739,20 @@ def _announce_time(context, state: dict[str, Any], now: datetime) -> None:
                 f"{_clock_label(left)} left in round {int(state.get('round', 0) or 0)}!",
                 "info",
             )
+
+
+def _paint_decal_count(cleanliness: float, max_cleanliness: float) -> int:
+    """Return a paint-splat count based on missing Cleanliness."""
+
+    maximum = float(max_cleanliness)
+    if maximum <= 0:
+        return 1
+    missing = min(1.0, max(0.0, (maximum - float(cleanliness)) / maximum))
+    if missing >= 0.5:
+        return 3
+    if missing >= 0.2:
+        return 2
+    return 1
 
 
 def _record_shot(
@@ -903,6 +929,16 @@ async def on_card_play(context, event):
             victim_ref = PeepRef(kind="user", peep_id=None, account_id=str(victim.get("id")))
             context.apply_counter("health", -1, target=victim_ref)
             context.apply_counter("cleanliness", -10, target=victim_ref)
+            context.apply_decal(
+                PAINT_DECAL_ID,
+                PAINT_DECAL_KIND,
+                count=_paint_decal_count(
+                    float(victim.get("cleanliness", 100) or 0) - 10,
+                    float(victim.get("max_cleanliness", 100) or 100),
+                ),
+                color=ammo["color"],
+                target=victim_ref,
+            )
         _add_splat(context, state, impact, ammo["color"])
         context.feedback(f"You splatted {victim.get('name', 'a peep')}!", "success")
     else:

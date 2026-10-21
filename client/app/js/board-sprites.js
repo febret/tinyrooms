@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import { boardPosition } from "./board-helpers.js";
 import { loadSharedTexture, sharedTexture } from "./board-resources.js";
+import { decalCanvas } from "./decals.js";
 
 const TOP = 0.045;
 const SPRITE_HEIGHT = 1.25;
@@ -103,6 +104,8 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       baseScale: [SPRITE_HEIGHT, SPRITE_HEIGHT],
       tint: dark ? "#8b9194" : "#ffffff",
       reaction: null,
+      decalOverlay: null,
+      decalKey: "",
     };
     entry.sprites.set(id, record);
     build(record, entry);
@@ -111,9 +114,45 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     return record;
   }
 
+  function clearDecalOverlay(entry, record) {
+    if (!record.decalOverlay) return;
+    entry.root.remove(record.decalOverlay);
+    record.decalOverlay.material.map?.dispose();
+    record.decalOverlay.material.dispose();
+    record.decalOverlay = null;
+    record.decalKey = "";
+  }
+
+  function syncDecalOverlay(entry, record, actor) {
+    const decals = Array.isArray(actor.decals) ? actor.decals : [];
+    const key = decals.length ? JSON.stringify(decals) : "";
+    if (key === record.decalKey) return;
+    clearDecalOverlay(entry, record);
+    if (!key || !record.sprite) return;
+    const canvas = decalCanvas(record.id, decals);
+    if (!canvas) return;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const overlay = new THREE.Sprite(material);
+    overlay.center.set(0.5, 0);
+    overlay.position.copy(record.sprite.position);
+    overlay.scale.copy(record.sprite.scale);
+    overlay.renderOrder = 1;
+    entry.root.add(overlay);
+    record.decalOverlay = overlay;
+    record.decalKey = key;
+  }
+
   function remove(entry, id) {
     const record = entry.sprites.get(id);
     if (!record) return;
+    clearDecalOverlay(entry, record);
     entry.root.remove(record.sprite);
     record.sprite?.removeFromParent();
     const index = entry.pickables.indexOf(record.sprite);
@@ -142,6 +181,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
         record.url = "";
       }
     }
+    syncDecalOverlay(entry, record, actor);
   }
 
   function sync(entry, actors, dark = false) {
@@ -157,7 +197,10 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     for (const [id, actor] of wanted) {
       const existing = entry.sprites.get(id);
       if (existing) update(entry, existing, actor, dark);
-      else add(entry, actor, dark);
+      else {
+        const record = add(entry, actor, dark);
+        syncDecalOverlay(entry, record, actor);
+      }
     }
   }
 
@@ -204,6 +247,10 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       } else if (!sprite.position.equals(record.target)) {
         sprite.position.lerp(record.target, alpha);
         if (sprite.position.distanceToSquared(record.target) < 1e-6) sprite.position.copy(record.target);
+      }
+      if (record.decalOverlay) {
+        record.decalOverlay.position.copy(sprite.position);
+        record.decalOverlay.scale.copy(sprite.scale);
       }
     }
   }

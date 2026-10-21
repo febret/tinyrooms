@@ -54,6 +54,8 @@ def _default_profile() -> dict[str, object]:
         "known_recipes": [],
         # "<world_id>:<cutscene_id>" keys already seen; gates first-view memories.
         "seen_cutscenes": [],
+        # Persistent cosmetic decals rendered over the peep sticker.
+        "decals": [],
     }
 
 
@@ -79,6 +81,8 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["pinned_peeps"] = []
     if not isinstance(merged.get("skills"), list):
         merged["skills"] = []
+    if not isinstance(merged.get("decals"), list):
+        merged["decals"] = []
     if not isinstance(merged.get("beacons"), list):
         merged["beacons"] = []
     else:
@@ -205,6 +209,11 @@ class UserProfileRecord:
         if not isinstance(raw, list):
             return ()
         return tuple(str(entry) if isinstance(entry, str) else None for entry in raw)
+
+    @property
+    def decals(self) -> tuple[dict[str, object], ...]:
+        raw = self.profile.get("decals")
+        return tuple(entry for entry in raw if isinstance(entry, dict)) if isinstance(raw, list) else ()
 
     @property
     def active_statuses(self) -> tuple[str, ...]:

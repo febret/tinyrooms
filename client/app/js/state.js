@@ -155,6 +155,7 @@ function normalizeCounters(counters) {
     maxCleanliness: Number(counters.max_cleanliness || 0),
     stats: counters.stats && typeof counters.stats === "object" ? { ...counters.stats } : {},
     statuses: Array.isArray(counters.statuses) ? [...counters.statuses] : [],
+    decals: Array.isArray(counters.decals) ? counters.decals.map(entry => ({ ...entry })) : [],
   };
 }
 
@@ -168,6 +169,9 @@ function normalizeActor(entity, { kind, labelSource }) {
     stickerUrl: assetOrEmpty(entity?.sticker_url || entity?.image_url),
     quickActions: normalizeQuickActions(entity?.quick_actions),
     statuses: Array.isArray(entity?.statuses) ? [...entity.statuses] : [],
+    decals: Array.isArray(entity?.decals)
+      ? entity.decals.map(entry => ({ ...entry }))
+      : (Array.isArray(entity?.counters?.decals) ? entity.counters.decals.map(entry => ({ ...entry })) : []),
     counters: normalizeCounters(entity?.counters),
     pinned: Boolean(entity?.pinned),
     audioEnabled: Boolean(entity?.audio_enabled),
@@ -560,11 +564,13 @@ function updatePeepCounters(peeps, targetId, event) {
       maxEnergy: Number(event.max_energy ?? peep.counters?.maxEnergy ?? 0),
       maxCleanliness: Number(event.max_cleanliness ?? peep.counters?.maxCleanliness ?? 0),
       statuses: Array.isArray(event.statuses) ? [...event.statuses] : (peep.counters?.statuses || []),
+      decals: Array.isArray(event.decals) ? event.decals.map(entry => ({ ...entry })) : (peep.counters?.decals || []),
     };
     return {
       ...peep,
       counters,
       statuses: Array.isArray(event.statuses) ? [...event.statuses] : peep.statuses,
+      decals: Array.isArray(event.decals) ? event.decals.map(entry => ({ ...entry })) : peep.decals,
     };
   });
 }
