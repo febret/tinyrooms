@@ -135,6 +135,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     screenToBoardPosition: (clientX, clientY) => screenToBoardPosition(clientX, clientY),
     pixelScale: effectPixelScale,
     invalidate,
+    reactSprite: (id, options) => (current ? spriteLayer.react(current, id, options) : false),
   });
   gameLayer.setActionHandler(action => onGameAction?.(action));
   const clock = new THREE.Clock();

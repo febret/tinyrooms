@@ -72,16 +72,10 @@ h3 { font-size: 18px; }
 .prop-default-action { z-index: 3; max-width: min(220px, 80%); }
 .target-confirm { z-index: 4; max-width: min(240px, 80%); font-weight: 700; }
 .app-shell.cutscene-playing :is(.prop-default-action, .target-confirm) { display: none; }
-.target-line, .room-filter, .bubble-layer, .global-modal-layer { position: absolute; inset: 0; pointer-events: none; }
-.target-line { z-index: 2; }
-.target-line svg { width: 100%; height: 100%; overflow: visible; }
-.target-line-stroke { stroke: #ffde92; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 12 10; filter: drop-shadow(0 0 6px #ffde92aa); animation: targetLineFlow .5s linear infinite; }
-.target-line-source { fill: #ffde92; }
-.target-line-end { fill: none; stroke: #ffde92; stroke-width: 3; }
+.room-filter, .bubble-layer, .global-modal-layer { position: absolute; inset: 0; pointer-events: none; }
 .room-filter { z-index: 1; opacity: 0; background: radial-gradient(circle at 50% 45%, rgba(72, 220, 110, .22), rgba(20, 120, 60, .38) 60%, rgba(6, 40, 22, .55)); mix-blend-mode: screen; transition: opacity .25s ease; }
 .app-shell.scared .room-filter { opacity: 1; animation: scaredPulse 1.1s ease-in-out infinite; }
 .app-shell.scared #board-canvas { filter: hue-rotate(55deg) saturate(1.7) brightness(.9); }
-@keyframes targetLineFlow { to { stroke-dashoffset: -22; } }
 @keyframes scaredPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 .board-overlay { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); max-width: calc(100% - 90px); padding: 6px 12px; color: var(--muted); background: #041018cc; border-radius: 9px; font-size: 12px; text-align: center; pointer-events: none; }
 .board-overlay:empty { display: none; }

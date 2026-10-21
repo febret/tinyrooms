@@ -92,6 +92,27 @@
       "prompt": "a single stylized chess king with a small cross on top, polished dark charcoal stone, clean silhouette, freestanding isolated single prop, no board, no surrounding ground or scenery, game-ready",
       "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/props/chess-king-black.glb",
       "args": {"seed": 95112, "faces": 3500}
+    },
+    {
+      "label": "paintball-vending",
+      "tool": "asset",
+      "prompt": "a tall arcade vending machine for paintball gear, dark purple cabinet with glowing magenta and cyan neon trim, a glass front showing stacked paint canisters and two toy paintball blasters, a lit selection panel of round buttons, freestanding isolated single prop, no surrounding ground or scenery, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/props/paintball-vending.glb",
+      "args": {"seed": 95401, "faces": 3000}
+    },
+    {
+      "label": "paintball-bunker",
+      "tool": "asset",
+      "prompt": "a low wide inflatable paintball bunker, a rounded violet and black padded barrier with glossy vinyl panels and a few small paint splats, freestanding isolated single prop, no surrounding ground or scenery, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/props/paintball-bunker.glb",
+      "args": {"seed": 95402, "faces": 1800}
+    },
+    {
+      "label": "paintball-barrel-stack",
+      "tool": "asset",
+      "prompt": "a small stack of three paintball paint barrels, bright magenta cyan and yellow plastic drums with white lids and a few paint splats, freestanding isolated single prop, no surrounding ground or scenery, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/props/paintball-barrel-stack.glb",
+      "args": {"seed": 95403, "faces": 2000}
     }
   ]
 }

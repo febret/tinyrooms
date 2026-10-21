@@ -5,7 +5,7 @@ import { withBase } from "./base-path.js";
 export const CARD_FACE_WIDTH = 310;
 export const CARD_FACE_HEIGHT = 440;
 // Bump when the layout changes so rasterized texture caches miss.
-export const CARD_FACE_STYLE_VERSION = 1;
+export const CARD_FACE_STYLE_VERSION = 2;
 
 const FONT = "Georgia, 'Times New Roman', serif";
 const TYPE_ACCENTS = {
@@ -51,6 +51,7 @@ export function cardFaceFields(definition) {
     quest: Boolean(raw.quest),
     effect: String(raw.effect || ""),
     amount: Number(raw.amount || 0),
+    quality: Number(raw.quality || 0),
     bonuses: raw.bonuses && typeof raw.bonuses === "object" ? raw.bonuses : {},
   };
 }
@@ -109,6 +110,7 @@ function statsLine(fields) {
   const parts = Object.entries(fields.bonuses).map(([key, value]) => `${BONUS_LABELS[key] || key.replaceAll("_", " ").toUpperCase()} ${value > 0 ? "+" : ""}${value}`);
   if (fields.effect && fields.amount) parts.push(`+${fields.amount} ${fields.effect.toUpperCase()}`);
   else if (fields.effect === "light") parts.push("LIGHT");
+  if (fields.quality > 0) parts.push(`QUALITY ${fields.quality}`);
   if (fields.oneUse) parts.push("ONE USE");
   if (fields.quest) parts.push("QUEST");
   return parts.join(" · ");

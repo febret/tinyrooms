@@ -122,6 +122,7 @@ class CardDatabaseService:
             "source": definition.source,
             "type": definition.type,
             "rarity": definition.rarity,
+            "quality": definition.quality,
             "collectible": definition.collectible,
             "decorative": definition.decorative,
             "stack_limit": definition.stack_limit,

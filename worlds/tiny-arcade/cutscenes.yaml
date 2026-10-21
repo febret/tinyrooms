@@ -1,0 +1,12 @@
+paintball-podium:
+  title: Paintball Podium
+  script: paintball-podium.js
+  frame: paintball-podium
+  duration: 7000
+  audience: room
+  room_bound: true
+  skip: true
+  max_queue: 1
+  params:
+    accent: '#ff4d6d'
+    stage_background: '#120a24'

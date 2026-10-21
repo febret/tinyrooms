@@ -33,7 +33,8 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     const width = Number(image?.width) || 0;
     const height = Number(image?.height) || 0;
     const aspect = width > 0 && height > 0 ? width / height : FALLBACK_ASPECT;
-    record.sprite.scale.set(SPRITE_HEIGHT * aspect, SPRITE_HEIGHT, 1);
+    record.baseScale = [SPRITE_HEIGHT * aspect, SPRITE_HEIGHT];
+    record.sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
   }
 
   function build(record, entry) {
@@ -99,6 +100,9 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       url: "",
       failed: false,
       dark: Boolean(dark),
+      baseScale: [SPRITE_HEIGHT, SPRITE_HEIGHT],
+      tint: dark ? "#8b9194" : "#ffffff",
+      reaction: null,
     };
     entry.sprites.set(id, record);
     build(record, entry);
@@ -124,7 +128,8 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     record.target.copy(targetPosition(actor.spritePosition));
     if (record.dark !== Boolean(dark)) {
       record.dark = Boolean(dark);
-      record.material.color.set(dark ? "#8b9194" : "#ffffff");
+      record.tint = dark ? "#8b9194" : "#ffffff";
+      if (!record.reaction) record.material.color.set(record.tint);
       record.material.opacity = dark ? 0.6 : 1;
       record.material.needsUpdate = true;
     }
@@ -156,11 +161,44 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     }
   }
 
+  /**
+   * Presentational hit reaction for one sprite.
+   *
+   * The caller passes an authoritative victim id and paint color; this only
+   * tints and pulses the sticker, never decides whether a hit happened.
+   */
+  function react(entry, id, { color = "#ffffff", duration = 0.5 } = {}) {
+    const record = entry?.sprites?.get(String(id));
+    if (!record) return false;
+    record.reaction = {
+      color: String(color || "#ffffff"),
+      remaining: Math.max(0.05, Number(duration) || 0.5),
+      duration: Math.max(0.05, Number(duration) || 0.5),
+    };
+    record.material.color.set(record.reaction.color);
+    record.material.needsUpdate = true;
+    invalidate();
+    return true;
+  }
+
   function advance(entry, delta, reducedMotion) {
     const alpha = 1 - Math.exp(-delta * SPRITE_MOVE_SMOOTHING);
     for (const record of entry.sprites.values()) {
       const sprite = record.sprite;
       if (!sprite) continue;
+      if (record.reaction) {
+        record.reaction.remaining -= delta;
+        if (record.reaction.remaining <= 0) {
+          record.reaction = null;
+          record.material.color.set(record.tint);
+          record.material.needsUpdate = true;
+          if (record.baseScale) sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
+        } else {
+          const progress = 1 - record.reaction.remaining / record.reaction.duration;
+          const punch = 1 + 0.18 * Math.sin(Math.PI * progress);
+          if (record.baseScale) sprite.scale.set(record.baseScale[0] * punch, record.baseScale[1] * punch, 1);
+        }
+      }
       if (reducedMotion) {
         sprite.position.copy(record.target);
       } else if (!sprite.position.equals(record.target)) {
@@ -172,6 +210,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
 
   function isAnimating(entry) {
     for (const record of entry.sprites.values()) {
+      if (record.reaction) return true;
       if (record.sprite && !record.sprite.position.equals(record.target)) return true;
     }
     return false;
@@ -217,5 +256,5 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     return result;
   }
 
-  return { sync, advance, isAnimating, clear, anchors };
+  return { sync, advance, isAnimating, clear, anchors, react };
 }

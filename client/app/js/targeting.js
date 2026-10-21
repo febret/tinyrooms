@@ -2,16 +2,9 @@ import { placeAt } from "./presentation.js";
 import { isTargetableStack, findInventoryCard, findEntity } from "./state.js";
 
 export function createTargetingController({ board, boardFrame, getState, store, sendCommand, onToast, onError }) {
-  const layer = boardFrame?.querySelector("#target-line") || null;
-  const svg = layer?.querySelector("svg") || null;
-  const stroke = svg?.querySelector(".target-line-stroke") || null;
-  const sourceDot = svg?.querySelector(".target-line-source") || null;
-  const endDot = svg?.querySelector(".target-line-end") || null;
   const button = boardFrame?.querySelector("#target-confirm") || null;
   if (button) button.onclick = confirm;
   let preview = null;
-  let sourceStackId = "";
-  let sourcePoint = null;
   let frame = 0;
 
   function eligibleKind(state) {
@@ -26,20 +19,6 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     return { x: point.x - bounds.left, y: point.y - bounds.top };
   }
 
-  function captureSource(stackId) {
-    if (sourceStackId !== stackId) preview = null;
-    sourceStackId = stackId;
-    const tile = document.querySelector(`#card-hand [data-stack-id="${CSS.escape(stackId)}"]`)
-      || document.querySelector(`#panel-layer [data-stack-id="${CSS.escape(stackId)}"]`);
-    if (tile) {
-      const bounds = tile.getBoundingClientRect();
-      sourcePoint = toFrame({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
-      return;
-    }
-    const bounds = boardFrame?.getBoundingClientRect();
-    sourcePoint = bounds ? { x: bounds.width / 2, y: bounds.height } : { x: 0, y: 0 };
-  }
-
   function targetPoint(kind, id) {
     const entity = findEntity(getState(), { kind, id });
     if (!entity) return null;
@@ -49,6 +28,11 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       return point ? { ...point, entity } : null;
     }
     if (kind === "peep") {
+      const project = board.projectPositionToScreen;
+      if (Array.isArray(entity.spritePosition) && typeof project === "function") {
+        const point = toFrame(project.call(board, entity.spritePosition));
+        if (point) return { ...point, entity };
+      }
       const chip = document.querySelector(`#peeps-panel [data-peep-id="${CSS.escape(id)}"]`);
       if (!chip) return null;
       const bounds = chip.getBoundingClientRect();
@@ -59,24 +43,11 @@ export function createTargetingController({ board, boardFrame, getState, store, 
 
   function draw() {
     const state = getState();
-    if (state.ui.targeting) captureSource(state.ui.targeting.stackId);
     const show = Boolean(preview && state.ui.targeting);
     const end = show ? targetPoint(preview.kind, preview.id) : null;
     if (show && !end) preview = null;
-    if (layer) layer.hidden = !end;
     if (button) button.hidden = !end;
-    if (!stroke || !sourcePoint || !end) {
-      return;
-    }
-    stroke.setAttribute("x1", sourcePoint.x);
-    stroke.setAttribute("y1", sourcePoint.y);
-    stroke.setAttribute("x2", end.x);
-    stroke.setAttribute("y2", end.y);
-    for (const [dot, x, y] of [[sourceDot, sourcePoint.x, sourcePoint.y], [endDot, end.x, end.y]]) {
-      dot?.setAttribute("cx", x);
-      dot?.setAttribute("cy", y);
-    }
-    if (button) {
+    if (button && end) {
       const text = `Use ${state.ui.targeting.label} on ${end.entity.label}`;
       if (button.textContent !== text) button.textContent = text;
       const bounds = boardFrame.getBoundingClientRect();
@@ -97,7 +68,6 @@ export function createTargetingController({ board, boardFrame, getState, store, 
   }
 
   function choose(kind, id) {
-    captureSource(getState().ui.targeting.stackId);
     if (preview && preview.kind === kind && preview.id === id) {
       confirm();
       return;
@@ -126,14 +96,10 @@ export function createTargetingController({ board, boardFrame, getState, store, 
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
       preview = null;
-      sourceStackId = "";
-      sourcePoint = null;
-      if (layer) layer.hidden = true;
       if (button) button.hidden = true;
       if (targeting && !eligibleKind(state)) store.dispatch({ type: "cancel-targeting", restoreSelection: false });
       return;
     }
-    captureSource(targeting.stackId);
     draw();
     if (!frame) frame = requestAnimationFrame(tick);
   }
@@ -143,7 +109,6 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     const state = getState();
     if (!state.ui.targeting) {
       preview = null;
-      if (layer) layer.hidden = true;
       if (button) button.hidden = true;
       return;
     }

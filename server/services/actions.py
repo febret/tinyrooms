@@ -20,6 +20,7 @@ EMOTE_COSTS = {"Expression": 1, "Animation": 2, "Cutscene": 5}
 HEALTH_EFFECT = "health"
 ENERGY_EFFECT = "energy"
 LIGHT_EFFECT = "light"
+CORE_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT, LIGHT_EFFECT})
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,11 +188,14 @@ class ActionsService:
                 else:
                     actor = self._stats.reconcile_in_transaction(connection, account.id)
                     message = f"You gave {resolved_label} {definition.label} (+{healed:.0f} Health)."
-            elif target_prop is not None:
-                # The card is used on a prop: the prop's world behavior owns the
-                # effect. Charge and consumption are deferred until the behavior
-                # actually resolves, so a card used on an unrelated prop costs
-                # nothing.
+            elif target_prop is not None or (
+                (target_account_id is not None or target_is_npc)
+                and definition.effect not in CORE_EFFECTS
+            ):
+                # The card is used on a prop or another peep with a world-owned
+                # effect: the target's world behavior owns the result. Charge and
+                # consumption are deferred until the behavior actually resolves,
+                # so a card used on an unrelated target costs nothing.
                 cost = self.energy_cost(definition)
                 if cost:
                     actor = self._stats.can_charge_in_transaction(connection, account.id, cost)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -28,6 +28,7 @@ class CardView:
     id: str
     tags: frozenset[str] = frozenset()
     consume_card: str | None = None
+    quality: int = 0
 
 
 def _target_payload(target: PeepRef | PropRef | None) -> dict[str, object]:
@@ -63,6 +64,8 @@ class BehaviorContext:
         actor_username: str = "",
         card: CardView | None = None,
         peeps_in: Callable[[str], list[dict[str, object]]] | None = None,
+        room_users: Callable[[str], Awaitable[list[dict[str, object]]]] | None = None,
+        bops: int = 0,
         powers: frozenset[str] = frozenset(),
     ) -> None:
         self.event = event
@@ -79,6 +82,8 @@ class BehaviorContext:
         self._equipped_ids = frozenset(equipped_ids)
         self._environment = environment
         self._peeps_in = peeps_in
+        self._room_users = room_users
+        self._bops = int(bops)
         self._powers = frozenset(powers)
         self.actor_username = str(actor_username or "")
         self.intents: list[Intent] = []
@@ -107,6 +112,24 @@ class BehaviorContext:
             return []
         return self._peeps_in(str(room_id))
 
+    async def room_users(self, room_id: str) -> list[dict[str, object]]:
+        """Return live user occupants of *room_id* with sprite positions.
+
+        Each record carries ``id``, ``name``, ``position`` (board percent, or
+        None), and effective ``dexterity``/``health``/``cleanliness``. Scripts
+        use this for server-authoritative positional rules such as raycasts.
+        """
+
+        if self._room_users is None:
+            return []
+        return await self._room_users(str(room_id))
+
+    @property
+    def bops(self) -> int:
+        """Return the acting account's current Bops (0 for system events)."""
+
+        return self._bops
+
     def move_sprite(self, x: float, y: float) -> None:
         """Queue moving the attached NPC sprite to a board position."""
 
@@ -116,6 +139,21 @@ class BehaviorContext:
         """Queue moving the attached NPC sprite to a random valid position."""
 
         self._append("move_sprite_random", {})
+
+    def move_peep_sprite(
+        self,
+        peep_id: str,
+        *,
+        x: float | None = None,
+        y: float | None = None,
+        random: bool = False,
+    ) -> None:
+        """Queue moving a specific NPC sprite in the acting room."""
+
+        payload: dict[str, object] = {"peep_id": str(peep_id), "random": bool(random)}
+        if x is not None and y is not None:
+            payload["position"] = [float(x), float(y)]
+        self._append("move_peep_sprite", payload)
 
     def move_peep(self, peep_id: str, room_id: str) -> None:
         """Queue moving an NPC peep directly to another room."""
@@ -177,6 +215,11 @@ class BehaviorContext:
         payload: dict[str, object] = {"text": str(text), "style": str(style)}
         payload.update(_target_payload(self._resolve(target)))
         self._append("feedback", payload)
+
+    def room_feedback(self, text: str, style: str = "info") -> None:
+        """Queue a toast for every occupant of the acting room."""
+
+        self._append("room_feedback", {"text": str(text), "style": str(style)})
 
     def effect(self, effect_id: str, *, target: PeepRef | PropRef | None = None) -> None:
         """Queue a visible room effect."""
@@ -262,6 +305,28 @@ class BehaviorContext:
         payload.update(_target_payload(self._resolve(target)))
         self._append("give_card", payload)
 
+    def purchase_card(
+        self,
+        card_id: str,
+        *,
+        quantity: int = 1,
+        bops: int = 0,
+        target: PeepRef | PropRef | None = None,
+    ) -> None:
+        """Queue an atomic Bops purchase that grants a card.
+
+        The dispatcher rejects the whole intent when the acting account cannot
+        afford *bops*, so a script must not split spending and granting.
+        """
+
+        payload: dict[str, object] = {
+            "card_id": str(card_id),
+            "quantity": int(quantity),
+            "bops": int(bops),
+        }
+        payload.update(_target_payload(self._resolve(target)))
+        self._append("purchase_card", payload)
+
     def remove_card(
         self,
         card_id: str,
@@ -301,6 +366,11 @@ class BehaviorContext:
         """Queue a speech bubble spoken by the attached NPC peep."""
 
         self._append("npc_say", {"text": str(text), "style": str(style)})
+
+    def peep_say(self, peep_id: str, text: str, style: str = "expression") -> None:
+        """Queue a speech bubble spoken by any NPC peep in the acting room."""
+
+        self._append("npc_say", {"peep_id": str(peep_id), "text": str(text), "style": str(style)})
 
     def start_dialog(self, peep_id: str, node_id: str | None = None) -> None:
         """Queue opening (or refocusing) an NPC dialog."""

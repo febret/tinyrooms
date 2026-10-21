@@ -210,6 +210,7 @@ class CardService:
                 missing=definition.image_missing,
             ),
             "rarity": definition.rarity,
+            "quality": definition.quality,
             "target": definition.target,
             "effect": definition.effect,
             "amount": definition.amount,

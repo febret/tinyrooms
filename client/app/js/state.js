@@ -554,8 +554,10 @@ function updatePeepCounters(peeps, targetId, event) {
       ...(peep.counters || {}),
       health: Number(event.health ?? peep.counters?.health ?? 0),
       energy: Number(event.energy ?? peep.counters?.energy ?? 0),
+      cleanliness: Number(event.cleanliness ?? peep.counters?.cleanliness ?? 0),
       maxHealth: Number(event.max_health ?? peep.counters?.maxHealth ?? 0),
       maxEnergy: Number(event.max_energy ?? peep.counters?.maxEnergy ?? 0),
+      maxCleanliness: Number(event.max_cleanliness ?? peep.counters?.maxCleanliness ?? 0),
       statuses: Array.isArray(event.statuses) ? [...event.statuses] : (peep.counters?.statuses || []),
     };
     return {
@@ -574,8 +576,11 @@ function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
   if (event.type === "counter.updated") {
     const targetId = String(event.target_id || "");
-    const amount = Number(event.health_delta || 0) || Number(event.energy_delta || 0);
-    const kind = Number(event.health_delta || 0) ? "health" : "energy";
+    const healthDelta = Number(event.health_delta || 0);
+    const energyDelta = Number(event.energy_delta || 0);
+    const cleanlinessDelta = Number(event.cleanliness_delta || 0);
+    const amount = healthDelta || energyDelta || cleanlinessDelta;
+    const kind = healthDelta ? "health" : energyDelta ? "energy" : "cleanliness";
     const entry = {
       id: crypto.randomUUID(),
       targetId,
@@ -719,11 +724,16 @@ function applyServerEvent(state, event) {
     };
   }
   if (event.type === "room.board.state" && state.room) {
+    const nextState = normalizeGameState(event.state);
+    const dynamicDescription = nextState?.room_description;
     return {
       ...state,
       room: {
         ...state.room,
-        board: { ...state.room.board, state: normalizeGameState(event.state) },
+        description: typeof dynamicDescription === "string" && dynamicDescription.trim()
+          ? dynamicDescription
+          : state.room.description,
+        board: { ...state.room.board, state: nextState },
       },
     };
   }

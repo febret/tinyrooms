@@ -73,6 +73,9 @@ class CardDefinition:
     decorative: bool
     bonuses: dict[str, int]
     energy_cost: int | None
+    # Optional world-interpreted quality tier (for example, a paintgun's
+    # accuracy tier). Core only loads and serializes it.
+    quality: int
     target: str | None
     effect: str | None
     amount: int | None
@@ -222,6 +225,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             decorative=bool(raw_card.get("decorative", False)),
             bonuses=bonuses,
             energy_cost=int(raw_card["energy_cost"]) if "energy_cost" in raw_card else None,
+            quality=int(raw_card["quality"]) if "quality" in raw_card else 0,
             target=str(raw_card["target"]) if "target" in raw_card else None,
             effect=str(raw_card["effect"]) if "effect" in raw_card else None,
             amount=int(raw_card["amount"]) if "amount" in raw_card else None,
@@ -350,6 +354,7 @@ def _sealed_pack_card(pack: PackDefinition) -> CardDefinition:
         decorative=False,
         bonuses={},
         energy_cost=None,
+        quality=0,
         target=None,
         effect=None,
         amount=None,

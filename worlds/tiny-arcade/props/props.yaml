@@ -106,3 +106,41 @@ chess-king-black:
   tags:
   - chess
   - piece
+paintball-vending:
+  label: Paintball Vending Machine
+  description: A neon vending machine humming with paint canisters. Buy a blaster
+    or a set of ten paintballs.
+  model: paintball-vending.glb
+  decorative: true
+  scale: 2.0
+  sprite_footprint:
+  - 4
+  - 3
+  tags:
+  - arcade
+  - paintball
+  - vending
+paintball-bunker:
+  label: Paint Bunker
+  description: A low inflatable bunker. Duck behind it and hope nobody flanks you.
+  model: paintball-bunker.glb
+  decorative: true
+  scale: 1.1
+  sprite_footprint:
+  - 7
+  - 4
+  tags:
+  - paintball
+  - cover
+paintball-barrel-stack:
+  label: Paint Barrel Stack
+  description: A stack of paint barrels waiting to be tapped. Good cover, better splash.
+  model: paintball-barrel-stack.glb
+  decorative: true
+  scale: 1.4
+  sprite_footprint:
+  - 5
+  - 5
+  tags:
+  - paintball
+  - cover

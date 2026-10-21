@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { createGridRenderer } from "./board-games/grid.js";
+import { createPaintballRenderer } from "./board-games/paintball.js";
 
 const DEFAULT_RENDERERS = {
   grid: createGridRenderer,
+  paintball: createPaintballRenderer,
 };
 
 /**
@@ -19,6 +21,7 @@ export function createBoardGames({
   screenToBoardPosition,
   pixelScale,
   invalidate,
+  reactSprite,
   renderers = DEFAULT_RENDERERS,
 }) {
   const root = new THREE.Group();
@@ -39,6 +42,9 @@ export function createBoardGames({
     screenToBoardPosition,
     pixelScale,
     invalidate,
+    reactSprite(id, options) {
+      return Boolean(reactSprite?.(id, options));
+    },
     action(action) {
       onAction?.(action);
     },

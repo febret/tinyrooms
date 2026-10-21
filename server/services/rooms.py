@@ -787,6 +787,10 @@ class RoomService:
             can_edit_room = self._layout.can_edit(account, room_id)
         game = self._serialize_game(account, room)
         description = room.description
+        if isinstance(game_state, dict):
+            dynamic_description = game_state.get("room_description")
+            if isinstance(dynamic_description, str) and dynamic_description.strip():
+                description = dynamic_description
         quick_actions = [
             *[
                 {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)}

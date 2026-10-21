@@ -93,7 +93,7 @@ def main() -> None:
             "TRSERVER_TIMEZONE": "UTC",
             # NPC behavior ticks make peep positions run dependent; no browser
             # flow exercises them, so keep a run too short to fire one.
-            "TRSERVER_TICK_SECONDS": "3600",
+            "TRSERVER_TICK_SECONDS": os.environ.get("TRSERVER_TICK_SECONDS", "3600"),
             "TRSERVER_HOST": "127.0.0.1",
             "TRSERVER_PORT": str(port),
         }, repo_root=ROOT)

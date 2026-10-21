@@ -1,0 +1,97 @@
+# Paintball Arena cards. Sold by the arena vending machine, never in a pack.
+paintball-blaster-splash:
+  label: Splash Pal
+  description: A cheerful starter blaster. Quality 1 — steady up close, hopeful at range.
+  image: paintball-blaster-splash.png
+  type: item
+  rarity: Common
+  quality: 1
+  stack_limit: 1
+  one_use: false
+  energy_cost: 0
+  target: peep
+  effect: paintball
+  tags: [paintgun]
+
+paintball-blaster-neon:
+  label: Neon Buzzer
+  description: A loud arcade blaster with a hair trigger. Quality 2 — reliable at mid range.
+  image: paintball-blaster-neon.png
+  type: item
+  rarity: Rare
+  quality: 2
+  stack_limit: 1
+  one_use: false
+  energy_cost: 0
+  target: peep
+  effect: paintball
+  tags: [paintgun]
+
+paintball-blaster-prism:
+  label: Prism Cannon
+  description: A tournament cannon that splits light into paint. Quality 3 — deadly accurate.
+  image: paintball-blaster-prism.png
+  type: item
+  rarity: Epic
+  quality: 3
+  stack_limit: 1
+  one_use: false
+  energy_cost: 0
+  target: peep
+  effect: paintball
+  tags: [paintgun]
+
+paintball-cherry:
+  label: Cherry Paintballs
+  description: Ten bright cherry-red paintballs. Equip them so your blaster can load them.
+  image: paintball-cherry.png
+  type: item
+  rarity: Common
+  stack_limit: 99
+  one_use: false
+  energy_cost: 0
+  tags: [paintball-ammo, paintball-color-cherry]
+
+paintball-berry:
+  label: Berry Paintballs
+  description: Ten electric berry-blue paintballs. Equip them so your blaster can load them.
+  image: paintball-berry.png
+  type: item
+  rarity: Common
+  stack_limit: 99
+  one_use: false
+  energy_cost: 0
+  tags: [paintball-ammo, paintball-color-berry]
+
+paintball-lime:
+  label: Lime Paintballs
+  description: Ten acid-lime paintballs. Equip them so your blaster can load them.
+  image: paintball-lime.png
+  type: item
+  rarity: Common
+  stack_limit: 99
+  one_use: false
+  energy_cost: 0
+  tags: [paintball-ammo, paintball-color-lime]
+
+paintball-lemon:
+  label: Lemon Paintballs
+  description: Ten sun-yellow paintballs. Equip them so your blaster can load them.
+  image: paintball-lemon.png
+  type: item
+  rarity: Common
+  stack_limit: 99
+  one_use: false
+  energy_cost: 0
+  tags: [paintball-ammo, paintball-color-lemon]
+
+paintball-grape:
+  label: Grape Paintballs
+  description: Ten neon grape-purple paintballs. Equip them so your blaster can load them.
+  image: paintball-grape.png
+  type: item
+  rarity: Common
+  stack_limit: 99
+  one_use: false
+  energy_cost: 0
+  tags: [paintball-ammo, paintball-color-grape]

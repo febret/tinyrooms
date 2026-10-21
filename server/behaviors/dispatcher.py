@@ -183,7 +183,20 @@ class BehaviorDispatcher:
             target = event.target
             if isinstance(target, PeepRef) and target.peep_id:
                 attachment = self._scripts.peep_attachments.get(target.peep_id)
-                return [attachment] if attachment is not None else []
+                if attachment is not None:
+                    return [attachment]
+                if event.type == "card_play":
+                    room = self._world.rooms.get(event.room_id or "")
+                    if room is not None and room.game is not None:
+                        # Game-room NPCs (for example paintbots) have no script
+                        # of their own; the room controller owns card resolution.
+                        return self._room_attachments_for(event.room_id or "")
+                return []
+            if isinstance(target, PeepRef) and event.type == "card_play":
+                # A card used on another user has no peep attachment, so every
+                # script in the room observes it (only those with on_card_play
+                # react). This is how world games resolve user-targeted cards.
+                return self._room_attachments_for(event.room_id or "")
             if isinstance(target, PropRef):
                 attachment = self._scripts.prop_attachments.get(target.instance_id)
                 return [attachment] if attachment is not None else []
@@ -221,6 +234,7 @@ class BehaviorDispatcher:
             "card_ids": (),
             "equipped_ids": (),
             "username": "",
+            "bops": 0,
             "powers": frozenset(),
         }
         account_id = event.actor.account_id if event.actor.kind == "user" else None
@@ -249,6 +263,7 @@ class BehaviorDispatcher:
             "card_ids": tuple(stack.card_def_id for stack in stacks),
             "equipped_ids": tuple(stack.card_def_id for stack in stacks if stack.equipped),
             "username": account.username_display if account is not None else "",
+            "bops": account.bops if account is not None else 0,
             "powers": powers,
         }
 
@@ -265,6 +280,7 @@ class BehaviorDispatcher:
             id=definition.id,
             tags=definition.tags,
             consume_card=definition.consume_card,
+            quality=definition.quality,
         )
 
     def _load_state(self, namespace: str, instance_id: str) -> dict[str, object]:
@@ -349,11 +365,60 @@ class BehaviorDispatcher:
     def _peeps_in_view(self, room_id: str) -> list[dict[str, object]]:
         """Return lightweight NPC references for a room, including absent states."""
 
-        return [
-            {"id": peep.id, "label": peep.label}
-            for peep in self._world.peeps.values()
-            if self._current_peep_room(peep.id) == room_id
-        ]
+        peeps: list[dict[str, object]] = []
+        for peep in self._world.peeps.values():
+            if self._current_peep_room(peep.id) != room_id:
+                continue
+            position = self._sprites.ensure_npc(peep.id, room_id) if self._sprites is not None else None
+            peeps.append(
+                {
+                    "id": peep.id,
+                    "label": peep.label,
+                    "position": [float(position[0]), float(position[1])] if position is not None else None,
+                }
+            )
+        return peeps
+
+    async def _room_users_view(self, room_id: str) -> list[dict[str, object]]:
+        """Return live user occupants with sprite positions and effective stats.
+
+        Scripts call this for server-authoritative positional rules (for example
+        a raycast). It is only built on demand so idle ticks stay cheap.
+        """
+
+        if self._connections is None:
+            return []
+        members = await self._connections.list_room(room_id)
+        account_ids = [member.account_id for member in members]
+        if not account_ids:
+            return []
+        try:
+            snapshots = self._stats.views(account_ids)
+        except Exception as exc:  # noqa: BLE001 - a read must not break the room loop
+            self._log("behavior.room_users.error", error=str(exc))
+            return []
+        users: list[dict[str, object]] = []
+        for account_id in account_ids:
+            account = self._profiles.get_account_by_id(account_id)
+            snapshot = snapshots.get(account_id)
+            if account is None or snapshot is None:
+                continue
+            position = None
+            if self._sprites is not None:
+                stored = self._sprites.ensure_user(account_id, room_id)
+                if stored is not None:
+                    position = [float(stored[0]), float(stored[1])]
+            users.append(
+                {
+                    "id": account.id,
+                    "name": account.username_display,
+                    "position": position,
+                    "dexterity": snapshot.effective.stat("dexterity"),
+                    "health": snapshot.health,
+                    "cleanliness": snapshot.cleanliness,
+                }
+            )
+        return users
 
     def _build_world_view(self) -> dict[str, object]:
         return {"id": self._world.id, "label": self._world.label}
@@ -405,10 +470,19 @@ class BehaviorDispatcher:
                 continue
             if actor_view is None:
                 actor_view = self._actor_view(event)
+            # A user-targeted card play routes to room scripts; keep the user as
+            # the script's target instead of the attachment's own prop ref.
+            user_target = (
+                event.target
+                if event.type == "card_play"
+                and isinstance(event.target, PeepRef)
+                and event.target.kind == "user"
+                else None
+            )
             context = BehaviorContext(
                 event=event,
                 actor=event.actor,
-                target=attachment.ref if attachment.ref is not None else event.target,
+                target=user_target if user_target is not None else (attachment.ref if attachment.ref is not None else event.target),
                 room=self._room_view(event.room_id),
                 world=self._world_view(),
                 state=self._load_state(attachment.namespace, attachment.instance_id),
@@ -421,6 +495,8 @@ class BehaviorDispatcher:
                 actor_username=str(actor_view.get("username") or ""),
                 card=self._card_view(event),
                 peeps_in=self._peeps_in_view,
+                room_users=self._room_users_view,
+                bops=int(actor_view.get("bops") or 0),
                 powers=actor_view.get("powers") or frozenset(),
             )
             contexts.append((attachment, context))
@@ -476,6 +552,8 @@ class BehaviorDispatcher:
         payload = intent.payload
         if kind == "feedback":
             self._apply_feedback(payload, result)
+        elif kind == "room_feedback":
+            self._apply_room_feedback(payload, event, result)
         elif kind == "effect":
             self._apply_effect(payload, context, event, result)
         elif kind == "apply_counter":
@@ -492,6 +570,8 @@ class BehaviorDispatcher:
             self._apply_give_card(connection, payload, context, result)
         elif kind == "remove_card":
             self._apply_remove_card(connection, payload, context, result)
+        elif kind == "purchase_card":
+            self._apply_purchase_card(connection, payload, context, result)
         elif kind == "npc_say":
             self._apply_npc_say(payload, context, event, result)
         elif kind == "start_dialog":
@@ -501,7 +581,7 @@ class BehaviorDispatcher:
         elif kind == "start_activity":
             self._apply_start_activity(payload, context, event, result)
         elif kind == "cutscene":
-            self._apply_cutscene(payload, context, event, result)
+            self._apply_cutscene(payload, context, event, result, deferred)
         elif kind in {"start_task", "update_task_progress"}:
             self._apply_task_intent(kind, payload, context, result, deferred)
         elif kind == "request_move":
@@ -512,6 +592,8 @@ class BehaviorDispatcher:
             self._apply_move_sprite(payload, context, event, result, random_position=False)
         elif kind == "move_sprite_random":
             self._apply_move_sprite(payload, context, event, result, random_position=True)
+        elif kind == "move_peep_sprite":
+            self._apply_move_peep_sprite(payload, event, result)
         elif kind == "move_peep":
             self._apply_move_peep(connection, payload, context, result, deferred)
         elif kind == "set_environment":
@@ -531,6 +613,7 @@ class BehaviorDispatcher:
         context: BehaviorContext,
         event: BehaviorEvent,
         result: BehaviorResult,
+        deferred: list[object],
     ) -> None:
         cutscenes = self._cutscenes
         if cutscenes is None or event.room_id is None:
@@ -538,15 +621,52 @@ class BehaviorDispatcher:
             return
         account_id = context.actor.account_id
         if account_id is None:
+            # A system tick can still announce a room-wide scene. Defer the
+            # lookup of a present source account until after the transaction.
+            async def launch_for_room() -> None:
+                occupants: list[object] = []
+                if self._connections is not None:
+                    occupants = await self._connections.list_room(event.room_id or "")
+                if not occupants:
+                    self._log("behavior.intent.skipped", kind="cutscene", reason="empty_room")
+                    return
+                source_id = getattr(occupants[0], "account_id", None)
+                account = self._profiles.get_account_by_id(source_id) if source_id else None
+                if account is None:
+                    self._log("behavior.intent.skipped", kind="cutscene", reason="no_source_account")
+                    return
+                self._deliver_cutscene(
+                    payload,
+                    event,
+                    result,
+                    account,
+                    occupants=[getattr(member, "account_id", "") for member in occupants],
+                )
+
+            deferred.append(launch_for_room)
+            return
+        account = self._profiles.get_account_by_id(account_id)
+        if account is None:
             self._log("behavior.intent.skipped", kind="cutscene", reason="no_account")
+            return
+        self._deliver_cutscene(payload, event, result, account)
+
+    def _deliver_cutscene(
+        self,
+        payload: Mapping[str, object],
+        event: BehaviorEvent,
+        result: BehaviorResult,
+        account: object,
+        *,
+        occupants: list[str] | None = None,
+    ) -> None:
+        cutscenes = self._cutscenes
+        if cutscenes is None or event.room_id is None:
             return
         cutscene_id = str(payload.get("cutscene_id", ""))
         try:
             definition = cutscenes.resolve(cutscene_id)
             audience = cutscenes.choose_audience(definition, payload.get("audience"))
-            account = self._profiles.get_account_by_id(account_id)
-            if account is None:
-                raise ValueError("the acting account no longer exists")
             launch = cutscenes.launch(
                 definition=definition,
                 account=account,
@@ -554,6 +674,7 @@ class BehaviorDispatcher:
                 audience=audience,
                 origin="behavior",
                 params=payload.get("params") if isinstance(payload.get("params"), dict) else None,
+                occupants=occupants,
             )
         except Exception as exc:  # noqa: BLE001 - one bad script must not break the room
             self._log("behavior.intent.skipped", kind="cutscene", error=str(exc))
@@ -575,6 +696,28 @@ class BehaviorDispatcher:
         result.private_events.append(event)
         if text:
             result.messages.append(text)
+
+    def _apply_room_feedback(
+        self,
+        payload: Mapping[str, object],
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        if event.room_id is None:
+            return
+        text = str(payload.get("text", ""))
+        if not text:
+            return
+        tone = str(payload.get("style", "info"))
+        if tone not in {"info", "success", "error"}:
+            tone = "info"
+        result.room_broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=event.room_id,
+                event={"type": "toast", "room_id": event.room_id, "tone": tone, "text": text},
+            )
+        )
+        result.messages.append(text)
 
     def _apply_effect(
         self,
@@ -651,10 +794,13 @@ class BehaviorDispatcher:
                         "target_label": account.username_display if account else "",
                         "health_delta": delta if counter == "health" else 0,
                         "energy_delta": delta if counter == "energy" else 0,
+                        "cleanliness_delta": delta if counter == "cleanliness" else 0,
                         "health": snapshot.health,
                         "energy": snapshot.energy,
+                        "cleanliness": snapshot.cleanliness,
                         "max_health": snapshot.effective.max_health,
                         "max_energy": snapshot.effective.max_energy,
+                        "max_cleanliness": snapshot.effective.max_cleanliness,
                         "statuses": list(snapshot.statuses),
                         "source_id": context.actor.account_id,
                     },
@@ -826,8 +972,20 @@ class BehaviorDispatcher:
             self._log("behavior.intent.skipped", kind="give_card", reason="unknown_card", card_id=card_id)
             return
         quantity = max(0, int(payload.get("quantity", 1) or 0))
+        self._grant_card_quantity(connection, account_id, definition, quantity)
+        result.inventory_changed_for = account_id
+
+    def _grant_card_quantity(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        definition: object,
+        quantity: int,
+    ) -> None:
+        """Grant *quantity* copies of a card and auto-equip a new stack."""
+
         created_stacks: list = []
-        for _ in range(quantity):
+        for _ in range(max(0, int(quantity))):
             created_stacks.extend(
                 grant_card_to_inventory(
                     self._profiles,
@@ -850,6 +1008,44 @@ class BehaviorDispatcher:
             created_stacks=created_stacks,
             equipped_cap=cap,
         )
+
+    def _apply_purchase_card(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        result: BehaviorResult,
+    ) -> None:
+        """Atomically spend Bops and grant a card for a vending script."""
+
+        account_id = self._account_for(payload, context)
+        if account_id is None:
+            self._log("behavior.intent.skipped", kind="purchase_card", reason="no_account")
+            return
+        card_id = str(payload.get("card_id", ""))
+        definition = self._catalog.cards.get(card_id)
+        if definition is None:
+            self._log("behavior.intent.skipped", kind="purchase_card", reason="unknown_card", card_id=card_id)
+            return
+        quantity = max(0, int(payload.get("quantity", 1) or 0))
+        cost = max(0, int(payload.get("bops", 0) or 0))
+        account = self._profiles.get_account_by_id(account_id)
+        if account is None:
+            return
+        if account.bops < cost:
+            result.rejected = True
+            self._apply_feedback(
+                {
+                    "text": f"You need {cost - account.bops} more Bops.",
+                    "style": "error",
+                    "target_account_id": account_id,
+                },
+                result,
+            )
+            return
+        if cost:
+            self._profiles.update_progress(connection, account, bops=account.bops - cost)
+        self._grant_card_quantity(connection, account_id, definition, quantity)
         result.inventory_changed_for = account_id
 
     def _apply_npc_say(
@@ -860,20 +1056,23 @@ class BehaviorDispatcher:
         result: BehaviorResult,
     ) -> None:
         target = context.target
-        if not isinstance(target, PeepRef) or not target.peep_id or event.room_id is None:
+        peep_id = str(payload.get("peep_id") or "")
+        if not peep_id and isinstance(target, PeepRef) and target.peep_id:
+            peep_id = target.peep_id
+        if not peep_id or event.room_id is None:
             return
         text = str(payload.get("text", ""))
         if not text:
             return
-        peep = self._world.peeps.get(target.peep_id)
+        peep = self._world.peeps.get(peep_id)
         result.room_broadcasts.append(
             PendingRoomBroadcast(
                 room_id=event.room_id,
                 event={
                     "type": "emote.bubble",
                     "room_id": event.room_id,
-                    "source_id": target.peep_id,
-                    "source": peep.label if peep is not None else target.peep_id,
+                    "source_id": peep_id,
+                    "source": peep.label if peep is not None else peep_id,
                     "bubble": {"kind": str(payload.get("style", "expression")), "text": text},
                     "card_id": None,
                 },
@@ -1145,6 +1344,44 @@ class BehaviorDispatcher:
             result=result,
             random_position=random_position,
             log=self._log,
+        )
+
+    def _apply_move_peep_sprite(
+        self,
+        payload: Mapping[str, object],
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        """Move one NPC sprite by id, used by room-game controllers for bots."""
+
+        if self._sprites is None or event.room_id is None:
+            return
+        peep_id = str(payload.get("peep_id", ""))
+        if not peep_id or peep_id not in self._world.peeps:
+            return
+        try:
+            if bool(payload.get("random")):
+                position = self._sprites.random_npc_position(peep_id, event.room_id)
+            else:
+                raw = payload.get("position")
+                if not isinstance(raw, list) or len(raw) != 2:
+                    return
+                position = self._sprites.set_npc_position(
+                    peep_id, event.room_id, float(raw[0]), float(raw[1])
+                )
+        except (TypeError, ValueError) as exc:
+            self._log("behavior.intent.skipped", kind="move_peep_sprite", error=str(exc))
+            return
+        result.room_broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=event.room_id,
+                event={
+                    "type": "peep.sprite",
+                    "room_id": event.room_id,
+                    "peep_id": peep_id,
+                    "position": list(position),
+                },
+            )
         )
 
     def _apply_move_peep(

@@ -35,6 +35,18 @@
         "seed": 95203,
         "steps": 32
       }
+    },
+    {
+      "label": "paintball-arena-floor",
+      "tool": "image",
+      "prompt": "flat top-down paintball arena floor texture, dark violet rubber mat with a glowing magenta and cyan boundary line frame, a faint cyan center circle, a few faded multicolored paint splats, seamless, evenly lit, no walls, no furniture, no text, no logos, no perspective",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/rooms/paintball-arena.png",
+      "args": {
+        "width": 1024,
+        "height": 1024,
+        "seed": 95204,
+        "steps": 32
+      }
     }
   ]
 }

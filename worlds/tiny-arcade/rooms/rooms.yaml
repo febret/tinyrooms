@@ -134,10 +134,27 @@ lobby:
         text: 'PLAY TOGETHER
 
           Anyone can take the next move.'
+    lobby-tip-paintball:
+      prop: builtin:sign
+      pos: [50, 92, 0]
+      rot: [-0.45, 0, 0]
+      scale: 1.7
+      sign_style: neon
+      surface:
+        text: 'PAINTBALL ARENA ↑
+
+          Buy a blaster, then use it on another peep.'
+      actions:
+      - - Enter the Paintball Arena
+        - .go paintball
+        - true
   exits:
     chess:
       label: Enter the Chess Nook
       target: chess
+    paintball:
+      label: Enter the Paintball Arena
+      target: paintball
 chess:
   label: The Chess Nook
   description: A giant checkerboard under a warm lamp. Anybody in the room can take
@@ -355,3 +372,170 @@ chess:
     lobby:
       label: Back to the Arcade Lobby
       target: lobby
+paintball:
+  label: The Paintball Arena
+  description: A neon inflatable arena under black lights. Buy a blaster and paint
+    from the vending machine, then tag other peeps before the two-minute buzzer.
+    Hits cost Cleanliness and Health. Top three splatterers earn Bops.
+  board_type: basic
+  board_image: paintball-arena.png
+  board_image_style: stretch
+  sprites_enabled: true
+  palette:
+  - '#120a24'
+  - '#ff4d6d'
+  - '#4ea8ff'
+  - '#5cf29a'
+  props:
+    paintball-vending:
+      prop: paintball-vending
+      pos: [13, 83, 0]
+      scale: 1
+      behavior: paintball
+      actions:
+      - - 'Buy Splash Pal (1 Bop)'
+        - .act buy:paintball-blaster-splash @prop:paintball-vending
+        - true
+      - - 'Buy Neon Buzzer (8 Bops)'
+        - .act buy:paintball-blaster-neon @prop:paintball-vending
+        - true
+      - - 'Buy Prism Cannon (20 Bops)'
+        - .act buy:paintball-blaster-prism @prop:paintball-vending
+        - true
+      - - 'Buy 10 Cherry Paintballs (1 Bop)'
+        - .act buy:paintball-cherry @prop:paintball-vending
+        - true
+      - - 'Buy 10 Berry Paintballs (1 Bop)'
+        - .act buy:paintball-berry @prop:paintball-vending
+        - true
+      - - 'Buy 10 Lime Paintballs (1 Bop)'
+        - .act buy:paintball-lime @prop:paintball-vending
+        - true
+      - - 'Buy 10 Lemon Paintballs (1 Bop)'
+        - .act buy:paintball-lemon @prop:paintball-vending
+        - true
+      - - 'Buy 10 Grape Paintballs (1 Bop)'
+        - .act buy:paintball-grape @prop:paintball-vending
+        - true
+    paintball-bunker-left:
+      prop: paintball-bunker
+      pos: [34, 38, 0]
+      rot: [0, 0.2, 0]
+      scale: 1
+    paintball-bunker-right:
+      prop: paintball-bunker
+      pos: [66, 38, 0]
+      rot: [0, -0.2, 0]
+      scale: 1
+    paintball-bunker-back:
+      prop: paintball-bunker
+      pos: [50, 70, 0]
+      scale: 1.15
+    paintball-barrels:
+      prop: paintball-barrel-stack
+      pos: [82, 80, 0]
+      scale: 1
+    paintball-tip-rules:
+      prop: builtin:sign
+      pos: [8, 12, 0]
+      rot: [-0.45, 0.16, 0]
+      scale: 1.15
+      sign_style: paper
+      surface:
+        text: 'HOW TO PLAY
+
+          1. Buy a blaster + paintballs.
+
+          2. Equip them both.
+
+          3. Use the blaster on a peep.
+
+          4. Top 3 hit counts win Bops.'
+    paintball-tip-buzzer:
+      prop: builtin:sign
+      pos: [92, 12, 0]
+      rot: [-0.45, -0.16, 0]
+      scale: 1.15
+      sign_style: neon
+      surface:
+        text: 'ROUNDS
+
+          2 minutes live.
+
+          30 seconds between.
+
+          Get hit: -10 Cleanliness, -1 Health.'
+  game:
+    kind: paintball
+    controller: paintball-vending
+    renderer: paintball
+    reset_powers:
+    - admin
+    - moderator
+    - game-master
+    config:
+      round_seconds: 120
+      intermission_seconds: 30
+      rewards: [10, 5, 1]
+      max_range: 11.0
+      peep_radius: 0.42
+      bots:
+        ids: [paintbot-pip, paintbot-bolt, paintbot-mim, paintbot-cog]
+        home_room: bot-hangar
+        target_players: 4
+        dismiss_seconds: 5
+        dexterity: 2
+        quality: 2
+        shot_seconds: [5.5, 9.5]
+      ammo:
+      - card: paintball-cherry
+        color: '#ff4d6d'
+      - card: paintball-berry
+        color: '#4ea8ff'
+      - card: paintball-lime
+        color: '#5cf29a'
+      - card: paintball-lemon
+        color: '#ffe066'
+      - card: paintball-grape
+        color: '#c77dff'
+      vending:
+      - card: paintball-blaster-splash
+        quantity: 1
+        bops: 1
+      - card: paintball-blaster-neon
+        quantity: 1
+        bops: 8
+      - card: paintball-blaster-prism
+        quantity: 1
+        bops: 20
+      - card: paintball-cherry
+        quantity: 10
+        bops: 1
+      - card: paintball-berry
+        quantity: 10
+        bops: 1
+      - card: paintball-lime
+        quantity: 10
+        bops: 1
+      - card: paintball-lemon
+        quantity: 10
+        bops: 1
+      - card: paintball-grape
+        quantity: 10
+        bops: 1
+  exits:
+    lobby:
+      label: Back to the Arcade Lobby
+      target: lobby
+bot-hangar:
+  label: Paintbot Hangar
+  description: A cramped offstage rack where the arena paintbots recharge between
+    rounds. Players never see this room.
+  board_type: basic
+  board_image: lobby.png
+  board_image_style: stretch
+  palette:
+  - '#120a24'
+  - '#4ea8ff'
+  props: {}
+  exits: {}

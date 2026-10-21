@@ -1,1 +1,20 @@
-{}
+paintbot-pip:
+  label: Pip
+  description: A chirpy paintbot with a funnel hat and a permanently excited trigger finger.
+  room: bot-hangar
+  image: paintbot-pip.png
+paintbot-bolt:
+  label: Bolt
+  description: A lanky paintbot that claims every near miss was intentional.
+  room: bot-hangar
+  image: paintbot-bolt.png
+paintbot-mim:
+  label: Mim
+  description: A mimic paintbot that copies the last winner's victory pose, badly.
+  room: bot-hangar
+  image: paintbot-mim.png
+paintbot-cog:
+  label: Cog
+  description: A sturdy paintbot with a barrel for a torso and a grudge against clean floors.
+  room: bot-hangar
+  image: paintbot-cog.png
