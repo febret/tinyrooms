@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
+import inspect
 import logging
 import sqlite3
 
@@ -42,6 +43,12 @@ class RoomTicker:
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self._task: asyncio.Task[None] | None = None
         self._running: set[str] = set()
+        self._tick_hooks: list[Callable[[str], object]] = []
+
+    def add_tick_hook(self, hook: Callable[[str], object]) -> None:
+        """Register a callback run after each occupied-room behavior tick."""
+
+        self._tick_hooks.append(hook)
 
     def start(self) -> None:
         """Start the scheduler task; a no-op when already started."""
@@ -91,10 +98,26 @@ class RoomTicker:
             )
             result = await self._dispatcher.dispatch(event)
             self._expire_environment(room_id, result)
+            await self._run_tick_hooks(room_id, result)
             if self._on_result is not None and result is not None:
                 await self._on_result(result)
         finally:
             self._running.discard(room_id)
+
+    async def _run_tick_hooks(self, room_id: str, result: object) -> None:
+        """Run registered hooks and merge any room broadcasts they produce."""
+
+        for hook in self._tick_hooks:
+            try:
+                outcome = hook(room_id)
+                if inspect.isawaitable(outcome):
+                    outcome = await outcome
+            except Exception as exc:  # noqa: BLE001 - a hook must not break the room loop
+                self._logger.warning("tick hook failed for %s: %s", room_id, exc)
+                continue
+            broadcasts = getattr(result, "room_broadcasts", None)
+            if broadcasts is not None and isinstance(outcome, (list, tuple)):
+                broadcasts.extend(outcome)
 
     def _apply_auras(self, room_id: str, occupants: list[object]) -> None:
         if self._auras is None:

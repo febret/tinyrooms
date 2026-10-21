@@ -8,8 +8,8 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 10
-WORLD_SCHEMA_VERSION = 16
+PROFILE_SCHEMA_VERSION = 11
+WORLD_SCHEMA_VERSION = 17
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -213,7 +213,16 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at);
-PRAGMA user_version = 10;
+CREATE TABLE IF NOT EXISTS vibes (
+    world_id TEXT NOT NULL,
+    source_peep_id TEXT NOT NULL,
+    target_peep_id TEXT NOT NULL,
+    value INTEGER NOT NULL CHECK (value BETWEEN -100 AND 100),
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (world_id, source_peep_id, target_peep_id)
+);
+CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
+PRAGMA user_version = 11;
 COMMIT;
 """
 
@@ -302,7 +311,16 @@ CREATE TABLE IF NOT EXISTS prop_surfaces (
     PRIMARY KEY (room_id, instance_id)
 );
 CREATE INDEX IF NOT EXISTS idx_prop_surfaces_room ON prop_surfaces(room_id);
-PRAGMA user_version = 16;
+CREATE TABLE IF NOT EXISTS vibes (
+    world_id TEXT NOT NULL,
+    source_peep_id TEXT NOT NULL,
+    target_peep_id TEXT NOT NULL,
+    value INTEGER NOT NULL CHECK (value BETWEEN -100 AND 100),
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (world_id, source_peep_id, target_peep_id)
+);
+CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
+PRAGMA user_version = 17;
 COMMIT;
 """
 
@@ -318,6 +336,7 @@ _PROFILE_TABLES = frozenset(
         "task_progress",
         "memories",
         "audit_log",
+        "vibes",
     }
 )
 
@@ -513,6 +532,20 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 10;
     COMMIT;
     """,
+    11: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS vibes (
+        world_id TEXT NOT NULL,
+        source_peep_id TEXT NOT NULL,
+        target_peep_id TEXT NOT NULL,
+        value INTEGER NOT NULL CHECK (value BETWEEN -100 AND 100),
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (world_id, source_peep_id, target_peep_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
+    PRAGMA user_version = 11;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -615,6 +648,20 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     );
     CREATE INDEX IF NOT EXISTS idx_prop_surfaces_room ON prop_surfaces(room_id);
     PRAGMA user_version = 16;
+    COMMIT;
+    """,
+    17: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS vibes (
+        world_id TEXT NOT NULL,
+        source_peep_id TEXT NOT NULL,
+        target_peep_id TEXT NOT NULL,
+        value INTEGER NOT NULL CHECK (value BETWEEN -100 AND 100),
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (world_id, source_peep_id, target_peep_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
+    PRAGMA user_version = 17;
     COMMIT;
     """,
 }
@@ -796,6 +843,14 @@ _NPC_PEEP_STATES_COLUMNS = (
     "updated_at",
 )
 
+_VIBES_COLUMNS = (
+    "world_id",
+    "source_peep_id",
+    "target_peep_id",
+    "value",
+    "updated_at",
+)
+
 _PROP_SURFACES_COLUMNS = (
     "room_id",
     "instance_id",
@@ -913,6 +968,7 @@ def ensure_profile_database(path: Path) -> None:
             "task_progress": _TASK_PROGRESS_COLUMNS,
             "memories": _MEMORIES_COLUMNS,
             "audit_log": _AUDIT_LOG_COLUMNS,
+            "vibes": _VIBES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
@@ -925,6 +981,7 @@ def ensure_profile_database(path: Path) -> None:
             "CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(account_id, world_id, created_at)",
             "CREATE INDEX IF NOT EXISTS idx_memories_task ON memories(account_id, task_id)",
             "CREATE INDEX IF NOT EXISTS idx_audit_log_world ON audit_log(world_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id)",
         ),
         migrations=_PROFILE_MIGRATIONS,
     )
@@ -953,6 +1010,7 @@ def ensure_world_database(path: Path) -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_room_states_player_owner "
             "ON room_states(owner_account_id) WHERE room_id LIKE 'classroom:%'",
             "CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind)",
+            "CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id)",
         ),
         migrations=_WORLD_MIGRATIONS,
     )

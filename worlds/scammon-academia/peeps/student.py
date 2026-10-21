@@ -28,6 +28,7 @@ CLASSROOM_CHAT_INTERVAL = timedelta(seconds=5)
 TOPIC_REACTION_LIMIT = 2
 CAFETERIA_MOVE_INTERVAL = (10.0, 15.0)
 CAFETERIA_COMMENT_CHANCE = 0.012
+VIBE_COMMENT_THRESHOLD = 10
 
 _last_classroom_chat: dict[str, datetime] = {}
 
@@ -103,6 +104,34 @@ CLASS_LINES = (
     "Best class mood in a while.",
 )
 
+TEACHER_LIKED_LINES = (
+    "The teacher actually listens to us.",
+    "Best teacher ever, honestly.",
+    "I hope we get this teacher again.",
+    "This class is way more fun with them.",
+)
+
+TEACHER_DISLIKED_LINES = (
+    "The teacher is being kind of unfair.",
+    "I do not think the teacher likes us.",
+    "Can we have a different teacher next time?",
+    "This teacher gives way too much homework.",
+)
+
+PEER_LIKED_LINES = (
+    "{peer} is my best friend in this class.",
+    "I am glad {peer} is here.",
+    "{peer} always has my back.",
+    "Sitting next to {peer} makes class better.",
+)
+
+PEER_DISLIKED_LINES = (
+    "{peer} keeps bothering me.",
+    "I wish {peer} would stop talking.",
+    "{peer} is not being very nice today.",
+    "Why does {peer} keep copying me?",
+)
+
 
 def _topic_subject(card) -> str | None:
     if card is None:
@@ -124,6 +153,48 @@ def _pick(lines, **fields):
 
 def _say(context, text: str, style: str = "expression") -> None:
     context.npc_say(text, style=style)
+
+
+def _peer_views(context) -> list[dict[str, object]]:
+    label = str(context.state.get("label", ""))
+    return [
+        peer
+        for peer in (context.room.get("peeps") or [])
+        if isinstance(peer.get("id"), str)
+        and peer.get("id")
+        and peer.get("label")
+        and peer.get("label") != label
+    ]
+
+
+def _strongest_peer_vibe(context) -> tuple[dict[str, object], int] | None:
+    best: tuple[dict[str, object], int] | None = None
+    for peer in _peer_views(context):
+        score = context.vibe_toward(str(peer["id"]))
+        if abs(score) < VIBE_COMMENT_THRESHOLD:
+            continue
+        if best is None or abs(score) > abs(best[1]):
+            best = (peer, score)
+    return best
+
+
+def _teacher_vibe_line(context) -> str | None:
+    teacher_id = context.state.get("teacher_account_id")
+    if not isinstance(teacher_id, str) or not teacher_id:
+        return None
+    score = context.vibe_toward(teacher_id)
+    if abs(score) < VIBE_COMMENT_THRESHOLD:
+        return None
+    return _pick(TEACHER_LIKED_LINES if score > 0 else TEACHER_DISLIKED_LINES)
+
+
+def _peer_vibe_line(context) -> str | None:
+    strongest = _strongest_peer_vibe(context)
+    if strongest is None:
+        return None
+    peer, score = strongest
+    lines = PEER_LIKED_LINES if score > 0 else PEER_DISLIKED_LINES
+    return _pick(lines, peer=str(peer["label"]))
 
 
 def _claim_classroom_chat(context, event) -> bool:
@@ -247,7 +318,8 @@ def _cafeteria_tick(context, event):
         seconds = random.uniform(*CAFETERIA_MOVE_INTERVAL)
         context.state["next_sprite_move_at"] = (context.now + timedelta(seconds=seconds)).isoformat()
     if random.random() < CAFETERIA_COMMENT_CHANCE:
-        _say(context, _pick(CAFETERIA_LINES))
+        vibe_line = _peer_vibe_line(context)
+        _say(context, vibe_line or _pick(CAFETERIA_LINES))
 
 
 def on_tick(context, event):
@@ -284,6 +356,15 @@ def on_tick(context, event):
         return
     if attention <= 2:
         _say(context, _pick(DISTRACTED_LINES), "thinking")
+        return
+
+    teacher_line = _teacher_vibe_line(context)
+    if teacher_line is not None and random.random() < 0.5:
+        _say(context, teacher_line)
+        return
+    peer_vibe_line = _peer_vibe_line(context)
+    if peer_vibe_line is not None and random.random() < 0.6:
+        _say(context, peer_vibe_line)
         return
 
     peers = [peer.get("label") for peer in (context.room.get("peeps") or []) if peer.get("label") and peer.get("label") != label]

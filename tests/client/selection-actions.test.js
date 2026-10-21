@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { selectionActions } from "../../client/app/js/cards.js";
+import { describeSelection, selectionActions } from "../../client/app/js/cards.js";
 import { createStore, isTargetableStack } from "../../client/app/js/state.js";
 
 function selectedState(stack) {
@@ -96,4 +96,31 @@ test("targeting allows world-handled prop actions but requires an effect for pee
   assert.equal(isTargetableStack(stack), false);
   stack.definition.effect = "health";
   assert.equal(isTargetableStack(stack), true);
+});
+
+test("peep descriptions include reciprocal vibes", () => {
+  const state = {
+    room: {
+      id: "room",
+      inventory: [],
+      occupants: [],
+      npcs: [{
+        id: "npc",
+        kind: "npc",
+        label: "Caretaker",
+        description: "Keeps the place tidy.",
+        vibes: {
+          toward: { value: 12, label: "Friend 🙂" },
+          from: { value: -4, label: "Annoyance 🙄" },
+        },
+      }],
+    },
+    user: { id: "self" },
+    views: { main: null },
+    selection: { kind: "peep", id: "npc" },
+    ui: {},
+  };
+  const description = describeSelection(state);
+  assert.match(description.description, /You: Friend/);
+  assert.match(description.description, /Them: Annoyance/);
 });

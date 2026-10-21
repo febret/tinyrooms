@@ -40,6 +40,7 @@ has its own worldstate database. See the canonical
 | Protocol and live connections | [protocol](../server/protocol.py), [connections](../server/connections.py) |
 | Command parsing/dispatch | [parser](../server/commands/parser.py), [registry](../server/commands/registry.py) |
 | Gameplay services | [server/services/](../server/services/) |
+| Peep relationships | [vibes service](../server/services/vibes.py), [state](../server/state/vibes.py) |
 | Persistence and migrations | [server/state/](../server/state/); [durability contracts](db.md) |
 | Content and extensions | [server/content/](../server/content/), [mods](../server/mods.py), [behaviors](../server/behaviors/) |
 | Browser rendering and state | [app/js/](../client/app/js/), [app/css/](../client/app/css/) |
@@ -157,6 +158,11 @@ shortcuts, but it must not infer action authority from presentation.
   customization, grade floors, materialization, and access checks. Entry shares
   the normal room-change path; persisted rooms are prepared before
   initialization/seeding.
+- **Vibes:** [vibes.py](../server/services/vibes.py) owns directed -100..100
+  scores between peeps. Player-sourced rows live in the profile DB and
+  NPC-sourced rows in the world DB. Occupied rooms apply the minute-based
+  stinky/charisma rules through `RoomTicker` hooks; classroom lesson and
+  cafeteria rules live in the classrooms mod.
 - **Restart:** room cards, inventory, and remembered room persist; chat does not.
   See [database durability](db.md#3-world-state-db).
 

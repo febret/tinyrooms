@@ -27,6 +27,7 @@ from server.commands.outcomes import (
 from server.commands.parser import ParsedCommand
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.worlds import PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
+from mods.classrooms.cafeteria import CafeteriaService
 from mods.classrooms.lesson import LessonService, teach_command
 from mods.classrooms.lessons import SUBJECT_LABELS
 from server.profiles import AccountRecord, ProfileRepository
@@ -268,6 +269,7 @@ class ClassroomService:
         world: WorldDefinition,
         catalog: DoorCatalog,
         lessons: LessonService | None = None,
+        cafeteria: CafeteriaService | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -276,6 +278,7 @@ class ClassroomService:
         self._world = world
         self._catalog = catalog
         self._lessons = lessons
+        self._cafeteria = cafeteria
 
     @property
     def catalog(self) -> DoorCatalog:
@@ -297,6 +300,13 @@ class ClassroomService:
         if self._lessons is None:
             return ()
         return self._lessons.room_quick_actions(account, room)
+
+    def on_room_tick(self, room_id: str) -> list[object]:
+        """Run the cafeteria lunch and shared-trait vibe rules."""
+
+        if self._cafeteria is None:
+            return []
+        return self._cafeteria.on_room_tick(room_id)
 
     @property
     def cost(self) -> int:
@@ -737,6 +747,14 @@ def _build_state(runtime: object) -> ClassroomService:
         peep_states=runtime.peep_states,
         behaviors=runtime.behaviors,
         progression=runtime.progression,
+        vibes=runtime.vibes,
+        layout=runtime.layout,
+    )
+    cafeteria = CafeteriaService(
+        hub=runtime.hub,
+        world=runtime.world,
+        peep_states=runtime.peep_states,
+        vibes=runtime.vibes,
     )
     return ClassroomService(
         runtime.hub,
@@ -746,6 +764,7 @@ def _build_state(runtime: object) -> ClassroomService:
         runtime.world,
         catalog,
         lessons=lessons,
+        cafeteria=cafeteria,
     )
 
 

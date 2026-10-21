@@ -148,7 +148,15 @@ export function describeSelection(state) {
   }
   if (state.selection.kind === "room-card" || state.selection.kind === "inventory-card") return { tag: rarityLabel(selected.definition), title: selected.definition.label, description: selected.definition.description, imageUrl: selected.definition.imageUrl };
   if (state.selection.kind === "prop") return { tag: "Prop", title: selected.label, description: selected.description, imageUrl: "" };
-  if (state.selection.kind === "peep") return { tag: selected.kind === "npc" ? "NPC" : "Peep", title: selected.label, description: selected.description || "A peep in this room.", imageUrl: selected.stickerUrl };
+  if (state.selection.kind === "peep") {
+    const parts = [selected.description || "A peep in this room."];
+    const toward = selected.vibes?.toward?.label;
+    const from = selected.vibes?.from?.label;
+    if (toward || from) {
+      parts.push(`Vibes — You: ${toward || "Neutral 😐"}${from ? ` · Them: ${from}` : ""}`);
+    }
+    return { tag: selected.kind === "npc" ? "NPC" : "Peep", title: selected.label, description: parts.join(" "), imageUrl: selected.stickerUrl };
+  }
   return { tag: "Selection", title: "Tinyrooms", description: "", imageUrl: "" };
 }
 

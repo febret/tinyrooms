@@ -103,6 +103,7 @@ class RoomService:
         sprites: SpriteService | None = None,
         surfaces: PropSurfaceService | None = None,
         powers: object | None = None,
+        vibes: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -124,6 +125,7 @@ class RoomService:
         self._sprites = sprites or SpriteService(world, layout=layout)
         self._surfaces = surfaces
         self._powers = powers
+        self._vibes = vibes
         self._mod_states: list[object] = []
 
     @property
@@ -331,10 +333,28 @@ class RoomService:
             "prop": {"id": prop_instance_id, "active_effect": set_name},
         }
 
-    def room_peeps(self, room_id: str) -> list[dict[str, object]]:
+    def room_peeps(
+        self,
+        room_id: str,
+        *,
+        viewer_id: str | None = None,
+    ) -> list[dict[str, object]]:
         """Serialize the NPC peeps present in a room."""
 
-        return self._room_peeps(room_id)
+        vibes_by_id = None
+        if viewer_id and self._vibes is not None:
+            vibes_by_id = self._vibes.pairs_for(
+                viewer_id,
+                [peep.id for peep in self._npc_peeps_in(room_id)],
+            )
+        return self._room_peeps(room_id, vibes_by_id=vibes_by_id)
+
+    def _npc_peeps_in(self, room_id: str) -> list[PeepDefinition]:
+        return [
+            peep
+            for peep in self._world.peeps.values()
+            if self.peep_room(peep) == room_id
+        ]
 
     @staticmethod
     def _exit_command(exit_id: str) -> str:
@@ -464,15 +484,28 @@ class RoomService:
                 return current
         return peep.room_id
 
-    def _room_peeps(self, room_id: str) -> list[dict[str, object]]:
-        peeps: list[dict[str, object]] = []
-        for peep in self._world.peeps.values():
-            if self.peep_room(peep) != room_id:
-                continue
-            peeps.append(self.serialize_npc(peep, room_id))
-        return peeps
+    def _room_peeps(
+        self,
+        room_id: str,
+        *,
+        vibes_by_id: dict[str, dict[str, object]] | None = None,
+    ) -> list[dict[str, object]]:
+        return [
+            self.serialize_npc(
+                peep,
+                room_id,
+                vibes=(vibes_by_id or {}).get(peep.id),
+            )
+            for peep in self._npc_peeps_in(room_id)
+        ]
 
-    def serialize_npc(self, peep: PeepDefinition, room_id: str | None = None) -> dict[str, object]:
+    def serialize_npc(
+        self,
+        peep: PeepDefinition,
+        room_id: str | None = None,
+        *,
+        vibes: dict[str, object] | None = None,
+    ) -> dict[str, object]:
         """Serialize an NPC definition with the actions available in its room."""
 
         resolved_room_id = room_id if room_id is not None else self.peep_room(peep)
@@ -491,6 +524,7 @@ class RoomService:
             "image_url": f"/assets/world/{self._world.id}/peeps/{peep.image_name}",
             "quick_actions": quick_actions,
             **sprite_payload,
+            **({"vibes": vibes} if vibes else {}),
         }
 
     async def move_npc(self, peep_id: str, exit_id: str) -> NpcMoveResult:
@@ -740,6 +774,10 @@ class RoomService:
             inventory = self._profiles.list_inventory(account.id, self._world.id)
             occupant_views = self._stats.views(occupant_ids)
             game_state = self._read_game_state(connection, room)
+        vibes_by_id: dict[str, dict[str, object]] = {}
+        if self._vibes is not None:
+            vibe_targets = [*occupant_ids, *[peep.id for peep in self._npc_peeps_in(room_id)]]
+            vibes_by_id = self._vibes.pairs_for(account.id, vibe_targets)
         occupants: list[dict[str, object]] = []
         for connection in live_connections:
             occupant = occupant_accounts.get(connection.account_id)
@@ -757,6 +795,7 @@ class RoomService:
                     "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(occupant),
                     **self._user_sprite_payload(occupant.id, room_id),
+                    **({"vibes": vibes_by_id[occupant.id]} if occupant.id in vibes_by_id else {}),
                 }
             )
         visible_definitions = self._visible_exits(room)
@@ -826,7 +865,7 @@ class RoomService:
                 for prop in self._visible_props(room, dark=dark)
             ],
             "occupants": occupants,
-            "npcs": self._room_peeps(room_id),
+            "npcs": self._room_peeps(room_id, vibes_by_id=vibes_by_id),
             "room_cards": self._card_service.serialize_room_stacks(room_cards),
             "chat_history": chat_history,
             "inventory": self._card_service.serialize_inventory_stacks(inventory),

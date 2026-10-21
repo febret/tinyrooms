@@ -22,6 +22,16 @@ shared lock; writes use `transaction()` (`BEGIN IMMEDIATE`, commit/rollback).
 [navigation](../server/services/rooms.py) use this connection to coordinate
 profile and world changes in one application transaction.
 
+Both databases also carry a same-shaped `vibes` table
+(`world_id, source_peep_id, target_peep_id, value, updated_at`). Rows are
+directed relationship scores clamped to -100..100; 0 is a retained neutral
+score. Rows whose source is a player account live in the profile DB, while rows
+whose source is an NPC live in the world DB. `world_id` keeps NPC targets and
+player pairs scoped when one profile DB serves multiple worlds.
+[VibesService](../server/services/vibes.py) owns the periodic stinky/charisma
+rules, pair views, and descriptors; [VibesRepository](../server/state/vibes.py)
+owns the SQL.
+
 ## 2. Profile (user) DB
 
 ### Identity, sessions, and inventory

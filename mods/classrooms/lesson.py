@@ -27,6 +27,7 @@ from mods.classrooms.lessons import (
     starting_energy,
 )
 from mods.classrooms.roster import load_student_manifest, random_roster
+from mods.classrooms.vibes import classroom_niceness_delta, grade_vibe_delta
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.cutscenes import deliver, play_cutscene
 from server.commands.outcomes import (
@@ -93,6 +94,8 @@ class LessonService:
         peep_states: NpcPeepStateRepository,
         behaviors: object,
         progression: ProgressionService,
+        vibes: object | None = None,
+        layout: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -101,6 +104,8 @@ class LessonService:
         self._peep_states = peep_states
         self._behaviors = behaviors
         self._progression = progression
+        self._vibes = vibes
+        self._layout = layout
         self._repo = LessonStateRepository(hub)
         self._student_script_path = world.root_path / "peeps" / STUDENT_SCRIPT
 
@@ -190,7 +195,7 @@ class LessonService:
             self._repo.save_session(connection, room_id, session_payload)
             for student in chosen:
                 self._peep_states.set_in_transaction(connection, student.student_id, room_id)
-                self._write_student_state(connection, student, room_id)
+                self._write_student_state(connection, student, room_id, account.id)
         for student in chosen:
             self._peep_states.record(student.student_id, room_id)
         return tuple(chosen)
@@ -247,6 +252,7 @@ class LessonService:
         total_points = sum(result.points for result in results)
         gpa = round(total_points / max(1, len(results)), 3)
         bops = max(1, int(round(gpa * BOPS_PER_GPA)))
+        vibe_deltas = self._lesson_vibe_deltas(results, account.id, room_id)
 
         with self._hub.transaction() as connection:
             self._repo.record_score(
@@ -265,6 +271,8 @@ class LessonService:
                 ledger_key=f"lesson:{room_id}:{session.get('started_at', '')}",
                 kind="lesson",
             )
+            if self._vibes is not None and vibe_deltas:
+                self._vibes.adjust_many_in_transaction(connection, vibe_deltas)
             quarter_number, _lessons, quarter_ended = self._repo.bump_quarter(connection)
             if quarter_ended:
                 scores = self._repo.read_scores(connection, self._world.id)
@@ -335,9 +343,15 @@ class LessonService:
             raise ValueError("There is no lesson in progress.")
         return session
 
-    def _initial_state(self, student: StudentRecord, room_id: str) -> dict[str, object]:
+    def _initial_state(
+        self,
+        student: StudentRecord,
+        room_id: str,
+        teacher_account_id: str,
+    ) -> dict[str, object]:
         return {
             "label": student.label,
+            "teacher_account_id": teacher_account_id,
             "grade": student.grade,
             "favorites": list(student.favorites),
             "tricky": student.tricky,
@@ -349,7 +363,13 @@ class LessonService:
             "lesson_room": room_id,
         }
 
-    def _write_student_state(self, connection: sqlite3.Connection, student: StudentRecord, room_id: str) -> None:
+    def _write_student_state(
+        self,
+        connection: sqlite3.Connection,
+        student: StudentRecord,
+        room_id: str,
+        teacher_account_id: str,
+    ) -> None:
         connection.execute(
             """
             INSERT INTO world.behavior_state (namespace, instance_id, state_json, updated_at)
@@ -358,8 +378,37 @@ class LessonService:
                 state_json = excluded.state_json,
                 updated_at = excluded.updated_at
             """,
-            (student.student_id, json.dumps(self._initial_state(student, room_id)), utc_now().isoformat()),
+            (
+                student.student_id,
+                json.dumps(self._initial_state(student, room_id, teacher_account_id)),
+                utc_now().isoformat(),
+            ),
         )
+
+    def _lesson_vibe_deltas(
+        self,
+        results: list[StudentTest],
+        teacher_account_id: str,
+        room_id: str,
+    ) -> list[tuple[str, str, int]]:
+        niceness = classroom_niceness_delta(self._classroom_prop_ids(room_id))
+        deltas: list[tuple[str, str, int]] = []
+        for result in results:
+            delta = grade_vibe_delta(result.points) + niceness
+            if delta:
+                deltas.append((result.student.student_id, teacher_account_id, delta))
+        return deltas
+
+    def _classroom_prop_ids(self, room_id: str) -> list[str]:
+        if self._layout is None:
+            return []
+        prop_ids: list[str] = []
+        for prop in self._layout.effective_props(room_id):
+            definition = self._world.props.get(prop.prop_id)
+            if definition is not None and definition.hidden:
+                continue
+            prop_ids.append(prop.prop_id)
+        return prop_ids
 
     def _read_student_state(self, student_id: str) -> dict[str, object]:
         with self._hub.locked() as connection:

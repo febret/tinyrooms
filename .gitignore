@@ -18,3 +18,4 @@ users/
 .test-results*/**
 .playwright-report/
 releases/
+TASKS.md

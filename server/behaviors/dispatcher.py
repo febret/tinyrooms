@@ -73,6 +73,7 @@ class BehaviorDispatcher:
         equipped_caps: dict[int, int] | None = None,
         loader: object | None = None,
         powers: object | None = None,
+        vibes: object | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         self._hub = hub
@@ -93,6 +94,7 @@ class BehaviorDispatcher:
         self._equipped_caps = equipped_caps or {}
         self._loader = loader
         self._powers = powers
+        self._vibes = vibes
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self.erroring: set[str] = set()
         self._lock: asyncio.Lock | None = None

@@ -159,6 +159,14 @@ function normalizeCounters(counters) {
   };
 }
 
+function normalizeVibes(vibes) {
+  if (!vibes || typeof vibes !== "object") return null;
+  const pair = side => side && typeof side === "object"
+    ? { value: Number(side.value || 0), label: String(side.label || "") }
+    : null;
+  return { toward: pair(vibes.toward), from: pair(vibes.from) };
+}
+
 function normalizeActor(entity, { kind, labelSource }) {
   return {
     id: String(entity?.id || ""),
@@ -173,6 +181,7 @@ function normalizeActor(entity, { kind, labelSource }) {
       ? entity.decals.map(entry => ({ ...entry }))
       : (Array.isArray(entity?.counters?.decals) ? entity.counters.decals.map(entry => ({ ...entry })) : []),
     counters: normalizeCounters(entity?.counters),
+    vibes: normalizeVibes(entity?.vibes),
     pinned: Boolean(entity?.pinned),
     audioEnabled: Boolean(entity?.audio_enabled),
     spritePosition: Array.isArray(entity?.sprite?.position) ? entity.sprite.position.map(Number) : null,

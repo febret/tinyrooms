@@ -101,6 +101,7 @@ from server.services.rtc import relay_signal as _relay_rtc_signal
 from server.services.rtc import set_audio_presence as _set_audio_presence
 from server.services.shop import ShopService
 from server.services.stats import StatsService
+from server.services.vibes import VibesService
 from server.services.stickers import (
     custom_sticker_name,
     decode_png_data_url,
@@ -218,6 +219,7 @@ class RuntimeState:
     crafting: CraftingService
     behaviors: BehaviorDispatcher
     ticker: RoomTicker
+    vibes: VibesService
     started_at: float = field(default_factory=time.time)
     profile_revision: int = 0
     loaded_mods: object | None = None
@@ -519,6 +521,13 @@ def _build_runtime(
             log=spec["log"],
         )
     peep_states = NpcPeepStateRepository(hub, world)
+    vibes = VibesService(
+        hub=hub,
+        world=world,
+        stats=stats,
+        peep_states=peep_states,
+        connections=connections,
+    )
     cross_world = CrossWorldService(
         config=config,
         hub=hub,
@@ -545,6 +554,7 @@ def _build_runtime(
         peep_states=peep_states,
         surfaces=surfaces,
         powers=powers,
+        vibes=vibes,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(
@@ -578,6 +588,7 @@ def _build_runtime(
         equipped_caps=equipped_caps,
         loader=behavior_loader,
         powers=powers,
+        vibes=vibes,
     )
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)
@@ -643,6 +654,7 @@ def _build_runtime(
         crafting=crafting,
         behaviors=behaviors,
         ticker=ticker,
+        vibes=vibes,
         loaded_mods=loaded_mods,
     )
     for mod_id, factory in mods.state_factories():
@@ -654,6 +666,11 @@ def _build_runtime(
     if initialize:
         world_state.initialize_world(world)
     rooms.attach_mod_states(runtime.mods.values())
+    for state in runtime.mods.values():
+        tick_hook = getattr(state, "on_room_tick", None)
+        if callable(tick_hook):
+            ticker.add_tick_hook(tick_hook)
+    ticker.add_tick_hook(vibes.on_room_tick)
     runtime_holder["runtime"] = runtime
     return runtime
 

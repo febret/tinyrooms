@@ -171,6 +171,13 @@ class BehaviorContext:
 
         return status_id in self.statuses
 
+    def vibe_toward(self, peep_id: str) -> int:
+        """Return the acting peep's vibe toward another peep."""
+
+        if self._vibe_toward is None or not peep_id:
+            return 0
+        return int(self._vibe_toward(str(peep_id)))
+
     def counter(self, name: str, default: float = 0.0) -> float:
         """Return one of the acting peep's counter values."""
 
