@@ -17,6 +17,7 @@ import * as THREE from "three";
 import { boardImageRepeat, FLOOR_HEIGHT, FLOOR_WIDTH } from "./board-helpers.js";
 
 const TOP = 0.045;
+const CARD_DIMENSIONS = [0.72, 0.045, 0.72];
 
 export const GHOST_MATERIAL = new THREE.MeshStandardMaterial({
   color: "#7f8a8f",
@@ -41,6 +42,7 @@ const resources = {
   geometries: new Map(),
   materials: new Map(),
   textures: new Map(),
+  textureLoads: new Map(),
   modelTextures: new Map(),
 };
 
@@ -70,6 +72,36 @@ export function sharedBoxGeometry(dimensions) {
   return geometry;
 }
 
+/**
+ * One card slab geometry with the four edge groups coalesced.
+ *
+ * A BoxGeometry has six material groups. Cards use the same material for all
+ * four edges, so merging those index ranges cuts each card from six draw calls
+ * to three without changing its visible faces.
+ */
+export function sharedCardGeometry() {
+  const key = "card";
+  let geometry = resources.geometries.get(key);
+  if (geometry) return geometry;
+  geometry = new THREE.BoxGeometry(...CARD_DIMENSIONS);
+  const source = geometry.index.array;
+  const order = [0, 1, 4, 5, 2, 3];
+  const merged = new source.constructor(source.length);
+  let offset = 0;
+  for (const groupIndex of order) {
+    const group = geometry.groups[groupIndex];
+    merged.set(source.subarray(group.start, group.start + group.count), offset);
+    offset += group.count;
+  }
+  geometry.setIndex(new THREE.BufferAttribute(merged, 1));
+  geometry.clearGroups();
+  geometry.addGroup(0, 24, 0);
+  geometry.addGroup(24, 6, 1);
+  geometry.addGroup(30, 6, 2);
+  resources.geometries.set(key, geometry);
+  return geometry;
+}
+
 /** One material per colour, for the repeated faces of a room card. */
 export function sharedCardMaterial(color) {
   let shared = resources.materials.get(color);
@@ -85,9 +117,30 @@ export function sharedTexture(url) {
   return resources.textures.get(url) || null;
 }
 
-export function rememberTexture(url, texture) {
-  resources.textures.set(url, texture);
-  return texture;
+/**
+ * Load one texture per URL, including concurrent first-time requests.
+ *
+ * A plain cache check followed by `TextureLoader.load` starts a fresh upload
+ * for every card/back/sticker that appears before the first request resolves.
+ * Returning the same in-flight promise makes every owner share one texture.
+ */
+export function loadSharedTexture(url, loader) {
+  const cached = resources.textures.get(url);
+  if (cached) return Promise.resolve(cached);
+  let pending = resources.textureLoads.get(url);
+  if (pending) return pending;
+  pending = new Promise((resolve, reject) => {
+    loader.load(url, texture => {
+      resources.textures.set(url, texture);
+      resources.textureLoads.delete(url);
+      resolve(texture);
+    }, undefined, error => {
+      resources.textureLoads.delete(url);
+      reject(error);
+    });
+  });
+  resources.textureLoads.set(url, pending);
+  return pending;
 }
 
 /**

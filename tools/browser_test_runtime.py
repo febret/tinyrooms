@@ -46,9 +46,13 @@ def _prepare_world(directory: Path) -> Path:
         from tools.perf_world import build_scaled_world, parse_scale
 
         return build_scaled_world(directory, **parse_scale(scale_arg))
-    world_path = directory / "tutorial"
+    world_name = os.environ.get("TR_TEST_WORLD", "tutorial").strip() or "tutorial"
+    world_path = directory / world_name
     if not world_path.is_dir():
-        shutil.copytree(ROOT / "worlds" / "tutorial", world_path, copy_function=_link_or_copy)
+        source = ROOT / "worlds" / world_name
+        if not source.is_dir():
+            raise FileNotFoundError(f"Unknown test world '{world_name}'.")
+        shutil.copytree(source, world_path, copy_function=_link_or_copy)
     return world_path
 
 

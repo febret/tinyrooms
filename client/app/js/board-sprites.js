@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { boardPosition } from "./board-helpers.js";
-import { rememberTexture, sharedTexture } from "./board-resources.js";
+import { loadSharedTexture, sharedTexture } from "./board-resources.js";
 
 const TOP = 0.045;
 const SPRITE_HEIGHT = 1.25;
@@ -64,20 +64,17 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       invalidate();
       return;
     }
-    textureLoader.load(url, map => {
-      if (entry.sprites.get(record.id) !== record) {
-        map.dispose();
-        return;
-      }
+    loadSharedTexture(url, textureLoader).then(map => {
+      if (entry.sprites.get(record.id) !== record) return;
       map.colorSpace = THREE.SRGBColorSpace;
-      rememberTexture(url, map);
       record.material.map = map;
       record.material.needsUpdate = true;
       record.sprite.visible = true;
       applyScale(record, map);
       makePickable(entry, record);
       invalidate();
-    }, undefined, () => {
+    }, () => {
+      if (entry.sprites.get(record.id) !== record) return;
       record.failed = true;
       invalidate();
     });

@@ -18,7 +18,7 @@ export function surfaceModelKey(prop) {
     prop?.renderKind || prop?.render_kind,
     prop?.signStyle || prop?.sign_style || "wood",
     surface.revision || 0,
-    surface.content?.text || "",
+    surface.content || {},
   ]);
 }
 

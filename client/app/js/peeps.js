@@ -75,11 +75,13 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
   const bubbleSizes = new Map();
 
   function positionBubbles() {
-    const markers = new Map();
-    for (const node of panel.querySelectorAll("[data-peep-id]")) {
-      markers.set(node.dataset.peepId, node);
-    }
     const spriteMode = Boolean(latest?.room?.board?.spritesEnabled);
+    const markers = new Map();
+    if (!spriteMode) {
+      for (const node of panel.querySelectorAll("[data-peep-id]")) {
+        markers.set(node.dataset.peepId, node);
+      }
+    }
     const boardSprites = spriteMode ? spriteAnchors : null;
     if (!markers.size && !boardSprites?.size) {
       for (const bubble of bubbles.values()) hideBubble(bubble);
@@ -484,5 +486,5 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     ghosts.clear();
   }
 
-  return { render, noteMove, positionBubbles, setSpriteAnchors, destroy };
+  return { render, noteMove, positionBubbles, setSpriteAnchors, destroy, hasBubbles: () => bubbles.size > 0 };
 }

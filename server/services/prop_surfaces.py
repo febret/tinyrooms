@@ -44,9 +44,18 @@ def surface_kind(render_kind: str) -> str | None:
     return None
 
 
-def default_surface(instance_id: str, kind: str) -> SurfaceRecord:
-    content = DEFAULT_SIGN_SURFACE if kind == "sign" else DEFAULT_WHITEBOARD_SURFACE
-    return SurfaceRecord(instance_id=instance_id, kind=kind, content=dict(content), revision=0)
+def default_surface(
+    instance_id: str,
+    kind: str,
+    content: dict[str, object] | None = None,
+) -> SurfaceRecord:
+    fallback = DEFAULT_SIGN_SURFACE if kind == "sign" else DEFAULT_WHITEBOARD_SURFACE
+    return SurfaceRecord(
+        instance_id=instance_id,
+        kind=kind,
+        content=dict(content if content is not None else fallback),
+        revision=0,
+    )
 
 
 class PropSurfaceService:
@@ -65,8 +74,15 @@ class PropSurfaceService:
             ).fetchall()
         return {str(row["instance_id"]): _surface_from_row(row) for row in rows}
 
-    def get(self, room_id: str, instance_id: str, kind: str) -> SurfaceRecord:
-        """Return one surface, falling back to its built-in default."""
+    def get(
+        self,
+        room_id: str,
+        instance_id: str,
+        kind: str,
+        *,
+        default_content: dict[str, object] | None = None,
+    ) -> SurfaceRecord:
+        """Return one surface, falling back to an authored or built-in default."""
 
         with self._hub.locked() as connection:
             row = connection.execute(
@@ -74,7 +90,7 @@ class PropSurfaceService:
                 (room_id, instance_id),
             ).fetchone()
         if row is None:
-            return default_surface(instance_id, kind)
+            return default_surface(instance_id, kind, default_content)
         return _surface_from_row(row)
 
     def save_sign(

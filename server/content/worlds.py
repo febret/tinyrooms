@@ -26,13 +26,15 @@ from server.content.cutscenes import (
     merge_cutscene_definitions,
 )
 from server.content.fx import EffectDefinition, load_effect_catalog
+from server.content.game_boards import RoomGameDefinition, load_room_game
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
     SIGN_PROP_ID,
     WHITEBOARD_PROP_ID,
-    validate_sign_style,
+    load_authored_surface,
+    load_sign_style,
 )
 from server.content.tasks import TaskDefinition, load_task_definitions
 from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS, TEXT_PROP_ID, validate_text
@@ -140,6 +142,7 @@ class PropInstanceDefinition:
     draw_weight: dict[str, float] = field(default_factory=dict)
     text: dict[str, str] | None = None
     sign_style: str | None = None
+    surface: dict[str, object] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +188,7 @@ class RoomDefinition:
     editor_environment: tuple[str, ...] = ()
     template: bool = False
     sprites_enabled: bool = False
+    game: RoomGameDefinition | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -280,21 +284,6 @@ def _load_text_recipe(
         return validate_text(raw_instance.get("text"))
     except ValueError as exc:
         raise ContentError(f"{context}: {exc}") from exc
-
-
-def _load_sign_style(
-    raw_instance: dict[str, Any], definition: PropDefinition, room_id: str, instance_id: str,
-) -> str | None:
-    if definition.render_kind != "sign":
-        if "sign_style" in raw_instance:
-            raise ContentError(
-                f"Room '{room_id}' prop '{instance_id}': Only builtin:sign props may have a sign_style."
-            )
-        return None
-    try:
-        return validate_sign_style(raw_instance.get("sign_style"))
-    except ValueError as exc:
-        raise ContentError(f"Room '{room_id}' prop '{instance_id}' sign_style: {exc}") from exc
 
 
 def builtin_prop_definitions() -> dict[str, PropDefinition]:
@@ -1023,7 +1012,16 @@ def load_world_definition(
                 activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
                 draw_weight=_load_draw_weight(raw_instance.get("draw_weight"), prop_instance_id, card_ids),
                 text=_load_text_recipe(raw_instance, prop_id, room_id, prop_instance_id),
-                sign_style=_load_sign_style(raw_instance, props[prop_id], room_id, prop_instance_id),
+                sign_style=load_sign_style(
+                    raw_instance,
+                    props[prop_id].render_kind,
+                    f"Room '{room_id}' prop '{prop_instance_id}'",
+                ),
+                surface=load_authored_surface(
+                    raw_instance,
+                    props[prop_id].render_kind,
+                    f"Room '{room_id}' prop '{prop_instance_id}' surface",
+                ),
             )
         texts = [instance.text for instance in room_props.values() if instance.text is not None]
         if len(texts) > MAX_TEXT_PROPS:
@@ -1079,6 +1077,15 @@ def load_world_definition(
                     initial_key=f"{room_id}:{index}:{card_id}",
                 )
             )
+        game = load_room_game(
+            raw_room.get("game"),
+            world_root=world_path,
+            room_id=room_id,
+            room_props=room_props,
+            props=props,
+            effects=effects,
+            power_names=POWER_NAMES,
+        )
         rooms[room_id] = RoomDefinition(
             id=room_id,
             label=str(raw_room.get("label", "")).strip(),
@@ -1096,6 +1103,7 @@ def load_world_definition(
             editor_environment=_load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
+            game=game,
         )
 
     if entry_room_id not in rooms:

@@ -2,12 +2,12 @@ import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import {
-  applyFloorImageStyle, box, floorKey, makeFloor, material, rememberTexture,
-  setDarkened, setGhosted, sharedCardMaterial, sharedTexture, shareModelTextures, unavailableMarker,
+  applyFloorImageStyle, floorKey, loadSharedTexture, makeFloor,
+  setDarkened, setGhosted, sharedTexture, shareModelTextures, unavailableMarker,
 } from "./board-resources.js";
 import {
+  advanceRecords,
   boardPosition,
-  cardModelKey,
   detachBoardTree,
   disposeBoardTree,
   fitBoardCamera,
@@ -27,11 +27,13 @@ import { createPropEffects } from "./prop-effects.js";
 import { applyDarkLighting, createBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import { createBoardOutlines } from "./board-outlines.js";
 import { createBoardSprites } from "./board-sprites.js";
+import { createBoardCards } from "./board-cards.js";
+import { createBoardScheduler } from "./board-scheduler.js";
+import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
 import { withBase } from "./base-path.js";
 export const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
-const PROP_MOVE_SMOOTHING = 9;
 const SCALE_DRAG_SENSITIVITY = 0.008;
 
 /** Convert an authoritative position into its board-space target, resting on the floor. */
@@ -52,13 +54,13 @@ function boardPositionFromWorld(point) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnchors, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnchors, onGameAction, needsPeepAnchors, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, stencil: true });
   } catch {
     overlay.textContent = "3D rendering is unavailable. Room cards and room exits remain available.";
     overlay.dataset.status = "error";
@@ -70,7 +72,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   // The room is static between edits, so re-rendering the 2048x2048 depth
   // buffer every frame doubled the submitted geometry for no visual change.
-  // `invalidate` marks it stale whenever the scene actually moves.
+  // `invalidateScene` marks it stale when geometry or a caster actually moves.
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -117,6 +119,24 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   const loader = new GLTFLoader();
   const textureLoader = new THREE.TextureLoader();
   const spriteLayer = createBoardSprites({ textureLoader, invalidate });
+  const cardLayer = createBoardCards({
+    cardBackUrl: CARD_BACK,
+    register,
+    texture,
+    setRecordTarget,
+    invalidateScene,
+    onRemoveGroup(group) {
+      if (selectionObject === group) selectionObject = null;
+    },
+  });
+  const gameLayer = createBoardGames({
+    loader,
+    textureLoader,
+    screenToBoardPosition: (clientX, clientY) => screenToBoardPosition(clientX, clientY),
+    pixelScale: effectPixelScale,
+    invalidate,
+  });
+  gameLayer.setActionHandler(action => onGameAction?.(action));
   const clock = new THREE.Clock();
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -142,20 +162,37 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   let showActiveProps = false;
   let roomDark = false;
   let roomScared = false;
+  let gameInputEnabled = true;
   let userAdjusted = false;
   let width = 0;
   let height = 0;
-  let frame = 0;
   let renderedFrames = 0;
   let needsRender = true;
+  let shadowPasses = 0;
+  let shadowInvalidations = 0;
+  let anchorsDirty = true;
+  let lastAnchorUpdate = 0;
+  const ANCHOR_INTERVAL_MS = 66;
+  const scheduler = createBoardScheduler({
+    onFrame: animate,
+    onError: () => contextLost({ preventDefault() {} }),
+  });
 
-  /** Mark the scene as changed so the next frame redraws and refreshes shadows. */
+  /** Request a color frame. Use invalidateScene when geometry actually moved. */
   function invalidate() {
     needsRender = true;
-    renderer.shadowMap.needsUpdate = true;
+    scheduler.schedule();
   }
 
-  const outlines = createBoardOutlines(renderer, scene, camera);
+  /** Request a color frame and refresh the static shadow map. */
+  function invalidateScene() {
+    shadowInvalidations += 1;
+    renderer.shadowMap.needsUpdate = true;
+    needsRender = true;
+    scheduler.schedule();
+  }
+
+  const outlines = createBoardOutlines(renderer, camera);
 
   const editModifier = createEditModifier(active => {
     gizmo.setVerticalMode(active);
@@ -185,8 +222,21 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     status(entry);
   }
 
+  /** Coalesce per-model selection refreshes into one update per frame. */
+  function scheduleSelectionUpdate() {
+    scheduler.once("selection", () => {
+      if (current) updateSelection();
+    });
+  }
+
+  /** Coalesce the O(props) FX count scan during room loading. */
+  function scheduleFxStatus() {
+    scheduler.once("fx-status", refreshFxStatus);
+  }
+
   function updateSelection() {
-    invalidate();
+    let changed = false;
+    const previousSelectionObject = selectionObject;
     selectionRing.visible = false;
     selectionObject = null;
     for (const object of current?.pickables || []) {
@@ -198,19 +248,25 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       }
       break;
     }
+    if (selectionObject !== previousSelectionObject) changed = true;
     const showProps = !editEnabled && !roomDark;
     for (const record of current?.props.values() || []) {
-      if (outlines.update(record, showProps && selection?.kind === "prop" && selection.id === record.id, showProps && showActiveProps)) invalidate();
+      if (outlines.update(record, showProps && selection?.kind === "prop" && selection.id === record.id, showProps && showActiveProps)) changed = true;
     }
+    const previousEditSelection = editSelectionObject;
     editSelectionObject = editEnabled && editSelectionId
       ? (current?.pickables || []).find(object => object.userData.kind === "prop" && object.userData.id === editSelectionId)
       : null;
-    if (editSelectionObject && !editSelectionLocked()) {
+    if (editSelectionObject !== previousEditSelection) changed = true;
+    const showGizmo = Boolean(editSelectionObject && !editSelectionLocked());
+    if (showGizmo) {
       gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
-      gizmo.setVisible(true);
-    } else {
-      gizmo.setVisible(false);
     }
+    if (gizmo.group.visible !== showGizmo) {
+      gizmo.setVisible(showGizmo);
+      changed = true;
+    }
+    if (changed) invalidate();
   }
 
   function fit(resetDirection = false) {
@@ -370,20 +426,24 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       status(entry);
       return;
     }
-    textureLoader.load(url, map => {
+    loadSharedTexture(url, textureLoader).then(map => {
       if (!isCurrent(entry)) {
-        map.dispose();
+        entry.pending -= 1;
+        status(entry);
         return;
       }
       map.colorSpace = THREE.SRGBColorSpace;
       map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-      rememberTexture(url, map);
       apply(map);
       entry.pending -= 1;
       invalidate();
       status(entry);
-    }, undefined, () => {
-      if (!isCurrent(entry)) return;
+    }, () => {
+      if (!isCurrent(entry)) {
+        entry.pending -= 1;
+        status(entry);
+        return;
+      }
       entry.pending -= 1;
       fail(entry, `Could not load ${label}`);
     });
@@ -402,6 +462,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     record.animTimers.length = 0;
     for (const mixer of record.mixers) mixer.stopAllAction();
     record.mixers.length = 0;
+    record.animationActive = false;
   }
 
   /** Point a record at its authoritative position, tweening there unless motion is reduced. */
@@ -411,7 +472,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     record.positionKey = key;
     record.target = targetPosition(position);
     if (reducedMotion) record.group.position.copy(record.target);
-    invalidate();
+    invalidateScene();
   }
 
   /** Release a prop model's per-instance geometry and materials, keeping shared textures. */
@@ -422,7 +483,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     outlines.remove(record);
     setGhosted(record, false);
     setDarkened(record, false);
-    disposeBoardTree([record.group, ...(record.scenes || [])], { textures: false });
+    disposeBoardTree([record.group, ...(record.scenes || [])], { textures: record.ownsTextures === true });
   }
 
   /** Build (or rebuild) a prop record's effect controller from its effect sets. */
@@ -442,8 +503,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       reducedMotion,
       textureLoader,
       pixelScale: effectPixelScale,
+      wake: invalidate,
     });
-    refreshFxStatus();
+    scheduleFxStatus();
   }
 
   /** Publish how many effect layers are live so tests can observe them without pixels. */
@@ -451,7 +513,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     if (!current) return;
     let count = 0;
     for (const record of current.props.values()) count += record.effectController?.activeCount || 0;
-    if (canvas.dataset.fxCount !== String(count)) canvas.dataset.fxCount = String(count);
+    const next = String(count);
+    if (canvas.dataset.fxCount === next) return;
+    canvas.dataset.fxCount = next;
     invalidate();
   }
 
@@ -463,9 +527,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
     const record = {
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
-      model: null, clips: [], animation: prop.animation || "", mixers: [], animTimers: [], scenes: [],
+      model: null, clips: [], animation: prop.animation || "", animationActive: false, mixers: [], animTimers: [], scenes: [],
       target: group.position.clone(), ghosted: false, darkened: false, override: null, materials: null,
-      effectController: null, effectKey: "",
+      ownsTextures: isTextProp(prop) || isSurfaceProp(prop), effectController: null, effectKey: "",
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
@@ -511,12 +575,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       record.scenes = gltf.scenes || [model];
       setGhosted(record, Boolean(record.prop.ghost));
       setDarkened(record, roomDark);
-      playPropAnimation(entry, record, record.prop, model, record.clips, isCurrent);
+      playPropAnimation(entry, record, record.prop, model, record.clips, isCurrent, invalidate);
       buildRecordEffects(record, record.prop, model, bounds, visual);
       entry.pending -= 1;
-      invalidate();
+      invalidateScene();
       if (!userAdjusted) scheduleFit();
-      updateSelection();
+      scheduleSelectionUpdate();
       status(entry);
     }, () => {
       entry.pending -= 1;
@@ -543,14 +607,27 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     if (userAdjusted || fitFrame || disposed) return;
     fitFrame = requestAnimationFrame(() => {
       fitFrame = 0;
-      if (!userAdjusted && current) fit(true);
+      if (!userAdjusted && current) {
+        fit(true);
+        invalidate();
+      }
     });
   }
 
   function updateProp(entry, record, prop) {
+    let moved = false;
     record.prop = prop;
-    record.group.rotation.set(...(prop.rotation || [0, 0, 0]));
-    record.group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
+    const rotation = prop.rotation || [0, 0, 0];
+    if (record.group.rotation.x !== rotation[0] || record.group.rotation.y !== rotation[1] || record.group.rotation.z !== rotation[2]) {
+      record.group.rotation.set(...rotation);
+      moved = true;
+    }
+    const scale = Number.isFinite(prop.scale) ? prop.scale : 1;
+    if (record.group.scale.x !== scale) {
+      record.group.scale.setScalar(scale);
+      moved = true;
+    }
+    if (moved) invalidateScene();
     setGhosted(record, Boolean(prop.ghost));
     setDarkened(record, roomDark);
     setRecordTarget(record, prop.position);
@@ -559,20 +636,20 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
         buildRecordEffects(record, prop, record.model, record.bounds, record.visual);
       } else {
         record.effectKey = propEffectKey(prop);
-        refreshFxStatus();
+        scheduleFxStatus();
       }
     }
     if ((prop.animation || "") !== record.animation) {
       record.animation = prop.animation || "";
       stopRecordAnimations(record);
-      if (record.model) playPropAnimation(entry, record, prop, record.model, record.clips, isCurrent);
+      if (record.model) playPropAnimation(entry, record, prop, record.model, record.clips, isCurrent, invalidate);
     }
   }
 
   function removeProp(entry, id) {
     const record = entry.props.get(id);
     if (!record) return;
-    invalidate();
+    invalidateScene();
     disposePropRecord(record);
     entry.root.remove(record.group);
     const index = entry.pickables.indexOf(record.group);
@@ -589,67 +666,16 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       update: (record, prop) => updateProp(entry, record, prop),
       remove: id => removeProp(entry, id),
     });
-    refreshFxStatus();
-  }
-
-  function addCard(entry, card) {
-    invalidate();
-    const group = new THREE.Group();
-    register(entry, group, "room-card", card.stackId, card.position);
-    // The edge and back materials are identical for every card, so they are
-    // shared; only the front carries a card-specific texture and owns its
-    // material, so the record keeps a handle to release it.
-    const edge = sharedCardMaterial("#d5b887");
-    const back = sharedCardMaterial("#193e55");
-    const front = material("#fff7e3");
-    entry.cards.set(card.stackId, {
-      id: card.stackId, group, card, front, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
-      target: group.position.clone(),
-    });
-    // BoxGeometry's +Y/-Y groups are the upper/lower faces, not +Z/-Z.
-    // Room cards are square illustration tiles; the full composed face is
-    // reserved for inspection, previews, and the inventory (card-face.js).
-    const mesh = box(group, [0.72, 0.045, 0.72], [0, 0.028, 0], [edge, edge, front, back, edge, edge]);
-    mesh.rotation.y = -0.08;
-    texture(entry, card.definition?.imageUrl, `${card.definition?.label || "Card"} illustration`, map => {
-      front.map = map;
-      front.color.set("#ffffff");
-      front.needsUpdate = true;
-    });
-    texture(entry, CARD_BACK, "card back artwork", map => {
-      back.map = map;
-      back.color.set("#ffffff");
-      back.needsUpdate = true;
-    });
-  }
-
-  function updateCard(record, card) {
-    record.card = card;
-    setRecordTarget(record, card.position);
-  }
-
-  function removeCard(entry, id) {
-    const record = entry.cards.get(id);
-    if (!record) return;
-    invalidate();
-    entry.root.remove(record.group);
-    detachBoardTree(record.group);
-    // The card's own front material is the one thing in the group the shared
-    // caches did not hand out, so it is the one thing to release.
-    record.front?.dispose();
-    const index = entry.pickables.indexOf(record.group);
-    if (index >= 0) entry.pickables.splice(index, 1);
-    entry.cards.delete(id);
-    if (selectionObject === record.group) selectionObject = null;
+    scheduleFxStatus();
   }
 
   function syncCards(entry, room) {
     syncRecords(entry.cards, room.roomCards || [], {
       keyOf: card => card.stackId,
-      modelKeyOf: cardModelKey,
-      create: card => addCard(entry, card),
-      update: (record, card) => updateCard(record, card),
-      remove: id => removeCard(entry, id),
+      modelKeyOf: card => card.definition?.imageUrl || "",
+      create: card => cardLayer.add(entry, card),
+      update: (record, card) => cardLayer.update(entry, record, card),
+      remove: id => cardLayer.remove(entry, id),
     });
   }
 
@@ -661,10 +687,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
 
   /** Replace the floor only when the board artwork or palette actually changes. */
   function applyFloor(entry, room) {
-    invalidate();
     const board = room.board || {};
     const key = floorKey(board);
     if (entry.floor && entry.floor.key === key) return;
+    invalidateScene();
     if (entry.floor) {
       entry.root.remove(entry.floor.group);
       detachBoardTree(entry.floor.group);
@@ -687,6 +713,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     for (const record of current.props.values()) disposePropRecord(record);
     for (const record of current.cards.values()) record.front?.dispose();
     spriteLayer.clear(current);
+    gameLayer.clear();
     canvas.dataset.fxCount = "0";
     scene.remove(current.root);
     // Shared box geometry, card faces and textures are page-lifetime caches, so
@@ -714,11 +741,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     };
     current = entry;
     scene.add(entry.root);
-    invalidate();
+    invalidateScene();
     applyFloor(entry, room);
     syncProps(entry, room);
     syncCards(entry, room);
     syncSprites(entry, room);
+    syncGame(entry, room);
     if (!userAdjusted) fit(true);
     status(entry);
   }
@@ -731,7 +759,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     syncProps(entry, room);
     syncCards(entry, room);
     syncSprites(entry, room);
+    syncGame(entry, room);
     status(entry);
+  }
+
+  function syncGame(entry, room) {
+    gameLayer.sync(entry.root, room, { dark: roomDark, reducedMotion });
   }
 
   function resize() {
@@ -889,6 +922,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
+    if (gameInputEnabled && gameLayer.pointerUp(event.clientX, event.clientY)) return;
     const owner = pickGameplayOwner();
     if (owner) {
       onSelect({ kind: owner.userData.kind, id: owner.userData.id }, { x: event.clientX, y: event.clientY });
@@ -931,20 +965,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   const observer = new ResizeObserver(resize);
   observer.observe(canvas.parentElement);
   resize();
-  /** Ease each record toward its authoritative position; snaps instantly when motion is reduced. */
-  function advanceRecords(records, delta) {
-    const alpha = 1 - Math.exp(-delta * PROP_MOVE_SMOOTHING);
-    for (const record of records) {
-      const target = record.target;
-      if (!target || record.group.position.equals(target)) continue;
-      if (reducedMotion) {
-        record.group.position.copy(target);
-      } else {
-        record.group.position.lerp(target, alpha);
-        if (record.group.position.distanceToSquared(target) < 1e-6) record.group.position.copy(target);
-      }
-    }
-  }
   /**
    * Whether the next frame has to be drawn.
    *
@@ -961,70 +981,67 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     if (!current) return false;
     if (roomScared && !reducedMotion) return true;
     for (const record of current.props.values()) {
-      if (record.mixers.length) return true;
-      if (record.effectController?.activeCount) return true;
+      if (record.animationActive) return true;
+      if (record.effectController?.isAnimating?.()) return true;
       if (record.target && !record.group.position.equals(record.target)) return true;
     }
     for (const record of current.cards.values()) {
       if (record.target && !record.group.position.equals(record.target)) return true;
     }
+    if (gameLayer.isAnimating()) return true;
     return spriteLayer.isAnimating(current);
   }
 
-  /**
-   * A background tab gets no animation frames from the browser anyway, and the
-   * shadow pass would otherwise be marked stale and re-rendered on return.
-   * Pausing explicitly keeps the loop from doing work the compositor discards.
-   */
-  function pageIsHidden() {
-    return typeof document !== "undefined" && document.hidden;
-  }
+  /** One scheduler frame: advance state, draw if needed, and report whether to continue. */
   function animate() {
-    if (disposed || renderFailed) return;
-    try {
-      if (pageIsHidden()) {
-        // Draw once on the way back so the canvas is not blank when restored.
-        frame = requestAnimationFrame(animate);
-        return;
+    if (disposed || renderFailed) return false;
+    const delta = Math.min(clock.getDelta(), 0.1);
+    if (current) {
+      if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
+      for (const record of current.props.values()) {
+        for (const mixer of record.mixers) mixer.update(delta);
+        record.effectController?.update(delta);
       }
-      const delta = Math.min(clock.getDelta(), 0.1);
-      if (current) {
-        if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
-        for (const record of current.props.values()) {
-          for (const mixer of record.mixers) mixer.update(delta);
-          record.effectController?.update(delta);
-        }
-        advanceRecords(current.props.values(), delta);
-        advanceRecords(current.cards.values(), delta);
-        spriteLayer.advance(current, delta, reducedMotion);
-      }
-      if (selectionRing.visible && selectionObject) {
-        selectionRing.position.set(
-          selectionObject.position.x,
-          selectionObject.position.y + 0.06,
-          selectionObject.position.z,
-        );
-      }
-      if (editSelectionObject && !editSelectionLocked()) {
-        gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
-      }
-      if (!blocked) {
-        // OrbitControls only moves the camera when it is damping or being
-        // dragged, so its own change flag is the cheapest reliable signal.
-        if (controls.update()) invalidate();
-      }
-      if (needsRender || sceneIsAnimating()) {
-        needsRender = false;
-        renderedFrames += 1;
-        outlines.render();
-        if (current?.sprites?.size) onPeepAnchors?.(spriteLayer.anchors(current, camera, canvas));
-      }
-      frame = requestAnimationFrame(animate);
-    } catch {
-      contextLost({ preventDefault() {} });
+      advanceRecords(current.props.values(), delta, reducedMotion);
+      advanceRecords(current.cards.values(), delta, reducedMotion);
+      spriteLayer.advance(current, delta, reducedMotion);
+      gameLayer.advance(delta);
     }
+    if (selectionRing.visible && selectionObject) {
+      selectionRing.position.set(
+        selectionObject.position.x,
+        selectionObject.position.y + 0.06,
+        selectionObject.position.z,
+      );
+    }
+    if (editSelectionObject && !editSelectionLocked()) {
+      gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
+    }
+    if (!blocked) {
+      // OrbitControls only moves the camera when it is damping or being
+      // dragged, so its own change flag is the cheapest reliable signal.
+      if (controls.update()) invalidate();
+    }
+    const animating = sceneIsAnimating();
+    if (needsRender || animating) {
+      needsRender = false;
+      renderedFrames += 1;
+      const shadowWillRender = renderer.shadowMap.needsUpdate;
+      renderer.render(scene, camera);
+      if (shadowWillRender) shadowPasses += 1;
+      outlines.render();
+      if (current?.sprites?.size && (!needsPeepAnchors || needsPeepAnchors())) {
+        const now = performance.now();
+        if (anchorsDirty || now - lastAnchorUpdate >= ANCHOR_INTERVAL_MS) {
+          anchorsDirty = false;
+          lastAnchorUpdate = now;
+          onPeepAnchors?.(spriteLayer.anchors(current, camera, canvas));
+        }
+      }
+    }
+    return needsRender || animating;
   }
-  animate();
+  scheduler.schedule();
 
   return {
     /**
@@ -1042,6 +1059,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       });
       return {
         frames: renderedFrames,
+        ticks: scheduler.ticks,
+        shadowPasses,
+        shadowInvalidations,
+        outline: outlines.diagnostics(),
         drawCalls: renderer.info.render.calls,
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
@@ -1051,6 +1072,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
         props: current ? current.props.size : 0,
         cards: current ? current.cards.size : 0,
         sprites: current ? current.sprites.size : 0,
+        gamePieces: gameLayer.pieceCount(),
         pickables: current ? current.pickables.length : 0,
         editEnabled,
         blocked,
@@ -1074,6 +1096,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       const blockingView = Boolean(modalView && modalView !== "edit-room");
       blocked = Boolean(blockingView || state.views?.details || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
+      gameInputEnabled = !blocked && !state.ui?.targeting && !state.room?.dialog;
       controls.enabled = !blocked && !renderFailed && !orbitSuppressed;
       if (blocked) {
         pointers.clear();
@@ -1091,8 +1114,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
         }
         return;
       }
+      const wasDark = roomDark;
+      const wasScared = roomScared;
       roomDark = Boolean(state.room.board.dark);
       roomScared = selfIsScared(state);
+      if (wasScared !== roomScared) invalidate();
+      if (roomDark !== wasDark) invalidate();
       if (!roomScared && current) settleShake(current.root);
       if (applyDarkLighting(lights, roomDark)) invalidate();
       if (!current || roomId !== state.room.id) {
@@ -1102,6 +1129,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       }
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
+      if (current?.sprites?.size && (!needsPeepAnchors || needsPeepAnchors())) {
+        anchorsDirty = true;
+        invalidate();
+      }
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,
@@ -1134,7 +1165,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       disposed = true;
       canvas.dataset.boardReady = "false";
       revision += 1;
-      cancelAnimationFrame(frame);
+      scheduler.stop();
       observer.disconnect();
       controls.removeEventListener("start", markAdjusted);
       controls.removeEventListener("change", invalidate);
@@ -1145,6 +1176,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       canvas.removeEventListener("pointercancel", pointerCancel);
       canvas.removeEventListener("webglcontextlost", contextLost);
       editModifier.dispose();
+      gameLayer.dispose();
       clear();
       gizmo.dispose();
       outlines.dispose();

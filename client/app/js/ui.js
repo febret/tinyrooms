@@ -89,6 +89,7 @@ let previousView = null;
 let previousDetails = null;
 let renderRevision = 0;
 let refreshPromise = null;
+let pendingGameStateRoom = "";
 let targeting = null;
 const canFullscreen = fullscreenSupported();
 const fullscreenButton = $("#fullscreen-toggle");
@@ -219,8 +220,19 @@ function connectSocket() {
   socket = createSocketClient({
     onStatus(transport) { store.dispatch({ type: "transport", transport }); },
     onSnapshot(envelope) {
-      store.dispatch({ type: "snapshot", room: envelope.room });
-      if (envelope.room?.metadata?.note) toast(envelope.room.metadata.note);
+      const room = envelope.room;
+      store.dispatch({ type: "snapshot", room });
+      if (room?.metadata?.note) toast(room.metadata.note);
+      if (room?.board?.game && !room.board.state) {
+        if (pendingGameStateRoom !== room.id) {
+          pendingGameStateRoom = room.id;
+          setTimeout(() => {
+            if (pendingGameStateRoom === room.id) socket?.requestSnapshot();
+          }, 250);
+        }
+      } else if (pendingGameStateRoom === room?.id) {
+        pendingGameStateRoom = "";
+      }
     },
     onRoomEvent(envelope) {
       if (envelope.event?.type === "cutscene.play") {
@@ -954,6 +966,13 @@ const peeps = createPeepsView({
 });
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
+  needsPeepAnchors: () => peeps.hasBubbles(),
+  onGameAction(action) {
+    const state = store.getState();
+    const controller = state.room?.board?.game?.controller;
+    if (!controller || !action) return;
+    void sendCommand(`.act ${action} @prop:${controller}`).catch(showError);
+  },
   onSelect(selection, point) {
     const state = store.getState();
     if (state.views.main || state.views.details || dialogs.active || !state.user?.initialStickerComplete) return;

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
+import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
@@ -100,6 +102,7 @@ class RoomService:
         peep_states: NpcPeepStateRepository | None = None,
         sprites: SpriteService | None = None,
         surfaces: PropSurfaceService | None = None,
+        powers: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -120,6 +123,7 @@ class RoomService:
         self._prop_states = prop_states
         self._sprites = sprites or SpriteService(world, layout=layout)
         self._surfaces = surfaces
+        self._powers = powers
         self._mod_states: list[object] = []
 
     @property
@@ -387,7 +391,13 @@ class RoomService:
 
         if self._surfaces is None:
             return None
-        return self._surfaces.get(room_id, instance_id, kind)
+        default_content = None
+        room = self._world.rooms.get(room_id)
+        if room is not None:
+            instance = next((prop for prop in self._effective_props(room) if prop.id == instance_id), None)
+            if instance is not None and surface_kind(self._world.props[instance.prop_id].render_kind) == kind:
+                default_content = instance.surface
+        return self._surfaces.get(room_id, instance_id, kind, default_content=default_content)
 
     def _visible_props(self, room: RoomDefinition, *, dark: bool = False) -> list[PropInstanceDefinition]:
         del dark
@@ -585,6 +595,65 @@ class RoomService:
             "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
         }
 
+    def _read_game_state(
+        self,
+        connection: sqlite3.Connection,
+        room: RoomDefinition,
+    ) -> dict[str, object] | None:
+        """Read a room game's public state from its controller behavior row."""
+
+        if room.game is None:
+            return None
+        row = connection.execute(
+            "SELECT state_json FROM world.behavior_state WHERE namespace = 'prop' AND instance_id = ?",
+            (room.game.controller,),
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            raw = json.loads(row["state_json"])
+        except (TypeError, ValueError):
+            return None
+        state = raw.get("game_state") if isinstance(raw, dict) else None
+        return state if isinstance(state, dict) else None
+
+    def _serialize_game(self, account: AccountRecord, room: RoomDefinition) -> dict[str, object] | None:
+        game = room.game
+        if game is None:
+            return None
+        assets = {
+            name: f"/assets/world/{self._world.id}/{relative}"
+            for name, relative in game.assets.items()
+        }
+        models: dict[str, dict[str, object]] = {}
+        for name, model in game.models.items():
+            definition = self._world.props[model.prop_id]
+            models[name] = {
+                "model_url": prop_model_url(self._world.id, definition),
+                "scale": definition.scale,
+            }
+        effects = {
+            set_name: [
+                self._world.effects[effect_id].serialize()
+                for effect_id in effect_ids
+                if effect_id in self._world.effects
+            ]
+            for set_name, effect_ids in game.effect_sets.items()
+        }
+        can_reset = False
+        if self._powers is not None and game.reset_powers:
+            can_reset = any(self._powers.has_power(account.id, power) for power in game.reset_powers)
+        return {
+            "kind": game.kind,
+            "controller": game.controller,
+            "renderer": game.renderer,
+            "config": dict(game.config),
+            "assets": assets,
+            "models": models,
+            "effects": effects,
+            "capabilities": {"reset": can_reset},
+        }
+
     def _serialize_prop(
         self,
         account: AccountRecord,
@@ -612,7 +681,12 @@ class RoomService:
         surface_kind_name = surface_kind(prop_definition.render_kind)
         surface = None
         if surface_kind_name is not None and self._surfaces is not None:
-            surface = self._surfaces.get(room.id, prop.id, surface_kind_name).serialize()
+            surface = self._surfaces.get(
+                room.id,
+                prop.id,
+                surface_kind_name,
+                default_content=prop.surface,
+            ).serialize()
         return {
             "id": prop.id,
             "prop_id": prop.prop_id,
@@ -660,11 +734,12 @@ class RoomService:
         live_connections = await self._connections.list_room(room_id)
         occupant_ids = [connection.account_id for connection in live_connections]
         user_profile = self._profiles.user_profile_for(account.id, self._world.id, room_id)
-        with self._hub.locked():
+        with self._hub.locked() as connection:
             occupant_accounts = self._profiles.get_accounts_by_ids(occupant_ids)
             room_cards, chat_history = self._world_state.read_room_view(room_id)
             inventory = self._profiles.list_inventory(account.id, self._world.id)
             occupant_views = self._stats.views(occupant_ids)
+            game_state = self._read_game_state(connection, room)
         occupants: list[dict[str, object]] = []
         for connection in live_connections:
             occupant = occupant_accounts.get(connection.account_id)
@@ -710,10 +785,23 @@ class RoomService:
             board_style = str(effective_board.get("board_image_style") or room.board_image_style)
             layout_revision = self._layout.revision(room_id)
             can_edit_room = self._layout.can_edit(account, room_id)
+        game = self._serialize_game(account, room)
+        description = room.description
+        quick_actions = [
+            *[
+                {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)}
+                for exit_definition in visible_definitions
+            ],
+            *self._mod_room_actions(account, room),
+        ]
+        if game is not None and game.get("capabilities", {}).get("reset"):
+            quick_actions.append(
+                {"label": "Reset game", "command": f".act reset @prop:{game['controller']}"}
+            )
         return {
             "id": room.id,
             "label": room.label,
-            "description": room.description,
+            "description": description,
             "board": {
                 "type": room.board_type,
                 "image_url": f"/assets/world/{self._world.id}/rooms/{room.board_image_name}",
@@ -722,6 +810,8 @@ class RoomService:
                 "dark": dark,
                 "base_dark": room.dark,
                 "sprites_enabled": room.sprites_enabled,
+                "game": game,
+                "state": game_state,
             },
             "metadata": {"note": note},
             "environment": environment,
@@ -740,10 +830,7 @@ class RoomService:
             "layout_revision": layout_revision,
             "can_edit_room": can_edit_room,
             "dialog": self._dialog_payload(account.id),
-            "quick_actions": [
-                *[{"label": exit_definition.label, "command": self._exit_command(exit_definition.id)} for exit_definition in visible_definitions],
-                *self._mod_room_actions(account, room),
-            ],
+            "quick_actions": quick_actions,
         }
 
     def _mod_room_actions(self, account: AccountRecord, room: RoomDefinition) -> list[dict[str, object]]:

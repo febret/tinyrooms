@@ -230,6 +230,7 @@ class RoomLayoutService:
                         if definition.render_kind == "sign" and entry.get("sign_style")
                         else (source.sign_style if source and definition.render_kind == "sign" else None)
                     ),
+                    surface=source.surface if source else None,
                 )
             )
         return base
@@ -320,7 +321,12 @@ class RoomLayoutService:
         kind = surface_kind(definition.render_kind)
         if kind is None or self._surfaces is None:
             return None
-        return self._surfaces.get(room_id, instance.id, kind).serialize()
+        return self._surfaces.get(
+            room_id,
+            instance.id,
+            kind,
+            default_content=instance.surface,
+        ).serialize()
 
     def _serialize_library(self, definition: PropDefinition) -> dict[str, object]:
         # Locking is reported statically; the client hides locked props unless
@@ -372,8 +378,12 @@ class RoomLayoutService:
                 entry.update(self._effect_payload(room.id, str(entry["id"]), definition))
                 kind = surface_kind(definition.render_kind)
                 if kind is not None and self._surfaces is not None:
+                    source = room.props.get(str(entry["id"]))
                     entry["surface"] = self._surfaces.get(
-                        room.id, str(entry["id"]), kind
+                        room.id,
+                        str(entry["id"]),
+                        kind,
+                        default_content=source.surface if source is not None else None,
                     ).serialize()
         return entries
 

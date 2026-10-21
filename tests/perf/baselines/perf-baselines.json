@@ -1,8 +1,8 @@
 {
   "client/board/draw-calls": {
-    "note": "Draw calls per frame with 101 instances of one shared asset.",
+    "note": "Draw calls per frame with 91 instances of one shared asset.",
     "unit": "count",
-    "value": 261
+    "value": 125
   },
   "client/board/frames-while-hidden": {
     "note": "Frames drawn over 3s while the page reports itself hidden.",
@@ -10,23 +10,33 @@
     "value": 0
   },
   "client/board/geometries": {
-    "note": "Resident geometries with 101 instances of a single prop asset.",
+    "note": "Resident geometries with 91 instances of a single prop asset.",
     "unit": "count",
-    "value": 154
+    "value": 96
   },
   "client/board/nodes": {
     "note": "Scene-graph nodes for the current room.",
     "unit": "count",
-    "value": 1208
+    "value": 1111
+  },
+  "client/board/outline-textures": {
+    "note": "Resident texture growth when a prop is selected.",
+    "unit": "count",
+    "value": 0
   },
   "client/board/programs": {
     "note": "Compiled shader programs; one program per material variant, not per entity.",
     "unit": "count",
-    "value": 11
+    "value": 6
   },
   "client/board/shadow-auto-update": {
     "note": "1 means Three.js re-renders the shadow depth buffer every frame.",
     "unit": "flag",
+    "value": 0
+  },
+  "client/board/shadow-invalidations-orbit": {
+    "note": "Shadow-map invalidations caused by one camera orbit.",
+    "unit": "count",
     "value": 0
   },
   "client/board/shadow-map-size": {
@@ -35,14 +45,19 @@
     "value": 2048
   },
   "client/board/textures": {
-    "note": "Resident textures with 101 instances of a single prop asset. Prop model textures are shared per asset; a per-prop effect layer still contributes one each.",
+    "note": "Resident textures with 91 instances of a single prop asset. Prop model textures are shared per asset; a per-prop effect layer still contributes one each.",
     "unit": "count",
-    "value": 121
+    "value": 104
+  },
+  "client/board/ticks-idle": {
+    "note": "Animation frames requested over 500ms in a settled room.",
+    "unit": "count",
+    "value": 0
   },
   "client/board/triangles": {
     "note": "Triangles submitted per frame.",
     "unit": "count",
-    "value": 266769
+    "value": 140012
   },
   "client/dom/chat-message/appendChild": {
     "note": "DOM appendChild caused by the client while chat-message.",
@@ -102,7 +117,7 @@
   "client/dom/chat-message/querySelector": {
     "note": "DOM querySelector caused by the client while chat-message.",
     "unit": "writes",
-    "value": 30
+    "value": 34
   },
   "client/dom/chat-message/querySelectorAll": {
     "note": "DOM querySelectorAll caused by the client while chat-message.",
@@ -182,7 +197,7 @@
   "client/dom/inert/querySelector": {
     "note": "DOM querySelector caused by the client while inert.",
     "unit": "writes",
-    "value": 40
+    "value": 46
   },
   "client/dom/inert/querySelectorAll": {
     "note": "DOM querySelectorAll caused by the client while inert.",

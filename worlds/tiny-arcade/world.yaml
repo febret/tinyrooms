@@ -1,0 +1,12 @@
+id: tiny-arcade
+label: The Arcade
+description: A tiny arcade where every cabinet opens onto a game you can play together.
+entry_room: lobby
+image: rooms/lobby.png
+palette:
+- '#241a33'
+- '#ff5d8f'
+- '#4ee1c1'
+- '#ffd166'
+requires_mods: []
+powers: {}

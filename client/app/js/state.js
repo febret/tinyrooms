@@ -422,6 +422,37 @@ function normalizeUser(user) {
   };
 }
 
+function normalizeGameAssets(assets) {
+  if (!assets || typeof assets !== "object") return {};
+  return Object.fromEntries(Object.entries(assets).map(([name, url]) => [String(name), assetOrEmpty(url)]));
+}
+
+function normalizeGameModels(models) {
+  if (!models || typeof models !== "object") return {};
+  return Object.fromEntries(Object.entries(models).map(([name, model]) => [String(name), {
+    modelUrl: assetOrEmpty(model?.model_url),
+    scale: Number(model?.scale || 1),
+  }]));
+}
+
+function normalizeRoomGame(game) {
+  if (!game || typeof game !== "object") return null;
+  return {
+    kind: String(game.kind || ""),
+    controller: String(game.controller || ""),
+    renderer: String(game.renderer || ""),
+    config: game.config && typeof game.config === "object" ? clone(game.config) : {},
+    assets: normalizeGameAssets(game.assets),
+    models: normalizeGameModels(game.models),
+    effects: game.effects && typeof game.effects === "object" ? clone(game.effects) : {},
+    canReset: Boolean(game.capabilities?.reset),
+  };
+}
+
+function normalizeGameState(boardState) {
+  return boardState && typeof boardState === "object" ? clone(boardState) : null;
+}
+
 function normalizeRoom(room, previousRoom = null) {
   if (!room) return null;
   return {
@@ -436,6 +467,8 @@ function normalizeRoom(room, previousRoom = null) {
       dark: Boolean(room.board?.dark),
       baseDark: Boolean(room.board?.base_dark ?? room.board?.dark),
       spritesEnabled: Boolean(room.board?.sprites_enabled),
+      game: normalizeRoomGame(room.board?.game),
+      state: normalizeGameState(room.board?.state),
     },
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
@@ -682,6 +715,15 @@ function applyServerEvent(state, event) {
           palette: Array.isArray(environment.palette) ? [...environment.palette] : state.room.board.palette,
           imageStyle: environment.board_image_style ? String(environment.board_image_style) : state.room.board.imageStyle,
         },
+      },
+    };
+  }
+  if (event.type === "room.board.state" && state.room) {
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        board: { ...state.room.board, state: normalizeGameState(event.state) },
       },
     };
   }

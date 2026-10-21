@@ -103,6 +103,29 @@ Recorded on the tutorial world scaled to a 93-prop room and a 40-occupant room.
 | `innerHTML` writes per chat message | whole shell | 1 |
 | `inert` writes per chat message | 5+ (observer loop) | 0 |
 
+### Room renderer follow-up
+
+The board no longer renders a full-resolution scene/mask pair for selection
+outlines. It writes the visible silhouette to the stencil buffer and draws a
+screen-space hull into the default framebuffer, so selecting a prop allocates no
+render targets and performs no full-screen composite. Shadow invalidation is
+also separate from color invalidation, and the animation loop stops when the
+room is settled.
+
+| Metric | Before | After |
+| --- | --- | --- |
+| Outline render targets | scene color + depth + mask | none |
+| Outline composite taps per pixel | up to 33 | 0 |
+| Draw calls per frame, 101 props | 261 | 125 |
+| Resident textures, same room | 121 | 104 |
+| Shadow invalidations during one camera orbit | every frame | 0 |
+| Animation ticks in a settled room | continuous | 0 |
+| Draw calls per room card | 6 | 3 |
+
+The browser budgets in [render.spec.js](../tests/browser/perf/render.spec.js)
+now assert the idle-tick, orbit-shadow, and selection-outline guarantees
+directly.
+
 ## Known follow-up: per-instance prop geometry
 
 Resident **geometries** still track the prop count, because GLTFLoader parses

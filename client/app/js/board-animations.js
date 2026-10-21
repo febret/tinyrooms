@@ -9,10 +9,11 @@ function createRecordMixer(record, model) {
 }
 
 function startLoopedClip(record, model, clip) {
+  record.animationActive = true;
   createRecordMixer(record, model).clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play();
 }
 
-function startRandomClips(record, model, clips, isActive) {
+function startRandomClips(record, model, clips, isActive, wake) {
   const mixer = createRecordMixer(record, model);
   let lastIndex = -1;
   function pick() {
@@ -29,17 +30,21 @@ function startRandomClips(record, model, clips, isActive) {
     const onFinished = event => {
       if (event.action !== action) return;
       mixer.removeEventListener("finished", onFinished);
+      record.animationActive = false;
       if (!isActive()) return;
       record.animTimers.push(setTimeout(pick, RANDOM_ANIMATION_PAUSE_MS));
     };
     mixer.addEventListener("finished", onFinished);
+    record.animationActive = true;
     action.play();
+    wake?.();
   }
   pick();
 }
 
 /** Start the prop animation named in the room snapshot, if any. */
-export function playPropAnimation(entry, record, prop, model, clips, isCurrent) {
+export function playPropAnimation(entry, record, prop, model, clips, isCurrent, wake) {
+  record.animationActive = false;
   // Respect reduced-motion preferences; also keeps rendered frames deterministic.
   if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
   const mode = typeof prop.animation === "string" ? prop.animation.trim() : "";
@@ -54,7 +59,7 @@ export function playPropAnimation(entry, record, prop, model, clips, isCurrent) 
   }
   const isActive = () => isCurrent(entry) && entry.props.get(record.id) === record;
   if (mode === "random") {
-    startRandomClips(record, model, clips, isActive);
+    startRandomClips(record, model, clips, isActive, wake);
     return;
   }
   const clip = clips.find(candidate => candidate.name === mode);

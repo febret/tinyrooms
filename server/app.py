@@ -544,6 +544,7 @@ def _build_runtime(
         prop_states=prop_states,
         peep_states=peep_states,
         surfaces=surfaces,
+        powers=powers,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(
@@ -576,6 +577,7 @@ def _build_runtime(
         sprites=rooms.sprites,
         equipped_caps=equipped_caps,
         loader=behavior_loader,
+        powers=powers,
     )
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)
@@ -1067,8 +1069,19 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         room_id = runtime.rooms.current_room_for_account(account.id)
         await runtime.connections.set_room(account.id, room_id)
         runtime.auras.enter(account.id, room_id)
+        enter_result = await runtime.behaviors.dispatch(
+            BehaviorEvent(
+                type="enter",
+                actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+                target=None,
+                room_id=room_id,
+                action=None,
+                data={"source_room_id": None},
+            )
+        )
         snapshot = await runtime.rooms.build_snapshot(account, room_id)
         await connection.send(room_snapshot_envelope(snapshot))
+        await _deliver_behavior_result(runtime, enter_result)
         if runtime.config.mc_instance_id:
             runtime.profiles.remember_instance(account.id, runtime.config.mc_instance_id)
         arrival = runtime.profiles.take_world_arrival(account.id)
@@ -1084,17 +1097,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             ),
             exclude_account_id=account.id,
         )
-        enter_result = await runtime.behaviors.dispatch(
-            BehaviorEvent(
-                type="enter",
-                actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
-                target=None,
-                room_id=room_id,
-                action=None,
-                data={"source_room_id": None},
-            )
-        )
-        await _deliver_behavior_result(runtime, enter_result)
         try:
             while True:
                 raw_text = await websocket.receive_text()

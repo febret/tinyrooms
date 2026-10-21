@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import re
 import unicodedata
 from typing import Any
+
+from server.content.common import ContentError
 
 
 SIGN_PROP_ID = "builtin:sign"
@@ -97,6 +100,46 @@ def validate_sign_style(raw_value: object) -> str:
             + "."
         )
     return style
+
+
+def load_sign_style(
+    raw_instance: Mapping[str, Any],
+    render_kind: str,
+    context: str,
+) -> str | None:
+    """Validate an instance's sign finish, rejecting it on other prop kinds."""
+
+    if render_kind != "sign":
+        if "sign_style" in raw_instance:
+            raise ContentError(f"{context}: Only builtin:sign props may have a sign_style.")
+        return None
+    try:
+        return validate_sign_style(raw_instance.get("sign_style"))
+    except ValueError as exc:
+        raise ContentError(f"{context} sign_style: {exc}") from exc
+
+
+def load_authored_surface(
+    raw_instance: Mapping[str, Any],
+    render_kind: str,
+    context: str,
+) -> dict[str, object] | None:
+    """Load an authored starting surface for a sign or whiteboard prop."""
+
+    if "surface" not in raw_instance:
+        return None
+    raw_surface = raw_instance.get("surface")
+    if render_kind == "sign":
+        try:
+            return dict(validate_sign_text(raw_surface))
+        except ValueError as exc:
+            raise ContentError(f"{context}: {exc}") from exc
+    if render_kind == "whiteboard":
+        try:
+            return dict(validate_whiteboard(raw_surface))
+        except ValueError as exc:
+            raise ContentError(f"{context}: {exc}") from exc
+    raise ContentError(f"{context}: Only builtin:sign and builtin:whiteboard props may have a surface.")
 
 
 def validate_sign_text(raw_value: object) -> dict[str, str]:

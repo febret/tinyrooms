@@ -63,6 +63,7 @@ class BehaviorContext:
         actor_username: str = "",
         card: CardView | None = None,
         peeps_in: Callable[[str], list[dict[str, object]]] | None = None,
+        powers: frozenset[str] = frozenset(),
     ) -> None:
         self.event = event
         self.actor = actor
@@ -78,8 +79,20 @@ class BehaviorContext:
         self._equipped_ids = frozenset(equipped_ids)
         self._environment = environment
         self._peeps_in = peeps_in
+        self._powers = frozenset(powers)
         self.actor_username = str(actor_username or "")
         self.intents: list[Intent] = []
+
+    @property
+    def powers(self) -> frozenset[str]:
+        """Return the acting account's effective powers in this world."""
+
+        return self._powers
+
+    def has_power(self, power: str) -> bool:
+        """Return whether the acting account holds *power*."""
+
+        return str(power) in self._powers
 
     @property
     def sprites_enabled(self) -> bool:
@@ -226,14 +239,16 @@ class BehaviorContext:
         self,
         *,
         kudos: int = 0,
+        bops: int = 0,
         cards: tuple[str, ...] | list[str] = (),
         ledger_key: str | None = None,
         target: PeepRef | PropRef | None = None,
     ) -> None:
-        """Queue an idempotent Kudos and/or card grant."""
+        """Queue an idempotent Kudos, Bops, and/or card grant."""
 
         payload: dict[str, object] = {
             "kudos": int(kudos),
+            "bops": int(bops),
             "cards": [str(card_id) for card_id in cards],
             "ledger_key": ledger_key,
         }
@@ -358,3 +373,15 @@ class BehaviorContext:
         """Read a key from this instance's persisted behavior state."""
 
         return self.state.get(key, default)
+
+    def set_game_state(self, state: Mapping[str, object]) -> None:
+        """Persist and broadcast a room game board's public state.
+
+        The payload is opaque to the core; room scripts decide its shape. It is
+        stored on the controller prop so snapshots recover the current board
+        after restart.
+        """
+
+        payload = dict(state)
+        self.state["game_state"] = payload
+        self._append("set_game_state", {"state": payload})

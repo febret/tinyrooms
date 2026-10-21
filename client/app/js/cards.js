@@ -178,7 +178,9 @@ export function describeSelection(state) {
     return { tag: "Conversation", title: dialog.peepLabel || selected.label, description: dialog.text, imageUrl: selected.stickerUrl };
   }
   if (!selected || state.selection.kind === "room") {
-    return { tag: "Room", title: state.room.label, description: state.room.description || state.room.note || "Current room.", imageUrl: state.room.board.imageUrl };
+    const gameStatus = typeof state.room.board?.state?.status === "string" ? state.room.board.state.status : "";
+    const description = [gameStatus, state.room.description || state.room.note || "Current room."].filter(Boolean).join("\n\n");
+    return { tag: "Room", title: state.room.label, description, imageUrl: state.room.board.imageUrl };
   }
   if (state.selection.kind === "core") return { tag: "", title: selected.label, description: state.selection.id === "journal" ? "Your peep, skills, friends, tasks and memories." : selected.description, imageUrl: selected.imageUrl };
   if (state.selection.kind === "task") {

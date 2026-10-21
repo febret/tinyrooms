@@ -171,6 +171,21 @@ export function fitBoardCamera(camera, controls, root, {
   controls.maxDistance = Math.max(80, far * 3);
 }
 
+/** Ease records toward their authoritative targets; snap when motion is reduced. */
+export function advanceRecords(records, delta, reducedMotion, smoothing = 9) {
+  const alpha = 1 - Math.exp(-delta * smoothing);
+  for (const record of records) {
+    const target = record.target;
+    if (!target || record.group.position.equals(target)) continue;
+    if (reducedMotion) {
+      record.group.position.copy(target);
+    } else {
+      record.group.position.lerp(target, alpha);
+      if (record.group.position.distanceToSquared(target) < 1e-6) record.group.position.copy(target);
+    }
+  }
+}
+
 /** Key that captures everything about a prop that requires re-creating its model. */
 export function propModelKey(prop) {
   return JSON.stringify([

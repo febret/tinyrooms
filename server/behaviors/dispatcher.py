@@ -71,6 +71,7 @@ class BehaviorDispatcher:
         sprites: SpriteService | None = None,
         equipped_caps: dict[int, int] | None = None,
         loader: object | None = None,
+        powers: object | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         self._hub = hub
@@ -90,6 +91,7 @@ class BehaviorDispatcher:
         self._sprites = sprites
         self._equipped_caps = equipped_caps or {}
         self._loader = loader
+        self._powers = powers
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
         self.erroring: set[str] = set()
         self._lock: asyncio.Lock | None = None
@@ -219,6 +221,7 @@ class BehaviorDispatcher:
             "card_ids": (),
             "equipped_ids": (),
             "username": "",
+            "powers": frozenset(),
         }
         account_id = event.actor.account_id if event.actor.kind == "user" else None
         if not account_id:
@@ -234,12 +237,19 @@ class BehaviorDispatcher:
             self._log("behavior.inventory.error", error=str(exc))
             stacks = []
         account = self._profiles.get_account_by_id(account_id)
+        powers: frozenset[str] = frozenset()
+        if self._powers is not None and account is not None:
+            try:
+                powers = frozenset(self._powers.effective(account))
+            except Exception as exc:  # noqa: BLE001 - a power read must not break the room loop
+                self._log("behavior.powers.error", error=str(exc))
         return {
             "statuses": tuple(payload.get("statuses") or ()),
             "counters": payload,
             "card_ids": tuple(stack.card_def_id for stack in stacks),
             "equipped_ids": tuple(stack.card_def_id for stack in stacks if stack.equipped),
             "username": account.username_display if account is not None else "",
+            "powers": powers,
         }
 
     def _card_view(self, event: BehaviorEvent) -> CardView | None:
@@ -291,6 +301,7 @@ class BehaviorDispatcher:
                     "id": room_id,
                     "label": "",
                     "sprites_enabled": False,
+                    "game": None,
                     "props": [],
                     "peeps": [],
                     "exits": [],
@@ -300,6 +311,16 @@ class BehaviorDispatcher:
                     "id": room.id,
                     "label": room.label,
                     "sprites_enabled": room.sprites_enabled,
+                    "game": None if room.game is None else {
+                        "kind": room.game.kind,
+                        "controller": room.game.controller,
+                        "renderer": room.game.renderer,
+                        "config": dict(room.game.config),
+                        "reset_powers": list(room.game.reset_powers),
+                        "assets": sorted(room.game.assets),
+                        "models": {name: model.prop_id for name, model in room.game.models.items()},
+                        "effect_sets": sorted(room.game.effect_sets),
+                    },
                     "props": [
                         {
                             "id": prop.id,
@@ -400,6 +421,7 @@ class BehaviorDispatcher:
                 actor_username=str(actor_view.get("username") or ""),
                 card=self._card_view(event),
                 peeps_in=self._peeps_in_view,
+                powers=actor_view.get("powers") or frozenset(),
             )
             contexts.append((attachment, context))
             try:
@@ -498,6 +520,8 @@ class BehaviorDispatcher:
             self._apply_hide_prop(connection, payload, context, event, result)
         elif kind == "clear_source":
             self._apply_clear_source(payload, event, deferred)
+        elif kind == "set_game_state":
+            self._apply_game_state(payload, event, result)
         else:
             self._log("behavior.intent.unknown", kind=kind)
 
@@ -570,6 +594,25 @@ class BehaviorDispatcher:
                     "effect": str(payload.get("effect_id", "")),
                     "source_id": context.actor.account_id,
                 },
+            )
+        )
+
+    def _apply_game_state(
+        self,
+        payload: Mapping[str, object],
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        if event.room_id is None:
+            return
+        state = payload.get("state")
+        if not isinstance(state, dict):
+            self._log("behavior.intent.skipped", kind="set_game_state", reason="invalid_state")
+            return
+        result.room_broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=event.room_id,
+                event={"type": "room.board.state", "room_id": event.room_id, "state": state},
             )
         )
 
@@ -716,6 +759,7 @@ class BehaviorDispatcher:
             connection,
             account_id,
             kudos=int(payload.get("kudos", 0) or 0),
+            bops=int(payload.get("bops", 0) or 0),
             cards=tuple(str(card_id) for card_id in cards) if isinstance(cards, list) else (),
             ledger_key=ledger_key,
             kind="behavior",

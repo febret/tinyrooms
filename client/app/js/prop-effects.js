@@ -48,6 +48,13 @@ function transformLayer({ visual, layer }) {
   const period = Math.max(0.05, Number(layer.period) || 3);
   const amplitude = Number(layer.amplitude) || 0;
 
+  function isAnimating() {
+    if (layer.motion === "bob" || layer.motion === "pulse" || layer.motion === "sway" || layer.motion === "shake") {
+      return amplitude > 0;
+    }
+    return true;
+  }
+
   function update(delta) {
     elapsed += delta;
     const wave = Math.sin((elapsed / period) * Math.PI * 2);
@@ -77,7 +84,7 @@ function transformLayer({ visual, layer }) {
     visual.scale.copy(baseScale);
   }
 
-  return { update, dispose };
+  return { update, dispose, isAnimating };
 }
 
 function materialLayer({ model, layer }) {
@@ -107,6 +114,10 @@ function materialLayer({ model, layer }) {
     node.material = clone;
   });
 
+  function isAnimating() {
+    return flicker > 0;
+  }
+
   function update(delta) {
     if (!flicker) return;
     elapsed += delta;
@@ -124,10 +135,10 @@ function materialLayer({ model, layer }) {
     saved.length = 0;
   }
 
-  return { update, dispose };
+  return { update, dispose, isAnimating };
 }
 
-function particleLayer({ group, bounds, layer, loader, pixelScale }) {
+function particleLayer({ group, bounds, layer, loader, pixelScale, wake }) {
   const max = Math.max(1, Number(layer.max_particles) || 40);
   const origin = anchorPosition(bounds, layer.anchor || "top", layer.offset || [0, 0, 0]);
   const [lifeMin, lifeMax] = layer.lifetime || [1.5, 2.5];
@@ -177,6 +188,11 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
       uniform float uSizeScale;
       void main() {
         vAlpha = alpha;
+        if (alpha <= 0.001 || size <= 0.0) {
+          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+          gl_PointSize = 0.0;
+          return;
+        }
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_PointSize = max(1.0, size * uSizeScale * (uScale / max(0.001, -mvPosition.z)));
         gl_Position = projectionMatrix * mvPosition;
@@ -196,23 +212,32 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
   });
 
   const points = new THREE.Points(geometry, material);
-  points.frustumCulled = false;
+  // Particles stay near their emitter. A generous local bound lets Three skip
+  // off-screen emitters without ever cutting a live plume short.
+  const maxLife = Math.max(0, Number(lifeMax) || 0);
+  const travel = Math.abs(speed) * maxLife * 2
+    + Math.abs(gravity) * maxLife * maxLife
+    + Math.max(0, Number(sizeMax) || 0);
+  geometry.boundingSphere = new THREE.Sphere(origin.clone(), Math.max(0.5, travel));
   points.visible = false;
   group.add(points);
 
   let ready = false;
+  let liveCount = 0;
   sharedTexture(withBase(layer.texture_url), loader).then(texture => {
     if (!texture) return;
     uniforms.uMap.value = texture;
     uniforms.uHasMap.value = 1;
     ready = true;
     points.visible = true;
+    wake?.();
   });
 
   let cursor = 0;
   let emitAccumulator = 0;
 
   function spawn() {
+    if (!alive[cursor]) liveCount += 1;
     const index = cursor;
     cursor = (cursor + 1) % max;
     const theta = Math.random() * Math.PI * 2;
@@ -231,7 +256,15 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
     alphas[index] = alphaMin;
   }
 
+  function isAnimating() {
+    return ready && ((Number(layer.rate) || 0) > 0 || liveCount > 0);
+  }
+
   function update(delta) {
+    if (!ready) {
+      emitAccumulator = 0;
+      if (!liveCount) return;
+    }
     if (ready) {
       emitAccumulator += (Number(layer.rate) || 0) * delta;
       let budget = max;
@@ -240,21 +273,18 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
         emitAccumulator -= 1;
         budget -= 1;
       }
-    } else {
-      emitAccumulator = 0;
     }
+    let changed = false;
     for (let index = 0; index < max; index += 1) {
-      if (!alive[index]) {
-        alphas[index] = 0;
-        sizes[index] = 0;
-        continue;
-      }
+      if (!alive[index]) continue;
       age[index] += delta;
       const progress = Math.min(1, age[index] / Math.max(0.0001, life[index]));
       if (progress >= 1) {
         alive[index] = 0;
+        liveCount -= 1;
         alphas[index] = 0;
         sizes[index] = 0;
+        changed = true;
         continue;
       }
       velocity[index * 3 + 1] += gravity * delta;
@@ -263,7 +293,10 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
       positions[index * 3 + 2] += velocity[index * 3 + 2] * delta;
       sizes[index] = sizeMin + (sizeMax - sizeMin) * progress;
       alphas[index] = alphaMin + (alphaMax - alphaMin) * progress;
+      changed = true;
     }
+    points.visible = ready && (liveCount > 0 || (Number(layer.rate) || 0) > 0);
+    if (!changed) return;
     if (pixelScale) uniforms.uScale.value = pixelScale();
     // Prop scale lives on the host group; point sprites must be scaled
     // explicitly since gl_PointSize ignores the model matrix.
@@ -282,6 +315,7 @@ function particleLayer({ group, bounds, layer, loader, pixelScale }) {
   return {
     update,
     dispose,
+    isAnimating,
     get sizeScale() {
       return uniforms.uSizeScale.value;
     },
@@ -310,9 +344,10 @@ export function createPropEffects({
   reducedMotion,
   textureLoader,
   pixelScale,
+  wake,
 }) {
   if (reducedMotion || !effectSets || !Object.keys(effectSets).length) return null;
-  const context = { group, visual, model, bounds, loader: textureLoader, pixelScale };
+  const context = { group, visual, model, bounds, loader: textureLoader, pixelScale, wake };
   let layers = [];
 
   function disposeLayers() {
@@ -341,6 +376,10 @@ export function createPropEffects({
     setActiveEffect(setName) {
       if (!effectSets[setName] || setName === undefined) return;
       build(setName);
+      wake?.();
+    },
+    isAnimating() {
+      return layers.some(layer => layer.isAnimating?.());
     },
     get activeCount() {
       return layers.length;

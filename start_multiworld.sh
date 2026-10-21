@@ -53,6 +53,7 @@ fi
 MC_PORT="${MC_PORT:-8001}"
 TUTORIAL_PORT="${TUTORIAL_PORT:-5100}"
 SCAMMON_PORT="${SCAMMON_PORT:-5101}"
+ARCADE_PORT="${ARCADE_PORT:-5102}"
 
 export TRSERVER_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-deadbeef}"
 export TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE:-$TRSERVER_NEW_ACCOUNT_PASSPHRASE}"
@@ -133,6 +134,7 @@ start_world() {
 
 start_world tutorial "$TUTORIAL_PORT" tutorial-1 "Tutorial"
 start_world scammon-academia "$SCAMMON_PORT" scammon-1 "Scammon Academia"
+start_world tiny-arcade "$ARCADE_PORT" arcade-1 "Tiny Arcade"
 
 cat <<EOF
 Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
@@ -140,6 +142,7 @@ Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
   Player entry     : https://$PUBLIC_HOST:$MC_PORT/
   Tutorial world   : https://$PUBLIC_HOST:$TUTORIAL_PORT/
   Scammon Academia : https://$PUBLIC_HOST:$SCAMMON_PORT/
+  Tiny Arcade       : https://$PUBLIC_HOST:$ARCADE_PORT/
 The tutorial hub portal links the two worlds. Press Ctrl-C to stop everything.
 EOF
 

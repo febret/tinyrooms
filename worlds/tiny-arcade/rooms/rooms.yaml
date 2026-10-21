@@ -1,0 +1,357 @@
+lobby:
+  label: The Arcade Lobby
+  description: Neon carpet, a wall of cabinets, and a doorway that smells faintly
+    of old chess pieces. Pick a machine and see who is already playing.
+  board_type: basic
+  board_image: lobby.png
+  board_image_style: stretch
+  palette:
+  - '#241a33'
+  - '#ff5d8f'
+  - '#4ee1c1'
+  props:
+    lobby-wall:
+      prop: builtin:whiteboard
+      pos: [50, 2, 0]
+      scale: 4.2
+      rot: [0, 0, 0]
+      surface:
+        strokes:
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 20], [1024, 20]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 60], [1024, 60]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 100], [1024, 100]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 140], [1024, 140]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 180], [1024, 180]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 220], [1024, 220]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 260], [1024, 260]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 300], [1024, 300]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 340], [1024, 340]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 380], [1024, 380]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 420], [1024, 420]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 460], [1024, 460]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 500], [1024, 500]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 540], [1024, 540]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 580], [1024, 580]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 620], [1024, 620]]
+        - color: '#54f2ff'
+          width: 12
+          points: [[20, 20], [1004, 20], [1004, 620], [20, 620], [20, 20]]
+        - color: '#ff5d8f'
+          width: 8
+          points: [[0, 470], [1024, 470]]
+        - color: '#54f2ff'
+          width: 6
+          points: [[80, 300], [220, 300], [220, 470], [80, 470], [80, 300]]
+        - color: '#ffd166'
+          width: 6
+          points: [[300, 280], [450, 280], [450, 470], [300, 470], [300, 280]]
+        - color: '#ff5d8f'
+          width: 6
+          points: [[600, 300], [760, 300], [760, 470], [600, 470], [600, 300]]
+        - color: '#4ee1c1'
+          width: 4
+          points: [[100, 340], [200, 340]]
+        - color: '#4ee1c1'
+          width: 4
+          points: [[320, 320], [430, 320]]
+        - color: '#ffd166'
+          width: 4
+          points: [[620, 340], [740, 340]]
+        texts:
+        - text: THE ARCADE
+          x: 60
+          y: 60
+          size: 96
+          color: '#ff5d8f'
+        - text: PLAY TOGETHER
+          x: 70
+          y: 185
+          size: 48
+          color: '#4ee1c1'
+        - text: INSERT COIN
+          x: 70
+          y: 510
+          size: 40
+          color: '#ffd166'
+        - text: CHESS NOOK →
+          x: 700
+          y: 510
+          size: 40
+          color: '#54f2ff'
+    lobby-tip-chess:
+      prop: builtin:sign
+      pos: [26, 58, 0]
+      rot: [-0.45, 0.24, 0]
+      scale: 1.7
+      sign_style: neon
+      surface:
+        text: 'CHESS NOOK →
+
+          Click a piece, then a green square.'
+      actions:
+      - - Enter the Chess Nook
+        - .go chess
+        - true
+    lobby-tip-play:
+      prop: builtin:sign
+      pos: [74, 58, 0]
+      rot: [-0.45, -0.24, 0]
+      scale: 1.55
+      sign_style: chalk
+      surface:
+        text: 'PLAY TOGETHER
+
+          Anyone can take the next move.'
+  exits:
+    chess:
+      label: Enter the Chess Nook
+      target: chess
+chess:
+  label: The Chess Nook
+  description: A giant checkerboard under a warm lamp. Anybody in the room can take
+    the next move. Captures pay Bops; checkmate pays Kudos.
+  board_type: basic
+  board_image: chess-floor.png
+  board_image_style: stretch
+  palette:
+  - '#241a33'
+  - '#8b6f47'
+  - '#ffd166'
+  props:
+    chess-wall:
+      prop: builtin:whiteboard
+      pos: [50, 2, 0]
+      scale: 4.2
+      rot: [0, 0, 0]
+      surface:
+        strokes:
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 20], [1024, 20]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 60], [1024, 60]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 100], [1024, 100]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 140], [1024, 140]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 180], [1024, 180]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 220], [1024, 220]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 260], [1024, 260]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 300], [1024, 300]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 340], [1024, 340]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 380], [1024, 380]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 420], [1024, 420]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 460], [1024, 460]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 500], [1024, 500]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 540], [1024, 540]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 580], [1024, 580]]
+        - color: '#0d0b15'
+          width: 40
+          points: [[0, 620], [1024, 620]]
+        - color: '#54f2ff'
+          width: 12
+          points: [[20, 20], [1004, 20], [1004, 620], [20, 620], [20, 20]]
+        - color: '#efdfbd'
+          width: 4
+          points: [[600, 280], [960, 280], [960, 640], [600, 640], [600, 280]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[640, 280], [640, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[680, 280], [680, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[720, 280], [720, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[760, 280], [760, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[800, 280], [800, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[840, 280], [840, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[880, 280], [880, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[920, 280], [920, 640]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 320], [960, 320]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 360], [960, 360]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 400], [960, 400]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 440], [960, 440]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 480], [960, 480]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 520], [960, 520]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 560], [960, 560]]
+        - color: '#efdfbd'
+          width: 3
+          points: [[600, 600], [960, 600]]
+        texts:
+        - text: CHESS NOOK
+          x: 60
+          y: 60
+          size: 92
+          color: '#ff5d8f'
+        - text: ANYONE CAN MOVE
+          x: 70
+          y: 190
+          size: 48
+          color: '#4ee1c1'
+        - text: CAPTURES PAY BOPS
+          x: 70
+          y: 260
+          size: 40
+          color: '#ffd166'
+        - text: CHECKMATE PAYS 3 KUDOS
+          x: 70
+          y: 320
+          size: 40
+          color: '#9ef0a8'
+        - text: 'STAFF RESET: ROOM ACTIONS'
+          x: 70
+          y: 560
+          size: 30
+          color: '#efdfbd'
+    chess-controller:
+      prop: builtin:text
+      pos: [50, 96, 0]
+      scale: 0.32
+      behavior: chess
+      text:
+        content: CHESS
+        font_id: serif
+        color: '#ffd166'
+    chess-tip-rules:
+      prop: builtin:sign
+      pos: [4, 55, 0]
+      rot: [-0.45, 0.1, 0]
+      scale: 1.0
+      sign_style: paper
+      surface:
+        text: 'HOW TO PLAY
+
+          1. Click a piece.
+          2. Click a green square.
+          3. Captures pay Bops.
+          4. Checkmate pays 3 Kudos.'
+    chess-tip-staff:
+      prop: builtin:sign
+      pos: [96, 55, 0]
+      rot: [-0.45, -0.1, 0]
+      scale: 1.0
+      sign_style: neon
+      surface:
+        text: 'STAFF RESET
+
+          Admin, moderator, or game master:
+          use Reset game in room actions.'
+  game:
+    kind: chess
+    controller: chess-controller
+    renderer: grid
+    reset_powers:
+    - admin
+    - moderator
+    - game-master
+    assets:
+      grain: rooms/wood-grain.png
+    models:
+      wP: chess-pawn-white
+      wN: chess-knight-white
+      wB: chess-bishop-white
+      wR: chess-rook-white
+      wQ: chess-queen-white
+      wK: chess-king-white
+      bP: chess-pawn-black
+      bN: chess-knight-black
+      bB: chess-bishop-black
+      bR: chess-rook-black
+      bQ: chess-queen-black
+      bK: chess-king-black
+    effects:
+      threat: [ember-glow]
+      check: [ember-glow, fire]
+    config:
+      columns: 8
+      rows: 8
+      origin: [19, 11.7]
+      size: [62, 76.6]
+      light: '#efdfbd'
+      dark: '#5b3b28'
+  exits:
+    lobby:
+      label: Back to the Arcade Lobby
+      target: lobby

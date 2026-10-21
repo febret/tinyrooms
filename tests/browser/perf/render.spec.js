@@ -162,6 +162,78 @@ test.describe("board resource budgets", () => {
   });
 });
 
+test("a settled room stops ticking and orbiting does not rebuild shadows", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime, "perfsettle");
+  await waitForProps(page, PROPS);
+  await page.waitForTimeout(500);
+
+  const idleBefore = await requireDiagnostics(page);
+  await page.waitForTimeout(500);
+  const idleAfter = await requireDiagnostics(page);
+  const idleTicks = idleAfter.ticks - idleBefore.ticks;
+  record("client/board/ticks-idle", idleTicks, {
+    ceiling: 2,
+    note: "Animation frames requested over 500ms in a settled room.",
+  });
+  expect(
+    idleTicks,
+    "the animation loop kept ticking for a settled room",
+  ).toBeLessThanOrEqual(2);
+
+  const box = await page.locator("#board-canvas").boundingBox();
+  const startX = box.x + box.width * 0.5;
+  const startY = box.y + box.height * 0.5;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 80, startY + 20, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+
+  const orbited = await requireDiagnostics(page);
+  expect(orbited.frames, "orbiting did not request a frame").toBeGreaterThan(idleAfter.frames);
+  const orbitShadowInvalidations = orbited.shadowInvalidations - idleAfter.shadowInvalidations;
+  record("client/board/shadow-invalidations-orbit", orbitShadowInvalidations, {
+    ceiling: 0,
+    note: "Shadow-map invalidations caused by one camera orbit.",
+  });
+  expect(
+    orbitShadowInvalidations,
+    "camera movement dirtied the static shadow map",
+  ).toBe(0);
+});
+
+test("selecting a prop uses stencil outlines without render targets or shadow updates", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime, "perfoutline");
+  await waitForProps(page, PROPS);
+
+  const before = await requireDiagnostics(page);
+  await page.locator("#room-picker-toggle").click();
+  const picker = page.locator("#room-picker");
+  await expect(picker).toBeVisible();
+  await picker.locator("[data-room-picker-prop]").first().click();
+  await expect
+    .poll(async () => (await diagnostics(page))?.outline?.selected ?? 0, { timeout: 20_000 })
+    .toBeGreaterThan(0);
+
+  const after = await requireDiagnostics(page);
+  expect(after.renderFailed, "the board reported a render failure").toBe(false);
+  expect(after.outline.supported, "the stencil buffer was not available").toBe(true);
+  expect(after.outline.passes, "no outline passes were submitted").toBeGreaterThan(0);
+  expect(
+    after.shadowInvalidations - before.shadowInvalidations,
+    "selection dirtied the static shadow map",
+  ).toBe(0);
+  const outlineTextures = after.textures - before.textures;
+  record("client/board/outline-textures", outlineTextures, {
+    ceiling: 1,
+    note: "Resident texture growth when a prop is selected.",
+  });
+  expect(
+    outlineTextures,
+    "the outline path allocated render-target textures",
+  ).toBeLessThanOrEqual(1);
+});
+
 test.describe("shell update budgets", () => {
   test("one chat message does not rewrite the whole shell", async ({ page, runtime }) => {
     await createReadyAccount(page, runtime, "perfui");
