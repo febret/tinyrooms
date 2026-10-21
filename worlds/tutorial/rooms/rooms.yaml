@@ -30,27 +30,10 @@ hub:
       actions:
       - - Enter
         - .go exit0
-    teleporter0:
-      prop: portal
-      pos:
-      - 80
-      - 52
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1
-      actions:
-      - - Go across
-        - .go to_scammon
   exits:
     exit0:
       label: Enter the Dollhouse
       target: foyer
-    to_scammon:
-      label: Step through the portal
-      target_world: scammon-academia
 foyer:
   label: The Living Room
   description: ''

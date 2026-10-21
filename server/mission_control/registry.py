@@ -44,6 +44,8 @@ class InstanceRecord:
     status: str = STATUS_STARTING
     world_id: str | None = None
     world_label: str | None = None
+    world_description: str = ""
+    world_image: str = ""
     version: str | None = None
     protocol_version: int | None = None
     # World-reported process start, unlike MC's registration/heartbeat receipt times.
@@ -59,6 +61,8 @@ class InstanceRecord:
     # these are world-reported samples, not counts of persisted login sessions.
     uptime_seconds: float = 0.0
     users_online: int = 0
+    # Account ids reported by the latest heartbeat for cross-world friend presence.
+    online_account_ids: tuple[str, ...] = ()
     # Latest /api/mc/stats response, absent until fetched and possibly stale:
     # uptime is seconds; users carry account/username/room; rooms and content
     # counters are loaded counts; version/schema describe the reporting world.
@@ -144,6 +148,8 @@ class InstanceRegistry:
             record.endpoint = endpoint
             record.world_id = str(world.get("id")) if world.get("id") else None
             record.world_label = str(world.get("label")) if world.get("label") else None
+            record.world_description = str(world.get("description") or "")
+            record.world_image = str(world.get("image") or "")
             record.version = str(payload.get("version")) if payload.get("version") else None
             protocol = payload.get("protocol_version")
             record.protocol_version = int(protocol) if isinstance(protocol, int) else None
@@ -229,6 +235,7 @@ class InstanceRegistry:
         *,
         uptime_seconds: float = 0.0,
         users_online: int = 0,
+        online_account_ids: list[str] | None = None,
         world_id: str | None = None,
     ) -> InstanceRecord | None:
         """Record a heartbeat and return the updated record."""
@@ -239,7 +246,8 @@ class InstanceRegistry:
                 return None
             record.last_heartbeat_at = utc_now().isoformat()
             record.uptime_seconds = float(uptime_seconds)
-            record.users_online = int(users_online)
+            record.online_account_ids = tuple(dict.fromkeys(online_account_ids or ()))
+            record.users_online = max(int(users_online), len(record.online_account_ids))
             if world_id:
                 record.world_id = world_id
             if record.status in {STATUS_STARTING, STATUS_UNREACHABLE}:
@@ -325,7 +333,12 @@ class InstanceRegistry:
             "endpoint": record.endpoint,
             "source": record.source,
             "status": status,
-            "world": {"id": record.world_id, "label": record.world_label},
+            "world": {
+                "id": record.world_id,
+                "label": record.world_label,
+                "description": record.world_description,
+                "image": record.world_image,
+            },
             "version": record.version,
             "protocol_version": record.protocol_version,
             "started_at": record.started_at,

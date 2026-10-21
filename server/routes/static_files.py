@@ -119,6 +119,13 @@ def register_static_routes(app: FastAPI) -> None:
                 return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Sticker asset not found.")
 
+    @app.get("/assets/world-image")
+    async def world_image(request: Request) -> Response:
+        runtime = get_runtime(request)
+        if runtime.world.image_path is None or not runtime.world.image_path.is_file():
+            raise HTTPException(status_code=404, detail="World image not found.")
+        return FileResponse(runtime.world.image_path, headers={"Cache-Control": "public, max-age=60"})
+
     @app.get("/assets/fx/{filename}")
     async def fx_asset(filename: str, request: Request) -> Response:
         runtime = get_runtime(request)

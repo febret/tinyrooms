@@ -1152,6 +1152,14 @@ export function findInventoryCard(state, stackId) {
     || null;
 }
 
+export function hasSlottedSkill(state, cardDefinitionId) {
+  if (!cardDefinitionId) return false;
+  return (state.user?.skills || []).some(slot => {
+    if (!slot.stackId) return false;
+    return findInventoryCard(state, slot.stackId)?.definition?.id === cardDefinitionId;
+  });
+}
+
 export function isTargetableStack(stack) {
   const definition = stack?.definition;
   const type = definition?.type || "item";

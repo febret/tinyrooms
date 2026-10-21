@@ -256,6 +256,8 @@ class WorldDefinition:
     recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
     requires_mods: tuple[str, ...] = ()
     effects: dict[str, EffectDefinition] = field(default_factory=dict)
+    image_name: str = ""
+    image_path: Path | None = None
 
 
 def _load_text_recipe(
@@ -866,6 +868,16 @@ def load_world_definition(
     entry_room_id = str(world_payload.get("entry_room", "")).strip()
     if not world_id or not entry_room_id:
         raise ContentError("world.yaml must define id and entry_room.")
+    world_image_name = str(world_payload.get("image", "")).strip()
+    world_image_path: Path | None = None
+    if world_image_name:
+        world_root = world_path.resolve()
+        candidate = (world_path / world_image_name).resolve()
+        if candidate != world_root and world_root not in candidate.parents:
+            raise ContentError(f"World '{world_id}' image path escapes the world directory.")
+        if not candidate.is_file():
+            raise ContentError(f"World '{world_id}' references missing image '{world_image_name}'.")
+        world_image_path = candidate
     requires_mods = tuple(str(entry).strip() for entry in world_payload.get("requires_mods", []) or [])
     if enabled_mods is not None:
         missing_mods = sorted(set(requires_mods) - set(enabled_mods))
@@ -1130,4 +1142,6 @@ def load_world_definition(
         recipes=recipes,
         requires_mods=requires_mods,
         effects=effects,
+        image_name=world_image_name,
+        image_path=world_image_path,
     )

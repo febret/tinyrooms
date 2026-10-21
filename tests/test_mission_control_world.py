@@ -39,12 +39,22 @@ class _FakeConfig:
 class _FakeWorld:
     id = "tutorial"
     label = "The Little House"
+    description = "A pocket-sized home."
+    image_name = "rooms/hub.jpg"
     entry_room_id = "entry"
 
 
+class _FakeConnection:
+    def __init__(self, account_id: str) -> None:
+        self.account_id = account_id
+
+
 class _FakeConnections:
+    def __init__(self, account_ids: list[str] | None = None) -> None:
+        self.account_ids = account_ids or []
+
     def list_all(self) -> list[object]:
-        return []
+        return [_FakeConnection(account_id) for account_id in self.account_ids]
 
 
 class _FakeRuntime:
@@ -85,9 +95,12 @@ class McClientTests(unittest.TestCase):
         self.assertEqual(payloads[2]["instance_id"], "mc-stable")
         self.assertEqual(payloads[2]["client_url"], "https://tiny.example:5100")
         self.assertEqual(payloads[2]["entry_room_id"], "entry")
+        self.assertEqual(payloads[2]["world"]["description"], "A pocket-sized home.")
+        self.assertEqual(payloads[2]["world"]["image"], "rooms/hub.jpg")
 
     def test_register_and_heartbeat(self) -> None:
         seen: list[str] = []
+        heartbeat_payload: dict[str, object] = {}
 
         def handler(request: httpx.Request) -> httpx.Response:
             seen.append(request.url.path)
@@ -96,14 +109,19 @@ class McClientTests(unittest.TestCase):
                 assert payload["instance_name"] == "test-world"
                 assert payload["base_path"] == "/world"
                 return httpx.Response(200, json={"ok": True, "instance_id": "mc-1", "heartbeat_seconds": 7, "capabilities": []})
+            heartbeat_payload.update(json.loads(request.content))
             return httpx.Response(200, json={"ok": True, "pending_commands": []})
 
-        client = _client_with(handler)
+        runtime = _FakeRuntime()
+        runtime.connections = _FakeConnections(["one", "two", "one"])
+        client = McClient(runtime, client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
         asyncio.run(client.register())
         self.assertEqual(client.instance_id, "mc-1")
         self.assertEqual(client._heartbeat_seconds, 7)  # noqa: SLF001
         result = asyncio.run(client.heartbeat())
         self.assertEqual(result["ok"], True)
+        self.assertEqual(heartbeat_payload["users_online"], 2)
+        self.assertEqual(heartbeat_payload["online_account_ids"], ["one", "two"])
         self.assertIn("/api/mc/register", seen)
         self.assertIn("/api/mc/heartbeat", seen)
 

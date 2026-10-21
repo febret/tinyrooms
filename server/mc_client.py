@@ -81,6 +81,8 @@ class McClient:
             "version": BUILD_VERSION,
             "protocol_version": PROTOCOL_VERSION,
             "world": {"id": self._runtime.world.id, "label": self._runtime.world.label,
+                      "description": self._runtime.world.description,
+                      "image": self._runtime.world.image_name,
                       "instance_id": config.mc_instance_id or self._instance_id,
                       "entry_room_id": self._runtime.world.entry_room_id},
             "entry_room_id": self._runtime.world.entry_room_id,
@@ -111,10 +113,16 @@ class McClient:
     def heartbeat_payload(self) -> dict[str, object]:
         """Build the heartbeat request body."""
 
+        online_account_ids = sorted({
+            connection.account_id
+            for connection in self._runtime.connections.list_all()
+            if connection.account_id
+        })
         return {
             "instance_id": self._instance_id,
             "uptime_seconds": round(time.time() - self._runtime.started_at, 2),
-            "users_online": len(self._runtime.connections.list_all()),
+            "users_online": len(online_account_ids),
+            "online_account_ids": online_account_ids,
             "world_id": self._runtime.world.id,
         }
 

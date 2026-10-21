@@ -13,3 +13,7 @@ dev-sample:
   aliases: [sample]
   room_bound: true
   feature: dev_sample_activity
+multiverse:
+  title: Multiverse
+  room_bound: false
+  skill: multiverse-map

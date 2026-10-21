@@ -104,6 +104,66 @@ class CrossWorldService:
             return "127.0.0.1"
         return self._config.host
 
+    async def list_worlds(self) -> list[dict[str, object]]:
+        """Return running worlds with a destination that shares this login host."""
+
+        if not self.available:
+            raise CommandError("The Multiverse is unavailable on this server.")
+        client = self._client_or_create()
+        try:
+            response = await client.get(
+                f"https://{self._config.mc_endpoint}/api/mc/worlds",
+                headers={"X-MC-Token": self._config.mc_token or ""},
+            )
+        except httpx.HTTPError as exc:
+            raise CommandError("The Multiverse could not be reached right now.") from exc
+        if response.status_code != 200:
+            raise CommandError("The Multiverse is unavailable right now.")
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise CommandError("The Multiverse returned an invalid response.") from exc
+        if not isinstance(data, dict) or not data.get("ok"):
+            raise CommandError("The Multiverse is unavailable right now.")
+        raw_worlds = data.get("worlds")
+        if not isinstance(raw_worlds, list):
+            raise CommandError("The Multiverse returned an invalid response.")
+        local_host = self._local_hostname()
+        worlds: list[dict[str, object]] = []
+        for raw in raw_worlds:
+            if not isinstance(raw, dict):
+                continue
+            world_id = str(raw.get("id") or "").strip()
+            if not world_id:
+                continue
+            instances = raw.get("instances")
+            chosen: dict[str, object] | None = None
+            if isinstance(instances, list):
+                for instance in instances:
+                    if not isinstance(instance, dict):
+                        continue
+                    client_url = str(instance.get("client_url") or "")
+                    if urlsplit(client_url).hostname == local_host:
+                        chosen = instance
+                        break
+            if chosen is None:
+                continue
+            online_ids = raw.get("online_account_ids")
+            worlds.append(
+                {
+                    "id": world_id,
+                    "label": str(raw.get("label") or world_id),
+                    "description": str(raw.get("description") or ""),
+                    "image_url": str(chosen.get("image_url") or ""),
+                    "users_online": max(0, int(raw.get("users_online") or 0)),
+                    "online_account_ids": [
+                        str(account_id) for account_id in online_ids if account_id
+                    ] if isinstance(online_ids, list) else [],
+                    "current": world_id == self._world_id,
+                }
+            )
+        return worlds
+
     async def resolve_destination(self, world_id: str) -> WorldDestination:
         """Return a validated running instance for *world_id*, or raise."""
 

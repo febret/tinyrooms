@@ -39,6 +39,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   test.slow();
   await createReadyAccount(page, runtime);
   await expect(page.locator("#core-tools [data-core-id]")).toHaveCount(2);
+  await expect(page.locator("#multiverse-toggle")).toHaveCount(0);
   await expect(page.locator("#card-hand [data-core-id], #card-hand [data-core-expand]")).toHaveCount(0);
   for (const id of ["inventory", "journal"]) {
     await expect(page.locator(`#core-tools [data-core-id="${id}"]`)).toBeVisible();
@@ -110,6 +111,15 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
       await expect(journal.locator("[data-level-up]")).toBeDisabled();
     }
   }
+});
+
+test("admins can open the Multiverse activity from the toolbar", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime, "siteadmin");
+  const toggle = page.locator("#multiverse-toggle");
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(page.locator('iframe[src*="multiverse"]')).toBeVisible();
+  await expect(page.frameLocator('iframe[src*="multiverse"]').locator("#multiverse-error")).toBeVisible();
 });
 
 test.describe("cutscenes under reduced motion", () => {

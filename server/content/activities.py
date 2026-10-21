@@ -19,6 +19,8 @@ class ActivityDefinition:
     # rooms is a launch allowlist (empty means any room), independent of binding.
     # YAML feature becomes required_feature: the launch requires that flag enabled,
     # not merely known to the loader. No feature means no feature gate.
+    # YAML skill becomes required_skill: the launch requires that skill to be
+    # slotted, unless the account has the admin power.
     # start_cost is Energy per round start, not per window open. record enables
     # personal/world best times for captured rounds lasting at least
     # min_completed_round seconds; abandoned rounds do not qualify.
@@ -29,6 +31,7 @@ class ActivityDefinition:
     rooms: tuple[str, ...]
     required_feature: str | None
     source: str
+    required_skill: str | None = None
     start_cost: int = 0
     record: bool = False
     min_completed_round: float = 0.0
@@ -83,6 +86,11 @@ def load_activity_definitions(
                 raise ContentError(
                     f"Activity '{activity_id}' references unknown feature '{required_feature}'."
                 )
+        required_skill = raw.get("skill")
+        if required_skill is not None:
+            required_skill = str(required_skill).strip()
+            if not required_skill:
+                raise ContentError(f"Activity '{activity_id}' skill must be a non-empty string.")
         raw_cost = raw.get("start_cost", 0)
         if isinstance(raw_cost, bool) or not isinstance(raw_cost, int) or raw_cost < 0:
             raise ContentError(f"Activity '{activity_id}' start_cost must be a non-negative integer.")
@@ -102,6 +110,7 @@ def load_activity_definitions(
             rooms=rooms,
             required_feature=required_feature,
             source=source,
+            required_skill=required_skill,
             start_cost=int(raw_cost),
             record=raw_record,
             min_completed_round=float(raw_min),

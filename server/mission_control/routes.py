@@ -17,7 +17,7 @@ from pathlib import Path
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.config import ConfigError, normalize_base_path
@@ -86,6 +86,7 @@ class HeartbeatPayload(BaseModel):
     instance_id: str
     uptime_seconds: float = 0.0
     users_online: int = 0
+    online_account_ids: list[str] = Field(default_factory=list)
     world_id: str | None = None
 
 
@@ -217,6 +218,7 @@ async def fleet_heartbeat(request: Request, payload: HeartbeatPayload) -> dict[s
         payload.instance_id,
         uptime_seconds=payload.uptime_seconds,
         users_online=payload.users_online,
+        online_account_ids=payload.online_account_ids,
         world_id=payload.world_id,
     )
     if record is None:

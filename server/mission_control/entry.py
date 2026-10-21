@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import tempfile
 import time
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -285,6 +285,71 @@ async def set_default(request: Request, instance_id: str) -> dict[str, object]:
     runtime.entry_settings.set_default(instance_id)
     runtime.audit.record("operator", "instance.default", target=instance_id)
     return {"ok": True, "default_instance_id": instance_id}
+
+
+def _world_image_url(record: InstanceRecord) -> str:
+    """Return the destination-served world image URL, when one is authored."""
+
+    if not record.world_image or not record.client_url:
+        return ""
+    return urljoin(f"{record.client_url.rstrip('/')}/", "assets/world-image")
+
+
+@router.get("/api/mc/worlds")
+async def fleet_worlds(request: Request) -> Response:
+    """List running worlds for the in-game Multiverse activity.
+
+    Token-authenticated fleet endpoint. Instances are grouped by world so the
+    caller can choose a destination that shares its browser hostname.
+    """
+
+    _require_token(request)
+    runtime = request.app.state.mc
+    grouped: dict[str, dict[str, object]] = {}
+    for record in runtime.registry.list():
+        if not record.world_id or not record.registered_at:
+            continue
+        if runtime.registry.snapshot(record)["status"] != STATUS_RUNNING:
+            continue
+        world = grouped.setdefault(
+            record.world_id,
+            {
+                "id": record.world_id,
+                "label": record.world_label or record.world_id,
+                "description": record.world_description,
+                "image": record.world_image,
+                "online_account_ids": set(),
+                "reported_users_online": 0,
+                "instances": [],
+            },
+        )
+        if not world["description"] and record.world_description:
+            world["description"] = record.world_description
+        if not world["image"] and record.world_image:
+            world["image"] = record.world_image
+        world["online_account_ids"].update(record.online_account_ids)
+        world["reported_users_online"] = int(world["reported_users_online"]) + record.users_online
+        world["instances"].append(
+            {
+                "instance_id": record.instance_id,
+                "client_url": record.client_url,
+                "entry_room_id": record.entry_room_id,
+                "image_url": _world_image_url(record),
+            }
+        )
+    worlds: list[dict[str, object]] = []
+    for world in grouped.values():
+        online_ids = sorted(world.pop("online_account_ids"))
+        reported = int(world.pop("reported_users_online"))
+        world["online_account_ids"] = online_ids
+        world["users_online"] = len(online_ids) if online_ids else reported
+        worlds.append(world)
+    worlds.sort(key=lambda item: (str(item["label"]).casefold(), str(item["id"])))
+    return JSONResponse(
+        status_code=200,
+        content={"ok": True, "worlds": worlds},
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/api/mc/instances/{world_id}/destination")

@@ -73,10 +73,7 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 
 [Bash users] `./start_multiworld.sh` starts a local Mission Control plus the
 tutorial and scammon-academia world servers sharing one profile database and
-one advertised hostname. The tutorial hub portal and the scammon-academia hall
-portal link the two worlds. It uses development credentials and self-signed
-certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`, or
-`PUBLIC_HOST` as needed.
+one advertised hostname.
 
 ```bash
 ./start_multiworld.sh
@@ -90,11 +87,6 @@ certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`, or
 ./start_multiworld.sh --public-host 192.168.1.50
 ```
 
-Author cross-world exits in a room's `rooms.yaml` with `target_world: <world-id>`
-and an optional `target: <room>` (defaulting to the destination world's entry
-room). Both worlds must share a profile database, advertise client URLs on
-Mission Control's hostname, and be connected to the same Mission Control
-instance. See [fleet destination discovery](doc/mission-control.md#7-mission-control-ui-api).
 
 ## Deploying
 

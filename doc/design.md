@@ -386,8 +386,8 @@ A selected prop's 3D model is displayed (slowly spinning) above the Look Bar.
 Selecting an already-selected peep, prop or card immediately performs that entity's
 *default quick action*, if it has one. A quick action is the default when it is
 authored with `default: true`, or when it is a `.go` action pointing at one of the
-room's exits. This makes exit props such as the Hub portal usable with a double
-click: the first click selects the portal and shows its `Go across` action, and the
+room's exits. This makes exit props such as a door usable with a double click:
+the first click selects the door and shows its authored travel action, and the
 second click takes the exit.
 
 
@@ -1021,17 +1021,23 @@ Item/action equipment and slotted skills use one shared loadout. Leaving a world
 removes its native cards from that loadout, ending their bonuses and freeing their
 slots. Those cards remain saved in their native-world collection; returning does
 not automatically equip or slot them again.
-In-game travel between cooperating worlds is available only through explicitly
-defined cross-world exits or portals. There is no general Worlds selection panel.
-Every cross-world exit requires the `Multiverse Map` skill to be slotted, unless
-the user has the admin power. The tutorial awards that card once when a bagged
-poop is thrown into the garden trashcan. A cross-world exit may specify a
-destination room; otherwise it leads to the destination world's entry room. If the destination is unavailable or entry is
-denied, the user remains in the source room with no Energy charge or loadout
-changes. Native cards are removed from the loadout only after a successful
-transfer. Successful cross-world travel has the same default cost of 1 Energy as
-an in-world room change. Individual exits may override that cost;
-Energy-consuming exits remain unavailable while Tired.
+In-game travel between cooperating worlds is available through the Multiverse
+activity or through explicitly authored cross-world exits. The Multiverse lists
+every world currently running under the same Mission Control server as a
+shimmering portal, showing its name, description, world image, population, and
+the stickers of the viewer's friends who are online there. World authors may set
+an optional `image` in `world.yaml`; otherwise a placeholder is shown.
+Opening the Multiverse and travelling requires the `Multiverse Map` skill to be
+slotted, unless the user has the admin power. While the skill is slotted, a
+vortex button beside Inventory opens the activity; removing the skill hides the
+button. The tutorial awards the card once when a bagged poop is thrown into the
+garden trashcan. An authored cross-world exit may specify a destination room;
+otherwise the Multiverse leads to the destination world's entry room. If the
+destination is unavailable or entry is denied, the user remains in the source
+room with no Energy charge or loadout changes. Native cards are removed from the
+loadout only after a successful transfer. Successful cross-world travel has the
+same default cost of 1 Energy as an in-world room change. Authored exits may
+override that cost; Energy-consuming exits remain unavailable while Tired.
 
 Friends may send a beacon that records the sender's world and room at send time.
 Following a same-world beacon moves the recipient to that room without the map.

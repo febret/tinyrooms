@@ -60,6 +60,9 @@ h3 { font-size: 18px; }
 .core-tools .game-card > img { width: 100%; height: 100%; object-fit: contain; }
 .core-tools .toolbar-edit { pointer-events: auto; }
 .core-tools .toolbar-edit svg { width: 22px; height: 22px; }
+#core-tools #multiverse-toggle { pointer-events: auto; border-color: #6b76c9; background: radial-gradient(circle at 35% 28%, #6352a8, #18345e 68%); }
+#core-tools #multiverse-toggle svg { width: 27px; height: 27px; filter: drop-shadow(0 0 5px #9d8cffaa); }
+#core-tools #multiverse-toggle:hover { border-color: #b9a8ff; box-shadow: 0 0 0 3px #8b7bff2e, 0 3px 8px #0008; }
 .core-tools .game-card, .core-tools .game-card:hover:not(:disabled), .core-tools .game-card:active:not(:disabled) { transform: none; }
 .core-tools:empty { display: none; }
 .peeps-visibility svg { width: 26px; height: 26px; }

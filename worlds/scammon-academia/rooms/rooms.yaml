@@ -28,16 +28,6 @@ hall:
       - 0
       - 0.048000488281672915
       - 0
-    portal0:
-      prop: portal
-      pos:
-      - 95
-      - 100
-      - 0
-      scale: 1.2510710194283619
-      actions:
-      - - Go across
-        - .go to_tutorial
     classroom-door0:
       prop: oak-panel-door
       pos:
@@ -96,9 +86,6 @@ hall:
       - - Enter the teachers' lounge
         - .go @way:teachers-lounge
   exits:
-    to_tutorial:
-      label: Step through the portal
-      target_world: tutorial
     cafeteria:
       label: Enter the cafeteria
       target: cafeteria

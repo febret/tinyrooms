@@ -2,6 +2,7 @@ id: tutorial
 label: The Little House
 description: A pocket-sized home full of small discoveries.
 entry_room: hub
+image: rooms/hub.jpg
 palette:
 - '#f5d9a7'
 - '#dd755e'

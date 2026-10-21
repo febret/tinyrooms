@@ -8,7 +8,7 @@ import {
   buildTeachCommand,
   buildUseCommand,
 } from "./commands.js";
-import { findInventoryCard, findRoomCard, findSelectedEntity, findTask, isTargetableStack } from "./state.js";
+import { findInventoryCard, findRoomCard, findSelectedEntity, findTask, hasSlottedSkill, isTargetableStack } from "./state.js";
 import { escapeHtml } from "./presentation.js";
 import { handIconMarkup, longDescription, rarityLabel } from "./views/view-helpers.js";
 import { inventoryView } from "./views/inventory-view.js";
@@ -24,6 +24,10 @@ function coreMarkup(definition, selected) {
       <img src="${escapeHtml(definition.imageUrl)}" alt="">
     </button>
   `;
+}
+
+function multiverseButtonMarkup() {
+  return `<button type="button" id="multiverse-toggle" class="icon-button toolbar-edit" data-open-multiverse="1" aria-label="Open the Multiverse" title="Open the Multiverse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 8.2 5.3c-1.5 2.7-4.3 4.6-7.6 4.6a5.9 5.9 0 0 1-5.9-5.9c0-2.2 1.2-4.1 3-5.1"></path><path d="M12 7a5 5 0 1 0 4.2 7.7c-1.1 1.4-2.8 2.3-4.7 2.3a3.9 3.9 0 0 1-3.9-3.9c0-1.5.8-2.8 2-3.5"></path><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle></svg></button>`;
 }
 
 function editButtonMarkup(room, isAdmin, selectedProp) {
@@ -52,6 +56,9 @@ function bindCardButtons(root, onSelect, onAction) {
   });
   root.querySelectorAll("[data-core-id]").forEach(button => {
     button.onclick = () => onAction({ type: "core-toggle", id: button.dataset.coreId });
+  });
+  root.querySelectorAll("[data-open-multiverse]").forEach(button => {
+    button.onclick = () => onAction({ command: ".play multiverse" });
   });
   root.querySelectorAll("[data-edit-room]").forEach(button => {
     button.onclick = () => onAction({ type: "open-view", view: "edit-room" });
@@ -336,7 +343,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "closeView", "closeDetails", "detailsPage"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "closeDetails", "detailsPage"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;
@@ -374,11 +381,13 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
         .filter(id => id !== "emotes");
       const selectedProp = state.selection.kind === "prop" ? findSelectedEntity(state) : null;
       const isAdmin = (state.user?.powers || []).includes("admin");
+      const showMultiverse = isAdmin || hasSlottedSkill(state, "multiverse-map");
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
+      const roomPicker = `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg></button>`;
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg></button>` : "")).join("") + editButtonMarkup(state.room, isAdmin, selectedProp));
+      ) + (id === "inventory" ? `${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join("") + editButtonMarkup(state.room, isAdmin, selectedProp));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");

@@ -97,7 +97,7 @@ caretaker:
       - label: Back
         next: start
     skills:
-      text: Skills! Your first portal trip earns 1 Kudos — the universe's way of saying
+      text: Skills! Your first trip through the Multiverse earns 1 Kudos — the universe's way of saying
         "nice jump". Level up in Self, then slot Sturdy into a Script Kiddo skill.
         Congratulations, you're officially a script kiddo.
       choices:

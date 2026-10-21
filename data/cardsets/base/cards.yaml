@@ -79,7 +79,7 @@ spirited:
 # Tutorial reward. Kept out of the base pack draw list so every peep earns one.
 multiverse-map:
   label: Multiverse Map
-  description: A folded map of every world. Slot it to cross between worlds and follow beacons across the multiverse.
+  description: A folded map of every world. Slot it to open the Multiverse from the toolbar and cross between worlds and follow beacons.
   image: multiverse-map-art.png
   type: skill
   rank: Script Kiddo

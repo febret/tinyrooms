@@ -67,6 +67,11 @@ def start_activity(
         raise CommandError(f"{definition.title} is not available.")
     if definition.rooms and room_id not in definition.rooms:
         raise CommandError(f"{definition.title} is not available here.")
+    if definition.required_skill and not context.powers.has_power(context.account.id, "admin"):
+        if not context.progression.has_slotted_skill(context.account, definition.required_skill):
+            raise CommandError(
+                f"Slot the {definition.required_skill.replace('-', ' ').title()} skill to use {definition.title}."
+            )
     config: dict[str, object] = {
         "start_cost": definition.start_cost,
         "record": definition.record,
