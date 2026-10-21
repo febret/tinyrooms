@@ -55,7 +55,6 @@ export async function command(page, text) {
 }
 
 export async function closeOverlays(page) {
-  if (await page.locator("#detail-layer [role=dialog]").count()) await page.keyboard.press("Escape");
   if (await page.locator("#panel-layer [role=dialog]").count()) await page.keyboard.press("Escape");
 }
 

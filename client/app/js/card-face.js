@@ -1,3 +1,4 @@
+import { cardTheme } from "./card-style.js";
 import { escapeHtml } from "./presentation.js";
 import { withBase } from "./base-path.js";
 
@@ -5,23 +6,9 @@ import { withBase } from "./base-path.js";
 export const CARD_FACE_WIDTH = 310;
 export const CARD_FACE_HEIGHT = 440;
 // Bump when the layout changes so rasterized texture caches miss.
-export const CARD_FACE_STYLE_VERSION = 2;
+export const CARD_FACE_STYLE_VERSION = 3;
 
 const FONT = "Georgia, 'Times New Roman', serif";
-const TYPE_ACCENTS = {
-  item: ["#9a3b32", "#5e1d18"],
-  emote: ["#2c7393", "#123b52"],
-  skill: ["#3b7d47", "#1a4424"],
-  pack: ["#6c4a92", "#33204e"],
-};
-const DEFAULT_ACCENT = ["#7a6235", "#3f3016"];
-const RARITY_COLORS = {
-  common: "#8d99a3",
-  uncommon: "#3f9a52",
-  rare: "#3a76c4",
-  epic: "#8e4fc6",
-  legendary: "#e08a1e",
-};
 const BONUS_LABELS = {
   constitution: "CON",
   dexterity: "DEX",
@@ -53,6 +40,7 @@ export function cardFaceFields(definition) {
     amount: Number(raw.amount || 0),
     quality: Number(raw.quality || 0),
     bonuses: raw.bonuses && typeof raw.bonuses === "object" ? raw.bonuses : {},
+    tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
   };
 }
 
@@ -116,8 +104,9 @@ function statsLine(fields) {
   return parts.join(" · ");
 }
 
-function textLines(lines, { x, y, size, lineHeight, fill, weight = "normal", style = "normal", spacing = 0 }) {
-  return lines.map((line, index) => `<text x="${x}" y="${y + index * lineHeight}" text-anchor="middle" font-family="${FONT}" font-size="${size}" font-weight="${weight}" font-style="${style}" letter-spacing="${spacing}" fill="${fill}">${escapeHtml(line)}</text>`).join("");
+function textLines(lines, { x, y, size, lineHeight, fill, weight = "normal", style = "normal", spacing = 0, stroke = "", strokeWidth = 0 }) {
+  const outline = stroke ? ` stroke="${stroke}" stroke-width="${strokeWidth}" paint-order="stroke"` : "";
+  return lines.map((line, index) => `<text x="${x}" y="${y + index * lineHeight}" text-anchor="middle" font-family="${FONT}" font-size="${size}" font-weight="${weight}" font-style="${style}" letter-spacing="${spacing}" fill="${fill}"${outline}>${escapeHtml(line)}</text>`).join("");
 }
 
 function diamond(cx, cy, radius, fill) {
@@ -132,9 +121,8 @@ function diamond(cx, cy, radius, fill) {
  */
 export function cardFaceSvg(definition, { imageHref, idPrefix, label, className = "card-face" } = {}) {
   const fields = cardFaceFields(definition);
+  const theme = cardTheme(fields);
   const id = idPrefix || `cf${(instanceCounter += 1).toString(36)}`;
-  const [accent, accentDark] = TYPE_ACCENTS[fields.type] || DEFAULT_ACCENT;
-  const rarityKey = fields.rarity.toLowerCase();
   const art = imageHref ?? fields.imageUrl;
   const title = fitTitle(fields.label);
   const titleTop = title.lines.length === 1 ? 289 + title.size * 0.35 : 281;
@@ -142,28 +130,30 @@ export function cardFaceSvg(definition, { imageHref, idPrefix, label, className 
   const descriptionTop = stats ? 382 : 366;
   const description = wrapText(fields.description, 12.5, 248, stats ? 3 : 4);
   const accessibility = label ? `role="img" aria-label="${escapeHtml(label)}"` : 'aria-hidden="true" focusable="false"';
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="${escapeHtml(className)}" viewBox="0 0 ${CARD_FACE_WIDTH} ${CARD_FACE_HEIGHT}" width="${CARD_FACE_WIDTH}" height="${CARD_FACE_HEIGHT}" ${accessibility} data-card-type="${escapeHtml(fields.type || "card")}">
+  const tags = theme.tags.join(" ");
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="${escapeHtml(className)}" viewBox="0 0 ${CARD_FACE_WIDTH} ${CARD_FACE_HEIGHT}" width="${CARD_FACE_WIDTH}" height="${CARD_FACE_HEIGHT}" ${accessibility} data-card-type="${escapeHtml(fields.type || "card")}" data-card-rarity="${theme.rarityKey}"${tags ? ` data-card-tags="${escapeHtml(tags)}"` : ""}>
 <defs>
-<linearGradient id="${id}-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7e2a3"/><stop offset=".35" stop-color="#c8963d"/><stop offset=".6" stop-color="#f4d58c"/><stop offset="1" stop-color="#8d5d1f"/></linearGradient>
+<linearGradient id="${id}-frame" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${theme.outline}"/><stop offset=".32" stop-color="${theme.rarity.color}"/><stop offset=".55" stop-color="${theme.outline}"/><stop offset=".78" stop-color="${theme.outlineDark}"/><stop offset="1" stop-color="${theme.outline}"/></linearGradient>
 <radialGradient id="${id}-paper" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#fbf1d8"/><stop offset=".7" stop-color="#ecd9ab"/><stop offset="1" stop-color="#d4b67a"/></radialGradient>
-<linearGradient id="${id}-accent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${accentDark}"/></linearGradient>
+<linearGradient id="${id}-accent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${theme.accent}"/><stop offset="1" stop-color="${theme.accentDark}"/></linearGradient>
 <clipPath id="${id}-art"><rect x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" rx="9"/></clipPath>
 </defs>
-<rect x="1" y="1" width="${CARD_FACE_WIDTH - 2}" height="${CARD_FACE_HEIGHT - 2}" rx="20" fill="url(#${id}-gold)" stroke="#4a2f0e" stroke-width="2"/>
+<rect x="1" y="1" width="${CARD_FACE_WIDTH - 2}" height="${CARD_FACE_HEIGHT - 2}" rx="20" fill="url(#${id}-frame)" stroke="${theme.outlineDark}" stroke-width="2"/>
 <rect x="9" y="9" width="${CARD_FACE_WIDTH - 18}" height="${CARD_FACE_HEIGHT - 18}" rx="14" fill="url(#${id}-paper)" stroke="#7a5520" stroke-width="1.5"/>
+<rect x="13" y="13" width="${CARD_FACE_WIDTH - 26}" height="${CARD_FACE_HEIGHT - 26}" rx="12" fill="none" stroke="${theme.accent}" stroke-opacity=".2" stroke-width="2"/>
 <rect x="15" y="15" width="${CARD_FACE_WIDTH - 30}" height="${CARD_FACE_HEIGHT - 30}" rx="10" fill="none" stroke="#b88a3e" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" rx="9" fill="#16222c"/>
 ${art ? `<image href="${escapeHtml(art)}" xlink:href="${escapeHtml(art)}" x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id}-art)"/>` : ""}
-<rect x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" rx="9" fill="none" stroke="url(#${id}-gold)" stroke-width="4"/>
+<rect x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" rx="9" fill="none" stroke="url(#${id}-frame)" stroke-width="4"/>
 <rect x="${ART.x + 3}" y="${ART.y + 3}" width="${ART.width - 6}" height="${ART.height - 6}" rx="7" fill="none" stroke="#2c1a06" stroke-opacity=".55" stroke-width="1"/>
-${diamond(155, 9, 6, "url(#" + id + "-gold)")}${diamond(155, CARD_FACE_HEIGHT - 9, 6, "url(#" + id + "-gold)")}${diamond(9, 289, 6, "url(#" + id + "-gold)")}${diamond(CARD_FACE_WIDTH - 9, 289, 6, "url(#" + id + "-gold)")}
-<path d="M26 262H284L296 289L284 316H26L14 289Z" fill="url(#${id}-accent)" stroke="url(#${id}-gold)" stroke-width="3"/>
-${textLines(title.lines, { x: 155, y: titleTop, size: title.size, lineHeight: title.size + 2, fill: "#fff8e6", weight: "bold" })}
+${diamond(155, 9, 6, "url(#" + id + "-frame)")}${diamond(155, CARD_FACE_HEIGHT - 9, 6, "url(#" + id + "-frame)")}${diamond(9, 289, 6, "url(#" + id + "-frame)")}${diamond(CARD_FACE_WIDTH - 9, 289, 6, "url(#" + id + "-frame)")}
+<path d="M26 262H284L296 289L284 316H26L14 289Z" fill="url(#${id}-accent)" stroke="url(#${id}-frame)" stroke-width="3"/>
+${textLines(title.lines, { x: 155, y: titleTop, size: title.size, lineHeight: title.size + 2, fill: "#fff8e6", weight: "bold", stroke: "#241305", strokeWidth: 1.1 })}
 ${textLines([typeLine(fields)], { x: 155, y: 336, size: 10.5, lineHeight: 0, fill: "#6b4a1d", weight: "bold", spacing: 1.2 })}
-<path d="M70 345H140M170 345H240" stroke="#b88a3e" stroke-width="1"/>${diamond(155, 345, 4, "#c8963d")}
+<path d="M70 345H140M170 345H240" stroke="${theme.outlineDark}" stroke-opacity=".8" stroke-width="1"/>${diamond(155, 345, 4, theme.rarity.color)}
 ${stats ? textLines([stats], { x: 155, y: 364, size: 13, lineHeight: 0, fill: "#3c2a10", weight: "bold" }) : ""}
 ${textLines(description, { x: 155, y: descriptionTop, size: 12.5, lineHeight: 15, fill: "#4a3618", style: "italic" })}
-${fields.energyCost !== null ? `<g><title>Energy cost</title><circle cx="38" cy="38" r="17" fill="#2f6fa8" stroke="url(#${id}-gold)" stroke-width="3"/>${textLines([String(fields.energyCost)], { x: 38, y: 44, size: 17, lineHeight: 0, fill: "#ffffff", weight: "bold" })}</g>` : ""}
-${RARITY_COLORS[rarityKey] ? `<g><title>${escapeHtml(fields.rarity)}</title><circle cx="272" cy="38" r="14" fill="${RARITY_COLORS[rarityKey]}" stroke="url(#${id}-gold)" stroke-width="3"/>${textLines([fields.rarity[0].toUpperCase()], { x: 272, y: 43.5, size: 14, lineHeight: 0, fill: "#ffffff", weight: "bold" })}</g>` : ""}
+${fields.energyCost !== null ? `<g><title>Energy cost</title><circle cx="38" cy="38" r="17" fill="#2f6fa8" stroke="url(#${id}-frame)" stroke-width="3"/>${textLines([String(fields.energyCost)], { x: 38, y: 44, size: 17, lineHeight: 0, fill: "#ffffff", weight: "bold" })}</g>` : ""}
+${fields.rarity ? `<g><title>${escapeHtml(fields.rarity)}</title><circle cx="272" cy="38" r="14" fill="${theme.rarity.color}" stroke="url(#${id}-frame)" stroke-width="3"/>${textLines([fields.rarity[0].toUpperCase()], { x: 272, y: 43.5, size: 14, lineHeight: 0, fill: "#ffffff", weight: "bold" })}</g>` : ""}
 </svg>`;
 }

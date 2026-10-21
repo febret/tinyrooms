@@ -1,5 +1,6 @@
 import { editorReducer } from "./editing/edit-reducer.js";
 import { annotateRoom } from "./eligibility.js";
+import { dismissInvalidSelection, inspectCardState, inventoryTabState, openInventoryState } from "./inventory-state.js";
 import { withBase } from "./base-path.js";
 import { saveBubbleTimeout, savedBubbleTimeout, savedOutlineActiveProps, saveOutlineActiveProps } from "./preferences.js";
 
@@ -941,34 +942,6 @@ function mergeResultPayload(state, payload) {
   return next;
 }
 
-function dismissInvalidSelection(state) {
-  if (!state.room) return state;
-  if (!selectionIsEligible(state, state.selection)) {
-    state = {
-      ...state,
-      selection: { kind: "room", id: state.room.id },
-      views: { ...state.views, main: state.views.main === "prop-details" ? null : state.views.main, propId: null },
-    };
-  }
-  if (state.views.main === "prop-details" && !selectionIsEligible(state, { kind: "prop", id: state.views.propId })) {
-    state = { ...state, views: { ...state.views, main: null, propId: null } };
-  }
-  if (state.views.details && !selectionIsEligible(state, { kind: "room-card", id: state.views.details })
-      && !findInventoryCard(state, state.views.details)) {
-    state = { ...state, views: { ...state.views, details: null } };
-  }
-  if (state.ui.targeting && !findInventoryCard(state, state.ui.targeting.stackId)) {
-    state = { ...state, ui: { ...state.ui, targeting: null } };
-  }
-  if (state.selection.kind === "inventory-card" && !state.room.inventory.some(card => card.stackId === state.selection.id)) {
-    return { ...state, selection: { kind: "room", id: state.room.id }, views: { ...state.views, details: null } };
-  }
-  if (state.selection.kind === "peep" && ![...state.room.occupants, ...state.room.npcs].some(peep => peep.id === state.selection.id)) {
-    return { ...state, selection: { kind: "room", id: state.room.id } };
-  }
-  return state;
-}
-
 function createInitialState() {
   return {
     sessionChecked: false,
@@ -982,7 +955,7 @@ function createInitialState() {
     activities: [],
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
-    views: { auth: true, main: null, details: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
+    views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
     ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
@@ -1005,7 +978,7 @@ function reduce(state, action) {
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
       ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false },
-      views: { auth: !action.loggedIn, main: null, details: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
+      views: { auth: !action.loggedIn, main: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
       commandCatalog: action.loggedIn ? state.commandCatalog : [],
@@ -1040,7 +1013,7 @@ function reduce(state, action) {
     return {
       ...state,
       selection: { kind: "inventory-card", id: stack.stackId },
-      views: { ...state.views, main: null, details: null },
+      views: { ...state.views, main: null },
       ui: { ...state.ui, targeting: { stackId: stack.stackId, label: stack.definition.label }, emoteMenuOpen: false },
     };
   }
@@ -1048,25 +1021,34 @@ function reduce(state, action) {
     if (action.view === "prop-details" && !selectionIsEligible(state, { kind: "prop", id: action.propId })) return state;
     const journalTab = { self: "Self", skills: "Skills", friends: "Friends" }[action.view];
     const view = journalTab ? "journal" : action.view;
+    let selection = view === "prop-details" ? { kind: "prop", id: action.propId } : { kind: "core", id: view };
+    let inventoryTab = state.ui.inventoryTab;
+    if (view === "inventory") {
+      const next = openInventoryState(state);
+      selection = next.selection;
+      inventoryTab = next.tab;
+    }
     return {
       ...state,
-      selection: view === "prop-details" ? { kind: "prop", id: action.propId } : { kind: "core", id: view },
+      selection,
       views: {
         ...state.views,
         main: view,
-        details: null,
         propId: action.view === "prop-details" ? action.propId || null : null,
         skillStackId: action.view === "skills" ? action.stackId || null : null,
         skillPickerSlot: null,
       },
-      ui: { ...state.ui, journalTab: journalTab || state.ui.journalTab, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: { ...state.ui, journalTab: journalTab || state.ui.journalTab, inventoryTab, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
     };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, details: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
-  if (action.type === "open-skill-picker") return { ...state, views: { ...state.views, details: null, skillPickerSlot: Number(action.slot) }, ui: { ...state.ui, roomPickerOpen: true, emoteMenuOpen: false } };
-  if (action.type === "inventory-tab") return { ...state, ui: { ...state.ui, inventoryTab: action.tab } };
+  if (action.type === "open-skill-picker") return { ...state, views: { ...state.views, skillPickerSlot: Number(action.slot) }, ui: { ...state.ui, roomPickerOpen: true, emoteMenuOpen: false } };
+  if (action.type === "inventory-tab") {
+    const next = inventoryTabState(state, action.tab);
+    return { ...state, selection: next.selection, ui: { ...state.ui, inventoryTab: next.tab } };
+  }
   if (action.type === "toggle-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: !state.ui.emoteMenuOpen, roomPickerOpen: false } };
   if (action.type === "toggle-peeps") return { ...state, ui: { ...state.ui, peepsVisible: !state.ui.peepsVisible } };
   if (action.type === "close-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: false } };
@@ -1080,12 +1062,16 @@ function reduce(state, action) {
       : state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" };
     return { ...state, selection, ui: { ...state.ui, targeting: null } };
   }
-  if (action.type === "open-details") {
-    if (!findInventoryCard(state, action.stackId)
-        && !selectionIsEligible(state, { kind: "room-card", id: action.stackId })) return state;
-    return { ...state, views: { ...state.views, details: action.stackId } };
+  if (action.type === "inspect-card") {
+    const next = inspectCardState(state, action.stackId);
+    if (!next) return state;
+    return {
+      ...state,
+      selection: next.selection,
+      views: { ...state.views, main: "inventory", propId: null, skillStackId: null, skillPickerSlot: null },
+      ui: { ...state.ui, inventoryTab: next.tab, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+    };
   }
-  if (action.type === "close-details") return { ...state, views: { ...state.views, details: null } };
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
   if (action.type === "dismiss-toast") return { ...state, ui: { ...state.ui, toasts: state.ui.toasts.filter(toast => toast.id !== action.id) } };
   if (action.type === "consume-effect") return { ...state, ui: { ...state.ui, effects: state.ui.effects.filter(effect => effect.id !== action.id) } };
@@ -1139,7 +1125,7 @@ function reduce(state, action) {
       ...state,
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
-      views: sameRoom ? state.views : { ...state.views, main: null, details: null, skillStackId: null, skillPickerSlot: null },
+      views: sameRoom ? state.views : { ...state.views, main: null, skillStackId: null, skillPickerSlot: null },
       ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
@@ -1189,7 +1175,7 @@ export function createStore({ now = Date.now, setTimer = setTimeout, clearTimer 
       const annotated = annotateRoom(room, now());
       if (annotated !== room) next = { ...next, room: annotated };
     }
-    state = next.room !== previous || action.type === "result" ? dismissInvalidSelection(next) : next;
+    state = next.room !== previous || action.type === "result" ? dismissInvalidSelection(next, selectionIsEligible) : next;
     const expires = state.room?.eligibilityExpiresAt ?? null;
     if (expires !== deadline || action.type === "eligibility-expired") {
       if (timer !== null) clearTimer(timer);

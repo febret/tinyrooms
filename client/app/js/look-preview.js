@@ -31,7 +31,7 @@ export function lookPreview(state, description) {
     const label = stack.definition.label || "card";
     return {
       markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}">${cardFaceSvg(stack.definition)}</button>`,
-      action: { type: "open-details", stackId: stack.stackId },
+      action: { type: "inspect-card", stackId: stack.stackId },
     };
   }
   return { markup: "", action: null };

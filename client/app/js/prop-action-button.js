@@ -7,7 +7,7 @@ export function createPropActionButton({ button, getState, onAction }) {
   function sync(state) {
     const prop = clickedProp && state.room?.id === clickedProp.roomId && state.selection.kind === "prop"
       && state.selection.id === clickedProp.id
-      && !state.views.main && !state.views.details && !state.views.auth && !state.views.commandPalette
+      && !state.views.main && !state.views.auth && !state.views.commandPalette
       && !state.ui.targeting && !state.editing && !state.editor
       ? state.room.props.find(entry => entry.id === clickedProp.id) : null;
     const action = defaultPropAction(prop);
@@ -39,7 +39,7 @@ export function createPropActionButton({ button, getState, onAction }) {
 
   button.onclick = () => {
     const state = getState();
-    const prop = !button.hidden && !state.ui.targeting && !state.editor && !state.views.main && !state.views.details
+    const prop = !button.hidden && !state.ui.targeting && !state.editor && !state.views.main
       && !state.views.auth && !state.views.commandPalette
       && state.room?.id === clickedProp?.roomId && state.selection.kind === "prop"
       && state.selection.id === clickedProp.id ? state.room.props.find(entry => entry.id === clickedProp.id) : null;

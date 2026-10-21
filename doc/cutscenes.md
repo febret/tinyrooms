@@ -120,7 +120,6 @@ diagram beyond the intended phases.
 | --- | --- |
 | 3D board, prop picking, drag | Blocked during playback |
 | `#panel-layer` | Blocked (`inert`) |
-| `#detail-layer` | Blocked (`inert`) |
 | `#activity-layer` | Untouched and above the scene |
 | `.bottom-stack` | Card hand, chat, shop, and editor remain usable |
 | Speech bubbles | Behind the frame; their dismiss timers continue |

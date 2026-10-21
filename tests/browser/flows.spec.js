@@ -82,10 +82,12 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   const preview = page.locator('[data-look-inspect="card"]');
   await expect(preview.locator("svg.card-face")).toBeVisible();
   await preview.click();
-  const details = page.getByRole("dialog", { name: `Card Details: ${cardLabel}` });
-  await expect(details.locator("canvas[data-card-face]")).toBeVisible();
-  await details.locator("[data-close-details]").click();
-  await expect(details).toBeHidden();
+  const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
+  await expect(inventory).toBeVisible();
+  await expect(inventory.locator(".inventory-preview canvas[data-card-face]")).toBeVisible();
+  await expect(inventory.locator(".inventory-preview-name")).toHaveText(cardLabel);
+  await page.keyboard.press("Escape");
+  await expect(inventory).toBeHidden();
   await expect(page.locator("#emote-toggle")).toBeVisible();
   await page.locator("#emote-toggle").click();
   await expect(page.locator("#emote-menu")).toHaveClass(/open/);
@@ -111,6 +113,34 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
       await expect(journal.locator("[data-level-up]")).toBeDisabled();
     }
   }
+});
+
+test("inventory previews cards inline and retargets on selection", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime);
+  await openCore(page, "inventory");
+  const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
+  await inventory.locator('[data-inventory-tab="Emotes"]').click();
+  const tiles = inventory.locator(".inventory-content .cards-grid .game-card");
+  await expect(tiles.first()).toBeVisible();
+  const preview = inventory.locator(".inventory-preview canvas[data-card-face]");
+  await expect(preview).toBeVisible();
+  const firstFace = await preview.getAttribute("data-card-face");
+  await tiles.nth(1).click();
+  await expect(preview).not.toHaveAttribute("data-card-face", firstFace);
+});
+
+test("inventory places the preview below the grid on portrait devices", async ({ page, runtime }) => {
+  await page.setViewportSize({ width: 480, height: 900 });
+  await createReadyAccount(page, runtime);
+  await openCore(page, "inventory");
+  const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
+  await inventory.locator('[data-inventory-tab="Emotes"]').click();
+  const grid = inventory.locator(".inventory-content .cards-grid");
+  const preview = inventory.locator(".inventory-preview");
+  await expect(preview).toBeVisible();
+  const gridBox = await grid.boundingBox();
+  const previewBox = await preview.boundingBox();
+  expect(previewBox.y).toBeGreaterThan(gridBox.y);
 });
 
 test("admins can open the Multiverse activity from the toolbar", async ({ page, runtime }) => {

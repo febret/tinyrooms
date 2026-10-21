@@ -81,7 +81,7 @@ export function createCardMotion({ board, handRoot, getState, sendCommand, onErr
   function onPointerDown(event) {
     if (event.button !== 0) return;
     const state = getState();
-    if (!state.room || state.views.main || state.views.details || !state.user?.initialStickerComplete) return;
+    if (!state.room || state.views.main || !state.user?.initialStickerComplete) return;
     const match = equippedStackFrom(event.target);
     if (!match) return;
     drag = {

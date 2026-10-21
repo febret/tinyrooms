@@ -9,18 +9,18 @@ const AUTO_ROTATION_SPEED = 0.6;
  * orbit controls, and resize handling. Callers add content to `pivot`, frame it with
  * `frame`, and dispose it through the returned stage so GPU resources are released.
  */
-export function createViewerStage({ canvas, interactive }) {
+export function createViewerStage({ canvas, interactive, lighting = {} }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 200);
   const pivot = new THREE.Group();
   scene.add(pivot);
-  scene.add(new THREE.HemisphereLight("#fff2d5", "#496e69", 1.5));
-  const key = new THREE.DirectionalLight("#fff4de", 1.7);
+  scene.add(new THREE.HemisphereLight("#fff2d5", "#496e69", lighting.hemisphere ?? 1.5));
+  const key = new THREE.DirectionalLight("#fff4de", lighting.key ?? 1.7);
   key.position.set(4, 7, 6);
   scene.add(key);
-  const fill = new THREE.DirectionalLight("#bcd9ff", 0.7);
+  const fill = new THREE.DirectionalLight("#bcd9ff", lighting.fill ?? 0.7);
   fill.position.set(-5, 3, -4);
   scene.add(fill);
 

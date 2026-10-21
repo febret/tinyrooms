@@ -1,5 +1,3 @@
-import { CARD_BACK } from "./board.js";
-import { cardFaceFields } from "./card-face.js";
 import {
   buildEmoteCommand,
   buildEquipCommand,
@@ -10,7 +8,7 @@ import {
 } from "./commands.js";
 import { findInventoryCard, findRoomCard, findSelectedEntity, findTask, hasSlottedSkill, isTargetableStack } from "./state.js";
 import { escapeHtml } from "./presentation.js";
-import { handIconMarkup, longDescription, rarityLabel } from "./views/view-helpers.js";
+import { handIconMarkup, rarityLabel } from "./views/view-helpers.js";
 import { inventoryView } from "./views/inventory-view.js";
 import { emoteMenuMarkup } from "./views/emote-menu.js";
 import { propDetailsView } from "./views/prop-details-view.js";
@@ -68,9 +66,6 @@ function bindCardButtons(root, onSelect, onAction) {
   });
   root.querySelectorAll("[data-close-view]").forEach(button => {
     button.onclick = () => onAction({ type: "close-view" });
-  });
-  root.querySelectorAll("[data-close-details]").forEach(button => {
-    button.onclick = () => onAction({ type: "close-details" });
   });
   root.querySelectorAll("[data-skill-slot]").forEach(button => {
     button.onclick = () => onAction({ type: "skill-slot", index: Number(button.dataset.skillSlot), stackId: button.dataset.stackId || "" });
@@ -132,42 +127,6 @@ function boardModal(state) {
   if (view === "prop-details") return propDetailsView(state);
   if (view === "journal") return journalView(state);
   return "";
-}
-
-function detailsModal(state) {
-  const roomCard = findRoomCard(state, state.views.details);
-  const inventoryCard = findInventoryCard(state, state.views.details);
-  const stack = roomCard || inventoryCard;
-  if (!stack) return "";
-  const definition = stack.definition;
-  const backUrl = definition.backUrl || CARD_BACK;
-  const faceKey = JSON.stringify(cardFaceFields(definition));
-  return `
-    <section class="card-view" role="dialog" aria-modal="false" aria-label="Card Details: ${escapeHtml(definition.label)}">
-      <button type="button" class="quiet card-view-close" data-close-details="1" aria-label="Close card details">Close</button>
-      <div class="card-view-panels">
-        <section class="card-view-panel card-view-panel-left" aria-label="Card preview">
-          <canvas class="card-preview-canvas" data-card-face="${escapeHtml(faceKey)}" data-card-back="${escapeHtml(backUrl)}"
-            data-card-interactive="true" aria-label="${escapeHtml(definition.label)} card. Drag to rotate."></canvas>
-        </section>
-        <div class="card-view-spine" aria-hidden="true"></div>
-        <section class="card-view-panel card-view-panel-right" aria-label="Card information">
-          <div class="card-view-info" tabindex="0" data-details-page="1">
-            <h2>${escapeHtml(definition.label)}</h2>
-            <p>${escapeHtml(longDescription(definition))}</p>
-            <dl class="details-metrics">
-              <div><dt>Quantity</dt><dd>${escapeHtml(stack.quantity)}</dd></div>
-              <div><dt>Stack limit</dt><dd>${escapeHtml(definition.stackLimit || 1)}</dd></div>
-              ${stack.scope ? `<div><dt>Scope</dt><dd>${escapeHtml(stack.scope)}</dd></div>` : ""}
-              <div><dt>Pinned</dt><dd>${stack.pinned ? "Yes" : "No"}</dd></div>
-              ${inventoryCard ? `<div><dt>Equipped</dt><dd>${stack.equipped ? "Yes" : "No"}</dd></div>` : ""}
-            </dl>
-            <p class="rarity-pill">${escapeHtml(rarityLabel(definition))}</p>
-          </div>
-        </section>
-      </div>
-    </section>
-  `;
 }
 
 export function describeSelection(state) {
@@ -336,8 +295,8 @@ function inventoryStackActions(stack) {
   return actions;
 }
 
-/** Render core cards, equipped/inventory previews, board-modal views, and card details. */
-export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detailRoot, editorRoot, onSelect, onAction }) {
+/** Render core cards, equipped/inventory previews, board-modal views, and the editor dock. */
+export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, editorRoot, onSelect, onAction }) {
   const editorDock = createEditorDock({ root: editorRoot, onAction });
   const renderEditor = (state, options) => editorDock.render(state, options);
   const rendered = new WeakMap();
@@ -345,13 +304,13 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "closeDetails", "detailsPage"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;
     const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
     const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .card-view, .card-view-info, .emote-menu-track, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .emote-menu-track, .equipped-hand";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;
@@ -361,7 +320,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
       element.scrollLeft = scrolls[index]?.left || 0;
     });
     if (identity) {
-      const restored = [...root.querySelectorAll("button, input, [data-details-page]")]
+      const restored = [...root.querySelectorAll("button, input")]
         .find(element => element.dataset[identity] === value && (!friendAction || element.dataset.friendAction === friendAction));
       if (restored) {
         restored.focus({ preventScroll: true });
@@ -408,7 +367,6 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
         if (menuRoot.classList.contains("open") !== open) menuRoot.classList.toggle("open", open);
       }
       update(panelRoot, boardModal(state));
-      update(detailRoot, detailsModal(state));
       renderEditor(state);
     },
   };

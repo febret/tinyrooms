@@ -3,6 +3,10 @@
 .game-card { position: relative; display: inline-block; flex: 0 0 auto; width: 132px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #fff; box-shadow: 0 4px 9px #0009; vertical-align: bottom; transition: transform .18s ease, filter .18s ease, box-shadow .18s ease; }
 .game-card > .card-face, .game-card > .card-illustration { display: block; width: 100%; height: auto; border-radius: inherit; }
 .card-face { display: block; max-width: 100%; height: auto; }
+.game-card.rarity-uncommon { box-shadow: 0 4px 9px #0009, 0 0 11px #5fd36f55; }
+.game-card.rarity-rare { box-shadow: 0 4px 9px #0009, 0 0 13px #5aa9ff66; }
+.game-card.rarity-epic { box-shadow: 0 4px 9px #0009, 0 0 16px #c07bff77; }
+.game-card.rarity-legendary { box-shadow: 0 4px 9px #0009, 0 0 20px #ffcf5f88; }
 .game-card.selected { transform: translateY(-5px); box-shadow: 0 0 0 2px #8ac4db, 0 0 13px #83cde3b3; }
 .game-card.is-equipped { box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
 .game-card.is-equipped.selected { box-shadow: 0 0 0 2px #f0c88a, 0 0 14px #f0c88a99; }
@@ -17,9 +21,8 @@
 .hand-icon.selected { transform: translateY(-4px); border-color: #f0c88a; box-shadow: 0 0 0 2px #f0c88a, 0 0 12px #f0c88a99; }
 .hand-icon:focus-visible { outline: 3px solid #d4f3ff; outline-offset: 2px; z-index: 2; }
 .card-icon-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.panel-layer:not(:empty), .detail-layer:not(:empty) { pointer-events: auto; isolation: isolate; }
-.panel-layer:not(:empty)::before, .detail-layer:not(:empty)::before { content: ""; position: absolute; inset: 0 0 calc(-1 * var(--tray-height)); z-index: -1; background: radial-gradient(ellipse at 50% 40%, #000 0%, #000 20%, rgba(0, 0, 0, .68) 56%, rgba(0, 0, 0, 0) 82%); pointer-events: none; }
-.detail-layer:not(:empty)::before { background: radial-gradient(ellipse at 50% 40%, #000 0%, rgba(0, 0, 0, .72) 42%, rgba(0, 0, 0, 0) 80%); }
+.panel-layer:not(:empty) { pointer-events: auto; isolation: isolate; }
+.panel-layer:not(:empty)::before { content: ""; position: absolute; inset: 0 0 calc(-1 * var(--tray-height)); z-index: -1; background: radial-gradient(ellipse at 50% 40%, #000 0%, #000 20%, rgba(0, 0, 0, .68) 56%, rgba(0, 0, 0, 0) 82%); pointer-events: none; }
 .board-modal { width: 100%; height: 100%; min-height: 0; padding: 18px clamp(12px, 3vw, 40px); display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 12px; overflow: auto; overscroll-behavior: contain; color: var(--ink-bright); pointer-events: auto; }
 .board-modal > * { width: min(100%, 960px); }
 .board-modal .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-shrink: 0; }
@@ -32,11 +35,14 @@
 .room-view .modal-header > div { text-align: center; }
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px; align-items: start; padding: 6px 4px 8px; }
 .cards-grid .game-card { width: 100%; max-width: 145px; justify-self: start; }
+.look-preview-card .card-face[data-card-rarity="rare"] { filter: drop-shadow(0 0 7px #5aa9ffaa); }
+.look-preview-card .card-face[data-card-rarity="epic"] { filter: drop-shadow(0 0 8px #c07bffbb); }
+.look-preview-card .card-face[data-card-rarity="legendary"] { filter: drop-shadow(0 0 10px #ffcf5fcc); }
 .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 16px; }
 .inventory-view .cards-grid .game-card { max-width: 132px; }
-.inventory-view { gap: 10px; }
+.inventory-view { gap: 10px; padding-top: 56px; }
+.inventory-view > .inventory-layout { width: min(100%, 1180px); }
 .inventory-view .inventory-packs, .inventory-view .inventory-tabs { flex: 0 0 auto; }
-.inventory-view .modal-scroll { flex: 1 1 auto; width: 100%; max-width: 832px; margin-inline: auto; }
 .inventory-tabs { display: inline-flex; gap: 6px; }
 .inventory-tabs button { min-height: 34px; min-width: 34px; padding: 3px 12px; border-radius: 9px; }
 .inventory-tabs button.selected { background: var(--gold); color: #061923; }
@@ -52,24 +58,30 @@
 .profile-counters { justify-content: center; text-align: center; }
 .profile-counters dt { color: var(--muted); font-size: 14px; }
 .profile-counters dd { margin: 6px 0 0; color: var(--gold); font-size: 28px; }
-.detail-layer:not(:empty) { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; place-items: center; padding: 12px; }
-.card-view { position: relative; width: min(100%, 1020px); height: 100%; max-height: 100%; display: flex; flex-direction: column; padding: 64px 10px 10px; overflow: auto; overscroll-behavior: contain; pointer-events: auto; scrollbar-width: thin; }
-.card-view-close { position: absolute; top: 0; left: 50%; margin-left: -38px; z-index: 2; }
-.card-view-panels { position: relative; flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
-.card-view-panel { position: relative; min-width: 0; min-height: 0; }
-.card-view-panel-left { padding: clamp(8px, 1.6vw, 20px); }
-.card-preview-canvas { display: block; width: 100%; height: 100%; min-height: 220px; touch-action: none; }
-.card-view-panel-right { padding: clamp(12px, 1.8vw, 24px) clamp(12px, 1.7vw, 24px); color: var(--ink-bright); }
-.card-view-info { height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; overflow-wrap: anywhere; padding-right: 4px; }
-.card-view-info h2 { font-size: clamp(20px, 2.3vw, 28px); line-height: 1.2; margin-bottom: 16px; }
-.card-view-info > p { font-size: 16px; line-height: 1.45; }
-.card-view-spine, .journal-spine { position: absolute; top: 0; bottom: 0; left: 50%; width: 46px; transform: translateX(-50%); pointer-events: none; z-index: 3; }
-.card-view-spine { background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .06) 40%, rgba(255, 255, 255, .14) 50%, rgba(255, 255, 255, .06) 60%, rgba(255, 255, 255, 0) 100%); }
+.inventory-layout { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1180px; margin-inline: auto; display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: clamp(14px, 2.4vw, 30px); }
+.inventory-content { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.inventory-content .modal-scroll { flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; margin: 0; }
+.inventory-preview { align-self: stretch; max-height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.inventory-preview-card { position: relative; flex: 0 0 auto; width: min(100%, 270px); max-width: 270px; aspect-ratio: 310 / 440; margin-inline: auto; border-radius: 8px; filter: drop-shadow(0 16px 24px #000a); }
+.inventory-preview-card.rarity-uncommon { filter: drop-shadow(0 16px 24px #000a) drop-shadow(0 0 14px #5fd36f44); }
+.inventory-preview-card.rarity-rare { filter: drop-shadow(0 16px 24px #000a) drop-shadow(0 0 20px #5aa9ff66); }
+.inventory-preview-card.rarity-epic { filter: drop-shadow(0 16px 24px #000a) drop-shadow(0 0 24px #c07bff77); }
+.inventory-preview-card.rarity-legendary { filter: drop-shadow(0 16px 24px #000a) drop-shadow(0 0 30px #ffcf5f99); }
+.card-preview-canvas { display: block; width: 100%; height: 100%; min-height: 0; touch-action: none; }
+.inventory-preview-info { flex: 1 1 auto; width: min(100%, 270px); min-height: 0; margin-inline: auto; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; overflow-wrap: anywhere; color: var(--ink-bright); padding-right: 4px; }
+.inventory-preview-name { font-size: clamp(18px, 2vw, 24px); line-height: 1.2; color: #f2bb8e; }
+.inventory-preview-description { margin-top: 6px; font-size: 14px; line-height: 1.45; color: #cfd8dd; }
+.inventory-preview-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; margin-top: 12px; font-size: 13px; }
+.inventory-preview-metrics > div { display: grid; gap: 0; }
+.inventory-preview-empty { display: grid; place-content: center; gap: 6px; min-height: 240px; padding: 22px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); text-align: center; }
+.inventory-preview-empty p { color: var(--ink-bright); font-size: 17px; }
+.inventory-preview-empty span { font-size: 13px; }
+.card-tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.card-tag { padding: 1px 8px; border: 1px solid var(--tag-color); border-radius: 999px; background: #00000059; color: var(--tag-color); font-size: 11px; line-height: 18px; }
 .details-metrics { font-size: 14px; line-height: 1.5; margin: 20px 0 0; }
 .details-metrics > div { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .details-metrics dt { font-weight: bold; }
 .details-metrics dd { margin: 0; }
-.card-view .rarity-pill { display: inline-block; margin: 20px 0 0; padding: 5px 14px; background: linear-gradient(#323435, #020202); color: #fff; box-shadow: 0 3px 6px #0007; border-radius: 10px; text-transform: uppercase; font-size: 14px; font-weight: bold; }
 @media (hover: hover) {
   .game-card:hover:not(:disabled) { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 0 0 2px #89c4d1, 0 0 15px #83cde399; z-index: 2; filter: brightness(1.08); }
   .hand-icon:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.14); z-index: 2; }
@@ -82,15 +94,15 @@
   .cards-grid .game-card { max-width: 128px; }
   .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px 6px; }
   .inventory-view .cards-grid .game-card { max-width: 117px; }
-  .inventory-view .modal-scroll { max-width: 576px; }
-  .card-view { padding: 58px 6px 8px; }
-  .card-view-panels { flex: 0 0 auto; display: block; }
-  .card-view-spine, .journal-spine { display: none; }
-  .card-view-panel-left, .card-preview-canvas { min-height: 44vh; }
-  .card-view-panel-right { padding: 14px; }
-  .card-view-info { height: auto; overflow: visible; }
-  .card-view-info h2 { font-size: 19px; margin-bottom: 14px; }
-  .card-view-info > p { font-size: 14px; }
+  .inventory-layout { display: flex; flex-direction: column; gap: 12px; }
+  .inventory-content { order: 1; flex: 1 1 auto; }
+  .inventory-preview { order: 2; align-self: auto; max-height: none; overflow: visible; display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: start; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .inventory-preview-card { width: 120px; max-width: none; margin: 0; }
+  .inventory-preview-info { width: auto; max-height: 26vh; margin: 0; }
+  .inventory-preview-description { display: none; }
+  .inventory-preview-name { font-size: 17px; }
+  .inventory-preview-metrics { margin-top: 6px; font-size: 12px; }
+  .journal-spine { display: none; }
   .details-metrics { font-size: 13px; }
 }
 @media (max-width: 480px) {
@@ -102,10 +114,9 @@
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 12px 8px; }
   .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px 6px; }
   .inventory-view .cards-grid .game-card { max-width: 100px; }
-  .inventory-view .modal-scroll { max-width: 492px; }
-  .detail-layer:not(:empty) { padding: 6px; }
-  .card-view { padding: 54px 4px 6px; }
-  .card-view-info > p { font-size: 15px; }
+  .inventory-preview { grid-template-columns: 108px minmax(0, 1fr); gap: 10px; }
+  .inventory-preview-card { width: 108px; }
+  .inventory-preview-name { font-size: 15px; }
   .details-metrics { font-size: 14px; }
 }
 @media (max-height: 550px) and (orientation: landscape) {
@@ -160,7 +171,8 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .journal-tabs { display: inline-flex; gap: 6px; margin-top: 4px; }
 .journal-tabs button.selected { background: var(--gold); color: #061923; }
 .locked-state { font-size: 15px; }
-.inventory-balance { display: flex; align-items: center; gap: 10px; }
+.inventory-balance { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.inventory-bops { flex: 0 0 auto; white-space: nowrap; color: #e6c47f; font-weight: bold; }
 .sell-mode .inventory-view .game-card { cursor: cell; box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
 .sell-mode .inventory-view .game-card:hover { filter: brightness(1.12); }
 .choose-list { display: grid; gap: 6px; margin: 10px 0; }
@@ -260,4 +272,11 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
   .journal-page-inner { height: auto; overflow: visible; }
   .memory-text { font-size: 14px; }
   .app-shell.editing { --dock-height: calc(188px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-height: 550px) and (orientation: landscape) {
+  .inventory-view { padding-top: 52px; }
+  .inventory-layout { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); gap: 14px; }
+  .inventory-preview { grid-template-columns: 160px minmax(0, 1fr); }
+  .inventory-preview-card, .inventory-preview-info { width: min(100%, 160px); }
+  .inventory-preview-description { display: none; }
 }

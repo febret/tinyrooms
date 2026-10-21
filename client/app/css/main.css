@@ -79,9 +79,8 @@ h3 { font-size: 18px; }
 @keyframes scaredPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 .board-overlay { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); max-width: calc(100% - 90px); padding: 6px 12px; color: var(--muted); background: #041018cc; border-radius: 9px; font-size: 12px; text-align: center; pointer-events: none; }
 .board-overlay:empty { display: none; }
-.panel-layer, .detail-layer { position: absolute; inset: 0 0 var(--tray-height); pointer-events: none; }
+.panel-layer { position: absolute; inset: 0 0 var(--tray-height); pointer-events: none; }
 .panel-layer { z-index: 30; }
-.detail-layer { z-index: 35; }
 .app-shell.full-view .panel-layer { inset: 0; }
 .app-shell.full-view .panel-layer:not(:empty)::before { inset: 0; }
 .app-shell.full-view .card-hand { display: none; }

@@ -20,18 +20,13 @@ function setInert(node, value) {
   node.inert = value;
 }
 
-export function createInertSweep({ root, panelLayer, detailLayer, activityLayer, settings, bottomStack }) {
+export function createInertSweep({ root, panelLayer, activityLayer, settings, bottomStack }) {
   return function applyInert(state) {
     const cutscene = root.classList.contains("cutscene-playing");
-    const viewOpen = Boolean(
-      (state.views.main && state.views.main !== "edit-room") || state.views.details,
-    );
+    const viewOpen = Boolean(state.views.main && state.views.main !== "edit-room");
     const onboarding = !state.loggedIn || !state.user?.initialStickerComplete;
     setInert(root.querySelector("#board-canvas"), !state.loggedIn || viewOpen || cutscene);
-    setInert(panelLayer, Boolean(state.views.details) || cutscene);
-    // The details layer holds the open detail view itself, so only a cutscene
-    // blocks it; the panel layer behind it goes inert when details are open.
-    setInert(detailLayer, cutscene);
+    setInert(panelLayer, cutscene);
     setInert(activityLayer, false);
     setInert(bottomStack, onboarding);
     setInert(settings, onboarding);

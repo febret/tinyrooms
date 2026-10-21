@@ -51,7 +51,6 @@ const api = createApiClient();
 const $ = selector => document.querySelector(selector);
 const root = $("#app");
 const panelLayer = $("#panel-layer");
-const detailLayer = $("#detail-layer");
 const editorRoot = $("#editor-dock");
 const activityLayer = $("#activity-layer");
 const activityPills = $("#activity-pills");
@@ -86,7 +85,6 @@ let authKey = "";
 let previousUser = null;
 let previousRoom = null;
 let previousView = null;
-let previousDetails = null;
 let renderRevision = 0;
 let refreshPromise = null;
 let pendingGameStateRoom = "";
@@ -391,7 +389,7 @@ function renderLook(state) {
 async function handleAction(action) {
   if (!action) return;
   if (action.local) action = action.local;
-  if (!["sell-click", "open-view", "core-toggle", "close-view", "open-details", "close-details"].includes(action.type)) playTone("tap");
+  if (!["sell-click", "open-view", "core-toggle", "close-view", "inspect-card"].includes(action.type)) playTone("tap");
   if (action.command) {
     try {
       cardMotion.animatePickupCommand(action.command);
@@ -422,7 +420,7 @@ async function handleAction(action) {
       if (tab === "Memories") await refreshJournalMonth();
       if (tab === "Friends") await refreshBeacons();
     }
-  } else if (["close-view", "close-details"].includes(action.type)) {
+  } else if (action.type === "close-view") {
     const state = store.getState();
     if (action.type === "close-view" && state.views.main === "edit-room" && state.editor) {
       await saveAndCloseEditor();
@@ -451,8 +449,8 @@ async function handleAction(action) {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {
     if (action.propId) window.open(withBase(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`), "_blank", "noopener");
-  } else if (action.type === "open-details") {
-    store.dispatch({ type: "open-details", stackId: action.stackId });
+  } else if (action.type === "inspect-card") {
+    store.dispatch({ type: "inspect-card", stackId: action.stackId });
   } else if (action.type === "start-targeting") {
     store.dispatch({ type: "start-targeting", stackId: action.stackId });
   } else if (action.type === "cancel-targeting") {
@@ -975,7 +973,7 @@ const board = createBoard({
   },
   onSelect(selection, point) {
     const state = store.getState();
-    if (state.views.main || state.views.details || dialogs.active || !state.user?.initialStickerComplete) return;
+    if (state.views.main || dialogs.active || !state.user?.initialStickerComplete) return;
     if (targeting?.handle(selection)) return;
     if (activateSelection(selection)) { propActionButton.clear(); return; }
     propActionButton.select(selection, point, state.room);
@@ -984,7 +982,7 @@ const board = createBoard({
   },
   onMoveSprite(position) {
     const state = store.getState();
-    if (!state.room?.board?.spritesEnabled || state.views.main || state.views.details
+    if (!state.room?.board?.spritesEnabled || state.views.main
       || dialogs.active || state.ui.targeting || !state.user?.initialStickerComplete) return;
     const self = state.room.occupants.find(occupant => occupant.id === state.user.id);
     if (!self?.spritePosition) return;
@@ -1010,7 +1008,7 @@ targeting = createTargetingController({
   onToast: toast, onError: showError,
 });
 const cards = createCardsView({
-  coreRoot: $("#core-tools"), handRoot: $("#card-hand"), menuRoot: emoteMenu, panelRoot: panelLayer, detailRoot: detailLayer, editorRoot: $("#editor-dock"),
+  coreRoot: $("#core-tools"), handRoot: $("#card-hand"), menuRoot: emoteMenu, panelRoot: panelLayer, editorRoot: $("#editor-dock"),
   onSelect(selection) {
     if (targeting?.handle(selection)) return;
     const sellState = store.getState();
@@ -1020,15 +1018,9 @@ const cards = createCardsView({
     }
     if (activateSelection(selection)) return;
     const previousViews = store.getState().views;
-    const detailsOpen = Boolean(previousViews.details);
     store.dispatch({ type: "select", selection });
-    // While the card view is open, clicking another card retargets it instead of
-    // leaving the old card on screen.
-    if (detailsOpen && !store.getState().ui.targeting && (selection.kind === "room-card" || selection.kind === "inventory-card")) {
-      store.dispatch({ type: "open-details", stackId: selection.id });
-    }
     const views = store.getState().views;
-    if (views.main === previousViews.main && views.details === previousViews.details) playTone("flip");
+    if (views.main === previousViews.main) playTone("flip");
   },
   onAction: action => { void handleAction(action); },
 });
@@ -1064,7 +1056,7 @@ const activities = createActivityManager({
 });
 
 const applyInert = createInertSweep({
-  root, panelLayer, detailLayer, activityLayer, settings,
+  root, panelLayer, activityLayer, settings,
   bottomStack: $(".bottom-stack"),
 });
 
@@ -1108,7 +1100,6 @@ async function render(state) {
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
   toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal");
-  toggleClass(root, "has-details", Boolean(state.views.details));
   toggleClass(root, "editing", Boolean(state.editor));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));
   toggleClass(root, "sell-mode", Boolean(state.ui.sellMode));
@@ -1132,29 +1123,23 @@ async function render(state) {
   renderToasts(state);
   renderFeedback(state);
   cards.render(state);
-  if (state.views.main !== previousView || state.views.details !== previousDetails) playTone("tap");
+  if (state.views.main !== previousView) playTone("tap");
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root);
   roomPicker.sync(state);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
-  propViewers.sync(detailLayer, state.ui.reducedMotion);
-  cardViewers.sync(detailLayer, state.ui.reducedMotion);
+  cardViewers.sync(panelLayer, state.ui.reducedMotion);
   thumbnails.sync(editorRoot);
   if (!dialogs.active) {
-    if (state.views.details && previousDetails !== state.views.details) {
-      detailLayer.querySelector("[data-close-details]")?.focus({ preventScroll: true });
-    } else if (!state.views.details && previousDetails && state.views.main) {
-      panelLayer.querySelector(`[data-stack-id="${CSS.escape(previousDetails)}"]`)?.focus({ preventScroll: true });
-    } else if (state.views.main && previousView !== state.views.main) {
+    if (state.views.main && previousView !== state.views.main) {
       panelLayer.querySelector("[data-close-view]")?.focus({ preventScroll: true });
     } else if (!state.views.main && previousView) {
       $("#core-tools").querySelector(`[data-core-id="${CSS.escape(previousView)}"]`)?.focus({ preventScroll: true });
     }
   }
   previousView = state.views.main;
-  previousDetails = state.views.details;
   renderCommandPalette(state);
   // Iframes must not wait for room textures/models to finish loading.
   await activities.sync(state.activities);
@@ -1238,8 +1223,7 @@ document.addEventListener("keydown", event => {
     emoteToggle.focus();
     return;
   }
-  if (state.views.details) store.dispatch({ type: "close-details" });
-  else if (state.views.main) store.dispatch({ type: "close-view" });
+  if (state.views.main) store.dispatch({ type: "close-view" });
 });
 onFullscreenChange(() => {
   const active = isFullscreen();

@@ -156,17 +156,15 @@ but the Peeps List, Look Bar,
 Quick Actions Bar, and Chat Bar remain usable. Their bottom-bar actions apply to
 the current selection. Opening a view does not pause the shared world.
 Activity windows are non-modal unless explicitly described otherwise.
-Card Details is a nested popup over the view from which it was opened.
 Only one main Board-modal view is open at a time; opening another replaces it.
-Closing Card Details returns to its parent view.
+Inspecting a card opens Inventory with that card selected in its preview pane.
 Opening a main view resets the Look Bar and Quick Actions Bar to that view's
 context until another entity is selected. Selecting a peep while a view is open
 updates the bars to that peep. Stale entity text or actions shown in the mockups
 are illustrative, not required behavior.
 When the selected entity disappears or a main view closes without opening a
 replacement view or starting targeting, selection returns to
-the current room, showing its description and exits. Closing only Card Details
-keeps its card selected in the parent view if that card is still available.
+the current room, showing its description and exits.
 
 Every Board-modal view and nested popup has a visible `Close` control. On a
 keyboard, Escape cancels active targeting first; otherwise it closes the topmost
@@ -316,25 +314,20 @@ the last owned copy of an emote removes it from the user's Emote Picker.
 Core cards cannot be transferred.
 
 
-### Card Details View
-![Selected room card (earlier layout)](./images/selected-card.png)
-
+### Inventory Card Preview
 Selecting a card in any display shows its name and short description in the Look Bar,
 and its full card image above the left side of the Look Bar.
 
-![Card Details View](./images/card-details.png)
+Clicking the selected card's preview above the Look Bar opens Inventory with that
+card selected. Inventory is a split view: the card grid and filters sit beside a
+persistent, draggable WebGL card preview on desktop, and below the grid on
+portrait devices. The preview shows the card front and back, name, longer
+description, stats, rarity, and tags.
 
-Clicking the selected card's preview above the Look Bar shows the Card Details View.
-
-The popup has a book background and shows:
-- the card front and back in the popup's top-left and top-right corners, respectively.
-- the card rarity in the bottom-right corner.
-- the card name, short description, longer description, and stats on the book's
-left page.
-- the right page is currently unused.
-
-The longer description and equipment information reflect the card's current
-stats and status.
+Card faces use the first matching tag family to tint the title ribbon, while
+rarity owns the metallic frame, glow, and foil treatment. Rare and higher cards
+gain stronger specular highlights, iridescence, and a soft coloured halo in the
+preview. Reduced-motion users keep the physical materials without the halo pulse.
 
 
 ### Emote Picker
@@ -681,7 +674,7 @@ Collectible cards can be:
 
 Each collectible card has a **rarity**, one of: Common, Uncommon, Rare, Epic and
 Legendary. Rarity determines how likely a card is to appear in card packs, and
-is displayed in the Card Details View.
+is displayed in the inventory card preview.
 
 ### Equipment
 Item and action cards must be equipped before they can be played. The equipped

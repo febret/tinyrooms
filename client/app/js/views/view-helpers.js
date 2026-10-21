@@ -1,8 +1,12 @@
 import { cardFaceSvg } from "../card-face.js";
+import { cardRarityKey } from "../card-style.js";
 import { escapeHtml } from "../presentation.js";
 
 export function rarityLabel(definition) {
-  return definition?.rarity || (definition?.type === "core" ? "Core" : definition?.type ? definition.type : "Card");
+  if (definition?.rarity) return definition.rarity;
+  if (definition?.type === "core") return "Core";
+  if (definition?.type === "pack") return "Pack";
+  return "Common";
 }
 
 export function longDescription(definition) {
@@ -24,10 +28,12 @@ export function longDescription(definition) {
 /** Card button; `face: "full"` composes the SVG card, `"illustration"` shows only the art. */
 export function tileMarkup(definition, stack, selected, scope, { face = "full" } = {}) {
   const label = `${definition.label}${stack.quantity > 1 ? `, ${stack.quantity} copies` : ""}${stack.pinned ? ", pinned" : ""}${stack.equipped ? ", equipped" : ""}`;
+  const rarity = cardRarityKey(definition.rarity);
+  const tags = Array.isArray(definition.tags) ? definition.tags.join(" ") : "";
   return `
-    <button type="button" class="game-card ${selected ? "selected" : ""} ${stack.equipped ? "is-equipped" : ""}"
-      data-stack-id="${escapeHtml(stack.stackId)}" data-scope="${scope}" aria-label="${escapeHtml(label)}"
-      aria-pressed="${selected}" title="${escapeHtml(`${definition.label} · ${rarityLabel(definition)}`)}">
+    <button type="button" class="game-card rarity-${rarity} ${selected ? "selected" : ""} ${stack.equipped ? "is-equipped" : ""}"
+      data-stack-id="${escapeHtml(stack.stackId)}" data-scope="${scope}" data-rarity="${rarity}"${tags ? ` data-tags="${escapeHtml(tags)}"` : ""}
+      aria-label="${escapeHtml(label)}" aria-pressed="${selected}" title="${escapeHtml(`${definition.label} · ${rarityLabel(definition)}`)}">
       ${face === "full" ? cardFaceSvg(definition) : `<img class="card-illustration" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">`}
       ${stack.quantity > 1 ? `<span class="card-badge quantity-badge" aria-hidden="true">×${escapeHtml(stack.quantity)}</span>` : ""}
       ${stack.pinned ? '<span class="card-badge pin-badge" aria-hidden="true">◆</span>' : ""}
