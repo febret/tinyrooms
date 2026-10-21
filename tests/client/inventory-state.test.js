@@ -28,16 +28,14 @@ test("tab helpers classify cards", () => {
   assert.equal(stacksForTab(stateWith([stack("item", "item"), stack("emote", "emote")]), "Emotes").length, 1);
 });
 
-test("opening inventory selects the first card in a populated tab", () => {
-  const next = defaultInventorySelection(stateWith([stack("emote", "emote")]), "Items");
-  assert.equal(next.tab, "Emotes");
-  assert.deepEqual(next.selection, { kind: "inventory-card", id: "emote" });
-});
+test("opening inventory selects a card from a populated tab", () => {
+  const populated = defaultInventorySelection(stateWith([stack("emote", "emote")]), "Items");
+  assert.equal(populated.tab, "Emotes");
+  assert.deepEqual(populated.selection, { kind: "inventory-card", id: "emote" });
 
-test("opening on an empty tab falls back to a populated one", () => {
-  const next = defaultInventorySelection(stateWith([stack("item", "item")]), "Skills");
-  assert.equal(next.tab, "Items");
-  assert.deepEqual(next.selection, { kind: "inventory-card", id: "item" });
+  const fallback = defaultInventorySelection(stateWith([stack("item", "item")]), "Skills");
+  assert.equal(fallback.tab, "Items");
+  assert.deepEqual(fallback.selection, { kind: "inventory-card", id: "item" });
   assert.equal(previewStack(stateWith([stack("item", "item")]), "Skills"), null);
 });
 

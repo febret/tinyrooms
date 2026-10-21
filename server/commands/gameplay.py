@@ -172,6 +172,21 @@ def _use_outcome(
     return outcome
 
 
+def _resolve_delegated_use(
+    context: CommandContext,
+    result: ActionResult,
+    behavior: object | None,
+    stack_id: str,
+) -> ActionResult:
+    """Commit a delegated card use only when a behavior actually acted."""
+
+    if not result.delegated:
+        return result
+    if behavior is not None and getattr(behavior, "acted", False):
+        return context.actions.commit_delegated_use(context.account, stack_id=stack_id)
+    return replace(result, message="Nothing happens.", cutscene=None)
+
+
 async def use_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     stack_id = _require_card_target(command)
     target_token = command.args[1] if len(command.args) > 1 else None
@@ -202,10 +217,7 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                     data={"card_id": result.card_id, "stack_id": stack_id},
                 )
             )
-            if behavior is not None and behavior.acted:
-                result = context.actions.commit_delegated_use(context.account, stack_id=stack_id)
-            else:
-                result = replace(result, message="Nothing happens.", cutscene=None)
+        result = _resolve_delegated_use(context, result, behavior, stack_id)
         outcome = _use_outcome(context, result, _behavior_message(behavior))
         if behavior is not None:
             outcome.private_events.extend(getattr(behavior, "private_events", []))
@@ -252,11 +264,7 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
                 data={"card_id": result.card_id, "stack_id": stack_id, "target_label": target_label},
             )
         )
-        if result.delegated:
-            if behavior is not None and behavior.acted:
-                result = context.actions.commit_delegated_use(context.account, stack_id=stack_id)
-            else:
-                result = replace(result, message="Nothing happens.", cutscene=None)
+        result = _resolve_delegated_use(context, result, behavior, stack_id)
     outcome = _use_outcome(context, result, _behavior_message(behavior))
     if behavior is not None:
         outcome.private_events.extend(getattr(behavior, "private_events", []))

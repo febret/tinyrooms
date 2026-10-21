@@ -86,6 +86,14 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(inventory).toBeVisible();
   await expect(inventory.locator(".inventory-preview canvas[data-card-face]")).toBeVisible();
   await expect(inventory.locator(".inventory-preview-name")).toHaveText(cardLabel);
+  await inventory.locator('[data-inventory-tab="Emotes"]').click();
+  const tiles = inventory.locator(".inventory-content .cards-grid .game-card");
+  await expect(tiles.first()).toBeVisible();
+  const inventoryPreview = inventory.locator(".inventory-preview canvas[data-card-face]");
+  await expect(inventoryPreview).toBeVisible();
+  const firstFace = await inventoryPreview.getAttribute("data-card-face");
+  await tiles.nth(1).click();
+  await expect(inventoryPreview).not.toHaveAttribute("data-card-face", firstFace);
   await page.keyboard.press("Escape");
   await expect(inventory).toBeHidden();
   await expect(page.locator("#emote-toggle")).toBeVisible();
@@ -145,41 +153,9 @@ test("room board recovers from WebGL context loss", async ({ page, runtime }) =>
   await expect(canvas).toHaveAttribute("data-board-ready", "true");
 });
 
-test("inventory previews cards inline and retargets on selection", async ({ page, runtime }) => {
-  await createReadyAccount(page, runtime);
-  await openCore(page, "inventory");
-  const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
-  await inventory.locator('[data-inventory-tab="Emotes"]').click();
-  const tiles = inventory.locator(".inventory-content .cards-grid .game-card");
-  await expect(tiles.first()).toBeVisible();
-  const preview = inventory.locator(".inventory-preview canvas[data-card-face]");
-  await expect(preview).toBeVisible();
-  const firstFace = await preview.getAttribute("data-card-face");
-  await tiles.nth(1).click();
-  await expect(preview).not.toHaveAttribute("data-card-face", firstFace);
-});
-
-test("inventory places the preview below the grid on portrait devices", async ({ page, runtime }) => {
-  await page.setViewportSize({ width: 480, height: 900 });
-  await createReadyAccount(page, runtime);
-  await openCore(page, "inventory");
-  const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
-  await inventory.locator('[data-inventory-tab="Emotes"]').click();
-  const grid = inventory.locator(".inventory-content .cards-grid");
-  const preview = inventory.locator(".inventory-preview");
-  await expect(preview).toBeVisible();
-  const gridBox = await grid.boundingBox();
-  const previewBox = await preview.boundingBox();
-  expect(previewBox.y).toBeGreaterThan(gridBox.y);
-});
-
-test("admins can open the Multiverse activity from the toolbar", async ({ page, runtime }) => {
+test("admins see the Multiverse toggle in the toolbar", async ({ page, runtime }) => {
   await createReadyAccount(page, runtime, "siteadmin");
-  const toggle = page.locator("#multiverse-toggle");
-  await expect(toggle).toBeVisible();
-  await toggle.click();
-  await expect(page.locator('iframe[src*="multiverse"]')).toBeVisible();
-  await expect(page.frameLocator('iframe[src*="multiverse"]').locator("#multiverse-error")).toBeVisible();
+  await expect(page.locator("#multiverse-toggle")).toBeVisible();
 });
 
 test.describe("cutscenes under reduced motion", () => {

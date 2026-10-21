@@ -72,21 +72,29 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 ## Multiworld
 
 [Bash users] `./start_multiworld.sh` starts a local Mission Control plus the
-tutorial and scammon-academia world servers sharing one profile database and
-one advertised hostname.
+tutorial, scammon-academia, and tiny-arcade world servers sharing one profile
+database and one advertised hostname. It uses development credentials and
+self-signed certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`,
+`ARCADE_PORT`, or `PUBLIC_HOST` as needed.
 
 ```bash
 ./start_multiworld.sh
 # Mission Control:  https://127.0.0.1:8001/mission-control
 # Tutorial world:   https://127.0.0.1:5100/
 # Scammon Academia: https://127.0.0.1:5101/
+# Tiny Arcade:      https://127.0.0.1:5102/
 
 # To accept connections from other machines, pass a reachable address. This also
-# binds the three listeners to 0.0.0.0; the browser uses the advertised host so
+# binds the four listeners to 0.0.0.0; the browser uses the advertised host so
 # the shared session cookie keeps working across ports:
 ./start_multiworld.sh --public-host 192.168.1.50
 ```
 
+Author cross-world exits in a room's `rooms.yaml` with `target_world: <world-id>`
+and an optional `target: <room>` (defaulting to the destination world's entry
+room). Both worlds must share a profile database, advertise client URLs on
+Mission Control's hostname, and be connected to the same Mission Control
+instance. See [fleet destination discovery](doc/mission-control.md#7-mission-control-ui-api).
 
 ## Deploying
 

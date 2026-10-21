@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures.js";
 
-test("procedural sign and whiteboard render without GLTF requests", async ({ page }, testInfo) => {
+test("procedural sign and whiteboard render without GLTF requests", async ({ page }) => {
   const gltfRequests = [];
   page.on("request", request => {
     if (/\.(glb|gltf)(?:\?|$)/.test(request.url())) gltfRequests.push(request.url());
@@ -43,7 +43,6 @@ test("procedural sign and whiteboard render without GLTF requests", async ({ pag
   await expect(page.locator("canvas")).toHaveAttribute("data-board-ready", "true");
   expect(await page.evaluate(() => window.board.diagnostics().props)).toBe(2);
   expect(await page.evaluate(() => window.board.diagnostics().triangles)).toBeGreaterThan(10);
-  await page.screenshot({ path: testInfo.outputPath("surface-props.png") });
   await page.evaluate(async () => {
     window.state.room.props[0].signStyle = "neon";
     window.state.room.props[0].surface = { kind: "sign", revision: 2, content: { text: "Updated" } };

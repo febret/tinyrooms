@@ -81,7 +81,7 @@ function panelMarkup(state, view, canControl) {
   const override = normalizeTrack(state.ui.musicOverride);
   const effective = override || roomTrack;
   const enabled = Boolean(state.ui.musicEnabled);
-  const updatedBy = state.room?.music?.updated_by ? String(state.room.music.updated_by) : "";
+  const updatedBy = state.room?.music?.updatedBy ? String(state.room.music.updatedBy) : "";
   const mode = view.mode;
   return `<header class="music-header">
       <h2 id="music-title">Music</h2>
@@ -138,6 +138,7 @@ export function createMusicPlayer({ root, store, api, sendCommand, onToast, onEr
   document.body.appendChild(frame);
 
   let loadedSong = "";
+  let loadToken = 0;
   const view = { mode: "top", path: "", query: "", items: [], loading: false, error: "", loaded: false };
 
   root.classList.add("music-player");
@@ -174,20 +175,27 @@ export function createMusicPlayer({ root, store, api, sendCommand, onToast, onEr
   }
 
   async function loadView() {
+    const token = ++loadToken;
     view.loading = true;
     view.loaded = true;
     view.error = "";
     render(store.getState());
     try {
-      if (view.mode === "search") view.items = await api.chiptuneSearch(view.query, RESULT_LIMIT);
-      else if (view.mode === "browse") view.items = await api.chiptuneBrowse(view.path);
-      else view.items = await api.chiptuneTop(RESULT_LIMIT);
+      let items;
+      if (view.mode === "search") items = await api.chiptuneSearch(view.query, RESULT_LIMIT);
+      else if (view.mode === "browse") items = await api.chiptuneBrowse(view.path);
+      else items = await api.chiptuneTop(RESULT_LIMIT);
+      if (token !== loadToken) return;
+      view.items = items;
     } catch (error) {
+      if (token !== loadToken) return;
       view.error = error instanceof Error ? error.message : String(error);
       view.items = [];
     } finally {
-      view.loading = false;
-      render(store.getState());
+      if (token === loadToken) {
+        view.loading = false;
+        render(store.getState());
+      }
     }
   }
 
@@ -262,10 +270,12 @@ export function createMusicPlayer({ root, store, api, sendCommand, onToast, onEr
     enable,
     /** Clear local state when the room changes so the next room follows its own track. */
     resetRoom() {
+      loadToken += 1;
       view.mode = "top";
       view.path = "";
       view.query = "";
       view.items = [];
+      view.loading = false;
       view.error = "";
       view.loaded = false;
     },

@@ -71,7 +71,7 @@ foyer:
         - .go @way:garden
       behavior: locked-door
   exits:
-    playroom:
+    hub:
       label: Out of the dollhouse
       target: hub
     kitchen:

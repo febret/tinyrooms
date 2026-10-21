@@ -9,6 +9,13 @@ const IMPACT_BURST = 0.42;
 const ACCENT = "#ff4d6d";
 const DEFAULT_COLORS = ["#ff4d6d", "#4ea8ff", "#5cf29a", "#ffe066", "#c77dff"];
 
+/** Board coordinate that keeps a valid zero while defaulting malformed values. */
+export function boardCoordinate(value, fallback = 50) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
 function makeSplatTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 128;
@@ -122,7 +129,7 @@ export function createPaintballRenderer(context) {
   function addSplatMesh(id, splat) {
     const transform = splatTransform(id, splats.size);
     const mesh = new THREE.Mesh(splatGeometry, splatMaterial(String(splat.color || "#ff4d6d")));
-    const world = new THREE.Vector3(...boardPosition([Number(splat.x) || 50, Number(splat.y) || 50, 0]));
+    const world = new THREE.Vector3(...boardPosition([boardCoordinate(splat.x), boardCoordinate(splat.y), 0]));
     mesh.position.set(world.x, TOP + 0.004 + splats.size * 0.0004, world.z);
     mesh.rotation.x = -Math.PI / 2;
     mesh.rotation.z = Number(splat.rotation ?? transform.rotation);
@@ -169,8 +176,8 @@ export function createPaintballRenderer(context) {
 
   function spawnShot(shot) {
     const color = String(shot.color || "#ff4d6d");
-    const start = new THREE.Vector3(...boardPosition([Number(shot.from?.[0]) || 50, Number(shot.from?.[1]) || 50, 0]));
-    const end = new THREE.Vector3(...boardPosition([Number(shot.impact?.[0]) || 50, Number(shot.impact?.[1]) || 50, 0]));
+    const start = new THREE.Vector3(...boardPosition([boardCoordinate(shot.from?.[0]), boardCoordinate(shot.from?.[1]), 0]));
+    const end = new THREE.Vector3(...boardPosition([boardCoordinate(shot.impact?.[0]), boardCoordinate(shot.impact?.[1]), 0]));
     start.y += TOP + 0.42;
     end.y += TOP + 0.42;
 

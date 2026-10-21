@@ -64,16 +64,6 @@ class PropSurfaceService:
     def __init__(self, hub: DatabaseHub) -> None:
         self._hub = hub
 
-    def for_room(self, room_id: str) -> dict[str, SurfaceRecord]:
-        """Return every stored surface in a room keyed by instance id."""
-
-        with self._hub.locked() as connection:
-            rows = connection.execute(
-                "SELECT * FROM world.prop_surfaces WHERE room_id = ?",
-                (room_id,),
-            ).fetchall()
-        return {str(row["instance_id"]): _surface_from_row(row) for row in rows}
-
     def get(
         self,
         room_id: str,

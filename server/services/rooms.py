@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import json
 import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
-from server.content.surface_props import validate_sign_style
+from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
     MAX_CHAT_SIZE,
@@ -24,12 +23,21 @@ from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.sprite_rooms import SpriteService
 from server.services.stats import StatsService
-from server.state.migrations import DatabaseHub
+from server.state.migrations import DatabaseHub, read_behavior_state
 from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import WorldStateRepository
 
 
 BASE_QUICK_COMMANDS = frozenset({".go", ".inspect", ".look", ".play", ".shop"})
+
+
+def _read_sign_style(raw_value: object) -> str:
+    """Return a stored sign style, falling back when legacy data is invalid."""
+
+    try:
+        return validate_sign_style(raw_value)
+    except ValueError:
+        return DEFAULT_SIGN_STYLE
 
 
 @dataclass(frozen=True, slots=True)
@@ -335,21 +343,10 @@ class RoomService:
             "prop": {"id": prop_instance_id, "active_effect": set_name},
         }
 
-    def room_peeps(
-        self,
-        room_id: str,
-        *,
-        viewer_id: str | None = None,
-    ) -> list[dict[str, object]]:
+    def room_peeps(self, room_id: str) -> list[dict[str, object]]:
         """Serialize the NPC peeps present in a room."""
 
-        vibes_by_id = None
-        if viewer_id and self._vibes is not None:
-            vibes_by_id = self._vibes.pairs_for(
-                viewer_id,
-                [peep.id for peep in self._npc_peeps_in(room_id)],
-            )
-        return self._room_peeps(room_id, vibes_by_id=vibes_by_id)
+        return self._room_peeps(room_id)
 
     def _npc_peeps_in(self, room_id: str) -> list[PeepDefinition]:
         return [
@@ -640,16 +637,7 @@ class RoomService:
 
         if room.game is None:
             return None
-        row = connection.execute(
-            "SELECT state_json FROM world.behavior_state WHERE namespace = 'prop' AND instance_id = ?",
-            (room.game.controller,),
-        ).fetchone()
-        if row is None:
-            return None
-        try:
-            raw = json.loads(row["state_json"])
-        except (TypeError, ValueError):
-            return None
+        raw = read_behavior_state(connection, "prop", room.game.controller)
         state = raw.get("game_state") if isinstance(raw, dict) else None
         return state if isinstance(state, dict) else None
 
@@ -734,7 +722,7 @@ class RoomService:
             "render_kind": prop_definition.render_kind,
             **({"text": dict(prop.text)} if prop.text is not None else {}),
             **(
-                {"sign_style": validate_sign_style(prop.sign_style)}
+                {"sign_style": _read_sign_style(prop.sign_style)}
                 if prop_definition.render_kind == "sign"
                 else {}
             ),

@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import unittest
 
-from tests.common import REPO_ROOT, WORLD_ID, ServiceTestCase, load_test_world
+from server.behaviors.context import BehaviorContext
+from server.behaviors.events import BehaviorEvent, PeepRef
 from server.game.modifiers import Modifier
 from server.security import utc_now
 from server.services.stats import StatsService
 from server.services.vibes import VibesService, describe_vibe
 from server.state.npc_peep_states import NpcPeepStateRepository
-from server.state.vibes import VIBE_MAX, VIBE_MIN, VibesRepository
+from server.state.vibes import VIBE_MAX, VIBE_MIN
+from tests.common import REPO_ROOT, WORLD_ID, RuntimeTestCase, ServiceTestCase, load_test_world
 
 
 class VibesServiceTests(ServiceTestCase):
@@ -108,15 +111,46 @@ class VibesServiceTests(ServiceTestCase):
         self.assertEqual(pair["toward"], {"value": 12, "label": "Friend 🙂"})
         self.assertEqual(pair["from"], {"value": -4, "label": "Annoyance 🙄"})
 
-    def test_repository_clamps_direct_rows(self) -> None:
-        repository = VibesRepository(self.hub)
-        with self.hub.transaction() as connection:
-            repository.adjust_many_in_transaction(
-                connection,
-                WORLD_ID,
-                [("someone", "caretaker", 500, False)],
-            )
-        self.assertEqual(repository.get(WORLD_ID, "someone", "caretaker", world_source=False), VIBE_MAX)
+    def test_context_vibe_toward_uses_callback(self) -> None:
+        actor = PeepRef(kind="npc", peep_id="caretaker", account_id=None)
+        context = BehaviorContext(
+            event=BehaviorEvent(type="tick", actor=actor),
+            actor=actor,
+            target=None,
+            room={},
+            world={},
+            state={},
+            now=utc_now(),
+            vibe_toward=lambda target: 7 if target == "molly" else 0,
+        )
+        self.assertEqual(context.vibe_toward("molly"), 7)
+        self.assertEqual(context.vibe_toward(""), 0)
+
+        without_callback = BehaviorContext(
+            event=BehaviorEvent(type="tick", actor=actor),
+            actor=actor,
+            target=None,
+            room={},
+            world={},
+            state={},
+            now=utc_now(),
+        )
+        self.assertEqual(without_callback.vibe_toward("molly"), 0)
+
+
+class VibesRuntimeTests(RuntimeTestCase):
+    def test_snapshot_includes_vibes_for_an_npc(self) -> None:
+        runtime = self.app.state.runtime
+        account = runtime.profiles.create_account(
+            "vibe-viewer",
+            "password123!",
+            runtime.world.id,
+            "foyer",
+        )
+        runtime.vibes.adjust(account.id, "caretaker", 4)
+        snapshot = asyncio.run(runtime.rooms.build_snapshot(account, "foyer"))
+        caretaker = next(npc for npc in snapshot["npcs"] if npc["id"] == "caretaker")
+        self.assertEqual(caretaker["vibes"]["toward"], {"value": 4, "label": "Friend 🙂"})
 
 
 if __name__ == "__main__":

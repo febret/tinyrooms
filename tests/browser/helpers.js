@@ -64,17 +64,6 @@ export async function openCore(page, id) {
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
-export async function openEditRoom(page) {
-  await closeOverlays(page);
-  const action = page.locator("#core-tools [data-edit-room]");
-  if (!(await action.count())) throw new Error("Could not open Edit Room: the room is not editable.");
-  await action.click();
-  const panel = page.locator("#editor-dock .edit-room-view");
-  await expect(panel).toBeVisible();
-  await expect(panel.locator(".editor-library-grid")).toBeVisible();
-  return panel;
-}
-
 export async function travel(page, exit = "exit0", label = "The Living Room") {
   await command(page, `.go @way:${exit}`);
   await expect(page.locator("#look-bar")).toContainText(label);

@@ -983,4 +983,3 @@ def on_quick_action(context, event):
         quantity=int(entry.get("quantity", 1) or 1),
         bops=cost,
     )
-    context.feedback(f"Purchased {card_id.replace('-', ' ')}.", "success")

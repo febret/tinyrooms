@@ -33,7 +33,7 @@ import { createBoardRecovery } from "./board-recovery.js";
 import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
 import { withBase } from "./base-path.js";
-export const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
+const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
 const SCALE_DRAG_SENSITIVITY = 0.008;
 
@@ -1102,7 +1102,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       editSelectionId = editEnabled ? (state.editSelection || null) : null;
       const modalView = state.views?.main;
       const blockingView = Boolean(modalView && modalView !== "edit-room");
-      blocked = Boolean(blockingView || state.views?.details || state.views?.auth
+      blocked = Boolean(blockingView || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
       gameInputEnabled = !blocked && !state.ui?.targeting && !state.room?.dialog;
       controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;

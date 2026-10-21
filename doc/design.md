@@ -604,7 +604,8 @@ workflow.
 Energy is spent for most actions by the user, and it recharges passively at a fixed
 rate determined by the user level, skills, etc. The standard energy recharge rate is
 1 Energy per minute. Maximum Energy is 80 for a new level 0 user and 100 at level 1. Various juice and
-energy properties are set in the `data/core/juice.yaml` definition file.
+energy properties are set in the `data/core/juice.yaml` definition file. Chat
+messages cost 1 Energy and are blocked while Tired.
 
 Passive recharge continues while the user is offline at the same configured
 rate as while connected, restoring Energy for elapsed time up to its maximum.

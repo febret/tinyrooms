@@ -224,7 +224,7 @@ def _topic_reactor_ids(context, event) -> set[str]:
     if len(student_ids) <= TOPIC_REACTION_LIMIT:
         return set(student_ids)
     card_id = context.card.id if context.card is not None else ""
-    seed = sum((index + 1) * ord(char) for index, char in enumerate(card_id)) + id(event)
+    seed = sum((index + 1) * ord(char) for index, char in enumerate(card_id))
     start = seed % len(student_ids)
     return {
         student_ids[(start + offset) % len(student_ids)]

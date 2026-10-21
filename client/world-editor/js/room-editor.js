@@ -13,6 +13,7 @@ export function worldRoomEditor(state, roomId) {
     description: prop.description,
     model_url: withBase(prop.model_url || ""),
     render_kind: prop.render_kind,
+    default_sign_style: prop.default_sign_style,
     base_scale: prop.scale,
     // Authors can arrange functional props and retain the existing authoring bounds.
     scale_min: 0.05,
@@ -27,10 +28,14 @@ export function worldRoomEditor(state, roomId) {
     can_edit: true,
     library,
     text_options: state.catalog?.text_options,
+    sign_options: state.catalog?.sign_options,
+    whiteboard_options: state.catalog?.whiteboard_options,
     props: Object.entries(room.props || {}).filter(([, prop]) => visible.has(prop.prop)).map(([id, prop]) => ({
       id, prop_id: prop.prop, position: prop.pos, rotation: prop.rot, scale: prop.scale,
       locked: Boolean(settings.locks?.[roomId]?.[id]),
       ...(prop.text ? { text: { ...prop.text } } : {}),
+      ...(typeof prop.sign_style === "string" ? { sign_style: prop.sign_style } : {}),
+      ...(prop.surface && typeof prop.surface === "object" ? { surface: prop.surface } : {}),
     })),
     environment_whitelist: ["palette", "board_image_style"],
     environment: { palette: room.palette || [], board_image_style: room.board_image_style || "stretch" },
@@ -63,6 +68,7 @@ export function applyRoomEditorChanges(room, before, after) {
     if (!old) {
       room.props[prop.id] = { prop: prop.propId, pos: prop.position, rot: prop.rotation, scale: prop.scale };
       if (prop.text) room.props[prop.id].text = { ...prop.text };
+      if (prop.signStyle) room.props[prop.id].sign_style = prop.signStyle;
       continue;
     }
     const target = room.props[prop.id];
@@ -73,6 +79,10 @@ export function applyRoomEditorChanges(room, before, after) {
     }
     if (old.scale !== prop.scale) target.scale = prop.scale;
     if (JSON.stringify(old.text) !== JSON.stringify(prop.text) && prop.text) target.text = { ...prop.text };
+    if (old.signStyle !== prop.signStyle) {
+      if (prop.signStyle) target.sign_style = prop.signStyle;
+      else delete target.sign_style;
+    }
   }
   for (const key of ["palette", "board_image_style"]) {
     if (JSON.stringify(before.environment[key]) !== JSON.stringify(after.environment[key])) {
@@ -116,6 +126,10 @@ export function createWorldRoomEditor(store, getRoomId) {
       return dispatch({ ...action, type: `editor-${name}`, id: editor?.selectedId });
     }
     if (action.type === "edit-add") return dispatch({ type: "editor-add", propId: action.propId });
+    if (action.type === "edit-sign-style") {
+      const editor = worldRoomEditor(store.state, getRoomId());
+      return dispatch({ type: "editor-sign-style", id: editor?.selectedId, signStyle: action.signStyle });
+    }
     if (action.type === "edit-snap") return dispatch({ type: "editor-snap", which: action.which, value: action.value });
     if (action.type === "edit-style") return dispatch({ type: "editor-env", key: "board_image_style", value: action.value });
     if (action.type === "edit-palette") {

@@ -123,6 +123,11 @@
   :root { --hand-icon-size: 44px; }
   .equipped-hand { padding-top: 7px; }
   .board-modal { padding-block: 12px; }
+  .inventory-view { padding-top: 52px; }
+  .inventory-layout { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); gap: 14px; }
+  .inventory-preview { grid-template-columns: 160px minmax(0, 1fr); }
+  .inventory-preview-card, .inventory-preview-info { width: min(100%, 160px); }
+  .inventory-preview-description { display: none; }
 }
 .card-motion-layer, .coin-motion-layer, #feedback-layer { position: fixed; inset: 0; pointer-events: none; }
 .card-motion-layer { z-index: 95; }
@@ -273,11 +278,4 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
   .journal-page-inner { height: auto; overflow: visible; }
   .memory-text { font-size: 14px; }
   .app-shell.editing { --dock-height: calc(188px + env(safe-area-inset-bottom, 0px)); }
-}
-@media (max-height: 550px) and (orientation: landscape) {
-  .inventory-view { padding-top: 52px; }
-  .inventory-layout { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); gap: 14px; }
-  .inventory-preview { grid-template-columns: 160px minmax(0, 1fr); }
-  .inventory-preview-card, .inventory-preview-info { width: min(100%, 160px); }
-  .inventory-preview-description { display: none; }
 }

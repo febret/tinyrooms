@@ -10,11 +10,11 @@ from server.commands.travel import departure_outcome
 def _friend_stickers(context: CommandContext, world: dict[str, object]) -> list[dict[str, object]]:
     """Resolve the viewer's friends who are online in one world."""
 
+    online_ids = world.pop("online_account_ids", [])
     profile = context.profiles.get_user_profile(context.account.id)
     if profile is None:
         return []
     friend_ids = set(profile.friends)
-    online_ids = world.pop("online_account_ids", [])
     if not friend_ids or not isinstance(online_ids, list):
         return []
     matches = [str(account_id) for account_id in online_ids if account_id in friend_ids]

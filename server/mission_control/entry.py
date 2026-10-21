@@ -353,7 +353,11 @@ async def fleet_worlds(request: Request) -> Response:
 
 
 @router.get("/api/mc/instances/{world_id}/destination")
-async def fleet_world_destination(request: Request, world_id: str) -> Response:
+async def fleet_world_destination(
+    request: Request,
+    world_id: str,
+    host: str | None = None,
+) -> Response:
     """Resolve a running instance serving *world_id* for cross-world travel.
 
     Token-authenticated fleet endpoint: a participating world asks mission
@@ -379,6 +383,15 @@ async def fleet_world_destination(request: Request, world_id: str) -> Response:
             "message": f"World '{world_id}' is not currently running.",
         })
     record = running[0]
+    if host:
+        record = next(
+            (
+                candidate
+                for candidate in running
+                if urlsplit(candidate.client_url or "").hostname == host
+            ),
+            record,
+        )
     try:
         client_url = await _validate_running_destination(runtime, record)
     except HTTPException as exc:

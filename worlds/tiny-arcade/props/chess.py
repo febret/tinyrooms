@@ -204,15 +204,53 @@ def _castling_moves(
     return moves
 
 
+def _attack_squares(
+    board: list[dict[str, str] | None],
+    color: str,
+    en_passant: str = "",
+) -> set[int]:
+    attacked: set[int] = set()
+    for index, piece in enumerate(board):
+        if not piece or _color(piece) != color:
+            continue
+        file, rank = _file_rank(index)
+        kind = _kind(piece)
+        if kind == "P":
+            direction = 1 if color == "w" else -1
+            for df in (-1, 1):
+                if not _inside(file + df, rank + direction):
+                    continue
+                target = _idx(file + df, rank + direction)
+                attacked.add(target)
+                if en_passant and _square(target) == en_passant:
+                    attacked.add(target + (8 if color == "w" else -8))
+        elif kind == "N":
+            for df, dr in KNIGHT_DELTAS:
+                if _inside(file + df, rank + dr):
+                    attacked.add(_idx(file + df, rank + dr))
+        elif kind in SLIDING_DIRECTIONS:
+            for df, dr in SLIDING_DIRECTIONS[kind]:
+                nf, nr = file + df, rank + dr
+                while _inside(nf, nr):
+                    target = _idx(nf, nr)
+                    attacked.add(target)
+                    if board[target]:
+                        break
+                    nf += df
+                    nr += dr
+        elif kind == "K":
+            for df, dr in KING_DELTAS:
+                if _inside(file + df, rank + dr):
+                    attacked.add(_idx(file + df, rank + dr))
+    return attacked
+
+
 def _is_attacked(
     board: list[dict[str, str] | None],
     target: int,
     by_color: str,
 ) -> bool:
-    for move in _pseudo_moves(board, by_color, "", include_castling=False):
-        if move["to"] == target:
-            return True
-    return False
+    return target in _attack_squares(board, by_color)
 
 
 def _king_index(board: list[dict[str, str] | None], color: str) -> int | None:
@@ -322,11 +360,7 @@ def _hazards(
     hazards: dict[str, str] = {}
     for color in ("w", "b"):
         enemy = _opponent(color)
-        attacks = _pseudo_moves(board, enemy, state.get("en_passant", ""), include_castling=False)
-        attacked = {move["to"] for move in attacks}
-        for move in attacks:
-            if move["en_passant"]:
-                attacked.add(move["to"] + (8 if enemy == "w" else -8))
+        attacked = _attack_squares(board, enemy, state.get("en_passant", ""))
         for index, piece in enumerate(board):
             if piece and _color(piece) == color and index in attacked:
                 hazards[_square(index)] = "threat"

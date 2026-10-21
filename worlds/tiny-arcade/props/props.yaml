@@ -131,10 +131,10 @@ paintball-bunker:
   - 4
   tags:
   - paintball
-  - cover
 paintball-barrel-stack:
   label: Paint Barrel Stack
-  description: A stack of paint barrels waiting to be tapped. Good cover, better splash.
+  description: A stack of paint barrels waiting to be tapped. One splash and the whole
+    stack goes.
   model: paintball-barrel-stack.glb
   decorative: true
   scale: 1.4
@@ -143,4 +143,3 @@ paintball-barrel-stack:
   - 5
   tags:
   - paintball
-  - cover

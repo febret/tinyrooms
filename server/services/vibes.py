@@ -187,9 +187,9 @@ class VibesService:
                 and self._peep_states.room_for(peep_id) == room_id
             )
         peeps = [*users, *npc_ids]
-        self._last_room_update[room_id] = moment
         if len(peeps) < 2:
             return []
+        self._last_room_update[room_id] = moment
 
         views = self._stats.views(users) if users else {}
         deltas: dict[tuple[str, str], int] = {}

@@ -15,7 +15,7 @@ from server.behaviors import builtin as builtin_behaviors_module
 from server.behaviors.builtin import BUILTIN_BEHAVIORS
 from server.broadcast import broadcast_room_event
 from server.config import ConfigError, ensure_contained
-from server.content.surface_props import sign_options, whiteboard_options
+from server.content.surface_props import DEFAULT_SIGN_STYLE, sign_options, whiteboard_options
 from server.content.text_props import text_options
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
 from server.routes.common import (
@@ -123,6 +123,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "description": definition.description,
             "model_url": prop_model_url(world.id, definition),
             "render_kind": definition.render_kind,
+            **({"default_sign_style": DEFAULT_SIGN_STYLE} if definition.render_kind == "sign" else {}),
             "source": definition.source,
             "source_kind": definition.source_kind,
             "decorative": definition.decorative,

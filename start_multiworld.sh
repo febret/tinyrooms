@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Start a local multi-world Tinyrooms: Mission Control plus the tutorial and
-# scammon-academia world servers, all sharing one profile database and one
-# advertised hostname so cross-world teleporters can hand the browser between
-# ports.
+# Start a local multi-world Tinyrooms: Mission Control plus the tutorial,
+# scammon-academia, and tiny-arcade world servers, all sharing one profile
+# database and one advertised hostname so cross-world teleporters can hand the
+# browser between ports.
 #
 # Usage:
 #   ./start_multiworld.sh [--public-host HOSTNAME]
@@ -17,8 +17,9 @@ set -euo pipefail
 #                  certificate only covers local addresses.
 #
 # Ports and credentials are overridable via MC_PORT / TUTORIAL_PORT /
-# SCAMMON_PORT (and the TRSERVER_* environment). This is a local-development
-# launcher: it uses self-signed certificates and default development creds.
+# SCAMMON_PORT / ARCADE_PORT (and the TRSERVER_* environment). This is a
+# local-development launcher: it uses self-signed certificates and default
+# development creds.
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -142,8 +143,9 @@ Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
   Player entry     : https://$PUBLIC_HOST:$MC_PORT/
   Tutorial world   : https://$PUBLIC_HOST:$TUTORIAL_PORT/
   Scammon Academia : https://$PUBLIC_HOST:$SCAMMON_PORT/
-  Tiny Arcade       : https://$PUBLIC_HOST:$ARCADE_PORT/
-The tutorial hub portal links the two worlds. Press Ctrl-C to stop everything.
+  Tiny Arcade      : https://$PUBLIC_HOST:$ARCADE_PORT/
+Mission Control manages all three worlds; the Multiverse travels between them.
+Press Ctrl-C to stop everything.
 EOF
 
 wait

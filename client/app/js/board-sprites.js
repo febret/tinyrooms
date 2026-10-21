@@ -154,7 +154,6 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     if (!record) return;
     clearDecalOverlay(entry, record);
     entry.root.remove(record.sprite);
-    record.sprite?.removeFromParent();
     const index = entry.pickables.indexOf(record.sprite);
     if (index >= 0) entry.pickables.splice(index, 1);
     record.material.dispose();

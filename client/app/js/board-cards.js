@@ -28,11 +28,13 @@ export function createBoardCards({ cardBackUrl, register, texture, setRecordTarg
     mesh.rotation.y = -0.08;
     group.add(mesh);
     texture(entry, card.definition?.imageUrl, `${card.definition?.label || "Card"} illustration`, map => {
+      if (entry.cards.get(card.stackId)?.front !== front) return;
       front.map = map;
       front.color.set("#ffffff");
       front.needsUpdate = true;
     });
     texture(entry, cardBackUrl, "card back artwork", map => {
+      if (entry.cards.get(card.stackId)?.front !== front) return;
       back.map = map;
       back.color.set("#ffffff");
       back.needsUpdate = true;

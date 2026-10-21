@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import unittest
+from unittest.mock import Mock
 
 from server.commands.context import build_command_context
 from server.commands.core import dispatch_command
 from server.commands.parser import parse_command
-from server.connections import SyntheticConnection
+from server.connections import LiveConnection, SyntheticConnection
 from server.content.surface_props import (
     DEFAULT_SIGN_STYLE,
     SIGN_STYLE_IDS,
@@ -195,8 +196,18 @@ class SurfaceRuntimeTests(Milestone2IntegrationTestCase):
         self.assertEqual(board["surface"]["content"], {"strokes": [], "texts": []})
         self.assertEqual(board["quick_actions"][0]["command"], ".play custom:board-1")
 
-    def test_any_account_can_save_sign_text_through_http(self) -> None:
+    def test_room_occupant_can_save_sign_text_through_http(self) -> None:
         credentials = self.create_ready_account("sign-editor")
+        account_id = self.account_id(credentials)
+        runtime = self.runtime()
+        connection = LiveConnection(
+            websocket=Mock(),
+            account_id=account_id,
+            username="sign-editor",
+            generation=0,
+        )
+        asyncio.run(runtime.connections.register(connection))
+        asyncio.run(runtime.connections.set_room(account_id, self.room_id))
         response = self.client.post(
             f"/api/rooms/{self.room_id}/signs/custom:sign-1",
             json={"text": "Hello room"},
@@ -209,3 +220,14 @@ class SurfaceRuntimeTests(Milestone2IntegrationTestCase):
         self.assertEqual(surface["revision"], 1)
         stored = self.runtime().surfaces.get(self.room_id, "custom:sign-1", "sign")
         self.assertEqual(stored.content, {"text": "Hello room"})
+
+    def test_non_occupant_cannot_save_sign_text_through_http(self) -> None:
+        credentials = self.create_ready_account("sign-outsider")
+        response = self.client.post(
+            f"/api/rooms/{self.room_id}/signs/custom:sign-1",
+            json={"text": "Hello room"},
+            headers=auth_headers(credentials["csrf_token"]),
+            cookies=auth_cookies(credentials["session_token"], credentials["csrf_token"]),
+        )
+        self.assertEqual(response.status_code, 403, response.text)
+        self.assertEqual(response.json()["code"], "sign_rejected")

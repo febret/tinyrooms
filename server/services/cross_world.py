@@ -174,6 +174,7 @@ class CrossWorldService:
             response = await client.get(
                 f"https://{self._config.mc_endpoint}/api/mc/instances/{world_id}/destination",
                 headers={"X-MC-Token": self._config.mc_token or ""},
+                params={"host": self._local_hostname()},
             )
         except httpx.HTTPError as exc:
             raise CommandError("The destination world could not be reached right now.") from exc

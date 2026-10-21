@@ -1,38 +1,5 @@
 /** Pure helpers for the paintball board renderer. No Three.js or DOM here. */
 
-export const PAINTBALL_PHASES = Object.freeze({
-  active: "LIVE",
-  intermission: "NEXT ROUND",
-});
-
-/** Sort a game state's scoreboard into display order. */
-export function scoreEntries(state) {
-  const raw = Array.isArray(state?.scoreboard) ? state.scoreboard : [];
-  return raw
-    .map(entry => ({
-      id: String(entry?.id || ""),
-      name: String(entry?.name || "Peep"),
-      hits: Math.max(0, Number(entry?.hits || 0)),
-      shots: Math.max(0, Number(entry?.shots || 0)),
-      accuracy: Number(entry?.accuracy || 0),
-    }))
-    .filter(entry => entry.id)
-    .sort((a, b) => (b.hits - a.hits) || (b.accuracy - a.accuracy) || a.name.localeCompare(b.name));
-}
-
-/** Human-readable phase label for the scoreboard. */
-export function phaseLabel(state) {
-  return PAINTBALL_PHASES[state?.phase] || "WAITING";
-}
-
-/** Format seconds as M:SS, clamped at zero. */
-export function formatClock(seconds) {
-  const total = Math.max(0, Math.floor(Number(seconds) || 0));
-  const minutes = Math.floor(total / 60);
-  const remainder = total % 60;
-  return `${minutes}:${String(remainder).padStart(2, "0")}`;
-}
-
 /** Deterministic per-splat rotation and scale derived from its id. */
 export function splatTransform(id, fallbackIndex = 0) {
   const text = String(id ?? fallbackIndex);

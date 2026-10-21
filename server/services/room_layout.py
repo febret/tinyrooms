@@ -8,6 +8,7 @@ import re
 import uuid
 
 from server.content.surface_props import (
+    DEFAULT_SIGN_STYLE,
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
     SIGN_PROP_ID,
@@ -39,6 +40,15 @@ from server.services.prop_shop import PropShopService, serialize_prop_entry
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.state.migrations import DatabaseHub
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
+
+
+def _read_sign_style(raw_value: object) -> str:
+    """Return a stored sign style, falling back when legacy data is invalid."""
+
+    try:
+        return validate_sign_style(raw_value)
+    except ValueError:
+        return DEFAULT_SIGN_STYLE
 
 
 _HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
@@ -302,7 +312,7 @@ class RoomLayoutService:
             ),
             "render_kind": definition.render_kind,
             **({"text": dict(instance.text)} if instance.text is not None else {}),
-            **({"sign_style": validate_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
+            **({"sign_style": _read_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
             **({"surface": surface} if surface is not None else {}),
             "label": definition.label,
             "description": definition.description,
@@ -375,6 +385,8 @@ class RoomLayoutService:
             definition = self._world.props.get(str(entry["prop_id"]))
             if definition is not None:
                 entry["render_kind"] = definition.render_kind
+                if definition.render_kind == "sign":
+                    entry["sign_style"] = _read_sign_style(entry.get("sign_style"))
                 entry.update(self._effect_payload(room.id, str(entry["id"]), definition))
                 kind = surface_kind(definition.render_kind)
                 if kind is not None and self._surfaces is not None:

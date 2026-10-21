@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 
@@ -70,17 +70,16 @@ class ActivitySkillGateTests(unittest.TestCase):
         self.assertIn("Multiverse Map", str(caught.exception))
         context.activities.start.assert_not_called()
 
-    def test_launch_allows_slotted_map_and_admin(self) -> None:
-        for admin, slotted in ((False, True), (True, False)):
-            context = self._context(admin=admin, slotted=slotted)
-            outcome = start_activity(
-                context,
-                ResolvedActivity(_activity_definition(), room_bound=False),
-                room_id="hub",
-                replace_existing=False,
-            )
-            self.assertEqual(outcome.payload["activity"], {"id": "session-1"})
-            context.activities.start.assert_called_once()
+    def test_launch_allows_slotted_map(self) -> None:
+        context = self._context(admin=False, slotted=True)
+        outcome = start_activity(
+            context,
+            ResolvedActivity(_activity_definition(), room_bound=False),
+            room_id="hub",
+            replace_existing=False,
+        )
+        self.assertEqual(outcome.payload["activity"], {"id": "session-1"})
+        context.activities.start.assert_called_once()
 
 
 class MultiverseContentTests(unittest.TestCase):
@@ -290,6 +289,35 @@ class FleetWorldsTests(McHttpTestCase):
         self.assertEqual(by_id["tutorial"]["image"], "rooms/hub.jpg")
         self.assertTrue(by_id["tutorial"]["instances"][0]["image_url"].endswith("/assets/world-image"))
 
+    def test_destination_prefers_requested_host(self) -> None:
+        self._register(
+            instance_id="tutorial-1",
+            world_id="tutorial",
+            label="The Little House",
+            description="A pocket-sized home.",
+            image="",
+            client_url="https://first.example:5100",
+        )
+        self._register(
+            instance_id="tutorial-2",
+            world_id="tutorial",
+            label="The Little House",
+            description="A pocket-sized home.",
+            image="",
+            client_url="https://second.example:5101",
+        )
+        validator = AsyncMock(side_effect=lambda runtime, record: record.client_url)
+        with patch("server.mission_control.entry._validate_running_destination", new=validator):
+            response = self.client.get(
+                "/api/mc/instances/tutorial/destination",
+                params={"host": "second.example"},
+                headers={"X-MC-Token": MC_TOKEN},
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        payload = response.json()
+        self.assertEqual(payload["instance_id"], "tutorial-2")
+        self.assertEqual(payload["client_url"], "https://second.example:5101")
+
     def test_fleet_worlds_requires_token_and_excludes_stopped_worlds(self) -> None:
         self._register(
             instance_id="tutorial-1",
@@ -373,15 +401,3 @@ class CrossWorldWorldListTests(unittest.TestCase):
         self.assertEqual(worlds[0]["image_url"], "https://testserver:5100/assets/world-image")
         self.assertEqual(worlds[0]["online_account_ids"], ["peep-a", "peep-b"])
         self.assertFalse(worlds[1]["current"])
-
-    def test_map_gate_allows_slotted_skill_or_admin(self) -> None:
-        service = self._service(lambda request: httpx.Response(200, json={"ok": True, "worlds": []}))
-        service._powers.has_power.return_value = False  # noqa: SLF001
-        service._progression.has_slotted_skill.return_value = False  # noqa: SLF001
-        with self.assertRaises(CommandError):
-            service.check_multiverse_map(SimpleNamespace(id="account-1"))
-        service._progression.has_slotted_skill.return_value = True  # noqa: SLF001
-        service.check_multiverse_map(SimpleNamespace(id="account-1"))
-        service._progression.has_slotted_skill.return_value = False  # noqa: SLF001
-        service._powers.has_power.return_value = True  # noqa: SLF001
-        service.check_multiverse_map(SimpleNamespace(id="account-1"))

@@ -220,21 +220,28 @@ document.querySelector("#clear").onclick = () => {
 
 saveButton.onclick = async () => {
   if (!instanceId) return;
+  const snapshot = clone(content);
   saveButton.disabled = true;
   status.textContent = "Saving whiteboard…";
   try {
     const response = await TinyActivity.saveSurface(content);
     const surface = response?.payload?.surface;
-    if (surface) {
-      revision = Number(surface.revision || revision);
-      content = {
-        strokes: Array.isArray(surface.content?.strokes) ? clone(surface.content.strokes) : content.strokes,
-        texts: Array.isArray(surface.content?.texts) ? clone(surface.content.texts) : content.texts,
-      };
+    if (surface) revision = Number(surface.revision ?? revision);
+    if (JSON.stringify(content) === JSON.stringify(snapshot)) {
+      if (surface) {
+        content = {
+          strokes: Array.isArray(surface.content?.strokes) ? clone(surface.content.strokes) : content.strokes,
+          texts: Array.isArray(surface.content?.texts) ? clone(surface.content.texts) : content.texts,
+        };
+      }
+      dirty = false;
+      status.textContent = `Saved revision ${revision}`;
+      TinyActivity.toast("Whiteboard saved.");
+    } else {
+      dirty = true;
+      status.textContent = `Saved revision ${revision}; newer edits not yet saved`;
     }
-    dirty = false;
-    status.textContent = `Saved revision ${revision}`;
-    TinyActivity.toast("Whiteboard saved.");
+    saveButton.disabled = false;
     requestRender();
   } catch (error) {
     saveButton.disabled = false;

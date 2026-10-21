@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import json
 from pathlib import Path
 import sqlite3
 import threading
@@ -10,6 +11,27 @@ import threading
 
 PROFILE_SCHEMA_VERSION = 11
 WORLD_SCHEMA_VERSION = 17
+
+
+def read_behavior_state(
+    connection: sqlite3.Connection,
+    namespace: str,
+    instance_id: str,
+) -> dict[str, object] | None:
+    """Return one behavior-state mapping, or None when absent or invalid."""
+
+    row = connection.execute(
+        "SELECT state_json FROM world.behavior_state WHERE namespace = ? AND instance_id = ?",
+        (namespace, instance_id),
+    ).fetchone()
+    if row is None:
+        return None
+    try:
+        raw = json.loads(row["state_json"])
+    except (TypeError, ValueError):
+        return None
+    return raw if isinstance(raw, dict) else None
+
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -349,6 +371,7 @@ _WORLD_TABLES = frozenset(
         "activity_records",
         "npc_peep_states",
         "prop_surfaces",
+        "vibes",
     }
 )
 
@@ -1003,6 +1026,7 @@ def ensure_world_database(path: Path) -> None:
             "activity_records": _ACTIVITY_RECORDS_COLUMNS,
             "npc_peep_states": _NPC_PEEP_STATES_COLUMNS,
             "prop_surfaces": _PROP_SURFACES_COLUMNS,
+            "vibes": _VIBES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",

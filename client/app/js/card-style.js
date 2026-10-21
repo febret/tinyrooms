@@ -13,8 +13,6 @@ export const TYPE_ACCENTS = {
 
 export const DEFAULT_TYPE_ACCENT = ["#7a6235", "#3f3016"];
 
-export const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "legendary"];
-
 export const RARITY_STYLES = {
   common: {
     key: "common",

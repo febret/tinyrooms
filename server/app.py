@@ -46,6 +46,8 @@ from server.routes import card_database as card_database_routes
 from server.routes import chiptune as chiptune_routes
 from server.routes import cutscenes as cutscene_routes
 from server.routes import prop_editor as prop_editor_routes
+from server.routes import room_layout as room_layout_routes
+from server.routes import surfaces as surface_routes
 from server.routes import world_editor as world_editor_routes
 from server.routes.activity_bridge import handle_activity_result
 from server.routes.static_files import register_static_routes
@@ -94,7 +96,7 @@ from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.prop_editor import PropEditorService
 from server.services.prop_shop import PropShopService
-from server.services.prop_surfaces import PropSurfaceService, surface_kind
+from server.services.prop_surfaces import PropSurfaceService
 from server.services.prop_states import PropStateService
 from server.services.room_effects import RoomEffectService
 from server.services.room_layout import RoomLayoutService
@@ -114,7 +116,7 @@ from server.services.tasks import TaskService
 from server.services.world_editor import WorldEditorService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from server.state.npc_peep_states import NpcPeepStateRepository
-from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
+from server.state.world_state import WorldStateRepository
 
 
 LOGGER = logging.getLogger("tinyrooms.server")
@@ -158,19 +160,6 @@ class ActivityBridgeRequest(BaseModel):
 
     type: str
     payload: dict[str, object] = Field(default_factory=dict)
-
-
-class LayoutSaveRequest(BaseModel):
-    """Room layout save request payload."""
-
-    base_revision: int = Field(ge=0)
-    patch: dict[str, object] = Field(default_factory=dict)
-
-
-class SignSaveRequest(BaseModel):
-    """Sign text save request payload."""
-
-    text: str
 
 
 @dataclass(slots=True)
@@ -559,6 +548,7 @@ def _build_runtime(
         surfaces=surfaces,
         powers=powers,
         music=music,
+        vibes=vibes,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(
@@ -891,91 +881,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             "rtc": {"ice_servers": runtime.config.ice_servers},
         }
 
-    @app.get("/api/rooms/{room_id}/layout")
-    async def get_room_layout(request: Request, room_id: str) -> dict[str, object]:
-        runtime = _get_runtime(request)
-        session = _require_session(runtime, request)
-        if room_id not in runtime.world.rooms:
-            raise HTTPException(status_code=404, detail="Room not found.")
-        account = runtime.profiles.get_account_by_id(session.account_id)
-        return {"ok": True, "layout": runtime.layout.view(account, room_id)}
-
-    @app.post("/api/rooms/{room_id}/layout")
-    async def save_room_layout(request: Request, room_id: str, payload: LayoutSaveRequest) -> Response:
-        runtime = _get_runtime(request)
-        session = _require_session(runtime, request)
-        _enforce_authenticated_post(runtime, request, session)
-        if room_id not in runtime.world.rooms:
-            raise HTTPException(status_code=404, detail="Room not found.")
-        account = runtime.profiles.get_account_by_id(session.account_id)
-        try:
-            update = runtime.layout.save(account, room_id, payload.base_revision, payload.patch)
-        except LayoutRevisionConflict as exc:
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "ok": False,
-                    "code": "revision_conflict",
-                    "message": str(exc),
-                    "layout": runtime.layout.view(account, room_id),
-                },
-            )
-        except ValueError as exc:
-            return _json_error(400, "layout_rejected", str(exc))
-        await _broadcast_room_event(runtime, room_id=room_id, event=update.event())
-        return JSONResponse(content={"ok": True, "layout": runtime.layout.view(account, room_id)})
-
-    @app.post("/api/rooms/{room_id}/reset")
-    async def reset_room_layout(request: Request, room_id: str) -> Response:
-        runtime = _get_runtime(request)
-        session = _require_session(runtime, request)
-        _enforce_authenticated_post(runtime, request, session)
-        if room_id not in runtime.world.rooms:
-            raise HTTPException(status_code=404, detail="Room not found.")
-        account = runtime.profiles.get_account_by_id(session.account_id)
-        try:
-            reset = runtime.layout.reset(account, room_id)
-        except ValueError as exc:
-            return _json_error(400, "reset_rejected", str(exc))
-        runtime.dispensers.clear_room(reset.prop_instance_ids)
-        await _broadcast_room_event(runtime, room_id=room_id, event=reset.event())
-        return JSONResponse(content={"ok": True, "layout": runtime.layout.view(account, room_id)})
-
-    @app.post("/api/rooms/{room_id}/signs/{instance_id}")
-    async def save_sign_text(
-        request: Request,
-        room_id: str,
-        instance_id: str,
-        payload: SignSaveRequest,
-    ) -> object:
-        runtime = _get_runtime(request)
-        session = _require_session(runtime, request)
-        _enforce_authenticated_post(runtime, request, session)
-        try:
-            prop = runtime.rooms.require_prop_target(room_id, instance_id)
-        except ValueError as exc:
-            return _json_error(400, "sign_rejected", str(exc))
-        definition = runtime.world.props[prop.prop_id]
-        if surface_kind(definition.render_kind) != "sign":
-            return _json_error(400, "sign_rejected", "That prop is not a sign.")
-        try:
-            surface = runtime.surfaces.save_sign(
-                room_id, instance_id, session.account_id, {"text": payload.text}
-            )
-        except ValueError as exc:
-            return _json_error(400, "sign_rejected", str(exc))
-        await _broadcast_room_event(
-            runtime,
-            room_id=room_id,
-            event={
-                "type": "room.prop.surface",
-                "room_id": room_id,
-                "prop_id": instance_id,
-                "surface": surface.serialize(),
-            },
-        )
-        return {"ok": True, "surface": surface.serialize()}
-
     @app.get("/api/activities/current")
     async def current_activity(request: Request) -> dict[str, object]:
         runtime = _get_runtime(request)
@@ -1263,6 +1168,8 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
     app.include_router(prop_editor_routes.router)
+    app.include_router(room_layout_routes.router)
+    app.include_router(surface_routes.router)
     app.include_router(chiptune_routes.router)
     app.include_router(cutscene_routes.router)
     if loaded_config.mc_endpoint:

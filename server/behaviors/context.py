@@ -67,6 +67,7 @@ class BehaviorContext:
         room_users: Callable[[str], Awaitable[list[dict[str, object]]]] | None = None,
         bops: int = 0,
         powers: frozenset[str] = frozenset(),
+        vibe_toward: Callable[[str], int] | None = None,
     ) -> None:
         self.event = event
         self.actor = actor
@@ -85,6 +86,7 @@ class BehaviorContext:
         self._room_users = room_users
         self._bops = int(bops)
         self._powers = frozenset(powers)
+        self._vibe_toward = vibe_toward
         self.actor_username = str(actor_username or "")
         self.intents: list[Intent] = []
 

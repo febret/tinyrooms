@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { boardPositionToSquare, gridConfig, squareToBoardPosition } from "../../client/app/js/board-games/grid-geometry.js";
+import { boardCoordinate } from "../../client/app/js/board-games/paintball.js";
 
 const CONFIG = {
   columns: 8,
@@ -34,4 +35,15 @@ test("boardPositionToSquare reverses square centers", () => {
     assert.equal(boardPositionToSquare(CONFIG, position), square);
   }
   assert.equal(boardPositionToSquare(CONFIG, [0, 0]), "");
+});
+
+test("paintball board coordinates preserve zero and reject malformed values", () => {
+  assert.equal(boardCoordinate(0), 0);
+  assert.equal(boardCoordinate("0"), 0);
+  assert.equal(boardCoordinate(42), 42);
+  assert.equal(boardCoordinate(null), 50);
+  assert.equal(boardCoordinate(undefined), 50);
+  assert.equal(boardCoordinate(""), 50);
+  assert.equal(boardCoordinate("nope"), 50);
+  assert.equal(boardCoordinate(Number.NaN), 50);
 });
