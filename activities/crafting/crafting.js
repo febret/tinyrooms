@@ -60,7 +60,7 @@
   function renderRecipeList() {
     const recipes = configuredRecipes();
     const unavailable = recipes.filter(recipe => !recipeAvailability(recipe).available).length;
-    recipeCount.textContent = `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}${unavailable ? ` · ${unavailable} missing` : ""}`;
+    recipeCount.textContent = `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}${unavailable ? ` · ${unavailable} unavailable` : ""}`;
     if (!recipes.length) {
       const empty = document.createElement("p");
       empty.className = "empty";
@@ -199,7 +199,6 @@
       </div>
       <div class="ingredient-grid">${ingredients}</div>
       <div class="detail-actions">
-        <span class="cost">${icon("icon-bolt")}${cost ? `${cost} Energy to craft` : "No Energy cost"}</span>
         <button type="button" class="primary craft-button" id="confirm" ${isReady() && !busy ? "" : "disabled"}>
           ${icon("icon-pot")} Craft ${TinyActivity.escape(output?.label || "recipe")}
         </button>

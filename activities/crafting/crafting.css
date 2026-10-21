@@ -62,9 +62,7 @@
 .stack-have { color: var(--muted); font-size: 9px; white-space: nowrap; }
 .smallprint { font-size: 10px; }
 
-.detail-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; }
-.cost { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; }
-.cost .icon { width: 12px; height: 12px; color: #ffe47a; fill: #ffe47a; stroke: none; }
+.detail-actions { display: flex; justify-content: flex-end; margin-top: 9px; }
 .craft-button { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 16px; overflow: hidden; border-color: #a4d18488; background: linear-gradient(#5c9c45, #2b5e22); box-shadow: inset 0 1px 0 #ffffff33, 0 5px 14px #0005; font-weight: 800; }
 .craft-button .icon { width: 17px; height: 17px; }
 .craft-button:not(:disabled)::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 25%, #ffffff30 45%, transparent 65%); transform: translateX(-120%); animation: shimmer 2.4s ease-in-out infinite; }
