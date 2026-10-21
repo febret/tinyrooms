@@ -1,9 +1,11 @@
+import { decalDataUrl } from "../decals.js";
 import { escapeHtml } from "../presentation.js";
 import { counterBar, journalSpreadMarkup, modalShell } from "./view-helpers.js";
 
 export function selfPagesMarkup(state) {
   const user = state.user || {};
   const counters = user.counters || {};
+  const decalUrl = decalDataUrl(user.id, counters.decals);
   const kudos = Number.isFinite(user.kudos) ? user.kudos : 0;
   const cost = user.kudosToNext;
   const hasNextLevel = Number.isFinite(cost) && cost >= 0;
@@ -21,7 +23,12 @@ export function selfPagesMarkup(state) {
     left: `
       <p class="journal-eyebrow">A little about you</p>
       <div class="profile-identity">
-        ${user.stickerUrl ? `<img class="profile-sticker" src="${escapeHtml(user.stickerUrl)}" alt="${escapeHtml(user.username || "Your")} sticker">` : '<div class="journal-sticker-placeholder" aria-hidden="true">✦</div>'}
+        ${user.stickerUrl
+          ? `<span class="profile-sticker-frame">
+              <img class="profile-sticker" src="${escapeHtml(user.stickerUrl)}" alt="${escapeHtml(user.username || "Your")} sticker">
+              ${decalUrl ? `<img class="profile-sticker-decals" src="${escapeHtml(decalUrl)}" alt="" aria-hidden="true">` : ""}
+            </span>`
+          : '<div class="journal-sticker-placeholder" aria-hidden="true">✦</div>'}
         <h3 class="journal-name">${escapeHtml(user.username || "You")}</h3>
         <p class="journal-level">Level ${escapeHtml(user.level ?? 0)} · ${escapeHtml(user.levelLabel || "Guest")}</p>
       </div>

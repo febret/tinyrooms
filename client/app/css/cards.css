@@ -14,6 +14,7 @@
 .game-card:focus-visible { outline: 3px solid #d4f3ff; outline-offset: 4px; z-index: 3; }
 .card-badge { position: absolute; padding: 2px 6px; min-width: 22px; border-radius: 12px; background: #061016ec; color: #fff; border: 1px solid #c5d7d6; font-size: 13px; line-height: 18px; font-weight: bold; text-align: center; }
 .quantity-badge { right: -4px; bottom: -3px; }
+.hand-quantity-badge { right: 3px; bottom: 3px; z-index: 1; padding: 1px 4px; min-width: 16px; font-size: 11px; line-height: 14px; }
 .pin-badge { left: -4px; top: -4px; color: #f2c68c; }
 .equipped-badge { right: -4px; top: -4px; color: #c7f092; }
 .equipped-hand { --hand-gap: 8px; display: flex; flex-wrap: wrap-reverse; align-items: flex-end; justify-content: flex-end; gap: var(--hand-gap); max-width: 100%; max-height: 100%; min-width: 0; padding: 8px 5px 8px; overflow: auto; scrollbar-width: none; pointer-events: none; }
@@ -102,7 +103,6 @@
   .inventory-preview-description { display: none; }
   .inventory-preview-name { font-size: 17px; }
   .inventory-preview-metrics { margin-top: 6px; font-size: 12px; }
-  .journal-spine { display: none; }
   .details-metrics { font-size: 13px; }
 }
 @media (max-width: 480px) {
@@ -201,7 +201,7 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .journal-page-left { border-radius: 6px 2px 2px 6px; box-shadow: inset -22px 0 26px -20px rgba(80, 54, 30, .55); }
 .journal-page-right { border-radius: 2px 6px 6px 2px; box-shadow: inset 22px 0 26px -20px rgba(80, 54, 30, .55); }
 .journal-page-inner { height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--journal-edge) transparent; padding-right: 4px; }
-.journal-spine { background: linear-gradient(90deg, rgba(70, 48, 28, 0) 0%, rgba(70, 48, 28, .22) 40%, rgba(38, 24, 13, .5) 50%, rgba(70, 48, 28, .22) 60%, rgba(70, 48, 28, 0) 100%); }
+.journal-spine { position: absolute; inset: 0 auto 0 50%; width: clamp(18px, 3vw, 34px); transform: translateX(-50%); background: linear-gradient(90deg, rgba(70, 48, 28, 0) 0%, rgba(70, 48, 28, .22) 40%, rgba(38, 24, 13, .5) 50%, rgba(70, 48, 28, .22) 60%, rgba(70, 48, 28, 0) 100%); pointer-events: none; z-index: 2; }
 .journal-flourish { display: block; width: min(150px, 60%); height: auto; margin: 2px auto; opacity: .75; }
 .journal-calendar { font-family: var(--journal-serif); }
 .cal-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -262,10 +262,11 @@ body.card-dragging .equipped-hand .hand-icon { cursor: grabbing; }
 .pack-reveal-card { margin: 0; flex: 0 1 130px; min-width: 0; }
 .pack-reveal-card .card-face { width: 100%; filter: drop-shadow(0 8px 12px #0008); }
 .pack-reveal-card figcaption { font-size: 12px; margin-top: 6px; }
-@media (max-width: 780px), (orientation: portrait) {
+@media (max-width: 780px) {
   .journal-view { padding: 10px 10px 14px; }
   .journal-book { flex: 0 0 auto; padding: 10px; border-radius: 12px; }
   .journal-pages { display: block; overflow: visible; }
+  .journal-spine { display: none; }
   .journal-page { padding: 14px; }
   .journal-page-left { border-radius: 8px 8px 2px 2px; box-shadow: inset 0 -18px 24px -20px rgba(80, 54, 30, .5); }
   .journal-page-right { border-radius: 2px 2px 8px 8px; box-shadow: inset 0 18px 24px -20px rgba(80, 54, 30, .5); }

@@ -14,6 +14,7 @@ PIECE_VALUES = {"P": 1, "N": 3, "B": 3, "R": 5, "Q": 9, "K": 0}
 RESET_POWERS = ("admin", "moderator", "game-master")
 WIN_KUDOS = 3
 MOVE_LIMIT = 50
+MOVE_ENERGY_COST = 5
 KNIGHT_DELTAS = ((1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2))
 KING_DELTAS = ((1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1))
 SLIDING_DIRECTIONS = {
@@ -501,6 +502,9 @@ def on_quick_action(context, event):
         promoted = [move for move in candidates if move["promotion"]]
         candidates = [move for move in promoted if move["promotion"] == "q"] or candidates
     move = candidates[0]
+    if context.counter("energy") < MOVE_ENERGY_COST:
+        context.feedback(f"Not enough Energy to move (needs {MOVE_ENERGY_COST}).", "error")
+        return
     piece = state["board"][move["from"]]
     mover = _color(piece)
     captured_code = _kind(state["board"][move["to"]])
@@ -508,6 +512,7 @@ def on_quick_action(context, event):
         captured_index = move["to"] + (8 if mover == "w" else -8)
         captured_code = _kind(state["board"][captured_index])
     next_board, next_state = _apply_move(state["board"], state, move)
+    context.apply_counter("energy", -MOVE_ENERGY_COST)
     public = _public_state(next_state)
     limit_reached = int(next_state.get("move_number", 0)) >= MOVE_LIMIT
     _publish(context, _initial_state(context) if limit_reached else next_state)

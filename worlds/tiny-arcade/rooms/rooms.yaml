@@ -359,13 +359,13 @@ chess:
       bQ: chess-queen-black
       bK: chess-king-black
     effects:
-      threat: [ember-glow]
-      check: [ember-glow, fire]
+      threat: [threat-outline]
+      check: [threat-outline, fire]
     config:
       columns: 8
       rows: 8
-      origin: [19, 11.7]
-      size: [62, 76.6]
+      origin: [9.5, 0]
+      size: [81, 100]
       light: '#efdfbd'
       dark: '#5b3b28'
   exits:

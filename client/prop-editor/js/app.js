@@ -381,6 +381,7 @@ function addLayer(type) {
   const layer = { type };
   if (type === "transform") layer.motion = "bob";
   else if (type === "material") layer.emissive = "#ffffff";
+  else if (type === "outline") layer.color = "#ff4d4d";
   else {
     layer.preset = "smoke";
     layer.texture = (state.enums.textures || [])[0] || "smoke-puff.png";

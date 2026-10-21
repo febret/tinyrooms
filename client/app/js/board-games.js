@@ -21,6 +21,7 @@ export function createBoardGames({
   screenToBoardPosition,
   pixelScale,
   invalidate,
+  invalidateShadows,
   reactSprite,
   renderers = DEFAULT_RENDERERS,
 }) {
@@ -42,6 +43,7 @@ export function createBoardGames({
     screenToBoardPosition,
     pixelScale,
     invalidate,
+    invalidateShadows,
     reactSprite(id, options) {
       return Boolean(reactSprite?.(id, options));
     },

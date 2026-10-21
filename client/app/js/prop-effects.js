@@ -6,9 +6,10 @@ import { withBase } from "./base-path.js";
  * Render YAML-defined prop effects in the room board.
  *
  * An effect set is a list of effect descriptors, each with ordered layers.
- * Three layer types are supported: `transform` (animated transformation of
+ * Four layer types are supported: `transform` (animated transformation of
  * the host), `material` (emissive/opacity/colour changes on the host's
- * meshes), and `particle` (a procedural additive/soft sprite overlay).
+ * meshes), `outline` (a coloured inverted-hull silhouette), and `particle`
+ * (a procedural additive/soft sprite overlay).
  *
  * The returned controller is inert when motion is reduced so visual snapshots
  * stay deterministic; `createPropEffects` returns null in that case.
@@ -136,6 +137,44 @@ function materialLayer({ model, layer }) {
   }
 
   return { update, dispose, isAnimating };
+}
+
+function outlineLayer({ model, layer }) {
+  const color = new THREE.Color(layer.color || "#ff4d4d");
+  const thickness = Math.max(0, Number(layer.thickness) || 0.035);
+  const opacity = Number.isFinite(layer.opacity) ? Math.max(0, Math.min(1, layer.opacity)) : 0.6;
+  const saved = [];
+  const meshes = [];
+  model.traverse(node => {
+    if (node.isMesh && !node.isSkinnedMesh && node.geometry && !node.userData.propEffectOutline) {
+      meshes.push(node);
+    }
+  });
+  for (const node of meshes) {
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      side: THREE.BackSide,
+      transparent: opacity < 1,
+      opacity,
+      depthWrite: false,
+    });
+    const outline = new THREE.Mesh(node.geometry, material);
+    outline.userData.propEffectOutline = true;
+    outline.scale.setScalar(1 + thickness);
+    outline.renderOrder = -1;
+    node.add(outline);
+    saved.push([node, outline, material]);
+  }
+
+  function dispose() {
+    for (const [node, outline, material] of saved) {
+      node.remove(outline);
+      material.dispose();
+    }
+    saved.length = 0;
+  }
+
+  return { update() {}, isAnimating: () => false, dispose };
 }
 
 function particleLayer({ group, bounds, layer, loader, pixelScale, wake }) {
@@ -326,6 +365,7 @@ function buildLayer(context, layer) {
   if (!layer || typeof layer !== "object") return null;
   if (layer.type === "transform") return transformLayer({ visual: context.visual, layer });
   if (layer.type === "material") return materialLayer({ model: context.model, layer });
+  if (layer.type === "outline") return outlineLayer({ model: context.model, layer });
   if (layer.type === "particle") return particleLayer({ ...context, layer });
   return null;
 }

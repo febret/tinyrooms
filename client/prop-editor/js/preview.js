@@ -19,7 +19,7 @@ function effectSignature(effectSets, activeEffect) {
  * Full-bleed model preview for the Prop Editor.
  *
  * Renders the selected prop's model with its active effect set (transform,
- * material, and particle layers), matching how the room board renders effects.
+ * material, outline, and particle layers), matching how the room board renders effects.
  * `setProp` is idempotent: it only rebuilds when the model, scale, or effect
  * signature changes, so it is safe to call on every editor render.
  */

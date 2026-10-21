@@ -1268,7 +1268,7 @@ export function hasSlottedSkill(state, cardDefinitionId) {
 export function isTargetableStack(stack) {
   const definition = stack?.definition;
   const type = definition?.type || "item";
-  return Boolean(stack?.equipped && ["prop", "peep"].includes(definition?.target) && (type === "item" || type === "action")
+  return Boolean(["prop", "peep"].includes(definition?.target) && (type === "item" || type === "action")
     && (definition.target === "prop" || definition.effect) && !definition.passive && !definition.decorative);
 }
 

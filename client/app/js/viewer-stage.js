@@ -86,6 +86,10 @@ export function createViewerStage({ canvas, interactive, lighting = {} }) {
       controls?.dispose();
       disposeBoardTree([pivot, ...extraRoots]);
       renderer.dispose();
+      // dispose() frees GPU objects but keeps the canvas context alive until GC.
+      // Preview canvases are replaced often, so release the context immediately
+      // rather than letting them accumulate and evict the room board's context.
+      renderer.forceContextLoss();
     },
   };
 }

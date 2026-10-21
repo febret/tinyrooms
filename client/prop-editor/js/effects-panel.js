@@ -57,6 +57,16 @@ function materialLayer(layer, index) {
   `;
 }
 
+function outlineLayer(layer, index) {
+  return `
+    <div class="pe-field-row">
+      ${field("Color", textInput(layer.color || "#ff4d4d", `data-pe-effect="layers.${index}.color" data-pe-kind="text"`, "#ff4d4d"))}
+      ${field("Thickness", numberInput(layer.thickness ?? 0.035, `data-pe-effect="layers.${index}.thickness" data-pe-kind="number"`))}
+      ${field("Opacity", numberInput(layer.opacity ?? 0.6, `data-pe-effect="layers.${index}.opacity" data-pe-kind="number"`))}
+    </div>
+  `;
+}
+
 function particleLayer(layer, index, enums) {
   return `
     <div class="pe-field-row">
@@ -87,6 +97,7 @@ function layerEditor(layer, index, enums) {
   let body = "";
   if (type === "transform") body = transformLayer(layer, index, enums);
   else if (type === "material") body = materialLayer(layer, index);
+  else if (type === "outline") body = outlineLayer(layer, index);
   else if (type === "particle") body = particleLayer(layer, index, enums);
   return `
     <div class="pe-layer">
@@ -123,6 +134,7 @@ export function renderEffectsPanel(state) {
         <div class="pe-actions">
           <button type="button" class="pe-quiet" data-pe-add-layer="transform">Add transform</button>
           <button type="button" class="pe-quiet" data-pe-add-layer="material">Add material</button>
+          <button type="button" class="pe-quiet" data-pe-add-layer="outline">Add outline</button>
           <button type="button" class="pe-quiet" data-pe-add-layer="particle">Add particle</button>
         </div>
       </fieldset>

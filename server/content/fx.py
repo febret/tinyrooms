@@ -1,11 +1,11 @@
 """Strict loader for prop effect definitions under ``data/fx``.
 
 An effect is a named, ordered stack of layers applied to a rendered 3D
-object. Three layer types are supported today: ``transform`` (animated
+object. Four layer types are supported today: ``transform`` (animated
 transformation of the host), ``material`` (emissive/opacity/colour changes),
-and ``particle`` (a procedural overlay such as smoke, fire, or sparks).
-Effect definitions are pure client-render metadata; the server only
-validates and serializes them.
+``outline`` (a coloured inverted-hull silhouette), and ``particle`` (a
+procedural overlay such as smoke, fire, or sparks). Effect definitions are
+pure client-render metadata; the server only validates and serializes them.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ FX_ASSET_PREFIX = "/assets/fx"
 TRANSFORM_MOTIONS = frozenset({"bob", "spin", "spin-y", "pulse", "sway", "shake"})
 PARTICLE_PRESETS = frozenset({"smoke", "fire", "sparks"})
 PARTICLE_ANCHORS = frozenset({"base", "center", "top"})
-LAYER_TYPES = frozenset({"transform", "material", "particle"})
+LAYER_TYPES = frozenset({"transform", "material", "outline", "particle"})
 TEXTURE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
 
 
@@ -150,6 +150,25 @@ class MaterialLayer:
 
 
 @dataclass(frozen=True, slots=True)
+class OutlineLayer:
+    """A coloured inverted-hull silhouette around the host's meshes."""
+
+    # thickness expands the hull proportionally (0.035 is a thin outline);
+    # opacity fades it without changing the host's own materials.
+    color: str
+    thickness: float
+    opacity: float
+
+    def serialize(self) -> dict[str, object]:
+        return {
+            "type": "outline",
+            "color": self.color,
+            "thickness": self.thickness,
+            "opacity": self.opacity,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class ParticleLayer:
     """A procedural particle overlay emitted from an anchor on the host."""
 
@@ -198,7 +217,7 @@ class ParticleLayer:
         }
 
 
-EffectLayer = TransformLayer | MaterialLayer | ParticleLayer
+EffectLayer = TransformLayer | MaterialLayer | OutlineLayer | ParticleLayer
 
 
 @dataclass(frozen=True, slots=True)
@@ -249,6 +268,17 @@ def _load_material_layer(raw_layer: Mapping[str, Any], effect_id: str, index: in
         opacity=opacity,
         flicker=_number(raw_layer.get("flicker"), f"{label} flicker", default=0.0, minimum=0.0, maximum=1.0),
         flicker_hz=_number(raw_layer.get("flicker_hz"), f"{label} flicker_hz", default=6.0, minimum=0.0),
+    )
+
+
+def _load_outline_layer(raw_layer: Mapping[str, Any], effect_id: str, index: int) -> OutlineLayer:
+    label = f"Effect '{effect_id}' layer {index} outline"
+    return OutlineLayer(
+        color=_color(raw_layer.get("color"), f"{label} color", default="#ff4d4d"),
+        thickness=_number(
+            raw_layer.get("thickness"), f"{label} thickness", default=0.035, minimum=0.0, maximum=0.5
+        ),
+        opacity=_number(raw_layer.get("opacity"), f"{label} opacity", default=0.6, minimum=0.0, maximum=1.0),
     )
 
 
@@ -305,6 +335,8 @@ def _load_layer(raw_layer: Any, effect_id: str, index: int, base_dir: Path) -> E
         return _load_transform_layer(raw_layer, effect_id, index)
     if layer_type == "material":
         return _load_material_layer(raw_layer, effect_id, index)
+    if layer_type == "outline":
+        return _load_outline_layer(raw_layer, effect_id, index)
     return _load_particle_layer(raw_layer, effect_id, index, base_dir)
 
 

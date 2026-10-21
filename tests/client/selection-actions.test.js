@@ -36,21 +36,31 @@ test("self peep hides friend-add and pin actions, and every peep hides look", ()
 
 
 
-test("Use requires an active effect on an equipped item or action", () => {
+test("Use is available without equipping and still requires an active effect", () => {
   for (const type of ["item", "action"]) {
-    const stack = { stackId: "card", equipped: true, quantity: 1, definition: { type } };
+    const stack = { stackId: "card", equipped: false, quantity: 1, definition: { type } };
     const labels = () => selectionActions(selectedState(stack)).map(action => action.label);
     assert.ok(!labels().includes("Use"));
     assert.ok(!labels().includes("Inspect"));
-    assert.ok(labels().includes("Unequip"));
+    assert.ok(labels().includes("Equip"));
     stack.definition.effect = "energy";
     assert.ok(labels().includes("Use"));
+    assert.ok(labels().includes("Equip"));
+    stack.equipped = true;
+    assert.ok(labels().includes("Use"));
+    assert.ok(labels().includes("Unequip"));
     stack.definition.passive = true;
     assert.ok(!labels().includes("Use"));
     stack.definition.passive = false;
     stack.definition.decorative = true;
     assert.ok(!labels().includes("Use"));
   }
+});
+
+test("targetable cards can be used from inventory without equipping", () => {
+  const stack = { stackId: "card", equipped: false, quantity: 1, definition: { type: "item", target: "prop" } };
+  const use = selectionActions(selectedState(stack)).find(action => action.label === "Use");
+  assert.deepEqual(use?.local, { type: "start-targeting", stackId: "card" });
 });
 
 test("cancelling targeting keeps the card selected without rearming it or reopening its view", () => {
@@ -90,7 +100,7 @@ test("target confirmation does not restore the cancelled card selection", () => 
 });
 
 test("targeting allows world-handled prop actions but requires an effect for peeps", () => {
-  const stack = { equipped: true, definition: { type: "item", target: "prop" } };
+  const stack = { equipped: false, definition: { type: "item", target: "prop" } };
   assert.equal(isTargetableStack(stack), true);
   stack.definition.target = "peep";
   assert.equal(isTargetableStack(stack), false);

@@ -29,6 +29,7 @@ import { createBoardOutlines } from "./board-outlines.js";
 import { createBoardSprites } from "./board-sprites.js";
 import { createBoardCards } from "./board-cards.js";
 import { createBoardScheduler } from "./board-scheduler.js";
+import { createBoardRecovery } from "./board-recovery.js";
 import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
 import { withBase } from "./base-path.js";
@@ -135,6 +136,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     screenToBoardPosition: (clientX, clientY) => screenToBoardPosition(clientX, clientY),
     pixelScale: effectPixelScale,
     invalidate,
+    invalidateShadows: invalidateScene,
     reactSprite: (id, options) => (current ? spriteLayer.react(current, id, options) : false),
   });
   gameLayer.setActionHandler(action => onGameAction?.(action));
@@ -145,7 +147,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   let gestureMoved = false;
   let blocked = true;
   let disposed = false;
-  let renderFailed = false;
   let revision = 0;
   let current = null;
   let roomId = "";
@@ -174,9 +175,24 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   let anchorsDirty = true;
   let lastAnchorUpdate = 0;
   const ANCHOR_INTERVAL_MS = 66;
+  const recovery = createBoardRecovery({
+    canvas,
+    overlay,
+    onLost() {
+      controls.enabled = false;
+      canvas.dataset.boardReady = "false";
+      overlay.dataset.status = "error";
+      overlay.textContent = "3D rendering was interrupted. Restoring the board…";
+    },
+    onRestored: contextRestored,
+    onFrameError() {
+      needsRender = true;
+      scheduler.schedule();
+    },
+  });
   const scheduler = createBoardScheduler({
     onFrame: animate,
-    onError: () => contextLost({ preventDefault() {} }),
+    onError: recovery.frameError,
   });
 
   /** Request a color frame. Use invalidateScene when geometry actually moved. */
@@ -205,7 +221,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   }
 
   function status(entry) {
-    if (!isCurrent(entry) || renderFailed) return;
+    if (!isCurrent(entry) || recovery.renderFailed) return;
     // The overlay is a live region, and these run on every load event. Writing
     // an unchanged value still counts as a DOM mutation, so compare first.
     const state = entry.errors.size ? "error" : entry.pending ? "loading" : "ready";
@@ -292,7 +308,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   }
 
   function screenToBoardPosition(clientX, clientY) {
-    if (disposed || renderFailed || !current || blocked) return null;
+    if (disposed || recovery.renderFailed || !current || blocked) return null;
     const bounds = canvasBounds();
     if (!bounds) return null;
     if (clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) return null;
@@ -838,7 +854,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
 
   function releaseOrbit() {
     orbitSuppressed = false;
-    controls.enabled = !blocked && !renderFailed;
+    controls.enabled = !blocked && !recovery.renderFailed;
   }
 
   function pointerDown(event) {
@@ -947,13 +963,18 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     invalidate();
   }
 
-  function contextLost(event) {
-    event.preventDefault();
-    renderFailed = true;
-    controls.enabled = false;
-    canvas.dataset.boardReady = "false";
-    overlay.dataset.status = "error";
-    overlay.textContent = "3D rendering was interrupted. Reload to restore the board; Room view remains available.";
+  function contextRestored() {
+    if (disposed) return;
+    clock.getDelta();
+    resize();
+    controls.enabled = !blocked && !orbitSuppressed;
+    if (current) status(current);
+    else {
+      canvas.dataset.boardReady = "false";
+      overlay.dataset.status = "idle";
+      overlay.textContent = "Your room will appear here.";
+    }
+    invalidateScene();
   }
 
   controls.addEventListener("start", markAdjusted);
@@ -962,21 +983,13 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   canvas.addEventListener("pointermove", pointerMove);
   canvas.addEventListener("pointerup", pointerUp);
   canvas.addEventListener("pointercancel", pointerCancel);
-  canvas.addEventListener("webglcontextlost", contextLost);
   const observer = new ResizeObserver(resize);
   observer.observe(canvas.parentElement);
   resize();
   /**
-   * Whether the next frame has to be drawn.
-   *
-   * The loop used to call `renderer.render` unconditionally, sixty times a
-   * second, for the whole life of the page -- including behind a modal, and for
-   * a scene where nothing was animating. A room with ninety props submits
-   * hundreds of draw calls per frame, so an always-on loop kept the CPU and GPU
-   * busy for a picture nobody was looking at.
-   *
-   * A frame is needed while something is animating, the camera is moving, or
-   * anything was invalidated since the last draw.
+   * A frame is needed while something animates, the camera moves, or anything
+   * was invalidated since the last draw. Static rooms stay idle instead of
+   * re-submitting hundreds of draw calls behind a modal.
    */
   function sceneIsAnimating() {
     if (!current) return false;
@@ -995,7 +1008,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
 
   /** One scheduler frame: advance state, draw if needed, and report whether to continue. */
   function animate() {
-    if (disposed || renderFailed) return false;
+    if (disposed || recovery.renderFailed) return false;
+    recovery.resetFrameErrors();
     const delta = Math.min(clock.getDelta(), 0.1);
     if (current) {
       if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
@@ -1045,14 +1059,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   scheduler.schedule();
 
   return {
-    /**
-     * Counters describing what the board is actually submitting to the GPU.
-     *
-     * The performance suite asserts on these rather than on frame timings, so
-     * the budgets stay deterministic on any machine. `frames` only advances
-     * while the loop is producing frames, which is what makes it possible to
-     * assert that the loop goes quiet when nothing is moving.
-     */
+    /** GPU counters used by the deterministic performance suite. */
     diagnostics() {
       let nodes = 0;
       current?.root?.traverse(() => {
@@ -1080,7 +1087,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
         shadowAutoUpdate: renderer.shadowMap.autoUpdate,
         shadowMapSize: lights.sunlight.shadow.mapSize.width,
         pixelRatio: renderer.getPixelRatio(),
-        renderFailed,
+        renderFailed: recovery.renderFailed,
       };
     },
     /** Diff normalized server state into the scene: only changed floor/props/cards are touched. */
@@ -1098,7 +1105,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       blocked = Boolean(blockingView || state.views?.details || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
       gameInputEnabled = !blocked && !state.ui?.targeting && !state.room?.dialog;
-      controls.enabled = !blocked && !renderFailed && !orbitSuppressed;
+      controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
       if (blocked) {
         pointers.clear();
         gestureMoved = true;
@@ -1109,7 +1116,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
         roomId = "";
         spritesEnabled = false;
         canvas.dataset.boardReady = "false";
-        if (!renderFailed) {
+        if (!recovery.renderFailed) {
           overlay.textContent = "Your room will appear here.";
           overlay.dataset.status = "idle";
         }
@@ -1139,7 +1146,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     screenToBoardPosition,
     /** Raycast the nearest eligible prop at a canvas client point. */
     screenToPropTarget(clientX, clientY) {
-      if (disposed || renderFailed || !current || blocked) return null;
+      if (disposed || recovery.renderFailed || !current || blocked) return null;
       const bounds = canvasBounds();
       if (!bounds || clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) return null;
       if (!setRayFromEvent({ clientX, clientY })) return null;
@@ -1175,7 +1182,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       canvas.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);
       canvas.removeEventListener("pointercancel", pointerCancel);
-      canvas.removeEventListener("webglcontextlost", contextLost);
+      recovery.dispose();
       editModifier.dispose();
       gameLayer.dispose();
       clear();

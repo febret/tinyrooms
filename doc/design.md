@@ -417,8 +417,8 @@ equipped/skill-slot limits still apply.
 Copies of stackable cards are displayed in stacks up to the
 card's stack limit, with the stack size shown on top of the card. Non-stackable
 cards are displayed individually. From the inventory, it is possible to
-select cards, inspect them, equip them, etc. Equipped item and action stacks can
-be played from Inventory or the Card View. Unequipped stacks must be equipped first.
+select cards, inspect them, equip them, etc. Item and action stacks can be
+played directly from Inventory or the Card View, whether or not they are equipped.
 A `Sell Mode` toggle in the Inventory header turns card clicks into immediate
 sales: clicking a card sells one copy for its rarity value with no confirmation,
 and repeated clicks sell repeated copies. Cards that are not sellable report that
@@ -623,8 +623,8 @@ cost. Energy cannot become negative. An unaffordable action does not itself
 apply Tired; the status is applied when Energy actually reaches 0.
 
 Using an Energy-refill card costs no Energy and is allowed while Tired. Inventory
-access and equipping also cost no Energy and remain available, so a user can equip
-an owned refill card before using it.
+access and equipping also cost no Energy and remain available, so a user can use
+an owned refill card directly from inventory while Tired.
  
 
 #### Energy Costs
@@ -677,9 +677,9 @@ Legendary. Rarity determines how likely a card is to appear in card packs, and
 is displayed in the inventory card preview.
 
 ### Equipment
-Item and action cards must be equipped before they can be played. The equipped
-set is a gameplay loadout, not just a set of shortcuts. They may be played from
-Inventory or the Card View once equipped.
+Item and action cards may be played directly from Inventory or the Card View.
+The equipped set is a gameplay loadout, not a set of shortcuts: equipping still
+controls slot capacity, passive bonuses, and the equipped hand.
 
 The equipped-stack limit depends on user level, beginning at 5 and defined by
 `max_equipped` in `data/core/levels.yaml`. Each selected stack uses one slot,

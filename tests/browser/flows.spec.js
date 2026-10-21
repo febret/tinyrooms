@@ -115,6 +115,36 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   }
 });
 
+test("journal keeps a two-page spread on large portrait screens", async ({ page, runtime }) => {
+  await page.setViewportSize({ width: 1024, height: 1366 });
+  await createReadyAccount(page, runtime);
+  await openCore(page, "journal");
+  const journal = page.getByRole("dialog", { name: "Journal", exact: true });
+  const left = await journal.locator(".journal-page-left").boundingBox();
+  const right = await journal.locator(".journal-page-right").boundingBox();
+  expect(left).not.toBeNull();
+  expect(right).not.toBeNull();
+  expect(right.x).toBeGreaterThan(left.x + left.width * 0.5);
+  expect(Math.abs(right.y - left.y)).toBeLessThan(12);
+});
+
+test("room board recovers from WebGL context loss", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime);
+  const canvas = page.locator("#board-canvas");
+  await expect(canvas).toHaveAttribute("data-board-ready", "true");
+  await page.evaluate(() => {
+    const target = document.querySelector("#board-canvas");
+    const gl = target.getContext("webgl2") || target.getContext("webgl");
+    const extension = gl.getExtension("WEBGL_lose_context");
+    window.__trContextLoss = extension;
+    extension.loseContext();
+  });
+  await expect(page.locator("#board-overlay")).toContainText("Restoring the board");
+  await page.evaluate(() => window.__trContextLoss.restoreContext());
+  await expect.poll(() => page.evaluate(() => window.__tinyroomsBoard.diagnostics().renderFailed)).toBe(false);
+  await expect(canvas).toHaveAttribute("data-board-ready", "true");
+});
+
 test("inventory previews cards inline and retargets on selection", async ({ page, runtime }) => {
   await createReadyAccount(page, runtime);
   await openCore(page, "inventory");

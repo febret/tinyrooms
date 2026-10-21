@@ -255,6 +255,12 @@ export function createGridRenderer(context) {
         normalizeModel(model);
         model.scale.multiplyScalar(Number(info.scale) || 1);
         if (record.fallback) {
+          // Effect controllers clone the fallback's materials. Release them
+          // before the fallback tree is disposed so the clones are not released
+          // twice when the effect is rebuilt for the loaded model.
+          record.effectController?.dispose();
+          record.effectController = null;
+          record.effectKey = "";
           record.group.remove(record.fallback);
           disposeObject(record.fallback);
           record.fallback = null;
@@ -325,7 +331,7 @@ export function createGridRenderer(context) {
         painter.fillRect(column * cellPx, row * cellPx, cellPx, cellPx);
       }
     }
-    const border = Math.max(2, Math.round(cellPx * 0.045));
+    const border = Math.max(1, Math.round(cellPx * 0.015));
     painter.strokeStyle = "#2a1b14";
     painter.lineWidth = border;
     painter.strokeRect(border / 2, border / 2, canvas.width - border, canvas.height - border);

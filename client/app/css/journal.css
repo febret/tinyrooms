@@ -10,7 +10,9 @@
 .journal-view .journal-note, .journal-view .skills-hint { color: var(--journal-ink-soft); font-family: var(--journal-hand); font-size: 13px; line-height: 1.6; }
 .journal-view .journal-note { margin: 8px 0; }
 .journal-view .profile-identity { gap: 7px; margin: 12px 0 20px; text-align: center; }
+.journal-view .profile-sticker-frame { position: relative; display: inline-grid; place-items: center; }
 .journal-view .profile-sticker { width: clamp(90px, 12vw, 136px); height: 140px; filter: drop-shadow(1px 5px 3px #60411e40); }
+.journal-view .profile-sticker-decals { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .journal-sticker-placeholder { display: grid; place-items: center; width: 100px; height: 110px; font-size: 66px; color: var(--journal-accent); }
 .journal-view .journal-name { margin: 0; font-size: clamp(24px, 2.8vw, 34px); }
 .journal-view .journal-level { margin: 0; font-family: var(--journal-hand); font-size: 15px; color: var(--journal-ink-soft); }
@@ -71,7 +73,7 @@
 .friend-presence { display: block; margin: 3px 0 0 19px; color: var(--journal-ink-soft); font-size: 11px; }
 .friend-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .journal-view .friend-group .empty-state { padding: 12px 4px; margin: 0; text-align: left; }
-@media (max-width: 780px), (orientation: portrait) {
+@media (max-width: 780px) {
   .journal-view .modal-header { align-items: flex-start; gap: 8px; }
   .journal-view .journal-tabs { gap: 4px; }
   .journal-view .journal-tabs button { min-height: 40px; padding: 5px 10px; font-size: 13px; }

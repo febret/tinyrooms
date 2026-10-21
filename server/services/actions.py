@@ -112,7 +112,7 @@ class ActionsService:
         target_prop: PropTarget | None = None,
         room_id: str | None = None,
     ) -> ActionResult:
-        """Use one copy of an equipped item/action card."""
+        """Use one copy of an item/action card, equipped or not."""
 
         if target_prop is not None and self._environment is not None:
             self._environment.require_prop_target(target_prop.room_id, target_prop.instance_id, target_prop.prop_id)
@@ -125,8 +125,6 @@ class ActionsService:
                 raise ValueError(f"{definition.label} is a decorative keepsake.")
             if definition.type in NON_EQUIP_TYPES:
                 raise ValueError(f"{definition.label} has no Use action.")
-            if not stack.equipped:
-                raise ValueError(f"Equip {definition.label} before using it.")
 
             resolved_target = target_account_id or account.id
             resolved_label = target_label or account.username_display

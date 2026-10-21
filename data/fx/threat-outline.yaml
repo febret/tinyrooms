@@ -1,0 +1,8 @@
+# A subtle, static red silhouette for pieces under attack.
+id: threat-outline
+label: Threat Outline
+layers:
+  - type: outline
+    color: "#e5484d"
+    thickness: 0.035
+    opacity: 0.55

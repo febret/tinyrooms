@@ -282,12 +282,14 @@ function inventoryStackActions(stack) {
   } else if (type === "skill") {
     actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary" });
   } else if (type === "item" || type === "action") {
-    if (stack.equipped) {
+    if (!definition.passive && !definition.decorative) {
       if (isTargetableStack(stack)) {
         actions.push({ label: "Use", local: { type: "start-targeting", stackId: stack.stackId }, tone: "primary" });
-      } else if (definition.effect && !definition.passive && !definition.decorative && (definition.target || "") !== "prop") {
+      } else if (definition.effect && (definition.target || "") !== "prop") {
         actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
       }
+    }
+    if (stack.equipped) {
       actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });
     } else if (!definition.passive && !definition.decorative) {
       actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive" });
