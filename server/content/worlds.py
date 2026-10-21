@@ -28,6 +28,7 @@ from server.content.cutscenes import (
 from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.game_boards import RoomGameDefinition, load_room_game
 from server.content.recipes import RecipeDefinition, load_recipes
+from server.content.room_environment import load_editor_environment
 from server.content.room_music import RoomMusicDefinition, load_room_music
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
@@ -43,7 +44,6 @@ from server.game.modifiers import MODIFIER_TARGETS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
-EDITOR_ENVIRONMENT_KEYS = frozenset({"palette", "board_image_style"})
 PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 DEFAULT_PROP_PRICE = 5
@@ -425,25 +425,6 @@ def _load_aura(raw_value: Any, room_id: str) -> tuple[AuraDefinition, ...]:
         )
     return tuple(auras)
 
-
-def _load_editor_environment(raw_value: Any, room_id: str) -> tuple[str, ...]:
-    if raw_value is None:
-        return ()
-    if not isinstance(raw_value, dict):
-        raise ContentError(f"Room '{room_id}' editor must be a mapping.")
-    raw_keys = raw_value.get("environment", []) or []
-    if not isinstance(raw_keys, list):
-        raise ContentError(f"Room '{room_id}' editor.environment must be a list.")
-    keys: list[str] = []
-    for key in raw_keys:
-        if not isinstance(key, str) or key not in EDITOR_ENVIRONMENT_KEYS:
-            raise ContentError(
-                f"Room '{room_id}' editor.environment has unknown key '{key}'. "
-                f"Expected one of {', '.join(sorted(EDITOR_ENVIRONMENT_KEYS))}."
-            )
-        if key not in keys:
-            keys.append(key)
-    return tuple(keys)
 
 
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
@@ -1103,7 +1084,7 @@ def load_world_definition(
             exits=room_exits,
             initial_cards=tuple(room_cards),
             aura=_load_aura(raw_room.get("aura"), room_id),
-            editor_environment=_load_editor_environment(raw_room.get("editor"), room_id),
+            editor_environment=load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
             game=game,

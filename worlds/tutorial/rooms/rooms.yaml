@@ -167,6 +167,27 @@ bathroom:
       actions:
       - - Take a shower
         - .act shower @prop:shower0
+    medicine0:
+      prop: medicine-cabinet
+      pos:
+      - 50
+      - 12
+      - 0
+      scale: 1
+      behavior: dispenser
+      content:
+      - market-bandage
+      - market-painkillers
+      - market-cough-syrup
+      - market-vitamins
+      - market-antiseptic-cream
+      - market-cold-pack
+      - market-herbal-tea
+      - market-stomach-settler
+      cooldown: 60
+      actions:
+      - - Take medicine
+        - .dispense medicine0
     litter0:
       prop: litter-tray
       pos:
