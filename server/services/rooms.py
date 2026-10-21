@@ -76,6 +76,7 @@ class RoomService:
     """Authoritative room state assembly and mutations."""
 
     ROOM_CHANGE_ENERGY_COST = 1
+    CHAT_ENERGY_COST = 1
 
     def __init__(
         self,
@@ -424,7 +425,6 @@ class RoomService:
     @staticmethod
     def _user_quick_actions(account: AccountRecord) -> list[dict[str, object]]:
         return [
-            {"label": "Look", "command": f".look @{account.username_display}"},
             {"label": "Add Friend", "command": f".friend add @peep:{account.id}"},
         ]
 
@@ -451,7 +451,6 @@ class RoomService:
         resolved_room_id = room_id if room_id is not None else self.peep_room(peep)
         room = self._world.rooms.get(resolved_room_id)
         quick_actions = self._visible_prop_actions(room, peep.actions) if room is not None else []
-        quick_actions.append({"label": "Look", "command": f".look @peep:{peep.id}"})
         sprite_payload: dict[str, object] = {}
         position = self._sprites.ensure_npc(peep.id, resolved_room_id)
         if position is not None:
@@ -748,6 +747,9 @@ class RoomService:
             "style": style,
             "text": text,
         }
+        with self._hub.transaction() as connection:
+            if self.CHAT_ENERGY_COST:
+                self._stats.charge_in_transaction(connection, account.id, self.CHAT_ENERGY_COST)
         self._world_state.append_chat_message(room_id, entry)
         return {"type": "chat.message", "room_id": room_id, **entry}
 
@@ -827,6 +829,9 @@ class RoomService:
             self._dialogs.end(account.id, "room_changed")
         if self._auras is not None:
             self._auras.leave(account.id, source_room_id)
+        with self._hub.transaction() as connection:
+            if self.ROOM_CHANGE_ENERGY_COST:
+                self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
         await self._connections.set_room(account.id, None)
         self._sprites.forget_user(account.id)
         closed = self._activities.close(account.id)

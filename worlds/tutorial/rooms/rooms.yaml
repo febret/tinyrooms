@@ -12,6 +12,9 @@ hub:
     environment:
     - palette
     - board_image_style
+    map:
+      x: -31
+      y: 106
   props:
     custom:6df0fc7e-febf-42bd-af42-8cc5e63b085c:
       prop: dollhouse
@@ -48,76 +51,9 @@ hub:
     to_scammon:
       label: Step through the portal
       target_world: scammon-academia
-playroom:
-  label: The Playroom
-  description: Molly keeps watch over a dollhouse. Pet, chat, or play a round of Lazor
-    Rush.
-  board_type: basic
-  board_image: playroom.png
-  board_image_style: tile
-  palette:
-  - '#e4d5b5'
-  - '#de958a'
-  - '#88ada9'
-  editor:
-    environment:
-    - palette
-    - board_image_style
-  props:
-    dollhouse0:
-      prop: dollhouse
-      pos:
-      - 53
-      - 36
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1.25
-      content:
-      - fancy-wallet
-      - ballet-shoes
-      cooldown: 600
-      behavior: dispenser
-      actions:
-      - - Enter
-        - .go exit0
-      - - Search
-        - .dispense dollhouse0
-    story-shelf:
-      prop: bookshelf
-      pos:
-      - 16
-      - 26
-      - 0
-      scale: 0.85
-    flower-rug:
-      prop: rug
-      pos:
-      - 60
-      - 73
-      - 0
-      scale: 1.4
-  cards:
-  - card: fancy-wallet
-    quantity: 1
-    pos:
-    - 42
-    - 68
-    - 0
-  exits:
-    exit0:
-      label: Enter the dollhouse
-      target: foyer
-    hub:
-      label: Back through the portal
-      target: hub
-      npc_barrier: true
 foyer:
-  label: Sunflower Foyer
-  description: Welcome home. The kitchen is left, the sitting room right; the front
-    door needs a key.
+  label: The Living Room
+  description: ''
   board_type: basic
   board_image: foyer.png
   board_image_style: stretch
@@ -129,6 +65,9 @@ foyer:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 222
+      y: 103
   props:
     custom:bf14a86a-8069-4f8d-b684-f0aa3cbf1da3:
       prop: oak-panel-door
@@ -152,9 +91,6 @@ foyer:
     kitchen:
       label: Into the kitchen
       target: kitchen
-    living:
-      label: Into the sitting room
-      target: living-room
     bedroom:
       label: Upstairs to bedroom
       target: bedroom
@@ -163,10 +99,10 @@ foyer:
       target: garden
       locked: false
       requires: house-key
+      npc_barrier: true
 kitchen:
-  label: The Buttercup Kitchen
-  description: A bright tiled kitchen. Take useful cards from Room View; the utility
-    room is just behind it.
+  label: The Kitchen
+  description: ''
   board_type: basic
   board_image: kitchen.png
   board_image_style: stretch
@@ -178,6 +114,9 @@ kitchen:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 494
+      y: -97
   props:
     breakfast0:
       prop: kitchen-counter
@@ -213,13 +152,9 @@ kitchen:
     utility:
       label: Through to the utility room
       target: utility
-    living:
-      label: Through the arch to the sitting room
-      target: living-room
 bathroom:
-  label: The Mint Bathroom
-  description: Warm water, mint tiles, and Molly's litter tray. A shower restores
-    Cleanliness.
+  label: The Bathroom
+  description: ''
   board_type: basic
   board_image: bathroom.png
   board_image_style: stretch
@@ -231,6 +166,9 @@ bathroom:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 496
+      y: 42
   props:
     shower0:
       prop: shower
@@ -265,73 +203,9 @@ bathroom:
     bedroom:
       label: Into the bedroom
       target: bedroom
-living-room:
-  label: Marmalade Sitting Room
-  description: A place to trade stories. Try Emotes, pin a peep, or add a friend.
-  board_type: basic
-  board_image: living-room.png
-  board_image_style: stretch
-  palette:
-  - '#d8af82'
-  - '#cb7764'
-  - '#6d9698'
-  editor:
-    environment:
-    - palette
-    - board_image_style
-  props:
-    sofa0:
-      prop: sofa
-      pos:
-      - 48
-      - 28
-      - 0
-      scale: 1.3
-    reading-lamp:
-      prop: lamp
-      pos:
-      - 80
-      - 30
-      - 0
-      scale: 1
-    books0:
-      prop: bookshelf
-      pos:
-      - 16
-      - 27
-      - 0
-      scale: 1
-    sitting-rug:
-      prop: rug
-      pos:
-      - 52
-      - 64
-      - 0
-      scale: 1.7
-  cards:
-  - card: wave
-    quantity: 1
-    pos:
-    - 27
-    - 70
-    - 0
-  - card: heart
-    quantity: 1
-    pos:
-    - 78
-    - 73
-    - 0
-  exits:
-    foyer:
-      label: Back to the foyer
-      target: foyer
-    kitchen:
-      label: Into the kitchen
-      target: kitchen
 bedroom:
-  label: The Patchwork Bedroom
-  description: A quiet upstairs room. Finish the house tasks to earn room-editing
-    permission.
+  label: The Bedroom
+  description: ''
   board_type: basic
   board_image: bedroom.png
   board_image_style: stretch
@@ -343,6 +217,9 @@ bedroom:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 773
+      y: 141
   props:
     bed0:
       prop: bed
@@ -387,9 +264,8 @@ bedroom:
       label: Into the bathroom
       target: bathroom
 utility:
-  label: The Helpful Utility
-  description: A recharging supply shelf. Dispense a scoop or a plastic bag before
-    tackling the house chores.
+  label: The Utility Room
+  description: ''
   board_type: basic
   board_image: utility.png
   board_image_style: stretch
@@ -401,6 +277,9 @@ utility:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 769
+      y: -74
   props:
     supplies0:
       prop: supply-shelf
@@ -463,10 +342,11 @@ basement:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 1015
+      y: -37
   dark: true
-  aura:
-  - source: scary
-    requires_prop: bugs0
+  aura: []
   props:
     key0:
       prop: keys-cabinet
@@ -506,6 +386,9 @@ garden:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 517
+      y: 351
   props:
     custom:0ff53339-813c-4c9c-84e5-88af66283442:
       prop: locked-front-door

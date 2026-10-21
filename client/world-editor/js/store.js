@@ -16,6 +16,9 @@ export function createStore() {
     catalog: null,
     worldKey: "",
     publishedRevision: null,
+    hasDraft: false,
+    draftInfo: null,
+    draftMatchesPublished: false,
     selection: { kind: null, id: null, sub: null },
     activeTab: "board",
     dirty: false,
@@ -50,13 +53,16 @@ export function createStore() {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    init({ draft, catalog, worldKey, publishedRevision }) {
+    init({ draft, catalog, worldKey, publishedRevision, hasDraft = false, draftInfo = null, draftMatchesPublished = false }) {
       state = {
         ...state,
         draft,
         catalog,
         worldKey,
         publishedRevision,
+        hasDraft,
+        draftInfo,
+        draftMatchesPublished,
         selection: { kind: null, id: null, sub: null },
         dirty: false,
         undo: [],
@@ -98,11 +104,30 @@ export function createStore() {
         undo: [...state.undo, clone(state.draft)].slice(-UNDO_LIMIT),
       }));
     },
-    saved(draft) {
-      set({ draft, savedSnapshot: clone(draft), dirty: false, undo: [], redo: [] });
+    saved(draft, { draftInfo = null, draftMatchesPublished = false } = {}) {
+      set({
+        draft,
+        savedSnapshot: clone(draft),
+        dirty: false,
+        undo: [],
+        redo: [],
+        hasDraft: true,
+        draftInfo,
+        draftMatchesPublished,
+      });
     },
     discarded(draft) {
-      set({ draft, savedSnapshot: clone(draft), dirty: false, undo: [], redo: [], validation: null });
+      set({
+        draft,
+        savedSnapshot: clone(draft),
+        dirty: false,
+        undo: [],
+        redo: [],
+        validation: null,
+        hasDraft: false,
+        draftInfo: null,
+        draftMatchesPublished: false,
+      });
     },
     validation(report) {
       set({ validation: report });

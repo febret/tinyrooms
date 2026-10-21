@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 2.0
+  scale_adjust: 2
 student-desk:
   label: Student Desk
   description: A blue-topped desk with a yellow chair tucked in. Someone left a pencil
@@ -100,7 +100,7 @@ lunch-tray-stack:
   - supplies
   sprite_footprint:
   - 3.3
-  - 4.0
+  - 4
   states:
     intact: lunch-tray-stack.glb
     broken: lunch-tray-stack-broken.glb
@@ -153,7 +153,7 @@ recycling-bin:
   - bin
   - mascot
   sprite_footprint:
-  - 5.0
+  - 5
   - 6.6
   states:
     intact: recycling-bin.glb

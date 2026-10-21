@@ -30,6 +30,7 @@ class LiveConnection:
         default_factory=lambda: asyncio.Queue(MAX_SEND_QUEUE)
     )
     sender_task: asyncio.Task[None] | None = None
+    closed: bool = False
 
     async def start(self) -> None:
         """Start the background sender loop."""
@@ -41,10 +42,15 @@ class LiveConnection:
             payload = await self.queue.get()
             if payload is None:
                 return
-            if isinstance(payload, str):
-                await self.websocket.send_text(payload)
-            else:
-                await self.websocket.send_json(payload)
+            try:
+                if isinstance(payload, str):
+                    await self.websocket.send_text(payload)
+                else:
+                    await self.websocket.send_json(payload)
+            except Exception:
+                # The peer can disappear at any time; the endpoint handles the
+                # disconnect, so a failed frame must not crash the sender task.
+                return
 
     async def send(self, payload: dict[str, object] | str) -> None:
         """Enqueue an outbound payload for delivery."""
@@ -55,8 +61,11 @@ class LiveConnection:
             raise RuntimeError("Connection send queue is full.") from exc
 
     async def close(self) -> None:
-        """Close the sender loop and the underlying socket."""
+        """Close the sender loop and the underlying socket at most once."""
 
+        if self.closed:
+            return
+        self.closed = True
         try:
             self.queue.put_nowait(None)
         except asyncio.QueueFull:
@@ -64,7 +73,8 @@ class LiveConnection:
         if self.sender_task is not None:
             with suppress(asyncio.CancelledError, TimeoutError):
                 await asyncio.wait_for(self.sender_task, timeout=1)
-        await self.websocket.close()
+        with suppress(Exception):
+            await self.websocket.close()
 
 
 @dataclass(slots=True)
@@ -213,7 +223,10 @@ class ConnectionRegistry:
         """Notify a revoked gameplay session and close it."""
 
         try:
-            await connection.websocket.send_json(session_replaced_envelope(message))
+            if not connection.closed:
+                await connection.send(session_replaced_envelope(message))
+        except RuntimeError:
+            pass
         finally:
             await self.unregister(connection.account_id, connection)
             await connection.close()

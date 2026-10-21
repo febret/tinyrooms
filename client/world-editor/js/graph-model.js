@@ -11,6 +11,14 @@ function preview(text, length = 60) {
   return value.length > length ? `${value.slice(0, length - 1)}…` : value;
 }
 
+function roomPosition(room) {
+  const point = room?.editor?.map;
+  if (!point || typeof point !== "object") return null;
+  const x = Number(point.x);
+  const y = Number(point.y);
+  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+}
+
 export function roomGraph(draft) {
   return {
     rootId: draft?.world?.entry_room || null,
@@ -20,6 +28,7 @@ export function roomGraph(draft) {
       id: roomId,
       title: room?.label || roomId,
       subtitle: roomId,
+      position: roomPosition(room),
       ports: entries(room?.exits).map(([exitId, exit]) => ({
         id: exitId,
         label: exit?.label || exitId,
@@ -88,7 +97,7 @@ export function layoutGraph(graph, saved = new Map()) {
   for (const node of [...order.map(id => byId.get(id)), ...graph.nodes.filter(node => !depth.has(node.id))]) {
     const column = depth.get(node.id) ?? orphanColumn;
     const top = columnTops[column] ?? margin;
-    positions.set(node.id, saved.get(node.id) || { x: margin + column * columnWidth, y: top });
+    positions.set(node.id, saved.get(node.id) || node.position || { x: margin + column * columnWidth, y: top });
     columnTops[column] = top + headHeight + (node.ports.length + 1) * portHeight + rowGap;
   }
   return positions;

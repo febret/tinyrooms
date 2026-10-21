@@ -5,6 +5,8 @@
 .brand { font-size: 1rem; letter-spacing: .02em; }
 .dirty-marker { font-size: .75rem; color: var(--muted); }
 .dirty-marker.is-dirty { color: var(--gold); }
+.draft-badge { padding: .15rem .45rem; border: 1px solid var(--line); border-radius: 999px; font-size: .75rem; color: var(--muted); background: #ffffff0d; }
+.draft-badge.is-unpublished { border-color: #c89a4a; color: #f0cf8d; background: #6b4b1533; }
 .we-body { display: grid; grid-template-columns: 220px minmax(0, 1fr) 340px; min-height: 0; }
 .we-rooms, .we-properties, .we-systems-content { overflow: auto; background: var(--panel-solid); }
 .we-rooms, .we-systems-content { border-right: 1px solid var(--line); }

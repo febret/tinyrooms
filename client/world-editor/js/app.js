@@ -78,6 +78,18 @@ const mapView = createGraphView({
   onSelectNode: id => store.select({ kind: "room", id }),
   onSelectLink: (id, sub) => store.select({ kind: "exit", id, sub }),
   onChange: changes => commitGraph(draft => applyRoomGraphChanges(draft, changes)),
+  onMoveNode: (roomId, point) => {
+    const x = Math.round(point.x * 100) / 100;
+    const y = Math.round(point.y * 100) / 100;
+    const room = store.state.draft?.rooms?.[roomId];
+    if (!room || (room.editor?.map?.x === x && room.editor?.map?.y === y)) return;
+    store.update(draft => {
+      const target = draft.rooms?.[roomId];
+      if (!target) return;
+      if (!target.editor || typeof target.editor !== "object") target.editor = {};
+      target.editor.map = { x, y };
+    });
+  },
 });
 
 const selectDialogNode = sub => store.select({ kind: "peep", id: store.state.selection.id, sub });
@@ -242,12 +254,28 @@ function renderDialogPanel(state) {
   dialogView.render({ graph: dialogGraph(peep.dialog), scope: selection.id, activeId: selection.sub });
 }
 
+function draftStatusLabel(state) {
+  if (!state.hasDraft) {
+    return state.publishedRevision ? `Published r${state.publishedRevision}` : "No published revision";
+  }
+  if (state.draftMatchesPublished) {
+    return `Draft saved · matches published${state.publishedRevision ? ` r${state.publishedRevision}` : ""}`;
+  }
+  const revision = state.draftInfo?.draft_revision;
+  const base = state.draftInfo?.base_published_revision;
+  return `Unpublished draft${revision ? ` r${revision}` : ""}${base ? ` · based on r${base}` : ""}`;
+}
+
 function renderToolbar(state) {
   const roomId = state.selection.id;
+  const draftLabel = draftStatusLabel(state);
+  const unpublished = state.hasDraft && !state.draftMatchesPublished;
+  const updatedAt = state.draftInfo?.updated_at ? `Last saved ${state.draftInfo.updated_at}` : "";
   elements.toolbar.innerHTML = `
     <div class="toolbar-group">
       <strong class="brand">World Editor</strong>
-      <span class="dirty-marker${state.dirty ? " is-dirty" : ""}">${state.dirty ? "Unsaved changes" : "Saved"}</span>
+      <span class="draft-badge${unpublished ? " is-unpublished" : ""}" title="${escapeHtml(updatedAt)}">${escapeHtml(draftLabel)}</span>
+      <span class="dirty-marker${state.dirty ? " is-dirty" : ""}">${state.dirty ? "Unsaved changes" : "All changes saved"}</span>
     </div>
     <div class="toolbar-group">
       <button type="button" class="quiet" data-action="undo"${state.undo.length ? "" : " disabled"}>Undo</button>
@@ -773,7 +801,10 @@ async function runSave() {
   store.status("Saving…");
   try {
     const body = await saveDraft(store.state.draft);
-    store.saved(body.draft);
+    store.saved(body.draft, {
+      draftInfo: body.info,
+      draftMatchesPublished: Boolean(body.draft_matches_published),
+    });
     store.status(`Draft revision ${body.info.draft_revision} saved.`);
   } catch (error) {
     store.status("", error.message);
@@ -852,6 +883,9 @@ async function refresh() {
     catalog: body.catalog,
     worldKey: body.world_key,
     publishedRevision: body.published_revision,
+    hasDraft: Boolean(body.has_draft),
+    draftInfo: body.draft_info || null,
+    draftMatchesPublished: Boolean(body.draft_matches_published),
   });
   const roomId = firstRoomId();
   if (roomId) store.select({ kind: "room", id: roomId });

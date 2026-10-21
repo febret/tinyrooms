@@ -177,10 +177,14 @@ async def get_draft(request: Request) -> dict[str, object]:
     runtime = get_runtime(request)
     require_editor_access(runtime, request, feature="world-editor")
     service = runtime.editor_service()
+    info = service.saved_draft_info()
     return {
         "ok": True,
         "world_key": service.world_key,
         "published_revision": runtime.world_state.read_world_meta("published_revision"),
+        "has_draft": info is not None,
+        "draft_info": info.to_payload() if info is not None else None,
+        "draft_matches_published": service.draft_matches_published(),
         "draft": service.load_draft(),
         "catalog": _catalog_payload(runtime),
     }
@@ -202,7 +206,15 @@ async def save_draft(request: Request, payload: DraftPayload) -> JSONResponse:
             status_code=400,
             content={"ok": False, "code": "draft_invalid", "errors": _issue_payloads(exc.issues)},
         )
-    return JSONResponse(content={"ok": True, "info": info.to_payload(), "draft": service.load_draft()})
+    return JSONResponse(
+        content={
+            "ok": True,
+            "info": info.to_payload(),
+            "draft": service.load_draft(),
+            "has_draft": True,
+            "draft_matches_published": service.draft_matches_published(),
+        }
+    )
 
 
 @router.post("/api/world-editor/discard")

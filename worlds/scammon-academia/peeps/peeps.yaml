@@ -12,8 +12,7 @@ principal:
     - .talk principal
   dialog:
     start:
-      text: >-
-        Welcome to Scammon Academia! I am Principal Pesto. The gray husky on the
+      text: Welcome to Scammon Academia! I am Principal Pesto. The gray husky on the
         wall is me. Are you here to teach, or just to peek into the classrooms?
       choices:
       - label: How do I start teaching?
@@ -25,9 +24,8 @@ principal:
       - label: Goodbye, Principal.
         end: true
     teaching:
-      text: >-
-        Buy a classroom door in the Classrooms activity, then step inside and use
-        Start Lesson. Slot a subject Skill from your inventory, then teach topic
+      text: Buy a classroom door in the Classrooms activity, then step inside and
+        use Start Lesson. Slot a subject Skill from your inventory, then teach topic
         cards to the class. When you are ready, give the class a test.
       choices:
       - label: Tell me about topics and skills.
@@ -35,17 +33,15 @@ principal:
       - label: Back to the beginning.
         next: start
     topics:
-      text: >-
-        Every subject has a Skill card and ten topic cards. A topic card only
-        works when its subject Skill is slotted in your Skills panel. Students
-        lose energy as they listen, so do not teach forever before the test!
+      text: Every subject has a Skill card and ten topic cards. A topic card only
+        works when its subject Skill is slotted in your Skills panel. Students lose
+        energy as they listen, so do not teach forever before the test!
       choices:
       - label: Back to the beginning.
         next: start
     quests:
-      text: >-
-        Here is the Scammon Academia quest board. Pick a quest and I will add it
-        to your journal so you can track it.
+      text: Here is the Scammon Academia quest board. Pick a quest and I will add
+        it to your journal so you can track it.
       choices:
       - label: Get a classroom.
         next: accepted
@@ -64,8 +60,7 @@ principal:
       - label: Back to the beginning.
         next: start
     subjects:
-      text: >-
-        A well-rounded faculty teaches every subject. Pick a subject to add its
+      text: A well-rounded faculty teaches every subject. Pick a subject to add its
         quest to your journal; complete all nine to become the pride of Scammon.
       choices:
       - label: Reading.
@@ -98,8 +93,7 @@ principal:
       - label: Back to the quest board.
         next: quests
     accepted:
-      text: >-
-        It is in your journal now. Open the Journal to see your progress. Come
+      text: It is in your journal now. Open the Journal to see your progress. Come
         back any time for help.
       choices:
       - label: Show me the quest board again.
@@ -107,11 +101,10 @@ principal:
       - label: Goodbye, Principal.
         end: true
     standings:
-      text: >-
-        Every lesson earns you a teacher GPA from the class test. Standings rank
-        teachers by their average GPA this quarter. A quarter lasts one hundred
-        lessons school-wide, and the top five teachers earn bonus Bops when it
-        ends. Then the averages reset for the next quarter.
+      text: Every lesson earns you a teacher GPA from the class test. Standings rank
+        teachers by their average GPA this quarter. A quarter lasts one hundred lessons
+        school-wide, and the top five teachers earn bonus Bops when it ends. Then
+        the averages reset for the next quarter.
       choices:
       - label: Back to the beginning.
         next: start

@@ -317,6 +317,7 @@ class BehaviorDispatcher:
                             "target_room_id": exit_definition.target_room_id,
                             "locked": exit_definition.locked,
                             "npc_barrier": exit_definition.npc_barrier,
+                            "requires_card_id": exit_definition.requires_card_id,
                         }
                         for exit_definition in room.exits.values()
                     ],

@@ -13,6 +13,9 @@ hall:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 28
+      y: 34
   props:
     mascot-banner0:
       prop: mascot-banner
@@ -118,6 +121,9 @@ cafeteria:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 302
+      y: 24
   props:
     hall-door0:
       prop: oak-panel-door
@@ -208,6 +214,9 @@ player-classroom:
     environment:
     - palette
     - board_image_style
+    map:
+      x: -225
+      y: 19
   template: true
   props:
     chalkboard0:
@@ -256,7 +265,6 @@ player-classroom:
     hall:
       label: Back to the hall
       target: hall
-
 teachers-lounge:
   label: Teachers' Lounge
   description: A cozy little staff room with a stocked pantry, a well-used prep table,
@@ -272,6 +280,9 @@ teachers-lounge:
     environment:
     - palette
     - board_image_style
+    map:
+      x: 307
+      y: 140
   props:
     hall-door0:
       prop: oak-panel-door

@@ -1077,6 +1077,7 @@ async function render(state) {
   toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
+  toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal");
   toggleClass(root, "has-details", Boolean(state.views.details));
   toggleClass(root, "editing", Boolean(state.editor));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));

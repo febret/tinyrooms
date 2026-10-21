@@ -14,7 +14,7 @@ function selectedState(stack) {
   };
 }
 
-test("self peep hides look, friend-add and pin actions and offers only sticker swap", () => {
+test("self peep hides friend-add and pin actions, and every peep hides look", () => {
   const state = selectedState({});
   state.selection = { kind: "peep", id: "self" };
   state.room.occupants = [{ id: "self", quickActions: [
@@ -24,8 +24,16 @@ test("self peep hides look, friend-add and pin actions and offers only sticker s
   ] }];
   assert.deepEqual(selectionActions(state).map(action => action.label), ["Swap Sticker…"]);
   state.user.id = "other";
-  assert.ok(selectionActions(state).some(action => action.label === "Look"));
+  state.selection = { kind: "peep", id: "self" };
+  state.room.occupants = [{ id: "self", quickActions: [
+    { label: "Look", command: ".look @sunbeam" },
+    { label: "Chat", command: ".talk caretaker" },
+  ] }];
+  const labels = selectionActions(state).map(action => action.label);
+  assert.ok(!labels.includes("Look"));
+  assert.ok(labels.includes("Chat"));
 });
+
 
 
 test("Use requires an active effect on an equipped item or action", () => {

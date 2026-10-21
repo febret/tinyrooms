@@ -26,6 +26,18 @@ function coreMarkup(definition, selected) {
   `;
 }
 
+function editButtonMarkup(room, isAdmin, selectedProp) {
+  const pencil = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"></path><path d="m13 5 4 4"></path></svg>`;
+  return [
+    room?.canEditRoom
+      ? `<button type="button" class="icon-button toolbar-edit" data-edit-room="1" aria-label="Edit Room" title="Edit Room">${pencil}</button>`
+      : "",
+    isAdmin && selectedProp?.propId
+      ? `<button type="button" class="icon-button toolbar-edit" data-edit-prop="${escapeHtml(selectedProp.propId)}" aria-label="Edit Prop" title="Edit Prop">${pencil}</button>`
+      : "",
+  ].join("");
+}
+
 function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-stack-id]").forEach(button => {
     if (button.dataset.skillSlot !== undefined) return;
@@ -40,6 +52,12 @@ function bindCardButtons(root, onSelect, onAction) {
   });
   root.querySelectorAll("[data-core-id]").forEach(button => {
     button.onclick = () => onAction({ type: "core-toggle", id: button.dataset.coreId });
+  });
+  root.querySelectorAll("[data-edit-room]").forEach(button => {
+    button.onclick = () => onAction({ type: "open-view", view: "edit-room" });
+  });
+  root.querySelectorAll("[data-edit-prop]").forEach(button => {
+    button.onclick = () => onAction({ type: "open-prop-editor", propId: button.dataset.editProp });
   });
   root.querySelectorAll("[data-close-view]").forEach(button => {
     button.onclick = () => onAction({ type: "close-view" });
@@ -194,15 +212,10 @@ export function selectionActions(state) {
     return actions;
   }
   if (state.selection.kind === "room") {
-    return [
-      ...(state.room.canEditRoom
-        ? [{ label: "Edit Room", local: { type: "open-view", view: "edit-room" }, tone: "neutral" }]
-        : []),
-      ...state.room.quickActions.map(action => ({
-        ...action,
-        tone: action.command.startsWith(".go ") ? "positive" : "neutral",
-      })),
-    ];
+    return state.room.quickActions.map(action => ({
+      ...action,
+      tone: action.command.startsWith(".go ") ? "positive" : "neutral",
+    }));
   }
   if (state.selection.kind === "core") {
     const definition = state.user?.coreCards?.[state.selection.id];
@@ -214,21 +227,15 @@ export function selectionActions(state) {
   if (state.selection.kind === "prop") {
     const prop = findSelectedEntity(state);
     if (!prop) return [];
-    const isAdmin = (state.user?.powers || []).includes("admin");
-    return [
-
-      ...(isAdmin && prop.propId
-        ? [{ label: "Edit Prop", local: { type: "open-prop-editor", propId: prop.propId }, tone: "neutral" }]
-        : []),
-      ...prop.quickActions.filter(action => !/^\.(?:look|inspect)(?:\s|$)/.test(action.command)).map(action => ({ ...action, tone: "neutral" })),
-    ];
+    return prop.quickActions.filter(action => !/^\.(?:look|inspect)(?:\s|$)/.test(action.command)).map(action => ({ ...action, tone: "neutral" }));
   }
   if (state.selection.kind === "peep") {
     const peep = findSelectedEntity(state);
     if (!peep) return [];
     const isSelf = state.user && peep.id === state.user.id;
     const actions = (peep.quickActions || [])
-      .filter(action => !isSelf || !/^\.(?:look|pin|friend\s+add)(?:\s|$)/.test(action.command))
+      .filter(action => !/^\.look(?:\s|$)/.test(action.command))
+      .filter(action => !isSelf || !/^\.(?:pin|friend\s+add)(?:\s|$)/.test(action.command))
       .map(action => ({ ...action, tone: "neutral" }));
     if (isSelf) {
       actions.push({ label: "Swap Sticker…", local: { type: "swap-sticker" }, tone: "positive" });
@@ -250,7 +257,7 @@ export function selectionActions(state) {
           const disabled = (isRoom && stack.pinned) || stack.quantity < 1;
           const tone = isRoom ? "positive" : "negative";
           const direct = {
-            label: isRoom ? "Pick up 1" : "Drop 1",
+            label: isRoom ? "Pick up 1" : "Drop",
             command: action.command,
             tone,
             disabled,
@@ -317,9 +324,6 @@ function inventoryStackActions(stack) {
       tone: "neutral",
     });
   }
-  if ((definition.stackLimit || 1) > 1) {
-    actions.push({ label: "Merge…", local: { type: "merge", stackId: stack.stackId }, tone: "neutral" });
-  }
   return actions;
 }
 
@@ -368,11 +372,13 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, detai
       // core controls (inventory and journal) in their authored order.
       const coreOrder = (state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards))
         .filter(id => id !== "emotes");
+      const selectedProp = state.selection.kind === "prop" ? findSelectedEntity(state) : null;
+      const isAdmin = (state.user?.powers || []).includes("admin");
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg></button>` : "")).join(""));
+      ) + (id === "inventory" ? `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg></button>` : "")).join("") + editButtonMarkup(state.room, isAdmin, selectedProp));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");

@@ -32,11 +32,11 @@
 .room-view .modal-header > div { text-align: center; }
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px; align-items: start; padding: 6px 4px 8px; }
 .cards-grid .game-card { width: 100%; max-width: 145px; justify-self: start; }
-.inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 12px; }
-.inventory-view .cards-grid .game-card { max-width: 101px; }
+.inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 16px; }
+.inventory-view .cards-grid .game-card { max-width: 132px; }
 .inventory-view { gap: 10px; }
 .inventory-view .inventory-packs, .inventory-view .inventory-tabs { flex: 0 0 auto; }
-.inventory-view .modal-scroll { flex: 1 1 auto; }
+.inventory-view .modal-scroll { flex: 1 1 auto; width: 100%; max-width: 832px; margin-inline: auto; }
 .inventory-tabs { display: inline-flex; gap: 6px; }
 .inventory-tabs button { min-height: 34px; min-width: 34px; padding: 3px 12px; border-radius: 9px; }
 .inventory-tabs button.selected { background: var(--gold); color: #061923; }
@@ -80,8 +80,9 @@
   .board-modal .modal-header { padding-top: 36px; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px 8px; }
   .cards-grid .game-card { max-width: 128px; }
-  .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(67px, 1fr)); gap: 10px 6px; }
-  .inventory-view .cards-grid .game-card { max-width: 90px; }
+  .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px 6px; }
+  .inventory-view .cards-grid .game-card { max-width: 117px; }
+  .inventory-view .modal-scroll { max-width: 576px; }
   .card-view { padding: 58px 6px 8px; }
   .card-view-panels { flex: 0 0 auto; display: block; }
   .card-view-spine, .journal-spine { display: none; }
@@ -99,7 +100,9 @@
   .board-modal .modal-header button { padding-inline: 12px; }
   .board-modal .modal-header p { font-size: 13px; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 12px 8px; }
-  .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(57px, 1fr)); gap: 8px 6px; }
+  .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px 6px; }
+  .inventory-view .cards-grid .game-card { max-width: 100px; }
+  .inventory-view .modal-scroll { max-width: 492px; }
   .detail-layer:not(:empty) { padding: 6px; }
   .card-view { padding: 54px 4px 6px; }
   .card-view-info > p { font-size: 15px; }

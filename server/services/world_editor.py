@@ -149,17 +149,37 @@ class WorldEditorService:
     def load_draft(self) -> dict[str, object]:
         """Return the saved draft, or a fresh one built from published files."""
 
-        path = self.draft_path()
-        if path.is_file():
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (ValueError, OSError):
-                payload = None
-            if isinstance(payload, dict):
-                return payload
+        payload = self._read_saved_draft()
+        if payload is not None:
+            return payload
         draft = build_draft(self._config.world_path, world_id=self._world_key)
         draft["base_published_revision"] = self._world_state.read_world_meta(PUBLISHED_REVISION_KEY)
         return draft
+
+    def saved_draft_info(self) -> DraftInfo | None:
+        """Return metadata for the persisted draft, or ``None`` when absent."""
+
+        payload = self._read_saved_draft()
+        return None if payload is None else self._draft_info(payload)
+
+    def draft_matches_published(self) -> bool:
+        """Return whether the saved draft matches the published YAML content."""
+
+        payload = self._read_saved_draft()
+        if payload is None:
+            return False
+        published = build_draft(self._config.world_path, world_id=self._world_key)
+        return draft_yaml_files(payload) == draft_yaml_files(published)
+
+    def _read_saved_draft(self) -> dict[str, object] | None:
+        path = self.draft_path()
+        if not path.is_file():
+            return None
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            return None
+        return payload if isinstance(payload, dict) else None
 
     def save_draft(self, draft: dict[str, object]) -> DraftInfo:
         """Persist a draft after structural validation; never touch the world."""
@@ -245,6 +265,10 @@ class WorldEditorService:
                 new_bundle.world,
             )
             self._record_publish(revision, actor_account_id, changed_files)
+            try:
+                self.discard_draft()
+            except OSError:
+                pass
         finally:
             shutil.rmtree(staged, ignore_errors=True)
 

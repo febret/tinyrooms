@@ -65,22 +65,10 @@ export async function openCore(page, id) {
   await expect(page.locator("#panel-layer [role=dialog]")).toBeVisible();
 }
 
-/** Click empty board points (clear of the Peeps sidebar and top toolbar) until the room is selected. */
-async function selectRoom(page, action) {
-  if (await action.count()) return;
-  const box = await page.locator("#board-canvas").boundingBox();
-  for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.18], [0.5, 0.9], [0.18, 0.5], [0.82, 0.5]]) {
-    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
-    if (await action.count()) return;
-  }
-}
-
-// The room is selected after loading or travelling; only probe the board if it is not.
 export async function openEditRoom(page) {
   await closeOverlays(page);
-  const action = page.locator("#actions-bar").getByRole("button", { name: "Edit Room", exact: true });
-  await selectRoom(page, action);
-  if (!(await action.count())) throw new Error("Could not open Edit Room: no board point selected the room.");
+  const action = page.locator("#core-tools [data-edit-room]");
+  if (!(await action.count())) throw new Error("Could not open Edit Room: the room is not editable.");
   await action.click();
   const panel = page.locator("#editor-dock .edit-room-view");
   await expect(panel).toBeVisible();
@@ -88,7 +76,7 @@ export async function openEditRoom(page) {
   return panel;
 }
 
-export async function travel(page, exit = "exit0", label = "Sunflower Foyer") {
+export async function travel(page, exit = "exit0", label = "The Living Room") {
   await command(page, `.go @way:${exit}`);
   await expect(page.locator("#look-bar")).toContainText(label);
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });

@@ -278,7 +278,7 @@ class CardService:
             stack.card_def_id,
             stack.quantity,
             stack.pinned,
-            {"label": "Drop 1", "command": f".drop @card:{stack.stack_id} 1"},
+            {"label": "Drop", "command": f".drop @card:{stack.stack_id} 1"},
         )
         payload["scope"] = stack.scope
         payload["world_id"] = stack.world_id

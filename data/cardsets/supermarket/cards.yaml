@@ -915,13 +915,13 @@ market-chopped-vegetables:
   description: "A colorful pile of chopped things. Very chef-like."
   image: market-chopped-vegetables.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 10
+  amount: 30
 
 market-tomato-paste:
   label: "Tomato Paste"
@@ -934,72 +934,72 @@ market-tomato-paste:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 11
+  amount: 8
 
 market-tomato-sauce:
   label: "Tomato Sauce"
   description: "A smooth red sauce with big pizza energy."
   image: market-tomato-sauce.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 12
+  amount: 30
 
 market-vegetable-stock:
   label: "Vegetable Stock"
   description: "Liquid vegetable wisdom, ready for soup."
   image: market-vegetable-stock.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 13
+  amount: 30
 
 market-bread-dough:
   label: "Bread Dough"
   description: "A bouncy dough that has clearly been working out."
   image: market-bread-dough.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 14
+  amount: 30
 
 market-pasta-dough:
   label: "Pasta Dough"
   description: "A springy dough just waiting to be rolled."
   image: market-pasta-dough.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 15
+  amount: 20
 
 market-salad-dressing:
   label: "Salad Dressing"
   description: "A glossy dressing that makes lettuce feel important."
   image: market-salad-dressing.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 10
+  amount: 33
 
 market-cooked-rice:
   label: "Cooked Rice"
@@ -1012,111 +1012,111 @@ market-cooked-rice:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 11
+  amount: 9
 
 market-mashed-potatoes:
   label: "Mashed Potatoes"
   description: "A creamy mountain of buttery comfort."
   image: market-mashed-potatoes.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 12
+  amount: 20
 
 market-pie-crust:
   label: "Pie Crust"
   description: "A flaky crust with a golden future."
   image: market-pie-crust.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 13
+  amount: 21
 
 market-cake-batter:
   label: "Cake Batter"
   description: "Sweet batter with a dangerous raw-spoon temptation."
   image: market-cake-batter.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 14
+  amount: 32
 
 market-cookie-dough:
   label: "Cookie Dough"
   description: "Cookie dough. Yes, it is a food. Move along."
   image: market-cookie-dough.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 15
+  amount: 36
 
 market-pesto:
   label: "Pesto"
   description: "A bright green sauce with a garlicky attitude."
   image: market-pesto.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 10
+  amount: 33
 
 market-hummus:
   label: "Hummus"
   description: "A creamy chickpea dip with a lemony wink."
   image: market-hummus.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 11
+  amount: 33
 
 market-smoothie-base:
   label: "Smoothie Base"
   description: "A thick fruit blend. Add milk and a tiny umbrella."
   image: market-smoothie-base.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 12
+  amount: 29
 
 market-curry-paste:
   label: "Curry Paste"
   description: "A fiery paste with a very strong personality."
   image: market-curry-paste.png
   type: item
-  rarity: Uncommon
+  rarity: Rare
   tags: [supermarket, food, crafted-ingredient]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 13
+  amount: 33
 
 market-omelette:
   label: "Omelette"
@@ -1129,7 +1129,7 @@ market-omelette:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 25
+  amount: 36
 
 market-fish-and-chips:
   label: "Fish and Chips"
@@ -1149,26 +1149,26 @@ market-cooked-pasta:
   description: "Tender pasta, ready for sauce, cheese, or a dramatic twirl."
   image: market-cooked-pasta.png
   type: item
-  rarity: Rare
+  rarity: Epic
   tags: [supermarket, food, dish]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 20
+  amount: 52
 
 market-baked-bread:
   label: "Baked Bread"
   description: "A warm loaf with a crust that crackles when you cut it."
   image: market-baked-bread.png
   type: item
-  rarity: Rare
+  rarity: Epic
   tags: [supermarket, food, dish]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 18
+  amount: 58
 
 market-pizza:
   label: "Pizza"
@@ -1181,7 +1181,7 @@ market-pizza:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 40
+  amount: 68
 
 market-apple-pie:
   label: "Apple Pie"
@@ -1194,7 +1194,7 @@ market-apple-pie:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 30
+  amount: 51
 
 market-cake:
   label: "Celebration Cake"
@@ -1207,7 +1207,7 @@ market-cake:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 35
+  amount: 74
 
 market-cookies:
   label: "Cookies"
@@ -1220,7 +1220,7 @@ market-cookies:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 20
+  amount: 27
 
 market-blueberry-muffins:
   label: "Blueberry Muffins"
@@ -1233,59 +1233,59 @@ market-blueberry-muffins:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 22
+  amount: 30
 
 market-roasted-vegetables:
   label: "Roasted Vegetables"
   description: "Caramelized vegetables, accidentally eaten straight from the pan."
   image: market-roasted-vegetables.png
   type: item
-  rarity: Rare
+  rarity: Epic
   tags: [supermarket, food, dish]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 20
+  amount: 68
 
 market-garden-salad:
   label: "Garden Salad"
   description: "A crisp garden in a bowl, with dressing invited."
   image: market-garden-salad.png
   type: item
-  rarity: Rare
+  rarity: Epic
   tags: [supermarket, food, dish]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 18
+  amount: 66
 
 market-soup:
   label: "Vegetable Soup"
   description: "A warm bowl of soup. Soup fixes most things."
   image: market-soup.png
   type: item
-  rarity: Rare
+  rarity: Epic
   tags: [supermarket, food, dish]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 24
+  amount: 64
 
 market-stir-fry:
   label: "Tofu Stir-Fry"
   description: "A fast, sizzling pan of vegetables and tofu."
   image: market-stir-fry.png
   type: item
-  rarity: Rare
+  rarity: Epic
   tags: [supermarket, food, dish]
   one_use: true
   energy_cost: 0
   target: self
   effect: energy
-  amount: 24
+  amount: 68
 
 market-curry:
   label: "Chicken Curry"
@@ -1298,7 +1298,7 @@ market-curry:
   energy_cost: 0
   target: self
   effect: energy
-  amount: 40
+  amount: 90
 
 market-bandage:
   label: "Bandage"

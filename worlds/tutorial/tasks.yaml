@@ -38,28 +38,3 @@ house-tour:
     title: Make it out to the garden
     memory_tag: outside
     memory: I made it out to the garden.
-meet-molly:
-  title: A Word with Molly
-  description: Chat with the playroom cat and share a Tasty Toast.
-  scope: personal
-  revision: 1
-  memory_tags:
-  - molly
-  memory: I made a new friend in the playroom.
-  reward:
-    kudos: 1
-  steps:
-  - step_id: say-hello
-    trigger: dialog_action
-    match:
-      peep_id: molly
-    title: Chat with Molly in the playroom
-    memory_tag: molly-hello
-    memory: I chatted with Molly in the playroom.
-  - step_id: share-toast
-    trigger: card_play
-    match:
-      card_id: tasty-toast
-    title: Share a Tasty Toast
-    memory_tag: molly-toast
-    memory: I shared a Tasty Toast with Molly.

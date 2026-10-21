@@ -42,7 +42,9 @@ def on_tick(context, event):
     exits = [
         exit_definition
         for exit_definition in context.room.get("exits", [])
-        if not exit_definition.get("npc_barrier") and not exit_definition.get("locked")
+        if not exit_definition.get("npc_barrier")
+        and not exit_definition.get("locked")
+        and not exit_definition.get("requires_card_id")
     ]
     if not exits:
         return

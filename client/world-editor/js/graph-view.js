@@ -49,13 +49,12 @@ function drawflowData(graph, positions, links) {
   return { drawflow: { Home: { data } } };
 }
 
-export function createGraphView({ container, onSelectNode, onSelectLink, onChange }) {
+export function createGraphView({ container, onSelectNode, onSelectLink, onChange, onMoveNode }) {
   const editor = new globalThis.Drawflow(container);
   editor.curvature = 0.4;
   editor.line_path = 3;
   editor.zoom_min = 0.25;
   editor.start();
-  const savedPositions = new Map();
   let graph = { nodes: [] };
   let signature = "";
   let scope = null;
@@ -66,10 +65,6 @@ export function createGraphView({ container, onSelectNode, onSelectLink, onChang
   const nodeAt = id => graph.nodes[Number(id) - 1];
   const portAt = (id, outputClass) => nodeAt(id)?.ports[Number(outputClass.slice(7)) - 1]?.id ?? null;
   const inputPortAt = (id, inputClass) => nodeAt(id)?.ports[Number(inputClass.slice(6)) - 2]?.id ?? null;
-  const positionsFor = key => {
-    if (!savedPositions.has(key)) savedPositions.set(key, new Map());
-    return savedPositions.get(key);
-  };
 
   function flush() {
     const changes = pending;
@@ -103,7 +98,9 @@ export function createGraphView({ container, onSelectNode, onSelectLink, onChang
   editor.on("nodeRemoved", id => queue({ type: "remove", node: nodeAt(id)?.id }));
   editor.on("nodeMoved", id => {
     const node = editor.drawflow.drawflow.Home.data[id];
-    if (node) positionsFor(scope).set(nodeAt(id).id, { x: node.pos_x, y: node.pos_y });
+    const roomId = nodeAt(id)?.id;
+    if (!node || !roomId) return;
+    onMoveNode?.(roomId, { x: node.pos_x, y: node.pos_y });
   });
   editor.on("clickEnd", event => {
     const element = event.target.closest?.(".drawflow-node");
@@ -119,7 +116,7 @@ export function createGraphView({ container, onSelectNode, onSelectLink, onChang
   function build() {
     building = true;
     const links = graphLinks(graph);
-    editor.import(drawflowData(graph, layoutGraph(graph, positionsFor(scope)), links), false);
+    editor.import(drawflowData(graph, layoutGraph(graph), links), false);
     editor.node_selected = null;
     editor.connection_selected = null;
     for (const link of links.filter(item => item.toPort != null)) {

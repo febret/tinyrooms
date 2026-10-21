@@ -457,8 +457,7 @@ filing-cabinet:
     set: []
 kitchen-dresser:
   label: Kitchen Dresser
-  description: Open shelves stacked with jars and cheerful crockery. The kitchen's
-    official trophy case.
+  description: The kitchen's official trophy case.
   model: kitchen-dresser.glb
   decorative: true
   scale: 1.2
@@ -779,11 +778,10 @@ arched-cottage-window:
   tags:
   - window
   - building
-
 supermarket-prep-table:
   label: Supermarket Prep Table
-  description: A sturdy stainless prep table with a cutting board and tidy little bowls.
-    Perfect for chopping, kneading, and mixing by hand.
+  description: A sturdy stainless prep table with a cutting board and tidy little
+    bowls. Perfect for chopping, kneading, and mixing by hand.
   model: supermarket-prep-table.glb
   decorative: false
   scale: 1.0

@@ -71,7 +71,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(pickerToggle).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator("#look-bar")).toContainText(propLabel);
   await travel(page);
-  await travel(page, "kitchen", "The Buttercup Kitchen");
+  await travel(page, "kitchen", "The Kitchen");
   await pickerToggle.click();
   const roomCard = picker.locator('[data-stack-id][data-scope="room"]').first();
   const cardLabel = await roomCard.locator("..").locator(".room-picker-label").innerText();

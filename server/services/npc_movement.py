@@ -27,8 +27,9 @@ def resolve_npc_move(
 ) -> NpcMove:
     """Resolve an NPC exit traversal or raise ``ValueError``.
 
-    NPCs cannot cross exits flagged ``npc_barrier`` or locked doors. Card
-    requirements do not apply because NPCs hold no inventory.
+    NPCs cannot cross exits flagged ``npc_barrier``, locked doors, or exits that
+    require a card. NPCs hold no inventory, so a keyed exit is always closed to
+    them.
     """
 
     source_room = world.rooms.get(source_room_id)
@@ -43,6 +44,8 @@ def resolve_npc_move(
         raise ValueError("Peeps cannot cross into another world.")
     if exit_definition.locked:
         raise ValueError("That way is locked.")
+    if exit_definition.requires_card_id is not None:
+        raise ValueError("That way needs a key.")
     destination_room = world.rooms.get(exit_definition.target_room_id)
     if destination_room is None:
         raise ValueError("That exit leads nowhere.")

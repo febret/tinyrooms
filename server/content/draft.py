@@ -131,6 +131,21 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
         for field_name in ("label", "board_image"):
             if not isinstance(room.get(field_name), str) or not room.get(field_name):
                 _issue(issues, f"{base}.{field_name}", f"Room {field_name} is required.")
+        editor = room.get("editor")
+        if editor is not None:
+            if not isinstance(editor, dict):
+                _issue(issues, f"{base}.editor", "editor must be a mapping.")
+            else:
+                map_position = editor.get("map")
+                if map_position is not None:
+                    map_path = f"{base}.editor.map"
+                    if not isinstance(map_position, dict):
+                        _issue(issues, map_path, "editor.map must be a mapping.")
+                    else:
+                        for axis in ("x", "y"):
+                            value = map_position.get(axis)
+                            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                                _issue(issues, f"{map_path}.{axis}", f"editor.map.{axis} must be a number.")
         props = room.get("props")
         if props is not None:
             if not isinstance(props, dict):

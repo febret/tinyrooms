@@ -1,6 +1,3 @@
-# Scammon Academia quests. The principal points new teachers at these, and the
-# journal tracks each one. Steps advance from generic lesson signals emitted by
-# the classrooms mod.
 get-a-classroom:
   title: A Classroom of Your Own
   description: Open the Classrooms activity and buy your own classroom door.
@@ -21,7 +18,6 @@ get-a-classroom:
     title: Get a classroom
     memory_tag: got-classroom
     memory: I got a classroom.
-
 first-lesson:
   title: First Day of School
   description: Start a lesson in your classroom and teach the class a topic.
@@ -47,7 +43,6 @@ first-lesson:
     title: Give the class a test
     memory_tag: first-lesson-complete
     memory: I gave the class a test.
-
 gpa-3-0:
   title: Honor Roll Teacher
   description: Finish a lesson with a teacher GPA of 3.0 or better.
@@ -68,7 +63,6 @@ gpa-3-0:
     title: Earn a 3.0 GPA lesson
     memory_tag: honor-roll
     memory: I earned a 3.0 GPA lesson.
-
 ten-lessons:
   title: Ten Lessons In
   description: Complete ten lessons across the school year.
@@ -90,20 +84,20 @@ ten-lessons:
     title: Complete ten lessons
     memory_tag: ten-lessons
     memory: I completed ten lessons.
-
-# One task per subject; the engine advances only the first incomplete step of a
-# task, so order-independent objectives must be separate tasks.
 teach-reading:
   title: Teach Reading
   description: Teach at least one Reading topic in a lesson.
   scope: personal
   revision: 1
   memory: I taught Reading in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: reading}
+    match:
+      event: subject_taught
+      subject: reading
     title: Teach Reading
     memory_tag: taught-reading
     memory: I taught Reading.
@@ -113,11 +107,14 @@ teach-writing:
   scope: personal
   revision: 1
   memory: I taught Writing in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: writing}
+    match:
+      event: subject_taught
+      subject: writing
     title: Teach Writing
 teach-math:
   title: Teach Math
@@ -125,11 +122,14 @@ teach-math:
   scope: personal
   revision: 1
   memory: I taught Math in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: math}
+    match:
+      event: subject_taught
+      subject: math
     title: Teach Math
     memory_tag: taught-math
     memory: I taught Math.
@@ -139,11 +139,14 @@ teach-history:
   scope: personal
   revision: 1
   memory: I taught History in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: history}
+    match:
+      event: subject_taught
+      subject: history
     title: Teach History
 teach-geography:
   title: Teach Geography
@@ -151,11 +154,14 @@ teach-geography:
   scope: personal
   revision: 1
   memory: I taught Geography in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: geography}
+    match:
+      event: subject_taught
+      subject: geography
     title: Teach Geography
 teach-chemistry:
   title: Teach Chemistry
@@ -163,11 +169,14 @@ teach-chemistry:
   scope: personal
   revision: 1
   memory: I taught Chemistry in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: chemistry}
+    match:
+      event: subject_taught
+      subject: chemistry
     title: Teach Chemistry
 teach-tech:
   title: Teach Tech
@@ -175,11 +184,14 @@ teach-tech:
   scope: personal
   revision: 1
   memory: I taught Tech in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: tech}
+    match:
+      event: subject_taught
+      subject: tech
     title: Teach Tech
 teach-sport:
   title: Teach Sport
@@ -187,11 +199,14 @@ teach-sport:
   scope: personal
   revision: 1
   memory: I taught Sport in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: sport}
+    match:
+      event: subject_taught
+      subject: sport
     title: Teach Sport
 teach-biology:
   title: Teach Biology
@@ -199,13 +214,15 @@ teach-biology:
   scope: personal
   revision: 1
   memory: I taught Biology in a lesson.
-  reward: {kudos: 3}
+  reward:
+    kudos: 3
   steps:
   - step_id: teach
     trigger: signal
-    match: {event: subject_taught, subject: biology}
+    match:
+      event: subject_taught
+      subject: biology
     title: Teach Biology
-
 lounge-open-cookbook:
   title: Read the Supermarket Cookbook
   description: Find the Teachers' Lounge and read the supermarket recipe book.
@@ -227,7 +244,6 @@ lounge-open-cookbook:
     title: Read the cookbook
     memory_tag: read-supermarket-cookbook
     memory: I read the supermarket cookbook.
-
 lounge-first-craft:
   title: First Home-Cooked Meal
   description: Craft your first recipe at any supermarket crafting station.
@@ -248,7 +264,6 @@ lounge-first-craft:
     title: Craft your first recipe
     memory_tag: first-supermarket-craft
     memory: I crafted my first supermarket recipe.
-
 lounge-prep-work:
   title: Prep Cook
   description: Prepare three recipes at the supermarket prep table.
@@ -271,7 +286,6 @@ lounge-prep-work:
     title: Prepare three recipes
     memory_tag: prep-cook
     memory: I prepared three recipes at the prep table.
-
 lounge-mixer-magic:
   title: Mixer Magic
   description: Use the supermarket mixer to prepare three recipes.
@@ -294,7 +308,6 @@ lounge-mixer-magic:
     title: Mix three recipes
     memory_tag: mixer-magic
     memory: I used the supermarket mixer three times.
-
 lounge-pizza-night:
   title: Pizza Night
   description: Bake a pizza in the Teachers' Lounge oven.
