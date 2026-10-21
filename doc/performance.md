@@ -63,7 +63,7 @@ corruption of `worlds/tutorial` through shared links.
 ### client
 
 The [reducer benchmarks](../tests/perf/client/state-perf.test.js) import real
-`app/js/` modules under Node. Alongside timings, exact identity invariants require
+`client/app/js/` modules under Node. Alongside timings, exact identity invariants require
 chat to preserve prop, occupant and room-card arrays, and unchanged chat-log
 normalisation to preserve identities.
 
@@ -130,7 +130,7 @@ What is known about the failure, for whoever picks it up:
   regardless, but the underlying difference survived that fix.
 
 The texture half of the problem is already solved independently:
-`shareModelTextures` in [board resources](../app/js/board-resources.js) dedupes prop textures per
+`shareModelTextures` in [board resources](../client/app/js/board-resources.js) dedupes prop textures per
 asset without touching the model lifecycle, which is where the 205 → 101 came
 from.
 

@@ -61,7 +61,7 @@ def register_static_routes(app: FastAPI) -> None:
             return render_html(index_path, runtime.config.base_path)
         return Response(
             "<!doctype html><html><body><h1>Tinyrooms backend ready</h1>"
-            "<p>The backend is running. Add the frontend files under app\\index.html when available.</p>"
+            "<p>The backend is running. Add the frontend files under client/app/index.html when available.</p>"
             "</body></html>",
             media_type="text/html",
         )

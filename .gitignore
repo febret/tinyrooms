@@ -3,7 +3,7 @@ __pycache__/
 .venv/
 .vscode/
 node_modules/
-app/vendor/
+client/app/vendor/
 .local/
 *.sqlite
 *.sqlite-*

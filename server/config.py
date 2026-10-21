@@ -191,16 +191,22 @@ class AppConfig:
     entry_url: str | None = None
 
     @property
+    def client_path(self) -> Path:
+        """Return the browser client directory."""
+
+        return self.repo_root / "client"
+
+    @property
     def app_path(self) -> Path:
         """Return the frontend application directory."""
 
-        return self.repo_root / "app"
+        return self.client_path / "app"
 
     @property
     def activities_path(self) -> Path:
         """Return the activities directory."""
 
-        return self.repo_root / "activities"
+        return self.client_path / "activities"
 
     @property
     def cutscenes_path(self) -> Path:

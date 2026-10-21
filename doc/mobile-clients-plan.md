@@ -24,9 +24,9 @@ Android plan) is missing; recover or clarify that reference before relying on it
 
 ### 1.1 Why a plain WebView works
 
-The ES-module/Three.js client has no build step. [Socket URLs](../app/js/socket.js)
+The ES-module/Three.js client has no build step. [Socket URLs](../client/app/js/socket.js)
 derive from `window.location.origin`; [middleware](../server/base_path.py) injects
-`window.__TR_BASE__` for [client base paths](../app/js/base-path.js).
+`window.__TR_BASE__` for [client base paths](../client/app/js/base-path.js).
 Loading the origin directly means:
 
 - The server's [Origin check](../server/security.py) sees the
@@ -35,9 +35,9 @@ Loading the origin directly means:
   are first-party and persist in the WebView cookie store.
 - No CORS work, no cookie work, no per-request host plumbing.
 
-The browser floor is ES2020 plus import maps ([entry](../app/index.html)):
+The browser floor is ES2020 plus import maps ([entry](../client/app/index.html)):
 Android System WebView 89+ and iOS 16.4+.
-[Boot guard](../app/js/boot-guard.js) diagnoses older engines.
+[Boot guard](../client/app/js/boot-guard.js) diagnoses older engines.
 
 ## 2. Store-approval reality
 
@@ -127,7 +127,7 @@ the default `serverUrl`, and one native overflow menu with `Reload`,
     data store. Call `flush()` in `onPause` for durability.
   - `webView.keepScreenOn = true` while the activity is resumed.
 - Back navigation: `OnBackPressedCallback` dispatches a synthetic `Escape` via
-  `evaluateJavascript` (driving the game's Escape ladder in `app/js/ui.js`), then
+  `evaluateJavascript` (driving the game's Escape ladder in `client/app/js/ui.js`), then
   `webView.goBack()` when possible, otherwise double-back-to-exit.
 - `AndroidManifest.xml`: `INTERNET`, `ACCESS_NETWORK_STATE`, `RECORD_AUDIO`,
   `MODIFY_AUDIO_SETTINGS`; `android:usesCleartextTraffic="false"`;
@@ -154,7 +154,7 @@ the default `serverUrl`, and one native overflow menu with `Reload`,
   - `requestMediaCapturePermissionFor` (iOS 15+) grants capture after
     `AVAudioSession` record permission is obtained.
   - `alert`/`confirm`/`prompt` panels implemented (the app uses its own DOM
-    dialogs in `app/js/dialogs.js`, but this is cheap insurance).
+    dialogs in `client/app/js/dialogs.js`, but this is cheap insurance).
   - `createWebViewWith` loads `window.open` targets in the same WebView.
 - `Info.plist`: `NSMicrophoneUsageDescription`,
   `ITSAppUsesNonExemptEncryption=false`, supported orientations, launch screen.
@@ -276,7 +276,7 @@ filtering, reporting, blocking, and moderator contact.
 | UGC and chat moderation requirement | High | [§6.2](#62-ugc-safeguards) is store-blocking; do it in P0 |
 | Account deletion spanning two SQLite databases | Medium | Explicit purge order plus cascade tests ([§6.1](#61-account-deletion-and-privacy)) |
 | WebRTC voice needs TURN off-LAN | Medium | Add TURN to `TRSERVER_STUN_URLS`; otherwise voice is LAN-only |
-| WebGL context loss kills the board (`app/js/board.js` handles `webglcontextlost` but not `webglcontextrestored`) | Medium | Optional upstream client fix; otherwise offer a reload prompt |
+| WebGL context loss kills the board (`client/app/js/board.js` handles `webglcontextlost` but not `webglcontextrestored`) | Medium | Optional upstream client fix; otherwise offer a reload prompt |
 | No-Mac iOS iteration is slow | Medium | CI artifacts plus TestFlight; simulator tests in CI |
 | Self-signed certificates on local dev | Low | Debug-only bypass, never in release |
 | `/home` origin allowlist | Low | Confirm `TRSERVER_PUBLIC_ORIGIN` includes `https://tinyrooms.febret.com` on the production instance |

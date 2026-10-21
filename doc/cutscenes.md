@@ -31,9 +31,9 @@ Activities must never be obscured by a cutscene. The card hand, chat bar, shop,
 and editor dock are outside `.board-frame` and remain usable; chat, commands,
 voice, and card play continue during playback.
 
-The actual landmarks and stacking rules are in [index.html](../app/index.html),
-[cutscene CSS](../app/css/cutscenes.css), [main CSS](../app/css/main.css), and
-[activity CSS](../app/css/activities.css). Keep this relationship when changing
+The actual landmarks and stacking rules are in [index.html](../client/app/index.html),
+[cutscene CSS](../client/app/css/cutscenes.css), [main CSS](../client/app/css/main.css), and
+[activity CSS](../client/app/css/activities.css). Keep this relationship when changing
 stacking contexts rather than treating a copied z-index inventory as authority.
 
 ### 1.3 Audiences
@@ -61,7 +61,7 @@ reduced motion.
 For reward/reveal flows, commit the authoritative result independently, then
 present it. The shipped [pack-open scene](../data/cutscenes/pack-open/pack-open.js)
 is presentation of an already-decided draw. The [command path](../server/commands/gameplay.py)
-and [UI fallback](../app/js/ui.js) keep reduced-motion and replayed opens usable
+and [UI fallback](../client/app/js/ui.js) keep reduced-motion and replayed opens usable
 through an inline reveal. Skipping or losing a scene must never lose a reward.
 
 ### 1.5 Trust model
@@ -108,7 +108,7 @@ Unknown frames fall back to `plain`. **Completion/rejection handling and
 cancellation timing are not fully implemented**; see §8 before relying on
 automatic return or a cap as the only way to end an authored scene.
 
-The [manager](../app/js/cutscenes/manager.js) currently builds the skeleton
+The [manager](../client/app/js/cutscenes/manager.js) currently builds the skeleton
 before import, runs its intro phase before calling the scene, and lets
 `beginCutscene` configure the prepared stage. This differs from the original
 scene-driven intro description; do not infer timing guarantees from the
@@ -133,8 +133,8 @@ Action Log, or the relevant gameplay UI. No additional screen-reader
 announcement is required beyond the dialog label.
 
 The manager toggles `cutscene-playing` on `#app` and asks the shared
-[inert sweep](../app/js/inert.js) to reapply. It must not compete with the
-[activity focus machinery](../app/js/activities.js) for the same attributes.
+[inert sweep](../client/app/js/inert.js) to reapply. It must not compete with the
+[activity focus machinery](../client/app/js/activities.js) for the same attributes.
 Release blocking on abnormal teardown as well as ordinary completion.
 
 The original contract also names `#board-overlay` as inert during playback;
@@ -295,7 +295,7 @@ Ownership, stacking, trading, packs, and shop behavior remain card-system
 concerns. Emote categories are derived from fields: `Cutscene` for a cutscene
 reference, `Animation` for animation, otherwise `Expression`. See
 [card loading](../server/content/cards.py), [emote costs and use](../server/services/actions.py),
-and the [emote menu](../app/js/views/emote-menu.js).
+and the [emote menu](../client/app/js/views/emote-menu.js).
 
 A cutscene emote charges Energy (category default five; an explicit card cost
 wins) and broadcasts a play event without a speech bubble or consuming the
@@ -334,14 +334,14 @@ with explicit options winning. Standard options are `from`, `duration`
 (intro/outro CSS duration), `background`, `accent`, and `radius`. These are
 frame configuration, not the definition's body duration cap.
 
-The implementation is [beginCutscene in stage.js](../app/js/cutscenes/stage.js).
+The implementation is [beginCutscene in stage.js](../client/app/js/cutscenes/stage.js).
 It returns the stage node, **without** the specified `dom.frame` and `dom.root`
 convenience properties. Those properties remain an outstanding API requirement
 (§8); authors cannot rely on them in the shipped implementation.
 
 ### 4.3 `ctx`
 
-The exact context is assembled by [the manager](../app/js/cutscenes/manager.js).
+The exact context is assembled by [the manager](../client/app/js/cutscenes/manager.js).
 Its author-facing data consists of:
 
 | Data | Use |
@@ -371,8 +371,8 @@ instant a user requests skip today.
 ### 4.4 Frame types
 
 A frame owns container geometry and intro/outro animations. Built-ins are
-defined in [frames.js](../app/js/cutscenes/frames.js), styled in
-[cutscenes.css](../app/css/cutscenes.css):
+defined in [frames.js](../client/app/js/cutscenes/frames.js), styled in
+[cutscenes.css](../client/app/css/cutscenes.css):
 
 | Frame | Intended look |
 | --- | --- |
@@ -479,9 +479,9 @@ card references. Those scope restrictions remain outstanding where the direct
 id paths above bypass them; current resolution does not supersede that intent.
 
 See [server resolution and record shapes](../server/services/cutscenes.py),
-[sprite helpers](../app/js/cutscenes/stage.js), and
-[client asset rendering](../app/js/cutscenes/placeholders.js). Props are rendered
-through the [shared thumbnail renderer](../app/js/editing/prop-thumbnails.js)
+[sprite helpers](../client/app/js/cutscenes/stage.js), and
+[client asset rendering](../client/app/js/cutscenes/placeholders.js). Props are rendered
+through the [shared thumbnail renderer](../client/app/js/editing/prop-thumbnails.js)
 and returned as image elements, not a server thumbnail or a scene-owned canvas.
 The server's prop `thumbnail` remains null intentionally.
 
@@ -491,7 +491,7 @@ give `sprite` a label when an informative missing-asset caption matters.
 
 ### 4.7 Stage helper entry points
 
-The canonical exports/signatures are in [stage.js](../app/js/cutscenes/stage.js).
+The canonical exports/signatures are in [stage.js](../client/app/js/cutscenes/stage.js).
 The small working set for authors is:
 
 - `beginCutscene(...)`, `endCutscene(...)`: configure the stage and finish the
@@ -546,7 +546,7 @@ new envelope fields. Room events reach occupants; private events carry the
 account-routing identity. The server never accepts a client-selected
 `script_url` as a launch parameter.
 
-The [UI](../app/js/ui.js) intercepts play events before store dispatch. Playback
+The [UI](../client/app/js/ui.js) intercepts play events before store dispatch. Playback
 is imperative and transient, not snapshot-worthy state, and no rendering path
 awaits it. Auth/transport/room state drives manager synchronization.
 
@@ -572,7 +572,7 @@ Molly costs no Energy and is room-bound flavor; `$me` can become a caption
 label while remaining a sprite token in params. Victory Dance comes through
 the tutorial pack and plays locally for each occupant, without synchronization.
 Its custom frame styles, like Molly's coupled sprites and hearts, currently
-live in the [shared stylesheet](../app/css/cutscenes.css).
+live in the [shared stylesheet](../client/app/css/cutscenes.css).
 
 When authoring, load/validate the world, launch the actual bound action, check
 missing assets, skip and travel behavior, and verify reduced-motion gameplay
@@ -588,8 +588,8 @@ validation and manual UI review.
 | Launch policy, payload, assets | [services/cutscenes.py](../server/services/cutscenes.py), [command helpers](../server/commands/cutscenes.py) |
 | Card/gameplay and behavior triggers | [gameplay commands](../server/commands/gameplay.py), [actions](../server/services/actions.py), [behavior dispatcher](../server/behaviors/dispatcher.py) |
 | HTTP and service wiring | [routes/cutscenes.py](../server/routes/cutscenes.py), [app.py](../server/app.py) |
-| Queue, lifecycle, context, helpers | [manager.js](../app/js/cutscenes/manager.js), [stage.js](../app/js/cutscenes/stage.js) |
-| Frames, sprites, focus, DOM | [frames.js](../app/js/cutscenes/frames.js), [placeholders.js](../app/js/cutscenes/placeholders.js), [inert.js](../app/js/inert.js), [CSS](../app/css/cutscenes.css), [UI](../app/js/ui.js) |
+| Queue, lifecycle, context, helpers | [manager.js](../client/app/js/cutscenes/manager.js), [stage.js](../client/app/js/cutscenes/stage.js) |
+| Frames, sprites, focus, DOM | [frames.js](../client/app/js/cutscenes/frames.js), [placeholders.js](../client/app/js/cutscenes/placeholders.js), [inert.js](../client/app/js/inert.js), [CSS](../client/app/css/cutscenes.css), [UI](../client/app/js/ui.js) |
 | Server/service/integration checks | [test_cutscenes.py](../tests/test_cutscenes.py) |
 | Real playback smoke / motion suppression | [cutscenes.spec.js](../tests/browser/cutscenes.spec.js), [flows.spec.js](../tests/browser/flows.spec.js), [Playwright projects](../playwright.config.js) |
 | Presentation/static limits | [test_ui_presentation.py](../tests/test_ui_presentation.py) |

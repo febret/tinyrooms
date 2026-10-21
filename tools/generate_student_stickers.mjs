@@ -14,12 +14,12 @@ import {
   hydrateDesign,
   partEntry,
   resolveLayers,
-} from "../activities/sticker-designer/parts.js";
+} from "../client/activities/sticker-designer/parts.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const WORLD_DIR = join(here, "..", "worlds", "scammon-academia");
 const OUTPUT_DIR = join(WORLD_DIR, "peeps");
-const PARTS_DIR = join(here, "..", "activities", "sticker-designer", "parts");
+const PARTS_DIR = join(here, "..", "client", "activities", "sticker-designer", "parts");
 const MANIFEST_PATH = join(OUTPUT_DIR, "students.json");
 const ROSTER_VERSION = 2;
 const STUDENTS_PER_GRADE = 15;

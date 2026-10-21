@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildBeaconCommand } from "../../app/js/commands.js";
-import { createStore } from "../../app/js/state.js";
+import { buildBeaconCommand } from "../../client/app/js/commands.js";
+import { createStore } from "../../client/app/js/state.js";
 
 test("beacon commands target friends and support listing", () => {
   assert.equal(buildBeaconCommand("send", "friend-1"), ".beacon send @peep:friend-1");

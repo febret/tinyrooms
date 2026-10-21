@@ -156,10 +156,16 @@ class MCConfig:
         return repo
 
     @property
+    def client_path(self) -> Path:
+        """Return the browser client directory."""
+
+        return self.repo_root / "client"
+
+    @property
     def ui_path(self) -> Path:
         """Return the static mission-control UI directory."""
 
-        return self.repo_root / "mission-control"
+        return self.client_path / "mission-control"
 
     @property
     def profiles_db_path(self) -> Path:

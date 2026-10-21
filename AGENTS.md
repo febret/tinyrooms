@@ -21,7 +21,7 @@ deployment contracts. [Dynamic peeps](doc/dynamic-peeps.md) describes future wor
 - **JavaScript**: Use vanilla ES modules; app code has no build step. Preserve
   the modern browser floor (ES2020 + import maps: Chrome/Edge 89+, Samsung
   Internet 15+, Firefox 108+, Safari 16.4+). Keep
-  [boot-guard.js](app/js/boot-guard.js) ES5-only: it must show diagnostics on
+  [boot-guard.js](client/app/js/boot-guard.js) ES5-only: it must show diagnostics on
   unsupported engines before the module entry can run.
 - **YAML**: Validate edits under `worlds/` and `data/` against the
   [content loaders](server/content/), especially [worlds](server/content/worlds.py)
@@ -42,7 +42,7 @@ re-record baselines only for an intentional change.
 1. **Server/business logic**: Add `tests/test_*.py` using `unittest.TestCase`,
    without an external framework. Service tests should subclass
    [ServiceTestCase](tests/common.py) for isolated profile/world databases.
-2. **Client logic**: Test the actual `app/js/` modules with Node's test runner
+2. **Client logic**: Test the actual `client/app/js/` modules with Node's test runner
    under [tests/client/](tests/client/) (`*.test.js`); use `npm run test:client`.
 3. **Browser functional**: Keep [flows](tests/browser/flows.spec.js) and
    [cutscenes](tests/browser/cutscenes.spec.js) a minimal smoke set: boot,

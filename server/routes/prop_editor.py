@@ -41,7 +41,7 @@ class SaveEffectPayload(BaseModel):
 
 
 def _editor_root(runtime) -> Path:
-    return runtime.config.repo_root / "prop-editor"
+    return runtime.config.client_path / "prop-editor"
 
 
 def _error(status_code: int, code: str, message: str) -> JSONResponse:

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { MAX_HISTORY, createChatHistory, filterHistory, fuzzyScore } from "../../app/js/chat-history.js";
+import { MAX_HISTORY, createChatHistory, filterHistory, fuzzyScore } from "../../client/app/js/chat-history.js";
 
 test("fuzzyScore matches ordered subsequences only", () => {
   assert.notEqual(fuzzyScore("gp", ".grant bops"), null);

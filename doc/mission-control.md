@@ -123,7 +123,7 @@ MC supplies these settings to children; external servers must configure them.
 Use [MC app assembly](../server/mission_control/app.py),
 [operator/fleet routes](../server/mission_control/routes.py),
 [public entry](../server/mission_control/entry.py), and the
-[static UI](../mission-control/) as the source map. [run.py](../run.py) owns
+[static UI](../client/mission-control/) as the source map. [run.py](../run.py) owns
 HTTPS selection/shutdown; [supervisor](../server/mission_control/supervisor.py)
 owns child processes. Outbound HTTP uses async `httpx`.
 
@@ -139,7 +139,7 @@ Player accounts/sessions remain in the shared profile DB.
 
 ## 5. Mission-control UI
 
-The [UI](../mission-control/) uses vanilla ES modules without a build step and
+The [UI](../client/mission-control/) uses vanilla ES modules without a build step and
 project design tokens; a denser operational layout is intentional.
 
 ### 5.1 Authentication
@@ -154,7 +154,7 @@ clears the session/cookies. See [auth](../server/mission_control/auth.py) and
 ### 5.2 Tabbed shell
 
 Four tabs share operator/version information and disconnect/error reporting.
-Detailed fields and rendering live in the [UI source](../mission-control/).
+Detailed fields and rendering live in the [UI source](../client/mission-control/).
 
 ### 5.3 Server Manager
 

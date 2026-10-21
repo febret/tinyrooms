@@ -55,7 +55,7 @@ class ResetRoomPayload(BaseModel):
 
 
 def _editor_root(runtime) -> Path:
-    return runtime.config.repo_root / "world-editor"
+    return runtime.config.client_path / "world-editor"
 
 
 def _serve_page(runtime, root: Path, requested_path: str) -> Response:

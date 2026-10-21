@@ -50,7 +50,7 @@ class CardDefinition:
     """Immutable card definition."""
 
     # image is the required card illustration only (no frame, title, or stats):
-    # clients compose full faces from metadata (app/js/card-face.js). Sealed
+    # clients compose full faces from metadata (client/app/js/card-face.js). Sealed
     # packs use their back art; animation is optional bubble art. Both resolve
     # beside cards.yaml. See doc/card-art.md.
     # one_use consumes a copy only on successful use. Passive cards work while

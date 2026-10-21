@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { activePropAction, defaultPropAction, hasActivePropActions } from "../../app/js/prop-actions.js";
+import { activePropAction, defaultPropAction, hasActivePropActions } from "../../client/app/js/prop-actions.js";
 
 test("active props require a usable action other than look or inspect", () => {
   assert.equal(hasActivePropActions({ quickActions: [{ command: ".look @prop:door" }, { command: ".inspect @prop:door" }] }), false);

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createStore } from "../../../app/js/state.js";
+import { createStore } from "../../../client/app/js/state.js";
 import { makeRoomPayload, makeUserPayload } from "./fixtures.js";
 import { assertScales, medianMs, record } from "./perfkit.js";
 

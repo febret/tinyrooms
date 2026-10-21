@@ -20,7 +20,7 @@ async def card_database_page(request: Request, requested_path: str = "") -> Resp
 
     runtime = get_runtime(request)
     require_editor_access(runtime, request, feature="card-database")
-    root = runtime.config.repo_root / "card-database"
+    root = runtime.config.client_path / "card-database"
     return _serve_page(runtime, root, requested_path)
 
 

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { footprintsOverlap, supportElevation } from "../../app/js/editing/prop-stacking.js";
+import { footprintsOverlap, supportElevation } from "../../client/app/js/editing/prop-stacking.js";
 
 const dragged = { id: "dragged", x: 0, z: 0, halfX: 1, halfZ: 1, topZ: 0 };
 

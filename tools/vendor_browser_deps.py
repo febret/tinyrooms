@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NODE_MODULES = ROOT / "node_modules"
-TARGET = ROOT / "app" / "vendor"
+TARGET = ROOT / "client" / "app" / "vendor"
 THREE = NODE_MODULES / "three"
 DRAWFLOW = NODE_MODULES / "drawflow"
 

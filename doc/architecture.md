@@ -12,7 +12,7 @@ snapshots/events and dispatches input; it does not invent authoritative state.
 One process owns a world, with SQLite persistence and validated YAML content.
 The frontend uses vanilla ES modules and Three.js, without an app build step.
 `npm run vendor` copies Three.js and Drawflow (the World Editor's node graphs)
-into the ignored `app/vendor/`.
+into the ignored `client/app/vendor/`.
 
 ```text
 browser (app + Three.js + same-origin activity iframes)
@@ -42,9 +42,9 @@ has its own worldstate database. See the canonical
 | Gameplay services | [server/services/](../server/services/) |
 | Persistence and migrations | [server/state/](../server/state/); [durability contracts](db.md) |
 | Content and extensions | [server/content/](../server/content/), [mods](../server/mods.py), [behaviors](../server/behaviors/) |
-| Browser rendering and state | [app/js/](../app/js/), [app/css/](../app/css/) |
-| Embedded activities | [activities](../activities/), [client host](../app/js/activities.js), [server lifecycle](../server/services/activities.py) |
-| MC and world management channel | [server/mission_control/](../server/mission_control/), [mission-control UI](../mission-control/), [mc_client](../server/mc_client.py), [mc_api](../server/mc_api.py) |
+| Browser rendering and state | [app/js/](../client/app/js/), [app/css/](../client/app/css/) |
+| Embedded activities | [activities](../client/activities/), [client host](../client/app/js/activities.js), [server lifecycle](../server/services/activities.py) |
+| MC and world management channel | [server/mission_control/](../server/mission_control/), [mission-control UI](../client/mission-control/), [mc_client](../server/mc_client.py), [mc_api](../server/mc_api.py) |
 
 ### 2.1 Content and mods
 
@@ -62,7 +62,7 @@ seeds.
 Prop schema and file-wide scale settings are defined by
 [worlds.py](../server/content/worlds.py). Effect definitions are loaded by
 [fx.py](../server/content/fx.py) and rendered by
-[prop-effects.js](../app/js/prop-effects.js); reduced motion suppresses effects.
+[prop-effects.js](../client/app/js/prop-effects.js); reduced motion suppresses effects.
 Props may also declare named mesh `states` and an authored `active_state`.
 [rooms.py](../server/services/rooms.py) can switch a room instance's state at
 runtime and broadcasts `room.prop.updated`; clients reload the active model.
@@ -88,7 +88,7 @@ the behavior resolves. See the tutorial's
 ## 3. HTTP and session boundaries
 
 [Application assembly](../server/app.py), [route modules](../server/routes/), and
-[client API](../app/js/api.js) define endpoints and payloads; serializers live in
+[client API](../client/app/js/api.js) define endpoints and payloads; serializers live in
 [serialization.py](../server/serialization.py). Do not maintain parallel tables.
 
 - Account creation is invitation-gated; invitation changes do not affect existing
@@ -106,7 +106,7 @@ the behavior resolves. See the tutorial's
 
 [protocol.py](../server/protocol.py) owns envelopes, validation, limits, and close
 codes. [connections.py](../server/connections.py) owns room membership and send
-queues; [socket.js](../app/js/socket.js) owns client transport.
+queues; [socket.js](../client/app/js/socket.js) owns client transport.
 
 Room broadcasts are ordered by the single world process's event loop; there is
 no per-room sequence protocol. A private command result matches `request_id`.
@@ -117,8 +117,8 @@ movement. Session validation remains authoritative throughout the connection.
 Activity guests are same-origin iframes. The host validates origin, activity ID,
 and source window before accepting bridge messages. Guest commands use the
 normal server command pipeline; iframe isolation must not bypass authority.
-See [host bridge](../app/js/activities.js),
-[guest bridge](../activities/shared.js), and
+See [host bridge](../client/app/js/activities.js),
+[guest bridge](../client/activities/shared.js), and
 [server bridge](../server/routes/activity_bridge.py).
 
 ## 5. Commands and gameplay boundaries
@@ -137,7 +137,7 @@ shortcuts, but it must not infer action authority from presentation.
 - **Card transfers:** [cards.py](../server/services/cards.py) performs atomic
   room/inventory transfers; concurrent claims cannot duplicate a stack. Pinned
   and core-card restrictions are enforced server-side. Board drop placement is
-  dispatched by [drag.js](../app/js/drag.js), then validated and persisted.
+  dispatched by [drag.js](../client/app/js/drag.js), then validated and persisted.
 - **Activities:** [activities.py](../server/services/activities.py) owns one live
   activity per account. Replacement/cancellation/travel/logout/disconnect must
   close the appropriate session. Mandatory onboarding has stronger UI gates
@@ -154,7 +154,7 @@ interpret the existence of account powers as proof that reset is admin-only.
 
 ## 6. Peer audio and cutscenes
 
-[voice.js](../app/js/voice.js) implements opt-in, gesture-unlocked push-to-talk;
+[voice.js](../client/app/js/voice.js) implements opt-in, gesture-unlocked push-to-talk;
 [rtc.py](../server/services/rtc.py) relays signaling only between audio-enabled
 connections in the same room. Media travels over WebRTC, not through gameplay
 logs. Audio presence is connection-local: travel retains it, refresh/new login
@@ -166,7 +166,7 @@ a transaction succeeded, and the server does not await playback acknowledgement.
 See [cutscene authoring/contracts](cutscenes.md), including its explicit
 outstanding implementation gaps, and the
 [service](../server/services/cutscenes.py) /
-[client manager](../app/js/cutscenes/manager.js).
+[client manager](../client/app/js/cutscenes/manager.js).
 
 ## 7. Verification
 
