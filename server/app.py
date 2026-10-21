@@ -92,6 +92,7 @@ from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.prop_editor import PropEditorService
 from server.services.prop_shop import PropShopService
+from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.prop_states import PropStateService
 from server.services.room_effects import RoomEffectService
 from server.services.room_layout import RoomLayoutService
@@ -163,6 +164,12 @@ class LayoutSaveRequest(BaseModel):
     patch: dict[str, object] = Field(default_factory=dict)
 
 
+class SignSaveRequest(BaseModel):
+    """Sign text save request payload."""
+
+    text: str
+
+
 @dataclass(slots=True)
 class RuntimeState:
     """Shared application runtime state."""
@@ -191,6 +198,7 @@ class RuntimeState:
     beacons: BeaconService
     shop: ShopService
     prop_shop: PropShopService
+    surfaces: PropSurfaceService
     pricing: CardPricingService
     dialogs: DialogService
     tasks: TaskService
@@ -486,13 +494,14 @@ def _build_runtime(
     beacons = BeaconService(profiles)
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
+    surfaces = PropSurfaceService(hub)
     audit = AuditService(hub, world.id)
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     room_effects = RoomEffectService()
     prop_states = PropStateService()
     layout = RoomLayoutService(
-        hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states
+        hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
     )
     auras = AuraService(hub, stats, world, environment=environment)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment)
@@ -534,6 +543,7 @@ def _build_runtime(
         room_effects=room_effects,
         prop_states=prop_states,
         peep_states=peep_states,
+        surfaces=surfaces,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(
@@ -611,6 +621,7 @@ def _build_runtime(
         beacons=beacons,
         shop=shop,
         prop_shop=prop_shop,
+        surfaces=surfaces,
         pricing=pricing,
         dialogs=dialogs,
         tasks=tasks,
@@ -906,6 +917,41 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         await _broadcast_room_event(runtime, room_id=room_id, event=reset.event())
         return JSONResponse(content={"ok": True, "layout": runtime.layout.view(account, room_id)})
 
+    @app.post("/api/rooms/{room_id}/signs/{instance_id}")
+    async def save_sign_text(
+        request: Request,
+        room_id: str,
+        instance_id: str,
+        payload: SignSaveRequest,
+    ) -> object:
+        runtime = _get_runtime(request)
+        session = _require_session(runtime, request)
+        _enforce_authenticated_post(runtime, request, session)
+        try:
+            prop = runtime.rooms.require_prop_target(room_id, instance_id)
+        except ValueError as exc:
+            return _json_error(400, "sign_rejected", str(exc))
+        definition = runtime.world.props[prop.prop_id]
+        if surface_kind(definition.render_kind) != "sign":
+            return _json_error(400, "sign_rejected", "That prop is not a sign.")
+        try:
+            surface = runtime.surfaces.save_sign(
+                room_id, instance_id, session.account_id, {"text": payload.text}
+            )
+        except ValueError as exc:
+            return _json_error(400, "sign_rejected", str(exc))
+        await _broadcast_room_event(
+            runtime,
+            room_id=room_id,
+            event={
+                "type": "room.prop.surface",
+                "room_id": room_id,
+                "prop_id": instance_id,
+                "surface": surface.serialize(),
+            },
+        )
+        return {"ok": True, "surface": surface.serialize()}
+
     @app.get("/api/activities/current")
     async def current_activity(request: Request) -> dict[str, object]:
         runtime = _get_runtime(request)
@@ -933,10 +979,45 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         activity = runtime.activities.get(session.account_id)
         if activity is None or activity.id != activity_id:
             raise HTTPException(status_code=404, detail="Activity not found.")
-        if payload.type not in {"activity.ready", "activity.attention", "activity.cancel", "activity.complete", "activity.result"}:
+        if payload.type not in {
+            "activity.ready",
+            "activity.attention",
+            "activity.cancel",
+            "activity.complete",
+            "activity.result",
+            "activity.surface",
+        }:
             raise HTTPException(status_code=400, detail="Unsupported activity bridge message type.")
         if payload.type == "activity.result":
             return await handle_activity_result(runtime, session, activity, dict(payload.payload))
+        if payload.type == "activity.surface":
+            if activity.kind != "whiteboard" or not activity.room_id:
+                raise HTTPException(status_code=400, detail="That activity cannot save a surface.")
+            try:
+                surface = runtime.surfaces.save_activity_surface(
+                    activity,
+                    session.account_id,
+                    payload.payload.get("content"),
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            if surface is None:
+                raise HTTPException(status_code=400, detail="That whiteboard is not available.")
+            await _broadcast_room_event(
+                runtime,
+                room_id=activity.room_id,
+                event={
+                    "type": "room.prop.surface",
+                    "room_id": activity.room_id,
+                    "prop_id": surface.instance_id,
+                    "surface": surface.serialize(),
+                },
+            )
+            return {
+                "ok": True,
+                "activity": runtime.activities.serialize(activity),
+                "surface": surface.serialize(),
+            }
         if payload.type == "activity.attention":
             updated = runtime.activities.mark_attention(session.account_id)
             return {"ok": True, "activity": runtime.activities.serialize(updated)}

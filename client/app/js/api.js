@@ -114,8 +114,19 @@ export function createApiClient() {
       const body = await requestJson(`/api/rooms/${encodeURIComponent(roomId)}/layout`);
       return body.layout || null;
     },
-    async saveRoomLayout(roomId, payload) {
-      const request = withJson(payload);
+    async saveSign(roomId, instanceId, text) {
+      const request = withJson({ text });
+      const body = await requestJson(
+        `/api/rooms/${encodeURIComponent(roomId)}/signs/${encodeURIComponent(instanceId)}`,
+        {
+          method: "POST",
+          ...request,
+          headers: { ...request.headers, ...authHeaders() },
+        },
+      );
+      return body.surface || null;
+    },
+    async saveRoomLayout(roomId, payload) {      const request = withJson(payload);
       const response = await fetch(withBase(`/api/rooms/${encodeURIComponent(roomId)}/layout`), {
         method: "POST",
         credentials: "include",

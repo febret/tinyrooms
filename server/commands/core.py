@@ -516,7 +516,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, privileged, prop_shop, props
+    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, privileged, prop_shop, props, surfaces
 
     registry = CommandRegistry()
     registry.register(
@@ -566,6 +566,15 @@ def build_registry() -> CommandRegistry:
         help="Spend Bops to unlock a marketplace prop for every room you own.",
     )
     registry.register("cancel", "Close the active activity window.", cancel_command, usage=".cancel", toast=False)
+    registry.register(
+        "sign",
+        "Edit the text on a sign in this room.",
+        surfaces.sign_command,
+        usage=".sign <instance_id>",
+        toast=False,
+        log=False,
+        help="Opens a small editor for the selected sign's text.",
+    )
     registry.register(
         "claim_bops",
         "Claim today's Daily Bops allowance.",

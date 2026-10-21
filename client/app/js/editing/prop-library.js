@@ -14,6 +14,8 @@ function sampleEntries(entries, count) {
 
 function thumbnailMarkup(entry, className) {
   if (entry.renderKind === "text") return `<span class="${className} text-prop-thumbnail" aria-hidden="true">Aa</span>`;
+  if (entry.renderKind === "sign") return `<span class="${className} surface-prop-thumbnail surface-sign-thumbnail" aria-hidden="true">Sign</span>`;
+  if (entry.renderKind === "whiteboard") return `<span class="${className} surface-prop-thumbnail surface-board-thumbnail" aria-hidden="true">Board</span>`;
   return `<img class="${className}" data-thumb-model="${escapeHtml(entry.modelUrl)}"
     data-thumb-scale="${escapeHtml(entry.baseScale)}" alt="" aria-hidden="true">`;
 }
@@ -55,8 +57,8 @@ function propSetButton(source, entries) {
 function librarySignature(entries) {
   const list = Array.isArray(entries) ? entries : [];
   return list.map(entry => [
-    entry.propId, entry.label, entry.modelUrl, entry.baseScale,
-    entry.source, entry.locked ? 1 : 0, entry.tags.join(","),
+    entry.propId, entry.label, entry.modelUrl, entry.baseScale, entry.renderKind,
+    entry.defaultSignStyle, entry.source, entry.locked ? 1 : 0, entry.tags.join(","),
   ].join("\u0001")).join("\u0002");
 }
 

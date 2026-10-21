@@ -94,6 +94,15 @@ function normalizeExit(exit) {
   };
 }
 
+function normalizeSurface(surface) {
+  return {
+    kind: String(surface?.kind || ""),
+    revision: Number(surface?.revision || 0),
+    updatedBy: surface?.updated_by ? String(surface.updated_by) : "",
+    content: surface?.content && typeof surface.content === "object" ? { ...surface.content } : {},
+  };
+}
+
 function normalizeProp(prop) {
   return {
     id: String(prop?.id || ""),
@@ -108,6 +117,8 @@ function normalizeProp(prop) {
     modelUrl: assetOrEmpty(prop?.model_url),
     renderKind: String(prop?.render_kind || "model"),
     ...(prop?.text ? { text: { ...prop.text } } : {}),
+    ...(typeof prop?.sign_style === "string" ? { signStyle: prop.sign_style } : {}),
+    ...(prop?.surface && typeof prop.surface === "object" ? { surface: normalizeSurface(prop.surface) } : {}),
     animation: typeof prop?.animation === "string" ? prop.animation : "",
     state: typeof prop?.active_state === "string"
       ? prop.active_state
@@ -693,6 +704,21 @@ function applyServerEvent(state, event) {
             };
           }
           return { ...prop, activeEffect: String(event.prop.active_effect || "") };
+        }),
+      },
+    };
+  }
+  if (event.type === "room.prop.surface" && event.prop_id && state.room) {
+    const targetId = String(event.prop_id);
+    const incoming = normalizeSurface(event.surface);
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        props: state.room.props.map(prop => {
+          if (prop.id !== targetId) return prop;
+          if (Number(prop.surface?.revision || 0) > incoming.revision) return prop;
+          return { ...prop, surface: incoming };
         }),
       },
     };

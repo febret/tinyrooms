@@ -18,6 +18,7 @@ import {
   syncRecords,
 } from "./board-helpers.js";
 import { isTextProp } from "./text-props.js";
+import { isSurfaceProp } from "./surface-props.js";
 import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "./editing/gizmo.js";
 import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
@@ -468,7 +469,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
-    if (!isTextProp(prop) && !prop.modelUrl) {
+    if (!isTextProp(prop) && !isSurfaceProp(prop) && !prop.modelUrl) {
       fail(entry, `${prop.label} model is missing`);
       return;
     }
@@ -494,7 +495,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       }
       // The server sends the combined definition + instance scale, applied by `group`;
       // here we only ground the model so its base rests on the floor.
-      if (!isTextProp(prop)) shareModelTextures(model, prop.modelUrl);
+      if (!isTextProp(prop) && !isSurfaceProp(prop)) shareModelTextures(model, prop.modelUrl);
       const visual = new THREE.Group();
       visual.position.y = -bounds.min.y;
       visual.add(model);

@@ -12,6 +12,13 @@ export function lookPreview(state, description) {
   if (dialog) return { markup: "", action: null };
   if (selection.kind === "prop") {
     const prop = state.room?.props?.find(candidate => candidate.id === selection.id);
+    if (prop?.renderKind === "sign" || prop?.renderKind === "whiteboard") {
+      const label = prop.renderKind === "sign" ? "sign" : "whiteboard";
+      return {
+        markup: `<button type="button" class="look-preview look-preview-button look-preview-surface" data-look-inspect="prop" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><span aria-hidden="true">${prop.renderKind === "sign" ? "✎" : "▤"}</span> ${escapeHtml(label)}</button>`,
+        action: { type: "open-view", view: "prop-details", propId: prop.id },
+      };
+    }
     if (!prop?.modelUrl) return { markup: "", action: null };
     return {
       markup: `<button type="button" class="look-preview look-preview-button look-preview-3d" data-look-inspect="prop" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><canvas data-prop-model="${escapeHtml(prop.modelUrl)}" data-prop-scale="${escapeHtml(prop.scale)}" aria-hidden="true"></canvas></button>`,

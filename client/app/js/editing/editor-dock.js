@@ -1,6 +1,6 @@
 import { updateMarkup } from "../presentation.js";
 import {
-  editRoomView, editorConflictMarkup, editorSelectedName,
+  editRoomView, editorConflictMarkup, editorSelectedName, signStyleMarkup,
 } from "../views/edit-room-view.js";
 import { availableLibrary, selectedInstance } from "./edit-reducer.js";
 import { bindEditorLibrary, createLibraryFilter } from "./library-filter.js";
@@ -25,6 +25,9 @@ export function bindEditorControls(root, onAction) {
   });
   root.querySelectorAll("[data-edit-style]").forEach(select => {
     select.onchange = () => onAction({ type: "edit-style", value: select.value });
+  });
+  root.querySelectorAll("[data-edit-sign-style]").forEach(button => {
+    button.onclick = () => onAction({ type: "edit-sign-style", signStyle: button.dataset.editSignStyle });
   });
 }
 
@@ -76,6 +79,10 @@ export function createEditorDock({
       const selected = selectedInstance(editor);
       const name = root.querySelector("[data-edit-selected-name]");
       if (name) name.textContent = editorSelectedName(editor, selected);
+      const styleRegion = root.querySelector("[data-editor-sign-styles]");
+      if (styleRegion && updateMarkup(styleRegion, signStyleMarkup(editor, selected))) {
+        bindEditorControls(styleRegion, onAction);
+      }
       const deleteButton = root.querySelector("[data-editor-delete]");
       if (deleteButton) deleteButton.disabled = !selected;
       const textButton = root.querySelector("[data-editor-text]");

@@ -7,6 +7,7 @@ from typing import Mapping
 
 from server.commands.outcomes import CommandContext, CommandError, CommandOutcome
 from server.content.activities import ActivityDefinition
+from server.content.surface_props import whiteboard_options
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +16,7 @@ class ResolvedActivity:
 
     definition: ActivityDefinition
     room_bound: bool
+    prop_instance_id: str | None = None
 
 
 def _find_definition(
@@ -41,11 +43,15 @@ def resolve_activity(context: CommandContext, room_id: str, target: str) -> Reso
             return ResolvedActivity(definition=definition, room_bound=True)
     room = context.world.rooms.get(room_id)
     if room is not None:
-        for prop in room.props.values():
+        for prop in context.rooms.props_in_room(room_id):
             if prop.activity and prop.id.casefold() == key:
                 context.rooms.require_prop_target(room_id, prop.id)
                 definition = context.world.activities[prop.activity]
-                return ResolvedActivity(definition=definition, room_bound=True)
+                return ResolvedActivity(
+                    definition=definition,
+                    room_bound=True,
+                    prop_instance_id=prop.id,
+                )
     definition = _find_definition(context.world.activities, key)
     if definition is None:
         raise CommandError("Unknown activity.")
@@ -77,6 +83,13 @@ def start_activity(
         "record": definition.record,
         "min_completed_round": definition.min_completed_round,
     }
+    if resolved.prop_instance_id is not None:
+        config["prop_instance_id"] = resolved.prop_instance_id
+        if definition.id == "whiteboard":
+            surface = context.rooms.surface_for(room_id, resolved.prop_instance_id, "whiteboard")
+            if surface is not None:
+                config["surface"] = surface.serialize()
+            config["whiteboard_options"] = whiteboard_options()
     config.update(extra_config or {})
     try:
         session, replaced = context.activities.start(

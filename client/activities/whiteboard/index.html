@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="full-height">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Whiteboard</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./whiteboard.css">
+  </head>
+  <body>
+    <main class="shell viewport-column whiteboard-shell">
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+      <div class="whiteboard-toolbar" role="toolbar" aria-label="Whiteboard tools">
+        <div class="marker-row" id="colors" role="group" aria-label="Marker color"></div>
+        <label class="tool-field">Size
+          <input id="brush-size" type="range" min="2" max="32" value="6" aria-label="Marker size">
+        </label>
+        <button type="button" id="eraser" aria-pressed="false">Eraser</button>
+        <label class="tool-field text-field">Text
+          <input id="text-value" type="text" maxlength="160" placeholder="Note text" aria-label="Note text">
+        </label>
+        <button type="button" id="text-mode" aria-pressed="false">Place text</button>
+        <button type="button" class="quiet" id="undo">Undo</button>
+        <button type="button" class="quiet" id="redo">Redo</button>
+        <button type="button" class="quiet" id="clear">Clear</button>
+      </div>
+      <div class="board-stage">
+        <canvas id="board" width="1024" height="640" aria-label="Shared whiteboard drawing surface" tabindex="0"></canvas>
+      </div>
+      <div class="whiteboard-footer">
+        <p id="status" role="status">Loading whiteboard…</p>
+        <div class="actions">
+          <button type="button" class="primary" id="save">Save whiteboard</button>
+        </div>
+      </div>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./whiteboard.js"></script>
+  </body>
+</html>

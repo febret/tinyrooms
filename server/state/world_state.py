@@ -203,6 +203,7 @@ class WorldStateRepository:
                 if row is not None and int(row["initialized"]) == 1:
                     continue
                 connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+                connection.execute("DELETE FROM world.prop_surfaces WHERE room_id = ?", (room_id,))
                 self._insert_seed_cards(connection, room_id, room.initial_cards)
                 self._mark_room_initialized(connection, room_id)
                 self._seed_room_layout(connection, room_id, room, world)
@@ -303,6 +304,7 @@ class WorldStateRepository:
                 "scale": float(instance.scale),
                 "locked": False,
                 **({"text": dict(instance.text)} if instance.text is not None else {}),
+                **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
             }
             for instance in room.props.values()
             if world.props[instance.prop_id].decorative
@@ -389,6 +391,7 @@ class WorldStateRepository:
         """Delete a room's live state row, if present."""
 
         connection.execute("DELETE FROM world.room_states WHERE room_id = ?", (room_id,))
+        connection.execute("DELETE FROM world.prop_surfaces WHERE room_id = ?", (room_id,))
         self.invalidate_room_environment(room_id)
 
     def read_world_meta(self, key: str) -> str | None:

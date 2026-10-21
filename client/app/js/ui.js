@@ -30,6 +30,7 @@ import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./drag.js";
 import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
 import { openTextPropDialog } from "./editing/text-prop-dialog.js";
+import { openSignDialog } from "./sign-dialog.js";
 import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createEditorActions } from "./editor-actions.js";
 import { createInertSweep, toggleClass } from "./inert.js";
@@ -260,6 +261,11 @@ function connectSocket() {
         window.location.assign(String(travelUrl));
         return;
       }
+      const signEditor = envelope.payload?.sign_editor;
+      if (signEditor) {
+        openSignDialog({ dialogs, store, api, payload: signEditor, toast, showError });
+        return;
+      }
       const events = Array.isArray(envelope.events) ? envelope.events : [];
       // `cutscene.play` is handled out of band, so it is filtered out before the
       // store sees it and never becomes view state.
@@ -424,6 +430,11 @@ async function handleAction(action) {
     applyEditorPalette(action.index, action.value);
   } else if (action.type === "edit-style") {
     store.dispatch({ type: "editor-env", key: "board_image_style", value: action.value });
+  } else if (action.type === "edit-sign-style") {
+    const editor = store.getState().editor;
+    if (editor?.selectedId) {
+      store.dispatch({ type: "editor-sign-style", id: editor.selectedId, signStyle: action.signStyle });
+    }
   } else if (action.type === "edit-action") {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {

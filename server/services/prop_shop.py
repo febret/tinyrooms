@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from server.content.surface_props import DEFAULT_SIGN_STYLE
 from server.content.text_props import DEFAULT_TEXT
 from server.content.worlds import PropDefinition, WorldDefinition, prop_model_url
 from server.profiles import AccountRecord, ProfileRepository
@@ -25,6 +26,7 @@ def serialize_prop_entry(
         "model_url": prop_model_url(world.id, definition, definition.active_state),
         "render_kind": definition.render_kind,
         **({"text": dict(DEFAULT_TEXT)} if definition.render_kind == "text" else {}),
+        **({"default_sign_style": DEFAULT_SIGN_STYLE} if definition.render_kind == "sign" else {}),
         "base_scale": definition.scale,
         "scale_min": definition.editor_scale_min,
         "scale_max": definition.editor_scale_max,

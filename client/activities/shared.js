@@ -129,6 +129,10 @@
     return request("tinyrooms.activity.result", { result: outcome || null });
   }
 
+  function saveSurface(content) {
+    return request("tinyrooms.activity.surface.save", { content: content || {} });
+  }
+
   function confirmSticker(selection) {
     const payload = typeof selection === "string" ? { sticker: selection } : (selection || {});
     const message = { sticker: String(payload.sticker || "") };
@@ -196,6 +200,7 @@
     subscribe,
     command,
     result,
+    saveSurface,
     confirmSticker,
     notify,
     close,

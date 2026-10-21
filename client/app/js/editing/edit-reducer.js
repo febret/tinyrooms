@@ -24,6 +24,8 @@ function normalizeInstance(entry) {
     scale: Number(entry?.scale ?? 1),
     locked: Boolean(entry?.locked),
     ...(entry?.text ? { text: { ...entry.text } } : {}),
+    ...(typeof entry?.sign_style === "string" ? { signStyle: entry.sign_style } : {}),
+    ...(entry?.surface && typeof entry.surface === "object" ? { surface: { ...entry.surface } } : {}),
     state: typeof entry?.state === "string" ? entry.state : "",
     states: entry?.states && typeof entry.states === "object" ? { ...entry.states } : {},
     effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
@@ -39,6 +41,7 @@ function normalizeLibrary(entries) {
       description: String(entry?.description || ""),
       modelUrl: String(entry?.model_url || ""),
       renderKind: String(entry?.render_kind || "model"),
+      defaultSignStyle: typeof entry?.default_sign_style === "string" ? entry.default_sign_style : "wood",
       baseScale: Number(entry?.base_scale || 1),
       scaleMin: Number(entry?.scale_min ?? 0.25),
       scaleMax: Number(entry?.scale_max ?? 4),
@@ -71,6 +74,8 @@ export function normalizeEditorView(view) {
     canEdit: Boolean(view?.can_edit),
     library: normalizeLibrary(view?.library),
     textOptions: view?.text_options || null,
+    signOptions: view?.sign_options || null,
+    whiteboardOptions: view?.whiteboard_options || null,
     environmentWhitelist: Array.isArray(view?.environment_whitelist) ? [...view.environment_whitelist] : [],
     environment,
     savedEnvironment: { ...environment },
@@ -101,6 +106,7 @@ export function editorPatch(editor) {
       scale: instance.scale,
       locked: Boolean(instance.locked),
       ...(instance.text ? { text: { ...instance.text } } : {}),
+      ...(instance.signStyle ? { sign_style: instance.signStyle } : {}),
     })),
     environment: editor.environment,
   };
@@ -114,6 +120,16 @@ export function libraryEntry(editor, propId) {
   return (editor?.library || []).find(entry => entry.propId === propId) || null;
 }
 
+export function defaultSurfaceFor(entry) {
+  if (entry?.renderKind === "sign") {
+    return { kind: "sign", revision: 0, content: { text: "New sign" } };
+  }
+  if (entry?.renderKind === "whiteboard") {
+    return { kind: "whiteboard", revision: 0, content: { strokes: [], texts: [] } };
+  }
+  return null;
+}
+
 export function selectedInstance(editor) {
   if (!editor?.selectedId) return null;
   return editor.props.find(instance => instance.id === editor.selectedId) || null;
@@ -124,6 +140,7 @@ export function editorBoardProps(editor) {
   if (!editor) return [];
   return editor.props.map(instance => {
     const entry = libraryEntry(editor, instance.propId);
+    const surface = instance.surface || defaultSurfaceFor(entry);
     return {
       id: instance.id,
       propId: instance.propId,
@@ -135,6 +152,8 @@ export function editorBoardProps(editor) {
       modelUrl: entry?.modelUrl || "",
       renderKind: entry?.renderKind || "model",
       ...(instance.text ? { text: { ...instance.text } } : {}),
+      ...(instance.signStyle ? { signStyle: instance.signStyle } : (entry?.renderKind === "sign" ? { signStyle: entry.defaultSignStyle || "wood" } : {})),
+      ...(surface ? { surface } : {}),
       label: entry?.label || "Prop",
       description: entry?.description || "",
       animation: "",
@@ -225,6 +244,8 @@ export function editorReducer(state, action) {
         rotation: [0, 0, 0],
         scale: clamp(1, entry.scaleMin, entry.scaleMax),
         ...(action.text ? { text: { ...action.text } } : {}),
+        ...(entry.renderKind === "sign" ? { signStyle: action.signStyle || entry.defaultSignStyle || "wood" } : {}),
+        ...(defaultSurfaceFor(entry) ? { surface: defaultSurfaceFor(entry) } : {}),
       };
       const next = pushUndo(editor);
       const props = [...next.props, instance];
@@ -237,6 +258,13 @@ export function editorReducer(state, action) {
       if (!instance?.text || instance.locked || !action.text) return state;
       if (JSON.stringify(instance.text) === JSON.stringify(action.text)) return state;
       return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, text: { ...action.text } })) };
+    }
+    case "editor-sign-style": {
+      if (!editor?.canEdit || !action.signStyle) return state;
+      const instance = editor.props.find(entry => entry.id === action.id);
+      if (!instance || instance.locked) return state;
+      if (instance.signStyle === action.signStyle) return state;
+      return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, signStyle: action.signStyle })) };
     }
     case "editor-remove": {
       if (!editor) return state;

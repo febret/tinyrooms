@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createTextProp, isTextProp } from "./text-props.js";
+import { createSignProp, createWhiteboardProp, isSurfaceProp, surfaceModelKey } from "./surface-props.js";
 import { withBase } from "./base-path.js";
 
 export const FLOOR_WIDTH = 12.05;
@@ -175,6 +176,7 @@ export function propModelKey(prop) {
   return JSON.stringify([
     prop.propId, prop.modelUrl, prop.label, prop.renderKind || prop.render_kind,
     isTextProp(prop) ? [prop.text?.content, prop.text?.font_id, prop.text?.color] : null,
+    isSurfaceProp(prop) ? surfaceModelKey(prop) : null,
   ]);
 }
 
@@ -182,6 +184,12 @@ export function propModelKey(prop) {
 export async function loadPropModel(prop, loader) {
   if (isTextProp(prop)) {
     const scene = await createTextProp(prop.text);
+    return { scene, scenes: [scene], animations: [] };
+  }
+  if (isSurfaceProp(prop)) {
+    const scene = (prop.renderKind || prop.render_kind) === "sign"
+      ? createSignProp(prop)
+      : createWhiteboardProp(prop);
     return { scene, scenes: [scene], animations: [] };
   }
   return loader.loadAsync(withBase(prop.modelUrl));

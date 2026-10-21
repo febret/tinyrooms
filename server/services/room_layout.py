@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import re
 import uuid
 
+from server.content.surface_props import (
+    MAX_SIGN_PROPS,
+    MAX_WHITEBOARD_PROPS,
+    SIGN_PROP_ID,
+    WHITEBOARD_PROP_ID,
+    default_activity,
+    sign_options,
+    validate_sign_style,
+    whiteboard_options,
+)
 from server.content.text_props import (
     MAX_ROOM_TEXT_LENGTH,
     MAX_TEXT_PROPS,
@@ -26,6 +36,7 @@ from server.profiles import AccountRecord
 from server.services.environment import EnvironmentService
 from server.services.ownership import OwnershipService
 from server.services.prop_shop import PropShopService, serialize_prop_entry
+from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.state.migrations import DatabaseHub
 from server.state.world_state import LayoutRevisionConflict, WorldStateRepository
 
@@ -95,6 +106,7 @@ class RoomLayoutService:
         prop_shop: PropShopService,
         room_effects: object | None = None,
         prop_states: object | None = None,
+        surfaces: PropSurfaceService | None = None,
     ) -> None:
         self._hub = hub
         self._world = world
@@ -104,6 +116,7 @@ class RoomLayoutService:
         self._prop_shop = prop_shop
         self._room_effects = room_effects
         self._prop_states = prop_states
+        self._surfaces = surfaces
 
     def _room(self, room_id: str) -> RoomDefinition:
         room = self._world.rooms.get(room_id)
@@ -177,7 +190,12 @@ class RoomLayoutService:
                 if self._world.props[instance.prop_id].decorative
                 and not self._world.props[instance.prop_id].hidden
             )
-            return base
+            return [
+                instance
+                if instance.activity or not default_activity(self._world.props[instance.prop_id].render_kind)
+                else replace(instance, activity=default_activity(self._world.props[instance.prop_id].render_kind))
+                for instance in base
+            ]
         for entry in live:
             if not isinstance(entry, dict):
                 continue
@@ -200,9 +218,18 @@ class RoomLayoutService:
                     personal=source.personal if source else False,
                     recipes=source.recipes if source else (),
                     animation=source.animation if source else None,
-                    activity=source.activity if source else None,
+                    activity=(
+                        source.activity
+                        if source and source.activity
+                        else default_activity(definition.render_kind)
+                    ),
                     draw_weight=source.draw_weight if source else {},
                     text=dict(entry["text"]) if definition.render_kind == "text" else None,
+                    sign_style=(
+                        str(entry.get("sign_style") or "")
+                        if definition.render_kind == "sign" and entry.get("sign_style")
+                        else (source.sign_style if source and definition.render_kind == "sign" else None)
+                    ),
                 )
             )
         return base
@@ -259,6 +286,7 @@ class RoomLayoutService:
         animation = instance.animation if instance.animation is not None else definition.animation
         state_payload = self._state_payload(room_id, instance.id, definition)
         active_state = state_payload.get("state")
+        surface = self._surface_payload(room_id, instance, definition)
         return {
             "id": instance.id,
             "prop_id": instance.prop_id,
@@ -273,6 +301,8 @@ class RoomLayoutService:
             ),
             "render_kind": definition.render_kind,
             **({"text": dict(instance.text)} if instance.text is not None else {}),
+            **({"sign_style": validate_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
+            **({"surface": surface} if surface is not None else {}),
             "label": definition.label,
             "description": definition.description,
             "animation": animation,
@@ -280,6 +310,17 @@ class RoomLayoutService:
             **state_payload,
             **self._effect_payload(room_id, instance.id, definition),
         }
+
+    def _surface_payload(
+        self,
+        room_id: str,
+        instance: PropInstanceDefinition,
+        definition: PropDefinition,
+    ) -> dict[str, object] | None:
+        kind = surface_kind(definition.render_kind)
+        if kind is None or self._surfaces is None:
+            return None
+        return self._surfaces.get(room_id, instance.id, kind).serialize()
 
     def _serialize_library(self, definition: PropDefinition) -> dict[str, object]:
         # Locking is reported statically; the client hides locked props unless
@@ -297,6 +338,7 @@ class RoomLayoutService:
                     "scale": float(entry.get("scale", 1.0)),
                     "locked": bool(entry.get("locked")),
                     **({"text": dict(entry["text"])} if isinstance(entry.get("text"), dict) else {}),
+                    **({"sign_style": str(entry["sign_style"])} if isinstance(entry.get("sign_style"), str) else {}),
                 }
                 for entry in live
                 if isinstance(entry, dict)
@@ -311,6 +353,7 @@ class RoomLayoutService:
                     "scale": float(instance.scale),
                     "locked": False,
                     **({"text": dict(instance.text)} if instance.text is not None else {}),
+                    **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
                 }
                 for instance in room.props.values()
                 if self._world.props[instance.prop_id].decorative
@@ -327,6 +370,11 @@ class RoomLayoutService:
             if definition is not None:
                 entry["render_kind"] = definition.render_kind
                 entry.update(self._effect_payload(room.id, str(entry["id"]), definition))
+                kind = surface_kind(definition.render_kind)
+                if kind is not None and self._surfaces is not None:
+                    entry["surface"] = self._surfaces.get(
+                        room.id, str(entry["id"]), kind
+                    ).serialize()
         return entries
 
     def view(self, account: AccountRecord, room_id: str) -> dict[str, object]:
@@ -346,6 +394,8 @@ class RoomLayoutService:
             "environment_whitelist": list(room.editor_environment),
             "environment": self.visual_environment(room_id),
             "text_options": text_options(),
+            "sign_options": sign_options(),
+            "whiteboard_options": whiteboard_options(),
         }
 
     def save(
@@ -379,6 +429,8 @@ class RoomLayoutService:
                 expected_revision=base_revision,
             )
         effective = self.effective_props(room_id)
+        if self._surfaces is not None:
+            self._surfaces.prune_room(room_id, {str(entry["id"]) for entry in props})
         return LayoutUpdate(
             room_id=room_id,
             revision=revision,
@@ -410,6 +462,8 @@ class RoomLayoutService:
             self._room_effects.clear_room(room_id)
         if self._prop_states is not None:
             self._prop_states.clear_room(room_id)
+        if self._surfaces is not None:
+            self._surfaces.clear_room(room_id)
         return RoomReset(
             room_id=room_id,
             revision=revision,
@@ -470,6 +524,7 @@ class RoomLayoutService:
                     "rotation": list(instance.rot),
                     "scale": float(instance.scale),
                     "locked": False,
+                    **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
                 }
         for entry in live:
             if not isinstance(entry, dict):
@@ -484,6 +539,7 @@ class RoomLayoutService:
                 "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
                 "scale": float(entry.get("scale", 1.0)),
                 "locked": bool(entry.get("locked")),
+                **({"sign_style": str(entry["sign_style"])} if isinstance(entry.get("sign_style"), str) else {}),
             }
         seen: set[str] = set()
         props: list[dict[str, object]] = []
@@ -515,6 +571,11 @@ class RoomLayoutService:
                 text = validate_text(entry.get("text"))
             elif "text" in entry:
                 raise ValueError("Only builtin:text props may have a text recipe.")
+            sign_style = None
+            if definition is not None and definition.render_kind == "sign":
+                sign_style = validate_sign_style(entry.get("sign_style"))
+            elif "sign_style" in entry:
+                raise ValueError("Only builtin:sign props may have a sign_style.")
             props.append(
                 {
                     "id": instance_id,
@@ -524,6 +585,7 @@ class RoomLayoutService:
                     "scale": self._validate_scale(entry.get("scale"), definition),
                     "locked": bool(entry.get("locked")),
                     **({"text": text} if text is not None else {}),
+                    **({"sign_style": sign_style} if sign_style is not None else {}),
                 }
             )
         for instance_id, entry in hidden_existing.items():
@@ -534,6 +596,12 @@ class RoomLayoutService:
             raise ValueError(f"A room may contain at most {MAX_TEXT_PROPS} text props.")
         if sum(len(text["content"]) for text in texts) > MAX_ROOM_TEXT_LENGTH:
             raise ValueError(f"A room's text props may contain at most {MAX_ROOM_TEXT_LENGTH} total characters.")
+        signs = [entry for entry in props if entry["prop_id"] == SIGN_PROP_ID]
+        if len(signs) > MAX_SIGN_PROPS:
+            raise ValueError(f"A room may contain at most {MAX_SIGN_PROPS} signs.")
+        whiteboards = [entry for entry in props if entry["prop_id"] == WHITEBOARD_PROP_ID]
+        if len(whiteboards) > MAX_WHITEBOARD_PROPS:
+            raise ValueError(f"A room may contain at most {MAX_WHITEBOARD_PROPS} whiteboards.")
         return props
 
     @staticmethod

@@ -51,6 +51,13 @@ export function editorConflictMarkup(editor) {
   </div>`;
 }
 
+/** Sign finish chooser for the currently selected sign. */
+export function signStyleMarkup(editor, selected) {
+  if (selected?.propId !== "builtin:sign") return "";
+  const styles = editor.signOptions?.styles || [];
+  return styles.map(style => `<button type="button" data-edit-sign-style="${escapeHtml(style.id)}" aria-pressed="${(selected.signStyle || editor.signOptions?.default_style || "wood") === style.id}">${escapeHtml(style.label)}</button>`).join("");
+}
+
 function selectionMarkup(editor) {
   const selected = selectedInstance(editor);
   return `
@@ -70,6 +77,7 @@ export function editorSettingsView(state) {
     <strong>Room appearance</strong>
     ${environmentRow(state, editor)}
     <strong>${escapeHtml(editorSelectedName(editor, selectedInstance(editor)))}</strong>
+    <div class="editor-sign-styles" data-editor-sign-styles role="group" aria-label="Sign finish">${signStyleMarkup(editor, selectedInstance(editor))}</div>
     ${selectionMarkup(editor)}
     ${snapRow(editor)}
   </section>`;
@@ -120,6 +128,7 @@ export function editRoomView(state, { authoring = false } = {}) {
       <header class="editor-dock-header">
         <strong>Edit Room</strong>
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
+        <div class="editor-sign-styles" data-editor-sign-styles role="group" aria-label="Sign finish">${signStyleMarkup(editor, selectedInstance(editor))}</div>
         ${libraryTagMarkup(library)}
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
         ${authoring ? "" : '<button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>'}

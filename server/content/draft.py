@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from server.content.common import ContentError
+from server.content.surface_props import SIGN_PROP_ID, validate_sign_style
 from server.content.text_props import TEXT_PROP_ID, validate_text
 from server.content.worlds import PROPS_CONFIG_KEY
 
@@ -168,6 +169,13 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
                             _issue(issues, f"{instance_path}.text", str(exc))
                     elif "text" in instance:
                         _issue(issues, f"{instance_path}.text", "Only builtin:text props may have a text recipe.")
+                    if prop_id == SIGN_PROP_ID:
+                        try:
+                            validate_sign_style(instance.get("sign_style"))
+                        except ValueError as exc:
+                            _issue(issues, f"{instance_path}.sign_style", str(exc))
+                    elif "sign_style" in instance:
+                        _issue(issues, f"{instance_path}.sign_style", "Only builtin:sign props may have a sign_style.")
                     _check_identifier_list(
                         issues, instance.get("content"), f"{instance_path}.content",
                         references.card_ids, "cards",

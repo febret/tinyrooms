@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
+from server.content.surface_props import validate_sign_style
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
     MAX_CHAT_SIZE,
@@ -18,6 +19,7 @@ from server.protocol import (
 from server.services.activities import ActivityService
 from server.services.cards import CardService
 from server.services.npc_movement import NpcMove, resolve_npc_move
+from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.sprite_rooms import SpriteService
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
@@ -97,6 +99,7 @@ class RoomService:
         prop_states: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
         sprites: SpriteService | None = None,
+        surfaces: PropSurfaceService | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -116,6 +119,7 @@ class RoomService:
         self._room_effects = room_effects
         self._prop_states = prop_states
         self._sprites = sprites or SpriteService(world, layout=layout)
+        self._surfaces = surfaces
         self._mod_states: list[object] = []
 
     @property
@@ -372,6 +376,19 @@ class RoomService:
             return list(room.props.values())
         return self._layout.effective_props(room.id)
 
+    def props_in_room(self, room_id: str) -> list[PropInstanceDefinition]:
+        """Return the room's effective props, including live layout placements."""
+
+        room = self._world.rooms.get(room_id)
+        return [] if room is None else self._effective_props(room)
+
+    def surface_for(self, room_id: str, instance_id: str, kind: str) -> object | None:
+        """Return a prop's stored surface, or None when unavailable."""
+
+        if self._surfaces is None:
+            return None
+        return self._surfaces.get(room_id, instance_id, kind)
+
     def _visible_props(self, room: RoomDefinition, *, dark: bool = False) -> list[PropInstanceDefinition]:
         del dark
         props = self._effective_props(room)
@@ -584,6 +601,7 @@ class RoomService:
             quick_actions: list[dict[str, object]] = []
         else:
             quick_actions = self._visible_prop_actions(room, prop.actions)
+            quick_actions.extend(self._surface_quick_actions(prop, prop_definition))
             for state in self._mod_states:
                 personal_actions = getattr(state, "personal_actions", None)
                 if personal_actions is None:
@@ -591,6 +609,10 @@ class RoomService:
                 personal = personal_actions(account, prop)
                 if personal:
                     quick_actions = quick_actions + self._visible_prop_actions(room, tuple(personal))
+        surface_kind_name = surface_kind(prop_definition.render_kind)
+        surface = None
+        if surface_kind_name is not None and self._surfaces is not None:
+            surface = self._surfaces.get(room.id, prop.id, surface_kind_name).serialize()
         return {
             "id": prop.id,
             "prop_id": prop.prop_id,
@@ -601,6 +623,12 @@ class RoomService:
             "model_url": prop_model_url(self._world.id, prop_definition, active_state),
             "render_kind": prop_definition.render_kind,
             **({"text": dict(prop.text)} if prop.text is not None else {}),
+            **(
+                {"sign_style": validate_sign_style(prop.sign_style)}
+                if prop_definition.render_kind == "sign"
+                else {}
+            ),
+            **({"surface": surface} if surface is not None else {}),
             "label": "Something in the dark" if dark else prop_definition.label,
             "description": "" if dark else prop_definition.description,
             "animation": animation,
@@ -611,6 +639,17 @@ class RoomService:
             "effect_sets": {} if dark else self._effect_sets_payload(prop_definition),
             "active_effect": None if dark else self._active_effect(room.id, prop.id, prop_definition),
         }
+
+    @staticmethod
+    def _surface_quick_actions(
+        prop: PropInstanceDefinition,
+        definition: PropDefinition,
+    ) -> list[dict[str, object]]:
+        if definition.render_kind == "sign":
+            return [{"label": "Edit sign", "command": f".sign {prop.id}", "default": True}]
+        if definition.render_kind == "whiteboard":
+            return [{"label": "Open whiteboard", "command": f".play {prop.id}", "default": True}]
+        return []
 
     async def build_snapshot(
         self, account: AccountRecord, room_id: str, *, note: str | None = None

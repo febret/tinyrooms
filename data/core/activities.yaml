@@ -17,3 +17,6 @@ multiverse:
   title: Multiverse
   room_bound: false
   skill: multiverse-map
+whiteboard:
+  title: Whiteboard
+  room_bound: true

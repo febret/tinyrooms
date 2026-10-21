@@ -27,6 +27,13 @@ from server.content.cutscenes import (
 )
 from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.recipes import RecipeDefinition, load_recipes
+from server.content.surface_props import (
+    MAX_SIGN_PROPS,
+    MAX_WHITEBOARD_PROPS,
+    SIGN_PROP_ID,
+    WHITEBOARD_PROP_ID,
+    validate_sign_style,
+)
 from server.content.tasks import TaskDefinition, load_task_definitions
 from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS, TEXT_PROP_ID, validate_text
 from server.game.modifiers import MODIFIER_TARGETS
@@ -132,6 +139,7 @@ class PropInstanceDefinition:
     activity: str | None
     draw_weight: dict[str, float] = field(default_factory=dict)
     text: dict[str, str] | None = None
+    sign_style: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,15 +282,45 @@ def _load_text_recipe(
         raise ContentError(f"{context}: {exc}") from exc
 
 
+def _load_sign_style(
+    raw_instance: dict[str, Any], definition: PropDefinition, room_id: str, instance_id: str,
+) -> str | None:
+    if definition.render_kind != "sign":
+        if "sign_style" in raw_instance:
+            raise ContentError(
+                f"Room '{room_id}' prop '{instance_id}': Only builtin:sign props may have a sign_style."
+            )
+        return None
+    try:
+        return validate_sign_style(raw_instance.get("sign_style"))
+    except ValueError as exc:
+        raise ContentError(f"Room '{room_id}' prop '{instance_id}' sign_style: {exc}") from exc
+
+
 def builtin_prop_definitions() -> dict[str, PropDefinition]:
     """Register procedural props independently of authored model catalogs."""
 
-    return {TEXT_PROP_ID: PropDefinition(
-        id=TEXT_PROP_ID, label="Text", description="Custom three-dimensional text.",
-        model_name=None, model_path=None, decorative=True, animation=None,
-        scale=1.0, source="builtin", source_kind="builtin",
-        tags=("text",), price=0, locked=False, render_kind="text",
-    )}
+    return {
+        TEXT_PROP_ID: PropDefinition(
+            id=TEXT_PROP_ID, label="Text", description="Custom three-dimensional text.",
+            model_name=None, model_path=None, decorative=True, animation=None,
+            scale=1.0, source="builtin", source_kind="builtin",
+            tags=("text",), price=0, locked=False, render_kind="text",
+        ),
+        SIGN_PROP_ID: PropDefinition(
+            id=SIGN_PROP_ID, label="Sign", description="An editable sign with a choice of finishes.",
+            model_name=None, model_path=None, decorative=True, animation=None,
+            scale=1.0, source="builtin", source_kind="builtin",
+            tags=("sign", "editable"), price=0, locked=False, render_kind="sign",
+        ),
+        WHITEBOARD_PROP_ID: PropDefinition(
+            id=WHITEBOARD_PROP_ID, label="Whiteboard",
+            description="A shared whiteboard for notes and marker drawings.",
+            model_name=None, model_path=None, decorative=True, animation=None,
+            scale=1.0, source="builtin", source_kind="builtin",
+            tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard",
+        ),
+    }
 
 
 def _prop_model_name(definition: PropDefinition, state: str | None) -> str | None:
@@ -985,6 +1023,7 @@ def load_world_definition(
                 activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
                 draw_weight=_load_draw_weight(raw_instance.get("draw_weight"), prop_instance_id, card_ids),
                 text=_load_text_recipe(raw_instance, prop_id, room_id, prop_instance_id),
+                sign_style=_load_sign_style(raw_instance, props[prop_id], room_id, prop_instance_id),
             )
         texts = [instance.text for instance in room_props.values() if instance.text is not None]
         if len(texts) > MAX_TEXT_PROPS:
@@ -993,6 +1032,10 @@ def load_world_definition(
             raise ContentError(
                 f"Room '{room_id}' text props may contain at most {MAX_ROOM_TEXT_LENGTH} total characters."
             )
+        if sum(1 for instance in room_props.values() if instance.prop_id == SIGN_PROP_ID) > MAX_SIGN_PROPS:
+            raise ContentError(f"Room '{room_id}' may contain at most {MAX_SIGN_PROPS} signs.")
+        if sum(1 for instance in room_props.values() if instance.prop_id == WHITEBOARD_PROP_ID) > MAX_WHITEBOARD_PROPS:
+            raise ContentError(f"Room '{room_id}' may contain at most {MAX_WHITEBOARD_PROPS} whiteboards.")
         raw_exits = raw_room.get("exits", {}) or {}
         if not isinstance(raw_exits, dict):
             raise ContentError(f"Room '{room_id}' exits must be a mapping.")

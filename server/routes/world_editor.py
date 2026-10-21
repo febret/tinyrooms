@@ -15,6 +15,7 @@ from server.behaviors import builtin as builtin_behaviors_module
 from server.behaviors.builtin import BUILTIN_BEHAVIORS
 from server.broadcast import broadcast_room_event
 from server.config import ConfigError, ensure_contained
+from server.content.surface_props import sign_options, whiteboard_options
 from server.content.text_props import text_options
 from server.content.worlds import BOARD_IMAGE_STYLES, POWER_NAMES, prop_model_url
 from server.routes.common import (
@@ -147,6 +148,8 @@ def _catalog_payload(runtime) -> dict[str, object]:
         "activities": sorted(world.activities),
         "recipes": sorted(world.recipes),
         "text_options": text_options(),
+        "sign_options": sign_options(),
+        "whiteboard_options": whiteboard_options(),
         "behaviors": behavior_options(world.root_path, runtime.config.repo_root),
         "board_images": _image_names(world.root_path / "rooms"),
         "peep_images": _image_names(world.root_path / "peeps"),

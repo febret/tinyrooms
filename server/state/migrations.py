@@ -9,7 +9,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 10
-WORLD_SCHEMA_VERSION = 15
+WORLD_SCHEMA_VERSION = 16
 
 _PROFILE_SCHEMA_SQL = """
 BEGIN;
@@ -288,7 +288,21 @@ CREATE TABLE IF NOT EXISTS npc_peep_states (
     memories_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(memories_json)),
     updated_at TEXT NOT NULL
 );
-PRAGMA user_version = 15;
+-- prop_surfaces stores user-authored sign text and whiteboard drawings apart
+-- from props_json so every room visitor can edit them without layout ownership.
+-- revision increments on every save; clients apply the newest revision.
+CREATE TABLE IF NOT EXISTS prop_surfaces (
+    room_id TEXT NOT NULL,
+    instance_id TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('sign', 'whiteboard')),
+    content_json TEXT NOT NULL CHECK (json_valid(content_json)),
+    revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+    updated_by_account_id TEXT,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (room_id, instance_id)
+);
+CREATE INDEX IF NOT EXISTS idx_prop_surfaces_room ON prop_surfaces(room_id);
+PRAGMA user_version = 16;
 COMMIT;
 """
 
@@ -308,7 +322,15 @@ _PROFILE_TABLES = frozenset(
 )
 
 _WORLD_TABLES = frozenset(
-    {"room_cards", "room_states", "behavior_state", "world_meta", "activity_records", "npc_peep_states"}
+    {
+        "room_cards",
+        "room_states",
+        "behavior_state",
+        "world_meta",
+        "activity_records",
+        "npc_peep_states",
+        "prop_surfaces",
+    }
 )
 
 _PROFILE_MIGRATIONS: dict[int, str] = {
@@ -579,6 +601,22 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 15;
     COMMIT;
     """,
+    16: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS prop_surfaces (
+        room_id TEXT NOT NULL,
+        instance_id TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('sign', 'whiteboard')),
+        content_json TEXT NOT NULL CHECK (json_valid(content_json)),
+        revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+        updated_by_account_id TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (room_id, instance_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_prop_surfaces_room ON prop_surfaces(room_id);
+    PRAGMA user_version = 16;
+    COMMIT;
+    """,
 }
 
 _REWARD_LEDGER_COLUMNS = (
@@ -758,6 +796,16 @@ _NPC_PEEP_STATES_COLUMNS = (
     "updated_at",
 )
 
+_PROP_SURFACES_COLUMNS = (
+    "room_id",
+    "instance_id",
+    "kind",
+    "content_json",
+    "revision",
+    "updated_by_account_id",
+    "updated_at",
+)
+
 
 def _connect(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
@@ -897,6 +945,7 @@ def ensure_world_database(path: Path) -> None:
             "behavior_state": _BEHAVIOR_STATE_COLUMNS,
             "activity_records": _ACTIVITY_RECORDS_COLUMNS,
             "npc_peep_states": _NPC_PEEP_STATES_COLUMNS,
+            "prop_surfaces": _PROP_SURFACES_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",

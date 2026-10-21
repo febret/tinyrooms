@@ -363,6 +363,33 @@ export function createActivityManager({
       }
       return;
     }
+    if (event.data.type === "tinyrooms.activity.surface.save") {
+      try {
+        const response = await onActivityBridge(entry.activity, "activity.surface", {
+          content: event.data.content || {},
+        });
+        entry.iframe.contentWindow?.postMessage({
+          type: "tinyrooms.host.result",
+          activityId: entry.activity.id,
+          requestId: event.data.requestId,
+          ok: true,
+          message: "Whiteboard saved.",
+          payload: { surface: response.surface || null },
+          state: hostPayload(getState(), entry.activity),
+        }, window.location.origin);
+      } catch (error) {
+        entry.iframe.contentWindow?.postMessage({
+          type: "tinyrooms.host.result",
+          activityId: entry.activity.id,
+          requestId: event.data.requestId,
+          ok: false,
+          message: error instanceof Error ? error.message : String(error),
+          payload: null,
+          state: hostPayload(getState(), entry.activity),
+        }, window.location.origin);
+      }
+      return;
+    }
     if (event.data.type === "tinyrooms.activity.sticker.confirm") {
       try {
         const selection = { sticker: String(event.data.sticker || "") };
