@@ -137,6 +137,7 @@ def load_test_world(world_path: Path, card_ids: set[str] | None = None):
         propsets_root=load_world_propsets(),
         mod_props=load_world_mod_props(),
         fx_root=REPO_ROOT / "data" / "fx",
+        extra_recipes=catalog.recipes,
     )
 
 

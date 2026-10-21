@@ -49,7 +49,7 @@ class SummonCommandTests(Milestone2IntegrationTestCase):
         self.assertEqual(runtime.rooms.peep_room(runtime.world.peeps["molly"]), "hub")
         self.assertEqual(
             {(pending.room_id, pending.event["type"]) for pending in outcome.room_broadcasts},
-            {("playroom", "peep.leave"), ("hub", "peep.enter")},
+            {("foyer", "peep.leave"), ("hub", "peep.enter")},
         )
 
     def test_summon_rejects_peep_already_in_room(self) -> None:
