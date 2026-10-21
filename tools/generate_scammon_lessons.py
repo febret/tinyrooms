@@ -205,6 +205,9 @@ def write_cutscenes() -> None:
             "  duration: 5000",
             "  audience: room",
             "  room_bound: true",
+            "  params:",
+            '    teacher: "$me"',
+            f'    topic_card: "$card:{scene_id}"',
             "",
         ]
     lines += [
@@ -238,6 +241,8 @@ def write_scene_modules() -> None:
             "line": line,
             "title": label,
             "duration": duration,
+            "teacher": "$me",
+            "topic_card": f"$card:{scene_id}",
         }
         module_dir = CUTSCENES_DIR / scene_id
         module_dir.mkdir(parents=True, exist_ok=True)

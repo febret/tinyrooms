@@ -7,6 +7,9 @@ topic-reading-alphabet:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-alphabet"
 
 topic-reading-phonics:
   title: "Phonics Pop"
@@ -15,6 +18,9 @@ topic-reading-phonics:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-phonics"
 
 topic-reading-sight-words:
   title: "Sight Words"
@@ -23,6 +29,9 @@ topic-reading-sight-words:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-sight-words"
 
 topic-reading-story-time:
   title: "Story Time"
@@ -31,6 +40,9 @@ topic-reading-story-time:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-story-time"
 
 topic-reading-rhyming:
   title: "Rhyme Time"
@@ -39,6 +51,9 @@ topic-reading-rhyming:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-rhyming"
 
 topic-reading-comprehension:
   title: "Comprehension"
@@ -47,6 +62,9 @@ topic-reading-comprehension:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-comprehension"
 
 topic-reading-poetry:
   title: "Poetry Corner"
@@ -55,6 +73,9 @@ topic-reading-poetry:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-poetry"
 
 topic-reading-fairy-tales:
   title: "Fairy Tales"
@@ -63,6 +84,9 @@ topic-reading-fairy-tales:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-fairy-tales"
 
 topic-reading-vocabulary:
   title: "Big Vocabulary"
@@ -71,6 +95,9 @@ topic-reading-vocabulary:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-vocabulary"
 
 topic-reading-book-clubs:
   title: "Book Club"
@@ -79,6 +106,9 @@ topic-reading-book-clubs:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-reading-book-clubs"
 
 topic-writing-handwriting:
   title: "Neat Handwriting"
@@ -87,6 +117,9 @@ topic-writing-handwriting:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-handwriting"
 
 topic-writing-spelling:
   title: "Spelling Bee"
@@ -95,6 +128,9 @@ topic-writing-spelling:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-spelling"
 
 topic-writing-sentences:
   title: "Great Sentences"
@@ -103,6 +139,9 @@ topic-writing-sentences:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-sentences"
 
 topic-writing-punctuation:
   title: "Punctuation Power"
@@ -111,6 +150,9 @@ topic-writing-punctuation:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-punctuation"
 
 topic-writing-paragraphs:
   title: "Paragraph Builder"
@@ -119,6 +161,9 @@ topic-writing-paragraphs:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-paragraphs"
 
 topic-writing-storytelling:
   title: "Storytelling"
@@ -127,6 +172,9 @@ topic-writing-storytelling:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-storytelling"
 
 topic-writing-letters:
   title: "Friendly Letters"
@@ -135,6 +183,9 @@ topic-writing-letters:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-letters"
 
 topic-writing-journaling:
   title: "Journaling"
@@ -143,6 +194,9 @@ topic-writing-journaling:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-journaling"
 
 topic-writing-grammar:
   title: "Grammar Puzzle"
@@ -151,6 +205,9 @@ topic-writing-grammar:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-grammar"
 
 topic-writing-creative-writing:
   title: "Creative Writing"
@@ -159,6 +216,9 @@ topic-writing-creative-writing:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-writing-creative-writing"
 
 topic-math-counting:
   title: "Count With Me"
@@ -167,6 +227,9 @@ topic-math-counting:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-counting"
 
 topic-math-addition:
   title: "Addition Action"
@@ -175,6 +238,9 @@ topic-math-addition:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-addition"
 
 topic-math-subtraction:
   title: "Subtraction Slide"
@@ -183,6 +249,9 @@ topic-math-subtraction:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-subtraction"
 
 topic-math-multiplication:
   title: "Times Tables"
@@ -191,6 +260,9 @@ topic-math-multiplication:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-multiplication"
 
 topic-math-division:
   title: "Division Dash"
@@ -199,6 +271,9 @@ topic-math-division:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-division"
 
 topic-math-fractions:
   title: "Fraction Slices"
@@ -207,6 +282,9 @@ topic-math-fractions:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-fractions"
 
 topic-math-shapes:
   title: "Shape Safari"
@@ -215,6 +293,9 @@ topic-math-shapes:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-shapes"
 
 topic-math-measurement:
   title: "Measuring Things"
@@ -223,6 +304,9 @@ topic-math-measurement:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-measurement"
 
 topic-math-time:
   title: "Telling Time"
@@ -231,6 +315,9 @@ topic-math-time:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-time"
 
 topic-math-word-problems:
   title: "Word Problems"
@@ -239,6 +326,9 @@ topic-math-word-problems:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-math-word-problems"
 
 topic-history-ancient-egypt:
   title: "Ancient Egypt"
@@ -247,6 +337,9 @@ topic-history-ancient-egypt:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-ancient-egypt"
 
 topic-history-knights:
   title: "Knights & Castles"
@@ -255,6 +348,9 @@ topic-history-knights:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-knights"
 
 topic-history-vikings:
   title: "Viking Voyages"
@@ -263,6 +359,9 @@ topic-history-vikings:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-vikings"
 
 topic-history-explorers:
   title: "Brave Explorers"
@@ -271,6 +370,9 @@ topic-history-explorers:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-explorers"
 
 topic-history-castles:
   title: "Castle Life"
@@ -279,6 +381,9 @@ topic-history-castles:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-castles"
 
 topic-history-ancient-rome:
   title: "Ancient Rome"
@@ -287,6 +392,9 @@ topic-history-ancient-rome:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-ancient-rome"
 
 topic-history-revolution:
   title: "Revolutions"
@@ -295,6 +403,9 @@ topic-history-revolution:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-revolution"
 
 topic-history-pioneers:
   title: "Pioneers"
@@ -303,6 +414,9 @@ topic-history-pioneers:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-pioneers"
 
 topic-history-pharaohs:
   title: "Pharaohs"
@@ -311,6 +425,9 @@ topic-history-pharaohs:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-pharaohs"
 
 topic-history-timelines:
   title: "Timelines"
@@ -319,6 +436,9 @@ topic-history-timelines:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-history-timelines"
 
 topic-geography-continents:
   title: "Seven Continents"
@@ -327,6 +447,9 @@ topic-geography-continents:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-continents"
 
 topic-geography-oceans:
   title: "Oceans Deep"
@@ -335,6 +458,9 @@ topic-geography-oceans:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-oceans"
 
 topic-geography-mountains:
   title: "Mighty Mountains"
@@ -343,6 +469,9 @@ topic-geography-mountains:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-mountains"
 
 topic-geography-rivers:
   title: "Rivers Run"
@@ -351,6 +480,9 @@ topic-geography-rivers:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-rivers"
 
 topic-geography-deserts:
   title: "Deserts"
@@ -359,6 +491,9 @@ topic-geography-deserts:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-deserts"
 
 topic-geography-capitals:
   title: "Capital Cities"
@@ -367,6 +502,9 @@ topic-geography-capitals:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-capitals"
 
 topic-geography-maps:
   title: "Reading Maps"
@@ -375,6 +513,9 @@ topic-geography-maps:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-maps"
 
 topic-geography-climates:
   title: "Climates"
@@ -383,6 +524,9 @@ topic-geography-climates:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-climates"
 
 topic-geography-volcanoes:
   title: "Volcanoes"
@@ -391,6 +535,9 @@ topic-geography-volcanoes:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-volcanoes"
 
 topic-geography-landmarks:
   title: "World Landmarks"
@@ -399,6 +546,9 @@ topic-geography-landmarks:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-geography-landmarks"
 
 topic-chemistry-atoms:
   title: "Tiny Atoms"
@@ -407,6 +557,9 @@ topic-chemistry-atoms:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-atoms"
 
 topic-chemistry-molecules:
   title: "Molecules"
@@ -415,6 +568,9 @@ topic-chemistry-molecules:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-molecules"
 
 topic-chemistry-reactions:
   title: "Reactions"
@@ -423,6 +579,9 @@ topic-chemistry-reactions:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-reactions"
 
 topic-chemistry-acids-bases:
   title: "Acids & Bases"
@@ -431,6 +590,9 @@ topic-chemistry-acids-bases:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-acids-bases"
 
 topic-chemistry-periodic-table:
   title: "Periodic Table"
@@ -439,6 +601,9 @@ topic-chemistry-periodic-table:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-periodic-table"
 
 topic-chemistry-mixtures:
   title: "Mixtures"
@@ -447,6 +612,9 @@ topic-chemistry-mixtures:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-mixtures"
 
 topic-chemistry-gases:
   title: "Gases"
@@ -455,6 +623,9 @@ topic-chemistry-gases:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-gases"
 
 topic-chemistry-crystals:
   title: "Crystals"
@@ -463,6 +634,9 @@ topic-chemistry-crystals:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-crystals"
 
 topic-chemistry-solutions:
   title: "Solutions"
@@ -471,6 +645,9 @@ topic-chemistry-solutions:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-solutions"
 
 topic-chemistry-safe-lab:
   title: "Lab Safety"
@@ -479,6 +656,9 @@ topic-chemistry-safe-lab:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-chemistry-safe-lab"
 
 topic-tech-coding:
   title: "Coding"
@@ -487,6 +667,9 @@ topic-tech-coding:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-coding"
 
 topic-tech-robots:
   title: "Robots"
@@ -495,6 +678,9 @@ topic-tech-robots:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-robots"
 
 topic-tech-internet:
   title: "The Internet"
@@ -503,6 +689,9 @@ topic-tech-internet:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-internet"
 
 topic-tech-circuits:
   title: "Circuits"
@@ -511,6 +700,9 @@ topic-tech-circuits:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-circuits"
 
 topic-tech-rockets:
   title: "Rockets"
@@ -519,6 +711,9 @@ topic-tech-rockets:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-rockets"
 
 topic-tech-ai:
   title: "Friendly AI"
@@ -527,6 +722,9 @@ topic-tech-ai:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-ai"
 
 topic-tech-3d-printing:
   title: "3D Printing"
@@ -535,6 +733,9 @@ topic-tech-3d-printing:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-3d-printing"
 
 topic-tech-keyboards:
   title: "Keyboards"
@@ -543,6 +744,9 @@ topic-tech-keyboards:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-keyboards"
 
 topic-tech-cybersecurity:
   title: "Cyber Safety"
@@ -551,6 +755,9 @@ topic-tech-cybersecurity:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-cybersecurity"
 
 topic-tech-solar-power:
   title: "Solar Power"
@@ -559,6 +766,9 @@ topic-tech-solar-power:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-tech-solar-power"
 
 topic-sport-soccer:
   title: "Soccer"
@@ -567,6 +777,9 @@ topic-sport-soccer:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-soccer"
 
 topic-sport-basketball:
   title: "Basketball"
@@ -575,6 +788,9 @@ topic-sport-basketball:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-basketball"
 
 topic-sport-running:
   title: "Running"
@@ -583,6 +799,9 @@ topic-sport-running:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-running"
 
 topic-sport-swimming:
   title: "Swimming"
@@ -591,6 +810,9 @@ topic-sport-swimming:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-swimming"
 
 topic-sport-gymnastics:
   title: "Gymnastics"
@@ -599,6 +821,9 @@ topic-sport-gymnastics:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-gymnastics"
 
 topic-sport-yoga:
   title: "Yoga"
@@ -607,6 +832,9 @@ topic-sport-yoga:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-yoga"
 
 topic-sport-tennis:
   title: "Tennis"
@@ -615,6 +843,9 @@ topic-sport-tennis:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-tennis"
 
 topic-sport-cycling:
   title: "Cycling"
@@ -623,6 +854,9 @@ topic-sport-cycling:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-cycling"
 
 topic-sport-team-spirit:
   title: "Team Spirit"
@@ -631,6 +865,9 @@ topic-sport-team-spirit:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-team-spirit"
 
 topic-sport-warm-ups:
   title: "Warm Ups"
@@ -639,6 +876,9 @@ topic-sport-warm-ups:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-sport-warm-ups"
 
 topic-biology-cells:
   title: "Cells"
@@ -647,6 +887,9 @@ topic-biology-cells:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-cells"
 
 topic-biology-plants:
   title: "Plants"
@@ -655,6 +898,9 @@ topic-biology-plants:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-plants"
 
 topic-biology-animals:
   title: "Animals"
@@ -663,6 +909,9 @@ topic-biology-animals:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-animals"
 
 topic-biology-ecosystems:
   title: "Ecosystems"
@@ -671,6 +920,9 @@ topic-biology-ecosystems:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-ecosystems"
 
 topic-biology-photosynthesis:
   title: "Photosynthesis"
@@ -679,6 +931,9 @@ topic-biology-photosynthesis:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-photosynthesis"
 
 topic-biology-human-body:
   title: "Human Body"
@@ -687,6 +942,9 @@ topic-biology-human-body:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-human-body"
 
 topic-biology-insects:
   title: "Insects"
@@ -695,6 +953,9 @@ topic-biology-insects:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-insects"
 
 topic-biology-dinosaurs:
   title: "Dinosaurs"
@@ -703,6 +964,9 @@ topic-biology-dinosaurs:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-dinosaurs"
 
 topic-biology-food-chains:
   title: "Food Chains"
@@ -711,6 +975,9 @@ topic-biology-food-chains:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-food-chains"
 
 topic-biology-habitats:
   title: "Habitats"
@@ -719,6 +986,9 @@ topic-biology-habitats:
   duration: 5000
   audience: room
   room_bound: true
+  params:
+    teacher: "$me"
+    topic_card: "$card:topic-biology-habitats"
 
 lesson-test:
   title: Class Test

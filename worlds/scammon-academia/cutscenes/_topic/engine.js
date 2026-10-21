@@ -5,7 +5,7 @@
 // drives distinct visuals and animation, so each card still gets its own
 // cutscene while the animation plumbing lives in one trusted module.
 
-import { beginCutscene, endCutscene, wait } from "../../app/js/cutscenes/stage.js";
+import { beginCutscene, endCutscene, sprite, wait } from "../../app/js/cutscenes/stage.js";
 
 const MOTIONS = new Set(["rise", "rain", "orbit", "pop", "sweep"]);
 
@@ -80,7 +80,7 @@ function floatingGlyphs(stage, recipe) {
   stage.append(layer);
 }
 
-function hero(layer, recipe) {
+function heroGlyph(layer, recipe) {
   const hero = el("div", "topic-hero", {
     position: "absolute",
     inset: "0",
@@ -102,6 +102,78 @@ function hero(layer, recipe) {
   return hero;
 }
 
+function framedSprite(className, art, styles) {
+  const frame = el("div", className, {
+    position: "absolute",
+    display: "grid",
+    placeItems: "center",
+    overflow: "hidden",
+    pointerEvents: "none",
+    zIndex: "2",
+    ...styles,
+  });
+  frame.append(art);
+  return frame;
+}
+
+async function featuredCast(scene, recipe) {
+  const teacherRef = typeof recipe.teacher === "string" ? recipe.teacher : "";
+  const cardRef = typeof recipe.topic_card === "string" ? recipe.topic_card : "";
+  if (!teacherRef && !cardRef) return;
+
+  const accent = recipe.accent || "#f4c430";
+  const [teacherArt, cardArt] = await Promise.all([
+    teacherRef ? sprite(teacherRef, { label: "Teacher" }) : null,
+    cardRef ? sprite(cardRef, { label: recipe.title || "Lesson topic" }) : null,
+  ]);
+
+  if (teacherArt) {
+    const badge = framedSprite("topic-teacher", teacherArt, {
+      top: "clamp(12px, 4vmin, 40px)",
+      left: "clamp(12px, 4vmin, 40px)",
+      width: "clamp(72px, 15vmin, 132px)",
+      aspectRatio: "1",
+      padding: "clamp(5px, 1.2vmin, 10px)",
+      border: `4px solid ${accent}`,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,0.94)",
+      boxShadow: "0 14px 32px rgba(0,0,0,0.4)",
+      transform: "rotate(-6deg)",
+    });
+    scene.append(badge);
+    badge.animate(
+      [
+        { transform: "translateX(-150%) rotate(-18deg)", opacity: 0 },
+        { transform: "translateX(0) rotate(-6deg)", opacity: 1 },
+      ],
+      { duration: 620, delay: 180, easing: "cubic-bezier(.2,1.35,.4,1)", fill: "forwards" },
+    );
+  }
+
+  if (cardArt) {
+    const panel = framedSprite("topic-card-art", cardArt, {
+      right: "clamp(12px, 4vmin, 44px)",
+      top: "50%",
+      width: "clamp(110px, 24vmin, 220px)",
+      aspectRatio: "1",
+      padding: "clamp(5px, 1.2vmin, 10px)",
+      border: `3px solid ${accent}`,
+      borderRadius: "16px",
+      background: "rgba(255,255,255,0.96)",
+      boxShadow: "0 18px 38px rgba(0,0,0,0.42)",
+      transform: "translateY(-50%) rotate(5deg)",
+    });
+    scene.append(panel);
+    panel.animate(
+      [
+        { transform: "translate(140%, -50%) rotate(16deg)", opacity: 0 },
+        { transform: "translate(0, -50%) rotate(5deg)", opacity: 1 },
+      ],
+      { duration: 680, delay: 320, easing: "cubic-bezier(.2,1.3,.4,1)", fill: "forwards" },
+    );
+  }
+}
+
 export async function runTopicScene(ctx, recipe) {
   const safe = recipe || {};
   const duration = Math.min(5000, Math.max(2000, Number(safe.duration) || 3000));
@@ -119,7 +191,8 @@ export async function runTopicScene(ctx, recipe) {
   stage.append(scene);
 
   floatingGlyphs(scene, safe);
-  const hero = hero(scene, safe);
+  const hero = heroGlyph(scene, safe);
+  await featuredCast(scene, safe);
 
   const caption = el("p", "topic-caption", {
     position: "absolute",
@@ -136,6 +209,7 @@ export async function runTopicScene(ctx, recipe) {
     textAlign: "center",
     maxWidth: "86%",
     opacity: "0",
+    zIndex: "3",
   });
   caption.textContent = safe.line || "";
   scene.append(caption);
