@@ -177,6 +177,17 @@ connections in the same room. Media travels over WebRTC, not through gameplay
 logs. Audio presence is connection-local: travel retains it, refresh/new login
 does not. Offerer selection and autoplay rationale are documented in source.
 
+[music.js](../client/app/js/music.js) is a Tinyrooms-native mini player over a
+hidden, cross-origin chiptune.app iframe. The server owns each room's track
+([music.py](../server/services/music.py)): authored `music:` defaults come from
+the world definition, and `.music set|off|reset` (room owner or staff) writes an
+in-memory override and broadcasts `room.music`. Each client plays the room track
+locally through `https://chiptune.app/?play=<song>`; because the frame cannot be
+scripted, track changes reload it, volume/pause/seek are unavailable, and users
+may listen to their own pick instead. Catalog search/top/browse is proxied
+server-side by [chiptune.py](../server/routes/chiptune.py) since chiptune.app
+sends no CORS headers. Autoplay requires one user gesture.
+
 Cutscenes remain available without a subsystem feature flag; reduced motion
 suppresses playback. Presentation cannot determine gameplay rewards or whether
 a transaction succeeded, and the server does not await playback acknowledgement.

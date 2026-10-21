@@ -27,6 +27,7 @@ export const COMMANDS = [
   { name: ".shop", summary: "Open the Shop on its Cards or Props section." },
   { name: ".play <activity>", summary: "Open a room or account activity." },
   { name: ".cutscene <id>", summary: "Play a cutscene for yourself, or the room with --room." },
+  { name: ".music <set <song> [label] | off | reset>", summary: "Control the room's chiptune.app music." },
   { name: ".cancel", summary: "Cancel targeting or a pending interaction." },
 ];
 

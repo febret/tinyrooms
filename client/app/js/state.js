@@ -467,6 +467,17 @@ function normalizeGameState(boardState) {
   return boardState && typeof boardState === "object" ? clone(boardState) : null;
 }
 
+function normalizeMusic(track) {
+  if (!track || typeof track !== "object") return null;
+  const song = String(track.song || "").trim();
+  if (!song) return null;
+  return {
+    song,
+    label: String(track.label || "").trim(),
+    updatedBy: String(track.updated_by || ""),
+  };
+}
+
 function normalizeRoom(room, previousRoom = null) {
   if (!room) return null;
   return {
@@ -487,6 +498,7 @@ function normalizeRoom(room, previousRoom = null) {
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
     environmentRevision: Number(room.environment_revision || 0),
+    music: normalizeMusic(room.music),
     exits: Array.isArray(room.exits) ? room.exits.map(normalizeExit) : [],
     props: Array.isArray(room.props) ? room.props.map(normalizeProp) : [],
     occupants: Array.isArray(room.occupants) ? room.occupants.map(normalizeOccupant) : [],
@@ -705,6 +717,15 @@ function applyServerEvent(state, event) {
         occupants: state.room.occupants.map(occupant => (
           occupant.id === targetId ? { ...occupant, audioEnabled: Boolean(event.enabled) } : occupant
         )),
+      },
+    };
+  }
+  if (event.type === "room.music") {
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        music: normalizeMusic({ ...(event.track || {}), updated_by: event.updated_by }),
       },
     };
   }
@@ -971,7 +992,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, musicOpen: false, musicEnabled: false, musicOverride: null, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", targeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -992,7 +1013,7 @@ function reduce(state, action) {
       user,
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
-      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false },
+      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false, musicOpen: action.loggedIn ? state.ui.musicOpen : false, musicEnabled: action.loggedIn ? state.ui.musicEnabled : false, musicOverride: action.loggedIn ? state.ui.musicOverride : null },
       views: { auth: !action.loggedIn, main: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
@@ -1059,6 +1080,11 @@ function reduce(state, action) {
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
+  if (action.type === "toggle-music") return { ...state, ui: { ...state.ui, musicOpen: !state.ui.musicOpen, emoteMenuOpen: false } };
+  if (action.type === "close-music") return { ...state, ui: { ...state.ui, musicOpen: false } };
+  if (action.type === "music-enabled") return { ...state, ui: { ...state.ui, musicEnabled: Boolean(action.enabled) } };
+  if (action.type === "music-override") return { ...state, ui: { ...state.ui, musicOverride: normalizeMusic(action.track) } };
+  if (action.type === "music-follow-room") return { ...state, ui: { ...state.ui, musicOverride: null } };
   if (action.type === "open-skill-picker") return { ...state, views: { ...state.views, skillPickerSlot: Number(action.slot) }, ui: { ...state.ui, roomPickerOpen: true, emoteMenuOpen: false } };
   if (action.type === "inventory-tab") {
     const next = inventoryTabState(state, action.tab);
@@ -1141,7 +1167,7 @@ function reduce(state, action) {
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, skillStackId: null, skillPickerSlot: null },
-      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false, musicOverride: null },
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };

@@ -27,6 +27,7 @@ from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
+from server.services.music import MusicService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
@@ -110,6 +111,7 @@ class CommandContext:
     recipes: dict[str, RecipeDefinition]
     mods: dict[str, object]
     cross_world: CrossWorldService
+    music: MusicService
     reload_world: Callable[[], Awaitable[None]] | None = None
 
 

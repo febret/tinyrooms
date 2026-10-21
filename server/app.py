@@ -43,6 +43,7 @@ from server.mods import ModDefinition, LoadedMods, load_mods
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
+from server.routes import chiptune as chiptune_routes
 from server.routes import cutscenes as cutscene_routes
 from server.routes import prop_editor as prop_editor_routes
 from server.routes import world_editor as world_editor_routes
@@ -86,6 +87,7 @@ from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
+from server.services.music import MusicService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
@@ -207,6 +209,7 @@ class RuntimeState:
     powers: PowersService
     audit: AuditService
     ownership: OwnershipService
+    music: MusicService
     environment: EnvironmentService
     layout: RoomLayoutService
     room_effects: RoomEffectService
@@ -500,6 +503,7 @@ def _build_runtime(
     audit = AuditService(hub, world.id)
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
+    music = MusicService(world)
     room_effects = RoomEffectService()
     prop_states = PropStateService()
     layout = RoomLayoutService(
@@ -554,7 +558,7 @@ def _build_runtime(
         peep_states=peep_states,
         surfaces=surfaces,
         powers=powers,
-        vibes=vibes,
+        music=music,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(
@@ -642,6 +646,7 @@ def _build_runtime(
         powers=powers,
         audit=audit,
         ownership=ownership,
+        music=music,
         environment=environment,
         layout=layout,
         room_effects=room_effects,
@@ -1258,6 +1263,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
     app.include_router(prop_editor_routes.router)
+    app.include_router(chiptune_routes.router)
     app.include_router(cutscene_routes.router)
     if loaded_config.mc_endpoint:
         app.include_router(mc_router)

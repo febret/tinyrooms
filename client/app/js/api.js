@@ -10,6 +10,9 @@ export const PATHS = {
   logout: "/api/auth/logout",
   stickers: "/api/stickers",
   confirmSticker: "/api/stickers/confirm",
+  chiptuneSearch: "/api/chiptune/search",
+  chiptuneTop: "/api/chiptune/top",
+  chiptuneBrowse: "/api/chiptune/browse",
   websocket: "/ws",
 };
 
@@ -148,6 +151,18 @@ export function createApiClient() {
         headers: authHeaders(),
       });
       return body;
+    },
+    async chiptuneSearch(query, limit = 20) {
+      const body = await requestJson(`${PATHS.chiptuneSearch}?query=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}`);
+      return Array.isArray(body.items) ? body.items : [];
+    },
+    async chiptuneTop(limit = 20) {
+      const body = await requestJson(`${PATHS.chiptuneTop}?limit=${encodeURIComponent(limit)}`);
+      return Array.isArray(body.items) ? body.items : [];
+    },
+    async chiptuneBrowse(path = "") {
+      const body = await requestJson(`${PATHS.chiptuneBrowse}?path=${encodeURIComponent(path)}`);
+      return Array.isArray(body.items) ? body.items : [];
     },
     async bridgeActivity(activity, type, payload = {}) {
       if (!activity?.bridgeUrl) {

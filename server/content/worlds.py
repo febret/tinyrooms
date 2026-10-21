@@ -47,6 +47,8 @@ PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 DEFAULT_PROP_PRICE = 5
 FREE_PROPSET_SOURCES = frozenset({"base"})
+MAX_MUSIC_SONG_LENGTH = 500
+MAX_MUSIC_LABEL_LENGTH = 120
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +171,14 @@ class InitialRoomCard:
 
 
 @dataclass(frozen=True, slots=True)
+class RoomMusicDefinition:
+    """An authored default track for a room's chiptune.app player."""
+
+    song: str
+    label: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class RoomDefinition:
     """An immutable room definition."""
 
@@ -189,6 +199,7 @@ class RoomDefinition:
     template: bool = False
     sprites_enabled: bool = False
     game: RoomGameDefinition | None = None
+    music: RoomMusicDefinition | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -442,6 +453,30 @@ def _load_editor_environment(raw_value: Any, room_id: str) -> tuple[str, ...]:
         if key not in keys:
             keys.append(key)
     return tuple(keys)
+
+
+def _load_room_music(raw_value: Any, room_id: str) -> RoomMusicDefinition | None:
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, str):
+        raw_song = raw_value
+        raw_label = ""
+    elif isinstance(raw_value, dict):
+        raw_song = raw_value.get("song", "")
+        raw_label = raw_value.get("label", "")
+    else:
+        raise ContentError(f"Room '{room_id}' music must be a song id/path string or a mapping.")
+    song = str(raw_song).strip()
+    if not song:
+        raise ContentError(f"Room '{room_id}' music is missing a song.")
+    if len(song) > MAX_MUSIC_SONG_LENGTH:
+        raise ContentError(f"Room '{room_id}' music song is too long.")
+    if any(ord(char) < 32 for char in song):
+        raise ContentError(f"Room '{room_id}' music song contains control characters.")
+    label = str(raw_label).strip()
+    if len(label) > MAX_MUSIC_LABEL_LENGTH:
+        raise ContentError(f"Room '{room_id}' music label is too long.")
+    return RoomMusicDefinition(song=song, label=label)
 
 
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
@@ -1086,6 +1121,7 @@ def load_world_definition(
             effects=effects,
             power_names=POWER_NAMES,
         )
+        music = _load_room_music(raw_room.get("music"), room_id)
         rooms[room_id] = RoomDefinition(
             id=room_id,
             label=str(raw_room.get("label", "")).strip(),
@@ -1104,6 +1140,7 @@ def load_world_definition(
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
             game=game,
+            music=music,
         )
 
     if entry_room_id not in rooms:

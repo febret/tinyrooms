@@ -104,6 +104,7 @@ class RoomService:
         surfaces: PropSurfaceService | None = None,
         powers: object | None = None,
         vibes: object | None = None,
+        music: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -126,6 +127,7 @@ class RoomService:
         self._surfaces = surfaces
         self._powers = powers
         self._vibes = vibes
+        self._music = music
         self._mod_states: list[object] = []
 
     @property
@@ -859,6 +861,7 @@ class RoomService:
             "metadata": {"note": note},
             "environment": environment,
             "environment_revision": environment_revision,
+            "music": self._music.current(room_id) if self._music is not None else None,
             "exits": visible_exits,
             "props": [
                 self._serialize_prop(account, room, prop, dark=dark, disable_actions=disable_prop_actions)

@@ -9,6 +9,7 @@ import { createPropActionButton } from "./prop-action-button.js";
 import { syncEmoteChrome } from "./emote-chrome.js";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, onFullscreenChange } from "./fullscreen.js";
 import { syncPeepsChrome } from "./peeps-chrome.js";
+import { createMusicPlayer } from "./music.js";
 import { createRoomPicker } from "./room-picker.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import { lookPreview } from "./look-preview.js";
@@ -722,6 +723,7 @@ function renderTopBar(state) {
     <button type="button" class="quiet" data-top-action="peeps" aria-pressed="${state.ui.peepsVisible !== false}" aria-controls="peeps-panel">Show peeps sidebar</button>
     <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
+    <button type="button" class="quiet" data-top-action="music" aria-pressed="${state.ui.musicOpen}" aria-controls="music-player">Music</button>
     <button type="button" class="quiet" data-top-action="fullscreen" aria-pressed="${state.ui.fullscreen}"${canFullscreen ? "" : ` disabled title="Fullscreen is not supported on this device"`}>${state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"}</button>
     <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
     <button type="button" class="quiet" data-top-action="bubble">Speech bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}</button>
@@ -736,6 +738,10 @@ function renderTopBar(state) {
       if (which === "peeps") store.dispatch({ type: "toggle-peeps" });
       if (which === "log") await toggleLog();
       if (which === "sound") store.dispatch({ type: "toggle-sound" });
+      if (which === "music") {
+        settings.open = false;
+        store.dispatch({ type: "toggle-music" });
+      }
       if (which === "fullscreen") {
         if (!canFullscreen) return;
         try {
@@ -1042,6 +1048,14 @@ const roomPicker = createRoomPicker({
       .catch(showError);
   },
 });
+const music = createMusicPlayer({
+  root: $("#music-player"),
+  store,
+  api,
+  sendCommand,
+  onToast: toast,
+  onError: showError,
+});
 const cardMotion = createCardMotion({
   board,
   handRoot: $("#card-hand"),
@@ -1093,6 +1107,7 @@ async function render(state) {
   if (previousUser !== state.user?.id || previousRoom !== state.room?.id) {
     previousUser = state.user?.id;
     previousRoom = state.room?.id;
+    music.resetRoom();
     dialogs.closeAll();
     if (revision !== renderRevision) return;
   }
@@ -1127,6 +1142,7 @@ async function render(state) {
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root);
   roomPicker.sync(state);
+  music.render(state);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
@@ -1216,6 +1232,7 @@ document.addEventListener("keydown", event => {
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (roomPicker.handleEscape(event)) return;
+  if (state.ui.musicOpen) { event.preventDefault(); store.dispatch({ type: "close-music" }); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
   if (state.ui.emoteMenuOpen) {
     event.preventDefault();

@@ -4,6 +4,9 @@ hub:
   board_type: basic
   board_image: hub.jpg
   board_image_style: stretch
+  music:
+    song: GEAwVG1x
+    label: Town (Windows 7)
   palette:
   - '#ebcfaa'
   - '#b97262'
