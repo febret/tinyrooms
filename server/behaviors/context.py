@@ -206,6 +206,22 @@ class BehaviorContext:
         payload.update(_target_payload(self._resolve(target)))
         self._append("apply_buff", payload)
 
+    def learn_recipes(
+        self,
+        *,
+        source: str | None = None,
+        recipe_ids: tuple[str, ...] | list[str] = (),
+    ) -> None:
+        """Queue learning cardset recipes for the acting account."""
+
+        self._append(
+            "learn_recipes",
+            {
+                "source": str(source) if source else None,
+                "recipe_ids": [str(recipe_id) for recipe_id in recipe_ids],
+            },
+        )
+
     def grant(
         self,
         *,

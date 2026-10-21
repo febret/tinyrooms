@@ -1,0 +1,11 @@
+{
+  "tasks": [
+    {
+      "label": "teachers-lounge",
+      "tool": "image",
+      "prompt": "a flat top-down texture of a cozy elementary school teachers' lounge wooden floor, warm honey oak floorboards running horizontally with visible grain and gentle scuffs, a few tiny blue and yellow paint flecks between the planks, evenly lit, seamless floor surface, no walls, no furniture, no room background, no objects, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/rooms/teachers-lounge.png",
+      "args": {"width": 768, "height": 768, "seed": 94002, "steps": 25}
+    }
+  ]
+}

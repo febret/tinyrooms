@@ -1,7 +1,7 @@
 molly:
   label: Molly
   description: A curious cat with a weakness for laser dots.
-  room: playroom
+  room: foyer
   image: molly.png
   script: molly.py
   activity: lazor-rush

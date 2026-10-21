@@ -179,6 +179,7 @@ class PackageManager:
             propsets_root=self.propsets_root,
             mod_props=mod_props,
             enabled_mods=enabled_mods,
+            extra_recipes=catalog.recipes,
         )
 
     def _validate_cardset(self, package_dir: Path) -> None:

@@ -33,6 +33,10 @@ class RecipeDefinition:
     ingredients: tuple[Ingredient, ...]
     output: tuple[Ingredient, ...]
     energy_cost: int = 0
+    # Station tags bind a recipe to any crafting prop carrying the same tag.
+    station: str | None = None
+    # Cardset recipes are learned from recipe books; world recipes are known.
+    source: str = ""
 
 
 def _load_ingredients(raw_value: Any, recipe_id: str, field: str, card_ids: set[str]) -> tuple[Ingredient, ...]:
@@ -59,10 +63,14 @@ def _load_ingredients(raw_value: Any, recipe_id: str, field: str, card_ids: set[
     return tuple(ingredients)
 
 
-def load_recipes(world_path: Path, card_ids: set[str]) -> dict[str, RecipeDefinition]:
-    """Load and validate ``recipes.yaml`` beside a world definition."""
+def load_recipes_file(
+    recipes_file: Path,
+    card_ids: set[str],
+    *,
+    source: str = "",
+) -> dict[str, RecipeDefinition]:
+    """Load and validate one recipe file."""
 
-    recipes_file = world_path / "recipes.yaml"
     if not recipes_file.is_file():
         return {}
     payload = require_mapping(load_yaml_file(recipes_file), recipes_file)
@@ -83,6 +91,10 @@ def load_recipes(world_path: Path, card_ids: set[str]) -> dict[str, RecipeDefini
         raw_cost = raw_recipe.get("energy_cost", 0)
         if isinstance(raw_cost, bool) or not isinstance(raw_cost, (int, float)) or float(raw_cost) < 0:
             raise ContentError(f"Recipe '{recipe_id}' energy_cost must be a non-negative number.")
+        raw_station = raw_recipe.get("station", raw_recipe.get("tag"))
+        station = str(raw_station).strip().lower() if raw_station is not None else None
+        if raw_station is not None and not station:
+            raise ContentError(f"Recipe '{recipe_id}' station must be a non-empty string.")
         recipes[recipe_id] = RecipeDefinition(
             id=recipe_id,
             label=str(raw_recipe.get("label", "")).strip() or recipe_id,
@@ -90,5 +102,22 @@ def load_recipes(world_path: Path, card_ids: set[str]) -> dict[str, RecipeDefini
             ingredients=ingredients,
             output=output,
             energy_cost=int(raw_cost),
+            station=station,
+            source=source,
         )
     return recipes
+
+
+def load_recipes(
+    world_path: Path,
+    card_ids: set[str],
+    *,
+    source: str | None = None,
+) -> dict[str, RecipeDefinition]:
+    """Load and validate ``recipes.yaml`` beside a world definition."""
+
+    return load_recipes_file(
+        world_path / "recipes.yaml",
+        card_ids,
+        source=source if source is not None else world_path.name,
+    )

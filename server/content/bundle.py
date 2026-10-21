@@ -68,5 +68,6 @@ def load_world_bundle(
         mod_props=loaded_mods.mod_props() if loaded_mods is not None else (),
         enabled_mods=loaded_mods.ids if loaded_mods is not None else None,
         fx_root=config.fx_path,
+        extra_recipes=catalog.recipes,
     )
     return WorldBundle(catalog=catalog, content=content, world=world)

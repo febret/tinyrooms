@@ -18,6 +18,7 @@ from server.commands.outcomes import CommandError
 from server.config import AppConfig
 from server.content.worlds import ExitDefinition
 from server.profiles import AccountRecord, ProfileRepository
+from server.services.powers import PowersService
 from server.services.progression import ProgressionService
 from server.state.migrations import DatabaseHub
 
@@ -67,6 +68,7 @@ class CrossWorldService:
         profiles: ProfileRepository,
         world_id: str,
         progression: ProgressionService,
+        powers: PowersService,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._config = config
@@ -74,6 +76,7 @@ class CrossWorldService:
         self._profiles = profiles
         self._world_id = world_id
         self._progression = progression
+        self._powers = powers
         self._client = client
 
     @property
@@ -137,8 +140,10 @@ class CrossWorldService:
         )
 
     def check_multiverse_map(self, account: AccountRecord) -> None:
-        """Require the Multiverse Map skill to be slotted for cross-world travel."""
+        """Require the Multiverse Map skill, or the admin power, for cross-world travel."""
 
+        if self._powers.has_power(account.id, "admin"):
+            return
         if not self._progression.has_slotted_skill(account, MULTIVERSE_MAP_CARD_ID):
             raise CommandError("Slot the Multiverse Map skill to cross between worlds.")
 
@@ -172,7 +177,7 @@ class CrossWorldService:
         world_id: str,
         room_id: str | None = None,
     ) -> TravelPlan:
-        """Resolve a cross-world destination, requiring the slotted map."""
+        """Resolve a cross-world destination, requiring the slotted map or admin power."""
 
         self.check_multiverse_map(account)
         destination = await self.resolve_destination(world_id)

@@ -779,3 +779,50 @@ arched-cottage-window:
   tags:
   - window
   - building
+
+supermarket-prep-table:
+  label: Supermarket Prep Table
+  description: A sturdy stainless prep table with a cutting board and tidy little bowls.
+    Perfect for chopping, kneading, and mixing by hand.
+  model: supermarket-prep-table.glb
+  decorative: false
+  scale: 1.0
+  tags:
+  - crafting
+  - kitchen
+  - prep-table
+  - table
+supermarket-oven:
+  label: Supermarket Oven
+  description: A cheerful commercial oven with a warm glass door and two sturdy racks.
+    Baking, roasting, and toasting happen here.
+  model: supermarket-oven.glb
+  decorative: false
+  scale: 1.0
+  tags:
+  - crafting
+  - kitchen
+  - oven
+supermarket-mixer:
+  label: Supermarket Mixer
+  description: A bright stand mixer with a deep mixing bowl. Batter, dough, and sauces
+    come together in no time.
+  model: supermarket-mixer.glb
+  decorative: false
+  scale: 0.9
+  tags:
+  - crafting
+  - kitchen
+  - mixer
+supermarket-recipe-book:
+  label: Supermarket Recipe Book
+  description: A thick, cheerful cookbook full of supermarket recipes. Read it to
+    learn every recipe in the supermarket cardset.
+  model: supermarket-recipe-book.glb
+  decorative: false
+  scale: 0.8
+  tags:
+  - crafting
+  - book
+  - knowledge
+  - recipe-book

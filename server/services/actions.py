@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
+from server.content.cards import (
+    NON_EQUIP_TYPES,
+    CardCatalog,
+    CardDefinition,
+    card_asset_url,
+)
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.services.cards import require_definition, require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
@@ -339,6 +344,11 @@ class ActionsService:
             )
 
     def _emote_image_url(self, definition: CardDefinition) -> str:
-        asset_kind = definition.source if definition.source != self._world_id else f"world/{self._world_id}/cards"
-        file_name = definition.animation_name or definition.image_name
-        return f"/assets/{asset_kind}/{file_name}"
+        if definition.animation_name:
+            return card_asset_url(self._world_id, definition.source, definition.animation_name)
+        return card_asset_url(
+            self._world_id,
+            definition.source,
+            definition.image_name,
+            missing=definition.image_missing,
+        )

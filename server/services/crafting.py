@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import sqlite3
 
-from server.content.cards import CardCatalog
+from server.content.cards import CardCatalog, card_asset_url
 from server.content.gameplay import GameplayContent
 from server.content.recipes import RecipeDefinition
 from server.content.worlds import PropInstanceDefinition, WorldDefinition
@@ -32,6 +32,7 @@ class IngredientPreview:
     card_id: str
     label: str
     quantity: int
+    image_url: str = ""
     stacks: tuple[StackOption, ...] = ()
 
 
@@ -42,6 +43,7 @@ class OutputPreview:
     card_id: str
     label: str
     quantity: int
+    image_url: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +94,17 @@ class CraftingService:
         self._world_id = world.id
         self._environment = environment
 
+    def image_url(self, card_id: str) -> str:
+        """Return the served art URL for a catalog card."""
+
+        definition = self._catalog.cards[card_id]
+        return card_asset_url(
+            self._world_id,
+            definition.source,
+            definition.image_name,
+            missing=definition.image_missing,
+        )
+
     def _prop(self, room_id: str, prop_instance_id: str) -> PropInstanceDefinition:
         room = self._world.rooms.get(room_id)
         if room is None:
@@ -105,12 +118,59 @@ class CraftingService:
             raise ValueError("That prop is not a crafting station.")
         return prop
 
-    def _require_recipe(self, prop: PropInstanceDefinition, recipe_id: str) -> RecipeDefinition:
-        if recipe_id not in prop.recipes:
+    def _known_recipes(self, account_id: str) -> set[str]:
+        profile = self._profiles.get_user_profile(account_id)
+        if profile is None:
+            return set()
+        return set(profile.known_recipes)
+
+    def _recipe_known(self, recipe: RecipeDefinition, known: set[str]) -> bool:
+        if not recipe.source or recipe.source == self._world_id:
+            return True
+        return recipe.id in known
+
+    def _station_recipe_ids(self, prop: PropInstanceDefinition) -> set[str]:
+        tags = set(self._world.props[prop.prop_id].tags)
+        recipe_ids = set(prop.recipes)
+        recipe_ids.update(
+            recipe.id
+            for recipe in self._recipes.values()
+            if recipe.station is not None and recipe.station in tags
+        )
+        return recipe_ids
+
+    def station_recipes(
+        self,
+        account: AccountRecord,
+        room_id: str,
+        prop_instance_id: str,
+    ) -> tuple[RecipeDefinition, ...]:
+        """Return the station's known recipes, ordered by recipe id."""
+
+        prop = self._prop(room_id, prop_instance_id)
+        known = self._known_recipes(account.id)
+        return tuple(
+            recipe
+            for recipe in (
+                self._recipes.get(recipe_id)
+                for recipe_id in sorted(self._station_recipe_ids(prop))
+            )
+            if recipe is not None and self._recipe_known(recipe, known)
+        )
+
+    def _require_recipe(
+        self,
+        account: AccountRecord,
+        prop: PropInstanceDefinition,
+        recipe_id: str,
+    ) -> RecipeDefinition:
+        if recipe_id not in self._station_recipe_ids(prop):
             raise ValueError("That crafting station does not offer that recipe.")
         recipe = self._recipes.get(recipe_id)
         if recipe is None:
             raise ValueError("That recipe is not defined.")
+        if not self._recipe_known(recipe, self._known_recipes(account.id)):
+            raise ValueError("You have not learned that recipe yet.")
         return recipe
 
     def _slotted(self, account_id: str) -> set[str]:
@@ -126,17 +186,29 @@ class CraftingService:
             if stack.card_def_id == card_id and stack.stack_id not in slotted
         )
 
+    def owned_counts(self, account: AccountRecord, card_ids: set[str]) -> dict[str, int]:
+        """Return eligible inventory quantities for *card_ids* in one pass."""
+
+        wanted = set(card_ids)
+        counts = {card_id: 0 for card_id in wanted}
+        slotted = self._slotted(account.id)
+        for stack in self._profiles.list_inventory(account.id, self._world_id):
+            if stack.card_def_id in wanted and stack.stack_id not in slotted:
+                counts[stack.card_def_id] += stack.quantity
+        return counts
+
     def preview(self, account: AccountRecord, room_id: str, prop_instance_id: str, recipe_id: str) -> CraftPreview:
         """Preview a recipe with the account's eligible source stacks."""
 
         prop = self._prop(room_id, prop_instance_id)
-        recipe = self._require_recipe(prop, recipe_id)
+        recipe = self._require_recipe(account, prop, recipe_id)
         slotted = self._slotted(account.id)
         ingredients = tuple(
             IngredientPreview(
                 card_id=ingredient.card_id,
                 label=self._catalog.cards[ingredient.card_id].label,
                 quantity=ingredient.quantity,
+                image_url=self.image_url(ingredient.card_id),
                 stacks=self._eligible_stacks(account.id, ingredient.card_id, slotted),
             )
             for ingredient in recipe.ingredients
@@ -146,6 +218,7 @@ class CraftingService:
                 card_id=item.card_id,
                 label=self._catalog.cards[item.card_id].label,
                 quantity=item.quantity,
+                image_url=self.image_url(item.card_id),
             )
             for item in recipe.output
         )
@@ -169,7 +242,7 @@ class CraftingService:
         """Craft one recipe atomically."""
 
         prop = self._prop(room_id, prop_instance_id)
-        recipe = self._require_recipe(prop, recipe_id)
+        recipe = self._require_recipe(account, prop, recipe_id)
         with self._hub.transaction() as connection:
             self._consume(connection, account, recipe, selections)
             for item in recipe.output:
@@ -199,6 +272,7 @@ class CraftingService:
                     card_id=item.card_id,
                     label=self._catalog.cards[item.card_id].label,
                     quantity=item.quantity,
+                    image_url=self.image_url(item.card_id),
                 )
                 for item in recipe.output
             )

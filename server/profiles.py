@@ -50,6 +50,8 @@ def _default_profile() -> dict[str, object]:
         "show_activity_log": False,
         "ui_settings": {},
         "unlocked_props": [],
+        # Recipe ids learned from cardset recipe books.
+        "known_recipes": [],
         # "<world_id>:<cutscene_id>" keys already seen; gates first-view memories.
         "seen_cutscenes": [],
     }
@@ -91,6 +93,10 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["unlocked_props"] = []
     else:
         merged["unlocked_props"] = [str(prop_id) for prop_id in merged["unlocked_props"] if str(prop_id)]
+    if not isinstance(merged.get("known_recipes"), list):
+        merged["known_recipes"] = []
+    else:
+        merged["known_recipes"] = [str(recipe_id) for recipe_id in merged["known_recipes"] if str(recipe_id)]
     if not isinstance(merged.get("seen_cutscenes"), list):
         merged["seen_cutscenes"] = []
     else:
@@ -210,6 +216,11 @@ class UserProfileRecord:
     @property
     def unlocked_props(self) -> tuple[str, ...]:
         raw = self.profile.get("unlocked_props")
+        return tuple(str(entry) for entry in raw) if isinstance(raw, list) else ()
+
+    @property
+    def known_recipes(self) -> tuple[str, ...]:
+        raw = self.profile.get("known_recipes")
         return tuple(str(entry) for entry in raw) if isinstance(raw, list) else ()
 
 

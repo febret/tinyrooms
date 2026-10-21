@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 248" width="310" height="248" role="img" aria-label="Card artwork unavailable">
+  <defs>
+    <linearGradient id="card-placeholder-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e3342"/>
+      <stop offset="1" stop-color="#101d27"/>
+    </linearGradient>
+    <linearGradient id="card-placeholder-frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8c878"/>
+      <stop offset="1" stop-color="#9a6b26"/>
+    </linearGradient>
+  </defs>
+  <rect width="310" height="248" fill="url(#card-placeholder-sky)"/>
+  <path d="M18 206L86 128L132 178L174 112L292 230H18Z" fill="#284558"/>
+  <path d="M18 224L104 160L156 210L210 150L292 224V248H18Z" fill="#1b3242"/>
+  <circle cx="238" cy="64" r="24" fill="#e8c878" opacity=".8"/>
+  <rect x="10" y="10" width="290" height="228" rx="10" fill="none" stroke="url(#card-placeholder-frame)" stroke-width="3" stroke-dasharray="8 7"/>
+  <text x="155" y="238" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="11" letter-spacing="2.4" fill="#f4dfaa" opacity=".85">ARTWORK MISSING</text>
+</svg>

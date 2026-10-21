@@ -4,16 +4,23 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from server.content.cards import CORE_CARD_IDS, PACK_CARD_TYPE, CardCatalog, CardDefinition
+from server.content.cards import (
+    CORE_CARD_IDS,
+    PACK_CARD_TYPE,
+    CardCatalog,
+    CardDefinition,
+    card_asset_url,
+)
 from server.content.recipes import RecipeDefinition
 
 
-def _asset_kind(world_id: str, source: str) -> str:
-    return source if source != world_id else f"world/{world_id}/cards"
-
-
 def _image_url(world_id: str, definition: CardDefinition) -> str:
-    return f"/assets/{_asset_kind(world_id, definition.source)}/{definition.image_name}"
+    return card_asset_url(
+        world_id,
+        definition.source,
+        definition.image_name,
+        missing=definition.image_missing,
+    )
 
 
 def _scope(world_id: str, definition: CardDefinition) -> str:
@@ -62,7 +69,12 @@ class CardDatabaseService:
                 "price": pack.price,
                 "size": pack.size,
                 "source": pack.source,
-                "back_image_url": f"/assets/{_asset_kind(self._world_id, pack.source)}/{pack.back_image_name}",
+                "back_image_url": card_asset_url(
+                    self._world_id,
+                    pack.source,
+                    pack.back_image_name,
+                    missing=pack.back_image_missing,
+                ),
                 "cards": list(pack.cards),
                 "guaranteed": list(pack.guaranteed),
             }
@@ -74,6 +86,8 @@ class CardDatabaseService:
                 "label": recipe.label,
                 "description": recipe.description,
                 "energy_cost": recipe.energy_cost,
+                "station": recipe.station,
+                "source": recipe.source,
                 "ingredients": [
                     {"card_id": item.card_id, "quantity": item.quantity}
                     for item in recipe.ingredients
@@ -143,12 +157,12 @@ class CardDatabaseService:
                         "message": "Not included in any card pack.",
                     }
                 )
-            if not (self._world_path / "cards" / definition.image_name).is_file() and definition.source == self._world_id:
+            if definition.image_missing and definition.source == self._world_id:
                 errors.append(
                     {
                         "scope": "card",
                         "id": definition.id,
-                        "message": f"Missing artwork '{definition.image_name}'.",
+                        "message": f"Missing artwork '{definition.image_name}'; using a placeholder.",
                     }
                 )
         for recipe in self._recipes.values():

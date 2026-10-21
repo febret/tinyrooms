@@ -43,6 +43,7 @@ def _serialize_preview(preview: CraftPreview) -> dict[str, object]:
                 "card_id": ingredient.card_id,
                 "label": ingredient.label,
                 "quantity": ingredient.quantity,
+                "image_url": ingredient.image_url,
                 "stacks": [
                     {"stack_id": stack.stack_id, "quantity": stack.quantity, "equipped": stack.equipped}
                     for stack in ingredient.stacks
@@ -51,7 +52,12 @@ def _serialize_preview(preview: CraftPreview) -> dict[str, object]:
             for ingredient in preview.ingredients
         ],
         "output": [
-            {"card_id": item.card_id, "label": item.label, "quantity": item.quantity}
+            {
+                "card_id": item.card_id,
+                "label": item.label,
+                "quantity": item.quantity,
+                "image_url": item.image_url,
+            }
             for item in preview.output
         ],
     }
@@ -62,7 +68,12 @@ def _serialize_result(result: CraftResult) -> dict[str, object]:
         "recipe_id": result.recipe_id,
         "label": result.label,
         "outputs": [
-            {"card_id": item.card_id, "label": item.label, "quantity": item.quantity}
+            {
+                "card_id": item.card_id,
+                "label": item.label,
+                "quantity": item.quantity,
+                "image_url": item.image_url,
+            }
             for item in result.outputs
         ],
     }
@@ -116,16 +127,44 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
     prop = context.rooms.require_prop_target(room_id, prop_instance_id)
     if prop.behavior != "crafting":
         raise CommandError("That prop is not a crafting station.")
-    if not prop.recipes:
-        raise CommandError("That crafting station has no recipes.")
-    recipes = []
-    for recipe_id in prop.recipes:
-        definition = context.recipes.get(recipe_id)
-        if definition is None:
-            continue
-        recipes.append(
-            {"id": definition.id, "label": definition.label, "description": definition.description}
-        )
+    definitions = context.crafting.station_recipes(context.account, room_id, prop_instance_id)
+    if not definitions:
+        raise CommandError("This station has no recipes you know yet.")
+    required_cards = {
+        ingredient.card_id
+        for definition in definitions
+        for ingredient in definition.ingredients
+    }
+    owned = context.crafting.owned_counts(context.account, required_cards)
+    recipes = [
+        {
+            "id": definition.id,
+            "label": definition.label,
+            "description": definition.description,
+            "station": definition.station or "",
+            "energy_cost": definition.energy_cost,
+            "ingredients": [
+                {
+                    "card_id": item.card_id,
+                    "label": context.cards.definition(item.card_id).label,
+                    "quantity": item.quantity,
+                    "image_url": context.crafting.image_url(item.card_id),
+                    "owned": owned.get(item.card_id, 0),
+                }
+                for item in definition.ingredients
+            ],
+            "outputs": [
+                {
+                    "card_id": item.card_id,
+                    "label": context.cards.definition(item.card_id).label,
+                    "quantity": item.quantity,
+                    "image_url": context.crafting.image_url(item.card_id),
+                }
+                for item in definition.output
+            ],
+        }
+        for definition in definitions
+    ]
     try:
         session, replaced = context.activities.start(
             account_id=context.account.id,
@@ -186,8 +225,39 @@ async def craft_make_command(context: CommandContext, command: ParsedCommand) ->
         recipe_id,
         selections,
     )
-    return CommandOutcome(
+    outcome = CommandOutcome(
         message=f"Crafted {result.label or recipe_id}.",
         payload=_mutation_payload(context, result.stacks, craft=_serialize_result(result)),
         private_events=[{"type": "toast", "tone": "success", "text": f"Crafted {result.label or recipe_id}."}],
     )
+    recipe = context.recipes.get(result.recipe_id)
+    if recipe is not None:
+        output_cards = ",".join(output.card_id for output in result.outputs)
+        changes = context.tasks.record(
+            context.account.id,
+            "signal",
+            {
+                "event": "recipe_crafted",
+                "recipe_id": recipe.id,
+                "recipe_label": result.label,
+                "station": recipe.station or "",
+                "source": recipe.source,
+                "output_card": output_cards,
+            },
+        )
+        if changes:
+            outcome.private_events.append(
+                {
+                    "type": "task.updated",
+                    "tasks": context.tasks.view_payload(context.account.id),
+                    "account_id": context.account.id,
+                }
+            )
+            outcome.private_events.extend(
+                context.tasks.feedback_events(
+                    context.account.id,
+                    changes,
+                    room_id=room_id,
+                )
+            )
+    return outcome

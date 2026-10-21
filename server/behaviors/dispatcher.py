@@ -463,6 +463,8 @@ class BehaviorDispatcher:
             self._apply_buff(connection, payload, context)
         elif kind == "grant":
             self._apply_grant(connection, payload, context)
+        elif kind == "learn_recipes":
+            self._apply_learn_recipes(connection, payload, context, result)
         elif kind == "give_card":
             self._apply_give_card(connection, payload, context, result)
         elif kind == "remove_card":
@@ -716,6 +718,50 @@ class BehaviorDispatcher:
             cards=tuple(str(card_id) for card_id in cards) if isinstance(cards, list) else (),
             ledger_key=ledger_key,
             kind="behavior",
+        )
+
+    def _apply_learn_recipes(
+        self,
+        connection: sqlite3.Connection,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        result: BehaviorResult,
+    ) -> None:
+        account_id = context.actor.account_id
+        if not account_id:
+            self._log("behavior.intent.skipped", kind="learn_recipes", reason="no_account")
+            return
+        recipe_ids = {
+            str(recipe_id)
+            for recipe_id in payload.get("recipe_ids", [])
+            if str(recipe_id)
+        }
+        source = payload.get("source")
+        if isinstance(source, str) and source:
+            recipe_ids.update(
+                recipe.id
+                for recipe in self._world.recipes.values()
+                if recipe.source == source
+            )
+        profile = self._profiles.get_user_profile(account_id)
+        known = set(profile.known_recipes) if profile is not None else set()
+        learned = sorted(recipe_ids - known)
+        if not learned:
+            result.private_events.append(
+                {"type": "toast", "tone": "info", "text": "You already know these recipes."}
+            )
+            return
+        self._profiles.update_profile_in_transaction(
+            connection,
+            account_id,
+            lambda data: data.update(known_recipes=sorted(known | set(learned))),
+        )
+        result.private_events.append(
+            {
+                "type": "toast",
+                "tone": "success",
+                "text": f"Learned {len(learned)} recipes from the cookbook.",
+            }
         )
 
     def _apply_give_card(

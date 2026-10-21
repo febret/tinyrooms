@@ -8,32 +8,68 @@
     <link rel="stylesheet" href="/activities/crafting/crafting.css">
   </head>
   <body>
-    <main class="shell">
-      <header class="heading">
-        <div>
-          <div class="badge">Tinyrooms activity</div>
-          <h1 id="title">Crafting</h1>
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="icon-pot" viewBox="0 0 24 24">
+          <path d="M5 10h14v5a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5z"/>
+          <path d="M5 10 2.5 8M19 10l2.5-2M9 3v3M12 2v4M15 3v3M9 14h6"/>
+        </symbol>
+        <symbol id="icon-bolt" viewBox="0 0 24 24">
+          <path d="M13.5 2 4.5 14H10l-1.5 8 9-12H12z"/>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24">
+          <path d="m5 12.5 4.5 4.5L19 7"/>
+        </symbol>
+        <symbol id="icon-warning" viewBox="0 0 24 24">
+          <path d="M12 3 2.8 20h18.4zM12 9v5M12 17h.01"/>
+        </symbol>
+      </defs>
+    </svg>
+
+    <main class="shell craft-shell">
+      <div class="craft-topbar">
+        <span class="recipe-count" id="recipe-count">0 recipes</span>
+        <div class="energy" id="energy" aria-live="polite">
+          <svg class="icon" aria-hidden="true"><use href="#icon-bolt"></use></svg>
+          <span id="energy-value">— Energy</span>
         </div>
-        <div class="energy" id="energy" aria-live="polite">— Energy</div>
-      </header>
+      </div>
+
       <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
-      <section class="paper">
-        <p class="muted">Choose a recipe, then pick which ingredient stacks to use. Ingredients are only consumed when the craft succeeds.</p>
-        <div class="craft-layout">
-          <div class="recipe-list" id="recipes" role="listbox" aria-label="Recipes"></div>
-          <div class="recipe-detail" id="detail">
-            <p class="empty">Choose a recipe to begin.</p>
-          </div>
+
+      <section class="recipe-grid" id="recipes" role="listbox" aria-label="Recipes"></section>
+
+      <section class="recipe-detail" id="detail" aria-live="polite">
+        <div class="detail-empty">
+          <svg class="icon detail-empty-icon" aria-hidden="true"><use href="#icon-pot"></use></svg>
+          <p>Pick a recipe to see what it needs.</p>
         </div>
       </section>
     </main>
-    <div class="result" id="result" hidden>
-      <div class="result-panel" role="dialog" aria-modal="true" aria-label="Craft result">
-        <h2 id="result-title">Crafted!</h2>
-        <div class="result-cards" id="result-cards"></div>
-        <button type="button" class="primary" id="result-close">Continue</button>
+
+    <div class="craft-overlay" id="craft-overlay" hidden>
+      <div class="craft-overlay-card" role="status" aria-live="assertive">
+        <div class="craft-aura" aria-hidden="true"></div>
+        <div class="craft-vessel" id="craft-vessel" aria-hidden="true"></div>
+        <div class="craft-flight" id="craft-flight" aria-hidden="true"></div>
+        <div class="craft-overlay-copy">
+          <strong id="craft-overlay-title">Cooking…</strong>
+          <span id="craft-overlay-subtitle">Mixing the ingredients</span>
+        </div>
+        <div class="craft-progress" aria-hidden="true"><span></span></div>
       </div>
     </div>
+
+    <div class="result" id="result" hidden>
+      <div class="result-panel" role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <div class="result-rays" aria-hidden="true"></div>
+        <p class="result-kicker">Recipe complete</p>
+        <h2 id="result-title">Crafted!</h2>
+        <div class="result-cards" id="result-cards"></div>
+        <button type="button" class="primary result-close" id="result-close">Back to the kitchen</button>
+      </div>
+    </div>
+
     <script src="/activities/shared.js"></script>
     <script src="/activities/crafting/crafting.js"></script>
   </body>

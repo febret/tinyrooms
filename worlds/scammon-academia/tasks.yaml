@@ -205,3 +205,114 @@ teach-biology:
     trigger: signal
     match: {event: subject_taught, subject: biology}
     title: Teach Biology
+
+lounge-open-cookbook:
+  title: Read the Supermarket Cookbook
+  description: Find the Teachers' Lounge and read the supermarket recipe book.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-supermarket-cookbook
+  memory: I read the supermarket cookbook in the Teachers' Lounge.
+  reward:
+    kudos: 2
+    cards:
+    - market-basil
+  steps:
+  - step_id: read-cookbook
+    trigger: prop_action
+    match:
+      prop_id: supermarket-recipe-book
+      action: read
+    title: Read the cookbook
+    memory_tag: read-supermarket-cookbook
+    memory: I read the supermarket cookbook.
+
+lounge-first-craft:
+  title: First Home-Cooked Meal
+  description: Craft your first recipe at any supermarket crafting station.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-supermarket-craft
+  memory: I crafted my first supermarket recipe.
+  reward:
+    kudos: 2
+    cards:
+    - market-carrot
+  steps:
+  - step_id: first-craft
+    trigger: signal
+    match:
+      event: recipe_crafted
+    title: Craft your first recipe
+    memory_tag: first-supermarket-craft
+    memory: I crafted my first supermarket recipe.
+
+lounge-prep-work:
+  title: Prep Cook
+  description: Prepare three recipes at the supermarket prep table.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-prep-cook
+  memory: I prepared three recipes at the prep table.
+  reward:
+    kudos: 3
+    cards:
+    - market-tomato
+  steps:
+  - step_id: prep-three
+    trigger: signal
+    match:
+      event: recipe_crafted
+      station: prep-table
+    amount: 3
+    title: Prepare three recipes
+    memory_tag: prep-cook
+    memory: I prepared three recipes at the prep table.
+
+lounge-mixer-magic:
+  title: Mixer Magic
+  description: Use the supermarket mixer to prepare three recipes.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-mixer-magic
+  memory: I mixed three recipes in the supermarket mixer.
+  reward:
+    kudos: 3
+    cards:
+    - market-flour
+  steps:
+  - step_id: mix-three
+    trigger: signal
+    match:
+      event: recipe_crafted
+      station: mixer
+    amount: 3
+    title: Mix three recipes
+    memory_tag: mixer-magic
+    memory: I used the supermarket mixer three times.
+
+lounge-pizza-night:
+  title: Pizza Night
+  description: Bake a pizza in the Teachers' Lounge oven.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - scammon-pizza-night
+  memory: I baked a pizza in the Teachers' Lounge.
+  reward:
+    kudos: 5
+    cards:
+    - market-cheese
+  steps:
+  - step_id: bake-pizza
+    trigger: signal
+    match:
+      event: recipe_crafted
+      recipe_id: market-pizza
+    title: Bake a pizza
+    memory_tag: pizza-night
+    memory: I baked a pizza in the Teachers' Lounge.

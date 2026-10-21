@@ -856,6 +856,7 @@ def load_world_definition(
     mod_props: Sequence[tuple[str, Path]] | None = None,
     enabled_mods: frozenset[str] | None = None,
     fx_root: Path | None = None,
+    extra_recipes: Mapping[str, RecipeDefinition] | None = None,
 ) -> WorldDefinition:
     """Load the immutable world definition set from YAML."""
 
@@ -878,7 +879,11 @@ def load_world_definition(
     peeps_file = world_path / "peeps" / "peeps.yaml"
     rooms_payload = require_mapping(load_yaml_file(rooms_file), rooms_file)
     peeps_payload = require_mapping(load_yaml_file(peeps_file), peeps_file)
-    recipes = load_recipes(world_path, card_ids)
+    recipes = load_recipes(world_path, card_ids, source=world_id)
+    for recipe_id, recipe in (extra_recipes or {}).items():
+        if recipe_id in recipes:
+            raise ContentError(f"Duplicate recipe id '{recipe_id}'.")
+        recipes[recipe_id] = recipe
 
     props: dict[str, PropDefinition] = {}
     for root in _as_paths(propsets_root):

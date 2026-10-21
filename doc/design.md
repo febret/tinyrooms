@@ -1023,10 +1023,10 @@ slots. Those cards remain saved in their native-world collection; returning does
 not automatically equip or slot them again.
 In-game travel between cooperating worlds is available only through explicitly
 defined cross-world exits or portals. There is no general Worlds selection panel.
-Every cross-world exit requires the `Multiverse Map` skill to be slotted, and the
-tutorial awards that card once when a bagged poop is thrown into the garden
-trashcan. A cross-world exit may specify a destination room; otherwise it leads to
-the destination world's entry room. If the destination is unavailable or entry is
+Every cross-world exit requires the `Multiverse Map` skill to be slotted, unless
+the user has the admin power. The tutorial awards that card once when a bagged
+poop is thrown into the garden trashcan. A cross-world exit may specify a
+destination room; otherwise it leads to the destination world's entry room. If the destination is unavailable or entry is
 denied, the user remains in the source room with no Energy charge or loadout
 changes. Native cards are removed from the loadout only after a successful
 transfer. Successful cross-world travel has the same default cost of 1 Energy as
@@ -1035,10 +1035,11 @@ Energy-consuming exits remain unavailable while Tired.
 
 Friends may send a beacon that records the sender's world and room at send time.
 Following a same-world beacon moves the recipient to that room without the map.
-Following a cross-world beacon requires the `Multiverse Map` skill to be slotted,
-uses the same destination resolution as a cross-world exit, and consumes the
-beacon. Beacons persist in the shared profile until used or dismissed, so they
-work while the sender is offline and across world boundaries.
+Following a cross-world beacon requires the `Multiverse Map` skill to be slotted
+unless the user has the admin power. It uses the same destination resolution as
+a cross-world exit and consumes the beacon. Beacons persist in the shared
+profile until used or dismissed, so they work while the sender is offline and
+across world boundaries.
 
 ### World Editor
 The World Editor is available at the URL `world-editor` when that feature is

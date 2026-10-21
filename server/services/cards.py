@@ -8,7 +8,12 @@ import sqlite3
 import logging
 from typing import TYPE_CHECKING
 
-from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
+from server.content.cards import (
+    NON_EQUIP_TYPES,
+    CardCatalog,
+    CardDefinition,
+    card_asset_url,
+)
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
@@ -157,9 +162,17 @@ class CardService:
     def asset_urls(self, definition: CardDefinition) -> tuple[str, str | None]:
         """Return the served art URLs for a card as ``(still, animation)``."""
 
-        asset_kind = definition.source if definition.source != self._world_id else f"world/{self._world_id}/cards"
-        still = f"/assets/{asset_kind}/{definition.image_name}"
-        animation = f"/assets/{asset_kind}/{definition.animation_name}" if definition.animation_name else None
+        still = card_asset_url(
+            self._world_id,
+            definition.source,
+            definition.image_name,
+            missing=definition.image_missing,
+        )
+        animation = (
+            card_asset_url(self._world_id, definition.source, definition.animation_name)
+            if definition.animation_name
+            else None
+        )
         return still, animation
 
     def back_url(self, definition: CardDefinition) -> str | None:
@@ -167,14 +180,17 @@ class CardService:
 
         for pack in self._catalog.packs.values():
             if pack.source == definition.source:
-                asset_kind = pack.source if pack.source != self._world_id else f"world/{self._world_id}/cards"
-                return f"/assets/{asset_kind}/{pack.back_image_name}"
+                return card_asset_url(
+                    self._world_id,
+                    pack.source,
+                    pack.back_image_name,
+                    missing=pack.back_image_missing,
+                )
         return None
 
     def serialize_definition(self, definition: CardDefinition) -> dict[str, object]:
         """Serialize a card definition for clients."""
 
-        asset_kind = definition.source if definition.source != self._world_id else f"world/{self._world_id}/cards"
         payload = {
             "back_url": self.back_url(definition),
             "energy_cost": definition.energy_cost,
@@ -187,7 +203,12 @@ class CardService:
             "stack_limit": definition.stack_limit,
             "one_use": definition.one_use,
             "passive": definition.passive,
-            "image_url": f"/assets/{asset_kind}/{definition.image_name}",
+            "image_url": card_asset_url(
+                self._world_id,
+                definition.source,
+                definition.image_name,
+                missing=definition.image_missing,
+            ),
             "rarity": definition.rarity,
             "target": definition.target,
             "effect": definition.effect,

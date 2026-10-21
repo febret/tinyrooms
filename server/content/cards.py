@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from server.content.common import (
+    LOGGER,
     ContentError,
     drop_unknown_card_ids,
     load_yaml_file,
     require_mapping,
     warn_unknown_card,
 )
+from server.content.recipes import RecipeDefinition, load_recipes_file
 
 CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart"})
@@ -21,6 +23,26 @@ PACK_CARD_TYPE = "pack"
 NON_EQUIP_TYPES = frozenset({"emote", "core", "skill", PACK_CARD_TYPE})
 STACKABLE_TYPES = frozenset({"item", "emote", "skill", PACK_CARD_TYPE})
 DEFAULT_STACKABLE_LIMIT = 99
+
+CARD_ART_PLACEHOLDER_PATH = (
+    Path(__file__).resolve().parents[2] / "app" / "assets" / "card-placeholder.svg"
+)
+CARD_ART_PLACEHOLDER_URL = "/app/assets/card-placeholder.svg"
+
+
+def card_asset_url(
+    world_id: str,
+    source: str,
+    image_name: str,
+    *,
+    missing: bool = False,
+) -> str:
+    """Return the served URL for card or pack art, or its placeholder."""
+
+    if missing:
+        return CARD_ART_PLACEHOLDER_URL
+    asset_kind = source if source != world_id else f"world/{world_id}/cards"
+    return f"/assets/{asset_kind}/{image_name}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +92,7 @@ class CardDefinition:
     consume_card: str | None = None
     soils: bool = False
     opens_pack: str | None = None
+    image_missing: bool = False
 
     @property
     def collectible(self) -> bool:
@@ -92,14 +115,16 @@ class PackDefinition:
     cards: tuple[str, ...]
     source: str
     guaranteed: tuple[str, ...] = ()
+    back_image_missing: bool = False
 
 
 @dataclass(frozen=True, slots=True)
 class CardCatalog:
-    """Loaded catalog of cards and packs."""
+    """Loaded catalog of cards, packs, and cardset recipes."""
 
     cards: dict[str, CardDefinition]
     packs: dict[str, PackDefinition]
+    recipes: dict[str, RecipeDefinition] = field(default_factory=dict)
 
 
 def _detect_type(card_id: str, raw_card: dict[str, Any]) -> str:
@@ -124,13 +149,24 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
         if not image_name:
             raise ContentError(f"Card '{card_id}' is missing an image in {path}.")
         image_path = (path.parent / image_name).resolve()
-        if not image_path.is_file():
-            raise ContentError(f"Card '{card_id}' references missing image '{image_name}'.")
+        image_missing = not image_path.is_file()
+        if image_missing:
+            LOGGER.warning(
+                "Card '%s' references missing image '%s'; using a placeholder.",
+                card_id,
+                image_name,
+            )
+            image_path = CARD_ART_PLACEHOLDER_PATH
         animation_name = str(raw_card.get("animation", "")).strip() or None
         if animation_name is not None:
             animation_path = (path.parent / animation_name).resolve()
             if not animation_path.is_file():
-                raise ContentError(f"Card '{card_id}' references missing animation '{animation_name}'.")
+                LOGGER.warning(
+                    "Card '%s' references missing animation '%s'; using its still image.",
+                    card_id,
+                    animation_name,
+                )
+                animation_name = None
         label = str(raw_card.get("label", "")).strip()
         description = str(raw_card.get("description", "")).strip()
         if not label or not description:
@@ -199,6 +235,7 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             tags=tags,
             consume_card=str(raw_card["consume_card"]) if "consume_card" in raw_card else None,
             soils=bool(raw_card.get("soils", False)),
+            image_missing=image_missing,
         )
     return cards
 
@@ -241,8 +278,14 @@ def _load_pack_payload(
     if not back_image_name:
         raise ContentError(f"Pack '{pack_id}' is missing back_image.")
     back_image_path = (path.parent / back_image_name).resolve()
-    if not back_image_path.is_file():
-        raise ContentError(f"Pack '{pack_id}' references missing image '{back_image_name}'.")
+    back_image_missing = not back_image_path.is_file()
+    if back_image_missing:
+        LOGGER.warning(
+            "Pack '%s' references missing image '%s'; using a placeholder.",
+            pack_id,
+            back_image_name,
+        )
+        back_image_path = CARD_ART_PLACEHOLDER_PATH
     card_ids = payload.get("cards")
     if not isinstance(card_ids, list) or not card_ids:
         raise ContentError(f"Pack '{pack_id}' must define a non-empty cards list.")
@@ -279,6 +322,7 @@ def _load_pack_payload(
         cards=tuple(card_ids),
         source=source,
         guaranteed=tuple(guaranteed),
+        back_image_missing=back_image_missing,
     )
 
 
@@ -317,6 +361,7 @@ def _sealed_pack_card(pack: PackDefinition) -> CardDefinition:
         order=None,
         source=pack.source,
         opens_pack=pack.id,
+        image_missing=pack.back_image_missing,
     )
 
 
@@ -335,6 +380,7 @@ def load_card_catalog(
 
     cards: dict[str, CardDefinition] = {}
     packs: dict[str, PackDefinition] = {}
+    recipes: dict[str, RecipeDefinition] = {}
 
     for root in (cardsets_root, *extra_cardsets_roots):
         root_cards: dict[str, CardDefinition] = {}
@@ -363,6 +409,18 @@ def load_card_catalog(
             if pack is not None:
                 root_packs[pack_id] = pack
         packs.update(root_packs)
+
+    for root in (cardsets_root, *extra_cardsets_roots):
+        root_recipes: dict[str, RecipeDefinition] = {}
+        for recipes_file in sorted(root.glob("*/recipes.yaml")):
+            source = recipes_file.parent.name
+            for recipe_id, recipe in load_recipes_file(
+                recipes_file, set(cards), source=source
+            ).items():
+                if recipe_id in root_recipes:
+                    raise ContentError(f"Duplicate recipe id '{recipe_id}'.")
+                root_recipes[recipe_id] = recipe
+        recipes.update(root_recipes)
 
     world_pack_file = world_path / "cards" / "pack.yaml"
     if world_pack_file.is_file():
@@ -397,5 +455,5 @@ def load_card_catalog(
             raise ContentError(f"Sealed-pack card id '{sealed.id}' collides with an authored card.")
         cards[sealed.id] = sealed
 
-    return CardCatalog(cards=cards, packs=packs)
+    return CardCatalog(cards=cards, packs=packs, recipes=recipes)
 

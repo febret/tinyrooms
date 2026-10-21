@@ -11,6 +11,7 @@ from server.content.cards import (
     CardCatalog,
     CardDefinition,
     PackDefinition,
+    card_asset_url,
     closed_pack_card_id,
 )
 from server.content.gameplay import GameplayContent
@@ -103,7 +104,6 @@ class ShopService:
 
         previews: list[PackPreview] = []
         for pack in self._catalog.packs.values():
-            asset_kind = pack.source if pack.source != self._world_id else f"world/{self._world_id}/cards"
             previews.append(
                 PackPreview(
                     id=pack.id,
@@ -111,7 +111,12 @@ class ShopService:
                     description=pack.description,
                     price=pack.price,
                     size=pack.size,
-                    back_image_url=f"/assets/{asset_kind}/{pack.back_image_name}",
+                    back_image_url=card_asset_url(
+                        self._world_id,
+                        pack.source,
+                        pack.back_image_name,
+                        missing=pack.back_image_missing,
+                    ),
                 )
             )
         return sorted(previews, key=lambda preview: preview.id)
