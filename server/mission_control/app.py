@@ -14,7 +14,7 @@ import time
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from server.base_path import BasePathMiddleware, render_html
 from server.config import ensure_contained
@@ -26,8 +26,10 @@ from server.mission_control.entry import EntrySettings, PlayerAuthService, route
 from server.mission_control.packages import PackageManager
 from server.mission_control.registry import InstanceRegistry
 from server.mission_control.server_info import ServerInfoService
+from server.mission_control.showcase import EntryShowcase, router as showcase_router
 from server.mission_control.supervisor import Supervisor
 from server.mission_control.users import UserManager
+from server.mission_control.world_map import WorldMapManager
 from server.profiles import ProfileRepository
 from server.security import RateLimitError, RateLimiter, SecurityError
 from server.state.migrations import DatabaseHub, ensure_profile_database
@@ -47,6 +49,7 @@ class McRuntime:
     audit: McAuditLog
     registry: InstanceRegistry
     supervisor: Supervisor
+    world_map: WorldMapManager
     packages: PackageManager
     server_info: ServerInfoService
     users: UserManager
@@ -55,6 +58,7 @@ class McRuntime:
     http: httpx.AsyncClient
     player_auth: PlayerAuthService
     entry_settings: EntrySettings
+    entry_showcase: EntryShowcase
     started_at: float = field(default_factory=time.time)
 
 
@@ -66,7 +70,8 @@ def build_runtime(config: MCConfig) -> McRuntime:
     profiles = ProfileRepository(hub)
     audit = McAuditLog()
     registry = InstanceRegistry(stale_after_seconds=config.heartbeat_seconds * 3)
-    supervisor = Supervisor(config, registry, audit)
+    world_map = WorldMapManager(config, registry)
+    supervisor = Supervisor(config, registry, audit, on_change=world_map.update)
     packages = PackageManager(config, registry, audit)
     server_info = ServerInfoService(config)
     users = UserManager(hub, profiles, audit)
@@ -84,6 +89,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
         audit=audit,
         registry=registry,
         supervisor=supervisor,
+        world_map=world_map,
         packages=packages,
         server_info=server_info,
         users=users,
@@ -92,6 +98,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
         http=http,
         player_auth=PlayerAuthService(profiles, config.new_account_passphrase),
         entry_settings=EntrySettings(config.instances_path),
+        entry_showcase=EntryShowcase(config),
     )
 
 
@@ -123,6 +130,10 @@ def create_mc_app(config: MCConfig) -> FastAPI:
                 LOGGER.info(json.dumps({"event": "mc.resume", "instances": resumed}))
         except Exception:  # noqa: BLE001 - never block startup on resume
             LOGGER.exception("mc.resume_failed")
+        try:
+            runtime.world_map.update()
+        except Exception:  # noqa: BLE001 - paths degrade, management remains available
+            LOGGER.exception("world_map.startup_failed")
         sweeper = asyncio.create_task(_sweep_stale(runtime))
         try:
             yield
@@ -149,7 +160,7 @@ def create_mc_app(config: MCConfig) -> FastAPI:
     async def http_error_handler(request: Request, exc: HTTPException) -> JSONResponse:  # noqa: ARG001
         return JSONResponse(
             status_code=exc.status_code,
-            content={"ok": False, "code": "http_error", "message": str(exc.detail)},
+            content={"ok": False, "code": getattr(exc, "code", "http_error"), "message": str(exc.detail)},
         )
 
     @app.exception_handler(RequestValidationError)
@@ -163,10 +174,51 @@ def create_mc_app(config: MCConfig) -> FastAPI:
 
     app.include_router(mc_routes.router)
     app.include_router(entry_router)
+    app.include_router(showcase_router)
+
+    @app.get("/mission-control/vendor/three/{requested_path:path}")
+    async def three_vendor(requested_path: str) -> Response:
+        root = config.client_path / "app" / "vendor" / "three"
+        candidate = _safe_ui_path(root, requested_path)
+        if candidate.is_file() and candidate.suffix == ".js":
+            return FileResponse(
+                candidate,
+                media_type="text/javascript",
+                headers={"Cache-Control": "public, max-age=604800"},
+            )
+        raise HTTPException(status_code=404, detail="Vendor file not found.")
 
     @app.get("/")
     async def root() -> Response:
         return render_html(config.ui_path / "entry.html", config.base_path)
+
+    @app.get("/manifest.webmanifest")
+    async def manifest() -> Response:
+        candidate = config.ui_path / "manifest.webmanifest"
+        if not candidate.is_file():
+            raise HTTPException(status_code=404, detail="Web app manifest not found.")
+        return FileResponse(candidate, media_type="application/manifest+json",
+                            headers={"Cache-Control": "no-cache"})
+
+    @app.get("/icons/{filename}")
+    async def icon(filename: str) -> Response:
+        if filename not in {
+            "apple-touch-icon-180.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png",
+        }:
+            raise HTTPException(status_code=404, detail="App icon not found.")
+        candidate = config.ui_path / "icons" / filename
+        if not candidate.is_file():
+            raise HTTPException(status_code=404, detail="App icon not found.")
+        return FileResponse(candidate, media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=604800"})
+
+    @app.get("/sw.js")
+    async def service_worker() -> Response:
+        candidate = config.ui_path / "sw.js"
+        if not candidate.is_file():
+            raise HTTPException(status_code=404, detail="Service worker not found.")
+        return FileResponse(candidate, media_type="text/javascript",
+                            headers={"Cache-Control": "no-cache"})
 
     @app.get("/mission-control")
     @app.get("/mission-control/")

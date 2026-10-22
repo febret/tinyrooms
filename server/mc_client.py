@@ -129,8 +129,9 @@ class McClient:
     async def heartbeat(self) -> dict[str, object] | None:
         """POST one heartbeat; no-op until registered.
 
-        A rejection for an unknown instance (for example after a mission-control
-        restart) clears the stored id so the run loop re-registers.
+        Mission Control can ask a restored instance to re-register while keeping
+        its stable id. An unknown instance clears the id, forcing a fresh
+        registration that may allocate a new identity.
         """
 
         if not self._instance_id:
@@ -144,9 +145,11 @@ class McClient:
         response.raise_for_status()
         data = response.json()
         if isinstance(data, dict) and data.get("ok") is False:
-            _log("mc.heartbeat_rejected", instance_id=self._instance_id, code=data.get("code"))
-            self._instance_id = None
+            code = data.get("code")
+            _log("mc.heartbeat_rejected", instance_id=self._instance_id, code=code)
             self._registered = False
+            if code != "reregister_required":
+                self._instance_id = None
         return data
 
     async def register_with_backoff(self) -> bool:

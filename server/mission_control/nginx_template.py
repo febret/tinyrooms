@@ -25,16 +25,47 @@ def location_block(port: int) -> str:
     )
 
 
+_WORLD_PROXY_HEADERS = (
+    "        proxy_ssl_verify off;\n"
+    "        proxy_http_version 1.1;\n"
+    "        proxy_set_header Host $host;\n"
+    "        proxy_set_header X-Real-IP $remote_addr;\n"
+    "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n"
+    "        proxy_set_header X-Forwarded-Proto $scheme;\n"
+    "        proxy_set_header Upgrade $http_upgrade;\n"
+    '        proxy_set_header Connection "upgrade";\n'
+    "        proxy_read_timeout 3600s;\n"
+    "        proxy_send_timeout 3600s;\n"
+    "        proxy_buffering off;\n"
+)
+
+
+def world_location_block() -> str:
+    """Proxy same-origin /world/<instance-id>/ URLs through the generated map."""
+
+    return (
+        '    location ~ "^/world/(?<tinyrooms_world_id>[A-Za-z0-9_-]{1,128})(?<tinyrooms_world_tail>/.*)?$" {\n'
+        '        if ($tinyrooms_world_upstream = "") { return 404; }\n'
+        "        proxy_pass $tinyrooms_world_upstream$request_uri;\n"
+        f"{_WORLD_PROXY_HEADERS}"
+        "    }\n"
+    )
+
+
 def site_config(
     *,
     server_name: str,
     cert_path: str,
     key_path: str,
     port: int,
+    world_map_path: str | None = None,
 ) -> str:
     """Render the HTTP-to-HTTPS redirect and the proxied HTTPS server block."""
 
+    prefix = f"include {world_map_path};\n\n" if world_map_path else ""
+    worlds = world_location_block() if world_map_path else ""
     return (
+        f"{prefix}"
         "server {\n"
         "    listen 80;\n"
         "    listen [::]:80;\n"
@@ -51,6 +82,7 @@ def site_config(
         "    location = /admin { return 302 /mission-control; }\n"
         "    location = /admin/ { return 302 /mission-control; }\n"
         "    location ~ ^/admin/(.*)$ { return 302 /$1$is_args$args; }\n"
+        f"{worlds}"
         f"{location_block(port)}"
         "}\n"
     )

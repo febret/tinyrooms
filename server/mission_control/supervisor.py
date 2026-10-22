@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 import json
+import logging
 import os
 import re
 import socket
@@ -27,6 +28,7 @@ from server.mission_control.registry import (
 )
 
 
+LOGGER = logging.getLogger("tinyrooms.mc")
 RESUME_FILE = "resume.json"
 
 
@@ -53,6 +55,25 @@ def _endpoint(host: str, port: int) -> str:
     advertised = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
     advertised = f"[{advertised}]" if ":" in advertised else advertised
     return f"https://{advertised}:{port}"
+
+
+def _public_origin(host: str) -> str:
+    """Return an HTTPS origin for a hostname without appending a port."""
+
+    advertised = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    return f"https://{advertised}"
+
+
+def same_origin_base_path(mc_base_path: str, instance_id: str) -> str:
+    """Return the public path that routes one instance through the entry origin."""
+
+    return normalize_base_path(f"{mc_base_path}/world/{instance_id}")
+
+
+def same_origin_client_url(mc_base_path: str, public_host: str, instance_id: str) -> str:
+    """Return the same-origin browser URL for one instance."""
+
+    return f"{_public_origin(public_host)}{same_origin_base_path(mc_base_path, instance_id)}/"
 
 
 def route_slug(name: str, taken: set[str]) -> str:
@@ -87,23 +108,35 @@ class Supervisor:
         audit: McAuditLog,
         *,
         spawn: Callable[..., subprocess.Popen] | None = None,
+        on_change: Callable[[], None] | None = None,
     ) -> None:
         self._config = config
         self._registry = registry
         self._audit = audit
         self._spawn = spawn or subprocess.Popen
+        self._on_change = on_change
         self._restore_identities()
+
+    def _changed(self) -> None:
+        if self._on_change is None:
+            return
+        try:
+            self._on_change()
+        except Exception:  # noqa: BLE001 - a map failure must not break lifecycle work
+            LOGGER.exception("world_map.update_failed")
+
+    def _write_identity(self, path: Path, instance_id: str, spawn_config: dict[str, object]) -> None:
+        temporary = path.with_suffix(".tmp")
+        temporary.write_text(json.dumps({
+            "instance_id": instance_id,
+            "spawn_config": spawn_config,
+        }, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(path)
 
     def _persist_identity(self, record: InstanceRecord) -> None:
         if record.instance_dir is None or record.spawn_config is None:
             return
-        path = Path(record.instance_dir) / "instance.json"
-        temporary = path.with_suffix(".tmp")
-        temporary.write_text(json.dumps({
-            "instance_id": record.instance_id,
-            "spawn_config": record.spawn_config,
-        }, indent=2) + "\n", encoding="utf-8")
-        temporary.replace(path)
+        self._write_identity(Path(record.instance_dir) / "instance.json", record.instance_id, record.spawn_config)
 
     def _restore_identities(self) -> None:
         for path in self._config.instances_path.glob("*/instance.json"):
@@ -113,6 +146,13 @@ class Supervisor:
                 config = data["spawn_config"]
                 if not instance_id or not isinstance(config, dict) or self._registry.get(instance_id):
                     continue
+                if self._config.same_origin_worlds:
+                    config["host"] = self._config.instance_host
+                    config["base_path"] = same_origin_base_path(self._config.base_path, instance_id)
+                    config["client_url"] = same_origin_client_url(
+                        self._config.base_path, self._config.public_instance_hostname, instance_id
+                    )
+                    self._write_identity(path, instance_id, config)
                 record = self._registry.register_spawned(
                     instance_id=instance_id, name=str(config["name"]),
                     endpoint=_endpoint(str(config["host"]), int(config["port"])),
@@ -144,7 +184,7 @@ class Supervisor:
         """Spawn a child ``run.py`` and register it with the instance registry."""
 
         instance_id = validate_instance_id(instance_id or "")
-        host = host or self._config.instance_host
+        host = self._config.instance_host if self._config.same_origin_worlds else (host or self._config.instance_host)
         if port is not None and not self._config.instance_port_min <= port <= self._config.instance_port_max:
             raise ValueError("Instance port is outside the configured range.")
         reserved = {int(record.spawn_config["port"]) for record in self._registry.list()
@@ -164,9 +204,15 @@ class Supervisor:
         instance_id = validate_instance_id(instance_id or resolved_dir.name) or self._registry.allocate_id()
         resolved_worldstate = Path(worldstate_path) if worldstate_path else resolved_dir / "worldstate.sqlite3"
         resolved_users = Path(users_path) if users_path else self._config.users_path
-        resolved_base_path = normalize_base_path(base_path or "")
-        public_host = self._config.public_instance_hostname
-        client_url = f"{_endpoint(public_host, allocated_port)}{resolved_base_path}"
+        if self._config.same_origin_worlds:
+            resolved_base_path = same_origin_base_path(self._config.base_path, instance_id)
+            client_url = same_origin_client_url(
+                self._config.base_path, self._config.public_instance_hostname, instance_id
+            )
+        else:
+            resolved_base_path = normalize_base_path(base_path or "")
+            public_host = self._config.public_instance_hostname
+            client_url = f"{_endpoint(public_host, allocated_port)}{resolved_base_path}"
         config: dict[str, object] = {
             "instance_id": instance_id,
             "client_url": client_url,
@@ -202,6 +248,7 @@ class Supervisor:
         self._capture_output(record, process)
         self._watch_process(record, process)
         self._audit.record(actor, "instance.start", target=record.instance_id, detail={"endpoint": endpoint})
+        self._changed()
         return record
 
     def _taken_routes(self, *, exclude: str | None = None) -> set[str]:
@@ -286,7 +333,10 @@ class Supervisor:
         env["TRSERVER_MC_TOKEN"] = self._config.token
         env["TRSERVER_MC_NAME"] = name
         env["TRSERVER_SHARED_CONTENT_PATH"] = str(self._config.content_root)
-        env["TRSERVER_PUBLIC_ORIGIN"] = _endpoint(self._config.public_instance_hostname, port)
+        if self._config.same_origin_worlds:
+            env["TRSERVER_PUBLIC_ORIGIN"] = _public_origin(self._config.public_instance_hostname)
+        else:
+            env["TRSERVER_PUBLIC_ORIGIN"] = _endpoint(self._config.public_instance_hostname, port)
         if self._config.ca_file is not None:
             env["TRSERVER_MC_CA_FILE"] = str(self._config.ca_file)
         if self._config.ca_file is None or self._config.insecure_tls:
@@ -332,6 +382,7 @@ class Supervisor:
                 process.kill()
         self._registry.set_status(instance_id, STATUS_STOPPED)
         self._audit.record(actor, "instance.stop", target=instance_id)
+        self._changed()
         return True
 
     def restart(self, instance_id: str, *, actor: str = "mission-control") -> InstanceRecord | None:
@@ -340,6 +391,12 @@ class Supervisor:
         record = self._registry.get(instance_id)
         if record is None or record.spawn_config is None:
             return None
+        if self._config.same_origin_worlds:
+            record.spawn_config["host"] = self._config.instance_host
+            record.spawn_config["base_path"] = same_origin_base_path(self._config.base_path, record.instance_id)
+            record.spawn_config["client_url"] = same_origin_client_url(
+                self._config.base_path, self._config.public_instance_hostname, record.instance_id
+            )
         record.spawn_config["instance_id"] = record.instance_id
         record.spawn_config.setdefault("client_url", record.client_url or f"{record.endpoint}{record.base_path}")
         self._persist_identity(record)
@@ -351,6 +408,7 @@ class Supervisor:
         self._capture_output(revived, process)
         self._watch_process(revived, process)
         self._audit.record(actor, "instance.restart", target=instance_id)
+        self._changed()
         return revived
 
     def rename(self, instance_id: str, name: str, *, actor: str = "mission-control") -> InstanceRecord | None:
@@ -381,6 +439,7 @@ class Supervisor:
             (Path(record.instance_dir) / "instance.json").unlink(missing_ok=True)
         self._drop_resume_entry(instance_id)
         self._audit.record(actor, "instance.delete", target=instance_id)
+        self._changed()
         return True
 
     def _resume_path(self) -> Path:

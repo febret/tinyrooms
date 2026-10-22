@@ -29,9 +29,9 @@ cardset, or propset. An optional existing **template worldstate** can be selecte
 on start; otherwise a fresh DB is created.
 
 ```text
-browser -- HTTPS :443 --> nginx -- fixed root proxy --> loopback HTTPS MC
+browser -- HTTPS :443 --> nginx -- / --> loopback HTTPS MC
                           / = player entry; /mission-control = operator UI
-browser -- direct HTTPS hostname:<world-port> --> world server
+                          /world/<instance-id>/ --> loopback HTTPS world
 MC -- spawn/supervise and token-authenticated REST --> worlds
 worlds -- outbound registration/heartbeat --> MC
 MC + worlds --> shared users/profiles.sqlite3
@@ -45,18 +45,20 @@ processes; external lifecycle actions use cooperative world endpoints.
 
 - Entry and destinations must use **HTTPS on the same hostname**. Host-only
   `tr_session` (HttpOnly) and `tr_csrf` cookies use path `/`, Secure, SameSite=Lax
-  and are shared across ports. Different hostnames, including `localhost` versus
-  `127.0.0.1`, do not share them. All participating worlds must use MC's shared
-  profile DB; spawned destinations with a different users path are rejected.
+  and are shared across same-origin world paths. Different origins, including
+  different hostnames or ports, do not share them. All participating worlds must
+  use MC's shared profile DB; spawned destinations with a different users path
+  are rejected.
   External instances require operator verification of that shared-DB setup.
 - Resolve reads `user_profiles.profile_json.last_instance_id` **exactly**.
   Only legacy profiles lacking an instance identity may match a **unique**
   registered instance by `last_world_id`. Invalid, missing, ambiguous, or
   unavailable destinations fail; they never fall back to the default or another
   instance. A saved instance serving a different world is also rejected.
-- A destination must be registered/running, advertise a valid same-host HTTPS
-  `client_url` without credentials/query/fragment, and answer `/health` with
-  matching world **and instance** identities. External player destinations need
+- A destination must be registered/running, advertise a valid same-origin HTTPS
+  `client_url` without credentials/query/fragment (normally
+  `https://<hostname>/world/<instance-id>/`), and answer `/health` with matching
+  world **and instance** identities. External player destinations need
   a configured stable `TRSERVER_MC_INSTANCE_ID`; an allocated transient registry
   id alone is insufficient for that health contract.
 - Select **Make default** on a running instance before creating players. It
@@ -100,6 +102,9 @@ Operational settings:
   `TRSERVER_MC_INSTANCE_PORT_MIN`/`MAX` (`5000..5999`), and
   `TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME` (entry hostname by default; alias
   `TRSERVER_MC_INSTANCE_PUBLIC_HOST`). The public hostname must omit port/path.
+  When `TRSERVER_MC_SAME_ORIGIN_WORLDS=1`, MC assigns each instance
+  `/world/<instance-id>`, writes `TRSERVER_MC_WORLD_MAP`, and reloads nginx with
+  `TRSERVER_MC_WORLD_MAP_RELOAD` after start/stop/delete.
 - `TRSERVER_MC_INSTANCE_CERTFILE` and `TRSERVER_MC_INSTANCE_KEYFILE` must be
   paired existing files. MC itself uses [run.py](../run.py)'s self-signed helper,
   reusing `.local/cert.pem` / `key.pem` unless `--certfile`/`--keyfile` are supplied.
@@ -307,30 +312,37 @@ loopback HTTPS, then verifies operator login using the passphrase sourced from
 `admin.env`. Failed readiness reports the MC log path. Cron runs keepalive at
 reboot and every minute.
 
-nginx has a **fixed root proxy to loopback MC only**: TCP 80 redirects to HTTPS;
-443 serves player entry `https://<hostname>/` and operator UI
-`https://<hostname>/mission-control`. Worlds are direct
-`https://<hostname>:<world-port>/`. Legacy `/admin` URLs redirect to root routes.
-No lifecycle action changes nginx; legacy nginx config fields have no runtime
-management effect. [Proxy template](../server/mission_control/nginx_template.py).
+nginx proxies the public origin to loopback Mission Control: TCP 80 redirects to
+HTTPS; 443 serves player entry `https://<hostname>/`, operator UI
+`https://<hostname>/mission-control`, and same-origin worlds under
+`https://<hostname>/world/<instance-id>/`. World listeners bind loopback; nginx
+routes them through the generated map at `/etc/nginx/tinyrooms-worlds.map`.
+Legacy `/admin` URLs redirect to root routes. [Proxy
+template](../server/mission_control/nginx_template.py).
 
-Deployment writes `<rootdir>/admin.env` with wildcard world bind
-`TRSERVER_MC_INSTANCE_HOST=0.0.0.0`, public hostname via
+Deployment writes `<rootdir>/admin.env` with same-origin path routing,
+`TRSERVER_MC_INSTANCE_HOST=127.0.0.1`, public hostname via
 `TRSERVER_MC_INSTANCE_PUBLIC_HOST` (alias of `...PUBLIC_HOSTNAME`), inclusive
-port bounds `10000..10999`, empty MC base path, public entry origin, shared
-users/content, and keepalive path. Worlds reuse nginx's
+port bounds `10000..10999` for allocation only, empty MC base path, public entry
+origin, shared users/content, and keepalive path. MC rewrites and reloads the
+nginx world map on instance start/stop/delete; this requires passwordless sudo
+for `install`, `nginx -t`, and `systemctl reload nginx`. Worlds reuse nginx's
 `<rootdir>/nginx/certs/server.crt` / `server.key` through the paired instance TLS
 settings. On a fresh host, deployment generates self-signed TLS and defaults to
 `TRSERVER_MC_INSECURE_TLS=1` for management. Existing certificate/key files are
 reused and checked for readability, certificate expiry, and matching public keys;
 an incomplete/invalid pair fails deployment rather than being overwritten.
-This is not the future hardened production launch path.
+To replace the generated pair with a CA-issued bundle, run
+[tools/install_certificates.py](../tools/install_certificates.py); it validates
+the chain, backs up the previous pair, and refreshes nginx. This is not the
+future hardened production launch path.
 
 **Operator requirements:**
 
-- Allow inbound TCP **80**, **443**, and **10000–10999** in host **and provider**
-  firewalls (adjust for your configured world range). Deployment does not open
-  ports. Browsers must accept/trust certificates on direct world connections.
+- Allow inbound TCP **80** and **443** in host **and provider** firewalls.
+  Do not expose the internal world port range (`10000–10999`); worlds bind
+  loopback and are reached only through nginx `/world/<instance-id>/` paths.
+  Deployment does not open ports.
 - Secrets live in `admin.env` (mode 600). Deploying-shell
   `TRSERVER_MC_PASSPHRASE`/`TRSERVER_MC_TOKEN` override existing values; otherwise
   deployment preserves them or generates first-deploy values. Set/preserve

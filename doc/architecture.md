@@ -26,7 +26,9 @@ run.py -> server/app.py
 
 Mission Control is a separate optional process for player entry and fleet
 operations. MC and participating worlds share a profile database; each world
-has its own worldstate database. See the canonical
+has its own worldstate database. Public worlds are served under the same origin
+at `/world/<instance-id>/`; nginx proxies those paths to loopback world servers
+through a generated map. See the canonical
 [entry/topology contract](mission-control.md#2-terminology-and-topology) and
 [deployment/upgrade guidance](mission-control.md#83-deployment-and-upgrades).
 

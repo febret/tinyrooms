@@ -79,6 +79,26 @@ class McConfigTests(unittest.TestCase):
             self.assertTrue(config.instances_path.is_dir())
             self.assertTrue(config.new_account_passphrase)
 
+    def test_same_origin_worlds_require_a_map_target(self) -> None:
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            with self.assertRaises(ConfigError):
+                load_mc_config(
+                    env=self._env(root, TRSERVER_MC_SAME_ORIGIN_WORLDS="1"),
+                    repo_root=REPO_ROOT,
+                )
+            config = load_mc_config(
+                env=self._env(
+                    root,
+                    TRSERVER_MC_SAME_ORIGIN_WORLDS="1",
+                    TRSERVER_MC_WORLD_MAP=str(root / "worlds.map"),
+                    TRSERVER_MC_WORLD_MAP_RELOAD="true",
+                ),
+                repo_root=REPO_ROOT,
+            )
+            self.assertTrue(config.same_origin_worlds)
+            self.assertEqual(config.world_map_path, root / "worlds.map")
+
     def test_keepalive_path_is_optional(self) -> None:
         with TemporaryDirectory() as temp:
             root = Path(temp)

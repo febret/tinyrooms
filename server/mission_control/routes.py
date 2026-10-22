@@ -223,6 +223,13 @@ async def fleet_heartbeat(request: Request, payload: HeartbeatPayload) -> dict[s
     )
     if record is None:
         return {"ok": False, "code": "unknown_instance", "message": "Instance is not registered."}
+    if not record.registered_at:
+        return {
+            "ok": False,
+            "code": "reregister_required",
+            "message": "Instance was restored by Mission Control and must re-register.",
+            "needs_registration": True,
+        }
     return {"ok": True, "pending_commands": []}
 
 

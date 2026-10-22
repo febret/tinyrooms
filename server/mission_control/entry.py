@@ -27,6 +27,20 @@ from server.security import (
 router = APIRouter()
 
 
+class EntryError(HTTPException):
+    """An entry failure that carries a stable machine-readable code."""
+
+    def __init__(self, status_code: int, code: str, message: str) -> None:
+        super().__init__(status_code, message)
+        self.code = code
+
+
+def _instance_label(record: InstanceRecord) -> str:
+    """Return a human-readable instance label for entry errors."""
+
+    return f"'{record.name}' ({record.instance_id})"
+
+
 class Credentials(BaseModel):
     """Player login credentials."""
 
@@ -137,30 +151,67 @@ def _format_client_url(record: InstanceRecord) -> str:
     except ValueError:
         valid = False
     if not valid:
-        raise HTTPException(409, "Destination client_url must be an HTTPS URL without credentials, query, or fragment.")
+        raise EntryError(409, "entry_instance_client_url",
+                         f"Destination client URL for {_instance_label(record)} is invalid.")
     return value
 
 
 async def _validate_running_destination(runtime, record: InstanceRecord) -> str:
     """Validate a running instance's identity and client URL, without host checks."""
 
-    if runtime.registry.snapshot(record)["status"] != STATUS_RUNNING or not record.registered_at:
-        raise HTTPException(503, "The selected instance is unavailable. Please retry when it is running.")
+    status = runtime.registry.snapshot(record)["status"]
+    label = _instance_label(record)
+    if not record.registered_at:
+        if status == STATUS_RUNNING:
+            raise EntryError(
+                503,
+                "entry_instance_not_registered",
+                f"Instance {label} is running but has not re-registered since Mission Control restarted. "
+                "It should reconnect within a few seconds; retry, or restart it in Server Manager.",
+            )
+        raise EntryError(
+            503,
+            "entry_instance_not_registered",
+            f"Instance {label} is {status.replace('_', ' ')} and has not registered with Mission Control. "
+            "Start or restart it in Server Manager.",
+        )
+    if status != STATUS_RUNNING:
+        raise EntryError(
+            503,
+            "entry_instance_not_running",
+            f"Instance {label} is {status.replace('_', ' ')}. Start it in Server Manager, then retry.",
+        )
     if not record.world_id:
-        raise HTTPException(409, "The selected instance has not registered a world identity.")
+        raise EntryError(
+            409,
+            "entry_instance_no_world",
+            f"Instance {label} has not reported a world identity. Restart it in Server Manager.",
+        )
     if record.source == SPAWNED:
         users_path = (record.spawn_config or {}).get("users_path")
         if not users_path or Path(str(users_path)).resolve() != runtime.config.users_path.resolve():
-            raise HTTPException(409, "The selected instance does not use the shared player database.")
+            raise EntryError(
+                409,
+                "entry_instance_db_mismatch",
+                f"Instance {label} does not use the shared player database.",
+            )
     client_url = _format_client_url(record)
     try:
         response = await runtime.http.get(f"{record.endpoint.rstrip('/')}{record.base_path}/health", timeout=5.0)
         response.raise_for_status()
         data = response.json()
     except (httpx.HTTPError, ValueError) as exc:
-        raise HTTPException(503, "The selected instance could not be reached. Please retry.") from exc
+        raise EntryError(
+            503,
+            "entry_instance_unreachable",
+            f"Instance {label} is registered but could not be reached. Retry, or restart it in Server Manager.",
+        ) from exc
     if not isinstance(data, dict) or data.get("world_id") != record.world_id or data.get("instance_id") != record.instance_id:
-        raise HTTPException(409, "The selected instance health identity does not match its registration.")
+        raise EntryError(
+            409,
+            "entry_instance_identity",
+            f"Instance {label} health response does not match its registration. Restart it in Server Manager.",
+        )
     return client_url
 
 
@@ -168,7 +219,8 @@ async def _destination(request: Request, instance_id: str) -> tuple[InstanceReco
     runtime = request.app.state.mc
     record = runtime.registry.get(instance_id)
     if record is None:
-        raise HTTPException(409, "The saved instance is no longer registered. Ask an operator to restore it.")
+        raise EntryError(409, "entry_instance_missing",
+                         f"The saved instance '{instance_id}' is no longer registered. Ask an operator to restore it.")
     client_url = await _validate_running_destination(runtime, record)
     if urlsplit(client_url).hostname != request.url.hostname:
         raise HTTPException(409, "Destination must use the same hostname as player entry so the login cookie can be shared across ports.")
@@ -223,7 +275,8 @@ async def create(request: Request, payload: CreateCredentials) -> Response:
         raise HTTPException(409, "No default instance has been selected. Ask an operator to select one in Server Manager.")
     record, _ = await _destination(request, default_id)
     if not record.entry_room_id:
-        raise HTTPException(409, "The default instance has not registered its entry room.")
+        raise EntryError(409, "entry_instance_no_entry_room",
+                         f"Instance {_instance_label(record)} has not reported its entry room. Restart it in Server Manager.")
     try:
         account = runtime.profiles.create_account(display, payload.password, record.world_id, record.entry_room_id)
     except ValueError as exc:
@@ -280,7 +333,8 @@ async def set_default(request: Request, instance_id: str) -> dict[str, object]:
     _enforce_post(request, session)
     record, _ = await _destination(request, instance_id)
     if not record.entry_room_id:
-        raise HTTPException(409, "The default instance has not registered its entry room.")
+        raise EntryError(409, "entry_instance_no_entry_room",
+                         f"Instance {_instance_label(record)} has not reported its entry room. Restart it in Server Manager.")
     runtime = request.app.state.mc
     runtime.entry_settings.set_default(instance_id)
     runtime.audit.record("operator", "instance.default", target=instance_id)

@@ -49,6 +49,9 @@ SSH_OPTIONS = (
     "ServerAliveCountMax=3",
 )
 UPLOAD_ATTEMPTS = 5
+WORLD_MAP_PATH = "/etc/nginx/tinyrooms-worlds.map"
+WORLD_MAP_RELOAD = "sudo -n nginx -t && sudo -n systemctl reload nginx"
+WORLD_MAP_EMPTY = 'map $tinyrooms_world_id $tinyrooms_world_upstream {\n    default "";\n}\n'
 
 EXCLUDED_DIRS = frozenset(
     {
@@ -427,6 +430,7 @@ def nginx_config(server_name: str, root: str, registry: dict[str, dict[str, obje
         cert_path=f"{base}/nginx/certs/server.crt",
         key_path=f"{base}/nginx/certs/server.key",
         port=int(registry[ADMIN_SERVICE]["port"]),  # type: ignore[arg-type]
+        world_map_path=WORLD_MAP_PATH,
     )
 
 
@@ -441,6 +445,11 @@ def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dic
     if result.stdout.strip() != "yes":
         print("Installing nginx via apt...")
         run_remote(host, "sudo -n apt-get update && sudo -n apt-get install -y nginx")
+    run_remote(
+        host,
+        f"sudo -n test -f {WORLD_MAP_PATH} || sudo -n tee {WORLD_MAP_PATH} >/dev/null <<'MAPEOF'\n"
+        f"{WORLD_MAP_EMPTY}\nMAPEOF",
+    )
     cert_dir = remote_path(root, "nginx", "certs")
     cert = remote_path(root, "nginx", "certs", "server.crt")
     key = remote_path(root, "nginx", "certs", "server.key")
@@ -561,8 +570,11 @@ def admin_env_values(
         "TRSERVER_MC_INSTANCES_PATH": f"{root.rstrip('/')}/logs/instances",
         "TRSERVER_MC_VERSIONS_PATH": f"{root.rstrip('/')}/versions",
         "TRSERVER_MC_CONTENT_PATH": f"{root.rstrip('/')}",
-        "TRSERVER_MC_INSTANCE_HOST": "0.0.0.0",
+        "TRSERVER_MC_INSTANCE_HOST": "127.0.0.1",
         "TRSERVER_MC_INSTANCE_PUBLIC_HOST": host_name,
+        "TRSERVER_MC_SAME_ORIGIN_WORLDS": "1",
+        "TRSERVER_MC_WORLD_MAP": WORLD_MAP_PATH,
+        "TRSERVER_MC_WORLD_MAP_RELOAD": WORLD_MAP_RELOAD,
         "TRSERVER_MC_INSTANCE_PORT_MIN": "10000",
         "TRSERVER_MC_INSTANCE_PORT_MAX": "10999",
         "TRSERVER_MC_INSTANCE_CERTFILE": f"{root.rstrip('/')}/nginx/certs/server.crt",
@@ -572,8 +584,7 @@ def admin_env_values(
     }
     for key in (
         "TRSERVER_MC_HEARTBEAT_SECONDS", "TRSERVER_MC_CA_FILE", "TRSERVER_MC_INSECURE_TLS",
-        "TRSERVER_MC_INSTALL_PATH", "TRSERVER_MC_INSTANCE_HOST", "TRSERVER_MC_INSTANCE_PUBLIC_HOST",
-        "TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME", "TRSERVER_MC_INSTANCE_PORT_MIN", "TRSERVER_MC_INSTANCE_PORT_MAX",
+        "TRSERVER_MC_INSTALL_PATH", "TRSERVER_MC_INSTANCE_PORT_MIN", "TRSERVER_MC_INSTANCE_PORT_MAX",
         "TRSERVER_MC_INSTANCE_CERTFILE", "TRSERVER_MC_INSTANCE_KEYFILE", "TRSERVER_MODS",
     ):
         if key in provided:
@@ -584,6 +595,11 @@ def admin_env_values(
         provided.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
         or existing.get("TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE")
     )
+    for key in ("TRSERVER_MC_INSTANCE_HOST", "TRSERVER_MC_INSTANCE_PUBLIC_HOST",
+                "TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME", "TRSERVER_MC_SAME_ORIGIN_WORLDS",
+                "TRSERVER_MC_WORLD_MAP", "TRSERVER_MC_WORLD_MAP_RELOAD"):
+        if key in provided:
+            lines[key] = provided[key]
     if new_account_passphrase:
         lines["TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE"] = new_account_passphrase
     return lines

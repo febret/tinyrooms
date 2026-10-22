@@ -63,8 +63,9 @@ Open **https://127.0.0.1:8001/mission-control** for operators, or
 `TRSERVER_FEATURES=mission-control ./start.sh`; set `TRSERVER_ADMIN_ENV` to load
 an environment file before its development defaults.
 
-Start a world and select **Make default** before creating players. Worlds use
-direct HTTPS ports on the same hostname as entry and share MC's profile DB.
+Start a world and select **Make default** before creating players. In local
+development, worlds use direct HTTPS ports on the same hostname as entry and
+share MC's profile DB; deployed instances use same-origin `/world/<id>/` paths.
 See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-destination-resolution),
 [lifecycle controls](doc/mission-control.md#53-server-manager), and
 [durable state](doc/mission-control.md#41-runtime-state-and-persisted-launch-settings).
@@ -112,7 +113,10 @@ keepalive, then repoints `versions/latest` and restarts Mission Control once.
 It reports success only after the expected MC version answers its session API
 and the operator passphrase sourced from `admin.env` establishes a session.
 Existing TLS files, secrets, and supported operator settings are preserved.
-`--dirty` skips the clean-tree check/tagging and marks the version dirty.
+Deployment serves worlds under the same origin at `/world/<instance-id>/`,
+binds world listeners to loopback, and regenerates the nginx world map. Only
+TCP 80 and 443 need public ingress. `--dirty` skips the clean-tree check/tagging
+and marks the version dirty.
 `--keep-version` (also `--keepversion`) overwrites the newest recorded release locally/remotely instead
 of bumping the patch version.
 
@@ -120,27 +124,42 @@ There is no separate `bootstrap`/`deploy` argument. For an existing installation
 under the former default, pass `~/.local/tinyrooms` explicitly; changing the
 default does not move existing data.
 
+### Installing a CA-issued certificate
+
+[tools/install_certificates.py](tools/install_certificates.py) replaces a host's
+TLS pair with a purchased certificate bundle and refreshes nginx:
+
+```bash
+python tools/install_certificates.py -u febret tinyrooms.app --cert-dir .local/certificates
+```
+
+It discovers `<name>-certificate.crt`, `<name>-key.key`,
+`<name>-intermediate.pem`, and `<name>-cross.pem` in the directory (override with
+`--cert`, `--key`, `--chain`, and `--root`), uploads the leaf plus intermediates
+as `server.crt`, verifies the key and chain, backs up the previous files and nginx
+site under `~/tinyrooms/nginx/backups/`, and tests/reloads nginx. nginx
+`server_name` defaults to the certificate's DNS SANs; add names such as the SSH
+host with `--server-name`. Deploy with the public hostname so Mission Control's
+advertised world URLs match the certificate.
+
 Read [deployment and upgrade instructions](doc/mission-control.md#83-deployment-and-upgrades)
-before hosting or upgrading: they cover direct world ports, certificates,
-firewalls, secrets, resumable uploads, and migration of saved legacy launch
-settings. Deployment does not open firewalls or automatically migrate instances.
+before hosting or upgrading: they cover certificates, firewalls, secrets,
+resumable uploads, and migration of saved legacy launch settings. Deployment
+does not open firewalls or automatically migrate instances.
+
+### Installable app
+
+The player entry page is an installable Chrome PWA. It serves
+`/manifest.webmanifest`, install icons, a service worker with an offline entry
+fallback, and an **Install app** button. Install from `https://<public-host>/`;
+because worlds live under `/world/<instance-id>/` on the same origin, gameplay
+stays inside the installed app.
 
 ### Firewall settings
-To open ports used by multi-world tinyroom setups on google cloud use the gcloud CLI like in the example below:
-```
-gcloud compute instances add-tags tinyrooms-w1 \
-  --project=tinyrooms \
-  --zone=us-east5-a \
-  --tags=tinyrooms-worlds
 
-gcloud compute firewall-rules create tinyrooms-worlds \
-  --project=tinyrooms \
-  --network=default \
-  --direction=INGRESS \
-  --allow=tcp:10000-10999 \
-  --source-ranges=0.0.0.0/0 \
-  --target-tags=tinyrooms-worlds
-```
+Only public TCP **80** and **443** are required. World servers bind to loopback
+and nginx proxies `/world/<instance-id>/` to them through the generated map.
+Do not expose the internal world port range (`10000–10999`) publicly.
 
 ## Mods
 

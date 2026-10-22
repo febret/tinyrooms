@@ -345,6 +345,8 @@ class InstanceRegistry:
             "base_path": record.base_path,
             "client_url": record.client_url,
             "entry_room_id": record.entry_room_id,
+            "registered": record.registered_at is not None,
+            "registration_required": record.registered_at is None,
             "uptime_seconds": record.uptime_seconds,
             "users_online": record.users_online,
             "last_heartbeat_seconds": age,

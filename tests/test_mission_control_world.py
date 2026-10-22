@@ -125,6 +125,25 @@ class McClientTests(unittest.TestCase):
         self.assertIn("/api/mc/register", seen)
         self.assertIn("/api/mc/heartbeat", seen)
 
+    def test_reregister_required_keeps_stable_instance_id(self) -> None:
+        seen: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(request.url.path)
+            if request.url.path.endswith("/register"):
+                return httpx.Response(200, json={"ok": True, "instance_id": "mc-stable", "heartbeat_seconds": 5})
+            return httpx.Response(200, json={"ok": False, "code": "reregister_required"})
+
+        runtime = _FakeRuntime()
+        runtime.config.mc_instance_id = "mc-stable"
+        client = McClient(runtime, client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+        asyncio.run(client.register())
+        asyncio.run(client.heartbeat())
+        self.assertEqual(client.instance_id, "mc-stable")
+        self.assertFalse(client._registered)  # noqa: SLF001
+        asyncio.run(client.register())
+        self.assertEqual(seen.count("/api/mc/register"), 2)
+
     def test_register_backoff_is_bounded(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             raise httpx.ConnectError("down", request=request)

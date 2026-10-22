@@ -8,6 +8,9 @@ host the existing browser client in a first-party WebView, pointed by default at
 [performance.md](./performance.md) (regression policy and budgets).
 The previously referenced `doc/android.md` (separate self-hosted LAN-server
 Android plan) is missing; recover or clarify that reference before relying on it.
+A Chrome-installable PWA at the public player entry is also available before the
+native shells ship; same-origin `/world/<instance-id>/` routing keeps gameplay
+inside the installed web app.
 
 ## 1. Goal and constraints
 

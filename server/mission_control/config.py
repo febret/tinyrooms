@@ -59,6 +59,11 @@ class MCConfig:
     mods: str = "*"
     # Optional MC URL prefix; independent of direct worlds' saved base paths.
     base_path: str = ""
+    # Serve worlds under same-origin paths managed by the generated nginx map.
+    same_origin_worlds: bool = False
+    # Generated nginx map consumed by the fixed site configuration.
+    world_map_path: Path | None = None
+    world_map_reload_command: str | None = None
     # Extra Origin allowlist entries; the first also supplies the public entry
     # origin. Direct-world URLs share its hostname so player cookies span ports.
     public_origins: tuple[str, ...] = ()
@@ -267,6 +272,15 @@ def load_mc_config(
     nginx_conf_raw = values.get("TRSERVER_MC_NGINX_CONF", "").strip()
     nginx_conf_path = Path(nginx_conf_raw).expanduser() if nginx_conf_raw else None
     nginx_reload_command = values.get("TRSERVER_MC_NGINX_RELOAD", "").strip() or None
+    same_origin_worlds = parse_bool(values.get("TRSERVER_MC_SAME_ORIGIN_WORLDS", "0"))
+    world_map_raw = values.get("TRSERVER_MC_WORLD_MAP", "").strip()
+    world_map_path = Path(world_map_raw).expanduser() if world_map_raw else None
+    world_map_reload_command = values.get("TRSERVER_MC_WORLD_MAP_RELOAD", "").strip() or None
+    if same_origin_worlds and (world_map_path is None or world_map_reload_command is None):
+        raise ConfigError(
+            "TRSERVER_MC_WORLD_MAP and TRSERVER_MC_WORLD_MAP_RELOAD are required when "
+            "TRSERVER_MC_SAME_ORIGIN_WORLDS is enabled."
+        )
 
     keepalive_raw = values.get("TRSERVER_MC_KEEPALIVE", "").strip()
     keepalive_path = Path(keepalive_raw).expanduser() if keepalive_raw else None
@@ -323,6 +337,9 @@ def load_mc_config(
         new_account_passphrase=new_account_passphrase,
         features=features,
         base_path=base_path,
+        same_origin_worlds=same_origin_worlds,
+        world_map_path=world_map_path,
+        world_map_reload_command=world_map_reload_command,
         public_origins=public_origins,
         nginx_conf_path=nginx_conf_path,
         nginx_reload_command=nginx_reload_command,
