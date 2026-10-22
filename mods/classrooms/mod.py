@@ -23,6 +23,7 @@ from server.commands.outcomes import (
     CommandError,
     CommandOutcome,
     PendingRoomBroadcast,
+    merge_behavior_result,
 )
 from server.commands.parser import ParsedCommand
 from server.content.common import ContentError, load_yaml_file, require_mapping
@@ -634,10 +635,8 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
             outcome.private_events.append(
                 {"type": "activity.closed", "activity": navigation.closed_activity, "reason": "room_changed"}
             )
-        from server.commands.core import _merge_behavior
-
         for behavior in navigation.behavior_results:
-            _merge_behavior(context, outcome, behavior)
+            merge_behavior_result(context, outcome, behavior)
         return outcome
 
     if action == "lesson":

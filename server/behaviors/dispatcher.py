@@ -48,6 +48,7 @@ class BehaviorDispatcher(BehaviorIntentMixin):
         tasks: object | None = None,
         environment: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
+        world_state: object | None = None,
         sprites: SpriteService | None = None,
         equipped_caps: dict[int, int] | None = None,
         loader: object | None = None,
@@ -69,6 +70,7 @@ class BehaviorDispatcher(BehaviorIntentMixin):
         self._tasks = tasks
         self._environment = environment
         self._peep_states = peep_states
+        self._world_state = world_state
         self._sprites = sprites
         self._equipped_caps = equipped_caps or {}
         self._loader = loader

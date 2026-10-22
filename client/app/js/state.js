@@ -178,7 +178,7 @@ function applyServerEvent(state, event) {
     // emote labels have no such line, so add a label-derived log entry for them.
     const isUser = state.room.occupants.some(occupant => occupant.id === sourceId);
     const chatHistory = !isUser && text
-      ? [...state.room.chatHistory, normalizeChatEntry({ speaker: event.source, text, style: String(bubble.kind || "expression") })].slice(-50)
+      ? [...state.room.chatHistory, normalizeChatEntry({ speaker_id: sourceId, speaker: event.source, text, style: String(bubble.kind || "expression") })].slice(-50)
       : state.room.chatHistory;
     return {
       ...state,

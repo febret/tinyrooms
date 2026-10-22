@@ -577,6 +577,7 @@ def _build_runtime(
         tasks=tasks,
         environment=environment,
         peep_states=peep_states,
+        world_state=world_state,
         sprites=rooms.sprites,
         equipped_caps=equipped_caps,
         loader=behavior_loader,

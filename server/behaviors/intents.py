@@ -651,7 +651,20 @@ class BehaviorIntentMixin:
         text = str(payload.get("text", ""))
         if not text:
             return
+        style = str(payload.get("style", "expression"))
         peep = self._world.peeps.get(peep_id)
+        label = peep.label if peep is not None else peep_id
+        world_state = getattr(self, "_world_state", None)
+        if world_state is not None:
+            world_state.append_chat_message(
+                event.room_id,
+                {
+                    "speaker_id": peep_id,
+                    "speaker": label,
+                    "style": style,
+                    "text": text,
+                },
+            )
         result.room_broadcasts.append(
             PendingRoomBroadcast(
                 room_id=event.room_id,
@@ -659,8 +672,9 @@ class BehaviorIntentMixin:
                     "type": "emote.bubble",
                     "room_id": event.room_id,
                     "source_id": peep_id,
-                    "source": peep.label if peep is not None else peep_id,
-                    "bubble": {"kind": str(payload.get("style", "expression")), "text": text},
+                    "speaker_id": peep_id,
+                    "source": label,
+                    "bubble": {"kind": style, "text": text},
                     "card_id": None,
                 },
             )

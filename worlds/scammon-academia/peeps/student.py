@@ -27,10 +27,12 @@ COMMENT_CHANCE = 0.04
 CLASSROOM_CHAT_INTERVAL = timedelta(seconds=5)
 TOPIC_REACTION_LIMIT = 2
 CAFETERIA_MOVE_INTERVAL = (10.0, 15.0)
-CAFETERIA_COMMENT_CHANCE = 0.012
+CAFETERIA_COMMENT_CHANCE = 0.04
+CAFETERIA_CHAT_INTERVAL = timedelta(seconds=8)
 VIBE_COMMENT_THRESHOLD = 10
 
 _last_classroom_chat: dict[str, datetime] = {}
+_last_cafeteria_chat: dict[str, datetime] = {}
 
 CAFETERIA_LINES = (
     "These fries are so good.",
@@ -40,6 +42,15 @@ CAFETERIA_LINES = (
     "The mashed potatoes are looking back at me.",
     "Trade you my carrots for your cookie?",
     "I hope it is pizza day again tomorrow.",
+)
+
+CAFETERIA_PEER_LINES = (
+    "Hey {peer}, want half of my cookie?",
+    "{peer}, did you see the lunch lady's new hat?",
+    "{peer}, save me a seat by the window!",
+    "What did you get, {peer}?",
+    "{peer}, want to swap sandwiches?",
+    "Did you finish the math homework, {peer}?",
 )
 
 LIKED_LINES = (
@@ -156,14 +167,16 @@ def _say(context, text: str, style: str = "expression") -> None:
 
 
 def _peer_views(context) -> list[dict[str, object]]:
+    own_id = getattr(getattr(context, "target", None), "peep_id", None)
     label = str(context.state.get("label", ""))
     return [
         peer
         for peer in (context.room.get("peeps") or [])
         if isinstance(peer.get("id"), str)
         and peer.get("id")
+        and peer.get("id") != own_id
         and peer.get("label")
-        and peer.get("label") != label
+        and (not label or peer.get("label") != label)
     ]
 
 
@@ -207,6 +220,19 @@ def _claim_classroom_chat(context, event) -> bool:
     if previous is not None and context.now - previous < CLASSROOM_CHAT_INTERVAL:
         return False
     _last_classroom_chat[room_id] = context.now
+    return True
+
+
+def _claim_cafeteria_chat(context, event) -> bool:
+    """Claim the cafeteria's lunch-chatter slot when the room is due to speak."""
+
+    room_id = str(event.room_id or "")
+    if not room_id:
+        return False
+    previous = _last_cafeteria_chat.get(room_id)
+    if previous is not None and context.now - previous < CAFETERIA_CHAT_INTERVAL:
+        return False
+    _last_cafeteria_chat[room_id] = context.now
     return True
 
 
@@ -317,9 +343,17 @@ def _cafeteria_tick(context, event):
         context.move_sprite_random()
         seconds = random.uniform(*CAFETERIA_MOVE_INTERVAL)
         context.state["next_sprite_move_at"] = (context.now + timedelta(seconds=seconds)).isoformat()
-    if random.random() < CAFETERIA_COMMENT_CHANCE:
-        vibe_line = _peer_vibe_line(context)
-        _say(context, vibe_line or _pick(CAFETERIA_LINES))
+    if random.random() >= CAFETERIA_COMMENT_CHANCE or not _claim_cafeteria_chat(context, event):
+        return
+    vibe_line = _peer_vibe_line(context)
+    if vibe_line is not None:
+        _say(context, vibe_line)
+        return
+    peers = _peer_views(context)
+    if peers:
+        _say(context, _pick(CAFETERIA_PEER_LINES, peer=str(random.choice(peers)["label"])))
+        return
+    _say(context, _pick(CAFETERIA_LINES))
 
 
 def on_tick(context, event):

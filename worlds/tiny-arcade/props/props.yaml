@@ -3,7 +3,7 @@ chess-pawn-white:
   description: A small ivory pawn with a chipped base.
   model: chess-pawn-white.glb
   decorative: true
-  scale: 1
+  scale: 0.62
   tags:
   - chess
   - piece
@@ -12,7 +12,7 @@ chess-knight-white:
   description: An ivory knight caught mid-rear.
   model: chess-knight-white.glb
   decorative: true
-  scale: 1
+  scale: 0.84
   tags:
   - chess
   - piece
@@ -21,7 +21,7 @@ chess-bishop-white:
   description: A tall ivory bishop with a tiny notch in its mitre.
   model: chess-bishop-white.glb
   decorative: true
-  scale: 1
+  scale: 0.90
   tags:
   - chess
   - piece
@@ -30,7 +30,7 @@ chess-rook-white:
   description: An ivory rook with a sturdy crenellated top.
   model: chess-rook-white.glb
   decorative: true
-  scale: 1
+  scale: 0.82
   tags:
   - chess
   - piece
@@ -39,7 +39,7 @@ chess-queen-white:
   description: An ivory queen with a crown full of tiny points.
   model: chess-queen-white.glb
   decorative: true
-  scale: 1
+  scale: 1.00
   tags:
   - chess
   - piece
@@ -48,7 +48,7 @@ chess-king-white:
   description: An ivory king with a cross worn smooth by years of play.
   model: chess-king-white.glb
   decorative: true
-  scale: 1
+  scale: 1.04
   tags:
   - chess
   - piece
@@ -57,7 +57,7 @@ chess-pawn-black:
   description: A dark pawn polished to a soft shine.
   model: chess-pawn-black.glb
   decorative: true
-  scale: 1
+  scale: 0.62
   tags:
   - chess
   - piece
@@ -66,7 +66,7 @@ chess-knight-black:
   description: A dark knight with a stubborn, forward lean.
   model: chess-knight-black.glb
   decorative: true
-  scale: 1
+  scale: 0.84
   tags:
   - chess
   - piece
@@ -75,7 +75,7 @@ chess-bishop-black:
   description: A dark bishop with a sharp, clean silhouette.
   model: chess-bishop-black.glb
   decorative: true
-  scale: 1
+  scale: 0.90
   tags:
   - chess
   - piece
@@ -84,7 +84,7 @@ chess-rook-black:
   description: A dark rook with a heavy, square crown.
   model: chess-rook-black.glb
   decorative: true
-  scale: 1
+  scale: 0.82
   tags:
   - chess
   - piece
@@ -93,7 +93,7 @@ chess-queen-black:
   description: A dark queen with a crown like a little iron fence.
   model: chess-queen-black.glb
   decorative: true
-  scale: 1
+  scale: 1.00
   tags:
   - chess
   - piece
@@ -102,7 +102,7 @@ chess-king-black:
   description: A dark king with a cross that catches the arcade lights.
   model: chess-king-black.glb
   decorative: true
-  scale: 1
+  scale: 1.04
   tags:
   - chess
   - piece
