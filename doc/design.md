@@ -297,9 +297,10 @@ the owner, from picking it up until an authorized editor unpins it.
 Pinning and unpinning do not create or consume cards.
 
 Users may drop a chosen quantity from an owned item or action stack, including
-an equipped stack. Dropped copies leave the user's inventory and stop contributing
-equipment bonuses. Dropping part leaves the remaining stack equipped; dropping
-the entire equipped stack frees its slot.
+an equipped stack. Choosing Drop arms placement; the next click on a room
+position drops the cards there. Dropped copies leave the user's inventory and stop
+contributing equipment bonuses. Dropping part leaves the remaining stack equipped;
+dropping the entire equipped stack frees its slot.
 
 Picking up a room stack also allows choosing a quantity. Pickup and drop cost no
 Energy by default. Pinned room cards cannot be picked up.

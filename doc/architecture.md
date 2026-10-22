@@ -149,7 +149,9 @@ shortcuts, but it must not infer action authority from presentation.
 - **Card transfers:** [cards.py](../server/services/cards.py) performs atomic
   room/inventory transfers; concurrent claims cannot duplicate a stack. Pinned
   and core-card restrictions are enforced server-side. Board drop placement is
-  dispatched by [drag.js](../client/app/js/drag.js), then validated and persisted.
+  armed from the card's Drop action and sent on the next room click by
+  [drop-targeting.js](../client/app/js/drop-targeting.js), then validated and
+  persisted.
 - **Activities:** [activities.py](../server/services/activities.py) owns one live
   activity per account. Replacement/cancellation/travel/logout/disconnect must
   close the appropriate session. Mandatory onboarding has stronger UI gates

@@ -117,6 +117,9 @@ export function dismissInvalidSelection(state, isEligible) {
   if (state.ui.targeting && !findInventoryStack(state, state.ui.targeting.stackId)) {
     state = { ...state, ui: { ...state.ui, targeting: null } };
   }
+  if (state.ui.dropTargeting && !findInventoryStack(state, state.ui.dropTargeting.stackId)) {
+    state = { ...state, ui: { ...state.ui, dropTargeting: null } };
+  }
   if (state.selection.kind === "inventory-card" && !findInventoryStack(state, state.selection.id)) {
     if (state.views.main === "inventory") {
       const next = defaultInventorySelection(state, state.ui.inventoryTab);

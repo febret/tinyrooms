@@ -259,7 +259,9 @@ export function selectionActions(state) {
           const tone = isRoom ? "positive" : "negative";
           const direct = {
             label: isRoom ? "Pick up 1" : "Drop",
-            command: action.command,
+            ...(isRoom
+              ? { command: action.command }
+              : { local: { type: "start-drop", stackId: stack.stackId, quantity: 1 } }),
             tone,
             disabled,
           };

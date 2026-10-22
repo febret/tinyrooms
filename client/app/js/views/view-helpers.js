@@ -47,7 +47,7 @@ export function handIconMarkup(definition, stack) {
   return `
     <button type="button" class="hand-icon" data-stack-id="${escapeHtml(stack.stackId)}" data-scope="inventory"
       aria-label="${escapeHtml(label)}" aria-pressed="false" title="${escapeHtml(definition.label)}">
-      <img class="card-icon-art" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">
+      <img class="card-icon-art" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy" draggable="false">
       ${stack.quantity > 1 ? `<span class="card-badge quantity-badge hand-quantity-badge" aria-hidden="true">×${escapeHtml(stack.quantity)}</span>` : ""}
     </button>
   `;

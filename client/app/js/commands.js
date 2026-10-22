@@ -48,6 +48,14 @@ export function buildQuantityCommand(intent, stackId, quantity) {
   return `.${verb} @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
 }
 
+/** Build a drop command, appending a board position when one is supplied. */
+export function buildDropCommand(stackId, quantity, position) {
+  const command = `.drop @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
+  if (!Array.isArray(position) || position.length < 2) return command;
+  const coordinates = position.slice(0, 3).map(value => Number(value).toFixed(2));
+  return `${command} ${coordinates.join(" ")}`;
+}
+
 /** Slot or clear a skill card, and manage equipment and social commands. */
 export function buildSkillCommand(stackId, slotIndex) {
   return `.skill @card:${stackId} ${Number(slotIndex)}`;

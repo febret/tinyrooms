@@ -521,7 +521,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneMusic: initialPhoneMusic(), targeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -570,7 +570,36 @@ function reduce(state, action) {
   if (action.type === "stickers") return { ...state, stickers: Array.isArray(action.stickers) ? [...action.stickers] : [] };
   if (action.type === "select") {
     if (!selectionIsEligible(state, action.selection)) return state;
-    return { ...state, selection: action.selection, ui: { ...state.ui, targeting: null } };
+    return { ...state, selection: action.selection, ui: { ...state.ui, targeting: null, dropTargeting: null } };
+  }
+  if (action.type === "start-drop") {
+    const stack = findInventoryCard(state, action.stackId);
+    if (!stack || stack.quantity < 1) return state;
+    const requested = Number(action.quantity);
+    const quantity = Number.isFinite(requested)
+      ? Math.min(stack.quantity, Math.max(1, Math.trunc(requested)))
+      : 1;
+    return {
+      ...state,
+      selection: { kind: "inventory-card", id: stack.stackId },
+      views: { ...state.views, main: null },
+      ui: {
+        ...state.ui,
+        dropTargeting: { stackId: stack.stackId, quantity, label: stack.definition?.label || "card" },
+        targeting: null,
+        emoteMenuOpen: false,
+        roomPickerOpen: false,
+        sellMode: false,
+      },
+    };
+  }
+  if (action.type === "cancel-drop") {
+    const drop = state.ui.dropTargeting;
+    const stack = findInventoryCard(state, drop?.stackId);
+    const selection = stack && action.restoreSelection !== false
+      ? { kind: "inventory-card", id: stack.stackId }
+      : state.room ? { kind: "room", id: state.room.id } : state.selection;
+    return { ...state, selection, ui: { ...state.ui, dropTargeting: null } };
   }
   if (action.type === "start-targeting") {
     const stack = findInventoryCard(state, action.stackId);
@@ -579,7 +608,7 @@ function reduce(state, action) {
       ...state,
       selection: { kind: "inventory-card", id: stack.stackId },
       views: { ...state.views, main: null },
-      ui: { ...state.ui, targeting: { stackId: stack.stackId, label: stack.definition.label }, emoteMenuOpen: false },
+      ui: { ...state.ui, targeting: { stackId: stack.stackId, label: stack.definition.label }, dropTargeting: null, emoteMenuOpen: false },
     };
   }
   if (action.type === "open-view") {
@@ -603,10 +632,10 @@ function reduce(state, action) {
         skillStackId: action.view === "skills" ? action.stackId || null : null,
         skillPickerSlot: null,
       },
-      ui: { ...state.ui, journalTab: journalTab || state.ui.journalTab, inventoryTab, phoneApp: view === "phone" ? "apps" : state.ui.phoneApp, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: { ...state.ui, journalTab: journalTab || state.ui.journalTab, inventoryTab, phoneApp: view === "phone" ? "apps" : state.ui.phoneApp, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
     };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
   if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", emoteMenuOpen: false, roomPickerOpen: false } };
@@ -644,7 +673,7 @@ function reduce(state, action) {
       ...state,
       selection: next.selection,
       views: { ...state.views, main: "inventory", propId: null, skillStackId: null, skillPickerSlot: null },
-      ui: { ...state.ui, inventoryTab: next.tab, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: { ...state.ui, inventoryTab: next.tab, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
     };
   }
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
@@ -701,7 +730,7 @@ function reduce(state, action) {
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, skillStackId: null, skillPickerSlot: null },
-      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };

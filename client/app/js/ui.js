@@ -28,7 +28,8 @@ import {
   chatToCommand,
 } from "./commands.js";
 import { createDialogs } from "./dialogs.js";
-import { createCardMotion } from "./drag.js";
+import { createCardMotion } from "./card-motion.js";
+import { createDropController } from "./drop-targeting.js";
 import { editorBoardProps, editablePropIds } from "./editing/edit-reducer.js";
 import { openTextPropDialog } from "./editing/text-prop-dialog.js";
 import { openSignDialog } from "./sign-dialog.js";
@@ -90,6 +91,7 @@ let renderRevision = 0;
 let refreshPromise = null;
 let pendingGameStateRoom = "";
 let targeting = null;
+let dropTargeting = null;
 const canFullscreen = fullscreenSupported();
 const fullscreenButton = $("#fullscreen-toggle");
 let fullscreenFlashTimer = null;
@@ -488,6 +490,10 @@ async function handleAction(action) {
     store.dispatch({ type: "start-targeting", stackId: action.stackId });
   } else if (action.type === "cancel-targeting") {
     store.dispatch({ type: "cancel-targeting" });
+  } else if (action.type === "start-drop") {
+    store.dispatch({ type: "start-drop", stackId: action.stackId, quantity: action.quantity });
+  } else if (action.type === "cancel-drop") {
+    store.dispatch({ type: "cancel-drop" });
   } else if (action.type === "play-emote") {
     store.dispatch({ type: "close-emote-menu" });
     try { await sendCommand(buildEmoteCommand(action.stackId)); } catch (error) { showError(error); }
@@ -576,6 +582,10 @@ async function handleAction(action) {
   } else if (action.type === "quantity") {
     const quantity = await dialogs.quantity(action.intent, action.max, action.minimum || 1);
     if (quantity === null) return;
+    if (action.intent === "drop") {
+      store.dispatch({ type: "start-drop", stackId: action.stackId, quantity });
+      return;
+    }
     if (action.intent === "pickup") cardMotion.animatePickup(action.stackId);
     const command = action.intent === "split"
       ? buildSplitCommand(action.stackId, quantity)
@@ -718,6 +728,15 @@ function showPackReveal(cards) {
 
 function renderActions(state) {
   const bar = $("#actions-bar");
+  if (state.ui.dropTargeting) {
+    const drop = state.ui.dropTargeting;
+    const count = drop.quantity > 1 ? ` ×${drop.quantity}` : "";
+    const markup = `<span class="targeting-hint">Drop ${escapeHtml(drop.label)}${escapeHtml(count)} — click a spot in the room</span>
+      <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
+    if (!updateMarkup(bar, markup)) return;
+    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-drop" } });
+    return;
+  }
   if (state.ui.targeting) {
     const markup = `<span class="targeting-hint">Use ${escapeHtml(state.ui.targeting.label)} — confirm with the button or click the target again</span>
       <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
@@ -1008,6 +1027,7 @@ function activateSelection(selection) {
 const peeps = createPeepsView({
   panel: $("#peeps-panel"), bubbleLayer: $("#bubble-layer"),
   onSelect: selection => {
+    if (dropTargeting?.handle(selection)) return;
     if (targeting?.handle(selection)) return;
     if (activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
@@ -1028,16 +1048,20 @@ const board = createBoard({
   onSelect(selection, point) {
     const state = store.getState();
     if (state.views.main || dialogs.active || !state.user?.initialStickerComplete) return;
+    if (dropTargeting?.handle(selection)) return;
     if (targeting?.handle(selection)) return;
     if (activateSelection(selection)) { propActionButton.clear(); return; }
     propActionButton.select(selection, point, state.room);
     store.dispatch({ type: "select", selection });
     playTone("flip");
   },
+  onDropPoint(position, screen) {
+    dropTargeting?.dropAt(position, screen);
+  },
   onMoveSprite(position) {
     const state = store.getState();
     if (!state.room?.board?.spritesEnabled || state.views.main
-      || dialogs.active || state.ui.targeting || !state.user?.initialStickerComplete) return;
+      || dialogs.active || state.ui.targeting || state.ui.dropTargeting || !state.user?.initialStickerComplete) return;
     const self = state.room.occupants.find(occupant => occupant.id === state.user.id);
     if (!self?.spritePosition) return;
     const x = Number(position?.[0]);
@@ -1064,6 +1088,7 @@ targeting = createTargetingController({
 const cards = createCardsView({
   coreRoot: $("#core-tools"), handRoot: $("#card-hand"), menuRoot: emoteMenu, panelRoot: panelLayer, editorRoot: $("#editor-dock"),
   onSelect(selection) {
+    if (dropTargeting?.handle(selection)) return;
     if (targeting?.handle(selection)) return;
     const sellState = store.getState();
     if (sellState.ui.sellMode && selection.kind === "inventory-card") {
@@ -1084,7 +1109,7 @@ const thumbnails = createThumbnailManager();
 const roomPicker = createRoomPicker({
   root: $("#room-picker"), store, thumbnails,
   onSelect(selection) {
-    if (targeting?.handle(selection) || activateSelection(selection)) return;
+    if (dropTargeting?.handle(selection) || targeting?.handle(selection) || activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
   },
   onSkillPick({ stackId, slot }) {
@@ -1106,8 +1131,14 @@ const cardMotion = createCardMotion({
   board,
   handRoot: $("#card-hand"),
   getState: () => store.getState(),
+});
+dropTargeting = createDropController({
+  getState: () => store.getState(),
+  store,
   sendCommand,
+  onToast: toast,
   onError: showError,
+  onDropFlight: (stackId, screen) => cardMotion.animateDrop(stackId, screen),
 });
 const activities = createActivityManager({
   layer: activityLayer, pillRoot: activityPills, getState: () => store.getState(),
@@ -1162,6 +1193,7 @@ async function render(state) {
   toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone");
   toggleClass(root, "editing", Boolean(state.editor));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));
+  toggleClass(root, "drop-targeting", Boolean(state.ui.dropTargeting));
   toggleClass(root, "sell-mode", Boolean(state.ui.sellMode));
   const selfPeep = (state.room?.occupants || []).find(peep => peep.id === state.user?.id);
   toggleClass(root, "scared", Boolean(state.room) && (selfPeep?.statuses || state.user?.statuses || []).includes("scared"));
@@ -1275,6 +1307,7 @@ document.addEventListener("keydown", event => {
     if (handleEditorKey(event)) { event.preventDefault(); return; }
   }
   if (event.key !== "Escape") return;
+  if (state.ui.dropTargeting) { event.preventDefault(); store.dispatch({ type: "cancel-drop" }); return; }
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (roomPicker.handleEscape(event)) return;

@@ -55,7 +55,7 @@ function boardPositionFromWorld(point) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnchors, onGameAction, needsPeepAnchors, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoint, onPeepAnchors, onGameAction, needsPeepAnchors, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -165,6 +165,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
   let roomDark = false;
   let roomScared = false;
   let gameInputEnabled = true;
+  let dropArmed = false;
   let userAdjusted = false;
   let width = 0;
   let height = 0;
@@ -909,6 +910,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
         return;
       }
     }
+    if (dropArmed) {
+      const point = screenToBoardPosition(event.clientX, event.clientY);
+      setDropHint(point?.position || null);
+    }
     const start = pointers.get(event.pointerId);
     if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) gestureMoved = true;
   }
@@ -939,6 +944,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
+    if (dropArmed) {
+      const point = screenToBoardPosition(event.clientX, event.clientY);
+      setDropHint(null);
+      if (point) onDropPoint?.(point.position, point.screen);
+      return;
+    }
     if (gameInputEnabled && gameLayer.pointerUp(event.clientX, event.clientY)) return;
     const owner = pickGameplayOwner();
     if (owner) {
@@ -1104,7 +1115,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
       const blockingView = Boolean(modalView && modalView !== "edit-room");
       blocked = Boolean(blockingView || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
-      gameInputEnabled = !blocked && !state.ui?.targeting && !state.room?.dialog;
+      const wasDropArmed = dropArmed;
+      dropArmed = Boolean(state.ui?.dropTargeting);
+      gameInputEnabled = !blocked && !state.ui?.targeting && !state.ui?.dropTargeting && !state.room?.dialog;
+      if (wasDropArmed && !dropArmed) setDropHint(null);
       controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
       if (blocked) {
         pointers.clear();
@@ -1156,7 +1170,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onPeepAnc
     },
     /** Project an authoritative [x%, y%, z] position into canvas screen coordinates. */
     projectPositionToScreen,
-    /** Show or clear the floor marker used as a drag drop target. */
+    /** Show or clear the floor marker used while arming a card drop. */
     setDropHint,
     /** Cancel an in-progress edit gesture. Returns null when none was active, else whether an undo is owed. */
     cancelEditGesture() {
