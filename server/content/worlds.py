@@ -29,6 +29,7 @@ from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.game_boards import RoomGameDefinition, load_room_game
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
+from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
@@ -118,6 +119,7 @@ class PropDefinition:
     # Half-extents in board percent at the definition's authored scale, used by
     # sprite-mode rooms to keep peeps off furniture.
     sprite_footprint: tuple[float, float] | None = None
+    sounds: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +145,7 @@ class PropInstanceDefinition:
     text: dict[str, str] | None = None
     sign_style: str | None = None
     surface: dict[str, object] | None = None
+    sounds: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -711,6 +714,7 @@ def load_prop_definition(
     source: str,
     source_kind: str = "world",
     scale_adjust: float = 1.0,
+    known_sounds: frozenset[str] | None = None,
 ) -> PropDefinition:
     """Validate and build one prop definition from a raw YAML mapping.
 
@@ -769,6 +773,12 @@ def load_prop_definition(
     effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
     active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
     sprite_footprint = _load_sprite_footprint(raw_prop.get("sprite_footprint"), prop_id)
+    sounds = parse_sounds(
+        raw_prop.get("sounds"),
+        f"Prop '{prop_id}'",
+        PROP_SOUND_KEYS,
+        known_sounds=known_sounds,
+    )
     return PropDefinition(
         id=prop_id,
         label=str(raw_prop.get("label", "")).strip(),
@@ -792,10 +802,17 @@ def load_prop_definition(
         states=states,
         active_state=active_state,
         sprite_footprint=sprite_footprint,
+        sounds=sounds,
     )
 
 
-def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -> dict[str, PropDefinition]:
+def _load_props_from_file(
+    path: Path,
+    source: str,
+    source_kind: str = "world",
+    *,
+    known_sounds: frozenset[str] | None = None,
+) -> dict[str, PropDefinition]:
     """Load prop definitions from one props.yaml, resolving models beside it."""
 
     props_payload = require_mapping(load_yaml_file(path), path)
@@ -811,6 +828,7 @@ def _load_props_from_file(path: Path, source: str, source_kind: str = "world") -
             source=source,
             source_kind=source_kind,
             scale_adjust=scale_adjust,
+            known_sounds=known_sounds,
         )
     return props
 
@@ -867,6 +885,7 @@ def load_world_definition(
     enabled_mods: frozenset[str] | None = None,
     fx_root: Path | None = None,
     extra_recipes: Mapping[str, RecipeDefinition] | None = None,
+    known_sounds: frozenset[str] | None = None,
 ) -> WorldDefinition:
     """Load the immutable world definition set from YAML."""
 
@@ -908,14 +927,24 @@ def load_world_definition(
     props: dict[str, PropDefinition] = {}
     for root in _as_paths(propsets_root):
         for propset_file in sorted(root.glob("*/props.yaml")):
-            for prop_id, definition in _load_props_from_file(propset_file, propset_file.parent.name, "propset").items():
+            for prop_id, definition in _load_props_from_file(
+                propset_file,
+                propset_file.parent.name,
+                "propset",
+                known_sounds=known_sounds,
+            ).items():
                 if prop_id in props:
                     raise ContentError(f"Duplicate prop id '{prop_id}'.")
                 props[prop_id] = definition
     for root in _as_paths(shared_propsets_root):
         shared_props: dict[str, PropDefinition] = {}
         for propset_file in sorted(root.glob("*/props.yaml")):
-            for prop_id, definition in _load_props_from_file(propset_file, propset_file.parent.name, "propset").items():
+            for prop_id, definition in _load_props_from_file(
+                propset_file,
+                propset_file.parent.name,
+                "propset",
+                known_sounds=known_sounds,
+            ).items():
                 if prop_id in shared_props:
                     raise ContentError(f"Duplicate prop id '{prop_id}'.")
                 shared_props[prop_id] = definition
@@ -924,11 +953,21 @@ def load_world_definition(
         mod_props_file = Path(props_dir) / "props.yaml"
         if not mod_props_file.is_file():
             continue
-        for prop_id, definition in _load_props_from_file(mod_props_file, mod_id, "mod").items():
+        for prop_id, definition in _load_props_from_file(
+            mod_props_file,
+            mod_id,
+            "mod",
+            known_sounds=known_sounds,
+        ).items():
             if prop_id in props:
                 raise ContentError(f"Duplicate prop id '{prop_id}'.")
             props[prop_id] = definition
-    for prop_id, definition in _load_props_from_file(props_file, world_id, "world").items():
+    for prop_id, definition in _load_props_from_file(
+        props_file,
+        world_id,
+        "world",
+        known_sounds=known_sounds,
+    ).items():
         if prop_id in props:
             raise ContentError(f"Duplicate prop id '{prop_id}'.")
         props[prop_id] = definition
@@ -1002,6 +1041,12 @@ def load_world_definition(
                     raw_instance,
                     props[prop_id].render_kind,
                     f"Room '{room_id}' prop '{prop_instance_id}' surface",
+                ),
+                sounds=parse_sounds(
+                    raw_instance.get("sounds"),
+                    f"Room '{room_id}' prop '{prop_instance_id}'",
+                    PROP_SOUND_KEYS,
+                    known_sounds=known_sounds,
                 ),
             )
         texts = [instance.text for instance in room_props.values() if instance.text is not None]
@@ -1149,6 +1194,7 @@ def load_world_definition(
         known_rooms=frozenset(rooms),
         known_features=known_features,
         known_powers=frozenset(POWER_NAMES),
+        known_sounds=known_sounds,
     )
     cutscenes = merge_cutscene_definitions(core_cutscenes or {}, world_cutscenes)
     # Cross-content validation currently accepts direct ids only, not aliases.
@@ -1169,7 +1215,7 @@ def load_world_definition(
         peeps=peeps,
         activities=activities,
         cutscenes=cutscenes,
-        tasks=load_task_definitions(world_path, card_ids),
+        tasks=load_task_definitions(world_path, card_ids, known_sounds=known_sounds),
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,
         requires_mods=requires_mods,

@@ -47,11 +47,52 @@
     }
   }
 
+  const SOUND_FILES = {
+    tap: "tap.wav",
+    click: "click1.wav",
+    flip: "swipe1.wav",
+    error: "retro-error.wav",
+    success: "task-complete.wav",
+    notify: "task-notify.wav",
+    open: "door-open-old.wav",
+    close: "door-close.wav",
+  };
+  const soundBuffers = new Map();
+  const soundPending = new Map();
+
   function context() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return null;
     audio ||= new AudioContext();
     return audio;
+  }
+
+  function soundUrl(file) {
+    const base = typeof window.__TR_BASE__ === "string" ? window.__TR_BASE__ : "";
+    return `${base}/assets/sounds/${file}`;
+  }
+
+  async function loadSound(ctx, file) {
+    if (soundBuffers.has(file)) return soundBuffers.get(file);
+    if (soundPending.has(file)) return soundPending.get(file);
+    const request = fetch(soundUrl(file))
+      .then(response => {
+        if (!response.ok) throw new Error(`Sound ${file} returned ${response.status}.`);
+        return response.arrayBuffer();
+      })
+      .then(data => ctx.decodeAudioData(data))
+      .then(buffer => {
+        soundBuffers.set(file, buffer);
+        soundPending.delete(file);
+        return buffer;
+      })
+      .catch(error => {
+        soundPending.delete(file);
+        console.warn("[Tinyrooms activity] Unable to load sound.", error);
+        return null;
+      });
+    soundPending.set(file, request);
+    return request;
   }
 
   function sound(kind = "tap") {
@@ -67,19 +108,15 @@
         }
       });
     }
-    const notes = kind === "error" ? [210, 170] : kind === "success" ? [494, 659, 784] : kind === "flip" ? [370, 554] : [610];
-    notes.forEach((frequency, index) => {
-      const oscillator = ctx.createOscillator();
+    void loadSound(ctx, SOUND_FILES[kind] || SOUND_FILES.tap).then(buffer => {
+      if (!buffer) return;
+      const source = ctx.createBufferSource();
       const gain = ctx.createGain();
-      const when = ctx.currentTime + index * 0.05;
-      oscillator.type = kind === "error" ? "triangle" : "sine";
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, when);
-      gain.gain.linearRampToValueAtTime(0.04, when + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.15);
-      oscillator.connect(gain).connect(ctx.destination);
-      oscillator.start(when);
-      oscillator.stop(when + 0.16);
+      source.buffer = buffer;
+      gain.gain.value = .55;
+      source.connect(gain).connect(ctx.destination);
+      source.onended = () => { source.disconnect(); gain.disconnect(); };
+      source.start();
     });
   }
 

@@ -14,6 +14,9 @@ portal:
     active:
     - sparks
   active_effect: idle
+  sounds:
+    select: computer2.wav
+    action: door-open-old.wav
 dollhouse:
   label: A Cute Dollhouse
   description: A whole home in miniature. Search once every ten minutes, or step right
@@ -26,6 +29,9 @@ shower:
   model: shower.glb
   decorative: false
   scale: 1.306
+  sounds:
+    select: water1.wav
+    action: water1.wav
 litter-tray:
   label: Molly's Litter Tray
   description: A little chore. Equip a pooper scooper, then use it here. Bring a plastic
@@ -40,6 +46,9 @@ locked-front-door:
   model: locked-front-door.glb
   decorative: false
   scale: 1.374
+  sounds:
+    select: click3.wav
+    action: door-close.wav
 keys-cabinet:
   label: Spare Key Cabinet
   description: A tiny brass key hangs on the sunflower hook, but only once the centipedes
@@ -47,6 +56,9 @@ keys-cabinet:
   model: keys-cabinet.glb
   decorative: false
   scale: 1.636
+  sounds:
+    select: tick.wav
+    action: open-metal.wav
 centipedes:
   label: House Centipedes
   description: All those tiny feet! Borrow the utility-room vacuum and use it here
@@ -55,6 +67,9 @@ centipedes:
   decorative: false
   scale: 1.207
   requires_light: true
+  sounds:
+    select: hiss.wav
+    action: hiss.wav
 vacuum-stand:
   label: Vacuum Corner
   description: A trusty wheeled vacuum. Borrow it, then use it on the centipedes in
@@ -62,6 +77,9 @@ vacuum-stand:
   model: vacuum-stand.glb
   decorative: false
   scale: 1.229
+  sounds:
+    select: click3.wav
+    action: mech1.wav
 supply-shelf:
   label: Helpful Supplies
   description: A recharging dispenser of housekeeping tools. Take a pooper scooper
@@ -69,6 +87,9 @@ supply-shelf:
   model: supply-shelf.glb
   decorative: false
   scale: 1.464
+  sounds:
+    select: click2.wav
+    action: draw.wav
 kitchen-counter:
   label: Breakfast Counter
   description: A gingham runner, warm toast and a happy little kettle.

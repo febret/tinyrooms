@@ -250,6 +250,7 @@ export function selectionActions(state) {
     const stack = isRoom ? findRoomCard(state, state.selection.id) : findInventoryCard(state, state.selection.id);
     if (!stack) return [];
     const intent = isRoom ? "pickup" : "drop";
+    const cardSound = stack.definition?.sounds?.use || stack.definition?.sounds?.select || "";
     const quickActions = stack.quickActions || [];
     const actions = [
 
@@ -264,6 +265,7 @@ export function selectionActions(state) {
               : { local: { type: "start-drop", stackId: stack.stackId, quantity: 1 } }),
             tone,
             disabled,
+            ...(cardSound ? { sound: cardSound } : {}),
           };
           if (stack.quantity > 1) {
             return [direct, {
@@ -271,6 +273,7 @@ export function selectionActions(state) {
               local: { type: "quantity", stackId: stack.stackId, max: stack.quantity, intent },
               tone,
               disabled,
+              ...(cardSound ? { sound: cardSound } : {}),
             }];
           }
           return [direct];
@@ -292,34 +295,36 @@ function inventoryStackActions(stack) {
   const definition = stack.definition || {};
   const actions = [];
   const type = definition.type || "item";
+  const sound = definition.sounds?.use || "";
+  const soundOption = sound ? { sound } : {};
   if (type === "pack") {
-    actions.push({ label: "Open", local: { type: "open-pack", stackId: stack.stackId }, tone: "primary" });
+    actions.push({ label: "Open", local: { type: "open-pack", stackId: stack.stackId }, tone: "primary", ...soundOption });
     return actions;
   }
   const tags = Array.isArray(definition.tags) ? definition.tags : [];
   if (type === "emote") {
-    actions.push({ label: "Play", command: buildEmoteCommand(stack.stackId), tone: "primary" });
+    actions.push({ label: "Play", command: buildEmoteCommand(stack.stackId), tone: "primary", ...soundOption });
   } else if (tags.includes("topic")) {
-    actions.push({ label: "Teach", command: buildTeachCommand(stack.stackId), tone: "primary" });
+    actions.push({ label: "Teach", command: buildTeachCommand(stack.stackId), tone: "primary", ...soundOption });
     if (stack.equipped) {
-      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });
+      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral", ...soundOption });
     } else if (!definition.passive && !definition.decorative) {
-      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive" });
+      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive", ...soundOption });
     }
   } else if (type === "skill") {
-    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary" });
+    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary", ...soundOption });
   } else if (type === "item" || type === "action") {
     if (!definition.passive && !definition.decorative) {
       if (isTargetableStack(stack)) {
-        actions.push({ label: "Use", local: { type: "start-targeting", stackId: stack.stackId }, tone: "primary" });
+        actions.push({ label: "Use", local: { type: "start-targeting", stackId: stack.stackId }, tone: "primary", ...soundOption });
       } else if (definition.effect && (definition.target || "") !== "prop") {
-        actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary" });
+        actions.push({ label: "Use", command: buildUseCommand(stack.stackId), tone: "primary", ...soundOption });
       }
     }
     if (stack.equipped) {
-      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral" });
+      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral", ...soundOption });
     } else if (!definition.passive && !definition.decorative) {
-      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive" });
+      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive", ...soundOption });
     }
   }
   if ((definition.stackLimit || 1) > 1 && stack.quantity > 1) {

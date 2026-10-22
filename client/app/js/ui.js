@@ -4,6 +4,7 @@ import { createActivityManager } from "./activities.js";
 import { createChatAutocomplete } from "./autocomplete.js";
 import { createChatHistory } from "./chat-history.js";
 import { playSound } from "./audio.js";
+import { actionSound, installButtonSoundHandler, playActionSound, playRoomSound, playSelectionSound, playToastSound } from "./ui-sounds.js";
 import { createBoard } from "./board.js";
 import { createPropActionButton } from "./prop-action-button.js";
 import { syncEmoteChrome } from "./emote-chrome.js";
@@ -393,7 +394,6 @@ async function openShop(section = "cards") {
 }
 
 async function openCommands() {
-  playTone("tap");
   settings.open = false;
   store.dispatch({ type: "command-palette", open: true });
   if (!store.getState().commandCatalog.length && store.getState().transport.connected) {
@@ -416,13 +416,16 @@ function renderLook(state) {
     look.querySelector(".look-description").onclick = () => dialogs.description(description.title, description.description);
   }
   const inspect = look.querySelector("[data-look-inspect]");
-  if (inspect) inspect.onclick = () => handleAction(preview.action);
+  if (inspect) inspect.onclick = () => handleAction(preview.action, { silentSound: true });
 }
 
-async function handleAction(action) {
+async function handleAction(action, { silentSound = false } = {}) {
   if (!action) return;
+  const customSound = action.sound;
   if (action.local) action = action.local;
-  if (!["sell-click", "open-view", "core-toggle", "close-view", "inspect-card"].includes(action.type)) playTone("tap");
+  if (!silentSound) {
+    playActionSound(store.getState(), customSound ? { ...action, sound: customSound } : action);
+  }
   if (action.command) {
     try {
       cardMotion.animatePickupCommand(action.command);
@@ -574,7 +577,6 @@ async function handleAction(action) {
     await mergeStack(action.stackId);
   } else if (action.type === "toggle-sell-mode") {
     store.dispatch({ type: "toggle-sell-mode" });
-    playTone("flip");
   } else if (action.type === "sell-click") {
     await sellInventoryCard(action.stackId, { store, sendCommand, playCoin: () => playTone("coin"), onError: showError, onToast: toast });
   } else if (action.type === "swap-sticker") {
@@ -732,16 +734,16 @@ function renderActions(state) {
     const drop = state.ui.dropTargeting;
     const count = drop.quantity > 1 ? ` ×${drop.quantity}` : "";
     const markup = `<span class="targeting-hint">Drop ${escapeHtml(drop.label)}${escapeHtml(count)} — click a spot in the room</span>
-      <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
+      <button type="button" class="cancel" data-action-index="-1" data-sound="click">Cancel</button>`;
     if (!updateMarkup(bar, markup)) return;
-    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-drop" } });
+    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-drop" } }, { silentSound: true });
     return;
   }
   if (state.ui.targeting) {
     const markup = `<span class="targeting-hint">Use ${escapeHtml(state.ui.targeting.label)} — confirm with the button or click the target again</span>
-      <button type="button" class="cancel" data-action-index="-1">Cancel</button>`;
+      <button type="button" class="cancel" data-action-index="-1" data-sound="click">Cancel</button>`;
     if (!updateMarkup(bar, markup)) return;
-    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } });
+    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } }, { silentSound: true });
     return;
   }
   const actions = state.room?.dialog ? dialogActions(state) : selectionActions(state);
@@ -751,14 +753,15 @@ function renderActions(state) {
     const className = action.icon ? `${tone} icon-action` : tone;
     const accessible = action.icon ? ` aria-label="${label}" title="${label}"` : "";
     const content = action.icon ? `<img src="${escapeHtml(action.icon)}" alt="">` : label;
-    return `<button type="button" class="${className}" data-action-index="${index}" data-focus-key="${escapeHtml(action.command || action.label)}"${accessible} ${action.disabled ? "disabled" : ""}>${content}</button>`;
+    const sound = action.sound || actionSound(action);
+    return `<button type="button" class="${className}" data-action-index="${index}" data-sound="${escapeHtml(sound)}" data-focus-key="${escapeHtml(action.command || action.label)}"${accessible} ${action.disabled ? "disabled" : ""}>${content}</button>`;
   }).join("") : `<span class="actions-empty">${state.room ? "Select a card or peep to see its actions." : "Welcome to Tinyrooms."}</span>`;
   if (!updateMarkup(bar, markup)) return;
   bar.querySelectorAll("button").forEach(button => {
     button.onclick = () => {
       const current = store.getState();
       const currentActions = current.room?.dialog ? dialogActions(current) : selectionActions(current);
-      void handleAction(currentActions[Number(button.dataset.actionIndex)]);
+      void handleAction(currentActions[Number(button.dataset.actionIndex)], { silentSound: true });
     };
   });
 }
@@ -947,7 +950,7 @@ function renderToasts(state) {
   for (const item of state.ui.toasts) {
     if (timedToasts.has(item.id)) continue;
     timedToasts.add(item.id);
-    if (!item.silent) playTone(item.tone === "error" ? "error" : item.tone === "success" ? "success" : "tap");
+    playToastSound(state, item);
     setTimeout(() => {
       timedToasts.delete(item.id);
       store.dispatch({ type: "dismiss-toast", id: item.id });
@@ -1034,7 +1037,7 @@ const peeps = createPeepsView({
   },
   onDismiss: id => store.dispatch({ type: "dismiss-bubble", id }),
   onMove: command => { if (command) void sendCommand(command).catch(showError); },
-  onSound: () => playTone("flip"),
+  onSound: () => {},
 });
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
@@ -1053,7 +1056,7 @@ const board = createBoard({
     if (activateSelection(selection)) { propActionButton.clear(); return; }
     propActionButton.select(selection, point, state.room);
     store.dispatch({ type: "select", selection });
-    playTone("flip");
+    playSelectionSound(state, selection);
   },
   onDropPoint(position, screen) {
     dropTargeting?.dropAt(position, screen);
@@ -1096,12 +1099,10 @@ const cards = createCardsView({
       return;
     }
     if (activateSelection(selection)) return;
-    const previousViews = store.getState().views;
     store.dispatch({ type: "select", selection });
-    const views = store.getState().views;
-    if (views.main === previousViews.main) playTone("flip");
+    playSelectionSound(store.getState(), selection);
   },
-  onAction: action => { void handleAction(action); },
+  onAction: action => { void handleAction(action, { silentSound: true }); },
 });
 const propViewers = createPropViewerManager();
 const cardViewers = createCardViewerManager();
@@ -1111,6 +1112,7 @@ const roomPicker = createRoomPicker({
   onSelect(selection) {
     if (dropTargeting?.handle(selection) || targeting?.handle(selection) || activateSelection(selection)) return;
     store.dispatch({ type: "select", selection });
+    playSelectionSound(store.getState(), selection);
   },
   onSkillPick({ stackId, slot }) {
     void sendCommand(buildSkillCommand(stackId, slot))
@@ -1154,6 +1156,7 @@ const applyInert = createInertSweep({
 const cutscenes = createCutsceneManager({
   layer: cutsceneLayer, getState: () => store.getState(),
   onToast: toast, onBlockingChange: () => applyInert(store.getState()),
+  onSound: sound => playSound(sound, store.getState().ui.soundEnabled),
 });
 
 /** Assemble the board view state, merging the live editor draft when editing. */
@@ -1181,6 +1184,7 @@ function buildBoardState(state) {
 
 async function render(state) {
   const revision = ++renderRevision;
+  const roomChanged = Boolean(previousRoom && state.room?.id && previousRoom !== state.room.id);
   if (previousUser !== state.user?.id || previousRoom !== state.room?.id) {
     previousUser = state.user?.id;
     previousRoom = state.room?.id;
@@ -1215,7 +1219,7 @@ async function render(state) {
   renderToasts(state);
   renderFeedback(state);
   cards.render(state);
-  if (state.views.main !== previousView) playTone("tap");
+  if (roomChanged) playRoomSound(state);
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root);
   roomPicker.sync(state);
@@ -1259,7 +1263,7 @@ function renderEditorTransient(state) {
 const chatHistory = createChatHistory();
 const chatAutocomplete = createChatAutocomplete({ form: $("#chat-form"), input: chatInput, store, requestCatalog: () => sendCommand(".help"), history: chatHistory });
 pushToTalk.onclick = () => { voice.toggleTalk(); };
-emoteToggle.onclick = () => { store.dispatch({ type: "toggle-emote-menu" }); playTone("tap"); };
+emoteToggle.onclick = () => { store.dispatch({ type: "toggle-emote-menu" }); };
 $("#chat-form").onsubmit = async event => {
   event.preventDefault();
   const text = chatInput.value;
@@ -1289,6 +1293,7 @@ document.addEventListener("pointerdown", event => {
     store.dispatch({ type: "close-emote-menu" });
   }
 });
+installButtonSoundHandler({ document, store });
 document.addEventListener("keydown", event => {
   const state = store.getState();
   const tag = event.target?.tagName;

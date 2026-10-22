@@ -7,8 +7,9 @@ import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
-from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
+from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
+from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
     MAX_CHAT_SIZE,
@@ -700,6 +701,14 @@ class RoomService:
                 personal = personal_actions(account, prop)
                 if personal:
                     quick_actions = quick_actions + self._visible_prop_actions(room, tuple(personal))
+        sounds = {**prop_definition.sounds, **prop.sounds}
+        serialized_sounds = sounds_payload(sounds)
+        action_sound = serialized_sounds.get("action")
+        if action_sound is not None:
+            quick_actions = [
+                {**action, "sound": action_sound} if isinstance(action, dict) else action
+                for action in quick_actions
+            ]
         surface_kind_name = surface_kind(prop_definition.render_kind)
         surface = None
         if surface_kind_name is not None and self._surfaces is not None:
@@ -734,6 +743,7 @@ class RoomService:
             "states": {} if dark else self._states_payload(prop_definition),
             "effect_sets": {} if dark else self._effect_sets_payload(prop_definition),
             "active_effect": None if dark else self._active_effect(room.id, prop.id, prop_definition),
+            "sounds": serialized_sounds,
         }
 
     @staticmethod

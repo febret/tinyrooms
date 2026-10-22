@@ -16,6 +16,7 @@ from server.content.common import (
     warn_unknown_card,
 )
 from server.content.recipes import RecipeDefinition, load_recipes_file
+from server.content.sounds import CARD_SOUND_KEYS, parse_sounds
 
 CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal", "phone"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart"})
@@ -96,6 +97,7 @@ class CardDefinition:
     soils: bool = False
     opens_pack: str | None = None
     image_missing: bool = False
+    sounds: dict[str, str] = field(default_factory=dict)
 
     @property
     def collectible(self) -> bool:
@@ -140,7 +142,12 @@ def _detect_type(card_id: str, raw_card: dict[str, Any]) -> str:
     return "item"
 
 
-def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
+def _load_cards_from_file(
+    path: Path,
+    source: str,
+    *,
+    known_sounds: frozenset[str] | None = None,
+) -> dict[str, CardDefinition]:
     payload = require_mapping(load_yaml_file(path), path)
     cards: dict[str, CardDefinition] = {}
     for card_id, raw_card in payload.items():
@@ -240,6 +247,12 @@ def _load_cards_from_file(path: Path, source: str) -> dict[str, CardDefinition]:
             consume_card=str(raw_card["consume_card"]) if "consume_card" in raw_card else None,
             soils=bool(raw_card.get("soils", False)),
             image_missing=image_missing,
+            sounds=parse_sounds(
+                raw_card.get("sounds"),
+                f"Card '{card_id}'",
+                CARD_SOUND_KEYS,
+                known_sounds=known_sounds,
+            ),
         )
     return cards
 
@@ -375,6 +388,7 @@ def load_card_catalog(
     world_path: Path,
     *,
     extra_cardsets_roots: Sequence[Path] = (),
+    known_sounds: frozenset[str] | None = None,
 ) -> CardCatalog:
     """Load all global and world-specific card and pack definitions.
 
@@ -391,7 +405,7 @@ def load_card_catalog(
         root_cards: dict[str, CardDefinition] = {}
         for cards_file in sorted(root.glob("*/cards.yaml")):
             source = cards_file.parent.name
-            for card_id, definition in _load_cards_from_file(cards_file, source).items():
+            for card_id, definition in _load_cards_from_file(cards_file, source, known_sounds=known_sounds).items():
                 if card_id in root_cards:
                     raise ContentError(f"Duplicate card id '{card_id}'.")
                 root_cards[card_id] = definition
@@ -399,7 +413,7 @@ def load_card_catalog(
 
     world_cards_file = world_path / "cards" / "cards.yaml"
     if world_cards_file.is_file():
-        for card_id, definition in _load_cards_from_file(world_cards_file, world_path.name).items():
+        for card_id, definition in _load_cards_from_file(world_cards_file, world_path.name, known_sounds=known_sounds).items():
             if card_id in cards:
                 raise ContentError(f"Duplicate card id '{card_id}'.")
             cards[card_id] = definition

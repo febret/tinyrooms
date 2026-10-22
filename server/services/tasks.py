@@ -10,6 +10,7 @@ import sqlite3
 from zoneinfo import ZoneInfo
 
 from server.content.gameplay import GameplayContent
+from server.content.sounds import sound_url
 from server.content.tasks import TaskDefinition, TaskReward, TaskStep
 from server.game_time import game_date, today_in
 from server.profiles import ProfileRepository
@@ -782,6 +783,8 @@ class TaskService:
         events: list[dict[str, object]] = []
         account = self._profiles.get_account_by_id(account_id)
         for change in changes:
+            task_definition = self._definitions.get(change.task_id)
+            task_sounds = task_definition.sounds if task_definition is not None else {}
             if self._cutscenes is not None and account is not None:
                 reference = "task-started" if change.kind == "started" else "task-completed"
                 try:
@@ -799,9 +802,26 @@ class TaskService:
                             "task_complete": change.kind == "completed",
                         },
                     )
+                    sound_name = task_sounds.get(
+                        "started" if change.kind == "started" else "completed"
+                    )
+                    if sound_name:
+                        cutscene = launch.event.get("cutscene")
+                        if isinstance(cutscene, dict):
+                            sounds = dict(cutscene.get("sounds") or {})
+                            sounds["start"] = sound_url(sound_name)
+                            cutscene["sounds"] = sounds
                     events.append(launch.event)
                 except Exception as exc:  # noqa: BLE001 - feedback must never break the caller
                     LOGGER.warning("task.feedback.failed task_id=%s error=%s", change.task_id, exc)
+            notification_sound = task_sounds.get("notification")
             for text in change.memory_texts:
-                events.append({"type": "toast", "tone": "success", "text": f"Memory added: {text}"})
+                event: dict[str, object] = {
+                    "type": "toast",
+                    "tone": "success",
+                    "text": f"Memory added: {text}",
+                }
+                if notification_sound:
+                    event["sound"] = sound_url(notification_sound)
+                events.append(event)
         return events

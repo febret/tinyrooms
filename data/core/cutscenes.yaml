@@ -10,6 +10,8 @@ victory-dance:
   params:
     accent: "#f0b429"
     stage_background: "#120a24"
+  sounds:
+    start: drum1.wav
 
 pack-open:
   title: Card Pack
@@ -23,6 +25,8 @@ pack-open:
   params:
     accent: "#f5c451"
     stage_background: "#0c0a1e"
+  sounds:
+    start: cutscene-start.wav
 
 task-started:
   title: New Journal Task
@@ -37,6 +41,8 @@ task-started:
   params:
     accent: "#7ad0c8"
     stage_background: "#0b1620"
+  sounds:
+    start: task-notify.wav
 
 task-completed:
   title: Task Complete
@@ -51,3 +57,5 @@ task-completed:
   params:
     accent: "#f0b429"
     stage_background: "#120a24"
+  sounds:
+    start: task-complete.wav

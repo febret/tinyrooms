@@ -15,13 +15,13 @@ export function lookPreview(state, description) {
     if (prop?.renderKind === "sign" || prop?.renderKind === "whiteboard") {
       const label = prop.renderKind === "sign" ? "sign" : "whiteboard";
       return {
-        markup: `<button type="button" class="look-preview look-preview-button look-preview-surface" data-look-inspect="prop" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><span aria-hidden="true">${prop.renderKind === "sign" ? "✎" : "▤"}</span> ${escapeHtml(label)}</button>`,
+        markup: `<button type="button" class="look-preview look-preview-button look-preview-surface" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><span aria-hidden="true">${prop.renderKind === "sign" ? "✎" : "▤"}</span> ${escapeHtml(label)}</button>`,
         action: { type: "open-view", view: "prop-details", propId: prop.id },
       };
     }
     if (!prop?.modelUrl) return { markup: "", action: null };
     return {
-      markup: `<button type="button" class="look-preview look-preview-button look-preview-3d" data-look-inspect="prop" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><canvas data-prop-model="${escapeHtml(prop.modelUrl)}" data-prop-scale="${escapeHtml(prop.scale)}" aria-hidden="true"></canvas></button>`,
+      markup: `<button type="button" class="look-preview look-preview-button look-preview-3d" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><canvas data-prop-model="${escapeHtml(prop.modelUrl)}" data-prop-scale="${escapeHtml(prop.scale)}" aria-hidden="true"></canvas></button>`,
       action: { type: "open-view", view: "prop-details", propId: prop.id },
     };
   }
@@ -30,7 +30,7 @@ export function lookPreview(state, description) {
     if (!stack?.definition) return { markup: "", action: null };
     const label = stack.definition.label || "card";
     return {
-      markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}">${cardFaceSvg(stack.definition)}</button>`,
+      markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-sound="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}">${cardFaceSvg(stack.definition)}</button>`,
       action: { type: "inspect-card", stackId: stack.stackId },
     };
   }

@@ -171,7 +171,17 @@ shortcuts, but it must not infer action authority from presentation.
 The `.reset_room` handler's unrestricted-access TODO remains unresolved; do not
 interpret the existence of account powers as proof that reset is admin-only.
 
-## 6. Peer audio and cutscenes
+## 6. Interaction sounds, peer audio, and cutscenes
+
+Interaction sounds live in `data/sounds/` and are served from
+`/assets/sounds/<file>.wav`. [audio.js](../client/app/js/audio.js) decodes and
+caches WAV buffers for UI clicks, room changes, cards, props, and notifications;
+it no longer synthesizes tones. Content can author nested `sounds:` mappings:
+props use `select`/`action`, cards use `select`/`use`, cutscenes use `start`
+plus per-cue `sound`, and tasks use `started`/`completed`/`notification`.
+Server loaders validate names against the library, and serializers send served
+URLs. Cutscene scripts call the host `sound()` helper or rely on cue sounds;
+they do not create their own audio context.
 
 [voice.js](../client/app/js/voice.js) implements opt-in, gesture-unlocked push-to-talk;
 [rtc.py](../server/services/rtc.py) relays signaling only between audio-enabled

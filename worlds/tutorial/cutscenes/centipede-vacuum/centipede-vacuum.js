@@ -2,6 +2,7 @@ import {
   beginCutscene,
   captions,
   endCutscene,
+  sound,
   sprite,
   wait,
 } from "../../app/js/cutscenes/stage.js";
@@ -60,12 +61,14 @@ export default async function (ctx) {
   captions(ctx.text);
   await wait(1700);
   scene.classList.add("cutscene-vacuuming");
+  sound("mech2.wav");
   await wait(900);
   bugs.classList.add("cutscene-centipede-gone");
   await wait(320);
 
   const random = makeRandom(ctx.params.random);
   spawnFireworks(scene, random);
+  sound("applause.wav");
   const mission = document.createElement("h2");
   mission.className = "cutscene-mission";
   mission.textContent = "MISSION ACCOMPLISHED";

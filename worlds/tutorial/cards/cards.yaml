@@ -24,6 +24,9 @@ hand-light:
   target: room
   effect: light
   duration: 600
+  sounds:
+    select: click2.wav
+    use: switch.wav
 juicy-drink:
   label: Juicy Drink
   description: Restore 25 Energy, even when Tired. Free to use on yourself.
@@ -35,6 +38,9 @@ juicy-drink:
   target: self
   effect: energy
   amount: 25
+  sounds:
+    select: bubble1.wav
+    use: bubble1.wav
 plastic-bag:
   label: Plastic Bag
   description: A simple plastic bag
@@ -73,6 +79,9 @@ pooper-scooper:
   target: prop
   tags: [scoop]
   consume_card: plastic-bag
+  sounds:
+    select: click2.wav
+    use: swish.wav
 seal-plushie:
   label: Seal Plushie
   description: A cute seal plushie, not stinky at all.
@@ -88,6 +97,9 @@ tasty-toast:
   target: peep
   effect: health
   amount: 10
+  sounds:
+    select: click2.wav
+    use: crunch1.wav
 tomato-sauce:
   label: Tomato Sauce
   description: Restore 25 Health to yourself or another peep. Costs 2 Energy.
@@ -109,6 +121,9 @@ house-key:
   one_use: false
   quest: true
   target: prop
+  sounds:
+    select: tick.wav
+    use: open-metal.wav
 vacuum-cleaner:
   label: Vacuum Cleaner
   description: A cheerful little vacuum. Equip it, then use it on the basement centipedes. Reusable.
@@ -122,6 +137,9 @@ vacuum-cleaner:
   target: prop
   tags: [vacuum]
   cutscene: centipede-vacuum
+  sounds:
+    select: click2.wav
+    use: mech2.wav
 
 # Cutscene emote: playing it broadcasts a scripted cutscene to the room.
 victory-dance:
@@ -132,3 +150,6 @@ victory-dance:
   cutscene: victory-dance
   rarity: Uncommon
   energy_cost: 5
+  sounds:
+    select: drum1.wav
+    use: applause.wav

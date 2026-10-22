@@ -2,6 +2,7 @@ import {
   beginCutscene,
   captions,
   endCutscene,
+  sound,
   sprite,
   wait,
 } from "../../app/js/cutscenes/stage.js";
@@ -60,6 +61,7 @@ export default async function (ctx) {
   couple.classList.add("cutscene-couple-meet");
   await wait(760);
   burstHearts(dom);
+  sound("boing.wav");
 
   await captions(ctx.text);
   await wait(400);

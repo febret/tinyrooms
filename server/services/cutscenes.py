@@ -23,6 +23,7 @@ from server.content.cutscenes import (
     build_cutscene_catalog,
     resolve_cutscene_id,
 )
+from server.content.sounds import sound_url, sounds_payload
 from server.content.worlds import WorldDefinition, prop_model_url
 
 if TYPE_CHECKING:
@@ -242,7 +243,13 @@ class CutsceneService:
         # Keep param tokens for sprite lookup; only cue say text gets labels.
         # Speaker tokens contribute assets above but remain literal in the payload.
         cues = tuple(
-            {"at": cue.at, "say": self._substitute(cue.say, resolved), "speaker": cue.speaker, "style": cue.style}
+            {
+                "at": cue.at,
+                "say": self._substitute(cue.say, resolved),
+                "speaker": cue.speaker,
+                "style": cue.style,
+                **({"sound": sound_url(cue.sound)} if cue.sound else {}),
+            }
             for cue in definition.text
         )
         # Closed playback record: script_url is server-selected; extensions go in
@@ -263,6 +270,7 @@ class CutsceneService:
             "params": merged,
             "text": list(cues),
             "assets": list(resolved),
+            "sounds": sounds_payload(definition.sounds),
         }
         event: dict[str, object] = {
             "type": "cutscene.play",

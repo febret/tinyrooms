@@ -26,6 +26,7 @@ from server.config import AppConfig, ConfigError, KNOWN_FEATURES
 from server.content.activities import ActivityDefinition, load_activity_definitions
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.cutscenes import CutsceneDefinition, load_cutscene_definitions
+from server.content.sounds import load_sound_names
 
 
 _MOD_ID = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
@@ -282,6 +283,7 @@ def load_mod_cutscene_definitions(
     mods: Iterable[ModDefinition],
     *,
     known_features: frozenset[str] = KNOWN_FEATURES,
+    known_sounds: frozenset[str] | None = None,
 ) -> dict[str, CutsceneDefinition]:
     """Load each mod's optional ``content/cutscenes.yaml``."""
 
@@ -295,6 +297,7 @@ def load_mod_cutscene_definitions(
             source=mod.id,
             script_roots=(mod.cutscenes_path,),
             known_features=known_features,
+            known_sounds=known_sounds,
         )
         for cutscene_id, definition in loaded.items():
             if cutscene_id in definitions:
@@ -325,5 +328,8 @@ def load_mods(config: AppConfig) -> LoadedMods:
         definitions=definitions,
         apis=tuple(apis),
         activity_definitions=load_mod_activity_definitions(definitions),
-        cutscene_definitions=load_mod_cutscene_definitions(definitions),
+        cutscene_definitions=load_mod_cutscene_definitions(
+            definitions,
+            known_sounds=load_sound_names(config.sounds_path),
+        ),
     )

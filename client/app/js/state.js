@@ -35,8 +35,14 @@ const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia
   : false;
 const BUBBLE_LIMIT = 120;
 
-function toastRecord(message, tone = "info", silent = false) {
-  return { id: crypto.randomUUID(), message: String(message || ""), tone, silent: Boolean(silent) };
+function toastRecord(message, tone = "info", silent = false, sound = "") {
+  return {
+    id: crypto.randomUUID(),
+    message: String(message || ""),
+    tone,
+    silent: Boolean(silent),
+    sound: String(sound || ""),
+  };
 }
 
 function applyBubble(peeps, key, label, text, style, imageUrl = "") {
@@ -193,7 +199,16 @@ function applyServerEvent(state, event) {
     };
   }
   if (event.type === "toast") {
-    return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(event.text, event.tone || "info", event.silent)] } };
+    return {
+      ...state,
+      ui: {
+        ...state.ui,
+        toasts: [
+          ...state.ui.toasts.slice(-2),
+          toastRecord(event.text, event.tone || "info", event.silent, event.sound),
+        ],
+      },
+    };
   }
   if (event.type === "action.log") {
     return state;

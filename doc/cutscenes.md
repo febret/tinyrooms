@@ -221,6 +221,7 @@ The main authoring decisions are:
 | `hidden`, `aliases`, `max_queue` | Catalog visibility, launch names, pending-entry budget |
 | `feature`, `power`, `rooms`, `energy_cost` | Per-definition launch restrictions and cost |
 | `params`, `text` | Scene-specific customization and optional caption cues |
+| `sounds.start` | Optional launch sound from `data/sounds` |
 
 `title` is required. `script` defaults to `<id>.js`; `frame` defaults to
 `plain`. `duration` is milliseconds, non-negative; zero means no cap and the
@@ -234,9 +235,10 @@ definition; cutscenes as a subsystem have no feature flag.
 `params` is an open scene-specific channel, limited to 16 keys and scalar
 values (strings up to 200 characters, numbers, booleans), except that
 `frame_options` may be a mapping of bounded scalar options. The text cues use
-`at`, `say`, `speaker`, and optional CSS `style`; at least `say` or `speaker`
-must be non-empty. Current parsing defaults `at` to zero and accepts
-non-negative numeric offsets, converting to integer milliseconds.
+`at`, `say`, `speaker`, optional CSS `style`, and optional `sound`, which plays
+at the cue offset. At least `say` or `speaker` must be non-empty. Current
+parsing defaults `at` to zero and accepts non-negative numeric offsets,
+converting to integer milliseconds.
 The original cue contract required an explicit integer `at`; that stricter
 authoring-validation requirement remains unresolved rather than implemented.
 
@@ -497,7 +499,10 @@ The small working set for authors is:
   body; the outro remains runtime-owned.
 - `skipCutscene()`: request the same skip as user input, respecting `skip`.
 - `wait(ms)`: a signal-aware delay.
-- `caption(...)`, `captions(...)`: optional cue rendering.
+- `caption(...)`, `captions(...)`: optional cue rendering; cues may carry
+  `sound`, and `captions()` schedules it at the cue offset.
+- `sound(nameOrUrl)`: play one sound from `data/sounds` through the host audio
+  engine.
 - `sprite(ref, options)`, `sprites(refs)`: asynchronously prepared elements,
   ready to append and style. Prop loading may require a thumbnail render.
   Card sprites show the illustration (or animation) only, for cards acting as
@@ -634,8 +639,10 @@ scene timers/animation frames was never actually provided.
 
 ### Deliberate deferrals
 
-- **Audio:** no sound hook; scenes must not create their own `AudioContext`.
-  Revisit only with a cutscene-specific sound budget.
+- **Audio authoring UI:** sounds are authored in YAML or triggered from scene
+  scripts; there is no visual sound picker. Scenes must still use the host
+  audio callback (`sound()` / cue sounds) rather than creating their own
+  `AudioContext`.
 - **Playback acknowledgement/telemetry:** requires a new design; no hidden
   reward/progression dependency may be added to playback completion.
 - **Snapshot playback / late joining:** intentionally absent; missing a short

@@ -221,6 +221,12 @@ class AppConfig:
         return self.repo_root / "data" / "stickers"
 
     @property
+    def sounds_path(self) -> Path:
+        """Return the shared interaction sound directory."""
+
+        return self.repo_root / "data" / "sounds"
+
+    @property
     def cardsets_path(self) -> Path:
         """Return the global cardsets directory."""
 

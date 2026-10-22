@@ -12,7 +12,7 @@ const SHELL_SELECTOR = "#app";
  * messages arrive, in arrival order, and never reports anything back. Reduced
  * motion disables cutscenes outright, so nothing is queued at all in that case.
  */
-export function createCutsceneManager({ layer, getState, onToast, onBlockingChange }) {
+export function createCutsceneManager({ layer, getState, onToast, onBlockingChange, onSound }) {
   const queue = [];
   const modules = new Map();
   const logged = new Set();
@@ -244,11 +244,14 @@ export function createCutsceneManager({ layer, getState, onToast, onBlockingChan
         settled = true;
         release();
       },
+      sound: onSound,
     });
     current = token;
     document.addEventListener("keydown", onKeyDown, true);
     layer.addEventListener("click", onLayerClick);
     setBlocking(true);
+    const startSound = cutscene.sounds?.start;
+    if (typeof startSound === "string" && startSound) onSound?.(startSound);
     const restoreFocus = document.activeElement;
     if (parts.skip && !parts.skip.hidden) parts.skip.focus({ preventScroll: true });
 

@@ -16,6 +16,7 @@ from server.content.activities import load_activity_definitions
 from server.content.cards import CardCatalog, cutscene_card_references, load_card_catalog
 from server.content.cutscenes import load_cutscene_definitions
 from server.content.gameplay import GameplayContent, load_gameplay_content
+from server.content.sounds import load_sound_names
 from server.content.worlds import WorldDefinition, load_world_definition
 
 if TYPE_CHECKING:
@@ -39,7 +40,13 @@ def load_world_bundle(
     """Load catalog, gameplay content, and world definition for *world_path*."""
 
     extra_cardsets = (config.shared_cardsets_path,) if config.shared_cardsets_path is not None else ()
-    catalog = load_card_catalog(config.cardsets_path, world_path, extra_cardsets_roots=extra_cardsets)
+    known_sounds = load_sound_names(config.sounds_path)
+    catalog = load_card_catalog(
+        config.cardsets_path,
+        world_path,
+        extra_cardsets_roots=extra_cardsets,
+        known_sounds=known_sounds,
+    )
     content = load_gameplay_content(config.repo_root / "data" / "core")
     core_activities = load_activity_definitions(
         config.repo_root / "data" / "core" / "activities.yaml",
@@ -52,6 +59,7 @@ def load_world_bundle(
         source="core",
         script_roots=(config.repo_root / "data" / "cutscenes",),
         known_features=KNOWN_FEATURES,
+        known_sounds=known_sounds,
     )
     mod_cutscenes = loaded_mods.cutscene_definitions if loaded_mods is not None else {}
     mod_cutscene_roots = loaded_mods.cutscene_roots() if loaded_mods is not None else ()
@@ -69,5 +77,6 @@ def load_world_bundle(
         enabled_mods=loaded_mods.ids if loaded_mods is not None else None,
         fx_root=config.fx_path,
         extra_recipes=catalog.recipes,
+        known_sounds=known_sounds,
     )
     return WorldBundle(catalog=catalog, content=content, world=world)

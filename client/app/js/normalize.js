@@ -14,8 +14,23 @@ export function normalizeQuickActions(actions) {
   return Array.isArray(actions)
     ? actions
         .filter(action => action && typeof action.command === "string" && typeof action.label === "string")
-        .map(action => (action.default ? { label: action.label, command: action.command, default: true } : { label: action.label, command: action.command }))
+        .map(action => ({
+          label: action.label,
+          command: action.command,
+          ...(action.default ? { default: true } : {}),
+          ...(typeof action.sound === "string" && action.sound ? { sound: assetOrEmpty(action.sound) } : {}),
+        }))
     : [];
+}
+
+export function normalizeSounds(sounds) {
+  return sounds && typeof sounds === "object"
+    ? Object.fromEntries(
+        Object.entries(sounds)
+          .filter(([, value]) => typeof value === "string" && value)
+          .map(([key, value]) => [key, assetOrEmpty(value)]),
+      )
+    : {};
 }
 
 export function normalizeCardDefinition(definition) {
@@ -46,6 +61,7 @@ export function normalizeCardDefinition(definition) {
     quest: Boolean(definition.quest),
     sellPrice: typeof definition.sell_price === "number" ? definition.sell_price : null,
     order: typeof definition.order === "number" ? definition.order : null,
+    sounds: normalizeSounds(definition.sounds),
   };
 }
 
@@ -123,6 +139,7 @@ export function normalizeProp(prop) {
     effectSets: prop?.effect_sets && typeof prop.effect_sets === "object" ? prop.effect_sets : {},
     activeEffect: typeof prop?.active_effect === "string" ? prop.active_effect : "",
     quickActions: normalizeQuickActions(prop?.quick_actions),
+    sounds: normalizeSounds(prop?.sounds),
   };
 }
 

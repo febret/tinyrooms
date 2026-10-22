@@ -149,6 +149,12 @@ export function wait(ms) {
   });
 }
 
+/** Play one sound through the host audio engine during this cutscene. */
+export function sound(nameOrUrl) {
+  const active = requireSession();
+  if (active) active.sound?.(nameOrUrl);
+}
+
 /** Write one caption into the frame's caption region. */
 export function caption(cue, options) {
   const active = requireSession();
@@ -189,6 +195,7 @@ export async function captions(cues) {
       new Promise(resolve => {
         const timer = setTimeout(() => {
           if (session) session.timers.delete(timer);
+          if (cue?.sound) session?.sound?.(cue.sound);
           handles.push(caption(cue));
           resolve();
         }, delay);
@@ -252,7 +259,7 @@ export function sprites(refs) {
 }
 
 /** Create the playback session record used by the manager and the stage helpers. */
-export function openSession({ ctx, root, frame, stage, captions: captionRegion, controller, skip, resolve }) {
+export function openSession({ ctx, root, frame, stage, captions: captionRegion, controller, skip, resolve, sound: playSound }) {
   if (!(controller instanceof AbortController)) {
     throw new Error("A cutscene playback needs an AbortController.");
   }
@@ -264,6 +271,7 @@ export function openSession({ ctx, root, frame, stage, captions: captionRegion, 
     captions: captionRegion,
     skip,
     resolve,
+    sound: playSound,
     controller,
     timers: new Set(),
     stageCreated: false,

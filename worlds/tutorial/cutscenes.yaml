@@ -10,9 +10,11 @@ molly-greet:
   params:
     stage_background: "#04141c"
     caption_color: "#f7f5ed"
+  sounds:
+    start: cutscene-start.wav
   text:
-    - {at: 350, speaker: Molly, say: "Purrrr."}
-    - {at: 2100, speaker: Molly, say: "$me, you again? Good."}
+    - {at: 350, speaker: Molly, say: "Purrrr.", sound: chirp1.wav}
+    - {at: 2100, speaker: Molly, say: "$me, you again? Good.", sound: squeak2.wav}
 tutorial-end:
   title: Tutorial Complete
   script: tutorial-end.js
@@ -25,9 +27,11 @@ tutorial-end:
   params:
     stage_background: "#1d2b3a"
     caption_color: "#f7f5ed"
+  sounds:
+    start: applause.wav
   text:
-    - {at: 400, speaker: Pip, say: "You did it!"}
-    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!"}
+    - {at: 400, speaker: Pip, say: "You did it!", sound: task-complete.wav}
+    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!", sound: applause.wav}
 centipede-vacuum:
   title: Mission Accomplished
   script: centipede-vacuum.js
@@ -40,6 +44,8 @@ centipede-vacuum:
   params:
     stage_background: "#050b0d"
     accent: "#7de07d"
+  sounds:
+    start: mech1.wav
   text:
-    - {at: 200, speaker: Vacuum, say: "Vrrrrrrm!"}
-    - {at: 2600, speaker: Vacuum, say: "All clear!"}
+    - {at: 200, speaker: Vacuum, say: "Vrrrrrrm!", sound: hiss.wav}
+    - {at: 2600, speaker: Vacuum, say: "All clear!", sound: task-complete.wav}

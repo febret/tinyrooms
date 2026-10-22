@@ -15,6 +15,7 @@ from server.content.cards import (
     card_asset_url,
 )
 from server.content.levels import DEFAULT_MAX_EQUIPPED
+from server.content.sounds import sounds_payload
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.state.migrations import DatabaseHub
 from server.state.world_state import RoomCardStack, WorldStateRepository
@@ -226,6 +227,7 @@ class CardService:
                 if self._pricing is not None and self._pricing.is_sellable(definition)
                 else None
             ),
+            "sounds": sounds_payload(definition.sounds),
         }
         return payload
 

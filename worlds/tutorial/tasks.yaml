@@ -10,6 +10,10 @@ house-tour:
     kudos: 2
     cards:
     - seal-plushie
+  sounds:
+    started: task-notify.wav
+    completed: applause.wav
+    notification: beep1.wav
   steps:
   - step_id: enter-foyer
     trigger: enter_room

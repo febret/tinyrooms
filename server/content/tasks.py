@@ -13,6 +13,7 @@ from server.content.common import (
     load_yaml_file,
     require_mapping,
 )
+from server.content.sounds import TASK_SOUND_KEYS, parse_sounds
 
 
 TASK_TRIGGERS = frozenset(
@@ -91,6 +92,7 @@ class TaskDefinition:
     revision: int = 1
     # Optional authored first-person journal text used when the task completes.
     memory: str = ""
+    sounds: dict[str, str] = field(default_factory=dict)
 
     def to_payload(self) -> dict[str, object]:
         """Serialize the definition without runtime progress."""
@@ -174,7 +176,14 @@ def _parse_reward(raw_reward: Any, task_id: str, card_ids: set[str], path: Path)
     return TaskReward(kudos=int(raw_kudos), cards=cards)
 
 
-def _parse_definition(task_id: str, raw: Any, card_ids: set[str], path: Path) -> TaskDefinition:
+def _parse_definition(
+    task_id: str,
+    raw: Any,
+    card_ids: set[str],
+    path: Path,
+    *,
+    known_sounds: frozenset[str] | None = None,
+) -> TaskDefinition:
     if not isinstance(raw, dict):
         raise ContentError(f"Task '{task_id}' must be a mapping in {path}.")
     title = str(raw.get("title", "")).strip()
@@ -238,10 +247,21 @@ def _parse_definition(task_id: str, raw: Any, card_ids: set[str], path: Path) ->
         reward_recipients=reward_recipients,
         revision=int(raw_revision),
         memory=str(raw.get("memory", "")).strip(),
+        sounds=parse_sounds(
+            raw.get("sounds"),
+            f"Task '{task_id}'",
+            TASK_SOUND_KEYS,
+            known_sounds=known_sounds,
+        ),
     )
 
 
-def load_task_definitions(world_path: Path, card_ids: set[str]) -> dict[str, TaskDefinition]:
+def load_task_definitions(
+    world_path: Path,
+    card_ids: set[str],
+    *,
+    known_sounds: frozenset[str] | None = None,
+) -> dict[str, TaskDefinition]:
     """Load and validate every task definition for a world."""
 
     path = world_path / "tasks.yaml"
@@ -252,5 +272,11 @@ def load_task_definitions(world_path: Path, card_ids: set[str]) -> dict[str, Tas
     for task_id, raw in payload.items():
         if not isinstance(task_id, str) or not task_id:
             raise ContentError(f"{path} contains an invalid task entry.")
-        tasks[task_id] = _parse_definition(task_id, raw, card_ids, path)
+        tasks[task_id] = _parse_definition(
+            task_id,
+            raw,
+            card_ids,
+            path,
+            known_sounds=known_sounds,
+        )
     return tasks

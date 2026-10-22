@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.content.sounds import CUTSCENE_SOUND_KEYS, parse_sound, parse_sounds
 
 
 AUDIENCES = frozenset({"private", "room", "any"})
@@ -37,6 +38,7 @@ class CutsceneCue:
     say: str = ""
     speaker: str = ""
     style: str = ""
+    sound: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +75,7 @@ class CutsceneDefinition:
     # Cues are optional author data, not automatically rendered by the manager.
     params: dict[str, Any] = field(default_factory=dict)
     text: tuple[CutsceneCue, ...] = ()
+    sounds: dict[str, str] = field(default_factory=dict)
 
     @property
     def script_url(self) -> str:
@@ -175,7 +178,12 @@ def _parse_frame_options(
     return options
 
 
-def _parse_cues(raw_value: Any, cutscene_id: str, path: Path) -> tuple[CutsceneCue, ...]:
+def _parse_cues(
+    raw_value: Any,
+    cutscene_id: str,
+    path: Path,
+    known_sounds: frozenset[str] | None = None,
+) -> tuple[CutsceneCue, ...]:
     if raw_value is None:
         return ()
     if not isinstance(raw_value, list):
@@ -201,6 +209,11 @@ def _parse_cues(raw_value: Any, cutscene_id: str, path: Path) -> tuple[CutsceneC
                 say=say[:MAX_PARAMS_TEXT],
                 speaker=speaker[:MAX_PARAM_STRING],
                 style=str(raw_cue.get("style", "")).strip()[:64],
+                sound=parse_sound(
+                    raw_cue.get("sound"),
+                    f"Cutscene '{cutscene_id}' text cue {index} sound",
+                    known_sounds,
+                ),
             )
         )
     return tuple(cues)
@@ -222,6 +235,7 @@ def load_cutscene_definitions(
     known_rooms: frozenset[str] = frozenset(),
     known_features: frozenset[str] = frozenset(),
     known_powers: frozenset[str] = frozenset(),
+    known_sounds: frozenset[str] | None = None,
 ) -> dict[str, CutsceneDefinition]:
     """Load and validate cutscene definitions from a YAML file."""
 
@@ -307,7 +321,13 @@ def load_cutscene_definitions(
                 raw.get("energy_cost", 0), f"Cutscene '{cutscene_id}' energy_cost"
             ),
             params=_parse_params(raw.get("params"), cutscene_id, path),
-            text=_parse_cues(raw.get("text"), cutscene_id, path),
+            text=_parse_cues(raw.get("text"), cutscene_id, path, known_sounds),
+            sounds=parse_sounds(
+                raw.get("sounds"),
+                f"Cutscene '{cutscene_id}'",
+                CUTSCENE_SOUND_KEYS,
+                known_sounds=known_sounds,
+            ),
         )
     return definitions
 
