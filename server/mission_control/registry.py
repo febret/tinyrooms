@@ -340,6 +340,7 @@ class InstanceRegistry:
                 "image": record.world_image,
             },
             "version": record.version,
+            "version_id": (record.spawn_config or {}).get("version_id"),
             "protocol_version": record.protocol_version,
             "started_at": record.started_at,
             "base_path": record.base_path,

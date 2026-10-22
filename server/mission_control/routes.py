@@ -23,7 +23,15 @@ from pydantic import BaseModel, Field
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.config import ConfigError, normalize_base_path
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
-from server.mission_control.registry import EXTERNAL, SPAWNED, STATUS_RUNNING, STATUS_STOPPED, STATUS_UNREACHABLE
+from server.mission_control.packages import RUNNING_VERSION_ID
+from server.mission_control.registry import (
+    EXTERNAL,
+    SPAWNED,
+    STATUS_RUNNING,
+    STATUS_STARTING,
+    STATUS_STOPPED,
+    STATUS_UNREACHABLE,
+)
 from server.security import RateLimitError, require_matching_csrf, validate_origin
 from server.version import BUILD_VERSION
 
@@ -59,6 +67,12 @@ class RenameInstancePayload(BaseModel):
     """Rename-instance payload."""
 
     name: str
+
+
+class ChangeVersionPayload(BaseModel):
+    """Instance version-change payload."""
+
+    version: str | None = None
 
 
 class EditUserPayload(BaseModel):
@@ -355,6 +369,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         admins=payload.admins,
         mods=payload.mods,
         version_path=version_path,
+        version_id=payload.version or RUNNING_VERSION_ID,
     )
     return {"ok": True, "server": runtime.registry.snapshot(spawned)}
 
@@ -427,6 +442,61 @@ async def restart_server(request: Request, instance_id: str) -> dict[str, object
         return _json_error(502, "unreachable", f"{type(exc).__name__}")
     runtime.audit.record("operator", "instance.restart", target=instance_id)
     return {"ok": True}
+
+
+@router.post("/api/mission-control/servers/{instance_id}/start")
+async def start_stopped_server(request: Request, instance_id: str) -> dict[str, object]:
+    """Start a stopped spawned child without creating a new identity."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    record = runtime.registry.get(instance_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Instance not found.")
+    if record.source != SPAWNED or record.spawn_config is None:
+        return _json_error(400, "start_external", "Only spawned instances can be started by Mission Control.")
+    if record.status in {STATUS_RUNNING, STATUS_STARTING}:
+        return _json_error(409, "already_running", "Instance is already running.")
+    started = runtime.supervisor.start_existing(instance_id)
+    if started is None:
+        return _json_error(409, "start_unavailable", "Instance is not stopped or cannot be started.")
+    return {"ok": True, "server": runtime.registry.snapshot(started)}
+
+
+@router.post("/api/mission-control/servers/{instance_id}/version")
+async def change_server_version(
+    request: Request,
+    instance_id: str,
+    payload: ChangeVersionPayload,
+) -> dict[str, object]:
+    """Switch a spawned instance to another installed version and apply it."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    record = runtime.registry.get(instance_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Instance not found.")
+    if record.source != SPAWNED or record.spawn_config is None:
+        return _json_error(400, "version_external", "Only spawned instances can change versions.")
+    world_id = record.world_id or Path(str(record.spawn_config.get("world_path") or "")).name
+    if not world_id:
+        return _json_error(400, "world_unknown", "Instance has no saved world identity.")
+    try:
+        version_path = runtime.packages.resolve_version(payload.version)
+        world_path = runtime.packages.resolve_world(payload.version, world_id)
+    except ValueError as exc:
+        return _json_error(400, "version_unavailable", str(exc))
+    updated = runtime.supervisor.change_version(
+        instance_id,
+        version_id=payload.version or RUNNING_VERSION_ID,
+        version_path=version_path,
+        world_path=world_path,
+    )
+    if updated is None:
+        return _json_error(409, "version_unavailable", "Instance version cannot be changed.")
+    return {"ok": True, "server": runtime.registry.snapshot(updated)}
 
 
 @router.post("/api/mission-control/servers/{instance_id}/rename")

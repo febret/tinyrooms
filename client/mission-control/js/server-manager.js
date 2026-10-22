@@ -70,10 +70,12 @@ export function createServerManager(container, ctx) {
         el("td", {}, clientLink(server)),
         el("td", {}, statusBadge(server.status)),
         el("td", {}, server.world.label || server.world.id || "—"),
+        versionControl(server),
         el("td", {}, server.source),
         el("td", {}, formatUptime(server.uptime_seconds)),
         el("td", {}, String(server.users_online)),
         el("td", {}, formatAge(server.last_heartbeat_seconds)),
+        el("td", {}, gridActions(server)),
       ]),
     );
     return el("div", { class: "stack" }, [
@@ -91,8 +93,9 @@ export function createServerManager(container, ctx) {
           ? el("table", {}, [
               el("thead", {}, el("tr", {}, [
                  el("th", { text: "Name" }), el("th", { text: "Client URL" }), el("th", { text: "Status" }),
-                el("th", { text: "World" }), el("th", { text: "Source" }), el("th", { text: "Uptime" }),
-                el("th", { text: "Users" }), el("th", { text: "Heartbeat" }),
+                el("th", { text: "World" }), el("th", { text: "Version" }), el("th", { text: "Source" }),
+                el("th", { text: "Uptime" }), el("th", { text: "Users" }), el("th", { text: "Heartbeat" }),
+                el("th", { text: "Actions" }),
               ])),
               el("tbody", {}, rows),
             ])
@@ -203,7 +206,7 @@ export function createServerManager(container, ctx) {
         info("Endpoint", detail.endpoint),
         info("Source", detail.source),
         info("World", detail.world.label || detail.world.id || "—"),
-        info("Version", detail.version || "—"),
+        info("Version", detail.version_id || detail.version || "—"),
         info("Uptime", formatUptime(detail.uptime_seconds)),
         info("Users online", String(detail.users_online)),
         info("Rooms", stats.rooms !== undefined ? String(stats.rooms) : "—"),
@@ -234,6 +237,104 @@ export function createServerManager(container, ctx) {
     return server.client_url
       ? el("a", { href: server.client_url, target: "_blank", rel: "noopener noreferrer", onclick: (event) => event.stopPropagation(), text: server.client_url })
       : el("span", { class: "muted", text: "—" });
+  }
+
+  function versionControl(server) {
+    const current = server.version_id || "";
+    const label = server.version || current || "—";
+    if (server.source !== "spawned") return el("td", {}, label);
+    const versions = ctx.versions();
+    const select = el("select", {
+      "aria-label": `Version for ${server.name}`,
+      onclick: (event) => event.stopPropagation(),
+      onchange: (event) => {
+        const value = event.target.value;
+        if (!value) return;
+        changeVersion(server, value).catch(showError);
+      },
+    }, [
+      el("option", { value: "", text: `Current: ${label}` }),
+      ...versions.filter((version) => version.id !== current).map((version) =>
+        el("option", { value: version.id, text: `Switch: ${version.label || version.id}` }),
+      ),
+    ]);
+    return el("td", {}, el("div", { class: "stack" }, [
+      el("span", { text: label }),
+      select,
+    ]));
+  }
+
+  function gridActions(server) {
+    return el("div", { class: "row grid-actions" }, [
+      el("button", {
+        type: "button",
+        disabled: server.source !== "spawned" || server.status !== "stopped",
+        onclick: (event) => { event.stopPropagation(); startServer(server).catch(showError); },
+        text: "Start",
+      }),
+      el("button", {
+        type: "button",
+        onclick: (event) => { event.stopPropagation(); restartServer(server).catch(showError); },
+        text: "Restart",
+      }),
+      el("button", {
+        type: "button",
+        disabled: server.status !== "running",
+        onclick: (event) => { event.stopPropagation(); resyncServer(server).catch(showError); },
+        text: "Resync",
+      }),
+      el("button", {
+        type: "button",
+        class: "danger",
+        onclick: (event) => { event.stopPropagation(); deleteServer(server).catch(showError); },
+        text: "Delete",
+      }),
+    ]);
+  }
+
+  async function startServer(server) {
+    await api.post(`/api/mission-control/servers/${server.instance_id}/start`, {});
+    await refreshList();
+    ctx.setBanner(`Starting ${server.name}.`);
+  }
+
+  async function restartServer(server) {
+    await api.post(`/api/mission-control/servers/${server.instance_id}/restart`, {});
+    await refreshList();
+    ctx.setBanner(`Restarting ${server.name}.`);
+  }
+
+  async function resyncServer(server) {
+    const data = await api.post(`/api/mission-control/servers/${server.instance_id}/resync`, {});
+    if (data && data.ok === false) throw new Error(data.message || "Resync failed.");
+    ctx.setBanner(`Resync requested for ${server.name}.`);
+  }
+
+  async function changeVersion(server, version) {
+    await api.post(`/api/mission-control/servers/${server.instance_id}/version`, { version });
+    await refreshList();
+    ctx.setBanner(`Changing ${server.name} to ${version}.`);
+  }
+
+  async function deleteServer(server) {
+    let references = 0;
+    try {
+      const data = await api.get(`/api/mission-control/servers/${server.instance_id}/destination-references`);
+      references = Number(data.count || 0);
+    } catch {
+      references = 0;
+    }
+    const impact = references ? `\n\n${references} player(s) have this instance saved as their destination.` : "";
+    if (!window.confirm(`Delete "${server.name}"?${impact}`)) return;
+    await api.del(`/api/mission-control/servers/${server.instance_id}`);
+    if (state.selectedId === server.instance_id) {
+      state.selectedId = null;
+      state.detail = null;
+      state.replacementId = "";
+      if (state.timer) window.clearInterval(state.timer);
+    }
+    await refreshList();
+    ctx.setBanner("Instance deleted.");
   }
 
   function replacementSelect(detail) {

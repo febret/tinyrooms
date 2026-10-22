@@ -764,13 +764,16 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     async def entry_ready(request: Request) -> Response:
         runtime = _get_runtime(request)
         origin = request.headers.get("origin")
-        entry = urlsplit(runtime.config.entry_url or "")
-        entry_origin = f"{entry.scheme}://{entry.netloc}" if entry.netloc else None
-        if not origin or origin != entry_origin:
-            validate_origin(origin, runtime.config)
+        headers = {"Vary": "Origin", "Cache-Control": "no-store"}
+        if origin:
+            entry = urlsplit(runtime.config.entry_url or "")
+            entry_origin = f"{entry.scheme}://{entry.netloc}" if entry.netloc else None
+            if origin != entry_origin:
+                validate_origin(origin, runtime.config)
+            headers["Access-Control-Allow-Origin"] = origin
         return JSONResponse(
             {"ok": True, "world_id": runtime.world.id, "instance_id": runtime.config.mc_instance_id},
-            headers={"Access-Control-Allow-Origin": origin or "null", "Vary": "Origin", "Cache-Control": "no-store"},
+            headers=headers,
         )
 
     @app.get("/api/stickers")

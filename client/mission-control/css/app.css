@@ -39,6 +39,8 @@ table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-weight: 500; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
 tr.clickable:hover { background: var(--panel-alt); cursor: pointer; }
+.grid-actions { flex-wrap: nowrap; gap: .35rem; }
+.grid-actions button { padding: .3rem .45rem; font-size: .85rem; }
 .status { display: inline-flex; align-items: center; gap: .35rem; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .dot.running { background: var(--ok); }

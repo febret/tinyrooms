@@ -32,21 +32,30 @@ LOGGER = logging.getLogger("tinyrooms.mc")
 RESUME_FILE = "resume.json"
 
 
+def port_is_available(host: str, port: int) -> bool:
+    """Return True when *host*:*port* can be bound right now."""
+
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    with socket.socket(family, socket.SOCK_STREAM) as sock:
+        if sys.platform != "win32":
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
 def allocate_port(
     host: str = "127.0.0.1", minimum: int = 5000, maximum: int = 5999,
     *, excluded: set[int] | None = None,
 ) -> int:
     """Find an available TCP port within the configured inclusive bounds."""
 
-    family = socket.AF_INET6 if ":" in host else socket.AF_INET
     for port in range(minimum, maximum + 1):
         if port in (excluded or set()):
             continue
-        with socket.socket(family, socket.SOCK_STREAM) as sock:
-            try:
-                sock.bind((host, port))
-            except OSError:
-                continue
+        if port_is_available(host, port):
             return port
     raise ValueError(f"No available instance port in configured range {minimum}-{maximum}.")
 
@@ -125,6 +134,74 @@ class Supervisor:
         except Exception:  # noqa: BLE001 - a map failure must not break lifecycle work
             LOGGER.exception("world_map.update_failed")
 
+    def _reserved_ports(self, *, exclude: str | None = None) -> set[int]:
+        """Return ports claimed by other instances plus the MC listener."""
+
+        reserved = {
+            int(record.spawn_config["port"])
+            for record in self._registry.list()
+            if record.spawn_config and record.instance_id != exclude
+            and record.spawn_config.get("port") is not None
+        }
+        reserved.add(self._config.port)
+        return reserved
+
+    def _choose_port(self, host: str, requested: int | None, reserved: set[int]) -> int:
+        """Keep an available requested port, otherwise allocate a replacement."""
+
+        if (
+            requested is not None
+            and self._config.instance_port_min <= requested <= self._config.instance_port_max
+            and requested not in reserved
+            and port_is_available(host, requested)
+        ):
+            return requested
+        allocated = allocate_port(
+            host,
+            self._config.instance_port_min,
+            self._config.instance_port_max,
+            excluded=reserved,
+        )
+        if requested is not None and requested != allocated:
+            LOGGER.warning(
+                json.dumps({
+                    "event": "mc.port_reassigned",
+                    "requested_port": requested,
+                    "port": allocated,
+                })
+            )
+        return allocated
+
+    def _apply_port(self, record: InstanceRecord, port: int) -> None:
+        """Update a spawned record and its saved settings for a new port."""
+
+        config = record.spawn_config
+        if config is None:
+            return
+        host = str(config.get("host") or self._config.instance_host)
+        config["port"] = port
+        record.endpoint = _endpoint(host, port)
+        if not self._config.same_origin_worlds:
+            client_url = f"{_endpoint(self._config.public_instance_hostname, port)}{record.base_path}"
+            config["client_url"] = client_url
+            record.client_url = client_url
+
+    def _recover_conflicting_port(self, record: InstanceRecord) -> None:
+        """Reassign a saved port that is no longer bindable before respawning."""
+
+        config = record.spawn_config
+        if config is None:
+            return
+        host = str(config.get("host") or self._config.instance_host)
+        raw_port = config.get("port")
+        try:
+            requested = int(raw_port) if raw_port is not None else None
+        except (TypeError, ValueError):
+            requested = None
+        allocated = self._choose_port(host, requested, self._reserved_ports(exclude=record.instance_id))
+        if allocated != requested:
+            self._apply_port(record, allocated)
+
     def _write_identity(self, path: Path, instance_id: str, spawn_config: dict[str, object]) -> None:
         temporary = path.with_suffix(".tmp")
         temporary.write_text(json.dumps({
@@ -180,6 +257,7 @@ class Supervisor:
         instance_id: str | None = None,
         instance_dir: str | None = None,
         version_path: Path | None = None,
+        version_id: str | None = None,
     ) -> InstanceRecord:
         """Spawn a child ``run.py`` and register it with the instance registry."""
 
@@ -187,12 +265,7 @@ class Supervisor:
         host = self._config.instance_host if self._config.same_origin_worlds else (host or self._config.instance_host)
         if port is not None and not self._config.instance_port_min <= port <= self._config.instance_port_max:
             raise ValueError("Instance port is outside the configured range.")
-        reserved = {int(record.spawn_config["port"]) for record in self._registry.list()
-                    if record.spawn_config and record.instance_id != instance_id}
-        reserved.add(self._config.port)
-        allocated_port = port if port is not None else allocate_port(
-            host, self._config.instance_port_min, self._config.instance_port_max, excluded=reserved,
-        )
+        allocated_port = self._choose_port(host, port, self._reserved_ports(exclude=instance_id))
         resolved_dir = Path(instance_dir) if instance_dir else self._config.instances_path / (instance_id or f"mc-{uuid.uuid4().hex[:12]}")
         resolved_dir.mkdir(parents=True, exist_ok=True)
         identity_path = resolved_dir / "instance.json"
@@ -227,6 +300,7 @@ class Supervisor:
             "mods": mods if mods is not None else self._config.mods,
             "base_path": resolved_base_path,
             "version_path": str(version_path) if version_path is not None else "",
+            "version_id": version_id or "",
         }
         endpoint = _endpoint(host, allocated_port)
         record = self._registry.register_spawned(
@@ -399,8 +473,9 @@ class Supervisor:
             )
         record.spawn_config["instance_id"] = record.instance_id
         record.spawn_config.setdefault("client_url", record.client_url or f"{record.endpoint}{record.base_path}")
-        self._persist_identity(record)
         self.stop(instance_id, actor=actor)
+        self._recover_conflicting_port(record)
+        self._persist_identity(record)
         process = self._spawn_process(dict(record.spawn_config))
         revived = self._registry.revive(instance_id, process_handle=process, instance_dir=record.instance_dir)
         if revived is None:
@@ -410,6 +485,48 @@ class Supervisor:
         self._audit.record(actor, "instance.restart", target=instance_id)
         self._changed()
         return revived
+
+    def start_existing(self, instance_id: str, *, actor: str = "mission-control") -> InstanceRecord | None:
+        """Start a stopped spawned child using its saved settings and identity."""
+
+        record = self._registry.get(instance_id)
+        if record is None or record.spawn_config is None or record.status != STATUS_STOPPED:
+            return None
+        self._recover_conflicting_port(record)
+        self._persist_identity(record)
+        process = self._spawn_process(dict(record.spawn_config))
+        revived = self._registry.revive(instance_id, process_handle=process)
+        if revived is None:
+            return None
+        self._capture_output(revived, process)
+        self._watch_process(revived, process)
+        self._audit.record(actor, "instance.start", target=instance_id)
+        self._changed()
+        return revived
+
+    def change_version(
+        self,
+        instance_id: str,
+        *,
+        version_id: str,
+        version_path: Path,
+        world_path: Path,
+        actor: str = "mission-control",
+    ) -> InstanceRecord | None:
+        """Update a spawned instance's saved checkout/world and apply it."""
+
+        record = self._registry.get(instance_id)
+        if record is None or record.spawn_config is None:
+            return None
+        record.spawn_config["version_id"] = version_id
+        record.spawn_config["version_path"] = str(version_path)
+        record.spawn_config["world_path"] = str(world_path)
+        self._persist_identity(record)
+        self._audit.record(actor, "instance.version", target=instance_id, detail={"version": version_id})
+        if record.status != STATUS_STOPPED:
+            return self.restart(instance_id, actor=actor)
+        self._changed()
+        return record
 
     def rename(self, instance_id: str, name: str, *, actor: str = "mission-control") -> InstanceRecord | None:
         """Rename a spawned child while preserving its direct URL and legacy route."""
@@ -522,6 +639,7 @@ class Supervisor:
                     base_path=str(entry.get("base_path") or ""),
                     instance_dir=str(entry["instance_dir"]) if entry.get("instance_dir") else None,
                     version_path=Path(str(entry["version_path"])) if entry.get("version_path") else None,
+                    version_id=str(entry["version_id"]) if entry.get("version_id") else None,
                 )
                 started.append(record.instance_id)
             except (KeyError, OSError, ValueError):

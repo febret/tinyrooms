@@ -177,9 +177,17 @@ users path for player destinations. Detail provides runtime stats, bounded
 stdout/stderr tails for children (polled logs for external servers), and an
 admin console; log refresh can be paused.
 
-- **Stop / Restart**: MC controls children; external servers receive cooperative
-  shutdown/restart. A spawned restart preserves id and saved launch settings,
-  including host, port, base path, client URL, and version selection.
+- **Start / Stop / Restart**: MC controls children; external servers receive
+  cooperative shutdown/restart. **Start** resumes a stopped spawned child with
+  its saved identity/settings. Restart preserves id and saved launch settings,
+  including host, base path, client URL, and version selection. If the saved
+  port is unavailable, MC allocates another in-range port, updates the saved
+  endpoint/identity, and logs `mc.port_reassigned` instead of failing to bind.
+- **Change version**: select another installed server version for a spawned
+  instance. MC re-resolves its world for that checkout, persists the selection,
+  and restarts a non-stopped child. Shared worlds remain outside version roots.
+  The main grid shows the running build and exposes start/restart/resync/delete
+  plus version controls directly.
 - **Rename**: spawned only; persists the label and restarts a non-stopped child,
   preserving id, direct URL, and any legacy base path.
 - **Delete**: stops/removes a child, identity file, and resume entry; leaves
@@ -375,8 +383,10 @@ future hardened production launch path.
   worlds require stable identity, direct-public bind/URL settings, and a world
   version supporting direct entry before use as player destinations.
 - **Resume preserves saved host, port, base path, and version selection**:
-  loopback instances remain loopback-only; ports outside the configured range
-  fail resume. Updating `admin.env` or pressing **Restart** alone is **not** a
+  loopback instances remain loopback-only; an in-range saved port that is still
+  occupied during reboot is reassigned and persisted before spawn. Ports outside
+  the configured range still fail an explicit new-instance start. Updating
+  `admin.env` or pressing **Restart** alone is **not** a
   migration of saved launch settings. Explicitly migrate those settings while
   preserving identity and data. Resume failures do not block MC startup;
   failed entries are not retained for automatic retry. Check instance status
