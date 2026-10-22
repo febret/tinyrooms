@@ -1,19 +1,5 @@
 CONFIG:
   scale_adjust: 1.0
-tinytown-town-diorama:
-  label: TinyTown Diorama
-  description: A whole town in one careful model, with districts stacked around a crooked little high street.
-  model: tinytown-town-diorama.glb
-  decorative: true
-  scale: 3.0
-  editor_scale_min: 0.5
-  editor_scale_max: 4.0
-  sprite_footprint:
-  - 22
-  - 16
-  tags:
-  - town
-  - landmark
 tinytown-art-easel:
   label: Art Easel
   description: A wooden studio easel with a blank canvas. The Art Market delivers right to the frame.

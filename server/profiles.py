@@ -966,6 +966,39 @@ class ProfileRepository:
 
         self.update_profile(account_id, lambda profile: profile.update(last_instance_id=instance_id))
 
+    def count_accounts_for_instance(self, instance_id: str) -> int:
+        """Count profiles whose saved destination is *instance_id*."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(*) FROM user_profiles
+                WHERE json_extract(profile_json, '$.last_instance_id') = ?
+                """,
+                (instance_id,),
+            ).fetchone()
+        return int(row[0]) if row is not None else 0
+
+    def reassign_last_instance(self, old_instance_id: str, new_instance_id: str, world_id: str) -> int:
+        """Move matching-world saved destinations from one instance to another."""
+
+        with self._hub.transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT account_id FROM user_profiles
+                WHERE last_world_id = ?
+                  AND json_extract(profile_json, '$.last_instance_id') = ?
+                """,
+                (world_id, old_instance_id),
+            ).fetchall()
+            for row in rows:
+                self._update_profile_json(
+                    connection,
+                    str(row["account_id"]),
+                    lambda profile: profile.update(last_instance_id=new_instance_id),
+                )
+        return len(rows)
+
     def record_world_arrival(
         self,
         account_id: str,

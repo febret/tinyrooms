@@ -13,6 +13,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -64,6 +65,12 @@ class EditUserPayload(BaseModel):
     """User edit payload."""
 
     fields: dict[str, object]
+
+
+class RepairUserDestinationPayload(BaseModel):
+    """Operator-selected replacement destination for one player."""
+
+    instance_id: str
 
 
 class RegisterPayload(BaseModel):
@@ -444,9 +451,25 @@ async def rename_server(request: Request, instance_id: str, payload: RenameInsta
     return {"ok": True, "server": runtime.registry.snapshot(renamed)}
 
 
+@router.get("/api/mission-control/servers/{instance_id}/destination-references")
+async def destination_references(request: Request, instance_id: str) -> dict[str, object]:
+    """Count players whose saved destination points at an instance."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    if runtime.registry.get(instance_id) is None:
+        raise HTTPException(status_code=404, detail="Instance not found.")
+    return {"ok": True, "count": runtime.profiles.count_accounts_for_instance(instance_id)}
+
+
 @router.delete("/api/mission-control/servers/{instance_id}")
-async def delete_server(request: Request, instance_id: str) -> dict[str, object]:
-    """Stop and remove an instance from mission control."""
+async def delete_server(
+    request: Request,
+    instance_id: str,
+    successor_instance_id: str | None = None,
+    reassign_players: bool = False,
+) -> dict[str, object]:
+    """Stop and remove an instance, recording an optional successor destination."""
 
     runtime = _runtime(request)
     session = _require_operator(request)
@@ -454,6 +477,15 @@ async def delete_server(request: Request, instance_id: str) -> dict[str, object]
     record = runtime.registry.get(instance_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Instance not found.")
+    successor = None
+    if successor_instance_id:
+        successor = runtime.registry.get(successor_instance_id)
+        if successor is None or successor.instance_id == instance_id:
+            return _json_error(400, "successor_invalid", "Successor instance must be a different registered instance.")
+        if not record.world_id or successor.world_id != record.world_id:
+            return _json_error(400, "successor_world_mismatch", "Successor instance must serve the same world.")
+        if not successor.registered_at or runtime.registry.snapshot(successor)["status"] != STATUS_RUNNING:
+            return _json_error(400, "successor_unavailable", "Successor instance must be running and registered.")
     if record.source == SPAWNED:
         runtime.supervisor.delete(instance_id)
     else:
@@ -462,8 +494,32 @@ async def delete_server(request: Request, instance_id: str) -> dict[str, object]
         except (httpx.HTTPError, ValueError):
             pass
         runtime.registry.remove(instance_id)
-    runtime.audit.record("operator", "instance.delete", target=instance_id)
-    return {"ok": True}
+    runtime.retired.record(
+        record,
+        successor_instance_id=successor.instance_id if successor is not None else None,
+        actor="operator",
+    )
+    reassigned = 0
+    if successor is not None and reassign_players:
+        reassigned = runtime.profiles.reassign_last_instance(
+            record.instance_id,
+            successor.instance_id,
+            str(record.world_id),
+        )
+    runtime.audit.record(
+        "operator",
+        "instance.delete",
+        target=instance_id,
+        detail={
+            "successor_instance_id": successor.instance_id if successor is not None else None,
+            "reassigned": reassigned,
+        },
+    )
+    return {
+        "ok": True,
+        "successor_instance_id": successor.instance_id if successor is not None else None,
+        "reassigned": reassigned,
+    }
 
 
 @router.post("/api/mission-control/reboot")
@@ -679,6 +735,85 @@ async def edit_user(request: Request, account_id: str, payload: EditUserPayload)
     except ValueError as exc:
         return _json_error(400, "user_edit_rejected", str(exc))
     return {"ok": True, "user": updated}
+
+
+@router.get("/api/mission-control/users/{account_id}/destination")
+async def user_destination(request: Request, account_id: str) -> dict[str, object]:
+    """Show a player's saved destination and valid same-world replacements."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    profile = runtime.profiles.get_user_profile(account_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Player profile not found.")
+    from server.mission_control.entry import _repair_candidates
+
+    saved_instance_id = profile.last_instance_id
+    record = runtime.registry.get(saved_instance_id) if saved_instance_id else None
+    retirement = runtime.retired.get(saved_instance_id)
+    successor = retirement.get("successor_instance_id") if retirement else None
+    candidates = _repair_candidates(
+        runtime,
+        request,
+        profile.last_world_id,
+        saved_instance_id=saved_instance_id,
+        successor_instance_id=successor if isinstance(successor, str) else None,
+    )
+    return {
+        "ok": True,
+        "world_id": profile.last_world_id,
+        "saved_instance_id": saved_instance_id,
+        "status": runtime.registry.snapshot(record)["status"] if record is not None else None,
+        "retired": retirement is not None,
+        "successor_instance_id": successor if isinstance(successor, str) else None,
+        "candidates": candidates,
+    }
+
+
+@router.post("/api/mission-control/users/{account_id}/destination")
+async def repair_user_destination(
+    request: Request,
+    account_id: str,
+    payload: RepairUserDestinationPayload,
+) -> dict[str, object]:
+    """Point one player's saved destination at another running same-world instance."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    profile = runtime.profiles.get_user_profile(account_id)
+    if profile is None:
+        return _json_error(404, "profile_missing", "Player profile not found.")
+    record = runtime.registry.get(payload.instance_id)
+    if record is None:
+        return _json_error(404, "destination_missing", "Destination instance is not registered.")
+    if record.world_id != profile.last_world_id:
+        return _json_error(400, "destination_world_mismatch", "Destination must serve the player's saved world.")
+    from server.mission_control.entry import _validate_running_destination
+
+    try:
+        client_url = await _validate_running_destination(runtime, record)
+    except HTTPException as exc:
+        return _json_error(
+            exc.status_code,
+            str(getattr(exc, "code", "destination_invalid")),
+            str(exc.detail),
+        )
+    if urlsplit(client_url).hostname != request.url.hostname:
+        return _json_error(400, "destination_host_mismatch", "Destination must use the player entry hostname.")
+    runtime.profiles.remember_instance(account_id, record.instance_id)
+    runtime.audit.record(
+        "operator",
+        "user.destination",
+        target=account_id,
+        detail={"instance_id": record.instance_id, "world_id": record.world_id},
+    )
+    return {
+        "ok": True,
+        "instance_id": record.instance_id,
+        "world_id": record.world_id,
+        "client_url": client_url,
+    }
 
 
 # --- Audit --------------------------------------------------------------------

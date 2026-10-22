@@ -44,6 +44,7 @@ from server.game.modifiers import MODIFIER_TARGETS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
+BOARD_TYPES = frozenset({"basic", "diorama"})
 PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 DEFAULT_PROP_PRICE = 5
@@ -986,6 +987,12 @@ def load_world_definition(
         board_image_path = (rooms_file.parent / board_image_name).resolve()
         if not board_image_path.is_file():
             raise ContentError(f"Room '{room_id}' references missing board image '{board_image_name}'.")
+        board_type = str(raw_room.get("board_type", "basic")).strip() or "basic"
+        if board_type not in BOARD_TYPES:
+            raise ContentError(
+                f"Room '{room_id}' has unknown board_type '{board_type}'. "
+                f"Expected one of {', '.join(sorted(BOARD_TYPES))}."
+            )
         board_image_style = str(raw_room.get("board_image_style", "stretch")).strip() or "stretch"
         if board_image_style not in BOARD_IMAGE_STYLES:
             raise ContentError(
@@ -1116,7 +1123,7 @@ def load_world_definition(
             id=room_id,
             label=str(raw_room.get("label", "")).strip(),
             description=str(raw_room.get("description", "")).strip(),
-            board_type=str(raw_room.get("board_type", "basic")).strip(),
+            board_type=board_type,
             board_image_name=board_image_name,
             board_image_path=board_image_path,
             board_image_style=board_image_style,

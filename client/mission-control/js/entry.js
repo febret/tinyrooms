@@ -7,6 +7,10 @@ const submit = document.getElementById("submit");
 const toggle = document.getElementById("toggle");
 const password = document.getElementById("password");
 const passphrase = document.getElementById("passphrase");
+const repairPanel = document.getElementById("destination-repair");
+const repairMessage = document.getElementById("repair-message");
+const repairSelect = document.getElementById("repair-instance");
+const repairSubmit = document.getElementById("repair-submit");
 let creating = false;
 let csrf = "";
 let busy = false;
@@ -35,7 +39,12 @@ async function api(path, body) {
       signal: controller.signal,
     });
     const data = await response.json();
-    if (!response.ok || !data.ok) throw new Error(data.message || "The request failed. Please retry.");
+    if (!response.ok || !data.ok) {
+      const failure = new Error(data.message || "The request failed. Please retry.");
+      failure.code = data.code;
+      failure.data = data;
+      throw failure;
+    }
     return data;
   } catch (failure) {
     if (failure.name === "AbortError") throw new Error("Player entry timed out. Please retry.");
@@ -52,10 +61,44 @@ function signedIn(session) {
   status.textContent = session.username ? `Welcome back, ${session.username}.` : "You are logged in.";
 }
 
+function hideRepair() {
+  repairPanel.hidden = true;
+  repairPanel.dataset.worldId = "";
+  repairSelect.replaceChildren();
+}
+
+function showRepair(data) {
+  const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+  repairSelect.replaceChildren(...candidates.map(candidate => {
+    const suffix = candidate.replacement ? " (replacement)" : "";
+    return new Option(`${candidate.label || candidate.instance_id}${suffix}`, candidate.instance_id);
+  }));
+  const replacement = candidates.find(candidate => candidate.replacement);
+  if (replacement) repairSelect.value = replacement.instance_id;
+  const world = data.world_id || "your saved world";
+  repairMessage.textContent = candidates.length === 1
+    ? `Your saved instance was removed. Continue in ${candidates[0].label || candidates[0].instance_id}?`
+    : `Your saved instance was removed. Choose a running instance of ${world} to continue.`;
+  repairPanel.dataset.worldId = data.world_id || "";
+  repairPanel.hidden = false;
+  status.textContent = "Your saved destination needs attention.";
+}
+
 async function connect() {
   error.hidden = true;
+  hideRepair();
   status.textContent = "Finding your saved world…";
-  const destination = await api("resolve");
+  let destination;
+  try {
+    destination = await api("resolve");
+  } catch (failure) {
+    const recoverable = failure.code === "entry_instance_missing" || failure.code === "entry_instance_ambiguous";
+    if (recoverable && failure.data?.can_repair) {
+      showRepair(failure.data);
+      return;
+    }
+    throw failure;
+  }
   const target = new URL(destination.client_url);
   if (target.protocol !== "https:" || target.hostname !== location.hostname || target.username || target.password || target.search || target.hash) {
     throw new Error("Your world must use HTTPS and the same hostname as player entry.");
@@ -119,10 +162,23 @@ form.addEventListener("submit", event => {
   });
 });
 
+repairSubmit.addEventListener("click", () => run(async () => {
+  const instanceId = repairSelect.value;
+  if (!instanceId) throw new Error("Choose a world instance to continue.");
+  status.textContent = "Saving your destination…";
+  await api("repair", {
+    instance_id: instanceId,
+    world_id: repairPanel.dataset.worldId || undefined,
+  });
+  hideRepair();
+  await connect();
+}));
+
 document.getElementById("retry").addEventListener("click", () => run(connect));
 document.getElementById("logout").addEventListener("click", () => run(async () => {
   await api("logout", {});
   csrf = "";
+  hideRepair();
   actions.hidden = true;
   form.hidden = false;
   status.textContent = "You are logged out.";

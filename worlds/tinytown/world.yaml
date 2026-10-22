@@ -1,6 +1,6 @@
 id: tinytown
 label: TinyTown
-description: A pocket-sized town of districts, private homes, and very small lives.
+description: A living tabletop town of districts, private homes, and very small lives.
 entry_room: town
 image: rooms/town-map.png
 palette:

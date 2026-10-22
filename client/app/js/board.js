@@ -32,6 +32,7 @@ import { createBoardScheduler } from "./board-scheduler.js";
 import { createBoardRecovery } from "./board-recovery.js";
 import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
+import { DIORAMA_BOARD_TYPE, createDioramaBoard } from "./board-diorama.js";
 import { withBase } from "./base-path.js";
 const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
@@ -711,9 +712,29 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     invalidateScene();
     if (entry.floor) {
       entry.root.remove(entry.floor.group);
-      detachBoardTree(entry.floor.group);
+      if (!entry.floor.diorama) detachBoardTree(entry.floor.group);
       entry.floor.dispose();
     }
+    canvas.dataset.boardType = board.type || "";
+    canvas.dataset.diorama = board.type === DIORAMA_BOARD_TYPE ? "true" : "false";
+    if (board.type === DIORAMA_BOARD_TYPE) {
+      const diorama = createDioramaBoard({
+        board,
+        environment: room.environment,
+        requestShadow() {
+          shadowInvalidations += 1;
+          renderer.shadowMap.needsUpdate = true;
+        },
+        setExposure(value) {
+          renderer.toneMappingExposure = value;
+        },
+      });
+      entry.root.add(diorama.group);
+      entry.diorama = diorama;
+      entry.floor = { group: diorama.group, diorama, dispose: () => diorama.dispose(), key };
+      return;
+    }
+    entry.diorama = null;
     const { group, floor, dispose } = makeFloor(board);
     entry.root.add(group);
     entry.floor = { group, floor, dispose, key };
@@ -754,7 +775,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     userAdjusted = false;
     const entry = {
       root: new THREE.Group(), revision, pickables: [],
-      props: new Map(), cards: new Map(), sprites: new Map(), floor: null,
+      props: new Map(), cards: new Map(), sprites: new Map(), floor: null, diorama: null,
       pending: 0, errors: new Set(), label: room.label,
     };
     current = entry;
@@ -1004,6 +1025,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
    */
   function sceneIsAnimating() {
     if (!current) return false;
+    if (current.diorama) return !blocked;
     if (roomScared && !reducedMotion) return true;
     for (const record of current.props.values()) {
       if (record.animationActive) return true;
@@ -1023,6 +1045,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     recovery.resetFrameErrors();
     const delta = Math.min(clock.getDelta(), 0.1);
     if (current) {
+      current.diorama?.update(delta, { reducedMotion });
+      if (current.diorama) current.diorama.setSceneLights(lights);
       if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
       for (const record of current.props.values()) {
         for (const mixer of record.mixers) mixer.update(delta);
@@ -1088,6 +1112,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         textures: renderer.info.memory.textures,
         programs: renderer.info.programs ? renderer.info.programs.length : 0,
         nodes,
+        boardType: current?.floor?.key ? canvas.dataset.boardType || "" : "",
+        diorama: Boolean(current?.diorama),
+        dayPhase: current?.diorama?.phase ?? null,
         props: current ? current.props.size : 0,
         cards: current ? current.cards.size : 0,
         sprites: current ? current.sprites.size : 0,
@@ -1113,8 +1140,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       editSelectionId = editEnabled ? (state.editSelection || null) : null;
       const modalView = state.views?.main;
       const blockingView = Boolean(modalView && modalView !== "edit-room");
+      const wasBlocked = blocked;
       blocked = Boolean(blockingView || state.views?.auth
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
+      if (blocked !== wasBlocked) invalidate();
       const wasDropArmed = dropArmed;
       dropArmed = Boolean(state.ui?.dropTargeting);
       gameInputEnabled = !blocked && !state.ui?.targeting && !state.ui?.dropTargeting && !state.room?.dialog;
@@ -1129,6 +1158,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         clear();
         roomId = "";
         spritesEnabled = false;
+        canvas.dataset.boardType = "";
+        canvas.dataset.diorama = "false";
         canvas.dataset.boardReady = "false";
         if (!recovery.renderFailed) {
           overlay.textContent = "Your room will appear here.";
@@ -1143,11 +1174,16 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (wasScared !== roomScared) invalidate();
       if (roomDark !== wasDark) invalidate();
       if (!roomScared && current) settleShake(current.root);
-      if (applyDarkLighting(lights, roomDark)) invalidate();
       if (!current || roomId !== state.room.id) {
         rebuild(state.room);
       } else {
         syncRoom(state.room);
+      }
+      if (current?.diorama) {
+        current.diorama.setRoomDark(roomDark);
+        current.diorama.setSceneLights(lights);
+      } else if (applyDarkLighting(lights, roomDark)) {
+        invalidate();
       }
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();

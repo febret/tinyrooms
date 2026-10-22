@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import json
+import time
 
 from server.content.worlds import WorldDefinition
 from server.security import utc_now
@@ -13,6 +14,24 @@ from server.state.world_state import WorldStateRepository
 
 
 ENVIRONMENT_KEYS = ("lighting", "lighting_expires_at", "hidden_props", "disabled_exits", "disabled_actions")
+DIORAMA_BOARD_TYPE = "diorama"
+DIORAMA_CYCLE_SECONDS = 120.0
+
+
+def diorama_environment(
+    environment: dict[str, object],
+    *,
+    now: float | None = None,
+) -> dict[str, object]:
+    """Add the shared wall-clock phase that drives a diorama's two-minute day."""
+
+    seconds = time.time() if now is None else float(now)
+    phase = (seconds % DIORAMA_CYCLE_SECONDS) / DIORAMA_CYCLE_SECONDS
+    return {
+        **environment,
+        "time_of_day": round(phase, 6),
+        "day_cycle_seconds": DIORAMA_CYCLE_SECONDS,
+    }
 
 
 @dataclass(frozen=True, slots=True)

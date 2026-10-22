@@ -143,9 +143,18 @@ class UserManager:
                 "SELECT * FROM audit_log WHERE actor_account_id = ? OR target = ? ORDER BY audit_id DESC LIMIT 100",
                 (account_id, account_id),
             )
+        profile_view = None
+        if profile is not None:
+            profile_view = dict(profile)
+            try:
+                parsed_profile = json.loads(str(profile_view.get("profile_json") or "{}"))
+            except (TypeError, ValueError):
+                parsed_profile = {}
+            if isinstance(parsed_profile, dict):
+                profile_view["last_instance_id"] = parsed_profile.get("last_instance_id")
         return {
             "account": account,
-            "profile": None if profile is None else dict(profile),
+            "profile": profile_view,
             "sessions": sessions,
             "profile_card_stacks": stacks,
             "reward_ledger": ledger,

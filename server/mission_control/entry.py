@@ -30,9 +30,17 @@ router = APIRouter()
 class EntryError(HTTPException):
     """An entry failure that carries a stable machine-readable code."""
 
-    def __init__(self, status_code: int, code: str, message: str) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        *,
+        data: dict[str, object] | None = None,
+    ) -> None:
         super().__init__(status_code, message)
         self.code = code
+        self.data = data
 
 
 def _instance_label(record: InstanceRecord) -> str:
@@ -52,6 +60,13 @@ class CreateCredentials(Credentials):
     """Invitation-gated player account creation."""
 
     passphrase: str
+
+
+class RepairDestination(BaseModel):
+    """Explicit player confirmation of a replacement same-world instance."""
+
+    instance_id: str
+    world_id: str | None = None
 
 
 class PlayerAuthService:
@@ -227,6 +242,108 @@ async def _destination(request: Request, instance_id: str) -> tuple[InstanceReco
     return record, client_url
 
 
+def _repair_candidates(
+    runtime,
+    request: Request,
+    world_id: str,
+    *,
+    saved_instance_id: str | None = None,
+    successor_instance_id: str | None = None,
+) -> list[dict[str, object]]:
+    """Return runnable same-world instances a player could explicitly choose."""
+
+    candidates: list[dict[str, object]] = []
+    for record in runtime.registry.list():
+        if record.instance_id == saved_instance_id or record.world_id != world_id:
+            continue
+        if not record.registered_at:
+            continue
+        if runtime.registry.snapshot(record)["status"] != STATUS_RUNNING:
+            continue
+        try:
+            client_url = _format_client_url(record)
+        except HTTPException:
+            continue
+        if urlsplit(client_url).hostname != request.url.hostname:
+            continue
+        candidates.append(
+            {
+                "instance_id": record.instance_id,
+                "world_id": record.world_id,
+                "label": record.name,
+                "client_url": client_url,
+                "entry_room_id": record.entry_room_id,
+                "replacement": record.instance_id == successor_instance_id,
+            }
+        )
+    candidates.sort(
+        key=lambda candidate: (
+            not candidate["replacement"],
+            str(candidate["label"]).casefold(),
+            str(candidate["instance_id"]),
+        )
+    )
+    return candidates
+
+
+def _recovery_response(
+    runtime,
+    request: Request,
+    profile,
+    *,
+    code: str,
+    saved_instance_id: str | None,
+) -> JSONResponse:
+    """Return a recoverable destination error with explicit same-world choices."""
+
+    world_id = profile.last_world_id
+    retirement = runtime.retired.get(saved_instance_id)
+    successor = retirement.get("successor_instance_id") if retirement else None
+    if not isinstance(successor, str) or not successor:
+        successor = None
+    candidates = _repair_candidates(
+        runtime,
+        request,
+        world_id,
+        saved_instance_id=saved_instance_id,
+        successor_instance_id=successor,
+    )
+    if candidates:
+        if saved_instance_id:
+            message = (
+                f"The saved instance '{saved_instance_id}' is no longer registered. "
+                f"Choose another running instance of '{world_id}' to continue."
+            )
+        else:
+            message = (
+                f"Your saved world '{world_id}' has more than one running instance. "
+                "Choose one to continue."
+            )
+    elif saved_instance_id:
+        message = f"The saved instance '{saved_instance_id}' is no longer registered. Ask an operator to restore it."
+    else:
+        message = (
+            f"Your saved world '{world_id}' does not identify a running instance. "
+            "Ask an operator to restore your destination."
+        )
+    data: dict[str, object] = {
+        "saved_instance_id": saved_instance_id,
+        "world_id": world_id,
+        "can_repair": bool(candidates),
+        "candidates": candidates,
+    }
+    if retirement is not None:
+        data["retired"] = True
+        data["retired_at"] = retirement.get("retired_at")
+    if successor is not None:
+        data["successor_instance_id"] = successor
+    return JSONResponse(
+        status_code=409,
+        content={"ok": False, "code": code, "message": message, **data},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @router.get("/api/entry/session")
 async def session_status(request: Request) -> Response:
     """Report player authentication without loading or changing world state."""
@@ -303,7 +420,7 @@ async def logout(request: Request) -> Response:
 
 @router.get("/api/entry/resolve")
 async def resolve(request: Request) -> Response:
-    """Resolve the saved instance, with unique-world matching only for legacy profiles."""
+    """Resolve the exact saved instance, offering same-world recovery when it is gone."""
 
     runtime = request.app.state.mc
     session = _session(request)
@@ -316,13 +433,78 @@ async def resolve(request: Request) -> Response:
     if not instance_id:
         matches = [record for record in runtime.registry.list() if record.world_id == profile.last_world_id]
         if len(matches) != 1:
-            raise HTTPException(409, "Your saved world does not identify a unique instance. Ask an operator to restore your destination.")
+            return _recovery_response(
+                runtime,
+                request,
+                profile,
+                code="entry_instance_ambiguous",
+                saved_instance_id=None,
+            )
         instance_id = matches[0].instance_id
+    if runtime.registry.get(instance_id) is None:
+        return _recovery_response(
+            runtime,
+            request,
+            profile,
+            code="entry_instance_missing",
+            saved_instance_id=instance_id,
+        )
     record, client_url = await _destination(request, instance_id)
     if record.world_id != profile.last_world_id:
         raise HTTPException(409, "Your saved instance now serves a different world. Ask an operator for help.")
     return JSONResponse({"ok": True, "instance_id": record.instance_id, "world_id": record.world_id,
                          "client_url": client_url}, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/entry/repair")
+async def repair(request: Request, payload: RepairDestination) -> Response:
+    """Explicitly rebind a player to another running instance of their saved world."""
+
+    runtime = request.app.state.mc
+    session = _session(request)
+    validate_origin(request.headers.get("origin"), runtime.config)
+    require_matching_csrf(session.csrf_token, request.headers.get("x-csrf-token"))
+    require_matching_csrf(session.csrf_token, request.cookies.get(CSRF_COOKIE))
+
+    profile = runtime.profiles.get_user_profile(session.account_id)
+    if profile is None:
+        raise HTTPException(409, "Your player profile is missing. Ask an operator for help.")
+    saved_instance_id = profile.last_instance_id
+    if saved_instance_id and runtime.registry.get(saved_instance_id) is not None:
+        raise EntryError(
+            409,
+            "entry_instance_healthy",
+            "Your saved instance is available. Reload player entry to continue.",
+        )
+    if payload.world_id is not None and payload.world_id != profile.last_world_id:
+        raise EntryError(
+            409,
+            "entry_instance_world_mismatch",
+            "You can only repair your saved world destination.",
+        )
+    record, client_url = await _destination(request, payload.instance_id)
+    if record.world_id != profile.last_world_id:
+        raise EntryError(
+            409,
+            "entry_instance_world_mismatch",
+            "That instance serves a different world. Ask an operator for help.",
+        )
+    runtime.profiles.remember_instance(session.account_id, record.instance_id)
+    runtime.audit.record(
+        f"account:{session.account_id}",
+        "player.destination.repair",
+        target=record.instance_id,
+        detail={"world_id": record.world_id, "previous_instance_id": saved_instance_id},
+    )
+    return JSONResponse(
+        {
+            "ok": True,
+            "instance_id": record.instance_id,
+            "world_id": record.world_id,
+            "client_url": client_url,
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.post("/api/mission-control/instances/{instance_id}/default")

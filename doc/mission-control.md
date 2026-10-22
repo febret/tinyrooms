@@ -50,11 +50,17 @@ processes; external lifecycle actions use cooperative world endpoints.
   use MC's shared profile DB; spawned destinations with a different users path
   are rejected.
   External instances require operator verification of that shared-DB setup.
-- Resolve reads `user_profiles.profile_json.last_instance_id` **exactly**.
-  Only legacy profiles lacking an instance identity may match a **unique**
-  registered instance by `last_world_id`. Invalid, missing, ambiguous, or
-  unavailable destinations fail; they never fall back to the default or another
-  instance. A saved instance serving a different world is also rejected.
+- Resolve reads `user_profiles.profile_json.last_instance_id` **exactly** and
+  validates it before any alternative. Only when that instance is no longer
+  registered (or a legacy profile has zero/multiple world matches) does entry
+  return explicit same-world alternatives. The player must confirm one through
+  `POST /api/entry/repair`; entry never falls back automatically to the default,
+  another world, or a different instance. A saved instance serving a different
+  world is still rejected. Retired-instance records may rank a designated
+  successor first, but confirmation remains explicit.
+- Repairs preserve `last_world_id` and `remembered_room`; only the exact saved
+  instance changes. If no running instance of the saved world exists, entry keeps
+  the operator-restore message rather than offering another world.
 - A destination must be registered/running, advertise a valid same-origin HTTPS
   `client_url` without credentials/query/fragment (normally
   `https://<hostname>/world/<instance-id>/`), and answer `/health` with matching
@@ -178,7 +184,10 @@ admin console; log refresh can be paused.
   preserving id, direct URL, and any legacy base path.
 - **Delete**: stops/removes a child, identity file, and resume entry; leaves
   worldstate and other data on disk. External servers are best-effort shut down
-  and dropped. Removing a record does not repair players' saved destinations.
+  and dropped. Deletion writes a durable retirement record, reports how many
+  players have the instance saved, and accepts an optional same-world successor.
+  With a successor, selected players can be reassigned immediately; otherwise
+  entry offers them running same-world instances for explicit confirmation.
 - **Make default**: validates/persists the new-account destination (§2.1), shown
   with a Default badge. **Resync** refreshes profiles (§11).
 - **Reboot**: requires `TRSERVER_MC_KEEPALIVE`; records running/starting children
@@ -207,8 +216,10 @@ The running version, path escapes, and versions with **any registered instance**
 [User management](../server/mission_control/users.py) searches accounts, displays
 related profile/session/inventory/reward/task/memory/audit rows, and edits
 supported account fields/powers through repository methods. Edits are validated
-and recorded in MC's audit ring. **Resync** targets one/all running instances
-and reports per-instance success/failure; use it to refresh live clients after edits.
+and recorded in MC's audit ring. The detail view also shows the saved destination
+and lets an operator explicitly repair it to another running same-world instance.
+**Resync** targets one/all running instances and reports per-instance
+success/failure; use it to refresh live clients after edits.
 
 ### 5.6 Server Info
 
@@ -274,9 +285,12 @@ viewer's friends' stickers to the activity.
 ### 7.1 Public player-entry API
 
 [entry.py](../server/mission_control/entry.py) owns `/api/entry/` session,
-login, create, logout, and resolve. Login/create require Origin and rate limits;
-logout requires Origin and matching session/header/cookie CSRF tokens. Player
-sessions are separate from operator sessions. Destination rules are in §2.1.
+login, create, logout, resolve, and repair. Login/create require Origin and rate
+limits; logout/repair require Origin and matching session/header/cookie CSRF
+tokens. A missing or ambiguous saved destination returns `409` with
+`saved_instance_id`, `world_id`, `can_repair`, and same-world `candidates`;
+repair revalidates the chosen instance before updating only `last_instance_id`.
+Player sessions are separate from operator sessions. Destination rules are in §2.1.
 
 ## 8. Data model and storage
 
@@ -286,6 +300,10 @@ sessions are separate from operator sessions. Destination rules are in §2.1.
 and bounded per-instance log rings. Missing heartbeat beyond 3× the configured
 interval marks an instance unreachable; child process exit marks it stopped.
 Staleness changes status rather than selecting a replacement destination.
+[RetiredInstanceStore](../server/mission_control/retired.py) atomically persists
+deleted instance ids, world identity, deletion time, and an optional operator
+successor in `<TRSERVER_MC_INSTANCES_PATH>/retired.json`; this file is advisory
+for candidate ranking and survives MC restarts.
 
 ### 8.2 Profile database access
 
@@ -405,8 +423,10 @@ version-deletion containment/usage checks and validated/audited user edits.
 
 Missing required feature/credentials fails configuration. MC outages/token
 rejections leave gameplay running; entry resolution still fails when its saved
-destination cannot be validated. The UI distinguishes unreachable instances;
-per-instance timeouts keep dead stats/log calls from blocking the list view.
+destination cannot be validated, but a removed instance now yields explicit
+same-world recovery choices instead of a permanent dead end. No candidate is
+selected automatically. The UI distinguishes unreachable instances; per-instance
+timeouts keep dead stats/log calls from blocking the list view.
 
 ## 11. Key flows
 

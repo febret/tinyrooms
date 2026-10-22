@@ -58,6 +58,14 @@
         <p id="status" class="entry-status" role="status" aria-live="polite">Checking your login…</p>
       </header>
       <p id="error" class="entry-error" role="alert" hidden></p>
+      <div id="destination-repair" class="entry-repair" hidden>
+        <p id="repair-message" class="entry-repair__message"></p>
+        <label class="entry-field" for="repair-instance">
+          <span>World instance</span>
+          <select id="repair-instance"></select>
+        </label>
+        <button id="repair-submit" class="entry-submit" type="button">Continue</button>
+      </div>
       <form id="auth-form" class="entry-form" hidden>
         <label class="entry-field" for="username">
           <span>Username</span>

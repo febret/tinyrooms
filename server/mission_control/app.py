@@ -25,6 +25,7 @@ from server.mission_control.config import MCConfig
 from server.mission_control.entry import EntrySettings, PlayerAuthService, router as entry_router
 from server.mission_control.packages import PackageManager
 from server.mission_control.registry import InstanceRegistry
+from server.mission_control.retired import RetiredInstanceStore
 from server.mission_control.server_info import ServerInfoService
 from server.mission_control.showcase import EntryShowcase, router as showcase_router
 from server.mission_control.supervisor import Supervisor
@@ -48,6 +49,7 @@ class McRuntime:
     profiles: ProfileRepository
     audit: McAuditLog
     registry: InstanceRegistry
+    retired: RetiredInstanceStore
     supervisor: Supervisor
     world_map: WorldMapManager
     packages: PackageManager
@@ -70,6 +72,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
     profiles = ProfileRepository(hub)
     audit = McAuditLog()
     registry = InstanceRegistry(stale_after_seconds=config.heartbeat_seconds * 3)
+    retired = RetiredInstanceStore(config.instances_path)
     world_map = WorldMapManager(config, registry)
     supervisor = Supervisor(config, registry, audit, on_change=world_map.update)
     packages = PackageManager(config, registry, audit)
@@ -88,6 +91,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
         profiles=profiles,
         audit=audit,
         registry=registry,
+        retired=retired,
         supervisor=supervisor,
         world_map=world_map,
         packages=packages,
@@ -158,10 +162,13 @@ def create_mc_app(config: MCConfig) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_error_handler(request: Request, exc: HTTPException) -> JSONResponse:  # noqa: ARG001
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"ok": False, "code": getattr(exc, "code", "http_error"), "message": str(exc.detail)},
-        )
+        content = {"ok": False, "code": getattr(exc, "code", "http_error"), "message": str(exc.detail)}
+        extra = getattr(exc, "data", None)
+        if isinstance(extra, dict):
+            content.update(
+                {key: value for key, value in extra.items() if key not in {"ok", "code", "message"}}
+            )
+        return JSONResponse(status_code=exc.status_code, content=content)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:  # noqa: ARG001

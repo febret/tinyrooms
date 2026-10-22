@@ -62,8 +62,10 @@ excluded from merging/dropping by the repository.
 Counters, buffs, ownership, and profile settings therefore share that row
 across worlds. `last_world_id`, `remembered_room`, and `last_visit_at` track
 resume/navigation; stable destination identity is
-`profile_json.last_instance_id`. See [mission-control entry semantics](./mission-control.md)
-and the repository's `remember_instance` / `ensure_user_profile` paths.
+`profile_json.last_instance_id`. Entry repair and operator destination edits
+rewrite only that key, preserving the saved world and room. See
+[mission-control entry semantics](./mission-control.md) and the repository's
+`remember_instance`, `reassign_last_instance`, and `ensure_user_profile` paths.
 
 `profile_json` is extensible and normalized with defaults on read. Friends,
 requests, pinned peeps, skill slots, statuses, UI settings, and unlocked props

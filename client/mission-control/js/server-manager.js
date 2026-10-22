@@ -9,6 +9,7 @@ export function createServerManager(container, ctx) {
     summary: {},
     selectedId: null,
     detail: null,
+    replacementId: "",
     logs: [],
     autoRefresh: true,
     timer: null,
@@ -169,6 +170,7 @@ export function createServerManager(container, ctx) {
   function select(instanceId) {
     state.selectedId = instanceId;
     state.detail = null;
+    state.replacementId = "";
     state.logs = [];
     refreshDetail().catch(showError);
     schedule();
@@ -192,6 +194,7 @@ export function createServerManager(container, ctx) {
           el("button", { type: "button", onclick: () => lifecycle("restart"), text: "Restart" }),
           el("button", { type: "button", onclick: () => renameInstance(), text: "Rename" }),
           el("button", { type: "button", onclick: () => resync(), text: "Resync" }),
+          replacementSelect(detail),
           el("button", { type: "button", onclick: () => deleteInstance(), text: "Delete" }),
         ]),
       ]),
@@ -231,6 +234,29 @@ export function createServerManager(container, ctx) {
     return server.client_url
       ? el("a", { href: server.client_url, target: "_blank", rel: "noopener noreferrer", onclick: (event) => event.stopPropagation(), text: server.client_url })
       : el("span", { class: "muted", text: "—" });
+  }
+
+  function replacementSelect(detail) {
+    const alternatives = state.servers.filter((server) =>
+      server.instance_id !== detail.instance_id
+      && server.status === "running"
+      && server.world.id === detail.world.id,
+    );
+    if (!alternatives.length) return "";
+    const select = el("select", {
+      id: "delete-replacement",
+      "aria-label": "Replacement for affected players",
+      onchange: (event) => { state.replacementId = event.target.value; },
+    }, [
+      el("option", { value: "", text: "No replacement" }),
+      ...alternatives.map((server) => el("option", {
+        value: server.instance_id,
+        selected: server.instance_id === state.replacementId,
+        text: `Reassign to ${server.name}`,
+      })),
+    ]);
+    select.value = state.replacementId;
+    return select;
   }
 
   async function makeDefault() {
@@ -301,14 +327,37 @@ export function createServerManager(container, ctx) {
   async function deleteInstance() {
     const detail = state.detail;
     if (!detail) return;
-    if (!window.confirm(`Delete "${detail.name}"?`)) return;
+    let references = 0;
     try {
-      await api.del(`/api/mission-control/servers/${state.selectedId}`);
+      const data = await api.get(`/api/mission-control/servers/${state.selectedId}/destination-references`);
+      references = Number(data.count || 0);
+    } catch {
+      references = 0;
+    }
+    const replacement = state.replacementId
+      ? state.servers.find((server) => server.instance_id === state.replacementId)
+      : null;
+    const impact = references
+      ? `\n\n${references} player(s) have this instance saved as their destination.`
+      : "";
+    const reassign = replacement
+      ? `\n\nReassign those players to "${replacement.name}".`
+      : "\n\nThey will be offered another running instance of this world.";
+    if (!window.confirm(`Delete "${detail.name}"?${impact}${references ? reassign : ""}`)) return;
+    try {
+      const query = new URLSearchParams();
+      if (replacement) {
+        query.set("successor_instance_id", replacement.instance_id);
+        query.set("reassign_players", "true");
+      }
+      const suffix = query.toString() ? `?${query}` : "";
+      const data = await api.del(`/api/mission-control/servers/${state.selectedId}${suffix}`);
       state.selectedId = null;
       state.detail = null;
+      state.replacementId = "";
       if (state.timer) window.clearInterval(state.timer);
       await refreshList();
-      ctx.setBanner("Instance deleted.");
+      ctx.setBanner(replacement ? `Instance deleted; ${data.reassigned || 0} player(s) reassigned.` : "Instance deleted.");
     } catch (error) {
       ctx.setBanner(error.message);
     }

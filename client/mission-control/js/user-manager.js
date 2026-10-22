@@ -4,7 +4,7 @@ import { clear, el } from "./dom.js";
 const POWERS = ["admin", "realtor", "builder", "moderator", "game-master"];
 
 export function createUserManager(container, ctx) {
-  const state = { users: [], selectedId: null, detail: null };
+  const state = { users: [], selectedId: null, detail: null, destination: null };
 
   async function load(query = "") {
     const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
@@ -16,6 +16,11 @@ export function createUserManager(container, ctx) {
     state.selectedId = accountId;
     const data = await api.get(`/api/mission-control/users/${accountId}`);
     state.detail = data.user;
+    try {
+      state.destination = await api.get(`/api/mission-control/users/${accountId}/destination`);
+    } catch (error) {
+      state.destination = { error: error.message };
+    }
     render();
   }
 
@@ -82,10 +87,11 @@ export function createUserManager(container, ctx) {
     ]);
     return el("div", { class: "stack" }, [
       el("div", { class: "row" }, [
-        el("button", { type: "button", onclick: () => { state.selectedId = null; state.detail = null; render(); }, text: "← Back" }),
+        el("button", { type: "button", onclick: () => { state.selectedId = null; state.detail = null; state.destination = null; render(); }, text: "← Back" }),
         el("h2", { text: account.username_display }),
       ]),
       el("div", { class: "card" }, [el("h3", { text: "Edit" }), form]),
+      renderDestination(),
       el("div", { class: "card" }, [
         el("h3", { text: "Related rows" }),
         relation("Sessions", detail.sessions.length),
@@ -99,8 +105,62 @@ export function createUserManager(container, ctx) {
     ]);
   }
 
-  function relation(label, count) {
-    return el("div", { class: "row spread" }, [el("span", { class: "muted", text: label }), el("span", { text: String(count) })]);
+  function renderDestination() {
+    const destination = state.destination;
+    if (!destination) {
+      return el("div", { class: "card" }, [el("h3", { text: "Saved destination" }), el("p", { class: "muted", text: "Loading…" })]);
+    }
+    if (destination.error) {
+      return el("div", { class: "card" }, [
+        el("h3", { text: "Saved destination" }),
+        el("p", { class: "muted", text: destination.error }),
+      ]);
+    }
+    const saved = destination.saved_instance_id || "—";
+    const status = destination.status || (destination.retired ? "retired" : destination.saved_instance_id ? "not registered" : "none");
+    const source = destination.saved_instance_id ? saved : "No saved instance";
+    const rows = [
+      destinationRow("World", destination.world_id || "—"),
+      destinationRow("Instance", source),
+      destinationRow("Status", status),
+    ];
+    const candidates = Array.isArray(destination.candidates) ? destination.candidates : [];
+    const controls = candidates.length
+      ? [
+          el("select", { id: "repair-destination" }, candidates.map((candidate) =>
+            el("option", {
+              value: candidate.instance_id,
+              selected: candidate.replacement,
+              text: `${candidate.label || candidate.instance_id}${candidate.replacement ? " (replacement)" : ""}`,
+            }),
+          )),
+          el("button", {
+            type: "button",
+            onclick: () => repairDestination(document.getElementById("repair-destination")).catch(showError),
+            text: "Repair destination",
+          }),
+        ]
+      : [el("p", { class: "muted", text: "No running same-world replacement is available." })];
+    return el("div", { class: "card" }, [
+      el("h3", { text: "Saved destination" }),
+      ...rows,
+      el("div", { class: "row" }, controls),
+    ]);
+  }
+
+  function destinationRow(label, value) {
+    return el("div", { class: "row spread" }, [el("span", { class: "muted", text: label }), el("span", { text: value })]);
+  }
+
+  async function repairDestination(select) {
+    if (!select || !select.value) return;
+    try {
+      await api.post(`/api/mission-control/users/${state.selectedId}/destination`, { instance_id: select.value });
+      await openDetail(state.selectedId);
+      ctx.setBanner("Player destination repaired.");
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
   }
 
   function field(label, control) {

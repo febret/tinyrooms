@@ -20,6 +20,7 @@ from server.protocol import (
 )
 from server.services.activities import ActivityService
 from server.services.cards import CardService
+from server.services.environment import DIORAMA_BOARD_TYPE, diorama_environment
 from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.sprite_rooms import SpriteService
@@ -813,6 +814,8 @@ class RoomService:
             dark = self._environment.lighting(room_id) == "dark"
         else:
             dark = room.dark
+        if room.board_type == DIORAMA_BOARD_TYPE:
+            environment = diorama_environment(environment)
         viewer_view = occupant_views.get(account.id)
         viewer_statuses = viewer_view.statuses if viewer_view is not None else ()
         status_definitions = self._stats.content.statuses
