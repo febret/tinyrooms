@@ -15,8 +15,11 @@ const eraserButton = document.querySelector("#eraser");
 const textValue = document.querySelector("#text-value");
 const textButton = document.querySelector("#text-mode");
 const saveButton = document.querySelector("#save");
+const lockNote = document.querySelector("#lock-note");
+const shell = document.querySelector(".whiteboard-shell");
 
 let content = { strokes: [], texts: [] };
+let locked = false;
 let revision = 0;
 let instanceId = "";
 let dirty = false;
@@ -35,10 +38,15 @@ function clone(value) {
 function render() {
   pendingFrame = 0;
   drawWhiteboard(context, content);
-  saveButton.disabled = !instanceId;
-  saveButton.textContent = dirty ? "Save whiteboard" : "Saved";
-  document.querySelector("#undo").disabled = !undoStack.length;
-  document.querySelector("#redo").disabled = !redoStack.length;
+  saveButton.disabled = !instanceId || locked;
+  saveButton.textContent = locked ? "Signed print" : (dirty ? "Save whiteboard" : "Saved");
+  document.querySelector("#undo").disabled = locked || !undoStack.length;
+  document.querySelector("#redo").disabled = locked || !redoStack.length;
+  document.querySelector("#clear").disabled = locked;
+  document.querySelector("#eraser").disabled = locked;
+  document.querySelector("#text-mode").disabled = locked;
+  brushSize.disabled = locked;
+  textValue.disabled = locked;
 }
 
 function requestRender() {
@@ -53,6 +61,7 @@ function pushUndo() {
 }
 
 function markDirty() {
+  if (locked) return;
   dirty = true;
   status.textContent = "Unsaved changes";
   requestRender();
@@ -70,7 +79,7 @@ function pointFor(event) {
 }
 
 function beginStroke(event) {
-  if (!instanceId) return;
+  if (!instanceId || locked) return;
   if (textMode) {
     const text = textValue.value.trim();
     if (!text) {
@@ -192,7 +201,20 @@ textButton.onclick = () => {
 
 function updateTextMode() {
   textButton.setAttribute("aria-pressed", String(textMode));
-  canvas.classList.toggle("text-mode", textMode);
+  canvas.classList.toggle("text-mode", textMode && !locked);
+}
+
+function setLocked(value) {
+  locked = Boolean(value);
+  shell.classList.toggle("is-locked", locked);
+  lockNote.hidden = !locked;
+  canvas.setAttribute("aria-readonly", String(locked));
+  if (locked) {
+    dirty = false;
+    drawing = null;
+    status.textContent = "Signed print · this artwork cannot be modified";
+  }
+  render();
 }
 
 document.querySelector("#undo").onclick = () => {
@@ -258,13 +280,15 @@ TinyActivity.subscribe(state => {
     setColors(config.whiteboard_options?.colors);
     const surface = config.surface || surfaceFromState(state);
     loadSurface(surface, true);
+    setLocked(config.can_edit_surface === false || surface?.locked === true);
   }
   if (connection.textContent) connection.textContent = "";
   if (!instanceId) {
     status.textContent = "Open a whiteboard prop from a room to draw here.";
     return;
   }
-  const surface = surfaceFromState(state);
+  const surface = surfaceFromState(state) || config.surface;
+  if (surface) setLocked(config.can_edit_surface === false || surface.locked === true);
   if (surface && Number(surface.revision || 0) > revision) {
     if (dirty) {
       status.textContent = "Someone saved a newer version. Save to overwrite it.";

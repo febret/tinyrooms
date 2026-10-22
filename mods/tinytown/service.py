@@ -121,6 +121,68 @@ class TinytownHousing:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS world.tinytown_roommate_candidates (
+                    candidate_id TEXT PRIMARY KEY,
+                    owner_account_id TEXT NOT NULL,
+                    house_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    avatar TEXT NOT NULL,
+                    traits_json TEXT NOT NULL,
+                    stats_json TEXT NOT NULL,
+                    headline TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS world.idx_tinytown_candidates_house "
+                "ON tinytown_roommate_candidates(owner_account_id, house_id, created_at)"
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS world.tinytown_art_listings (
+                    listing_id TEXT PRIMARY KEY,
+                    seller_account_id TEXT NOT NULL,
+                    source_room_id TEXT NOT NULL,
+                    source_instance_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    price INTEGER NOT NULL,
+                    surface_json TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'active',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS world.idx_tinytown_listings_status "
+                "ON tinytown_art_listings(status, created_at)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS world.idx_tinytown_listings_seller "
+                "ON tinytown_art_listings(seller_account_id, status)"
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS world.tinytown_art_sales (
+                    sale_id TEXT PRIMARY KEY,
+                    listing_id TEXT NOT NULL,
+                    buyer_account_id TEXT NOT NULL,
+                    seller_account_id TEXT NOT NULL,
+                    price INTEGER NOT NULL,
+                    surface_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE (listing_id, buyer_account_id)
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS world.idx_tinytown_sales_buyer "
+                "ON tinytown_art_sales(buyer_account_id, created_at)"
+            )
 
     def prepare(self) -> None:
         """Materialize every persisted house and every household NPC."""
@@ -154,6 +216,26 @@ class TinytownHousing:
             self._npc_house = NpcHouse(self)
             npc_house = self._npc_house
         return npc_house
+
+    @property
+    def roommates(self) -> object:
+        from mods.tinytown.roommates import RoommateCandidates
+
+        candidates = getattr(self, "_roommate_candidates", None)
+        if candidates is None:
+            self._roommate_candidates = RoommateCandidates(self)
+            candidates = self._roommate_candidates
+        return candidates
+
+    @property
+    def market(self) -> object:
+        from mods.tinytown.market import TinyTownArtMarket
+
+        market = getattr(self, "_art_market", None)
+        if market is None:
+            self._art_market = TinyTownArtMarket(self)
+            market = self._art_market
+        return market
 
     # -- records -------------------------------------------------------------
 
@@ -733,7 +815,7 @@ class TinytownHousing:
             }
         )
         try:
-            surface = self._surfaces.save_whiteboard(room_id, instance_id, account.id, piece.surface)
+            surface = self._surfaces.install_whiteboard(room_id, instance_id, account.id, piece.surface, locked=True)
             update = self._layout.save(
                 account,
                 room_id,
@@ -769,6 +851,8 @@ class TinytownService:
         self.runtime = runtime
         self.housing = TinytownHousing(runtime)
         self.npcs = self.housing.npcs
+        self.roommates = self.housing.roommates
+        self.market = self.housing.market
 
     @property
     def available(self) -> bool:
@@ -792,7 +876,7 @@ class TinytownService:
         if room.id == ENTRY_ROOM_ID:
             from server.content.worlds import QuickAction
 
-            return (QuickAction(label="Find your TinyTown home", command=".play tinytown"),)
+            return (QuickAction(label="Find your TinyTown home", command=".play tiny-mag"),)
         return ()
 
     def personal_actions(self, account: object, prop: object) -> tuple[object, ...]:

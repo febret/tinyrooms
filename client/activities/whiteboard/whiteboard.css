@@ -96,3 +96,16 @@
   .whiteboard-footer .actions { width: 100%; }
   .whiteboard-footer .actions button { width: 100%; }
 }
+
+.whiteboard-lock {
+  margin: 0;
+  padding: 9px 14px;
+  border: 1px solid #9b7b42;
+  border-radius: 7px;
+  color: #f3dfb4;
+  background: #2b2117;
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: .04em;
+}
+
+.whiteboard-shell.is-locked #board { cursor: default; }

@@ -945,6 +945,9 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         if payload.type == "activity.surface":
             if activity.kind != "whiteboard" or not activity.room_id:
                 raise HTTPException(status_code=400, detail="That activity cannot save a surface.")
+            connection = await runtime.connections.get(session.account_id)
+            if connection is None or connection.room_id != activity.room_id:
+                raise HTTPException(status_code=409, detail="Return to the whiteboard's room to save it.")
             try:
                 surface = runtime.surfaces.save_activity_surface(
                     activity,

@@ -10,7 +10,7 @@ import threading
 
 
 PROFILE_SCHEMA_VERSION = 11
-WORLD_SCHEMA_VERSION = 17
+WORLD_SCHEMA_VERSION = 18
 
 
 def read_behavior_state(
@@ -330,6 +330,9 @@ CREATE TABLE IF NOT EXISTS prop_surfaces (
     revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
     updated_by_account_id TEXT,
     updated_at TEXT NOT NULL,
+    locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1)),
+    locked_by_account_id TEXT,
+    locked_at TEXT,
     PRIMARY KEY (room_id, instance_id)
 );
 CREATE INDEX IF NOT EXISTS idx_prop_surfaces_room ON prop_surfaces(room_id);
@@ -342,7 +345,7 @@ CREATE TABLE IF NOT EXISTS vibes (
     PRIMARY KEY (world_id, source_peep_id, target_peep_id)
 );
 CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
-PRAGMA user_version = 17;
+PRAGMA user_version = 18;
 COMMIT;
 """
 
@@ -687,6 +690,14 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 17;
     COMMIT;
     """,
+    18: """
+    BEGIN;
+    ALTER TABLE prop_surfaces ADD COLUMN locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1));
+    ALTER TABLE prop_surfaces ADD COLUMN locked_by_account_id TEXT;
+    ALTER TABLE prop_surfaces ADD COLUMN locked_at TEXT;
+    PRAGMA user_version = 18;
+    COMMIT;
+    """,
 }
 
 _REWARD_LEDGER_COLUMNS = (
@@ -882,6 +893,9 @@ _PROP_SURFACES_COLUMNS = (
     "revision",
     "updated_by_account_id",
     "updated_at",
+    "locked",
+    "locked_by_account_id",
+    "locked_at",
 )
 
 

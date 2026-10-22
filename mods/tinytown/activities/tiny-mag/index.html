@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" class="full-height">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tiny Mag</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./tiny-mag.css">
+  </head>
+  <body class="mag-body">
+    <main class="mag-shell" id="mag-shell">
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms...</p>
+      <div class="mag-stage">
+        <div class="mag-book" id="book" aria-live="polite">
+          <span class="mag-spine" aria-hidden="true"></span>
+          <section class="mag-page mag-page-left" id="page-left" aria-label="Left page"></section>
+          <section class="mag-page mag-page-right" id="page-right" aria-label="Right page"></section>
+          <div class="turn-leaf" id="turn-leaf" aria-hidden="true"></div>
+          <button type="button" class="mag-turn prev" id="prev" aria-label="Previous page">‹</button>
+          <button type="button" class="mag-turn next" id="next" aria-label="Next page">›</button>
+        </div>
+      </div>
+      <nav class="mag-dock" aria-label="Magazine sections">
+        <div class="mag-folio" id="folio">01 / 09</div>
+        <div class="mag-rail" id="rail"></div>
+        <div class="mag-wallet"><span aria-hidden="true">◎</span> <strong id="wallet">—</strong></div>
+      </nav>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./tiny-mag.js"></script>
+  </body>
+</html>

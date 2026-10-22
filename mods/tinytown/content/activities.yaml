@@ -1,6 +1,6 @@
-tinytown:
-  title: TinyTown
+tiny-mag:
+  title: Tiny Mag
   room_bound: false
-art-store:
-  title: The Art Market
-  room_bound: true
+  aliases:
+  - tinytown
+  - art-store

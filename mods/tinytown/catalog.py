@@ -62,6 +62,61 @@ AVATARS = (
     AvatarChoice("mint", "Mint", "avatar-06.png"),
     AvatarChoice("ember", "Ember", "avatar-07.png"),
     AvatarChoice("cloud", "Cloud", "avatar-08.png"),
+    AvatarChoice("roommate-09", "Aster", "avatar-09.png"),
+    AvatarChoice("roommate-10", "Basil", "avatar-10.png"),
+    AvatarChoice("roommate-11", "Clover", "avatar-11.png"),
+    AvatarChoice("roommate-12", "Dune", "avatar-12.png"),
+    AvatarChoice("roommate-13", "Elm", "avatar-13.png"),
+    AvatarChoice("roommate-14", "Fern", "avatar-14.png"),
+    AvatarChoice("roommate-15", "Gale", "avatar-15.png"),
+    AvatarChoice("roommate-16", "Hazel", "avatar-16.png"),
+    AvatarChoice("roommate-17", "Iris", "avatar-17.png"),
+    AvatarChoice("roommate-18", "Juniper", "avatar-18.png"),
+    AvatarChoice("roommate-19", "Kestrel", "avatar-19.png"),
+    AvatarChoice("roommate-20", "Lumen", "avatar-20.png"),
+    AvatarChoice("roommate-21", "Maple", "avatar-21.png"),
+    AvatarChoice("roommate-22", "Nettle", "avatar-22.png"),
+    AvatarChoice("roommate-23", "Olive", "avatar-23.png"),
+    AvatarChoice("roommate-24", "Pebble", "avatar-24.png"),
+    AvatarChoice("roommate-25", "Quill", "avatar-25.png"),
+    AvatarChoice("roommate-26", "Rowan", "avatar-26.png"),
+    AvatarChoice("roommate-27", "Sage", "avatar-27.png"),
+    AvatarChoice("roommate-28", "Thistle", "avatar-28.png"),
+    AvatarChoice("roommate-29", "Umber", "avatar-29.png"),
+    AvatarChoice("roommate-30", "Violet", "avatar-30.png"),
+    AvatarChoice("roommate-31", "Willow", "avatar-31.png"),
+    AvatarChoice("roommate-32", "Xanthe", "avatar-32.png"),
+    AvatarChoice("roommate-33", "Yarrow", "avatar-33.png"),
+    AvatarChoice("roommate-34", "Zinnia", "avatar-34.png"),
+    AvatarChoice("roommate-35", "Alder", "avatar-35.png"),
+    AvatarChoice("roommate-36", "Briar", "avatar-36.png"),
+    AvatarChoice("roommate-37", "Cedar", "avatar-37.png"),
+    AvatarChoice("roommate-38", "Dove", "avatar-38.png"),
+)
+
+ROOMMATE_AVATARS = AVATARS[8:]
+ROOMMATE_BATCH_SIZE = 5
+MAX_ART_LISTINGS = 4
+ART_PRICE_MIN = 1
+ART_PRICE_MAX = 10000
+
+ROOMMATE_FIRST_NAMES = (
+    "Marlow", "Tansy", "Wren", "Jory", "Pip", "Bramble", "Juniper", "Willa",
+    "Otto", "Neve", "Rook", "Clover", "Moss", "Hollis", "Ivy", "Fennel",
+    "Remy", "Sage", "Lark", "Perrin", "Mabel", "Casper", "Linden", "Nora",
+    "Ewan", "Posy", "Milo", "Sable", "Toby", "Elowen", "Finch", "Cleo",
+)
+ROOMMATE_LAST_NAMES = (
+    "Reed", "Finch", "Briar", "Hollow", "Moss", "Ash", "Bell", "Fenn",
+    "Thorne", "Vale", "Marlow", "Quick", "Wren", "Hazel", "Brook", "Pike",
+    "Sparrow", "Grove", "March", "Petal", "Dune", "Kettle", "Larkin", "Oakes",
+)
+ROOMMATE_ARCHETYPES = (
+    ("artsy", "cozy"), ("bookish", "friendly"), ("clean", "tinkerer"),
+    ("energetic", "outdoorsy"), ("foodie", "social"), ("cozy", "bookish"),
+    ("friendly", "social"), ("grumpy", "tinkerer"), ("stargazer", "bookish"),
+    ("outdoorsy", "garden"), ("artsy", "stargazer"), ("clean", "cozy"),
+    ("energetic", "social"), ("grumpy", "bookish"), ("friendly", "foodie"),
 )
 
 

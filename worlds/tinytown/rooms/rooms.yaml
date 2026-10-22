@@ -68,7 +68,7 @@ home-entry:
       scale: 1.1
       actions:
       - - Open TinyTown
-        - .play tinytown
+        - .play tiny-mag
         - true
       sign_style: wood
       surface:
@@ -164,7 +164,7 @@ home-living:
       scale: 1.0
       actions:
       - - Visit the Art Market
-        - .play art-store
+        - .tinytown artstore
         - true
     living-window:
       prop: bay-window
@@ -428,7 +428,7 @@ home-studio:
       scale: 1.1
       actions:
       - - Visit the Art Market
-        - .play art-store
+        - .tinytown artstore
         - true
     studio-shelf:
       prop: metsa-bookshelf
@@ -991,7 +991,7 @@ home-gallery:
       scale: 1.15
       actions:
       - - Visit the Art Market
-        - .play art-store
+        - .tinytown artstore
         - true
     gallery-easel-two:
       prop: tinytown-art-easel
@@ -1002,7 +1002,7 @@ home-gallery:
       scale: 1.15
       actions:
       - - Visit the Art Market
-        - .play art-store
+        - .tinytown artstore
         - true
     gallery-bust:
       prop: marble-bust

@@ -95,6 +95,366 @@
         "seed": 96308,
         "steps": 28
       }
+    },
+    {
+      "label": "tinytown-avatar-09",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a cheerful tiny townsfolk peep with copper curls, a sea-green raincoat, round glasses, and a rolled newspaper, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-09.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96309,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-10",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a calm tiny townsfolk peep with a silver bun, mustard cardigan, and a tiny potted fern, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-10.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96310,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-11",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a lively tiny townsfolk peep with dark locs, an orange overall dress, and a paint-spattered satchel, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-11.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96311,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-12",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a shy tiny townsfolk peep with sandy hair, a blue knitted vest, and a stack of books, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-12.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96312,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-13",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a bright tiny townsfolk peep with a pink bob, striped tee, and a paper coffee cup, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-13.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96313,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-14",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a sturdy tiny townsfolk peep with a red beard, denim apron, and a wooden toolbox, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-14.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96314,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-15",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a dreamy tiny townsfolk peep with long black hair, a lavender shawl, and a star chart, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-15.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96315,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-16",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a tidy tiny townsfolk peep with a blonde pixie cut, mint blouse, and a feather duster, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-16.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96316,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-17",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a warm tiny townsfolk peep with grey curls, a floral pinny, and a tray of biscuits, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-17.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96317,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-18",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a sporty tiny townsfolk peep with a high ponytail, yellow windbreaker, and a jump rope, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-18.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96318,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-19",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a bookish tiny townsfolk peep with round spectacles, a burgundy bow tie, and an atlas, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-19.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96319,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-20",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a creative tiny townsfolk peep with teal hair, a black turtleneck, and a sketchbook, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-20.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96320,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-21",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a friendly tiny townsfolk peep with freckles, a coral cardigan, and a basket of apples, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-21.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96321,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-22",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a practical tiny townsfolk peep with a brown bob, khaki jacket, and a flashlight, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-22.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96322,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-23",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a gentle tiny townsfolk peep with white hair, a sage green shawl, and a teacup, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-23.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96323,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-24",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a bold tiny townsfolk peep with a purple undercut, a leather jacket, and headphones, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-24.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96324,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-25",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a curious tiny townsfolk peep with messy auburn hair, a mustard raincoat, and a magnifying glass, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-25.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96325,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-26",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a cozy tiny townsfolk peep with rosy cheeks, a chunky cream sweater, and a hot-water bottle, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-26.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96326,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-27",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a tidy tiny townsfolk peep with a neat bun, a navy pinafore, and a clipboard, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-27.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96327,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-28",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a sunny tiny townsfolk peep with blonde waves, a lemon sundress, and a straw hat, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-28.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96328,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-29",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a thoughtful tiny townsfolk peep with short grey hair, a charcoal coat, and a notebook, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-29.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96329,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-30",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a playful tiny townsfolk peep with ginger braids, a teal jumpsuit, and a toy boat, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-30.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96330,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-31",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a rugged tiny townsfolk peep with a beanie, a forest-green parka, and a camp mug, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-31.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96331,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-32",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of an elegant tiny townsfolk peep with a sleek black bob, a plum dress, and a tiny handbag, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-32.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96332,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-33",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a busy tiny townsfolk peep with curly brown hair, a striped apron, and a rolling pin, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-33.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96333,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-34",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a quiet tiny townsfolk peep with pale blonde hair, a dove-grey cardigan, and a letter, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-34.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96334,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-35",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a quirky tiny townsfolk peep with bright pink hair, mustard dungarees, and a camera, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-35.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96335,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-36",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a grounded tiny townsfolk peep with a dark beard, a rust-coloured shirt, and gardening gloves, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-36.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96336,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-37",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a graceful tiny townsfolk peep with silver-streaked hair, a sea-blue dress, and a shell necklace, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-37.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96337,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-38",
+      "tool": "image",
+      "prompt": "This is an RGBA format image with transparency. full-body storybook character sticker of a cheerful tiny townsfolk peep with red hair, a green cap, and a butterfly net, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain transparent background, centered full body, consistent foot baseline, no text, no letters, no words, no numbers, no watermark, no drop shadow. The image has an alpha channel and a transparent background.",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-38.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96338,
+        "steps": 28
+      }
     }
   ]
 }

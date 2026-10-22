@@ -89,6 +89,7 @@ def start_activity(
             surface = context.rooms.surface_for(room_id, resolved.prop_instance_id, "whiteboard")
             if surface is not None:
                 config["surface"] = surface.serialize()
+                config["can_edit_surface"] = not surface.locked
             config["whiteboard_options"] = whiteboard_options()
     config.update(extra_config or {})
     try:

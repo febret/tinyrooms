@@ -74,6 +74,7 @@ async def _open_activity(
     *,
     room_id: str | None,
     replace_existing: bool,
+    initial_page: str = "cover",
 ) -> CommandOutcome:
     definition = context.world.activities.get(kind)
     if definition is None:
@@ -84,6 +85,7 @@ async def _open_activity(
         resolved,
         room_id=room_id or require_room_id(context),
         replace_existing=replace_existing,
+        extra_config={"initial_page": initial_page},
     )
 
 
@@ -92,12 +94,12 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
 
     service = _service(context)
     if not command.args:
-        return await _open_activity(context, "tinytown", room_id=None, replace_existing=True)
+        return await _open_activity(context, "tiny-mag", room_id=None, replace_existing=True)
     action = command.args[0].lower()
     housing = service.housing
 
     if action in {"open", "home"}:
-        return await _open_activity(context, "tinytown", room_id=None, replace_existing=True)
+        return await _open_activity(context, "tiny-mag", room_id=None, replace_existing=True)
 
     if action == "list":
         account = context.profiles.get_account_by_id(context.account.id) or context.account
@@ -219,12 +221,27 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         payload["user"] = _user_payload(context)
         return CommandOutcome(payload=payload, toast=False, log=False)
 
+    if action == "roommates":
+        house_id = command.args[1] if len(command.args) > 1 else None
+        payload = service.roommates.candidates_payload(context.account, house_id)
+        payload["user"] = _user_payload(context)
+        return CommandOutcome(payload=payload, toast=False, log=False)
+
     if action == "npc":
         if len(command.args) < 2:
             payload = service.npcs.household_payload(context.account)
             payload["user"] = _user_payload(context)
             return CommandOutcome(payload=payload, toast=False, log=False)
         sub = command.args[1].lower()
+        if sub == "adopt":
+            if len(command.args) < 3:
+                raise CommandError("Use '.tinytown npc adopt <candidate_id>'.")
+            payload = service.roommates.adopt(context.account, command.args[2])
+            payload["user"] = _user_payload(context)
+            adopted = payload.get("adopted") or {}
+            name = adopted.get("name", "Your new roommate") if isinstance(adopted, dict) else "Your new roommate"
+            outcome = CommandOutcome(message=f"{name} moved in.", payload=payload, toast=False)
+            return _toast(outcome, f"{name} has moved in.")
         if sub == "add":
             if len(command.args) < 7:
                 raise CommandError(
@@ -336,9 +353,68 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         return CommandOutcome(payload=payload, toast=False, log=False)
 
     if action == "artstore":
-        room_id = require_room_id(context)
-        service.housing.require_owned_room(context.account, room_id)
-        return await _open_activity(context, "art-store", room_id=room_id, replace_existing=True)
+        return await _open_activity(
+            context, "tiny-mag", room_id=None, replace_existing=True, initial_page="gallery"
+        )
+
+    if action == "market":
+        room_id = context.connection.room_id
+        payload = service.market.market_payload(context.account, room_id)
+        payload["user"] = _user_payload(context)
+        return CommandOutcome(payload=payload, toast=False, log=False)
+
+    if action == "sellart":
+        if len(command.args) < 5:
+            raise CommandError("Use '.tinytown sellart <room_id> <instance_id> <price> <title...>'.")
+        try:
+            price = int(command.args[3])
+        except ValueError as exc:
+            raise CommandError("The art price must be a whole number.") from exc
+        title = " ".join(command.args[4:])
+        listing = service.market.sell(
+            context.account,
+            command.args[1],
+            command.args[2],
+            price,
+            title,
+        )
+        payload = service.market.market_payload(context.account, context.connection.room_id)
+        payload["listing"] = service.market.listing_payload(listing, context.account.id)
+        payload["user"] = _user_payload(context)
+        return _toast(CommandOutcome(message="Your artwork is now for sale.", payload=payload, toast=False), "Your artwork is in the Reader Gallery.")
+
+    if action == "unlistart":
+        if len(command.args) < 2:
+            raise CommandError("Use '.tinytown unlistart <listing_id>'.")
+        listing = service.market.withdraw(context.account, command.args[1])
+        payload = service.market.market_payload(context.account, context.connection.room_id)
+        payload["listing"] = service.market.listing_payload(listing, context.account.id)
+        payload["user"] = _user_payload(context)
+        return _toast(CommandOutcome(message="The listing was withdrawn.", payload=payload, toast=False), "Listing withdrawn.")
+
+    if action in {"buyart", "hangart"}:
+        if len(command.args) < 2:
+            raise CommandError(f"Use '.tinytown {action} <listing_id>'.")
+        room_id, _house = _owned_current_room(context, service)
+        result = (
+            service.market.buy(context.account, room_id, command.args[1])
+            if action == "buyart"
+            else service.market.hang_owned(context.account, room_id, command.args[1])
+        )
+        outcome = CommandOutcome(
+            message=result.message,
+            payload={
+                "user": _user_payload(context),
+                "listing": result.listing,
+                "decoration": {"bops_spent": result.bops_spent},
+            },
+            toast=False,
+        )
+        outcome.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event=result.layout_event))
+        outcome.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event=result.surface_event))
+        if room_id == context.connection.room_id:
+            outcome.snapshot = await context.rooms.build_snapshot(context.account, room_id)
+        return _toast(outcome, result.message)
 
     if action == "floor":
         if len(command.args) < 2:
@@ -377,7 +453,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         return CommandOutcome(
             message=(
                 "Use '.tinytown list', '.tinytown buy <template>', '.tinytown enter <house>', "
-                "'.tinytown household', '.tinytown decor', or '.tinytown artstore'. "
+                "'.tinytown roommates', '.tinytown market', or '.tinytown artstore'. "
                 f"Districts: {districts}."
             ),
             toast=False,
@@ -385,7 +461,8 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         )
 
     raise CommandError(
-        "Unknown TinyTown command. Use list, buy, enter, visit, lock, household, npc, play, decor, floor, hang, or artstore."
+        "Unknown TinyTown command. Use list, buy, enter, visit, lock, roommates, npc, play, "
+        "market, sellart, unlistart, buyart, hangart, decor, floor, hang, or artstore."
     )
 
 
@@ -400,7 +477,7 @@ def register(api: object) -> None:
         "tinytown",
         "Open TinyTown or manage houses, households, and home decoration.",
         tinytown_command,
-        usage=".tinytown [list|buy|enter|visit|lock|household|npc|play|decor|floor|hang|artstore]",
+        usage=".tinytown [list|buy|enter|visit|lock|roommates|npc|play|market|sellart|buyart|decor|floor|hang|artstore]",
         help=(
             "Open the TinyTown house browser. Buy a private multi-room home, visit other "
             "residents, customize household peeps, and hang art from the Art Market. "
