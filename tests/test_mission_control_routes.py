@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+import socket
 from tempfile import TemporaryDirectory
 import unittest
 from unittest import mock
 
+import httpx
 from starlette.testclient import TestClient
 
 from server.mission_control.app import create_mc_app
 from server.mission_control.config import load_mc_config
+from server.mission_control.registry import STATUS_RUNNING, STATUS_STOPPED
 from tests.common import REPO_ROOT
 from tests.mc_helpers import MC_BASE_URL, McHttpTestCase, mc_env
 
@@ -62,6 +65,11 @@ class InstanceLifecycleTests(McHttpTestCase):
             },
         )
 
+    def occupy_port(self, port: int) -> None:
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.bind(("127.0.0.1", port))
+        self.addCleanup(listener.close)
+
     def register_external(self, endpoint: str = "https://127.0.0.1:59999") -> str:
         response = self.client.post(
             "/api/mc/register",
@@ -94,6 +102,8 @@ class InstanceLifecycleTests(McHttpTestCase):
         server = response.json()["server"]
         self.assertEqual(server["instance_id"], record.instance_id)
         self.assertEqual(server["base_path"], "/tutorial")
+        self.assertEqual(record.spawn_config["port"], 5099)
+        self.assertEqual(server["endpoint"], "https://127.0.0.1:5099")
 
     def test_rename_spawned_preserves_route(self) -> None:
         record = self.add_spawned()
@@ -116,6 +126,77 @@ class InstanceLifecycleTests(McHttpTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(self.runtime.registry.get(record.instance_id))
+        retired = self.runtime.retired.get(record.instance_id)
+        self.assertIsNotNone(retired)
+        self.assertIsNone(retired["successor_instance_id"])
+
+    def test_delete_with_successor_reassigns_saved_destinations(self) -> None:
+        record = self.add_spawned()
+        record.world_id = "tutorial"
+        successor = self.add_spawned(name="successor", port=5098)
+        successor.world_id = "tutorial"
+        successor.registered_at = "2026-01-01T00:00:00+00:00"
+        self.runtime.registry.set_status(successor.instance_id, "running")
+        account = self.runtime.profiles.create_account("player", "password123!", "tutorial", "hub")
+        self.runtime.profiles.remember_instance(account.id, record.instance_id)
+
+        response = self.client.request(
+            "DELETE",
+            f"/api/mission-control/servers/{record.instance_id}"
+            f"?successor_instance_id={successor.instance_id}&reassign_players=true",
+            headers=self.csrf_headers(),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["reassigned"], 1)
+        profile = self.runtime.profiles.get_user_profile(account.id)
+        self.assertEqual(profile.last_instance_id, successor.instance_id)
+        retired = self.runtime.retired.get(record.instance_id)
+        self.assertEqual(retired["successor_instance_id"], successor.instance_id)
+
+    def test_user_destination_repair_updates_profile(self) -> None:
+        record = self.add_spawned()
+        record.world_id = "tutorial"
+        record.client_url = "https://127.0.0.1:5099/tutorial"
+        record.registered_at = "2026-01-01T00:00:00+00:00"
+        self.runtime.registry.set_status(record.instance_id, "running")
+        account = self.runtime.profiles.create_account("player", "password123!", "tutorial", "hub")
+        self.runtime.profiles.remember_instance(account.id, "mc-missing")
+        original = self.runtime.http
+        self.runtime.http = httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(
+                    200,
+                    json={"ok": True, "world_id": "tutorial", "instance_id": record.instance_id},
+                )
+            )
+        )
+        self.addCleanup(lambda: __import__("asyncio").run(self.runtime.http.aclose()))
+        self.addCleanup(lambda: __import__("asyncio").run(original.aclose()))
+
+        response = self.client.post(
+            f"/api/mission-control/users/{account.id}/destination",
+            headers=self.csrf_headers(),
+            json={"instance_id": record.instance_id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        profile = self.runtime.profiles.get_user_profile(account.id)
+        self.assertEqual(profile.last_instance_id, record.instance_id)
+
+    def test_deregister_refreshes_world_map(self) -> None:
+        record = self.add_spawned()
+        update = mock.Mock()
+        self.runtime.world_map.update = update
+
+        response = self.client.post(
+            "/api/mc/deregister",
+            headers={"x-mc-token": self.config.token},
+            json={"instance_id": record.instance_id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        update.assert_called_once()
 
     def test_rename_external_rejected(self) -> None:
         instance_id = self.register_external()
@@ -126,6 +207,66 @@ class InstanceLifecycleTests(McHttpTestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "rename_external")
+
+    def test_restart_reassigns_a_conflicting_saved_port(self) -> None:
+        record = self.add_spawned(port=5099)
+        self.occupy_port(5099)
+
+        response = self.client.post(
+            f"/api/mission-control/servers/{record.instance_id}/restart",
+            headers=self.csrf_headers(),
+            json={},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        server = response.json()["server"]
+        self.assertNotEqual(server["endpoint"], "https://127.0.0.1:5099")
+        self.assertNotEqual(record.spawn_config["port"], 5099)
+        self.assertTrue(5000 <= record.spawn_config["port"] <= 5999)
+
+    def test_start_stopped_instance_reassigns_a_conflicting_saved_port(self) -> None:
+        record = self.add_spawned(port=5099)
+        self.runtime.registry.set_status(record.instance_id, STATUS_STOPPED)
+        self.occupy_port(5099)
+
+        response = self.client.post(
+            f"/api/mission-control/servers/{record.instance_id}/start",
+            headers=self.csrf_headers(),
+            json={},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.json()["server"]["endpoint"], "https://127.0.0.1:5099")
+        self.assertNotEqual(record.spawn_config["port"], 5099)
+
+    def test_resume_reassigns_a_port_held_after_reboot(self) -> None:
+        record = self.add_spawned(port=5099)
+        self.runtime.registry.set_status(record.instance_id, STATUS_RUNNING)
+        self.runtime.supervisor.prepare_reboot()
+        self.occupy_port(5099)
+
+        resumed = self.runtime.supervisor.resume_pending()
+
+        self.assertIn(record.instance_id, resumed)
+        resumed_record = self.runtime.registry.get(record.instance_id)
+        self.assertIsNotNone(resumed_record)
+        self.assertNotEqual(resumed_record.spawn_config["port"], 5099)
+        self.assertNotEqual(resumed_record.endpoint, "https://127.0.0.1:5099")
+
+    def test_change_instance_version_updates_saved_configuration(self) -> None:
+        record = self.add_spawned(port=5099)
+        record.world_id = "tutorial"
+
+        response = self.client.post(
+            f"/api/mission-control/servers/{record.instance_id}/version",
+            headers=self.csrf_headers(),
+            json={"version": "running"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(record.spawn_config["version_id"], "running")
+        self.assertEqual(response.json()["server"]["version_id"], "running")
+        self.assertEqual(Path(record.spawn_config["world_path"]), REPO_ROOT / "worlds" / "tutorial")
 
     def test_restart_external_unreachable_returns_502(self) -> None:
         instance_id = self.register_external()

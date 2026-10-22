@@ -83,11 +83,19 @@ class DeployError(RuntimeError):
     """Raised when a deployment step fails."""
 
 
-def run_remote(host: str, command: str, *, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run_remote(
+    host: str,
+    command: str,
+    *,
+    check: bool = True,
+    input: str | None = None,
+    sensitive: bool = False,
+) -> subprocess.CompletedProcess[str]:
     """Run a shell command on the remote host."""
 
     result = subprocess.run(
         ["ssh", *SSH_OPTIONS, host, command],
+        input=input,
         text=True,
         encoding="utf-8",
         errors="replace",
@@ -95,7 +103,8 @@ def run_remote(host: str, command: str, *, check: bool = True) -> subprocess.Com
         check=False,
     )
     if check and result.returncode != 0:
-        raise DeployError(f"Remote command failed ({result.returncode}): {command}\n{result.stderr.strip()}")
+        shown = "<redacted command>" if sensitive else command
+        raise DeployError(f"Remote command failed ({result.returncode}): {shown}\n{result.stderr.strip()}")
     return result
 
 
@@ -614,8 +623,13 @@ def write_admin_env(host: str, root: str, host_name: str, registry: dict[str, di
     existing = read_remote_env(host, root)
     lines = admin_env_values(root, host_name, registry, existing, overrides=dict(os.environ))
     body = render_env_file(lines)
-    run_remote(host, f"cat > {remote_path(root, 'admin.env')} <<'ENVEOF'\n{body}\nENVEOF")
-    run_remote(host, f"chmod 600 {remote_path(root, 'admin.env')}")
+    admin_env = remote_path(root, "admin.env")
+    run_remote(
+        host,
+        f"umask 077; cat > {admin_env} && chmod 600 {admin_env}",
+        input=body,
+        sensitive=True,
+    )
 
 
 def keepalive_script(root: str) -> str:

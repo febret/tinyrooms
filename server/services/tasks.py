@@ -802,9 +802,8 @@ class TaskService:
                             "task_complete": change.kind == "completed",
                         },
                     )
-                    sound_name = task_sounds.get(
-                        "started" if change.kind == "started" else "completed"
-                    )
+                    sound_key = {"started": "started", "completed": "completed"}.get(change.kind)
+                    sound_name = task_sounds.get(sound_key) if sound_key else None
                     if sound_name:
                         cutscene = launch.event.get("cutscene")
                         if isinstance(cutscene, dict):
@@ -815,13 +814,13 @@ class TaskService:
                 except Exception as exc:  # noqa: BLE001 - feedback must never break the caller
                     LOGGER.warning("task.feedback.failed task_id=%s error=%s", change.task_id, exc)
             notification_sound = task_sounds.get("notification")
-            for text in change.memory_texts:
+            for index, text in enumerate(change.memory_texts):
                 event: dict[str, object] = {
                     "type": "toast",
                     "tone": "success",
                     "text": f"Memory added: {text}",
                 }
-                if notification_sound:
+                if notification_sound and index == 0:
                     event["sound"] = sound_url(notification_sound)
                 events.append(event)
         return events

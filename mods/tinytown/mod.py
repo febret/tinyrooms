@@ -296,7 +296,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
 
         room_id = require_room_id(context)
         record, summary, line = service.npcs.checkin(context.account, command.args[1], room_id)
-        outcome = CommandOutcome(message=summary, payload={"npc": service.npcs._npc_payload(record, "here")}, toast=False)
+        outcome = CommandOutcome(message=summary, payload={"npc": service.npcs.npc_summary(record, "here")}, toast=False)
         outcome.room_broadcasts.append(_speak(context, record.npc_id, record.name, line, room_id))
         return _toast(outcome, summary)
 

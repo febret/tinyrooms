@@ -124,15 +124,25 @@ class Supervisor:
         self._audit = audit
         self._spawn = spawn or subprocess.Popen
         self._on_change = on_change
+        self._last_change_error: str | None = None
         self._restore_identities()
+
+    @property
+    def route_warning(self) -> str | None:
+        """Return the most recent world-map failure, if any."""
+
+        return self._last_change_error
 
     def _changed(self) -> None:
         if self._on_change is None:
             return
         try:
             self._on_change()
-        except Exception:  # noqa: BLE001 - a map failure must not break lifecycle work
+        except Exception as exc:  # noqa: BLE001 - a map failure must not break lifecycle work
+            self._last_change_error = str(exc) or type(exc).__name__
             LOGGER.exception("world_map.update_failed")
+        else:
+            self._last_change_error = None
 
     def _reserved_ports(self, *, exclude: str | None = None) -> set[int]:
         """Return ports claimed by other instances plus the MC listener."""
@@ -438,6 +448,7 @@ class Supervisor:
             finally:
                 if record.process_handle is process:
                     self._registry.set_status(record.instance_id, STATUS_STOPPED)
+                    self._changed()
 
         threading.Thread(target=_wait, name=f"mc-watch-{record.instance_id}", daemon=True).start()
 

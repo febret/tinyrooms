@@ -98,6 +98,17 @@ class McConfigTests(unittest.TestCase):
             )
             self.assertTrue(config.same_origin_worlds)
             self.assertEqual(config.world_map_path, root / "worlds.map")
+            with self.assertRaises(ConfigError):
+                load_mc_config(
+                    env=self._env(
+                        root,
+                        TRSERVER_MC_SAME_ORIGIN_WORLDS="1",
+                        TRSERVER_MC_WORLD_MAP=str(root / "worlds.map"),
+                        TRSERVER_MC_WORLD_MAP_RELOAD="true",
+                        TRSERVER_MC_BASE_PATH="/base",
+                    ),
+                    repo_root=REPO_ROOT,
+                )
 
     def test_keepalive_path_is_optional(self) -> None:
         with TemporaryDirectory() as temp:

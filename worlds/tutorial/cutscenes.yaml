@@ -31,7 +31,7 @@ tutorial-end:
     start: applause.wav
   text:
     - {at: 400, speaker: Pip, say: "You did it!", sound: task-complete.wav}
-    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!", sound: applause.wav}
+    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!"}
 centipede-vacuum:
   title: Mission Accomplished
   script: centipede-vacuum.js

@@ -50,6 +50,8 @@
   const SOUND_FILES = {
     tap: "tap.wav",
     click: "click1.wav",
+    select: "click2.wav",
+    cutscene: "cutscene-start.wav",
     flip: "swipe1.wav",
     error: "retro-error.wav",
     success: "task-complete.wav",
@@ -59,6 +61,7 @@
   };
   const soundBuffers = new Map();
   const soundPending = new Map();
+  const soundFailed = new Set();
 
   function context() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -74,6 +77,7 @@
 
   async function loadSound(ctx, file) {
     if (soundBuffers.has(file)) return soundBuffers.get(file);
+    if (soundFailed.has(file)) return null;
     if (soundPending.has(file)) return soundPending.get(file);
     const request = fetch(soundUrl(file))
       .then(response => {
@@ -88,6 +92,7 @@
       })
       .catch(error => {
         soundPending.delete(file);
+        soundFailed.add(file);
         console.warn("[Tinyrooms activity] Unable to load sound.", error);
         return null;
       });

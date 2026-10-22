@@ -12,6 +12,7 @@ import tempfile
 from server.config import AppConfig
 from server.content.bundle import WorldBundle, load_world_bundle
 from server.content.cards import load_card_catalog
+from server.content.sounds import load_sound_names
 from server.content.common import ContentError
 from server.content.draft import (
     DRAFT_FORMAT_VERSION,
@@ -317,9 +318,14 @@ class WorldEditorService:
     def _loader_errors(self, draft: dict[str, object]) -> list[DraftIssue]:
         staged = self._stage(draft)
         errors: list[DraftIssue] = []
+        known_sounds = load_sound_names(self._config.sounds_path)
         try:
             try:
-                catalog = load_card_catalog(self._config.cardsets_path, staged)
+                catalog = load_card_catalog(
+                    self._config.cardsets_path,
+                    staged,
+                    known_sounds=known_sounds,
+                )
             except (ContentError, OSError) as exc:
                 return [DraftIssue(path="cards", message=str(exc))]
             try:
@@ -327,7 +333,7 @@ class WorldEditorService:
             except (ContentError, OSError) as exc:
                 errors.append(DraftIssue(path="recipes", message=str(exc)))
             try:
-                load_task_definitions(staged, set(catalog.cards))
+                load_task_definitions(staged, set(catalog.cards), known_sounds=known_sounds)
             except (ContentError, OSError) as exc:
                 errors.append(DraftIssue(path="tasks", message=str(exc)))
             try:

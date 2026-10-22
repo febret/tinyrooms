@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import json
+import logging
 from pathlib import Path
 import sqlite3
 import uuid
@@ -17,14 +18,17 @@ from mods.tinytown.catalog import (
 )
 from mods.tinytown.content import FloorTexture, HouseRecord, HouseTemplate, load_floor_textures, load_house_templates
 from mods.tinytown.npcs import NpcHouse
+from server.content.surface_props import MAX_WHITEBOARD_PROPS, WHITEBOARD_PROP_ID
 from server.content.worlds import ExitDefinition, RoomDefinition
 from server.security import utc_now
 from server.state.world_state import LayoutRevisionConflict
 
 
+LOGGER = logging.getLogger("tinyrooms.mod.tinytown")
+
 HOUSE_ROOM_PREFIX = "home:"
 ENTRY_ROOM_ID = "town"
-MAX_LAYOUT_WHITEBOARDS = 4
+MAX_LAYOUT_WHITEBOARDS = MAX_WHITEBOARD_PROPS
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,12 +128,15 @@ class TinytownHousing:
         if self._world.id != "tinytown":
             return
         for record in self._records():
-            if record.template_id not in self._templates:
-                continue
             try:
-                self._register_rooms(record)
+                before = dict(record.room_ids)
+                built = self._register_rooms(record)
             except (KeyError, ValueError):
                 continue
+            new_keys = [key for key in record.room_ids if key not in before]
+            if new_keys:
+                self._persist_room_ids(record)
+                self._grant_new_rooms(record, built, new_keys)
         self.npcs.prepare()
 
     @property
@@ -163,11 +170,19 @@ class TinytownHousing:
                 continue
             if not isinstance(room_ids, dict):
                 continue
+            template_id = str(row["template_id"])
+            if template_id not in self._templates:
+                LOGGER.warning(
+                    "tinytown.orphaned_house house_id=%s template_id=%s",
+                    row["house_id"],
+                    template_id,
+                )
+                continue
             records.append(
                 HouseRecord(
                     house_id=str(row["house_id"]),
                     owner_account_id=str(row["owner_account_id"]),
-                    template_id=str(row["template_id"]),
+                    template_id=template_id,
                     room_ids={str(key): str(value) for key, value in room_ids.items()},
                     locked=bool(row["locked"]),
                     created_at=str(row["created_at"]),
@@ -191,7 +206,12 @@ class TinytownHousing:
         return [record for record in self._records() if record.owner_account_id == account_id]
 
     def template_for(self, record: HouseRecord) -> HouseTemplate:
-        return self._templates[record.template_id]
+        template = self._templates.get(record.template_id)
+        if template is None:
+            raise ValueError(
+                f"The house template '{record.template_id}' is no longer available."
+            )
+        return template
 
     def entry_room(self, record: HouseRecord) -> str:
         template = self.template_for(record)
@@ -297,6 +317,36 @@ class TinytownHousing:
                 record.created_at,
             ),
         )
+
+    def _persist_room_ids(self, record: HouseRecord) -> None:
+        with self._hub.transaction() as connection:
+            connection.execute(
+                "UPDATE world.tinytown_houses SET room_ids_json = ? WHERE house_id = ?",
+                (json.dumps(record.room_ids), record.house_id),
+            )
+
+    def _grant_new_rooms(
+        self,
+        record: HouseRecord,
+        built: dict[str, RoomDefinition],
+        new_keys: list[str],
+    ) -> None:
+        if self._profiles.get_account_by_id(record.owner_account_id) is None:
+            LOGGER.warning("tinytown.orphaned_owner house_id=%s owner=%s", record.house_id, record.owner_account_id)
+            return
+        door = {"house_id": record.house_id, "template_id": record.template_id}
+        with self._hub.transaction() as connection:
+            for key in new_keys:
+                room = built[key]
+                self._world_state.insert_player_room(
+                    connection,
+                    room_id=room.id,
+                    owner_account_id=record.owner_account_id,
+                    door=door,
+                )
+                self._ownership.grant_in_transaction(connection, room.id, record.owner_account_id)
+        for key in new_keys:
+            self._world_state.seed_player_room(built[key].id, built[key], self._world)
 
     def _update_locked(self, house_id: str, locked: bool) -> None:
         with self._hub.transaction() as connection:
@@ -514,7 +564,7 @@ class TinytownHousing:
         template = self.template_for(record)
         floor = self.current_floor(room_id)
         layout = self._layout.view(account, room_id)
-        whiteboards = sum(1 for prop in layout.get("props", []) if prop.get("prop_id") == "builtin:whiteboard")
+        whiteboards = sum(1 for prop in layout.get("props", []) if prop.get("prop_id") == WHITEBOARD_PROP_ID)
         account_record = self._profiles.get_account_by_id(account.id) or account
         return {
             "room": {
@@ -581,28 +631,30 @@ class TinytownHousing:
             self._profiles.update_progress(connection, current, bops=current.bops - price)
         return True, price
 
+    def _refund_unlock(
+        self,
+        account: object,
+        *,
+        kind: str,
+        item_id: str,
+        price: int,
+    ) -> None:
+        if price <= 0:
+            return
+        with self._hub.transaction() as connection:
+            connection.execute(
+                "DELETE FROM world.tinytown_unlocks WHERE account_id = ? AND kind = ? AND item_id = ?",
+                (account.id, kind, item_id),
+            )
+            current = self._profiles.get_account_by_id(account.id)
+            if current is not None:
+                self._profiles.update_progress(connection, current, bops=current.bops + price)
+
     def _layout_props(self, layout: dict[str, object]) -> list[dict[str, object]]:
-        entries: list[dict[str, object]] = []
         raw_props = layout.get("props")
         if not isinstance(raw_props, list):
-            return entries
-        for prop in raw_props:
-            if not isinstance(prop, dict):
-                continue
-            entry: dict[str, object] = {
-                "id": str(prop.get("id", "")),
-                "prop_id": str(prop.get("prop_id", "")),
-                "position": list(prop.get("position") or [50.0, 50.0, 0.0]),
-                "rotation": list(prop.get("rotation") or [0.0, 0.0, 0.0]),
-                "scale": float(prop.get("scale", 1.0)),
-                "locked": bool(prop.get("locked", False)),
-            }
-            if isinstance(prop.get("text"), dict):
-                entry["text"] = dict(prop["text"])
-            if isinstance(prop.get("sign_style"), str):
-                entry["sign_style"] = prop["sign_style"]
-            entries.append(entry)
-        return entries
+            return []
+        return [dict(prop) for prop in raw_props if isinstance(prop, dict)]
 
     def buy_floor(self, account: object, room_id: str, floor_id: str) -> DecorationResult:
         record = self.require_owned_room(account, room_id)
@@ -611,19 +663,28 @@ class TinytownHousing:
         if floor is None:
             raise ValueError("That floor finish is not sold here.")
         unlocked_before = self.is_unlocked(account.id, "floor", floor.id)
-        bops_spent = 0
+        charged, bops_spent = False, 0
         if not unlocked_before:
-            _new, bops_spent = self._charge_and_unlock(
+            charged, bops_spent = self._charge_and_unlock(
                 account, kind="floor", item_id=floor.id, price=floor.price
             )
         layout = self._layout.view(account, room_id)
         entries = self._layout_props(layout)
-        update = self._layout.save(
-            account,
-            room_id,
-            int(layout["revision"]),
-            {"props": entries, "environment": {"board_image": floor.image}},
-        )
+        try:
+            update = self._layout.save(
+                account,
+                room_id,
+                int(layout["revision"]),
+                {"props": entries, "environment": {"board_image": floor.image}},
+            )
+        except LayoutRevisionConflict as exc:
+            if charged:
+                self._refund_unlock(account, kind="floor", item_id=floor.id, price=bops_spent)
+            raise ValueError("The room changed while the Art Market was fitting the floor. Try again.") from exc
+        except Exception:
+            if charged:
+                self._refund_unlock(account, kind="floor", item_id=floor.id, price=bops_spent)
+            raise
         return DecorationResult(
             message=f"{floor.label} fitted into {self._world.rooms[room_id].label}.",
             layout_event=update.event(),
@@ -637,26 +698,34 @@ class TinytownHousing:
         if piece is None:
             raise ValueError("That artwork is not sold here.")
         layout = self._layout.view(account, room_id)
-        whiteboards = [prop for prop in layout.get("props", []) if prop.get("prop_id") == "builtin:whiteboard"]
+        whiteboards = [prop for prop in layout.get("props", []) if prop.get("prop_id") == WHITEBOARD_PROP_ID]
         if len(whiteboards) >= MAX_LAYOUT_WHITEBOARDS:
             raise ValueError(
                 f"This room already has {MAX_LAYOUT_WHITEBOARDS} pieces on the walls. "
                 "Make space before hanging another."
             )
         unlocked_before = self.is_unlocked(account.id, "art", piece.id)
-        bops_spent = 0
+        charged, bops_spent = False, 0
         if not unlocked_before:
-            _new, bops_spent = self._charge_and_unlock(
+            charged, bops_spent = self._charge_and_unlock(
                 account, kind="art", item_id=piece.id, price=piece.price
             )
         entries = self._layout_props(layout)
         slots = ((18.0, 9.0), (39.0, 9.0), (61.0, 9.0), (82.0, 9.0))
-        x, y = slots[len(whiteboards) % len(slots)]
+        used_x = {
+            round(float(prop.get("position", [0.0])[0]), 1)
+            for prop in whiteboards
+            if isinstance(prop.get("position"), list) and prop.get("position")
+        }
+        x, y = next(
+            (slot for slot in slots if round(slot[0], 1) not in used_x),
+            slots[len(whiteboards) % len(slots)],
+        )
         instance_id = f"custom:{uuid.uuid4()}"
         entries.append(
             {
                 "id": instance_id,
-                "prop_id": "builtin:whiteboard",
+                "prop_id": WHITEBOARD_PROP_ID,
                 "position": [x, y, 0.0],
                 "rotation": [0.0, 0.0, 0.0],
                 "scale": 0.9,
@@ -664,15 +733,21 @@ class TinytownHousing:
             }
         )
         try:
+            surface = self._surfaces.save_whiteboard(room_id, instance_id, account.id, piece.surface)
             update = self._layout.save(
                 account,
                 room_id,
                 int(layout["revision"]),
                 {"props": entries, "environment": {}},
             )
-        except LayoutRevisionConflict:
-            raise ValueError("The room changed while the Art Market was wrapping your piece. Try again.")
-        surface = self._surfaces.save_whiteboard(room_id, instance_id, account.id, piece.surface)
+        except LayoutRevisionConflict as exc:
+            if charged:
+                self._refund_unlock(account, kind="art", item_id=piece.id, price=bops_spent)
+            raise ValueError("The room changed while the Art Market was wrapping your piece. Try again.") from exc
+        except Exception:
+            if charged:
+                self._refund_unlock(account, kind="art", item_id=piece.id, price=bops_spent)
+            raise
         return DecorationResult(
             message=f"{piece.label} is now hanging in {self._world.rooms[room_id].label}.",
             layout_event=update.event(),

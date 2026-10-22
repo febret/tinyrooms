@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Any
 
 from mods.tinytown.catalog import DISTRICTS_BY_ID, ROLE_ORDER
 from server.content.common import ContentError, load_yaml_file, require_mapping

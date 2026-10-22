@@ -24,7 +24,7 @@ import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
 import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
-import { applyDarkLighting, createBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
+import { applyDarkLighting, createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import { createBoardOutlines } from "./board-outlines.js";
 import { createBoardSprites } from "./board-sprites.js";
 import { createBoardCards } from "./board-cards.js";
@@ -337,7 +337,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
 
   function setDropHint(position) {
     invalidate();
-    if (!position || disposed || blocked) {
+    if (!position || disposed || blocked || current?.diorama) {
       dropHint.visible = false;
       return;
     }
@@ -1145,7 +1145,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         || state.views?.commandPalette || !state.user?.initialStickerComplete);
       if (blocked !== wasBlocked) invalidate();
       const wasDropArmed = dropArmed;
-      dropArmed = Boolean(state.ui?.dropTargeting);
+      dropArmed = Boolean(state.ui?.dropTargeting) && !current?.diorama;
       gameInputEnabled = !blocked && !state.ui?.targeting && !state.ui?.dropTargeting && !state.room?.dialog;
       if (wasDropArmed && !dropArmed) setDropHint(null);
       controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
@@ -1184,6 +1184,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         current.diorama.setSceneLights(lights);
       } else {
         if (renderer.toneMappingExposure !== 0.95) renderer.toneMappingExposure = 0.95;
+        resetBoardLights(lights);
         if (applyDarkLighting(lights, roomDark)) invalidate();
       }
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
@@ -1195,16 +1196,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,
-    /** Raycast the nearest eligible prop at a canvas client point. */
-    screenToPropTarget(clientX, clientY) {
-      if (disposed || recovery.renderFailed || !current || blocked) return null;
-      const bounds = canvasBounds();
-      if (!bounds || clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) return null;
-      if (!setRayFromEvent({ clientX, clientY })) return null;
-      const owner = pickGameplayOwner();
-      return owner?.userData.kind === "prop"
-        ? { kind: "prop", id: owner.userData.id } : null;
-    },
     /** Project an authoritative [x%, y%, z] position into canvas screen coordinates. */
     projectPositionToScreen,
     /** Show or clear the floor marker used while arming a card drop. */

@@ -42,6 +42,15 @@ export function selfIsScared(state) {
   return (selfPeep?.statuses || state.user?.statuses || []).includes("scared");
 }
 
+/** Restore the canonical scene lights after a room owns them temporarily. */
+export function resetBoardLights({ hemisphere, sunlight, fill }) {
+  hemisphere.color.set("#fff2d5");
+  hemisphere.groundColor.set("#496e69");
+  sunlight.color.set("#ffe6bb");
+  sunlight.position.set(-5, 12, 7);
+  fill.color.set("#bce2df");
+}
+
 /** Dim or restore the scene lights for a dark room. Returns true when changed. */
 export function applyDarkLighting({ hemisphere, sunlight, fill }, dark) {
   const target = dark ? DARK_LIGHTING : LIT_LIGHTING;

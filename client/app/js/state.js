@@ -129,6 +129,7 @@ function pushFloating(state, entry) {
 
 function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
+  if (event.room_id && event.room_id !== state.room.id) return state;
   if (event.type === "counter.updated") {
     const targetId = String(event.target_id || "");
     const healthDelta = Number(event.health_delta || 0);
@@ -560,7 +561,7 @@ function reduce(state, action) {
       user,
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
-      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false, phoneApp: action.loggedIn ? state.ui.phoneApp : "apps", phoneMusic: action.loggedIn ? state.ui.phoneMusic : { ...initialPhoneMusic(), enabled: false } },
+      ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false, phoneApp: action.loggedIn ? state.ui.phoneApp : "apps", phoneMusic: action.loggedIn ? state.ui.phoneMusic : { ...initialPhoneMusic(), enabled: false }, dropTargeting: action.loggedIn ? state.ui.dropTargeting : null },
       views: { auth: !action.loggedIn, main: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
       auth: { ...state.auth, busy: false, error: "" },
       selection: action.loggedIn ? state.selection : { kind: "none", id: "" },
@@ -591,6 +592,7 @@ function reduce(state, action) {
     return { ...state, selection: action.selection, ui: { ...state.ui, targeting: null, dropTargeting: null } };
   }
   if (action.type === "start-drop") {
+    if (state.room?.board?.type === "diorama") return state;
     const stack = findInventoryCard(state, action.stackId);
     if (!stack || stack.quantity < 1) return state;
     const requested = Number(action.quantity);
@@ -656,7 +658,7 @@ function reduce(state, action) {
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
-  if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", emoteMenuOpen: false, roomPickerOpen: false } };
+  if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
   if (action.type === "phone-home") return { ...state, ui: { ...state.ui, phoneApp: "apps" } };
   if (action.type === "phone-music-play") return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, track: action.track || state.ui.phoneMusic.track, enabled: true } } };
   if (action.type === "phone-music-stop") return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, enabled: false } } };
@@ -671,7 +673,7 @@ function reduce(state, action) {
     const next = inventoryTabState(state, action.tab);
     return { ...state, selection: next.selection, ui: { ...state.ui, inventoryTab: next.tab } };
   }
-  if (action.type === "toggle-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: !state.ui.emoteMenuOpen, roomPickerOpen: false } };
+  if (action.type === "toggle-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: !state.ui.emoteMenuOpen, roomPickerOpen: false, dropTargeting: null } };
   if (action.type === "toggle-peeps") return { ...state, ui: { ...state.ui, peepsVisible: !state.ui.peepsVisible } };
   if (action.type === "close-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: false } };
   if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: action.tab === "Skills" ? state.views.skillStackId : null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };

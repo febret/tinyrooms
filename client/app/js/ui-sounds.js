@@ -1,4 +1,4 @@
-import { playSound } from "./audio.js";
+import { playSound, preloadSounds } from "./audio.js";
 import { findInventoryCard, findRoomCard } from "./state.js";
 
 function play(state, sound) {
@@ -27,15 +27,16 @@ export function selectionSound(state, selection) {
 /** Return the custom or default sound for an action. */
 export function actionSound(action) {
   if (typeof action?.sound === "string" && action.sound) return action.sound;
-  if (action?.type === "open-view" || action?.type === "open-shop") return "open";
-  if (action?.type === "close-view") return "close";
-  if (action?.type === "toggle-sell-mode") return "toggle";
-  if (action?.type === "inspect-card") return "card";
-  if (action?.type === "start-targeting" || action?.type === "start-drop") return "card";
-  if (action?.type === "open-pack") return "open";
-  if (action?.type === "play-emote") return "card";
-  if (action?.type === "toggle-sound" || action?.type === "toggle-emote-menu") return "toggle";
-  if (typeof action?.command === "string" && action.command.startsWith(".go ")) return "room";
+  const type = action?.local?.type || action?.type;
+  if (type === "open-view" || type === "open-shop") return "open";
+  if (type === "close-view") return "close";
+  if (type === "toggle-sell-mode") return "toggle";
+  if (type === "inspect-card") return "card";
+  if (type === "start-targeting" || type === "start-drop") return "card";
+  if (type === "open-pack") return "open";
+  if (type === "play-emote") return "card";
+  if (type === "toggle-sound" || type === "toggle-emote-menu") return "toggle";
+  if (typeof action?.command === "string" && action.command.startsWith(".go ")) return "";
   return "click";
 }
 
@@ -63,12 +64,17 @@ export function playToastSound(state, item) {
 
 /** Install one delegated click sound with explicit per-button overrides. */
 export function installButtonSoundHandler({ document, store }) {
+  let warmed = false;
   document.addEventListener("click", event => {
     const button = event.target.closest?.("button, [role='button']");
     if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") return;
     if (button.closest("#cutscene-layer") || button.dataset.sound === "none") return;
     const state = store.getState();
     if (!state.ui.soundEnabled) return;
+    if (!warmed) {
+      warmed = true;
+      preloadSounds(["tap", "click", "select", "open", "close", "success"]);
+    }
     if (button.dataset.sound) {
       playSound(button.dataset.sound, true);
       return;

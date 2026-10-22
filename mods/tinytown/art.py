@@ -103,19 +103,6 @@ def _poly_outline(points: list[tuple[float, float]], color: str, width: float = 
     return _polygon(points, color, width)
 
 
-def _quad_curve(points: list[tuple[float, float]], color: str, width: float, steps: int = 20) -> dict[str, object]:
-    output: list[tuple[float, float]] = []
-    for index in range(len(points) - 1):
-        x0, y0 = points[index]
-        x1, y1 = points[index + 1]
-        if index == 0:
-            output.append((x0, y0))
-        for step in range(1, steps + 1):
-            t = step / steps
-            output.append(((x0 + x1) / 2 + (x0 - (x0 + x1) / 2) * (1 - t) * 2, (y0 + y1) / 2))
-    return _stroke(output, color, width)
-
-
 def _stars(count: int, color: str, seed: int = 1, top: float = 20, bottom: float = 260) -> list[dict[str, object]]:
     strokes: list[dict[str, object]] = []
     value = seed

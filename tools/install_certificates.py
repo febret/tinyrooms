@@ -29,6 +29,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from cryptography import x509
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOOLS_DIR = Path(__file__).resolve().parent
 for _path in (TOOLS_DIR, REPO_ROOT):
@@ -49,6 +51,7 @@ from server.mission_control.nginx_template import site_config  # noqa: E402
 
 DEFAULT_ROOT = "~/tinyrooms"
 DEFAULT_CERT_DIR = REPO_ROOT / ".local" / "certificates"
+WORLD_MAP_PATH = "/etc/nginx/tinyrooms-worlds.map"
 LEAF_SUFFIXES = ("-certificate.crt", "-certificate.pem")
 
 
@@ -216,8 +219,15 @@ def validate_bundle(bundle: CertificateBundle) -> list[str]:
 
     if not certificate_matches_key(bundle.leaf, bundle.key):
         raise CertificateError(f"{bundle.key} does not match the public key in {bundle.leaf}")
-    if openssl_bytes("x509", "-in", str(bundle.leaf), "-noout", "-checkend", "0").returncode != 0:
-        raise CertificateError(f"{bundle.leaf} is expired or not yet valid")
+    try:
+        certificate = x509.load_pem_x509_certificate(bundle.leaf.read_bytes())
+    except (OSError, ValueError) as exc:
+        raise CertificateError(f"{bundle.leaf} is not a valid PEM certificate") from exc
+    now = datetime.now(UTC)
+    if certificate.not_valid_before_utc > now:
+        raise CertificateError(f"{bundle.leaf} is not valid yet")
+    if certificate.not_valid_after_utc < now:
+        raise CertificateError(f"{bundle.leaf} is expired")
 
     for path in bundle.chain:
         if openssl_bytes("x509", "-in", str(path), "-noout").returncode != 0:
@@ -242,11 +252,12 @@ def validate_bundle(bundle: CertificateBundle) -> list[str]:
     return names
 
 
-def upload_bytes(host: str, remote_file: str, data: bytes) -> None:
+def upload_bytes(host: str, remote_file: str, data: bytes, *, private: bool = False) -> None:
     """Write bytes to a remote file over SSH."""
 
+    command = f"umask 077; cat > {remote_file}" if private else f"cat > {remote_file}"
     result = subprocess.run(
-        ["ssh", *SSH_OPTIONS, host, f"cat > {remote_file}"],
+        ["ssh", *SSH_OPTIONS, host, command],
         input=data,
         capture_output=True,
         check=False,
@@ -288,6 +299,7 @@ def install_bundle(
     server_names: Sequence[str],
     *,
     reload: bool = True,
+    world_map_path: str | None = None,
 ) -> str:
     """Install and validate the certificate on the remote host.
 
@@ -307,12 +319,13 @@ def install_bundle(
     cert_staging = remote_path(root, "nginx", "certs", "server.crt.new")
     key_staging = remote_path(root, "nginx", "certs", "server.key.new")
     config_home = remote_path(root, "nginx", "tinyrooms.conf")
-    timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S%f")
     backup_dir = remote_path(root, "nginx", "backups", timestamp)
 
-    run_remote(host, f"mkdir -p {remote_path(root, 'nginx', 'certs')} {backup_dir}")
+    cert_dir = remote_path(root, "nginx", "certs")
+    run_remote(host, f"mkdir -p {cert_dir} {backup_dir} && chmod 700 {cert_dir}")
     upload_bytes(host, cert_staging, build_fullchain(bundle))
-    upload_bytes(host, key_staging, bundle.key.read_bytes())
+    upload_bytes(host, key_staging, bundle.key.read_bytes(), private=True)
     run_remote(host, f"chmod 600 {cert_staging} {key_staging}")
     run_remote(
         host,
@@ -331,6 +344,7 @@ def install_bundle(
         cert_path=f"{base}/nginx/certs/server.crt",
         key_path=f"{base}/nginx/certs/server.key",
         port=port,
+        world_map_path=world_map_path,
     )
     try:
         run_remote(host, f"mv -f {cert_staging} {cert} && mv -f {key_staging} {key}")
@@ -369,6 +383,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Additional nginx server_name besides the certificate DNS SANs; may repeat.",
     )
     parser.add_argument("--no-reload", action="store_true", help="Install and test the configuration without reloading nginx.")
+    parser.add_argument(
+        "--world-map",
+        default=WORLD_MAP_PATH,
+        help=f"Generated same-origin world map to include when present (default: {WORLD_MAP_PATH}).",
+    )
     return parser.parse_args(argv)
 
 
@@ -388,8 +407,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         certificate_names = validate_bundle(bundle)
         server_names = merge_server_names(certificate_names, args.server_name)
-        backup_dir = install_bundle(ssh_target, root, bundle, server_names, reload=not args.no_reload)
-    except (CertificateError, DeployError) as exc:
+        world_map_path = None
+        if args.world_map:
+            probe = run_remote(ssh_target, f"sudo -n test -f {args.world_map}", check=False)
+            if probe.returncode == 0:
+                world_map_path = args.world_map
+        backup_dir = install_bundle(
+            ssh_target,
+            root,
+            bundle,
+            server_names,
+            reload=not args.no_reload,
+            world_map_path=world_map_path,
+        )
+    except (CertificateError, DeployError, OSError, ValueError) as exc:
         print(f"install-certificates: {exc}", file=sys.stderr)
         return 1
 

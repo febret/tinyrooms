@@ -62,6 +62,7 @@ class EntryShowcase:
     def __init__(self, config: MCConfig) -> None:
         self._config = config
         self._manifest: dict[str, object] | None = None
+        self._allowed_models: set[tuple[str, str]] = set()
 
     @property
     def propset_roots(self) -> tuple[Path, ...]:
@@ -87,6 +88,13 @@ class EntryShowcase:
             self._manifest = self._build()
         return self._manifest
 
+    @property
+    def allowed_models(self) -> set[tuple[str, str]]:
+        """Return the manifest's allowlisted ``(propset, filename)`` models."""
+
+        self.manifest()
+        return self._allowed_models
+
     def _build(self) -> dict[str, object]:
         loaded: dict[str, dict[str, PropDefinition]] = {}
         props: list[dict[str, object]] = []
@@ -103,6 +111,8 @@ class EntryShowcase:
                 if definition is None or definition.render_kind != "model" or not definition.model_name:
                     continue
                 model_name = quote(definition.model_name, safe="")
+                # The entry collage deliberately previews locked marketplace props.
+                self._allowed_models.add((definition.source, definition.model_name))
                 props.append(
                     {
                         "id": definition.id,
@@ -148,7 +158,10 @@ async def showcase_model(request: Request, propset: str, filename: str) -> Respo
 
     if not filename.lower().endswith(".glb"):
         raise HTTPException(status_code=404, detail="Not found.")
-    for root in showcase_for(request).propset_roots:
+    showcase = showcase_for(request)
+    if (propset, filename) not in showcase.allowed_models:
+        raise HTTPException(status_code=404, detail="Showcase model not found.")
+    for root in showcase.propset_roots:
         try:
             candidate = ensure_contained(root / propset / filename, root, "showcase")
         except ConfigError as exc:

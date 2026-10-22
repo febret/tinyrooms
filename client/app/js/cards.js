@@ -250,12 +250,14 @@ export function selectionActions(state) {
     const stack = isRoom ? findRoomCard(state, state.selection.id) : findInventoryCard(state, state.selection.id);
     if (!stack) return [];
     const intent = isRoom ? "pickup" : "drop";
-    const cardSound = stack.definition?.sounds?.use || stack.definition?.sounds?.select || "";
+    const dropDisabled = !isRoom && state.room?.board?.type === "diorama";
+    const cardSound = stack.definition?.sounds?.select || "";
     const quickActions = stack.quickActions || [];
     const actions = [
 
       ...quickActions.filter(action => !/^\.(?:look|inspect)(?:\s|$)/.test(action.command)).flatMap(action => {
         if (action.command.startsWith(`.${intent} `)) {
+          if (dropDisabled) return [];
           const disabled = (isRoom && stack.pinned) || stack.quantity < 1;
           const tone = isRoom ? "positive" : "negative";
           const direct = {
@@ -295,8 +297,10 @@ function inventoryStackActions(stack) {
   const definition = stack.definition || {};
   const actions = [];
   const type = definition.type || "item";
-  const sound = definition.sounds?.use || "";
-  const soundOption = sound ? { sound } : {};
+  const useSound = definition.sounds?.use || "";
+  const selectSound = definition.sounds?.select || useSound;
+  const soundOption = useSound ? { sound: useSound } : {};
+  const selectOption = selectSound ? { sound: selectSound } : {};
   if (type === "pack") {
     actions.push({ label: "Open", local: { type: "open-pack", stackId: stack.stackId }, tone: "primary", ...soundOption });
     return actions;
@@ -307,12 +311,12 @@ function inventoryStackActions(stack) {
   } else if (tags.includes("topic")) {
     actions.push({ label: "Teach", command: buildTeachCommand(stack.stackId), tone: "primary", ...soundOption });
     if (stack.equipped) {
-      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral", ...soundOption });
+      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral", ...selectOption });
     } else if (!definition.passive && !definition.decorative) {
-      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive", ...soundOption });
+      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive", ...selectOption });
     }
   } else if (type === "skill") {
-    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary", ...soundOption });
+    actions.push({ label: "Slot…", local: { type: "open-view", view: "skills", stackId: stack.stackId }, tone: "primary", ...selectOption });
   } else if (type === "item" || type === "action") {
     if (!definition.passive && !definition.decorative) {
       if (isTargetableStack(stack)) {
@@ -322,9 +326,9 @@ function inventoryStackActions(stack) {
       }
     }
     if (stack.equipped) {
-      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral", ...soundOption });
+      actions.push({ label: "Unequip", command: buildUnequipCommand(stack.stackId), tone: "neutral", ...selectOption });
     } else if (!definition.passive && !definition.decorative) {
-      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive", ...soundOption });
+      actions.push({ label: "Equip", command: buildEquipCommand(stack.stackId), tone: "positive", ...selectOption });
     }
   }
   if ((definition.stackLimit || 1) > 1 && stack.quantity > 1) {

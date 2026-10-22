@@ -281,6 +281,10 @@ def load_mc_config(
             "TRSERVER_MC_WORLD_MAP and TRSERVER_MC_WORLD_MAP_RELOAD are required when "
             "TRSERVER_MC_SAME_ORIGIN_WORLDS is enabled."
         )
+    if same_origin_worlds and base_path:
+        raise ConfigError(
+            "TRSERVER_MC_BASE_PATH must be empty when TRSERVER_MC_SAME_ORIGIN_WORLDS is enabled."
+        )
 
     keepalive_raw = values.get("TRSERVER_MC_KEEPALIVE", "").strip()
     keepalive_path = Path(keepalive_raw).expanduser() if keepalive_raw else None
@@ -303,6 +307,15 @@ def load_mc_config(
             valid = False
         if not valid or any(character in candidate for character in "/@?#") or any(character.isspace() for character in candidate):
             raise ConfigError("TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME must be a hostname without a port or path.")
+    if same_origin_worlds:
+        entry_host = urlparse(public_origins[0]).hostname if public_origins else None
+        if entry_host is None:
+            entry_host = "127.0.0.1" if host in {"0.0.0.0", "::", "[::]"} else host
+        if instance_public_hostname is not None and instance_public_hostname != entry_host:
+            raise ConfigError(
+                "TRSERVER_MC_INSTANCE_PUBLIC_HOSTNAME must match the player entry hostname "
+                "when TRSERVER_MC_SAME_ORIGIN_WORLDS is enabled."
+            )
     try:
         instance_port_min = int(values.get("TRSERVER_MC_INSTANCE_PORT_MIN", "5000"))
         instance_port_max = int(values.get("TRSERVER_MC_INSTANCE_PORT_MAX", "5999"))

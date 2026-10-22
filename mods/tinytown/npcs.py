@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import json
+import logging
 import random
 import re
 import uuid
@@ -23,6 +24,8 @@ from server.broadcast import broadcast_room_event
 from server.content.worlds import PeepDefinition, QuickAction
 from server.security import utc_now
 
+
+LOGGER = logging.getLogger("tinyrooms.mod.tinytown")
 
 SIM_INTERVAL_SECONDS = 20.0
 MAX_CATCHUP_SECONDS = 300.0
@@ -229,7 +232,13 @@ class NpcHouse:
     def records_for_house(self, house_id: str) -> list[NpcRecord]:
         return [record for record in self._rows() if record.house_id == house_id]
 
-    def _write(self, record: NpcRecord, *, created: bool) -> None:
+    def _write(
+        self,
+        record: NpcRecord,
+        *,
+        created: bool,
+        expected_last_tick: str | None = None,
+    ) -> bool:
         with self.hub.transaction() as connection:
             if created:
                 connection.execute(
@@ -255,27 +264,30 @@ class NpcHouse:
                         record.last_tick,
                     ),
                 )
-                return
-            connection.execute(
-                """
+                return True
+            parameters: list[object] = [
+                record.name,
+                record.avatar,
+                json.dumps(list(record.traits)),
+                json.dumps(record.stats),
+                record.room_id,
+                record.action,
+                record.target,
+                record.last_tick,
+                utc_now().isoformat(),
+                record.npc_id,
+            ]
+            statement = """
                 UPDATE world.tinytown_npcs SET
                     name = ?, avatar = ?, traits_json = ?, stats_json = ?, room_id = ?,
                     action = ?, target = ?, last_tick = ?, updated_at = ?
                 WHERE npc_id = ?
-                """,
-                (
-                    record.name,
-                    record.avatar,
-                    json.dumps(list(record.traits)),
-                    json.dumps(record.stats),
-                    record.room_id,
-                    record.action,
-                    record.target,
-                    record.last_tick,
-                    utc_now().isoformat(),
-                    record.npc_id,
-                ),
-            )
+            """
+            if expected_last_tick is not None:
+                statement += " AND last_tick = ?"
+                parameters.append(expected_last_tick)
+            cursor = connection.execute(statement, parameters)
+            return cursor.rowcount > 0
 
     def _delete(self, npc_id: str) -> None:
         with self.hub.transaction() as connection:
@@ -324,7 +336,13 @@ class NpcHouse:
                 continue
             if record.room_id not in self.world.rooms:
                 house = self.housing.record_for(record.house_id)
-                record = self._with(record, room_id=self.housing.entry_room(house) if house else record.room_id)
+                if house is None:
+                    continue
+                try:
+                    room_id = self.housing.entry_room(house)
+                except ValueError:
+                    continue
+                record = self._with(record, room_id=room_id)
                 self._write(record, created=False)
             self._register_peep(record)
 
@@ -381,7 +399,7 @@ class NpcHouse:
                     (room.label for room in template.rooms if chosen.room_ids.get(room.key) == record.room_id),
                     "somewhere in the house",
                 )
-                npcs.append(self._npc_payload(record, room_label))
+                npcs.append(self.npc_summary(record, room_label))
         payload = self.catalog_payload()
         payload.update(
             {
@@ -392,7 +410,7 @@ class NpcHouse:
         )
         return payload
 
-    def _npc_payload(self, record: NpcRecord, room_label: str) -> dict[str, object]:
+    def npc_summary(self, record: NpcRecord, room_label: str) -> dict[str, object]:
         return {
             "id": record.npc_id,
             "name": record.name,
@@ -511,9 +529,8 @@ class NpcHouse:
         if avatar is not None:
             changes["avatar"] = self._validate_avatar(avatar)
         if traits is not None:
-            validated = self._validate_traits(traits)
-            changes["traits"] = validated
-            changes["stats"] = {**record.stats, **self._initial_stats(validated)}
+            changes["traits"] = self._validate_traits(traits)
+        changes["last_tick"] = utc_now().isoformat()
         updated = self._with(record, **changes)
         self._write(updated, created=False)
         self._register_peep(updated)
@@ -526,6 +543,7 @@ class NpcHouse:
         self._require_owned_house(account, record.house_id)
         self._delete(npc_id)
         self.world.peeps.pop(npc_id, None)
+        self.rooms.sprites.forget_npc(npc_id)
         return record
 
     # -- interaction ---------------------------------------------------------
@@ -593,20 +611,23 @@ class NpcHouse:
             self._task = None
 
     async def _loop(self) -> None:
-        try:
-            while True:
-                await asyncio.sleep(SIM_INTERVAL_SECONDS)
-                await self.advance(emit=True)
-        except asyncio.CancelledError:
-            raise
-        except Exception:  # noqa: BLE001 - autonomy must never stop the world loop
+        while True:
             await asyncio.sleep(SIM_INTERVAL_SECONDS)
+            try:
+                await self.advance(emit=True)
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001 - autonomy must never stop the world loop
+                LOGGER.exception("tinytown.npc_autonomy_failed")
 
     def _roles_for(self, record: NpcRecord, house: object | None = None) -> dict[str, str]:
         house = house if house is not None else self.housing.record_for(record.house_id)
         if house is None:
             return {}
-        template = self.housing.template_for(house)
+        try:
+            template = self.housing.template_for(house)
+        except ValueError:
+            return {}
         return {room.role: house.room_ids[room.key] for room in template.rooms if room.key in house.room_ids}
 
     def _trait_weights(self, traits: tuple[str, ...]) -> dict[str, float]:
@@ -632,7 +653,8 @@ class NpcHouse:
             action_roles = dict(ACTION_ROLES).get(action, ())
             return any(role in roles for role in action_roles)
 
-        if record.action in {"sleep", "rest"} and energy < 82 * rest_want:
+        wake_at = min(MAX_STAT - 5.0, 82.0 * rest_want)
+        if record.action in {"sleep", "rest"} and energy < wake_at:
             return record.action
         if record.action == "bathe" and clean < 90:
             return "bathe"
@@ -811,6 +833,11 @@ class NpcHouse:
             house = houses.get(record.house_id)
             if house is None:
                 continue
+            try:
+                self.housing.template_for(house)
+            except ValueError:
+                continue
+            previous_last_tick = record.last_tick
             if elapsed_seconds is None:
                 try:
                     from datetime import datetime
@@ -836,7 +863,8 @@ class NpcHouse:
                 stats=stats,
                 last_tick=moment.isoformat(),
             )
-            self._write(record, created=False)
+            if not self._write(record, created=False, expected_last_tick=previous_last_tick):
+                continue
             self._register_peep(record)
             if emit:
                 await self._emit(record, occupied, spoken_rooms)

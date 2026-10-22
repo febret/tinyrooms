@@ -867,7 +867,6 @@ function addFountain(parent, materials) {
 }
 
 export function createDioramaBoard({
-  board = {},
   environment = {},
   requestShadow = () => {},
   setExposure = () => {},
@@ -1143,9 +1142,8 @@ export function createDioramaBoard({
       floater.group.rotation.z = Math.sin(elapsed * 1.1 + floater.phase) * (reducedMotion ? 0.006 : 0.024);
     }
     for (const hand of tower.hands) {
-      const hours = phase * 24;
-      hand.children[0].rotation.z = -hours * Math.PI * 2;
-      hand.children[1].rotation.z = -hours * 2 * Math.PI - 0.6;
+      hand.children[0].rotation.z = -phase * 2 * Math.PI * 2;
+      hand.children[1].rotation.z = -phase * 24 * Math.PI * 2 - 0.6;
     }
     fireflies.rotation.y = elapsed * 0.018;
     if (elapsed - lastShadowAt > 1.6) {
@@ -1184,9 +1182,6 @@ export function createDioramaBoard({
     },
     get phase() {
       return lastPhase;
-    },
-    isAnimating() {
-      return !disposed;
     },
     dispose() {
       disposed = true;

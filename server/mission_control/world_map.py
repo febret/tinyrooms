@@ -36,7 +36,10 @@ def render_world_map(records: list[InstanceRecord]) -> str:
             continue
         if not 1 <= port <= 65535:
             continue
-        lines.append(f'    {record.instance_id} "https://127.0.0.1:{port}";')
+        endpoint = record.endpoint.rstrip("/")
+        if not endpoint.startswith("https://"):
+            continue
+        lines.append(f'    {record.instance_id} "{endpoint}";')
     lines.append("}")
     return "\n".join(lines) + "\n"
 
@@ -140,6 +143,7 @@ class WorldMapManager:
             text=True,
             capture_output=True,
             check=False,
+            timeout=30,
         )
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip()

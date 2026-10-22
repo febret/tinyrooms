@@ -121,6 +121,15 @@ def _runtime(request: Request):
     return request.app.state.mc
 
 
+def _with_route_warning(runtime: object, payload: dict[str, object]) -> dict[str, object]:
+    """Attach a recent world-map failure to a lifecycle response."""
+
+    warning = getattr(getattr(runtime, "supervisor", None), "route_warning", None)
+    if warning:
+        payload["warning"] = warning
+    return payload
+
+
 def _json_error(status_code: int, code: str, message: str) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"ok": False, "code": code, "message": message})
 
@@ -216,6 +225,18 @@ async def fleet_register(request: Request, payload: RegisterPayload) -> dict[str
         base_path = normalize_base_path(payload.base_path)
     except ConfigError as exc:
         return _json_error(400, "base_path_invalid", str(exc))
+    if runtime.config.same_origin_worlds and payload.instance_id:
+        existing = runtime.registry.get(payload.instance_id)
+        if existing is not None and existing.source == SPAWNED and existing.spawn_config:
+            expected_base = normalize_base_path(str(existing.spawn_config.get("base_path") or ""))
+            expected_url = str(existing.spawn_config.get("client_url") or "").rstrip("/")
+            submitted_url = str(payload.client_url or "").rstrip("/")
+            if base_path != expected_base or (submitted_url and submitted_url != expected_url):
+                return _json_error(
+                    409,
+                    "reregister_mismatch",
+                    "Restart this instance so Mission Control can update its same-origin route.",
+                )
     data = payload.model_dump()
     data["base_path"] = base_path
     record = runtime.registry.register(data)
@@ -261,6 +282,10 @@ async def fleet_deregister(request: Request, payload: DeregisterPayload) -> dict
     _require_token(request)
     runtime = _runtime(request)
     runtime.registry.set_status(payload.instance_id, STATUS_STOPPED)
+    try:
+        runtime.world_map.update()
+    except Exception:  # noqa: BLE001 - routing refreshes are best effort
+        LOGGER.exception("world_map.update_failed")
     return {"ok": True}
 
 
@@ -371,7 +396,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         version_path=version_path,
         version_id=payload.version or RUNNING_VERSION_ID,
     )
-    return {"ok": True, "server": runtime.registry.snapshot(spawned)}
+    return _with_route_warning(runtime, {"ok": True, "server": runtime.registry.snapshot(spawned)})
 
 
 @router.get("/api/mission-control/servers/{instance_id}")
@@ -416,8 +441,12 @@ async def stop_server(request: Request, instance_id: str) -> dict[str, object]:
         except (httpx.HTTPError, ValueError) as exc:
             return _json_error(502, "unreachable", f"{type(exc).__name__}")
         runtime.registry.set_status(instance_id, STATUS_STOPPED)
+        try:
+            runtime.world_map.update()
+        except Exception:  # noqa: BLE001 - routing refreshes are best effort
+            LOGGER.exception("world_map.update_failed")
     runtime.audit.record("operator", "instance.stop", target=instance_id)
-    return {"ok": True}
+    return _with_route_warning(runtime, {"ok": True})
 
 
 @router.post("/api/mission-control/servers/{instance_id}/restart")
@@ -435,7 +464,7 @@ async def restart_server(request: Request, instance_id: str) -> dict[str, object
         if restarted is None:
             return _json_error(502, "restart_unavailable", "Instance cannot be restarted automatically.")
         runtime.audit.record("operator", "instance.restart", target=instance_id)
-        return {"ok": True, "server": runtime.registry.snapshot(restarted)}
+        return _with_route_warning(runtime, {"ok": True, "server": runtime.registry.snapshot(restarted)})
     try:
         await _world_call(runtime, record.endpoint, "POST", "/api/mc/restart")
     except (httpx.HTTPError, ValueError) as exc:
@@ -461,7 +490,7 @@ async def start_stopped_server(request: Request, instance_id: str) -> dict[str, 
     started = runtime.supervisor.start_existing(instance_id)
     if started is None:
         return _json_error(409, "start_unavailable", "Instance is not stopped or cannot be started.")
-    return {"ok": True, "server": runtime.registry.snapshot(started)}
+    return _with_route_warning(runtime, {"ok": True, "server": runtime.registry.snapshot(started)})
 
 
 @router.post("/api/mission-control/servers/{instance_id}/version")
@@ -585,11 +614,11 @@ async def delete_server(
             "reassigned": reassigned,
         },
     )
-    return {
+    return _with_route_warning(runtime, {
         "ok": True,
         "successor_instance_id": successor.instance_id if successor is not None else None,
         "reassigned": reassigned,
-    }
+    })
 
 
 @router.post("/api/mission-control/reboot")

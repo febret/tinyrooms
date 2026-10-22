@@ -4,20 +4,20 @@ const SOUND_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*\.wav$/;
 const PLAY_GAIN = 0.55;
 
 const UI_SOUND_FILES = {
-  tap: "grass.wav",
+  tap: "tap.wav",
   click: "click1.wav",
-  select: "click3.wav",
+  select: "click2.wav",
   flip: "swipe1.wav",
   card: "switch.wav",
   coin: "ring.wav",
   error: "retro-error.wav",
-  success: "swipe1.wav",
-  notify: "drum2.wav",
+  success: "task-complete.wav",
+  notify: "task-notify.wav",
   room: "steps.wav",
-  open: "grass.wav",
+  open: "door-open-old.wav",
   close: "door-close.wav",
   toggle: "switch.wav",
-  cutscene: "cutscene.wav",
+  cutscene: "cutscene-start.wav",
 };
 
 let context;
@@ -25,6 +25,7 @@ let resumePending = false;
 let warned = false;
 const buffers = new Map();
 const pending = new Map();
+const failed = new Set();
 
 /** Resolve a semantic alias or file name to a library file name. */
 export function resolveSoundFile(nameOrAlias) {
@@ -73,6 +74,7 @@ async function resumeContext(target) {
 
 async function loadSound(target, file) {
   if (buffers.has(file)) return buffers.get(file);
+  if (failed.has(file)) return null;
   if (pending.has(file)) return pending.get(file);
   const request = fetch(soundUrl(file))
     .then(response => {
@@ -87,6 +89,7 @@ async function loadSound(target, file) {
     })
     .catch(error => {
       pending.delete(file);
+      failed.add(file);
       if (!warned) console.warn(`Unable to load sound '${file}'.`, error);
       warned = true;
       return null;
@@ -98,9 +101,9 @@ async function loadSound(target, file) {
 async function playFile(file) {
   const target = audioContext();
   if (!target) return;
+  await resumeContext(target);
   const buffer = await loadSound(target, file);
   if (!buffer) return;
-  await resumeContext(target);
   const source = target.createBufferSource();
   source.buffer = buffer;
   const gain = target.createGain();

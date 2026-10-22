@@ -168,7 +168,6 @@ def _say(context, text: str, style: str = "expression") -> None:
 
 def _peer_views(context) -> list[dict[str, object]]:
     own_id = getattr(getattr(context, "target", None), "peep_id", None)
-    label = str(context.state.get("label", ""))
     return [
         peer
         for peer in (context.room.get("peeps") or [])
@@ -176,7 +175,6 @@ def _peer_views(context) -> list[dict[str, object]]:
         and peer.get("id")
         and peer.get("id") != own_id
         and peer.get("label")
-        and (not label or peer.get("label") != label)
     ]
 
 

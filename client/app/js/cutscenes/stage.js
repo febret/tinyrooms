@@ -121,6 +121,7 @@ export function skipCutscene() {
   if (!active) return;
   // Despite the abort wording above, this currently only requests completion
   // when ctx.skip allows it; signal abort is deferred until closeSession.
+  active.stopped = true;
   active.skip();
 }
 
@@ -152,7 +153,7 @@ export function wait(ms) {
 /** Play one sound through the host audio engine during this cutscene. */
 export function sound(nameOrUrl) {
   const active = requireSession();
-  if (active) active.sound?.(nameOrUrl);
+  if (active && !active.stopped) active.sound?.(nameOrUrl);
 }
 
 /** Write one caption into the frame's caption region. */
@@ -195,7 +196,11 @@ export async function captions(cues) {
       new Promise(resolve => {
         const timer = setTimeout(() => {
           if (session) session.timers.delete(timer);
-          if (cue?.sound) session?.sound?.(cue.sound);
+          if (!session || session.stopped) {
+            resolve();
+            return;
+          }
+          if (cue?.sound) session.sound?.(cue.sound);
           handles.push(caption(cue));
           resolve();
         }, delay);
@@ -274,6 +279,7 @@ export function openSession({ ctx, root, frame, stage, captions: captionRegion, 
     sound: playSound,
     controller,
     timers: new Set(),
+    stopped: false,
     stageCreated: false,
     // Session-open monotonic time, before import/intro; captions does not use it.
     startedAt: performance.now(),
@@ -285,6 +291,7 @@ export function openSession({ ctx, root, frame, stage, captions: captionRegion, 
 export function closeSession() {
   if (!session) return;
   const active = session;
+  active.stopped = true;
   session = null;
   for (const timer of active.timers) clearTimeout(timer);
   active.timers.clear();

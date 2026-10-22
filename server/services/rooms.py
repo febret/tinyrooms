@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
 import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
@@ -28,6 +29,9 @@ from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub, read_behavior_state
 from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.world_state import WorldStateRepository
+
+
+LOGGER = logging.getLogger("tinyrooms.rooms")
 
 
 BASE_QUICK_COMMANDS = frozenset({".go", ".inspect", ".look", ".play", ".shop"})
@@ -529,7 +533,11 @@ class RoomService:
             hook = getattr(state, "npc_payload", None)
             if hook is None:
                 continue
-            extra = hook(peep, resolved_room_id)
+            try:
+                extra = hook(peep, resolved_room_id)
+            except Exception:  # noqa: BLE001 - mod decoration must not break snapshots
+                LOGGER.exception("room.mod_npc_payload_failed")
+                continue
             if isinstance(extra, dict):
                 payload.update(extra)
         return payload
@@ -707,7 +715,11 @@ class RoomService:
                 personal_actions = getattr(state, "personal_actions", None)
                 if personal_actions is None:
                     continue
-                personal = personal_actions(account, prop)
+                try:
+                    personal = personal_actions(account, prop)
+                except Exception:  # noqa: BLE001 - mod actions must not break props
+                    LOGGER.exception("room.mod_personal_actions_failed")
+                    continue
                 if personal:
                     quick_actions = quick_actions + self._visible_prop_actions(room, tuple(personal))
         sounds = {**prop_definition.sounds, **prop.sounds}
@@ -895,7 +907,12 @@ class RoomService:
             hook = getattr(state, "room_quick_actions", None)
             if hook is None:
                 continue
-            for action in hook(account, room) or ():
+            try:
+                contributed = hook(account, room) or ()
+            except Exception:  # noqa: BLE001 - mod actions must not break rooms
+                LOGGER.exception("room.mod_room_actions_failed")
+                continue
+            for action in contributed:
                 normalized = self._normalize_quick_action(room, action)
                 if normalized is not None:
                     actions.append(normalized)

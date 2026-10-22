@@ -230,6 +230,12 @@ async def _validate_running_destination(runtime, record: InstanceRecord) -> str:
     return client_url
 
 
+def _is_runnable(runtime, record: InstanceRecord) -> bool:
+    """Return whether an instance is registered and currently running."""
+
+    return bool(record.registered_at) and runtime.registry.snapshot(record)["status"] == STATUS_RUNNING
+
+
 async def _destination(request: Request, instance_id: str) -> tuple[InstanceRecord, str]:
     runtime = request.app.state.mc
     record = runtime.registry.get(instance_id)
@@ -311,7 +317,7 @@ def _recovery_response(
     if candidates:
         if saved_instance_id:
             message = (
-                f"The saved instance '{saved_instance_id}' is no longer registered. "
+                f"The saved instance '{saved_instance_id}' is not available right now. "
                 f"Choose another running instance of '{world_id}' to continue."
             )
         else:
@@ -441,15 +447,31 @@ async def resolve(request: Request) -> Response:
                 saved_instance_id=None,
             )
         instance_id = matches[0].instance_id
-    if runtime.registry.get(instance_id) is None:
+    record = runtime.registry.get(instance_id)
+    if record is None or not _is_runnable(runtime, record):
         return _recovery_response(
             runtime,
             request,
             profile,
-            code="entry_instance_missing",
+            code="entry_instance_missing" if record is None else "entry_instance_not_running",
             saved_instance_id=instance_id,
         )
-    record, client_url = await _destination(request, instance_id)
+    try:
+        record, client_url = await _destination(request, instance_id)
+    except EntryError as exc:
+        if exc.code in {
+            "entry_instance_unreachable",
+            "entry_instance_identity",
+            "entry_instance_client_url",
+        }:
+            return _recovery_response(
+                runtime,
+                request,
+                profile,
+                code=exc.code,
+                saved_instance_id=instance_id,
+            )
+        raise
     if record.world_id != profile.last_world_id:
         raise HTTPException(409, "Your saved instance now serves a different world. Ask an operator for help.")
     return JSONResponse({"ok": True, "instance_id": record.instance_id, "world_id": record.world_id,
@@ -470,12 +492,18 @@ async def repair(request: Request, payload: RepairDestination) -> Response:
     if profile is None:
         raise HTTPException(409, "Your player profile is missing. Ask an operator for help.")
     saved_instance_id = profile.last_instance_id
-    if saved_instance_id and runtime.registry.get(saved_instance_id) is not None:
-        raise EntryError(
-            409,
-            "entry_instance_healthy",
-            "Your saved instance is available. Reload player entry to continue.",
-        )
+    saved = runtime.registry.get(saved_instance_id) if saved_instance_id else None
+    if saved is not None:
+        try:
+            await _validate_running_destination(runtime, saved)
+        except EntryError:
+            pass
+        else:
+            raise EntryError(
+                409,
+                "entry_instance_healthy",
+                "Your saved instance is available. Reload player entry to continue.",
+            )
     if payload.world_id is not None and payload.world_id != profile.last_world_id:
         raise EntryError(
             409,

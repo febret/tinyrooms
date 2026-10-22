@@ -77,8 +77,8 @@ function showRepair(data) {
   if (replacement) repairSelect.value = replacement.instance_id;
   const world = data.world_id || "your saved world";
   repairMessage.textContent = candidates.length === 1
-    ? `Your saved instance was removed. Continue in ${candidates[0].label || candidates[0].instance_id}?`
-    : `Your saved instance was removed. Choose a running instance of ${world} to continue.`;
+    ? `Your saved instance is unavailable. Continue in ${candidates[0].label || candidates[0].instance_id}?`
+    : `Your saved instance is unavailable. Choose a running instance of ${world} to continue.`;
   repairPanel.dataset.worldId = data.world_id || "";
   repairPanel.hidden = false;
   status.textContent = "Your saved destination needs attention.";
@@ -92,7 +92,13 @@ async function connect() {
   try {
     destination = await api("resolve");
   } catch (failure) {
-    const recoverable = failure.code === "entry_instance_missing" || failure.code === "entry_instance_ambiguous";
+    const recoverable = new Set([
+      "entry_instance_missing",
+      "entry_instance_ambiguous",
+      "entry_instance_not_running",
+      "entry_instance_not_registered",
+      "entry_instance_unreachable",
+    ]).has(failure.code);
     if (recoverable && failure.data?.can_repair) {
       showRepair(failure.data);
       return;
@@ -216,12 +222,11 @@ run(async () => {
   if (session.logged_in) {
     signedIn(session);
     await connect();
-  } else {
-    status.textContent = "Log in or create an account to play.";
+    return;
   }
+  status.textContent = "Log in or create an account to play.";
+  startShowcase();
 });
-
-startShowcase();
 
 const installButton = document.getElementById("install-app");
 const standalone = Boolean(window.matchMedia?.("(display-mode: standalone)").matches) || window.navigator.standalone === true;
