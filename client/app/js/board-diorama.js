@@ -10,7 +10,6 @@ import * as THREE from "three";
 
 import { disposeBoardTree } from "./board-helpers.js";
 import {
-  DIORAMA_CYCLE_SECONDS,
   cyclePhaseAt,
   daylightForPhase,
   normalizeDayCycle,
@@ -23,6 +22,7 @@ import {
   buildTerrain,
   hash2,
   makeRibbon,
+  seededRandom,
   terrainHeightAt,
 } from "./board-diorama-terrain.js";
 
@@ -31,14 +31,6 @@ const GROUP_LIFT = 0.045;
 const WARM_WINDOW = "#ffb45e";
 const COOL_WINDOW = "#b6dcff";
 const LAMP_GLOW = "#ffd58a";
-
-function seededRandom(seed) {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-}
 
 function makeCanvasTexture(width, height, draw, { repeatX = 1, repeatY = 1 } = {}) {
   const canvas = document.createElement("canvas");
@@ -219,15 +211,17 @@ function makeWaterMaterial() {
         vec3 lightDirection = normalize(vec3(-0.45, 0.82, 0.3));
         float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.4);
         float specular = pow(max(dot(reflect(-lightDirection, normal), viewDirection), 0.0), 84.0);
-        float crest = smoothstep(0.62, 1.0,
-          sin(vWorld.x * 7.0 + vWorld.z * 2.3 - uTime * 1.7) * 0.5 + 0.5
-        ) * 0.055;
+        float crest = smoothstep(0.76, 1.0,
+          sin(vWorld.x * 8.5 + uTime * 1.8) * sin(vWorld.z * 11.0 - uTime * 1.5) * 0.5 + 0.5
+        ) * 0.045;
         vec3 color = mix(uDeep, uShallow, 0.3 + fresnel * 0.52 + vWave * 0.1);
         color += vec3(0.12, 0.26, 0.3) * fresnel * 0.5;
         color += vec3(1.0, 0.9, 0.68) * specular * (0.2 + uLight * 0.8);
         color += vec3(0.62, 0.82, 0.82) * crest * (0.2 + uLight * 0.8);
         color *= mix(0.58, 1.0, uLight);
-        color = mix(color, color * vec3(0.58, 0.67, 0.9) + vec3(0.008, 0.018, 0.05), uNight * 0.55);
+        color = mix(color, color * vec3(0.6, 0.7, 0.93) + vec3(0.01, 0.024, 0.06), uNight * 0.4);
+        color += vec3(0.12, 0.2, 0.3) * uNight * fresnel * 0.3;
+        color += vec3(0.014, 0.035, 0.055) * uNight;
         gl_FragColor = vec4(color, 0.95);
       }
     `,
@@ -439,8 +433,8 @@ function addHarborHouse(parent, options, materials, windows) {
 }
 
 function addClockTower(parent, materials, windows) {
-  const x = 0.85;
-  const z = -0.72;
+  const x = -0.1;
+  const z = -0.2;
   const ground = terrainHeightAt(x, z);
   const group = new THREE.Group();
   group.position.set(x, ground, z);
@@ -677,10 +671,23 @@ function addTrees(parent, spots, type, materials) {
   const canopies = new THREE.InstancedMesh(canopyGeometry, canopyMaterial, spots.length);
   canopies.castShadow = true;
   canopies.receiveShadow = true;
+  const highlightMaterial = new THREE.MeshStandardMaterial({
+    color: "#ffffff",
+    roughness: 0.9,
+    flatShading: true,
+  });
+  const highlights = type === "conifer"
+    ? null
+    : new THREE.InstancedMesh(canopyGeometry, highlightMaterial, spots.length);
+  if (highlights) {
+    highlights.castShadow = true;
+    highlights.receiveShadow = true;
+  }
 
   const foliage = type === "conifer"
     ? ["#315848", "#3e6651", "#48735a"]
     : ["#5c8550", "#6e9758", "#7ca55f", "#4d794c"];
+  const highlightFoliage = ["#86ad68", "#93b975", "#a3c783"];
   spots.forEach((spot, index) => {
     const height = terrainHeightAt(spot.x, spot.z);
     const trunkHeight = spot.size * 0.52;
@@ -701,11 +708,30 @@ function addTrees(parent, spots, type, materials) {
     dummy.updateMatrix();
     canopies.setMatrixAt(index, dummy.matrix);
     canopies.setColorAt(index, new THREE.Color(foliage[Math.floor(hash2(spot.x, spot.z) * foliage.length)]));
+
+    if (highlights) {
+      dummy.position.set(
+        spot.x + Math.cos(spot.rotation) * spot.size * 0.08,
+        height + trunkHeight + canopyHeight * 0.48,
+        spot.z + Math.sin(spot.rotation) * spot.size * 0.08,
+      );
+      dummy.scale.setScalar(spot.size * 0.28);
+      dummy.updateMatrix();
+      highlights.setMatrixAt(index, dummy.matrix);
+      highlights.setColorAt(index, new THREE.Color(
+        highlightFoliage[Math.floor(hash2(spot.z, spot.x) * highlightFoliage.length)],
+      ));
+    }
   });
   trunks.instanceMatrix.needsUpdate = true;
   canopies.instanceMatrix.needsUpdate = true;
   if (canopies.instanceColor) canopies.instanceColor.needsUpdate = true;
+  if (highlights) {
+    highlights.instanceMatrix.needsUpdate = true;
+    if (highlights.instanceColor) highlights.instanceColor.needsUpdate = true;
+  }
   parent.add(trunks, canopies);
+  if (highlights) parent.add(highlights);
 }
 
 function addFlowerBeds(parent, materials) {
@@ -808,6 +834,11 @@ function makePlinth(materials) {
   box(group, [12.18, 0.48, 10.18], [0, -0.35, 0], wood);
   box(group, [12.32, 0.08, 10.32], [0, -0.09, 0], wood);
   box(group, [12.2, 0.035, 10.2], [0, -0.65, 0], brass);
+  const frameSides = [
+    [[12.18, 0.16, 0.18], [0, 0, 5.05]], [[12.18, 0.16, 0.18], [0, 0, -5.05]],
+    [[0.18, 0.16, 10.1], [6.05, 0, 0]], [[0.18, 0.16, 10.1], [-6.05, 0, 0]],
+  ];
+  for (const [size, position] of frameSides) box(group, size, position, wood);
   for (const x of [-5.85, 5.85]) {
     for (const z of [-4.85, 4.85]) {
       cylinder(group, 0.08, 0.1, 0.12, 12, [x, -0.7, z], brass);
@@ -869,7 +900,11 @@ export function createDioramaBoard({
     depthWrite: false, blending: THREE.AdditiveBlending,
   });
   materials.plaque = new THREE.MeshStandardMaterial({
-    map: materials.plaqueTexture, roughness: 0.42, metalness: 0.35,
+    map: materials.plaqueTexture,
+    emissive: "#6b4c20",
+    emissiveIntensity: 0.28,
+    roughness: 0.42,
+    metalness: 0.35,
   });
   const windows = {
     warm: new THREE.MeshStandardMaterial({
@@ -913,9 +948,9 @@ export function createDioramaBoard({
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
   });
-  const lightReflection = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 2.3), lightReflectionMaterial);
+  const lightReflection = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 2.8), lightReflectionMaterial);
   lightReflection.rotation.x = -Math.PI / 2;
-  lightReflection.position.set(3.9, WATER_LEVEL + 0.012, -0.45);
+  lightReflection.position.set(3.9, WATER_LEVEL + 0.012, -0.3);
   lightReflection.renderOrder = 3;
   group.add(lightReflection);
   addShoreline(group);
@@ -994,7 +1029,7 @@ export function createDioramaBoard({
 
   const blockers = [
     ...buildings.map(building => ({ x: building.x, z: building.z, r: 0.58 })),
-    { x: 0.85, z: -0.72, r: 0.62 },
+    { x: -0.1, z: -0.2, r: 0.62 },
     { x: 3.9, z: -1.65, r: 0.55 },
     { x: -0.1, z: 0.55, r: 0.9 },
     { x: -1.42, z: 1.04, r: 0.46 },
@@ -1077,8 +1112,8 @@ export function createDioramaBoard({
     materials.lanternGlass.emissiveIntensity = 0.25 + day.night * 2.3;
     materials.glowMaterial.opacity = day.night * 0.8;
     materials.clock.emissiveIntensity = 0.03 + day.night * 0.9;
-    lighthouse.beamMaterial.opacity = day.night * 0.24;
-    lightReflectionMaterial.opacity = day.night * 0.36;
+    lighthouse.beamMaterial.opacity = day.night * 0.045;
+    lightReflectionMaterial.opacity = day.night * 0.48;
     const flicker = 0.94 + Math.sin(performance.now() * 0.004) * 0.06 * day.night;
     for (const light of lampLights) {
       light.color.set(LAMP_GLOW);
@@ -1130,7 +1165,7 @@ export function createDioramaBoard({
     lights.hemisphere.groundColor.copy(day.ground);
     lights.hemisphere.intensity = roomDark ? Math.min(day.ambient, 0.24) : day.ambient;
     lights.sunlight.color.copy(day.sunColor);
-    lights.sunlight.intensity = roomDark ? 0 : day.sun;
+    lights.sunlight.intensity = roomDark ? 0 : Math.max(day.sun, day.night * 0.48);
     lights.sunlight.position.set(
       Math.cos(solar) * 8.5,
       2.2 + Math.max(0, Math.sin(solar)) * 8.4,

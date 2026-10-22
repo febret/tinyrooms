@@ -48,6 +48,14 @@ function gauss(x, z, sx, sz) {
   return Math.exp(-0.5 * ((x / sx) ** 2 + (z / sz) ** 2));
 }
 
+export function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
 /** Height of the generated island, in board-local world units. */
 export function terrainHeightAt(x, z) {
   const radius = Math.hypot(x / 5.7, z / 4.75);

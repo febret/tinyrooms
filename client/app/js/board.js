@@ -1182,8 +1182,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (current?.diorama) {
         current.diorama.setRoomDark(roomDark);
         current.diorama.setSceneLights(lights);
-      } else if (applyDarkLighting(lights, roomDark)) {
-        invalidate();
+      } else {
+        if (renderer.toneMappingExposure !== 0.95) renderer.toneMappingExposure = 0.95;
+        if (applyDarkLighting(lights, roomDark)) invalidate();
       }
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();

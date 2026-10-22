@@ -26,15 +26,15 @@ export function cyclePhaseAt(cycle, elapsedSeconds) {
 const DAY_KEYS = [
   {
     at: 0,
-    ambient: 0.34, sun: 0.02, fill: 0.06, night: 1,
-    sky: "#32446f", ground: "#1b2430", sunColor: "#8da7e8", fillColor: "#6c87c8",
-    water: 0.08, exposure: 0.72,
+    ambient: 0.62, sun: 0.02, fill: 0.2, night: 1,
+    sky: "#435582", ground: "#263340", sunColor: "#8da7e8", fillColor: "#8da8e4",
+    water: 0.18, exposure: 0.88,
   },
   {
     at: 0.18,
-    ambient: 0.38, sun: 0.02, fill: 0.08, night: 1,
-    sky: "#3e4c72", ground: "#1d2630", sunColor: "#93a5dd", fillColor: "#7189c8",
-    water: 0.1, exposure: 0.76,
+    ambient: 0.64, sun: 0.02, fill: 0.21, night: 1,
+    sky: "#4b5c84", ground: "#273542", sunColor: "#93a5dd", fillColor: "#8ca3df",
+    water: 0.19, exposure: 0.89,
   },
   {
     at: 0.24,
@@ -74,15 +74,15 @@ const DAY_KEYS = [
   },
   {
     at: 0.9,
-    ambient: 0.36, sun: 0.02, fill: 0.07, night: 1,
-    sky: "#3c4a72", ground: "#1b242f", sunColor: "#94a6dc", fillColor: "#6d85c4",
-    water: 0.09, exposure: 0.73,
+    ambient: 0.62, sun: 0.02, fill: 0.2, night: 1,
+    sky: "#455883", ground: "#25333f", sunColor: "#94a6dc", fillColor: "#8ba5e2",
+    water: 0.18, exposure: 0.88,
   },
   {
     at: 1,
-    ambient: 0.34, sun: 0.02, fill: 0.06, night: 1,
-    sky: "#32446f", ground: "#1b2430", sunColor: "#8da7e8", fillColor: "#6c87c8",
-    water: 0.08, exposure: 0.72,
+    ambient: 0.62, sun: 0.02, fill: 0.2, night: 1,
+    sky: "#435582", ground: "#263340", sunColor: "#8da7e8", fillColor: "#8da8e4",
+    water: 0.18, exposure: 0.88,
   },
 ];
 
