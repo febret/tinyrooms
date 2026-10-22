@@ -10,7 +10,6 @@ import logging
 import sqlite3
 import time
 
-from server.behaviors import sprite_actions
 from server.behaviors.context import BehaviorContext, CardView
 from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.behaviors.intents import BehaviorIntentMixin, BehaviorResult

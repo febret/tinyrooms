@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, time as datetime_time, timedelta
 import sqlite3
 
+from server.behaviors import sprite_actions
 from server.behaviors.context import BehaviorContext, Intent
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.outcomes import PendingRoomBroadcast
