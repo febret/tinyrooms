@@ -1,0 +1,6 @@
+tinytown:
+  title: TinyTown
+  room_bound: false
+art-store:
+  title: The Art Market
+  room_bound: true

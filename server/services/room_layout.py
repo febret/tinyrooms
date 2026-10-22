@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import json
+from pathlib import Path
 import re
 import uuid
 
@@ -180,6 +181,7 @@ class RoomLayoutService:
         return {
             "palette": list(visual.get("palette") or room.palette),
             "board_image_style": str(visual.get("board_image_style") or room.board_image_style),
+            "board_image": str(visual.get("board_image") or room.board_image_name),
         }
 
     def effective_props(self, room_id: str) -> list[PropInstanceDefinition]:
@@ -662,8 +664,7 @@ class RoomLayoutService:
             )
         return scale
 
-    @staticmethod
-    def _validate_environment(room: RoomDefinition, raw_value: object) -> dict[str, object]:
+    def _validate_environment(self, room: RoomDefinition, raw_value: object) -> dict[str, object]:
         if raw_value is None:
             return {}
         if not isinstance(raw_value, dict):
@@ -683,4 +684,15 @@ class RoomLayoutService:
                 if value not in BOARD_IMAGE_STYLES:
                     raise ValueError("Unknown board image style.")
                 patch[key] = str(value)
+            elif key == "board_image":
+                name = str(value).strip()
+                if not name or Path(name).name != name:
+                    raise ValueError("Floor images must be a filename in the world rooms folder.")
+                if Path(name).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+                    raise ValueError("Floor images must be PNG, JPEG, or WebP files.")
+                rooms_root = (self._world.root_path / "rooms").resolve()
+                candidate = (rooms_root / name).resolve()
+                if rooms_root not in candidate.parents or not candidate.is_file():
+                    raise ValueError("That floor image is not available in this world.")
+                patch[key] = name
         return patch

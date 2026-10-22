@@ -1,0 +1,72 @@
+oak-planks:
+  label: Honey Oak Planks
+  description: Warm wide boards with a soft satin finish.
+  price: 25
+  image: floor-oak.png
+  tags: [wood, warm, classic]
+terracotta:
+  label: Terracotta Tile
+  description: Sun-baked square tiles with hand-pressed edges.
+  price: 30
+  image: floor-terracotta.png
+  tags: [tile, warm, kitchen]
+checkerboard:
+  label: Checkerboard
+  description: Cream and charcoal squares with a little swing.
+  price: 35
+  image: floor-checker.png
+  tags: [tile, playful, kitchen]
+sea-glass:
+  label: Sea Glass
+  description: Frosted green-blue tiles that look wet even when they are dry.
+  price: 45
+  image: floor-sea-glass.png
+  tags: [tile, sea, cool]
+walnut-herringbone:
+  label: Walnut Herringbone
+  description: Dark walnut laid in a patient herringbone pattern.
+  price: 55
+  image: floor-herringbone.png
+  tags: [wood, formal, dark]
+linen-carpet:
+  label: Linen Carpet
+  description: A quiet woven carpet in oat and cream.
+  price: 40
+  image: floor-linen.png
+  tags: [carpet, soft, neutral]
+slate:
+  label: Split Slate
+  description: Cool grey stone with a natural cleft and pale mortar.
+  price: 50
+  image: floor-slate.png
+  tags: [stone, cool, country]
+moss-wool:
+  label: Moss Wool
+  description: Deep green wool that makes every step quieter.
+  price: 60
+  image: floor-moss.png
+  tags: [carpet, soft, green]
+sandstone:
+  label: Sandstone Flagstones
+  description: Pale layered stone that holds the afternoon sun.
+  price: 45
+  image: floor-sandstone.png
+  tags: [stone, warm, garden]
+starlight-marble:
+  label: Starlight Marble
+  description: Dark marble threaded with tiny constellations of quartz.
+  price: 120
+  image: floor-starlight.png
+  tags: [stone, luxe, dark]
+cloud-marble:
+  label: Cloud Marble
+  description: Soft white marble with grey weather moving through it.
+  price: 90
+  image: floor-marble.png
+  tags: [stone, luxe, bright]
+sunset-cork:
+  label: Sunset Cork
+  description: Springy cork tiles in warm apricot and rust.
+  price: 35
+  image: floor-cork.png
+  tags: [cork, warm, playful]

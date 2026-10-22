@@ -1,0 +1,706 @@
+micro-loft:
+  label: Micro Loft
+  description: A clever little loft above a bakery. Every wall has a job, and the morning smells like
+    cinnamon.
+  district: downtown
+  price: 100
+  size: Micro
+  preview: preview-micro-loft.png
+  palette:
+  - '#f2c14e'
+  - '#3f3d56'
+  - '#f7f0e3'
+  - '#ff8f5a'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Entry Nook
+    role: entry
+  - key: studio
+    blueprint: home-studio
+    label: Sleeping Studio
+    role: studio
+brick-studio:
+  label: Brick Studio
+  description: One exposed brick wall, one enormous window, and just enough room to call it a home.
+  district: downtown
+  price: 220
+  size: Small
+  preview: preview-brick-studio.png
+  palette:
+  - '#b6533c'
+  - '#f0d7b6'
+  - '#344b59'
+  - '#e7b45a'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Front Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Brick Lounge
+    role: living
+  - key: studio
+    blueprint: home-studio
+    label: Work Studio
+    role: studio
+neon-flat:
+  label: Neon Flat
+  description: Downtown lights leak through the blinds. The kitchen hums, and the studio is always a little
+    too warm.
+  district: downtown
+  price: 480
+  size: Compact
+  preview: preview-neon-flat.png
+  palette:
+  - '#3a1f5d'
+  - '#ff5d8f'
+  - '#54f2ff'
+  - '#f9d65c'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Glow Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Neon Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Noodle Kitchen
+    role: kitchen
+  - key: studio
+    blueprint: home-studio
+    label: Late Studio
+    role: studio
+clocktower-apartment:
+  label: Clocktower Apartment
+  description: A tall apartment tucked under the old clock face. The whole place ticks gently at noon.
+  district: downtown
+  price: 900
+  size: Large
+  preview: preview-clocktower-apartment.png
+  palette:
+  - '#6b4f3a'
+  - '#e7d3a7'
+  - '#2d4a53'
+  - '#c56a52'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Clock Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Pendulum Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Copper Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Gear Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Brass Bath
+    role: bath
+skyline-penthouse:
+  label: Skyline Penthouse
+  description: The top floor, the best view, and a rooftop made for watching the city blink on.
+  district: downtown
+  price: 10000
+  size: Penthouse
+  preview: preview-skyline-penthouse.png
+  palette:
+  - '#20283b'
+  - '#d7b46a'
+  - '#e8e1d1'
+  - '#648ca8'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Marble Foyer
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Grand Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Chef Kitchen
+    role: kitchen
+  - key: library
+    blueprint: home-library
+    label: Quiet Library
+    role: library
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Sky Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Spa Bath
+    role: bath
+  - key: gallery
+    blueprint: home-gallery
+    label: Gallery Hall
+    role: gallery
+  - key: roof
+    blueprint: home-roof
+    label: Skyline Roof
+    role: roof
+beach-hut:
+  label: Beach Hut
+  description: Salt on the windows and sand in the entry. It is not big, but the sea is basically the
+    backyard.
+  district: sea
+  price: 150
+  size: Micro
+  preview: preview-beach-hut.png
+  palette:
+  - '#e7d6a8'
+  - '#247c8a'
+  - '#f26f54'
+  - '#f7f4e8'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Sandy Entry
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Sunset Room
+    role: living
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Bunk Nook
+    role: bedroom
+tidepool-cottage:
+  label: Tidepool Cottage
+  description: A round-windowed cottage where the tide comes close enough to gossip with the porch.
+  district: sea
+  price: 340
+  size: Small
+  preview: preview-tidepool-cottage.png
+  palette:
+  - '#8bc3c4'
+  - '#f1e4c8'
+  - '#346a72'
+  - '#df8a64'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Shell Entry
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Tide Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Sea Kitchen
+    role: kitchen
+  - key: bath
+    blueprint: home-bath
+    label: Pebble Bath
+    role: bath
+lighthouse-keep:
+  label: Lighthouse Keep
+  description: The old keeper's rooms wrapped around a working lighthouse. The beam still turns at dusk.
+  district: sea
+  price: 750
+  size: Medium
+  preview: preview-lighthouse-keep.png
+  palette:
+  - '#f4f1e7'
+  - '#c94545'
+  - '#243d4c'
+  - '#e8c66a'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Keeper Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Beacon Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Galley Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Keeper Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Storm Bath
+    role: bath
+harbor-house:
+  label: Harbor House
+  description: A broad house above the marina with a reading room, a long table, and a roof that catches
+    the gulls.
+  district: sea
+  price: 1200
+  size: Large
+  preview: preview-harbor-house.png
+  palette:
+  - '#2e5d68'
+  - '#e8d9b9'
+  - '#d9825b'
+  - '#8cbfc0'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Harbor Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Chart Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Long Kitchen
+    role: kitchen
+  - key: library
+    blueprint: home-library
+    label: Captain's Library
+    role: library
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Harbor Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Salt Bath
+    role: bath
+  - key: roof
+    blueprint: home-roof
+    label: Gull Roof
+    role: roof
+seaglass-villa:
+  label: Sea Glass Villa
+  description: A pastel villa with a garden courtyard, a pool the colour of sea glass, and more rooms
+    than anyone needs.
+  district: sea
+  price: 6500
+  size: Villa
+  preview: preview-seaglass-villa.png
+  palette:
+  - '#9dd8cf'
+  - '#f7efe4'
+  - '#d78a76'
+  - '#346f78'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Sea Glass Foyer
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Courtyard Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Sun Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Dune Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Sea Bath
+    role: bath
+  - key: studio
+    blueprint: home-studio
+    label: Studio of Tides
+    role: studio
+  - key: garden
+    blueprint: home-garden
+    label: Sea Garden
+    role: garden
+  - key: pool
+    blueprint: home-pool
+    label: Glass Pool
+    role: pool
+hilltop-cabin:
+  label: Hilltop Cabin
+  description: Timber, wool blankets, and a view that makes the walk uphill worth it every time.
+  district: hills
+  price: 280
+  size: Small
+  preview: preview-hilltop-cabin.png
+  palette:
+  - '#6f513b'
+  - '#d9c19a'
+  - '#3f5b47'
+  - '#b76e4d'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Mudroom
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Firelit Room
+    role: living
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Cabin Bedroom
+    role: bedroom
+wildflower-cottage:
+  label: Wildflower Cottage
+  description: A cottage with flowers in the eaves and a kitchen that never quite stops smelling of bread.
+  district: hills
+  price: 560
+  size: Medium
+  preview: preview-wildflower-cottage.png
+  palette:
+  - '#e5cf86'
+  - '#6f8f5f'
+  - '#d97b6c'
+  - '#f5f0df'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Flower Entry
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Meadow Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Bread Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Petal Bedroom
+    role: bedroom
+  - key: garden
+    blueprint: home-garden
+    label: Wildflower Garden
+    role: garden
+orchard-house:
+  label: Orchard House
+  description: A long, low house in the middle of an old orchard. There is always a basket by the door.
+  district: hills
+  price: 980
+  size: Large
+  preview: preview-orchard-house.png
+  palette:
+  - '#7c8b4b'
+  - '#eadcbd'
+  - '#b6543f'
+  - '#4e6542'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Cider Entry
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Orchard Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Preserve Kitchen
+    role: kitchen
+  - key: library
+    blueprint: home-library
+    label: Almanac Library
+    role: library
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Apple Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Copper Bath
+    role: bath
+  - key: garden
+    blueprint: home-garden
+    label: Fruit Garden
+    role: garden
+vineyard-manor:
+  label: Vineyard Manor
+  description: Stone walls, a gallery of small treasures, and rows of vines that turn gold in the evening.
+  district: hills
+  price: 2400
+  size: Manor
+  preview: preview-vineyard-manor.png
+  palette:
+  - '#5a4634'
+  - '#d8c29a'
+  - '#6e3f4a'
+  - '#8a9b62'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Stone Foyer
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Vintner Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Estate Kitchen
+    role: kitchen
+  - key: library
+    blueprint: home-library
+    label: Ledger Library
+    role: library
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Vine Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Stone Bath
+    role: bath
+  - key: gallery
+    blueprint: home-gallery
+    label: Harvest Gallery
+    role: gallery
+  - key: garden
+    blueprint: home-garden
+    label: Vine Garden
+    role: garden
+observatory-estate:
+  label: Observatory Estate
+  description: A house built around a brass telescope. On clear nights every window is a planetarium.
+  district: hills
+  price: 9000
+  size: Estate
+  preview: preview-observatory-estate.png
+  palette:
+  - '#242b4a'
+  - '#c8a86a'
+  - '#e8e5d8'
+  - '#6b8fb3'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Dome Foyer
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Orbit Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Galley Kitchen
+    role: kitchen
+  - key: library
+    blueprint: home-library
+    label: Star Library
+    role: library
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Comet Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Steam Bath
+    role: bath
+  - key: studio
+    blueprint: home-studio
+    label: Instrument Studio
+    role: studio
+  - key: roof
+    blueprint: home-roof
+    label: Observatory Roof
+    role: roof
+starter-bungalow:
+  label: Starter Bungalow
+  description: A tidy little bungalow with a crooked mailbox and a kitchen window that gets all the sun.
+  district: suburbs
+  price: 180
+  size: Small
+  preview: preview-starter-bungalow.png
+  palette:
+  - '#e6d7b9'
+  - '#8ca08c'
+  - '#d67b5d'
+  - '#f6f2e8'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Welcome Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Front Room
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Sunny Kitchen
+    role: kitchen
+maple-family-home:
+  label: Maple Family Home
+  description: The kind of house where the hallway collects shoes and the kitchen collects everyone.
+  district: suburbs
+  price: 650
+  size: Medium
+  preview: preview-maple-family-home.png
+  palette:
+  - '#b95c43'
+  - '#efe2c8'
+  - '#55705e'
+  - '#d9a84e'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Maple Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Family Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Big Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Maple Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Family Bath
+    role: bath
+garden-terrace:
+  label: Garden Terrace
+  description: A calm terrace home where the back garden is really just another room with better light.
+  district: suburbs
+  price: 1100
+  size: Large
+  preview: preview-garden-terrace.png
+  palette:
+  - '#7f9d79'
+  - '#f0e8d4'
+  - '#c2765e'
+  - '#617d91'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Quiet Hall
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Terrace Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Garden Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Willow Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Green Bath
+    role: bath
+  - key: garden
+    blueprint: home-garden
+    label: Back Garden
+    role: garden
+willow-pool-house:
+  label: Willow Pool House
+  description: A roomy house with a willow-shaded pool and a garden that hums with bees all summer.
+  district: suburbs
+  price: 3000
+  size: Large
+  preview: preview-willow-pool-house.png
+  palette:
+  - '#5f7f6c'
+  - '#ece2cb'
+  - '#c78167'
+  - '#6fa4a1'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Willow Entry
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Pool Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Summer Kitchen
+    role: kitchen
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Willow Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Pool Bath
+    role: bath
+  - key: pool
+    blueprint: home-pool
+    label: Willow Pool
+    role: pool
+  - key: garden
+    blueprint: home-garden
+    label: Bee Garden
+    role: garden
+grand-manor:
+  label: Grand Manor
+  description: The big house at the end of the lane. A library, a gallery, a garden, and enough halls
+    to get lost in.
+  district: suburbs
+  price: 8000
+  size: Manor
+  preview: preview-grand-manor.png
+  palette:
+  - '#4c3b34'
+  - '#e7d9bb'
+  - '#8d4a3f'
+  - '#5e7a69'
+  rooms:
+  - key: entry
+    blueprint: home-entry
+    label: Grand Foyer
+    role: entry
+  - key: living
+    blueprint: home-living
+    label: Grand Lounge
+    role: living
+  - key: kitchen
+    blueprint: home-kitchen
+    label: Manor Kitchen
+    role: kitchen
+  - key: library
+    blueprint: home-library
+    label: Manor Library
+    role: library
+  - key: bedroom
+    blueprint: home-bedroom
+    label: Master Bedroom
+    role: bedroom
+  - key: bath
+    blueprint: home-bath
+    label: Marble Bath
+    role: bath
+  - key: studio
+    blueprint: home-studio
+    label: Writing Studio
+    role: studio
+  - key: gallery
+    blueprint: home-gallery
+    label: Portrait Gallery
+    role: gallery
+  - key: garden
+    blueprint: home-garden
+    label: Manor Garden
+    role: garden

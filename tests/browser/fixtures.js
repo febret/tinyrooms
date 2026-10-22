@@ -34,7 +34,8 @@ async function limitAnimationFrameRate(context) {
 }
 
 export const test = base.extend({
-  runtime: async ({ playwright }, use, testInfo) => {
+  runtimeWorld: [process.env.TR_TEST_WORLD || "tutorial", { option: true }],
+  runtime: async ({ playwright, runtimeWorld }, use, testInfo) => {
     const root = process.cwd();
     const runtimeRoot = path.join(root, ".browser-runtime");
     await mkdir(runtimeRoot, { recursive: true });
@@ -43,7 +44,7 @@ export const test = base.extend({
     const python = process.env.TR_TEST_PYTHON || (existsSync(localPython) ? localPython : "python");
     const child = spawn(python, ["-u", path.join(root, "tools", "browser_test_runtime.py"), "--directory", directory], {
       cwd: root, stdio: ["pipe", "pipe", "pipe"], windowsHide: true,
-      env: { ...process.env, PYTHONUTF8: "1", TZ: "UTC" },
+      env: { ...process.env, PYTHONUTF8: "1", TZ: "UTC", TR_TEST_WORLD: runtimeWorld },
     });
     let output = "";
     let spawnError;

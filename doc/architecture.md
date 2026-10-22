@@ -77,7 +77,14 @@ stored by [prop_surfaces.py](../server/services/prop_surfaces.py) in the
 by [surface-props.js](../client/app/js/surface-props.js) /
 [surface-canvas.js](../client/app/js/surface-canvas.js). Saves broadcast
 `room.prop.surface` with a monotonic revision; clients ignore stale revisions.
-Whiteboard drawings are vector strokes and text, not uploaded images.
+Whiteboard drawings are vector strokes and text, not uploaded images. The room
+editor's environment allowlist includes a validated `board_image` override for
+world-authored floor textures; layout updates carry the new image URL alongside
+palette and tiling.
+
+Mods may expose `start()`/`stop()` lifecycle hooks for background work. TinyTown
+uses this for autonomous household NPCs while its private multi-room houses,
+house purchases, visits, and Art Market purchases live in the `tinytown` mod.
 
 Rooms may set `sprites_enabled: true` to draw every present peep as a
 camera-facing 2D sprite on the board. [sprite_rooms.py](../server/services/sprite_rooms.py)

@@ -1,0 +1,13 @@
+id: tinytown
+label: TinyTown
+description: A pocket-sized town of districts, private homes, and very small lives.
+entry_room: town
+image: rooms/town-map.png
+palette:
+- '#f2d6a2'
+- '#5f8f7d'
+- '#d7795c'
+- '#46697a'
+requires_mods:
+- tinytown
+powers: {}

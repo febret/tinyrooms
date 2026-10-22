@@ -1,0 +1,100 @@
+{
+  "tasks": [
+    {
+      "label": "tinytown-avatar-01",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a cheerful tiny townsfolk peep with dark green overalls, chestnut bob hair, round glasses, holding a small potted plant, friendly smile, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-01.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96301,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-02",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a warm tiny townsfolk peep with peach dungarees, curly auburn hair, freckles, holding a cup of tea, gentle smile, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-02.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96302,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-03",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a calm tiny townsfolk peep with a bluebell blue coat, silver bun, little satchel, holding a folded newspaper, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-03.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96303,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-04",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a bright tiny townsfolk peep with saffron yellow raincoat, short black hair, rubber boots, holding a tiny watering can, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-04.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96304,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-05",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a stylish tiny townsfolk peep with plum purple blazer, long dark braids, gold earrings, holding a sketchbook, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-05.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96305,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-06",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a sporty tiny townsfolk peep with mint green hoodie, red cap, freckles, holding a small picnic basket, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-06.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96306,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-07",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a cozy tiny townsfolk peep with ember orange knit sweater, messy brown hair, round glasses, holding a paperback book, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-07.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96307,
+        "steps": 28
+      }
+    },
+    {
+      "label": "tinytown-avatar-08",
+      "tool": "image",
+      "prompt": "full-body storybook character sticker of a dreamy tiny townsfolk peep with cloud grey scarf, pale blonde hair, star hairclip, holding a tiny telescope, cute tiny proportions, big expressive eyes, clean bold outlines, flat vector illustration, warm limited palette, plain dark teal background, centered full body, no text, no letters, no words, no numbers, no watermark, no drop shadow",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/peeps/avatar-08.png",
+      "args": {
+        "width": 768,
+        "height": 768,
+        "seed": 96308,
+        "steps": 28
+      }
+    }
+  ]
+}

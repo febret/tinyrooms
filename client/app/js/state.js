@@ -283,6 +283,9 @@ function applyServerEvent(state, event) {
           ...state.room.board,
           palette: Array.isArray(environment.palette) ? [...environment.palette] : state.room.board.palette,
           imageStyle: environment.board_image_style ? String(environment.board_image_style) : state.room.board.imageStyle,
+          imageUrl: typeof environment.board_image === "string" && environment.board_image && state.user?.worldId
+            ? assetOrEmpty(`/assets/world/${state.user.worldId}/rooms/${environment.board_image}`)
+            : state.room.board.imageUrl,
         },
       },
     };

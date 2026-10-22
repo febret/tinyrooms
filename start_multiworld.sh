@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Start a local multi-world Tinyrooms: Mission Control plus the tutorial,
-# scammon-academia, and tiny-arcade world servers, all sharing one profile
+# scammon-academia, tiny-arcade, and tinytown world servers, all sharing one profile
 # database and one advertised hostname so cross-world teleporters can hand the
 # browser between ports.
 #
@@ -11,13 +11,13 @@ set -euo pipefail
 #
 #   --public-host  Hostname or IP the browser uses and that is advertised in
 #                  client URLs and Mission Control's public origin. Setting it
-#                  also binds the three listeners to 0.0.0.0 so remote clients
+#                  also binds the four listeners to 0.0.0.0 so remote clients
 #                  can connect. When omitted, everything stays on 127.0.0.1.
 #                  Use a LAN IP or DNS name clients can reach; the self-signed
 #                  certificate only covers local addresses.
 #
 # Ports and credentials are overridable via MC_PORT / TUTORIAL_PORT /
-# SCAMMON_PORT / ARCADE_PORT (and the TRSERVER_* environment). This is a
+# SCAMMON_PORT / ARCADE_PORT / TINYTOWN_PORT (and the TRSERVER_* environment). This is a
 # local-development launcher: it uses self-signed certificates and default
 # development creds.
 
@@ -55,6 +55,7 @@ MC_PORT="${MC_PORT:-8001}"
 TUTORIAL_PORT="${TUTORIAL_PORT:-5100}"
 SCAMMON_PORT="${SCAMMON_PORT:-5101}"
 ARCADE_PORT="${ARCADE_PORT:-5102}"
+TINYTOWN_PORT="${TINYTOWN_PORT:-5103}"
 
 export TRSERVER_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-deadbeef}"
 export TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE:-$TRSERVER_NEW_ACCOUNT_PASSPHRASE}"
@@ -136,6 +137,7 @@ start_world() {
 start_world tutorial "$TUTORIAL_PORT" tutorial-1 "Tutorial"
 start_world scammon-academia "$SCAMMON_PORT" scammon-1 "Scammon Academia"
 start_world tiny-arcade "$ARCADE_PORT" arcade-1 "Tiny Arcade"
+start_world tinytown "$TINYTOWN_PORT" tinytown-1 "TinyTown"
 
 cat <<EOF
 Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
@@ -144,7 +146,8 @@ Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
   Tutorial world   : https://$PUBLIC_HOST:$TUTORIAL_PORT/
   Scammon Academia : https://$PUBLIC_HOST:$SCAMMON_PORT/
   Tiny Arcade      : https://$PUBLIC_HOST:$ARCADE_PORT/
-Mission Control manages all three worlds; the Multiverse travels between them.
+  TinyTown         : https://$PUBLIC_HOST:$TINYTOWN_PORT/
+Mission Control manages all four worlds; the Multiverse travels between them.
 Press Ctrl-C to stop everything.
 EOF
 

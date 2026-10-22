@@ -1,0 +1,60 @@
+CONFIG:
+  scale_adjust: 1.0
+tinytown-town-diorama:
+  label: TinyTown Diorama
+  description: A whole town in one careful model, with districts stacked around a crooked little high street.
+  model: tinytown-town-diorama.glb
+  decorative: true
+  scale: 3.0
+  editor_scale_min: 0.5
+  editor_scale_max: 4.0
+  sprite_footprint:
+  - 22
+  - 16
+  tags:
+  - town
+  - landmark
+tinytown-art-easel:
+  label: Art Easel
+  description: A wooden studio easel with a blank canvas. The Art Market delivers right to the frame.
+  model: tinytown-art-easel.glb
+  decorative: true
+  scale: 1.7
+  editor_scale_min: 0.5
+  editor_scale_max: 2.5
+  sprite_footprint:
+  - 4
+  - 3
+  tags:
+  - art
+  - studio
+  - easel
+tinytown-bathtub:
+  label: Deep Bath
+  description: A generous roll-top tub with brass feet. Excellent for steam, thinking, and very small boats.
+  model: tinytown-bathtub.glb
+  decorative: true
+  scale: 1.9
+  editor_scale_min: 0.5
+  editor_scale_max: 2.0
+  sprite_footprint:
+  - 7
+  - 4
+  tags:
+  - bathroom
+  - tub
+tinytown-pool:
+  label: Garden Pool
+  description: A clear blue plunge pool with a tiled lip and just enough room for a proper splash.
+  model: tinytown-pool.glb
+  decorative: true
+  scale: 3.0
+  editor_scale_min: 0.4
+  editor_scale_max: 2.0
+  sprite_footprint:
+  - 20
+  - 12
+  tags:
+  - pool
+  - water
+  - garden

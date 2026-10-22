@@ -513,7 +513,7 @@ class RoomService:
         position = self._sprites.ensure_npc(peep.id, resolved_room_id)
         if position is not None:
             sprite_payload["sprite"] = {"position": list(position)}
-        return {
+        payload: dict[str, object] = {
             "id": peep.id,
             "kind": "npc",
             "label": peep.label,
@@ -524,6 +524,14 @@ class RoomService:
             **sprite_payload,
             **({"vibes": vibes} if vibes else {}),
         }
+        for state in self._mod_states:
+            hook = getattr(state, "npc_payload", None)
+            if hook is None:
+                continue
+            extra = hook(peep, resolved_room_id)
+            if isinstance(extra, dict):
+                payload.update(extra)
+        return payload
 
     async def move_npc(self, peep_id: str, exit_id: str) -> NpcMoveResult:
         """Move an NPC through an authored exit and return its room events."""
@@ -814,12 +822,14 @@ class RoomService:
         )
         board_palette = list(room.palette)
         board_style = room.board_image_style
+        board_image = room.board_image_name
         layout_revision = environment_revision
         can_edit_room = room_id in user_profile.owned_rooms
         if self._layout is not None:
             effective_board = self._layout.effective_board(room_id)
             board_palette = list(effective_board.get("palette") or room.palette)
             board_style = str(effective_board.get("board_image_style") or room.board_image_style)
+            board_image = str(effective_board.get("board_image") or room.board_image_name)
             layout_revision = self._layout.revision(room_id)
             can_edit_room = self._layout.can_edit(account, room_id)
         game = self._serialize_game(account, room)
@@ -845,7 +855,7 @@ class RoomService:
             "description": description,
             "board": {
                 "type": room.board_type,
-                "image_url": f"/assets/world/{self._world.id}/rooms/{room.board_image_name}",
+                "image_url": f"/assets/world/{self._world.id}/rooms/{board_image}",
                 "image_style": board_style,
                 "palette": board_palette,
                 "dark": dark,

@@ -7,7 +7,7 @@ from typing import Any
 from server.content.common import ContentError
 
 
-EDITOR_ENVIRONMENT_KEYS = frozenset({"palette", "board_image_style"})
+EDITOR_ENVIRONMENT_KEYS = frozenset({"palette", "board_image_style", "board_image"})
 
 
 def load_editor_environment(raw_value: Any, room_id: str) -> tuple[str, ...]:

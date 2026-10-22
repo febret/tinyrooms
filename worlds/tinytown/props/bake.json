@@ -1,0 +1,53 @@
+{
+  "simplify": {
+    "strategy": "auto",
+    "target": 1200,
+    "flat_target": 240,
+    "wall_target": 360,
+    "bake_resolution": 1024,
+    "remesh_resolution": 160,
+    "max_deviation": 0.05
+  },
+  "tasks": [
+    {
+      "label": "tinytown-town-diorama",
+      "tool": "asset",
+      "prompt": "a complete miniature town diorama on one small rounded island base, four tiny districts: a dense downtown cluster with a clock tower and brick rooftops, a little harbor with boats and a striped lighthouse, green hills with orchard cottages and a brass observatory dome, leafy suburbs with gardens and small houses, winding cream roads, tiny trees, cozy storybook toy-set proportions, cheerful colors, single isolated prop, no surrounding ground, no text, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-town-diorama.glb",
+      "args": {
+        "seed": 96401,
+        "faces": 12000
+      }
+    },
+    {
+      "label": "tinytown-art-easel",
+      "tool": "asset",
+      "prompt": "a wooden artist's studio easel with a blank stretched canvas, a small tray of paint pots and two brushes, warm honey wood, sturdy tripod legs, isolated single prop, no surrounding ground, no text, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-art-easel.glb",
+      "args": {
+        "seed": 96402,
+        "faces": 4000
+      }
+    },
+    {
+      "label": "tinytown-bathtub",
+      "tool": "asset",
+      "prompt": "a generous white roll-top bathtub on four small brass feet, soft rounded rim, one silver tap, a folded cream towel over the side, isolated single prop, no surrounding ground, no text, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-bathtub.glb",
+      "args": {
+        "seed": 96403,
+        "faces": 5000
+      }
+    },
+    {
+      "label": "tinytown-pool",
+      "tool": "asset",
+      "prompt": "a rectangular garden plunge pool with a pale stone tiled rim, clear turquoise water, a few ripples, small brass step rail at one end, isolated single prop with its own shallow stone base, no deck or garden, no text, game-ready",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-pool.glb",
+      "args": {
+        "seed": 96404,
+        "faces": 4500
+      }
+    }
+  ]
+}

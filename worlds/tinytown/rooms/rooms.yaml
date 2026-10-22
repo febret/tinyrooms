@@ -1,0 +1,1185 @@
+town:
+  label: TinyTown
+  description: A pocket-sized town of districts, front doors, and very small roofs. Pick a district, browse
+    the house market, and find somewhere to hang your hat.
+  board_type: basic
+  board_image: town-map.png
+  board_image_style: stretch
+  palette:
+  - '#f2d6a2'
+  - '#5f8f7d'
+  - '#d7795c'
+  - '#46697a'
+  props:
+    town-diorama:
+      prop: tinytown-town-diorama
+      pos:
+      - 50
+      - 50
+      - 0
+      scale: 5.2
+      actions:
+      - - Explore TinyTown
+        - .play tinytown
+        - true
+    town-welcome:
+      prop: builtin:sign
+      pos:
+      - 16
+      - 12
+      - 0
+      scale: 1.45
+      rot:
+      - -0.45
+      - 0.18
+      - 0
+      actions:
+      - - Open TinyTown
+        - .play tinytown
+        - true
+      sign_style: paper
+      surface:
+        text: 'WELCOME TO TINYTOWN
+
+
+          Buy a house. Fill it with peeps.
+
+          Visit the neighbours.'
+    town-downtown:
+      prop: builtin:sign
+      pos:
+      - 8
+      - 60
+      - 0
+      scale: 1.2
+      rot:
+      - -0.45
+      - 0.22
+      - 0
+      actions:
+      - - Browse Downtown
+        - .play tinytown
+      sign_style: neon
+      surface:
+        text: 'DOWNTOWN
+
+
+          Bricks, noodles, neon.
+
+          Tiny homes with big windows.'
+    town-sea:
+      prop: builtin:sign
+      pos:
+      - 92
+      - 60
+      - 0
+      scale: 1.2
+      rot:
+      - -0.45
+      - -0.22
+      - 0
+      actions:
+      - - Browse The Sea
+        - .play tinytown
+      sign_style: brass
+      surface:
+        text: 'THE SEA
+
+
+          Salt air, harbour lights,
+
+          and a lighthouse that still turns.'
+    town-hills:
+      prop: builtin:sign
+      pos:
+      - 16
+      - 86
+      - 0
+      scale: 1.2
+      rot:
+      - -0.45
+      - 0.18
+      - 0
+      actions:
+      - - Browse The Hills
+        - .play tinytown
+      sign_style: chalk
+      surface:
+        text: 'THE HILLS
+
+
+          Orchards, stars,
+
+          and winding green lanes.'
+    town-suburbs:
+      prop: builtin:sign
+      pos:
+      - 84
+      - 86
+      - 0
+      scale: 1.2
+      rot:
+      - -0.45
+      - -0.18
+      - 0
+      actions:
+      - - Browse The Suburbs
+        - .play tinytown
+      sign_style: wood
+      surface:
+        text: 'THE SUBURBS
+
+
+          Porches, gardens,
+
+          and kitchens full of sun.'
+    town-tree-left:
+      prop: ancient-oak
+      pos:
+      - 4
+      - 25
+      - 0
+      scale: 0.8
+    town-tree-right:
+      prop: sugar-maple
+      pos:
+      - 96
+      - 25
+      - 0
+      scale: 0.8
+    town-flowers-left:
+      prop: wildflower-meadow
+      pos:
+      - 8
+      - 92
+      - 0
+      scale: 0.8
+    town-flowers-right:
+      prop: hydrangea-bush
+      pos:
+      - 91
+      - 92
+      - 0
+      scale: 0.9
+  exits: {}
+home-entry:
+  label: Entry Hall
+  description: A bright little front hall. Coats, keys, and a sign that knows everyone in the house.
+  board_type: basic
+  board_image: floor-oak.png
+  board_image_style: stretch
+  palette:
+  - '#e7d6b4'
+  - '#6e8f7e'
+  - '#c97559'
+  - '#42616e'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    front-door:
+      prop: red-front-door
+      pos:
+      - 50
+      - 3
+      - 0
+      scale: 1.4
+    hall-runner:
+      prop: braided-rainbow-rug
+      pos:
+      - 50
+      - 55
+      - 0
+      scale: 1.1
+    hall-console:
+      prop: rattan-side-table
+      pos:
+      - 80
+      - 19
+      - 0
+      scale: 0.9
+    hall-plant:
+      prop: monstera-in-pot
+      pos:
+      - 86
+      - 19
+      - 0
+      scale: 0.9
+    household-board:
+      prop: builtin:sign
+      pos:
+      - 50
+      - 25
+      - 0
+      scale: 1.1
+      actions:
+      - - Open TinyTown
+        - .play tinytown
+        - true
+      sign_style: wood
+      surface:
+        text: 'HOUSEHOLD
+
+          Click for peeps & homes.'
+    hall-mirror:
+      prop: peili-mirror
+      pos:
+      - 11
+      - 6
+      - 0
+      scale: 0.85
+    hall-hooks:
+      prop: tall-wardrobe
+      pos:
+      - 90
+      - 8
+      - 0
+      scale: 0.8
+  exits: {}
+home-living:
+  label: Living Room
+  description: Deep seats, warm lamps, and a rug that has hosted a thousand small conversations.
+  board_type: basic
+  board_image: floor-linen.png
+  board_image_style: stretch
+  palette:
+  - '#efe1c7'
+  - '#b35d48'
+  - '#587565'
+  - '#d8aa55'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    living-sofa:
+      prop: dusty-rose-sofa
+      pos:
+      - 50
+      - 24
+      - 0
+      scale: 1.15
+    living-chair:
+      prop: teal-egg-chair
+      pos:
+      - 78
+      - 42
+      - 0
+      scale: 0.9
+      rot:
+      - 0
+      - -0.3
+      - 0
+    living-rug:
+      prop: persian-medallion-rug
+      pos:
+      - 50
+      - 58
+      - 0
+      scale: 1.1
+    living-table:
+      prop: jarvi-coffee-table
+      pos:
+      - 50
+      - 60
+      - 0
+      scale: 0.95
+    living-lamp:
+      prop: dragonfly-tiffany-lamp
+      pos:
+      - 81
+      - 22
+      - 0
+      scale: 0.9
+    living-plant:
+      prop: potted-bonsai
+      pos:
+      - 17
+      - 22
+      - 0
+      scale: 0.9
+    living-easel:
+      prop: tinytown-art-easel
+      pos:
+      - 84
+      - 8
+      - 0
+      scale: 1.0
+      actions:
+      - - Visit the Art Market
+        - .play art-store
+        - true
+    living-window:
+      prop: bay-window
+      pos:
+      - 20
+      - 5
+      - 0
+      scale: 1.3
+  exits: {}
+home-kitchen:
+  label: Kitchen
+  description: A cheerful kitchen with a proper chopping board, a kettle always near the boil, and a window
+    over the sink.
+  board_type: basic
+  board_image: floor-checker.png
+  board_image_style: stretch
+  palette:
+  - '#f1e6cd'
+  - '#db8b5e'
+  - '#4d796a'
+  - '#d5b04e'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    kitchen-dresser:
+      prop: kitchen-dresser
+      pos:
+      - 16
+      - 18
+      - 0
+      scale: 1.0
+    kitchen-pantry:
+      prop: kitchen-dresser
+      pos:
+      - 82
+      - 16
+      - 0
+      scale: 0.8
+      rot:
+      - 0
+      - -0.25
+      - 0
+    kitchen-mixer:
+      prop: supermarket-mixer
+      pos:
+      - 74
+      - 30
+      - 0
+      scale: 0.55
+    kitchen-table:
+      prop: supermarket-prep-table
+      pos:
+      - 50
+      - 52
+      - 0
+      scale: 1.0
+    kitchen-book:
+      prop: supermarket-recipe-book
+      pos:
+      - 48
+      - 45
+      - 0
+      scale: 0.8
+    kitchen-rug:
+      prop: sunset-runner-rug
+      pos:
+      - 50
+      - 73
+      - 0
+      scale: 1.0
+    kitchen-plant:
+      prop: pink-orchid
+      pos:
+      - 88
+      - 38
+      - 0
+      scale: 0.85
+    kitchen-window:
+      prop: casement-window
+      pos:
+      - 68
+      - 5
+      - 0
+      scale: 1.2
+  exits: {}
+home-bedroom:
+  label: Bedroom
+  description: A soft room built around a good bed. The sort of place where the day ends slowly.
+  board_type: basic
+  board_image: floor-linen.png
+  board_image_style: stretch
+  palette:
+  - '#e9d9c3'
+  - '#7c8c9f'
+  - '#bb6f61'
+  - '#4f4a63'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    bed-main:
+      prop: lumi-bed
+      pos:
+      - 50
+      - 24
+      - 0
+      scale: 1.25
+    bed-nightstand:
+      prop: floral-nightstand
+      pos:
+      - 74
+      - 21
+      - 0
+      scale: 0.9
+    bed-lamp:
+      prop: taika-table-lamp
+      pos:
+      - 74
+      - 20
+      - 0
+      scale: 0.85
+    bed-rug:
+      prop: sheepskin-rug
+      pos:
+      - 44
+      - 70
+      - 0
+      scale: 1.1
+    bed-wardrobe:
+      prop: tall-wardrobe
+      pos:
+      - 15
+      - 18
+      - 0
+      scale: 1.0
+    bed-window:
+      prop: arched-cottage-window
+      pos:
+      - 50
+      - 4
+      - 0
+      scale: 1.3
+    bed-plant:
+      prop: snake-plant
+      pos:
+      - 90
+      - 18
+      - 0
+      scale: 0.8
+  exits: {}
+home-bath:
+  label: Bathroom
+  description: Steam, tiles, and a deep tub. The best room in the house for thinking about nothing.
+  board_type: basic
+  board_image: floor-sea-glass.png
+  board_image_style: stretch
+  palette:
+  - '#d9ece7'
+  - '#4c8d94'
+  - '#e2b685'
+  - '#f4f0e1'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    bath-tub:
+      prop: tinytown-bathtub
+      pos:
+      - 62
+      - 22
+      - 0
+      scale: 1.0
+    bath-toilet:
+      prop: victorian-high-tank
+      pos:
+      - 20
+      - 24
+      - 0
+      scale: 0.9
+    bath-cabinet:
+      prop: medicine-cabinet
+      pos:
+      - 15
+      - 5
+      - 0
+      scale: 0.9
+    bath-mirror:
+      prop: gilt-mirror
+      pos:
+      - 36
+      - 5
+      - 0
+      scale: 0.8
+    bath-rug:
+      prop: braided-rainbow-rug
+      pos:
+      - 45
+      - 65
+      - 0
+      scale: 0.8
+    bath-plant:
+      prop: pink-orchid
+      pos:
+      - 87
+      - 18
+      - 0
+      scale: 0.85
+  exits: {}
+home-studio:
+  label: Studio
+  description: A room with more ideas than shelves. Paper, paint, and one very patient chair.
+  board_type: basic
+  board_image: floor-herringbone.png
+  board_image_style: stretch
+  palette:
+  - '#e8dcc8'
+  - '#9b5a49'
+  - '#4f6e78'
+  - '#d3aa5b'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    studio-desk:
+      prop: mahogany-writing-desk
+      pos:
+      - 38
+      - 30
+      - 0
+      scale: 0.8
+    studio-chair:
+      prop: orange-office-chair
+      pos:
+      - 38
+      - 46
+      - 0
+      scale: 0.7
+    studio-easel:
+      prop: tinytown-art-easel
+      pos:
+      - 70
+      - 22
+      - 0
+      scale: 1.1
+      actions:
+      - - Visit the Art Market
+        - .play art-store
+        - true
+    studio-shelf:
+      prop: metsa-bookshelf
+      pos:
+      - 15
+      - 18
+      - 0
+      scale: 0.9
+    studio-lamp:
+      prop: chrome-desk-lamp
+      pos:
+      - 48
+      - 23
+      - 0
+      scale: 0.85
+    studio-rug:
+      prop: sheepskin-rug
+      pos:
+      - 65
+      - 65
+      - 0
+      scale: 0.9
+    studio-plant:
+      prop: venus-flytrap-pot
+      pos:
+      - 89
+      - 25
+      - 0
+      scale: 0.8
+  exits: {}
+home-garden:
+  label: Garden
+  description: A pocket garden with warm stones, flowers doing their own thing, and room to stand still.
+  board_type: basic
+  board_image: floor-sandstone.png
+  board_image_style: stretch
+  palette:
+  - '#a7bd80'
+  - '#5f8256'
+  - '#d39a63'
+  - '#f1e5c8'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    garden-tree:
+      prop: cherry-blossom-tree
+      pos:
+      - 72
+      - 27
+      - 0
+      scale: 0.5
+    garden-bush:
+      prop: hydrangea-bush
+      pos:
+      - 23
+      - 22
+      - 0
+      scale: 0.45
+    garden-flowers:
+      prop: lavender-row
+      pos:
+      - 36
+      - 62
+      - 0
+      scale: 0.9
+    garden-flowers-two:
+      prop: daisy-cluster
+      pos:
+      - 68
+      - 67
+      - 0
+      scale: 0.9
+    garden-stones:
+      prop: stepping-stones
+      pos:
+      - 50
+      - 50
+      - 0
+      scale: 0.9
+    garden-chair:
+      prop: patchwork-rocking-chair
+      pos:
+      - 84
+      - 65
+      - 0
+      scale: 0.85
+    garden-table:
+      prop: terrazzo-tripod-table
+      pos:
+      - 75
+      - 68
+      - 0
+      scale: 0.65
+    garden-rock:
+      prop: mossy-rock
+      pos:
+      - 90
+      - 24
+      - 0
+      scale: 0.55
+    garden-lantern:
+      prop: brass-oil-lantern
+      pos:
+      - 18
+      - 62
+      - 0
+      scale: 0.8
+    garden-bench:
+      prop: mustard-armchair
+      pos:
+      - 12
+      - 80
+      - 0
+      scale: 0.8
+  exits: {}
+home-loft:
+  label: Loft
+  description: A tucked-away sleeping loft with a desk under the slope and a skylight full of weather.
+  board_type: basic
+  board_image: floor-cork.png
+  board_image_style: stretch
+  palette:
+  - '#e5d4b8'
+  - '#5c6d8a'
+  - '#c17d67'
+  - '#d9af5e'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    loft-bed:
+      prop: window-daybed
+      pos:
+      - 36
+      - 25
+      - 0
+      scale: 1.1
+    loft-desk:
+      prop: sade-desk
+      pos:
+      - 74
+      - 30
+      - 0
+      scale: 0.95
+    loft-shelf:
+      prop: kuusi-wall-shelf
+      pos:
+      - 66
+      - 5
+      - 0
+      scale: 0.85
+    loft-lamp:
+      prop: mushroom-table-lamp
+      pos:
+      - 80
+      - 24
+      - 0
+      scale: 0.85
+    loft-rug:
+      prop: braided-rainbow-rug
+      pos:
+      - 50
+      - 63
+      - 0
+      scale: 0.9
+    loft-window:
+      prop: round-porthole-window
+      pos:
+      - 50
+      - 4
+      - 0
+      scale: 1.1
+    loft-plant:
+      prop: hanging-pothos
+      pos:
+      - 88
+      - 12
+      - 0
+      scale: 0.8
+  exits: {}
+home-library:
+  label: Library
+  description: A quiet room that smells of paper and old wood. Every chair is a good reading chair.
+  board_type: basic
+  board_image: floor-herringbone.png
+  board_image_style: stretch
+  palette:
+  - '#e2ceb0'
+  - '#564238'
+  - '#8b5a44'
+  - '#4b6e67'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    library-shelf-one:
+      prop: metsa-bookshelf
+      pos:
+      - 18
+      - 16
+      - 0
+      scale: 1.0
+    library-shelf-two:
+      prop: china-hutch
+      pos:
+      - 82
+      - 16
+      - 0
+      scale: 0.9
+    library-chair:
+      prop: gilded-armchair
+      pos:
+      - 45
+      - 48
+      - 0
+      scale: 0.9
+    library-table:
+      prop: puro-side-table
+      pos:
+      - 62
+      - 48
+      - 0
+      scale: 0.85
+    library-lamp:
+      prop: bookstack-floor-lamp
+      pos:
+      - 34
+      - 42
+      - 0
+      scale: 0.95
+    library-rug:
+      prop: persian-medallion-rug
+      pos:
+      - 52
+      - 64
+      - 0
+      scale: 0.9
+    library-globe:
+      prop: gilt-urn
+      pos:
+      - 89
+      - 44
+      - 0
+      scale: 0.75
+  exits: {}
+home-workshop:
+  label: Workshop
+  description: A tidy workshop with labelled jars, a workbench, and that one drawer nobody opens.
+  board_type: basic
+  board_image: floor-slate.png
+  board_image_style: stretch
+  palette:
+  - '#d5d1c6'
+  - '#4f585e'
+  - '#b8784f'
+  - '#758d7b'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    workshop-bench:
+      prop: hacker-desk
+      pos:
+      - 50
+      - 30
+      - 0
+      scale: 0.95
+    workshop-cart:
+      prop: circuit-crash-cart
+      pos:
+      - 75
+      - 38
+      - 0
+      scale: 0.8
+    workshop-shelf:
+      prop: filing-cabinet
+      pos:
+      - 16
+      - 18
+      - 0
+      scale: 0.9
+    workshop-tools:
+      prop: supermarket-prep-table
+      pos:
+      - 18
+      - 55
+      - 0
+      scale: 0.75
+    workshop-boxes:
+      prop: tall-wardrobe
+      pos:
+      - 86
+      - 16
+      - 0
+      scale: 0.8
+    workshop-lamp:
+      prop: orange-gooseneck-lamp
+      pos:
+      - 61
+      - 22
+      - 0
+      scale: 0.8
+    workshop-rug:
+      prop: leaf-rug
+      pos:
+      - 50
+      - 70
+      - 0
+      scale: 0.8
+  exits: {}
+home-roof:
+  label: Roof Terrace
+  description: A little sky terrace with planters, warm lights, and more stars than the street below.
+  board_type: basic
+  board_image: floor-slate.png
+  board_image_style: stretch
+  palette:
+  - '#607a8c'
+  - '#d2b072'
+  - '#8e9c7a'
+  - '#f0e2c9'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    roof-tree:
+      prop: palm-tree
+      pos:
+      - 74
+      - 31
+      - 0
+      scale: 0.55
+    roof-plants:
+      prop: tulip-window-box
+      pos:
+      - 23
+      - 22
+      - 0
+      scale: 0.85
+    roof-plants-two:
+      prop: cactus-trio
+      pos:
+      - 45
+      - 20
+      - 0
+      scale: 0.8
+    roof-chairs:
+      prop: mustard-armchair
+      pos:
+      - 49
+      - 56
+      - 0
+      scale: 0.8
+    roof-table:
+      prop: terrazzo-tripod-table
+      pos:
+      - 61
+      - 56
+      - 0
+      scale: 0.8
+    roof-lantern:
+      prop: blossom-paper-lantern
+      pos:
+      - 32
+      - 14
+      - 0
+      scale: 0.85
+    roof-rug:
+      prop: sunset-runner-rug
+      pos:
+      - 53
+      - 72
+      - 0
+      scale: 0.8
+    roof-telescope:
+      prop: marble-column
+      pos:
+      - 86
+      - 42
+      - 0
+      scale: 0.7
+  exits: {}
+home-pool:
+  label: Pool Deck
+  description: Blue water, warm tiles, and a chair that has already claimed someone's towel.
+  board_type: basic
+  board_image: floor-sea-glass.png
+  board_image_style: stretch
+  palette:
+  - '#8ccac4'
+  - '#3e8792'
+  - '#e9d7b3'
+  - '#df8c6d'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    pool-water:
+      prop: tinytown-pool
+      pos:
+      - 50
+      - 42
+      - 0
+      scale: 1.0
+    pool-chair-one:
+      prop: mustard-armchair
+      pos:
+      - 18
+      - 78
+      - 0
+      scale: 0.9
+    pool-chair-two:
+      prop: teal-egg-chair
+      pos:
+      - 82
+      - 78
+      - 0
+      scale: 0.9
+    pool-table:
+      prop: terrazzo-tripod-table
+      pos:
+      - 50
+      - 80
+      - 0
+      scale: 0.85
+    pool-plant-one:
+      prop: palm-tree
+      pos:
+      - 13
+      - 18
+      - 0
+      scale: 0.55
+    pool-plant-two:
+      prop: snake-plant
+      pos:
+      - 89
+      - 18
+      - 0
+      scale: 0.8
+    pool-umbrella:
+      prop: blossom-paper-lantern
+      pos:
+      - 82
+      - 16
+      - 0
+      scale: 0.7
+  exits: {}
+home-nursery:
+  label: Nursery
+  description: A small bright room with a low bed, soft rug, and a shelf of things that go clatter.
+  board_type: basic
+  board_image: floor-linen.png
+  board_image_style: stretch
+  palette:
+  - '#f2dfc4'
+  - '#8eb8b1'
+  - '#e8a2a0'
+  - '#d8b45b'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    nursery-bed:
+      prop: window-daybed
+      pos:
+      - 38
+      - 26
+      - 0
+      scale: 0.95
+    nursery-shelf:
+      prop: kuusi-wall-shelf
+      pos:
+      - 70
+      - 6
+      - 0
+      scale: 0.85
+    nursery-rug:
+      prop: braided-rainbow-rug
+      pos:
+      - 50
+      - 65
+      - 0
+      scale: 0.8
+    nursery-lamp:
+      prop: cat-night-lamp
+      pos:
+      - 72
+      - 24
+      - 0
+      scale: 0.85
+    nursery-chair:
+      prop: patchwork-rocking-chair
+      pos:
+      - 83
+      - 55
+      - 0
+      scale: 0.8
+    nursery-plant:
+      prop: cactus-trio
+      pos:
+      - 16
+      - 25
+      - 0
+      scale: 0.8
+  exits: {}
+home-gallery:
+  label: Gallery
+  description: A long room with good light and walls that expect to be looked at slowly.
+  board_type: basic
+  board_image: floor-marble.png
+  board_image_style: stretch
+  palette:
+  - '#eee6d8'
+  - '#524541'
+  - '#b69a62'
+  - '#7a8e8b'
+  sprites_enabled: true
+  template: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    - board_image
+  props:
+    gallery-easel-one:
+      prop: tinytown-art-easel
+      pos:
+      - 28
+      - 20
+      - 0
+      scale: 1.15
+      actions:
+      - - Visit the Art Market
+        - .play art-store
+        - true
+    gallery-easel-two:
+      prop: tinytown-art-easel
+      pos:
+      - 72
+      - 20
+      - 0
+      scale: 1.15
+      actions:
+      - - Visit the Art Market
+        - .play art-store
+        - true
+    gallery-bust:
+      prop: marble-bust
+      pos:
+      - 50
+      - 23
+      - 0
+      scale: 0.9
+    gallery-bench:
+      prop: gilded-armchair
+      pos:
+      - 50
+      - 62
+      - 0
+      scale: 0.9
+    gallery-rug:
+      prop: persian-medallion-rug
+      pos:
+      - 50
+      - 74
+      - 0
+      scale: 1.0
+    gallery-mirror:
+      prop: gilt-mirror
+      pos:
+      - 90
+      - 5
+      - 0
+      scale: 0.9
+  exits: {}

@@ -73,10 +73,10 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 ## Multiworld
 
 [Bash users] `./start_multiworld.sh` starts a local Mission Control plus the
-tutorial, scammon-academia, and tiny-arcade world servers sharing one profile
-database and one advertised hostname. It uses development credentials and
+tutorial, scammon-academia, tiny-arcade, and tinytown world servers sharing one
+profile database and one advertised hostname. It uses development credentials and
 self-signed certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`,
-`ARCADE_PORT`, or `PUBLIC_HOST` as needed.
+`ARCADE_PORT`, `TINYTOWN_PORT`, or `PUBLIC_HOST` as needed.
 
 ```bash
 ./start_multiworld.sh
@@ -84,6 +84,7 @@ self-signed certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`,
 # Tutorial world:   https://127.0.0.1:5100/
 # Scammon Academia: https://127.0.0.1:5101/
 # Tiny Arcade:      https://127.0.0.1:5102/
+# TinyTown:         https://127.0.0.1:5103/
 
 # To accept connections from other machines, pass a reachable address. This also
 # binds the four listeners to 0.0.0.0; the browser uses the advertised host so

@@ -217,6 +217,22 @@ class RuntimeState:
     loaded_mods: object | None = None
     mutation_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
+    def start_mod_runtimes(self) -> None:
+        """Start optional background work contributed by loaded mods."""
+
+        for state in self.mods.values():
+            start = getattr(state, "start", None)
+            if callable(start):
+                start()
+
+    def stop_mod_runtimes(self) -> None:
+        """Stop optional background work before replacing or closing the runtime."""
+
+        for state in self.mods.values():
+            stop = getattr(state, "stop", None)
+            if callable(stop):
+                stop()
+
     def editor_service(self) -> WorldEditorService:
         """Return a World Editor service bound to this runtime."""
 
@@ -285,6 +301,7 @@ class RuntimeState:
 
         old_world = self.world
         bundle = load_world_bundle(self.config, self.loaded_mods, self.config.world_path)
+        self.stop_mod_runtimes()
         self.ticker.stop()
         rebuilt = _build_runtime(
             self.config,
@@ -307,6 +324,7 @@ class RuntimeState:
                 continue
             setattr(self, runtime_field.name, getattr(rebuilt, runtime_field.name))
         self.ticker.start()
+        self.start_mod_runtimes()
         await self._broadcast_world_reloaded(old_world)
 
     async def _broadcast_world_reloaded(self, old_world: WorldDefinition) -> None:
@@ -686,9 +704,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             mc_client = McClient(runtime)
             mc_client.start()
         runtime.ticker.start()
+        runtime.start_mod_runtimes()
         try:
             yield
         finally:
+            runtime.stop_mod_runtimes()
             runtime.ticker.stop()
             if mc_client is not None:
                 await mc_client.stop()
