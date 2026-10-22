@@ -84,7 +84,14 @@ palette and tiling.
 
 Mods may expose `start()`/`stop()` lifecycle hooks for background work. TinyTown
 uses this for autonomous household NPCs while its private multi-room houses,
-house purchases, visits, and Art Market purchases live in the `tinytown` mod.
+house purchases, visits, roommate classifieds, and community art sales live in
+the `tinytown` mod. Its player-facing home is the unbound
+[Tiny Mag activity](../mods/tinytown/activities/tiny-mag/), with `tinytown` and
+`art-store` launch aliases. Each owned home persists five roommate candidates;
+adopting one adds the peep and replenishes the classified batch. Community art
+is listed from an editable home whiteboard, paid at full price to the seller,
+and installed as a locked whiteboard for the buyer. Only the source board stays
+editable, and an owned print can be rehung for free.
 
 Rooms may set `sprites_enabled: true` to draw every present peep as a
 camera-facing 2D sprite on the board. [sprite_rooms.py](../server/services/sprite_rooms.py)

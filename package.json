@@ -6,7 +6,7 @@
     "vendor": "python tools\\vendor_browser_deps.py",
     "test": "npm run test:client && npm run test:browser",
     "test:client": "node --test \"tests/client/**/*.test.js\"",
-    "test:browser": "playwright test flows.spec.js cutscenes.spec.js surface-props.spec.js",
+    "test:browser": "playwright test flows.spec.js cutscenes.spec.js surface-props.spec.js tiny-mag.spec.js",
     "test:perf": "python tools/run_perf.py",
     "test:report": "playwright show-report"
   },

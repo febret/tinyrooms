@@ -226,6 +226,7 @@ class RuntimeTestCase(unittest.TestCase):
     """Provide an isolated app, profile directory, and world-state database."""
 
     features = "dev_sample_activity"
+    mods = "classrooms"
     world_path: Path | None = None
 
     def setUp(self) -> None:
@@ -238,7 +239,7 @@ class RuntimeTestCase(unittest.TestCase):
                 "TRSERVER_WORLD_PATH": str(self.world_path or (REPO_ROOT / "worlds" / "tutorial")),
                 "TRSERVER_WORLDSTATE_PATH": str(self.runtime_path / "worldstate.sqlite3"),
                 "TRSERVER_FEATURES": self.features,
-                "TRSERVER_MODS": "classrooms",
+                "TRSERVER_MODS": self.mods,
                 "TRSERVER_TIMEZONE": "UTC",
                 "TRSERVER_HOST": "testserver",
                 "TRSERVER_PORT": "5000",

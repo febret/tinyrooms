@@ -98,6 +98,29 @@ class PropSurfaceServiceTests(ServiceTestCase):
         self.surfaces.prune_room("room:test", set())
         self.assertEqual(self.surfaces.get("room:test", "custom:board", "whiteboard").revision, 0)
 
+    def test_locked_whiteboards_reject_content_edits(self) -> None:
+        content = {
+            "strokes": [],
+            "texts": [{"text": "Purchased", "x": 1, "y": 2, "size": 24, "color": "#1f2933"}],
+        }
+        installed = self.surfaces.install_whiteboard(
+            "room:test",
+            "custom:locked-board",
+            self.account.id,
+            content,
+            locked=True,
+        )
+        self.assertTrue(installed.locked)
+        self.assertEqual(installed.locked_by, self.account.id)
+        self.assertTrue(self.surfaces.is_locked("room:test", "custom:locked-board"))
+        with self.assertRaisesRegex(ValueError, "locked"):
+            self.surfaces.save_whiteboard(
+                "room:test",
+                "custom:locked-board",
+                self.account.id,
+                {"strokes": [], "texts": []},
+            )
+
     def test_activity_surface_requires_a_bound_whiteboard(self) -> None:
         class Activity:
             kind = "whiteboard"

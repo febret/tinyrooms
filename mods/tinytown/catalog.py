@@ -115,7 +115,7 @@ ROOMMATE_ARCHETYPES = (
     ("artsy", "cozy"), ("bookish", "friendly"), ("clean", "tinkerer"),
     ("energetic", "outdoorsy"), ("foodie", "social"), ("cozy", "bookish"),
     ("friendly", "social"), ("grumpy", "tinkerer"), ("stargazer", "bookish"),
-    ("outdoorsy", "garden"), ("artsy", "stargazer"), ("clean", "cozy"),
+    ("outdoorsy", "stargazer"), ("artsy", "stargazer"), ("clean", "cozy"),
     ("energetic", "social"), ("grumpy", "bookish"), ("friendly", "foodie"),
 )
 
