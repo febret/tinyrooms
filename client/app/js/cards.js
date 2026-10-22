@@ -13,6 +13,7 @@ import { inventoryView } from "./views/inventory-view.js";
 import { emoteMenuMarkup } from "./views/emote-menu.js";
 import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
+import { phoneView } from "./views/phone-view.js";
 import { createEditorDock } from "./editing/editor-dock.js";
 
 function coreMarkup(definition, selected) {
@@ -118,6 +119,29 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-prop-command]").forEach(button => {
     button.onclick = () => onAction({ command: button.dataset.propCommand });
   });
+  root.querySelectorAll("[data-phone-app]").forEach(button => {
+    button.onclick = () => onAction({ type: "phone-app", app: button.dataset.phoneApp });
+  });
+  root.querySelectorAll("[data-phone-home]").forEach(button => {
+    button.onclick = () => onAction({ type: "phone-home" });
+  });
+  root.querySelectorAll("[data-phone-music-action]").forEach(button => {
+    button.onclick = () => onAction({
+      type: "phone-music",
+      action: button.dataset.phoneMusicAction,
+      mode: button.dataset.mode,
+      path: button.dataset.phoneMusicPath,
+      song: button.dataset.song,
+      label: button.dataset.label,
+    });
+  });
+  root.querySelectorAll("form[data-phone-music-search]").forEach(form => {
+    form.onsubmit = event => {
+      event.preventDefault();
+      const query = String(new FormData(form).get("query") || "").trim();
+      if (query) onAction({ type: "phone-music", action: "search", query });
+    };
+  });
 }
 
 function boardModal(state) {
@@ -126,6 +150,7 @@ function boardModal(state) {
   if (view === "inventory") return inventoryView(state);
   if (view === "prop-details") return propDetailsView(state);
   if (view === "journal") return journalView(state);
+  if (view === "phone") return phoneView(state);
   return "";
 }
 
@@ -347,7 +372,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     render(state) {
       const coreCards = state.user?.coreCards || {};
       // Emotes moved beside the chat bar, so the top toolbar carries the remaining
-      // core controls (inventory and journal) in their authored order.
+      // core controls (inventory, phone, and journal) in their authored order.
       const coreOrder = (state.user?.coreOrder?.filter(id => coreCards[id]) || Object.keys(coreCards))
         .filter(id => id !== "emotes");
       const selectedProp = state.selection.kind === "prop" ? findSelectedEntity(state) : null;

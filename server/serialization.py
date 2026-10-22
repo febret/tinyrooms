@@ -64,6 +64,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "pinned_peeps": list(user_profile.pinned_peeps),
         "friends": friends.as_dict(),
         "beacons": beacons,
+        "starred_tracks": runtime.chiptune_stars.starred(account.id),
         "packs": [preview.as_dict() for preview in runtime.shop.packs()],
         # Persisted user-profile preference for displaying the action log.
         "show_activity_log": user_profile.show_activity_log,

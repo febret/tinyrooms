@@ -14,6 +14,11 @@ journal:
   description: Opens the Journal
   image: journal-icon.png
   order: 5
+phone:
+  label: Phone
+  description: Opens your phone
+  image: phone-icon.svg
+  order: 4
 
 # Base emote cards
 smile:

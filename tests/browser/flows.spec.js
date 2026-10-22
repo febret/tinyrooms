@@ -38,10 +38,10 @@ test.describe("account onboarding", () => {
 test("core toolbar, room picker, settings peeps, and Journal spreads render", async ({ page, runtime }) => {
   test.slow();
   await createReadyAccount(page, runtime);
-  await expect(page.locator("#core-tools [data-core-id]")).toHaveCount(2);
+  await expect(page.locator("#core-tools [data-core-id]")).toHaveCount(3);
   await expect(page.locator("#multiverse-toggle")).toHaveCount(0);
   await expect(page.locator("#card-hand [data-core-id], #card-hand [data-core-expand]")).toHaveCount(0);
-  for (const id of ["inventory", "journal"]) {
+  for (const id of ["inventory", "journal", "phone"]) {
     await expect(page.locator(`#core-tools [data-core-id="${id}"]`)).toBeVisible();
   }
   await expect(page.locator("#peeps-panel")).toBeVisible();
@@ -105,8 +105,8 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await openCore(page, "journal");
   const journal = page.getByRole("dialog", { name: "Journal", exact: true });
   await expect(journal).toBeVisible();
-  await expect(journal.locator("[data-journal-tab]")).toHaveCount(5);
-  for (const tab of ["Tasks", "Memories", "Self", "Skills", "Friends"]) {
+  await expect(journal.locator("[data-journal-tab]")).toHaveCount(4);
+  for (const tab of ["Tasks", "Memories", "Self", "Skills"]) {
     const button = journal.locator(`[data-journal-tab="${tab}"]`);
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
@@ -121,6 +121,48 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
       await expect(journal.locator("[data-level-up]")).toBeDisabled();
     }
   }
+});
+
+test("phone opens apps, friends, and the personal chiptune player", async ({ page, runtime }) => {
+  test.slow();
+  await page.route("**/api/chiptune/suggestions*", route => route.fulfill({
+    json: {
+      ok: true,
+      top: [{ id: "top-1", title: "Top Track", subtitle: "Game", kind: "file" }],
+      community: [{ id: "star-1", title: "Starred Track", subtitle: "Starred by 2 Tinyrooms players", kind: "file", stars: 2 }],
+    },
+  }));
+  await createReadyAccount(page, runtime);
+  await openCore(page, "phone");
+  const phone = page.getByRole("dialog", { name: "Phone", exact: true });
+  await expect(phone).toBeVisible();
+  await expect(phone.locator(".phone-lid svg")).toBeVisible();
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(2);
+  const toolbar = await page.locator(".topbar").boundingBox();
+  const device = await phone.locator(".phone-device").boundingBox();
+  expect(device.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height);
+
+  await phone.locator('[data-phone-app="friends"]').click();
+  await expect(phone).toContainText("Incoming beacons");
+  await expect(phone).toContainText("Incoming requests");
+
+  await phone.locator('[data-phone-home="1"]').first().click();
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(2);
+
+  await phone.locator('[data-phone-app="chiptune"]').click();
+  await expect(phone.getByText("TOP TRACKS", { exact: true })).toBeVisible();
+  await expect(phone.getByText("STARRED BY PEEPS", { exact: true })).toBeVisible();
+  await expect(phone.locator(".phone-track")).toHaveCount(2);
+  await expect(phone.getByRole("button", { name: "Play Top Track", exact: true })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileToolbar = await page.locator(".topbar").boundingBox();
+  const mobileDevice = await phone.locator(".phone-device").boundingBox();
+  expect(mobileDevice.y).toBeGreaterThanOrEqual(mobileToolbar.y + mobileToolbar.height);
+  expect(Math.abs(mobileDevice.x + mobileDevice.width / 2 - 195)).toBeLessThan(3);
+
+  await page.keyboard.press("Escape");
+  await expect(phone).toBeHidden();
 });
 
 test("journal keeps a two-page spread on large portrait screens", async ({ page, runtime }) => {

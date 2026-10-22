@@ -174,6 +174,7 @@ documented by `../delphi-comfyui/bake-skill.md`.
 
 ```bash
 python tools/bake_assets.py data/propsets/base/bake.json
+python tools/bake_assets.py data/phone/bake.json --progress
 python tools/bake_assets.py --filter '*-rug' --progress
 python tools/bake_assets.py --force          # re-render everything
 python tools/bake_assets.py --reseed --dryrun

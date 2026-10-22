@@ -81,6 +81,7 @@ from server.services.auras import AuraService
 from server.services.beacons import BeaconService
 from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
+from server.services.chiptune_stars import ChiptuneStarService
 from server.services.crafting import CraftingService
 from server.services.cross_world import CrossWorldService
 from server.services.dialogs import DialogService
@@ -89,7 +90,6 @@ from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
-from server.services.music import MusicService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
@@ -187,6 +187,7 @@ class RuntimeState:
     progression: ProgressionService
     actions: ActionsService
     friends: FriendsService
+    chiptune_stars: ChiptuneStarService
     beacons: BeaconService
     shop: ShopService
     prop_shop: PropShopService
@@ -198,7 +199,6 @@ class RuntimeState:
     powers: PowersService
     audit: AuditService
     ownership: OwnershipService
-    music: MusicService
     environment: EnvironmentService
     layout: RoomLayoutService
     room_effects: RoomEffectService
@@ -484,7 +484,6 @@ def _build_runtime(
         hub, profiles, stats, progression, tasks, world.id, world.activities
     )
     actions = ActionsService(hub, profiles, stats, catalog, world.id, environment=environment)
-    friends = FriendsService(hub, profiles, is_online=connections.is_online)
     beacons = BeaconService(profiles)
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
@@ -492,7 +491,6 @@ def _build_runtime(
     audit = AuditService(hub, world.id)
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
-    music = MusicService(world)
     room_effects = RoomEffectService()
     prop_states = PropStateService()
     layout = RoomLayoutService(
@@ -521,6 +519,8 @@ def _build_runtime(
         peep_states=peep_states,
         connections=connections,
     )
+    friends = FriendsService(hub, profiles, is_online=connections.is_online, vibes=vibes)
+    chiptune_stars = ChiptuneStarService(profiles)
     cross_world = CrossWorldService(
         config=config,
         hub=hub,
@@ -547,7 +547,6 @@ def _build_runtime(
         peep_states=peep_states,
         surfaces=surfaces,
         powers=powers,
-        music=music,
         vibes=vibes,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
@@ -625,6 +624,7 @@ def _build_runtime(
         progression=progression,
         actions=actions,
         friends=friends,
+        chiptune_stars=chiptune_stars,
         beacons=beacons,
         shop=shop,
         prop_shop=prop_shop,
@@ -636,7 +636,6 @@ def _build_runtime(
         powers=powers,
         audit=audit,
         ownership=ownership,
-        music=music,
         environment=environment,
         layout=layout,
         room_effects=room_effects,

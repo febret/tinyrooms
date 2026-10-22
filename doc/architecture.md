@@ -177,16 +177,18 @@ connections in the same room. Media travels over WebRTC, not through gameplay
 logs. Audio presence is connection-local: travel retains it, refresh/new login
 does not. Offerer selection and autoplay rationale are documented in source.
 
-[music.js](../client/app/js/music.js) is a Tinyrooms-native mini player over a
-hidden, cross-origin chiptune.app iframe. The server owns each room's track
-([music.py](../server/services/music.py)): authored `music:` defaults come from
-the world definition, and `.music set|off|reset` (room owner or staff) writes an
-in-memory override and broadcasts `room.music`. Each client plays the room track
-locally through `https://chiptune.app/?play=<song>`; because the frame cannot be
-scripted, track changes reload it, volume/pause/seek are unavailable, and users
-may listen to their own pick instead. Catalog search/top/browse is proxied
-server-side by [chiptune.py](../server/routes/chiptune.py) since chiptune.app
-sends no CORS headers. Autoplay requires one user gesture.
+[phone-music.js](../client/app/js/phone-music.js) is the personal Chiptune app
+inside the Phone view. It drives a hidden, cross-origin chiptune.app iframe and
+plays `https://chiptune.app/?play=<song>`; because the frame cannot be scripted,
+track changes reload it and volume/pause/seek are unavailable. Playback is
+per-user and never changes room state. The selected track and on/off preference
+are kept in browser `localStorage`. Catalog search, browse, top tracks, and
+Tinyrooms community stars are proxied server-side by
+[chiptune.py](../server/routes/chiptune.py) since chiptune.app sends no CORS
+headers. Users star tracks into their shared profile
+([chiptune_stars.py](../server/services/chiptune_stars.py)); suggestions combine
+the chiptune.app top chart with tracks starred by other Tinyrooms users.
+Autoplay requires one user gesture.
 
 Cutscenes remain available without a subsystem feature flag; reduced motion
 suppresses playback. Presentation cannot determine gameplay rewards or whether

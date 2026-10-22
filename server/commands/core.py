@@ -516,7 +516,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import activity_hooks, cutscenes, gameplay, music, multiverse, privileged, prop_shop, props, surfaces
+    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, privileged, prop_shop, props, surfaces
 
     registry = CommandRegistry()
     registry.register(
@@ -696,14 +696,6 @@ def build_registry() -> CommandRegistry:
         gameplay.merge_all_command,
         usage=".merge_all",
         help="Consolidate duplicate inventory stacks up to each card's stack limit.",
-    )
-    registry.register(
-        "music",
-        "Set, silence, reset, or report the room's chiptune.app music.",
-        music.music_command,
-        usage=music.USAGE,
-        help="Room owners and staff control the hidden chiptune.app player for everyone in the room.",
-        log=False,
     )
     registry.register("mute", "Mute a peep's chat.", privileged.mute_command, usage=".mute @peep <minutes>", power="moderator")
     registry.register(

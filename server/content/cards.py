@@ -17,7 +17,7 @@ from server.content.common import (
 )
 from server.content.recipes import RecipeDefinition, load_recipes_file
 
-CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal"})
+CORE_CARD_IDS = frozenset({"emotes", "inventory", "journal", "phone"})
 BASE_EMOTE_IDS = frozenset({"smile", "sigh", "goof", "growl", "wave", "happy-dance", "heart"})
 PACK_CARD_TYPE = "pack"
 NON_EQUIP_TYPES = frozenset({"emote", "core", "skill", PACK_CARD_TYPE})

@@ -29,7 +29,6 @@ from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.game_boards import RoomGameDefinition, load_room_game
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
-from server.content.room_music import RoomMusicDefinition, load_room_music
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
@@ -190,7 +189,6 @@ class RoomDefinition:
     template: bool = False
     sprites_enabled: bool = False
     game: RoomGameDefinition | None = None
-    music: RoomMusicDefinition | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1069,7 +1067,6 @@ def load_world_definition(
             effects=effects,
             power_names=POWER_NAMES,
         )
-        music = load_room_music(raw_room.get("music"), room_id)
         rooms[room_id] = RoomDefinition(
             id=room_id,
             label=str(raw_room.get("label", "")).strip(),
@@ -1088,7 +1085,6 @@ def load_world_definition(
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
             game=game,
-            music=music,
         )
 
     if entry_room_id not in rooms:

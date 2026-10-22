@@ -1,4 +1,4 @@
-"""Validation for authored and runtime chiptune.app tracks."""
+"""Validation for chiptune.app tracks starred by Tinyrooms users."""
 
 from __future__ import annotations
 

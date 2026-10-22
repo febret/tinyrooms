@@ -1,6 +1,8 @@
 const OUTLINE_ACTIVE_PROPS_KEY = "tinyrooms:outline-active-props";
 const BUBBLE_TIMEOUT_KEY = "tinyrooms:bubble-timeout";
 const FULLSCREEN_KEY = "tinyrooms:fullscreen";
+const PHONE_TRACK_KEY = "tinyrooms:phone-track";
+const PHONE_MUSIC_ENABLED_KEY = "tinyrooms:phone-music-enabled";
 
 export const BUBBLE_TIMEOUT_CHOICES = [15000, 30000, 0];
 
@@ -39,5 +41,32 @@ export function savedFullscreenIntent() {
 
 export function saveFullscreenIntent(enabled) {
   try { localStorage.setItem(FULLSCREEN_KEY, String(Boolean(enabled))); }
+  catch { /* Storage may be unavailable. */ }
+}
+
+export function savedPhoneTrack() {
+  try {
+    const raw = localStorage.getItem(PHONE_TRACK_KEY);
+    if (!raw) return null;
+    const track = JSON.parse(raw);
+    const song = String(track?.song || "").trim();
+    return song ? { song, label: String(track.label || "").trim() } : null;
+  } catch { return null; }
+}
+
+export function savePhoneTrack(track) {
+  try {
+    if (!track?.song) localStorage.removeItem(PHONE_TRACK_KEY);
+    else localStorage.setItem(PHONE_TRACK_KEY, JSON.stringify({ song: track.song, label: track.label || "" }));
+  } catch { /* Storage may be unavailable. */ }
+}
+
+export function savedPhoneMusicEnabled() {
+  try { return localStorage.getItem(PHONE_MUSIC_ENABLED_KEY) === "true"; }
+  catch { return false; }
+}
+
+export function savePhoneMusicEnabled(enabled) {
+  try { localStorage.setItem(PHONE_MUSIC_ENABLED_KEY, String(Boolean(enabled))); }
   catch { /* Storage may be unavailable. */ }
 }

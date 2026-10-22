@@ -20,6 +20,7 @@ class FriendView:
     account_id: str
     username: str
     online: bool
+    vibes: dict[str, object] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +36,12 @@ class FriendsPayload:
 
         def render(entries: tuple[FriendView, ...]) -> list[dict[str, object]]:
             return [
-                {"account_id": entry.account_id, "username": entry.username, "online": entry.online}
+                {
+                    "account_id": entry.account_id,
+                    "username": entry.username,
+                    "online": entry.online,
+                    **({"vibes": entry.vibes} if entry.vibes else {}),
+                }
                 for entry in entries
             ]
 
@@ -61,10 +67,12 @@ class FriendsService:
         hub: DatabaseHub,
         profiles: ProfileRepository,
         is_online: Callable[[str], bool] | None = None,
+        vibes: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._is_online = is_online or (lambda account_id: False)
+        self._vibes = vibes
 
     def _profile(self, account_id: str) -> UserProfileRecord:
         profile = self._profiles.get_user_profile(account_id)
@@ -231,8 +239,9 @@ class FriendsService:
         incoming_ids = _list_key(profile.profile, "friend_requests_received")
         outgoing_ids = _list_key(profile.profile, "friend_requests_sent")
         accounts = self._profiles.get_accounts_by_ids([*friend_ids, *incoming_ids, *outgoing_ids])
+        vibes = self._vibes.pairs_for(account_id, friend_ids) if self._vibes is not None else {}
 
-        def render(ids: list[str]) -> tuple[FriendView, ...]:
+        def render(ids: list[str], with_vibes: bool = False) -> tuple[FriendView, ...]:
             entries: list[FriendView] = []
             for account_id_value in ids:
                 record = accounts.get(account_id_value)
@@ -243,12 +252,13 @@ class FriendsService:
                         account_id=record.id,
                         username=record.username_display,
                         online=bool(self._is_online(record.id)),
+                        vibes=vibes.get(record.id) if with_vibes else None,
                     )
                 )
             return tuple(entries)
 
         return FriendsPayload(
-            friends=render(friend_ids),
+            friends=render(friend_ids, with_vibes=True),
             incoming=render(incoming_ids),
             outgoing=render(outgoing_ids),
         )

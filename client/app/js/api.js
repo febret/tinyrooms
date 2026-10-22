@@ -13,6 +13,8 @@ export const PATHS = {
   chiptuneSearch: "/api/chiptune/search",
   chiptuneTop: "/api/chiptune/top",
   chiptuneBrowse: "/api/chiptune/browse",
+  chiptuneStarred: "/api/chiptune/starred",
+  chiptuneSuggestions: "/api/chiptune/suggestions",
   websocket: "/ws",
 };
 
@@ -163,6 +165,26 @@ export function createApiClient() {
     async chiptuneBrowse(path = "") {
       const body = await requestJson(`${PATHS.chiptuneBrowse}?path=${encodeURIComponent(path)}`);
       return Array.isArray(body.items) ? body.items : [];
+    },
+    async chiptuneStarred() {
+      const body = await requestJson(PATHS.chiptuneStarred);
+      return Array.isArray(body.items) ? body.items : [];
+    },
+    async chiptuneSetStarred(song, label = "", starred = true) {
+      const request = withJson({ song, label, starred });
+      const body = await requestJson(PATHS.chiptuneStarred, {
+        method: "POST",
+        ...request,
+        headers: { ...request.headers, ...authHeaders() },
+      });
+      return Array.isArray(body.items) ? body.items : [];
+    },
+    async chiptuneSuggestions(limit = 20) {
+      const body = await requestJson(`${PATHS.chiptuneSuggestions}?limit=${encodeURIComponent(limit)}`);
+      return {
+        top: Array.isArray(body.top) ? body.top : [],
+        community: Array.isArray(body.community) ? body.community : [],
+      };
     },
     async bridgeActivity(activity, type, payload = {}) {
       if (!activity?.bridgeUrl) {

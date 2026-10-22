@@ -9,7 +9,7 @@ import { createPropActionButton } from "./prop-action-button.js";
 import { syncEmoteChrome } from "./emote-chrome.js";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, onFullscreenChange } from "./fullscreen.js";
 import { syncPeepsChrome } from "./peeps-chrome.js";
-import { createMusicPlayer } from "./music.js";
+import { createPhoneMusic } from "./phone-music.js";
 import { createRoomPicker } from "./room-picker.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import { lookPreview } from "./look-preview.js";
@@ -203,6 +203,36 @@ function playJournalOpen() {
   if (!book) return;
   book.classList.add("journal-opening");
   book.addEventListener("animationend", () => book.classList.remove("journal-opening"), { once: true });
+}
+
+function playPhoneOpen() {
+  if (store.getState().ui.reducedMotion) return;
+  const lid = panelLayer.querySelector(".phone-view .phone-lid");
+  if (!lid) return;
+  lid.classList.remove("phone-closing");
+  lid.classList.add("phone-opening");
+  lid.addEventListener("animationend", () => lid.classList.remove("phone-opening"), { once: true });
+}
+
+let phoneClosePromise = null;
+
+function closePhoneAnimated() {
+  if (phoneClosePromise) return phoneClosePromise;
+  const lid = panelLayer.querySelector(".phone-view .phone-lid");
+  if (!lid || store.getState().ui.reducedMotion) return Promise.resolve();
+  phoneClosePromise = new Promise(resolve => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      resolve();
+    };
+    lid.classList.remove("phone-opening");
+    lid.classList.add("phone-closing");
+    lid.addEventListener("animationend", finish, { once: true });
+    setTimeout(finish, 620);
+  }).finally(() => { phoneClosePromise = null; });
+  return phoneClosePromise;
 }
 
 function logCutscene(cutscene) {
@@ -408,6 +438,7 @@ async function handleAction(action) {
       if (!(await saveAndCloseEditor())) return;
       if (view === "edit-room") return;
     }
+    if (closing && view === "phone") await closePhoneAnimated();
     store.dispatch({
       type: closing ? "close-view" : "open-view",
       view,
@@ -427,6 +458,7 @@ async function handleAction(action) {
       await saveAndCloseEditor();
       return;
     }
+    if (state.views.main === "phone") await closePhoneAnimated();
     store.dispatch({ type: action.type });
   } else if (action.type === "open-shop") {
     await openShop(action.section);
@@ -463,7 +495,28 @@ async function handleAction(action) {
     store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
     if (action.tab === "Tasks") await refreshTasks();
     if (action.tab === "Memories") await refreshJournalMonth();
-    if (action.tab === "Friends") await refreshBeacons();
+  } else if (action.type === "phone-app") {
+    store.dispatch({ type: "phone-app", app: action.app });
+    if (action.app === "friends") await refreshBeacons();
+    if (action.app === "chiptune") await phoneMusic.load(store.getState().ui.phoneMusic.mode || "suggestions", {
+      path: store.getState().ui.phoneMusic.path,
+      query: store.getState().ui.phoneMusic.query,
+    });
+  } else if (action.type === "phone-home") {
+    store.dispatch({ type: "phone-home" });
+  } else if (action.type === "phone-music") {
+    if (action.action === "play") phoneMusic.play({ song: action.song, label: action.label });
+    else if (action.action === "stop") phoneMusic.stop();
+    else if (action.action === "toggle") phoneMusic.toggle();
+    else if (action.action === "star") await phoneMusic.toggleStar({ song: action.song, label: action.label });
+    else if (action.action === "mode") {
+      const mode = action.mode === "browse" ? "browse" : action.mode === "starred" ? "starred" : "suggestions";
+      await phoneMusic.load(mode, { path: mode === "browse" ? "" : undefined });
+    } else if (action.action === "browse") {
+      await phoneMusic.load("browse", { path: action.path || "" });
+    } else if (action.action === "search") {
+      await phoneMusic.load("search", { query: action.query });
+    }
   } else if (action.type === "inventory-tab") {
     store.dispatch({ type: "inventory-tab", tab: action.tab });
   } else if (action.type === "journal-month") {
@@ -723,7 +776,6 @@ function renderTopBar(state) {
     <button type="button" class="quiet" data-top-action="peeps" aria-pressed="${state.ui.peepsVisible !== false}" aria-controls="peeps-panel">Show peeps sidebar</button>
     <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
     <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
-    <button type="button" class="quiet" data-top-action="music" aria-pressed="${state.ui.musicOpen}" aria-controls="music-player">Music</button>
     <button type="button" class="quiet" data-top-action="fullscreen" aria-pressed="${state.ui.fullscreen}"${canFullscreen ? "" : ` disabled title="Fullscreen is not supported on this device"`}>${state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"}</button>
     <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
     <button type="button" class="quiet" data-top-action="bubble">Speech bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}</button>
@@ -738,10 +790,6 @@ function renderTopBar(state) {
       if (which === "peeps") store.dispatch({ type: "toggle-peeps" });
       if (which === "log") await toggleLog();
       if (which === "sound") store.dispatch({ type: "toggle-sound" });
-      if (which === "music") {
-        settings.open = false;
-        store.dispatch({ type: "toggle-music" });
-      }
       if (which === "fullscreen") {
         if (!canFullscreen) return;
         try {
@@ -1048,11 +1096,9 @@ const roomPicker = createRoomPicker({
       .catch(showError);
   },
 });
-const music = createMusicPlayer({
-  root: $("#music-player"),
-  store,
+const phoneMusic = createPhoneMusic({
   api,
-  sendCommand,
+  store,
   onToast: toast,
   onError: showError,
 });
@@ -1107,14 +1153,13 @@ async function render(state) {
   if (previousUser !== state.user?.id || previousRoom !== state.room?.id) {
     previousUser = state.user?.id;
     previousRoom = state.room?.id;
-    music.resetRoom();
     dialogs.closeAll();
     if (revision !== renderRevision) return;
   }
   toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
-  toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal");
+  toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone");
   toggleClass(root, "editing", Boolean(state.editor));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));
   toggleClass(root, "sell-mode", Boolean(state.ui.sellMode));
@@ -1142,8 +1187,9 @@ async function render(state) {
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root);
   roomPicker.sync(state);
-  music.render(state);
+  phoneMusic.render(state);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
+  if (state.views.main === "phone" && previousView !== "phone") playPhoneOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
   propViewers.sync(panelLayer, state.ui.reducedMotion);
   cardViewers.sync(panelLayer, state.ui.reducedMotion);
@@ -1232,7 +1278,6 @@ document.addEventListener("keydown", event => {
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (roomPicker.handleEscape(event)) return;
-  if (state.ui.musicOpen) { event.preventDefault(); store.dispatch({ type: "close-music" }); return; }
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
   if (state.ui.emoteMenuOpen) {
     event.preventDefault();
@@ -1240,7 +1285,7 @@ document.addEventListener("keydown", event => {
     emoteToggle.focus();
     return;
   }
-  if (state.views.main) store.dispatch({ type: "close-view" });
+  if (state.views.main) void handleAction({ type: "close-view" });
 });
 onFullscreenChange(() => {
   const active = isFullscreen();

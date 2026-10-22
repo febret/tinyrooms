@@ -402,6 +402,11 @@ export function normalizeUser(user) {
       stackId: slot.stack_id ? String(slot.stack_id) : null,
     })) : [],
     pinnedPeeps: Array.isArray(user.pinned_peeps) ? [...user.pinned_peeps] : [],
+    starredTracks: Array.isArray(user.starred_tracks) ? user.starred_tracks.map(track => ({
+      song: String(track.song || "").trim(),
+      label: String(track.label || "").trim(),
+      starredAt: String(track.starred_at || ""),
+    })).filter(track => track.song) : [],
     friends: user.friends && typeof user.friends === "object"
       ? {
           friends: Array.isArray(user.friends.friends) ? [...user.friends.friends] : [],
@@ -459,17 +464,6 @@ export function normalizeGameState(boardState) {
   return boardState && typeof boardState === "object" ? clone(boardState) : null;
 }
 
-export function normalizeMusic(track) {
-  if (!track || typeof track !== "object") return null;
-  const song = String(track.song || "").trim();
-  if (!song) return null;
-  return {
-    song,
-    label: String(track.label || "").trim(),
-    updatedBy: String(track.updated_by || ""),
-  };
-}
-
 export function normalizeRoom(room, previousRoom = null) {
   if (!room) return null;
   return {
@@ -491,7 +485,6 @@ export function normalizeRoom(room, previousRoom = null) {
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
     environmentRevision: Number(room.environment_revision || 0),
-    music: normalizeMusic(room.music),
     exits: Array.isArray(room.exits) ? room.exits.map(normalizeExit) : [],
     props: Array.isArray(room.props) ? room.props.map(normalizeProp) : [],
     occupants: Array.isArray(room.occupants) ? room.occupants.map(normalizeOccupant) : [],

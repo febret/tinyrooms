@@ -14,7 +14,7 @@ from urllib.parse import parse_qs, urlsplit
 from fastapi import APIRouter, HTTPException, Request
 import httpx
 
-from server.routes.common import get_runtime, require_session
+from server.routes.common import enforce_authenticated_post, get_runtime, require_session
 
 
 router = APIRouter()
@@ -190,3 +190,66 @@ async def chiptune_browse(request: Request, path: str = "") -> dict[str, object]
     require_session(get_runtime(request), request)
     items = _browse_items(await _fetch_json("/api/browse", {"path": _path(path)}))
     return {"ok": True, "items": items, "total": len(items)}
+
+
+@router.get("/api/chiptune/starred")
+async def chiptune_starred(request: Request) -> dict[str, object]:
+    """Return the signed-in user's starred tracks."""
+
+    runtime = get_runtime(request)
+    session = require_session(runtime, request)
+    return {"ok": True, "items": runtime.chiptune_stars.starred(session.account_id)}
+
+
+@router.post("/api/chiptune/starred")
+async def chiptune_set_starred(request: Request) -> dict[str, object]:
+    """Star or unstar a track for the signed-in user."""
+
+    runtime = get_runtime(request)
+    session = require_session(runtime, request)
+    enforce_authenticated_post(runtime, request, session)
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="A JSON body is required.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="A JSON object is required.")
+    starred = payload.get("starred", True)
+    try:
+        items = runtime.chiptune_stars.set_starred(
+            session.account_id,
+            payload.get("song"),
+            payload.get("label", ""),
+            starred=starred if isinstance(starred, bool) else True,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "items": items}
+
+
+@router.get("/api/chiptune/suggestions")
+async def chiptune_suggestions(request: Request, limit: str | None = None) -> dict[str, object]:
+    """Return top tracks plus tracks starred by other Tinyrooms users."""
+
+    runtime = get_runtime(request)
+    session = require_session(runtime, request)
+    count = _limit(limit)
+    try:
+        top = _top_items(await _fetch_json("/api/top", {"metric": "plays", "limit": str(count)}))
+    except HTTPException:
+        top = []
+    community = [
+        {
+            "id": entry["song"],
+            "path": "",
+            "title": entry["label"] or entry["song"],
+            "subtitle": (
+                f"Starred by {entry['stars']} "
+                f"Tinyrooms {'player' if int(entry['stars']) == 1 else 'players'}"
+            ),
+            "kind": "file",
+            "stars": entry["stars"],
+        }
+        for entry in runtime.chiptune_stars.starred_counts(session.account_id, count)
+    ]
+    return {"ok": True, "top": top, "community": community}

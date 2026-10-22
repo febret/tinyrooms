@@ -217,16 +217,15 @@ entry that can be expanded to see the individual peeps.
 The bottom Card View shows equipped item and action stacks.
 
 **Core** controls are non-collectible buttons that open built-in gameplay actions
-or submenus. Inventory and Journal sit in a horizontal toolbar at the top of the
-screen, with a `Look around` Room Picker button immediately to the right of
-Inventory; the Emotes control sits to
-the left of the Chat Bar. Core controls do not appear in card packs, cannot be
-dropped or traded, and use no equipment slots.
+or submenus. Inventory, Journal, and Phone sit in a horizontal toolbar at the top
+of the screen, with a `Look around` Room Picker button immediately to the right of
+Inventory; the Emotes control sits to the left of the Chat Bar. Core controls do
+not appear in card packs, cannot be dropped or traded, and use no equipment slots.
 Core control availability can depend on permissions and the room. Inventory,
-Emotes, and Journal are available from the start in the tutorial and are always
-displayed in a fixed order. Self, Skills, and Friends are sections of the Journal.
-The tutorial teaches these sections gradually rather than locking them; Skills
-initially has no unlocked slots.
+Emotes, Journal, and Phone are available from the start in the tutorial and are
+always displayed in a fixed order. Self and Skills are sections of the Journal;
+friends and music live in the Phone. The tutorial teaches these sections
+gradually rather than locking them; Skills initially has no unlocked slots.
 
 Equipped stacks follow [Equipment](#equipment) capacity, eligibility, and bonus
 rules. They sit at the right edge of the tray, with
@@ -467,17 +466,28 @@ usual Bops charge applies only when the confirmed sticker actually differs from
 the current one.
 
 
-### Friends
-Users can add other users as friends. The friends list is managed through a
-two-page **Friends** tab in the Journal. From this spread the user can see their friends (including which
-ones are online), and remove friends. Friends can be added through the
+### Phone and Friends
+The Phone core card opens a skeuomorphic pocket phone. It starts on an apps page
+with **Friends** and **Chiptune** apps; a back control returns to the apps page.
+The Friends app manages friendships and beacons. It shows each friend's online
+state and reciprocal vibes in both directions: the viewer's vibe toward that
+friend and the friend's vibe toward the viewer. Friends can be added through the
 `Add Friend` quick action on another user's peep (the other user must accept the
 request). The friends list is part of the shared user profile, and Journal
 monthly progress includes the number of new friends made in the month.
-Incoming and outgoing requests occupy the right page of the Friends spread and remain
-pending until accepted, declined, or cancelled, including while a user is
+Incoming and outgoing requests and incoming beacons remain pending until
+accepted, declined, cancelled, followed, or dismissed, including while a user is
 offline. Acceptance creates a mutual friendship; either user can remove the
 friendship for both.
+
+### Chiptune
+The Phone's Chiptune app is a personal player backed by chiptune.app. Users can
+search or browse the catalog, play any track, and star tracks they like. The app
+suggests the chiptune.app top chart and tracks starred by other Tinyrooms users.
+Playback is per-user and never changes the room's music; the selected track and
+on/off preference are remembered locally in the browser. Because playback runs
+through a cross-origin chiptune.app frame, volume, pause/seek, and playback
+position are unavailable, and autoplay requires one user gesture.
 
 
 -------------------------------------------------------------------------------
@@ -1180,8 +1190,8 @@ no oversized invisible capture area.
 
 -------------------------------------------------------------------------------
 ## The Journal
-Selecting the Journal core card opens the Journal, which lets the user see
-five tabs in order: **Tasks**, **Memories**, **Self**, **Skills**, and **Friends**.
+Selecting the Journal core card opens the Journal, which lets the user see four
+tabs in order: **Tasks**, **Memories**, **Self**, and **Skills**.
 Every tab fills the same two-page book, with independently scrollable page
 contents. Tasks and Memories share the calendar on the left and show their
 respective lists on the right; the other tabs use both pages for their content.

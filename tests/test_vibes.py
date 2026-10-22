@@ -10,6 +10,7 @@ from server.behaviors.context import BehaviorContext
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.game.modifiers import Modifier
 from server.security import utc_now
+from server.services.friends import FriendsService
 from server.services.stats import StatsService
 from server.services.vibes import VibesService, describe_vibe
 from server.state.npc_peep_states import NpcPeepStateRepository
@@ -110,6 +111,19 @@ class VibesServiceTests(ServiceTestCase):
         pair = self.vibes.pairs_for(account.id, ["caretaker"])["caretaker"]
         self.assertEqual(pair["toward"], {"value": 12, "label": "Friend 🙂"})
         self.assertEqual(pair["from"], {"value": -4, "label": "Annoyance 🙄"})
+
+    def test_friend_payload_includes_reciprocal_vibes(self) -> None:
+        viewer = self.create_account("vibe-friend-viewer")
+        friend = self.create_account("vibe-friend")
+        friends = FriendsService(self.hub, self.profiles, vibes=self.vibes)
+        friends.send_request(viewer, friend)
+        friends.accept_request(friend, viewer.id)
+        self.vibes.adjust(viewer.id, friend.id, 30)
+        self.vibes.adjust(friend.id, viewer.id, -5)
+
+        payload = friends.serialize(viewer.id).as_dict()["friends"]
+        self.assertEqual(payload[0]["vibes"]["toward"], {"value": 30, "label": "Buddy 😃"})
+        self.assertEqual(payload[0]["vibes"]["from"], {"value": -5, "label": "Annoyance 🙄"})
 
     def test_context_vibe_toward_uses_callback(self) -> None:
         actor = PeepRef(kind="npc", peep_id="caretaker", account_id=None)

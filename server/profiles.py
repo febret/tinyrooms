@@ -46,6 +46,7 @@ def _default_profile() -> dict[str, object]:
         "pinned_peeps": [],
         "skills": [],
         "beacons": [],
+        "starred_tracks": [],
         "statuses": [],
         "show_activity_log": False,
         "ui_settings": {},
@@ -87,6 +88,13 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["beacons"] = []
     else:
         merged["beacons"] = [entry for entry in merged["beacons"] if isinstance(entry, dict)]
+    if not isinstance(merged.get("starred_tracks"), list):
+        merged["starred_tracks"] = []
+    else:
+        merged["starred_tracks"] = [
+            entry for entry in merged["starred_tracks"]
+            if isinstance(entry, dict) and str(entry.get("song") or "").strip()
+        ]
     if not isinstance(merged.get("statuses"), list):
         merged["statuses"] = []
     if not isinstance(merged.get("show_activity_log"), bool):
@@ -618,6 +626,36 @@ class ProfileRepository:
                 tuple(unique_ids),
             ).fetchall()
         return {row["account_id"]: self._user_profile_from_row(row) for row in rows}
+
+    def starred_track_counts(
+        self,
+        exclude_account_id: str,
+        limit: int = 20,
+    ) -> list[dict[str, object]]:
+        """Aggregate tracks starred by other users, most-starred first."""
+
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    json_extract(track.value, '$.song') AS song,
+                    COALESCE(json_extract(track.value, '$.label'), '') AS label,
+                    COUNT(*) AS stars
+                FROM user_profiles AS profiles,
+                     json_each(profiles.profile_json, '$.starred_tracks') AS track
+                WHERE profiles.account_id != ?
+                  AND json_extract(track.value, '$.song') IS NOT NULL
+                  AND json_extract(track.value, '$.song') != ''
+                GROUP BY song
+                ORDER BY stars DESC, song ASC
+                LIMIT ?
+                """,
+                (exclude_account_id, max(1, int(limit))),
+            ).fetchall()
+        return [
+            {"song": str(row["song"]), "label": str(row["label"] or ""), "stars": int(row["stars"])}
+            for row in rows
+        ]
 
     def list_inventories_by_accounts(
         self,
