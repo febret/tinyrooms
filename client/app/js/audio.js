@@ -4,20 +4,20 @@ const SOUND_FILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*\.wav$/;
 const PLAY_GAIN = 0.55;
 
 const UI_SOUND_FILES = {
-  tap: "tap.wav",
+  tap: "grass.wav",
   click: "click1.wav",
-  select: "click2.wav",
+  select: "click3.wav",
   flip: "swipe1.wav",
-  card: "swipe2.wav",
+  card: "switch.wav",
   coin: "ring.wav",
   error: "retro-error.wav",
-  success: "task-complete.wav",
-  notify: "task-notify.wav",
-  room: "door1.wav",
-  open: "door-open-old.wav",
+  success: "swipe1.wav",
+  notify: "drum2.wav",
+  room: "steps.wav",
+  open: "grass.wav",
   close: "door-close.wav",
   toggle: "switch.wav",
-  cutscene: "cutscene-start.wav",
+  cutscene: "cutscene.wav",
 };
 
 let context;

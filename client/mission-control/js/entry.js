@@ -72,8 +72,8 @@ async function connect() {
       throw new Error("The world returned a different identity. Ask an operator to check the instance.");
     }
   } catch (failure) {
-    if (failure.name === "AbortError") throw new Error("The connection to your world timed out. Check that its HTTPS port is reachable, then retry.");
-    if (failure instanceof TypeError) throw new Error("Your browser could not reach the world. Check its HTTPS certificate and port, then retry.");
+    if (failure.name === "AbortError") throw new Error("The connection to your world timed out. Check the server and network, then retry.");
+    if (failure instanceof TypeError) throw new Error("Your browser could not reach the world. Check the server and network, then retry.");
     throw failure;
   } finally {
     clearTimeout(timer);
@@ -129,6 +129,31 @@ document.getElementById("logout").addEventListener("click", () => run(async () =
   document.getElementById("username").focus();
 }));
 
+function startShowcase() {
+  const canvas = document.getElementById("entry-canvas");
+  if (!canvas) return;
+  const reducedMotion = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  setTimeout(async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`${base}/api/entry/showcase`, {
+        credentials: "same-origin",
+        signal: controller.signal,
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!data.ok || !Array.isArray(data.props) || !data.props.length) return;
+      const { initEntryShowcase } = await import("./entry-scene.js");
+      initEntryShowcase({ canvas, props: data.props, reducedMotion });
+    } catch {
+      // The CSS backdrop is the fallback; decorative media must not affect login.
+    } finally {
+      clearTimeout(timer);
+    }
+  }, 60);
+}
+
 run(async () => {
   form.hidden = false;
   const session = await api("session");
@@ -139,3 +164,43 @@ run(async () => {
     status.textContent = "Log in or create an account to play.";
   }
 });
+
+startShowcase();
+
+const installButton = document.getElementById("install-app");
+const standalone = Boolean(window.matchMedia?.("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+let installPrompt = null;
+if (installButton && !standalone) {
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    installPrompt = event;
+    installButton.hidden = false;
+  });
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    installButton.hidden = true;
+  });
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    installButton.hidden = false;
+    installButton.textContent = "Add to Home Screen";
+  }
+  installButton.addEventListener("click", async () => {
+    if (!installPrompt) {
+      status.textContent = "In Safari, tap Share, then Add to Home Screen.";
+      return;
+    }
+    installPrompt.prompt();
+    try {
+      await installPrompt.userChoice;
+    } finally {
+      installPrompt = null;
+      installButton.hidden = true;
+    }
+  });
+}
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/` }).catch(() => {
+    // Installation still works from the browser menu when registration is blocked.
+  });
+}
