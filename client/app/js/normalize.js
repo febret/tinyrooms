@@ -143,7 +143,7 @@ export function normalizeProp(prop) {
   };
 }
 
-/** Apply a layout broadcast without dropping server-authored prop behavior. */
+/** Apply a layout broadcast: server labels/descriptions win, local behavior kept. */
 export function mergeLayoutProps(previousProps, layoutProps) {
   if (!Array.isArray(layoutProps)) return previousProps;
   const previous = new Map((Array.isArray(previousProps) ? previousProps : []).map(prop => [prop.id, prop]));
@@ -154,8 +154,6 @@ export function mergeLayoutProps(previousProps, layoutProps) {
     return {
       ...existing,
       ...next,
-      label: existing.label,
-      description: existing.description,
       behavior: existing.behavior,
       quickActions: existing.quickActions,
       sounds: existing.sounds,

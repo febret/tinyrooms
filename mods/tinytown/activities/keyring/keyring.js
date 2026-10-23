@@ -79,7 +79,7 @@ function keyButton(house) {
     <button type="button" class="key-hook tier-${tier.id}${selected ? " selected" : ""}" data-action="select" data-id="${escape(house.id)}" aria-pressed="${selected}">
       <span class="key-peg" aria-hidden="true"></span>
       <span class="key-art">
-        <img src="${image(house.key_url)}" alt="" loading="lazy" onerror="this.classList.add('missing')">
+        <img src="${image(house.key_url)}" alt="" loading="lazy" data-key-img>
         <span class="key-fallback" aria-hidden="true"></span>
       </span>
       <span class="key-tag">
@@ -120,7 +120,7 @@ function renderDetail() {
   const residents = (state.household?.house_id === house.id ? state.household.npcs : []) || [];
   detailRoot.innerHTML = `
     <div class="detail-key tier-${tier.id}">
-      <img src="${image(house.key_url)}" alt="" onerror="this.classList.add('missing')">
+      <img src="${image(house.key_url)}" alt="" data-key-img>
     </div>
     <p class="detail-eyebrow">${escape(house.district_label)} · ${tier.label} key</p>
     <h2 class="detail-title">${escape(house.label)}</h2>
@@ -220,6 +220,14 @@ async function runCommand(text) {
     TinyActivity.toast(errorMessage(error), true);
   }
 }
+
+document.addEventListener(
+  "error",
+  event => {
+    if (event.target?.matches?.("img[data-key-img]")) event.target.classList.add("missing");
+  },
+  true
+);
 
 document.addEventListener("click", event => {
   const action = event.target.closest("[data-action]");

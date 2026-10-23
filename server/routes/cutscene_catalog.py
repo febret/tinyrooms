@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from server.base_path import with_base
@@ -11,10 +13,9 @@ from server.content.worlds import prop_model_url
 from server.routes.common import (
     enforce_authenticated_post,
     get_runtime,
-    require_power_access,
     require_session,
+    serve_page,
 )
-from server.routes.world_editor import _serve_page
 
 
 router = APIRouter()
@@ -27,16 +28,29 @@ CATALOG_AUDIT_ACTION = "cutscene_catalog.access_denied"
 def _require_catalog_access(runtime, request: Request):
     """Gate catalog access to admin and game-master accounts."""
 
-    return require_power_access(
-        runtime,
-        request,
-        feature=CATALOG_FEATURE,
-        powers=CATALOG_POWERS,
-        audit_action=CATALOG_AUDIT_ACTION,
-    )
+    from server.routes.common import feature_enabled
+
+    if not feature_enabled(runtime.config, CATALOG_FEATURE):
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Not found.")
+    session = require_session(runtime, request)
+    account = runtime.profiles.get_account_by_id(session.account_id)
+    if account is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    if not (runtime.powers.effective(account) & set(CATALOG_POWERS)):
+        runtime.audit.safe_record(
+            account.id, CATALOG_AUDIT_ACTION, CATALOG_FEATURE, "denied", {"feature": CATALOG_FEATURE}
+        )
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=403, detail="You do not have permission.")
+    return account, session
 
 
-def _catalog_root(runtime) -> object:
+def _catalog_root(runtime) -> Path:
     return runtime.config.client_path / "cutscene-catalog"
 
 
@@ -55,6 +69,8 @@ def _resolve_room(runtime, room_id: str | None):
 def _validate_preview_params(raw: object) -> dict[str, object]:
     """Validate catalog preview overrides against command launch limits."""
 
+    import math
+
     if not isinstance(raw, dict):
         raise HTTPException(status_code=400, detail="Params must be a mapping.")
     if len(raw) > MAX_PARAMS:
@@ -64,9 +80,15 @@ def _validate_preview_params(raw: object) -> dict[str, object]:
         name = str(key).strip()
         if not name:
             raise HTTPException(status_code=400, detail="Param names must be non-empty.")
+        if len(name) > MAX_PARAM_STRING:
+            raise HTTPException(status_code=400, detail=f"Param '{name[:32]}' is too long.")
         if name in RESERVED_PARAM_KEYS:
             raise HTTPException(status_code=400, detail=f"Param '{name}' is reserved.")
-        if isinstance(value, bool) or isinstance(value, (int, float)):
+        if isinstance(value, bool):
+            overrides[name] = value
+        elif isinstance(value, (int, float)):
+            if isinstance(value, float) and not math.isfinite(value):
+                raise HTTPException(status_code=400, detail=f"Param '{name}' must be finite.")
             overrides[name] = value
         elif isinstance(value, str):
             if len(value) > MAX_PARAM_STRING:
@@ -78,7 +100,7 @@ def _validate_preview_params(raw: object) -> dict[str, object]:
 
 
 def _room_choices(runtime) -> list[dict[str, object]]:
-    """Return every room in load order with labels for the room picker."""
+    """Return every room sorted by label for the room picker."""
 
     return [
         {"id": room.id, "label": room.label}
@@ -114,9 +136,12 @@ async def _user_choices(runtime, account, room) -> list[dict[str, object]]:
     """Return live occupants of a room with sticker art for user pickers."""
 
     connections = await runtime.connections.list_room(room.id)
+    members = runtime.profiles.get_accounts_by_ids(
+        [connection.account_id for connection in connections]
+    )
     choices = []
     for connection in connections:
-        member = runtime.profiles.get_account_by_id(connection.account_id)
+        member = members.get(connection.account_id)
         if member is None:
             continue
         choices.append(
@@ -181,10 +206,15 @@ def _card_choices(runtime) -> list[dict[str, object]]:
     return choices
 
 
-def _cutscene_entry(runtime, account, definition, room_id: str) -> dict[str, object]:
+def _cutscene_entry(
+    runtime, account, definition, room_id: str, effective_powers: frozenset[str] | None = None
+) -> dict[str, object]:
     """Serialize one definition with placeholders and gate status."""
 
-    has_power = lambda power: runtime.powers.has_power(account.id, power)
+    powers = effective_powers if effective_powers is not None else runtime.powers.effective(account)
+
+    def has_power(power: str) -> bool:
+        return power in powers
     cues = [
         {
             "at": cue.at,
@@ -228,8 +258,8 @@ async def cutscene_catalog_page(request: Request, requested_path: str = "") -> R
     """Serve the cutscene catalog single-page app behind feature and role gates."""
 
     runtime = get_runtime(request)
-    _require_catalog_access(runtime, request)
-    return _serve_page(runtime, _catalog_root(runtime), requested_path)
+    _require_catalog_access(runtime, request)[0]
+    return serve_page(runtime, _catalog_root(runtime), requested_path)
 
 
 @router.get("/api/cutscene-catalog")
@@ -237,13 +267,15 @@ async def cutscene_catalog_data(request: Request, room_id: str | None = None) ->
     """Return every cutscene definition plus placeholder picker choices."""
 
     runtime = get_runtime(request)
-    account = _require_catalog_access(runtime, request)
+    account, _session = _require_catalog_access(runtime, request)
     room = _resolve_room(runtime, room_id)
     definitions = sorted(
         runtime.cutscenes.definitions().values(), key=lambda entry: entry.title.lower()
     )
+    effective_powers = runtime.powers.effective(account)
     cutscenes = [
-        _cutscene_entry(runtime, account, definition, room.id) for definition in definitions
+        _cutscene_entry(runtime, account, definition, room.id, effective_powers)
+        for definition in definitions
     ]
     world_css_url = (
         with_base(runtime.config.base_path, f"/assets/world/{runtime.world.id}/world.css")
@@ -276,8 +308,7 @@ async def cutscene_catalog_preview(request: Request) -> dict[str, object]:
     """Build a local-only cutscene play payload for testing placeholders."""
 
     runtime = get_runtime(request)
-    account = _require_catalog_access(runtime, request)
-    session = require_session(runtime, request)
+    account, session = _require_catalog_access(runtime, request)
     enforce_authenticated_post(runtime, request, session)
     try:
         body = await request.json()
@@ -297,6 +328,13 @@ async def cutscene_catalog_preview(request: Request) -> dict[str, object]:
         definition = runtime.cutscenes.resolve(definition_id.strip())
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    def has_power(power: str) -> bool:
+        return runtime.powers.has_power(account.id, power)
+
+    try:
+        runtime.cutscenes.check(definition, room_id=room.id, has_power=has_power)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     occupants = [
         connection.account_id for connection in await runtime.connections.list_room(room.id)
     ]

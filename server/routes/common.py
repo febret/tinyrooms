@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException, Request
-from fastapi.responses import JSONResponse
+from pathlib import Path
 
-from server.config import AppConfig
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse, Response
+
+from server.base_path import render_html
+from server.config import AppConfig, ConfigError, ensure_contained
 from server.profiles import SessionRecord
 from server.security import CSRF_COOKIE, SESSION_COOKIE, require_matching_csrf, validate_origin
 
@@ -46,30 +49,15 @@ def feature_enabled(config: AppConfig, feature: str) -> bool:
 
 
 def require_editor_access(runtime, request: Request, *, feature: str):
-    """Gate an editor route by feature flag, session, and editor power.
+    """Gate an editor route by feature flag, session, and editor power."""
 
-    Returns the account record. Feature-disabled requests 404, unauthenticated
-    requests 401, and authenticated-but-unauthorized requests 403. Denied
-    attempts are audited.
-    """
-
-    if not feature_enabled(runtime.config, feature):
-        raise HTTPException(status_code=404, detail="Not found.")
-    session = require_session(runtime, request)
-    account = runtime.profiles.get_account_by_id(session.account_id)
-    if account is None:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-    effective = runtime.powers.effective(account)
-    if not (effective & EDITOR_POWERS):
-        runtime.audit.safe_record(
-            account.id,
-            "world_editor.access_denied",
-            feature,
-            "denied",
-            {"feature": feature},
-        )
-        raise HTTPException(status_code=403, detail="You do not have permission.")
-    return account
+    return require_power_access(
+        runtime,
+        request,
+        feature=feature,
+        powers=EDITOR_POWERS,
+        audit_action="world_editor.access_denied",
+    )
 
 
 def require_power_access(
@@ -106,28 +94,35 @@ def require_power_access(
 
 
 def require_admin_access(runtime, request: Request, *, feature: str):
-    """Gate an admin-only route by feature flag, session, and admin power.
+    """Gate an admin-only route by feature flag, session, and admin power."""
 
-    Feature-disabled requests 404, unauthenticated requests 401, and
-    authenticated-but-unauthorized requests 403. Denied attempts are audited.
-    """
+    return require_power_access(
+        runtime,
+        request,
+        feature=feature,
+        powers=frozenset({"admin"}),
+        audit_action="prop_editor.access_denied",
+    )
 
-    if not feature_enabled(runtime.config, feature):
+
+def serve_page(runtime, root: Path, requested_path: str) -> Response:
+    """Serve a bundled single-page app file contained under *root*."""
+
+    import mimetypes
+
+    relative = requested_path or "index.html"
+    if relative.endswith("/"):
+        relative = f"{relative}index.html"
+    try:
+        candidate = ensure_contained(root / relative, root, "editor")
+    except ConfigError as exc:
+        raise HTTPException(status_code=404, detail="Not found.") from exc
+    if candidate.is_dir():
+        candidate = candidate / "index.html"
+    if not candidate.is_file():
         raise HTTPException(status_code=404, detail="Not found.")
-    session = require_session(runtime, request)
-    account = runtime.profiles.get_account_by_id(session.account_id)
-    if account is None:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-    if "admin" not in runtime.powers.effective(account):
-        runtime.audit.safe_record(
-            account.id,
-            "prop_editor.access_denied",
-            feature,
-            "denied",
-            {"feature": feature},
-        )
-        raise HTTPException(status_code=403, detail="You do not have permission.")
-    return account
+    media_type, _ = mimetypes.guess_type(candidate.name)
+    return render_html(candidate, runtime.config.base_path, media_type=media_type)
 
 
 def json_error(status_code: int, code: str, message: str) -> JSONResponse:

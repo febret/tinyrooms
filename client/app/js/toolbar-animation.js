@@ -8,15 +8,24 @@
  */
 
 /** Return a stable key for one direct toolbar button. */
-export function toolbarButtonKey(element) {
+export function toolbarButtonKey(element, index = -1) {
   const dataset = element?.dataset || {};
+  if (dataset.topAction) return `action:${dataset.topAction}`;
   if (dataset.coreId) return `core:${dataset.coreId}`;
   if (element?.id) return `id:${element.id}`;
   if (dataset.editProp) return `edit-prop:${dataset.editProp}`;
   if (dataset.editRoom !== undefined) return "edit-room";
   if (dataset.openMultiverse !== undefined) return "multiverse";
   if (dataset.openCutsceneCatalog !== undefined) return "cutscene-catalog";
-  return `button:${element?.className || ""}:${element?.textContent || ""}`;
+  const classes = String(element?.className || "").split(/\s+/).filter(Boolean).sort().join(" ");
+  return `button:${classes}:${index >= 0 ? index : ""}`;
+}
+
+/** Render updated markup with toolbar enter/leave animation. */
+export function updateWithToolbarAnimation(root, markup) {
+  const previous = captureToolbarButtons(root);
+  root.innerHTML = markup;
+  return animateToolbarButtons(root, previous);
 }
 
 function toolbarButtons(root) {
@@ -27,12 +36,12 @@ function toolbarButtons(root) {
 /** Snapshot the current buttons and their on-screen boxes before a re-render. */
 export function captureToolbarButtons(root) {
   const captured = new Map();
-  for (const element of toolbarButtons(root)) {
-    captured.set(toolbarButtonKey(element), {
+  toolbarButtons(root).forEach((element, index) => {
+    captured.set(toolbarButtonKey(element, index), {
       element,
       rect: element.getBoundingClientRect?.() || null,
     });
-  }
+  });
   return captured;
 }
 
@@ -80,7 +89,9 @@ function ghostRemoved(element, rect, documentRef) {
  * Added buttons get an entrance class; removed buttons get a ghost exit.
  */
 export function animateToolbarButtons(root, previous) {
-  const current = new Map(toolbarButtons(root).map(element => [toolbarButtonKey(element), element]));
+  const current = new Map(
+    toolbarButtons(root).map((element, index) => [toolbarButtonKey(element, index), element])
+  );
   const added = [];
   const removed = [];
   if (previous) {

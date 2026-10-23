@@ -50,7 +50,15 @@ export function createPicker({ dialog, title, search, list }) {
       title.textContent = heading;
       search.value = "";
       renderChoices(choices);
-      dialog.showModal();
+      if (!dialog.open) dialog.showModal();
+      else renderChoices(choices);
+      if (search?.focus) {
+        try {
+          search.focus({ preventScroll: true });
+        } catch {
+          search.focus();
+        }
+      }
     },
   };
 }

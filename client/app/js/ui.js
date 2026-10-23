@@ -20,11 +20,9 @@ import {
   buildBeaconCommand,
   buildEmoteCommand,
   buildFriendCommand,
-  buildMergeCommand,
   buildQuantityCommand,
   buildSkillCommand,
   buildSplitCommand,
-  buildSwapStickerCommand,
   buildUnskillCommand,
   chatToCommand,
 } from "./commands.js";
@@ -38,15 +36,16 @@ import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createEditorActions } from "./editor-actions.js";
 import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
-import { BUBBLE_TIMEOUT_CHOICES, PANEL_SIZE_CHOICES, bubbleTimeoutLabel, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
+import { BUBBLE_TIMEOUT_CHOICES, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
-import { cardFaceSvg } from "./card-face.js";
 import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
 import { createStatusButton } from "./status-button.js";
-import { uiIconMarkup } from "./ui-icons.js";
+import { topBarMarkup } from "./top-bar.js";
+import { actionLogMarkup, actionsBarMarkup, syncPhoneFriendSelection as syncPhoneFriend } from "./ui-panels.js";
+import { mergeStack as mergeStackAction, openPack as openPackAction, openStickerSwap as openStickerSwapAction, showPackReveal as showPackRevealView } from "./ui-inventory.js";
 import { createTargetingController } from "./targeting.js";
 import { sellInventoryCard } from "./sell.js";
 import { createVoiceChat } from "./voice.js";
@@ -607,130 +606,21 @@ async function handleMemoryAction(action) {
   }
 }
 
-async function mergeStack(stackId) {
-  const state = store.getState();
-  const stack = state.user?.inventory?.find(entry => entry.stackId === stackId);
-  if (!stack) return;
-  const candidates = (state.user?.inventory || []).filter(entry =>
-    entry.stackId !== stackId
-    && entry.definition?.id === stack.definition?.id
-    && entry.quantity < (stack.definition?.stackLimit || 1)
-  );
-  if (!candidates.length) {
-    toast("No other stack of that card has room to merge into.", "info");
-    return;
-  }
-  let destination = candidates[0];
-  if (candidates.length > 1) {
-    const choice = await dialogs.choose("Merge into which stack?", candidates.map(entry => ({
-      value: entry.stackId,
-      label: `${entry.definition.label} ×${entry.quantity}`,
-    })));
-    if (!choice) return;
-    destination = candidates.find(entry => entry.stackId === choice) || candidates[0];
-  }
-  try { await sendCommand(buildMergeCommand(stackId, destination.stackId)); } catch (error) { showError(error); }
-}
-
-async function openStickerSwap() {
-  const state = store.getState();
-  if (!Array.isArray(state.user?.powers) || !state.user.powers.length) {
-    try { await sendCommand(".play sticker-designer replace"); } catch (error) { showError(error); }
-    return;
-  }
-  const stickers = state.stickers || [];
-  const current = state.user?.sticker || "";
-  const cost = state.user?.stickerSwapCost ?? 0;
-  await dialogs.open(
-    `<section class="global-dialog sticker-swap" role="dialog" aria-modal="true" aria-labelledby="sticker-swap-title">
-      <h2 id="sticker-swap-title">Swap Sticker</h2>
-      <p>Choose a new sticker. Confirming a different sticker costs ${cost} Bops; keeping the current one is free.</p>
-      <div class="sticker-grid">${stickers.map(entry => {
-        const name = String(entry?.name || "");
-        const imageUrl = withBase(entry?.image_url || `/assets/stickers/${name}`);
-        return `<button type="button" class="sticker-choice ${name === current ? "current" : ""}" data-sticker="${escapeHtml(name)}"><img src="${escapeHtml(imageUrl)}" alt=""></button>`;
-      }).join("")}</div>
-      <div class="dialog-actions">
-        <button type="button" class="quiet design-custom-sticker">Design a Custom Sticker…</button>
-        <button type="button" class="quiet cancel-swap">Cancel</button>
-      </div>
-    </section>`,
-    (shade, close, cancel) => {
-      shade.querySelector(".cancel-swap").onclick = cancel;
-      shade.querySelector(".design-custom-sticker").onclick = async () => {
-        close();
-        try { await sendCommand(".play sticker-designer replace"); } catch (error) { showError(error); }
-      };
-      shade.querySelectorAll("[data-sticker]").forEach(button => {
-        button.onclick = async () => {
-          const chosen = button.dataset.sticker;
-          close();
-          try { await sendCommand(buildSwapStickerCommand(chosen)); } catch (error) { showError(error); }
-        };
-      });
-    },
-  );
-}
-
-function operationId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-async function openPack(stackId) {
-  if (!stackId) return;
-  try {
-    await sendCommand(`.open_pack @card:${stackId} ${operationId("open")}`);
-  } catch (error) {
-    showError(error);
-  }
-}
-
-function showPackReveal(cards) {
-  playTone("success");
-  dialogs.open(
-    `<section class="global-dialog pack-reveal" role="dialog" aria-modal="true" aria-labelledby="pack-reveal-title">
-      <h2 id="pack-reveal-title">Your ${escapeHtml(cards.length)} cards</h2>
-      <div class="pack-reveal-cards">${cards.map(card => `
-        <figure class="pack-reveal-card">${cardFaceSvg(card, { label: card.label })}<figcaption>${escapeHtml(card.label)}</figcaption></figure>
-      `).join("")}</div>
-      <div class="dialog-actions"><button type="button" class="primary pack-reveal-close">Continue</button></div>
-    </section>`,
-    (shade, close) => {
-      const button = shade.querySelector(".pack-reveal-close");
-      button.onclick = close;
-      button.focus({ preventScroll: true });
-    },
-  );
-}
+const inventoryDeps = () => ({ store, dialogs, sendCommand, toast, showError, playTone });
+const mergeStack = stackId => mergeStackAction(inventoryDeps(), stackId);
+const openStickerSwap = () => openStickerSwapAction(inventoryDeps());
+const openPack = stackId => openPackAction(inventoryDeps(), stackId);
+const showPackReveal = cards => showPackRevealView(inventoryDeps(), cards);
 
 function renderActions(state) {
   const bar = $("#actions-bar");
-  if (state.ui.dropTargeting) {
-    const drop = state.ui.dropTargeting;
-    const count = drop.quantity > 1 ? ` ×${drop.quantity}` : "";
-    const markup = `<span class="targeting-hint">Drop ${escapeHtml(drop.label)}${escapeHtml(count)} — click a spot in the room</span>
-      <button type="button" class="cancel" data-action-index="-1" data-sound="click">Cancel</button>`;
+  const markup = actionsBarMarkup(state, dialogActions, selectionActions, actionSound);
+  if (state.ui.dropTargeting || state.ui.targeting) {
     if (!updateMarkup(bar, markup)) return;
-    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-drop" } }, { silentSound: true });
+    const cancelType = state.ui.dropTargeting ? "cancel-drop" : "cancel-targeting";
+    bar.querySelector("button").onclick = () => handleAction({ local: { type: cancelType } }, { silentSound: true });
     return;
   }
-  if (state.ui.targeting) {
-    const markup = `<span class="targeting-hint">Use ${escapeHtml(state.ui.targeting.label)} — confirm with the button or click the target again</span>
-      <button type="button" class="cancel" data-action-index="-1" data-sound="click">Cancel</button>`;
-    if (!updateMarkup(bar, markup)) return;
-    bar.querySelector("button").onclick = () => handleAction({ local: { type: "cancel-targeting" } }, { silentSound: true });
-    return;
-  }
-  const actions = state.room?.dialog ? dialogActions(state) : selectionActions(state);
-  const markup = actions.length ? actions.map((action, index) => {
-    const tone = action.label === "Inspect" || action.label.startsWith("Open") ? "neutral" : action.label === "Close" ? "cancel" : action.tone || "neutral";
-    const label = escapeHtml(action.label);
-    const className = action.icon ? `${tone} icon-action` : tone;
-    const accessible = action.icon ? ` aria-label="${label}" title="${label}"` : "";
-    const content = action.icon ? `<img src="${escapeHtml(action.icon)}" alt="">` : label;
-    const sound = action.sound || actionSound(action);
-    return `<button type="button" class="${className}" data-action-index="${index}" data-sound="${escapeHtml(sound)}" data-focus-key="${escapeHtml(action.command || action.label)}"${accessible} ${action.disabled ? "disabled" : ""}>${content}</button>`;
-  }).join("") : `<span class="actions-empty">${state.room ? "Select a card or peep to see its actions." : "Welcome to Tinyrooms."}</span>`;
   if (!updateMarkup(bar, markup)) return;
   bar.querySelectorAll("button").forEach(button => {
     button.onclick = () => {
@@ -754,33 +644,10 @@ function renderActionLog(state) {
   const oldLines = log.querySelector(".log-lines");
   const atBottom = !oldLines || oldLines.scrollTop + oldLines.clientHeight >= oldLines.scrollHeight - 8;
   const oldTop = oldLines?.scrollTop || 0;
-  if (!updateMarkup(log, `<header class="panel-header"><h2>Room activity</h2>
-    <button type="button" class="icon-button" aria-label="Hide activity log">&times;</button></header>
-    <div class="log-lines">${(state.room?.chatHistory || []).slice(-50).map(entry =>
-      `<p class="log-line ${entry.kind === "chat" ? "chat" : "system"}">${escapeHtml(entry.kind === "chat" ? `${entry.speaker}: ${entry.text}` : entry.text)}</p>`
-    ).join("") || `<p class="empty-state">No room events yet.</p>`}</div>`)) return;
+  if (!updateMarkup(log, actionLogMarkup(state))) return;
   log.querySelector("button").onclick = toggleLog;
   const lines = log.querySelector(".log-lines");
   lines.scrollTop = atBottom ? lines.scrollHeight : oldTop;
-}
-
-function quickSetting({ action, label, icon, pressed = null, disabled = false, title = "", wide = false }) {
-  const pressedAttr = pressed === null ? "" : ` aria-pressed="${pressed}"`;
-  const disabledAttr = disabled ? " disabled" : "";
-  const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
-  return `<button type="button" class="quick-setting${wide ? " wide" : ""}" data-top-action="${escapeHtml(action)}"${pressedAttr}${disabledAttr}${titleAttr}>
-    ${uiIconMarkup(icon, { className: "quick-icon" })}
-    <span class="quick-label">${escapeHtml(label)}</span>
-  </button>`;
-}
-
-function sizeSetting({ kind, label, value }) {
-  const options = PANEL_SIZE_CHOICES.map(choice =>
-    `<option value="${choice}"${choice === value ? " selected" : ""}>${choice[0].toUpperCase()}${choice.slice(1)}</option>`).join("");
-  return `<label class="quick-setting size-setting wide" for="${escapeHtml(kind)}-size">
-    <span class="quick-label">${escapeHtml(label)}</span>
-    <select class="quick-select" id="${escapeHtml(kind)}-size" data-size-setting="${escapeHtml(kind)}">${options}</select>
-  </label>`;
 }
 
 function renderTopBar(state) {
@@ -788,26 +655,7 @@ function renderTopBar(state) {
   connection.textContent = state.transport.message || "";
   connection.dataset.status = state.transport.status || "idle";
   const top = $("#top-actions");
-  const fullscreenTitle = canFullscreen
-    ? state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"
-    : "Fullscreen is not supported on this device";
-  const markup = [
-    quickSetting({ action: "peeps", label: "Peeps", icon: "peeps", pressed: state.ui.peepsVisible !== false }),
-    quickSetting({ action: "log", label: "Log", icon: "log", pressed: state.ui.actionLogVisible }),
-    quickSetting({ action: "sound", label: "Sound", icon: "sound", pressed: state.ui.soundEnabled }),
-    quickSetting({ action: "fullscreen", label: "Fullscreen", icon: "fullscreen", pressed: state.ui.fullscreen, disabled: !canFullscreen, title: fullscreenTitle }),
-    quickSetting({ action: "outlines", label: "Outlines", icon: "outlines", pressed: state.ui.outlineActiveProps }),
-    quickSetting({ action: "bubble", label: `Bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}`, icon: "bubble" }),
-    sizeSetting({ kind: "sidebar", label: "Peep sidebar size", value: state.ui.sidebarSize || "normal" }),
-    sizeSetting({ kind: "toolbar", label: "Top toolbar size", value: state.ui.toolbarSize || "normal" }),
-    state.loggedIn ? quickSetting({ action: "audio", label: "Audio", icon: "audio", pressed: state.ui.audioEnabled }) : "",
-    state.ui.audioEnabled ? quickSetting({ action: "mute", label: state.ui.audioMuted ? "Unmute" : "Mute", icon: "mute", pressed: state.ui.audioMuted }) : "",
-    quickSetting({ action: "commands", label: "Commands", icon: "commands" }),
-    state.loggedIn ? quickSetting({ action: "logout", label: "Log out", icon: "logout", wide: true }) : "",
-    state.loggedIn && !state.transport.connected && state.user?.initialStickerComplete
-      ? quickSetting({ action: "reconnect", label: "Reconnect", icon: "reconnect", wide: true })
-      : "",
-  ].join("");
+  const markup = topBarMarkup(state, canFullscreen);
   if (!updateMarkup(top, markup)) return;
   top.querySelectorAll("[data-size-setting]").forEach(select => {
     select.onchange = () => {
@@ -1101,18 +949,8 @@ const phoneMusic = createPhoneMusic({
   onToast: toast,
   onError: showError,
 });
-let lastPhoneFriendIndex = null;
 function syncPhoneFriendSelection(state) {
-  if (state.views.main !== "phone" || state.ui.phoneApp !== "friends") {
-    lastPhoneFriendIndex = null;
-    return;
-  }
-  const index = Number(state.ui.phoneFriendIndex || 0);
-  if (index === lastPhoneFriendIndex) return;
-  lastPhoneFriendIndex = index;
-  requestAnimationFrame(() => {
-    panelLayer.querySelector(".phone-app-body .friend-entry.selected")?.scrollIntoView({ block: "nearest" });
-  });
+  syncPhoneFriend(state, panelLayer);
 }
 const cardMotion = createCardMotion({
   board,

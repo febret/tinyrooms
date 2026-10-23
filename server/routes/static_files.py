@@ -233,6 +233,8 @@ def register_static_routes(app: FastAPI) -> None:
         runtime = get_runtime(request)
         if world_id != runtime.world.id or bucket not in {"cards", "rooms", "props", "peeps", "keys"}:
             raise HTTPException(status_code=404, detail="World asset not found.")
+        if bucket == "keys" and (filename == "bake.json" or not filename.lower().endswith(".png")):
+            raise HTTPException(status_code=404, detail="World asset not found.")
         candidate = _safe_path(runtime.world.root_path, f"{bucket}/{filename}")
         if candidate.is_file():
             return FileResponse(candidate)

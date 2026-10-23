@@ -217,6 +217,7 @@ class RoommateCandidates:
         if candidate is None or candidate.owner_account_id != account.id:
             raise ValueError("That roommate advertisement has expired.")
         target_house_id = str(house_id or candidate.house_id)
+        self.npcs.require_owned_house(account, target_house_id)
         if len(self.npcs.records_for_house(target_house_id)) >= MAX_NPCS_PER_HOUSE:
             raise ValueError("That household already has all four rooms taken.")
         npc = self.npcs.add(
@@ -229,7 +230,7 @@ class RoommateCandidates:
         self._delete(candidate.candidate_id)
         house = self.housing.record_for(target_house_id)
         house_label = self.housing.template_for(house).label if house is not None else "their new home"
-        payload = self.candidates_payload(account, candidate.house_id)
+        payload = self.candidates_payload(account, target_house_id)
         payload["adopted"] = {
             "id": npc.npc_id,
             "name": npc.name,

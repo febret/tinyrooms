@@ -49,10 +49,11 @@ PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 DEFAULT_PROP_PRICE = 5
 FREE_PROPSET_SOURCES = frozenset({"base"})
-PROP_MODEL_PLACEHOLDER_PATH = (
-    Path(__file__).resolve().parents[2] / "client" / "app" / "assets" / "missing-prop.glb"
+from server.content.prop_assets import (  # noqa: E402
+    PROP_MODEL_PLACEHOLDER_PATH,
+    PROP_MODEL_PLACEHOLDER_URL,
+    prop_model_url,
 )
-PROP_MODEL_PLACEHOLDER_URL = "/app/assets/missing-prop.glb"
 
 
 @dataclass(frozen=True, slots=True)
@@ -310,41 +311,6 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
             tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard",
         ),
     }
-
-
-def _prop_model_state(definition: PropDefinition, state: str | None) -> PropStateDefinition | None:
-    if state is not None:
-        return definition.states.get(state)
-    return None
-
-
-def prop_model_url(
-    world_id: str,
-    definition: PropDefinition,
-    state: str | None = None,
-) -> str | None:
-    """Return the served URL for a prop model from a world, propset, or mod.
-
-    Pass *state* to resolve the mesh associated with a named prop state. Unknown
-    states fall back to the prop's base model, matching runtime validation.
-    """
-
-    if definition.render_kind != "model":
-        return None
-    state_definition = _prop_model_state(definition, state)
-    if state_definition is not None:
-        if state_definition.model_missing:
-            return PROP_MODEL_PLACEHOLDER_URL
-        model_name: str | None = state_definition.model_name
-    else:
-        if definition.model_missing:
-            return PROP_MODEL_PLACEHOLDER_URL
-        model_name = definition.model_name
-    if definition.source_kind == "mod":
-        return f"/assets/mods/{definition.source}/props/{model_name}"
-    if definition.source_kind == "propset":
-        return f"/assets/propsets/{definition.source}/{model_name}"
-    return f"/assets/world/{world_id}/props/{model_name}"
 
 
 def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str, ...]]:

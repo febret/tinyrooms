@@ -59,6 +59,15 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(statusJournal.locator('[data-journal-tab="Self"]')).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
   await expect(statusJournal).toBeHidden();
+  const bopsButton = page.locator("#bops-toggle");
+  await expect(bopsButton).toBeVisible();
+  await expect(bopsButton.locator(".bops-number")).toBeVisible();
+  await bopsButton.click();
+  const shop = page.frameLocator('iframe[src*="/activities/shop/"]');
+  await expect(page.locator('iframe[src*="/activities/shop/"]')).toBeVisible();
+  await expect(shop.locator('[data-tab="cards"]')).toBeVisible();
+  await page.locator('.activity-window [aria-label="Close activity"]').click();
+  await expect(page.locator('iframe[src*="/activities/shop/"]')).toHaveCount(0);
   await page.locator("#settings summary").click();
   const peeps = page.locator('[data-top-action="peeps"]');
   await expect(peeps).toHaveAttribute("aria-pressed", "true");
@@ -165,6 +174,14 @@ test("phone opens apps, friends, and the personal chiptune player", async ({ pag
   await phone.locator('[data-phone-app="friends"]').click();
   await expect(phone).toContainText("Incoming beacons");
   await expect(phone).toContainText("Incoming requests");
+  const keypad = phone.locator(".phone-keypad");
+  await expect(keypad.locator("button")).toHaveCount(9);
+  await expect(keypad.locator('[data-phone-key="volume-up"]')).toBeDisabled();
+  await expect(keypad.locator('[data-phone-key="volume-down"]')).toBeDisabled();
+  await expect(keypad.locator('[data-phone-key="messages"]')).toBeDisabled();
+  await expect(keypad.locator('[data-phone-key="friend-prev"]')).toBeDisabled();
+  await expect(keypad.locator('[data-phone-key="friend-next"]')).toBeDisabled();
+  await expect(phone.locator(".phone-lcd")).toHaveCSS("font-size", "13.5px");
 
   await phone.locator('[data-phone-home="1"]').first().click();
   await expect(phone.locator("[data-phone-app]")).toHaveCount(2);
@@ -174,6 +191,14 @@ test("phone opens apps, friends, and the personal chiptune player", async ({ pag
   await expect(phone.getByText("STARRED BY PEEPS", { exact: true })).toBeVisible();
   await expect(phone.locator(".phone-track")).toHaveCount(2);
   await expect(phone.getByRole("button", { name: "Play Top Track", exact: true })).toBeVisible();
+  await phone.getByRole("button", { name: "Play Top Track", exact: true }).click();
+  await expect(phone.locator(".phone-now-playing.playing")).toBeVisible();
+  await keypad.locator('[data-phone-key="music-next"]').click();
+  await expect(phone.locator(".phone-now-copy strong")).toContainText("Starred Track");
+  await keypad.locator('[data-phone-key="music-prev"]').click();
+  await expect(phone.locator(".phone-now-copy strong")).toContainText("Top Track");
+  await keypad.locator('[data-phone-key="music-star"]').click();
+  await expect(keypad.locator('[data-phone-key="music-star"]')).toHaveAttribute("aria-pressed", "true");
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileToolbar = await page.locator(".topbar").boundingBox();

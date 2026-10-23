@@ -38,8 +38,23 @@ export function uiIconUrl(key) {
   return withBase(`/assets/ui/${name}.svg`);
 }
 
+/** Throwing lookup for tests and build-time validation. */
+export function assertUiIcon(key) {
+  return uiIconUrl(key);
+}
+
+/** Fallback URL used in render paths so one typo never breaks the toolbar. */
+export function uiIconUrlOrFallback(key, fallback = "commands") {
+  try {
+    return uiIconUrl(key);
+  } catch (error) {
+    console.warn(String(error?.message || error));
+    return withBase(`/assets/ui/${fallback}.svg`);
+  }
+}
+
 /** Render an image-backed toolbar icon; the host button keeps the accessible label. */
 export function uiIconMarkup(key, { className = "toolbar-icon" } = {}) {
   const safeClass = String(className || "").replace(/[^a-zA-Z0-9 _-]/g, "");
-  return `<img class="${safeClass}" src="${uiIconUrl(key)}" alt="" aria-hidden="true" draggable="false">`;
+  return `<img class="${safeClass}" src="${uiIconUrlOrFallback(key)}" alt="" aria-hidden="true" draggable="false">`;
 }

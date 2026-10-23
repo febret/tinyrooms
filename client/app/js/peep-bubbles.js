@@ -162,7 +162,8 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
       image = null;
     }
     bubble.dataset.bubbleKey = nextKey;
-    const emoteClass = hasImage ? ` emote emote-${peep.bubble.style}` : "";
+    const styleKey = style === "thought" || style === "spiky" ? style : "speech";
+    const emoteClass = hasImage ? ` emote emote-${styleKey}` : "";
     const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${isSpritePeep(peep) ? "sprite-bubble" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
     setBubbleClass(bubble, className);
     setBubbleText(bubble, hasImage ? "" : peep.bubble.text);

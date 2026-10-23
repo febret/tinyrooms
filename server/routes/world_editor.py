@@ -60,19 +60,9 @@ def _editor_root(runtime) -> Path:
 
 
 def _serve_page(runtime, root: Path, requested_path: str) -> Response:
-    relative = requested_path or "index.html"
-    if relative.endswith("/"):
-        relative = f"{relative}index.html"
-    try:
-        candidate = ensure_contained(root / relative, root, "editor")
-    except ConfigError as exc:
-        raise HTTPException(status_code=404, detail="Not found.") from exc
-    if candidate.is_dir():
-        candidate = candidate / "index.html"
-    if not candidate.is_file():
-        raise HTTPException(status_code=404, detail="Not found.")
-    media_type, _ = mimetypes.guess_type(candidate.name)
-    return render_html(candidate, runtime.config.base_path, media_type=media_type)
+    from server.routes.common import serve_page as _common_serve_page
+
+    return _common_serve_page(runtime, root, requested_path)
 
 
 def _image_names(directory: Path) -> list[str]:

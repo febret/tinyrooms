@@ -509,28 +509,22 @@ class CutsceneService:
     def definition_placeholders(self, definition: CutsceneDefinition) -> dict[str, list[dict[str, object]]]:
         """Describe the editable and read-only placeholders of a definition."""
 
+        def _token_entries(value: object) -> list[dict[str, object]]:
+            entries: list[dict[str, object]] = []
+            for token in dict.fromkeys(_placeholder_tokens(value)):
+                kind = self.placeholder_kind(token)
+                if kind:
+                    entries.append({"token": token, "kind": kind})
+            return entries
+
         params: list[dict[str, object]] = []
         for key, value in definition.params.items():
-            tokens = [
-                {"token": token, "kind": self.placeholder_kind(token)}
-                for token in dict.fromkeys(_placeholder_tokens(value))
-                if self.placeholder_kind(token)
-            ]
+            tokens = _token_entries(value)
             if tokens:
                 params.append({"key": key, "value": value, "tokens": tokens})
-        cue_tokens = [
-            {"token": token, "kind": self.placeholder_kind(token)}
-            for token in dict.fromkeys(
-                _placeholder_tokens(
-                    [
-                        value
-                        for cue in definition.text
-                        for value in (cue.say, cue.speaker)
-                    ]
-                )
-            )
-            if self.placeholder_kind(token)
-        ]
+        cue_tokens = _token_entries(
+            [value for cue in definition.text for value in (cue.say, cue.speaker)]
+        )
         return {"params": params, "cues": cue_tokens}
 
     def gate_status(

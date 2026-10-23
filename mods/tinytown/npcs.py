@@ -446,6 +446,11 @@ class NpcHouse:
             raise ValueError("You can only manage your own household.")
         return record
 
+    def require_owned_house(self, account: object, house_id: str):
+        """Public ownership guard for cross-service adopt flows."""
+
+        return self._require_owned_house(account, house_id)
+
     @staticmethod
     def _validate_name(raw: str) -> str:
         name = " ".join(str(raw).strip().split())
