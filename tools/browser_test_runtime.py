@@ -87,7 +87,7 @@ def main() -> None:
             "TRSERVER_WORLDSTATE_PATH": str(directory / "worldstate.sqlite3"),
             "TRSERVER_WORLD_PATH": str(world_path),
             "TRSERVER_FX_PATH": str(fx_path),
-            "TRSERVER_FEATURES": "dev_sample_activity,world-editor,card-database,prop-editor",
+            "TRSERVER_FEATURES": "dev_sample_activity,world-editor,card-database,prop-editor,cutscene-catalog",
             "TRSERVER_MODS": "*",
             "TRSERVER_ADMINS": "siteadmin",
             "TRSERVER_TIMEZONE": "UTC",

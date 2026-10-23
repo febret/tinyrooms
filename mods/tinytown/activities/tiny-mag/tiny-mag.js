@@ -1,22 +1,16 @@
-import { renderWhiteboardCanvas } from "../../app/js/surface-canvas.js";
+import { WHITEBOARD_HEIGHT, WHITEBOARD_WIDTH, drawWhiteboard } from "../../app/js/surface-canvas.js";
+import { ART_PAGES, COPY, PAGES, PAGE_IDS } from "./tiny-mag-copy.js";
+import { renderHomeChoices, renderRoommateLeft, renderRoommateRight } from "./tiny-mag-roommates.js";
 
-const PAGES = [
-  { id: "cover", label: "Cover", short: "Cover" },
-  { id: "contents", label: "Contents", short: "In This Issue" },
-  { id: "homes", label: "Homes for Sale", short: "Property" },
-  { id: "keys", label: "My Keys", short: "My Homes" },
-  { id: "roommates", label: "Roommate Classifieds", short: "Roommates" },
-  { id: "gallery", label: "The Gallery", short: "Art" },
-  { id: "floors", label: "Floor Finishes", short: "Floors" },
-  { id: "community", label: "Reader Gallery", short: "Community" },
-  { id: "submit", label: "Submit Your Work", short: "Sell Art" },
-];
-const PAGE_IDS = new Map(PAGES.map((page, index) => [page.id, index]));
-const ART_PAGES = new Set(["gallery", "floors", "community", "submit"]);
+const SPREAD_RATIO = 1.54;
+const PAGE_RATIO = SPREAD_RATIO / 2;
+const portraitQuery = window.matchMedia("(orientation: portrait)");
 
 const leftPage = document.querySelector("#page-left");
 const rightPage = document.querySelector("#page-right");
 const book = document.querySelector("#book");
+const bookFrame = document.querySelector("#book-frame");
+const stage = document.querySelector(".mag-stage");
 const rail = document.querySelector("#rail");
 const folio = document.querySelector("#folio");
 const wallet = document.querySelector("#wallet");
@@ -24,16 +18,21 @@ const connection = document.querySelector("#connection");
 const turnLeaf = document.querySelector("#turn-leaf");
 const prevButton = document.querySelector("#prev");
 const nextButton = document.querySelector("#next");
+const homeDialog = document.querySelector("#home-dialog");
+const homeDialogTitle = document.querySelector("#home-dialog-title");
+const homeDialogCopy = document.querySelector("#home-dialog-copy");
+const homeChoices = document.querySelector("#home-choices");
 
 const state = {
   page: 0,
+  leaf: 0,
+  portrait: portraitQuery.matches,
   host: null,
   list: null,
   roommates: null,
   market: null,
-  district: "",
   pendingBuy: "",
-  selectedHouse: "",
+  pendingCandidate: null,
   selectedSell: "",
   busy: false,
   initialised: false,
@@ -45,7 +44,6 @@ const state = {
 const escape = value => TinyActivity.escape(value);
 const image = value => TinyActivity.image(value);
 const money = value => Number(value || 0).toLocaleString("en-US");
-const percent = value => `${Math.max(0, Math.min(100, Number(value || 0)))}%`;
 
 function currentPage() {
   return PAGES[state.page] || PAGES[0];
@@ -78,9 +76,11 @@ function paintPreviews() {
   for (const element of document.querySelectorAll("canvas[data-surface-key]")) {
     const surface = state.previews.get(element.dataset.surfaceKey);
     if (!surface) continue;
+    element.width = WHITEBOARD_WIDTH;
+    element.height = WHITEBOARD_HEIGHT;
     const context = element.getContext("2d");
     if (!context) continue;
-    renderWhiteboardCanvas(context, surface.content || surface);
+    drawWhiteboard(context, surface.content || surface);
   }
 }
 
@@ -92,130 +92,127 @@ function currentRoomId() {
   return String(state.host?.room?.id || "");
 }
 
-function currentHouseId() {
-  const room = state.host?.room;
-  if (!room) return "";
-  return String(state.list?.current_house_id || "");
-}
-
-function isInsideOwnedHome() {
-  return Boolean(state.list?.current_is_owned && currentRoomId());
-}
-
-function houseById(id) {
-  return (state.list?.houses || []).find(house => house.id === id) || null;
-}
-
-function templateById(id) {
-  return (state.list?.templates || []).find(template => template.id === id) || null;
-}
-
-function traitLabels(entry) {
-  return (entry.traits || []).map(trait => `<span class="trait">${escape(trait.label)}</span>`).join("");
-}
-
-function statsBars(stats) {
-  const rows = [
-    ["Energy", stats?.energy],
-    ["Health", stats?.health],
-    ["Clean", stats?.cleanliness],
-  ];
-  return `<div class="mini-bars">${rows.map(([label, value]) => (
-    `<span class="mini-label">${label} ${Math.round(Number(value || 0))}</span>`
-    + `<span class="mini-bar"><i style="width:${percent(value)}"></i></span>`
-  )).join("")}</div>`;
+function displayHouseId() {
+  const mine = state.list?.mine || [];
+  const current = String(state.list?.current_house_id || "");
+  if (current && mine.some(house => house.id === current)) return current;
+  return mine[0]?.id || "";
 }
 
 function mastheadLeft() {
+  const copy = COPY.masthead;
   return `
-    <p class="kicker">Issue No. 01 · A tinyrooms publication</p>
-    <h1 class="masthead"><small>THE POCKET TOWN REVIEW</small>TINY<br>MAG</h1>
-    <p class="dek dropcap">A whole town, printed on good paper. Turn the pages for keys, neighbours, classifieds, and the sort of art that looks better with a price tag.</p>
-    <span class="cover-sticker">Inside: five strangers who might become housemates</span>
-    <div class="fact-strip">
-      <div><b>${(state.list?.templates || []).length || 20}</b><span>front doors</span></div>
-      <div><b>${(state.list?.districts || []).length || 4}</b><span>districts</span></div>
-      <div><b>${money(walletValue())}</b><span>Bops</span></div>
+    <p class="kicker cover-kicker"><span>${copy.issue}</span><span>${copy.publication}</span></p>
+    <h1 class="masthead"><small>${copy.titleSmall}</small>${copy.titleLines.map(line => `<span class="masthead-line">${line}</span>`).join("")}</h1>
+    <p class="cover-standfirst">${copy.standfirst}</p>
+    <ul class="cover-lines">
+      ${copy.features.map(([title, text]) => `<li><strong>${title}</strong><span>${text}</span></li>`).join("")}
+    </ul>
+    <div class="cover-bottom">
+      <p class="cover-meta">
+        <span><b>${(state.list?.templates || []).length || 20}</b> front doors</span>
+        <span><b>${(state.list?.districts || []).length || 4}</b> districts</span>
+        <span><b>${money(walletValue())}</b> Bops</span>
+      </p>
+      <span class="cover-sticker">${copy.sticker}</span>
     </div>
   `;
 }
 
 function coverRight() {
+  const copy = COPY.masthead;
   const feature = state.list?.templates?.[0];
-  const art = state.market?.art?.[0];
   return `
-    <p class="kicker">The house-hunting, roommate-finding, art-buying issue</p>
-    <h2 class="cover-title">Move in.<br><em>Hang out.</em><br>Meet someone.</h2>
-    <p class="dek">Everything you need to turn a pocket-sized town into somewhere that feels like yours.</p>
-    <figure class="tape-photo">
-      ${feature ? `<img src="${image(feature.preview_url)}" alt="">` : ""}
-      <figcaption>${feature ? escape(feature.label) : "A very small front door"} · ${feature ? money(feature.price) : "from 100"} Bops</figcaption>
+    <figure class="cover-photo">
+      ${feature ? `<img src="${image(feature.preview_url)}" alt="">` : `<span class="cover-photo-fallback"></span>`}
+      <div class="cover-overlay">
+        <p class="kicker">${copy.coverKicker}</p>
+        <h2 class="cover-title">${copy.coverTitle.map((line, index) => index === 1 ? `<em>${line}</em>` : line).join("<br>")}</h2>
+        <p class="cover-dek">${copy.coverDek}</p>
+      </div>
+      <figcaption>
+        <span>${copy.coverCaption}</span>
+        <strong>${feature ? escape(feature.label) : copy.coverFallback}</strong>
+        <em>${feature ? `${escape(feature.district_label)} · from ${money(feature.price)} Bops` : "from 100 Bops"}</em>
+      </figcaption>
     </figure>
-    <ul class="cover-lines">
-      <li><strong>Property</strong><span>Twenty tiny homes. Four districts. One welcome grant.</span></li>
-      <li><strong>Classifieds</strong><span>Five possible roommates, hand-picked by the universe.</span></li>
-      <li><strong>The Gallery</strong><span>${art ? escape(art.label) : "New prints"} and work by your neighbours.</span></li>
-    </ul>
   `;
 }
 
 function contentsLeft() {
+  const copy = COPY.contents;
   return `
-    <p class="eyebrow">In this issue</p>
-    <h2 class="page-title">Turn<br>the page.</h2>
-    <p class="dek dropcap">The magazine is arranged like a good afternoon: first the keys, then the company, then something beautiful for the wall.</p>
-    <div class="note">Use the arrows, the page dots, or any entry on the right-hand page. Every turn has a sound because paper should be heard.</div>
-    <span class="section-stamp">Tiny rooms · Big lives</span>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
+    <div class="note">${copy.note}</div>
+    <span class="section-stamp">${copy.stamp}</span>
   `;
 }
 
 function contentsRight() {
+  const copy = COPY.contents;
+  let group = "";
+  const rows = PAGES.slice(2).map((page, index) => {
+    const heading = page.group !== group
+      ? `<li class="contents-group"><span>${escape(page.group)}</span></li>`
+      : "";
+    group = page.group;
+    return `${heading}
+      <li data-page="${escape(page.id)}">
+        <span class="num">${String(index + 3).padStart(2, "0")}</span>
+        <b>${escape(page.label)}</b>
+        <span class="hint">${escape(page.blurb)}</span>
+      </li>`;
+  }).join("");
   return `
-    <p class="eyebrow">Contents</p>
-    <h2 class="page-title">The issue</h2>
-    <ul class="contents-list">
-      ${PAGES.slice(1).map((page, index) => `
-        <li data-page="${escape(page.id)}">
-          <span class="num">${String(index + 2).padStart(2, "0")}</span>
-          <b>${escape(page.label)}</b>
-          <span class="hint">${page.id === "roommates" ? "five candidates" : page.id === "submit" ? "sell your art" : "read on"}</span>
-        </li>
-      `).join("")}
-    </ul>
-    <p class="note">Everything is printed on one continuous sheet of Bops. Wallet balance: <strong>${money(walletValue())}</strong>.</p>
+    <p class="eyebrow">${copy.rightEyebrow}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
+    <ul class="contents-list">${rows}</ul>
+    <p class="note">${copy.walletNote} <strong>${money(walletValue())}</strong>.</p>
   `;
 }
 
-function districtChips() {
+function districtNotes() {
+  const districts = state.list?.districts || [];
+  if (!districts.length) return "";
   return `
-    <div class="toolbar" role="group" aria-label="Filter by district">
-      <button type="button" class="chip" data-district="" aria-pressed="${state.district === ""}">All districts</button>
-      ${(state.list?.districts || []).map(district => `
-        <button type="button" class="chip" data-district="${escape(district.id)}" aria-pressed="${state.district === district.id}">
-          ${escape(district.label)}
-        </button>
+    <p class="eyebrow">${COPY.homes.districtEyebrow}</p>
+    <div class="district-notes">
+      ${districts.map(district => `
+        <article>
+          <h3>${escape(district.label)}</h3>
+          <p class="district-tagline">${escape(district.tagline)}</p>
+          <p>${escape(district.description)}</p>
+        </article>
       `).join("")}
     </div>
   `;
 }
 
 function homesLeft() {
+  const copy = COPY.homes;
+  const available = Math.max(0, (state.list?.max_houses || 4) - (state.list?.mine?.length || 0));
   return `
-    <p class="eyebrow">The property pages</p>
-    <h2 class="page-title">A door<br>of your own.</h2>
-    <p class="dek dropcap">Every home is a private copy, with its own rooms, walls, and questionable amount of character. Pick a district, then pick a front door.</p>
-    ${districtChips()}
-    <div class="note">First-time residents short on Bops receive a one-time welcome grant. House keys are yours to keep; there is no resale desk in this town.</div>
-    <span class="section-stamp">Keys available: ${Math.max(0, (state.list?.max_houses || 4) - (state.list?.mine?.length || 0))}</span>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
+    ${districtNotes()}
+    <div class="note">${copy.note}</div>
+    <span class="section-stamp">${copy.stamp}: ${available}</span>
   `;
 }
 
 function templateCard(template) {
+  const labels = COPY.labels;
   const pending = state.pendingBuy === template.id;
   const canAfford = walletValue() >= Number(template.price || 0);
   return `
     <article class="estate-card">
-      <img src="${image(template.preview_url)}" alt="">
+      <figure class="estate-figure">
+        <img src="${image(template.preview_url)}" alt="" loading="lazy">
+        <figcaption>${escape(template.district_label)} · ${escape(template.size)}</figcaption>
+      </figure>
       <div class="estate-copy">
         <p class="eyebrow">${escape(template.district_label)} · ${escape(template.size)}</p>
         <h3>${escape(template.label)}</h3>
@@ -227,10 +224,10 @@ function templateCard(template) {
         </div>
         <div class="actions">
           ${pending
-            ? `<button type="button" class="mag-btn" data-action="confirm-buy" data-id="${escape(template.id)}">Confirm · ${money(template.price)} Bops</button>
-               <button type="button" class="mag-btn quiet" data-action="cancel-buy">Cancel</button>`
+            ? `<button type="button" class="mag-btn" data-action="confirm-buy" data-id="${escape(template.id)}">${labels.confirm} · ${money(template.price)} Bops</button>
+               <button type="button" class="mag-btn quiet" data-action="cancel-buy">${labels.cancelBuy}</button>`
             : `<button type="button" class="mag-btn" data-action="buy" data-id="${escape(template.id)}" ${canAfford ? "" : "disabled"}>
-                 ${canAfford ? `Buy · ${money(template.price)} Bops` : "Need more Bops"}
+                 ${canAfford ? `${labels.buy} · ${money(template.price)} Bops` : labels.needBops}
                </button>`}
         </div>
       </div>
@@ -239,48 +236,69 @@ function templateCard(template) {
 }
 
 function homesRight() {
-  const templates = (state.list?.templates || []).filter(template => !state.district || template.district === state.district);
+  const copy = COPY.homes;
+  const templates = state.list?.templates || [];
+  const districts = state.list?.districts || [];
+  const groups = districts
+    .map(district => ({
+      district,
+      templates: templates.filter(template => template.district === district.id),
+    }))
+    .filter(group => group.templates.length);
   const neighbours = (state.list?.houses || []).filter(house => !house.is_owner);
   return `
-    <p class="kicker">For sale in TinyTown</p>
-    <h2 class="page-title">Property</h2>
-    <div class="list-grid">
-      ${templates.length ? templates.map(templateCard).join("") : `<div class="empty">No doors in this district this week.</div>`}
+    <p class="kicker">${copy.rightKicker}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
+    <div class="property-list">
+      ${groups.length ? groups.map(group => `
+        <section class="district-block">
+          <header class="district-heading">
+            <h3>${escape(group.district.label)}</h3>
+            <p>${escape(group.district.tagline)}</p>
+          </header>
+          <div class="list-grid">${group.templates.map(templateCard).join("")}</div>
+        </section>
+      `).join("") : `<div class="empty">${copy.districtEmpty}</div>`}
     </div>
     <hr class="rule">
-    <p class="eyebrow">Open houses</p>
+    <p class="eyebrow">${copy.openHouses}</p>
     <div class="list-grid">
       ${neighbours.length ? neighbours.map(house => `
-        <article class="estate-card">
-          <img src="${image(house.preview_url)}" alt="">
+        <article class="estate-card compact">
+          <figure class="estate-figure">
+            <img src="${image(house.preview_url)}" alt="" loading="lazy">
+            <figcaption>${escape(house.district_label)}</figcaption>
+          </figure>
           <div class="estate-copy">
             <p class="eyebrow">${escape(house.district_label)}</p>
             <h3>${escape(house.label)}</h3>
             <p>${escape(house.owner_username)}'s place · ${house.room_count} rooms</p>
             <div class="actions">
               <button type="button" class="mag-btn quiet" data-action="visit-house" data-id="${escape(house.id)}" ${house.locked ? "disabled" : ""}>
-                ${house.locked ? "Door locked" : "Visit"}
+                ${house.locked ? COPY.labels.locked : COPY.labels.visitHouse}
               </button>
             </div>
           </div>
         </article>
-      `).join("") : `<div class="empty">No neighbours have opened their doors yet.</div>`}
+      `).join("") : `<div class="empty">${copy.openHousesEmpty}</div>`}
     </div>
   `;
 }
 
 function keysLeft() {
+  const copy = COPY.keys;
   const mine = state.list?.mine || [];
   return `
-    <p class="eyebrow">The keyring</p>
-    <h2 class="page-title">My<br>homes.</h2>
-    <p class="dek dropcap">Lock the front door, step inside, or visit a neighbour. The little marker in the margin shows where you are right now.</p>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
     <div class="fact-strip">
       <div><b>${mine.length}</b><span>keys</span></div>
       <div><b>${mine.reduce((total, house) => total + house.room_count, 0)}</b><span>rooms</span></div>
       <div><b>${money(walletValue())}</b><span>Bops</span></div>
     </div>
-    <div class="note">The magazine stays open while you move between homes. The art desk updates when you step inside one of your own.</div>
+    <div class="note">${copy.note}</div>
+    <span class="section-stamp">${mine.length} ${copy.stamp}</span>
   `;
 }
 
@@ -288,7 +306,10 @@ function houseKey(house, { owned = false } = {}) {
   const inside = (state.list?.current_room_id || "").startsWith(`home:${house.id}:`);
   return `
     <article class="house-key">
-      <img src="${image(house.preview_url)}" alt="">
+      <figure class="house-key-figure">
+        <img src="${image(house.preview_url)}" alt="" loading="lazy">
+        <figcaption>${escape(house.district_label)}</figcaption>
+      </figure>
       <div>
         <p class="eyebrow">${escape(house.district_label)} · ${escape(house.size)}</p>
         <h3>${escape(house.label)}</h3>
@@ -299,9 +320,9 @@ function houseKey(house, { owned = false } = {}) {
         </div>
         <div class="actions">
           <button type="button" class="mag-btn" data-action="${owned ? "enter-house" : "visit-house"}" data-id="${escape(house.id)}" ${(!owned && house.locked) ? "disabled" : ""}>
-            ${inside ? "Step in again" : owned ? "Enter" : house.locked ? "Locked" : "Visit"}
+            ${inside ? COPY.labels.enterAgain : owned ? COPY.labels.enter : house.locked ? COPY.labels.locked : COPY.labels.visit}
           </button>
-          ${owned ? `<button type="button" class="mag-btn quiet" data-action="lock-house" data-id="${escape(house.id)}" data-locked="${house.locked ? "1" : "0"}">${house.locked ? "Unlock" : "Lock"}</button>` : ""}
+          ${owned ? `<button type="button" class="mag-btn quiet" data-action="lock-house" data-id="${escape(house.id)}" data-locked="${house.locked ? "1" : "0"}">${house.locked ? COPY.labels.unlock : COPY.labels.lock}</button>` : ""}
         </div>
       </div>
     </article>
@@ -309,111 +330,43 @@ function houseKey(house, { owned = false } = {}) {
 }
 
 function keysRight() {
+  const copy = COPY.keys;
   const mine = state.list?.mine || [];
   const neighbours = (state.list?.houses || []).filter(house => !house.is_owner);
   return `
-    <p class="kicker">Your doors</p>
-    <h2 class="page-title">The keyring</h2>
+    <p class="kicker">${copy.rightKicker}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
     <div class="list-grid">
-      ${mine.length ? mine.map(house => houseKey(house, { owned: true })).join("") : `<div class="empty">No keys yet. The property pages are two turns back.</div>`}
+      ${mine.length ? mine.map(house => houseKey(house, { owned: true })).join("") : `<div class="empty">${copy.mineEmpty}</div>`}
     </div>
     <hr class="rule">
-    <p class="eyebrow">Neighbours' open houses</p>
+    <p class="eyebrow">${copy.neighbours}</p>
     <div class="list-grid">
-      ${neighbours.length ? neighbours.map(house => houseKey(house)).join("") : `<div class="empty">The street is quiet. Perhaps someone new will move in.</div>`}
+      ${neighbours.length ? neighbours.map(house => houseKey(house)).join("") : `<div class="empty">${copy.neighboursEmpty}</div>`}
     </div>
   `;
 }
 
-function roommateLeft() {
-  const data = state.roommates;
-  const houses = data?.houses || state.list?.mine || [];
-  return `
-    <p class="eyebrow">The classifieds</p>
-    <h2 class="page-title">Roommate<br>wanted.</h2>
-    <p class="dek dropcap">Five strangers have answered the advert. They have names, habits, and strong opinions about the correct place for a kettle. Choose carefully.</p>
-    ${houses.length ? `
-      <div class="toolbar" role="group" aria-label="Choose a home">
-        ${houses.map(house => `
-          <button type="button" class="chip" data-house="${escape(house.id)}" aria-pressed="${(state.selectedHouse || data?.house_id) === house.id}">
-            ${escape(house.label)}
-          </button>
-        `).join("")}
-      </div>
-    ` : ""}
-    <div class="note">A home holds up to ${data?.max_npcs || 4} residents. Each advert is a real household peep with the traits and starting stats printed here; no hidden paperwork.</div>
-    <span class="section-stamp">No calls after midnight</span>
-  `;
-}
-
-function roommateAd(candidate, full) {
-  return `
-    <article class="roommate-ad">
-      <img class="roommate-portrait" src="${image(candidate.avatar_url)}" alt="">
-      <div>
-        <p class="eyebrow">Advert · ${escape(candidate.traits?.[0]?.label || "Townsfolk")}</p>
-        <h3>${escape(candidate.name)}</h3>
-        <p class="headline">“${escape(candidate.headline)}”</p>
-        <div class="trait-row">${traitLabels(candidate)}</div>
-        ${statsBars(candidate.stats)}
-        <div class="actions">
-          <button type="button" class="mag-btn" data-action="adopt" data-id="${escape(candidate.id)}" ${full ? "disabled" : ""}>
-            ${full ? "Household full" : "Invite to move in"}
-          </button>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function roommateRight() {
-  const data = state.roommates;
-  if (!data) return `<p class="empty">The classified desk is checking its files...</p>`;
-  const npcs = data.npcs || [];
-  const full = npcs.length >= (data.max_npcs || 4);
-  return `
-    <p class="kicker">This week's applicants</p>
-    <h2 class="page-title">The waiting room</h2>
-    <div class="roommate-board">
-      ${(data.candidates || []).length
-        ? data.candidates.map(candidate => roommateAd(candidate, full)).join("")
-        : `<div class="empty">No adverts this week. Adopt a resident to refresh the desk.</div>`}
-    </div>
-    <hr class="rule">
-    <p class="eyebrow">Already home</p>
-    <div class="list-grid">
-      ${npcs.length ? npcs.map(npc => `
-        <article class="roommate-ad">
-          <img class="roommate-portrait" src="${image(npc.avatar_url)}" alt="">
-          <div>
-            <p class="eyebrow">${escape(npc.room_label)} · ${escape(npc.action_label)}</p>
-            <h3>${escape(npc.name)}</h3>
-            <div class="trait-row">${traitLabels(npc)}</div>
-            ${statsBars(npc.stats)}
-            <div class="actions">
-              <button type="button" class="mag-btn quiet" data-action="remove-npc" data-id="${escape(npc.id)}">Move out</button>
-            </div>
-          </div>
-        </article>
-      `).join("") : `<div class="empty">The rooms are quiet. Pick an applicant above.</div>`}
-    </div>
-  `;
+function roommateContext() {
+  return { escape, image };
 }
 
 function galleryLeft() {
+  const copy = COPY.gallery;
   const market = state.market;
   return `
-    <p class="eyebrow">The gallery</p>
-    <h2 class="page-title">Something<br>for the wall.</h2>
-    <p class="dek dropcap">Limited prints, generous frames, and a small brass plaque that says you have taste. Art arrives as a real whiteboard, already signed and locked.</p>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
     ${market?.can_hang
-      ? `<div class="note">Hanging in <strong>${escape(market.room?.house || "your home")} · ${escape(market.room?.label || "")}</strong>. ${market.whiteboards} of ${market.max_whiteboards} wall spaces used.</div>`
-      : `<div class="note">Browse from anywhere. Step inside one of your homes to hang a piece.</div>`}
-    <span class="section-stamp">${market?.unlocked_art?.length || 0} prints collected</span>
+      ? `<div class="note">${copy.noteInside} <strong>${escape(market.room?.house || "your home")} · ${escape(market.room?.label || "")}</strong>. ${market.whiteboards} of ${market.max_whiteboards} wall spaces used.</div>`
+      : `<div class="note">${copy.noteOutside}</div>`}
+    <span class="section-stamp">${market?.unlocked_art?.length || 0} ${copy.stamp}</span>
   `;
 }
 
-function artCard(piece) {
+function artCard(piece, index) {
+  const labels = COPY.labels;
   const owned = (state.market?.unlocked_art || []).includes(piece.id);
   const canHang = Boolean(state.market?.can_hang);
   const full = Number(state.market?.whiteboards || 0) >= Number(state.market?.max_whiteboards || 4);
@@ -421,16 +374,16 @@ function artCard(piece) {
     <article class="art-card">
       <div class="art-frame">${canvas(piece.surface)}</div>
       <div class="art-meta">
-        <p class="eyebrow">${escape((piece.tags || []).slice(0, 2).join(" · "))}</p>
+        <p class="eyebrow">Plate ${String(index + 1).padStart(2, "0")} · ${escape((piece.tags || []).slice(0, 2).join(" · "))}</p>
         <h3>${escape(piece.label)}</h3>
         <p>${escape(piece.description)}</p>
         <div class="price-line">
-          <span class="price">${owned ? "Collected" : `${money(piece.price)} Bops`}</span>
+          <span class="price">${owned ? labels.collected : `${money(piece.price)} Bops`}</span>
           ${full ? `<span class="badge">Walls full</span>` : ""}
         </div>
         <div class="actions">
           <button type="button" class="mag-btn" data-action="hang-art" data-id="${escape(piece.id)}" ${(!canHang || full) ? "disabled" : ""}>
-            ${!canHang ? "Step inside a home" : full ? "Make space" : owned ? "Hang another" : "Buy & hang"}
+            ${!canHang ? labels.stepInside : full ? labels.makeSpace : owned ? labels.hangAnother : labels.buyHang}
           </button>
         </div>
       </div>
@@ -439,58 +392,63 @@ function artCard(piece) {
 }
 
 function galleryRight() {
+  const copy = COPY.gallery;
   const market = state.market;
-  if (!market) return `<p class="empty">The gallery is opening its shutters...</p>`;
+  if (!market) return `<p class="empty">${copy.empty}</p>`;
   return `
-    <p class="kicker">The permanent collection</p>
-    <h2 class="page-title">The Gallery</h2>
+    <p class="kicker">${copy.rightKicker}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
     <div class="art-grid">
-      ${(market.art || []).map(artCard).join("")}
+      ${(market.art || []).map((piece, index) => artCard(piece, index)).join("")}
     </div>
   `;
 }
 
 function floorLeft() {
+  const copy = COPY.floors;
   return `
-    <p class="eyebrow">The sample room</p>
-    <h2 class="page-title">Underfoot.</h2>
-    <p class="dek dropcap">A floor is the quietest piece of furniture in the house. These finishes are printed in the back of the magazine, measured, and fitted by extremely small contractors.</p>
-    <div class="note">Buy a finish once, then reapply it whenever the mood changes. One finish per room.</div>
-    <span class="section-stamp">Samples available at the desk</span>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
+    <div class="note">${copy.note}</div>
+    <span class="section-stamp">${copy.stamp}</span>
   `;
 }
 
 function floorRight() {
+  const copy = COPY.floors;
   const market = state.market;
-  if (!market) return `<p class="empty">The samples are being unrolled...</p>`;
+  if (!market) return `<p class="empty">${copy.empty}</p>`;
   return `
-    <p class="kicker">The sample room</p>
-    <h2 class="page-title">Floor finishes</h2>
+    <p class="kicker">${copy.rightKicker}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
     <div class="floor-grid">
       ${(market.floors || []).map(floor => `
         <button type="button" class="floor-chip" data-action="floor" data-id="${escape(floor.id)}" ${(!market.can_hang || floor.current) ? "disabled" : ""}>
-          <img src="${image(floor.image_url)}" alt="">
+          <img src="${image(floor.image_url)}" alt="" loading="lazy">
           <b>${escape(floor.label)}</b>
-          <small>${floor.current ? "Currently fitted" : floor.unlocked ? "Owned · Apply" : `${money(floor.price)} Bops`}</small>
+          <small>${floor.current ? COPY.labels.currentlyFitted : floor.unlocked ? COPY.labels.ownedApply : `${money(floor.price)} Bops`}</small>
         </button>
       `).join("")}
     </div>
-    ${market.can_hang ? "" : `<p class="note">Step inside one of your homes to fit a floor.</p>`}
+    ${market.can_hang ? "" : `<p class="note">${copy.note}</p>`}
   `;
 }
 
 function communityLeft() {
+  const copy = COPY.community;
   const market = state.market;
   return `
-    <p class="eyebrow">Reader gallery</p>
-    <h2 class="page-title">Art by<br>neighbours.</h2>
-    <p class="dek dropcap">Every print in this section was drawn by a resident. The artist keeps the original; you get a signed, locked copy and they get the Bops.</p>
-    ${market?.can_hang ? "<div class=\"note\">Collect a print from the page. It will hang in your current room and stay locked to protect the artist's work.</div>" : "<div class=\"note\">You can browse the reader gallery from anywhere. Step inside a home to collect a print.</div>"}
-    <span class="section-stamp">${market?.listings?.length || 0} prints for sale</span>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
+    <div class="note">${market?.can_hang ? copy.noteInside : copy.noteOutside}</div>
+    <span class="section-stamp">${market?.listings?.length || 0} ${copy.stamp}</span>
   `;
 }
 
 function listingCard(listing) {
+  const labels = COPY.labels;
   const canHang = Boolean(state.market?.can_hang);
   const full = Number(state.market?.whiteboards || 0) >= Number(state.market?.max_whiteboards || 4);
   return `
@@ -501,15 +459,15 @@ function listingCard(listing) {
         <h3>${escape(listing.title)}</h3>
         <p>${escape(listing.description || "An original from a TinyTown neighbour.")}</p>
         <div class="price-line">
-          <span class="price">${listing.owned ? "Collected" : `${money(listing.price)} Bops`}</span>
+          <span class="price">${listing.owned ? labels.collected : `${money(listing.price)} Bops`}</span>
           ${listing.is_seller ? `<span class="badge dark">Your advert</span>` : ""}
         </div>
         <div class="actions">
           ${listing.is_seller
-            ? `<button type="button" class="mag-btn danger" data-action="withdraw-listing" data-id="${escape(listing.id)}">Withdraw</button>`
+            ? `<button type="button" class="mag-btn danger" data-action="withdraw-listing" data-id="${escape(listing.id)}">${labels.withdraw}</button>`
             : listing.owned
-              ? `<button type="button" class="mag-btn" data-action="hang-listing" data-id="${escape(listing.id)}" ${(!canHang || full) ? "disabled" : ""}>${!canHang ? "Step inside a home" : full ? "Walls full" : "Hang another"}</button>`
-              : `<button type="button" class="mag-btn" data-action="buy-listing" data-id="${escape(listing.id)}" ${(!canHang || full) ? "disabled" : ""}>${!canHang ? "Step inside a home" : full ? "Walls full" : "Collect print"}</button>`}
+              ? `<button type="button" class="mag-btn" data-action="hang-listing" data-id="${escape(listing.id)}" ${(!canHang || full) ? "disabled" : ""}>${!canHang ? labels.stepInside : full ? labels.makeSpace : labels.hangAnother}</button>`
+              : `<button type="button" class="mag-btn" data-action="buy-listing" data-id="${escape(listing.id)}" ${(!canHang || full) ? "disabled" : ""}>${!canHang ? labels.stepInside : full ? labels.makeSpace : labels.collect}</button>`}
         </div>
       </div>
     </article>
@@ -517,30 +475,32 @@ function listingCard(listing) {
 }
 
 function communityRight() {
+  const copy = COPY.community;
   const market = state.market;
-  if (!market) return `<p class="empty">The reader gallery is being pasted up...</p>`;
+  if (!market) return `<p class="empty">${copy.empty}</p>`;
   return `
-    <p class="kicker">Reader gallery</p>
-    <h2 class="page-title">The wall</h2>
+    <p class="kicker">${copy.rightKicker}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
     <div class="list-grid">
       ${(market.listings || []).length
         ? market.listings.map(listingCard).join("")
-        : `<div class="empty">No reader prints yet. The first one could be yours.</div>`}
+        : `<div class="empty">${copy.empty}</div>`}
     </div>
   `;
 }
 
 function sellLeft() {
+  const copy = COPY.submit;
   return `
-    <p class="eyebrow">The submission desk</p>
-    <h2 class="page-title">Send it<br>to print.</h2>
-    <p class="dek dropcap">Make something on a whiteboard in one of your homes. Then choose it here, give it a title, and set a price. Neighbours can collect as many copies as they like; you are paid each time someone new takes one home.</p>
-    <div class="note">You can have four pieces for sale at once. Withdraw a listing to free a slot. Purchased art is locked, but the original stays yours to edit.</div>
-    <span class="section-stamp">Paid in full · No gallery cut</span>
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h2 class="page-title">${copy.title.join("<br>")}</h2>
+    <p class="dek dropcap">${copy.dek}</p>
+    <div class="note">${copy.note}</div>
+    <span class="section-stamp">${copy.stamp}</span>
   `;
 }
 
-function sellCard(item, index) {
+function sellCard(item) {
   const selected = state.selectedSell === `${item.room_id}|${item.instance_id}`;
   return `
     <article class="sell-card ${selected ? "selected" : ""}" data-action="select-sell" data-key="${escape(`${item.room_id}|${item.instance_id}`)}">
@@ -567,7 +527,7 @@ function sellForm() {
           <input id="sell-price" type="number" min="1" max="10000" value="50" required>
         </label>
         <div class="actions" style="align-items:end">
-          <button type="submit" class="mag-btn" id="sell-submit">Send to print</button>
+          <button type="submit" class="mag-btn" id="sell-submit">${COPY.labels.submit}</button>
         </div>
       </div>
     </form>
@@ -575,20 +535,21 @@ function sellForm() {
 }
 
 function submitRight() {
+  const copy = COPY.submit;
   const market = state.market;
-  if (!market) return `<p class="empty">The submission desk is sharpening pencils...</p>`;
+  if (!market) return `<p class="empty">The submission desk is sharpening pencils.</p>`;
   return `
-    <p class="kicker">The submission desk</p>
-    <h2 class="page-title">Sell your work</h2>
-    <p class="eyebrow">Your editable whiteboards</p>
+    <p class="kicker">${copy.rightKicker}</p>
+    <h2 class="page-title">${copy.rightTitle}</h2>
+    <p class="eyebrow">${copy.sellables}</p>
     <div class="sell-grid">
       ${(market.sellables || []).length
         ? market.sellables.map(sellCard).join("")
-        : `<div class="empty">No editable whiteboards found. Open one of your homes, use a whiteboard, and make a few marks first.</div>`}
+        : `<div class="empty">${copy.sellablesEmpty}</div>`}
     </div>
     ${sellForm()}
     <hr class="rule">
-    <p class="eyebrow">Your adverts</p>
+    <p class="eyebrow">${copy.adverts}</p>
     <div class="list-grid">
       ${(market.my_listings || []).length
         ? market.my_listings.map(listing => `
@@ -598,23 +559,27 @@ function submitRight() {
               <p class="byline">${money(listing.price)} Bops · ${listing.title}</p>
               <h3>${escape(listing.title)}</h3>
               <div class="actions">
-                <button type="button" class="mag-btn danger" data-action="withdraw-listing" data-id="${escape(listing.id)}">Withdraw</button>
+                <button type="button" class="mag-btn danger" data-action="withdraw-listing" data-id="${escape(listing.id)}">${COPY.labels.withdraw}</button>
               </div>
             </div>
           </article>
         `).join("")
-        : `<div class="empty">Nothing on the newsstand from you yet.</div>`}
+        : `<div class="empty">${copy.advertsEmpty}</div>`}
     </div>
   `;
 }
 
 function pageContent(pageId) {
+  const ctx = roommateContext();
   switch (pageId) {
     case "cover": return { left: mastheadLeft(), right: coverRight() };
     case "contents": return { left: contentsLeft(), right: contentsRight() };
     case "homes": return { left: homesLeft(), right: homesRight() };
     case "keys": return { left: keysLeft(), right: keysRight() };
-    case "roommates": return { left: roommateLeft(), right: roommateRight() };
+    case "roommates": return {
+      left: renderRoommateLeft(state.roommates, ctx),
+      right: renderRoommateRight(state.roommates, ctx),
+    };
     case "gallery": return { left: galleryLeft(), right: galleryRight() };
     case "floors": return { left: floorLeft(), right: floorRight() };
     case "community": return { left: communityLeft(), right: communityRight() };
@@ -625,7 +590,21 @@ function pageContent(pageId) {
 
 function renderRail() {
   rail.replaceChildren();
+  let groupName = "";
+  let group = null;
   PAGES.forEach((page, index) => {
+    if (page.group !== groupName) {
+      groupName = page.group;
+      group = document.createElement("div");
+      group.className = "rail-group";
+      group.setAttribute("role", "group");
+      group.setAttribute("aria-label", groupName);
+      const label = document.createElement("span");
+      label.className = "rail-label";
+      label.textContent = groupName;
+      group.append(label);
+      rail.append(group);
+    }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "rail-btn";
@@ -633,7 +612,7 @@ function renderRail() {
     button.title = page.label;
     button.dataset.page = page.id;
     button.setAttribute("aria-current", index === state.page ? "page" : "false");
-    rail.append(button);
+    group.append(button);
   });
 }
 
@@ -643,13 +622,42 @@ function render() {
   const content = pageContent(page.id);
   leftPage.innerHTML = `<div class="page-scroll">${content.left}</div>`;
   rightPage.innerHTML = `<div class="page-scroll">${content.right}</div>`;
+  const portrait = state.portrait;
+  leftPage.hidden = portrait && state.leaf !== 0;
+  rightPage.hidden = portrait && state.leaf !== 1;
+  leftPage.dataset.folio = String(state.page * 2 + 1).padStart(2, "0");
+  rightPage.dataset.folio = String(state.page * 2 + 2).padStart(2, "0");
+  book.classList.toggle("portrait", portrait);
+  book.classList.toggle("landscape", !portrait);
   book.classList.toggle("cover", page.id === "cover");
-  folio.textContent = `${String(state.page + 1).padStart(2, "0")} / ${String(PAGES.length).padStart(2, "0")} · ${page.short}`;
+  const leafLabel = state.leaf === 0 ? "left" : "right";
+  folio.textContent = portrait
+    ? `${String(state.page + 1).padStart(2, "0")} / ${String(PAGES.length).padStart(2, "0")} · ${page.short} · ${leafLabel}`
+    : `${String(state.page + 1).padStart(2, "0")} / ${String(PAGES.length).padStart(2, "0")} · ${page.short}`;
   wallet.textContent = money(walletValue());
   renderRail();
   paintPreviews();
-  prevButton.disabled = state.page === 0;
-  nextButton.disabled = state.page === PAGES.length - 1;
+  const atStart = state.page === 0 && (!portrait || state.leaf === 0);
+  const atEnd = state.page === PAGES.length - 1 && (!portrait || state.leaf === 1);
+  prevButton.disabled = atStart;
+  nextButton.disabled = atEnd;
+  window.requestAnimationFrame(fitBook);
+}
+
+function fitBook() {
+  if (!stage) return;
+  const width = stage.clientWidth;
+  const height = stage.clientHeight;
+  if (!width || !height) return;
+  const ratio = state.portrait ? PAGE_RATIO : SPREAD_RATIO;
+  let bookWidth = Math.min(width, height * ratio);
+  let bookHeight = bookWidth / ratio;
+  if (bookHeight > height) {
+    bookHeight = height;
+    bookWidth = bookHeight * ratio;
+  }
+  bookFrame.style.width = `${Math.floor(bookWidth)}px`;
+  bookFrame.style.height = `${Math.floor(bookHeight)}px`;
 }
 
 function reduceMotion() {
@@ -657,26 +665,39 @@ function reduceMotion() {
     || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 }
 
-async function turnTo(pageId, direction = 1) {
+function visibleLeafMarkup() {
+  if (!state.portrait) return rightPage.innerHTML;
+  return state.leaf === 0 ? leftPage.innerHTML : rightPage.innerHTML;
+}
+
+async function turnTo(pageId, direction = 1, { leaf = 0 } = {}) {
   const index = PAGE_IDS.get(pageId);
-  if (index === undefined || index === state.page || state.busy) return;
+  if (index === undefined || state.busy) return;
+  await moveTo({ page: index, leaf }, direction);
+}
+
+async function moveTo(target, direction = 1) {
+  const page = Math.max(0, Math.min(PAGES.length - 1, target.page));
+  const leaf = state.portrait ? Math.max(0, Math.min(1, target.leaf ?? 0)) : 0;
+  if (state.busy || (page === state.page && leaf === state.leaf)) return;
   state.busy = true;
   TinyActivity.sound(direction > 0 ? "page" : "pageBack");
   try {
-    await ensureData(index);
+    await ensureData(page);
     if (reduceMotion()) {
-      state.page = index;
+      state.page = page;
+      state.leaf = leaf;
       render();
       return;
     }
-    turnLeaf.innerHTML = rightPage.innerHTML;
+    turnLeaf.innerHTML = visibleLeafMarkup();
     turnLeaf.classList.remove("forward", "back");
     void turnLeaf.offsetWidth;
     turnLeaf.classList.add(direction > 0 ? "forward" : "back");
-    state.page = index;
+    state.page = page;
+    state.leaf = leaf;
     render();
     await new Promise(resolve => setTimeout(resolve, 250));
-    state.page = index;
     render();
     await new Promise(resolve => setTimeout(resolve, 270));
   } finally {
@@ -686,22 +707,36 @@ async function turnTo(pageId, direction = 1) {
   }
 }
 
+function step(direction) {
+  if (state.portrait) {
+    if (direction > 0) {
+      if (state.leaf === 0) void moveTo({ page: state.page, leaf: 1 }, 1);
+      else if (state.page < PAGES.length - 1) void moveTo({ page: state.page + 1, leaf: 0 }, 1);
+    } else if (state.leaf === 1) {
+      void moveTo({ page: state.page, leaf: 0 }, -1);
+    } else if (state.page > 0) {
+      void moveTo({ page: state.page - 1, leaf: 1 }, -1);
+    }
+    return;
+  }
+  if (direction > 0 && state.page < PAGES.length - 1) void moveTo({ page: state.page + 1, leaf: 0 }, 1);
+  if (direction < 0 && state.page > 0) void moveTo({ page: state.page - 1, leaf: 0 }, -1);
+}
+
 async function loadList(force = false) {
   if (state.list && !force) return state.list;
   setConnection("Checking the noticeboard...");
   const result = await TinyActivity.command(".tinytown list");
   state.list = result.payload || state.list;
-  state.selectedHouse = state.selectedHouse || state.list?.mine?.[0]?.id || "";
   setConnection("");
   return state.list;
 }
 
 async function loadRoommates(force = false) {
-  if (state.roommates && !force && state.roommates.house_id === state.selectedHouse) return state.roommates;
-  const house = state.selectedHouse || state.roommates?.house_id || "";
+  const house = displayHouseId();
+  if (state.roommates && !force && state.roommates.house_id === house) return state.roommates;
   const result = await TinyActivity.command(`.tinytown roommates${house ? ` ${house}` : ""}`);
   state.roommates = result.payload || state.roommates;
-  state.selectedHouse = state.roommates?.house_id || state.selectedHouse;
   return state.roommates;
 }
 
@@ -715,7 +750,7 @@ async function loadMarket(force = false) {
 async function ensureData(index) {
   const id = PAGES[index]?.id;
   if (!id) return;
-  if (id === "cover" || id === "contents" || id === "homes" || id === "keys") await loadList();
+  await loadList();
   if (id === "roommates") await loadRoommates();
   if (ART_PAGES.has(id)) await loadMarket();
 }
@@ -724,6 +759,7 @@ async function initialisePage() {
   const requested = String(state.host?.activity?.config?.initial_page || "cover");
   const index = PAGE_IDS.get(requested);
   state.page = index === undefined ? 0 : index;
+  state.leaf = 0;
   await ensureData(state.page);
 }
 
@@ -732,8 +768,8 @@ async function refreshAfter(commandType) {
     await loadList(true);
     if (isArtPage()) await loadMarket(true);
   } else if (commandType === "roommates") {
-    await loadRoommates(true);
     await loadList(true);
+    await loadRoommates(true);
   } else if (commandType === "market") {
     await loadMarket(true);
     if (state.list) await loadList(true);
@@ -770,20 +806,6 @@ function buyTemplate(id) {
   render();
 }
 
-function districtFilter(id) {
-  state.district = id;
-  state.pendingBuy = "";
-  TinyActivity.sound("select");
-  render();
-}
-
-function selectHouse(id) {
-  state.selectedHouse = id;
-  state.roommates = null;
-  TinyActivity.sound("select");
-  void loadRoommates().then(render).catch(error => TinyActivity.toast(errorMessage(error), true));
-}
-
 function selectSell(key) {
   state.selectedSell = key;
   TinyActivity.sound("select");
@@ -807,6 +829,35 @@ function submitSell(form) {
   void runCommand(`.tinytown sellart ${room} ${instance} ${price} ${title}`, "market");
 }
 
+function openHomeDialog(candidateId) {
+  const candidate = (state.roommates?.candidates || []).find(item => item.id === candidateId);
+  if (!candidate) return;
+  const houses = state.list?.mine || [];
+  if (!houses.length) {
+    TinyActivity.toast(COPY.dialog.noHouse, true);
+    return;
+  }
+  state.pendingCandidate = candidate;
+  homeDialogTitle.textContent = COPY.dialog.title;
+  homeDialogCopy.textContent = `${candidate.name} has answered the advert. ${COPY.dialog.copy}`;
+  homeChoices.innerHTML = renderHomeChoices(houses, { escape });
+  TinyActivity.sound("select");
+  homeDialog.showModal();
+  homeChoices.querySelector("button:not(:disabled)")?.focus();
+}
+
+function closeHomeDialog() {
+  state.pendingCandidate = null;
+  if (homeDialog.open) homeDialog.close();
+}
+
+function assignHome(houseId) {
+  const candidate = state.pendingCandidate;
+  if (!candidate || !houseId) return;
+  closeHomeDialog();
+  void runCommand(`.tinytown npc adopt ${candidate.id} ${houseId}`, "roommates");
+}
+
 document.addEventListener("click", event => {
   const pageButton = event.target.closest("[data-page]");
   if (pageButton) {
@@ -815,16 +866,6 @@ document.addEventListener("click", event => {
       void turnTo(pageButton.dataset.page, target > state.page ? 1 : -1);
       return;
     }
-  }
-  const district = event.target.closest("[data-district]");
-  if (district) {
-    districtFilter(district.dataset.district || "");
-    return;
-  }
-  const house = event.target.closest("[data-house]");
-  if (house) {
-    selectHouse(house.dataset.house || "");
-    return;
   }
   const sell = event.target.closest("[data-action='select-sell']");
   if (sell) {
@@ -842,7 +883,9 @@ document.addEventListener("click", event => {
     case "enter-house": void runCommand(`.tinytown enter ${id}`, "house"); break;
     case "visit-house": void runCommand(`.tinytown visit ${id}`, "house"); break;
     case "lock-house": void runCommand(`.tinytown lock ${id} ${action.dataset.locked === "1" ? "off" : "on"}`, "house"); break;
-    case "adopt": void runCommand(`.tinytown npc adopt ${id}`, "roommates"); break;
+    case "invite": openHomeDialog(id); break;
+    case "assign-home": assignHome(id); break;
+    case "close-home": closeHomeDialog(); break;
     case "remove-npc": void runCommand(`.tinytown npc remove ${id}`, "roommates"); break;
     case "hang-art": void runCommand(`.tinytown hang ${id}`, "market"); break;
     case "floor": void runCommand(`.tinytown floor ${id}`, "market"); break;
@@ -853,28 +896,39 @@ document.addEventListener("click", event => {
   }
 });
 
+homeDialog.addEventListener("click", event => {
+  if (event.target === homeDialog) closeHomeDialog();
+});
+homeDialog.addEventListener("close", () => {
+  state.pendingCandidate = null;
+});
+
 document.addEventListener("submit", event => {
   if (event.target.id !== "sell-form") return;
   event.preventDefault();
   submitSell(event.target);
 });
 
-prevButton.addEventListener("click", () => {
-  if (state.page > 0) void turnTo(PAGES[state.page - 1].id, -1);
-});
-nextButton.addEventListener("click", () => {
-  if (state.page < PAGES.length - 1) void turnTo(PAGES[state.page + 1].id, 1);
-});
+prevButton.addEventListener("click", () => step(-1));
+nextButton.addEventListener("click", () => step(1));
 document.addEventListener("keydown", event => {
   if (event.target.matches("input, textarea, select")) return;
   if (event.key === "ArrowRight") {
     event.preventDefault();
-    if (state.page < PAGES.length - 1) void turnTo(PAGES[state.page + 1].id, 1);
+    step(1);
   } else if (event.key === "ArrowLeft") {
     event.preventDefault();
-    if (state.page > 0) void turnTo(PAGES[state.page - 1].id, -1);
+    step(-1);
   }
 });
+
+function onOrientationChange() {
+  state.portrait = portraitQuery.matches;
+  state.leaf = 0;
+  render();
+}
+portraitQuery.addEventListener?.("change", onOrientationChange);
+window.addEventListener("resize", () => window.requestAnimationFrame(fitBook));
 
 TinyActivity.subscribe(hostState => {
   state.host = hostState;
@@ -894,11 +948,14 @@ TinyActivity.subscribe(hostState => {
   if (roomChanged) {
     state.market = null;
     state.list = null;
-    if (isArtPage()) {
-      void loadMarket(true).then(render).catch(error => TinyActivity.toast(errorMessage(error), true));
-    } else if (["homes", "keys", "roommates", "contents", "cover"].includes(currentPage().id)) {
-      void loadList(true).then(render).catch(error => TinyActivity.toast(errorMessage(error), true));
-    }
+    state.roommates = null;
+    const pageId = currentPage().id;
+    void (async () => {
+      await loadList(true);
+      if (ART_PAGES.has(pageId)) await loadMarket(true);
+      if (pageId === "roommates") await loadRoommates(true);
+      render();
+    })().catch(error => TinyActivity.toast(errorMessage(error), true));
   } else {
     wallet.textContent = money(walletValue());
   }

@@ -452,6 +452,10 @@ function changeInstanceField(fieldName, target) {
     }
     else if (fieldName === "content") instance.content = parseCsv(target.value);
     else if (fieldName === "recipes") instance.recipes = parseCsv(target.value);
+    else if (fieldName === "description") {
+      if (target.value.trim()) instance.description = target.value;
+      else delete instance.description;
+    }
     else if (fieldName === "actions") instance.actions = textToActions(target.value);
     else if (fieldName === "draw_weight") instance.draw_weight = parseJson(target.value, {});
     else if (fieldName === "only_missing") {

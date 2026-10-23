@@ -25,6 +25,7 @@ KNOWN_FEATURES = frozenset(
         "world-editor",
         "card-database",
         "prop-editor",
+        "cutscene-catalog",
         *MC_FEATURE_ALIASES,
     }
 )

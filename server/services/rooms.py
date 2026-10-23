@@ -754,7 +754,13 @@ class RoomService:
             ),
             **({"surface": surface} if surface is not None else {}),
             "label": "Something in the dark" if dark else prop_definition.label,
-            "description": "" if dark else prop_definition.description,
+            "description": ""
+            if dark
+            else (
+                prop.description
+                if prop.description is not None
+                else prop_definition.description
+            ),
             "animation": animation,
             "quick_actions": quick_actions,
             "state": active_state,

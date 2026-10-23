@@ -1,3 +1,23 @@
+multiverse-map-found:
+  title: You Got the Multiverse Map!
+  script: multiverse-map-found.js
+  frame: movie
+  duration: 12000
+  audience: private
+  room_bound: true
+  aliases: [map-found]
+  max_queue: 1
+  params:
+    stage_background: "#02060b"
+    accent: "#ffd76a"
+    me: "$me"
+    prop: "$prop:garden-trashcan"
+    card: "$card:multiverse-map"
+  sounds:
+    start: cutscene-start.wav
+  text:
+    - {at: 400, speaker: Trashcan, say: "GLORP. Something down here is older than the house.", sound: crunch1.wav}
+    - {at: 2500, speaker: You, say: "A map... of every world?", sound: squeak2.wav}
 molly-greet:
   title: Molly Has Opinions
   script: molly-greet.js

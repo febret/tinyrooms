@@ -162,6 +162,9 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
                         _issue(issues, f"{instance_path}.prop", "Prop reference is required.")
                     elif references.prop_ids and prop_id not in references.prop_ids:
                         _issue(issues, f"{instance_path}.prop", f"Unknown prop '{prop_id}'.")
+                    description = instance.get("description")
+                    if description is not None and not isinstance(description, str):
+                        _issue(issues, f"{instance_path}.description", "Prop description must be a string.")
                     if prop_id == TEXT_PROP_ID:
                         try:
                             validate_text(instance.get("text"))

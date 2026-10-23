@@ -178,6 +178,9 @@ Enable tools with `TRSERVER_FEATURES`; powers are also required:
 - `prop-editor` at `/prop-editor`: `admin`; edits loaded world/mod/shared prop
   definitions and `data/fx` effect stacks. Saves rewrite backing YAML without
   preserving comments. Use **Save prop/effect**, then **Reload world** to publish.
+- `cutscene-catalog` at `/cutscene-catalog`: `admin` or `game-master`; reviews
+  every cutscene in the loaded world (including hidden and gated scenes), edits
+  placeholder overrides, and plays local-only previews.
 
 For example, set `$env:TRSERVER_FEATURES = "prop-editor"` and
 `$env:TRSERVER_ADMINS = "siteadmin"` before `python run.py`.

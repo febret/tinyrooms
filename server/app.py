@@ -44,6 +44,7 @@ from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
 from server.routes import chiptune as chiptune_routes
+from server.routes import cutscene_catalog as cutscene_catalog_routes
 from server.routes import cutscenes as cutscene_routes
 from server.routes import prop_editor as prop_editor_routes
 from server.routes import room_layout as room_layout_routes
@@ -1189,6 +1190,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(surface_routes.router)
     app.include_router(chiptune_routes.router)
     app.include_router(cutscene_routes.router)
+    app.include_router(cutscene_catalog_routes.router)
     if loaded_config.mc_endpoint:
         app.include_router(mc_router)
     return BasePathMiddleware(app, loaded_config.base_path)

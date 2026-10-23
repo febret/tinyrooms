@@ -7,6 +7,7 @@ from server.behaviors.events import BehaviorEvent
 
 GARDEN_ROOM_ID = "garden"
 MULTIVERSE_MAP_CARD_ID = "multiverse-map"
+MAP_FOUND_CUTSCENE_ID = "multiverse-map-found"
 
 
 def on_card_play(context: BehaviorContext, event: BehaviorEvent) -> None:
@@ -23,6 +24,7 @@ def on_card_play(context: BehaviorContext, event: BehaviorEvent) -> None:
         )
         return
     context.give_card(MULTIVERSE_MAP_CARD_ID)
+    context.cutscene(MAP_FOUND_CUTSCENE_ID)
     context.feedback(
         "You throw away the poop in a bag and find the Multiverse Map! The trashcan is either magical or very bad at its job.",
         "success",

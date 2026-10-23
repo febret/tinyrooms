@@ -72,6 +72,39 @@ def require_editor_access(runtime, request: Request, *, feature: str):
     return account
 
 
+def require_power_access(
+    runtime,
+    request: Request,
+    *,
+    feature: str,
+    powers: frozenset[str] | set[str],
+    audit_action: str,
+):
+    """Gate a route by feature flag, session, and any of the given powers.
+
+    Returns the account record. Feature-disabled requests 404, unauthenticated
+    requests 401, and authenticated-but-unauthorized requests 403. Denied
+    attempts are audited.
+    """
+
+    if not feature_enabled(runtime.config, feature):
+        raise HTTPException(status_code=404, detail="Not found.")
+    session = require_session(runtime, request)
+    account = runtime.profiles.get_account_by_id(session.account_id)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    if not (runtime.powers.effective(account) & set(powers)):
+        runtime.audit.safe_record(
+            account.id,
+            audit_action,
+            feature,
+            "denied",
+            {"feature": feature},
+        )
+        raise HTTPException(status_code=403, detail="You do not have permission.")
+    return account
+
+
 def require_admin_access(runtime, request: Request, *, feature: str):
     """Gate an admin-only route by feature flag, session, and admin power.
 

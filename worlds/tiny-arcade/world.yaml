@@ -3,6 +3,7 @@ label: The Arcade
 description: Welcome to the Arena! Turn your Bops into Glory.
 entry_room: lobby
 image: rooms/lobby.png
+css: cutscenes.css
 palette:
 - '#241a33'
 - '#ff5d8f'

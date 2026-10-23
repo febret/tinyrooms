@@ -143,6 +143,26 @@ export function normalizeProp(prop) {
   };
 }
 
+/** Apply a layout broadcast without dropping server-authored prop behavior. */
+export function mergeLayoutProps(previousProps, layoutProps) {
+  if (!Array.isArray(layoutProps)) return previousProps;
+  const previous = new Map((Array.isArray(previousProps) ? previousProps : []).map(prop => [prop.id, prop]));
+  return layoutProps.map(entry => {
+    const next = normalizeProp(entry);
+    const existing = previous.get(next.id);
+    if (!existing) return next;
+    return {
+      ...existing,
+      ...next,
+      label: existing.label,
+      description: existing.description,
+      behavior: existing.behavior,
+      quickActions: existing.quickActions,
+      sounds: existing.sounds,
+    };
+  });
+}
+
 export function normalizePack(pack) {
   return {
     id: String(pack?.id || ""),
@@ -445,6 +465,7 @@ export function normalizeUser(user) {
     tasks: normalizeTasks(user.tasks),
     journal: normalizeJournal(user.journal),
     worldId: String(user.world_id || ""),
+    worldCssUrl: assetOrEmpty(user.world_css_url),
     rememberedRoom: String(user.remembered_room || ""),
     canEnterWorld: user.can_enter_world !== false,
   };

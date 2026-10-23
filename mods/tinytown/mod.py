@@ -235,13 +235,16 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         sub = command.args[1].lower()
         if sub == "adopt":
             if len(command.args) < 3:
-                raise CommandError("Use '.tinytown npc adopt <candidate_id>'.")
-            payload = service.roommates.adopt(context.account, command.args[2])
+                raise CommandError("Use '.tinytown npc adopt <candidate_id> [house_id]'.")
+            target_house_id = command.args[3] if len(command.args) > 3 else None
+            payload = service.roommates.adopt(context.account, command.args[2], target_house_id)
             payload["user"] = _user_payload(context)
             adopted = payload.get("adopted") or {}
             name = adopted.get("name", "Your new roommate") if isinstance(adopted, dict) else "Your new roommate"
-            outcome = CommandOutcome(message=f"{name} moved in.", payload=payload, toast=False)
-            return _toast(outcome, f"{name} has moved in.")
+            house_label = adopted.get("house_label") if isinstance(adopted, dict) else None
+            message = f"{name} moved into the {house_label}." if house_label else f"{name} moved in."
+            outcome = CommandOutcome(message=message, payload=payload, toast=False)
+            return _toast(outcome, message)
         if sub == "add":
             if len(command.args) < 7:
                 raise CommandError(

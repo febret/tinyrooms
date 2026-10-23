@@ -262,21 +262,25 @@ bathroom:
     shower0:
       prop: shower
       pos:
-      - 27
-      - 27
+      - 15
+      - 15
       - 0
-      scale: 1.1
+      scale: 1.9412074566593076
       behavior: shower
       actions:
       - - Take a shower
         - .act shower @prop:shower0
+      rot:
+      - 0
+      - 0.9000000000002046
+      - 0
     medicine0:
       prop: medicine-cabinet
       pos:
-      - 50
-      - 12
       - 0
-      scale: 1
+      - 72.13867331631442
+      - 19.96625935609626
+      scale: 1.5038071611701174
       behavior: dispenser
       content:
       - market-bandage
@@ -291,21 +295,88 @@ bathroom:
       actions:
       - - Take medicine
         - .dispense medicine0
+      rot:
+      - 0
+      - 1.559999999999775
+      - 0
     litter0:
       prop: litter-tray
       pos:
-      - 73
-      - 62
+      - 90
+      - 15
       - 0
-      scale: 1.15
+      scale: 0.7230780876371641
       behavior: litter-tray
-    fern0:
-      prop: plant
-      pos:
-      - 78
-      - 22
+      rot:
       - 0
-      scale: 0.8
+      - 356.32000000000085
+      - 0
+    custom:631c88dc-9dae-4721-9698-8be79851649a:
+      prop: sunset-runner-rug
+      pos:
+      - 35
+      - 50
+      - 0
+      rot:
+      - 0
+      - 0.7000000000001592
+      - 0
+      scale: 1.6820276496988877
+    custom:15e405d1-3f7b-4920-937f-4d1ef6e40846:
+      prop: cottage-toilet
+      pos:
+      - 60
+      - 10
+      - 1.85984266862559
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.6031973837265792
+    custom:52a33c8a-0424-4037-9b7f-f8347e341a2e:
+      prop: saari-cabinet
+      pos:
+      - 0
+      - 75
+      - 0
+      rot:
+      - 0
+      - 1.5799999999998136
+      - 0
+      scale: 0.8869204367171585
+    custom:1972d7d4-721b-4aa0-a633-9c8b2b45c906:
+      prop: kori-basket
+      pos:
+      - 10
+      - 95
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.3231298123374382
+    custom:ea8d4f75-da2a-4937-983d-35901768f054:
+      prop: kuusi-wall-shelf
+      pos:
+      - 100
+      - 60
+      - 19.400000000000027
+      rot:
+      - 0
+      - 356.5999999999999
+      - 0
+      scale: 1.1641602364321162
+    custom:e7249e14-3f94-4ff9-9a11-aa1f2f24d362:
+      prop: oksa-vase
+      pos:
+      - 100
+      - 65
+      - 27.747731898226675
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 0.7378608664505918
   exits:
     utility:
       label: Back to the utility room

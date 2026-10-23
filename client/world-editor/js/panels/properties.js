@@ -13,8 +13,9 @@ function numberInput(value, attrs, step = "0.05") {
   return `<input type="number" ${attrs} step="${step}" value="${escapeHtml(value ?? 0)}">`;
 }
 
-function textarea(value, attrs, rows = 3) {
-  return `<textarea ${attrs} rows="${rows}">${escapeHtml(value ?? "")}</textarea>`;
+function textarea(value, attrs, rows = 3, placeholder = "") {
+  const placeholderAttr = placeholder ? ` placeholder="${escapeHtml(placeholder)}"` : "";
+  return `<textarea ${attrs} rows="${rows}"${placeholderAttr}>${escapeHtml(value ?? "")}</textarea>`;
 }
 
 function checkbox(checked, attrs) {
@@ -119,7 +120,9 @@ function propPanel(state) {
   const position = Array.isArray(instance.pos) ? instance.pos : [50, 50, 0];
   const rotation = Array.isArray(instance.rot) ? instance.rot : [0, 0, 0];
   const isText = instance.prop === "builtin:text";
-  const currentLabel = (catalog?.props || []).find(prop => prop.id === instance.prop)?.label || instance.prop;
+  const definition = (catalog?.props || []).find(prop => prop.id === instance.prop);
+  const currentLabel = definition?.label || instance.prop;
+  const stockDescription = definition?.description || "";
   const picker = state.editorSettings?.picker;
   const picking = Boolean(picker && picker.roomId === selection.id && picker.sub === selection.sub);
   return `
@@ -135,6 +138,8 @@ function propPanel(state) {
         </div>
       </div>
       ${isText ? `<p class="text-prop-content">${escapeHtml(instance.text?.content || "")}</p><button type="button" data-edit-action="edit-text" ${state.editorSettings?.locks?.[selection.id]?.[propId] ? "disabled" : ""}>Edit text</button>` : ""}
+      ${field("Description", textarea(instance.description ?? "", `data-instance-field="description"`, 2, "Leave blank to use the prop's stock description."))}
+      ${stockDescription ? `<p class="note">Stock: ${escapeHtml(stockDescription)}</p>` : ""}
       <div class="field-row">
         ${field("X", numberInput(position[0], `data-instance-field="pos.0"`))}
         ${field("Y", numberInput(position[1], `data-instance-field="pos.1"`))}

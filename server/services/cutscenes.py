@@ -213,11 +213,14 @@ class CutsceneService:
         origin: str,
         params: Mapping[str, Any] | None = None,
         occupants: Iterable[str] | None = None,
+        record_view: bool = True,
     ) -> CutsceneLaunch:
         """Build the ``cutscene.play`` event for a validated launch.
 
         *occupants* is the set of account ids present in the room; callers
         fetch it because room membership is only readable asynchronously.
+        *record_view* writes the delivery-time first-view journal memory;
+        previews pass ``False`` so reviewing a scene leaves no trace.
         """
 
         # Gates, audience selection, and Energy charging are caller responsibilities.
@@ -281,7 +284,8 @@ class CutsceneService:
             # Private delivery uses account routing; room delivery uses a broadcast.
             event["account_id"] = account.id
         recipients = room_accounts if audience == AUDIENCE_ROOM else None
-        self._record_first_view(account, definition, recipients)
+        if record_view:
+            self._record_first_view(account, definition, recipients)
         return CutsceneLaunch(
             definition=definition,
             audience=audience,
@@ -489,3 +493,58 @@ class CutsceneService:
         """Return every placeholder token in *values* in order, deduplicated."""
 
         return list(dict.fromkeys(_placeholder_tokens(list(values))))
+
+    @staticmethod
+    def placeholder_kind(token: str) -> str:
+        """Return the placeholder family for a token, or an empty string."""
+
+        body = token[1:] if token.startswith("$") else ""
+        kind, _, value = body.partition(":")
+        if kind in {"user", "peep", "sticker", "card", "prop"} and value.strip():
+            return kind
+        if body == "me":
+            return "me"
+        return ""
+
+    def definition_placeholders(self, definition: CutsceneDefinition) -> dict[str, list[dict[str, object]]]:
+        """Describe the editable and read-only placeholders of a definition."""
+
+        params: list[dict[str, object]] = []
+        for key, value in definition.params.items():
+            tokens = [
+                {"token": token, "kind": self.placeholder_kind(token)}
+                for token in dict.fromkeys(_placeholder_tokens(value))
+                if self.placeholder_kind(token)
+            ]
+            if tokens:
+                params.append({"key": key, "value": value, "tokens": tokens})
+        cue_tokens = [
+            {"token": token, "kind": self.placeholder_kind(token)}
+            for token in dict.fromkeys(
+                _placeholder_tokens(
+                    [
+                        value
+                        for cue in definition.text
+                        for value in (cue.say, cue.speaker)
+                    ]
+                )
+            )
+            if self.placeholder_kind(token)
+        ]
+        return {"params": params, "cues": cue_tokens}
+
+    def gate_status(
+        self,
+        definition: CutsceneDefinition,
+        *,
+        room_id: str,
+        has_power: Callable[[str], bool],
+    ) -> dict[str, bool]:
+        """Return whether each launch gate passes for a room and power check."""
+
+        return {
+            "room": not definition.rooms or room_id in definition.rooms,
+            "power": not definition.power or has_power(definition.power),
+            "feature": not definition.required_feature
+            or self.feature_enabled(definition.required_feature),
+        }

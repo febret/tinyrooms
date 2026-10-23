@@ -6,32 +6,64 @@ test.use({ runtimeWorld: "tinytown" });
 test("flip through Tiny Mag, buy a home, and meet roommates", async ({ page, runtime }) => {
   test.slow();
   await createReadyAccount(page, runtime, "siteadmin");
-  await command(page, ".tinytown");
+  await page.locator("#tinymag-toggle").click();
   const frame = page.frameLocator('iframe[src*="/activities/tiny-mag/"]');
   await expect(frame.getByRole("heading", { name: /TINY/ })).toBeVisible();
   await expect(frame.locator("#wallet")).toHaveText("160");
+  await expect(frame.locator(".rail-group")).toHaveCount(4);
+  await expect(frame.locator(".chip")).toHaveCount(0);
 
-  await frame.getByRole("button", { name: "03" }).click();
+  await frame.locator("#next").click();
+  await expect(frame.getByRole("heading", { name: "The issue" })).toBeVisible();
+  await frame.locator('.contents-list li[data-page="homes"]').click();
   await expect(frame.getByRole("heading", { name: "Property", exact: true })).toBeVisible();
-  await frame.getByRole("button", { name: /Buy · 100 Bops/ }).first().click();
+  await frame.getByRole("button", { name: /Take the keys · 100 Bops/ }).first().click();
   await frame.getByRole("button", { name: /Confirm · 100 Bops/ }).click();
   await expect(frame.getByText(/Owned ×1/)).toBeVisible();
   await expect(frame.locator("#wallet")).toHaveText("60");
+  await expect(frame.locator("#homes-rail")).toHaveCount(0);
 
   await frame.getByRole("button", { name: "04" }).click();
   await expect(frame.getByRole("heading", { name: "My", exact: false })).toBeVisible();
-  await frame.getByRole("button", { name: "Enter", exact: true }).first().click();
+  await frame.getByRole("button", { name: "Step inside", exact: true }).first().click();
   await expect(page.locator("#look-bar")).toContainText(/Entry|Nook|Hall/);
 
   // Activities are room-bound, so re-open Tiny Mag after moving into the home.
   await command(page, ".tinytown");
   await expect(frame.getByRole("heading", { name: /TINY/ })).toBeVisible();
-  await frame.getByRole("button", { name: "05" }).click();
-  await expect(frame.locator(".roommate-board .roommate-ad")).toHaveCount(5);
-  await frame.getByRole("button", { name: "Invite to move in" }).first().click();
-  await expect(frame.getByText("Already home")).toBeVisible();
+  await frame.locator("#next").click();
+  await frame.locator('.contents-list li[data-page="roommates"]').click();
+  await expect(frame.getByRole("heading", { name: "The Roommate Files" })).toBeVisible();
+  await expect(frame.locator(".roommate-profile")).toHaveCount(5);
+  await expect(frame.locator(".roommate-description").first()).not.toBeEmpty();
+  await expect(frame.locator(".trait-row, .mini-bars")).toHaveCount(0);
+  await frame.getByRole("button", { name: "Ask to move in" }).first().click();
+  await expect(frame.locator("#home-dialog")).toBeVisible();
+  await expect(frame.locator(".home-choice")).toHaveCount(1);
+  await frame.locator(".home-choice").first().click();
+  await expect(frame.getByText("At home")).toBeVisible();
+  await expect(frame.locator(".resident-profile")).toHaveCount(1);
 
   await frame.getByRole("button", { name: "06" }).click();
   await expect(frame.getByRole("heading", { name: "The Gallery" })).toBeVisible();
   await expect(frame.locator(".art-card")).toHaveCount(14);
+  const painted = await frame.locator(".art-card canvas").first().evaluate(canvas => {
+    const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    let coloured = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (data[index] < 240 || data[index + 1] < 240 || data[index + 2] < 240) {
+        coloured += 1;
+        if (coloured > 250) return true;
+      }
+    }
+    return false;
+  });
+  expect(painted).toBe(true);
+
+  await page.setViewportSize({ width: 520, height: 900 });
+  await expect(frame.locator("#page-left")).toBeVisible();
+  await expect(frame.locator("#page-right")).toBeHidden();
+  await frame.locator("#next").click();
+  await expect(frame.locator("#page-right")).toBeVisible();
+  await expect(frame.locator("#page-left")).toBeHidden();
 });

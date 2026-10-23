@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from server.base_path import with_base
 from server.profiles import AccountRecord
 from server.services.stickers import decode_design
 
@@ -71,6 +72,13 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         # This payload's loaded world; remembered_room is nullable saved navigation
         # context from the profile, not proof of a live connection in that room.
         "world_id": runtime.world.id,
+        # Optional active-world stylesheet, served as text/css; empty when the
+        # world defines none. The client loads it with the live world only.
+        "world_css_url": (
+            with_base(runtime.config.base_path, f"/assets/world/{runtime.world.id}/world.css")
+            if runtime.world.stylesheet_path is not None
+            else ""
+        ),
         "remembered_room": user_profile.remembered_room,
         "inventory": runtime.cards.list_inventory_payload(account.id),
         # Non-transferable navigation/view card definitions in cards.yaml order,

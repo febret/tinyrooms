@@ -1054,6 +1054,7 @@ enabled. Users with the required [powers](#user-powers) can build and modify the
 currently loaded world. Through the World Editor they can:
 - create and delete rooms
 - edit all room aspects including the board picture, props, initial room cards, etc.
+- give any placed prop its own description, overriding the prop definition's stock text
 - edit room connections through exits
 - place, edit and delete NPCs
 
@@ -1102,12 +1103,13 @@ NPC behavior can respond to the following game events:
 - any quick action executed on the peep
 
 ### Dialogs
-NPCs can respond to actions by opening a dialog tree: dialogs are shown in
-the UI through the Look Bar (with quick actions used to choose the next action
-in the dialog).
+NPCs can respond to actions by opening a dialog tree: the peep's current line is
+shown in a speech bubble above their sticker, while the Look Bar keeps showing the
+selected entity's normal description. Quick actions are used to choose the next
+action in the dialog.
 
-Dialog trees consist of nodes: each has text to display in the Look Bar and a list of
-options (shown as quick actions) leading to other nodes or ending the dialog.
+Dialog trees consist of nodes: each has text to display in the speech bubble and a
+list of options (shown as quick actions) leading to other nodes or ending the dialog.
 NPC behavior can start a dialog. Dialog nodes can include custom branching or
 side effects, such as starting a task or giving a card.
 

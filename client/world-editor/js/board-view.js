@@ -24,7 +24,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
         renderKind: definition.render_kind || "model",
         ...(instance.text ? { text: { ...instance.text } } : {}),
         label: definition.label || instance.prop,
-        description: definition.description || "",
+        description: instance.description || definition.description || "",
         animation: instance.animation || "",
         quickActions: [],
         ghost: false,

@@ -561,6 +561,16 @@ check; launch checks still apply. The command palette uses the server `.help`
 catalog rather than this route. Unknown static assets return HTTP 404; no
 special diagnostic HTML page is currently rendered.
 
+Admins and game-masters get a fuller review surface through the
+`/cutscene-catalog` full-page tool (feature `cutscene-catalog`). Its
+`/api/cutscene-catalog` endpoint lists every definition — including hidden,
+feature/power-gated, and room-restricted scenes — with params, cue text,
+derived placeholder tokens, and per-room gate status, plus card, current-room
+prop, room-user, world-peep, and sticker choices. Previews are local-only:
+`/api/cutscene-catalog/preview` builds a private `cutscene.play` payload for a
+chosen room and param overrides without broadcasting, charging Energy, or
+writing first-view journal memories.
+
 ## 6. Authoring references
 
 Use the shipped scenes rather than maintaining copied implementations here:
@@ -575,8 +585,12 @@ Use the shipped scenes rather than maintaining copied implementations here:
 Molly costs no Energy and is room-bound flavor; `$me` can become a caption
 label while remaining a sprite token in params. Victory Dance comes through
 the tutorial pack and plays locally for each occupant, without synchronization.
-Its custom frame styles, like Molly's coupled sprites and hearts, currently
-live in the [shared stylesheet](../client/app/css/cutscenes.css).
+Its custom frame styles stay in the [shared stylesheet](../client/app/css/cutscenes.css)
+because they belong to core scenes. World-specific scene styles instead live
+in that world's `cutscenes.css` file (declared with `css:` in `world.yaml` and
+served at `/assets/world/<id>/world.css`); for example, Molly's coupled
+sprites and hearts live in the tutorial world stylesheet, and the paintball
+podium styles live in the tiny-arcade one.
 
 When authoring, load/validate the world, launch the actual bound action, check
 missing assets, skip and travel behavior, and verify reduced-motion gameplay
@@ -650,8 +664,10 @@ scene timers/animation frames was never actually provided.
 - **Cross-client synchronization:** unsupported and not planned.
 - **Authoring UI / world-editor integration:** out of scope and not planned;
   a future editor needs an explicit design.
-- **Content-shipped custom frame CSS:** deferred as a managed authoring/hosting
-  feature. Current custom examples use app CSS despite sibling static assets
-  being servable.
+- **Content-shipped custom frame CSS:** partially supported. World-specific
+  scene styles ship in per-world `cutscenes.css` files loaded with the active
+  world stylesheet. Sibling stylesheets next to a scene module remain
+  unsupported as an automatic convention; a scene can still load one itself,
+  but must clean up after teardown.
 - **Queue persistence across page reload:** unsupported.
 - **Peak scene-node perf budget:** outstanding (§7).

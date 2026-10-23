@@ -74,7 +74,8 @@ def _describe_exit(exit_definition: ExitDefinition) -> dict[str, object]:
 
 
 def _describe_prop(prop: PropInstanceDefinition, prop_definition: PropDefinition) -> dict[str, object]:
-    return {"kind": "prop", "id": prop.id, "label": prop_definition.label, "description": prop_definition.description}
+    description = prop.description if prop.description is not None else prop_definition.description
+    return {"kind": "prop", "id": prop.id, "label": prop_definition.label, "description": description}
 
 
 def _entity_outcome(message: str, entity: dict[str, object]) -> CommandOutcome:

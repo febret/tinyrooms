@@ -54,6 +54,9 @@ through a generated map. See the canonical
 [Content loaders](../server/content/) define accepted YAML and validation.
 [Shared data](../data/) supplies core tuning, cards, artwork, effects, and scenes;
 [tutorial content](../worlds/tutorial/) supplies world-specific definitions.
+A world may also declare an optional stylesheet (`css:` in `world.yaml`,
+served at `/assets/world/<id>/world.css`) for world-specific presentation
+such as cutscene scene styles.
 
 [The mod loader](../server/mods.py) owns manifest discovery, enabled-mod selection,
 content merging, command registration, and runtime factories. Worlds declare
@@ -88,7 +91,7 @@ house purchases, visits, roommate classifieds, and community art sales live in
 the `tinytown` mod. Its player-facing home is the unbound
 [Tiny Mag activity](../mods/tinytown/activities/tiny-mag/), with `tinytown` and
 `art-store` launch aliases. Each owned home persists five roommate candidates;
-adopting one adds the peep and replenishes the classified batch. Community art
+adopting one adds the peep to a chosen owned home and replenishes the classified batch. Community art
 is listed from an editable home whiteboard, paid at full price to the seller,
 and installed as a locked whiteboard for the buyer. Only the source board stays
 editable, and an owned print can be rehung for free.

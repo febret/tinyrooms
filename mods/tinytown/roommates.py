@@ -16,23 +16,8 @@ from mods.tinytown.catalog import (
     ROOMMATE_LAST_NAMES,
     TRAITS_BY_ID,
 )
+from mods.tinytown.roommate_text import roommate_ad
 from server.security import utc_now
-
-
-HEADLINES = {
-    "artsy": "Seeks a bright wall and a patient roommate.",
-    "bookish": "Quiet reader, excellent tea maker, light sleeper.",
-    "clean": "Will label the spice jars. Fair warning.",
-    "cozy": "Professional blanket enthusiast seeks warm corner.",
-    "energetic": "Early riser, late swimmer, always up for a walk.",
-    "foodie": "Cooks for the whole house. Will accept compliments.",
-    "friendly": "Here for good mornings and better neighbours.",
-    "grumpy": "Not unfriendly. Just selective. Very tidy.",
-    "outdoorsy": "Mud on the boots, flowers on the sill.",
-    "social": "House dinners, game nights, spontaneous hallway chats.",
-    "tinkerer": "Owns the right screwdriver. Usually two.",
-    "stargazer": "Will trade roof access for quiet conversation.",
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,9 +146,7 @@ class RoommateCandidates:
             traits = tuple(self._random.choice(ROOMMATE_ARCHETYPES))
             if tuple(sorted(traits)) in used_pairs:
                 continue
-            headline = self._random.choice(
-                tuple(HEADLINES[trait] for trait in traits if trait in HEADLINES)
-            )
+            headline = roommate_ad(traits).headline
             return RoommateCandidate(
                 candidate_id=f"ttcand:{uuid.uuid4().hex}",
                 owner_account_id=account.id,
@@ -211,6 +194,7 @@ class RoommateCandidates:
                 "max_cleanliness": 100.0,
             },
             "headline": candidate.headline,
+            "description": roommate_ad(candidate.traits).description,
         }
 
     def candidates_payload(self, account: object, house_id: str | None = None) -> dict[str, object]:
@@ -228,20 +212,28 @@ class RoommateCandidates:
         )
         return household
 
-    def adopt(self, account: object, candidate_id: str) -> dict[str, object]:
+    def adopt(self, account: object, candidate_id: str, house_id: str | None = None) -> dict[str, object]:
         candidate = self._candidate_for(candidate_id)
         if candidate is None or candidate.owner_account_id != account.id:
             raise ValueError("That roommate advertisement has expired.")
-        if len(self.npcs.records_for_house(candidate.house_id)) >= MAX_NPCS_PER_HOUSE:
+        target_house_id = str(house_id or candidate.house_id)
+        if len(self.npcs.records_for_house(target_house_id)) >= MAX_NPCS_PER_HOUSE:
             raise ValueError("That household already has all four rooms taken.")
         npc = self.npcs.add(
             account,
-            candidate.house_id,
+            target_house_id,
             candidate.name,
             candidate.avatar,
             candidate.traits,
         )
         self._delete(candidate.candidate_id)
+        house = self.housing.record_for(target_house_id)
+        house_label = self.housing.template_for(house).label if house is not None else "their new home"
         payload = self.candidates_payload(account, candidate.house_id)
-        payload["adopted"] = {"id": npc.npc_id, "name": npc.name}
+        payload["adopted"] = {
+            "id": npc.npc_id,
+            "name": npc.name,
+            "house_id": target_house_id,
+            "house_label": house_label,
+        }
         return payload

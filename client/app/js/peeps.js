@@ -1,17 +1,13 @@
 import { peepDamageTier } from "./peep-damage.js";
 import { withBase } from "./base-path.js";
 import { layoutPeeps } from "./peep-groups.js";
+import { createBubbleElement, createPeepBubbles } from "./peep-bubbles.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { statusIconMarkup } from "./views/view-helpers.js";
 import { decalDataUrl } from "./decals.js";
 
 const MOVE_BUBBLE_LIFETIME = 5000;
 const MOVE_RECORD_TTL = 10000;
-
-function bubbleKey(peep) {
-  const bubble = peep?.bubble;
-  return bubble ? `${bubble.text || ""}\u0000${bubble.imageUrl || ""}` : "";
-}
 
 function lowerFirst(text) {
   const value = String(text || "");
@@ -44,110 +40,13 @@ function peepDamage(peep, state) {
 export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMove, onSound }) {
   let expanded = false;
   let latest = null;
-  let spriteAnchors = new Map();
   let prevIds = null;
-
-  function isSpritePeep(peep) {
-    return Boolean(latest?.room?.board?.spritesEnabled && Array.isArray(peep?.spritePosition));
-  }
-
   let prevOrder = null;
   let prevRoomId = null;
-  const bubbles = new Map();
-  const dismissing = new Set();
   const pendingMoves = [];
   const moveBubbles = new Set();
   const ghosts = new Set();
-
-  /**
-   * Place every speech bubble next to its peep chip.
-   *
-   * This runs on scroll, on resize and at the end of every render, so it has to
-   * be cheap. Three things used to make it expensive: the marker list was
-   * re-queried inside the loop, the panel rect was read before the writes, and
-   * each bubble's `offsetWidth`/`offsetHeight` was read *after* a style write
-   * had already invalidated layout. Interleaving reads and writes forces a
-   * synchronous layout per bubble, so a busy room reflowed dozens of times per
-   * message.
-   *
-   * Now the marker lookup is hoisted, every measurement happens before any
-   * write, and each bubble's own size is measured once and cached.
-   */
-  const bubbleSizes = new Map();
-
-  function positionBubbles() {
-    const spriteMode = Boolean(latest?.room?.board?.spritesEnabled);
-    const markers = new Map();
-    if (!spriteMode) {
-      for (const node of panel.querySelectorAll("[data-peep-id]")) {
-        markers.set(node.dataset.peepId, node);
-      }
-    }
-    const boardSprites = spriteMode ? spriteAnchors : null;
-    if (!markers.size && !boardSprites?.size) {
-      for (const bubble of bubbles.values()) hideBubble(bubble);
-      return;
-    }
-    // Measure everything first: any write below would otherwise invalidate
-    // these reads.
-    const bounds = panel.getBoundingClientRect();
-    const measurements = [];
-    for (const [id, bubble] of bubbles) {
-      if (spriteMode) {
-        const anchor = boardSprites?.get(id);
-        if (!anchor) {
-          measurements.push({ bubble, visible: false });
-          continue;
-        }
-        let size = bubbleSizes.get(bubble);
-        if (!size) {
-          size = { width: bubble.offsetWidth, height: bubble.offsetHeight };
-          bubbleSizes.set(bubble, size);
-        }
-        measurements.push({ bubble, visible: true, anchor, size, sprite: true });
-        continue;
-      }
-      const marker = markers.get(id);
-      if (!marker) {
-        measurements.push({ bubble, visible: false });
-        continue;
-      }
-      const rect = marker.getBoundingClientRect();
-      const visible = rect.bottom > bounds.top && rect.top < bounds.bottom;
-      if (!visible) {
-        measurements.push({ bubble, visible: false });
-        continue;
-      }
-      let size = bubbleSizes.get(bubble);
-      if (!size) {
-        size = { width: bubble.offsetWidth, height: bubble.offsetHeight };
-        bubbleSizes.set(bubble, size);
-      }
-      measurements.push({ bubble, visible: true, rect, size });
-    }
-    for (const item of measurements) {
-      if (!item.visible) {
-        hideBubble(item.bubble);
-        continue;
-      }
-      if (item.bubble.hidden) item.bubble.hidden = false;
-      if (item.sprite) {
-        item.bubble.style.setProperty("--bubble-scale", item.anchor.scale.toFixed(3));
-        placeAt(item.bubble, `${item.anchor.x}px`, `${item.anchor.y}px`);
-        continue;
-      }
-      const { rect, size } = item;
-      item.bubble.style.removeProperty("--bubble-scale");
-      const left = Math.min(bounds.right + 2, window.innerWidth - size.width - 8);
-      const top = Math.max(8, Math.min(rect.top + 4, bounds.bottom - size.height));
-      placeAt(item.bubble, `${left}px`, `${top}px`);
-    }
-  }
-
-  function hideBubble(bubble) {
-    if (!bubble.hidden) bubble.hidden = true;
-    bubbleSizes.delete(bubble);
-  }
+  const peepBubbles = createPeepBubbles({ panel, bubbleLayer, onDismiss });
 
   function captureRects(includeClone) {
     const map = new Map();
@@ -233,13 +132,11 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
   }
 
   function showMoveBubble(record, rect) {
-    const bubble = document.createElement("button");
-    bubble.type = "button";
-    bubble.className = "bubble move";
-    const text = document.createElement("span");
-    text.className = "bubble-text";
-    text.textContent = record.text;
-    bubble.append(text);
+    const bubble = createBubbleElement(bubbleLayer, {
+      tag: "button",
+      className: "bubble move",
+      text: record.text,
+    });
     const top = Math.max(8, Math.min(rect.top + 4, panel.getBoundingClientRect().bottom - 40));
     bubble.style.top = `${top}px`;
     bubble.style.left = `${panel.getBoundingClientRect().right + 2}px`;
@@ -326,7 +223,12 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     prevRoomId = roomId;
     const peeps = state.room ? [...state.room.occupants, ...state.room.npcs] : [];
     const pinned = new Set(state.user?.pinnedPeeps || []);
-    const layout = layoutPeeps(peeps, { selfId: state.user?.id || "", pinned, expanded });
+    const layout = layoutPeeps(peeps, {
+      selfId: state.user?.id || "",
+      pinned,
+      expanded,
+      dialogId: state.room?.dialog?.peepId || "",
+    });
     const shown = layout.visible;
     const definitions = state.user?.statusDefinitions || {};
     const markup = `<div class="peep-list">${shown.map(peep => {
@@ -373,121 +275,26 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     }
     prevOrder = currentOrder;
     prevIds = currentIds;
-    const visibleIds = new Set();
-    for (const peep of shown) {
-      if (!peep.bubble || peep.bubbleDismissed) continue;
-      visibleIds.add(peep.id);
-      let bubble = bubbles.get(peep.id);
-      if (!bubble) {
-        bubble = document.createElement("button");
-        bubble.type = "button";
-        const text = document.createElement("span");
-        text.className = "bubble-text";
-        bubble.append(text);
-        bubble.dataset.bubbleId = peep.id;
-        bubbleLayer.append(bubble);
-        bubbles.set(peep.id, bubble);
-        bubble.onclick = () => {
-          if (dismissing.has(peep.id)) return;
-          dismissing.add(peep.id);
-          const dismissedKey = bubble.dataset.bubbleKey;
-          bubble.classList.add("dismissing");
-          setTimeout(() => {
-            dismissing.delete(peep.id);
-            const current = [...(latest.room?.occupants || []), ...(latest.room?.npcs || [])].find(item => item.id === peep.id);
-            if (bubbleKey(current) === dismissedKey) onDismiss(peep.id);
-            else render(latest);
-          }, state.ui.reducedMotion ? 0 : 180);
-        };
-      }
-      const style = peep.bubble.style === "thinking" ? "thought" : peep.bubble.style === "spiky" ? "spiky" : "speech";
-      const hasImage = Boolean(peep.bubble.imageUrl);
-      const nextKey = bubbleKey(peep);
-      const bubbleChanged = bubble.dataset.bubbleKey !== nextKey;
-      let image = bubble.querySelector(".bubble-image");
-      if (hasImage && !image) {
-        image = document.createElement("img");
-        image.className = "bubble-image";
-        image.alt = "";
-        image.draggable = false;
-        bubble.append(image);
-      } else if (!hasImage && image) {
-        image.remove();
-        image = null;
-      }
-      bubble.dataset.bubbleKey = nextKey;
-      const emoteClass = hasImage ? ` emote emote-${peep.bubble.style}` : "";
-      const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${isSpritePeep(peep) ? "sprite-bubble" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
-      // These run for every visible bubble on every render, so each write is
-      // guarded. Assigning an unchanged className still invalidates style and
-      // makes the activity layer's MutationObserver do a sibling sweep.
-      if (bubble.className !== className) {
-        bubble.className = className;
-        // Length or style changed, so the cached measurement is stale.
-        bubbleSizes.delete(bubble);
-      }
-      const text = hasImage ? "" : peep.bubble.text;
-      const textNode = bubble.querySelector(".bubble-text");
-      if (textNode.textContent !== text) {
-        textNode.textContent = text;
-        bubbleSizes.delete(bubble);
-      }
-      if (image && image.getAttribute("src") !== peep.bubble.imageUrl) image.src = peep.bubble.imageUrl;
-      if (hasImage && bubbleChanged) {
-        bubble.style.animation = "none";
-        void bubble.offsetWidth;
-        bubble.style.animation = "";
-      }
-      const label = `${peep.label}: ${hasImage ? `${peep.bubble.text} emote` : peep.bubble.text}. Dismiss message`;
-      if (bubble.getAttribute("aria-label") !== label) bubble.setAttribute("aria-label", label);
-      const timeout = Number(latest?.ui?.bubbleTimeout || 0);
-      if (timeout > 0) {
-        if (bubbleChanged || !bubble._autoTimer) {
-          clearTimeout(bubble._autoTimer);
-          bubble._autoTimer = setTimeout(() => {
-            bubble._autoTimer = 0;
-            const current = [...(latest.room?.occupants || []), ...(latest.room?.npcs || [])].find(item => item.id === peep.id);
-            if (bubbleKey(current) !== nextKey) { render(latest); return; }
-            onDismiss(peep.id);
-          }, timeout);
-        }
-      } else if (bubble._autoTimer) {
-        clearTimeout(bubble._autoTimer);
-        bubble._autoTimer = 0;
-      }
-    }
-    for (const [id, bubble] of bubbles) {
-      if (!visibleIds.has(id)) {
-        clearTimeout(bubble._autoTimer);
-        bubble.remove();
-        bubbles.delete(id);
-        dismissing.delete(id);
-      }
-    }
-    positionBubbles();
-  }
-  function setSpriteAnchors(anchors) {
-    spriteAnchors = anchors instanceof Map ? anchors : new Map();
-    positionBubbles();
+    peepBubbles.render(state, shown);
   }
 
-  // Listeners are kept so the view can actually be torn down; an observer and a
-  // window listener that outlive their view keep the whole closure alive.
-  const panelObserver = new ResizeObserver(positionBubbles);
-  panel.addEventListener("scroll", positionBubbles, { passive: true });
-  panelObserver.observe(panel);
-  window.addEventListener("resize", positionBubbles);
+  function setSpriteAnchors(anchors) {
+    peepBubbles.setSpriteAnchors(anchors);
+  }
 
   function destroy() {
-    panel.removeEventListener("scroll", positionBubbles);
-    panelObserver.disconnect();
-    window.removeEventListener("resize", positionBubbles);
-    for (const bubble of bubbles.values()) { clearTimeout(bubble._autoTimer); bubble.remove(); }
-    bubbles.clear();
-    bubbleSizes.clear();
+    peepBubbles.destroy();
+    for (const bubble of moveBubbles) { clearTimeout(bubble._moveTimer); bubble.remove(); }
+    moveBubbles.clear();
     for (const ghost of ghosts) ghost.remove();
     ghosts.clear();
   }
 
-  return { render, noteMove, positionBubbles, setSpriteAnchors, destroy, hasBubbles: () => bubbles.size > 0 };
+  return {
+    render,
+    noteMove,
+    setSpriteAnchors,
+    destroy,
+    hasBubbles: () => peepBubbles.hasBubbles(),
+  };
 }

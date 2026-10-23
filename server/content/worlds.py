@@ -147,6 +147,7 @@ class PropInstanceDefinition:
     sign_style: str | None = None
     surface: dict[str, object] | None = None
     sounds: dict[str, str] = field(default_factory=dict)
+    description: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -260,6 +261,8 @@ class WorldDefinition:
     effects: dict[str, EffectDefinition] = field(default_factory=dict)
     image_name: str = ""
     image_path: Path | None = None
+    stylesheet_name: str = ""
+    stylesheet_path: Path | None = None
 
 
 def _load_text_recipe(
@@ -850,6 +853,20 @@ def load_world_definition(
         if not candidate.is_file():
             raise ContentError(f"World '{world_id}' references missing image '{world_image_name}'.")
         world_image_path = candidate
+    stylesheet_name = str(world_payload.get("css", "")).strip()
+    stylesheet_path: Path | None = None
+    if stylesheet_name:
+        world_root = world_path.resolve()
+        candidate = (world_path / stylesheet_name).resolve()
+        if (
+            candidate == world_root
+            or world_root not in candidate.parents
+            or candidate.suffix.lower() != ".css"
+        ):
+            raise ContentError(f"World '{world_id}' stylesheet must be a .css file inside the world directory.")
+        if not candidate.is_file():
+            raise ContentError(f"World '{world_id}' references missing stylesheet '{stylesheet_name}'.")
+        stylesheet_path = candidate
     requires_mods = tuple(str(entry).strip() for entry in world_payload.get("requires_mods", []) or [])
     if enabled_mods is not None:
         missing_mods = sorted(set(requires_mods) - set(enabled_mods))
@@ -967,6 +984,10 @@ def load_world_definition(
             only_missing = raw_instance.get("only_missing", False)
             if not isinstance(only_missing, bool):
                 raise ContentError(f"Prop '{prop_instance_id}' only_missing must be a boolean.")
+            raw_description = raw_instance.get("description")
+            if raw_description is not None and not isinstance(raw_description, str):
+                raise ContentError(f"Prop '{prop_instance_id}' description must be a string.")
+            description = raw_description.strip() if isinstance(raw_description, str) else None
             room_props[prop_instance_id] = PropInstanceDefinition(
                 id=prop_instance_id,
                 prop_id=prop_id,
@@ -1003,6 +1024,7 @@ def load_world_definition(
                     PROP_SOUND_KEYS,
                     known_sounds=known_sounds,
                 ),
+                description=description or None,
             )
         texts = [instance.text for instance in room_props.values() if instance.text is not None]
         if len(texts) > MAX_TEXT_PROPS:
@@ -1173,7 +1195,9 @@ def load_world_definition(
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,
         requires_mods=requires_mods,
-        effects=effects,
-        image_name=world_image_name,
-        image_path=world_image_path,
-    )
+    effects=effects,
+    image_name=world_image_name,
+    image_path=world_image_path,
+    stylesheet_name=stylesheet_name,
+    stylesheet_path=stylesheet_path,
+)

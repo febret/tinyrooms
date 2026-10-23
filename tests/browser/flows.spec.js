@@ -216,6 +216,18 @@ test.describe("cutscenes under reduced motion", () => {
   });
 });
 
+test("emote chat bubbles appear and dismiss", async ({ page, runtime }) => {
+  await createReadyAccount(page, runtime);
+  await page.locator("#emote-toggle").click();
+  const emote = page.locator("#emote-menu [data-emote-play]").first();
+  await expect(emote).toBeVisible();
+  await emote.click();
+  const bubbles = page.locator("#bubble-layer .bubble:not(.dialog-bubble):not(.move)");
+  await expect(bubbles).toHaveCount(1);
+  await bubbles.first().click();
+  await expect(bubbles).toHaveCount(0);
+});
+
 test.describe("milestone 3 dialogs", () => {
   test.slow();
 
@@ -228,14 +240,16 @@ test.describe("milestone 3 dialogs", () => {
     await createReadyAccount(page, runtime);
     await travel(page);
     await command(page, ".talk caretaker");
-    await expect(page.locator("#look-bar")).toContainText("Welcome in!");
+    const dialogBubble = page.locator("#bubble-layer .bubble.dialog-bubble");
+    await expect(dialogBubble).toContainText("Welcome in!");
     const exit = page.locator("#actions-bar").getByRole("button", { name: "Exit Conversation", exact: true });
     await expect(exit).toBeVisible();
     await page.locator("#actions-bar").getByRole("button", { name: "House chores", exact: true }).click();
-    await expect(page.locator("#look-bar")).toContainText("Supplies and a vacuum are behind the kitchen.");
+    await expect(dialogBubble).toContainText("Supplies and a vacuum are behind the kitchen.");
     await expect(exit).toBeVisible();
     await exit.click();
     await expect(exit).toHaveCount(0);
+    await expect(dialogBubble).toHaveCount(0);
     expect(sentCommands).toContain(".talk caretaker");
     expect(sentCommands.some(item => item.startsWith(".dialog "))).toBe(true);
     expect(sentCommands).toContain(".dialog_end");

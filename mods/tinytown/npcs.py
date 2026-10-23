@@ -20,6 +20,7 @@ from mods.tinytown.catalog import (
     TRAITS,
     TRAITS_BY_ID,
 )
+from mods.tinytown.roommate_text import roommate_ad
 from server.broadcast import broadcast_room_event
 from server.content.worlds import PeepDefinition, QuickAction
 from server.security import utc_now
@@ -434,6 +435,7 @@ class NpcHouse:
             "target": record.target,
             "room_id": record.room_id,
             "room_label": room_label,
+            "description": roommate_ad(record.traits).description,
         }
 
     def _require_owned_house(self, account: object, house_id: str):

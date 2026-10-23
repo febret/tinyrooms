@@ -5,6 +5,7 @@ import { withBase } from "./base-path.js";
 import {
   assetOrEmpty,
   clone,
+  mergeLayoutProps,
   normalizeActivity,
   normalizeCardDefinition,
   normalizeChatEntry,
@@ -14,7 +15,6 @@ import {
   normalizeInventoryStack,
   normalizeJournal,
   normalizePack,
-  normalizeProp,
   normalizeRoom,
   normalizeRoomCard,
   normalizeSurface,
@@ -279,7 +279,7 @@ function applyServerEvent(state, event) {
       room: {
         ...state.room,
         layoutRevision: revision,
-        props: Array.isArray(event.props) ? event.props.map(normalizeProp) : state.room.props,
+        props: Array.isArray(event.props) ? mergeLayoutProps(state.room.props, event.props) : state.room.props,
         board: {
           ...state.room.board,
           palette: Array.isArray(environment.palette) ? [...environment.palette] : state.room.board.palette,

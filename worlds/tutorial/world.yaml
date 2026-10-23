@@ -4,6 +4,7 @@ description: A pocket-sized home where the chores have opinions and the basement
   definitely hiding something.
 entry_room: hub
 image: rooms/hub.jpg
+css: cutscenes.css
 palette:
 - '#f5d9a7'
 - '#dd755e'

@@ -466,6 +466,8 @@ class TinytownHousing:
                 for room in template.rooms
             ],
             "room_count": len(template.rooms),
+            "resident_count": len(self.npcs.records_for_house(record.house_id)),
+            "max_residents": MAX_NPCS_PER_HOUSE,
             "owner_id": record.owner_account_id,
             "owner_username": self._owner_name(record.owner_account_id),
             "is_owner": record.owner_account_id == viewer_id,

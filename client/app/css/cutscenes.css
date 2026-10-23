@@ -15,14 +15,7 @@
 .cutscene-sprite-placeholder { display: grid; place-items: center; min-width: 120px; min-height: 120px; padding: 12px; border: 2px dashed #ffffff40; border-radius: 12px; color: #f7f5edcc; font-size: 0.9rem; text-align: center; }
 /* Resolved-but-unloadable sprites stay square even after a scene replaces their class. */
 div[data-sprite-kind]:not([data-sprite-kind="missing"]) { aspect-ratio: 1 / 1; }
-.cutscene-couple { position: relative; display: flex; align-items: center; justify-content: center; gap: clamp(24px, 10vmin, 120px); width: min(86%, 760px); }
-.cutscene-couple .cutscene-sprite { flex: 1 1 0; min-width: 0; max-width: 240px; }
-.cutscene-sprite-me { transform: translateX(-16%); }
-.cutscene-sprite-peep { transform: translateX(16%); }
-.cutscene-couple-meet .cutscene-sprite-me { animation: cutscene-meet-from-left 760ms cubic-bezier(0.34, 1.3, 0.64, 1) both; }
-.cutscene-couple-meet .cutscene-sprite-peep { animation: cutscene-meet-from-right 760ms cubic-bezier(0.34, 1.3, 0.64, 1) both; }
-.cutscene-hearts { position: absolute; left: 50%; top: 46%; width: 0; height: 0; z-index: 2; pointer-events: none; }
-.cutscene-heart { position: absolute; left: 0; top: 0; font-size: clamp(1.1rem, 2.8vmin, 2.2rem); line-height: 1; will-change: transform, opacity; animation: cutscene-heart-burst 1150ms cubic-bezier(0.18, 0.72, 0.32, 1) var(--heart-delay, 0ms) both; }
+/* World-specific cutscene styles live in each world's cutscenes.css file. */
 .cutscene-skip { position: absolute; right: 14px; top: 14px; min-width: 72px; min-height: 40px; padding: 8px 16px; border: 2px solid #030b0d; border-radius: 10px; background: #05121df2; color: var(--cutscene-ink); font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px #0009; }
 .cutscene-skip:hover, .cutscene-skip:focus-visible { background: #0d3140; }
 
@@ -79,14 +72,6 @@ div[data-sprite-kind]:not([data-sprite-kind="missing"]) { aspect-ratio: 1 / 1; }
 @keyframes cutscene-task-seal { from { opacity: 0; transform: scale(0.2) rotate(-18deg); } 60% { opacity: 1; transform: scale(1.14) rotate(4deg); } to { opacity: 1; transform: none; } }
 @keyframes cutscene-task-seal-glow { from { box-shadow: 0 0 22px var(--cutscene-accent), 0 8px 18px #000c; } to { box-shadow: 0 0 40px var(--cutscene-accent), 0 8px 18px #000c; } }
 
-.cutscene-vacuum-scene { position: relative; display: flex; align-items: center; justify-content: center; gap: clamp(20px, 8vmin, 90px); width: min(92%, 1100px); }
-.cutscene-centipede { transition: transform 900ms ease-in, opacity 900ms ease-in; }
-.cutscene-centipede-gone { transform: translateX(-42%) scale(0.2) rotate(-24deg); opacity: 0; }
-.cutscene-vacuum-rig { animation: cutscene-vacuum-shake 180ms linear infinite; }
-.cutscene-mission { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 6%; color: #fff; font-size: clamp(2rem, 9vmin, 6rem); font-weight: 900; letter-spacing: 0.06em; text-align: center; text-shadow: 0 0 18px #7de07d, 0 6px 0 #0b3d1c, 0 14px 40px #000; animation: cutscene-mission-zoom 900ms cubic-bezier(0.2, 1.5, 0.35, 1) both; }
-.cutscene-fireworks { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.cutscene-firework { position: absolute; width: 9px; height: 9px; border-radius: 50%; will-change: transform, opacity; animation: cutscene-firework-burst 1100ms ease-out var(--fw-delay, 0ms) both; }
-
 @keyframes cutscene-in-left { from { opacity: 0; transform: translateX(-14%) scale(0.94); } to { opacity: 1; transform: none; } }
 @keyframes cutscene-out-right { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(14%) scale(0.94); } }
 @keyframes cutscene-in-top { from { transform: translateY(-100%); } to { transform: none; } }
@@ -97,16 +82,6 @@ div[data-sprite-kind]:not([data-sprite-kind="missing"]) { aspect-ratio: 1 / 1; }
 @keyframes cutscene-caption-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes cutscene-dance { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(5deg) translateY(-12px); } }
 @keyframes cutscene-banner-slam { from { opacity: 0; transform: scale(2.2) rotate(-6deg); } to { opacity: 1; transform: none; } }
-@keyframes cutscene-meet-from-left { from { transform: translateX(-120%) rotate(-6deg); } to { transform: translateX(0) rotate(0); } }
-@keyframes cutscene-meet-from-right { from { transform: translateX(120%) rotate(6deg); } to { transform: translateX(0) rotate(0); } }
-@keyframes cutscene-heart-burst {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--heart-x, 0px)), calc(-50% + var(--heart-y, 0px))) scale(var(--heart-scale, 1)) rotate(var(--heart-rotate, 0deg)); }
-}
-@keyframes cutscene-vacuum-shake { 0%, 100% { transform: translate(0, 0) rotate(-1deg); } 50% { transform: translate(2px, -3px) rotate(1deg); } }
-@keyframes cutscene-mission-zoom { from { opacity: 0; transform: scale(0.2); } 60% { opacity: 1; } to { opacity: 1; transform: scale(1); } }
-@keyframes cutscene-firework-burst { 0% { opacity: 1; transform: translate(0, 0) scale(0.4); } 100% { opacity: 0; transform: translate(var(--fw-x, 0), var(--fw-y, 0)) scale(1.7); } }
 
 .cutscene-pack-scene { position: relative; display: grid; place-items: center; width: min(94%, 960px); min-height: 62vmin; }
 .cutscene-pack-title { position: absolute; top: clamp(4px, 2.5vmin, 24px); left: 0; right: 0; margin: 0; color: var(--cutscene-accent); font-size: clamp(1.05rem, 3.2vmin, 1.9rem); font-weight: 900; letter-spacing: 0.14em; text-align: center; text-transform: uppercase; text-shadow: 0 3px 14px #000c; }
@@ -148,18 +123,5 @@ div[data-sprite-kind]:not([data-sprite-kind="missing"]) { aspect-ratio: 1 / 1; }
 @keyframes cutscene-pack-spark { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.4); } to { opacity: 0; transform: translate(calc(-50% + var(--spark-x, 0px)), calc(-50% + var(--spark-y, 0px))) scale(1.6); } }
 @keyframes cutscene-pack-legendary { from { filter: brightness(1); } to { filter: brightness(1.18); } }
 
-.cutscene-frame-paintball-podium .cutscene-stage { width: min(92%, 1040px); aspect-ratio: 16 / 9; background: radial-gradient(ellipse at 50% 115%, #2a1240, #0a0612 70%); border: 3px solid var(--cutscene-accent); border-radius: 18px; box-shadow: 0 0 70px #ff4d6d55, 0 20px 60px #000c; overflow: hidden; }
-.cutscene-frame-paintball-podium[data-phase="intro"] { animation: cutscene-slam var(--cutscene-frame-duration) cubic-bezier(0.2, 1.3, 0.3, 1) both; }
-.cutscene-frame-paintball-podium[data-phase="outro"] { animation: cutscene-fade-out var(--cutscene-frame-duration) ease-in both; }
-.paintball-podium-title { position: relative; z-index: 2; margin: clamp(10px, 2.4vmin, 22px) 0 0; color: #fff; font-size: clamp(1.4rem, 4.6vmin, 2.6rem); font-weight: 900; letter-spacing: 0.16em; text-align: center; text-shadow: 0 0 18px var(--cutscene-accent), 0 3px 10px #000c; }
-.paintball-podium-row { position: absolute; inset: auto 4% 4% 4%; display: flex; align-items: flex-end; justify-content: center; gap: clamp(10px, 3vmin, 34px); height: 62%; }
-.paintball-podium-block { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: min(28%, 220px); }
-.paintball-podium-sprite { width: clamp(54px, 12vmin, 120px); height: auto; filter: drop-shadow(0 10px 18px #000b); }
-.paintball-podium-empty { display: grid; place-items: center; width: clamp(54px, 12vmin, 120px); aspect-ratio: 1; border: 2px dashed #ffffff33; border-radius: 50%; color: #ffffff55; font-size: 1.4rem; }
-.paintball-podium-name { max-width: 100%; margin-bottom: 6px; overflow: hidden; font-size: clamp(0.72rem, 2vmin, 1rem); font-weight: 800; text-overflow: ellipsis; text-shadow: 0 2px 8px #000c; white-space: nowrap; }
-.paintball-podium-step { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; padding-top: 8px; border: 3px solid; border-bottom: none; border-radius: 10px 10px 0 0; background: linear-gradient(180deg, #ffffff1c, #ffffff05); box-shadow: 0 0 26px -6px currentColor inset; }
-.paintball-podium-medal { font-size: clamp(1.1rem, 3.4vmin, 1.8rem); font-weight: 900; line-height: 1; }
-.paintball-podium-score { margin-top: 4px; color: #e8f4ff; font-size: clamp(0.6rem, 1.7vmin, 0.82rem); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.paintball-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
-.paintball-confetti-piece { position: absolute; top: -8%; width: 8px; height: 14px; border-radius: 2px; opacity: 0; animation: paintball-confetti-fall 2200ms linear infinite; }
-@keyframes paintball-confetti-fall { 0% { opacity: 0; transform: translate3d(0, -10%, 0) rotate(0deg); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--drift, 0), 620%, 0) rotate(540deg); } }
+/* World-specific cutscene styles live in each world's cutscenes.css file. */
+

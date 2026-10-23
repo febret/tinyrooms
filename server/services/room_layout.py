@@ -244,6 +244,7 @@ class RoomLayoutService:
                         else (source.sign_style if source and definition.render_kind == "sign" else None)
                     ),
                     surface=source.surface if source else None,
+                    description=source.description if source else None,
                 )
             )
         return base
@@ -318,7 +319,7 @@ class RoomLayoutService:
             **({"sign_style": _read_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
             **({"surface": surface} if surface is not None else {}),
             "label": definition.label,
-            "description": definition.description,
+            "description": instance.description if instance.description is not None else definition.description,
             "animation": animation,
             "quick_actions": [],
             **state_payload,

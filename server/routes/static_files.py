@@ -126,6 +126,19 @@ def register_static_routes(app: FastAPI) -> None:
             raise HTTPException(status_code=404, detail="World image not found.")
         return FileResponse(runtime.world.image_path, headers={"Cache-Control": "public, max-age=60"})
 
+    @app.get("/assets/world/{world_id}/world.css")
+    async def world_stylesheet(world_id: str, request: Request) -> Response:
+        runtime = get_runtime(request)
+        if world_id != runtime.world.id or runtime.world.stylesheet_path is None:
+            raise HTTPException(status_code=404, detail="World stylesheet not found.")
+        if not runtime.world.stylesheet_path.is_file():
+            raise HTTPException(status_code=404, detail="World stylesheet not found.")
+        return FileResponse(
+            runtime.world.stylesheet_path,
+            media_type="text/css",
+            headers={"Cache-Control": "public, max-age=60"},
+        )
+
     @app.get("/assets/fx/{filename}")
     async def fx_asset(filename: str, request: Request) -> Response:
         runtime = get_runtime(request)

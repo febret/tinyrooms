@@ -371,11 +371,7 @@ async function openCommands() {
 }
 
 function renderLook(state) {
-  const dialog = state.room?.dialog;
-  const selectedPeep = dialog ? state.room?.npcs?.find(peep => peep.id === dialog.peepId) : null;
-  const description = dialog
-    ? { tag: "Conversation", title: dialog.peepLabel || selectedPeep?.label || "Conversation", description: dialog.text, imageUrl: selectedPeep?.stickerUrl || "" }
-    : describeSelection(state);
+  const description = describeSelection(state);
   const preview = lookPreview(state, description);
   const look = $("#look-bar");
   if (updateMarkup(look, `${preview.markup}<div class="look-copy">
@@ -456,6 +452,8 @@ async function handleAction(action, { silentSound = false } = {}) {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {
     if (action.propId) window.open(withBase(`/prop-editor/?prop=${encodeURIComponent(action.propId)}`), "_blank", "noopener");
+  } else if (action.type === "open-cutscene-catalog") {
+    window.open(withBase("/cutscene-catalog/"), "_blank", "noopener");
   } else if (action.type === "inspect-card") {
     store.dispatch({ type: "inspect-card", stackId: action.stackId });
   } else if (action.type === "start-targeting") {
@@ -1188,6 +1186,25 @@ function buildBoardState(state) {
   };
 }
 
+function syncWorldStylesheet(state) {
+  const href = state.loggedIn ? String(state.user?.worldCssUrl || "") : "";
+  const worldId = state.loggedIn ? String(state.user?.worldId || "") : "";
+  if (worldId) root.dataset.world = worldId;
+  else delete root.dataset.world;
+  let link = document.head.querySelector("link[data-world-stylesheet]");
+  if (!href) {
+    link?.remove();
+    return;
+  }
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.dataset.worldStylesheet = "";
+    document.head.append(link);
+  }
+  if (link.getAttribute("href") !== href) link.href = href;
+}
+
 async function render(state) {
   const revision = ++renderRevision;
   const roomChanged = Boolean(previousRoom && state.room?.id && previousRoom !== state.room.id);
@@ -1198,6 +1215,7 @@ async function render(state) {
     if (revision !== renderRevision) return;
   }
   toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
+  syncWorldStylesheet(state);
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
   toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone");

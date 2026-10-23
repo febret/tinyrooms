@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#061923">
+    <title>Cutscene Catalog · Tinyrooms</title>
+    <link rel="icon" href="/assets/stickers/s1.png">
+    <link rel="stylesheet" href="/app/css/tool-base.css">
+    <link rel="stylesheet" href="/app/css/cutscenes.css">
+    <link rel="stylesheet" href="/cutscene-catalog/cutscene-catalog.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/app/vendor/three/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app" class="cc-shell" data-auth="in">
+      <header class="cc-header">
+        <div class="cc-titles">
+          <h1>Cutscene Catalog</h1>
+          <p id="cc-world" class="cc-world"></p>
+        </div>
+        <div class="cc-header-actions">
+          <label class="cc-room-label">Test room
+            <select id="cc-room" aria-label="Test room"></select>
+          </label>
+          <button type="button" id="cc-refresh" class="quiet">Refresh</button>
+          <a id="cc-back" class="cc-back" href="/">Back to game</a>
+        </div>
+      </header>
+      <p id="cc-motion" class="cc-notice" hidden></p>
+      <div class="cc-body">
+        <section class="cc-list" aria-label="Cutscenes">
+          <div class="cc-filters">
+            <input id="cc-search" type="search" placeholder="Search title, id, or alias" aria-label="Search cutscenes">
+            <div id="cc-tabs" class="cc-tabs" role="tablist" aria-label="Catalog filters"></div>
+          </div>
+          <ul id="cc-scenes" class="cc-scenes"></ul>
+        </section>
+        <section id="cc-detail" class="cc-detail" aria-label="Cutscene detail" aria-live="polite"></section>
+      </div>
+      <div class="cc-stage" id="cc-stage">
+        <div id="cutscene-layer" class="cutscene-layer" data-state="idle" hidden></div>
+      </div>
+      <dialog id="cc-picker" class="cc-picker" aria-label="Placeholder picker">
+        <form method="dialog" class="cc-picker-head">
+          <h2 id="cc-picker-title">Pick a value</h2>
+          <button type="submit" class="quiet" value="cancel">Close</button>
+        </form>
+        <input id="cc-picker-search" type="search" placeholder="Search" aria-label="Search choices">
+        <div id="cc-picker-list" class="cc-picker-list"></div>
+      </dialog>
+      <p id="cc-toast" class="cc-toast" aria-live="polite"></p>
+    </div>
+    <script type="module" src="/cutscene-catalog/js/app.js"></script>
+  </body>
+</html>

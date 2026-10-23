@@ -15,6 +15,7 @@ import { propDetailsView } from "./views/prop-details-view.js";
 import { journalView } from "./views/journal-view.js";
 import { phoneView } from "./views/phone-view.js";
 import { createEditorDock } from "./editing/editor-dock.js";
+import { animateToolbarButtons, captureToolbarButtons } from "./toolbar-animation.js";
 
 function coreMarkup(definition, selected) {
   return `
@@ -29,14 +30,22 @@ function multiverseButtonMarkup() {
   return `<button type="button" id="multiverse-toggle" class="icon-button toolbar-edit" data-open-multiverse="1" aria-label="Open the Multiverse" title="Open the Multiverse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 8.2 5.3c-1.5 2.7-4.3 4.6-7.6 4.6a5.9 5.9 0 0 1-5.9-5.9c0-2.2 1.2-4.1 3-5.1"></path><path d="M12 7a5 5 0 1 0 4.2 7.7c-1.1 1.4-2.8 2.3-4.7 2.3a3.9 3.9 0 0 1-3.9-3.9c0-1.5.8-2.8 2-3.5"></path><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle></svg></button>`;
 }
 
-function editButtonMarkup(room, isAdmin, selectedProp) {
+function tinymagButtonMarkup() {
+  return `<button type="button" id="tinymag-toggle" class="icon-button toolbar-edit" data-open-tinymag="1" aria-label="Open Tiny Mag" title="Open Tiny Mag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"></path><path d="M9 7h6M9 10h5"></path></svg></button>`;
+}
+
+function editButtonMarkup(room, isAdmin, selectedProp, canReviewCutscenes) {
   const pencil = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"></path><path d="m13 5 4 4"></path></svg>`;
+  const clapper = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8.5 4.5 4h15L18 8.5"></path><path d="m7 4 2.5 4.5M12 4l2.5 4.5M17 4l2.5 4.5"></path><rect x="3" y="8.5" width="18" height="12" rx="2"></rect><path d="M10 12.5v5M14 12.5v5"></path></svg>`;
   return [
     room?.canEditRoom
       ? `<button type="button" class="icon-button toolbar-edit" data-edit-room="1" aria-label="Edit Room" title="Edit Room">${pencil}</button>`
       : "",
     isAdmin && selectedProp?.propId
       ? `<button type="button" class="icon-button toolbar-edit" data-edit-prop="${escapeHtml(selectedProp.propId)}" aria-label="Edit Prop" title="Edit Prop">${pencil}</button>`
+      : "",
+    canReviewCutscenes
+      ? `<button type="button" class="icon-button toolbar-edit" data-open-cutscene-catalog="1" aria-label="Open Cutscene Catalog" title="Open Cutscene Catalog">${clapper}</button>`
       : "",
   ].join("");
 }
@@ -59,11 +68,17 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-open-multiverse]").forEach(button => {
     button.onclick = () => onAction({ command: ".play multiverse" });
   });
+  root.querySelectorAll("[data-open-tinymag]").forEach(button => {
+    button.onclick = () => onAction({ command: ".tinytown open" });
+  });
   root.querySelectorAll("[data-edit-room]").forEach(button => {
     button.onclick = () => onAction({ type: "open-view", view: "edit-room" });
   });
   root.querySelectorAll("[data-edit-prop]").forEach(button => {
     button.onclick = () => onAction({ type: "open-prop-editor", propId: button.dataset.editProp });
+  });
+  root.querySelectorAll("[data-open-cutscene-catalog]").forEach(button => {
+    button.onclick = () => onAction({ type: "open-cutscene-catalog" });
   });
   root.querySelectorAll("[data-close-view]").forEach(button => {
     button.onclick = () => onAction({ type: "close-view" });
@@ -157,10 +172,6 @@ function boardModal(state) {
 export function describeSelection(state) {
   if (!state.room) return { tag: "Tinyrooms", title: "Sign in", description: "Create an account or log in to enter the world.", imageUrl: "" };
   const selected = findSelectedEntity(state);
-  const dialog = state.room.dialog;
-  if (dialog && state.selection.kind === "peep" && selected?.id === dialog.peepId) {
-    return { tag: "Conversation", title: dialog.peepLabel || selected.label, description: dialog.text, imageUrl: selected.stickerUrl };
-  }
   if (!selected || state.selection.kind === "room") {
     const gameStatus = typeof state.room.board?.state?.status === "string" ? state.room.board.state.status : "";
     const description = [gameStatus, state.room.description || state.room.note || "Current room."].filter(Boolean).join("\n\n");
@@ -347,8 +358,11 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
   const renderEditor = (state, options) => editorDock.render(state, options);
   const rendered = new WeakMap();
   let lastEquippedSelection = null;
+  let toolbarReady = false;
   function update(root, markup) {
     if (rendered.get(root) === markup) return false;
+    const animateToolbar = root === coreRoot && toolbarReady;
+    const previousToolbar = animateToolbar ? captureToolbarButtons(root) : null;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
     const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView"]
       .find(key => active.dataset[key] !== undefined);
@@ -376,6 +390,8 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
       }
     }
     bindCardButtons(root, onSelect, onAction);
+    if (previousToolbar) animateToolbarButtons(root, previousToolbar);
+    if (root === coreRoot && root.childElementCount > 0) toolbarReady = true;
     return true;
   }
   return {
@@ -388,13 +404,15 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
         .filter(id => id !== "emotes");
       const selectedProp = state.selection.kind === "prop" ? findSelectedEntity(state) : null;
       const isAdmin = (state.user?.powers || []).includes("admin");
+      const canReviewCutscenes = (state.user?.powers || []).some(power => power === "admin" || power === "game-master");
       const showMultiverse = isAdmin || hasSlottedSkill(state, "multiverse-map");
+      const showTinymag = state.user?.worldId === "tinytown";
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
       const roomPicker = `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg></button>`;
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join("") + editButtonMarkup(state.room, isAdmin, selectedProp));
+      ) + (id === "inventory" ? `${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join(""      ) + (showTinymag ? tinymagButtonMarkup() : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");
