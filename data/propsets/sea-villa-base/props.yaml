@@ -1,0 +1,186 @@
+CONFIG:
+  scale_adjust: 2.0
+seavilla-aqua-sofa:
+  label: Aqua Sofa
+  description: A curved sofa the colour of shallow water.
+  model: seavilla-aqua-sofa.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - sofa
+  - furniture
+seavilla-shell-armchair:
+  label: Shell Armchair
+  description: An armchair shaped like an open shell.
+  model: seavilla-shell-armchair.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - seating
+  - chair
+  - furniture
+seavilla-rattan-dining-chair:
+  label: Rattan Dining Chair
+  description: A bleached rattan chair with a sea-foam pad.
+  model: seavilla-rattan-dining-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+seavilla-poolside-lounger:
+  label: Poolside Lounger
+  description: A white lounger with a rolled towel, always.
+  model: seavilla-poolside-lounger.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - lounger
+  - furniture
+seavilla-glass-orb-lamp:
+  label: Glass Orb Lamp
+  description: A floor lamp like a fisherman's float.
+  model: seavilla-glass-orb-lamp.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - lighting
+  - lamp
+seavilla-coral-table-lamp:
+  label: Coral Lamp
+  description: A table lamp branched like white coral.
+  model: seavilla-coral-table-lamp.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lamp
+seavilla-drift-pendant:
+  label: Drift Pendant
+  description: A pendant of frosted glass discs like sea coins.
+  model: seavilla-drift-pendant.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+seavilla-oval-coffee-table:
+  label: Oval Coffee Table
+  description: A travertine oval that stays cool all day.
+  model: seavilla-oval-coffee-table.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - table
+  - furniture
+seavilla-mosaic-side-table:
+  label: Mosaic Side Table
+  description: A side table set with a sea-glass mosaic.
+  model: seavilla-mosaic-side-table.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+seavilla-dining-table:
+  label: Villa Dining Table
+  description: A long pale table for slow lunches.
+  model: seavilla-dining-table.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - table
+  - furniture
+seavilla-arched-shelf:
+  label: Arched Shelf
+  description: A plaster arched shelf for shells and novels.
+  model: seavilla-arched-shelf.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - storage
+  - shelf
+  - furniture
+seavilla-cane-cabinet:
+  label: Cane Cabinet
+  description: A cane-front cabinet in washed oak.
+  model: seavilla-cane-cabinet.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - cabinet
+  - furniture
+seavilla-woven-hamper:
+  label: Woven Hamper
+  description: A lidded hamper for pool towels.
+  model: seavilla-woven-hamper.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - storage
+  - furniture
+seavilla-canopy-bed:
+  label: Canopy Bed
+  description: A white canopy bed with gauze curtains.
+  model: seavilla-canopy-bed.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - bed
+  - furniture
+seavilla-wave-rug:
+  label: Wave Rug
+  description: A soft rug patterned with pale waves.
+  model: seavilla-wave-rug.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - rug
+  - decoration
+seavilla-arch-mirror:
+  label: Arch Mirror
+  description: A tall arched mirror that doubles the light.
+  model: seavilla-arch-mirror.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - mirror
+  - decoration
+seavilla-sun-clock:
+  label: Sun Clock
+  description: A sunburst clock in brushed gold.
+  model: seavilla-sun-clock.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - clock
+  - decoration
+seavilla-olive-pot:
+  label: Olive Pot
+  description: A small olive tree in a limewashed pot.
+  model: seavilla-olive-pot.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - plant
+  - decoration
+seavilla-urchin-vase:
+  label: Urchin Vase
+  description: A spiky ceramic vase glazed sea-foam.
+  model: seavilla-urchin-vase.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - decoration
+seavilla-linen-curtain:
+  label: Linen Curtain
+  description: A breezy linen curtain panel on a brass rod.
+  model: seavilla-linen-curtain.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration

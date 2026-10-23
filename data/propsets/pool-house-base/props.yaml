@@ -1,0 +1,187 @@
+CONFIG:
+  scale_adjust: 2.0
+poolhouse-teak-lounger:
+  label: Teak Lounger
+  description: A teak lounger with a turquoise pad.
+  model: poolhouse-teak-lounger.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - lounger
+  - furniture
+poolhouse-cabana-sofa:
+  label: Cabana Sofa
+  description: A white cabana sofa that dries in minutes.
+  model: poolhouse-cabana-sofa.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - seating
+  - sofa
+  - furniture
+poolhouse-director-chair:
+  label: Director Chair
+  description: A canvas director chair with teak arms.
+  model: poolhouse-director-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+poolhouse-pool-stool:
+  label: Pool Stool
+  description: A turquoise swim-up bar stool.
+  model: poolhouse-pool-stool.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - seating
+  - stool
+  - furniture
+poolhouse-umbrella-lamp:
+  label: Umbrella Lamp
+  description: A floor lamp under a tiny parasol shade.
+  model: poolhouse-umbrella-lamp.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - lighting
+  - lamp
+poolhouse-globe-string:
+  label: Globe String
+  description: A string of glowing globe lights.
+  model: poolhouse-globe-string.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - lighting
+  - decoration
+poolhouse-lantern-table:
+  label: Lantern Table
+  description: A lantern with a candle that never gutters.
+  model: poolhouse-lantern-table.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lantern
+poolhouse-plank-table:
+  label: Plank Table
+  description: A teak plank table for pitchers of lemonade.
+  model: poolhouse-plank-table.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - table
+  - furniture
+poolhouse-tray-table:
+  label: Tray Table
+  description: A removable-tray drinks table.
+  model: poolhouse-tray-table.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+poolhouse-ice-table:
+  label: Ice Table
+  description: A side table with a built-in ice bucket.
+  model: poolhouse-ice-table.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+poolhouse-towel-shelf:
+  label: Towel Shelf
+  description: A slatted shelf stacked with towels.
+  model: poolhouse-towel-shelf.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - storage
+  - shelf
+  - furniture
+poolhouse-locker:
+  label: Pool Locker
+  description: A white locker for goggles and zinc.
+  model: poolhouse-locker.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - cabinet
+  - furniture
+poolhouse-basket:
+  label: Basket
+  description: A giant basket for floats and noodles.
+  model: poolhouse-basket.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - storage
+  - furniture
+poolhouse-daybed:
+  label: Daybed
+  description: A curtained daybed for reading out of the sun.
+  model: poolhouse-daybed.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - bed
+  - furniture
+poolhouse-stripe-rug:
+  label: Stripe Rug
+  description: An outdoor rug in cabana stripes.
+  model: poolhouse-stripe-rug.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - rug
+  - decoration
+poolhouse-life-ring:
+  label: Life Ring
+  description: A life ring, hung with pride and never used.
+  model: poolhouse-life-ring.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - decoration
+poolhouse-sun-clock:
+  label: Sun Clock
+  description: A clock that only counts swim o'clock.
+  model: poolhouse-sun-clock.glb
+  decorative: true
+  scale: 0.6
+  tags:
+  - clock
+  - decoration
+poolhouse-palm-pair:
+  label: Palm Pair
+  description: Twin palms in striped planters.
+  model: poolhouse-palm-pair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - plant
+  - decoration
+poolhouse-pitcher-vase:
+  label: Pitcher Vase
+  description: A turquoise pitcher of hibiscus.
+  model: poolhouse-pitcher-vase.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - decoration
+  - plant
+poolhouse-changing-screen:
+  label: Changing Screen
+  description: A teak changing screen with canvas panels.
+  model: poolhouse-changing-screen.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration
+  - furniture

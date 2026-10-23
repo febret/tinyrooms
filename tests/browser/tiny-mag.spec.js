@@ -19,6 +19,7 @@ test("flip through Tiny Mag, buy a home, and meet roommates", async ({ page, run
   await frame.locator('.contents-list li[data-page="district-downtown"]').click();
   await expect(frame.getByRole("heading", { name: "Downtown" })).toBeVisible();
   await expect(frame.locator(".district-home")).toHaveCount(5);
+  await expect(frame.locator(".district-home .prop-unlocks").first()).toContainText(/Unlocks:/);
   const districtFits = await frame.locator(".page-scroll").evaluateAll(
     pages => pages.map(page => page.scrollHeight <= page.clientHeight + 1),
   );

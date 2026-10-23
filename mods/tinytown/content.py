@@ -44,6 +44,7 @@ class HouseTemplate:
     preview: str
     palette: tuple[str, ...]
     rooms: tuple[HouseRoomTemplate, ...]
+    unlocks: tuple[str, ...] = ()
 
     @property
     def entry_key(self) -> str:
@@ -78,6 +79,7 @@ def load_house_templates(path: Path, world: WorldDefinition) -> dict[str, HouseT
 
     payload = require_mapping(load_yaml_file(path), path)
     templates: dict[str, HouseTemplate] = {}
+    known_sources = {definition.source for definition in world.props.values()}
     for template_id, raw in payload.items():
         if not isinstance(template_id, str) or not isinstance(raw, dict):
             raise ContentError(f"{path} contains an invalid house template.")
@@ -94,6 +96,19 @@ def load_house_templates(path: Path, world: WorldDefinition) -> dict[str, HouseT
             raise ContentError(f"House template '{template_id}' price must be between 100 and 10000 Bops.")
         preview = str(raw.get("preview", "")).strip()
         _image_path(world.root_path, preview, f"House template '{template_id}' preview")
+        raw_unlocks = raw.get("unlocks", []) or []
+        if not isinstance(raw_unlocks, list) or not all(
+            isinstance(entry, str) and entry.strip() for entry in raw_unlocks
+        ):
+            raise ContentError(f"House template '{template_id}' unlocks must be a list of propset ids.")
+        unlocks = tuple(entry.strip() for entry in raw_unlocks)
+        if len(set(unlocks)) != len(unlocks):
+            raise ContentError(f"House template '{template_id}' repeats a propset unlock.")
+        for propset_id in unlocks:
+            if propset_id not in known_sources:
+                raise ContentError(
+                    f"House template '{template_id}' unlocks unknown propset '{propset_id}'."
+                )
         raw_palette = raw.get("palette")
         if not isinstance(raw_palette, list) or not 1 <= len(raw_palette) <= 6:
             raise ContentError(f"House template '{template_id}' palette must be a short colour list.")
@@ -144,6 +159,7 @@ def load_house_templates(path: Path, world: WorldDefinition) -> dict[str, HouseT
             preview=preview,
             palette=palette,
             rooms=tuple(rooms),
+            unlocks=unlocks,
         )
     if not templates:
         raise ContentError(f"{path} does not define any house templates.")

@@ -201,6 +201,7 @@ export const COPY = {
     moveOut: "Move out",
     full: "Household full",
     needBops: "Need more Bops",
+    unlocks: "Unlocks",
     hang: "Hang this print",
     hangAnother: "Hang another",
     makeSpace: "Make space",

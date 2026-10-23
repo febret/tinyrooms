@@ -5,6 +5,8 @@ micro-loft:
   district: downtown
   price: 100
   size: Micro
+  unlocks:
+  - brick-loft-base
   preview: preview-micro-loft.png
   palette:
   - '#f2c14e'
@@ -26,6 +28,8 @@ brick-studio:
   district: downtown
   price: 220
   size: Small
+  unlocks:
+  - brick-loft-base
   preview: preview-brick-studio.png
   palette:
   - '#b6533c'
@@ -52,6 +56,8 @@ neon-flat:
   district: downtown
   price: 480
   size: Compact
+  unlocks:
+  - neon-flat-base
   preview: preview-neon-flat.png
   palette:
   - '#3a1f5d'
@@ -81,6 +87,8 @@ clocktower-apartment:
   district: downtown
   price: 900
   size: Large
+  unlocks:
+  - brick-loft-base
   preview: preview-clocktower-apartment.png
   palette:
   - '#6b4f3a'
@@ -114,6 +122,17 @@ skyline-penthouse:
   district: downtown
   price: 10000
   size: Penthouse
+  unlocks:
+  - beach-hut-base
+  - harbor-house-base
+  - sea-villa-base
+  - brick-loft-base
+  - penthouse-base
+  - neon-flat-base
+  - nature-cottage-base
+  - italian-manor-base
+  - pool-house-base
+  - family-home-base
   preview: preview-skyline-penthouse.png
   palette:
   - '#20283b'
@@ -160,6 +179,8 @@ beach-hut:
   district: sea
   price: 150
   size: Micro
+  unlocks:
+  - beach-hut-base
   preview: preview-beach-hut.png
   palette:
   - '#e7d6a8'
@@ -185,6 +206,8 @@ tidepool-cottage:
   district: sea
   price: 340
   size: Small
+  unlocks:
+  - beach-hut-base
   preview: preview-tidepool-cottage.png
   palette:
   - '#8bc3c4'
@@ -214,6 +237,8 @@ lighthouse-keep:
   district: sea
   price: 750
   size: Medium
+  unlocks:
+  - harbor-house-base
   preview: preview-lighthouse-keep.png
   palette:
   - '#f4f1e7'
@@ -248,6 +273,9 @@ harbor-house:
   district: sea
   price: 1200
   size: Large
+  unlocks:
+  - harbor-house-base
+  - sea-villa-base
   preview: preview-harbor-house.png
   palette:
   - '#2e5d68'
@@ -290,6 +318,10 @@ seaglass-villa:
   district: sea
   price: 6500
   size: Villa
+  unlocks:
+  - sea-villa-base
+  - beach-hut-base
+  - pool-house-base
   preview: preview-seaglass-villa.png
   palette:
   - '#9dd8cf'
@@ -335,6 +367,8 @@ hilltop-cabin:
   district: hills
   price: 280
   size: Small
+  unlocks:
+  - nature-cottage-base
   preview: preview-hilltop-cabin.png
   palette:
   - '#6f513b'
@@ -360,6 +394,8 @@ wildflower-cottage:
   district: hills
   price: 560
   size: Medium
+  unlocks:
+  - nature-cottage-base
   preview: preview-wildflower-cottage.png
   palette:
   - '#e5cf86'
@@ -393,6 +429,8 @@ orchard-house:
   district: hills
   price: 980
   size: Large
+  unlocks:
+  - nature-cottage-base
   preview: preview-orchard-house.png
   palette:
   - '#7c8b4b'
@@ -434,6 +472,9 @@ vineyard-manor:
   district: hills
   price: 2400
   size: Manor
+  unlocks:
+  - italian-manor-base
+  - nature-cottage-base
   preview: preview-vineyard-manor.png
   palette:
   - '#5a4634'
@@ -479,6 +520,17 @@ observatory-estate:
   district: hills
   price: 9000
   size: Estate
+  unlocks:
+  - beach-hut-base
+  - harbor-house-base
+  - sea-villa-base
+  - brick-loft-base
+  - penthouse-base
+  - neon-flat-base
+  - nature-cottage-base
+  - italian-manor-base
+  - pool-house-base
+  - family-home-base
   preview: preview-observatory-estate.png
   palette:
   - '#242b4a'
@@ -524,6 +576,8 @@ starter-bungalow:
   district: suburbs
   price: 180
   size: Small
+  unlocks:
+  - family-home-base
   preview: preview-starter-bungalow.png
   palette:
   - '#e6d7b9'
@@ -549,6 +603,8 @@ maple-family-home:
   district: suburbs
   price: 650
   size: Medium
+  unlocks:
+  - family-home-base
   preview: preview-maple-family-home.png
   palette:
   - '#b95c43'
@@ -582,6 +638,9 @@ garden-terrace:
   district: suburbs
   price: 1100
   size: Large
+  unlocks:
+  - family-home-base
+  - nature-cottage-base
   preview: preview-garden-terrace.png
   palette:
   - '#7f9d79'
@@ -619,6 +678,10 @@ willow-pool-house:
   district: suburbs
   price: 3000
   size: Large
+  unlocks:
+  - pool-house-base
+  - family-home-base
+  - sea-villa-base
   preview: preview-willow-pool-house.png
   palette:
   - '#5f7f6c'
@@ -661,6 +724,17 @@ grand-manor:
   district: suburbs
   price: 8000
   size: Manor
+  unlocks:
+  - beach-hut-base
+  - harbor-house-base
+  - sea-villa-base
+  - brick-loft-base
+  - penthouse-base
+  - neon-flat-base
+  - nature-cottage-base
+  - italian-manor-base
+  - pool-house-base
+  - family-home-base
   preview: preview-grand-manor.png
   palette:
   - '#4c3b34'

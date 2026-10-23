@@ -1,0 +1,187 @@
+CONFIG:
+  scale_adjust: 2.0
+harbor-oak-settle:
+  label: Harbor Settle
+  description: A deep oiled-oak settle for chart talk.
+  model: harbor-oak-settle.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - bench
+  - furniture
+harbor-leather-club-chair:
+  label: Club Chair
+  description: A brass-studded leather club chair, broken in by captains.
+  model: harbor-leather-club-chair.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - seating
+  - chair
+  - furniture
+harbor-rope-stool:
+  label: Rope Stool
+  description: A dock-rope stool with a solid oak seat.
+  model: harbor-rope-stool.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - seating
+  - stool
+  - furniture
+harbor-window-seat:
+  label: Chart Window Seat
+  description: A cushioned window seat for watching the marina.
+  model: harbor-window-seat.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - bench
+  - furniture
+harbor-brass-desk-lamp:
+  label: Brass Desk Lamp
+  description: A banker's lamp in harbor brass.
+  model: harbor-brass-desk-lamp.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lamp
+harbor-cage-pendant:
+  label: Cage Pendant
+  description: A caged bulkhead pendant from a retired trawler.
+  model: harbor-cage-pendant.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+harbor-mast-floor-lamp:
+  label: Mast Floor Lamp
+  description: A floor lamp shaped like a little mast.
+  model: harbor-mast-floor-lamp.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - lighting
+  - lamp
+harbor-chart-table:
+  label: Chart Table
+  description: A broad table for spreading sea charts.
+  model: harbor-chart-table.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - table
+  - furniture
+harbor-coffee-table:
+  label: Hatch Coffee Table
+  description: A coffee table built like a ship's hatch.
+  model: harbor-coffee-table.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - table
+  - furniture
+harbor-side-table:
+  label: Buoy Side Table
+  description: A side table painted like a harbour buoy.
+  model: harbor-side-table.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+harbor-map-cabinet:
+  label: Map Cabinet
+  description: A flat-drawer cabinet for charts and tide books.
+  model: harbor-map-cabinet.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - cabinet
+  - furniture
+harbor-rope-bookshelf:
+  label: Rope Bookshelf
+  description: Oak shelves hung on thick dock rope.
+  model: harbor-rope-bookshelf.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - shelf
+  - furniture
+harbor-kit-chest:
+  label: Kit Chest
+  description: A sailor's chest with rope beckets.
+  model: harbor-kit-chest.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - storage
+  - furniture
+harbor-berth-bed:
+  label: Berth Bed
+  description: A snug berth bed with navy wool blankets.
+  model: harbor-berth-bed.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - bed
+  - furniture
+harbor-runner-rug:
+  label: Harbor Runner
+  description: A long runner in navy and rope beige.
+  model: harbor-runner-rug.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - rug
+  - decoration
+harbor-brass-mirror:
+  label: Brass Mirror
+  description: A round porthole mirror in polished brass.
+  model: harbor-brass-mirror.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - mirror
+  - decoration
+harbor-barometer:
+  label: Barometer
+  description: A brass barometer that takes the weather personally.
+  model: harbor-barometer.glb
+  decorative: true
+  scale: 0.6
+  tags:
+  - clock
+  - decoration
+harbor-knot-plant-pot:
+  label: Knot Plant Pot
+  description: A fern in a pot wrapped with sailor knots.
+  model: harbor-knot-plant-pot.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - plant
+  - decoration
+harbor-signal-flags:
+  label: Signal Flags
+  description: A string of harbour signal flags for the wall.
+  model: harbor-signal-flags.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - decoration
+harbor-coat-stand:
+  label: Coat Stand
+  description: An oak stand with pegs for oilskins.
+  model: harbor-coat-stand.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - furniture

@@ -1,0 +1,189 @@
+CONFIG:
+  scale_adjust: 2.0
+brickloft-steel-sofa:
+  label: Steel Sofa
+  description: A charcoal sofa on a black steel frame.
+  model: brickloft-steel-sofa.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - sofa
+  - furniture
+brickloft-tolix-chair:
+  label: Workshop Chair
+  description: A pressed-steel workshop chair, happily dented.
+  model: brickloft-tolix-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+brickloft-leather-armchair:
+  label: Loft Armchair
+  description: A cognac leather armchair worn to perfection.
+  model: brickloft-leather-armchair.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - seating
+  - chair
+  - furniture
+brickloft-drafting-stool:
+  label: Drafting Stool
+  description: A tall drafting stool that spins like studio gossip.
+  model: brickloft-drafting-stool.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - seating
+  - stool
+  - furniture
+brickloft-cage-floor-lamp:
+  label: Cage Floor Lamp
+  description: A floor lamp caged like a studio light.
+  model: brickloft-cage-floor-lamp.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - lighting
+  - lamp
+brickloft-enamel-pendant:
+  label: Enamel Pendant
+  description: A green enamel factory pendant.
+  model: brickloft-enamel-pendant.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+brickloft-edison-desk-lamp:
+  label: Edison Lamp
+  description: An Edison bulb lamp on a cast-iron base.
+  model: brickloft-edison-desk-lamp.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lamp
+brickloft-scaffold-desk:
+  label: Scaffold Desk
+  description: A desk of scaffold boards and pipe legs.
+  model: brickloft-scaffold-desk.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - desk
+  - table
+  - furniture
+brickloft-spool-table:
+  label: Spool Table
+  description: A coffee table made from a cable spool.
+  model: brickloft-spool-table.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - table
+  - furniture
+brickloft-welded-side-table:
+  label: Welded Side Table
+  description: A side table of welded plate steel.
+  model: brickloft-welded-side-table.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+brickloft-pipe-shelf:
+  label: Pipe Shelf
+  description: Scaffold shelves on wall pipes.
+  model: brickloft-pipe-shelf.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - shelf
+  - furniture
+brickloft-flat-file:
+  label: Flat File
+  description: A steel flat file for prints and posters.
+  model: brickloft-flat-file.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - cabinet
+  - furniture
+brickloft-locker:
+  label: Loft Locker
+  description: A tall locker with vents and stories.
+  model: brickloft-locker.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - storage
+  - cabinet
+  - furniture
+brickloft-platform-bed:
+  label: Platform Bed
+  description: A low platform bed on pallet timber.
+  model: brickloft-platform-bed.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - bed
+  - furniture
+brickloft-kilims-rug:
+  label: Kilim Rug
+  description: A flat kilim in rust and ink.
+  model: brickloft-kilims-rug.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - rug
+  - decoration
+brickloft-steel-mirror:
+  label: Steel Mirror
+  description: A round mirror in a black steel rim.
+  model: brickloft-steel-mirror.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - mirror
+  - decoration
+brickloft-station-clock:
+  label: Station Clock
+  description: A double-sided station clock for studio time.
+  model: brickloft-station-clock.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - clock
+  - decoration
+brickloft-fig-pot:
+  label: Fig Pot
+  description: A fiddle-leaf fig in a concrete pot.
+  model: brickloft-fig-pot.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - plant
+  - decoration
+brickloft-paint-vase:
+  label: Paint Vase
+  description: A vase glazed like a spilled palette.
+  model: brickloft-paint-vase.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - decoration
+brickloft-brick-screen:
+  label: Studio Screen
+  description: A steel-and-canvas studio divider.
+  model: brickloft-brick-screen.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration
+  - furniture

@@ -19,6 +19,10 @@ test.describe("account onboarding", () => {
     expect(sockets).toHaveLength(0);
     await page.keyboard.press("Escape");
     await expect(page.locator('iframe[src*="sticker-designer"]')).toBeVisible();
+    const designer = page.frameLocator('iframe[src*="sticker-designer"]');
+    await expect(designer.locator("#custom-pane")).toBeVisible();
+    await expect(designer.locator("#presets-pane")).toBeHidden();
+    await expect(designer.locator('[data-mode="presets"]')).toBeHidden();
     expect(await page.locator("#chat-input").evaluate(node => node.disabled || Boolean(node.closest("[inert]")))).toBe(true);
     await confirmSticker(page);
     await expect(page.getByRole("button", { name: "Select sunbeam", exact: true })).toBeVisible();
@@ -45,6 +49,16 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
     await expect(page.locator(`#core-tools [data-core-id="${id}"]`)).toBeVisible();
   }
   await expect(page.locator("#peeps-panel")).toBeVisible();
+  await expect(page.locator("#peeps-panel .peep-name")).toHaveCount(0);
+  await expect(page.locator("#peeps-panel .peep-statuses")).toHaveCount(0);
+  const statusButton = page.locator('#status-tools [data-status-toggle]');
+  await expect(statusButton).toBeVisible();
+  await statusButton.click();
+  const statusJournal = page.getByRole("dialog", { name: "Journal", exact: true });
+  await expect(statusJournal).toBeVisible();
+  await expect(statusJournal.locator('[data-journal-tab="Self"]')).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  await expect(statusJournal).toBeHidden();
   await page.locator("#settings summary").click();
   const peeps = page.locator('[data-top-action="peeps"]');
   await expect(peeps).toHaveAttribute("aria-pressed", "true");
@@ -54,6 +68,12 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await peeps.click();
   await expect(page.locator("#peeps-panel")).toBeVisible();
   await expect(peeps).toHaveAttribute("aria-pressed", "true");
+  await page.locator("#sidebar-size").selectOption("large");
+  await expect(page.locator("#app")).toHaveAttribute("data-sidebar-size", "large");
+  await page.locator("#toolbar-size").selectOption("compact");
+  await expect(page.locator("#app")).toHaveAttribute("data-toolbar-size", "compact");
+  await page.locator("#sidebar-size").selectOption("normal");
+  await page.locator("#toolbar-size").selectOption("normal");
   await page.locator("#settings summary").click();
   const pickerToggle = page.locator("#room-picker-toggle");
   const picker = page.locator("#room-picker");

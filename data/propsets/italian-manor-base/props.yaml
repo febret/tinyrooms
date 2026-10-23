@@ -1,0 +1,187 @@
+CONFIG:
+  scale_adjust: 2.0
+italian-settee:
+  label: Manor Settee
+  description: A linen settee with olive-wood legs.
+  model: italian-settee.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - sofa
+  - furniture
+italian-renaissance-chair:
+  label: Renaissance Chair
+  description: A carved walnut chair with a leather seat.
+  model: italian-renaissance-chair.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - seating
+  - chair
+  - furniture
+italian-dining-chair:
+  label: Dining Chair
+  description: A rush-seat dining chair, one of eight.
+  model: italian-dining-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+italian-stone-bench:
+  label: Stone Bench
+  description: A travertine bench, cool at noon.
+  model: italian-stone-bench.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - bench
+  - furniture
+italian-urn-lamp:
+  label: Urn Lamp
+  description: A table lamp shaped like a Roman urn.
+  model: italian-urn-lamp.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+italian-candelabra:
+  label: Candelabra
+  description: A brass candelabra for long dinners.
+  model: italian-candelabra.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lantern
+italian-lantern-pendant:
+  label: Lantern Pendant
+  description: A wrought-iron lantern pendant.
+  model: italian-lantern-pendant.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+italian-trestle-table:
+  label: Trestle Table
+  description: An olive-wood trestle table for feasts.
+  model: italian-trestle-table.glb
+  decorative: true
+  scale: 1.7
+  tags:
+  - table
+  - furniture
+italian-marble-coffee-table:
+  label: Marble Coffee Table
+  description: A Carrara coffee table on a walnut base.
+  model: italian-marble-coffee-table.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - table
+  - furniture
+italian-gueridon-table:
+  label: Gueridon
+  description: A small round gueridon for espresso.
+  model: italian-gueridon-table.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+italian-credenza:
+  label: Credenza
+  description: A walnut credenza with arched doors.
+  model: italian-credenza.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - storage
+  - cabinet
+  - furniture
+italian-bookcase:
+  label: Bookcase
+  description: A bookcase for ledgers and lemons.
+  model: italian-bookcase.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - storage
+  - shelf
+  - furniture
+italian-cassone:
+  label: Cassone
+  description: A painted cassone chest of linens.
+  model: italian-cassone.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - furniture
+italian-tester-bed:
+  label: Tester Bed
+  description: A walnut tester bed with linen hangings.
+  model: italian-tester-bed.glb
+  decorative: true
+  scale: 1.7
+  tags:
+  - bed
+  - furniture
+italian-kilim-rug:
+  label: Kilim Rug
+  description: A flat kilim in ochre and umber.
+  model: italian-kilim-rug.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - rug
+  - decoration
+italian-gilt-mirror:
+  label: Gilt Mirror
+  description: A gilt mirror that flatters everyone.
+  model: italian-gilt-mirror.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - mirror
+  - decoration
+italian-sun-clock:
+  label: Sun Clock
+  description: A ceramic sun-face wall clock.
+  model: italian-sun-clock.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - clock
+  - decoration
+italian-lemon-pot:
+  label: Lemon Pot
+  description: A lemon tree in a terracotta pot.
+  model: italian-lemon-pot.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - plant
+  - decoration
+italian-amphora:
+  label: Amphora
+  description: A small amphora vase, strictly decorative.
+  model: italian-amphora.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - decoration
+italian-fresco-screen:
+  label: Fresco Screen
+  description: A screen painted with a hillside town.
+  model: italian-fresco-screen.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration
+  - furniture

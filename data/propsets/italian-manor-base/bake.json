@@ -1,0 +1,213 @@
+{
+ "simplify": {
+  "strategy": "auto",
+  "target": 500,
+  "flat_target": 100,
+  "wall_target": 200,
+  "bake_resolution": 1024,
+  "remesh_resolution": 160,
+  "max_deviation": 0.05
+ },
+ "tasks": [
+  {
+   "label": "italian-settee",
+   "tool": "asset",
+   "prompt": "an elegant linen settee with olive-wood legs, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-settee.glb",
+   "args": {
+    "seed": 3801,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-renaissance-chair",
+   "tool": "asset",
+   "prompt": "a carved walnut renaissance armchair with a leather seat, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-renaissance-chair.glb",
+   "args": {
+    "seed": 3802,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-dining-chair",
+   "tool": "asset",
+   "prompt": "a wooden dining chair with a rush seat, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-dining-chair.glb",
+   "args": {
+    "seed": 3803,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-stone-bench",
+   "tool": "asset",
+   "prompt": "a travertine stone bench, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-stone-bench.glb",
+   "args": {
+    "seed": 3804,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-urn-lamp",
+   "tool": "asset",
+   "prompt": "a ceramic urn-shaped table lamp, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-urn-lamp.glb",
+   "args": {
+    "seed": 3805,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-candelabra",
+   "tool": "asset",
+   "prompt": "a brass five-arm candelabra with candles, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-candelabra.glb",
+   "args": {
+    "seed": 3806,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-lantern-pendant",
+   "tool": "asset",
+   "prompt": "a hanging wrought-iron lantern pendant, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-lantern-pendant.glb",
+   "args": {
+    "seed": 3807,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-trestle-table",
+   "tool": "asset",
+   "prompt": "a long olive-wood trestle dining table, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-trestle-table.glb",
+   "args": {
+    "seed": 3808,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-marble-coffee-table",
+   "tool": "asset",
+   "prompt": "a rectangular Carrara marble coffee table, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-marble-coffee-table.glb",
+   "args": {
+    "seed": 3809,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-gueridon-table",
+   "tool": "asset",
+   "prompt": "a small round wooden gueridon side table, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-gueridon-table.glb",
+   "args": {
+    "seed": 3810,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-credenza",
+   "tool": "asset",
+   "prompt": "a walnut credenza with arched doors, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-credenza.glb",
+   "args": {
+    "seed": 3811,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-bookcase",
+   "tool": "asset",
+   "prompt": "a tall walnut bookcase with shelves, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-bookcase.glb",
+   "args": {
+    "seed": 3812,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-cassone",
+   "tool": "asset",
+   "prompt": "a painted wooden cassone chest, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-cassone.glb",
+   "args": {
+    "seed": 3813,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-tester-bed",
+   "tool": "asset",
+   "prompt": "a walnut tester bed with linen curtains, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-tester-bed.glb",
+   "args": {
+    "seed": 3814,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-kilim-rug",
+   "tool": "asset",
+   "prompt": "a flat woven kilim rug in ochre and brown, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-kilim-rug.glb",
+   "args": {
+    "seed": 3815,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-gilt-mirror",
+   "tool": "asset",
+   "prompt": "a rectangular gilt-framed mirror, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-gilt-mirror.glb",
+   "args": {
+    "seed": 3816,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-sun-clock",
+   "tool": "asset",
+   "prompt": "a ceramic sun-face wall clock, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-sun-clock.glb",
+   "args": {
+    "seed": 3817,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-lemon-pot",
+   "tool": "asset",
+   "prompt": "a small potted lemon tree in terracotta, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-lemon-pot.glb",
+   "args": {
+    "seed": 3818,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-amphora",
+   "tool": "asset",
+   "prompt": "a small terracotta amphora vase, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-amphora.glb",
+   "args": {
+    "seed": 3819,
+    "faces": 500
+   }
+  },
+  {
+   "label": "italian-fresco-screen",
+   "tool": "asset",
+   "prompt": "a folding screen painted with an italian hillside, italian manor, travertine olive wood and ochre plaster, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/italian-manor-base/italian-fresco-screen.glb",
+   "args": {
+    "seed": 3820,
+    "faces": 500
+   }
+  }
+ ]
+}

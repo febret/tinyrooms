@@ -1,0 +1,213 @@
+{
+ "simplify": {
+  "strategy": "auto",
+  "target": 500,
+  "flat_target": 100,
+  "wall_target": 200,
+  "bake_resolution": 1024,
+  "remesh_resolution": 160,
+  "max_deviation": 0.05
+ },
+ "tasks": [
+  {
+   "label": "family-sofa",
+   "tool": "asset",
+   "prompt": "a deep beige three-seat family sofa, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-sofa.glb",
+   "args": {
+    "seed": 4101,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-recliner",
+   "tool": "asset",
+   "prompt": "a beige fabric recliner armchair, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-recliner.glb",
+   "args": {
+    "seed": 4102,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-dining-chair",
+   "tool": "asset",
+   "prompt": "an oak dining chair with a padded seat, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-dining-chair.glb",
+   "args": {
+    "seed": 4103,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-window-bench",
+   "tool": "asset",
+   "prompt": "a wooden toy-box bench with a cushion, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-window-bench.glb",
+   "args": {
+    "seed": 4104,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-arc-lamp",
+   "tool": "asset",
+   "prompt": "a brass arc floor lamp, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-arc-lamp.glb",
+   "args": {
+    "seed": 4105,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-gingham-lamp",
+   "tool": "asset",
+   "prompt": "a table lamp with a gingham fabric shade, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-gingham-lamp.glb",
+   "args": {
+    "seed": 4106,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-pendant-dome",
+   "tool": "asset",
+   "prompt": "a hanging warm-white enamel dome pendant, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-pendant-dome.glb",
+   "args": {
+    "seed": 4107,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-farm-table",
+   "tool": "asset",
+   "prompt": "a maple farmhouse dining table, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-farm-table.glb",
+   "args": {
+    "seed": 4108,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-coffee-table",
+   "tool": "asset",
+   "prompt": "an oak coffee table with a drawer, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-coffee-table.glb",
+   "args": {
+    "seed": 4109,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-nightstand",
+   "tool": "asset",
+   "prompt": "a small wooden nightstand with a drawer, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-nightstand.glb",
+   "args": {
+    "seed": 4110,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-bookshelf",
+   "tool": "asset",
+   "prompt": "a wooden bookshelf with books and toys, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-bookshelf.glb",
+   "args": {
+    "seed": 4111,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-sideboard",
+   "tool": "asset",
+   "prompt": "a wooden sideboard with drawers and doors, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-sideboard.glb",
+   "args": {
+    "seed": 4112,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-toy-chest",
+   "tool": "asset",
+   "prompt": "a wooden toy chest with a safety lid, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-toy-chest.glb",
+   "args": {
+    "seed": 4113,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-bunk-bed",
+   "tool": "asset",
+   "prompt": "a maple bunk bed with bedding, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-bunk-bed.glb",
+   "args": {
+    "seed": 4114,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-play-rug",
+   "tool": "asset",
+   "prompt": "a play rug printed with roads, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-play-rug.glb",
+   "args": {
+    "seed": 4115,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-corkboard",
+   "tool": "asset",
+   "prompt": "a framed corkboard with notes and photos, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-corkboard.glb",
+   "args": {
+    "seed": 4116,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-wall-clock",
+   "tool": "asset",
+   "prompt": "a round schoolhouse wall clock, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-wall-clock.glb",
+   "args": {
+    "seed": 4117,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-spider-plant",
+   "tool": "asset",
+   "prompt": "a spider plant in a hanging pot, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-spider-plant.glb",
+   "args": {
+    "seed": 4118,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-cookie-vase",
+   "tool": "asset",
+   "prompt": "a ceramic cookie-jar shaped vase, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-cookie-vase.glb",
+   "args": {
+    "seed": 4119,
+    "faces": 500
+   }
+  },
+  {
+   "label": "family-coat-tree",
+   "tool": "asset",
+   "prompt": "a wooden coat tree with pegs, cozy family home, warm maple gingham and oak, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/family-home-base/family-coat-tree.glb",
+   "args": {
+    "seed": 4120,
+    "faces": 500
+   }
+  }
+ ]
+}

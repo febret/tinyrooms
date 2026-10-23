@@ -13,6 +13,7 @@ from server.content.activities import (
     merge_activity_definitions,
 )
 from server.content.common import (
+    LOGGER,
     ContentError,
     drop_unknown_card_ids,
     load_yaml_file,
@@ -48,6 +49,10 @@ PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 DEFAULT_PROP_PRICE = 5
 FREE_PROPSET_SOURCES = frozenset({"base"})
+PROP_MODEL_PLACEHOLDER_PATH = (
+    Path(__file__).resolve().parents[2] / "client" / "app" / "assets" / "missing-prop.glb"
+)
+PROP_MODEL_PLACEHOLDER_URL = "/app/assets/missing-prop.glb"
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +86,7 @@ class PropStateDefinition:
     name: str
     model_name: str
     model_path: Path
+    model_missing: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +110,7 @@ class PropDefinition:
     locked: bool = False
     hidden: bool = False
     requires_light: bool = False
+    model_missing: bool = False
     # Set names select ordered lists of catalog effect ids, not gameplay effects.
     # This active_effect is the authored default; RoomService can override it per
     # room/instance in memory and broadcast room.prop.updated. Reduced motion
@@ -305,12 +312,10 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
     }
 
 
-def _prop_model_name(definition: PropDefinition, state: str | None) -> str | None:
+def _prop_model_state(definition: PropDefinition, state: str | None) -> PropStateDefinition | None:
     if state is not None:
-        state_definition = definition.states.get(state)
-        if state_definition is not None:
-            return state_definition.model_name
-    return definition.model_name
+        return definition.states.get(state)
+    return None
 
 
 def prop_model_url(
@@ -326,7 +331,15 @@ def prop_model_url(
 
     if definition.render_kind != "model":
         return None
-    model_name = _prop_model_name(definition, state)
+    state_definition = _prop_model_state(definition, state)
+    if state_definition is not None:
+        if state_definition.model_missing:
+            return PROP_MODEL_PLACEHOLDER_URL
+        model_name: str | None = state_definition.model_name
+    else:
+        if definition.model_missing:
+            return PROP_MODEL_PLACEHOLDER_URL
+        model_name = definition.model_name
     if definition.source_kind == "mod":
         return f"/assets/mods/{definition.source}/props/{model_name}"
     if definition.source_kind == "propset":
@@ -462,14 +475,20 @@ def _load_prop_states(
         if not model_name:
             raise ContentError(f"Prop '{prop_id}' state '{state_name}' is missing its model.")
         model_path = (props_file.parent / model_name).resolve()
-        if not model_path.is_file():
-            raise ContentError(
-                f"Prop '{prop_id}' state '{state_name}' references missing model '{model_name}'."
+        model_missing = not model_path.is_file()
+        if model_missing:
+            LOGGER.warning(
+                "Prop '%s' state '%s' references missing model '%s'; using a placeholder.",
+                prop_id,
+                state_name,
+                model_name,
             )
+            model_path = PROP_MODEL_PLACEHOLDER_PATH
         states[state_name] = PropStateDefinition(
             name=state_name,
             model_name=model_name,
             model_path=model_path,
+            model_missing=model_missing,
         )
     return states
 
@@ -667,8 +686,9 @@ def load_prop_definition(
     """Validate and build one prop definition from a raw YAML mapping.
 
     Models resolve relative to the props file's directory, and ``scale`` is
-    multiplied by the file-level ``scale_adjust``. Shared by the content loader
-    and the Prop Editor so both enforce identical rules.
+    multiplied by the file-level ``scale_adjust``. Missing models are replaced by
+    the shared placeholder; they warn rather than aborting a world load. Shared by
+    the content loader and the Prop Editor so both enforce identical rules.
     """
 
     if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
@@ -685,10 +705,17 @@ def load_prop_definition(
         active_definition = states[active_state] if active_state is not None else next(iter(states.values()))
         model_name = active_definition.model_name
         model_path = active_definition.model_path
+        model_missing = active_definition.model_missing
     else:
         model_path = (props_file.parent / model_name).resolve()
-        if not model_path.is_file():
-            raise ContentError(f"Prop '{prop_id}' references missing model '{model_name}'.")
+        model_missing = not model_path.is_file()
+        if model_missing:
+            LOGGER.warning(
+                "Prop '%s' references missing model '%s'; using a placeholder.",
+                prop_id,
+                model_name,
+            )
+            model_path = PROP_MODEL_PLACEHOLDER_PATH
     raw_scale = raw_prop.get("scale", 1.0)
     if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
         raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
@@ -733,6 +760,7 @@ def load_prop_definition(
         description=str(raw_prop.get("description", "")).strip(),
         model_name=model_name,
         model_path=model_path,
+        model_missing=model_missing,
         decorative=decorative,
         animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
         scale=scale,

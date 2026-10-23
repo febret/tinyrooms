@@ -1,0 +1,189 @@
+CONFIG:
+  scale_adjust: 2.0
+neon-modular-sofa:
+  label: Modular Sofa
+  description: A low modular sofa in electric grey.
+  model: neon-modular-sofa.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - seating
+  - sofa
+  - furniture
+neon-acrylic-chair:
+  label: Acrylic Chair
+  description: A clear acrylic chair that glows at the edges.
+  model: neon-acrylic-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+neon-bar-stool:
+  label: Bar Stool
+  description: A chrome bar stool with a magenta seat.
+  model: neon-bar-stool.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - seating
+  - stool
+  - furniture
+neon-pouf-lounger:
+  label: Beanbag
+  description: A vinyl beanbag in hot pink.
+  model: neon-pouf-lounger.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+neon-tube-floor-lamp:
+  label: Tube Floor Lamp
+  description: A floor lamp that is just a glowing tube.
+  model: neon-tube-floor-lamp.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - lighting
+  - lamp
+neon-sign-heart:
+  label: Heart Sign
+  description: A pink neon heart for the wall.
+  model: neon-sign-heart.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - decoration
+neon-desk-strip:
+  label: Desk Strip
+  description: A colour-shifting LED desk lamp bar.
+  model: neon-desk-strip.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lamp
+neon-glass-desk:
+  label: Glass Desk
+  description: A glass-top desk on chrome trestles.
+  model: neon-glass-desk.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - desk
+  - table
+  - furniture
+neon-pedestal-table:
+  label: Pedestal Table
+  description: A white tulip pedestal table.
+  model: neon-pedestal-table.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - table
+  - furniture
+neon-lowboard:
+  label: Lowboard
+  description: A lacquered lowboard with a light strip.
+  model: neon-lowboard.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - table
+  - storage
+  - furniture
+neon-cube-shelf:
+  label: Cube Shelf
+  description: Backlit cubes for figures and vinyl.
+  model: neon-cube-shelf.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - shelf
+  - furniture
+neon-locker-cabinet:
+  label: Locker Cabinet
+  description: A powder-coated locker in teal.
+  model: neon-locker-cabinet.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - cabinet
+  - furniture
+neon-crate-stack:
+  label: Crate Stack
+  description: Milk crates, but make it furniture.
+  model: neon-crate-stack.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - storage
+  - furniture
+neon-platform-bed:
+  label: Platform Bed
+  description: A floating platform bed with underglow.
+  model: neon-platform-bed.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - bed
+  - furniture
+neon-grid-rug:
+  label: Grid Rug
+  description: A black rug with a cyan perspective grid.
+  model: neon-grid-rug.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - rug
+  - decoration
+neon-infinity-mirror:
+  label: Infinity Mirror
+  description: A mirror that falls into itself, glowing.
+  model: neon-infinity-mirror.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - mirror
+  - decoration
+neon-flip-clock:
+  label: Flip Clock
+  description: A retro flip clock with glowing digits.
+  model: neon-flip-clock.glb
+  decorative: true
+  scale: 0.6
+  tags:
+  - clock
+  - decoration
+neon-snake-plant:
+  label: Snake Plant
+  description: A snake plant in a chrome pot.
+  model: neon-snake-plant.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - plant
+  - decoration
+neon-bolt-vase:
+  label: Bolt Vase
+  description: A lightning-bolt ceramic vase.
+  model: neon-bolt-vase.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - decoration
+neon-shoji-screen:
+  label: Shoji Screen
+  description: A backlit shoji screen divider.
+  model: neon-shoji-screen.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration
+  - furniture

@@ -1,0 +1,188 @@
+CONFIG:
+  scale_adjust: 2.0
+cottage-patchwork-sofa:
+  label: Patchwork Sofa
+  description: A sofa quilted from every good curtain.
+  model: cottage-patchwork-sofa.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - sofa
+  - furniture
+cottage-rocking-chair:
+  label: Rocking Chair
+  description: A pine rocker that creaks in a friendly way.
+  model: cottage-rocking-chair.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - seating
+  - chair
+  - furniture
+cottage-windsor-chair:
+  label: Windsor Chair
+  description: A windsor chair worn smooth by breakfasts.
+  model: cottage-windsor-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+cottage-window-bench:
+  label: Window Bench
+  description: A bench piled with gingham cushions.
+  model: cottage-window-bench.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - seating
+  - bench
+  - furniture
+cottage-tole-lamp:
+  label: Tole Lamp
+  description: A painted tole floor lamp with flowers.
+  model: cottage-tole-lamp.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - lighting
+  - lamp
+cottage-mason-lantern:
+  label: Mason Lantern
+  description: A mason-jar lantern full of fireflies (probably).
+  model: cottage-mason-lantern.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - lighting
+  - lantern
+cottage-pendant-shade:
+  label: Pendant Shade
+  description: A pressed-flower pendant shade.
+  model: cottage-pendant-shade.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+cottage-farm-table:
+  label: Farm Table
+  description: A scrubbed-pine farm table for bread and homework.
+  model: cottage-farm-table.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - table
+  - furniture
+cottage-gateleg-table:
+  label: Gateleg Table
+  description: A gateleg table that folds for dances.
+  model: cottage-gateleg-table.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - table
+  - furniture
+cottage-stool-table:
+  label: Stool Table
+  description: A milking-stool side table.
+  model: cottage-stool-table.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - table
+  - furniture
+cottage-dresser:
+  label: Dresser
+  description: A dresser with plates on parade.
+  model: cottage-dresser.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - storage
+  - cabinet
+  - furniture
+cottage-pantry-shelf:
+  label: Pantry Shelf
+  description: A shelf of jars, jams, and twine.
+  model: cottage-pantry-shelf.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - storage
+  - shelf
+  - furniture
+cottage-blanket-chest:
+  label: Blanket Chest
+  description: A chest of wool blankets against drafts.
+  model: cottage-blanket-chest.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - furniture
+cottage-fourposter-bed:
+  label: Fourposter Bed
+  description: A pine fourposter with a flower quilt.
+  model: cottage-fourposter-bed.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - bed
+  - furniture
+cottage-braided-rug:
+  label: Braided Rug
+  description: An oval braided rug in meadow colours.
+  model: cottage-braided-rug.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - rug
+  - decoration
+cottage-oval-mirror:
+  label: Oval Mirror
+  description: An oval mirror in a pine frame.
+  model: cottage-oval-mirror.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - mirror
+  - decoration
+cottage-cuckoo-clock:
+  label: Cuckoo Clock
+  description: A cuckoo clock with a very punctual bird.
+  model: cottage-cuckoo-clock.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - clock
+  - decoration
+cottage-geranium-pot:
+  label: Geranium Pot
+  description: Geraniums in a terracotta pot, always blooming.
+  model: cottage-geranium-pot.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - plant
+  - decoration
+cottage-jug-vase:
+  label: Jug Vase
+  description: A creamware jug of wildflowers.
+  model: cottage-jug-vase.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - decoration
+  - plant
+cottage-quilt-screen:
+  label: Quilt Screen
+  description: A screen hung with a star quilt.
+  model: cottage-quilt-screen.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration
+  - furniture

@@ -1,0 +1,186 @@
+CONFIG:
+  scale_adjust: 2.0
+family-sofa:
+  label: Family Sofa
+  description: A deep three-seater that survives forts and films.
+  model: family-sofa.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - seating
+  - sofa
+  - furniture
+family-recliner:
+  label: Recliner
+  description: The good recliner. Everyone knows it.
+  model: family-recliner.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - seating
+  - chair
+  - furniture
+family-dining-chair:
+  label: Dining Chair
+  description: An oak dining chair, one of six survivors.
+  model: family-dining-chair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+family-window-bench:
+  label: Window Bench
+  description: A toy-box bench under the window.
+  model: family-window-bench.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - seating
+  - bench
+  - furniture
+family-arc-lamp:
+  label: Arc Lamp
+  description: An arc lamp for reading over shoulders.
+  model: family-arc-lamp.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - lighting
+  - lamp
+family-gingham-lamp:
+  label: Gingham Lamp
+  description: A table lamp with a gingham shade.
+  model: family-gingham-lamp.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lamp
+family-pendant-dome:
+  label: Pendant Dome
+  description: A warm enamel dome over the table.
+  model: family-pendant-dome.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+family-farm-table:
+  label: Farm Table
+  description: A maple table that seats homework and dinner.
+  model: family-farm-table.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - table
+  - furniture
+family-coffee-table:
+  label: Coffee Table
+  description: An oak coffee table with a game drawer.
+  model: family-coffee-table.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - table
+  - furniture
+family-nightstand:
+  label: Nightstand
+  description: A nightstand with a drawer for teeth (fairy use).
+  model: family-nightstand.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - table
+  - furniture
+family-bookshelf:
+  label: Bookshelf
+  description: A bookshelf of picture books and trophies.
+  model: family-bookshelf.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - storage
+  - shelf
+  - furniture
+family-sideboard:
+  label: Sideboard
+  description: A sideboard for board games and batteries.
+  model: family-sideboard.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - storage
+  - cabinet
+  - furniture
+family-toy-chest:
+  label: Toy Chest
+  description: A chest that swallows Lego whole.
+  model: family-toy-chest.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - storage
+  - furniture
+family-bunk-bed:
+  label: Bunk Bed
+  description: A maple bunk with a ladder and a truce.
+  model: family-bunk-bed.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - bed
+  - furniture
+family-play-rug:
+  label: Play Rug
+  description: A road-map rug for small cars.
+  model: family-play-rug.glb
+  decorative: true
+  scale: 1.6
+  tags:
+  - rug
+  - decoration
+family-corkboard:
+  label: Corkboard
+  description: A corkboard of rotas, medals, and teeth charts.
+  model: family-corkboard.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - decoration
+family-wall-clock:
+  label: Wall Clock
+  description: A schoolhouse wall clock.
+  model: family-wall-clock.glb
+  decorative: true
+  scale: 0.6
+  tags:
+  - clock
+  - decoration
+family-spider-plant:
+  label: Spider Plant
+  description: A spider plant that has survived everything.
+  model: family-spider-plant.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - plant
+  - decoration
+family-cookie-vase:
+  label: Cookie Vase
+  description: A cookie-jar vase (do not ask).
+  model: family-cookie-vase.glb
+  decorative: true
+  scale: 0.7
+  tags:
+  - decoration
+family-coat-tree:
+  label: Coat Tree
+  description: A coat tree for bags, hats, and one recorder.
+  model: family-coat-tree.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - storage
+  - furniture

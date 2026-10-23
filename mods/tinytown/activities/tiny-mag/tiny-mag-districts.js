@@ -23,6 +23,15 @@ function buyActions(template, ctx) {
   </button>`;
 }
 
+function unlockLine(template, ctx) {
+  const unlocks = template.unlocks || [];
+  if (!unlocks.length) return "";
+  const names = unlocks
+    .map(entry => `<em title="${ctx.escape(entry.label)} · ${entry.prop_count} props">${ctx.escape(entry.label)}</em>`)
+    .join(", ");
+  return `<p class="prop-unlocks" title="${ctx.escape(unlocks.map(entry => `${entry.label} (${entry.prop_count} props)`).join(", "))}"><span>${COPY.labels.unlocks}:</span> ${names}</p>`;
+}
+
 function districtCard(template, ctx, variant) {
   return `
     <article class="district-home district-home--${variant}">
@@ -33,6 +42,7 @@ function districtCard(template, ctx, variant) {
         <p class="eyebrow">${ctx.escape(template.size)} · ${template.room_count} rooms</p>
         <h3>${ctx.escape(template.label)}</h3>
         <p class="district-home-dek">${ctx.escape(template.description)}</p>
+        ${unlockLine(template, ctx)}
         <div class="price-line">
           <span class="price">${ctx.money(template.price)} Bops</span>
           ${template.owned ? `<span class="badge good">Owned ×${template.owned}</span>` : ""}

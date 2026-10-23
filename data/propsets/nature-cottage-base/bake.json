@@ -1,0 +1,213 @@
+{
+ "simplify": {
+  "strategy": "auto",
+  "target": 500,
+  "flat_target": 100,
+  "wall_target": 200,
+  "bake_resolution": 1024,
+  "remesh_resolution": 160,
+  "max_deviation": 0.05
+ },
+ "tasks": [
+  {
+   "label": "cottage-patchwork-sofa",
+   "tool": "asset",
+   "prompt": "a patchwork quilted two-seat sofa, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-patchwork-sofa.glb",
+   "args": {
+    "seed": 3701,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-rocking-chair",
+   "tool": "asset",
+   "prompt": "a pine wooden rocking chair with a cushion, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-rocking-chair.glb",
+   "args": {
+    "seed": 3702,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-windsor-chair",
+   "tool": "asset",
+   "prompt": "a wooden windsor dining chair, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-windsor-chair.glb",
+   "args": {
+    "seed": 3703,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-window-bench",
+   "tool": "asset",
+   "prompt": "a wooden window bench with gingham cushions, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-window-bench.glb",
+   "args": {
+    "seed": 3704,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-tole-lamp",
+   "tool": "asset",
+   "prompt": "a painted floral tole floor lamp, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-tole-lamp.glb",
+   "args": {
+    "seed": 3705,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-mason-lantern",
+   "tool": "asset",
+   "prompt": "a mason-jar lantern lamp with warm glow, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-mason-lantern.glb",
+   "args": {
+    "seed": 3706,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-pendant-shade",
+   "tool": "asset",
+   "prompt": "a hanging pendant with pressed-flower shade, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-pendant-shade.glb",
+   "args": {
+    "seed": 3707,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-farm-table",
+   "tool": "asset",
+   "prompt": "a scrubbed pine farmhouse dining table, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-farm-table.glb",
+   "args": {
+    "seed": 3708,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-gateleg-table",
+   "tool": "asset",
+   "prompt": "a small folding gateleg table, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-gateleg-table.glb",
+   "args": {
+    "seed": 3709,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-stool-table",
+   "tool": "asset",
+   "prompt": "a small wooden milking-stool side table, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-stool-table.glb",
+   "args": {
+    "seed": 3710,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-dresser",
+   "tool": "asset",
+   "prompt": "a pine dresser with plate rack shelves, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-dresser.glb",
+   "args": {
+    "seed": 3711,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-pantry-shelf",
+   "tool": "asset",
+   "prompt": "a wooden pantry shelf with jars, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-pantry-shelf.glb",
+   "args": {
+    "seed": 3712,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-blanket-chest",
+   "tool": "asset",
+   "prompt": "a painted wooden blanket chest, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-blanket-chest.glb",
+   "args": {
+    "seed": 3713,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-fourposter-bed",
+   "tool": "asset",
+   "prompt": "a pine fourposter bed with a floral quilt, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-fourposter-bed.glb",
+   "args": {
+    "seed": 3714,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-braided-rug",
+   "tool": "asset",
+   "prompt": "an oval braided rug in meadow colours, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-braided-rug.glb",
+   "args": {
+    "seed": 3715,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-oval-mirror",
+   "tool": "asset",
+   "prompt": "an oval mirror in a pine frame, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-oval-mirror.glb",
+   "args": {
+    "seed": 3716,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-cuckoo-clock",
+   "tool": "asset",
+   "prompt": "a carved wooden cuckoo clock, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-cuckoo-clock.glb",
+   "args": {
+    "seed": 3717,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-geranium-pot",
+   "tool": "asset",
+   "prompt": "potted red geraniums in a terracotta pot, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-geranium-pot.glb",
+   "args": {
+    "seed": 3718,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-jug-vase",
+   "tool": "asset",
+   "prompt": "a creamware jug holding wildflowers, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-jug-vase.glb",
+   "args": {
+    "seed": 3719,
+    "faces": 500
+   }
+  },
+  {
+   "label": "cottage-quilt-screen",
+   "tool": "asset",
+   "prompt": "a folding screen draped with a star quilt, nature cottage, honey pine wildflowers and wool, freestanding isolated single prop, no surrounding ground or scenery",
+   "output": "C:/workspace/tinyrooms-noon/data/propsets/nature-cottage-base/cottage-quilt-screen.glb",
+   "args": {
+    "seed": 3720,
+    "faces": 500
+   }
+  }
+ ]
+}

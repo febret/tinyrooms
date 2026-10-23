@@ -1,0 +1,189 @@
+CONFIG:
+  scale_adjust: 2.0
+beachhut-rattan-lounger:
+  label: Rattan Lounger
+  description: A low woven lounger built for long salty afternoons.
+  model: beachhut-rattan-lounger.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - seating
+  - lounger
+  - furniture
+beachhut-driftwood-bench:
+  label: Driftwood Bench
+  description: A bench of smooth grey driftwood that still smells faintly of salt.
+  model: beachhut-driftwood-bench.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - seating
+  - bench
+  - furniture
+beachhut-canvas-deckchair:
+  label: Canvas Deckchair
+  description: A folding deckchair in sailcloth stripes, ready for the dunes.
+  model: beachhut-canvas-deckchair.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - seating
+  - chair
+  - furniture
+beachhut-wicker-peacock-chair:
+  label: Peacock Chair
+  description: A tall wicker peacock chair for dramatic sunset sitting.
+  model: beachhut-wicker-peacock-chair.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - seating
+  - chair
+  - furniture
+beachhut-rope-floor-lamp:
+  label: Rope Floor Lamp
+  description: A floor lamp wrapped in sailor rope with a linen shade.
+  model: beachhut-rope-floor-lamp.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - lighting
+  - lamp
+beachhut-fishing-lantern:
+  label: Fishing Lantern
+  description: A brass ship lantern that glows the colour of late sun.
+  model: beachhut-fishing-lantern.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - lighting
+  - lantern
+beachhut-shell-pendant:
+  label: Shell Pendant
+  description: A pendant strung with pale shells that clinks in the breeze.
+  model: beachhut-shell-pendant.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - lighting
+  - lamp
+beachhut-crate-coffee-table:
+  label: Crate Coffee Table
+  description: A coffee table built from a painted fish crate.
+  model: beachhut-crate-coffee-table.glb
+  decorative: true
+  scale: 1.2
+  tags:
+  - table
+  - furniture
+beachhut-round-bamboo-table:
+  label: Bamboo Table
+  description: A round bamboo table that wobbles only when the gulls land.
+  model: beachhut-round-bamboo-table.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - table
+  - furniture
+beachhut-driftwood-desk:
+  label: Driftwood Desk
+  description: A small writing desk for postcards and tide timetables.
+  model: beachhut-driftwood-desk.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - desk
+  - table
+  - furniture
+beachhut-net-shelf:
+  label: Net Shelf
+  description: A pine shelf strung with a fishing net for small treasures.
+  model: beachhut-net-shelf.glb
+  decorative: true
+  scale: 1.0
+  tags:
+  - storage
+  - shelf
+  - furniture
+beachhut-striped-cabinet:
+  label: Striped Cabinet
+  description: A two-door cabinet painted in beach-hut stripes.
+  model: beachhut-striped-cabinet.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - storage
+  - cabinet
+  - furniture
+beachhut-wicker-trunk:
+  label: Wicker Trunk
+  description: A trunk for towels, kites, and sandy paperbacks.
+  model: beachhut-wicker-trunk.glb
+  decorative: true
+  scale: 1.1
+  tags:
+  - storage
+  - furniture
+beachhut-bunk-bed:
+  label: Bunk Nook
+  description: A compact white bunk for sandy sleepovers.
+  model: beachhut-bunk-bed.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - bed
+  - furniture
+beachhut-stripe-rug:
+  label: Stripe Rug
+  description: A flat cotton rug in sand, coral, and sea blue.
+  model: beachhut-stripe-rug.glb
+  decorative: true
+  scale: 1.5
+  tags:
+  - rug
+  - decoration
+beachhut-round-mirror:
+  label: Portside Mirror
+  description: A round mirror ringed with pale rope.
+  model: beachhut-round-mirror.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - mirror
+  - decoration
+beachhut-tide-clock:
+  label: Tide Clock
+  description: A clock that tracks tides alongside the hours.
+  model: beachhut-tide-clock.glb
+  decorative: true
+  scale: 0.6
+  tags:
+  - clock
+  - decoration
+beachhut-palm-pot:
+  label: Palm Pot
+  description: A small palm in a chipped enamel bucket.
+  model: beachhut-palm-pot.glb
+  decorative: true
+  scale: 0.9
+  tags:
+  - plant
+  - decoration
+beachhut-foam-vase:
+  label: Seafoam Vase
+  description: A sea-glass vase holding a sprig of dune grass.
+  model: beachhut-foam-vase.glb
+  decorative: true
+  scale: 0.8
+  tags:
+  - decoration
+  - plant
+beachhut-shutter-screen:
+  label: Shutter Screen
+  description: A folding shutter screen for changing after a swim.
+  model: beachhut-shutter-screen.glb
+  decorative: true
+  scale: 1.3
+  tags:
+  - decoration
+  - furniture

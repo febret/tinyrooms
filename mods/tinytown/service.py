@@ -30,6 +30,36 @@ HOUSE_ROOM_PREFIX = "home:"
 ENTRY_ROOM_ID = "town"
 MAX_LAYOUT_WHITEBOARDS = MAX_WHITEBOARD_PROPS
 
+PROPSET_LABELS = {
+    "beach-hut-base": "Beach Hut",
+    "harbor-house-base": "Harbor House",
+    "sea-villa-base": "Sea Villa",
+    "brick-loft-base": "Brick Loft",
+    "penthouse-base": "City Penthouse",
+    "neon-flat-base": "Neon Apartment",
+    "nature-cottage-base": "Nature Cottage",
+    "italian-manor-base": "Italian Manor",
+    "pool-house-base": "Pool House",
+    "family-home-base": "Family Home",
+}
+
+
+def propset_label(propset_id: str) -> str:
+    """Return the display label for a home-unlocked propset."""
+
+    return PROPSET_LABELS.get(propset_id, propset_id)
+
+
+def _grant_prop_unlocks(profile_json: dict[str, object], prop_ids: list[str]) -> None:
+    """Add *prop_ids* to the profile's unlocked props without duplicates."""
+
+    raw = profile_json.get("unlocked_props")
+    owned = [str(entry) for entry in raw] if isinstance(raw, list) else []
+    for prop_id in prop_ids:
+        if prop_id not in owned:
+            owned.append(prop_id)
+    profile_json["unlocked_props"] = owned
+
 
 @dataclass(frozen=True, slots=True)
 class DecorationResult:
@@ -443,12 +473,34 @@ class TinytownHousing:
         account = self._profiles.get_account_by_id(account_id)
         return account.username_display if account is not None else "A former resident"
 
+    def _unlock_payload(self, template: HouseTemplate) -> list[dict[str, object]]:
+        """Describe the propsets a house template unlocks on purchase."""
+
+        payload: list[dict[str, object]] = []
+        for propset_id in template.unlocks:
+            prop_count = sum(
+                1 for definition in self._world.props.values() if definition.source == propset_id
+            )
+            payload.append(
+                {"id": propset_id, "label": propset_label(propset_id), "prop_count": prop_count}
+            )
+        return payload
+
+    def _unlock_prop_ids(self, template: HouseTemplate) -> list[str]:
+        """Return every prop id granted when *template* is purchased."""
+
+        return sorted(
+            definition.id
+            for definition in self._world.props.values()
+            if definition.source in set(template.unlocks)
+        )
+
     def house_payload(self, record: HouseRecord, viewer_id: str) -> dict[str, object]:
         template = self._templates[record.template_id]
         district = DISTRICTS_BY_ID[template.district]
         return {
             "id": record.house_id,
-            "template_id": template.id,
+            "template_id": record.template_id,
             "label": template.label,
             "description": template.description,
             "district": district.id,
@@ -456,6 +508,7 @@ class TinytownHousing:
             "district_accent": district.accent,
             "price": template.price,
             "size": template.size,
+            "unlocks": self._unlock_payload(template),
             "rooms": [
                 {
                     "key": room.key,
@@ -489,6 +542,7 @@ class TinytownHousing:
             "district_accent": district.accent,
             "price": template.price,
             "size": template.size,
+            "unlocks": self._unlock_payload(template),
             "room_count": len(template.rooms),
             "rooms": [{"key": room.key, "label": room.label, "role": room.role} for room in template.rooms],
             "preview_url": f"/assets/world/{self._world.id}/rooms/{template.preview}",
@@ -576,6 +630,15 @@ class TinytownHousing:
                     bops=current.bops - template.price,
                 )
                 self._write_house(connection, record)
+                unlock_ids = self._unlock_prop_ids(template)
+                if unlock_ids:
+                    self._profiles.update_profile_in_transaction(
+                        connection,
+                        account.id,
+                        lambda profile_json, ids=unlock_ids: _grant_prop_unlocks(
+                            profile_json, ids
+                        ),
+                    )
                 for room in built.values():
                     self._world_state.insert_player_room(
                         connection,

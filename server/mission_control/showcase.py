@@ -108,7 +108,12 @@ class EntryShowcase:
                     definitions = load_propset(propset_path)
                     loaded[pick.propset] = definitions
                 definition = definitions.get(pick.prop_id)
-                if definition is None or definition.render_kind != "model" or not definition.model_name:
+                if (
+                    definition is None
+                    or definition.render_kind != "model"
+                    or not definition.model_name
+                    or definition.model_missing
+                ):
                     continue
                 model_name = quote(definition.model_name, safe="")
                 # The entry collage deliberately previews locked marketplace props.
