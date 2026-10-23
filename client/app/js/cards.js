@@ -16,6 +16,7 @@ import { journalView } from "./views/journal-view.js";
 import { phoneView } from "./views/phone-view.js";
 import { createEditorDock } from "./editing/editor-dock.js";
 import { animateToolbarButtons, captureToolbarButtons } from "./toolbar-animation.js";
+import { uiIconMarkup } from "./ui-icons.js";
 
 function coreMarkup(definition, selected) {
   return `
@@ -27,29 +28,27 @@ function coreMarkup(definition, selected) {
 }
 
 function multiverseButtonMarkup() {
-  return `<button type="button" id="multiverse-toggle" class="icon-button toolbar-edit" data-open-multiverse="1" aria-label="Open the Multiverse" title="Open the Multiverse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 8.2 5.3c-1.5 2.7-4.3 4.6-7.6 4.6a5.9 5.9 0 0 1-5.9-5.9c0-2.2 1.2-4.1 3-5.1"></path><path d="M12 7a5 5 0 1 0 4.2 7.7c-1.1 1.4-2.8 2.3-4.7 2.3a3.9 3.9 0 0 1-3.9-3.9c0-1.5.8-2.8 2-3.5"></path><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle></svg></button>`;
+  return `<button type="button" id="multiverse-toggle" class="icon-button toolbar-edit" data-open-multiverse="1" aria-label="Open the Multiverse" title="Open the Multiverse">${uiIconMarkup("multiverse")}</button>`;
 }
 
 function tinymagButtonMarkup() {
-  return `<button type="button" id="tinymag-toggle" class="icon-button toolbar-edit" data-open-tinymag="1" aria-label="Open Tiny Mag" title="Open Tiny Mag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"></path><path d="M9 7h6M9 10h5"></path></svg></button>`;
+  return `<button type="button" id="tinymag-toggle" class="icon-button toolbar-edit" data-open-tinymag="1" aria-label="Open Tiny Mag" title="Open Tiny Mag">${uiIconMarkup("tinymag")}</button>`;
 }
 
 function keyringButtonMarkup() {
-  return `<button type="button" id="keyring-toggle" class="icon-button toolbar-edit" data-open-keyring="1" aria-label="Open the Keyring" title="Open the Keyring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="4"></circle><path d="m11.2 11.2 7.3 7.3"></path><path d="m16.4 13.4 2-2"></path><path d="m18.6 15.6 2-2"></path></svg></button>`;
+  return `<button type="button" id="keyring-toggle" class="icon-button toolbar-edit" data-open-keyring="1" aria-label="Open the Keyring" title="Open the Keyring">${uiIconMarkup("keyring")}</button>`;
 }
 
 function editButtonMarkup(room, isAdmin, selectedProp, canReviewCutscenes) {
-  const pencil = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"></path><path d="m13 5 4 4"></path></svg>`;
-  const clapper = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8.5 4.5 4h15L18 8.5"></path><path d="m7 4 2.5 4.5M12 4l2.5 4.5M17 4l2.5 4.5"></path><rect x="3" y="8.5" width="18" height="12" rx="2"></rect><path d="M10 12.5v5M14 12.5v5"></path></svg>`;
   return [
     room?.canEditRoom
-      ? `<button type="button" class="icon-button toolbar-edit" data-edit-room="1" aria-label="Edit Room" title="Edit Room">${pencil}</button>`
+      ? `<button type="button" class="icon-button toolbar-edit" data-edit-room="1" aria-label="Edit Room" title="Edit Room">${uiIconMarkup("edit")}</button>`
       : "",
     isAdmin && selectedProp?.propId
-      ? `<button type="button" class="icon-button toolbar-edit" data-edit-prop="${escapeHtml(selectedProp.propId)}" aria-label="Edit Prop" title="Edit Prop">${pencil}</button>`
+      ? `<button type="button" class="icon-button toolbar-edit" data-edit-prop="${escapeHtml(selectedProp.propId)}" aria-label="Edit Prop" title="Edit Prop">${uiIconMarkup("edit")}</button>`
       : "",
     canReviewCutscenes
-      ? `<button type="button" class="icon-button toolbar-edit" data-open-cutscene-catalog="1" aria-label="Open Cutscene Catalog" title="Open Cutscene Catalog">${clapper}</button>`
+      ? `<button type="button" class="icon-button toolbar-edit" data-open-cutscene-catalog="1" aria-label="Open Cutscene Catalog" title="Open Cutscene Catalog">${uiIconMarkup("clapper")}</button>`
       : "",
   ].join("");
 }
@@ -415,7 +414,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
       const showMultiverse = isAdmin || hasSlottedSkill(state, "multiverse-map");
       const showTinymag = state.user?.worldId === "tinytown";
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
-      const roomPicker = `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg></button>`;
+      const roomPicker = `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}">${uiIconMarkup("room-picker")}</button>`;
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),

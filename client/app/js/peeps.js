@@ -3,8 +3,8 @@ import { withBase } from "./base-path.js";
 import { layoutPeeps } from "./peep-groups.js";
 import { createBubbleElement, createPeepBubbles } from "./peep-bubbles.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
-import { statusIconMarkup } from "./views/view-helpers.js";
-import { decalDataUrl } from "./decals.js";
+import { decalDataUrl, stinkDataUrl } from "./decals.js";
+import { powerGlowStyle } from "./power-glow.js";
 
 const MOVE_BUBBLE_LIFETIME = 5000;
 const MOVE_RECORD_TTL = 10000;
@@ -24,9 +24,8 @@ function groupMarkup(grouped) {
   const label = grouped.length === 1 ? "1 more peep" : `${grouped.length} more peeps`;
   return `
       <article class="peep-chip peep-group-chip">
-        <button type="button" class="peep-main peep-group" data-peep-group aria-label="Show ${label}" aria-expanded="false">
+        <button type="button" class="peep-main peep-group" data-peep-group aria-label="Show ${label}" aria-expanded="false" title="Show ${label}">
           <span class="peep-group-grid" aria-hidden="true">${minis}<span class="peep-group-count">+${grouped.length}</span></span>
-          <span class="peep-name">${label}</span>
         </button>
       </article>`;
 }
@@ -230,20 +229,21 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
       dialogId: state.room?.dialog?.peepId || "",
     });
     const shown = layout.visible;
-    const definitions = state.user?.statusDefinitions || {};
     const markup = `<div class="peep-list">${shown.map(peep => {
       const statuses = peep.statuses || [];
       const tired = statuses.includes("tired");
+      const stinky = statuses.includes("stinky");
       const damage = peepDamage(peep, state);
       const decals = Array.isArray(peep.decals) ? peep.decals : (peep.counters?.decals || []);
       const decalUrl = decalDataUrl(peep.id, decals);
+      const stinkUrl = stinky ? stinkDataUrl(peep.id) : "";
+      const glowStyle = powerGlowStyle(peep.powers || []);
       return `
       <article class="peep-chip ${peep.id === state.user?.id ? "self" : ""} ${pinned.has(peep.id) ? "pinned" : ""} ${tired ? "tired" : ""} ${state.selection.kind === "peep" && state.selection.id === peep.id ? "selected" : ""}">
-        <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
-          <span class="peep-marker" data-damage="${damage}"><img src="${peepSticker(peep)}" alt="">${decalUrl ? `<img class="peep-decals" src="${decalUrl}" alt="" aria-hidden="true">` : ""}<span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
-          <span class="peep-name">${escapeHtml(peep.label)}${peep.id === state.user?.id ? " (You)" : ""}</span>
+        <button type="button" class="peep-main" data-peep-id="${escapeHtml(peep.id)}" data-focus-key="${escapeHtml(peep.id)}" aria-label="Select ${escapeHtml(peep.label)}" title="${escapeHtml(peep.label)}" aria-pressed="${state.selection.kind === "peep" && state.selection.id === peep.id}">
+          ${pinned.has(peep.id) ? '<span class="peep-pin" aria-hidden="true">◆</span>' : ""}
+          <span class="peep-marker" data-damage="${damage}"${stinky ? ' data-stinky="1"' : ""}><span class="peep-aura" style="${glowStyle}" aria-hidden="true"></span><img src="${peepSticker(peep)}" alt="">${decalUrl ? `<img class="peep-decals" src="${decalUrl}" alt="" aria-hidden="true">` : ""}${stinkUrl ? `<img class="peep-stink" src="${stinkUrl}" alt="" aria-hidden="true">` : ""}<span class="peep-damage wear" aria-hidden="true"></span><span class="peep-damage gashes" aria-hidden="true"></span></span>
           ${peep.audioEnabled ? `<span class="peep-audio" role="img" aria-label="Audio chat on" title="Audio chat on">&#128266;</span>` : ""}
-          ${statuses.length ? `<span class="peep-statuses">${statusIconMarkup(statuses, definitions)}</span>` : ""}
         </button>
       </article>`;
     }).join("")}${groupMarkup(layout.grouped)}</div>

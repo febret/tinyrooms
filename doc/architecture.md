@@ -58,6 +58,13 @@ A world may also declare an optional stylesheet (`css:` in `world.yaml`,
 served at `/assets/world/<id>/world.css`) for world-specific presentation
 such as cutscene scene styles.
 
+Top-toolbar and settings icons are real SVG files served at
+`/assets/ui/<key>.svg`, resolved world-first: `worlds/<id>/ui/<key>.svg`,
+then each enabled mod's `ui/<key>.svg` in reverse load order, then the core
+defaults under `data/ui/icons/`. Worlds and mods override a chrome icon by
+dropping a same-named SVG file; the client always requests the key URL and the
+server picks the winner.
+
 [The mod loader](../server/mods.py) owns manifest discovery, enabled-mod selection,
 content merging, command registration, and runtime factories. Worlds declare
 `requires_mods`; startup rejects missing dependencies. The scammon-academia

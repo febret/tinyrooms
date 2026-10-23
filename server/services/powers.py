@@ -69,6 +69,20 @@ class PowersService:
             return frozenset()
         return frozenset(_parse_powers(row["powers"]))
 
+    def _db_powers_many(self, account_ids: list[str]) -> dict[str, frozenset[str]]:
+        """Return stored power grants for many accounts with one query."""
+
+        unique_ids = list(dict.fromkeys(account_ids))
+        if not unique_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in unique_ids)
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                f"SELECT id, powers FROM accounts WHERE id IN ({placeholders})",
+                unique_ids,
+            ).fetchall()
+        return {str(row["id"]): frozenset(_parse_powers(row["powers"])) for row in rows}
+
     def effective(self, account: AccountRecord) -> frozenset[str]:
         """Return every power an account holds in the active world."""
 
@@ -77,6 +91,19 @@ class PowersService:
         if account.username_key in self._bootstrap_admins:
             powers.add("admin")
         return frozenset(power for power in powers if power in POWER_NAMES)
+
+    def effective_many(self, accounts: list[AccountRecord]) -> dict[str, frozenset[str]]:
+        """Return effective powers for many accounts without one query each."""
+
+        stored = self._db_powers_many([account.id for account in accounts])
+        powers_by_account: dict[str, frozenset[str]] = {}
+        for account in accounts:
+            powers = set(self._world_powers_for(account))
+            powers.update(stored.get(account.id, frozenset()))
+            if account.username_key in self._bootstrap_admins:
+                powers.add("admin")
+            powers_by_account[account.id] = frozenset(power for power in powers if power in POWER_NAMES)
+        return powers_by_account
 
     def has_power(self, account_id: str, power: str) -> bool:
         """Return whether an account holds *power* in the active world."""

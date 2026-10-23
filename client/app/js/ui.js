@@ -38,13 +38,15 @@ import { createThumbnailManager } from "./editing/prop-thumbnails.js";
 import { createEditorActions } from "./editor-actions.js";
 import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
-import { BUBBLE_TIMEOUT_CHOICES, bubbleTimeoutLabel, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
+import { BUBBLE_TIMEOUT_CHOICES, PANEL_SIZE_CHOICES, bubbleTimeoutLabel, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
 import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
 import { cardFaceSvg } from "./card-face.js";
 import { createCardViewerManager } from "./card-viewer.js";
 import { createSocketClient } from "./socket.js";
 import { createStore } from "./state.js";
+import { createStatusButton } from "./status-button.js";
+import { uiIconMarkup } from "./ui-icons.js";
 import { createTargetingController } from "./targeting.js";
 import { sellInventoryCard } from "./sell.js";
 import { createVoiceChat } from "./voice.js";
@@ -630,6 +632,10 @@ async function mergeStack(stackId) {
 
 async function openStickerSwap() {
   const state = store.getState();
+  if (!Array.isArray(state.user?.powers) || !state.user.powers.length) {
+    try { await sendCommand(".play sticker-designer replace"); } catch (error) { showError(error); }
+    return;
+  }
   const stickers = state.stickers || [];
   const current = state.user?.sticker || "";
   const cost = state.user?.stickerSwapCost ?? 0;
@@ -756,28 +762,23 @@ function renderActionLog(state) {
   lines.scrollTop = atBottom ? lines.scrollHeight : oldTop;
 }
 
-const TOP_ACTION_ICONS = {
-  peeps: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16 6.5a3 3 0 0 1 0 5.8"></path><path d="M17.5 14.5A5 5 0 0 1 21 19"></path></svg>`,
-  log: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"></path></svg>`,
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="M16 8.5a5 5 0 0 1 0 7"></path></svg>`,
-  fullscreen: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"></path></svg>`,
-  outlines: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="4 3"></rect></svg>`,
-  bubble: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4V5Z"></path></svg>`,
-  audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="10" rx="3"></rect><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"></path></svg>`,
-  mute: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 1 3 3v5M9 6v5a3 3 0 0 0 4.8 2.4M6 11a6 6 0 0 0 9.3 5M12 17v4M9 21h6M4 4l16 16"></path></svg>`,
-  commands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7 4 5-4 5M12 17h7"></path></svg>`,
-  logout: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h9"></path></svg>`,
-  reconnect: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"></path></svg>`,
-};
-
 function quickSetting({ action, label, icon, pressed = null, disabled = false, title = "", wide = false }) {
   const pressedAttr = pressed === null ? "" : ` aria-pressed="${pressed}"`;
   const disabledAttr = disabled ? " disabled" : "";
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
   return `<button type="button" class="quick-setting${wide ? " wide" : ""}" data-top-action="${escapeHtml(action)}"${pressedAttr}${disabledAttr}${titleAttr}>
-    <span class="quick-icon" aria-hidden="true">${icon}</span>
+    ${uiIconMarkup(icon, { className: "quick-icon" })}
     <span class="quick-label">${escapeHtml(label)}</span>
   </button>`;
+}
+
+function sizeSetting({ kind, label, value }) {
+  const options = PANEL_SIZE_CHOICES.map(choice =>
+    `<option value="${choice}"${choice === value ? " selected" : ""}>${choice[0].toUpperCase()}${choice.slice(1)}</option>`).join("");
+  return `<label class="quick-setting size-setting wide" for="${escapeHtml(kind)}-size">
+    <span class="quick-label">${escapeHtml(label)}</span>
+    <select class="quick-select" id="${escapeHtml(kind)}-size" data-size-setting="${escapeHtml(kind)}">${options}</select>
+  </label>`;
 }
 
 function renderTopBar(state) {
@@ -789,21 +790,29 @@ function renderTopBar(state) {
     ? state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"
     : "Fullscreen is not supported on this device";
   const markup = [
-    quickSetting({ action: "peeps", label: "Peeps", icon: TOP_ACTION_ICONS.peeps, pressed: state.ui.peepsVisible !== false }),
-    quickSetting({ action: "log", label: "Log", icon: TOP_ACTION_ICONS.log, pressed: state.ui.actionLogVisible }),
-    quickSetting({ action: "sound", label: "Sound", icon: TOP_ACTION_ICONS.sound, pressed: state.ui.soundEnabled }),
-    quickSetting({ action: "fullscreen", label: "Fullscreen", icon: TOP_ACTION_ICONS.fullscreen, pressed: state.ui.fullscreen, disabled: !canFullscreen, title: fullscreenTitle }),
-    quickSetting({ action: "outlines", label: "Outlines", icon: TOP_ACTION_ICONS.outlines, pressed: state.ui.outlineActiveProps }),
-    quickSetting({ action: "bubble", label: `Bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}`, icon: TOP_ACTION_ICONS.bubble }),
-    state.loggedIn ? quickSetting({ action: "audio", label: "Audio", icon: TOP_ACTION_ICONS.audio, pressed: state.ui.audioEnabled }) : "",
-    state.ui.audioEnabled ? quickSetting({ action: "mute", label: state.ui.audioMuted ? "Unmute" : "Mute", icon: TOP_ACTION_ICONS.mute, pressed: state.ui.audioMuted }) : "",
-    quickSetting({ action: "commands", label: "Commands", icon: TOP_ACTION_ICONS.commands }),
-    state.loggedIn ? quickSetting({ action: "logout", label: "Log out", icon: TOP_ACTION_ICONS.logout, wide: true }) : "",
+    quickSetting({ action: "peeps", label: "Peeps", icon: "peeps", pressed: state.ui.peepsVisible !== false }),
+    quickSetting({ action: "log", label: "Log", icon: "log", pressed: state.ui.actionLogVisible }),
+    quickSetting({ action: "sound", label: "Sound", icon: "sound", pressed: state.ui.soundEnabled }),
+    quickSetting({ action: "fullscreen", label: "Fullscreen", icon: "fullscreen", pressed: state.ui.fullscreen, disabled: !canFullscreen, title: fullscreenTitle }),
+    quickSetting({ action: "outlines", label: "Outlines", icon: "outlines", pressed: state.ui.outlineActiveProps }),
+    quickSetting({ action: "bubble", label: `Bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}`, icon: "bubble" }),
+    sizeSetting({ kind: "sidebar", label: "Peep sidebar size", value: state.ui.sidebarSize || "normal" }),
+    sizeSetting({ kind: "toolbar", label: "Top toolbar size", value: state.ui.toolbarSize || "normal" }),
+    state.loggedIn ? quickSetting({ action: "audio", label: "Audio", icon: "audio", pressed: state.ui.audioEnabled }) : "",
+    state.ui.audioEnabled ? quickSetting({ action: "mute", label: state.ui.audioMuted ? "Unmute" : "Mute", icon: "mute", pressed: state.ui.audioMuted }) : "",
+    quickSetting({ action: "commands", label: "Commands", icon: "commands" }),
+    state.loggedIn ? quickSetting({ action: "logout", label: "Log out", icon: "logout", wide: true }) : "",
     state.loggedIn && !state.transport.connected && state.user?.initialStickerComplete
-      ? quickSetting({ action: "reconnect", label: "Reconnect", icon: TOP_ACTION_ICONS.reconnect, wide: true })
+      ? quickSetting({ action: "reconnect", label: "Reconnect", icon: "reconnect", wide: true })
       : "",
   ].join("");
   if (!updateMarkup(top, markup)) return;
+  top.querySelectorAll("[data-size-setting]").forEach(select => {
+    select.onchange = () => {
+      const kind = select.dataset.sizeSetting === "toolbar" ? "toolbar" : "sidebar";
+      store.dispatch({ type: kind === "toolbar" ? "set-toolbar-size" : "set-sidebar-size", size: select.value });
+    };
+  });
   top.querySelectorAll("button").forEach(button => {
     button.onclick = async () => {
       const which = button.dataset.topAction;
@@ -1043,6 +1052,10 @@ const peeps = createPeepsView({
   onMove: command => { if (command) void sendCommand(command).catch(showError); },
   onSound: () => {},
 });
+const statusButton = createStatusButton({
+  root: $("#status-tools"),
+  onAction: action => { void handleAction(action); },
+});
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
   needsPeepAnchors: () => peeps.hasBubbles(),
@@ -1215,6 +1228,8 @@ async function render(state) {
     if (revision !== renderRevision) return;
   }
   toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
+  toggleAttribute(root, "sidebar-size", state.ui.sidebarSize || "normal");
+  toggleAttribute(root, "toolbar-size", state.ui.toolbarSize || "normal");
   syncWorldStylesheet(state);
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
@@ -1237,6 +1252,7 @@ async function render(state) {
   targeting?.sync(state);
   renderActionLog(state);
   renderTopBar(state);
+  statusButton.render(state);
   propActionButton.sync(state);
   renderAuth(state);
   renderToasts(state);

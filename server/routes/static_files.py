@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 import mimetypes
+import re
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, RedirectResponse
@@ -42,6 +43,35 @@ def _cardset_roots(runtime: RuntimeState) -> tuple[Path, ...]:
     if shared is None:
         return (runtime.config.cardsets_path,)
     return (shared, runtime.config.cardsets_path)
+
+
+_UI_ICON_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.svg$")
+
+
+def _ui_icon_roots(runtime: RuntimeState) -> tuple[Path, ...]:
+    """Return UI icon override roots from highest to lowest priority.
+
+    The active world wins, then enabled mods in reverse load order, then the
+    core defaults. A world or mod provides an icon by dropping
+    ``ui/<key>.svg`` into its own directory.
+    """
+
+    roots = [runtime.world.root_path / "ui"]
+    roots.extend(mod.path / "ui" for mod in reversed(runtime.mod_definitions))
+    roots.append(runtime.config.repo_root / "data" / "ui" / "icons")
+    return tuple(roots)
+
+
+def resolve_ui_icon(runtime: RuntimeState, filename: str) -> Path | None:
+    """Return the winning file for a UI icon name, or None when unknown."""
+
+    if not _UI_ICON_PATTERN.match(filename):
+        return None
+    for root in _ui_icon_roots(runtime):
+        candidate = _safe_path(root, filename)
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def register_static_routes(app: FastAPI) -> None:
@@ -146,6 +176,18 @@ def register_static_routes(app: FastAPI) -> None:
         if candidate.is_file():
             return FileResponse(candidate)
         raise HTTPException(status_code=404, detail="Effect asset not found.")
+
+    @app.get("/assets/ui/{filename}")
+    async def ui_icon_asset(filename: str, request: Request) -> Response:
+        runtime = get_runtime(request)
+        candidate = resolve_ui_icon(runtime, filename)
+        if candidate is None:
+            raise HTTPException(status_code=404, detail="UI icon not found.")
+        return FileResponse(
+            candidate,
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "public, max-age=60"},
+        )
 
     @app.get("/assets/sounds/{filename}")
     async def sound_asset(filename: str, request: Request) -> Response:

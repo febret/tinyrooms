@@ -28,6 +28,10 @@ import {
   saveOutlineActiveProps,
   savedPhoneMusicEnabled,
   savedPhoneTrack,
+  savedSidebarSize,
+  savedToolbarSize,
+  saveSidebarSize,
+  saveToolbarSize,
 } from "./preferences.js";
 
 const REDUCED_MOTION = typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -546,7 +550,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -723,6 +727,14 @@ function reduce(state, action) {
     const timeout = Number(action.timeout) || 0;
     saveBubbleTimeout(timeout);
     return { ...state, ui: { ...state.ui, bubbleTimeout: timeout } };
+  }
+  if (action.type === "set-sidebar-size" && ["compact", "normal", "large"].includes(action.size)) {
+    saveSidebarSize(action.size);
+    return { ...state, ui: { ...state.ui, sidebarSize: action.size } };
+  }
+  if (action.type === "set-toolbar-size" && ["compact", "normal", "large"].includes(action.size)) {
+    saveToolbarSize(action.size);
+    return { ...state, ui: { ...state.ui, toolbarSize: action.size } };
   }
   if (action.type === "audio-state") return { ...state, ui: { ...state.ui, audioEnabled: Boolean(action.enabled), audioMuted: Boolean(action.muted) } };
   if (action.type === "log-line" && state.room && action.text) {

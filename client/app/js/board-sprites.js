@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import { boardPosition } from "./board-helpers.js";
 import { loadSharedTexture, sharedTexture } from "./board-resources.js";
-import { decalCanvas } from "./decals.js";
+import { decalCanvas, stinkCanvas } from "./decals.js";
 
 const TOP = 0.045;
 const SPRITE_HEIGHT = 1.8;
@@ -106,6 +106,8 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       reaction: null,
       decalOverlay: null,
       decalKey: "",
+      stinkOverlay: null,
+      stinkKey: "",
     };
     entry.sprites.set(id, record);
     build(record, entry);
@@ -114,23 +116,22 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     return record;
   }
 
-  function clearDecalOverlay(entry, record) {
-    if (!record.decalOverlay) return;
-    entry.root.remove(record.decalOverlay);
-    record.decalOverlay.material.map?.dispose();
-    record.decalOverlay.material.dispose();
-    record.decalOverlay = null;
-    record.decalKey = "";
+  function disposeOverlay(entry, record, kind) {
+    const overlay = kind === "stink" ? record.stinkOverlay : record.decalOverlay;
+    if (!overlay) return;
+    entry.root.remove(overlay);
+    overlay.material.map?.dispose();
+    overlay.material.dispose();
+    if (kind === "stink") {
+      record.stinkOverlay = null;
+      record.stinkKey = "";
+    } else {
+      record.decalOverlay = null;
+      record.decalKey = "";
+    }
   }
 
-  function syncDecalOverlay(entry, record, actor) {
-    const decals = Array.isArray(actor.decals) ? actor.decals : [];
-    const key = decals.length ? JSON.stringify(decals) : "";
-    if (key === record.decalKey) return;
-    clearDecalOverlay(entry, record);
-    if (!key || !record.sprite) return;
-    const canvas = decalCanvas(record.id, decals);
-    if (!canvas) return;
+  function attachOverlay(entry, record, canvas, kind) {
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({
@@ -143,16 +144,47 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     overlay.center.set(0.5, 0);
     overlay.position.copy(record.sprite.position);
     overlay.scale.copy(record.sprite.scale);
-    overlay.renderOrder = 1;
+    overlay.renderOrder = kind === "stink" ? 2 : 1;
     entry.root.add(overlay);
-    record.decalOverlay = overlay;
+    if (kind === "stink") record.stinkOverlay = overlay;
+    else record.decalOverlay = overlay;
+  }
+
+  function clearDecalOverlay(entry, record) {
+    disposeOverlay(entry, record, "decal");
+  }
+
+  function clearStinkOverlay(entry, record) {
+    disposeOverlay(entry, record, "stink");
+  }
+
+  function syncDecalOverlay(entry, record, actor) {
+    const decals = Array.isArray(actor.decals) ? actor.decals : [];
+    const key = decals.length ? JSON.stringify(decals) : "";
+    if (key === record.decalKey) return;
+    clearDecalOverlay(entry, record);
+    if (!key || !record.sprite) return;
+    const canvas = decalCanvas(record.id, decals);
+    if (!canvas) return;
+    attachOverlay(entry, record, canvas, "decal");
     record.decalKey = key;
+  }
+
+  function syncStinkOverlay(entry, record, actor) {
+    const stinky = Array.isArray(actor.statuses) && actor.statuses.includes("stinky");
+    const key = stinky ? "stinky" : "";
+    if (key === record.stinkKey) return;
+    clearStinkOverlay(entry, record);
+    if (!key || !record.sprite) return;
+    attachOverlay(entry, record, stinkCanvas(record.id), "stink");
+    record.stinkKey = key;
   }
 
   function remove(entry, id) {
     const record = entry.sprites.get(id);
     if (!record) return;
     clearDecalOverlay(entry, record);
+    clearStinkOverlay(entry, record);
     entry.root.remove(record.sprite);
     const index = entry.pickables.indexOf(record.sprite);
     if (index >= 0) entry.pickables.splice(index, 1);
@@ -181,6 +213,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       }
     }
     syncDecalOverlay(entry, record, actor);
+    syncStinkOverlay(entry, record, actor);
   }
 
   function sync(entry, actors, dark = false) {
@@ -199,6 +232,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       else {
         const record = add(entry, actor, dark);
         syncDecalOverlay(entry, record, actor);
+        syncStinkOverlay(entry, record, actor);
       }
     }
   }
@@ -250,6 +284,10 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       if (record.decalOverlay) {
         record.decalOverlay.position.copy(sprite.position);
         record.decalOverlay.scale.copy(sprite.scale);
+      }
+      if (record.stinkOverlay) {
+        record.stinkOverlay.position.copy(sprite.position);
+        record.stinkOverlay.scale.copy(sprite.scale);
       }
     }
   }

@@ -2,17 +2,17 @@
 emotes:
   label: Emotes
   description: Opens the Emotes selector
-  image: emotes-icon.png
+  image: emotes-icon.svg
   order: 2
 inventory:
   label: Inventory
   description: Opens the Inventory
-  image: inventory-icon.png
+  image: inventory-icon.svg
   order: 3
 journal:
   label: Journal
   description: Opens the Journal
-  image: journal-icon.png
+  image: journal-icon.svg
   order: 5
 phone:
   label: Phone

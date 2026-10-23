@@ -13,6 +13,7 @@ const Tiny = window.TinyActivity;
 
 const grid = document.querySelector("#grid");
 const modeTabs = document.querySelector("#mode-tabs");
+const presetTab = modeTabs.querySelector('[data-mode="presets"]');
 const presetsPane = document.querySelector("#presets-pane");
 const customPane = document.querySelector("#custom-pane");
 const preview = document.querySelector("#preview");
@@ -27,7 +28,7 @@ const confirmButton = document.querySelector("#confirm");
 const connection = document.querySelector("#connection");
 
 let state = null;
-let mode = "presets";
+let mode = "custom";
 let design = null;
 let activeCategory = CATEGORIES[0].id;
 let selectedPreset = "";
@@ -84,12 +85,13 @@ function activeCategoryEntry() {
   return CATEGORIES.find(category => category.id === activeCategory) || CATEGORIES[0];
 }
 
+function hasPresetAccess() {
+  return Array.isArray(state?.user?.powers) && state.user.powers.length > 0;
+}
+
 function setMode(next) {
-  mode = next === "custom" ? "custom" : "presets";
-  modeTabs.querySelectorAll("[data-mode]").forEach(tab => {
-    tab.setAttribute("aria-selected", String(tab.dataset.mode === mode));
-    tab.setAttribute("tabindex", tab.dataset.mode === mode ? "0" : "-1");
-  });
+  mode = next === "presets" && hasPresetAccess() ? "presets" : "custom";
+  syncModeTabs();
   presetsPane.hidden = mode !== "presets";
   customPane.hidden = mode !== "custom";
   if (mode === "custom") {
@@ -99,7 +101,22 @@ function setMode(next) {
   updateSummary();
 }
 
+function syncModeTabs() {
+  const allowed = hasPresetAccess();
+  if (presetTab) presetTab.hidden = !allowed;
+  modeTabs.hidden = !allowed;
+  modeTabs.querySelectorAll("[data-mode]").forEach(tab => {
+    tab.setAttribute("aria-selected", String(tab.dataset.mode === mode));
+    tab.setAttribute("tabindex", tab.dataset.mode === mode ? "0" : "-1");
+  });
+}
+
 function renderPresets() {
+  if (!hasPresetAccess()) {
+    gridMarkup = "";
+    grid.innerHTML = "";
+    return;
+  }
   const stickers = presetStickers();
   const focused = grid.contains(document.activeElement) ? document.activeElement.dataset.sticker : null;
   const current = currentStickerName();
@@ -268,6 +285,8 @@ function updateSummary() {
 
 function render() {
   if (!state) return;
+  if (!hasPresetAccess()) mode = "custom";
+  syncModeTabs();
   connection.textContent = state.user
     ? state.user.initialStickerComplete ? "" : "Choose your first sticker to enter Tinyrooms."
     : "Waiting for Tinyrooms…";
@@ -300,7 +319,7 @@ resetButton.onclick = () => {
 
 confirmButton.onclick = async () => {
   if (confirming) return;
-  if (mode === "presets" && !selectedPreset) return;
+  if (mode === "presets" && (!selectedPreset || !hasPresetAccess())) return;
   confirming = true;
   confirmButton.disabled = true;
   try {

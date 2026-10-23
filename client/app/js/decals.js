@@ -1,7 +1,9 @@
 /** Generic persistent decal overlays for board sprites and sidebar peep chips. */
 
 export const PAINT_DECAL_KIND = "paint";
+export const STINK_DECAL_KIND = "stink";
 export const DECAL_COLORS = Object.freeze(["#ff4d6d", "#4ea8ff", "#5cf29a", "#ffe066", "#c77dff"]);
+export const STINK_COLORS = Object.freeze(["#63c74d", "#3f9142", "#8be07a"]);
 
 const canvasCache = new Map();
 const dataUrlCache = new Map();
@@ -113,6 +115,82 @@ export function decalDataUrl(peepId, rawDecals) {
   const canvas = decalCanvas(id, decals);
   if (!canvas) return "";
   const url = canvas.toDataURL("image/png");
+  dataUrlCache.set(key, url);
+  return url;
+}
+
+/** Draw rough green crayon wisps rising around a sticker. */
+function drawStinkLine(painter, points, color, width, seed) {
+  painter.strokeStyle = color;
+  painter.lineCap = "round";
+  painter.lineJoin = "round";
+  for (let pass = 0; pass < 3; pass += 1) {
+    painter.globalAlpha = pass === 2 ? 0.86 : 0.32;
+    painter.lineWidth = width - pass * 1.1;
+    painter.beginPath();
+    points.forEach(([baseX, baseY], position) => {
+      const jitterX = (((seed >>> ((position * 3 + pass * 7) % 23)) & 7) - 3) * 1.2;
+      const jitterY = (((seed >>> ((position * 5 + pass * 11) % 29)) & 7) - 3) * 0.9;
+      const x = baseX + jitterX;
+      const y = baseY + jitterY;
+      if (position === 0) painter.moveTo(x, y);
+      else painter.quadraticCurveTo(x - 8, y - 8, x, y - 14);
+    });
+    painter.stroke();
+  }
+  painter.globalAlpha = 1;
+}
+
+function stinkWisps(seed) {
+  const lanes = [58, 104, 152, 198];
+  return lanes.map((x, lane) => {
+    const height = 84 + ((seed >>> (lane * 4)) & 15);
+    const top = 34 + ((seed >>> (lane * 4 + 2)) & 11);
+    return [
+      [x, 96 + height * 0.48],
+      [x + (lane % 2 ? 8 : -8), 78 + height * 0.30],
+      [x + (lane % 2 ? -7 : 7), top + 26],
+      [x + (lane % 2 ? 9 : -9), top + 8],
+    ];
+  });
+}
+
+/** Build a sticker-sized transparent canvas with green stink lines. */
+export function stinkCanvas(peepId) {
+  const id = String(peepId || "peep");
+  const key = `stink:${id}`;
+  const cached = canvasCache.get(key);
+  if (cached) return cached;
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const painter = canvas.getContext("2d");
+  if (!painter) return canvas;
+  const seed = hashText(key);
+  stinkWisps(seed).forEach((points, lane) => {
+    drawStinkLine(painter, points, STINK_COLORS[lane % STINK_COLORS.length], 7 - (lane % 2), seed + lane * 101);
+  });
+  for (let index = 0; index < 7; index += 1) {
+    const x = 48 + ((seed >>> (index * 6)) & 127);
+    const y = 36 + ((seed >>> (index * 6 + 3)) & 43);
+    painter.fillStyle = STINK_COLORS[(seed + index) % STINK_COLORS.length];
+    painter.globalAlpha = 0.62;
+    painter.beginPath();
+    painter.arc(x, y, 2.4 + (index % 3), 0, Math.PI * 2);
+    painter.fill();
+  }
+  painter.globalAlpha = 1;
+  canvasCache.set(key, canvas);
+  return canvas;
+}
+
+/** Return a cached green-stink data URL, or an empty string. */
+export function stinkDataUrl(peepId) {
+  const id = String(peepId || "peep");
+  const key = `stink:${id}`;
+  const cached = dataUrlCache.get(key);
+  if (cached) return cached;
+  const url = stinkCanvas(id).toDataURL("image/png");
   dataUrlCache.set(key, url);
   return url;
 }

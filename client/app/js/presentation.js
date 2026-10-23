@@ -25,7 +25,7 @@ export function updateMarkup(node, markup) {
   node.scrollTop = top;
   node.scrollLeft = left;
   if (key) {
-    const match = [...node.querySelectorAll("button,input,[tabindex]")].find(element =>
+    const match = [...node.querySelectorAll("button,input,select,[tabindex]")].find(element =>
       (element.getAttribute("data-focus-key") || element.getAttribute("name") || element.id) === key);
     match?.focus({ preventScroll: true });
   }

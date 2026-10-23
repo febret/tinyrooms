@@ -449,6 +449,7 @@ class RoomService:
         live_connections = await self._connections.list_room(room_id)
         accounts = self._profiles.get_accounts_by_ids([connection.account_id for connection in live_connections])
         occupants: list[dict[str, object]] = []
+        powers_by_account = self._powers.effective_many(list(accounts.values())) if self._powers is not None else {}
         for connection in live_connections:
             account = accounts.get(connection.account_id)
             if account is None:
@@ -459,6 +460,7 @@ class RoomService:
                     "username": account.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
+                    "powers": sorted(powers_by_account.get(account.id, ())),
                     "audio_enabled": connection.audio_enabled,
                     "quick_actions": self._user_quick_actions(account),
                     **self._user_sprite_payload(account.id, room_id),
@@ -802,6 +804,7 @@ class RoomService:
             vibe_targets = [*occupant_ids, *[peep.id for peep in self._npc_peeps_in(room_id)]]
             vibes_by_id = self._vibes.pairs_for(account.id, vibe_targets)
         occupants: list[dict[str, object]] = []
+        powers_by_account = self._powers.effective_many(list(occupant_accounts.values())) if self._powers is not None else {}
         for connection in live_connections:
             occupant = occupant_accounts.get(connection.account_id)
             if occupant is None:
@@ -813,6 +816,7 @@ class RoomService:
                     "username": occupant.username_display,
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{occupant.sticker}" if occupant.sticker else None,
+                    "powers": sorted(powers_by_account.get(occupant.id, ())),
                     "statuses": list(counters["statuses"]),
                     "counters": counters,
                     "audio_enabled": connection.audio_enabled,

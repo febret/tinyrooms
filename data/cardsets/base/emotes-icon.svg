@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="emote-paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf2"/>
+      <stop offset=".6" stop-color="#ecd8a8"/>
+      <stop offset="1" stop-color="#c9a45c"/>
+    </linearGradient>
+    <linearGradient id="emote-ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5c4a2d"/>
+      <stop offset="1" stop-color="#2b1f0d"/>
+    </linearGradient>
+    <linearGradient id="emote-blush" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff9d9d"/>
+      <stop offset="1" stop-color="#c43d3d"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="64" cy="114" rx="42" ry="7" fill="#000" opacity=".3"/>
+  <path d="M24 26h64a14 14 0 0 1 14 14v30a14 14 0 0 1-14 14H54l-16 18v-18H24a14 14 0 0 1-14-14V40a14 14 0 0 1 14-14z" fill="url(#emote-paper)" stroke="#3a2a10" stroke-width="4"/>
+  <path d="M70 66h28a11 11 0 0 1 11 11v18a11 11 0 0 1-11 11H86l-10 12v-12H70a11 11 0 0 1-11-11V77a11 11 0 0 1 11-11z" fill="#fff7df" stroke="#3a2a10" stroke-width="3.5"/>
+  <circle cx="42" cy="52" r="8" fill="#2b1f0d"/>
+  <circle cx="72" cy="52" r="8" fill="#2b1f0d"/>
+  <circle cx="44.5" cy="49.5" r="2.8" fill="#fff"/>
+  <circle cx="74.5" cy="49.5" r="2.8" fill="#fff"/>
+  <circle cx="30" cy="62" r="5" fill="url(#emote-blush)" opacity=".85"/>
+  <circle cx="84" cy="62" r="5" fill="url(#emote-blush)" opacity=".85"/>
+  <path d="M40 69q17 12 34 0" fill="none" stroke="url(#emote-ink)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M74 86q10 8 20 0" fill="none" stroke="#7d4b1b" stroke-width="4" stroke-linecap="round"/>
+  <path d="M24 31q26-8 60 0" stroke="#fff" stroke-width="3" opacity=".55" fill="none" stroke-linecap="round"/>
+</svg>

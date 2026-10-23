@@ -11,15 +11,15 @@
     <main class="shell viewport-column editor-shell">
       <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
       <div class="editor-tabs" id="mode-tabs" role="tablist" aria-label="Sticker designer mode">
-        <button type="button" class="tab" data-mode="presets" role="tab" aria-selected="true">Preset stickers</button>
-        <button type="button" class="tab" data-mode="custom" role="tab" aria-selected="false">Design your own</button>
+        <button type="button" class="tab" data-mode="presets" role="tab" aria-selected="false" tabindex="-1">Preset stickers</button>
+        <button type="button" class="tab" data-mode="custom" role="tab" aria-selected="true" tabindex="0">Design your own</button>
       </div>
 
-      <section class="editor-pane presets-pane" id="presets-pane" role="tabpanel" aria-label="Preset stickers">
+      <section class="editor-pane presets-pane" id="presets-pane" role="tabpanel" aria-label="Preset stickers" hidden>
         <div class="grid" id="grid" role="group" aria-label="Choose a sticker"></div>
       </section>
 
-      <section class="editor-pane custom-pane" id="custom-pane" role="tabpanel" aria-label="Design your own sticker" hidden>
+      <section class="editor-pane custom-pane" id="custom-pane" role="tabpanel" aria-label="Design your own sticker">
         <div class="preview-col">
           <div class="preview-frame">
             <canvas id="preview" width="360" height="396" aria-label="Sticker preview"></canvas>

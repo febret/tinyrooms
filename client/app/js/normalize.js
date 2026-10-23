@@ -206,6 +206,7 @@ export function normalizeActor(entity, { kind, labelSource }) {
     description: String(entity?.description || ""),
     stickerUrl: assetOrEmpty(entity?.sticker_url || entity?.image_url),
     quickActions: normalizeQuickActions(entity?.quick_actions),
+    powers: Array.isArray(entity?.powers) ? entity.powers.map(power => String(power)) : [],
     statuses: Array.isArray(entity?.statuses) ? [...entity.statuses] : [],
     decals: Array.isArray(entity?.decals)
       ? entity.decals.map(entry => ({ ...entry }))
