@@ -488,8 +488,8 @@ search or browse the catalog, play any track, and star tracks they like. The app
 suggests the chiptune.app top chart and tracks starred by other Tinyrooms users.
 Playback is per-user and never changes the room's music; the selected track and
 on/off preference are remembered locally in the browser. Because playback runs
-through a cross-origin chiptune.app frame, volume, pause/seek, and playback
-position are unavailable, and autoplay requires one user gesture.
+through a cross-origin chiptune.app frame, volume and playback
+position are unavailable (the phone's volume keys are shown but disabled), and autoplay requires one user gesture.
 
 
 -------------------------------------------------------------------------------

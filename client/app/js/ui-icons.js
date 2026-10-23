@@ -13,6 +13,7 @@ export const UI_ICON_KEYS = Object.freeze([
   "clapper",
   "tinymag",
   "keyring",
+  "bops",
   "peeps",
   "log",
   "sound",

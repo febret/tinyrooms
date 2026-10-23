@@ -39,7 +39,7 @@ import { createEditorActions } from "./editor-actions.js";
 import { createInertSweep, toggleClass } from "./inert.js";
 import { createPeepsView } from "./peeps.js";
 import { BUBBLE_TIMEOUT_CHOICES, PANEL_SIZE_CHOICES, bubbleTimeoutLabel, saveFullscreenIntent, savedFullscreenIntent } from "./preferences.js";
-import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
+import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
 import { cardFaceSvg } from "./card-face.js";
 import { createCardViewerManager } from "./card-viewer.js";
@@ -78,11 +78,6 @@ const {
 } = createEditorActions({ store, api, dialogs, toast, showError, sendCommand });
 const timedToasts = new Set();
 const leavingToasts = new Set();
-const consumedFeedback = new Set();
-const feedbackLayer = document.createElement("div");
-feedbackLayer.id = "feedback-layer";
-feedbackLayer.setAttribute("aria-live", "polite");
-root.append(feedbackLayer);
 let socket = null;
 let paletteClose = null;
 let paletteShade = null;
@@ -482,6 +477,13 @@ async function handleAction(action, { silentSound = false } = {}) {
     });
   } else if (action.type === "phone-home") {
     store.dispatch({ type: "phone-home" });
+  } else if (action.type === "phone-key") {
+    if (action.key === "music-prev") phoneMusic.previous();
+    else if (action.key === "music-toggle") phoneMusic.toggleOrPlay();
+    else if (action.key === "music-next") phoneMusic.next();
+    else if (action.key === "music-star") await phoneMusic.toggleStarCurrent();
+    else if (action.key === "friend-prev") store.dispatch({ type: "phone-friend-step", delta: -1 });
+    else if (action.key === "friend-next") store.dispatch({ type: "phone-friend-step", delta: 1 });
   } else if (action.type === "phone-music") {
     if (action.action === "play") phoneMusic.play({ song: action.song, label: action.label });
     else if (action.action === "stop") phoneMusic.stop();
@@ -977,53 +979,6 @@ function toggleAttribute(node, name, value) {
   node.dataset[name] = value;
 }
 
-function renderFeedback(state) {
-  const numbers = state.ui.floatingNumbers || [];
-  const effects = state.ui.effects || [];
-  const markup = [
-    ...numbers.map(number => `<span class="floating-number ${number.amount >= 0 ? "gain" : "loss"}" data-float-id="${escapeHtml(number.id)}">${number.amount >= 0 ? "+" : ""}${Math.round(number.amount)} ${escapeHtml(number.kind)}</span>`),
-    ...effects.map(effect => `<span class="room-effect" data-effect-id="${escapeHtml(effect.id)}"></span>`),
-  ].join("");
-  updateMarkup(feedbackLayer, markup);
-  if (numbers.length) {
-    // Hoisted out of the loop: the panel was re-queried and re-measured once
-    // per floating number, and the read happened after `updateMarkup` had
-    // already invalidated layout.
-    const panelElement = $("#peeps-panel");
-    const bounds = panelElement.getBoundingClientRect();
-    const markers = new Map();
-    for (const element of panelElement.querySelectorAll("[data-peep-id]")) {
-      markers.set(element.dataset.peepId, element);
-    }
-    for (const number of numbers) {
-      const node = feedbackLayer.querySelector(`[data-float-id="${CSS.escape(number.id)}"]`);
-      if (!node) continue;
-      const marker = markers.get(number.targetId);
-      const rect = marker ? marker.getBoundingClientRect() : { top: bounds.top + 40, right: bounds.right };
-      const top = `${Math.max(8, rect.top)}px`;
-      const left = `${Math.min(window.innerWidth - 90, (rect.right || bounds.right) + 6)}px`;
-      placeAt(node, left, top);
-    }
-  }
-  for (const number of numbers) {
-    if (consumedFeedback.has(`n:${number.id}`)) continue;
-    consumedFeedback.add(`n:${number.id}`);
-    setTimeout(() => {
-      consumedFeedback.delete(`n:${number.id}`);
-      store.dispatch({ type: "consume-floating", id: number.id });
-    }, state.ui.reducedMotion ? 200 : 1500);
-  }
-  for (const effect of effects) {
-    if (consumedFeedback.has(`e:${effect.id}`)) continue;
-    consumedFeedback.add(`e:${effect.id}`);
-    playTone("success");
-    setTimeout(() => {
-      consumedFeedback.delete(`e:${effect.id}`);
-      store.dispatch({ type: "consume-effect", id: effect.id });
-    }, state.ui.reducedMotion ? 200 : 1800);
-  }
-}
-
 const propActionButton = createPropActionButton({
   button: $("#prop-default-action"), getState: () => store.getState(), onAction: action => { void handleAction(action); },
 });
@@ -1146,6 +1101,19 @@ const phoneMusic = createPhoneMusic({
   onToast: toast,
   onError: showError,
 });
+let lastPhoneFriendIndex = null;
+function syncPhoneFriendSelection(state) {
+  if (state.views.main !== "phone" || state.ui.phoneApp !== "friends") {
+    lastPhoneFriendIndex = null;
+    return;
+  }
+  const index = Number(state.ui.phoneFriendIndex || 0);
+  if (index === lastPhoneFriendIndex) return;
+  lastPhoneFriendIndex = index;
+  requestAnimationFrame(() => {
+    panelLayer.querySelector(".phone-app-body .friend-entry.selected")?.scrollIntoView({ block: "nearest" });
+  });
+}
 const cardMotion = createCardMotion({
   board,
   handRoot: $("#card-hand"),
@@ -1228,8 +1196,8 @@ async function render(state) {
     if (revision !== renderRevision) return;
   }
   toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
-  toggleAttribute(root, "sidebar-size", state.ui.sidebarSize || "normal");
-  toggleAttribute(root, "toolbar-size", state.ui.toolbarSize || "normal");
+  toggleAttribute(root, "sidebarSize", state.ui.sidebarSize || "normal");
+  toggleAttribute(root, "toolbarSize", state.ui.toolbarSize || "normal");
   syncWorldStylesheet(state);
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
@@ -1256,8 +1224,8 @@ async function render(state) {
   propActionButton.sync(state);
   renderAuth(state);
   renderToasts(state);
-  renderFeedback(state);
   cards.render(state);
+  syncPhoneFriendSelection(state);
   if (roomChanged) playRoomSound(state);
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root);

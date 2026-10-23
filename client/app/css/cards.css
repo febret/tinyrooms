@@ -136,7 +136,7 @@
   .inventory-preview-card, .inventory-preview-info { width: min(100%, 160px); }
   .inventory-preview-description { display: none; }
 }
-.card-motion-layer, .coin-motion-layer, #feedback-layer { position: fixed; inset: 0; pointer-events: none; }
+.card-motion-layer, .coin-motion-layer { position: fixed; inset: 0; pointer-events: none; }
 .card-motion-layer { z-index: 95; }
 .card-flight { position: fixed; border-radius: 6px; pointer-events: none; object-fit: cover; box-shadow: 0 8px 18px #0008; will-change: transform, opacity; }
 .coin-motion-layer { z-index: 96; }
@@ -191,14 +191,7 @@
 .sticker-choice { padding: 0; border-radius: 8px; border: 2px solid transparent; background: none; }
 .sticker-choice img { width: 100%; border-radius: 6px; display: block; }
 .sticker-choice.current { border-color: var(--gold); }
-#feedback-layer { z-index: 46; }
-.floating-number { position: fixed; font-weight: 800; font-size: 16px; text-shadow: 0 2px 4px #000a; animation: floatUp 1.4s ease-out forwards; }
-.floating-number.gain { color: #9be7a4; }
-.floating-number.loss { color: #ff9b9b; }
-.room-effect { position: absolute; left: 50%; top: 42%; width: 140px; height: 140px; margin: -70px; border-radius: 50%; background: radial-gradient(circle, #fff8 0%, #efbb8844 40%, transparent 70%); animation: effectBurst 1.8s ease-out forwards; }
 .targeting-hint { color: var(--gold); font-weight: 700; align-self: center; padding: 0 8px; }
-@keyframes floatUp { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-42px); opacity: 0; } }
-@keyframes effectBurst { from { transform: scale(.4); opacity: .9; } to { transform: scale(2.2); opacity: 0; } }
 .journal-view { --journal-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif; --journal-hand: "Segoe Print", "Bradley Hand", "Comic Sans MS", "Comic Sans", cursive; --journal-ink: #3a2b1d; --journal-ink-soft: #6f5a43; --journal-accent: #a9743a; --journal-rule: rgba(120, 92, 58, .3); --journal-edge: rgba(120, 92, 58, .5); --journal-tint: rgba(120, 92, 58, .14); gap: 10px; padding: clamp(8px, 1.8vh, 18px) clamp(10px, 4vw, 48px); }
 .journal-view .modal-header { width: min(100%, 1020px); }
 .journal-view .modal-header h2 { font-family: var(--journal-serif); font-size: clamp(18px, 2vw, 24px); letter-spacing: .01em; }

@@ -41,6 +41,38 @@ export function starredSongs(user) {
   return new Set((user?.starredTracks || []).map(track => track.song));
 }
 
+/** Normalize one visible catalog row into a queue track, or null for folders. */
+export function queueTrackFromItem(item) {
+  if (!item || typeof item !== "object" || item.kind === "directory") return null;
+  return normalizeTrack({ song: songForItem(item), label: item.title });
+}
+
+/** Build the playable queue for the music state the user is currently viewing. */
+export function queueForMusic(music, user) {
+  const source = music?.mode === "starred"
+    ? (user?.starredTracks || [])
+    : music?.mode === "suggestions"
+      ? [...(music?.top || []), ...(music?.community || [])]
+      : (music?.items || []);
+  return source.map(entry => (
+    music?.mode === "starred" ? normalizeTrack(entry) : queueTrackFromItem(entry)
+  )).filter(Boolean);
+}
+
+/** Find a song's queue position, defaulting to the queue start. */
+export function indexOfSong(queue, song) {
+  const position = (Array.isArray(queue) ? queue : []).findIndex(track => track?.song === song);
+  return position < 0 ? 0 : position;
+}
+
+/** Step through a queue with wraparound; an empty queue stays at index zero. */
+export function stepQueue(queue, index, delta) {
+  const tracks = Array.isArray(queue) ? queue : [];
+  if (!tracks.length) return 0;
+  const current = Number.isFinite(index) ? Number(index) : 0;
+  return (current + Number(delta || 0) + tracks.length * 1000) % tracks.length;
+}
+
 /**
  * Own the hidden personal chiptune.app player used by the phone's music app.
  *
@@ -78,9 +110,53 @@ export function createPhoneMusic({ api, store, onToast, onError }) {
   function play(track) {
     const normalized = normalizeTrack(track);
     if (!normalized) return;
-    store.dispatch({ type: "phone-music-play", track: normalized });
+    const state = store.getState();
+    const queue = queueForMusic(state.ui.phoneMusic, state.user);
+    const queueIndex = indexOfSong(queue, normalized.song);
+    store.dispatch({ type: "phone-music-play", track: normalized, queue, queueIndex });
     savePhoneTrack(normalized);
     savePhoneMusicEnabled(true);
+  }
+
+  function step(delta) {
+    const state = store.getState();
+    const stored = Array.isArray(state.ui.phoneMusic.queue) && state.ui.phoneMusic.queue.length
+      ? state.ui.phoneMusic.queue
+      : queueForMusic(state.ui.phoneMusic, state.user);
+    if (!stored.length) {
+      onToast?.("No track queued.", "info");
+      return;
+    }
+    const start = state.ui.phoneMusic.track?.song
+      ? indexOfSong(stored, state.ui.phoneMusic.track.song)
+      : Number(state.ui.phoneMusic.queueIndex || 0);
+    const queueIndex = stepQueue(stored, start, delta);
+    const next = stored[queueIndex];
+    store.dispatch({ type: "phone-music-play", track: next, queue: stored, queueIndex });
+    savePhoneTrack(next);
+    savePhoneMusicEnabled(true);
+  }
+
+  function previous() {
+    step(-1);
+  }
+
+  function next() {
+    step(1);
+  }
+
+  function toggleOrPlay() {
+    const music = store.getState().ui.phoneMusic;
+    if (music.track) {
+      toggle();
+      return;
+    }
+    const first = queueForMusic(music, store.getState().user)[0];
+    if (!first) {
+      onToast?.("No track queued.", "info");
+      return;
+    }
+    play(first);
   }
 
   function stop() {
@@ -141,6 +217,15 @@ export function createPhoneMusic({ api, store, onToast, onError }) {
     }
   }
 
+  async function toggleStarCurrent() {
+    const track = store.getState().ui.phoneMusic.track;
+    if (!track) {
+      onToast?.("Play a track first.", "info");
+      return;
+    }
+    await toggleStar(track);
+  }
+
   return {
     render(state) {
       syncFrame(state);
@@ -149,7 +234,11 @@ export function createPhoneMusic({ api, store, onToast, onError }) {
     play,
     stop,
     toggle,
+    toggleOrPlay,
+    previous,
+    next,
     toggleStar,
+    toggleStarCurrent,
     destroy() {
       frame.remove();
     },

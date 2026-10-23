@@ -31,6 +31,18 @@ function multiverseButtonMarkup() {
   return `<button type="button" id="multiverse-toggle" class="icon-button toolbar-edit" data-open-multiverse="1" aria-label="Open the Multiverse" title="Open the Multiverse">${uiIconMarkup("multiverse")}</button>`;
 }
 
+function bopsBalanceLabel(bops) {
+  const value = Math.max(0, Math.floor(Number(bops) || 0));
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (value >= 10000) return `${(value / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(value);
+}
+
+function bopsButtonMarkup(bops) {
+  const balance = Math.max(0, Math.floor(Number(bops) || 0));
+  return `<button type="button" id="bops-toggle" class="icon-button toolbar-edit" data-open-shop="cards" aria-label="Open the Shop, ${balance} Bops" title="Open the Shop (${balance} Bops)"><span class="bops-face" aria-hidden="true">${uiIconMarkup("bops")}<span class="bops-number">${bopsBalanceLabel(bops)}</span></span></button>`;
+}
+
 function tinymagButtonMarkup() {
   return `<button type="button" id="tinymag-toggle" class="icon-button toolbar-edit" data-open-tinymag="1" aria-label="Open Tiny Mag" title="Open Tiny Mag">${uiIconMarkup("tinymag")}</button>`;
 }
@@ -145,6 +157,9 @@ function bindCardButtons(root, onSelect, onAction) {
   });
   root.querySelectorAll("[data-phone-home]").forEach(button => {
     button.onclick = () => onAction({ type: "phone-home" });
+  });
+  root.querySelectorAll("[data-phone-key]").forEach(button => {
+    button.onclick = () => onAction({ type: "phone-key", key: button.dataset.phoneKey });
   });
   root.querySelectorAll("[data-phone-music-action]").forEach(button => {
     button.onclick = () => onAction({
@@ -418,7 +433,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
+      ) + (id === "inventory" ? `${bopsButtonMarkup(state.user?.bops)}${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");

@@ -13,8 +13,8 @@ function vibeMarkup(vibes) {
   </div>`;
 }
 
-function friendEntryMarkup(entry, actions, extraActions = "") {
-  return `<li class="friend-entry">
+function friendEntryMarkup(entry, actions, extraActions = "", { selected = false, index = null } = {}) {
+  return `<li class="friend-entry${selected ? " selected" : ""}"${selected ? ' aria-current="true"' : ""}${index === null ? "" : ` data-phone-friend-index="${index}"`}>
     <div class="friend-identity"><span class="friend-name ${entry.online ? "online" : ""}">${escapeHtml(entry.username)}</span>
       <span class="friend-presence">${entry.online ? "Online" : "Offline"}</span></div>
     ${vibeMarkup(entry.vibes)}
@@ -22,9 +22,9 @@ function friendEntryMarkup(entry, actions, extraActions = "") {
   </li>`;
 }
 
-function friendGroupMarkup(title, entries, actions, emptyText, { beacon = false } = {}) {
+function friendGroupMarkup(title, entries, actions, emptyText, { beacon = false, selectedIndex = null } = {}) {
   return `<section class="friend-group"><h3>${escapeHtml(title)} <span class="phone-count">${entries.length}</span></h3>
-    ${entries.length ? `<ul>${entries.map(entry => friendEntryMarkup(entry, actions, beacon ? sendBeaconButton(entry) : "")).join("")}</ul>` : `<p class="empty-state">${escapeHtml(emptyText)}</p>`}
+    ${entries.length ? `<ul>${entries.map((entry, position) => friendEntryMarkup(entry, actions, beacon ? sendBeaconButton(entry) : "", { selected: position === selectedIndex, index: position })).join("")}</ul>` : `<p class="empty-state">${escapeHtml(emptyText)}</p>`}
   </section>`;
 }
 
@@ -51,10 +51,12 @@ function beaconGroupMarkup(beacons) {
 
 export function friendsPagesMarkup(state) {
   const friends = state.user?.friends || {};
+  const entries = friends.friends || [];
+  const selectedIndex = entries.length ? Math.max(0, Math.min(Number(state.ui?.phoneFriendIndex || 0), entries.length - 1)) : null;
   return {
     leftLabel: "Friends",
     rightLabel: "Beacons and friend requests",
-    left: friendGroupMarkup("Friends", friends.friends || [], [{ action: "remove", label: "Remove", tone: "negative" }], "No friends yet. Select another peep and choose Add Friend.", { beacon: true }),
+    left: friendGroupMarkup("Friends", entries, [{ action: "remove", label: "Remove", tone: "negative" }], "No friends yet. Select another peep and choose Add Friend.", { beacon: true, selectedIndex }),
     right: `${beaconGroupMarkup(state.user?.beacons || [])}
       ${friendGroupMarkup("Incoming requests", friends.incoming || [], [{ action: "accept", label: "Accept", tone: "positive" }, { action: "decline", label: "Decline", tone: "negative" }], "No incoming requests.")}
       ${friendGroupMarkup("Sent requests", friends.outgoing || [], [{ action: "cancel", label: "Cancel", tone: "cancel" }], "No pending sent requests.")}`,

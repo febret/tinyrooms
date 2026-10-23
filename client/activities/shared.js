@@ -59,7 +59,7 @@
     coin: "ring.wav",
     stamp: "switch.wav",
     error: "retro-error.wav",
-    success: "task-complete.wav",
+    success: "chirp3.wav",
     notify: "task-notify.wav",
     open: "door-open-old.wav",
     close: "door-close.wav",

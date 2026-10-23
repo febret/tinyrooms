@@ -127,10 +127,6 @@ function updatePeepCounters(peeps, targetId, event) {
   });
 }
 
-function pushFloating(state, entry) {
-  return { ...state.ui, floatingNumbers: [...state.ui.floatingNumbers, entry].slice(-8) };
-}
-
 function applyDialogPayload(state, rawDialog) {
   const dialog = normalizeDialog(rawDialog);
   const room = state.room ? { ...state.room, dialog } : state.room;
@@ -145,19 +141,7 @@ function applyServerEvent(state, event) {
   if (event.room_id && event.room_id !== state.room.id) return state;
   if (event.type === "counter.updated") {
     const targetId = String(event.target_id || "");
-    const healthDelta = Number(event.health_delta || 0);
-    const energyDelta = Number(event.energy_delta || 0);
-    const cleanlinessDelta = Number(event.cleanliness_delta || 0);
-    const amount = healthDelta || energyDelta || cleanlinessDelta;
-    const kind = healthDelta ? "health" : energyDelta ? "energy" : "cleanliness";
-    const entry = {
-      id: crypto.randomUUID(),
-      targetId,
-      label: String(event.target_label || ""),
-      amount,
-      kind,
-    };
-    const withCounters = {
+    return {
       ...state,
       room: {
         ...state.room,
@@ -165,8 +149,6 @@ function applyServerEvent(state, event) {
         npcs: updatePeepCounters(state.room.npcs, targetId, event),
       },
     };
-    if (!amount) return withCounters;
-    return { ...withCounters, ui: pushFloating(state, entry) };
   }
   if (event.type === "peep.sprite") {
     const targetId = String(event.peep_id || event.account_id || "");
@@ -197,19 +179,6 @@ function applyServerEvent(state, event) {
     return {
       ...state,
       room: { ...state.room, occupants: updatedOccupants, npcs: updatedNpcs, chatHistory },
-    };
-  }
-  if (event.type === "effect.queued") {
-    return {
-      ...state,
-      ui: {
-        ...state.ui,
-        effects: [...state.ui.effects, {
-          id: crypto.randomUUID(),
-          effect: String(event.effect || ""),
-          source: String(event.source || ""),
-        }].slice(-6),
-      },
     };
   }
   if (event.type === "toast") {
@@ -530,6 +499,8 @@ function initialPhoneMusic() {
     items: [],
     top: [],
     community: [],
+    queue: [],
+    queueIndex: 0,
     loading: false,
     error: "",
     loaded: false,
@@ -550,7 +521,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], effects: [], floatingNumbers: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -668,9 +639,20 @@ function reduce(state, action) {
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
-  if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
+  if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", phoneFriendIndex: 0, emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
   if (action.type === "phone-home") return { ...state, ui: { ...state.ui, phoneApp: "apps" } };
-  if (action.type === "phone-music-play") return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, track: action.track || state.ui.phoneMusic.track, enabled: true } } };
+  if (action.type === "phone-friend-step") {
+    const count = (state.user?.friends?.friends || []).length;
+    if (!count) return state;
+    const current = Number(state.ui.phoneFriendIndex || 0);
+    const next = (current + Number(action.delta || 0) + count * 1000) % count;
+    return { ...state, ui: { ...state.ui, phoneFriendIndex: next } };
+  }
+  if (action.type === "phone-music-play") {
+    const queue = Array.isArray(action.queue) ? action.queue.filter(track => track && typeof track.song === "string" && track.song) : state.ui.phoneMusic.queue;
+    const queueIndex = Number.isFinite(action.queueIndex) ? Math.max(0, Number(action.queueIndex)) : state.ui.phoneMusic.queueIndex;
+    return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, track: action.track || state.ui.phoneMusic.track, queue, queueIndex, enabled: true } } };
+  }
   if (action.type === "phone-music-stop") return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, enabled: false } } };
   if (action.type === "phone-music-toggle") return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, enabled: !state.ui.phoneMusic.enabled } } };
   if (action.type === "phone-music-mode") return { ...state, ui: { ...state.ui, phoneMusic: { ...state.ui.phoneMusic, mode: action.mode || "suggestions", path: action.path || "", query: action.query || "", items: [], loading: Boolean(action.load), error: "", loaded: false } } };
@@ -708,8 +690,6 @@ function reduce(state, action) {
   }
   if (action.type === "command-palette") return { ...state, views: { ...state.views, commandPalette: action.open } };
   if (action.type === "dismiss-toast") return { ...state, ui: { ...state.ui, toasts: state.ui.toasts.filter(toast => toast.id !== action.id) } };
-  if (action.type === "consume-effect") return { ...state, ui: { ...state.ui, effects: state.ui.effects.filter(effect => effect.id !== action.id) } };
-  if (action.type === "consume-floating") return { ...state, ui: { ...state.ui, floatingNumbers: state.ui.floatingNumbers.filter(number => number.id !== action.id) } };
   if (action.type === "toast") return { ...state, ui: { ...state.ui, toasts: [...state.ui.toasts.slice(-2), toastRecord(action.message, action.tone)] } };
   if (action.type === "toggle-log") return { ...state, ui: { ...state.ui, actionLogVisible: !state.ui.actionLogVisible } };
   if (action.type === "toggle-sound") return { ...state, ui: { ...state.ui, soundEnabled: !state.ui.soundEnabled } };

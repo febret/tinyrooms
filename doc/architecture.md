@@ -220,7 +220,11 @@ does not. Offerer selection and autoplay rationale are documented in source.
 [phone-music.js](../client/app/js/phone-music.js) is the personal Chiptune app
 inside the Phone view. It drives a hidden, cross-origin chiptune.app iframe and
 plays `https://chiptune.app/?play=<song>`; because the frame cannot be scripted,
-track changes reload it and volume/pause/seek are unavailable. Playback is
+track changes reload it and volume/seek are unavailable (the phone's volume keys
+stay disabled). Pause works by unloading the frame. The physical-style phone
+keypad drives prev/play-pause/next and star through a queue built from the
+currently visible list, and previous/next friend steps cycle a highlighted
+friend in the Friends app. Playback is
 per-user and never changes room state. The selected track and on/off preference
 are kept in browser `localStorage`. Catalog search, browse, top tracks, and
 Tinyrooms community stars are proxied server-side by

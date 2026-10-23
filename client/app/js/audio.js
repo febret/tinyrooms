@@ -11,7 +11,7 @@ const UI_SOUND_FILES = {
   card: "switch.wav",
   coin: "ring.wav",
   error: "retro-error.wav",
-  success: "task-complete.wav",
+  success: "chirp3.wav",
   notify: "task-notify.wav",
   room: "steps.wav",
   open: "door-open-old.wav",

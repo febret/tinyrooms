@@ -54,7 +54,6 @@ function homeMarkup(state) {
         <span class="phone-app-meta">${starred} starred</span>
       </button>
     </div>
-    <p class="phone-home-hint">Select an app.</p>
   </div>`;
 }
 
@@ -156,7 +155,6 @@ function appHeaderMarkup(state) {
     <button type="button" class="phone-back" data-phone-home="1" aria-label="Back to apps">‹</button>
     <img class="phone-app-mark" src="${withBase(APP_ICONS[app])}" alt="" width="20" height="20">
     <h3>${escapeHtml(APP_LABELS[app].toUpperCase())}</h3>
-    <span class="phone-header-line" aria-hidden="true"></span>
   </header>`;
 }
 
@@ -253,24 +251,28 @@ function baseSvgMarkup() {
     <circle cx="150" cy="66" r="30" fill="url(#phoneBaseChrome)" stroke="#4d595e" stroke-width="1.4"/>
     <circle cx="150" cy="66" r="17" fill="url(#phoneKey)" stroke="#68747a" stroke-width="1"/>
     <path d="M150 54l5 7h-10zM150 78l-5-7h10zM138 66l7-5v10zM162 66l-7 5V61z" fill="#5e6a6f" opacity=".85"/>
-    <g fill="url(#phoneKey)" stroke="#5e6a6f" stroke-width="1.2">
-      <rect x="44" y="112" width="64" height="23" rx="7"/>
-      <rect x="118" y="112" width="64" height="23" rx="7"/>
-      <rect x="192" y="112" width="64" height="23" rx="7"/>
-      <rect x="44" y="141" width="64" height="23" rx="7"/>
-      <rect x="118" y="141" width="64" height="23" rx="7"/>
-      <rect x="192" y="141" width="64" height="23" rx="7"/>
-      <rect x="44" y="170" width="64" height="23" rx="7"/>
-      <rect x="118" y="170" width="64" height="23" rx="7"/>
-      <rect x="192" y="170" width="64" height="23" rx="7"/>
-    </g>
-    <g stroke="#7d888d" stroke-width="1" opacity=".65">
-      <path d="M54 123h44M54 152h44M54 181h44M128 123h44M128 152h44M128 181h44M202 123h44M202 152h44M202 181h44"/>
-    </g>
     <rect x="132" y="203" width="36" height="4" rx="2" fill="#3b454a"/>
     <rect x="1.5" y="78" width="4.5" height="42" rx="2" fill="url(#phoneBaseChrome)" opacity=".9"/>
     <rect x="294" y="108" width="4.5" height="52" rx="2" fill="url(#phoneBaseChrome)" opacity=".9"/>
   </svg>`;
+}
+
+function phoneKeypadMarkup(state) {
+  const music = state.ui?.phoneMusic || {};
+  const playing = Boolean(music.enabled && music.track);
+  const starred = music.track ? starredSongs(state.user).has(music.track.song) : false;
+  const hasFriends = (state.user?.friends?.friends || []).length > 0;
+  return `<div class="phone-keypad" role="group" aria-label="Phone keypad">
+    <button type="button" class="phone-key" data-phone-key="music-prev" aria-label="Previous track" title="Previous track">⏮</button>
+    <button type="button" class="phone-key" data-phone-key="music-toggle" aria-label="${playing ? "Pause" : "Play"}" aria-pressed="${playing}" title="${playing ? "Pause" : "Play"}">${playing ? "❚❚" : "▶"}</button>
+    <button type="button" class="phone-key" data-phone-key="music-next" aria-label="Next track" title="Next track">⏭</button>
+    <button type="button" class="phone-key" data-phone-key="volume-up" aria-label="Volume up" title="Volume is fixed while chiptune.app runs in its own frame" disabled>VOL+</button>
+    <button type="button" class="phone-key" data-phone-key="volume-down" aria-label="Volume down" title="Volume is fixed while chiptune.app runs in its own frame" disabled>VOL−</button>
+    <button type="button" class="phone-key" data-phone-key="music-star" aria-label="${starred ? "Unstar current track" : "Star current track"}" aria-pressed="${starred}" title="Star the current track">★</button>
+    <button type="button" class="phone-key" data-phone-key="friend-prev" aria-label="Previous friend" title="Previous friend"${hasFriends ? "" : " disabled"}>◀</button>
+    <button type="button" class="phone-key" data-phone-key="messages" aria-label="Messages" title="Messages are not available yet" disabled>✉</button>
+    <button type="button" class="phone-key" data-phone-key="friend-next" aria-label="Next friend" title="Next friend"${hasFriends ? "" : " disabled"}>▶</button>
+  </div>`;
 }
 
 export function phoneView(state) {
@@ -292,6 +294,7 @@ export function phoneView(state) {
         </div>
         <div class="phone-base">
           ${baseSvgMarkup()}
+          ${phoneKeypadMarkup(state)}
           <button type="button" class="phone-hardkey" data-phone-home="1" aria-label="Return to phone apps"></button>
         </div>
       </div>
