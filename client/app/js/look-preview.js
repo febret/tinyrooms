@@ -1,11 +1,24 @@
 import { escapeHtml } from "./presentation.js";
 import { findInventoryCard, findRoomCard } from "./state.js";
 
+/** Render the active dialog response above the selected peep display. */
+export function lookDialogBubble(state, description) {
+  const selection = state.selection || {};
+  const dialog = state.room?.dialog;
+  if (selection.kind !== "peep" || !description.imageUrl || dialog?.peepId !== selection.id) {
+    return "";
+  }
+  const text = String(dialog.text || "");
+  const label = `${dialog.peepLabel || description.title || "Peep"}: ${text}. Conversation`;
+  return `<div class="bubble dialog-bubble look-dialog-bubble" role="status" aria-label="${escapeHtml(label)}"><span class="bubble-text">${escapeHtml(text)}</span></div>`;
+}
+
 /** Describe the selected entity's preview above the look bar and the inspect action it opens. */
 export function lookPreview(state, description) {
   const selection = state.selection || {};
   if (selection.kind === "peep" && description.imageUrl) {
-    return { markup: `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">`, action: null };
+    const previewMarkup = `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">`;
+    return { markup: `${previewMarkup}${lookDialogBubble(state, description)}`, action: null };
   }
   if (selection.kind === "prop") {
     const prop = state.room?.props?.find(candidate => candidate.id === selection.id);

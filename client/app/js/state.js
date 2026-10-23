@@ -127,6 +127,15 @@ function pushFloating(state, entry) {
   return { ...state.ui, floatingNumbers: [...state.ui.floatingNumbers, entry].slice(-8) };
 }
 
+function applyDialogPayload(state, rawDialog) {
+  const dialog = normalizeDialog(rawDialog);
+  const room = state.room ? { ...state.room, dialog } : state.room;
+  const next = { ...state, room };
+  if (!dialog || !state.room) return next;
+  const present = [...state.room.occupants, ...state.room.npcs].some(peep => peep.id === dialog.peepId);
+  return present ? { ...next, selection: { kind: "peep", id: dialog.peepId } } : next;
+}
+
 function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
   if (event.room_id && event.room_id !== state.room.id) return state;
@@ -391,7 +400,7 @@ function applyServerEvent(state, event) {
     };
   }
   if (event.type === "dialog.updated") {
-    return { ...state, room: { ...state.room, dialog: normalizeDialog(event.dialog) } };
+    return applyDialogPayload(state, event.dialog);
   }
   if (event.type === "activity.started") {
     const activity = normalizeActivity(event.activity);
@@ -498,10 +507,7 @@ function mergeResultPayload(state, payload) {
     };
   }
   if ("dialog" in payload) {
-    next = {
-      ...next,
-      room: next.room ? { ...next.room, dialog: normalizeDialog(payload.dialog) } : next.room,
-    };
+    next = applyDialogPayload(next, payload.dialog);
   }
   if (payload.entity) {
     next = { ...next, describedEntity: clone(payload.entity) };

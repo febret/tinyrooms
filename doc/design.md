@@ -1104,9 +1104,10 @@ NPC behavior can respond to the following game events:
 
 ### Dialogs
 NPCs can respond to actions by opening a dialog tree: the peep's current line is
-shown in a speech bubble above their sticker, while the Look Bar keeps showing the
-selected entity's normal description. Quick actions are used to choose the next
-action in the dialog.
+shown in a speech bubble above the selected peep display over the Look Bar, while
+the Look Bar keeps showing the selected entity's normal description. Quick actions
+are used to choose the next action in the dialog. Choosing an option reselects the
+dialog peep, so its speech bubble keeps working after selecting something else.
 
 Dialog trees consist of nodes: each has text to display in the speech bubble and a
 list of options (shown as quick actions) leading to other nodes or ending the dialog.

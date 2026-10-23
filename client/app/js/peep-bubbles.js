@@ -9,12 +9,10 @@ export function createBubbleElement(bubbleLayer, {
   tag = "div",
   className = "bubble",
   text = "",
-  role = "",
 } = {}) {
   const bubble = document.createElement(tag);
   if (tag === "button") bubble.type = "button";
   bubble.className = className;
-  if (role) bubble.setAttribute("role", role);
   const label = document.createElement("span");
   label.className = "bubble-text";
   label.textContent = text;
@@ -23,7 +21,7 @@ export function createBubbleElement(bubbleLayer, {
   return bubble;
 }
 
-/** Own chat and dialog bubble state, placement, and lifecycle. */
+/** Own chat bubble state, placement, and lifecycle. */
 export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   let latest = null;
   let latestShown = [];
@@ -31,8 +29,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   const chatBubbles = new Map();
   const dismissing = new Set();
   const bubbleSizes = new Map();
-  let dialogBubble = null;
-  let dialogPeepId = "";
 
   function isSpritePeep(peep) {
     return Boolean(latest?.room?.board?.spritesEnabled && Array.isArray(peep?.spritePosition));
@@ -64,11 +60,9 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     bubbleSizes.delete(bubble);
   }
 
-  function setBubbleClass(bubble, className, { preserveSide = false } = {}) {
-    const side = preserveSide && bubble.classList.contains("side");
-    const next = side ? `${className} side` : className;
-    if (bubble.className === next) return;
-    bubble.className = next;
+  function setBubbleClass(bubble, className) {
+    if (bubble.className === className) return;
+    bubble.className = className;
     bubbleSizes.delete(bubble);
   }
 
@@ -83,30 +77,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     placeAt(item.bubble, `${left}px`, `${top}px`);
   }
 
-  function placeDialogBubble(item) {
-    const { bubble } = item;
-    const { rect, size, bounds } = item;
-    const minTop = Math.max(8, bounds.top - 8);
-    const above = rect.top - size.height - 10;
-    if (above < minTop) {
-      bubble.classList.add("side");
-      bubble.style.removeProperty("--bubble-arrow-left");
-      const left = Math.min(bounds.right + 4, window.innerWidth - size.width - 8);
-      const top = Math.max(minTop, Math.min(rect.top + 4, bounds.bottom - size.height));
-      placeAt(bubble, `${left}px`, `${top}px`);
-      return;
-    }
-    bubble.classList.remove("side");
-    const markerCenter = rect.left + rect.width / 2;
-    const minCenter = size.width / 2 + 8;
-    const maxCenter = Math.max(minCenter, window.innerWidth - size.width / 2 - 8);
-    const center = Math.min(Math.max(markerCenter, minCenter), maxCenter);
-    const left = center - size.width / 2;
-    const arrowLeft = Math.min(Math.max(markerCenter - left, 18), Math.max(18, size.width - 18));
-    bubble.style.setProperty("--bubble-arrow-left", `${arrowLeft}px`);
-    placeAt(bubble, `${left}px`, `${above}px`);
-  }
-
   function measureTarget(target, context) {
     const { spriteMode, markers, boardSprites, bounds } = context;
     if (spriteMode) {
@@ -118,7 +88,7 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     if (!rect || rect.bottom <= bounds.top || rect.top >= bounds.bottom) {
       return { ...target, visible: false };
     }
-    return { ...target, visible: true, rect, size: measureBubble(target.bubble), bounds };
+    return { ...target, visible: true, rect, size: measureBubble(target.bubble) };
   }
 
   function position() {
@@ -130,13 +100,7 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
       }
     }
     const boardSprites = spriteMode ? spriteAnchors : null;
-    const targets = [];
-    if (dialogBubble && dialogPeepId) {
-      targets.push({ bubble: dialogBubble, peepId: dialogPeepId, placement: "dialog" });
-    }
-    for (const [peepId, bubble] of chatBubbles) {
-      targets.push({ bubble, peepId, placement: "chat" });
-    }
+    const targets = [...chatBubbles].map(([peepId, bubble]) => ({ bubble, peepId }));
     if (!targets.length) return;
     if (!markers.size && !boardSprites?.size) {
       for (const target of targets) hideBubble(target.bubble);
@@ -152,46 +116,13 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
       }
       if (item.bubble.hidden) item.bubble.hidden = false;
       if (item.sprite) {
-        item.bubble.classList.remove("side");
         item.bubble.style.setProperty("--bubble-scale", item.anchor.scale.toFixed(3));
-        item.bubble.style.removeProperty("--bubble-arrow-left");
         placeAt(item.bubble, `${item.anchor.x}px`, `${item.anchor.y}px`);
         continue;
       }
       item.bubble.style.removeProperty("--bubble-scale");
-      if (item.placement === "dialog") placeDialogBubble(item);
-      else placeChatBubble(item, bounds);
+      placeChatBubble(item, bounds);
     }
-  }
-
-  function removeDialogBubble() {
-    if (!dialogBubble) return;
-    bubbleSizes.delete(dialogBubble);
-    dialogBubble.remove();
-    dialogBubble = null;
-    dialogPeepId = "";
-  }
-
-  function syncDialogBubble(dialog, shownPeeps) {
-    const peep = dialog ? shownPeeps.find(candidate => candidate.id === dialog.peepId) : null;
-    if (!dialog || !peep) {
-      removeDialogBubble();
-      return;
-    }
-    if (!dialogBubble) {
-      dialogBubble = createBubbleElement(bubbleLayer, {
-        className: "bubble dialog-bubble",
-        role: "status",
-      });
-    }
-    dialogPeepId = peep.id;
-    setBubbleText(dialogBubble, dialog.text || "");
-    setBubbleClass(
-      dialogBubble,
-      `bubble dialog-bubble${isSpritePeep(peep) ? " sprite-bubble" : ""}`,
-      { preserveSide: true },
-    );
-    setBubbleLabel(dialogBubble, `${peep.label}: ${dialog.text || ""}. Conversation`);
   }
 
   function dismissChatBubble(peepId, bubble) {
@@ -280,7 +211,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     latest = state;
     latestShown = Array.isArray(shownPeeps) ? shownPeeps : [];
     syncChatBubbles(latestShown);
-    syncDialogBubble(state.room?.dialog || null, latestShown);
     position();
   }
 
@@ -304,7 +234,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     }
     chatBubbles.clear();
     bubbleSizes.clear();
-    removeDialogBubble();
   }
 
   return {
@@ -312,6 +241,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     position,
     setSpriteAnchors,
     destroy,
-    hasBubbles: () => chatBubbles.size > 0 || Boolean(dialogBubble),
+    hasBubbles: () => chatBubbles.size > 0,
   };
 }
