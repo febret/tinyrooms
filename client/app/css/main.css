@@ -74,6 +74,9 @@ h3 { font-size: 18px; }
 #core-tools #tinymag-toggle { border-color: #b98d52; background: radial-gradient(circle at 35% 28%, #f0d29a, #7c4a2b 70%); color: #2b1a10; }
 #core-tools #tinymag-toggle svg { width: 24px; height: 24px; filter: drop-shadow(0 1px 0 #fff4d455); }
 #core-tools #tinymag-toggle:hover { border-color: #f0cb88; box-shadow: 0 0 0 3px #e7b86a2e, 0 3px 8px #0008; }
+#core-tools #keyring-toggle { border-color: #8f6b3a; background: radial-gradient(circle at 35% 28%, #e8c77e, #6e4a22 72%); color: #241708; }
+#core-tools #keyring-toggle svg { width: 24px; height: 24px; filter: drop-shadow(0 1px 0 #fff4d455); }
+#core-tools #keyring-toggle:hover { border-color: #f0cb88; box-shadow: 0 0 0 3px #e7b86a2e, 0 3px 8px #0008; }
 .toolbar-button-entering { z-index: 2; animation: toolbar-button-enter 620ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
 #core-tools #multiverse-toggle.toolbar-button-entering { animation: toolbar-multiverse-enter 1000ms cubic-bezier(0.18, 1.5, 0.35, 1) both; }
 #core-tools #multiverse-toggle.toolbar-button-entering::after { content: ""; position: absolute; inset: -8px; border: 2px solid #b9a8ff; border-radius: 50%; pointer-events: none; animation: toolbar-multiverse-ring 950ms ease-out both; }

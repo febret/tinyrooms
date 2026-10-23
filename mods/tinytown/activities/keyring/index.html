@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" class="full-height">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Keyring · TinyTown</title>
+    <link rel="preload" href="./fonts/bodoni-moda-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="./fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./keyring-fonts.css">
+    <link rel="stylesheet" href="./keyring.css">
+  </head>
+  <body class="keyring-body">
+    <main class="keyring-shell" id="keyring-shell" aria-live="polite">
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms...</p>
+      <section class="keyring-cabinet" aria-label="The Keyring">
+        <header class="keyring-header">
+          <p class="keyring-kicker">TinyTown · Every door has a weight</p>
+          <h1 class="keyring-title">The Keyring</h1>
+          <p class="keyring-count" id="keyring-count"></p>
+        </header>
+        <div class="keyring-columns">
+          <section class="key-board" aria-label="Your keys">
+            <h2 class="key-board-title">Your keys</h2>
+            <div class="key-hooks" id="key-hooks"></div>
+          </section>
+          <section class="key-detail" aria-label="Selected home" id="key-detail"></section>
+        </div>
+        <section class="open-houses" aria-label="Neighbours' open houses">
+          <h2 class="open-houses-title">Open houses</h2>
+          <p class="open-houses-dek">Doors your neighbours have left ajar.</p>
+          <div class="open-houses-list" id="open-houses"></div>
+        </section>
+      </section>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./keyring.js"></script>
+  </body>
+</html>

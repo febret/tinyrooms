@@ -473,6 +473,7 @@ class TinytownHousing:
             "is_owner": record.owner_account_id == viewer_id,
             "locked": record.locked,
             "preview_url": f"/assets/world/{self._world.id}/rooms/{template.preview}",
+            "key_url": f"/assets/world/{self._world.id}/keys/{template.id}.png",
             "entry_room_id": self.entry_room(record),
             "created_at": record.created_at,
         }

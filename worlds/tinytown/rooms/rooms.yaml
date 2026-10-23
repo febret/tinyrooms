@@ -1,7 +1,7 @@
 town:
   label: TinyTown
-  description: "A living tabletop town: a harbour, hills, downtown rooftops, and suburbs that
-    glow as the two-minute day turns to night."
+  description: 'A living tabletop town: a harbour, hills, downtown rooftops, and suburbs
+    that glow as the two-minute day turns to night.'
   board_type: diorama
   board_image: town-map.png
   board_image_style: stretch
@@ -14,7 +14,8 @@ town:
   exits: {}
 home-entry:
   label: Entry Hall
-  description: A bright little front hall. Coats, keys, and a sign that knows everyone in the house.
+  description: A bright little front hall. Coats, keys, and a sign that knows everyone
+    in the house.
   board_type: basic
   board_image: floor-oak.png
   board_image_style: stretch
@@ -92,7 +93,8 @@ home-entry:
   exits: {}
 home-living:
   label: Living Room
-  description: Deep seats, warm lamps, and a rug that has hosted a thousand small conversations.
+  description: Deep seats, warm lamps, and a rug that has hosted a thousand small
+    conversations.
   board_type: basic
   board_image: floor-linen.png
   board_image_style: stretch
@@ -161,7 +163,7 @@ home-living:
       - 84
       - 8
       - 0
-      scale: 1.0
+      scale: 1
       actions:
       - - Visit the Art Market
         - .tinytown artstore
@@ -176,8 +178,8 @@ home-living:
   exits: {}
 home-kitchen:
   label: Kitchen
-  description: A cheerful kitchen with a proper chopping board, a kettle always near the boil, and a window
-    over the sink.
+  description: A cheerful kitchen with a proper chopping board, a kettle always near
+    the boil, and a window over the sink.
   board_type: basic
   board_image: floor-checker.png
   board_image_style: stretch
@@ -200,7 +202,7 @@ home-kitchen:
       - 16
       - 18
       - 0
-      scale: 1.0
+      scale: 1
     kitchen-pantry:
       prop: kitchen-dresser
       pos:
@@ -225,7 +227,7 @@ home-kitchen:
       - 50
       - 52
       - 0
-      scale: 1.0
+      scale: 1
     kitchen-book:
       prop: supermarket-recipe-book
       pos:
@@ -239,7 +241,7 @@ home-kitchen:
       - 50
       - 73
       - 0
-      scale: 1.0
+      scale: 1
     kitchen-plant:
       prop: pink-orchid
       pos:
@@ -257,7 +259,8 @@ home-kitchen:
   exits: {}
 home-bedroom:
   label: Bedroom
-  description: A soft room built around a good bed. The sort of place where the day ends slowly.
+  description: A soft room built around a good bed. The sort of place where the day
+    ends slowly.
   board_type: basic
   board_image: floor-linen.png
   board_image_style: stretch
@@ -308,7 +311,7 @@ home-bedroom:
       - 15
       - 18
       - 0
-      scale: 1.0
+      scale: 1
     bed-window:
       prop: arched-cottage-window
       pos:
@@ -326,7 +329,8 @@ home-bedroom:
   exits: {}
 home-bath:
   label: Bathroom
-  description: Steam, tiles, and a deep tub. The best room in the house for thinking about nothing.
+  description: Steam, tiles, and a deep tub. The best room in the house for thinking
+    about nothing.
   board_type: basic
   board_image: floor-sea-glass.png
   board_image_style: stretch
@@ -349,7 +353,7 @@ home-bath:
       - 62
       - 22
       - 0
-      scale: 1.0
+      scale: 1
     bath-toilet:
       prop: victorian-high-tank
       pos:
@@ -388,7 +392,8 @@ home-bath:
   exits: {}
 home-studio:
   label: Studio
-  description: A room with more ideas than shelves. Paper, paint, and one very patient chair.
+  description: A room with more ideas than shelves. Paper, paint, and one very patient
+    chair.
   board_type: basic
   board_image: floor-herringbone.png
   board_image_style: stretch
@@ -461,7 +466,8 @@ home-studio:
   exits: {}
 home-garden:
   label: Garden
-  description: A pocket garden with warm stones, flowers doing their own thing, and room to stand still.
+  description: A pocket garden with warm stones, flowers doing their own thing, and
+    room to stand still.
   board_type: basic
   board_image: floor-sandstone.png
   board_image_style: stretch
@@ -551,7 +557,8 @@ home-garden:
   exits: {}
 home-loft:
   label: Loft
-  description: A tucked-away sleeping loft with a desk under the slope and a skylight full of weather.
+  description: A tucked-away sleeping loft with a desk under the slope and a skylight
+    full of weather.
   board_type: basic
   board_image: floor-cork.png
   board_image_style: stretch
@@ -620,7 +627,8 @@ home-loft:
   exits: {}
 home-library:
   label: Library
-  description: A quiet room that smells of paper and old wood. Every chair is a good reading chair.
+  description: A quiet room that smells of paper and old wood. Every chair is a good
+    reading chair.
   board_type: basic
   board_image: floor-herringbone.png
   board_image_style: stretch
@@ -643,7 +651,7 @@ home-library:
       - 18
       - 16
       - 0
-      scale: 1.0
+      scale: 1
     library-shelf-two:
       prop: china-hutch
       pos:
@@ -689,7 +697,8 @@ home-library:
   exits: {}
 home-workshop:
   label: Workshop
-  description: A tidy workshop with labelled jars, a workbench, and that one drawer nobody opens.
+  description: A tidy workshop with labelled jars, a workbench, and that one drawer
+    nobody opens.
   board_type: basic
   board_image: floor-slate.png
   board_image_style: stretch
@@ -758,7 +767,8 @@ home-workshop:
   exits: {}
 home-roof:
   label: Roof Terrace
-  description: A little sky terrace with planters, warm lights, and more stars than the street below.
+  description: A little sky terrace with planters, warm lights, and more stars than
+    the street below.
   board_type: basic
   board_image: floor-slate.png
   board_image_style: stretch
@@ -834,7 +844,8 @@ home-roof:
   exits: {}
 home-pool:
   label: Pool Deck
-  description: Blue water, warm tiles, and a chair that has already claimed someone's towel.
+  description: Blue water, warm tiles, and a chair that has already claimed someone's
+    towel.
   board_type: basic
   board_image: floor-sea-glass.png
   board_image_style: stretch
@@ -857,7 +868,7 @@ home-pool:
       - 50
       - 42
       - 0
-      scale: 1.0
+      scale: 1
     pool-chair-one:
       prop: mustard-armchair
       pos:
@@ -903,7 +914,8 @@ home-pool:
   exits: {}
 home-nursery:
   label: Nursery
-  description: A small bright room with a low bed, soft rug, and a shelf of things that go clatter.
+  description: A small bright room with a low bed, soft rug, and a shelf of things
+    that go clatter.
   board_type: basic
   board_image: floor-linen.png
   board_image_style: stretch
@@ -1024,7 +1036,7 @@ home-gallery:
       - 50
       - 74
       - 0
-      scale: 1.0
+      scale: 1
     gallery-mirror:
       prop: gilt-mirror
       pos:

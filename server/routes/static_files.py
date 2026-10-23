@@ -189,7 +189,7 @@ def register_static_routes(app: FastAPI) -> None:
     @app.get("/assets/world/{world_id}/{bucket}/{filename}")
     async def world_asset(world_id: str, bucket: str, filename: str, request: Request) -> Response:
         runtime = get_runtime(request)
-        if world_id != runtime.world.id or bucket not in {"cards", "rooms", "props", "peeps"}:
+        if world_id != runtime.world.id or bucket not in {"cards", "rooms", "props", "peeps", "keys"}:
             raise HTTPException(status_code=404, detail="World asset not found.")
         candidate = _safe_path(runtime.world.root_path, f"{bucket}/{filename}")
         if candidate.is_file():

@@ -1,5 +1,6 @@
 import { WHITEBOARD_HEIGHT, WHITEBOARD_WIDTH, drawWhiteboard } from "../../app/js/surface-canvas.js";
-import { ART_PAGES, COPY, PAGES, PAGE_IDS } from "./tiny-mag-copy.js";
+import { ART_PAGES, COPY, DISTRICT_PAGES, PAGES, PAGE_IDS } from "./tiny-mag-copy.js";
+import { districtTemplates, renderDistrictEmpty, renderDistrictLeft, renderDistrictRight } from "./tiny-mag-districts.js";
 import { renderHomeChoices, renderRoommateLeft, renderRoommateRight } from "./tiny-mag-roommates.js";
 
 const SPREAD_RATIO = 1.54;
@@ -173,178 +174,12 @@ function contentsRight() {
   `;
 }
 
-function districtNotes() {
-  const districts = state.list?.districts || [];
-  if (!districts.length) return "";
-  return `
-    <p class="eyebrow">${COPY.homes.districtEyebrow}</p>
-    <div class="district-notes">
-      ${districts.map(district => `
-        <article>
-          <h3>${escape(district.label)}</h3>
-          <p class="district-tagline">${escape(district.tagline)}</p>
-          <p>${escape(district.description)}</p>
-        </article>
-      `).join("")}
-    </div>
-  `;
+function isDistrictPage() {
+  return DISTRICT_PAGES[currentPage().id] !== undefined;
 }
 
-function homesLeft() {
-  const copy = COPY.homes;
-  const available = Math.max(0, (state.list?.max_houses || 4) - (state.list?.mine?.length || 0));
-  return `
-    <p class="eyebrow">${copy.eyebrow}</p>
-    <h2 class="page-title">${copy.title.join("<br>")}</h2>
-    <p class="dek dropcap">${copy.dek}</p>
-    ${districtNotes()}
-    <div class="note">${copy.note}</div>
-    <span class="section-stamp">${copy.stamp}: ${available}</span>
-  `;
-}
-
-function templateCard(template) {
-  const labels = COPY.labels;
-  const pending = state.pendingBuy === template.id;
-  const canAfford = walletValue() >= Number(template.price || 0);
-  return `
-    <article class="estate-card">
-      <figure class="estate-figure">
-        <img src="${image(template.preview_url)}" alt="" loading="lazy">
-        <figcaption>${escape(template.district_label)} · ${escape(template.size)}</figcaption>
-      </figure>
-      <div class="estate-copy">
-        <p class="eyebrow">${escape(template.district_label)} · ${escape(template.size)}</p>
-        <h3>${escape(template.label)}</h3>
-        <p>${escape(template.description)}</p>
-        <div class="price-line">
-          <span class="price">${money(template.price)} Bops</span>
-          <span class="badge">${template.room_count} rooms</span>
-          ${template.owned ? `<span class="badge good">Owned ×${template.owned}</span>` : ""}
-        </div>
-        <div class="actions">
-          ${pending
-            ? `<button type="button" class="mag-btn" data-action="confirm-buy" data-id="${escape(template.id)}">${labels.confirm} · ${money(template.price)} Bops</button>
-               <button type="button" class="mag-btn quiet" data-action="cancel-buy">${labels.cancelBuy}</button>`
-            : `<button type="button" class="mag-btn" data-action="buy" data-id="${escape(template.id)}" ${canAfford ? "" : "disabled"}>
-                 ${canAfford ? `${labels.buy} · ${money(template.price)} Bops` : labels.needBops}
-               </button>`}
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function homesRight() {
-  const copy = COPY.homes;
-  const templates = state.list?.templates || [];
-  const districts = state.list?.districts || [];
-  const groups = districts
-    .map(district => ({
-      district,
-      templates: templates.filter(template => template.district === district.id),
-    }))
-    .filter(group => group.templates.length);
-  const neighbours = (state.list?.houses || []).filter(house => !house.is_owner);
-  return `
-    <p class="kicker">${copy.rightKicker}</p>
-    <h2 class="page-title">${copy.rightTitle}</h2>
-    <div class="property-list">
-      ${groups.length ? groups.map(group => `
-        <section class="district-block">
-          <header class="district-heading">
-            <h3>${escape(group.district.label)}</h3>
-            <p>${escape(group.district.tagline)}</p>
-          </header>
-          <div class="list-grid">${group.templates.map(templateCard).join("")}</div>
-        </section>
-      `).join("") : `<div class="empty">${copy.districtEmpty}</div>`}
-    </div>
-    <hr class="rule">
-    <p class="eyebrow">${copy.openHouses}</p>
-    <div class="list-grid">
-      ${neighbours.length ? neighbours.map(house => `
-        <article class="estate-card compact">
-          <figure class="estate-figure">
-            <img src="${image(house.preview_url)}" alt="" loading="lazy">
-            <figcaption>${escape(house.district_label)}</figcaption>
-          </figure>
-          <div class="estate-copy">
-            <p class="eyebrow">${escape(house.district_label)}</p>
-            <h3>${escape(house.label)}</h3>
-            <p>${escape(house.owner_username)}'s place · ${house.room_count} rooms</p>
-            <div class="actions">
-              <button type="button" class="mag-btn quiet" data-action="visit-house" data-id="${escape(house.id)}" ${house.locked ? "disabled" : ""}>
-                ${house.locked ? COPY.labels.locked : COPY.labels.visitHouse}
-              </button>
-            </div>
-          </div>
-        </article>
-      `).join("") : `<div class="empty">${copy.openHousesEmpty}</div>`}
-    </div>
-  `;
-}
-
-function keysLeft() {
-  const copy = COPY.keys;
-  const mine = state.list?.mine || [];
-  return `
-    <p class="eyebrow">${copy.eyebrow}</p>
-    <h2 class="page-title">${copy.title.join("<br>")}</h2>
-    <p class="dek dropcap">${copy.dek}</p>
-    <div class="fact-strip">
-      <div><b>${mine.length}</b><span>keys</span></div>
-      <div><b>${mine.reduce((total, house) => total + house.room_count, 0)}</b><span>rooms</span></div>
-      <div><b>${money(walletValue())}</b><span>Bops</span></div>
-    </div>
-    <div class="note">${copy.note}</div>
-    <span class="section-stamp">${mine.length} ${copy.stamp}</span>
-  `;
-}
-
-function houseKey(house, { owned = false } = {}) {
-  const inside = (state.list?.current_room_id || "").startsWith(`home:${house.id}:`);
-  return `
-    <article class="house-key">
-      <figure class="house-key-figure">
-        <img src="${image(house.preview_url)}" alt="" loading="lazy">
-        <figcaption>${escape(house.district_label)}</figcaption>
-      </figure>
-      <div>
-        <p class="eyebrow">${escape(house.district_label)} · ${escape(house.size)}</p>
-        <h3>${escape(house.label)}</h3>
-        <p>${owned ? escape(house.owner_username) : `Hosted by ${escape(house.owner_username)}`} · ${house.room_count} rooms</p>
-        <div class="price-line">
-          ${inside ? `<span class="badge dark inside">You are inside</span>` : ""}
-          ${house.locked ? `<span class="badge">Front door locked</span>` : `<span class="badge good">Welcome</span>`}
-        </div>
-        <div class="actions">
-          <button type="button" class="mag-btn" data-action="${owned ? "enter-house" : "visit-house"}" data-id="${escape(house.id)}" ${(!owned && house.locked) ? "disabled" : ""}>
-            ${inside ? COPY.labels.enterAgain : owned ? COPY.labels.enter : house.locked ? COPY.labels.locked : COPY.labels.visit}
-          </button>
-          ${owned ? `<button type="button" class="mag-btn quiet" data-action="lock-house" data-id="${escape(house.id)}" data-locked="${house.locked ? "1" : "0"}">${house.locked ? COPY.labels.unlock : COPY.labels.lock}</button>` : ""}
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function keysRight() {
-  const copy = COPY.keys;
-  const mine = state.list?.mine || [];
-  const neighbours = (state.list?.houses || []).filter(house => !house.is_owner);
-  return `
-    <p class="kicker">${copy.rightKicker}</p>
-    <h2 class="page-title">${copy.rightTitle}</h2>
-    <div class="list-grid">
-      ${mine.length ? mine.map(house => houseKey(house, { owned: true })).join("") : `<div class="empty">${copy.mineEmpty}</div>`}
-    </div>
-    <hr class="rule">
-    <p class="eyebrow">${copy.neighbours}</p>
-    <div class="list-grid">
-      ${neighbours.length ? neighbours.map(house => houseKey(house)).join("") : `<div class="empty">${copy.neighboursEmpty}</div>`}
-    </div>
-  `;
+function districtContext() {
+  return { escape, image, money, wallet: walletValue(), pendingBuy: state.pendingBuy };
 }
 
 function roommateContext() {
@@ -570,12 +405,24 @@ function submitRight() {
 }
 
 function pageContent(pageId) {
+  const districtId = DISTRICT_PAGES[pageId];
+  if (districtId) {
+    const district = (state.list?.districts || []).find(item => item.id === districtId)
+      || { id: districtId, label: pageId, tagline: "", description: "" };
+    const entries = districtTemplates(state.list, districtId);
+    const ctx = districtContext();
+    if (!entries.length) {
+      return { left: renderDistrictEmpty(district, ctx), right: renderDistrictEmpty(district, ctx) };
+    }
+    return {
+      left: renderDistrictLeft(district, entries, ctx),
+      right: renderDistrictRight(district, entries, ctx),
+    };
+  }
   const ctx = roommateContext();
   switch (pageId) {
     case "cover": return { left: mastheadLeft(), right: coverRight() };
     case "contents": return { left: contentsLeft(), right: contentsRight() };
-    case "homes": return { left: homesLeft(), right: homesRight() };
-    case "keys": return { left: keysLeft(), right: keysRight() };
     case "roommates": return {
       left: renderRoommateLeft(state.roommates, ctx),
       right: renderRoommateRight(state.roommates, ctx),
@@ -630,6 +477,7 @@ function render() {
   book.classList.toggle("portrait", portrait);
   book.classList.toggle("landscape", !portrait);
   book.classList.toggle("cover", page.id === "cover");
+  book.classList.toggle("district", isDistrictPage());
   const leafLabel = state.leaf === 0 ? "left" : "right";
   folio.textContent = portrait
     ? `${String(state.page + 1).padStart(2, "0")} / ${String(PAGES.length).padStart(2, "0")} · ${page.short} · ${leafLabel}`
@@ -880,9 +728,6 @@ document.addEventListener("click", event => {
     case "buy": buyTemplate(id); break;
     case "cancel-buy": state.pendingBuy = ""; render(); break;
     case "confirm-buy": state.pendingBuy = ""; void runCommand(`.tinytown buy ${id}`, "house"); break;
-    case "enter-house": void runCommand(`.tinytown enter ${id}`, "house"); break;
-    case "visit-house": void runCommand(`.tinytown visit ${id}`, "house"); break;
-    case "lock-house": void runCommand(`.tinytown lock ${id} ${action.dataset.locked === "1" ? "off" : "on"}`, "house"); break;
     case "invite": openHomeDialog(id); break;
     case "assign-home": assignHome(id); break;
     case "close-home": closeHomeDialog(); break;

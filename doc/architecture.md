@@ -90,7 +90,9 @@ uses this for autonomous household NPCs while its private multi-room houses,
 house purchases, visits, roommate classifieds, and community art sales live in
 the `tinytown` mod. Its player-facing home is the unbound
 [Tiny Mag activity](../mods/tinytown/activities/tiny-mag/), with `tinytown` and
-`art-store` launch aliases. Each owned home persists five roommate candidates;
+`art-store` launch aliases, plus the separate
+[Keyring activity](../mods/tinytown/activities/keyring/) (`keyring`, `keys`
+aliases) for owned-home switching, lock management, and household review. Each owned home persists five roommate candidates;
 adopting one adds the peep to a chosen owned home and replenishes the classified batch. Community art
 is listed from an editable home whiteboard, paid at full price to the seller,
 and installed as a locked whiteboard for the buyer. Only the source board stays

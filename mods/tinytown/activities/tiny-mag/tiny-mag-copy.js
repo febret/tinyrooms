@@ -14,18 +14,32 @@ export const PAGES = [
     blurb: "The index, and a note on how to read a magazine.",
   },
   {
-    id: "homes",
-    label: "Property",
-    short: "Property",
+    id: "district-downtown",
+    label: "Downtown",
+    short: "Downtown",
     group: "Property",
-    blurb: "Twenty small houses, four districts, and the case for a smaller footprint.",
+    blurb: "Bricks, neon, and bakery air — five small houses around the old clock tower.",
   },
   {
-    id: "keys",
-    label: "The Keyring",
-    short: "My Homes",
+    id: "district-sea",
+    label: "The Sea",
+    short: "The Sea",
     group: "Property",
-    blurb: "The keys you hold, the doors you can open, and the neighbours who leave a light on.",
+    blurb: "Salt, gulls, and long horizons — five houses along the working harbor.",
+  },
+  {
+    id: "district-hills",
+    label: "The Hills",
+    short: "The Hills",
+    group: "Property",
+    blurb: "Orchards, stars, and winding lanes — five homes tucked into green slopes.",
+  },
+  {
+    id: "district-suburbs",
+    label: "The Suburbs",
+    short: "The Suburbs",
+    group: "Property",
+    blurb: "Gardens, porches, and familiar streets — five homes on leafy lanes.",
   },
   {
     id: "roommates",
@@ -67,17 +81,24 @@ export const PAGES = [
 export const PAGE_IDS = new Map(PAGES.map((page, index) => [page.id, index]));
 export const ART_PAGES = new Set(["gallery", "floors", "community", "submit"]);
 
+export const DISTRICT_PAGES = {
+  "district-downtown": "downtown",
+  "district-sea": "sea",
+  "district-hills": "hills",
+  "district-suburbs": "suburbs",
+};
+
 export const COPY = {
   masthead: {
     issue: "Issue No. 01",
     publication: "The Pocket Town Review",
     titleSmall: "The Pocket Town Review",
     titleLines: ["TINY", "MAG"],
-    standfirst: "A quarterly for people who measure a home in morning light, good neighbours, and the distance from the kettle to the chair.",
+    standfirst: "Need a home? We have homes! Need a roommate? We have those too.",
     features: [
       ["Property", "Twenty small houses, four distinct districts, and the case for living within your means."],
-      ["The Roommate Files", "Five portraits from the classified desk, with no paperwork hidden behind the frame."],
-      ["The Collection", "What your neighbours are making, and the quiet pleasure of a wall that is finally finished."],
+      ["Roommate Classifieds", "People looking for a place to live. They are nice, we think."],
+      ["The Collection", "Paint cans are really cheap around here. Everyone is painting. Some of them are good. We found a few in the dumpster."],
     ],
     sticker: "Inside: five strangers, one spare room, and a very small town",
     coverKicker: "The house-hunting, roommate-finding, art-collecting issue",
@@ -89,37 +110,20 @@ export const COPY = {
   contents: {
     eyebrow: "In this issue",
     title: ["Turn", "the page."],
-    dek: "This is a magazine for the rooms we actually live in: small footprints, long conversations, and the objects we choose to keep.",
-    note: "The index opposite is the shortcut for the impatient. Everyone else may turn the pages in order, as good paper intended.",
+    dek: "This is a magazine like the rooms we share. Small. Sometime stinky.",
+    note: "Turn the pages in order, as good paper intended.",
     stamp: "Small rooms · Large lives",
     rightEyebrow: "Contents",
     rightTitle: "The issue",
     walletNote: "Everything is printed on one continuous sheet of Bops. Wallet balance:",
   },
-  homes: {
+  districts: {
     eyebrow: "The property pages",
-    title: ["A door", "of your own."],
-    dek: "The best small homes do not apologise for their size. They spend their square footage on light, a good chair, and one excellent window.",
-    districtEyebrow: "A note on the districts",
-    note: "First-time residents receive a welcome grant. Keys are yours to keep; there is no resale desk in this town.",
+    introDek: "The best small homes do not apologise for their size. They spend their square footage on light, a good chair, and one excellent window.",
+    note: "First-time residents receive a welcome grant. Your keys live on the keyring, outside this magazine; buy here, then reach for brass.",
     stamp: "Keys available",
     rightKicker: "For sale in TinyTown",
-    rightTitle: "Property",
-    openHouses: "Open houses",
-    openHousesEmpty: "The street is quiet this week. Perhaps someone new will move in.",
     districtEmpty: "No doors in this district this week.",
-  },
-  keys: {
-    eyebrow: "The keyring",
-    title: ["My", "homes."],
-    dek: "A front door is a small promise: that the day can be closed out, the kettle switched on, and the world left on the step.",
-    note: "The magazine stays open while you move between homes. The art desk updates when you step inside one of your own.",
-    stamp: "keys in hand",
-    rightKicker: "Your doors",
-    rightTitle: "The keyring",
-    mineEmpty: "No keys yet. The property pages are two turns back.",
-    neighbours: "Neighbours' open houses",
-    neighboursEmpty: "The street is quiet. Perhaps someone new will move in.",
   },
   roommates: {
     eyebrow: "The classifieds",

@@ -3,3 +3,7 @@ tiny-mag:
   aliases:
   - tinytown
   - art-store
+keyring:
+  title: The Keyring
+  aliases:
+  - keys

@@ -1,8 +1,9 @@
 CONFIG:
-  scale_adjust: 1.0
+  scale_adjust: 1
 tinytown-art-easel:
   label: Art Easel
-  description: A wooden studio easel with a blank canvas. The Art Market delivers right to the frame.
+  description: A wooden studio easel with a blank canvas. The Art Market delivers
+    right to the frame.
   model: tinytown-art-easel.glb
   decorative: true
   scale: 1.7
@@ -17,12 +18,13 @@ tinytown-art-easel:
   - easel
 tinytown-bathtub:
   label: Deep Bath
-  description: A generous roll-top tub with brass feet. Excellent for steam, thinking, and very small boats.
+  description: A generous roll-top tub with brass feet. Excellent for steam, thinking,
+    and very small boats.
   model: tinytown-bathtub.glb
   decorative: true
   scale: 1.9
   editor_scale_min: 0.5
-  editor_scale_max: 2.0
+  editor_scale_max: 2
   sprite_footprint:
   - 7
   - 4
@@ -31,12 +33,13 @@ tinytown-bathtub:
   - tub
 tinytown-pool:
   label: Garden Pool
-  description: A clear blue plunge pool with a tiled lip and just enough room for a proper splash.
+  description: A clear blue plunge pool with a tiled lip and just enough room for
+    a proper splash.
   model: tinytown-pool.glb
   decorative: true
-  scale: 3.0
+  scale: 3
   editor_scale_min: 0.4
-  editor_scale_max: 2.0
+  editor_scale_max: 2
   sprite_footprint:
   - 20
   - 12

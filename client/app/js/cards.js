@@ -34,6 +34,10 @@ function tinymagButtonMarkup() {
   return `<button type="button" id="tinymag-toggle" class="icon-button toolbar-edit" data-open-tinymag="1" aria-label="Open Tiny Mag" title="Open Tiny Mag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"></path><path d="M9 7h6M9 10h5"></path></svg></button>`;
 }
 
+function keyringButtonMarkup() {
+  return `<button type="button" id="keyring-toggle" class="icon-button toolbar-edit" data-open-keyring="1" aria-label="Open the Keyring" title="Open the Keyring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="4"></circle><path d="m11.2 11.2 7.3 7.3"></path><path d="m16.4 13.4 2-2"></path><path d="m18.6 15.6 2-2"></path></svg></button>`;
+}
+
 function editButtonMarkup(room, isAdmin, selectedProp, canReviewCutscenes) {
   const pencil = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"></path><path d="m13 5 4 4"></path></svg>`;
   const clapper = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8.5 4.5 4h15L18 8.5"></path><path d="m7 4 2.5 4.5M12 4l2.5 4.5M17 4l2.5 4.5"></path><rect x="3" y="8.5" width="18" height="12" rx="2"></rect><path d="M10 12.5v5M14 12.5v5"></path></svg>`;
@@ -70,6 +74,9 @@ function bindCardButtons(root, onSelect, onAction) {
   });
   root.querySelectorAll("[data-open-tinymag]").forEach(button => {
     button.onclick = () => onAction({ command: ".tinytown open" });
+  });
+  root.querySelectorAll("[data-open-keyring]").forEach(button => {
+    button.onclick = () => onAction({ command: ".tinytown keyring" });
   });
   root.querySelectorAll("[data-edit-room]").forEach(button => {
     button.onclick = () => onAction({ type: "open-view", view: "edit-room" });
@@ -412,7 +419,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join(""      ) + (showTinymag ? tinymagButtonMarkup() : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
+      ) + (id === "inventory" ? `${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");

@@ -101,6 +101,9 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
     if action in {"open", "home"}:
         return await _open_activity(context, "tiny-mag", room_id=None, replace_existing=True)
 
+    if action in {"keyring", "keys"}:
+        return await _open_activity(context, "keyring", room_id=None, replace_existing=True)
+
     if action == "list":
         account = context.profiles.get_account_by_id(context.account.id) or context.account
         welcome = housing.ensure_welcome_grant(account)
@@ -456,7 +459,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         return CommandOutcome(
             message=(
                 "Use '.tinytown list', '.tinytown buy <template>', '.tinytown enter <house>', "
-                "'.tinytown roommates', '.tinytown market', or '.tinytown artstore'. "
+                "'.tinytown roommates', '.tinytown market', '.tinytown keyring', or '.tinytown artstore'. "
                 f"Districts: {districts}."
             ),
             toast=False,
@@ -465,7 +468,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
 
     raise CommandError(
         "Unknown TinyTown command. Use list, buy, enter, visit, lock, roommates, npc, play, "
-        "market, sellart, unlistart, buyart, hangart, decor, floor, hang, or artstore."
+        "market, sellart, unlistart, buyart, hangart, decor, floor, hang, keyring, or artstore."
     )
 
 
@@ -480,7 +483,7 @@ def register(api: object) -> None:
         "tinytown",
         "Open TinyTown or manage houses, households, and home decoration.",
         tinytown_command,
-        usage=".tinytown [list|buy|enter|visit|lock|roommates|npc|play|market|sellart|buyart|decor|floor|hang|artstore]",
+        usage=".tinytown [list|buy|enter|visit|lock|roommates|npc|play|market|sellart|buyart|decor|floor|hang|keyring|artstore]",
         help=(
             "Open the TinyTown house browser. Buy a private multi-room home, visit other "
             "residents, customize household peeps, and hang art from the Art Market. "

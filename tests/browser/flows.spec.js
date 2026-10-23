@@ -222,7 +222,7 @@ test("emote chat bubbles appear and dismiss", async ({ page, runtime }) => {
   const emote = page.locator("#emote-menu [data-emote-play]").first();
   await expect(emote).toBeVisible();
   await emote.click();
-  const bubbles = page.locator("#bubble-layer .bubble:not(.dialog-bubble):not(.move)");
+  const bubbles = page.locator("#bubble-layer .bubble:not(.move)");
   await expect(bubbles).toHaveCount(1);
   await bubbles.first().click();
   await expect(bubbles).toHaveCount(0);
@@ -240,12 +240,17 @@ test.describe("milestone 3 dialogs", () => {
     await createReadyAccount(page, runtime);
     await travel(page);
     await command(page, ".talk caretaker");
-    const dialogBubble = page.locator("#bubble-layer .bubble.dialog-bubble");
+    const dialogBubble = page.locator("#look-bar .look-dialog-bubble");
     await expect(dialogBubble).toContainText("Welcome in!");
+    await expect(page.locator('[data-peep-id="caretaker"]')).toHaveAttribute("aria-pressed", "true");
+    const otherPeep = page.locator('[data-peep-id]:not([data-peep-id="caretaker"])').first();
+    await otherPeep.click();
+    await expect(dialogBubble).toHaveCount(0);
     const exit = page.locator("#actions-bar").getByRole("button", { name: "Exit Conversation", exact: true });
     await expect(exit).toBeVisible();
     await page.locator("#actions-bar").getByRole("button", { name: "House chores", exact: true }).click();
     await expect(dialogBubble).toContainText("Supplies and a vacuum are behind the kitchen.");
+    await expect(page.locator('[data-peep-id="caretaker"]')).toHaveAttribute("aria-pressed", "true");
     await expect(exit).toBeVisible();
     await exit.click();
     await expect(exit).toHaveCount(0);
