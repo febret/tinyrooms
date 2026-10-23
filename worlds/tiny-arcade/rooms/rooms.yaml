@@ -12,83 +12,209 @@ lobby:
   props:
     lobby-wall:
       prop: builtin:whiteboard
-      pos: [50, 2, 0]
+      pos:
+      - 50
+      - 2
+      - 0
       scale: 4.2
-      rot: [0, 0, 0]
+      rot:
+      - 0
+      - 0
+      - 0
       surface:
         strokes:
         - color: '#0d0b15'
           width: 40
-          points: [[0, 20], [1024, 20]]
+          points:
+          - - 0
+            - 20
+          - - 1024
+            - 20
         - color: '#0d0b15'
           width: 40
-          points: [[0, 60], [1024, 60]]
+          points:
+          - - 0
+            - 60
+          - - 1024
+            - 60
         - color: '#0d0b15'
           width: 40
-          points: [[0, 100], [1024, 100]]
+          points:
+          - - 0
+            - 100
+          - - 1024
+            - 100
         - color: '#0d0b15'
           width: 40
-          points: [[0, 140], [1024, 140]]
+          points:
+          - - 0
+            - 140
+          - - 1024
+            - 140
         - color: '#0d0b15'
           width: 40
-          points: [[0, 180], [1024, 180]]
+          points:
+          - - 0
+            - 180
+          - - 1024
+            - 180
         - color: '#0d0b15'
           width: 40
-          points: [[0, 220], [1024, 220]]
+          points:
+          - - 0
+            - 220
+          - - 1024
+            - 220
         - color: '#0d0b15'
           width: 40
-          points: [[0, 260], [1024, 260]]
+          points:
+          - - 0
+            - 260
+          - - 1024
+            - 260
         - color: '#0d0b15'
           width: 40
-          points: [[0, 300], [1024, 300]]
+          points:
+          - - 0
+            - 300
+          - - 1024
+            - 300
         - color: '#0d0b15'
           width: 40
-          points: [[0, 340], [1024, 340]]
+          points:
+          - - 0
+            - 340
+          - - 1024
+            - 340
         - color: '#0d0b15'
           width: 40
-          points: [[0, 380], [1024, 380]]
+          points:
+          - - 0
+            - 380
+          - - 1024
+            - 380
         - color: '#0d0b15'
           width: 40
-          points: [[0, 420], [1024, 420]]
+          points:
+          - - 0
+            - 420
+          - - 1024
+            - 420
         - color: '#0d0b15'
           width: 40
-          points: [[0, 460], [1024, 460]]
+          points:
+          - - 0
+            - 460
+          - - 1024
+            - 460
         - color: '#0d0b15'
           width: 40
-          points: [[0, 500], [1024, 500]]
+          points:
+          - - 0
+            - 500
+          - - 1024
+            - 500
         - color: '#0d0b15'
           width: 40
-          points: [[0, 540], [1024, 540]]
+          points:
+          - - 0
+            - 540
+          - - 1024
+            - 540
         - color: '#0d0b15'
           width: 40
-          points: [[0, 580], [1024, 580]]
+          points:
+          - - 0
+            - 580
+          - - 1024
+            - 580
         - color: '#0d0b15'
           width: 40
-          points: [[0, 620], [1024, 620]]
+          points:
+          - - 0
+            - 620
+          - - 1024
+            - 620
         - color: '#54f2ff'
           width: 12
-          points: [[20, 20], [1004, 20], [1004, 620], [20, 620], [20, 20]]
+          points:
+          - - 20
+            - 20
+          - - 1004
+            - 20
+          - - 1004
+            - 620
+          - - 20
+            - 620
+          - - 20
+            - 20
         - color: '#ff5d8f'
           width: 8
-          points: [[0, 470], [1024, 470]]
+          points:
+          - - 0
+            - 470
+          - - 1024
+            - 470
         - color: '#54f2ff'
           width: 6
-          points: [[80, 300], [220, 300], [220, 470], [80, 470], [80, 300]]
+          points:
+          - - 80
+            - 300
+          - - 220
+            - 300
+          - - 220
+            - 470
+          - - 80
+            - 470
+          - - 80
+            - 300
         - color: '#ffd166'
           width: 6
-          points: [[300, 280], [450, 280], [450, 470], [300, 470], [300, 280]]
+          points:
+          - - 300
+            - 280
+          - - 450
+            - 280
+          - - 450
+            - 470
+          - - 300
+            - 470
+          - - 300
+            - 280
         - color: '#ff5d8f'
           width: 6
-          points: [[600, 300], [760, 300], [760, 470], [600, 470], [600, 300]]
+          points:
+          - - 600
+            - 300
+          - - 760
+            - 300
+          - - 760
+            - 470
+          - - 600
+            - 470
+          - - 600
+            - 300
         - color: '#4ee1c1'
           width: 4
-          points: [[100, 340], [200, 340]]
+          points:
+          - - 100
+            - 340
+          - - 200
+            - 340
         - color: '#4ee1c1'
           width: 4
-          points: [[320, 320], [430, 320]]
+          points:
+          - - 320
+            - 320
+          - - 430
+            - 320
         - color: '#ffd166'
           width: 4
-          points: [[620, 340], [740, 340]]
+          points:
+          - - 620
+            - 340
+          - - 740
+            - 340
         texts:
         - text: THE ARCADE
           x: 60
@@ -110,44 +236,6 @@ lobby:
           y: 510
           size: 40
           color: '#54f2ff'
-    lobby-tip-chess:
-      prop: builtin:sign
-      pos: [26, 58, 0]
-      rot: [-0.45, 0.24, 0]
-      scale: 1.7
-      sign_style: neon
-      surface:
-        text: 'CHESS NOOK →
-
-          Click a piece, then a green square.'
-      actions:
-      - - Enter the Chess Nook
-        - .go chess
-        - true
-    lobby-tip-play:
-      prop: builtin:sign
-      pos: [74, 58, 0]
-      rot: [-0.45, -0.24, 0]
-      scale: 1.55
-      sign_style: chalk
-      surface:
-        text: 'PLAY TOGETHER
-
-          Anyone can take the next move.'
-    lobby-tip-paintball:
-      prop: builtin:sign
-      pos: [50, 92, 0]
-      rot: [-0.45, 0, 0]
-      scale: 1.7
-      sign_style: neon
-      surface:
-        text: 'PAINTBALL ARENA ↑
-
-          Buy a blaster, then use it on another peep.'
-      actions:
-      - - Enter the Paintball Arena
-        - .go paintball
-        - true
   exits:
     chess:
       label: Enter the Chess Nook
@@ -169,113 +257,267 @@ chess:
   props:
     chess-wall:
       prop: builtin:whiteboard
-      pos: [50, 2, 0]
+      pos:
+      - 50
+      - 2
+      - 0
       scale: 4.2
-      rot: [0, 0, 0]
+      rot:
+      - 0
+      - 0
+      - 0
       surface:
         strokes:
         - color: '#0d0b15'
           width: 40
-          points: [[0, 20], [1024, 20]]
+          points:
+          - - 0
+            - 20
+          - - 1024
+            - 20
         - color: '#0d0b15'
           width: 40
-          points: [[0, 60], [1024, 60]]
+          points:
+          - - 0
+            - 60
+          - - 1024
+            - 60
         - color: '#0d0b15'
           width: 40
-          points: [[0, 100], [1024, 100]]
+          points:
+          - - 0
+            - 100
+          - - 1024
+            - 100
         - color: '#0d0b15'
           width: 40
-          points: [[0, 140], [1024, 140]]
+          points:
+          - - 0
+            - 140
+          - - 1024
+            - 140
         - color: '#0d0b15'
           width: 40
-          points: [[0, 180], [1024, 180]]
+          points:
+          - - 0
+            - 180
+          - - 1024
+            - 180
         - color: '#0d0b15'
           width: 40
-          points: [[0, 220], [1024, 220]]
+          points:
+          - - 0
+            - 220
+          - - 1024
+            - 220
         - color: '#0d0b15'
           width: 40
-          points: [[0, 260], [1024, 260]]
+          points:
+          - - 0
+            - 260
+          - - 1024
+            - 260
         - color: '#0d0b15'
           width: 40
-          points: [[0, 300], [1024, 300]]
+          points:
+          - - 0
+            - 300
+          - - 1024
+            - 300
         - color: '#0d0b15'
           width: 40
-          points: [[0, 340], [1024, 340]]
+          points:
+          - - 0
+            - 340
+          - - 1024
+            - 340
         - color: '#0d0b15'
           width: 40
-          points: [[0, 380], [1024, 380]]
+          points:
+          - - 0
+            - 380
+          - - 1024
+            - 380
         - color: '#0d0b15'
           width: 40
-          points: [[0, 420], [1024, 420]]
+          points:
+          - - 0
+            - 420
+          - - 1024
+            - 420
         - color: '#0d0b15'
           width: 40
-          points: [[0, 460], [1024, 460]]
+          points:
+          - - 0
+            - 460
+          - - 1024
+            - 460
         - color: '#0d0b15'
           width: 40
-          points: [[0, 500], [1024, 500]]
+          points:
+          - - 0
+            - 500
+          - - 1024
+            - 500
         - color: '#0d0b15'
           width: 40
-          points: [[0, 540], [1024, 540]]
+          points:
+          - - 0
+            - 540
+          - - 1024
+            - 540
         - color: '#0d0b15'
           width: 40
-          points: [[0, 580], [1024, 580]]
+          points:
+          - - 0
+            - 580
+          - - 1024
+            - 580
         - color: '#0d0b15'
           width: 40
-          points: [[0, 620], [1024, 620]]
+          points:
+          - - 0
+            - 620
+          - - 1024
+            - 620
         - color: '#54f2ff'
           width: 12
-          points: [[20, 20], [1004, 20], [1004, 620], [20, 620], [20, 20]]
+          points:
+          - - 20
+            - 20
+          - - 1004
+            - 20
+          - - 1004
+            - 620
+          - - 20
+            - 620
+          - - 20
+            - 20
         - color: '#efdfbd'
           width: 4
-          points: [[600, 280], [960, 280], [960, 640], [600, 640], [600, 280]]
+          points:
+          - - 600
+            - 280
+          - - 960
+            - 280
+          - - 960
+            - 640
+          - - 600
+            - 640
+          - - 600
+            - 280
         - color: '#efdfbd'
           width: 3
-          points: [[640, 280], [640, 640]]
+          points:
+          - - 640
+            - 280
+          - - 640
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[680, 280], [680, 640]]
+          points:
+          - - 680
+            - 280
+          - - 680
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[720, 280], [720, 640]]
+          points:
+          - - 720
+            - 280
+          - - 720
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[760, 280], [760, 640]]
+          points:
+          - - 760
+            - 280
+          - - 760
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[800, 280], [800, 640]]
+          points:
+          - - 800
+            - 280
+          - - 800
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[840, 280], [840, 640]]
+          points:
+          - - 840
+            - 280
+          - - 840
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[880, 280], [880, 640]]
+          points:
+          - - 880
+            - 280
+          - - 880
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[920, 280], [920, 640]]
+          points:
+          - - 920
+            - 280
+          - - 920
+            - 640
         - color: '#efdfbd'
           width: 3
-          points: [[600, 320], [960, 320]]
+          points:
+          - - 600
+            - 320
+          - - 960
+            - 320
         - color: '#efdfbd'
           width: 3
-          points: [[600, 360], [960, 360]]
+          points:
+          - - 600
+            - 360
+          - - 960
+            - 360
         - color: '#efdfbd'
           width: 3
-          points: [[600, 400], [960, 400]]
+          points:
+          - - 600
+            - 400
+          - - 960
+            - 400
         - color: '#efdfbd'
           width: 3
-          points: [[600, 440], [960, 440]]
+          points:
+          - - 600
+            - 440
+          - - 960
+            - 440
         - color: '#efdfbd'
           width: 3
-          points: [[600, 480], [960, 480]]
+          points:
+          - - 600
+            - 480
+          - - 960
+            - 480
         - color: '#efdfbd'
           width: 3
-          points: [[600, 520], [960, 520]]
+          points:
+          - - 600
+            - 520
+          - - 960
+            - 520
         - color: '#efdfbd'
           width: 3
-          points: [[600, 560], [960, 560]]
+          points:
+          - - 600
+            - 560
+          - - 960
+            - 560
         - color: '#efdfbd'
           width: 3
-          points: [[600, 600], [960, 600]]
+          points:
+          - - 600
+            - 600
+          - - 960
+            - 600
         texts:
         - text: CHESS NOOK
           x: 60
@@ -304,7 +546,10 @@ chess:
           color: '#efdfbd'
     chess-controller:
       prop: builtin:text
-      pos: [50, 96, 0]
+      pos:
+      - 50
+      - 96
+      - 0
       scale: 0.32
       behavior: chess
       text:
@@ -313,28 +558,37 @@ chess:
         color: '#ffd166'
     chess-tip-rules:
       prop: builtin:sign
-      pos: [4, 55, 0]
-      rot: [-0.45, 0.1, 0]
-      scale: 1.0
+      pos:
+      - 4
+      - 55
+      - 0
+      rot:
+      - -0.45
+      - 0.1
+      - 0
+      scale: 1
       sign_style: paper
       surface:
         text: 'HOW TO PLAY
 
-          1. Click a piece.
-          2. Click a green square.
-          3. Captures pay Bops.
-          4. Checkmate pays 3 Kudos.'
+          1. Click a piece. 2. Click a green square. 3. Captures pay Bops. 4. Checkmate
+          pays 3 Kudos.'
     chess-tip-staff:
       prop: builtin:sign
-      pos: [96, 55, 0]
-      rot: [-0.45, -0.1, 0]
-      scale: 1.0
+      pos:
+      - 96
+      - 55
+      - 0
+      rot:
+      - -0.45
+      - -0.1
+      - 0
+      scale: 1
       sign_style: neon
       surface:
         text: 'STAFF RESET
 
-          Admin, moderator, or game master:
-          use Reset game in room actions.'
+          Admin, moderator, or game master: use Reset game in room actions.'
   game:
     kind: chess
     controller: chess-controller
@@ -359,13 +613,20 @@ chess:
       bQ: chess-queen-black
       bK: chess-king-black
     effects:
-      threat: [threat-outline]
-      check: [threat-outline, fire]
+      threat:
+      - threat-outline
+      check:
+      - threat-outline
+      - fire
     config:
       columns: 8
       rows: 8
-      origin: [9.5, 0]
-      size: [81, 100]
+      origin:
+      - 9.5
+      - 0
+      size:
+      - 81
+      - 100
       light: '#efdfbd'
       dark: '#5b3b28'
   exits:
@@ -375,8 +636,8 @@ chess:
 paintball:
   label: The Paintball Arena
   description: A neon inflatable arena under black lights. Buy a blaster and paint
-    from the vending machine, then tag other peeps before the two-minute buzzer.
-    Hits cost Cleanliness and Health. Top three splatterers earn Bops.
+    from the vending machine, then tag other peeps before the two-minute buzzer. Hits
+    cost Cleanliness and Health. Top three splatterers earn Bops.
   board_type: basic
   board_image: paintball-arena.png
   board_image_style: stretch
@@ -389,82 +650,92 @@ paintball:
   props:
     paintball-vending:
       prop: paintball-vending
-      pos: [13, 83, 0]
-      scale: 1
+      pos:
+      - 10
+      - 90
+      - 0
+      scale: 1.4333294145603426
       behavior: paintball
       actions:
-      - - 'Buy Splash Pal (1 Bop)'
+      - - Buy Splash Pal (1 Bop)
         - .act buy:paintball-blaster-splash @prop:paintball-vending
         - true
-      - - 'Buy Neon Buzzer (8 Bops)'
+      - - Buy Neon Buzzer (8 Bops)
         - .act buy:paintball-blaster-neon @prop:paintball-vending
         - true
-      - - 'Buy Prism Cannon (20 Bops)'
+      - - Buy Prism Cannon (20 Bops)
         - .act buy:paintball-blaster-prism @prop:paintball-vending
         - true
-      - - 'Buy 10 Cherry Paintballs (1 Bop)'
+      - - Buy 10 Cherry Paintballs (1 Bop)
         - .act buy:paintball-cherry @prop:paintball-vending
         - true
-      - - 'Buy 10 Berry Paintballs (1 Bop)'
+      - - Buy 10 Berry Paintballs (1 Bop)
         - .act buy:paintball-berry @prop:paintball-vending
         - true
-      - - 'Buy 10 Lime Paintballs (1 Bop)'
+      - - Buy 10 Lime Paintballs (1 Bop)
         - .act buy:paintball-lime @prop:paintball-vending
         - true
-      - - 'Buy 10 Lemon Paintballs (1 Bop)'
+      - - Buy 10 Lemon Paintballs (1 Bop)
         - .act buy:paintball-lemon @prop:paintball-vending
         - true
-      - - 'Buy 10 Grape Paintballs (1 Bop)'
+      - - Buy 10 Grape Paintballs (1 Bop)
         - .act buy:paintball-grape @prop:paintball-vending
         - true
-    paintball-bunker-left:
-      prop: paintball-bunker
-      pos: [34, 38, 0]
-      rot: [0, 0.2, 0]
-      scale: 1
-    paintball-bunker-right:
-      prop: paintball-bunker
-      pos: [66, 38, 0]
-      rot: [0, -0.2, 0]
-      scale: 1
-    paintball-bunker-back:
-      prop: paintball-bunker
-      pos: [50, 70, 0]
-      scale: 1.15
+      rot:
+      - 0
+      - 0.9799999999998477
+      - 0
     paintball-barrels:
       prop: paintball-barrel-stack
-      pos: [82, 80, 0]
+      pos:
+      - 90
+      - 95
+      - 0
+      scale: 1.7789085463024834
+    custom:db1d35dc-88aa-4997-a73d-8c758ef818eb:
+      prop: hologram-projector
+      pos:
+      - 50
+      - 50
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 0.9012252974212048
+    custom:3440bbd2-29a9-4553-9464-f55906780628:
+      prop: mainframe-cabinet
+      pos:
+      - 90
+      - 15
+      - 0
+      rot:
+      - 0
+      - 356.2200000000025
+      - 0
+      scale: 0.6811314271795479
+    custom:40af10ea-3fee-4b5b-8d79-7b072d897373:
+      prop: neon-beanbag
+      pos:
+      - 25
+      - 25
+      - 0
+      rot:
+      - 0
+      - 357.1400000000001
+      - 0
+      scale: 1.0832870676749604
+    custom:53af9a4f-c8d0-4cad-8d35-9bf2d123a7bc:
+      prop: neon-workstation
+      pos:
+      - 0
+      - 30
+      - 0
+      rot:
+      - 0
+      - 1.5600000000000591
+      - 0
       scale: 1
-    paintball-tip-rules:
-      prop: builtin:sign
-      pos: [8, 12, 0]
-      rot: [-0.45, 0.16, 0]
-      scale: 1.15
-      sign_style: paper
-      surface:
-        text: 'HOW TO PLAY
-
-          1. Buy a blaster + paintballs.
-
-          2. Equip them both.
-
-          3. Use the blaster on a peep.
-
-          4. Top 3 hit counts win Bops.'
-    paintball-tip-buzzer:
-      prop: builtin:sign
-      pos: [92, 12, 0]
-      rot: [-0.45, -0.16, 0]
-      scale: 1.15
-      sign_style: neon
-      surface:
-        text: 'ROUNDS
-
-          2 minutes live.
-
-          30 seconds between.
-
-          Get hit: -10 Cleanliness, -1 Health.'
   game:
     kind: paintball
     controller: paintball-vending
@@ -476,17 +747,26 @@ paintball:
     config:
       round_seconds: 120
       intermission_seconds: 30
-      rewards: [10, 5, 1]
-      max_range: 11.0
+      rewards:
+      - 10
+      - 5
+      - 1
+      max_range: 11
       peep_radius: 0.42
       bots:
-        ids: [paintbot-pip, paintbot-bolt, paintbot-mim, paintbot-cog]
+        ids:
+        - paintbot-pip
+        - paintbot-bolt
+        - paintbot-mim
+        - paintbot-cog
         home_room: bot-hangar
         target_players: 4
         dismiss_seconds: 5
         dexterity: 2
         quality: 2
-        shot_seconds: [5.5, 9.5]
+        shot_seconds:
+        - 5.5
+        - 9.5
       ammo:
       - card: paintball-cherry
         color: '#ff4d6d'

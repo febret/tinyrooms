@@ -53,7 +53,6 @@ def build_scaled_world(
     props_per_room: int = 0,
     peeps_per_room: int = 0,
     cards_per_room: int = 0,
-    aura_rooms: int = 0,
     room_prefix: str = "perf",
     peep_prefix: str = "perfpeep",
     cards: tuple[str, ...] | None = None,
@@ -62,9 +61,7 @@ def build_scaled_world(
 
     ``rooms`` clones the entry room, so palette, board image and exits all stay
     valid. ``props_per_room``/``peeps_per_room``/``cards_per_room`` inflate the
-    entry room, because that is the one the benchmarks occupy. ``aura_rooms``
-    gives the first N rooms a stat aura, since the checked-in tutorial world
-    defines none and the ticker behaves differently without one.
+    entry room, because that is the one the benchmarks occupy.
     """
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -102,21 +99,11 @@ def build_scaled_world(
             )
         template["cards"] = entry_cards
 
-    if aura_rooms:
-        # A stat aura plus a timed buff, so both the modifier and the buff
-        # branches of AuraService.enter are exercised.
-        template["aura"] = [
-            {"stat": "max_health", "delta": 2.0, "duration": 3600},
-            {"buff": "s1", "duration": 3600},
-        ]
-
     for index in range(rooms):
         clone = yaml.safe_load(yaml.safe_dump(template))
         clone["label"] = f"Synthetic Room {index}"
         clone["description"] = "Generated room used by the performance suite."
         clone["exits"] = {"back": {"label": "Back", "target": ENTRY_ROOM}}
-        if index >= aura_rooms:
-            clone.pop("aura", None)
         rooms_payload[f"{room_prefix}-{index}"] = clone
 
     for index in range(peeps_per_room):
@@ -157,7 +144,6 @@ def parse_scale(value: str) -> dict[str, int]:
             "props_per_room",
             "peeps_per_room",
             "cards_per_room",
-            "aura_rooms",
         }:
             raise ValueError(f"Unknown world-scale key '{key}'.")
         scale[key] = int(raw or 0)

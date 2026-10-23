@@ -2,7 +2,8 @@ CONFIG:
   scale_adjust: 2
 portal:
   label: A Glowing Portal
-  description: A familiar doorway, shimmering with possibilities.
+  description: A familiar doorway shimmering with possibilities. Somebody definitely
+    forgot to read the safety card.
   model: portal.glb
   decorative: false
   animation: auto
@@ -20,12 +21,13 @@ portal:
 dollhouse:
   label: A Cute Dollhouse
   description: A whole home in miniature. Search once every ten minutes, or step right
-    inside.
+    inside and become emotionally responsible for it.
   model: dollhouse.glb
   decorative: false
 shower:
   label: Sunflower Shower
-  description: A warm shower washes away grime and restores Cleanliness.
+  description: A warm shower washes away grime and restores Cleanliness. It will not
+    wash away the choices that led you here.
   model: shower.glb
   decorative: false
   scale: 1.306
@@ -34,15 +36,15 @@ shower:
     action: water1.wav
 litter-tray:
   label: Molly's Litter Tray
-  description: A little chore. Equip a pooper scooper, then use it here. Bring a plastic
-    bag to bag the mess.
+  description: A little chore with big consequences. Equip a pooper scooper, then
+    use it here. Bring a plastic bag, unless you enjoy carrying evidence.
   model: litter-tray.glb
   decorative: false
   scale: 1.488
 locked-front-door:
   label: The Front Door
   description: The way out of the house. The key is in the dark basement, once the
-    centipedes are gone.
+    centipedes are gone. The door is not locked; it is simply disappointed in you.
   model: locked-front-door.glb
   decorative: false
   scale: 1.374
@@ -52,7 +54,7 @@ locked-front-door:
 keys-cabinet:
   label: Spare Key Cabinet
   description: A tiny brass key hangs on the sunflower hook, but only once the centipedes
-    are gone.
+    are gone. The hook is judging your chore speed.
   model: keys-cabinet.glb
   decorative: false
   scale: 1.636
@@ -61,8 +63,8 @@ keys-cabinet:
     action: open-metal.wav
 centipedes:
   label: House Centipedes
-  description: All those tiny feet! Borrow the utility-room vacuum and use it here
-    to clear them out.
+  description: All those tiny feet and not one of them pays rent. Borrow the utility-room
+    vacuum and use it here to clear them out.
   model: centipedes.glb
   decorative: false
   scale: 1.207
@@ -72,8 +74,8 @@ centipedes:
     action: hiss.wav
 vacuum-stand:
   label: Vacuum Corner
-  description: A trusty wheeled vacuum. Borrow it, then use it on the centipedes in
-    the basement.
+  description: A trusty wheeled vacuum with a suspiciously confident filter. Takes
+    one missing tool at a time; give the dispenser a minute to recharge.
   model: vacuum-stand.glb
   decorative: false
   scale: 1.229
@@ -82,8 +84,8 @@ vacuum-stand:
     action: mech1.wav
 supply-shelf:
   label: Helpful Supplies
-  description: A recharging dispenser of housekeeping tools. Take a pooper scooper
-    or a plastic bag.
+  description: A recharging dispenser of housekeeping tools. Gives you whichever missing
+    supply you actually need, then sulks for a minute.
   model: supply-shelf.glb
   decorative: false
   scale: 1.464
@@ -92,63 +94,77 @@ supply-shelf:
     action: draw.wav
 kitchen-counter:
   label: Breakfast Counter
-  description: A gingham runner, warm toast and a happy little kettle.
+  description: A gingham runner, warm toast, and a kettle that has seen enough mornings
+    to be smug about it. Supermarket ingredients can be prepped here.
   model: kitchen-counter.glb
-  decorative: true
+  decorative: false
   scale: 1.214
+  tags:
+  - crafting
+  - kitchen
+  - prep-table
+  - table
 sofa:
   label: Marmalade Sofa
-  description: Soft corduroy, striped cushions, and room for a friend.
+  description: Soft corduroy, striped cushions, and room for a friend. Also room for
+    crumbs, which are not friends.
   model: sofa.glb
   decorative: true
   scale: 1.546
 bed:
   label: Patchwork Bed
-  description: A quilt stitched from the colors of the house.
+  description: A quilt stitched from the colors of the house and the remnants of your
+    last good decision.
   model: bed.glb
   decorative: true
   scale: 1.389
 plant:
   label: Little Monstera
-  description: Glossy leaves, a wonky terracotta pot, and one new shoot.
+  description: Glossy leaves, a wonky terracotta pot, and one new shoot that is absolutely
+    plotting something.
   model: quaternius_cc0-cactus-775.glb
   decorative: true
   scale: 0.76
 bookshelf:
   label: Story Shelf
-  description: Hand-bound books and a tiny keepsake house.
+  description: Hand-bound books and a tiny keepsake house. The books are arranged
+    by vibes, not author.
   model: bookshelf.glb
   decorative: true
   scale: 1.155
   effects: {}
 framed-picture:
   label: A Sunny Picture
-  description: A hand-painted sun over a little blue hill.
+  description: A hand-painted sun over a little blue hill. It is either art or a threat
+    with good lighting.
   model: framed-picture.glb
   decorative: true
   scale: 1.593
 rug:
   label: Woven Flower Rug
-  description: A scalloped rug with a cheerful embroidered flower.
+  description: A scalloped rug with a cheerful embroidered flower. It has hidden more
+    than one crime against housekeeping.
   model: rug.glb
   decorative: true
   scale: 1.366
 lamp:
   label: Reading Lamp
-  description: Warm light under a pleated marigold shade.
+  description: Warm light under a pleated marigold shade. Comes with a faint sense
+    of being watched by upholstery.
   model: lamp.glb
   decorative: true
   scale: 1.065
 vending:
   label: Pocket Card Shop
-  description: Base, Tutorial and Memebase packs. Three cards for 10 Bops; unlimited
-    stock.
+  description: Base, Tutorial, and Memebase packs. Three cards for 10 Bops; unlimited
+    stock, limited judgment.
   model: lesiakower-vending-1586.glb
   decorative: false
   scale: 0.1
 stairs:
   label: House Stairs
-  description: Rounded wooden steps and a hand-painted banister.
+  description: Rounded wooden steps and a hand-painted banister. Every step sounds
+    like a decision.
   model: stairs.glb
   decorative: false
   scale: 2

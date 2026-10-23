@@ -1,6 +1,7 @@
 molly:
   label: Molly
-  description: A curious cat with a weakness for laser dots.
+  description: A curious cat with a weakness for laser dots and a firm policy on personal
+    space.
   room: foyer
   image: molly.png
   script: molly.py
@@ -14,7 +15,8 @@ molly:
     - .cutscene molly-greet @peep:molly
 caretaker:
   label: Pip
-  description: A relentlessly cheerful caretaker who has clearly had too much coffee.
+  description: A relentlessly cheerful caretaker running on coffee, optimism, and
+    a faint whiff of chaos.
   room: foyer
   image: caretaker.png
   script: caretaker.py
@@ -24,8 +26,9 @@ caretaker:
   dialog:
     start:
       text: Welcome in! I'm Pip — chief fixer, tour guide, and the only one here who
-        doesn't shed. The dollhouse is a whole tiny home, so poke around and search
-        everywhere. Pick a topic; I'll keep the useful bits under the jokes.
+        doesn't shed. This dollhouse is a whole tiny home, which means a whole tiny
+        list of things that can go wrong. Pick a topic; I'll keep the useful parts
+        under the sarcasm.
       choices:
       - label: House chores
         next: chores
@@ -39,19 +42,20 @@ caretaker:
         next: skills
     chores:
       text: Supplies and a vacuum are behind the kitchen. Grab a pooper scooper for
-        the bathroom litter tray, and bring a plastic bag unless you enjoy carrying
-        consequences. Light the dark basement with a flashlight, vacuum the centipedes
-        (yes, they're real), then swipe the key from the cabinet and escape through
-        the front door.
+        the bathroom litter tray, and bring a plastic bag unless you want to carry
+        consequences in your bare hands. Light the dark basement with a flashlight,
+        vacuum the centipedes — yes, they're real and they have opinions — then steal
+        the key from the cabinet and escape through the front door. The front door
+        is the one that looks disappointed.
       choices:
       - label: And then?
         next: clean
       - label: Back
         next: start
     clean:
-      text: Flashlight tip — one lasts ten minutes. When it dies, don't panic, just
-        grab another from supplies. A shower fixes your Cleanliness, but it will not
-        fix the poop in your hands. Science.
+      text: Flashlight tip — the charge lasts one minute. When it dies, don't panic;
+        just switch it on again. A shower fixes your Cleanliness, but it will not
+        fix the poop in your hands. That's not science, that's penalties.
       choices:
       - label: Back
         next: start
@@ -59,7 +63,7 @@ caretaker:
       text: Cards live on the floor. Pick one up, equip it in Inventory, or drop it
         for a friend. Some tools only work on props — select the tool, choose Use
         on…, then click the unfortunate prop. You'll know it worked when something
-        happens.
+        happens and possibly screams.
       choices:
       - label: About packs
         next: packs
@@ -68,38 +72,40 @@ caretaker:
     packs:
       text: Claim daily Bops in Self. The Hub shop sells Base and Tutorial packs for
         10 Bops — three independent cards, so yes, you can absolutely get duplicates.
-        The useful task tools are never locked behind lucky-pack nonsense.
+        The useful task tools are never locked behind lucky-pack nonsense. The house
+        has enough problems.
       choices:
       - label: Back
         next: start
     friends:
       text: Select a peep to pin them or add a friend. Emotes work without equipping;
         animated ones are hiding in the sitting room and garden. Chat is a good place
-        to start. So is apologising after the litter tray.
+        to start. So is apologizing after the litter tray.
       choices:
       - label: Molly & the red dot
         next: play
       - label: Back
         next: start
     play:
-      text: Molly is a cat. The red dot is her sworn enemy. Start a Lazor Rush for
-        1 Energy, keep the dot away from her paws for twenty seconds, then let her
-        catch it. She takes winning personally. She also takes losing personally.
+      text: Molly is a cat. The red dot is her sworn enemy and her only hobby. Start
+        a Lazor Rush for 1 Energy, keep the dot away from her paws for twenty seconds,
+        then let her catch it. She takes winning personally. She also takes losing
+        personally. There is no third option.
       choices:
       - label: Back
         next: friends
     room:
-      text: Finish the litter, centipedes and outside tasks to earn permission to
+      text: Finish the litter, centipedes, and outside tasks to earn permission to
         redecorate the bedroom. Then use the Edit button in the top toolbar to move,
-        rotate and resize props. Everyone sees your changes, so make them glorious,
-        not cursed.
+        rotate, and resize props. Everyone sees your changes, so make them glorious,
+        not cursed. Actually, cursed is fine if it's intentional.
       choices:
       - label: Back
         next: start
     skills:
-      text: Skills! Your first trip through the Multiverse earns 1 Kudos — the universe's way of saying
-        "nice jump". Level up in Self, then slot Sturdy into a Script Kiddo skill.
-        Congratulations, you're officially a script kiddo.
+      text: Skills! Your first trip through the Multiverse earns 1 Kudos — the universe's
+        way of saying "nice jump, weirdo." Level up in Self, then slot Sturdy into
+        a Script Kiddo skill. Congratulations, you're officially a script kiddo.
       choices:
       - label: Where's the stuff?
         next: supplies
@@ -108,7 +114,8 @@ caretaker:
     supplies:
       text: Enter the dollhouse, slip through the kitchen, and raid the utility room.
         Those tools count toward your own task progress, so take what you need and
-        leave some for the next person. Sharing is caring, or whatever.
+        leave some for the next person. Sharing is caring, or whatever. The vacuum
+        has seniority.
       choices:
       - label: Back
         next: start

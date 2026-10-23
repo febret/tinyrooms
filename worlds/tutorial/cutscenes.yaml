@@ -1,5 +1,5 @@
 molly-greet:
-  title: Molly Greets You
+  title: Molly Has Opinions
   script: molly-greet.js
   frame: movie
   duration: 5200
@@ -13,10 +13,10 @@ molly-greet:
   sounds:
     start: cutscene-start.wav
   text:
-    - {at: 350, speaker: Molly, say: "Purrrr.", sound: chirp1.wav}
-    - {at: 2100, speaker: Molly, say: "$me, you again? Good.", sound: squeak2.wav}
+    - {at: 350, speaker: Molly, say: "Purrrr. I was napping.", sound: chirp1.wav}
+    - {at: 2100, speaker: Molly, say: "$me. You again. Excellent. Try not to be boring.", sound: squeak2.wav}
 tutorial-end:
-  title: Tutorial Complete
+  title: The House Is Yours (Legally Ambiguous)
   script: tutorial-end.js
   frame: movie
   duration: 5600
@@ -30,10 +30,10 @@ tutorial-end:
   sounds:
     start: applause.wav
   text:
-    - {at: 400, speaker: Pip, say: "You did it!", sound: task-complete.wav}
-    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Congratulations!"}
+    - {at: 400, speaker: Pip, say: "You did it! The house is still standing, which is more than I expected.", sound: task-complete.wav}
+    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Try not to let it unionize."}
 centipede-vacuum:
-  title: Mission Accomplished
+  title: Vacuum Justice
   script: centipede-vacuum.js
   frame: letterbox
   duration: 6400
@@ -47,5 +47,5 @@ centipede-vacuum:
   sounds:
     start: mech1.wav
   text:
-    - {at: 200, speaker: Vacuum, say: "Vrrrrrrm!", sound: hiss.wav}
-    - {at: 2600, speaker: Vacuum, say: "All clear!", sound: task-complete.wav}
+    - {at: 200, speaker: Vacuum, say: "Vrrrrrrm. Your crimes are numerous and your legs are many.", sound: hiss.wav}
+    - {at: 2600, speaker: Vacuum, say: "All clear. I have made a terrible mess of your enemies.", sound: task-complete.wav}

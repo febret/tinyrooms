@@ -87,16 +87,16 @@ test("cancelling targeting keeps the card selected without rearming it or reopen
   assert.ok(selectionActions(roomState).some(action => action.label === "Unequip"));
 });
 
-test("target confirmation does not restore the cancelled card selection", () => {
+test("confirming a target keeps the card selected for another use", () => {
   const store = createStore();
   store.dispatch({ type: "bootstrap", user: { id: "self", inventory: [
     { stack_id: "card", equipped: true, definition: { type: "item", target: "prop" } },
   ] } });
   store.dispatch({ type: "select", selection: { kind: "inventory-card", id: "card" } });
   store.dispatch({ type: "start-targeting", stackId: "card" });
-  store.dispatch({ type: "cancel-targeting", restoreSelection: false });
+  store.dispatch({ type: "cancel-targeting" });
   assert.equal(store.getState().ui.targeting, null);
-  assert.equal(store.getState().selection.kind, "none");
+  assert.deepEqual(store.getState().selection, { kind: "inventory-card", id: "card" });
 });
 
 test("targeting allows world-handled prop actions but requires an effect for peeps", () => {

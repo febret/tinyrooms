@@ -21,7 +21,7 @@ chess-bishop-white:
   description: A tall ivory bishop with a tiny notch in its mitre.
   model: chess-bishop-white.glb
   decorative: true
-  scale: 0.90
+  scale: 0.9
   tags:
   - chess
   - piece
@@ -39,7 +39,7 @@ chess-queen-white:
   description: An ivory queen with a crown full of tiny points.
   model: chess-queen-white.glb
   decorative: true
-  scale: 1.00
+  scale: 1
   tags:
   - chess
   - piece
@@ -75,7 +75,7 @@ chess-bishop-black:
   description: A dark bishop with a sharp, clean silhouette.
   model: chess-bishop-black.glb
   decorative: true
-  scale: 0.90
+  scale: 0.9
   tags:
   - chess
   - piece
@@ -93,7 +93,7 @@ chess-queen-black:
   description: A dark queen with a crown like a little iron fence.
   model: chess-queen-black.glb
   decorative: true
-  scale: 1.00
+  scale: 1
   tags:
   - chess
   - piece
@@ -112,7 +112,7 @@ paintball-vending:
     or a set of ten paintballs.
   model: paintball-vending.glb
   decorative: true
-  scale: 2.0
+  scale: 2
   sprite_footprint:
   - 4
   - 3

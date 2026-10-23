@@ -23,6 +23,9 @@ test("flip through Tiny Mag, buy a home, and meet roommates", async ({ page, run
   await frame.getByRole("button", { name: "Enter", exact: true }).first().click();
   await expect(page.locator("#look-bar")).toContainText(/Entry|Nook|Hall/);
 
+  // Activities are room-bound, so re-open Tiny Mag after moving into the home.
+  await command(page, ".tinytown");
+  await expect(frame.getByRole("heading", { name: /TINY/ })).toBeVisible();
   await frame.getByRole("button", { name: "05" }).click();
   await expect(frame.locator(".roommate-board .roommate-ad")).toHaveCount(5);
   await frame.getByRole("button", { name: "Invite to move in" }).first().click();

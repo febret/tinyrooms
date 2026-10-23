@@ -79,7 +79,7 @@ async def _open_activity(
     definition = context.world.activities.get(kind)
     if definition is None:
         raise CommandError("That TinyTown activity is unavailable.")
-    resolved = ResolvedActivity(definition=definition, room_bound=room_id is not None)
+    resolved = ResolvedActivity(definition=definition)
     return start_activity(
         context,
         resolved,

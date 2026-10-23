@@ -236,6 +236,7 @@ class RoomLayoutService:
                         else default_activity(definition.render_kind)
                     ),
                     draw_weight=source.draw_weight if source else {},
+                    only_missing=source.only_missing if source else False,
                     text=dict(entry["text"]) if definition.render_kind == "text" else None,
                     sign_style=(
                         str(entry.get("sign_style") or "")

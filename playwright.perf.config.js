@@ -8,7 +8,7 @@ import { defineConfig } from "@playwright/test";
 // The disposable server is told to generate a scaled world instead of copying
 // the authored one. Workers are forked from this process, so setting the
 // variable here reaches every browser test that boots a runtime.
-process.env.TR_PERF_WORLD_SCALE = "props_per_room=90,peeps_per_room=8,cards_per_room=10,rooms=3,aura_rooms=1";
+process.env.TR_PERF_WORLD_SCALE = "props_per_room=90,peeps_per_room=8,cards_per_room=10,rooms=3";
 
 export const PERF_PROPS = 90;
 export default defineConfig({

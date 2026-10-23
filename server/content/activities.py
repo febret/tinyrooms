@@ -14,8 +14,7 @@ class ActivityDefinition:
     """An authored activity that commands can launch."""
 
     # id selects the iframe kind; title labels the window. aliases are alternative
-    # case-insensitive .play targets. Direct catalog launches use room_bound
-    # (default true); prop/peep launches force it true and close on room departure.
+    # case-insensitive .play targets. Every launch is bound to the current room.
     # rooms is a launch allowlist (empty means any room), independent of binding.
     # YAML feature becomes required_feature: the launch requires that flag enabled,
     # not merely known to the loader. No feature means no feature gate.
@@ -26,7 +25,6 @@ class ActivityDefinition:
     # min_completed_round seconds; abandoned rounds do not qualify.
     id: str
     title: str
-    room_bound: bool
     aliases: tuple[str, ...]
     rooms: tuple[str, ...]
     required_feature: str | None
@@ -69,9 +67,6 @@ def load_activity_definitions(
         title = str(raw.get("title", "")).strip()
         if not title:
             raise ContentError(f"Activity '{activity_id}' must define a title.")
-        room_bound = raw.get("room_bound", True)
-        if not isinstance(room_bound, bool):
-            raise ContentError(f"Activity '{activity_id}' room_bound must be a boolean.")
         aliases = _load_string_list(raw.get("aliases"), f"Activity '{activity_id}' aliases", path)
         rooms = _load_string_list(raw.get("rooms"), f"Activity '{activity_id}' rooms", path)
         for room_id in rooms:
@@ -105,7 +100,6 @@ def load_activity_definitions(
         definitions[activity_id] = ActivityDefinition(
             id=activity_id,
             title=title,
-            room_bound=room_bound,
             aliases=aliases,
             rooms=rooms,
             required_feature=required_feature,

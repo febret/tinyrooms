@@ -122,7 +122,7 @@ def compute_effective_state(
     Statuses are reconciled first using non-status modifiers, then status stat
     effects feed back into the final calculation so every caller sees identical
     results. ``external_statuses`` are source-driven statuses (for example a
-    room aura) merged on top of the counter-driven set.
+    status granted by a named source) merged on top of the counter-driven set.
     """
 
     pass_one = _base_maxima(content, level, modifiers)

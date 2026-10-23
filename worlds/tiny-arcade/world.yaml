@@ -1,6 +1,6 @@
 id: tiny-arcade
 label: The Arcade
-description: A tiny arcade where every cabinet opens onto a game you can play together.
+description: Welcome to the Arena! Turn your Bops into Glory.
 entry_room: lobby
 image: rooms/lobby.png
 palette:

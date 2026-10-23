@@ -12,10 +12,9 @@ from server.content.surface_props import whiteboard_options
 
 @dataclass(frozen=True, slots=True)
 class ResolvedActivity:
-    """An activity selected for launch and its effective room binding."""
+    """An activity selected for launch."""
 
     definition: ActivityDefinition
-    room_bound: bool
     prop_instance_id: str | None = None
 
 
@@ -40,7 +39,7 @@ def resolve_activity(context: CommandContext, room_id: str, target: str) -> Reso
             continue
         if peep.id.casefold() == key or peep.label.casefold() == key:
             definition = context.world.activities[peep.activity]
-            return ResolvedActivity(definition=definition, room_bound=True)
+            return ResolvedActivity(definition=definition)
     room = context.world.rooms.get(room_id)
     if room is not None:
         for prop in context.rooms.props_in_room(room_id):
@@ -49,13 +48,12 @@ def resolve_activity(context: CommandContext, room_id: str, target: str) -> Reso
                 definition = context.world.activities[prop.activity]
                 return ResolvedActivity(
                     definition=definition,
-                    room_bound=True,
                     prop_instance_id=prop.id,
                 )
     definition = _find_definition(context.world.activities, key)
     if definition is None:
         raise CommandError("Unknown activity.")
-    return ResolvedActivity(definition=definition, room_bound=definition.room_bound)
+    return ResolvedActivity(definition=definition)
 
 
 def start_activity(
@@ -97,8 +95,7 @@ def start_activity(
             account_id=context.account.id,
             kind=definition.id,
             title=definition.title,
-            room_bound=resolved.room_bound,
-            room_id=room_id if resolved.room_bound else None,
+            room_id=room_id,
             replace_existing=replace_existing,
             config=config,
         )

@@ -52,7 +52,7 @@ export default async function (ctx) {
   const line = document.createElement("p");
   line.className = "cutscene-line";
   line.style.color = ctx.params.caption_color || "#f7f5ed";
-  line.textContent = `${ctx.params.source_name || "Someone"} steps closer.`;
+  line.textContent = `${ctx.params.source_name || "Someone"} approaches with intent.`;
   dom.append(line);
 
   await wait(1200);

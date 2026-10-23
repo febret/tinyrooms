@@ -40,7 +40,6 @@ from server.content.surface_props import (
 )
 from server.content.tasks import TaskDefinition, load_task_definitions
 from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS, TEXT_PROP_ID, validate_text
-from server.game.modifiers import MODIFIER_TARGETS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
@@ -143,23 +142,11 @@ class PropInstanceDefinition:
     animation: str | None
     activity: str | None
     draw_weight: dict[str, float] = field(default_factory=dict)
+    only_missing: bool = False
     text: dict[str, str] | None = None
     sign_style: str | None = None
     surface: dict[str, object] | None = None
     sounds: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class AuraDefinition:
-    """A room-scoped modifier, named buff, or named source applied while present."""
-
-    stat: str | None = None
-    delta: float = 0.0
-    buff_id: str | None = None
-    duration_seconds: float | None = None
-    daily: bool = False
-    source: str | None = None
-    requires_prop: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,7 +175,6 @@ class RoomDefinition:
     props: dict[str, PropInstanceDefinition]
     exits: dict[str, ExitDefinition]
     initial_cards: tuple[InitialRoomCard, ...]
-    aura: tuple[AuraDefinition, ...] = ()
     editor_environment: tuple[str, ...] = ()
     template: bool = False
     sprites_enabled: bool = False
@@ -385,48 +371,6 @@ def _load_draw_weight(raw_value: Any, prop_instance_id: str, card_ids: set[str])
             raise ContentError(f"Prop '{prop_instance_id}' draw_weight for '{card_id}' must be a non-negative number.")
         draw_weight[card_id] = float(weight)
     return draw_weight
-
-
-def _load_aura(raw_value: Any, room_id: str) -> tuple[AuraDefinition, ...]:
-    if raw_value is None:
-        return ()
-    if not isinstance(raw_value, list):
-        raise ContentError(f"Room '{room_id}' aura must be a list.")
-    auras: list[AuraDefinition] = []
-    for index, entry in enumerate(raw_value):
-        if not isinstance(entry, dict):
-            raise ContentError(f"Room '{room_id}' aura entry {index} must be a mapping.")
-        raw_stat = entry.get("stat")
-        stat = str(raw_stat).strip() if raw_stat is not None else None
-        if stat is not None and stat not in MODIFIER_TARGETS:
-            raise ContentError(f"Room '{room_id}' aura entry {index} has unknown stat '{stat}'.")
-        raw_delta = entry.get("delta", entry.get("amount", 0))
-        if isinstance(raw_delta, bool) or not isinstance(raw_delta, (int, float)):
-            raise ContentError(f"Room '{room_id}' aura entry {index} delta must be a number.")
-        raw_buff = entry.get("buff")
-        buff_id = str(raw_buff).strip() if raw_buff is not None else None
-        raw_source = entry.get("source")
-        source = str(raw_source).strip() if raw_source is not None else None
-        if stat is None and buff_id is None and source is None:
-            raise ContentError(f"Room '{room_id}' aura entry {index} must define a stat, a buff, or a source.")
-        raw_duration = entry.get("duration")
-        if raw_duration is not None and (isinstance(raw_duration, bool) or not isinstance(raw_duration, (int, float))):
-            raise ContentError(f"Room '{room_id}' aura entry {index} duration must be a number.")
-        raw_requires = entry.get("requires_prop")
-        requires_prop = str(raw_requires).strip() if raw_requires is not None else None
-        auras.append(
-            AuraDefinition(
-                stat=stat,
-                delta=float(raw_delta),
-                buff_id=buff_id,
-                duration_seconds=float(raw_duration) if raw_duration is not None else None,
-                daily=bool(entry.get("daily", False)),
-                source=source,
-                requires_prop=requires_prop,
-            )
-        )
-    return tuple(auras)
-
 
 
 def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
@@ -1020,6 +964,9 @@ def load_world_definition(
             for recipe_id in instance_recipes:
                 if recipe_id not in recipes:
                     raise ContentError(f"Prop '{prop_instance_id}' references unknown recipe '{recipe_id}'.")
+            only_missing = raw_instance.get("only_missing", False)
+            if not isinstance(only_missing, bool):
+                raise ContentError(f"Prop '{prop_instance_id}' only_missing must be a boolean.")
             room_props[prop_instance_id] = PropInstanceDefinition(
                 id=prop_instance_id,
                 prop_id=prop_id,
@@ -1038,6 +985,7 @@ def load_world_definition(
                 ),
                 activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
                 draw_weight=_load_draw_weight(raw_instance.get("draw_weight"), prop_instance_id, card_ids),
+                only_missing=only_missing,
                 text=_load_text_recipe(raw_instance, prop_id, room_id, prop_instance_id),
                 sign_style=load_sign_style(
                     raw_instance,
@@ -1132,7 +1080,6 @@ def load_world_definition(
             props=room_props,
             exits=room_exits,
             initial_cards=tuple(room_cards),
-            aura=_load_aura(raw_room.get("aura"), room_id),
             editor_environment=load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),

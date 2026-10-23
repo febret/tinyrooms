@@ -71,7 +71,7 @@ export default async function (ctx) {
   sound("applause.wav");
   const mission = document.createElement("h2");
   mission.className = "cutscene-mission";
-  mission.textContent = "MISSION ACCOMPLISHED";
+  mission.textContent = "JUSTICE, WITH SUCTION";
   scene.append(mission);
 
   await wait(2400);

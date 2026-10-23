@@ -1,4 +1,3 @@
-import { cardFaceSvg } from "./card-face.js";
 import { escapeHtml } from "./presentation.js";
 import { findInventoryCard, findRoomCard } from "./state.js";
 
@@ -30,7 +29,7 @@ export function lookPreview(state, description) {
     if (!stack?.definition) return { markup: "", action: null };
     const label = stack.definition.label || "card";
     return {
-      markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-sound="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}">${cardFaceSvg(stack.definition)}</button>`,
+      markup: `<button type="button" class="look-preview look-preview-button look-preview-card" data-look-inspect="card" data-sound="card" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(label)}" title="Inspect ${escapeHtml(label)}"><img class="look-preview-card-icon" src="${escapeHtml(stack.definition.imageUrl)}" alt=""></button>`,
       action: { type: "inspect-card", stackId: stack.stackId },
     };
   }

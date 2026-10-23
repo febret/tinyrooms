@@ -63,7 +63,7 @@ export function createTargetingController({ board, boardFrame, getState, store, 
     preview = null;
     if (!targeting || !target) return;
     if (eligibleKind(getState()) !== target.kind || !targetPoint(target.kind, target.id)) return;
-    store.dispatch({ type: "cancel-targeting", restoreSelection: false });
+    store.dispatch({ type: "cancel-targeting" });
     void sendCommand(`.use @card:${targeting.stackId} @${target.kind}:${target.id}`).catch(onError);
   }
 

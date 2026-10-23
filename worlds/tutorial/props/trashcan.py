@@ -18,12 +18,12 @@ def on_card_play(context: BehaviorContext, event: BehaviorEvent) -> None:
         return
     if context.has_card(MULTIVERSE_MAP_CARD_ID):
         context.feedback(
-            "You throw away the poop in a bag. You already have the Multiverse Map.",
+            "You throw away the poop in a bag. The trashcan accepts your offering. You already have the Multiverse Map; the universe is being stingy today.",
             "success",
         )
         return
     context.give_card(MULTIVERSE_MAP_CARD_ID)
     context.feedback(
-        "You throw away the poop in a bag and find the Multiverse Map!",
+        "You throw away the poop in a bag and find the Multiverse Map! The trashcan is either magical or very bad at its job.",
         "success",
     )

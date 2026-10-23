@@ -180,7 +180,7 @@ class StatsService:
         """Return statuses the peep is immune to.
 
         A future "brave" skill can contribute immunity here without changing the
-        status pipeline: the room aura and the status it applies stay separate.
+        status pipeline: the source and the status it applies stay separate.
         """
 
         del profile
@@ -208,7 +208,7 @@ class StatsService:
         now: datetime,
         stacks: list[InventoryStack] | None = None,
     ) -> tuple[Modifier, ...]:
-        """Combine equipment, slotted skills, active buffs, and source auras."""
+        """Combine equipment, slotted skills, active buffs, and source modifiers."""
 
         instances = expire(self._buff_instances(profile), now)
         return (

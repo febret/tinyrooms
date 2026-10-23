@@ -1,11 +1,13 @@
 house-tour:
   title: A Tour of the Little House
-  description: Meet Pip, find the utility room, and make it out to the garden.
+  description: Meet Pip, find the utility room, and escape to the garden before the
+    house decides you live here now.
   scope: personal
   revision: 1
   memory_tags:
   - house-tour
-  memory: I finished the tour of the little house.
+  memory: I finished the tour of the little house. The house finished its opinion
+    of me.
   reward:
     kudos: 2
     cards:
@@ -19,26 +21,28 @@ house-tour:
     trigger: enter_room
     match:
       room_id: foyer
-    title: Step through the dollhouse into the foyer
+    title: Get swallowed by the dollhouse and land in the foyer
     memory_tag: tour-start
-    memory: I stepped through the dollhouse into the foyer.
+    memory: I stepped through the dollhouse into the foyer. It made a noise I choose
+      not to think about.
   - step_id: meet-pip
     trigger: dialog_action
     match:
       peep_id: caretaker
-    title: Ask Pip how to begin
+    title: Make Pip explain the house before it explains you
     memory_tag: met-pip
-    memory: I asked Pip how to begin.
+    memory: I asked Pip how to begin. He answered with far too much enthusiasm.
   - step_id: find-utility
     trigger: enter_room
     match:
       room_id: utility
-    title: Find the utility room
-    memory: I found the utility room.
+    title: Find the utility room, where the tools are kept prisoner
+    memory: I found the utility room. The vacuum looked back.
   - step_id: reach-garden
     trigger: enter_room
     match:
       room_id: garden
-    title: Make it out to the garden
+    title: Escape to the garden before the house claims squatter's rights
     memory_tag: outside
-    memory: I made it out to the garden.
+    memory: I made it out to the garden. Outside smells like freedom and one very
+      suspicious trashcan.

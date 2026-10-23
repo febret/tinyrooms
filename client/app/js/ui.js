@@ -75,6 +75,7 @@ const {
   handleEditorKey,
 } = createEditorActions({ store, api, dialogs, toast, showError, sendCommand });
 const timedToasts = new Set();
+const leavingToasts = new Set();
 const consumedFeedback = new Set();
 const feedbackLayer = document.createElement("div");
 feedbackLayer.id = "feedback-layer";
@@ -94,41 +95,9 @@ let pendingGameStateRoom = "";
 let targeting = null;
 let dropTargeting = null;
 const canFullscreen = fullscreenSupported();
-const fullscreenButton = $("#fullscreen-toggle");
-let fullscreenFlashTimer = null;
 let fullscreenRestoreArmed = false;
 let leavingPage = false;
 store.dispatch({ type: "fullscreen-state", active: isFullscreen() });
-
-function clearFullscreenFlash() {
-  clearTimeout(fullscreenFlashTimer);
-  fullscreenFlashTimer = null;
-  fullscreenButton?.classList.remove("flash");
-}
-
-function flashFullscreenButton() {
-  if (!fullscreenButton) return;
-  fullscreenButton.classList.remove("flash");
-  // Restart the animation when the button becomes visible again.
-  void fullscreenButton.offsetWidth;
-  fullscreenButton.classList.add("flash");
-  clearTimeout(fullscreenFlashTimer);
-  fullscreenFlashTimer = setTimeout(clearFullscreenFlash, 2000);
-}
-
-function syncFullscreenButton(state) {
-  if (!fullscreenButton) return;
-  const visible = Boolean(state.loggedIn && canFullscreen && !state.ui.fullscreen);
-  fullscreenButton.hidden = !visible;
-  if (!visible) {
-    clearFullscreenFlash();
-    return;
-  }
-  if (!fullscreenButton.dataset.flashed) {
-    fullscreenButton.dataset.flashed = "true";
-    flashFullscreenButton();
-  }
-}
 
 function armFullscreenRestoreFallback() {
   if (fullscreenRestoreArmed) return;
@@ -138,7 +107,7 @@ function armFullscreenRestoreFallback() {
     document.removeEventListener("keydown", retry, true);
   };
   const retry = event => {
-    if (event?.target && fullscreenButton?.contains(event.target)) return;
+    if (event?.target && settings?.contains(event.target)) return;
     cleanup();
     if (savedFullscreenIntent() && !isFullscreen() && canFullscreen) {
       enterFullscreen().catch(() => {});
@@ -789,23 +758,54 @@ function renderActionLog(state) {
   lines.scrollTop = atBottom ? lines.scrollHeight : oldTop;
 }
 
+const TOP_ACTION_ICONS = {
+  peeps: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16 6.5a3 3 0 0 1 0 5.8"></path><path d="M17.5 14.5A5 5 0 0 1 21 19"></path></svg>`,
+  log: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"></path></svg>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="M16 8.5a5 5 0 0 1 0 7"></path></svg>`,
+  fullscreen: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"></path></svg>`,
+  outlines: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="4 3"></rect></svg>`,
+  bubble: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4V5Z"></path></svg>`,
+  audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="10" rx="3"></rect><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"></path></svg>`,
+  mute: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a3 3 0 0 1 3 3v5M9 6v5a3 3 0 0 0 4.8 2.4M6 11a6 6 0 0 0 9.3 5M12 17v4M9 21h6M4 4l16 16"></path></svg>`,
+  commands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7 4 5-4 5M12 17h7"></path></svg>`,
+  logout: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h9"></path></svg>`,
+  reconnect: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"></path></svg>`,
+};
+
+function quickSetting({ action, label, icon, pressed = null, disabled = false, title = "", wide = false }) {
+  const pressedAttr = pressed === null ? "" : ` aria-pressed="${pressed}"`;
+  const disabledAttr = disabled ? " disabled" : "";
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
+  return `<button type="button" class="quick-setting${wide ? " wide" : ""}" data-top-action="${escapeHtml(action)}"${pressedAttr}${disabledAttr}${titleAttr}>
+    <span class="quick-icon" aria-hidden="true">${icon}</span>
+    <span class="quick-label">${escapeHtml(label)}</span>
+  </button>`;
+}
+
 function renderTopBar(state) {
   const connection = $("#connection-status");
   connection.textContent = state.transport.message || "";
   connection.dataset.status = state.transport.status || "idle";
   const top = $("#top-actions");
-  if (!updateMarkup(top, `
-    <button type="button" class="quiet" data-top-action="peeps" aria-pressed="${state.ui.peepsVisible !== false}" aria-controls="peeps-panel">Show peeps sidebar</button>
-    <button type="button" class="quiet" data-top-action="log" aria-pressed="${state.ui.actionLogVisible}">${state.ui.actionLogVisible ? "Hide Log" : "Show Log"}</button>
-    <button type="button" class="quiet" data-top-action="sound" aria-pressed="${state.ui.soundEnabled}">${state.ui.soundEnabled ? "Sound On" : "Sound Off"}</button>
-    <button type="button" class="quiet" data-top-action="fullscreen" aria-pressed="${state.ui.fullscreen}"${canFullscreen ? "" : ` disabled title="Fullscreen is not supported on this device"`}>${state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"}</button>
-    <button type="button" class="quiet" data-top-action="outlines" aria-pressed="${state.ui.outlineActiveProps}">${state.ui.outlineActiveProps ? "Outline active props: On" : "Outline active props: Off"}</button>
-    <button type="button" class="quiet" data-top-action="bubble">Speech bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}</button>
-    ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="audio" aria-pressed="${state.ui.audioEnabled}">${state.ui.audioEnabled ? "Disable Audio Chat" : "Enable Audio Chat"}</button>` : ""}
-    ${state.ui.audioEnabled ? `<button type="button" class="quiet" data-top-action="mute" aria-pressed="${state.ui.audioMuted}">${state.ui.audioMuted ? "Unmute" : "Mute"}</button>` : ""}
-    <button type="button" class="quiet" data-top-action="commands">Commands</button>
-    ${state.loggedIn ? `<button type="button" class="quiet" data-top-action="logout">Log out</button>` : ""}
-    ${state.loggedIn && !state.transport.connected && state.user?.initialStickerComplete ? `<button type="button" class="quiet" data-top-action="reconnect">Reconnect</button>` : ""}`)) return;
+  const fullscreenTitle = canFullscreen
+    ? state.ui.fullscreen ? "Exit fullscreen" : "Enter fullscreen"
+    : "Fullscreen is not supported on this device";
+  const markup = [
+    quickSetting({ action: "peeps", label: "Peeps", icon: TOP_ACTION_ICONS.peeps, pressed: state.ui.peepsVisible !== false }),
+    quickSetting({ action: "log", label: "Log", icon: TOP_ACTION_ICONS.log, pressed: state.ui.actionLogVisible }),
+    quickSetting({ action: "sound", label: "Sound", icon: TOP_ACTION_ICONS.sound, pressed: state.ui.soundEnabled }),
+    quickSetting({ action: "fullscreen", label: "Fullscreen", icon: TOP_ACTION_ICONS.fullscreen, pressed: state.ui.fullscreen, disabled: !canFullscreen, title: fullscreenTitle }),
+    quickSetting({ action: "outlines", label: "Outlines", icon: TOP_ACTION_ICONS.outlines, pressed: state.ui.outlineActiveProps }),
+    quickSetting({ action: "bubble", label: `Bubbles: ${bubbleTimeoutLabel(state.ui.bubbleTimeout)}`, icon: TOP_ACTION_ICONS.bubble }),
+    state.loggedIn ? quickSetting({ action: "audio", label: "Audio", icon: TOP_ACTION_ICONS.audio, pressed: state.ui.audioEnabled }) : "",
+    state.ui.audioEnabled ? quickSetting({ action: "mute", label: state.ui.audioMuted ? "Unmute" : "Mute", icon: TOP_ACTION_ICONS.mute, pressed: state.ui.audioMuted }) : "",
+    quickSetting({ action: "commands", label: "Commands", icon: TOP_ACTION_ICONS.commands }),
+    state.loggedIn ? quickSetting({ action: "logout", label: "Log out", icon: TOP_ACTION_ICONS.logout, wide: true }) : "",
+    state.loggedIn && !state.transport.connected && state.user?.initialStickerComplete
+      ? quickSetting({ action: "reconnect", label: "Reconnect", icon: TOP_ACTION_ICONS.reconnect, wide: true })
+      : "",
+  ].join("");
+  if (!updateMarkup(top, markup)) return;
   top.querySelectorAll("button").forEach(button => {
     button.onclick = async () => {
       const which = button.dataset.topAction;
@@ -946,15 +946,21 @@ function renderAuth(state) {
 
 function renderToasts(state) {
   updateMarkup($("#toast-stack"), state.ui.toasts.map(item =>
-    `<article class="toast ${escapeHtml(item.tone)}">${escapeHtml(item.message)}</article>`).join(""));
+    `<article class="toast ${escapeHtml(item.tone)}${leavingToasts.has(item.id) ? " leaving" : ""}" data-toast-id="${escapeHtml(item.id)}">${escapeHtml(item.message)}</article>`).join(""));
   for (const item of state.ui.toasts) {
     if (timedToasts.has(item.id)) continue;
     timedToasts.add(item.id);
     playToastSound(state, item);
+    const lifetime = item.tone === "error" ? 7000 : 4200;
+    setTimeout(() => {
+      leavingToasts.add(item.id);
+      document.querySelector(`#toast-stack [data-toast-id="${CSS.escape(item.id)}"]`)?.classList.add("leaving");
+    }, Math.max(0, lifetime - 340));
     setTimeout(() => {
       timedToasts.delete(item.id);
+      leavingToasts.delete(item.id);
       store.dispatch({ type: "dismiss-toast", id: item.id });
-    }, item.tone === "error" ? 7000 : 4200);
+    }, lifetime);
   }
 }
 
@@ -1213,7 +1219,6 @@ async function render(state) {
   targeting?.sync(state);
   renderActionLog(state);
   renderTopBar(state);
-  syncFullscreenButton(state);
   propActionButton.sync(state);
   renderAuth(state);
   renderToasts(state);
@@ -1330,12 +1335,6 @@ onFullscreenChange(() => {
   store.dispatch({ type: "fullscreen-state", active });
   // A reload can drop element fullscreen before unload; keep the last intent.
   if (!leavingPage) saveFullscreenIntent(active);
-});
-fullscreenButton?.addEventListener("click", async () => {
-  if (!canFullscreen) return;
-  settings.open = false;
-  try { await enterFullscreen(); }
-  catch (error) { showError(error); }
 });
 const markLeavingPage = () => {
   leavingPage = true;

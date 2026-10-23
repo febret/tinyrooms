@@ -77,7 +77,6 @@ from server.services.cutscenes import CutsceneService
 from server.services.activity_results import ActivityResultService
 from server.services.actions import ActionsService
 from server.services.audit import AuditService
-from server.services.auras import AuraService
 from server.services.beacons import BeaconService
 from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
@@ -203,7 +202,6 @@ class RuntimeState:
     layout: RoomLayoutService
     room_effects: RoomEffectService
     prop_states: PropStateService
-    auras: AuraService
     cross_world: CrossWorldService
     mods: dict[str, object]
     mod_definitions: tuple[ModDefinition, ...]
@@ -416,7 +414,6 @@ async def _handle_replaced_connection(
     message: str = "Your session was replaced by a newer login.",
 ) -> None:
     if replaced.room_id is not None:
-        runtime.auras.leave(replaced.account_id, replaced.room_id)
         await _broadcast_room_event(
             runtime,
             room_id=replaced.room_id,
@@ -514,7 +511,6 @@ def _build_runtime(
     layout = RoomLayoutService(
         hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
     )
-    auras = AuraService(hub, stats, world, environment=environment)
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes, environment=environment)
     registry = build_registry()
@@ -558,7 +554,6 @@ def _build_runtime(
         stats=stats,
         command_verbs=frozenset(f".{spec.name}" for spec in registry.list()),
         environment=environment,
-        auras=auras,
         layout=layout,
         room_effects=room_effects,
         prop_states=prop_states,
@@ -617,7 +612,6 @@ def _build_runtime(
         world=world,
         connections=connections,
         environment=environment,
-        auras=auras,
         on_result=_deliver_tick_result,
         interval=config.tick_seconds,
     )
@@ -659,7 +653,6 @@ def _build_runtime(
         layout=layout,
         room_effects=room_effects,
         prop_states=prop_states,
-        auras=auras,
         cross_world=cross_world,
         mods={},
         mod_definitions=mods.definitions,
@@ -911,7 +904,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         account = runtime.profiles.get_account_by_id(session.account_id)
         activity = runtime.activities.get(account.id)
         if not account.initial_sticker_complete:
-            activity = runtime.activities.ensure_initial_sticker(account.id)
+            activity = runtime.activities.ensure_initial_sticker(account.id, runtime.world.entry_room_id)
         return {"ok": True, "activity": runtime.activities.serialize(activity)}
 
     @app.get("/api/activities/{activity_id}")
@@ -1021,7 +1014,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             await _handle_replaced_connection(runtime, replaced)
         room_id = runtime.rooms.current_room_for_account(account.id)
         await runtime.connections.set_room(account.id, room_id)
-        runtime.auras.enter(account.id, room_id)
         enter_result = await runtime.behaviors.dispatch(
             BehaviorEvent(
                 type="enter",
@@ -1152,7 +1144,6 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         except WebSocketDisconnect:
             active = await runtime.connections.get(account.id)
             if active is connection and connection.room_id is not None:
-                runtime.auras.leave(account.id, connection.room_id)
                 await _broadcast_room_event(
                     runtime,
                     room_id=connection.room_id,

@@ -34,7 +34,6 @@ def _activity_definition(skill: str | None = "multiverse-map") -> ActivityDefini
     return ActivityDefinition(
         id="multiverse",
         title="Multiverse",
-        room_bound=False,
         aliases=(),
         rooms=(),
         required_feature=None,
@@ -63,7 +62,7 @@ class ActivitySkillGateTests(unittest.TestCase):
         with self.assertRaises(CommandError) as caught:
             start_activity(
                 context,
-                ResolvedActivity(_activity_definition(), room_bound=False),
+                ResolvedActivity(_activity_definition()),
                 room_id="hub",
                 replace_existing=False,
             )
@@ -74,7 +73,7 @@ class ActivitySkillGateTests(unittest.TestCase):
         context = self._context(admin=False, slotted=True)
         outcome = start_activity(
             context,
-            ResolvedActivity(_activity_definition(), room_bound=False),
+            ResolvedActivity(_activity_definition()),
             room_id="hub",
             replace_existing=False,
         )
@@ -86,7 +85,6 @@ class MultiverseContentTests(unittest.TestCase):
     def test_core_activity_requires_multiverse_map(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
         definition = world.activities["multiverse"]
-        self.assertFalse(definition.room_bound)
         self.assertEqual(definition.required_skill, "multiverse-map")
 
     def test_activity_skill_must_be_non_empty(self) -> None:

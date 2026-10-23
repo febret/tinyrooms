@@ -1,6 +1,6 @@
 """Authored prop behavior names recognized as built-in no-ops for Phase A.
 
-Concrete dispenser, crafting, aura, and environment implementations arrive in
+Concrete dispenser, crafting, and environment implementations arrive in
 Phase C; until then each authored ``behavior:`` value maps to a synthetic
 script id ``builtin:<name>`` whose module exports no handlers.
 """

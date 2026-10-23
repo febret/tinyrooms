@@ -1,4 +1,3 @@
 classrooms:
   title: Classrooms
-  room_bound: true
   rooms: [hall]

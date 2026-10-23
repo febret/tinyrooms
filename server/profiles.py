@@ -1223,7 +1223,7 @@ class ProfileRepository:
         account_id: str,
         buffs: list[dict[str, object]],
     ) -> None:
-        """Persist active buff instances, preserving source auras."""
+        """Persist active buff instances, preserving named sources."""
 
         data = self._read_buffs_json(connection, account_id)
         data["instances"] = buffs

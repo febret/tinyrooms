@@ -103,6 +103,8 @@ async def dispense_command(context: CommandContext, command: ParsedCommand) -> C
     prop_instance_id = _prop_instance_id(command.args[0])
     context.rooms.require_prop_target(room_id, prop_instance_id)
     result = context.dispensers.dispense(context.account, room_id, prop_instance_id)
+    if result.all_owned:
+        raise CommandError("You already have everything that dispenser offers.")
     if not result.granted:
         remaining = int(round(result.remaining_seconds))
         raise CommandError(f"That dispenser is recharging for another {remaining}s.")
@@ -170,7 +172,6 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
             account_id=context.account.id,
             kind="crafting",
             title="Crafting",
-            room_bound=True,
             room_id=room_id,
             replace_existing=False,
             config={"prop_instance_id": prop_instance_id, "recipes": recipes},

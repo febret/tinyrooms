@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import random
 
-STINKY_LINE = "Mrrrp, {name}! You smell like my litter tray. Go take a shower!"
+STINKY_LINE = "Mrrrp, {name}. You smell like my litter tray. I am not mad; I am impressed. Now go shower."
 MOVE_INTERVAL_SECONDS = 60
 MOVE_CHANCE = 0.5
 
@@ -69,4 +69,4 @@ def on_quick_action(context, event):
         context.npc_say(_stinky_line(context))
         return
     if event.action == "pet":
-        context.feedback("Molly leans into your hand and purrs like a tiny motor.")
+        context.feedback("Molly leans into your hand and purrs like a tiny motor that knows it is being paid in attention.")

@@ -160,7 +160,7 @@ Server snapshots supply gameplay quick actions. The browser may add local view
 shortcuts, but it must not infer action authority from presentation.
 
 - **Travel:** [rooms.py](../server/services/rooms.py) validates exits/locks/cards,
-  persists the destination, updates presence, and closes room-bound activities.
+  persists the destination, updates presence, and closes the current activity.
   NPC travel uses [npc_movement.py](../server/services/npc_movement.py).
 - **Card transfers:** [cards.py](../server/services/cards.py) performs atomic
   room/inventory transfers; concurrent claims cannot duplicate a stack. Pinned

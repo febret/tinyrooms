@@ -5,7 +5,7 @@ import { loadSharedTexture, sharedTexture } from "./board-resources.js";
 import { decalCanvas } from "./decals.js";
 
 const TOP = 0.045;
-const SPRITE_HEIGHT = 1.25;
+const SPRITE_HEIGHT = 2.5;
 const SPRITE_MOVE_SMOOTHING = 5;
 const FALLBACK_ASPECT = 0.78;
 const BUBBLE_REFERENCE_PX = 100;

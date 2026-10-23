@@ -25,10 +25,8 @@ class ActivitySession:
     kind: str
     title: str
     iframe_url: str
-    # Travel away from room_id closes a bound activity; unbound launches normally
-    # carry no room_id (including mandatory initial sticker design).
-    room_bound: bool
-    room_id: str | None
+    # Travel away from room_id closes the activity.
+    room_id: str
     bridge_url: str
     # Per-launch signing key stays server-side; clients receive only its token.
     secret: str
@@ -67,8 +65,7 @@ class ActivityService:
         account_id: str,
         kind: str,
         title: str,
-        room_bound: bool,
-        room_id: str | None,
+        room_id: str,
         config: dict[str, object] | None = None,
     ) -> ActivitySession:
         activity_id = str(uuid.uuid4())
@@ -78,7 +75,6 @@ class ActivityService:
             kind=kind,
             title=title,
             iframe_url=f"/activities/{kind}/?session_id={activity_id}",
-            room_bound=room_bound,
             room_id=room_id,
             bridge_url=f"/api/activities/{activity_id}/bridge",
             secret=secrets.token_urlsafe(32),
@@ -91,7 +87,7 @@ class ActivityService:
         with self._lock:
             return self._sessions.get(account_id)
 
-    def ensure_initial_sticker(self, account_id: str) -> ActivitySession:
+    def ensure_initial_sticker(self, account_id: str, room_id: str) -> ActivitySession:
         """Ensure the initial sticker activity exists for the account."""
 
         with self._lock:
@@ -102,8 +98,7 @@ class ActivityService:
                 account_id=account_id,
                 kind="sticker-designer",
                 title="Sticker Designer",
-                room_bound=False,
-                room_id=None,
+                room_id=room_id,
             )
             self._sessions[account_id] = session
             return session
@@ -114,8 +109,7 @@ class ActivityService:
         account_id: str,
         kind: str,
         title: str,
-        room_bound: bool,
-        room_id: str | None,
+        room_id: str,
         replace_existing: bool = False,
         config: dict[str, object] | None = None,
     ) -> tuple[ActivitySession, ActivitySession | None]:
@@ -131,7 +125,6 @@ class ActivityService:
                 account_id=account_id,
                 kind=kind,
                 title=title,
-                room_bound=room_bound,
                 room_id=room_id,
                 config=config,
             )
@@ -144,14 +137,14 @@ class ActivityService:
         with self._lock:
             return self._sessions.pop(account_id, None)
 
-    def close_if_room_bound(self, account_id: str, new_room_id: str) -> ActivitySession | None:
-        """Close the current activity if it was bound to another room."""
+    def close_if_room_changed(self, account_id: str, new_room_id: str) -> ActivitySession | None:
+        """Close the current activity when the user moves to another room."""
 
         with self._lock:
             current = self._sessions.get(account_id)
             if current is None:
                 return None
-            if current.room_bound and current.room_id != new_room_id:
+            if current.room_id != new_room_id:
                 return self._sessions.pop(account_id)
             return None
 
@@ -177,7 +170,6 @@ class ActivityService:
             "title": activity.title,
             "iframe_url": activity.iframe_url,
             "bridge_url": activity.bridge_url,
-            "room_bound": activity.room_bound,
             "room_id": activity.room_id,
             "attention": activity.attention,
             "token": activity.token,

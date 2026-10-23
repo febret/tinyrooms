@@ -1,6 +1,7 @@
 paintbot-pip:
   label: Pip
-  description: A chirpy paintbot with a funnel hat and a permanently excited trigger finger.
+  description: A chirpy paintbot with a funnel hat and a permanently excited trigger
+    finger.
   room: bot-hangar
   image: paintbot-pip.png
 paintbot-bolt:
@@ -15,6 +16,7 @@ paintbot-mim:
   image: paintbot-mim.png
 paintbot-cog:
   label: Cog
-  description: A sturdy paintbot with a barrel for a torso and a grudge against clean floors.
+  description: A sturdy paintbot with a barrel for a torso and a grudge against clean
+    floors.
   room: bot-hangar
   image: paintbot-cog.png

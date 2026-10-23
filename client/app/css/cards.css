@@ -36,16 +36,13 @@
 .room-view .modal-header > div { text-align: center; }
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px; align-items: start; padding: 6px 4px 8px; }
 .cards-grid .game-card { width: 100%; max-width: 145px; justify-self: start; }
-.look-preview-card .card-face[data-card-rarity="rare"] { filter: drop-shadow(0 0 7px #5aa9ffaa); }
-.look-preview-card .card-face[data-card-rarity="epic"] { filter: drop-shadow(0 0 8px #c07bffbb); }
-.look-preview-card .card-face[data-card-rarity="legendary"] { filter: drop-shadow(0 0 10px #ffcf5fcc); }
 .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 16px; }
 .inventory-view .cards-grid .game-card { max-width: 132px; }
-.inventory-view { gap: 10px; padding-top: 56px; }
+.inventory-view { gap: 8px; padding-top: 16px; }
 .inventory-view > .inventory-layout { width: min(100%, 1180px); }
 .inventory-view .inventory-packs, .inventory-view .inventory-tabs { flex: 0 0 auto; }
-.inventory-tabs { display: inline-flex; gap: 6px; }
-.inventory-tabs button { min-height: 34px; min-width: 34px; padding: 3px 12px; border-radius: 9px; }
+.inventory-tabs { display: inline-flex; gap: 4px; }
+.inventory-tabs button { min-height: 32px; min-width: 32px; padding: 2px 10px; border-radius: 8px; font-size: 13px; }
 .inventory-tabs button.selected { background: var(--gold); color: #061923; }
 .modal-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; padding-right: 6px; }
 .inventory-group { margin-bottom: 16px; }
@@ -93,13 +90,21 @@
   .board-modal .modal-header { padding-top: 36px; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px 8px; }
   .cards-grid .game-card { max-width: 128px; }
+  .inventory-view { padding: 8px 8px 10px calc(var(--sidebar-width) + 8px); gap: 6px; }
+  .inventory-view .modal-header { padding-top: 0; }
+  .inventory-view .modal-header h2 { font-size: 20px; }
+  .inventory-toolbar { gap: 4px 6px; margin-top: 4px; }
+  .inventory-actions { gap: 4px; }
+  .inventory-action { min-height: 32px; min-width: 32px; padding: 3px 7px; font-size: 11px; }
+  .inventory-tabs { display: flex; width: 100%; gap: 4px; }
+  .inventory-tabs button { flex: 1 1 0; padding: 2px 6px; font-size: 12px; }
   .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px 6px; }
   .inventory-view .cards-grid .game-card { max-width: 117px; }
-  .inventory-layout { display: flex; flex-direction: column; gap: 12px; }
-  .inventory-content { order: 1; flex: 1 1 auto; }
-  .inventory-preview { order: 2; align-self: auto; max-height: none; overflow: visible; display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: start; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-  .inventory-preview-card { width: 120px; max-width: none; margin: 0; }
-  .inventory-preview-info { width: auto; max-height: 26vh; margin: 0; }
+  .inventory-layout { display: flex; flex-direction: column; gap: 8px; }
+  .inventory-content { order: 1; flex: 1 1 auto; gap: 6px; }
+  .inventory-preview { order: 2; align-self: auto; max-height: none; overflow: visible; display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: start; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .inventory-preview-card { width: 96px; max-width: none; margin: 0; }
+  .inventory-preview-info { width: auto; max-height: 20vh; margin: 0; }
   .inventory-preview-description { display: none; }
   .inventory-preview-name { font-size: 17px; }
   .inventory-preview-metrics { margin-top: 6px; font-size: 12px; }
@@ -111,11 +116,13 @@
   .board-modal .modal-header { gap: 6px; }
   .board-modal .modal-header button { padding-inline: 12px; }
   .board-modal .modal-header p { font-size: 13px; }
+  .inventory-action { padding-inline: 7px; }
+  .inventory-action-label { display: none; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 12px 8px; }
   .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px 6px; }
   .inventory-view .cards-grid .game-card { max-width: 100px; }
-  .inventory-preview { grid-template-columns: 108px minmax(0, 1fr); gap: 10px; }
-  .inventory-preview-card { width: 108px; }
+  .inventory-view .inventory-preview { grid-template-columns: 88px minmax(0, 1fr); gap: 8px; }
+  .inventory-view .inventory-preview-card { width: 88px; }
   .inventory-preview-name { font-size: 15px; }
   .details-metrics { font-size: 14px; }
 }
@@ -173,7 +180,10 @@
 .journal-tabs { display: inline-flex; gap: 6px; margin-top: 4px; }
 .journal-tabs button.selected { background: var(--gold); color: #061923; }
 .locked-state { font-size: 15px; }
-.inventory-balance { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.inventory-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }
+.inventory-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.inventory-action { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; min-width: 32px; padding: 3px 9px; border-radius: 8px; font-size: 12px; }
+.inventory-action svg { flex: 0 0 auto; width: 15px; height: 15px; pointer-events: none; }
 .inventory-bops { flex: 0 0 auto; white-space: nowrap; color: #e6c47f; font-weight: bold; }
 .sell-mode .inventory-view .game-card { cursor: cell; box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
 .sell-mode .inventory-view .game-card:hover { filter: brightness(1.12); }

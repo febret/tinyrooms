@@ -272,7 +272,6 @@ export function normalizeActivity(activity) {
     title: String(activity.title || "Activity"),
     iframeUrl: assetOrEmpty(activity.iframe_url),
     bridgeUrl: assetOrEmpty(activity.bridge_url),
-    roomBound: Boolean(activity.room_bound),
     roomId: activity.room_id ? String(activity.room_id) : "",
     attention: Boolean(activity.attention),
     token: String(activity.token || ""),

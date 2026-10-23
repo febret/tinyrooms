@@ -28,6 +28,7 @@ class DispenseResult:
     remaining_seconds: float = 0.0
     ready_at: str | None = None
     stacks: tuple[InventoryStack, ...] = field(default_factory=tuple)
+    all_owned: bool = False
 
 
 class DispenserService:
@@ -80,6 +81,17 @@ class DispenserService:
             return self._rng.choice(population)
         return self._rng.choices(population, weights=draw_weight, k=1)[0]
 
+    def _choose_missing(self, prop: PropInstanceDefinition, account_id: str) -> str | None:
+        owned = {
+            stack.card_def_id
+            for stack in self._profiles.list_inventory(account_id, self._world.id)
+            if stack.quantity > 0
+        }
+        for card_id in prop.content:
+            if card_id not in owned:
+                return card_id
+        return None
+
     def dispense(self, account: AccountRecord, room_id: str, prop_instance_id: str) -> DispenseResult:
         """Attempt a dispense, honoring the shared cooldown without charging on rejection."""
 
@@ -95,7 +107,9 @@ class DispenserService:
                     remaining_seconds=max(0.0, (ready - now).total_seconds()),
                     ready_at=ready.isoformat(),
                 )
-            card_id = self._choose(prop)
+            card_id = self._choose_missing(prop, account.id) if prop.only_missing else self._choose(prop)
+            if card_id is None:
+                return DispenseResult(granted=False, all_owned=True)
             definition = self._catalog.cards.get(card_id)
             if definition is None:
                 raise ValueError(f"Unknown dispenser card '{card_id}'.")

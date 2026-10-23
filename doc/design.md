@@ -128,7 +128,7 @@ equipped-card slots start empty. No Energy-refill card is granted initially.
 
 ### Offline Peeps
 When a user disconnects, their peep leaves active room participation and is no
-longer exposed to room auras, NPC actions, or room-based counter changes. Their
+longer exposed to NPC actions or room-based counter changes. Their
 last room is remembered. Offline Energy recharge and already-applied timed buffs
 continue to follow their normal elapsed-time rules.
 
@@ -182,8 +182,9 @@ preserves the current selection.
 ![Main View, Core Cards, and Equipped Cards](./images/main-view.png)
 
 Main components (red labels above):
+- The Top Toolbar (full width)
 - The Board (center)
-- The Peeps List (left)
+- The Peeps List (left, below the toolbar)
 - The Card View (bottom)
 - The Look Bar (bottom, under the Card View)
 - The Quick Actions Bar (bottom, under the Look Bar)
@@ -316,7 +317,7 @@ Core cards cannot be transferred.
 
 ### Inventory Card Preview
 Selecting a card in any display shows its name and short description in the Look Bar,
-and its full card image above the left side of the Look Bar.
+and its card icon above the left side of the Look Bar.
 
 Clicking the selected card's preview above the Look Bar opens Inventory with that
 card selected. Inventory is a split view: the card grid and filters sit beside a
@@ -831,7 +832,8 @@ in different ways:
 - actions that affect a peep's counters are displayed as floating numbers above the
 peep.
 - actions that affect the user's peep status, or other major actions, are displayed as
-a toast on the top middle of the screen.
+a toast near the bottom of the screen, above the Look Bar. Toasts use a glowing
+outline colour to communicate their type, fade in from below, and fade up and away.
 
 Rejected actions always show a visible explanation, even when the Action Log is
 hidden. Rejection does not spend Energy or consume cards or other resources.
@@ -920,15 +922,6 @@ moves the user to that room.
 ### Environment and Effects
 Rooms can have an environment defined on them, which affects how the room
 is displayed (for instance, it is possible to apply visual effects like fog, night, etc.).
-Rooms can also apply gameplay effects to peeps in the room. These effects are
-recalculated on each room tick.
-
-An ongoing room modifier is a **room aura**: it applies only while a peep is in
-that room and ends immediately on departure. Repeated room updates do not stack
-additional copies of the aura. A room may separately apply an explicitly timed
-buff or change a counter; these consequences follow their own rules and are not
-automatically undone when the peep leaves.
-
 
 ### Room Ownership
 Rooms can be owned by users. Owners have the [limited editing](#room-editing)
@@ -948,8 +941,8 @@ editing is more limited and allows the user to:
 - change approved visual environment settings without changing gameplay
 
 Room ownership alone does not allow creating cards or currency, editing
-dispenser rewards, defining crafting recipes, or changing gameplay auras and
-other gameplay rules. Gameplay-generating edits require builder or game-master
+dispenser rewards, defining crafting recipes, or changing gameplay rules.
+Gameplay-generating edits require builder or game-master
 authority rather than ordinary ownership.
 
 
@@ -981,7 +974,10 @@ One copy is given directly to the activating user's inventory rather than
 placed in the room.
 Draw weights may be defined for the contents (`draw_weight: {card_id: number}`);
 without explicit draw weights, each listed card has an equal chance. Each
-dispense is an independent selection.
+dispense is an independent selection. A dispenser may set `only_missing: true`
+to grant the first authored card the player does not already own; when every
+listed card is already owned, the attempt reports that there is nothing left to
+give and does not start the recharge timer.
 
 After dispensing, a recharge timer prevents another dispense until it expires.
 The default recharge duration is 10 minutes of real time. Each dispenser prop
@@ -1142,12 +1138,10 @@ user confirmation, regardless of the launch context.
 
 All launch methods, including commands, obey the activity's access requirements.
 Commands do not bypass required cards, locks, room conditions, or access to the
-launching prop or NPC. Activities intended for global access may explicitly
-allow it.
+launching prop or NPC.
 
-Activities launched from a room prop or NPC are room-bound and close when the
-user leaves that room. Globally accessible activities may stay open across room
-changes within the same world. Cross-world travel and logout close all activities.
+Every activity is bound to the room where it launched and closes when the user
+leaves that room. Cross-world travel and logout close all activities.
 Unconfirmed operations are cancelled without cost when an activity closes.
 Disconnecting also closes the activity, with no automatic restoration on
 reconnect. Completed purchases, rewards, and records are preserved; unfinished

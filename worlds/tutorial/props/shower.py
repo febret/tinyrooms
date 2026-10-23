@@ -9,8 +9,8 @@ def on_quick_action(context, event):
     if event.action not in {"shower", "use"}:
         return
     if context.has_equipped_card("poop"):
-        context.feedback("Put that poop away before you step into the shower.", "error")
+        context.feedback("Put that poop away before you step into the shower. The shower has seen enough.", "error")
         return
     context.set_counter("cleanliness", context.counter("max_cleanliness", 100.0))
     context.clear_decals(kind="paint")
-    context.feedback("You take a warm shower and feel squeaky clean.", "success")
+    context.feedback("You take a warm shower and feel squeaky clean. The house remains unconvinced.", "success")

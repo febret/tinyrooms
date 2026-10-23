@@ -19,8 +19,8 @@ def on_card_play(context, event):
     if card.consume_card and context.has_equipped_card(card.consume_card):
         context.remove_card(card.consume_card, 1)
         context.give_card(BAGGED_OUTPUT_CARD_ID)
-        context.feedback("You bagged up a poop in a bag.", "success")
+        context.feedback("You bagged up a poop in a bag. Congratulations on your new responsibility.", "success")
         return
     context.give_card(BARE_OUTPUT_CARD_ID)
     context.set_counter("cleanliness", 0)
-    context.feedback("You scooped up a piece of poop. Eww.", "success")
+    context.feedback("You scooped up a piece of poop. Eww. It is now your problem, and your problem is in your hand.", "success")

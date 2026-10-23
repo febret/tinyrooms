@@ -1,6 +1,7 @@
 id: tutorial
 label: The Little House
-description: A pocket-sized home full of small discoveries.
+description: A pocket-sized home where the chores have opinions and the basement is
+  definitely hiding something.
 entry_room: hub
 image: rooms/hub.jpg
 palette:

@@ -56,7 +56,7 @@ busy-room quadratic path: assembling every occupant's data separately for each
 recipient. [SQL counters](../tests/perf/perfkit.py) use SQLite's trace hook,
 including statements inside transactions, for exact, load-independent ceilings.
 The [synthetic-world generator](../tests/perf/synthetic.py) scales tutorial rooms,
-props, peeps, cards and auras. It hardlinks artwork and must unlink before
+props, peeps and cards. It hardlinks artwork and must unlink before
 rewriting; the [guard benchmark](../tests/perf/perf_synthetic_world.py) prevents
 corruption of `worlds/tutorial` through shared links.
 

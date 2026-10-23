@@ -51,7 +51,6 @@ function roomPanel(state) {
         <label class="mini-check">${checkbox(environment.includes("palette"), `data-room-editor-env="palette"`)} palette</label>
         <label class="mini-check">${checkbox(environment.includes("board_image_style"), `data-room-editor-env="board_image_style"`)} board_image_style</label>
       </fieldset>
-      ${field("Aura (JSON list)", textarea(JSON.stringify(room.aura || []), `data-room-field="aura"`, 3))}
       ${field("Initial room cards (comma)", textInput(initialCards.map(card => card.card).join(", "), `data-room-field="cards"`))}
       <fieldset class="subgroup">
         <legend>Exits</legend>
@@ -129,6 +128,7 @@ function propPanel(state) {
       ${field("Animation", textInput(instance.animation || "", `data-instance-field="animation"`))}
       ${field("Activity", `<select data-instance-field="activity">${selectOptions([{ value: "", label: "(none)" }, ...(catalog?.activities || []).map(id => ({ value: id, label: id }))], instance.activity || "")}</select>`)}
       ${field("Cooldown (seconds)", numberInput(instance.cooldown ?? 0, `data-instance-field="cooldown"`, "1"))}
+      <label class="mini-check">${checkbox(Boolean(instance.only_missing), `data-instance-field="only_missing"`)} dispense only missing cards</label>
       ${field("Content cards (comma)", textInput((instance.content || []).join(", "), `data-instance-field="content"`))}
       ${field("Recipes (comma)", textInput((instance.recipes || []).join(", "), `data-instance-field="recipes"`))}
       ${field("Actions (label | command per line)", textarea(actionsToText(instance.actions), `data-instance-field="actions"`, 3))}

@@ -5,7 +5,7 @@ export function createDropController({ getState, store, sendCommand, onToast, on
   function dropAt(position, screen) {
     const drop = getState().ui.dropTargeting;
     if (!drop || !Array.isArray(position)) return false;
-    store.dispatch({ type: "cancel-drop", restoreSelection: false });
+    store.dispatch({ type: "cancel-drop" });
     onDropFlight?.(drop.stackId, screen);
     void sendCommand(buildDropCommand(drop.stackId, drop.quantity, position)).catch(onError);
     return true;

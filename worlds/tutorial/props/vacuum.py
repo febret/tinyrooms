@@ -9,7 +9,7 @@ def on_quick_action(context, event):
     if event.action not in {"take_vacuum", "borrow", "use"}:
         return
     if context.has_card("vacuum-cleaner"):
-        context.feedback("You already have the vacuum cleaner.")
+        context.feedback("You already have the vacuum cleaner. It is in your inventory, vibrating with purpose.")
         return
     context.give_card("vacuum-cleaner")
-    context.feedback("You borrow the vacuum cleaner.", "success")
+    context.feedback("You borrow the vacuum cleaner. It hums like it has been waiting for this.", "success")

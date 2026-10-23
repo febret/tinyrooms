@@ -1,6 +1,7 @@
 hub:
   label: The Hub
-  description: ''
+  description: A sunlit pocket plaza with a dollhouse that is either adorable or a
+    trap. The brochure refuses to clarify.
   board_type: basic
   board_image: hub.jpg
   board_image_style: stretch
@@ -36,7 +37,8 @@ hub:
       target: foyer
 foyer:
   label: The Living Room
-  description: ''
+  description: A tiny living room with big opinions. The front door leads outside;
+    everything else leads to chores.
   board_type: basic
   board_image: foyer.png
   board_image_style: stretch
@@ -67,6 +69,42 @@ foyer:
       - - Open the front door
         - .go @way:garden
       behavior: locked-door
+    custom:2f34813c-861d-474f-bbeb-31f01e4da8ff:
+      prop: casement-window
+      pos:
+      - 85
+      - 0
+      - 22.400000000000002
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.0746553440638142
+    custom:cd33ce3b-9f49-4b9c-bade-9d8b1d15c056:
+      prop: dusty-rose-sofa
+      pos:
+      - 10
+      - 55
+      - 0
+      rot:
+      - 0
+      - 1.5399999999999636
+      - 0
+      scale: 1.6955378396018224
+    custom:509075d5-2c6e-480b-bd60-8248fab42157:
+      prop: white-cottage-stairwell
+      pos:
+      - 95
+      - 95
+      - 0
+      rot:
+      - 0
+      - 356.4800000000014
+      - 0
+      scale: 1
+      actions:
+      - - To Bedroom
+        - .go @way:bedroom
   exits:
     hub:
       label: Out of the dollhouse
@@ -85,7 +123,8 @@ foyer:
       npc_barrier: true
 kitchen:
   label: The Kitchen
-  description: ''
+  description: A kitchen that smells like toast and unfinished business. Snacks live
+    on the floor, because standards do too.
   board_type: basic
   board_image: kitchen.png
   board_image_style: stretch
@@ -108,6 +147,11 @@ kitchen:
       - 22
       - 0
       scale: 1.3
+      behavior: crafting
+      actions:
+      - - Craft at the counter
+        - .craft @prop:breakfast0
+        - true
     kitchen-plant:
       prop: plant
       pos:
@@ -137,7 +181,8 @@ kitchen:
       target: utility
 bathroom:
   label: The Bathroom
-  description: ''
+  description: A bathroom with a shower, a medicine cabinet, and a litter tray that
+    is nobody's favorite coworker.
   board_type: basic
   board_image: bathroom.png
   board_image_style: stretch
@@ -209,7 +254,8 @@ bathroom:
       target: bedroom
 bedroom:
   label: The Bedroom
-  description: ''
+  description: A patchwork bedroom upstairs. The bed is inviting. The housework is
+    watching.
   board_type: basic
   board_image: bedroom.png
   board_image_style: stretch
@@ -269,7 +315,8 @@ bedroom:
       target: bathroom
 utility:
   label: The Utility Room
-  description: ''
+  description: Where the house keeps its tools, its secrets, and a vacuum with a body
+    count.
   board_type: basic
   board_image: utility.png
   board_image_style: stretch
@@ -293,6 +340,7 @@ utility:
       - 0
       scale: 1.1
       behavior: dispenser
+      only_missing: true
       content:
       - pooper-scooper
       - plastic-bag
@@ -307,10 +355,15 @@ utility:
       - 29
       - 0
       scale: 1
-      behavior: vacuum
+      behavior: dispenser
+      only_missing: true
+      content:
+      - vacuum-cleaner
+      - hand-light
+      cooldown: 60
       actions:
-      - - Borrow vacuum
-        - .act take_vacuum @prop:vacuum0
+      - - Take tools
+        - .dispense vacuum0
     cellar-stairs:
       prop: stairs
       pos:
@@ -334,7 +387,8 @@ utility:
 basement:
   label: The Basement
   description: Too dark to make out the props. Equip a Flashlight in Inventory, then
-    Use it; it lasts ten minutes. Something skitters once the light is on.
+    Use it; the light lasts one minute. Something down here is definitely counting
+    your footsteps.
   board_type: basic
   board_image: basement.png
   board_image_style: stretch
@@ -350,7 +404,6 @@ basement:
       x: 1015
       y: -37
   dark: true
-  aura: []
   props:
     key0:
       prop: keys-cabinet
@@ -378,7 +431,7 @@ basement:
 garden:
   label: The Backyard
   description: You made it outside! Check your Journal, share an emote, and make the
-    bedroom your own.
+    bedroom your own. The trashcan is waiting for a very specific offering.
   board_type: basic
   board_image: garden.png
   board_image_style: stretch

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-STINKY_LINE = "Whew, {name}! Someone needs a shower before they track that through the house."
+STINKY_LINE = "Whew, {name}! You smell like a compost bin that lost a fight. Shower first, hero."
 
 
 def _stinky_line(context) -> str:

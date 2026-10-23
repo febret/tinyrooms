@@ -6,7 +6,6 @@ import asyncio
 from collections.abc import Awaitable, Callable
 import inspect
 import logging
-import sqlite3
 
 from server.behaviors.dispatcher import BehaviorDispatcher
 from server.behaviors.events import BehaviorEvent, PeepRef
@@ -28,7 +27,6 @@ class RoomTicker:
         world: WorldDefinition,
         connections: object | None = None,
         environment: object | None = None,
-        auras: object | None = None,
         on_result: Callable[[object], Awaitable[None]] | None = None,
         interval: float = 1.0,
         logger: logging.Logger | None = None,
@@ -37,7 +35,6 @@ class RoomTicker:
         self._world = world
         self._connections = connections
         self._environment = environment
-        self._auras = auras
         self._on_result = on_result
         self._interval = float(interval)
         self._logger = logger or logging.getLogger("tinyrooms.behaviors")
@@ -87,7 +84,6 @@ class RoomTicker:
                 return
         self._running.add(room_id)
         try:
-            self._apply_auras(room_id, occupants)
             event = BehaviorEvent(
                 type="tick",
                 actor=SYSTEM_PEEP,
@@ -118,18 +114,6 @@ class RoomTicker:
             broadcasts = getattr(result, "room_broadcasts", None)
             if broadcasts is not None and isinstance(outcome, (list, tuple)):
                 broadcasts.extend(outcome)
-
-    def _apply_auras(self, room_id: str, occupants: list[object]) -> None:
-        if self._auras is None:
-            return
-        for occupant in occupants:
-            account_id = getattr(occupant, "account_id", None)
-            if not isinstance(account_id, str):
-                continue
-            try:
-                self._auras.enter(account_id, room_id)
-            except (ValueError, sqlite3.Error) as exc:
-                self._logger.warning("aura.enter failed for %s: %s", account_id, exc)
 
     def _expire_environment(self, room_id: str, result: object) -> None:
         if self._environment is None or result is None:

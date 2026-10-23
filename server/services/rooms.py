@@ -109,7 +109,6 @@ class RoomService:
         stats: StatsService,
         command_verbs: frozenset[str] | None = None,
         environment: object | None = None,
-        auras: object | None = None,
         layout: object | None = None,
         room_effects: object | None = None,
         prop_states: object | None = None,
@@ -132,7 +131,6 @@ class RoomService:
         self._behaviors: object | None = None
         self._dialogs: object | None = None
         self._environment = environment
-        self._auras = auras
         self._layout = layout
         self._room_effects = room_effects
         self._prop_states = prop_states
@@ -1024,8 +1022,6 @@ class RoomService:
             )
         if self._dialogs is not None:
             self._dialogs.end(account.id, "room_changed")
-        if self._auras is not None:
-            self._auras.leave(account.id, source_room_id)
         with self._hub.transaction() as connection:
             if self.ROOM_CHANGE_ENERGY_COST:
                 self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
@@ -1072,17 +1068,13 @@ class RoomService:
             )
         if self._dialogs is not None:
             self._dialogs.end(account.id, "room_changed")
-        if self._auras is not None:
-            self._auras.leave(account.id, source_room_id)
         with self._hub.transaction() as connection:
             if self.ROOM_CHANGE_ENERGY_COST:
                 self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
         self._sprites.forget_user(account.id)
-        if self._auras is not None:
-            self._auras.enter(account.id, destination_room.id)
-        closed = self._activities.close_if_room_bound(account.id, destination_room.id)
+        closed = self._activities.close_if_room_changed(account.id, destination_room.id)
         if self._behaviors is not None:
             behavior_results.append(
                 await self._behaviors.dispatch(

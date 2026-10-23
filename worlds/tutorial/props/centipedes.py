@@ -13,4 +13,4 @@ def on_card_play(context, event):
     if card is None or "vacuum" not in card.tags:
         return
     context.hide_prop(300)
-    context.feedback("You clear the centipedes.", "success")
+    context.feedback("You clear the centipedes. The basement feels emptier, and somehow more judgmental.", "success")

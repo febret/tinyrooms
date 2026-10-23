@@ -20,7 +20,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         user_profile = runtime.profiles.user_profile_for(account.id, runtime.world.id, runtime.world.entry_room_id)
     activity = runtime.activities.get(account.id)
     if not account.initial_sticker_complete:
-        activity = runtime.activities.ensure_initial_sticker(account.id)
+        activity = runtime.activities.ensure_initial_sticker(account.id, runtime.world.entry_room_id)
     snapshot = runtime.stats.view(account.id)
     level_definition = runtime.content.levels.get(account.level)
     skills = runtime.progression.skill_slots(account, user_profile)

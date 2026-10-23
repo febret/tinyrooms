@@ -367,7 +367,6 @@ function handleChange(target) {
   if (dataset.taskField !== undefined) return changeSystemField("tasks", dataset.taskField, target);
   if (dataset.recipeField !== undefined) return changeSystemField("recipes", dataset.recipeField, target);
   if (dataset.activityField !== undefined) return changeSystemField("activities", dataset.activityField, target);
-  if (dataset.envAura !== undefined) return changeRoomAura(dataset.envAura, target.value);
   return undefined;
 }
 
@@ -398,7 +397,6 @@ function changeRoomField(fieldName, target) {
     if (!room) return;
     if (fieldName === "cards") room.cards = reconcileRoomCards(room.cards, parseCsv(target.value));
     else if (fieldName === "palette") room.palette = parseCsv(target.value);
-    else if (fieldName === "aura") room.aura = parseJson(target.value, []);
     else if (fieldName === "dark" || fieldName === "template") room[fieldName] = target.checked;
     else room[fieldName] = target.value;
   });
@@ -410,13 +408,6 @@ function changeRoomEnvironment(key, enabled, roomId = store.state.selection.id) 
     if (!room) return;
     if (!room.editor || typeof room.editor !== "object") room.editor = {};
     room.editor.environment = toggleArrayValue(room.editor.environment, key, enabled);
-  });
-}
-
-function changeRoomAura(roomId, value) {
-  store.update(draft => {
-    const room = draft.rooms?.[roomId];
-    if (room) room.aura = parseJson(value, []);
   });
 }
 
@@ -463,6 +454,10 @@ function changeInstanceField(fieldName, target) {
     else if (fieldName === "recipes") instance.recipes = parseCsv(target.value);
     else if (fieldName === "actions") instance.actions = textToActions(target.value);
     else if (fieldName === "draw_weight") instance.draw_weight = parseJson(target.value, {});
+    else if (fieldName === "only_missing") {
+      if (target.checked) instance.only_missing = true;
+      else delete instance.only_missing;
+    }
     else if (fieldName === "behavior" || fieldName === "animation" || fieldName === "activity") {
       if (target.value) instance[fieldName] = target.value;
       else delete instance[fieldName];
@@ -553,8 +548,7 @@ function changeSystemField(section, spec, target) {
     } else if (fieldName === "reward.kudos") {
       if (!item.reward || typeof item.reward !== "object") item.reward = {};
       item.reward.kudos = Number(target.value) || 0;
-    } else if (fieldName === "revision" || fieldName === "energy_cost") item[fieldName] = Number(target.value) || 0;
-    else if (fieldName === "room_bound") item.room_bound = target.checked;
+    }     else if (fieldName === "revision" || fieldName === "energy_cost") item[fieldName] = Number(target.value) || 0;
     else item[fieldName] = target.value;
   });
 }
@@ -590,7 +584,7 @@ function handleClick(target) {
   if (dataset.taskDelete !== undefined) return deleteSystemItem("tasks", dataset.taskDelete);
   if (dataset.recipeAdd !== undefined) return addSystemItem("recipes", { label: "New recipe", ingredients: {}, output: {} });
   if (dataset.recipeDelete !== undefined) return deleteSystemItem("recipes", dataset.recipeDelete);
-  if (dataset.activityAdd !== undefined) return addSystemItem("activities", { title: "New activity", room_bound: true });
+  if (dataset.activityAdd !== undefined) return addSystemItem("activities", { title: "New activity" });
   if (dataset.activityDelete !== undefined) return deleteSystemItem("activities", dataset.activityDelete);
   if (dataset.lowerTab !== undefined) {
     lowerTab = dataset.lowerTab;

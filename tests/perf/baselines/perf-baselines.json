@@ -375,12 +375,6 @@
     "unit": "queries",
     "value": 8.0
   },
-  "server/tick/aura-queries/10-ticks": {
-    "lower_is_better": true,
-    "note": "SQL statements for 10 repeat probes across 25 occupants in a room with an aura already applied. All of them answered 'already applied'.",
-    "unit": "queries",
-    "value": 0.0
-  },
   "server/tick/queries/5-ticks-25-occupants": {
     "lower_is_better": true,
     "note": "SQL statements for 5 ticks in a room with 25 occupants. A tick with no expiring effects and no scripted behaviour should not touch the database.",

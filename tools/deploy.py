@@ -95,17 +95,17 @@ def run_remote(
 
     result = subprocess.run(
         ["ssh", *SSH_OPTIONS, host, command],
-        input=input,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
+        input=None if input is None else input.encode("utf-8"),
         capture_output=True,
         check=False,
     )
-    if check and result.returncode != 0:
+    stdout = result.stdout.decode("utf-8", errors="replace")
+    stderr = result.stderr.decode("utf-8", errors="replace")
+    completed = subprocess.CompletedProcess(result.args, result.returncode, stdout, stderr)
+    if check and completed.returncode != 0:
         shown = "<redacted command>" if sensitive else command
-        raise DeployError(f"Remote command failed ({result.returncode}): {shown}\n{result.stderr.strip()}")
-    return result
+        raise DeployError(f"Remote command failed ({completed.returncode}): {shown}\n{stderr.strip()}")
+    return completed
 
 
 def run_local(command: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:

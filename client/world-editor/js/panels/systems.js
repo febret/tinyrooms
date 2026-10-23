@@ -76,7 +76,6 @@ export function renderActivities(draft) {
         <fieldset class="subgroup">
           <legend><code>${escapeHtml(activityId)}</code></legend>
           ${field("Title", text(activity.title, `data-activity-field="${escapeHtml(activityId)}:title"`))}
-          <label class="mini-check"><input type="checkbox" data-activity-field="${escapeHtml(activityId)}:room_bound"${activity.room_bound ? " checked" : ""}> room bound</label>
           ${field("Rooms (comma)", text((activity.rooms || []).join(", "), `data-activity-field="${escapeHtml(activityId)}:rooms"`))}
           ${field("Aliases (comma)", text((activity.aliases || []).join(", "), `data-activity-field="${escapeHtml(activityId)}:aliases"`))}
           ${field("Required feature", text(activity.required_feature || "", `data-activity-field="${escapeHtml(activityId)}:required_feature"`))}
@@ -91,7 +90,7 @@ export function renderActivities(draft) {
 export function renderEnvironment(draft) {
   const rooms = draft.rooms || {};
   return `
-    ${header("Environment", "Per-room visual overrides and auras")}
+    ${header("Environment", "Per-room visual overrides")}
     <div class="properties-body">
       ${Object.entries(rooms).map(([roomId, room]) => {
         const environment = room.editor && Array.isArray(room.editor.environment) ? room.editor.environment : [];
@@ -100,7 +99,6 @@ export function renderEnvironment(draft) {
             <legend><code>${escapeHtml(roomId)}</code></legend>
             <label class="mini-check"><input type="checkbox" data-env-room="${escapeHtml(roomId)}" data-env-key="palette"${environment.includes("palette") ? " checked" : ""}> palette</label>
             <label class="mini-check"><input type="checkbox" data-env-room="${escapeHtml(roomId)}" data-env-key="board_image_style"${environment.includes("board_image_style") ? " checked" : ""}> board_image_style</label>
-            ${field("Aura (JSON list)", area(JSON.stringify(room.aura || [], null, 2), `data-env-aura="${escapeHtml(roomId)}"`, 3))}
           </fieldset>
         `;
       }).join("")}

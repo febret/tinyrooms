@@ -80,7 +80,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(picker).toBeHidden();
   await expect(page.locator("#look-bar")).toContainText(cardLabel);
   const preview = page.locator('[data-look-inspect="card"]');
-  await expect(preview.locator("svg.card-face")).toBeVisible();
+  await expect(preview.locator("img.look-preview-card-icon")).toBeVisible();
   await preview.click();
   const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
   await expect(inventory).toBeVisible();

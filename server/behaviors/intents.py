@@ -16,6 +16,7 @@ from server.behaviors import sprite_actions
 from server.behaviors.context import BehaviorContext, Intent
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.outcomes import PendingRoomBroadcast
+from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.game.buffs import BuffInstance, DAILY, TIMED, apply_buff as apply_buff_instances
 from server.game.decals import clear_decals, decals_payload, upsert_decal
 from server.security import utc_now
@@ -773,6 +774,9 @@ class BehaviorIntentMixin:
         if account_id is None:
             self._log("behavior.intent.skipped", kind="start_activity", reason="no_account")
             return
+        if not event.room_id:
+            self._log("behavior.intent.skipped", kind="start_activity", reason="no_room")
+            return
         kind = str(payload.get("kind", ""))
         title = payload.get("title")
         try:
@@ -780,7 +784,6 @@ class BehaviorIntentMixin:
                 account_id=account_id,
                 kind=kind,
                 title=str(title) if isinstance(title, str) and title else kind.replace("-", " ").title(),
-                room_bound=True,
                 room_id=event.room_id,
                 replace_existing=True,
             )
