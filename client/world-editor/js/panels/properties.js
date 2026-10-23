@@ -1,4 +1,4 @@
-import { escapeHtml, selectOptions, actionsToText } from "../util.js";
+import { escapeHtml, selectOptions, actionsToText, exitPropAction } from "../util.js";
 import { renderDialogNodeEditor } from "./dialog.js";
 
 function field(label, input) {
@@ -90,6 +90,26 @@ function behaviorSelect(catalog, current) {
   return `<select data-instance-field="behavior" title="${escapeHtml(source)}">${selectOptions(options, current)}</select>`;
 }
 
+function exitActionButtons(room, instance) {
+  const exits = Object.entries(room.exits || {});
+  if (!exits.length) return '<p class="note">Add an exit to this room to create exit actions.</p>';
+  const commands = new Set((Array.isArray(instance.actions) ? instance.actions : [])
+    .map(action => (Array.isArray(action) ? action[1] : action?.command))
+    .filter(command => typeof command === "string"));
+  return `
+    <div class="field">
+      <span>Add exit action</span>
+      <div class="exit-action-row">
+        ${exits.map(([exitId, exit]) => {
+          const [label, command] = exitPropAction(exitId, exit);
+          const added = commands.has(command);
+          return `<button type="button" class="quiet" data-instance-exit-action="${escapeHtml(exitId)}"${added ? " disabled" : ""} title="${escapeHtml(added ? "Already added" : command)}">${escapeHtml(label)}</button>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function propPanel(state) {
   const { draft, catalog, selection } = state;
   const room = draft.rooms?.[selection.id];
@@ -132,6 +152,7 @@ function propPanel(state) {
       ${field("Content cards (comma)", textInput((instance.content || []).join(", "), `data-instance-field="content"`))}
       ${field("Recipes (comma)", textInput((instance.recipes || []).join(", "), `data-instance-field="recipes"`))}
       ${field("Actions (label | command per line)", textarea(actionsToText(instance.actions), `data-instance-field="actions"`, 3))}
+      ${exitActionButtons(room, instance)}
       ${field("Draw weights (JSON)", textarea(JSON.stringify(instance.draw_weight || {}), `data-instance-field="draw_weight"`, 2))}
       <button type="button" class="negative" data-instance-delete>Delete prop</button>
     </div>

@@ -9,7 +9,7 @@ import {
 } from "./api.js";
 import { createBoardView } from "./board-view.js";
 import { createStore } from "./store.js";
-import { escapeHtml, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
+import { escapeHtml, exitPropAction, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
 import {
   applyDialogGraphChanges,
   applyRoomGraphChanges,
@@ -472,6 +472,22 @@ function changeInstanceField(fieldName, target) {
   });
 }
 
+function addInstanceExitAction(exitId) {
+  const { selection } = store.state;
+  const room = store.state.draft?.rooms?.[selection.id];
+  const exit = room?.exits?.[exitId];
+  const instance = room?.props?.[selection.sub];
+  if (!exit || !instance) return;
+  const action = exitPropAction(exitId, exit);
+  const command = action[1];
+  const actions = Array.isArray(instance.actions) ? instance.actions : [];
+  if (actions.some(entry => (Array.isArray(entry) ? entry[1] : entry?.command) === command)) return;
+  updateInstance(target => {
+    if (!Array.isArray(target.actions)) target.actions = [];
+    target.actions.push(action);
+  });
+}
+
 function changePeepField(fieldName, target) {
   const peepId = store.state.selection.id;
   store.update(draft => {
@@ -571,6 +587,7 @@ function handleClick(target) {
   if (dataset.exitAdd !== undefined) return addExit();
   if (dataset.exitDelete !== undefined) return deleteExit(dataset.exitDelete);
   if (dataset.propAdd !== undefined) return addProp(dataset.propAdd);
+  if (dataset.instanceExitAction !== undefined) return addInstanceExitAction(dataset.instanceExitAction);
   if (dataset.instanceDelete !== undefined) return deleteInstance();
   if (dataset.peepAdd !== undefined) return addPeep();
   if (dataset.peepDelete !== undefined) return deletePeep();
@@ -891,7 +908,7 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("click", event => {
-  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
+  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-exit-action],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
   if (!target) return;
   if (target.dataset.room !== undefined && target.dataset.roomAdd === undefined && target.dataset.roomDelete === undefined) {
     store.select({ kind: "room", id: target.dataset.room });

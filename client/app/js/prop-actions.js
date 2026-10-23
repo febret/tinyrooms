@@ -4,7 +4,10 @@ export function activePropAction(action) {
 }
 
 export function defaultPropAction(prop) {
-  return prop?.quickActions?.find(action => action.default && action.command && !action.disabled) || null;
+  const actions = (prop?.quickActions || []).filter(action => (
+    typeof action.command === "string" && action.command.trim() && !action.disabled
+  ));
+  return actions.find(action => action.default) || (actions.length === 1 ? actions[0] : null);
 }
 
 export function hasActivePropActions(prop) {

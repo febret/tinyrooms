@@ -274,9 +274,7 @@ floral-nightstand:
   - storage
   - furniture
   effects:
-    set:
-    - ember-glow
-    - fire
+    set: []
 live-edge-slab-table:
   label: Live-Edge Slab Table
   description: Live-edgy.
@@ -732,6 +730,62 @@ arched-iron-door:
   scale: 1.35
   tags:
   - door
+  - building
+beadboard-cottage-door:
+  label: Beadboard Cottage Door
+  description: White beadboard, porcelain knob, and enough cottage energy to make
+    a mug of tea appear.
+  model: beadboard-cottage-door.glb
+  decorative: true
+  scale: 1.35
+  tags:
+  - door
+  - interior
+  - building
+black-steel-glass-door:
+  label: Black Steel Glass Door
+  description: Slim black steel and glass. Suddenly your hallway is a design magazine.
+  model: black-steel-glass-door.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - door
+  - interior
+  - building
+sliding-barn-door:
+  label: Sliding Barn Door
+  description: Whitewashed planks on a black rail. Rustic, smooth-sliding, very HGTV.
+  model: sliding-barn-door.glb
+  decorative: true
+  scale: 1.45
+  tags:
+  - door
+  - interior
+  - building
+open-arched-doorway:
+  label: Open Arched Doorway
+  description: A warm wood arch with no door. Walk through and feel instantly more
+    mysterious.
+  model: open-arched-doorway.glb
+  decorative: true
+  scale: 1.4
+  tags:
+  - door
+  - doorway
+  - open
+  - interior
+  - building
+open-french-doorway:
+  label: Open French Doorway
+  description: Double French doors thrown wide open. The breeze has entered the chat.
+  model: open-french-doorway.glb
+  decorative: true
+  scale: 1.45
+  tags:
+  - door
+  - doorway
+  - open
+  - interior
   - building
 bay-window:
   label: Bay Window

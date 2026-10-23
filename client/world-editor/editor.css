@@ -51,6 +51,8 @@
 .prop-type-row { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; min-width: 0; }
 .prop-type-row button { flex: 0 0 auto; padding: .25rem .5rem; font-size: .72rem; }
 .prop-type-row button.is-active { border-color: var(--accent); color: var(--accent); }
+.exit-action-row { display: flex; flex-wrap: wrap; gap: .3rem; }
+.exit-action-row button { padding: .25rem .5rem; font-size: .72rem; }
 .prop-type-current { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: .3rem .45rem; border: 1px solid var(--line); border-radius: 6px; background: var(--field-bg); color: var(--ink); }
 button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--line); padding: .35rem .6rem; background: #ffffff10; color: var(--ink); }
 button:disabled { opacity: .45; cursor: default; }

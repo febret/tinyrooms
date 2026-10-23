@@ -69,17 +69,6 @@ foyer:
       - - Open the front door
         - .go @way:garden
       behavior: locked-door
-    custom:2f34813c-861d-474f-bbeb-31f01e4da8ff:
-      prop: casement-window
-      pos:
-      - 85
-      - 0
-      - 22.400000000000002
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1.0746553440638142
     custom:cd33ce3b-9f49-4b9c-bade-9d8b1d15c056:
       prop: dusty-rose-sofa
       pos:
@@ -105,6 +94,20 @@ foyer:
       actions:
       - - To Bedroom
         - .go @way:bedroom
+    custom:ec7b05f7-88b2-4d84-94fa-cd91e4a004eb:
+      prop: open-french-doorway
+      pos:
+      - 100
+      - 45
+      - 0
+      rot:
+      - 0
+      - 359.7000000000003
+      - 0
+      scale: 1.4105786355076788
+      actions:
+      - - To Kitchen
+        - .go @way:kitchen
   exits:
     hub:
       label: Out of the dollhouse
@@ -143,22 +146,80 @@ kitchen:
     breakfast0:
       prop: kitchen-counter
       pos:
-      - 45
-      - 22
+      - 90
+      - 10
       - 0
-      scale: 1.3
+      scale: 1.513408307361747
       behavior: crafting
       actions:
       - - Craft at the counter
         - .craft @prop:breakfast0
         - true
-    kitchen-plant:
-      prop: plant
-      pos:
-      - 83
-      - 33
+      rot:
       - 0
-      scale: 0.75
+      - 1.5599999999998886
+      - 0
+    custom:f8788ba0-c0f0-472e-ad6e-93a9249c1e0b:
+      prop: rattan-side-table
+      pos:
+      - 20
+      - 45
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 0.8386179833370742
+    custom:39fd9f34-7183-41af-a747-004f3d2999f9:
+      prop: milking-stool-table
+      pos:
+      - 25
+      - 70
+      - 0
+      rot:
+      - 0
+      - 0.39999999999997726
+      - 0
+      scale: 0.7032801219763413
+    custom:d6a1f1e6-f1e8-4891-8aee-67e3f22bc82b:
+      prop: milking-stool-table
+      pos:
+      - 35
+      - 35
+      - 0
+      rot:
+      - 0
+      - 357.6200000000007
+      - 0
+      scale: 0.708928928049511
+    custom:0c461757-c53d-456c-856f-b3a33c7b24d6:
+      prop: stucco-wall
+      pos:
+      - 0
+      - 90
+      - 0
+      rot:
+      - 0
+      - 359.74
+      - 0
+      scale: 0.894044257500358
+      actions:
+      - - To Living Room
+        - .go @way:foyer
+    custom:8d0d8a48-da16-4ace-8d4f-705852d7be0f:
+      prop: stucco-wall
+      pos:
+      - 100
+      - 90
+      - 0
+      rot:
+      - 0
+      - 359.74000000000024
+      - 0
+      scale: 0.8728426324887194
+      actions:
+      - - To Utility Room
+        - .go @way:utility
   cards:
   - card: tasty-toast
     quantity: 2
@@ -274,31 +335,35 @@ bedroom:
     bed0:
       prop: bed
       pos:
-      - 36
-      - 31
+      - 15
+      - 25
       - 0
       scale: 1.3
     bedside-lamp:
       prop: lamp
       pos:
-      - 72
-      - 28
-      - 0
+      - 50
+      - 5
+      - 19.667089757248615
       scale: 0.85
-    bedroom-picture:
-      prop: framed-picture
-      pos:
-      - 79
-      - 60
-      - 0
-      scale: 0.9
     quilt-rug:
       prop: rug
       pos:
-      - 35
-      - 73
+      - 80
+      - 80
       - 0
-      scale: 1.15
+      scale: 1.3934210945096364
+    custom:a6336c61-6884-46b2-a609-312e3baac5d9:
+      prop: floral-nightstand
+      pos:
+      - 50
+      - 5
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.3125870013111094
   cards:
   - card: seal-plushie
     quantity: 1
@@ -335,10 +400,10 @@ utility:
     supplies0:
       prop: supply-shelf
       pos:
-      - 24
-      - 25
+      - 10
+      - 20
       - 0
-      scale: 1.1
+      scale: 1.0154279810252993
       behavior: dispenser
       only_missing: true
       content:
@@ -348,13 +413,17 @@ utility:
       actions:
       - - Take supplies
         - .dispense supplies0
+      rot:
+      - 0
+      - 357.320000000002
+      - 0
     vacuum0:
       prop: vacuum-stand
       pos:
-      - 72
-      - 29
+      - 95
+      - 10
       - 0
-      scale: 1
+      scale: 1.1641602364321135
       behavior: dispenser
       only_missing: true
       content:
@@ -364,16 +433,57 @@ utility:
       actions:
       - - Take tools
         - .dispense vacuum0
-    cellar-stairs:
-      prop: stairs
-      pos:
-      - 76
-      - 70
+      rot:
       - 0
-      scale: 0.9
+      - 357.5000000000002
+      - 0
+    custom:28e3f8e1-3c72-4a7a-9872-9450c487ff42:
+      prop: arched-iron-door
+      pos:
+      - 100
+      - 90
+      - 0
+      rot:
+      - 0
+      - 1.579999999999984
+      - 0
+      scale: 1.503807161170112
       actions:
       - - Down to basement
         - .go basement
+    custom:fb71bccc-bf7f-4b71-90b9-0a022bc8e037:
+      prop: satu-rug
+      pos:
+      - 20
+      - 80
+      - 0
+      rot:
+      - 0
+      - 358.8400000000006
+      - 0
+      scale: 1.3231298123374406
+    custom:8f9b90ce-9a8e-4343-b0f0-9fa9235d6b0a:
+      prop: oksa-vase
+      pos:
+      - 15
+      - 100
+      - 1.4392173630779042
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:7327cbe2-83fe-4fab-baeb-881f32adb481:
+      prop: tyyny-cushions
+      pos:
+      - 0
+      - 95
+      - 1.4392173630779042
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits:
     kitchen:
       label: Back to the kitchen
@@ -408,10 +518,10 @@ basement:
     key0:
       prop: keys-cabinet
       pos:
-      - 28
-      - 24
+      - 50
+      - 25
       - 0
-      scale: 1.1
+      scale: 1.4096059254134254
       behavior: key
       actions:
       - - Take the key
@@ -419,11 +529,103 @@ basement:
     bugs0:
       prop: centipedes
       pos:
-      - 64
-      - 62
+      - 50
+      - 70
       - 0
-      scale: 1.25
+      scale: 1.3326154984518817
       behavior: centipedes
+      rot:
+      - 0
+      - 2.4400000000004525
+      - 0
+    custom:b6a14d3f-954e-40b5-9758-265ef4c21f80:
+      prop: exposed-stone-wall
+      pos:
+      - 20
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.9738777322304517
+    custom:f68a4dcc-248b-4e61-92c1-9ade94625b9f:
+      prop: exposed-stone-wall
+      pos:
+      - 80
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.9738777322304508
+    custom:39290190-a99e-4bf5-ad69-6047263cbf99:
+      prop: oak-stairwell-landing
+      pos:
+      - 0
+      - 25
+      - 0
+      rot:
+      - 0
+      - 354.9000000000019
+      - 0
+      scale: 1.4681454416819915
+    custom:0a762312-a66a-4a76-913b-96285b5bd532:
+      prop: filing-cabinet
+      pos:
+      - 95
+      - 15
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.881369558148766
+    custom:4e67b5df-2cf6-423f-be1a-be732b701fa7:
+      prop: patchwork-rocking-chair
+      pos:
+      - 95
+      - 100
+      - 0
+      rot:
+      - 0
+      - 356.12000000000216
+      - 0
+      scale: 1.1365530026970612
+    custom:1a545e12-6c35-42ef-940a-fc920d451070:
+      prop: rococo-table-lamp
+      pos:
+      - 90
+      - 20
+      - 37.61101111211594
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:dad9e65b-f67f-4df9-960c-bae7c478d1b6:
+      prop: galvanized-trashcan
+      pos:
+      - 0
+      - 85
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:0a396633-bfcf-4c8d-abce-af11c638875c:
+      prop: galvanized-trashcan
+      pos:
+      - 15
+      - 100
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits:
     utility:
       label: Back upstairs
@@ -464,15 +666,125 @@ garden:
     garden-trashcan:
       prop: city-trashcan
       pos:
-      - 18
-      - 58
+      - 10
+      - 85
       - 0
       rot:
       - 0
       - 15
       - 0
-      scale: 1.2
+      scale: 1.513343674593997
       behavior: trashcan
+    custom:9ed0bd5f-2876-4e78-b7e4-3e2689d53206:
+      prop: boxwood-ball
+      pos:
+      - 60
+      - 100
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 0.9231163463866385
+    custom:0dbe6501-5d7f-45d9-a85e-d0d3ed6f2459:
+      prop: boxwood-ball
+      pos:
+      - 70
+      - 80
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.0000000000000002
+    custom:1d90a005-47a4-4729-8c13-c2619f26bc30:
+      prop: river-reeds
+      pos:
+      - 5
+      - 100
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 0.799315134369365
+    custom:5a9fdbe9-2c06-45c1-a56d-8546f7834aff:
+      prop: fern-clump
+      pos:
+      - 70
+      - 100
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:52e06ffa-cb13-4190-b4c0-a8441972fb83:
+      prop: gorse-bush
+      pos:
+      - 100
+      - 30
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:819cf4ce-8870-4f22-ae2e-87b4b05f599b:
+      prop: gorse-bush
+      pos:
+      - 95
+      - 60
+      - 0
+      rot:
+      - 0
+      - 0.5199999999999818
+      - 0
+      scale: 0.7378608664505929
+    custom:1dd7befb-cc04-45a6-934b-9f5fa9f5dd05:
+      prop: tall-grass-tuft
+      pos:
+      - 90
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
+    custom:e3e94ea7-1032-422c-8c1b-61b21e315caa:
+      prop: tree-stump
+      pos:
+      - 100
+      - 100
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.1924380586506707
+    custom:ea32a20a-19c3-4c1e-9cf1-517d5a8a199b:
+      prop: red-brick-wall
+      pos:
+      - 15
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.4333294145603421
+    custom:8a39831f-40f4-4ee4-9b94-16c8b3d83136:
+      prop: red-brick-wall
+      pos:
+      - 95
+      - 0
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1.4333294145603432
   cards: []
   exits:
     foyer:
