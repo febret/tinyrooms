@@ -338,6 +338,18 @@ loopback HTTPS, then verifies operator login using the passphrase sourced from
 `admin.env`. Failed readiness reports the MC log path. Cron runs keepalive at
 reboot and every minute.
 
+Passing `--force-restart` rolls every running spawned instance onto the deployed
+version before MC itself restarts: the deploy script runs
+[tools/fleet_restart.py](../tools/fleet_restart.py) from the new checkout, which
+logs in over loopback, switches each running spawned child to the deployed
+version (restarting it), and waits for each child to report the new build.
+External instances cannot be updated and are skipped with a warning; stopped
+instances are left untouched. Deployment always restarts MC once, so the flag
+adds the instance rollout rather than an extra MC restart. If the rollout is
+skipped (fresh install, unreachable MC) or any instance fails, deployment still
+completes its own restart and readiness checks, then reports the rollout
+outcome explicitly.
+
 nginx proxies the public origin to loopback Mission Control: TCP 80 redirects to
 HTTPS; 443 serves player entry `https://<hostname>/`, operator UI
 `https://<hostname>/mission-control`, and same-origin worlds under
