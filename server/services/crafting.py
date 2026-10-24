@@ -82,6 +82,7 @@ class CraftingService:
         world: WorldDefinition,
         recipes: dict[str, RecipeDefinition],
         environment: object | None = None,
+        layout: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -93,6 +94,7 @@ class CraftingService:
         self._recipes = recipes
         self._world_id = world.id
         self._environment = environment
+        self._layout = layout
 
     def image_url(self, card_id: str) -> str:
         """Return the served art URL for a catalog card."""
@@ -109,7 +111,18 @@ class CraftingService:
         room = self._world.rooms.get(room_id)
         if room is None:
             raise ValueError("That room does not exist.")
-        prop = room.props.get(prop_instance_id)
+        prop = None
+        if self._layout is not None:
+            prop = next(
+                (
+                    candidate
+                    for candidate in self._layout.effective_props(room_id)
+                    if candidate.id == prop_instance_id
+                ),
+                None,
+            )
+        if prop is None:
+            prop = room.props.get(prop_instance_id)
         if prop is None:
             raise ValueError("That crafting station is not in this room.")
         if self._environment is not None:

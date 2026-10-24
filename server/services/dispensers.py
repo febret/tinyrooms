@@ -43,6 +43,7 @@ class DispenserService:
         rng: random.Random | None = None,
         equipped_caps: dict[int, int] | None = None,
         environment: object | None = None,
+        layout: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -51,6 +52,7 @@ class DispenserService:
         self._rng = rng or random.Random()
         self._equipped_caps = equipped_caps or {}
         self._environment = environment
+        self._layout = layout
         self._cooldowns: dict[tuple[str, str], datetime] = {}
 
     def clear_room(self, prop_instance_ids: tuple[str, ...]) -> None:
@@ -63,7 +65,18 @@ class DispenserService:
         room = self._world.rooms.get(room_id)
         if room is None:
             raise ValueError("That room does not exist.")
-        prop = room.props.get(prop_instance_id)
+        prop = None
+        if self._layout is not None:
+            prop = next(
+                (
+                    candidate
+                    for candidate in self._layout.effective_props(room_id)
+                    if candidate.id == prop_instance_id
+                ),
+                None,
+            )
+        if prop is None:
+            prop = room.props.get(prop_instance_id)
         if prop is None:
             raise ValueError("That dispenser is not in this room.")
         if self._environment is not None:

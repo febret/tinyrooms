@@ -519,8 +519,8 @@ def _build_runtime(
     layout = RoomLayoutService(
         hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
     )
-    dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment)
-    crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes, environment=environment)
+    dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment, layout=layout)
+    crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes, environment=environment, layout=layout)
     registry = build_registry()
     for spec in mods.command_specs():
         registry.register(
