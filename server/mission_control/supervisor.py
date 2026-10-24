@@ -8,10 +8,12 @@ import json
 import logging
 import os
 import re
+import signal
 import socket
 import subprocess
 import sys
 import threading
+import time
 import uuid
 
 from server.config import normalize_base_path, selects_mission_control, validate_instance_id
@@ -105,6 +107,146 @@ def sanitize_child_features(raw: str) -> str:
         for part in raw.split(",")
         if part.strip() and not selects_mission_control(part)
     )
+
+
+def _pid_alive(pid: int) -> bool:
+    """Return True when *pid* names a live process without signaling it."""
+
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
+            if not handle:
+                return False
+            try:
+                code = ctypes.c_ulong()
+                if not ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                    return False
+                return code.value == 259  # STILL_ACTIVE
+            finally:
+                ctypes.windll.kernel32.CloseHandle(handle)
+        except Exception:  # noqa: BLE001 - a dead handle simply means not alive
+            return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _proc_identity_matches(pid: int, *, instance_id: str, port: int) -> bool:
+    """Return True when ``/proc/<pid>/environ`` identifies *instance_id*:*port*.
+
+    Non-Linux platforms cannot verify ownership, so liveness alone is used
+    there; Linux always requires the managed-environment match.
+    """
+
+    environ = Path(f"/proc/{pid}/environ")
+    if not environ.is_file():
+        return sys.platform != "linux"
+    try:
+        entries = environ.read_bytes().split(b"\0")
+    except OSError:
+        return False
+    wanted_id = f"TRSERVER_MC_INSTANCE_ID={instance_id}".encode("utf-8", "ignore")
+    wanted_port = f"TRSERVER_PORT={port}".encode("utf-8", "ignore")
+    return wanted_id in entries and wanted_port in entries
+
+
+def _scan_managed_children() -> dict[tuple[str, int], int]:
+    """Map ``(instance_id, port)`` to PID for live managed children.
+
+    Only Linux exposes child environments this way. Each candidate costs a
+    small read; failures are skipped because other users' processes stay
+    unreadable and short-lived processes may vanish mid-scan.
+    """
+
+    found: dict[tuple[str, int], int] = {}
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return found
+    self_pid = os.getpid()
+    for child in proc_root.iterdir():
+        if not child.name.isdigit():
+            continue
+        pid = int(child.name)
+        if pid == self_pid:
+            continue
+        try:
+            entries = (child / "environ").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        instance_id: str | None = None
+        port: int | None = None
+        for entry in entries:
+            if entry.startswith(b"TRSERVER_MC_INSTANCE_ID="):
+                instance_id = entry.partition(b"=")[2].decode("utf-8", "ignore")
+            elif entry.startswith(b"TRSERVER_PORT="):
+                try:
+                    port = int(entry.partition(b"=")[2])
+                except ValueError:
+                    port = None
+        if instance_id and port is not None:
+            found.setdefault((instance_id, port), pid)
+    return found
+
+
+class RestoredChildProcess:
+    """Signal-based handle for a child that survived a Mission Control restart.
+
+    Spawned children keep running across an ordinary MC restart, but the new
+    MC process has no ``subprocess.Popen`` for them. This adapter terminates
+    only a PID whose environment still names the expected instance, so PID
+    reuse cannot kill an unrelated process.
+    """
+
+    def __init__(self, pid: int, *, instance_id: str, port: int) -> None:
+        self.pid = pid
+        self.stdout = None
+        self._instance_id = instance_id
+        self._port = port
+
+    def _managed(self) -> bool:
+        return _pid_alive(self.pid) and _proc_identity_matches(
+            self.pid, instance_id=self._instance_id, port=self._port
+        )
+
+    def poll(self) -> int | None:
+        """Return None while the managed child is alive, else an exit code."""
+
+        return None if self._managed() else -1
+
+    def terminate(self) -> None:
+        """Request a graceful shutdown of the managed child."""
+
+        if self._managed():
+            os.kill(self.pid, signal.SIGTERM)
+
+    def kill(self) -> None:
+        """Force-kill the managed child."""
+
+        if self._managed():
+            try:
+                os.kill(self.pid, signal.SIGKILL)
+            except AttributeError:  # Windows has no SIGKILL; terminate instead.
+                os.kill(self.pid, signal.SIGTERM)
+
+    def wait(self, timeout: float | None = None) -> int:
+        """Wait for the child to exit, raising on timeout like ``Popen.wait``."""
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while self._managed():
+            if deadline is not None and time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired(["restored-child", str(self.pid)], timeout)
+            time.sleep(0.05)
+        return 0
 
 
 class Supervisor:
@@ -225,7 +367,51 @@ class Supervisor:
             return
         self._write_identity(Path(record.instance_dir) / "instance.json", record.instance_id, record.spawn_config)
 
+    def _adopt_restored_process(
+        self,
+        instance_id: str,
+        config: dict[str, object],
+        discovered: dict[tuple[str, int], int] | None = None,
+    ) -> RestoredChildProcess | None:
+        """Return a signal handle for a child that survived an MC restart.
+
+        Saved PIDs are only trusted when the living process still names this
+        instance; legacy identities without a PID fall back to the
+        ``/proc`` environment scan so pre-fix deployments become manageable.
+        """
+
+        try:
+            port = int(config.get("port"))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
+        raw_pid = config.get("pid")
+        try:
+            saved = int(raw_pid) if raw_pid is not None else None
+        except (TypeError, ValueError):
+            saved = None
+        if saved is not None and _pid_alive(saved) and _proc_identity_matches(
+            saved, instance_id=instance_id, port=port
+        ):
+            return RestoredChildProcess(saved, instance_id=instance_id, port=port)
+        if discovered is None:
+            discovered = _scan_managed_children()
+        found = discovered.get((instance_id, port))
+        if found is not None and _pid_alive(found):
+            return RestoredChildProcess(found, instance_id=instance_id, port=port)
+        return None
+
+    def _record_pid(self, record: InstanceRecord, process: object) -> None:
+        """Persist the live child PID so restarts stay manageable after MC exits."""
+
+        config = record.spawn_config
+        pid = getattr(process, "pid", None)
+        if config is None or not isinstance(pid, int) or pid <= 0:
+            return
+        config["pid"] = pid
+        self._persist_identity(record)
+
     def _restore_identities(self) -> None:
+        discovered: dict[tuple[str, int], int] | None = None
         for path in self._config.instances_path.glob("*/instance.json"):
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
@@ -240,10 +426,16 @@ class Supervisor:
                         self._config.base_path, self._config.public_instance_hostname, instance_id
                     )
                     self._write_identity(path, instance_id, config)
+                if discovered is None:
+                    discovered = _scan_managed_children()
+                handle = self._adopt_restored_process(instance_id, config, discovered)
+                if handle is not None:
+                    config["pid"] = handle.pid
+                    self._write_identity(path, instance_id, config)
                 record = self._registry.register_spawned(
                     instance_id=instance_id, name=str(config["name"]),
                     endpoint=_endpoint(str(config["host"]), int(config["port"])),
-                    instance_dir=str(path.parent), process_handle=None,
+                    instance_dir=str(path.parent), process_handle=handle,
                     spawn_config=config, base_path=str(config.get("base_path") or ""),
                 )
                 self._registry.set_status(record.instance_id, STATUS_UNREACHABLE)
@@ -329,6 +521,7 @@ class Supervisor:
             self._registry.set_status(record.instance_id, STATUS_STOPPED)
             raise
         record.process_handle = process
+        self._record_pid(record, process)
         self._capture_output(record, process)
         self._watch_process(record, process)
         self._audit.record(actor, "instance.start", target=record.instance_id, detail={"endpoint": endpoint})
@@ -448,23 +641,64 @@ class Supervisor:
             finally:
                 if record.process_handle is process:
                     self._registry.set_status(record.instance_id, STATUS_STOPPED)
+                    pid = getattr(process, "pid", None)
+                    config = record.spawn_config
+                    if isinstance(pid, int) and config is not None and config.get("pid") == pid:
+                        config["pid"] = None
+                        self._persist_identity(record)
                     self._changed()
 
         threading.Thread(target=_wait, name=f"mc-watch-{record.instance_id}", daemon=True).start()
 
+    def _saved_port_occupied(self, record: InstanceRecord) -> bool:
+        """Return True when the record's saved port is held by some process."""
+
+        config = record.spawn_config or {}
+        host = str(config.get("host") or self._config.instance_host)
+        try:
+            port = int(config.get("port"))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return False
+        return not port_is_available(host, port)
+
     def stop(self, instance_id: str, *, actor: str = "mission-control") -> bool:
-        """Stop a spawned child process."""
+        """Stop a spawned child process.
+
+        Returns False when the record names a live child that this MC
+        process cannot signal, so callers do not spawn a duplicate onto a
+        new port while the old child keeps serving.
+        """
 
         record = self._registry.get(instance_id)
-        if record is None:
+        if record is None or record.spawn_config is None:
             return False
         process = getattr(record, "process_handle", None)
-        if process is not None and process.poll() is None:
+        if process is None:
+            if record.status == STATUS_STOPPED or not self._saved_port_occupied(record):
+                self._registry.set_status(instance_id, STATUS_STOPPED)
+                self._audit.record(actor, "instance.stop", target=instance_id)
+                self._changed()
+                return True
+            LOGGER.warning(json.dumps({
+                "event": "mc.unmanaged_child",
+                "instance_id": instance_id,
+                "detail": "saved child port is occupied by a process this server cannot signal",
+            }))
+            return False
+        if process.poll() is None:
             process.terminate()
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 process.kill()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    LOGGER.warning(json.dumps({
+                        "event": "mc.child_stop_timeout",
+                        "instance_id": instance_id,
+                    }))
+                    return False
         self._registry.set_status(instance_id, STATUS_STOPPED)
         self._audit.record(actor, "instance.stop", target=instance_id)
         self._changed()
@@ -484,13 +718,20 @@ class Supervisor:
             )
         record.spawn_config["instance_id"] = record.instance_id
         record.spawn_config.setdefault("client_url", record.client_url or f"{record.endpoint}{record.base_path}")
-        self.stop(instance_id, actor=actor)
+        if not self.stop(instance_id, actor=actor):
+            LOGGER.warning(json.dumps({
+                "event": "mc.restart_refused",
+                "instance_id": instance_id,
+                "detail": "refusing to respawn while the current child cannot be stopped",
+            }))
+            return None
         self._recover_conflicting_port(record)
         self._persist_identity(record)
         process = self._spawn_process(dict(record.spawn_config))
         revived = self._registry.revive(instance_id, process_handle=process, instance_dir=record.instance_dir)
         if revived is None:
             return None
+        self._record_pid(revived, process)
         self._capture_output(revived, process)
         self._watch_process(revived, process)
         self._audit.record(actor, "instance.restart", target=instance_id)
@@ -509,6 +750,7 @@ class Supervisor:
         revived = self._registry.revive(instance_id, process_handle=process)
         if revived is None:
             return None
+        self._record_pid(revived, process)
         self._capture_output(revived, process)
         self._watch_process(revived, process)
         self._audit.record(actor, "instance.start", target=instance_id)
@@ -551,7 +793,8 @@ class Supervisor:
             return None
         self._persist_identity(updated)
         if updated.status != STATUS_STOPPED:
-            self.restart(instance_id, actor=actor)
+            if self.restart(instance_id, actor=actor) is None:
+                return None
         self._audit.record(actor, "instance.rename", target=instance_id, detail={"name": name, "base_path": base_path})
         return self._registry.get(instance_id)
 

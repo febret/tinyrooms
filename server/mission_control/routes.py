@@ -99,6 +99,7 @@ class RegisterPayload(BaseModel):
     world: dict[str, object] = {}
     started_at: str | None = None
     base_path: str = ""
+    pid: int | None = None
 
 
 class HeartbeatPayload(BaseModel):
@@ -109,12 +110,14 @@ class HeartbeatPayload(BaseModel):
     users_online: int = 0
     online_account_ids: list[str] = Field(default_factory=list)
     world_id: str | None = None
+    pid: int | None = None
 
 
 class DeregisterPayload(BaseModel):
     """Instance deregistration payload."""
 
     instance_id: str
+    pid: int | None = None
 
 
 class CleanupVersionsPayload(BaseModel):
@@ -222,6 +225,23 @@ def _exit_soon() -> None:
 # --- Fleet channel (token authenticated) -------------------------------------
 
 
+def _active_child_pid(record: object) -> int | None:
+    """Return the live child PID MC last spawned for a record, if known."""
+
+    spawn_config = getattr(record, "spawn_config", None)
+    if getattr(record, "source", None) != SPAWNED or not isinstance(spawn_config, dict):
+        return None
+    pid = spawn_config.get("pid")
+    return pid if isinstance(pid, int) and pid > 0 else None
+
+
+def _is_stale_child(record: object, pid: int | None) -> bool:
+    """Return True when a reporting process is not the record's active child."""
+
+    active = _active_child_pid(record)
+    return active is not None and pid is not None and pid != active
+
+
 @router.post("/api/mc/register")
 async def fleet_register(request: Request, payload: RegisterPayload) -> dict[str, object]:
     """Register a world-server instance and assign it an id."""
@@ -244,6 +264,17 @@ async def fleet_register(request: Request, payload: RegisterPayload) -> dict[str
                     "reregister_mismatch",
                     "Restart this instance so Mission Control can update its same-origin route.",
                 )
+    if payload.instance_id:
+        existing = runtime.registry.get(payload.instance_id)
+        if existing is not None and _is_stale_child(existing, payload.pid):
+            runtime.audit.record("world", "instance.register", target=payload.instance_id,
+                                 result="rejected_stale",
+                                 detail={"pid": payload.pid, "active_pid": _active_child_pid(existing)})
+            return _json_error(
+                409,
+                "stale_instance",
+                "A newer child owns this instance; the reporting process is stale.",
+            )
     data = payload.model_dump()
     data["base_path"] = base_path
     record = runtime.registry.register(data)
@@ -263,6 +294,12 @@ async def fleet_heartbeat(request: Request, payload: HeartbeatPayload) -> dict[s
 
     _require_token(request)
     runtime = _runtime(request)
+    existing = runtime.registry.get(payload.instance_id)
+    if existing is None:
+        return {"ok": False, "code": "unknown_instance", "message": "Instance is not registered."}
+    if _is_stale_child(existing, payload.pid):
+        return {"ok": False, "code": "stale_instance",
+                "message": "A newer child owns this instance; the reporting process is stale."}
     record = runtime.registry.heartbeat(
         payload.instance_id,
         uptime_seconds=payload.uptime_seconds,
@@ -288,6 +325,9 @@ async def fleet_deregister(request: Request, payload: DeregisterPayload) -> dict
 
     _require_token(request)
     runtime = _runtime(request)
+    existing = runtime.registry.get(payload.instance_id)
+    if existing is not None and _is_stale_child(existing, payload.pid):
+        return {"ok": True, "ignored": "stale_instance"}
     runtime.registry.set_status(payload.instance_id, STATUS_STOPPED)
     try:
         runtime.world_map.update()
@@ -441,7 +481,8 @@ async def stop_server(request: Request, instance_id: str) -> dict[str, object]:
     if record is None:
         raise HTTPException(status_code=404, detail="Instance not found.")
     if record.source == SPAWNED:
-        runtime.supervisor.stop(instance_id)
+        if not runtime.supervisor.stop(instance_id):
+            return _json_error(502, "stop_unavailable", "Instance is running but cannot be stopped by this server.")
     else:
         try:
             await _world_call(runtime, record.endpoint, "POST", "/api/mc/shutdown")

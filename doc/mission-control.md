@@ -142,9 +142,12 @@ owns child processes. Outbound HTTP uses async `httpx`.
 
 MC has no separate DB. Live registration/metrics, package index, audit ring,
 and operator sessions are in memory. Spawned stable identities and launch
-settings persist at `<TRSERVER_MC_INSTANCES_PATH>/<instance-id>/instance.json`.
-Startup restores these as unreachable; restoring identity alone does not spawn
-a process. `resume.json` records children to respawn after Reboot; `entry.json`
+settings persist at `<TRSERVER_MC_INSTANCES_PATH>/<instance-id>/instance.json`,
+including the spawned child's process id. Startup restores these as
+unreachable and re-attaches a signal handle to any still-running child (on
+Linux this verifies the child's environment names the restored instance, so
+recycled PIDs are never signaled); restoring identity alone does not spawn
+a process; `resume.json` records children to respawn after Reboot; `entry.json`
 persists the new-account default. External records rebuild through registration.
 Player accounts/sessions remain in the shared profile DB.
 
@@ -183,11 +186,12 @@ admin console; log refresh can be paused.
   including host, base path, client URL, and version selection. If the saved
   port is unavailable, MC allocates another in-range port, updates the saved
   endpoint/identity, and logs `mc.port_reassigned` instead of failing to bind.
-- **Change version**: select another installed server version for a spawned
-  instance. MC re-resolves its world for that checkout, persists the selection,
-  and restarts a non-stopped child. Shared worlds remain outside version roots.
-  The main grid shows the running build and exposes start/restart/resync/delete
-  plus version controls directly.
+- **Change version**: open an instance to its detail view and select another
+  installed server version in the Server Info card. MC re-resolves its world
+  for that checkout, persists the selection, and restarts a non-stopped child.
+  Shared worlds remain outside version roots. The main grid shows the running
+  build and exposes start/restart/resync/delete directly; version selection
+  lives in the detail view, which refreshes itself while the child restarts.
 - **Rename**: spawned only; persists the label and restarts a non-stopped child,
   preserving id, direct URL, and any legacy base path.
 - **Delete**: stops/removes a child, identity file, and resume entry; leaves
@@ -357,12 +361,16 @@ version before MC itself restarts: the deploy script runs
 [tools/fleet_restart.py](../tools/fleet_restart.py) from the new checkout, which
 logs in over loopback, switches each running spawned child to the deployed
 version (restarting it), and waits for each child to report the new build.
-External instances cannot be updated and are skipped with a warning; stopped
-instances are left untouched. Deployment always restarts MC once, so the flag
-adds the instance rollout rather than an extra MC restart. If the rollout is
-skipped (fresh install, unreachable MC) or any instance fails, deployment still
-completes its own restart and readiness checks, then reports the rollout
-outcome explicitly.
+Because MC tracks each spawned child's process id and re-attaches to surviving
+children after its own restarts, stopping and version changes keep working
+after the deploy-owned MC restart; registrations and heartbeats from a
+superseded child are rejected so an orphan cannot overwrite the live
+instance's reported version or route. External instances cannot be updated and
+are skipped with a warning; stopped instances are left untouched. Deployment
+always restarts MC once, so the flag adds the instance rollout rather than an
+extra MC restart. If the rollout is skipped (fresh install, unreachable MC) or
+any instance fails, deployment still completes its own restart and readiness
+checks, then reports the rollout outcome explicitly.
 
 nginx proxies the public origin to loopback Mission Control: TCP 80 redirects to
 HTTPS; 443 serves player entry `https://<hostname>/`, operator UI

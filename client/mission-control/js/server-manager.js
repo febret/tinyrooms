@@ -84,7 +84,7 @@ export function createServerManager(container, ctx) {
         el("td", {}, clientLink(server)),
         el("td", {}, statusBadge(server.status)),
         el("td", {}, server.world.label || server.world.id || "—"),
-        versionControl(server),
+        el("td", {}, server.version || server.version_id || "—"),
         el("td", {}, server.source),
         el("td", {}, formatUptime(server.uptime_seconds)),
         el("td", {}, String(server.users_online)),
@@ -227,7 +227,7 @@ export function createServerManager(container, ctx) {
         info("Endpoint", detail.endpoint),
         info("Source", detail.source),
         info("World", detail.world.label || detail.world.id || "—"),
-        info("Version", detail.version_id || detail.version || "—"),
+        detail.source === "spawned" ? info("Version", versionSelect(detail)) : info("Version", versionLabel(detail)),
         info("Uptime", formatUptime(detail.uptime_seconds)),
         info("Users online", String(detail.users_online)),
         info("Rooms", stats.rooms !== undefined ? String(stats.rooms) : "—"),
@@ -260,14 +260,16 @@ export function createServerManager(container, ctx) {
       : el("span", { class: "muted", text: "—" });
   }
 
-  function versionControl(server) {
+  function versionLabel(server) {
+    return server.version || server.version_id || "—";
+  }
+
+  function versionSelect(server) {
     const current = server.version_id || "";
-    const label = server.version || current || "—";
-    if (server.source !== "spawned") return el("td", {}, label);
+    const label = versionLabel(server);
     const versions = ctx.versions();
     const select = el("select", {
       "aria-label": `Version for ${server.name}`,
-      onclick: (event) => event.stopPropagation(),
       onchange: (event) => {
         const value = event.target.value;
         if (!value) return;
@@ -279,10 +281,10 @@ export function createServerManager(container, ctx) {
         el("option", { value: version.id, text: `Switch: ${version.label || version.id}` }),
       ),
     ]);
-    return el("td", {}, el("div", { class: "stack" }, [
+    return el("div", { class: "stack" }, [
       el("span", { text: label }),
       select,
-    ]));
+    ]);
   }
 
   function gridActions(server) {
@@ -333,8 +335,12 @@ export function createServerManager(container, ctx) {
 
   async function changeVersion(server, version) {
     await api.post(`/api/mission-control/servers/${server.instance_id}/version`, { version });
-    await refreshList();
-    ctx.setBanner(`Changing ${server.name} to ${version}.`);
+    if (state.selectedId === server.instance_id) {
+      await refreshDetail();
+    } else {
+      await refreshList();
+    }
+    ctx.setBanner(`Switching ${server.name} to ${version}; restarting.`);
   }
 
   async function deleteServer(server) {
@@ -518,7 +524,10 @@ export function createServerManager(container, ctx) {
   }
 
   return {
-    activate: () => loadNginxStatus().then(refreshList).catch(showError),
+    activate: () => {
+      const reload = typeof ctx.reloadVersions === "function" ? ctx.reloadVersions() : Promise.resolve();
+      return reload.then(() => loadNginxStatus()).then(refreshList).catch(showError);
+    },
     deactivate: () => { if (state.timer) window.clearInterval(state.timer); },
   };
 }

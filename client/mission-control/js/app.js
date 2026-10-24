@@ -27,6 +27,7 @@ function setBanner(message) {
 const ctx = {
   setBanner,
   versions: () => cachedVersions,
+  reloadVersions: loadVersions,
   worlds: loadWorlds,
 };
 

@@ -212,6 +212,7 @@ class InstanceRegistry:
             if instance_dir is not None:
                 record.instance_dir = instance_dir
             record.status = STATUS_STARTING
+            record.version = None
             record.log_buffer.clear()
             return record
 

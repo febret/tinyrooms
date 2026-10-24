@@ -10,6 +10,7 @@ import asyncio
 from datetime import UTC, datetime
 import json
 import logging
+import os
 import time
 from typing import TYPE_CHECKING
 
@@ -29,6 +30,19 @@ MAX_REGISTER_ATTEMPTS = 6
 
 def _log(event: str, **fields: object) -> None:
     LOGGER.info(json.dumps({"event": event, **fields}, separators=(",", ":")))
+
+
+def _stale_rejection(error: Exception) -> bool:
+    """Return True when an MC rejection says a newer child owns the instance."""
+
+    response = getattr(error, "response", None)
+    if response is None:
+        return False
+    try:
+        payload = response.json()
+    except Exception:  # noqa: BLE001 - non-JSON rejections are not stale claims
+        return False
+    return isinstance(payload, dict) and payload.get("code") == "stale_instance"
 
 
 def _world_endpoint(host: str, port: int) -> str:
@@ -80,6 +94,7 @@ class McClient:
             "endpoint": _world_endpoint(config.host, config.port),
             "version": BUILD_VERSION,
             "protocol_version": PROTOCOL_VERSION,
+            "pid": os.getpid(),
             "world": {"id": self._runtime.world.id, "label": self._runtime.world.label,
                       "description": self._runtime.world.description,
                       "image": self._runtime.world.image_name,
@@ -124,6 +139,7 @@ class McClient:
             "users_online": len(online_account_ids),
             "online_account_ids": online_account_ids,
             "world_id": self._runtime.world.id,
+            "pid": os.getpid(),
         }
 
     async def heartbeat(self) -> dict[str, object] | None:
@@ -148,7 +164,10 @@ class McClient:
             code = data.get("code")
             _log("mc.heartbeat_rejected", instance_id=self._instance_id, code=code)
             self._registered = False
-            if code != "reregister_required":
+            if code == "stale_instance":
+                self._instance_id = None
+                self._stop.set()
+            elif code != "reregister_required":
                 self._instance_id = None
         return data
 
@@ -161,6 +180,10 @@ class McClient:
                 await self.register()
                 return True
             except Exception as exc:  # noqa: BLE001 - never break gameplay
+                if isinstance(exc, httpx.HTTPStatusError) and _stale_rejection(exc):
+                    _log("mc.superseded", error="stale_instance")
+                    self._stop.set()
+                    return False
                 _log("mc.register_failed", attempt=attempt, error=type(exc).__name__)
                 if attempt == MAX_REGISTER_ATTEMPTS:
                     return False
@@ -217,7 +240,7 @@ class McClient:
             try:
                 await self._client.post(
                     f"{self._base_url()}/api/mc/deregister",
-                    json={"instance_id": self._instance_id},
+                    json={"instance_id": self._instance_id, "pid": os.getpid()},
                     headers={"X-MC-Token": self._token},
                 )
             except Exception:  # noqa: BLE001 - best effort only
