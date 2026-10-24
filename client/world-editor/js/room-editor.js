@@ -21,6 +21,7 @@ export function worldRoomEditor(state, roomId) {
     source: prop.source,
     tags: prop.tags,
     locked: false,
+    one_per_room: Boolean(prop.one_per_room),
   }));
   const visible = new Set(library.map(prop => prop.prop_id));
   const editor = normalizeEditorView({

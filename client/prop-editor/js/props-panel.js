@@ -45,21 +45,39 @@ export function renderPropsPanel(state) {
   }
   const file = state.file || {};
   const enums = state.enums || {};
+  const catalog = state.catalog || {};
   const setNames = Object.keys(prop.effects || {});
   const models = file.models || [];
   const modelOptions = models.includes(prop.model) || !prop.model
     ? models
     : [prop.model, ...models];
+  const behaviorOptions = [{ value: "", label: "(none)" }, ...(catalog.behaviors || []).map(behavior => (
+    typeof behavior === "string" ? behavior : { value: behavior.id, label: `${behavior.id} (${behavior.kind || "script"})` }
+  ))];
+  const activityOptions = [{ value: "", label: "(none)" }, ...(catalog.activities || [])];
   return `
     ${panelHeader(prop.label || state.selected?.id || "Prop", `${state.selected?.id || ""} · ${file.kind || ""}/${file.source || ""}`)}
     <div class="pe-panel-body">
       ${field("Label", textInput(prop.label, `data-pe-prop="label" data-pe-kind="text"`))}
       ${field("Description", textarea(prop.description, `data-pe-prop="description" data-pe-kind="text"`, 3))}
       ${field("Model", `<select data-pe-prop="model" data-pe-kind="text">${selectOptions(modelOptions, prop.model)}</select>`)}
+      ${field("Render kind", `<select data-pe-prop="render_kind" data-pe-kind="text">${selectOptions(enums.render_kinds || ["model"], prop.render_kind || "model")}</select>`)}
       <div class="pe-field-row">
         ${field("Animation", textInput(prop.animation || "", `data-pe-prop="animation" data-pe-kind="text"`, "auto"))}
         ${field("Scale", numberInput(prop.scale ?? 1, `data-pe-prop="scale" data-pe-kind="number"`))}
       </div>
+      <fieldset class="pe-subgroup">
+        <legend>Gameplay</legend>
+        <p class="pe-hint">Behavior, activity, content, cooldown, and recipes belong to the prop definition and apply to every placed instance.</p>
+        ${field("Behavior", `<select data-pe-prop="behavior" data-pe-kind="text">${selectOptions(behaviorOptions, prop.behavior || "")}</select>`)}
+        ${field("Activity", `<select data-pe-prop="activity" data-pe-kind="text">${selectOptions(activityOptions, prop.activity || "")}</select>`)}
+        <div class="pe-field-row">
+          ${field("Cooldown (seconds)", numberInput(prop.cooldown ?? "", `data-pe-prop="cooldown" data-pe-kind="int"`, "1"))}
+          <label class="pe-check">${checkbox(Boolean(prop.one_per_room), `data-pe-prop="one_per_room" data-pe-kind="bool"`)} one per room</label>
+        </div>
+        ${field("Content cards (comma-separated)", textInput((prop.content || []).join(", "), `data-pe-prop="content" data-pe-kind="csv"`))}
+        ${field("Recipes (comma-separated)", textInput((prop.recipes || []).join(", "), `data-pe-prop="recipes" data-pe-kind="csv"`))}
+      </fieldset>
       <div class="pe-field-row">
         ${field("Editor min", numberInput(prop.editor_scale_min ?? 0.25, `data-pe-prop="editor_scale_min" data-pe-kind="number"`))}
         ${field("Editor max", numberInput(prop.editor_scale_max ?? 4, `data-pe-prop="editor_scale_max" data-pe-kind="number"`))}

@@ -112,6 +112,8 @@ paintball-vending:
     or a set of ten paintballs.
   model: paintball-vending.glb
   decorative: true
+  behavior: paintball
+  one_per_room: true
   scale: 2
   sprite_footprint:
   - 4
@@ -143,3 +145,14 @@ paintball-barrel-stack:
   - 5
   tags:
   - paintball
+chess-controller:
+  label: Chess
+  description: The chess controller. Play moves against the arcade chess engine here.
+  render_kind: text
+  decorative: false
+  behavior: chess
+  one_per_room: true
+  scale: 0.32
+  tags:
+  - chess
+  - game

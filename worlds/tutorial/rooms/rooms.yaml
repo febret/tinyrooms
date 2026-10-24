@@ -68,7 +68,6 @@ foyer:
       actions:
       - - Open the front door
         - .go @way:garden
-      behavior: locked-door
     custom:cd33ce3b-9f49-4b9c-bade-9d8b1d15c056:
       prop: dusty-rose-sofa
       pos:
@@ -150,7 +149,6 @@ kitchen:
       - 10
       - 0
       scale: 1.513408307361747
-      behavior: crafting
       actions:
       - - Craft at the counter
         - .craft @prop:breakfast0
@@ -266,7 +264,6 @@ bathroom:
       - 15
       - 0
       scale: 1.9412074566593076
-      behavior: shower
       actions:
       - - Take a shower
         - .act shower @prop:shower0
@@ -281,17 +278,6 @@ bathroom:
       - 72.13867331631442
       - 19.96625935609626
       scale: 1.5038071611701174
-      behavior: dispenser
-      content:
-      - market-bandage
-      - market-painkillers
-      - market-cough-syrup
-      - market-vitamins
-      - market-antiseptic-cream
-      - market-cold-pack
-      - market-herbal-tea
-      - market-stomach-settler
-      cooldown: 60
       actions:
       - - Take medicine
         - .dispense medicine0
@@ -306,7 +292,6 @@ bathroom:
       - 15
       - 0
       scale: 0.7230780876371641
-      behavior: litter-tray
       rot:
       - 0
       - 356.32000000000085
@@ -475,12 +460,7 @@ utility:
       - 20
       - 0
       scale: 1.0154279810252993
-      behavior: dispenser
       only_missing: true
-      content:
-      - pooper-scooper
-      - plastic-bag
-      cooldown: 60
       actions:
       - - Take supplies
         - .dispense supplies0
@@ -495,12 +475,7 @@ utility:
       - 10
       - 0
       scale: 1.1641602364321135
-      behavior: dispenser
       only_missing: true
-      content:
-      - vacuum-cleaner
-      - hand-light
-      cooldown: 60
       actions:
       - - Take tools
         - .dispense vacuum0
@@ -593,7 +568,6 @@ basement:
       - 25
       - 0
       scale: 1.4096059254134254
-      behavior: key
       actions:
       - - Take the key
         - .act take_key @prop:key0
@@ -604,7 +578,6 @@ basement:
       - 70
       - 0
       scale: 1.3326154984518817
-      behavior: centipedes
       rot:
       - 0
       - 2.4400000000004525
@@ -745,7 +718,6 @@ garden:
       - 15
       - 0
       scale: 1.513343674593997
-      behavior: trashcan
     custom:9ed0bd5f-2876-4e78-b7e4-3e2689d53206:
       prop: boxwood-ball
       pos:

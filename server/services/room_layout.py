@@ -1,8 +1,8 @@
-"""Validated room-owner decorative layout editing."""
+"""Validated room-owner prop layout editing."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
@@ -12,9 +12,6 @@ from server.content.surface_props import (
     DEFAULT_SIGN_STYLE,
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
-    SIGN_PROP_ID,
-    WHITEBOARD_PROP_ID,
-    default_activity,
     sign_options,
     validate_sign_style,
     whiteboard_options,
@@ -22,7 +19,6 @@ from server.content.surface_props import (
 from server.content.text_props import (
     MAX_ROOM_TEXT_LENGTH,
     MAX_TEXT_PROPS,
-    TEXT_PROP_ID,
     text_options,
     validate_text,
 )
@@ -136,15 +132,17 @@ class RoomLayoutService:
         return room
 
     def _catalog_definitions(self, room: RoomDefinition) -> list[PropDefinition]:
-        # Shared propset props form a global decorative catalog owners may add
-        # from; world and mod props stay curated by the room's own instances.
+        # Shared propset props form a global catalog owners may add from;
+        # world and mod props stay curated by the room's own instances.
+        # Non-decorative props are placeable too; gameplay behavior comes from
+        # the definition, and one_per_room props still cap at one per room.
         approved: dict[str, PropDefinition] = {}
         for definition in self._world.props.values():
-            if definition.decorative and not definition.hidden and definition.source_kind in {"propset", "builtin"}:
+            if not definition.hidden and definition.source_kind in {"propset", "builtin"}:
                 approved.setdefault(definition.id, definition)
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
-            if definition.decorative and not definition.hidden:
+            if not definition.hidden:
                 approved.setdefault(definition.id, definition)
         return sorted(approved.values(), key=lambda definition: definition.id)
 
@@ -202,12 +200,8 @@ class RoomLayoutService:
                 if self._world.props[instance.prop_id].decorative
                 and not self._world.props[instance.prop_id].hidden
             )
-            return [
-                instance
-                if instance.activity or not default_activity(self._world.props[instance.prop_id].render_kind)
-                else replace(instance, activity=default_activity(self._world.props[instance.prop_id].render_kind))
-                for instance in base
-            ]
+            return base
+        merged: dict[str, PropInstanceDefinition] = {instance.id: instance for instance in base}
         for entry in live:
             if not isinstance(entry, dict):
                 continue
@@ -216,38 +210,28 @@ class RoomLayoutService:
                 continue
             instance_id = str(entry.get("id"))
             source = room.props.get(instance_id)
-            base.append(
-                PropInstanceDefinition(
-                    id=instance_id,
-                    prop_id=definition.id,
-                    pos=_vector(entry.get("position"), (50.0, 50.0, 0.0)),
-                    rot=_vector(entry.get("rotation"), (0.0, 0.0, 0.0)),
-                    scale=float(entry.get("scale", 1.0)),
-                    behavior=source.behavior if source else None,
-                    actions=source.actions if source else (),
-                    content=source.content if source else (),
-                    cooldown=source.cooldown if source else None,
-                    personal=source.personal if source else False,
-                    recipes=source.recipes if source else (),
-                    animation=source.animation if source else None,
-                    activity=(
-                        source.activity
-                        if source and source.activity
-                        else default_activity(definition.render_kind)
-                    ),
-                    draw_weight=source.draw_weight if source else {},
-                    only_missing=source.only_missing if source else False,
-                    text=dict(entry["text"]) if definition.render_kind == "text" else None,
-                    sign_style=(
-                        str(entry.get("sign_style") or "")
-                        if definition.render_kind == "sign" and entry.get("sign_style")
-                        else (source.sign_style if source and definition.render_kind == "sign" else None)
-                    ),
-                    surface=source.surface if source else None,
-                    description=source.description if source else None,
-                )
+            merged[instance_id] = PropInstanceDefinition(
+                id=instance_id,
+                prop_id=definition.id,
+                pos=_vector(entry.get("position"), (50.0, 50.0, 0.0)),
+                rot=_vector(entry.get("rotation"), (0.0, 0.0, 0.0)),
+                scale=float(entry.get("scale", 1.0)),
+                actions=source.actions if source else (),
+                personal=source.personal if source else False,
+                animation=source.animation if source else None,
+                draw_weight=source.draw_weight if source else {},
+                only_missing=source.only_missing if source else False,
+                text=dict(entry["text"]) if definition.render_kind == "text" else None,
+                sign_style=(
+                    str(entry.get("sign_style") or "")
+                    if definition.render_kind == "sign" and entry.get("sign_style")
+                    else (source.sign_style if source and definition.render_kind == "sign" else None)
+                ),
+                surface=source.surface if source else None,
+                description=source.description if source else None,
+                label=source.label if source else None,
             )
-        return base
+        return list(merged.values())
 
     def _state_payload(
         self,
@@ -308,7 +292,7 @@ class RoomLayoutService:
             "position": list(instance.pos),
             "rotation": list(instance.rot),
             "scale": instance.scale * definition.scale,
-            "behavior": instance.behavior,
+            "behavior": definition.behavior,
             "model_url": prop_model_url(
                 self._world.id,
                 definition,
@@ -318,7 +302,7 @@ class RoomLayoutService:
             **({"text": dict(instance.text)} if instance.text is not None else {}),
             **({"sign_style": _read_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
             **({"surface": surface} if surface is not None else {}),
-            "label": definition.label,
+            "label": instance.label or definition.label,
             "description": instance.description if instance.description is not None else definition.description,
             "animation": animation,
             "quick_actions": [],
@@ -348,37 +332,24 @@ class RoomLayoutService:
         return serialize_prop_entry(self._world, definition)
 
     def _editable_instances(self, room: RoomDefinition, live: list[object] | None) -> list[dict[str, object]]:
-        if live is not None:
-            entries = [
-                {
-                    "id": str(entry.get("id")),
-                    "prop_id": str(entry.get("prop_id")),
-                    "position": list(_vector(entry.get("position"), (50.0, 50.0, 0.0))),
-                    "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
-                    "scale": float(entry.get("scale", 1.0)),
-                    "locked": bool(entry.get("locked")),
-                    **({"text": dict(entry["text"])} if isinstance(entry.get("text"), dict) else {}),
-                    **({"sign_style": str(entry["sign_style"])} if isinstance(entry.get("sign_style"), str) else {}),
-                }
-                for entry in live
-                if isinstance(entry, dict)
-            ]
-        else:
-            entries = [
-                {
-                    "id": instance.id,
-                    "prop_id": instance.prop_id,
-                    "position": list(instance.pos),
-                    "rotation": list(instance.rot),
-                    "scale": float(instance.scale),
-                    "locked": False,
-                    **({"text": dict(instance.text)} if instance.text is not None else {}),
-                    **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
-                }
-                for instance in room.props.values()
-                if self._world.props[instance.prop_id].decorative
-                and not self._world.props[instance.prop_id].hidden
-            ]
+        live_locked = {
+            str(entry.get("id")): bool(entry.get("locked"))
+            for entry in live or []
+            if isinstance(entry, dict)
+        }
+        entries = [
+            {
+                "id": instance.id,
+                "prop_id": instance.prop_id,
+                "position": list(instance.pos),
+                "rotation": list(instance.rot),
+                "scale": float(instance.scale),
+                "locked": live_locked.get(instance.id, False),
+                **({"text": dict(instance.text)} if instance.text is not None else {}),
+                **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
+            }
+            for instance in self.effective_props(room.id)
+        ]
         entries = [
             entry
             for entry in entries
@@ -531,18 +502,22 @@ class RoomLayoutService:
         approved.update(
             instance.prop_id
             for instance in room.props.values()
-            if self._world.props[instance.prop_id].decorative
+            if not self._world.props[instance.prop_id].hidden
         )
         live = self._world_state.read_room_layout(room.id)["props"] or []
         approved.update(str(entry.get("prop_id")) for entry in live if isinstance(entry, dict))
-        known = {instance.id for instance in room.props.values() if self._world.props[instance.prop_id].decorative}
+        known = {
+            instance.id
+            for instance in room.props.values()
+            if not self._world.props[instance.prop_id].hidden
+        }
         known.update(str(entry.get("id")) for entry in live if isinstance(entry, dict))
         # Hidden props are invisible to the room editor, so a saved visible
         # layout must carry them forward rather than dropping them from state.
         hidden_existing: dict[str, dict[str, object]] = {}
         for instance in room.props.values():
             definition = self._world.props[instance.prop_id]
-            if definition.decorative and definition.hidden:
+            if definition.hidden:
                 hidden_existing[instance.id] = {
                     "id": instance.id,
                     "prop_id": instance.prop_id,
@@ -574,16 +549,23 @@ class RoomLayoutService:
                 raise ValueError("Each layout prop must be a mapping.")
             prop_id = str(entry.get("prop_id") or "")
             definition = self._world.props.get(prop_id)
-            if definition is not None and not definition.decorative:
-                raise ValueError(f"Prop '{prop_id}' is not decorative.")
             if prop_id not in approved:
                 raise ValueError(f"Prop '{prop_id}' is not approved for editing.")
             instance_id = str(entry.get("id") or "")
             if not instance_id or instance_id in seen:
                 raise ValueError("Layout prop IDs must be unique and non-empty.")
             authored = room.props.get(instance_id)
-            if authored is not None and not self._world.props[authored.prop_id].decorative:
-                raise ValueError(f"Layout prop ID '{instance_id}' belongs to an immutable gameplay prop.")
+            authored_definition = self._world.props[authored.prop_id] if authored is not None else None
+            if (
+                authored is not None
+                and authored_definition is not None
+                and not authored_definition.decorative
+                and prop_id != authored.prop_id
+            ):
+                raise ValueError(
+                    f"Layout prop ID '{instance_id}' is a gameplay prop "
+                    f"and must stay a '{authored.prop_id}'."
+                )
             if instance_id.startswith("custom:"):
                 try:
                     uuid.UUID(instance_id[7:])
@@ -593,15 +575,15 @@ class RoomLayoutService:
                 raise ValueError(f"Unknown layout prop '{instance_id}'.")
             seen.add(instance_id)
             text = None
-            if prop_id == TEXT_PROP_ID:
+            if definition is not None and definition.render_kind == "text":
                 text = validate_text(entry.get("text"))
             elif "text" in entry:
-                raise ValueError("Only builtin:text props may have a text recipe.")
+                raise ValueError("Only text props may have a text recipe.")
             sign_style = None
             if definition is not None and definition.render_kind == "sign":
                 sign_style = validate_sign_style(entry.get("sign_style"))
             elif "sign_style" in entry:
-                raise ValueError("Only builtin:sign props may have a sign_style.")
+                raise ValueError("Only sign props may have a sign_style.")
             props.append(
                 {
                     "id": instance_id,
@@ -617,15 +599,56 @@ class RoomLayoutService:
         for instance_id, entry in hidden_existing.items():
             if instance_id not in seen:
                 props.append(entry)
-        texts = [entry["text"] for entry in props if entry["prop_id"] == TEXT_PROP_ID]
+        for instance in room.props.values():
+            if instance.id in seen:
+                continue
+            definition = self._world.props[instance.prop_id]
+            if definition.hidden or definition.decorative:
+                continue
+            props.append(
+                {
+                    "id": instance.id,
+                    "prop_id": instance.prop_id,
+                    "position": list(instance.pos),
+                    "rotation": list(instance.rot),
+                    "scale": float(instance.scale),
+                    "locked": False,
+                    **({"text": dict(instance.text)} if instance.text is not None else {}),
+                    **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
+                }
+            )
+        counts: dict[str, int] = {}
+        for entry in props:
+            definition = self._world.props.get(str(entry["prop_id"]))
+            if definition is None or not definition.one_per_room:
+                continue
+            counts[definition.id] = counts.get(definition.id, 0) + 1
+            if counts[definition.id] > 1:
+                raise ValueError(f"Only one {definition.label or definition.id} may be placed per room.")
+        texts = [
+            entry["text"]
+            for entry in props
+            if (definition := self._world.props.get(str(entry["prop_id"]))) is not None
+            and definition.render_kind == "text"
+        ]
         if len(texts) > MAX_TEXT_PROPS:
             raise ValueError(f"A room may contain at most {MAX_TEXT_PROPS} text props.")
         if sum(len(text["content"]) for text in texts) > MAX_ROOM_TEXT_LENGTH:
             raise ValueError(f"A room's text props may contain at most {MAX_ROOM_TEXT_LENGTH} total characters.")
-        signs = [entry for entry in props if entry["prop_id"] == SIGN_PROP_ID]
+        signs = [
+            entry
+            for entry in props
+            if (definition := self._world.props.get(str(entry["prop_id"]))) is not None
+            and definition.render_kind == "sign"
+        ]
         if len(signs) > MAX_SIGN_PROPS:
             raise ValueError(f"A room may contain at most {MAX_SIGN_PROPS} signs.")
-        whiteboards = [entry for entry in props if entry["prop_id"] == WHITEBOARD_PROP_ID]
+        whiteboards = [
+            entry
+            for entry in props
+            if (definition := self._world.props.get(str(entry["prop_id"]))) is not None
+            and definition.render_kind == "whiteboard"
+        ]
         if len(whiteboards) > MAX_WHITEBOARD_PROPS:
             raise ValueError(f"A room may contain at most {MAX_WHITEBOARD_PROPS} whiteboards.")
         return props

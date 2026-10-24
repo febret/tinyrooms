@@ -284,7 +284,8 @@ async function selectEffect(effectId) {
 function changeProp(target) {
   const path = target.dataset.peProp;
   const value = readValue(target, target.dataset.peKind);
-  if (path === "active_effect" && value === "") delete state.propDraft.active_effect;
+  if ((path === "active_effect" || path === "behavior" || path === "activity") && value === "") delete state.propDraft[path];
+  else if (path === "cooldown" && target.value === "") delete state.propDraft.cooldown;
   else setPath(state.propDraft, path, value);
   state.status = "Unsaved prop changes.";
   state.error = "";

@@ -810,7 +810,7 @@ class RoomService:
             "position": list(prop.pos),
             "rotation": list(prop.rot),
             "scale": prop.scale * prop_definition.scale,
-            "behavior": None if dark else prop.behavior,
+            "behavior": None if dark else prop_definition.behavior,
             "model_url": prop_model_url(self._world.id, prop_definition, active_state),
             "render_kind": prop_definition.render_kind,
             **({"text": dict(prop.text)} if prop.text is not None else {}),
@@ -820,7 +820,7 @@ class RoomService:
                 else {}
             ),
             **({"surface": surface} if surface is not None else {}),
-            "label": "Something in the dark" if dark else prop_definition.label,
+            "label": "Something in the dark" if dark else (prop.label or prop_definition.label),
             "description": ""
             if dark
             else (

@@ -315,8 +315,8 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                         {
                             "id": prop.id,
                             "prop_id": prop.prop_id,
-                            "behavior": prop.behavior,
-                            "label": self._world.props[prop.prop_id].label,
+                            "behavior": self._world.props[prop.prop_id].behavior,
+                            "label": prop.label or self._world.props[prop.prop_id].label,
                         }
                         for prop in room.props.values()
                     ],

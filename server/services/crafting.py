@@ -114,7 +114,7 @@ class CraftingService:
             raise ValueError("That crafting station is not in this room.")
         if self._environment is not None:
             self._environment.require_prop_target(room_id, prop.id, prop.prop_id)
-        if prop.behavior != "crafting":
+        if self._world.props[prop.prop_id].behavior != "crafting":
             raise ValueError("That prop is not a crafting station.")
         return prop
 
@@ -130,8 +130,9 @@ class CraftingService:
         return recipe.id in known
 
     def _station_recipe_ids(self, prop: PropInstanceDefinition) -> set[str]:
-        tags = set(self._world.props[prop.prop_id].tags)
-        recipe_ids = set(prop.recipes)
+        definition = self._world.props[prop.prop_id]
+        tags = set(definition.tags)
+        recipe_ids = set(definition.recipes)
         recipe_ids.update(
             recipe.id
             for recipe in self._recipes.values()

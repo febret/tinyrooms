@@ -11,8 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server.base_path import render_html
-from server.behaviors import builtin as builtin_behaviors_module
-from server.behaviors.builtin import BUILTIN_BEHAVIORS
+from server.behaviors.options import behavior_options
 from server.broadcast import broadcast_room_event
 from server.config import ConfigError, ensure_contained
 from server.content.surface_props import DEFAULT_SIGN_STYLE, sign_options, whiteboard_options
@@ -75,35 +74,6 @@ def _image_names(directory: Path) -> list[str]:
     )
 
 
-def _display_path(path: Path, repo_root: Path) -> str:
-    try:
-        return path.resolve().relative_to(repo_root.resolve()).as_posix()
-    except ValueError:
-        return path.resolve().as_posix()
-
-
-def behavior_options(world_root: Path, repo_root: Path) -> list[dict[str, str]]:
-    """List selectable prop behaviors: built-ins plus world ``props/*.py`` scripts."""
-
-    builtin_source = _display_path(Path(builtin_behaviors_module.__file__), repo_root)
-    options = [
-        {"id": name, "kind": "builtin", "source": builtin_source}
-        for name in sorted(BUILTIN_BEHAVIORS)
-    ]
-    props_dir = world_root / "props"
-    if props_dir.is_dir():
-        scripts = sorted(
-            entry for entry in props_dir.iterdir()
-            if entry.is_file() and entry.suffix == ".py" and not entry.name.startswith("_")
-        )
-        options.extend(
-            {"id": entry.stem, "kind": "script", "source": _display_path(entry, repo_root)}
-            for entry in scripts
-            if entry.stem not in BUILTIN_BEHAVIORS
-        )
-    return options
-
-
 def _catalog_payload(runtime) -> dict[str, object]:
     world = runtime.world
     props = [
@@ -123,6 +93,12 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "tags": list(definition.tags),
             "price": definition.price,
             "locked": definition.locked,
+            "behavior": definition.behavior,
+            "activity": definition.activity,
+            "content": list(definition.content),
+            "cooldown": definition.cooldown,
+            "recipes": list(definition.recipes),
+            "one_per_room": definition.one_per_room,
         }
         for definition in world.props.values()
         if not definition.hidden

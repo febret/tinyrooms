@@ -264,6 +264,7 @@ class RuntimeState:
             self.config,
             self.loaded_mods,
             self.audit,
+            card_ids=set(self.catalog.cards),
         )
 
     async def set_prop_active_effect(self, room_id: str, prop_instance_id: str, set_name: str) -> None:

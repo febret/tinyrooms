@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +13,6 @@ from server.content.activities import (
     merge_activity_definitions,
 )
 from server.content.common import (
-    LOGGER,
     ContentError,
     drop_unknown_card_ids,
     load_yaml_file,
@@ -26,9 +25,30 @@ from server.content.cutscenes import (
     load_cutscene_definitions,
     merge_cutscene_definitions,
 )
-from server.content.fx import EffectDefinition, load_effect_catalog
+from server.content.fx import load_effect_catalog
 from server.content.game_boards import RoomGameDefinition, load_room_game
 from server.content.lighting import DEFAULT_LIGHTING_ENVIRONMENT, validate_lighting_name
+from server.content.prop_definitions import (
+    DEFAULT_PROP_PRICE,
+    FREE_PROPSET_SOURCES,
+    MOVED_INSTANCE_PROP_FIELDS,
+    PROPS_CONFIG_KEY,
+    PropDefinition,
+    PropInstanceDefinition,
+    PropStateDefinition,
+    QuickAction,
+    builtin_prop_definitions,
+    load_prop_definition,
+    load_props_scale_adjust,
+    load_propset,
+    _load_actions,
+    _load_animation,
+    _load_draw_weight,
+    _load_props_from_file,
+    _load_text_recipe,
+    _load_vec3,
+    _validate_prop_effects,
+)
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
 from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
@@ -41,31 +61,15 @@ from server.content.surface_props import (
     load_sign_style,
 )
 from server.content.tasks import TaskDefinition, load_task_definitions
-from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS, TEXT_PROP_ID, validate_text
+from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS
 
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
 BOARD_TYPES = frozenset({"basic", "diorama"})
-PROPS_CONFIG_KEY = "CONFIG"
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
-DEFAULT_PROP_PRICE = 5
-FREE_PROPSET_SOURCES = frozenset({"base"})
 from server.content.prop_assets import (  # noqa: E402
-    PROP_MODEL_PLACEHOLDER_PATH,
-    PROP_MODEL_PLACEHOLDER_URL,
     prop_model_url,
 )
-
-
-@dataclass(frozen=True, slots=True)
-class QuickAction:
-    """A server-provided quick action template."""
-
-    # Authored as [label, command, optional default]; default enables activation
-    # on reselect. Command availability is filtered at runtime, not parsed here.
-    label: str
-    command: str
-    default: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,84 +83,6 @@ class ExitDefinition:
     requires_card_id: str | None
     npc_barrier: bool = False
     target_world_id: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class PropStateDefinition:
-    """A named mesh variant a prop instance can switch to at runtime."""
-
-    name: str
-    model_name: str
-    model_path: Path
-    model_missing: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class PropDefinition:
-    """An immutable prop definition."""
-
-    id: str
-    label: str
-    description: str
-    model_name: str | None
-    model_path: Path | None
-    decorative: bool
-    animation: str | None
-    scale: float
-    editor_scale_min: float = 0.25
-    editor_scale_max: float = 4.0
-    source: str = ""
-    source_kind: str = "world"
-    tags: tuple[str, ...] = ()
-    price: int = DEFAULT_PROP_PRICE
-    locked: bool = False
-    hidden: bool = False
-    requires_light: bool = False
-    model_missing: bool = False
-    # Set names select ordered lists of catalog effect ids, not gameplay effects.
-    # This active_effect is the authored default; RoomService can override it per
-    # room/instance in memory and broadcast room.prop.updated. Reduced motion
-    # suppresses client rendering without changing the authoritative selection.
-    effect_sets: dict[str, tuple[str, ...]] = field(default_factory=dict)
-    active_effect: str | None = None
-    render_kind: str = "model"
-    # Named mesh variants. This active_state is the authored starting state;
-    # RoomService can override it per room/instance in memory and broadcast
-    # room.prop.updated so clients reload the active model.
-    states: dict[str, PropStateDefinition] = field(default_factory=dict)
-    active_state: str | None = None
-    # Half-extents in board percent at the definition's authored scale, used by
-    # sprite-mode rooms to keep peeps off furniture.
-    sprite_footprint: tuple[float, float] | None = None
-    sounds: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class PropInstanceDefinition:
-    """A prop instance placed into a room."""
-
-    # Instance scale multiplies the definition's already file-adjusted scale.
-    # activity names a catalog entry; launching through this prop is room-bound.
-    id: str
-    prop_id: str
-    pos: tuple[float, float, float]
-    rot: tuple[float, float, float]
-    scale: float
-    behavior: str | None
-    actions: tuple[QuickAction, ...]
-    content: tuple[str, ...]
-    cooldown: int | None
-    personal: bool
-    recipes: tuple[str, ...]
-    animation: str | None
-    activity: str | None
-    draw_weight: dict[str, float] = field(default_factory=dict)
-    only_missing: bool = False
-    text: dict[str, str] | None = None
-    sign_style: str | None = None
-    surface: dict[str, object] | None = None
-    sounds: dict[str, str] = field(default_factory=dict)
-    description: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,46 +202,6 @@ class WorldDefinition:
     global_environment: str = "day"
 
 
-def _load_text_recipe(
-    raw_instance: dict[str, Any], prop_id: str, room_id: str, instance_id: str,
-) -> dict[str, str] | None:
-    context = f"Room '{room_id}' prop '{instance_id}' text"
-    if prop_id != TEXT_PROP_ID:
-        if "text" in raw_instance:
-            raise ContentError(f"{context}: Only builtin:text props may have a text recipe.")
-        return None
-    try:
-        return validate_text(raw_instance.get("text"))
-    except ValueError as exc:
-        raise ContentError(f"{context}: {exc}") from exc
-
-
-def builtin_prop_definitions() -> dict[str, PropDefinition]:
-    """Register procedural props independently of authored model catalogs."""
-
-    return {
-        TEXT_PROP_ID: PropDefinition(
-            id=TEXT_PROP_ID, label="Text", description="Custom three-dimensional text.",
-            model_name=None, model_path=None, decorative=True, animation=None,
-            scale=1.0, source="builtin", source_kind="builtin",
-            tags=("text",), price=0, locked=False, render_kind="text",
-        ),
-        SIGN_PROP_ID: PropDefinition(
-            id=SIGN_PROP_ID, label="Sign", description="An editable sign with a choice of finishes.",
-            model_name=None, model_path=None, decorative=True, animation=None,
-            scale=1.0, source="builtin", source_kind="builtin",
-            tags=("sign", "editable"), price=0, locked=False, render_kind="sign",
-        ),
-        WHITEBOARD_PROP_ID: PropDefinition(
-            id=WHITEBOARD_PROP_ID, label="Whiteboard",
-            description="A shared whiteboard for notes and marker drawings.",
-            model_name=None, model_path=None, decorative=True, animation=None,
-            scale=1.0, editor_scale_max=5.0, source="builtin", source_kind="builtin",
-            tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard",
-        ),
-    }
-
-
 def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str, ...]]:
     if raw_value is None:
         return {}
@@ -338,200 +224,6 @@ def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str,
                 granted.append(power)
         powers[username.strip().casefold()] = tuple(granted)
     return powers
-
-
-def _load_draw_weight(raw_value: Any, prop_instance_id: str, card_ids: set[str]) -> dict[str, float]:
-    if raw_value is None:
-        return {}
-    if not isinstance(raw_value, dict):
-        raise ContentError(f"Prop '{prop_instance_id}' draw_weight must be a mapping.")
-    draw_weight: dict[str, float] = {}
-    for card_id, weight in raw_value.items():
-        if not isinstance(card_id, str):
-            raise ContentError(f"Prop '{prop_instance_id}' draw_weight references unknown card '{card_id}'.")
-        if card_id not in card_ids:
-            warn_unknown_card(f"Prop '{prop_instance_id}' draw_weight", card_id)
-            continue
-        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or float(weight) < 0:
-            raise ContentError(f"Prop '{prop_instance_id}' draw_weight for '{card_id}' must be a non-negative number.")
-        draw_weight[card_id] = float(weight)
-    return draw_weight
-
-
-def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
-    if raw_value is None:
-        return ()
-    if not isinstance(raw_value, list):
-        raise ContentError("Actions must be a list.")
-    actions: list[QuickAction] = []
-    for entry in raw_value:
-        if not isinstance(entry, list) or len(entry) not in (2, 3):
-            raise ContentError("Each action must be a [label, command] or [label, command, default] list.")
-        label, command = entry[0], entry[1]
-        if not isinstance(label, str) or not isinstance(command, str):
-            raise ContentError("Action label and command must be strings.")
-        is_default = entry[2] if len(entry) == 3 else False
-        if not isinstance(is_default, bool):
-            raise ContentError("Action default flag must be a boolean.")
-        actions.append(QuickAction(label=label.strip(), command=command.strip(), default=is_default))
-    return tuple(actions)
-
-
-def _load_vec3(raw_value: Any, label: str) -> tuple[float, float, float]:
-    if raw_value is None:
-        return (0.0, 0.0, 0.0)
-    if not isinstance(raw_value, list) or len(raw_value) != 3:
-        raise ContentError(f"{label} must be a 3-item list.")
-    return (float(raw_value[0]), float(raw_value[1]), float(raw_value[2]))
-
-
-def _load_sprite_footprint(raw_value: Any, prop_id: str) -> tuple[float, float] | None:
-    """Read optional per-prop half-extents in board percent at authored scale."""
-
-    if raw_value is None:
-        return None
-    if not isinstance(raw_value, list) or len(raw_value) != 2:
-        raise ContentError(f"Prop '{prop_id}' sprite_footprint must be a 2-item list.")
-    values: list[float] = []
-    for raw_value_item in raw_value:
-        if isinstance(raw_value_item, bool) or not isinstance(raw_value_item, (int, float)):
-            raise ContentError(f"Prop '{prop_id}' sprite_footprint values must be numbers.")
-        value = float(raw_value_item)
-        if value <= 0:
-            raise ContentError(f"Prop '{prop_id}' sprite_footprint values must be positive.")
-        values.append(value)
-    return (values[0], values[1])
-
-
-def _load_animation(raw_value: Any, label: str) -> str | None:
-    if raw_value is None:
-        return None
-    if not isinstance(raw_value, str):
-        raise ContentError(f"{label} must be a string.")
-    text = raw_value.strip()
-    return text or None
-
-
-def _load_prop_states(
-    raw_value: Any,
-    props_file: Path,
-    prop_id: str,
-) -> dict[str, PropStateDefinition]:
-    """Parse a prop's named mesh states: ``{state_name: model_file}``.
-
-    Values may be a model filename directly or a mapping with a ``model`` key,
-    leaving room for future per-state options without changing the shorthand.
-    """
-
-    if raw_value is None:
-        return {}
-    if not isinstance(raw_value, dict):
-        raise ContentError(f"Prop '{prop_id}' states must be a mapping of state names to models.")
-    states: dict[str, PropStateDefinition] = {}
-    for raw_name, raw_state in raw_value.items():
-        state_name = str(raw_name).strip()
-        if not state_name:
-            raise ContentError(f"Prop '{prop_id}' contains an empty state name.")
-        if isinstance(raw_state, str):
-            model_name = raw_state.strip()
-        elif isinstance(raw_state, dict):
-            model_name = str(raw_state.get("model", "")).strip()
-        else:
-            raise ContentError(
-                f"Prop '{prop_id}' state '{state_name}' must be a model filename "
-                "or a mapping with a model."
-            )
-        if not model_name:
-            raise ContentError(f"Prop '{prop_id}' state '{state_name}' is missing its model.")
-        model_path = (props_file.parent / model_name).resolve()
-        model_missing = not model_path.is_file()
-        if model_missing:
-            LOGGER.warning(
-                "Prop '%s' state '%s' references missing model '%s'; using a placeholder.",
-                prop_id,
-                state_name,
-                model_name,
-            )
-            model_path = PROP_MODEL_PLACEHOLDER_PATH
-        states[state_name] = PropStateDefinition(
-            name=state_name,
-            model_name=model_name,
-            model_path=model_path,
-            model_missing=model_missing,
-        )
-    return states
-
-
-def _load_active_state(
-    raw_value: Any,
-    states: dict[str, PropStateDefinition],
-    prop_id: str,
-) -> str | None:
-    """Resolve the authored starting state, defaulting to the first declared one."""
-
-    if not states:
-        if raw_value is not None:
-            raise ContentError(f"Prop '{prop_id}' declares active_state without any states.")
-        return None
-    if raw_value is None:
-        return next(iter(states))
-    if not isinstance(raw_value, str):
-        raise ContentError(f"Prop '{prop_id}' active_state must be a string.")
-    active_state = raw_value.strip()
-    if active_state not in states:
-        raise ContentError(
-            f"Prop '{prop_id}' active_state '{active_state}' is not one of its states."
-        )
-    return active_state
-
-
-def _load_effect_sets(raw_value: Any, label: str) -> dict[str, tuple[str, ...]]:
-    """Parse a prop's named effect sets: ``{set_name: [effect_id, ...]}``.
-
-    Empty mappings and empty set lists are valid: they represent a prop with no
-    effects at all, or a named set that intentionally produces nothing.
-    """
-
-    if raw_value is None:
-        return {}
-    if isinstance(raw_value, list):
-        raw_value = {"default": raw_value}
-    if not isinstance(raw_value, dict):
-        raise ContentError(f"{label} must be a mapping of set names to effect lists.")
-    sets: dict[str, tuple[str, ...]] = {}
-    for raw_name, raw_effects in raw_value.items():
-        set_name = str(raw_name).strip()
-        if not set_name:
-            raise ContentError(f"{label} contains an empty set name.")
-        if not isinstance(raw_effects, list):
-            raise ContentError(f"{label} set '{set_name}' must be a list of effect ids.")
-        effect_ids: list[str] = []
-        for raw_effect in raw_effects:
-            effect_id = str(raw_effect).strip()
-            if not effect_id:
-                raise ContentError(f"{label} set '{set_name}' contains an empty effect id.")
-            if effect_id not in effect_ids:
-                effect_ids.append(effect_id)
-        sets[set_name] = tuple(effect_ids)
-    return sets
-
-
-def _load_active_effect(raw_value: Any, effect_sets: dict[str, tuple[str, ...]], prop_id: str) -> str | None:
-    """Resolve the default active set, defaulting to the first declared set."""
-
-    if not effect_sets:
-        if raw_value is not None:
-            raise ContentError(f"Prop '{prop_id}' declares active_effect without any effects.")
-        return None
-    if raw_value is None:
-        return next(iter(effect_sets))
-    if not isinstance(raw_value, str):
-        raise ContentError(f"Prop '{prop_id}' active_effect must be a string.")
-    active = raw_value.strip()
-    if active not in effect_sets:
-        raise ContentError(f"Prop '{prop_id}' active_effect '{active}' is not one of its effect sets.")
-    return active
-
 
 
 def _parse_dialog_condition(raw_value: Any, peep_id: str, node_id: str, index: int) -> StatusCondition | None:
@@ -627,169 +319,6 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
     return DialogDefinition(start_node_id="start", nodes=nodes)
 
 
-def load_props_scale_adjust(raw_config: Any, path: Path) -> float:
-    """Read the reserved CONFIG block's optional file-wide scale multiplier."""
-
-    # CONFIG is never a prop. scale_adjust defaults to 1.0 for every world,
-    # propset, or mod props.yaml independently; other CONFIG keys are ignored.
-    if raw_config is None:
-        return 1.0
-    if not isinstance(raw_config, dict):
-        raise ContentError(f"{path} CONFIG must be a mapping.")
-    raw_adjust = raw_config.get("scale_adjust", 1.0)
-    if isinstance(raw_adjust, bool) or not isinstance(raw_adjust, (int, float)) or float(raw_adjust) <= 0:
-        raise ContentError(f"{path} CONFIG scale_adjust has an invalid value {raw_adjust!r}.")
-    return float(raw_adjust)
-
-
-def load_prop_definition(
-    prop_id: str,
-    raw_prop: Mapping[str, Any],
-    *,
-    props_file: Path,
-    source: str,
-    source_kind: str = "world",
-    scale_adjust: float = 1.0,
-    known_sounds: frozenset[str] | None = None,
-) -> PropDefinition:
-    """Validate and build one prop definition from a raw YAML mapping.
-
-    Models resolve relative to the props file's directory, and ``scale`` is
-    multiplied by the file-level ``scale_adjust``. Missing models are replaced by
-    the shared placeholder; they warn rather than aborting a world load. Shared by
-    the content loader and the Prop Editor so both enforce identical rules.
-    """
-
-    if not isinstance(prop_id, str) or not isinstance(raw_prop, dict):
-        raise ContentError(f"{props_file} contains an invalid prop entry.")
-    if prop_id.startswith("builtin:"):
-        raise ContentError(f"Prop id '{prop_id}' is reserved for built-in procedural props.")
-    states = _load_prop_states(raw_prop.get("states"), props_file, prop_id)
-    raw_active_state = raw_prop.get("active_state", raw_prop.get("default_state"))
-    active_state = _load_active_state(raw_active_state, states, prop_id)
-    model_name = str(raw_prop.get("model", "")).strip()
-    if not model_name:
-        if not states:
-            raise ContentError(f"Prop '{prop_id}' is missing its model.")
-        active_definition = states[active_state] if active_state is not None else next(iter(states.values()))
-        model_name = active_definition.model_name
-        model_path = active_definition.model_path
-        model_missing = active_definition.model_missing
-    else:
-        model_path = (props_file.parent / model_name).resolve()
-        model_missing = not model_path.is_file()
-        if model_missing:
-            LOGGER.warning(
-                "Prop '%s' references missing model '%s'; using a placeholder.",
-                prop_id,
-                model_name,
-            )
-            model_path = PROP_MODEL_PLACEHOLDER_PATH
-    raw_scale = raw_prop.get("scale", 1.0)
-    if isinstance(raw_scale, bool) or not isinstance(raw_scale, (int, float)) or float(raw_scale) <= 0:
-        raise ContentError(f"Prop '{prop_id}' has an invalid scale {raw_scale!r}.")
-    scale = float(raw_scale) * scale_adjust
-    decorative = bool(raw_prop.get("decorative", False))
-    editor_scale_min = float(raw_prop.get("editor_scale_min", 0.25))
-    editor_scale_max = float(raw_prop.get("editor_scale_max", 4.0))
-    if editor_scale_min <= 0 or editor_scale_max < editor_scale_min:
-        raise ContentError(f"Prop '{prop_id}' has invalid editor scale bounds.")
-    raw_tags = raw_prop.get("tags", []) or []
-    if not isinstance(raw_tags, list):
-        raise ContentError(f"Prop '{prop_id}' tags must be a list.")
-    tags: list[str] = []
-    for raw_tag in raw_tags:
-        tag = str(raw_tag).strip().lower()
-        if not tag:
-            raise ContentError(f"Prop '{prop_id}' has an empty tag.")
-        if tag not in tags:
-            tags.append(tag)
-    raw_price = raw_prop.get("price", DEFAULT_PROP_PRICE)
-    if isinstance(raw_price, bool) or not isinstance(raw_price, (int, float)) or int(raw_price) < 0:
-        raise ContentError(f"Prop '{prop_id}' has an invalid price {raw_price!r}.")
-    price = int(raw_price)
-    if "locked" in raw_prop:
-        locked = bool(raw_prop.get("locked"))
-    else:
-        locked = source_kind == "propset" and source not in FREE_PROPSET_SOURCES
-    hidden = bool(raw_prop.get("hidden", False))
-    requires_light = bool(raw_prop.get("requires_light", False))
-    effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
-    active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
-    sprite_footprint = _load_sprite_footprint(raw_prop.get("sprite_footprint"), prop_id)
-    sounds = parse_sounds(
-        raw_prop.get("sounds"),
-        f"Prop '{prop_id}'",
-        PROP_SOUND_KEYS,
-        known_sounds=known_sounds,
-    )
-    return PropDefinition(
-        id=prop_id,
-        label=str(raw_prop.get("label", "")).strip(),
-        description=str(raw_prop.get("description", "")).strip(),
-        model_name=model_name,
-        model_path=model_path,
-        model_missing=model_missing,
-        decorative=decorative,
-        animation=_load_animation(raw_prop.get("animation"), f"Prop '{prop_id}' animation"),
-        scale=scale,
-        editor_scale_min=editor_scale_min,
-        editor_scale_max=editor_scale_max,
-        source=source,
-        source_kind=source_kind,
-        tags=tuple(tags),
-        price=price,
-        locked=locked,
-        hidden=hidden,
-        requires_light=requires_light,
-        effect_sets=effect_sets,
-        active_effect=active_effect,
-        states=states,
-        active_state=active_state,
-        sprite_footprint=sprite_footprint,
-        sounds=sounds,
-    )
-
-
-def _load_props_from_file(
-    path: Path,
-    source: str,
-    source_kind: str = "world",
-    *,
-    known_sounds: frozenset[str] | None = None,
-) -> dict[str, PropDefinition]:
-    """Load prop definitions from one props.yaml, resolving models beside it."""
-
-    props_payload = require_mapping(load_yaml_file(path), path)
-    scale_adjust = load_props_scale_adjust(props_payload.get(PROPS_CONFIG_KEY), path)
-    props: dict[str, PropDefinition] = {}
-    for prop_id, raw_prop in props_payload.items():
-        if prop_id == PROPS_CONFIG_KEY:
-            continue
-        props[prop_id] = load_prop_definition(
-            prop_id,
-            raw_prop,
-            props_file=path,
-            source=source,
-            source_kind=source_kind,
-            scale_adjust=scale_adjust,
-            known_sounds=known_sounds,
-        )
-    return props
-
-
-def _validate_prop_effects(props: Mapping[str, PropDefinition], effects: Mapping[str, EffectDefinition]) -> None:
-    """Reject props that reference effect ids absent from the loaded catalog."""
-
-    for definition in props.values():
-        for set_name, effect_ids in definition.effect_sets.items():
-            for effect_id in effect_ids:
-                if effect_id not in effects:
-                    raise ContentError(
-                        f"Prop '{definition.id}' effect set '{set_name}' references unknown effect '{effect_id}'."
-                    )
-
-
 def _as_paths(value: Path | Sequence[Path] | None) -> list[Path]:
     """Normalize an optional single path or path sequence into a list."""
 
@@ -800,19 +329,45 @@ def _as_paths(value: Path | Sequence[Path] | None) -> list[Path]:
     return [Path(root) for root in value]
 
 
-def load_propset(
-    propset_path: Path,
-    effects: Mapping[str, EffectDefinition] | None = None,
+def _validate_prop_references(
+    props: dict[str, PropDefinition],
+    recipes: Mapping[str, RecipeDefinition],
+    card_ids: set[str],
 ) -> dict[str, PropDefinition]:
-    """Load a shared propset directory's ``props.yaml`` definitions."""
+    """Check definition-level recipe references and drop unknown content cards."""
 
-    props_file = propset_path / "props.yaml"
-    if not props_file.is_file():
-        raise ContentError(f"Propset is missing props.yaml: {propset_path}")
-    props = _load_props_from_file(props_file, propset_path.name, source_kind="propset")
-    if effects is not None:
-        _validate_prop_effects(props, effects)
-    return props
+    validated: dict[str, PropDefinition] = {}
+    for prop_id, definition in props.items():
+        for recipe_id in definition.recipes:
+            if recipe_id not in recipes:
+                raise ContentError(f"Prop '{prop_id}' references unknown recipe '{recipe_id}'.")
+        if not definition.content:
+            validated[prop_id] = definition
+            continue
+        content = tuple(
+            drop_unknown_card_ids(definition.content, card_ids, f"Prop '{prop_id}' content")
+        )
+        validated[prop_id] = replace(definition, content=content) if content != definition.content else definition
+    return validated
+
+
+def _validate_one_per_room(
+    props: Mapping[str, PropDefinition],
+    room_id: str,
+    instances: Iterable[PropInstanceDefinition],
+) -> None:
+    """Reject rooms placing more than one instance of a one_per_room prop."""
+
+    counts: dict[str, int] = {}
+    for instance in instances:
+        definition = props[instance.prop_id]
+        if not definition.one_per_room:
+            continue
+        counts[instance.prop_id] = counts.get(instance.prop_id, 0) + 1
+        if counts[instance.prop_id] > 1:
+            raise ContentError(
+                f"Room '{room_id}' may contain only one '{instance.prop_id}' prop."
+            )
 
 
 def load_world_definition(
@@ -937,6 +492,7 @@ def load_world_definition(
     effects = load_effect_catalog(fx_root)
     if fx_root is not None:
         _validate_prop_effects(props, effects)
+    props = _validate_prop_references(props, recipes, card_ids)
 
     rooms: dict[str, RoomDefinition] = {}
     for room_id, raw_room in rooms_payload.items():
@@ -967,23 +523,22 @@ def load_world_definition(
         for prop_instance_id, raw_instance in raw_props.items():
             if not isinstance(raw_instance, dict):
                 raise ContentError(f"Room '{room_id}' has an invalid prop instance '{prop_instance_id}'.")
+            moved = sorted(MOVED_INSTANCE_PROP_FIELDS & set(raw_instance))
+            if moved:
+                raise ContentError(
+                    f"Room '{room_id}' prop '{prop_instance_id}' sets {', '.join(moved)} "
+                    "on the instance; define them on the prop instead."
+                )
             prop_id = str(raw_instance.get("prop", "")).strip()
             if prop_id not in props:
                 raise ContentError(f"Room '{room_id}' references unknown prop '{prop_id}'.")
-            content = tuple(
-                drop_unknown_card_ids(
-                    (str(card_id) for card_id in raw_instance.get("content", []) or []),
-                    card_ids,
-                    f"Prop '{prop_instance_id}'",
-                )
-            )
-            instance_recipes = tuple(str(value) for value in raw_instance.get("recipes", []) or [])
-            for recipe_id in instance_recipes:
-                if recipe_id not in recipes:
-                    raise ContentError(f"Prop '{prop_instance_id}' references unknown recipe '{recipe_id}'.")
             only_missing = raw_instance.get("only_missing", False)
             if not isinstance(only_missing, bool):
                 raise ContentError(f"Prop '{prop_instance_id}' only_missing must be a boolean.")
+            raw_label = raw_instance.get("label")
+            if raw_label is not None and not isinstance(raw_label, str):
+                raise ContentError(f"Prop '{prop_instance_id}' label must be a string.")
+            label = raw_label.strip() if isinstance(raw_label, str) else None
             raw_description = raw_instance.get("description")
             if raw_description is not None and not isinstance(raw_description, str):
                 raise ContentError(f"Prop '{prop_instance_id}' description must be a string.")
@@ -994,20 +549,17 @@ def load_world_definition(
                 pos=_load_vec3(raw_instance.get("pos"), f"Room '{room_id}' prop '{prop_instance_id}' pos"),
                 rot=_load_vec3(raw_instance.get("rot"), f"Room '{room_id}' prop '{prop_instance_id}' rot"),
                 scale=float(raw_instance.get("scale", 1.0)),
-                behavior=str(raw_instance["behavior"]) if "behavior" in raw_instance else None,
                 actions=_load_actions(raw_instance.get("actions")),
-                content=content,
-                cooldown=int(raw_instance["cooldown"]) if "cooldown" in raw_instance else None,
                 personal=bool(raw_instance.get("personal", False)),
-                recipes=instance_recipes,
                 animation=_load_animation(
                     raw_instance.get("animation"),
                     f"Room '{room_id}' prop '{prop_instance_id}' animation",
                 ),
-                activity=str(raw_instance["activity"]).strip() if raw_instance.get("activity") else None,
                 draw_weight=_load_draw_weight(raw_instance.get("draw_weight"), prop_instance_id, card_ids),
                 only_missing=only_missing,
-                text=_load_text_recipe(raw_instance, prop_id, room_id, prop_instance_id),
+                text=_load_text_recipe(
+                    raw_instance, props[prop_id].render_kind, room_id, prop_instance_id
+                ),
                 sign_style=load_sign_style(
                     raw_instance,
                     props[prop_id].render_kind,
@@ -1025,7 +577,9 @@ def load_world_definition(
                     known_sounds=known_sounds,
                 ),
                 description=description or None,
+                label=label or None,
             )
+        _validate_one_per_room(props, room_id, room_props.values())
         texts = [instance.text for instance in room_props.values() if instance.text is not None]
         if len(texts) > MAX_TEXT_PROPS:
             raise ContentError(f"Room '{room_id}' may contain at most {MAX_TEXT_PROPS} text props.")
@@ -1154,12 +708,11 @@ def load_world_definition(
         known_features=known_features,
     )
     activities = merge_activity_definitions(core_activities or {}, world_activities)
-    for room in rooms.values():
-        for prop in room.props.values():
-            if prop.activity and prop.activity not in activities:
-                raise ContentError(
-                    f"Room '{room.id}' prop '{prop.id}' references unknown activity '{prop.activity}'."
-                )
+    for definition in props.values():
+        if definition.activity and definition.activity not in activities:
+            raise ContentError(
+                f"Prop '{definition.id}' references unknown activity '{definition.activity}'."
+            )
     for peep in peeps.values():
         if peep.activity and peep.activity not in activities:
             raise ContentError(f"Peep '{peep.id}' references unknown activity '{peep.activity}'.")

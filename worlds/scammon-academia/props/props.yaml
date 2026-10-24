@@ -130,6 +130,8 @@ serving-counter:
     the wells.
   model: serving-counter.glb
   decorative: true
+  behavior: cafeteria
+  one_per_room: true
   scale: 1
   tags:
   - cafeteria
@@ -142,6 +144,19 @@ serving-counter:
     intact: serving-counter.glb
     broken: serving-counter-broken.glb
   active_state: intact
+classroom-oak-panel-door:
+  label: Classroom Door
+  description: A solid oak classroom door with raised panels and one very knobbable
+    brass knob. It leads to the Classrooms activity.
+  model: oak-panel-door.glb
+  decorative: false
+  activity: classrooms
+  one_per_room: true
+  scale: 1.35
+  tags:
+  - door
+  - classroom
+  - building
 recycling-bin:
   label: Recycling Bin
   description: A blue bin with a yellow lid. The husky sticker says sort your paper.

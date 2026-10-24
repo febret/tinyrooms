@@ -1,8 +1,10 @@
-"""Authored prop behavior names recognized as built-in no-ops for Phase A.
+"""Authored prop behavior names recognized as built-ins.
 
-Concrete dispenser, crafting, and environment implementations arrive in
-Phase C; until then each authored ``behavior:`` value maps to a synthetic
-script id ``builtin:<name>`` whose module exports no handlers.
+Most built-ins map to a synthetic script id ``builtin:<name>`` whose module
+exports no handlers; concrete dispenser, crafting, and environment
+implementations live in the command and service layers. Built-ins with real
+handlers live in ``server.behaviors.builtin_<name>`` modules so every world
+can share them.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ BUILTIN_BEHAVIORS: dict[str, str] = {
     "crafting": "builtin:crafting",
     "dispenser": "builtin:dispenser",
     "locked-door": "builtin:locked-door",
+    "recipe-book": "builtin:recipe-book",
     "shop": "builtin:shop",
     "supplies": "builtin:supplies",
 }

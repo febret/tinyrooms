@@ -10,8 +10,9 @@ import yaml
 
 from server.content.common import ContentError
 from server.content.lighting import LIGHTING_ENVIRONMENTS
-from server.content.surface_props import SIGN_PROP_ID, validate_sign_style
-from server.content.text_props import TEXT_PROP_ID, validate_text
+from server.content.prop_definitions import PROP_RENDER_KINDS
+from server.content.surface_props import validate_sign_style
+from server.content.text_props import validate_text
 from server.content.worlds import PROPS_CONFIG_KEY
 
 
@@ -118,7 +119,37 @@ def _check_identifier_list(
             _issue(issues, f"{path}[{index}]", f"Unknown {label[:-1]} '{entry}'.")
 
 
-def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferences) -> None:
+def _prop_render_kinds(draft_props: Any) -> dict[str, str]:
+    kinds = {
+        "builtin:text": "text",
+        "builtin:sign": "sign",
+        "builtin:whiteboard": "whiteboard",
+    }
+    if isinstance(draft_props, dict):
+        for prop_id, prop in draft_props.items():
+            if prop_id == PROPS_CONFIG_KEY or not isinstance(prop, dict):
+                continue
+            kinds[prop_id] = prop.get("render_kind", "model")
+    return kinds
+
+
+def _prop_one_per_room(draft_props: Any) -> frozenset[str]:
+    if not isinstance(draft_props, dict):
+        return frozenset()
+    return frozenset(
+        prop_id
+        for prop_id, prop in draft_props.items()
+        if isinstance(prop, dict) and prop.get("one_per_room") is True
+    )
+
+
+def _check_rooms(
+    issues: list[DraftIssue],
+    rooms: Any,
+    references: DraftReferences,
+    prop_kinds: dict[str, str],
+    single_use_props: frozenset[str],
+) -> None:
     if not isinstance(rooms, dict) or not rooms:
         _issue(issues, "rooms", "At least one room is required.")
         return
@@ -164,37 +195,37 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
                         _issue(issues, f"{instance_path}.prop", "Prop reference is required.")
                     elif references.prop_ids and prop_id not in references.prop_ids:
                         _issue(issues, f"{instance_path}.prop", f"Unknown prop '{prop_id}'.")
+                    label = instance.get("label")
+                    if label is not None and not isinstance(label, str):
+                        _issue(issues, f"{instance_path}.label", "Prop label must be a string.")
                     description = instance.get("description")
                     if description is not None and not isinstance(description, str):
                         _issue(issues, f"{instance_path}.description", "Prop description must be a string.")
-                    if prop_id == TEXT_PROP_ID:
+                    render_kind = prop_kinds.get(prop_id, "model") if isinstance(prop_id, str) else "model"
+                    if render_kind == "text":
                         try:
                             validate_text(instance.get("text"))
                         except ValueError as exc:
                             _issue(issues, f"{instance_path}.text", str(exc))
                     elif "text" in instance:
-                        _issue(issues, f"{instance_path}.text", "Only builtin:text props may have a text recipe.")
-                    if prop_id == SIGN_PROP_ID:
+                        _issue(issues, f"{instance_path}.text", "Only text props may have a text recipe.")
+                    if render_kind == "sign":
                         try:
                             validate_sign_style(instance.get("sign_style"))
                         except ValueError as exc:
                             _issue(issues, f"{instance_path}.sign_style", str(exc))
                     elif "sign_style" in instance:
-                        _issue(issues, f"{instance_path}.sign_style", "Only builtin:sign props may have a sign_style.")
-                    _check_identifier_list(
-                        issues, instance.get("content"), f"{instance_path}.content",
-                        references.card_ids, "cards",
-                    )
-                    _check_identifier_list(
-                        issues, instance.get("recipes"), f"{instance_path}.recipes",
-                        references.recipe_ids, "recipes",
-                    )
-                    activity = instance.get("activity")
-                    if activity is not None and (
-                        not isinstance(activity, str)
-                        or (references.activity_ids and activity not in references.activity_ids)
-                    ):
-                        _issue(issues, f"{instance_path}.activity", f"Unknown activity '{activity}'.")
+                        _issue(issues, f"{instance_path}.sign_style", "Only sign props may have a sign_style.")
+                single_use_counts: dict[str, int] = {}
+                for instance in props.values():
+                    if not isinstance(instance, dict):
+                        continue
+                    prop_id = instance.get("prop")
+                    if prop_id in single_use_props:
+                        single_use_counts[prop_id] = single_use_counts.get(prop_id, 0) + 1
+                for prop_id, count in single_use_counts.items():
+                    if count > 1:
+                        _issue(issues, f"{base}.props", f"Only one '{prop_id}' prop may be placed per room.")
         exits = room.get("exits")
         if exits is not None:
             if not isinstance(exits, dict):
@@ -315,10 +346,10 @@ def validate_structure(draft: dict[str, Any], references: DraftReferences) -> li
         return [DraftIssue(path="draft", message="Draft must be a mapping.")]
     rooms = draft.get("rooms")
     room_ids = frozenset(rooms) if isinstance(rooms, dict) else frozenset()
-    _check_world(issues, draft.get("world"), room_ids)
-    _check_rooms(issues, rooms, references)
-    _check_peeps(issues, draft.get("peeps"), room_ids)
     props = draft.get("props")
+    _check_world(issues, draft.get("world"), room_ids)
+    _check_rooms(issues, rooms, references, _prop_render_kinds(props), _prop_one_per_room(props))
+    _check_peeps(issues, draft.get("peeps"), room_ids)
     if props is not None:
         if not isinstance(props, dict):
             _issue(issues, "props", "props must be a mapping.")
@@ -330,8 +361,41 @@ def validate_structure(draft: dict[str, Any], references: DraftReferences) -> li
                 if not isinstance(prop, dict):
                     _issue(issues, prop_path, "Prop must be a mapping.")
                     continue
-                if not isinstance(prop.get("model"), str) or not prop.get("model"):
-                    _issue(issues, f"{prop_path}.model", "Prop model is required.")
+                render_kind = prop.get("render_kind", "model")
+                if render_kind not in PROP_RENDER_KINDS:
+                    _issue(issues, f"{prop_path}.render_kind", f"Unknown render_kind '{render_kind}'.")
+                elif render_kind == "model":
+                    if not isinstance(prop.get("model"), str) or not prop.get("model"):
+                        _issue(issues, f"{prop_path}.model", "Prop model is required.")
+                elif isinstance(prop.get("model"), str) and prop.get("model"):
+                    _issue(issues, f"{prop_path}.model", f"render_kind '{render_kind}' must not define a model.")
+                for field_name in ("behavior", "activity"):
+                    value = prop.get(field_name)
+                    if value is not None and not isinstance(value, str):
+                        _issue(issues, f"{prop_path}.{field_name}", f"Prop {field_name} must be a string.")
+                _check_identifier_list(
+                    issues, prop.get("content"), f"{prop_path}.content",
+                    references.card_ids, "cards",
+                )
+                _check_identifier_list(
+                    issues, prop.get("recipes"), f"{prop_path}.recipes",
+                    references.recipe_ids, "recipes",
+                )
+                cooldown = prop.get("cooldown")
+                if cooldown is not None and (
+                    isinstance(cooldown, bool) or not isinstance(cooldown, (int, float)) or cooldown < 0
+                ):
+                    _issue(issues, f"{prop_path}.cooldown", "Prop cooldown must be a non-negative number.")
+                if prop.get("one_per_room") is not None and not isinstance(prop.get("one_per_room"), bool):
+                    _issue(issues, f"{prop_path}.one_per_room", "Prop one_per_room must be a boolean.")
+                activity = prop.get("activity")
+                if (
+                    isinstance(activity, str)
+                    and activity
+                    and references.activity_ids
+                    and activity not in references.activity_ids
+                ):
+                    _issue(issues, f"{prop_path}.activity", f"Unknown activity '{activity}'.")
     recipes = draft.get("recipes")
     if recipes is not None and not isinstance(recipes, dict):
         _issue(issues, "recipes", "recipes must be a mapping.")

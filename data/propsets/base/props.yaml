@@ -6,6 +6,7 @@ city-trashcan:
     bag at a time.
   model: city-trashcan.glb
   decorative: true
+  behavior: trashcan
   scale: 1.0
   tags:
   - outdoor
@@ -433,7 +434,19 @@ medicine-cabinet:
   description: Mirrored cabinet crammed with tiny bottles. Ninety percent mystery,
     one hundred percent mood.
   model: medicine-cabinet.glb
-  decorative: true
+  decorative: false
+  behavior: dispenser
+  content:
+  - market-bandage
+  - market-painkillers
+  - market-cough-syrup
+  - market-vitamins
+  - market-antiseptic-cream
+  - market-cold-pack
+  - market-herbal-tea
+  - market-stomach-settler
+  cooldown: 60
+  one_per_room: true
   scale: 0.8
   tags:
   - storage
@@ -457,7 +470,80 @@ kitchen-dresser:
   label: Kitchen Dresser
   description: The kitchen's official trophy case.
   model: kitchen-dresser.glb
-  decorative: true
+  decorative: false
+  behavior: dispenser
+  content:
+  - market-carrot
+  - market-potato
+  - market-onion
+  - market-garlic
+  - market-tomato
+  - market-lettuce
+  - market-spinach
+  - market-broccoli
+  - market-cauliflower
+  - market-bell-pepper
+  - market-chili-pepper
+  - market-cucumber
+  - market-zucchini
+  - market-eggplant
+  - market-pumpkin
+  - market-corn
+  - market-peas
+  - market-green-beans
+  - market-mushroom
+  - market-celery
+  - market-kale
+  - market-sweet-potato
+  - market-ginger
+  - market-lemon
+  - market-apple
+  - market-banana
+  - market-strawberry
+  - market-blueberry
+  - market-avocado
+  - market-basil
+  - market-coconut
+  - market-water
+  - market-flour
+  - market-sugar
+  - market-salt
+  - market-black-pepper
+  - market-olive-oil
+  - market-butter
+  - market-milk
+  - market-cream
+  - market-cheese
+  - market-egg
+  - market-yeast
+  - market-baking-powder
+  - market-vanilla-extract
+  - market-honey
+  - market-rice
+  - market-pasta
+  - market-noodles
+  - market-bread
+  - market-breadcrumbs
+  - market-vinegar
+  - market-soy-sauce
+  - market-ketchup
+  - market-mayonnaise
+  - market-mustard
+  - market-yogurt
+  - market-oats
+  - market-cereal
+  - market-chocolate
+  - market-cocoa
+  - market-coffee
+  - market-tea
+  - market-chickpeas
+  - market-chicken
+  - market-beef
+  - market-bacon
+  - market-fish
+  - market-tofu
+  - market-coconut-milk
+  cooldown: 5
   scale: 1.2
   tags:
   - storage
@@ -838,6 +924,8 @@ supermarket-prep-table:
     bowls. Perfect for chopping, kneading, and mixing by hand.
   model: supermarket-prep-table.glb
   decorative: false
+  behavior: crafting
+  one_per_room: true
   scale: 1.0
   tags:
   - crafting
@@ -850,6 +938,8 @@ supermarket-oven:
     Baking, roasting, and toasting happen here.
   model: supermarket-oven.glb
   decorative: false
+  behavior: crafting
+  one_per_room: true
   scale: 1.0
   tags:
   - crafting
@@ -861,6 +951,8 @@ supermarket-mixer:
     come together in no time.
   model: supermarket-mixer.glb
   decorative: false
+  behavior: crafting
+  one_per_room: true
   scale: 0.9
   tags:
   - crafting
@@ -872,6 +964,8 @@ supermarket-recipe-book:
     learn every recipe in the supermarket cardset.
   model: supermarket-recipe-book.glb
   decorative: false
+  behavior: recipe-book
+  one_per_room: true
   scale: 0.8
   tags:
   - crafting

@@ -431,8 +431,11 @@ async function handleAction(action, { silentSound = false } = {}) {
   } else if (action.type === "open-pack") {
     await openPack(action.stackId);
   } else if (action.type === "edit-add") {
-    if (action.propId === "builtin:text") openTextPropDialog({ dialogs, store });
-    else store.dispatch({ type: "editor-add", propId: action.propId });
+    const library = store.getState().editor?.library || [];
+    const entry = library.find(item => item.propId === action.propId);
+    if (entry?.renderKind === "text" || action.propId === "builtin:text") {
+      openTextPropDialog({ dialogs, store, propId: entry?.propId || "builtin:text" });
+    } else store.dispatch({ type: "editor-add", propId: action.propId });
   } else if (action.type === "edit-snap") {
     store.dispatch({ type: "editor-snap", which: action.which, value: action.value });
   } else if (action.type === "edit-palette") {

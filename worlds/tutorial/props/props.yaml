@@ -30,6 +30,7 @@ shower:
     wash away the choices that led you here.
   model: shower.glb
   decorative: false
+  behavior: shower
   scale: 1.306
   sounds:
     select: water1.wav
@@ -40,6 +41,7 @@ litter-tray:
     use it here. Bring a plastic bag, unless you enjoy carrying evidence.
   model: litter-tray.glb
   decorative: false
+  behavior: litter-tray
   scale: 1.488
 locked-front-door:
   label: The Front Door
@@ -57,6 +59,7 @@ keys-cabinet:
     are gone. The hook is judging your chore speed.
   model: keys-cabinet.glb
   decorative: false
+  behavior: key
   scale: 1.636
   sounds:
     select: tick.wav
@@ -67,6 +70,7 @@ centipedes:
     vacuum and use it here to clear them out.
   model: centipedes.glb
   decorative: false
+  behavior: centipedes
   scale: 1.207
   requires_light: true
   sounds:
@@ -78,6 +82,11 @@ vacuum-stand:
     one missing tool at a time; give the dispenser a minute to recharge.
   model: vacuum-stand.glb
   decorative: false
+  behavior: dispenser
+  content:
+  - vacuum-cleaner
+  - hand-light
+  cooldown: 60
   scale: 1.229
   sounds:
     select: click3.wav
@@ -88,6 +97,11 @@ supply-shelf:
     supply you actually need, then sulks for a minute.
   model: supply-shelf.glb
   decorative: false
+  behavior: dispenser
+  content:
+  - pooper-scooper
+  - plastic-bag
+  cooldown: 60
   scale: 1.464
   sounds:
     select: click2.wav
@@ -98,6 +112,8 @@ kitchen-counter:
     to be smug about it. Supermarket ingredients can be prepped here.
   model: kitchen-counter.glb
   decorative: false
+  behavior: crafting
+  one_per_room: true
   scale: 1.214
   tags:
   - crafting

@@ -148,7 +148,7 @@ export function editRoomView(state, { authoring = false } = {}) {
           ${libraryPropsetMarkup(library)}
         </div>
         <section class="editor-library-section">
-          <div class="editor-library-grid${picking ? " is-picking" : ""}" role="list" aria-label="${authoring ? "World props" : "Approved decorative props"}">
+          <div class="editor-library-grid${picking ? " is-picking" : ""}" role="list" aria-label="${authoring ? "World props" : "Approved props"}">
             ${libraryGridMarkup(library)}
           </div>
           <p class="editor-library-empty empty-state" hidden>No props match your filters.</p>

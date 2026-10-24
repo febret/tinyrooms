@@ -116,8 +116,11 @@ function handleEditorAction(action) {
   if (action.action === "reset-confirm") { void runResetRoom(); return; }
   const picker = store.state.editorSettings?.picker;
   if (picker && action.type === "edit-add") return replaceSelectedProp(action.propId, picker);
-  if ((action.type === "edit-add" && action.propId === "builtin:text") || action.action === "add-text") {
-    return openTextPropDialog({ dialogs, store: textStore });
+  if (action.action === "add-text") {
+    return openTextPropDialog({ dialogs, store: textStore, propId: "builtin:text" });
+  }
+  if (action.type === "edit-add" && isTextPropId(action.propId)) {
+    return openTextPropDialog({ dialogs, store: textStore, propId: action.propId });
   }
   if (action.action === "edit-text") {
     return openTextPropDialog({ dialogs, store: textStore, id: worldRoomEditor(store.state, currentRoomId())?.selectedId });
@@ -125,14 +128,20 @@ function handleEditorAction(action) {
   roomEditor.onAction(action);
 }
 
+function isTextPropId(propId) {
+  return (store.state.catalog?.props || []).find(prop => prop.id === propId)?.render_kind === "text"
+    || propId === "builtin:text";
+}
+
 function replaceSelectedProp(propId, picker) {
-  if (propId === "builtin:text") {
+  if (isTextPropId(propId)) {
     store.status("Text props cannot replace a prop type.");
     return;
   }
   store.update(draft => {
     const instance = draft.rooms?.[picker.roomId]?.props?.[picker.sub];
-    if (instance && instance.prop !== "builtin:text") instance.prop = propId;
+    const current = (store.state.catalog?.props || []).find(prop => prop.id === instance?.prop);
+    if (instance && (current?.render_kind !== "text" || isTextPropId(propId))) instance.prop = propId;
   });
   store.editorSettings({ picker: null });
   store.select({ kind: "prop", id: picker.roomId, sub: picker.sub });
@@ -450,8 +459,10 @@ function changeInstanceField(fieldName, target) {
     if (fieldName === "prop") {
       if (instance.prop !== "builtin:text" && target.value !== "builtin:text") instance.prop = target.value;
     }
-    else if (fieldName === "content") instance.content = parseCsv(target.value);
-    else if (fieldName === "recipes") instance.recipes = parseCsv(target.value);
+    else if (fieldName === "label") {
+      if (target.value.trim()) instance.label = target.value;
+      else delete instance.label;
+    }
     else if (fieldName === "description") {
       if (target.value.trim()) instance.description = target.value;
       else delete instance.description;
@@ -462,16 +473,13 @@ function changeInstanceField(fieldName, target) {
       if (target.checked) instance.only_missing = true;
       else delete instance.only_missing;
     }
-    else if (fieldName === "behavior" || fieldName === "animation" || fieldName === "activity") {
+    else if (fieldName === "animation") {
       if (target.value) instance[fieldName] = target.value;
       else delete instance[fieldName];
     } else if (fieldName.startsWith("pos.") || fieldName.startsWith("rot.")) {
       const arrayName = fieldName.startsWith("pos.") ? "pos" : "rot";
       if (!Array.isArray(instance[arrayName])) instance[arrayName] = arrayName === "pos" ? [50, 50, 0] : [0, 0, 0];
       setPath(instance, fieldName, numberOr(target.value, 0));
-    } else if (fieldName === "cooldown") {
-      if (target.value === "") delete instance.cooldown;
-      else instance.cooldown = Math.max(0, Number(target.value) || 0);
     } else if (fieldName === "scale") instance.scale = Math.max(0.05, numberOr(target.value, 1));
   });
 }

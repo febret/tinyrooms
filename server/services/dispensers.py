@@ -68,14 +68,16 @@ class DispenserService:
             raise ValueError("That dispenser is not in this room.")
         if self._environment is not None:
             self._environment.require_prop_target(room_id, prop.id, prop.prop_id)
-        if prop.behavior != "dispenser":
+        definition = self._world.props[prop.prop_id]
+        if definition.behavior != "dispenser":
             raise ValueError("That prop is not a dispenser.")
-        if not prop.content:
+        if not definition.content:
             raise ValueError("That dispenser has nothing to give.")
         return prop
 
     def _choose(self, prop: PropInstanceDefinition) -> str:
-        population = list(prop.content)
+        content = self._world.props[prop.prop_id].content
+        population = list(content)
         draw_weight = [prop.draw_weight.get(card_id, 1.0) for card_id in population]
         if not any(draw_weight):
             return self._rng.choice(population)
@@ -87,7 +89,7 @@ class DispenserService:
             for stack in self._profiles.list_inventory(account_id, self._world.id)
             if stack.quantity > 0
         }
-        for card_id in prop.content:
+        for card_id in self._world.props[prop.prop_id].content:
             if card_id not in owned:
                 return card_id
         return None
@@ -96,7 +98,8 @@ class DispenserService:
         """Attempt a dispense, honoring the shared cooldown without charging on rejection."""
 
         prop = self._prop(room_id, prop_instance_id)
-        cooldown = prop.cooldown if prop.cooldown is not None else DEFAULT_DISPENSE_COOLDOWN_SECONDS
+        definition = self._world.props[prop.prop_id]
+        cooldown = definition.cooldown if definition.cooldown is not None else DEFAULT_DISPENSE_COOLDOWN_SECONDS
         now = utc_now()
         key = (self._world.id, prop_instance_id)
         with self._hub.transaction() as connection:

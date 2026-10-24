@@ -30,6 +30,7 @@ def serialize_prop_entry(
         "base_scale": definition.scale,
         "scale_min": definition.editor_scale_min,
         "scale_max": definition.editor_scale_max,
+        "one_per_room": definition.one_per_room,
         "source": definition.source,
         "tags": list(definition.tags),
         "price": definition.price,

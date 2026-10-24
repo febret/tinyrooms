@@ -29,13 +29,12 @@ hall:
       - 0.048000488281672915
       - 0
     classroom-door0:
-      prop: oak-panel-door
+      prop: classroom-oak-panel-door
       pos:
       - 0
       - 55
       - 0
       scale: 1.2510710194283634
-      activity: classrooms
       actions:
       - - Enter the classroom
         - .play classrooms
@@ -133,7 +132,6 @@ cafeteria:
       - 8
       - 0
       scale: 1
-      behavior: cafeteria
     cafeteria-table0:
       prop: cafeteria-table
       pos:
@@ -292,7 +290,6 @@ teachers-lounge:
       - 10
       - 0
       scale: 1
-      behavior: recipe-book
       actions:
       - - Read the recipe book
         - .act read @prop:recipe-book0
@@ -304,7 +301,6 @@ teachers-lounge:
       - 44
       - 0
       scale: 1
-      behavior: crafting
       actions:
       - - Craft at the prep table
         - .craft @prop:prep-table0
@@ -316,7 +312,6 @@ teachers-lounge:
       - 44
       - 0
       scale: 1
-      behavior: crafting
       actions:
       - - Craft at the oven
         - .craft @prop:oven0
@@ -328,7 +323,6 @@ teachers-lounge:
       - 44
       - 0
       scale: 1
-      behavior: crafting
       actions:
       - - Craft at the mixer
         - .craft @prop:mixer0
@@ -340,79 +334,6 @@ teachers-lounge:
       - 16
       - 0
       scale: 1.05
-      behavior: dispenser
-      cooldown: 5
-      content:
-      - market-carrot
-      - market-potato
-      - market-onion
-      - market-garlic
-      - market-tomato
-      - market-lettuce
-      - market-spinach
-      - market-broccoli
-      - market-cauliflower
-      - market-bell-pepper
-      - market-chili-pepper
-      - market-cucumber
-      - market-zucchini
-      - market-eggplant
-      - market-pumpkin
-      - market-corn
-      - market-peas
-      - market-green-beans
-      - market-mushroom
-      - market-celery
-      - market-kale
-      - market-sweet-potato
-      - market-ginger
-      - market-lemon
-      - market-apple
-      - market-banana
-      - market-strawberry
-      - market-blueberry
-      - market-avocado
-      - market-basil
-      - market-coconut
-      - market-water
-      - market-flour
-      - market-sugar
-      - market-salt
-      - market-black-pepper
-      - market-olive-oil
-      - market-butter
-      - market-milk
-      - market-cream
-      - market-cheese
-      - market-egg
-      - market-yeast
-      - market-baking-powder
-      - market-vanilla-extract
-      - market-honey
-      - market-rice
-      - market-pasta
-      - market-noodles
-      - market-bread
-      - market-breadcrumbs
-      - market-vinegar
-      - market-soy-sauce
-      - market-ketchup
-      - market-mayonnaise
-      - market-mustard
-      - market-yogurt
-      - market-oats
-      - market-cereal
-      - market-chocolate
-      - market-cocoa
-      - market-coffee
-      - market-tea
-      - market-chickpeas
-      - market-chicken
-      - market-beef
-      - market-bacon
-      - market-fish
-      - market-tofu
-      - market-coconut-milk
       actions:
       - - Take an ingredient
         - .dispense pantry0

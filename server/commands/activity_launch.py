@@ -43,9 +43,10 @@ def resolve_activity(context: CommandContext, room_id: str, target: str) -> Reso
     room = context.world.rooms.get(room_id)
     if room is not None:
         for prop in context.rooms.props_in_room(room_id):
-            if prop.activity and prop.id.casefold() == key:
+            activity = context.world.props[prop.prop_id].activity
+            if activity and prop.id.casefold() == key:
                 context.rooms.require_prop_target(room_id, prop.id)
-                definition = context.world.activities[prop.activity]
+                definition = context.world.activities[activity]
                 return ResolvedActivity(
                     definition=definition,
                     prop_instance_id=prop.id,

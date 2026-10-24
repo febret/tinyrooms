@@ -73,24 +73,6 @@ function roomPanel(state) {
   `;
 }
 
-export function behaviorOptions(behaviors, current) {
-  const options = [{ value: "", label: "(none)" }];
-  for (const behavior of behaviors || []) {
-    const kind = behavior.kind === "builtin" ? "built-in" : "script";
-    options.push({ value: behavior.id, label: `${behavior.id} (${kind}) — ${behavior.source}` });
-  }
-  if (current && !options.some(option => option.value === current)) {
-    options.push({ value: current, label: `${current} (missing script)` });
-  }
-  return options;
-}
-
-function behaviorSelect(catalog, current) {
-  const options = behaviorOptions(catalog?.behaviors, current);
-  const source = (catalog?.behaviors || []).find(behavior => behavior.id === current)?.source || "";
-  return `<select data-instance-field="behavior" title="${escapeHtml(source)}">${selectOptions(options, current)}</select>`;
-}
-
 function exitActionButtons(room, instance) {
   const exits = Object.entries(room.exits || {});
   if (!exits.length) return '<p class="note">Add an exit to this room to create exit actions.</p>';
@@ -119,14 +101,23 @@ function propPanel(state) {
   const propId = selection.sub;
   const position = Array.isArray(instance.pos) ? instance.pos : [50, 50, 0];
   const rotation = Array.isArray(instance.rot) ? instance.rot : [0, 0, 0];
-  const isText = instance.prop === "builtin:text";
   const definition = (catalog?.props || []).find(prop => prop.id === instance.prop);
-  const currentLabel = definition?.label || instance.prop;
+  const isText = definition?.render_kind === "text" || instance.prop === "builtin:text";
+  const currentLabel = instance.label || definition?.label || instance.prop;
+  const stockLabel = definition?.label || "";
   const stockDescription = definition?.description || "";
+  const definitionBits = [
+    definition?.behavior ? `behavior: ${definition.behavior}` : "",
+    definition?.activity ? `activity: ${definition.activity}` : "",
+    definition?.cooldown != null ? `cooldown: ${definition.cooldown}s` : "",
+    (definition?.content || []).length ? `content: ${(definition.content || []).join(", ")}` : "",
+    (definition?.recipes || []).length ? `recipes: ${(definition.recipes || []).join(", ")}` : "",
+    definition?.one_per_room ? "one per room" : "",
+  ].filter(Boolean).join(" · ");
   const picker = state.editorSettings?.picker;
   const picking = Boolean(picker && picker.roomId === selection.id && picker.sub === selection.sub);
   return `
-    ${panelHeader(propId, `Prop · ${selection.id}`)}
+    ${panelHeader(currentLabel, `Prop · ${selection.id}`)}
     <div class="properties-body">
       <div class="field">
         <span>Prop type</span>
@@ -138,8 +129,11 @@ function propPanel(state) {
         </div>
       </div>
       ${isText ? `<p class="text-prop-content">${escapeHtml(instance.text?.content || "")}</p><button type="button" data-edit-action="edit-text" ${state.editorSettings?.locks?.[selection.id]?.[propId] ? "disabled" : ""}>Edit text</button>` : ""}
+      ${field("Label", textarea(instance.label ?? "", `data-instance-field="label"`, 2, "Leave blank to use the prop's stock label."))}
+      ${stockLabel ? `<p class="note">Stock: ${escapeHtml(stockLabel)}</p>` : ""}
       ${field("Description", textarea(instance.description ?? "", `data-instance-field="description"`, 2, "Leave blank to use the prop's stock description."))}
       ${stockDescription ? `<p class="note">Stock: ${escapeHtml(stockDescription)}</p>` : ""}
+      ${definitionBits ? `<p class="note">Prop definition: ${escapeHtml(definitionBits)}. Edit behavior, activity, content, cooldown, and recipes in the Prop Editor.</p>` : '<p class="note">Behavior, activity, content, cooldown, and recipes live on the prop definition. Edit them in the Prop Editor.</p>'}
       <div class="field-row">
         ${field("X", numberInput(position[0], `data-instance-field="pos.0"`))}
         ${field("Y", numberInput(position[1], `data-instance-field="pos.1"`))}
@@ -149,13 +143,8 @@ function propPanel(state) {
         ${field("Rot Y", numberInput(rotation[1], `data-instance-field="rot.1"`, "15"))}
         ${field("Scale", numberInput(instance.scale ?? 1, `data-instance-field="scale"`))}
       </div>
-      ${field("Behavior", behaviorSelect(catalog, instance.behavior || ""))}
       ${field("Animation", textInput(instance.animation || "", `data-instance-field="animation"`))}
-      ${field("Activity", `<select data-instance-field="activity">${selectOptions([{ value: "", label: "(none)" }, ...(catalog?.activities || []).map(id => ({ value: id, label: id }))], instance.activity || "")}</select>`)}
-      ${field("Cooldown (seconds)", numberInput(instance.cooldown ?? 0, `data-instance-field="cooldown"`, "1"))}
       <label class="mini-check">${checkbox(Boolean(instance.only_missing), `data-instance-field="only_missing"`)} dispense only missing cards</label>
-      ${field("Content cards (comma)", textInput((instance.content || []).join(", "), `data-instance-field="content"`))}
-      ${field("Recipes (comma)", textInput((instance.recipes || []).join(", "), `data-instance-field="recipes"`))}
       ${field("Actions (label | command per line)", textarea(actionsToText(instance.actions), `data-instance-field="actions"`, 3))}
       ${exitActionButtons(room, instance)}
       ${field("Draw weights (JSON)", textarea(JSON.stringify(instance.draw_weight || {}), `data-instance-field="draw_weight"`, 2))}

@@ -1061,8 +1061,11 @@ currently loaded world. Through the World Editor they can:
 Prop arrangement uses the same compact dock, prop filters, transform handles,
 stacking, and keyboard shortcuts as the in-game room editor.
 World authors can browse all available authoring props without player unlocks.
-The properties sidebar holds appearance controls, selected-prop controls,
-snapping, board images, prop behaviors, exits, and initial cards. Appearance,
+The properties sidebar holds appearance controls, selected-prop controls
+(label and description overrides, custom quick actions), snapping, board
+images, exits, and initial cards. Prop behavior, activity, content, cooldown,
+and recipes live on the prop definition and are edited in the Prop Editor.
+Appearance,
 lock/remove buttons, and snap toggles are absent from the in-game dock.
 Transform locks are session-only in
 the world editor; its undo history covers the whole world draft.

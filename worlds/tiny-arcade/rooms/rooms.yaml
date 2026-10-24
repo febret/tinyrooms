@@ -545,13 +545,12 @@ chess:
           size: 30
           color: '#efdfbd'
     chess-controller:
-      prop: builtin:text
+      prop: chess-controller
       pos:
       - 50
       - 96
       - 0
       scale: 0.32
-      behavior: chess
       text:
         content: CHESS
         font_id: serif
@@ -622,7 +621,6 @@ paintball:
       - 90
       - 0
       scale: 1.4333294145603426
-      behavior: paintball
       actions:
       - - Buy Splash Pal (1 Bop)
         - .act buy:paintball-blaster-splash @prop:paintball-vending

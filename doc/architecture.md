@@ -73,7 +73,16 @@ world seeding so persisted dynamically materialized rooms can receive their
 seeds.
 
 Prop schema and file-wide scale settings are defined by
-[worlds.py](../server/content/worlds.py). Effect definitions are loaded by
+[prop_definitions.py](../server/content/prop_definitions.py) (re-exported through
+[worlds.py](../server/content/worlds.py)). Gameplay fields — `behavior`,
+`activity`, content cards, `cooldown`, and `recipes` — live on the prop
+definition so every placed instance behaves identically; instances only carry
+placement, custom quick actions, and optional label/description overrides.
+Authored props may declare `render_kind` (`model`, `text`, `sign`,
+`whiteboard`) to reuse the procedural surface renderers, and `one_per_room` to
+cap placement at a single instance per room. Room owners may place
+non-decorative props; `decorative` remains the marketplace/showcase flag.
+Effect definitions are loaded by
 [fx.py](../server/content/fx.py) and rendered by
 [prop-effects.js](../client/app/js/prop-effects.js); reduced motion suppresses effects.
 Props may also declare named mesh `states` and an authored `active_state`.

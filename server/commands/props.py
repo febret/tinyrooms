@@ -156,7 +156,7 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
     room_id = require_room_id(context)
     prop_instance_id = _prop_instance_id(command.args[0])
     prop = context.rooms.require_prop_target(room_id, prop_instance_id)
-    if prop.behavior != "crafting":
+    if context.world.props[prop.prop_id].behavior != "crafting":
         raise CommandError("That prop is not a crafting station.")
     definitions = context.crafting.station_recipes(context.account, room_id, prop_instance_id)
     if not definitions:

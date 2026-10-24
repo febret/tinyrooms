@@ -49,6 +49,7 @@ function normalizeLibrary(entries) {
       tags: (Array.isArray(entry?.tags) ? entry.tags : []).map(tag => String(tag).trim().toLowerCase()).filter(Boolean),
       price: Number(entry?.price ?? 5),
       locked: Boolean(entry?.locked),
+      onePerRoom: Boolean(entry?.one_per_room),
       activeState: typeof entry?.active_state === "string" ? entry.active_state : "",
       states: entry?.states && typeof entry.states === "object" ? { ...entry.states } : {},
       effectSets: entry?.effect_sets && typeof entry.effect_sets === "object" ? entry.effect_sets : {},
@@ -237,6 +238,7 @@ export function editorReducer(state, action) {
       const entry = libraryEntry(editor, action.propId);
       if (!entry) return state;
       if (entry.renderKind === "text" && !action.text) return state;
+      if (entry.onePerRoom && editor.props.some(instance => instance.propId === entry.propId)) return state;
       const instance = {
         id: `custom:${crypto.randomUUID()}`,
         propId: entry.propId,

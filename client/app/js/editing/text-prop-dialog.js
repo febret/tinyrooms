@@ -15,7 +15,7 @@ export function validateTextDraft(text, options, props = [], id = null) {
 }
 
 /** Commit one undoable recipe change; previews never modify the room draft. */
-export function openTextPropDialog({ dialogs, store, id = null }) {
+export function openTextPropDialog({ dialogs, store, id = null, propId = "builtin:text" }) {
   const editor = store.getState().editor;
   if (!editor?.canEdit || !editor.textOptions) return;
   const selected = id ? editor.props.find(prop => prop.id === id) : null;
@@ -58,7 +58,7 @@ export function openTextPropDialog({ dialogs, store, id = null }) {
       apply.disabled = false;
       if (commit) {
         if (id) store.dispatch({ type: "editor-text", id, text });
-        else store.dispatch({ type: "editor-add", propId: "builtin:text", text });
+        else store.dispatch({ type: "editor-add", propId, text });
         cleanup(); close(); return;
       }
       preview.render(text);

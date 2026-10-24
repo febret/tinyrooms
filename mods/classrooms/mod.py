@@ -425,7 +425,7 @@ class ClassroomService:
     ) -> tuple[QuickAction, ...]:
         """Return account-specific quick actions for a classroom-entry prop."""
 
-        if prop.activity != "classrooms":
+        if self._world.props[prop.prop_id].activity != "classrooms":
             return ()
         record = self._world_state.get_player_room_for_account(account.id)
         if record is None:

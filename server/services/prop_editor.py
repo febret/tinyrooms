@@ -16,6 +16,7 @@ import re
 import shutil
 from typing import Any
 
+from server.behaviors.options import behavior_options
 from server.config import AppConfig, ConfigError, ensure_contained
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.fx import (
@@ -28,6 +29,7 @@ from server.content.fx import (
     load_effect_catalog,
     load_effect_definition,
 )
+from server.content.prop_definitions import PROP_RENDER_KINDS
 from server.content.staging import dump_yaml
 from server.content.sounds import load_sound_names
 from server.content.worlds import (
@@ -75,10 +77,12 @@ class PropEditorService:
         config: AppConfig,
         loaded_mods: object | None,
         audit: AuditService,
+        card_ids: set[str] | frozenset[str] = frozenset(),
     ) -> None:
         self._config = config
         self._loaded_mods = loaded_mods
         self._audit = audit
+        self._card_ids = frozenset(card_ids)
 
     # -- catalog ---------------------------------------------------------
 
@@ -102,6 +106,9 @@ class PropEditorService:
             "sources": sources,
             "effects": self.effects_catalog(),
             "enums": self.enums(),
+            "recipes": sorted(world.recipes),
+            "activities": sorted(world.activities),
+            "behaviors": behavior_options(world.root_path, self._config.repo_root),
         }
 
     def _prop_summary(self, world: WorldDefinition, definition: PropDefinition) -> dict[str, object]:
@@ -116,6 +123,13 @@ class PropEditorService:
             "scale": definition.scale,
             "decorative": definition.decorative,
             "animation": definition.animation,
+            "behavior": definition.behavior,
+            "activity": definition.activity,
+            "content": list(definition.content),
+            "cooldown": definition.cooldown,
+            "recipes": list(definition.recipes),
+            "one_per_room": definition.one_per_room,
+            "render_kind": definition.render_kind,
             "tags": list(definition.tags),
             "price": definition.price,
             "locked": definition.locked,
@@ -144,6 +158,7 @@ class PropEditorService:
             "particle_presets": sorted(PARTICLE_PRESETS),
             "particle_anchors": sorted(PARTICLE_ANCHORS),
             "model_suffixes": sorted(MODEL_SUFFIXES),
+            "render_kinds": sorted(PROP_RENDER_KINDS),
             "textures": self._list_textures(),
         }
 
@@ -230,7 +245,7 @@ class PropEditorService:
         if not isinstance(raw_prop, dict):
             raise PropEditorNotFound(f"Unknown prop '{normalized_id}'.")
         scale_adjust = _normalize_config(raw.get(PROPS_CONFIG_KEY), yaml_path)
-        definition = self._validate_prop(normalized_id, raw_prop, yaml_path, resolved_source, resolved_kind, scale_adjust)
+        definition = self._validate_prop(world, normalized_id, raw_prop, yaml_path, resolved_source, resolved_kind, scale_adjust)
         return {
             "prop": {
                 "id": normalized_id,
@@ -277,6 +292,7 @@ class PropEditorService:
         candidate.pop("id", None)
         next_adjust = self._resolve_scale_adjust(raw, yaml_path, scale_adjust)
         definition = self._validate_prop(
+            world,
             normalized_id,
             candidate,
             yaml_path,
@@ -335,6 +351,7 @@ class PropEditorService:
 
     def _validate_prop(
         self,
+        world: WorldDefinition,
         prop_id: str,
         raw_prop: Mapping[str, Any],
         yaml_path: Path,
@@ -354,6 +371,20 @@ class PropEditorService:
             )
         except ContentError as exc:
             raise PropEditorValidationError(str(exc)) from exc
+        for card_id in definition.content:
+            if card_id not in self._card_ids:
+                raise PropEditorValidationError(
+                    f"Prop '{prop_id}' content references unknown card '{card_id}'."
+                )
+        for recipe_id in definition.recipes:
+            if recipe_id not in world.recipes:
+                raise PropEditorValidationError(
+                    f"Prop '{prop_id}' references unknown recipe '{recipe_id}'."
+                )
+        if definition.activity and definition.activity not in world.activities:
+            raise PropEditorValidationError(
+                f"Prop '{prop_id}' references unknown activity '{definition.activity}'."
+            )
         effects = load_effect_catalog(self._config.fx_path)
         for set_name, effect_ids in definition.effect_sets.items():
             for effect_id in effect_ids:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha1
+import importlib
 from importlib import util as importlib_util
 from pathlib import Path
 from types import ModuleType
@@ -47,12 +48,20 @@ def _builtin_module() -> ModuleType:
     return ModuleType("tinyrooms_behavior_builtin")
 
 
+def _builtin_behavior_module(name: str) -> ModuleType:
+    """Import a real handler module for a built-in, falling back to a no-op."""
+
+    try:
+        return importlib.import_module(f"server.behaviors.builtin_{name.replace('-', '_')}")
+    except ImportError:
+        return _builtin_module()
+
+
 class BehaviorLoader:
     """Import trusted scripts once per resolved path at definition time."""
 
     def __init__(self) -> None:
         self._cache: dict[Path, BehaviorScript] = {}
-        self._builtin = BehaviorScript(script_id="builtin", path=None, module=_builtin_module())
 
     @staticmethod
     def _module_name(path: Path) -> str:
@@ -110,13 +119,21 @@ class BehaviorLoader:
 
         for room in world.rooms.values():
             for prop in room.props.values():
-                if not prop.behavior:
+                behavior = world.props[prop.prop_id].behavior
+                if not behavior:
                     continue
-                if prop.behavior in BUILTIN_BEHAVIORS:
-                    script_id = BUILTIN_BEHAVIORS[prop.behavior]
-                    scripts.setdefault(script_id, BehaviorScript(script_id=script_id, path=None, module=self._builtin.module))
+                if behavior in BUILTIN_BEHAVIORS:
+                    script_id = BUILTIN_BEHAVIORS[behavior]
+                    scripts.setdefault(
+                        script_id,
+                        BehaviorScript(
+                            script_id=script_id,
+                            path=None,
+                            module=_builtin_behavior_module(behavior),
+                        ),
+                    )
                 else:
-                    script = self.import_script(self._resolve_prop(world, prop.behavior, prop.id))
+                    script = self.import_script(self._resolve_prop(world, behavior, prop.id))
                     scripts[script.script_id] = script
                     script_id = script.script_id
                 prop_attachments[prop.id] = BehaviorAttachment(

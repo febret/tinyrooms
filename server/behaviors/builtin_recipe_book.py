@@ -1,4 +1,4 @@
-"""Supermarket recipe-book behavior: reading unlocks the cardset's recipes."""
+"""Built-in recipe-book behavior: reading teaches the cardset's recipes."""
 
 from __future__ import annotations
 

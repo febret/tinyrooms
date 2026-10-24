@@ -170,7 +170,8 @@ def load_room_game(
     instance = room_props.get(controller)
     if instance is None:
         raise ContentError(f"Room '{room_id}' game controller '{controller}' is not a prop in the room.")
-    if not instance.behavior:
+    definition = props.get(instance.prop_id)
+    if definition is None or not definition.behavior:
         raise ContentError(f"Room '{room_id}' game controller '{controller}' has no behavior script.")
     raw_powers = raw_game.get("reset_powers", list(power_names))
     if not isinstance(raw_powers, list):
