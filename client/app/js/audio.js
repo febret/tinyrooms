@@ -12,7 +12,7 @@ const UI_SOUND_FILES = {
   coin: "ring.wav",
   error: "retro-error.wav",
   success: "chirp3.wav",
-  notify: "task-notify.wav",
+  notify: "tick1.wav",
   room: "steps.wav",
   open: "door-open-old.wav",
   close: "door-close.wav",

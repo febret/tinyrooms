@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from server.content.common import ContentError
+from server.content.lighting import LIGHTING_ENVIRONMENTS
 from server.content.surface_props import SIGN_PROP_ID, validate_sign_style
 from server.content.text_props import TEXT_PROP_ID, validate_text
 from server.content.worlds import PROPS_CONFIG_KEY
@@ -132,6 +133,7 @@ def _check_rooms(issues: list[DraftIssue], rooms: Any, references: DraftReferenc
         for field_name in ("label", "board_image"):
             if not isinstance(room.get(field_name), str) or not room.get(field_name):
                 _issue(issues, f"{base}.{field_name}", f"Room {field_name} is required.")
+        _check_lighting_name(issues, room.get("environment"), f"{base}.environment")
         editor = room.get("editor")
         if editor is not None:
             if not isinstance(editor, dict):
@@ -241,6 +243,18 @@ def _check_world(issues: list[DraftIssue], world: Any, room_ids: frozenset[str])
         _issue(issues, "world.entry_room", "Entry room is required.")
     elif room_ids and entry_room not in room_ids:
         _issue(issues, "world.entry_room", f"Entry room '{entry_room}' is not defined.")
+    _check_lighting_name(issues, world.get("environment"), "world.environment")
+
+
+def _check_lighting_name(issues: list[DraftIssue], value: Any, path: str) -> None:
+    if value is None:
+        return
+    if not isinstance(value, str) or value.strip().lower() not in LIGHTING_ENVIRONMENTS:
+        _issue(
+            issues,
+            path,
+            f"Unknown environment '{value}'. Expected one of {', '.join(LIGHTING_ENVIRONMENTS)}.",
+        )
 
 
 def _check_peeps(issues: list[DraftIssue], peeps: Any, room_ids: frozenset[str]) -> None:

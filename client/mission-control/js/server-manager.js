@@ -13,7 +13,21 @@ export function createServerManager(container, ctx) {
     logs: [],
     autoRefresh: true,
     timer: null,
+    nginxManaged: true,
+    nginxReason: "",
   };
+
+  async function loadNginxStatus() {
+    try {
+      const info = await api.get("/api/mission-control/server");
+      const managed = Boolean(info.config && info.config.same_origin_worlds && info.config.world_map_configured);
+      state.nginxManaged = managed;
+      state.nginxReason = managed ? "" : "Nginx world-map management is not configured.";
+    } catch {
+      state.nginxManaged = true;
+      state.nginxReason = "";
+    }
+  }
 
   async function refreshList() {
     const data = await api.get("/api/mission-control/servers");
@@ -84,6 +98,13 @@ export function createServerManager(container, ctx) {
         el("div", { class: "row" }, [
           el("span", { class: "muted", text: `${state.summary.running || 0} running · ${state.summary.total || 0} known` }),
           el("button", { type: "button", onclick: () => reboot(), text: "Reboot" }),
+          el("button", {
+            type: "button",
+            disabled: !state.nginxManaged,
+            title: state.nginxReason || "Regenerate the nginx world map and reload nginx",
+            onclick: () => refreshNginx().catch(showError),
+            text: "Refresh nginx",
+          }),
           el("button", { type: "button", onclick: () => refreshList().catch(showError), text: "Refresh" }),
         ]),
       ]),
@@ -475,6 +496,14 @@ export function createServerManager(container, ctx) {
     }
   }
 
+  async function refreshNginx() {
+    const data = await api.post("/api/mission-control/nginx/refresh", {});
+    const routed = Number(data.routed || 0);
+    ctx.setBanner(data.changed
+      ? `Nginx routes refreshed for ${routed} instance(s).`
+      : `Nginx routes already up to date for ${routed} instance(s).`);
+  }
+
   async function resync() {
     try {
       const data = await api.post(`/api/mission-control/servers/${state.selectedId}/resync`, {});
@@ -489,7 +518,7 @@ export function createServerManager(container, ctx) {
   }
 
   return {
-    activate: () => refreshList().catch(showError),
+    activate: () => loadNginxStatus().then(refreshList).catch(showError),
     deactivate: () => { if (state.timer) window.clearInterval(state.timer); },
   };
 }

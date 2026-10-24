@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from server.commands.core import require_room_id
-from server.commands.outcomes import CommandContext, CommandError, CommandOutcome
+from server.commands.outcomes import (
+    CommandContext,
+    CommandError,
+    CommandOutcome,
+    PendingRoomBroadcast,
+)
 from server.commands.parser import ParsedCommand, parse_target
 from server.profiles import InventoryStack
 from server.services.crafting import CraftPreview, CraftResult
@@ -92,6 +97,27 @@ def _mutation_payload(
         "user": context.serialize_user(account),
         **extra,
     }
+
+
+async def toggle_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Toggle a light-fixture prop instance on or off."""
+
+    if not command.args:
+        raise CommandError("Choose a light to toggle.")
+    room_id = require_room_id(context)
+    prop_instance_id = _prop_instance_id(command.args[0])
+    context.rooms.require_prop_target(room_id, prop_instance_id)
+    try:
+        event = context.rooms.toggle_prop_light(room_id, prop_instance_id)
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    turned_on = bool(((event.get("prop") or {}).get("light") or {}).get("on", True))
+    state = "on" if turned_on else "off"
+    return CommandOutcome(
+        payload={"light": {"prop_id": prop_instance_id, "on": turned_on}},
+        room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=event)],
+        toast=False,
+    )
 
 
 async def dispense_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

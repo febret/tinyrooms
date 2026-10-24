@@ -138,6 +138,13 @@ export function normalizeProp(prop) {
       : {},
     effectSets: prop?.effect_sets && typeof prop.effect_sets === "object" ? prop.effect_sets : {},
     activeEffect: typeof prop?.active_effect === "string" ? prop.active_effect : "",
+    light: prop?.light && typeof prop.light === "object"
+      ? {
+        kind: String(prop.light.kind || ""),
+        on: prop.light.on !== false,
+        color: typeof prop.light.color === "string" ? prop.light.color : "",
+      }
+      : null,
     quickActions: normalizeQuickActions(prop?.quick_actions),
     sounds: normalizeSounds(prop?.sounds),
   };
@@ -157,6 +164,7 @@ export function mergeLayoutProps(previousProps, layoutProps) {
       behavior: existing.behavior,
       quickActions: existing.quickActions,
       sounds: existing.sounds,
+      light: existing.light ?? next.light,
     };
   });
 }

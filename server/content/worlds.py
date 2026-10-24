@@ -28,6 +28,7 @@ from server.content.cutscenes import (
 )
 from server.content.fx import EffectDefinition, load_effect_catalog
 from server.content.game_boards import RoomGameDefinition, load_room_game
+from server.content.lighting import DEFAULT_LIGHTING_ENVIRONMENT, validate_lighting_name
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
 from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
@@ -188,6 +189,7 @@ class RoomDefinition:
     template: bool = False
     sprites_enabled: bool = False
     game: RoomGameDefinition | None = None
+    environment: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,6 +273,7 @@ class WorldDefinition:
     image_path: Path | None = None
     stylesheet_name: str = ""
     stylesheet_path: Path | None = None
+    global_environment: str = "day"
 
 
 def _load_text_recipe(
@@ -862,6 +865,9 @@ def load_world_definition(
             raise ContentError(f"World '{world_id}' references missing stylesheet '{stylesheet_name}'.")
         stylesheet_path = candidate
     requires_mods = tuple(str(entry).strip() for entry in world_payload.get("requires_mods", []) or [])
+    global_environment = validate_lighting_name(
+        world_payload.get("environment"), f"World '{world_id}' environment"
+    ) or DEFAULT_LIGHTING_ENVIRONMENT
     if enabled_mods is not None:
         missing_mods = sorted(set(requires_mods) - set(enabled_mods))
         if missing_mods:
@@ -1100,6 +1106,9 @@ def load_world_definition(
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
             game=game,
+            environment=validate_lighting_name(
+                raw_room.get("environment"), f"Room '{room_id}' environment"
+            ),
         )
 
     if entry_room_id not in rooms:
@@ -1194,4 +1203,5 @@ def load_world_definition(
     image_path=world_image_path,
     stylesheet_name=stylesheet_name,
     stylesheet_path=stylesheet_path,
+    global_environment=global_environment,
 )

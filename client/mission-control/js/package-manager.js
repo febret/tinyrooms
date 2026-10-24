@@ -1,11 +1,13 @@
 import { api } from "./api.js";
-import { clear, el } from "./dom.js";
+import { clear, el, formatBytes } from "./dom.js";
 
 export function createPackageManager(container, ctx) {
   let packages = null;
+  let preview = null;
 
   async function load() {
     packages = (await api.get("/api/mission-control/packages")).packages;
+    preview = null;
     render();
   }
 
@@ -26,7 +28,10 @@ export function createPackageManager(container, ctx) {
   function renderVersions() {
     const versions = packages.server_versions;
     return el("div", { class: "card package-group" }, [
-      el("h3", { text: "Server versions" }),
+      el("div", { class: "row spread" }, [
+        el("h3", { text: "Server versions" }),
+        el("button", { type: "button", onclick: () => previewCleanup().catch(showError), text: "Cleanup old versions" }),
+      ]),
       versions.length
         ? el("table", {}, [
             el("thead", {}, el("tr", {}, [
@@ -41,6 +46,43 @@ export function createPackageManager(container, ctx) {
             el("tbody", {}, versions.map((version) => renderVersion(version))),
           ])
         : el("p", { class: "muted", text: "None installed." }),
+      renderCleanupPreview(),
+    ]);
+  }
+
+  function renderCleanupPreview() {
+    if (!preview) return "";
+    if (!preview.length) return el("p", { class: "muted", text: "Nothing eligible for cleanup." });
+    const total = preview.reduce((sum, item) => sum + (Number(item.size) || 0), 0);
+    return el("div", { class: "stack" }, [
+      el("p", { class: "muted", text: `These unused releases can be deleted (${formatBytes(total)} total). Uncheck anything to keep.` }),
+      el("table", {}, [
+        el("thead", {}, el("tr", {}, [
+          el("th", { text: "" }),
+          el("th", { text: "Id" }),
+          el("th", { text: "Kind" }),
+          el("th", { text: "Size" }),
+          el("th", { text: "Reason" }),
+          el("th", { text: "Path" }),
+        ])),
+        el("tbody", {}, preview.map((item) => el("tr", {}, [
+          el("td", {}, el("input", {
+            type: "checkbox",
+            checked: true,
+            "data-cleanup-id": item.id,
+            "aria-label": `Delete ${item.kind} ${item.id}`,
+          })),
+          el("td", { text: item.id }),
+          el("td", { text: item.kind }),
+          el("td", { text: formatBytes(item.size) }),
+          el("td", { class: "muted", text: item.reason || "—" }),
+          el("td", { class: "muted", text: item.path }),
+        ]))),
+      ]),
+      el("div", { class: "row" }, [
+        el("button", { class: "danger", type: "button", onclick: () => confirmCleanup().catch(showError), text: "Delete selected" }),
+        el("button", { type: "button", onclick: () => { preview = null; render(); }, text: "Cancel" }),
+      ]),
     ]);
   }
 
@@ -103,6 +145,32 @@ export function createPackageManager(container, ctx) {
       await load();
     } catch (error) {
       ctx.setBanner(error.message);
+    }
+  }
+
+  async function previewCleanup() {
+    const data = await api.post("/api/mission-control/versions/cleanup", { dry_run: true });
+    preview = data.candidates || [];
+    render();
+  }
+
+  async function confirmCleanup() {
+    const selected = [...container.querySelectorAll("input[data-cleanup-id]:checked")]
+      .map((node) => node.getAttribute("data-cleanup-id"))
+      .filter(Boolean);
+    if (!selected.length) {
+      ctx.setBanner("Select at least one release to delete.");
+      return;
+    }
+    if (!window.confirm(`Delete ${selected.length} unused release(s)? This cannot be undone.`)) return;
+    const result = await api.post("/api/mission-control/versions/cleanup", { ids: selected });
+    const failed = result.failed || [];
+    preview = null;
+    await load();
+    if (failed.length) {
+      ctx.setBanner(`Deleted ${result.deleted.length} item(s); ${failed.length} failed: ${failed.map((item) => item.id).join(", ")}.`);
+    } else {
+      ctx.setBanner(`Deleted ${result.deleted.length} item(s), freed ${formatBytes(result.freed_bytes)}.`);
     }
   }
 

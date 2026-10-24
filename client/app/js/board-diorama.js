@@ -2,9 +2,7 @@
 //
 // The town board is not a baked prop: an irregular height-field island is
 // generated at runtime, then dressed with reusable meshes for roads, houses,
-// trees, lamps, a harbour, and a clock tower. A two-minute wall-clock cycle
-// drives the shared room lights, window glow, street lamps, and water so the
-// whole board reads as a living place rather than a static picture.
+// trees, lamps, a harbour, and a clock tower.
 
 import * as THREE from "three";
 
@@ -113,7 +111,7 @@ function makePlaqueTexture() {
     context.fillText("TINYTOWN", width / 2, 68);
     context.font = "600 17px Georgia, serif";
     context.letterSpacing = "4px";
-    context.fillText("A LITTLE WORLD · ALIVE AFTER DARK", width / 2, 101);
+    context.fillText("EST. 2026 · POPULATION: MANY PEEPS", width / 2, 101);
   });
 }
 
@@ -1116,7 +1114,7 @@ export function createDioramaBoard({
     const flicker = 0.94 + Math.sin(performance.now() * 0.004) * 0.06 * day.night;
     for (const light of lampLights) {
       light.color.set(LAMP_GLOW);
-      light.intensity = day.night * 1.55 * flicker;
+      light.intensity = day.night * 4.65 * flicker;
     }
     lighthouse.lantern.intensity = day.night * 3.1;
     fireflyMaterial.opacity = day.night * 0.74;

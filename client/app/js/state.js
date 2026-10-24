@@ -295,6 +295,18 @@ function applyServerEvent(state, event) {
         ...state.room,
         props: state.room.props.map(prop => {
           if (prop.id !== targetId) return prop;
+          if (event.prop.light && typeof event.prop.light === "object") {
+            return {
+              ...prop,
+              light: {
+                kind: String(event.prop.light.kind || prop.light?.kind || ""),
+                on: event.prop.light.on !== false,
+                color: typeof event.prop.light.color === "string"
+                  ? event.prop.light.color
+                  : (prop.light?.color || ""),
+              },
+            };
+          }
           const nextState = typeof event.prop.active_state === "string"
             ? event.prop.active_state
             : event.prop.state;

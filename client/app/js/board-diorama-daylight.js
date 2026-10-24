@@ -1,10 +1,10 @@
-// The two-minute day/night clock for the TinyTown diorama.
+// The ten-minute day/night clock for the TinyTown diorama.
 
 import * as THREE from "three";
 
-export const DIORAMA_CYCLE_SECONDS = 120.0;
+export const DIORAMA_CYCLE_SECONDS = 600.0;
 
-/** Normalize a room environment phase into a continuous two-minute cycle. */
+/** Normalize a room environment phase into a continuous ten-minute cycle. */
 export function normalizeDayCycle(environment) {
   const rawDuration = Number(environment?.day_cycle_seconds);
   const duration = Number.isFinite(rawDuration) && rawDuration >= 30

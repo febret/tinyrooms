@@ -24,7 +24,15 @@ import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
 import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
-import { applyDarkLighting, createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
+import { createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
+import {
+  MAX_PROP_LIGHTS,
+  PROP_LIGHT_DISTANCE,
+  applyEnvironmentLighting,
+  propLightWorldPosition,
+  resolveRoomLighting,
+  selectPropLights,
+} from "./board-lighting.js";
 import { createBoardOutlines } from "./board-outlines.js";
 import { createBoardSprites } from "./board-sprites.js";
 import { createBoardCards } from "./board-cards.js";
@@ -97,6 +105,35 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
   const lights = createBoardLights(scene);
+  const propLights = [];
+  for (let index = 0; index < MAX_PROP_LIGHTS; index += 1) {
+    const point = new THREE.PointLight("#ffd9a1", 0, PROP_LIGHT_DISTANCE, 2);
+    point.visible = false;
+    scene.add(point);
+    propLights.push(point);
+  }
+
+  function syncPropLights(entries) {
+    if (!current || current.diorama) {
+      for (const point of propLights) {
+        point.intensity = 0;
+        point.visible = false;
+      }
+      return;
+    }
+    propLights.forEach((point, index) => {
+      const entry = entries[index];
+      if (!entry) {
+        point.intensity = 0;
+        point.visible = false;
+        return;
+      }
+      point.visible = true;
+      point.color.set(entry.color);
+      point.intensity = entry.intensity;
+      point.position.set(...propLightWorldPosition(entry.position));
+    });
+  }
 
   function effectPixelScale() {
     return renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI / 180) / 2));
@@ -765,6 +802,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     selectionRing.visible = false;
     dropHint.visible = false;
     gizmo.setVisible(false);
+    for (const point of propLights) {
+      point.intensity = 0;
+      point.visible = false;
+    }
   }
 
   function rebuild(room) {
@@ -1179,13 +1220,21 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       } else {
         syncRoom(state.room);
       }
+      // Editing shows neutral day lighting so authors see true colors.
+      const preset = editEnabled ? resolveRoomLighting(null) : resolveRoomLighting(state.room);
+      const lightSelection = editEnabled
+        ? { lights: [], lamps: 0, windows: 0 }
+        : selectPropLights(state.room.props, preset.name, MAX_PROP_LIGHTS);
+      // Windows feed the ambient level for night environments only.
+      const windowCount = preset.name === "night" ? lightSelection.windows : 0;
       if (current?.diorama) {
         current.diorama.setRoomDark(roomDark);
         current.diorama.setSceneLights(lights);
+        syncPropLights(lightSelection.lights);
       } else {
-        if (renderer.toneMappingExposure !== 0.95) renderer.toneMappingExposure = 0.95;
         resetBoardLights(lights);
-        if (applyDarkLighting(lights, roomDark)) invalidate();
+        if (applyEnvironmentLighting(lights, preset, renderer, lightSelection.lamps, windowCount)) invalidate();
+        syncPropLights(lightSelection.lights);
       }
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
