@@ -447,6 +447,9 @@ medicine-cabinet:
   - market-stomach-settler
   cooldown: 60
   one_per_room: true
+  default_actions:
+  - - Take medicine
+    - .dispense @self
   scale: 0.8
   tags:
   - storage
@@ -544,6 +547,9 @@ kitchen-dresser:
   - market-tofu
   - market-coconut-milk
   cooldown: 5
+  default_actions:
+  - - Take an ingredient
+    - .dispense @self
   scale: 1.2
   tags:
   - storage
@@ -926,6 +932,10 @@ supermarket-prep-table:
   decorative: false
   behavior: crafting
   one_per_room: true
+  default_actions:
+  - - Craft at the prep table
+    - .craft @self
+    - true
   scale: 1.0
   tags:
   - crafting
@@ -940,6 +950,10 @@ supermarket-oven:
   decorative: false
   behavior: crafting
   one_per_room: true
+  default_actions:
+  - - Craft at the oven
+    - .craft @self
+    - true
   scale: 1.0
   tags:
   - crafting
@@ -953,6 +967,10 @@ supermarket-mixer:
   decorative: false
   behavior: crafting
   one_per_room: true
+  default_actions:
+  - - Craft at the mixer
+    - .craft @self
+    - true
   scale: 0.9
   tags:
   - crafting
@@ -966,6 +984,10 @@ supermarket-recipe-book:
   decorative: false
   behavior: recipe-book
   one_per_room: true
+  default_actions:
+  - - Read the recipe book
+    - .act read @self
+    - true
   scale: 0.8
   tags:
   - crafting
