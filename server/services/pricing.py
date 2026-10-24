@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from server.content.cards import PACK_CARD_TYPE, CardCatalog, CardDefinition
 from server.content.gameplay import GameplayContent
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
+from server.services import dynamic_cards as dynamic_card_store
 from server.state.migrations import DatabaseHub
 
 
@@ -48,7 +49,11 @@ class CardPricingService:
         return self._content.card_prices.value_for(definition.rarity)
 
     def is_sellable(self, definition: CardDefinition) -> bool:
-        """Return whether a card can be sold from an inventory."""
+        """Return whether a card can be sold from an inventory.
+
+        Dynamic cards sell at their standard rarity price like authored
+        cards; the drop sources that mint them own any farming trade-offs.
+        """
 
         return definition.collectible and not definition.quest and definition.type != PACK_CARD_TYPE
 
@@ -66,6 +71,10 @@ class CardPricingService:
             if stack is None:
                 raise ValueError("That card stack is not in your inventory.")
             definition = self._catalog.cards.get(stack.card_def_id)
+            if definition is None:
+                definition = dynamic_card_store.get_dynamic_definition(
+                    self._catalog, self._profiles, stack.card_def_id
+                )
             if definition is None:
                 raise ValueError("That card is not available.")
             if not self.is_sellable(definition):

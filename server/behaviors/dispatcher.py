@@ -20,6 +20,7 @@ from server.content.worlds import WorldDefinition
 from server.profiles import ProfileRepository
 from server.protocol import peep_enter_event, peep_leave_event
 from server.security import utc_now
+from server.services import dynamic_cards as dynamic_card_store
 from server.services.sprite_rooms import SpriteService
 from server.state.migrations import DatabaseHub, read_behavior_state
 from server.state.npc_peep_states import NpcPeepStateRepository
@@ -258,6 +259,10 @@ class BehaviorDispatcher(BehaviorIntentMixin):
         if not isinstance(card_id, str) or not card_id:
             return None
         definition = self._catalog.cards.get(card_id)
+        if definition is None:
+            definition = dynamic_card_store.get_dynamic_definition(
+                self._catalog, self._profiles, card_id
+            )
         if definition is None:
             return None
         return CardView(

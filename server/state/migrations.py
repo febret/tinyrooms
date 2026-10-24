@@ -9,7 +9,7 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 11
+PROFILE_SCHEMA_VERSION = 12
 WORLD_SCHEMA_VERSION = 18
 
 
@@ -244,7 +244,21 @@ CREATE TABLE IF NOT EXISTS vibes (
     PRIMARY KEY (world_id, source_peep_id, target_peep_id)
 );
 CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
-PRAGMA user_version = 11;
+-- dynamic_card_defs stores override-only dynamic card definitions minted at
+-- runtime (custom label/description/rarity over an authored base card's art).
+-- Definitions live in the shared profile database so every world process can
+-- resolve the same dynamic card id; stacks stay in profile_card_stacks/room_cards.
+CREATE TABLE IF NOT EXISTS dynamic_card_defs (
+    id TEXT PRIMARY KEY,
+    base_card_id TEXT NOT NULL,
+    label TEXT NOT NULL,
+    description TEXT NOT NULL,
+    rarity TEXT,
+    creator_account_id TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id);
+PRAGMA user_version = 12;
 COMMIT;
 """
 
@@ -360,8 +374,9 @@ _PROFILE_TABLES = frozenset(
         "pack_opens",
         "task_progress",
         "memories",
-        "audit_log",
-        "vibes",
+    "audit_log",
+    "vibes",
+    "dynamic_card_defs",
     }
 )
 
@@ -570,6 +585,21 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     );
     CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
     PRAGMA user_version = 11;
+    COMMIT;
+    """,
+    12: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS dynamic_card_defs (
+        id TEXT PRIMARY KEY,
+        base_card_id TEXT NOT NULL,
+        label TEXT NOT NULL,
+        description TEXT NOT NULL,
+        rarity TEXT,
+        creator_account_id TEXT,
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id);
+    PRAGMA user_version = 12;
     COMMIT;
     """,
 }
@@ -885,6 +915,16 @@ _VIBES_COLUMNS = (
     "updated_at",
 )
 
+_DYNAMIC_CARD_COLUMNS = (
+    "id",
+    "base_card_id",
+    "label",
+    "description",
+    "rarity",
+    "creator_account_id",
+    "created_at",
+)
+
 _PROP_SURFACES_COLUMNS = (
     "room_id",
     "instance_id",
@@ -1006,8 +1046,10 @@ def ensure_profile_database(path: Path) -> None:
             "memories": _MEMORIES_COLUMNS,
             "audit_log": _AUDIT_LOG_COLUMNS,
             "vibes": _VIBES_COLUMNS,
+            "dynamic_card_defs": _DYNAMIC_CARD_COLUMNS,
         },
         extra_indexes=(
+            "CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id)",
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_lookup ON profile_card_stacks(account_id, card_def_id, scope)",

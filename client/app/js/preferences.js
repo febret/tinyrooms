@@ -78,8 +78,10 @@ export function saveFullscreenIntent(enabled) {
 }
 
 export function savedInventoryCompact() {
-  try { return localStorage.getItem(INVENTORY_COMPACT_KEY) === "true"; }
-  catch { return false; }
+  try {
+    const stored = localStorage.getItem(INVENTORY_COMPACT_KEY);
+    return stored === null ? true : stored === "true";
+  } catch { return true; }
 }
 
 export function saveInventoryCompact(enabled) {

@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from server.content.cards import NON_EQUIP_TYPES, CardCatalog, CardDefinition
 from server.content.gameplay import LevelTable
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
-from server.services.cards import grant_card_to_inventory, require_definition, require_inventory_stack
+from server.services import dynamic_cards as dynamic_card_store
+from server.services.cards import grant_card_to_inventory, require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
@@ -40,7 +41,7 @@ class InventoryService:
         self._world_id = world_id
 
     def _definition(self, card_def_id: str) -> CardDefinition:
-        return require_definition(self._catalog, card_def_id)
+        return dynamic_card_store.require_definition(self._catalog, self._profiles, card_def_id)
 
     def _equipped_count(self, account_id: str) -> int:
         return sum(

@@ -20,6 +20,7 @@ from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.game.buffs import BuffInstance, DAILY, TIMED, apply_buff as apply_buff_instances
 from server.game.decals import clear_decals, decals_payload, upsert_decal
 from server.security import utc_now
+from server.services import dynamic_cards as dynamic_card_store
 from server.services.cards import auto_equip_new_stacks, grant_card_to_inventory
 from server.services.npc_movement import resolve_npc_move
 
@@ -549,6 +550,10 @@ class BehaviorIntentMixin:
         card_id = str(payload.get("card_id", ""))
         definition = self._catalog.cards.get(card_id)
         if definition is None:
+            definition = dynamic_card_store.get_dynamic_definition(
+                self._catalog, self._profiles, card_id
+            )
+        if definition is None:
             self._log("behavior.intent.skipped", kind="give_card", reason="unknown_card", card_id=card_id)
             return
         quantity = max(0, int(payload.get("quantity", 1) or 0))
@@ -604,6 +609,10 @@ class BehaviorIntentMixin:
             return
         card_id = str(payload.get("card_id", ""))
         definition = self._catalog.cards.get(card_id)
+        if definition is None:
+            definition = dynamic_card_store.get_dynamic_definition(
+                self._catalog, self._profiles, card_id
+            )
         if definition is None:
             self._log("behavior.intent.skipped", kind="purchase_card", reason="unknown_card", card_id=card_id)
             return

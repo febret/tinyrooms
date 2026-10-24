@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 import sqlite3
+from typing import TYPE_CHECKING
 
 from server.commands.outcomes import PendingRoomBroadcast
 from server.content.worlds import WorldDefinition
@@ -13,6 +14,9 @@ from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
 from server.state.npc_peep_states import NpcPeepStateRepository
 from server.state.vibes import VibesRepository
+
+if TYPE_CHECKING:
+    from server.services.dynamic_cards import DynamicCardDrops
 
 
 PERIODIC_SECONDS = 60
@@ -54,12 +58,14 @@ class VibesService:
         stats: StatsService,
         peep_states: NpcPeepStateRepository | None = None,
         connections: object | None = None,
+        card_drops: DynamicCardDrops | None = None,
     ) -> None:
         self._hub = hub
         self._world = world
         self._stats = stats
         self._peep_states = peep_states
         self._connections = connections
+        self._card_drops = card_drops
         self._repo = VibesRepository(hub)
         self._last_room_update: dict[str, datetime] = {}
 
@@ -170,7 +176,12 @@ class VibesService:
         *,
         now: datetime | None = None,
     ) -> list[PendingRoomBroadcast]:
-        """Apply the minute-based stinky and charisma rules for one room."""
+        """Apply the minute-based stinky and charisma rules for one room.
+
+        Stinky occupants may also drop personalized dynamic cards through the
+        optional card-drop collaborator; drops work even for a solo peep with
+        no vibe pairs to update.
+        """
 
         moment = now or utc_now()
         previous = self._last_room_update.get(room_id)
@@ -187,11 +198,29 @@ class VibesService:
                 and self._peep_states.room_for(peep_id) == room_id
             )
         peeps = [*users, *npc_ids]
+        views = self._stats.views(users) if users else {}
+
+        stinky_users = [
+            account_id
+            for account_id in users
+            if views.get(account_id) is not None and "stinky" in views[account_id].statuses
+        ]
+        drop_broadcasts: list[PendingRoomBroadcast] = []
+        if self._card_drops is not None and stinky_users:
+            drop_broadcasts = self._card_drops.maybe_drop(room_id, stinky_users, now=moment)
+
         if len(peeps) < 2:
-            return []
+            if not drop_broadcasts:
+                return []
+            return [
+                *drop_broadcasts,
+                PendingRoomBroadcast(
+                    room_id=room_id,
+                    event={"type": "room.refresh", "room_id": room_id},
+                ),
+            ]
         self._last_room_update[room_id] = moment
 
-        views = self._stats.views(users) if users else {}
         deltas: dict[tuple[str, str], int] = {}
 
         for target_id in users:
@@ -215,18 +244,19 @@ class VibesService:
                     key = (source_id, target_id)
                     deltas[key] = deltas.get(key, 0) + STINKY_VIBE_DELTA
 
-        if not deltas:
-            return []
-        updated = self.adjust_many(
-            (source, target, delta) for (source, target), delta in deltas.items()
-        )
-        if not updated:
+        updated: dict[tuple[str, str], int] = {}
+        if deltas:
+            updated = self.adjust_many(
+                (source, target, delta) for (source, target), delta in deltas.items()
+            )
+        if not updated and not drop_broadcasts:
             return []
         return [
+            *drop_broadcasts,
             PendingRoomBroadcast(
                 room_id=room_id,
                 event={"type": "room.refresh", "room_id": room_id},
-            )
+            ),
         ]
 
     async def on_room_tick(self, room_id: str) -> list[PendingRoomBroadcast]:

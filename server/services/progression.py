@@ -10,6 +10,7 @@ from server.content.cards import CardCatalog
 from server.content.gameplay import GameplayContent
 from server.profiles import AccountRecord, ProfileRepository
 from server.security import utc_now
+from server.services import dynamic_cards as dynamic_card_store
 from server.services.cards import grant_card_to_inventory
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
@@ -122,6 +123,10 @@ class ProgressionService:
             if stack is None:
                 raise ValueError("That skill card is not in your inventory.")
             definition = self._catalog.cards.get(stack.card_def_id)
+            if definition is None:
+                definition = dynamic_card_store.get_dynamic_definition(
+                    self._catalog, self._profiles, stack.card_def_id
+                )
             if definition is None or definition.type != "skill":
                 raise ValueError("Only skill cards can fill skill slots.")
             slot_rank = slot_index // SKILL_SLOTS_PER_RANK
@@ -312,6 +317,10 @@ class ProgressionService:
 
     def _grant_card(self, connection: sqlite3.Connection, account_id: str, card_id: str) -> None:
         definition = self._catalog.cards.get(card_id)
+        if definition is None:
+            definition = dynamic_card_store.get_dynamic_definition(
+                self._catalog, self._profiles, card_id
+            )
         if definition is None:
             raise ValueError(f"Unknown reward card '{card_id}'.")
         if not definition.collectible:

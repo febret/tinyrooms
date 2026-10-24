@@ -204,6 +204,24 @@ class InventoryStack:
 
 
 @dataclass(frozen=True, slots=True)
+class DynamicCardRecord:
+    """An override-only dynamic card definition minted at runtime.
+
+    Only label/description/rarity are custom; art, sounds, type, stack limit,
+    and gameplay fields are inherited from the authored base card so the id
+    stays valid in every world that can resolve the base.
+    """
+
+    id: str
+    base_card_id: str
+    label: str
+    description: str
+    rarity: str | None
+    creator_account_id: str | None
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
 class UserProfileRecord:
     """One account-wide profile, including navigation context for the last world.
 
@@ -760,6 +778,74 @@ class ProfileRepository:
                 (account_id, stack_id, world_id),
             ).fetchone()
         return None if row is None else self._stack_from_row(row)
+
+    @staticmethod
+    def _dynamic_card_from_row(row: sqlite3.Row) -> DynamicCardRecord:
+        return DynamicCardRecord(
+            id=row["id"],
+            base_card_id=row["base_card_id"],
+            label=row["label"],
+            description=row["description"],
+            rarity=row["rarity"],
+            creator_account_id=row["creator_account_id"],
+            created_at=row["created_at"],
+        )
+
+    def create_dynamic_card(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        card_id: str,
+        base_card_id: str,
+        label: str,
+        description: str,
+        rarity: str | None,
+        creator_account_id: str | None,
+    ) -> DynamicCardRecord:
+        """Persist one dynamic card definition inside the caller's transaction."""
+
+        now = utc_now().isoformat()
+        connection.execute(
+            """
+            INSERT INTO dynamic_card_defs
+                (id, base_card_id, label, description, rarity, creator_account_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (card_id, base_card_id, label, description, rarity, creator_account_id, now),
+        )
+        return DynamicCardRecord(
+            id=card_id,
+            base_card_id=base_card_id,
+            label=label,
+            description=description,
+            rarity=rarity,
+            creator_account_id=creator_account_id,
+            created_at=now,
+        )
+
+    def get_dynamic_card(self, card_id: str) -> DynamicCardRecord | None:
+        """Fetch one dynamic card definition by id."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT * FROM dynamic_card_defs WHERE id = ?",
+                (card_id,),
+            ).fetchone()
+        return None if row is None else self._dynamic_card_from_row(row)
+
+    def list_dynamic_cards(self, card_ids: list[str]) -> dict[str, DynamicCardRecord]:
+        """Fetch many dynamic card definitions with a single query."""
+
+        unique_ids = list(dict.fromkeys(card_ids))
+        if not unique_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in unique_ids)
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                f"SELECT * FROM dynamic_card_defs WHERE id IN ({placeholders})",
+                tuple(unique_ids),
+            ).fetchall()
+        return {row["id"]: self._dynamic_card_from_row(row) for row in rows}
 
     def add_inventory_card(
         self,

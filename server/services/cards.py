@@ -18,6 +18,7 @@ from server.content.cards import (
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.content.sounds import sounds_payload
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
+from server.services import dynamic_cards as dynamic_card_store
 from server.state.migrations import DatabaseHub
 from server.state.world_state import RoomCardStack, WorldStateRepository
 
@@ -69,7 +70,12 @@ def grant_card_to_inventory(
 ) -> list[InventoryStack]:
     """Add one copy of a collectible, scoping world cards to the active world."""
 
-    scope = "world" if definition.source == world_id else "global"
+    if dynamic_card_store.is_dynamic_card_id(definition.id):
+        # Dynamic definitions live in the shared profile database, so their
+        # stacks stay global and resolve in every world.
+        scope = "global"
+    else:
+        scope = "world" if definition.source == world_id else "global"
     return profiles.add_inventory_card(
         connection,
         account_id=account_id,
@@ -152,14 +158,19 @@ class CardService:
         self._environment = environment
 
     def definition(self, card_def_id: str) -> CardDefinition:
-        """Return a loaded card definition by ID."""
+        """Return an authored or dynamic card definition by ID."""
 
-        return require_definition(self._catalog, card_def_id)
+        return dynamic_card_store.require_definition(self._catalog, self._profiles, card_def_id)
 
     def has_definition(self, card_def_id: str) -> bool:
-        """Return whether a card definition id exists in the catalog."""
+        """Return whether a card id resolves to an authored or dynamic definition."""
 
-        return card_def_id in self._catalog.cards
+        return dynamic_card_store.has_definition(self._catalog, self._profiles, card_def_id)
+
+    def prefetch_dynamic_definitions(self, card_def_ids: list[str]) -> dict[str, CardDefinition]:
+        """Batch-resolve dynamic ids for snapshot serialization."""
+
+        return dynamic_card_store.batch_dynamic_definitions(self._catalog, self._profiles, card_def_ids)
 
     def asset_urls(self, definition: CardDefinition) -> tuple[str, str | None]:
         """Return the served art URLs for a card as ``(still, animation)``."""
@@ -256,12 +267,15 @@ class CardService:
         quantity: int,
         pinned: bool,
         extra_action: dict[str, str],
+        *,
+        definition: CardDefinition | None = None,
     ) -> dict[str, object]:
+        resolved = definition if definition is not None else self.definition(card_def_id)
         return {
             "stack_id": stack_id,
             "quantity": quantity,
             "pinned": pinned,
-            "definition": self.serialize_definition(self.definition(card_def_id)),
+            "definition": self.serialize_definition(resolved),
             "quick_actions": [extra_action],
         }
 
@@ -272,18 +286,27 @@ class CardService:
             card_def_id,
         )
 
-    def serialize_inventory_stack(self, stack: InventoryStack) -> dict[str, object] | None:
+    def serialize_inventory_stack(
+        self,
+        stack: InventoryStack,
+        *,
+        prefetched: dict[str, CardDefinition] | None = None,
+    ) -> dict[str, object] | None:
         """Serialize an inventory stack, or ``None`` when its definition is missing."""
 
-        if not self.has_definition(stack.card_def_id):
-            self._warn_missing_definition(stack.stack_id, stack.card_def_id)
-            return None
+        definition = (prefetched or {}).get(stack.card_def_id)
+        if definition is None:
+            if not self.has_definition(stack.card_def_id):
+                self._warn_missing_definition(stack.stack_id, stack.card_def_id)
+                return None
+            definition = self.definition(stack.card_def_id)
         payload = self._serialize_stack_base(
             stack.stack_id,
             stack.card_def_id,
             stack.quantity,
             stack.pinned,
             {"label": "Drop", "command": f".drop @card:{stack.stack_id} 1"},
+            definition=definition,
         )
         payload["scope"] = stack.scope
         payload["world_id"] = stack.world_id
@@ -295,25 +318,36 @@ class CardService:
     ) -> list[dict[str, object]]:
         """Serialize inventory stacks, skipping entries with missing definitions."""
 
+        materialized = list(stacks)
+        prefetched = self.prefetch_dynamic_definitions([stack.card_def_id for stack in materialized])
         payloads: list[dict[str, object]] = []
-        for stack in stacks:
-            payload = self.serialize_inventory_stack(stack)
+        for stack in materialized:
+            payload = self.serialize_inventory_stack(stack, prefetched=prefetched)
             if payload is not None:
                 payloads.append(payload)
         return payloads
 
-    def serialize_room_stack(self, stack: RoomCardStack) -> dict[str, object] | None:
+    def serialize_room_stack(
+        self,
+        stack: RoomCardStack,
+        *,
+        prefetched: dict[str, CardDefinition] | None = None,
+    ) -> dict[str, object] | None:
         """Serialize a room card stack, or ``None`` when its definition is missing."""
 
-        if not self.has_definition(stack.card_def_id):
-            self._warn_missing_definition(stack.stack_id, stack.card_def_id)
-            return None
+        definition = (prefetched or {}).get(stack.card_def_id)
+        if definition is None:
+            if not self.has_definition(stack.card_def_id):
+                self._warn_missing_definition(stack.stack_id, stack.card_def_id)
+                return None
+            definition = self.definition(stack.card_def_id)
         payload = self._serialize_stack_base(
             stack.stack_id,
             stack.card_def_id,
             stack.quantity,
             stack.pinned,
             {"label": "Pick up 1", "command": f".pickup @card:{stack.stack_id} 1"},
+            definition=definition,
         )
         payload["position"] = [stack.position[0], stack.position[1], stack.position[2]]
         return payload
@@ -321,9 +355,11 @@ class CardService:
     def serialize_room_stacks(self, stacks: Iterable[RoomCardStack]) -> list[dict[str, object]]:
         """Serialize room card stacks, skipping entries with missing definitions."""
 
+        materialized = list(stacks)
+        prefetched = self.prefetch_dynamic_definitions([stack.card_def_id for stack in materialized])
         payloads: list[dict[str, object]] = []
-        for stack in stacks:
-            payload = self.serialize_room_stack(stack)
+        for stack in materialized:
+            payload = self.serialize_room_stack(stack, prefetched=prefetched)
             if payload is not None:
                 payloads.append(payload)
         return payloads
@@ -347,14 +383,20 @@ class CardService:
                 stack_id=stack_id,
                 quantity=quantity,
             )
-            definition = require_definition(self._catalog, stack.card_def_id)
+            definition = self.definition(stack.card_def_id)
+            if dynamic_card_store.is_dynamic_card_id(definition.id):
+                pickup_world_id: str | None = None
+                pickup_scope = "global"
+            else:
+                pickup_world_id = self._world_id if definition.collectible else None
+                pickup_scope = "world" if definition.collectible else "global"
             created_stacks = self._profiles.add_inventory_card(
                 connection,
                 account_id=account.id,
-                world_id=self._world_id if definition.collectible else None,
+                world_id=pickup_world_id,
                 card_def_id=stack.card_def_id,
                 quantity=quantity,
-                scope="world" if definition.collectible else "global",
+                scope=pickup_scope,
                 stack_limit=definition.stack_limit,
             )
             inventory_rows = auto_equip_new_stacks(
@@ -397,7 +439,7 @@ class CardService:
                 stack_id=stack_id,
                 quantity=quantity,
             )
-            require_definition(self._catalog, inventory_stack.card_def_id)
+            self.definition(inventory_stack.card_def_id)
             room_stack = self._world_state.add_room_card(
                 connection,
                 room_id=room_id,

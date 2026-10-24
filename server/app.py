@@ -86,6 +86,7 @@ from server.services.crafting import CraftingService
 from server.services.cross_world import CrossWorldService
 from server.services.dialogs import DialogService
 from server.services.dispensers import DispenserService
+from server.services.dynamic_cards import DynamicCardDrops
 from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
@@ -544,6 +545,13 @@ def _build_runtime(
         stats=stats,
         peep_states=peep_states,
         connections=connections,
+        card_drops=DynamicCardDrops(
+            hub=hub,
+            profiles=profiles,
+            world_state=world_state,
+            cards=cards,
+            catalog=catalog,
+        ),
     )
     friends = FriendsService(hub, profiles, is_online=connections.is_online, vibes=vibes)
     chiptune_stars = ChiptuneStarService(profiles)

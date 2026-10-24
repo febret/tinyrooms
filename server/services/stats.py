@@ -14,6 +14,7 @@ from server.game.modifiers import Modifier, bonuses_to_modifiers, clamp_counter
 from server.game.state import EffectivePeepState, compute_effective_state
 from server.profiles import AccountRecord, ProfileRepository, UserProfileRecord
 from server.security import utc_now
+from server.services import dynamic_cards as dynamic_card_store
 from server.state.migrations import DatabaseHub
 
 BASE_HEALTH_FALLBACK = 50.0
@@ -114,6 +115,10 @@ class StatsService:
             if not stack.equipped:
                 continue
             definition = self._catalog.cards.get(stack.card_def_id)
+            if definition is None:
+                definition = dynamic_card_store.get_dynamic_definition(
+                    self._catalog, self._profiles, stack.card_def_id
+                )
             if definition is None or definition.type in NON_EQUIP_TYPES:
                 continue
             modifiers.extend(bonuses_to_modifiers(definition.bonuses, multiplier=stack.quantity))
@@ -127,6 +132,10 @@ class StatsService:
             if stack is None:
                 continue
             definition = self._catalog.cards.get(stack.card_def_id)
+            if definition is None:
+                definition = dynamic_card_store.get_dynamic_definition(
+                    self._catalog, self._profiles, stack.card_def_id
+                )
             if definition is None:
                 continue
             # A single owned copy can only ever fill one slot.

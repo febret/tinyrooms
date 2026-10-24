@@ -11,7 +11,8 @@ from server.content.cards import (
     card_asset_url,
 )
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
-from server.services.cards import require_definition, require_inventory_stack
+from server.services import dynamic_cards as dynamic_card_store
+from server.services.cards import require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
@@ -87,7 +88,7 @@ class ActionsService:
         self._environment = environment
 
     def _definition(self, card_def_id: str) -> CardDefinition:
-        return require_definition(self._catalog, card_def_id)
+        return dynamic_card_store.require_definition(self._catalog, self._profiles, card_def_id)
 
     def _stack(self, account_id: str, stack_id: str) -> InventoryStack:
         return require_inventory_stack(self._profiles, self._world_id, account_id, stack_id)
