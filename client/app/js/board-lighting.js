@@ -48,9 +48,10 @@ const AMBIENT_MAX_TOTAL = 1.8;
 
 export function resolveRoomLighting(room) {
   const preset = room?.environment?.lighting_preset;
-  const name = typeof preset?.name === "string" && LIGHTING_PRESETS[preset.name]
-    ? preset.name
-    : (room?.board?.dark ? "darkness" : "day");
+  const hasPreset = typeof preset?.name === "string" && LIGHTING_PRESETS[preset.name];
+  // The board's effective darkness wins: a room darkened at runtime serializes
+  // its props as dark, so a stale or mismatched preset must not light the scene.
+  const name = room?.board?.dark ? "darkness" : (hasPreset ? preset.name : "day");
   return { name, ...LIGHTING_PRESETS[name] };
 }
 

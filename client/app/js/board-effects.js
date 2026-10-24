@@ -1,16 +1,10 @@
 // Board-wide lighting and camera-independent effect helpers.
 //
-// Kept out of `board.js` so the draw loop stays small: dark rooms bias the
-// scene lights toward a dim, shadowed grey, and the scared status jitters the
-// whole room (floor and props together) for an anxiety-inducing shake.
+// Kept out of `board.js` so the draw loop stays small: fixed scene lights
+// plus the scared-status shake for the whole room. Environment presets live
+// in `board-lighting.js`.
 
 import * as THREE from "three";
-
-const DARK_LIGHTING = {
-  hemisphere: 0.32,
-  sunlight: 0.62,
-  fill: 0.08,
-};
 
 const LIT_LIGHTING = {
   hemisphere: 1.45,
@@ -49,25 +43,6 @@ export function resetBoardLights({ hemisphere, sunlight, fill }) {
   sunlight.color.set("#ffe6bb");
   sunlight.position.set(-5, 12, 7);
   fill.color.set("#bce2df");
-}
-
-/** Dim or restore the scene lights for a dark room. Returns true when changed. */
-export function applyDarkLighting({ hemisphere, sunlight, fill }, dark) {
-  const target = dark ? DARK_LIGHTING : LIT_LIGHTING;
-  let changed = false;
-  if (hemisphere.intensity !== target.hemisphere) {
-    hemisphere.intensity = target.hemisphere;
-    changed = true;
-  }
-  if (sunlight.intensity !== target.sunlight) {
-    sunlight.intensity = target.sunlight;
-    changed = true;
-  }
-  if (fill.intensity !== target.fill) {
-    fill.intensity = target.fill;
-    changed = true;
-  }
-  return changed;
 }
 
 /** Offset a room group by an erratic, high-frequency shake (no-op when settled). */

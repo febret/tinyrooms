@@ -12,7 +12,6 @@ from server.commands.outcomes import (
 from server.commands.parser import ParsedCommand, parse_target
 from server.profiles import InventoryStack
 from server.services.crafting import CraftPreview, CraftResult
-from server.services.lighting import is_toggleable
 
 
 def _prop_instance_id(token: str) -> str:
@@ -111,16 +110,12 @@ async def toggle_command(context: CommandContext, command: ParsedCommand) -> Com
         raise CommandError("Choose something to toggle.")
     room_id = require_room_id(context)
     prop_instance_id = _prop_instance_id(command.args[0])
-    prop = context.rooms.require_prop_target(room_id, prop_instance_id)
-    definition = context.rooms.prop_definition(prop.prop_id)
-    if not is_toggleable(definition):
-        raise CommandError(f"{definition.label} cannot be toggled.")
+    context.rooms.require_prop_target(room_id, prop_instance_id)
     try:
         event = context.rooms.toggle_prop_light(room_id, prop_instance_id)
     except ValueError as exc:
         raise CommandError(str(exc)) from exc
     turned_on = bool(((event.get("prop") or {}).get("light") or {}).get("on", True))
-    state = "on" if turned_on else "off"
     return CommandOutcome(
         payload={"light": {"prop_id": prop_instance_id, "on": turned_on}},
         room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=event)],

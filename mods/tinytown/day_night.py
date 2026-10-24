@@ -74,14 +74,7 @@ class DayNightCycle:
     async def _broadcast(self, changed: dict[str, str]) -> None:
         from server.broadcast import broadcast_room_event
 
-        connections = getattr(self._runtime, "connections", None)
         for room_id in changed:
-            try:
-                occupied = await connections.list_room(room_id) if connections is not None else []
-            except Exception:  # noqa: BLE001 - presence checks must not break the cycle
-                continue
-            if not occupied:
-                continue
             try:
                 await broadcast_room_event(
                     self._runtime,

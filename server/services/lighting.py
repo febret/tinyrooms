@@ -65,7 +65,7 @@ class LightingService:
 
         return phase_to_environment(self.phase_now())
 
-    def apply_cycle(self, room_ids: object = None) -> dict[str, str]:
+    def apply_cycle(self) -> dict[str, str]:
         """Pin the current cycle environment on every inheriting room.
 
         Rooms with an authored ``environment`` or ``dark`` flag keep their
@@ -74,9 +74,8 @@ class LightingService:
         """
 
         name = self.cycle_environment()
-        candidates = list(room_ids) if room_ids is not None else list(self._world.rooms)
         changed: dict[str, str] = {}
-        for room_id in candidates:
+        for room_id in self._world.rooms:
             room = self._world.rooms.get(room_id)
             if room is None or room.dark or room.environment:
                 continue
@@ -85,19 +84,26 @@ class LightingService:
                 changed[room_id] = name
         return changed
 
-    def snapshot_payload(self, room_id: str) -> dict[str, object]:
-        """Serialize the resolved lighting plus the shared cycle phase."""
+    def snapshot_payload(self, room_id: str, *, dark: bool | None = None) -> dict[str, object]:
+        """Serialize the resolved lighting plus the shared cycle phase.
 
-        payload = serialize_preset(preset_for(self._environment_name(room_id)))
+        *dark* is the effective room darkness (for example from a dynamic
+        lighting override). When omitted, the authored ``room.dark`` flag is
+        used, preserving the previous behavior.
+        """
+
+        payload = serialize_preset(preset_for(self._environment_name(room_id, dark)))
         payload["time_of_day"] = round(self.phase_now(), 6)
         payload["day_cycle_seconds"] = DAY_NIGHT_CYCLE_SECONDS
         return payload
 
-    def _environment_name(self, room_id: str) -> str:
+    def _environment_name(self, room_id: str, dark: bool | None = None) -> str:
         """Resolve the effective environment, honoring transient overrides."""
 
         room = self._world.rooms.get(room_id)
-        if room is not None and room.dark:
+        if dark is None:
+            dark = room is not None and room.dark
+        if dark:
             return "darkness"
         if room_id in self._overrides:
             return self._overrides[room_id]

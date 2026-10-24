@@ -793,6 +793,8 @@ async def cleanup_versions(request: Request, payload: CleanupVersionsPayload) ->
     if payload.dry_run:
         candidates = await asyncio.to_thread(runtime.packages.cleanup_candidates)
         return {"ok": True, "candidates": candidates}
+    if not payload.ids:
+        return _json_error(400, "invalid_request", "Select at least one cleanup candidate to delete.")
     result = await asyncio.to_thread(runtime.packages.cleanup_versions, payload.ids, actor="operator")
     return {"ok": True, **result}
 

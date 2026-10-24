@@ -119,8 +119,7 @@ binds world listeners to loopback, and regenerates the nginx world map. Only
 TCP 80 and 443 need public ingress. `--dirty` skips the clean-tree check and
 packages uncommitted changes as-is.
 The deploy script never modifies `version.json`: it ships the newest recorded
-version, overwriting that release locally and on the server. Cut a new release
-by editing `version.json` before deploying.
+version. Cut a new release by editing `version.json` before deploying.
 If a local tarball or remote release/checkout already uses that version,
 deployment stops with an error unless `--force` is given to overwrite it.
 Releases carry runtime code, content, and tools only: design docs (`doc/`),

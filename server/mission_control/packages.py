@@ -409,7 +409,10 @@ class PackageManager:
         count = self._instance_count_for(target, version_id)
         if count:
             raise ValueError(f"Cannot delete a version with {count} registered instance(s).")
-        shutil.rmtree(target)
+        try:
+            shutil.rmtree(target)
+        except OSError as exc:
+            raise ValueError(f"Could not delete server version: {exc}") from exc
         tarball = self._config.releases_path / f"tinyrooms-{version_id}.tar.gz"
         if tarball.is_file():
             try:
@@ -476,7 +479,9 @@ class PackageManager:
         deleted: list[str] = []
         failed: list[dict[str, object]] = []
         freed_bytes = 0
-        for candidate in self.cleanup_candidates():
+        candidates = self.cleanup_candidates()
+        known = {str(item["id"]) for item in candidates}
+        for candidate in candidates:
             candidate_id = str(candidate["id"])
             if wanted is not None and candidate_id not in wanted:
                 continue
@@ -497,7 +502,6 @@ class PackageManager:
                     freed_bytes += int(candidate["size"] or 0)
                     deleted.append(candidate_id)
         if wanted is not None:
-            known = {str(item["id"]) for item in self.cleanup_candidates()}
             for version_id in sorted(wanted - set(deleted) - {str(item["id"]) for item in failed} - known):
                 failed.append({"id": version_id, "code": "unknown_candidate", "message": "Cleanup candidate not found."})
         return {"deleted": deleted, "failed": failed, "freed_bytes": freed_bytes}

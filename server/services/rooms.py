@@ -769,11 +769,9 @@ class RoomService:
             quick_actions = self._visible_prop_actions(room, prop.actions)
             quick_actions.extend(self._surface_quick_actions(prop, prop_definition))
             if is_toggleable(prop_definition):
-                turned_on = self._prop_lights.is_on(room.id, prop.id, True)
-                label = "Turn off" if turned_on else "Turn on"
                 toggle = self._normalize_quick_action(
                     room,
-                    QuickAction(label=label, command=f".toggle @prop:{prop.id}"),
+                    QuickAction(label="Toggle light", command=f".toggle @prop:{prop.id}"),
                 )
                 if toggle is not None:
                     quick_actions.append(toggle)
@@ -904,7 +902,7 @@ class RoomService:
             dark = room.dark
         if room.board_type == DIORAMA_BOARD_TYPE:
             environment = diorama_environment(environment)
-        lighting_payload = self._lighting.snapshot_payload(room_id)
+        lighting_payload = self._lighting.snapshot_payload(room_id, dark=dark)
         environment = {**environment, "lighting_preset": lighting_payload}
         viewer_view = occupant_views.get(account.id)
         viewer_statuses = viewer_view.statuses if viewer_view is not None else ()
