@@ -1,7 +1,7 @@
 """Deploy Tinyrooms distributions to remote hosts over SSH.
 
 Usage:
-    python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version]
+    python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version] [--force-restart]
 
 ``host`` may be a bare hostname or ``user@host``; ``-u/--user`` overrides the
 SSH user. Each deployment prepares missing host infrastructure, packages and
@@ -10,9 +10,20 @@ Control readiness. The default root is ``~/tinyrooms``. ``--keep-version`` reuse
 newest recorded version instead of bumping, overwriting that release both
 locally and on the server.
 
+``--force-restart`` additionally rolls every *running spawned* instance onto
+the deployed version before Mission Control itself restarts: each such child
+is pointed at the new checkout and restarted, and the deploy script streams
+per-instance progress while it waits for them to report the new build.
+External instances cannot be updated and are skipped with a warning; stopped
+instances are left untouched. Deployment always restarts Mission Control once
+to activate the release, so no extra restart is added for this flag.
+
 The tarball is streamed over SSH rather than copied with ``scp`` so that an
 interrupted connection resumes from the remote partial file's byte offset and
 the release is installed only after its size and SHA-256 digest verify.
+
+Console output is animated and colored when stdout is a TTY; it degrades to
+plain lines otherwise, and honors ``NO_COLOR``.
 """
 
 from __future__ import annotations
@@ -24,10 +35,10 @@ import os
 import re
 import secrets
 import shlex
-import shutil
 import subprocess
 import sys
 import tarfile
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -75,7 +86,11 @@ EXCLUDED_SUFFIXES = (".pyc", ".sqlite", ".sqlite3", ".db")
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+_TOOLS_DIR = str(Path(__file__).resolve().parent)
+if _TOOLS_DIR not in sys.path:
+    sys.path.insert(0, _TOOLS_DIR)
 
+from deploy_console import CONSOLE, Console  # noqa: E402
 from server.mission_control.nginx_template import site_config  # noqa: E402
 
 
@@ -106,6 +121,31 @@ def run_remote(
         shown = "<redacted command>" if sensitive else command
         raise DeployError(f"Remote command failed ({completed.returncode}): {shown}\n{stderr.strip()}")
     return completed
+
+
+def stream_remote(host: str, command: str, on_line: Callable[[str], None]) -> int:
+    """Run a remote command, forwarding each stdout/stderr line to *on_line*.
+
+    Returns the remote exit status. Standard error is merged into the stream
+    because the fleet helper reserves stdout for structured event lines.
+    """
+
+    process = subprocess.Popen(
+        ["ssh", *SSH_OPTIONS, host, command],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, encoding="utf-8", errors="replace", bufsize=1,
+    )
+    try:
+        assert process.stdout is not None
+        for line in process.stdout:
+            on_line(line.rstrip("\n"))
+    finally:
+        try:
+            process.wait(timeout=10)
+        except Exception:  # noqa: BLE001 - always clean up the SSH child
+            process.kill()
+            raise
+    return process.returncode
 
 
 def run_local(command: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -269,20 +309,22 @@ def git_dirty() -> bool:
     return bool(result.stdout.strip())
 
 
-def tag_version(version: str) -> None:
+def tag_version(version: str, console: Console | None = None) -> None:
     """Create a local git tag for the released version."""
 
+    console = console or CONSOLE
     tag = f"v{version}"
     exists = run_local(["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"], check=False)
     if exists.returncode == 0:
         raise DeployError(f"Git tag {tag} already exists.")
     run_local(["git", "tag", tag])
-    print(f"Tagged {tag}")
+    console.info(f"Tagged {tag}")
 
 
-def package(version: str, dirty: bool) -> Path:
+def package(version: str, dirty: bool, console: Console | None = None) -> Path:
     """Create the self-contained release tarball for *version*."""
 
+    console = console or CONSOLE
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
     tarball = RELEASES_DIR / f"tinyrooms-{version}.tar.gz"
     with tarfile.open(tarball, "w:gz") as archive:
@@ -295,7 +337,7 @@ def package(version: str, dirty: bool) -> Path:
                 path = base / name
                 archive.add(path, arcname=str(path.relative_to(REPO_ROOT)))
     suffix = " (dirty)" if dirty else ""
-    print(f"Packaged {tarball.relative_to(REPO_ROOT)}{suffix}")
+    console.info(f"Packaged {tarball.relative_to(REPO_ROOT)}{suffix}")
     return tarball
 
 
@@ -309,20 +351,33 @@ def local_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def stream_to_remote(host: str, command: str, tarball: Path) -> bool:
+def stream_to_remote(host: str, command: str, tarball: Path, console: Console | None = None) -> bool:
     """Read the locked remote offset, then send the remaining bytes."""
 
+    console = console or CONSOLE
     with subprocess.Popen(
         ["ssh", *SSH_OPTIONS, host, command],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     ) as process:
         offset = process.stdout.readline().strip()
         if offset.isdigit() and int(offset) <= tarball.stat().st_size:
-            print(f"Uploading {tarball.name}: {int(offset)}/{tarball.stat().st_size} bytes...")
+            remaining = tarball.stat().st_size - int(offset)
             try:
                 with tarball.open("rb") as handle:
                     handle.seek(int(offset))
-                    shutil.copyfileobj(handle, process.stdin)
+                    if remaining:
+                        with console.progress(f"Uploading {tarball.name}", remaining) as advance:
+                            while True:
+                                chunk = handle.read(1024 * 1024)
+                                if not chunk:
+                                    break
+                                try:
+                                    process.stdin.write(chunk)
+                                except BrokenPipeError:
+                                    break
+                                advance(len(chunk))
+                    else:
+                        console.info(f"{tarball.name} is already fully uploaded.")
             except BrokenPipeError:
                 pass
         try:
@@ -332,12 +387,14 @@ def stream_to_remote(host: str, command: str, tarball: Path) -> bool:
         process.stdin = None
         _, stderr = process.communicate()
         if stderr:
-            print(stderr.decode("utf-8", errors="replace").strip())
+            console.warning(stderr.decode("utf-8", errors="replace").strip())
         return process.returncode == 0 and offset.isdigit() and int(offset) <= tarball.stat().st_size
 
 
-def upload_tarball(host: str, root: str, tarball: Path) -> None:
+def upload_tarball(host: str, root: str, tarball: Path, console: Console | None = None) -> None:
     """Resume a locked partial upload and promote it only after verification."""
+
+    console = console or CONSOLE
 
     remote_tarball = remote_path(root, "releases", tarball.name)
     expected_size = tarball.stat().st_size
@@ -359,54 +416,219 @@ def upload_tarball(host: str, root: str, tarball: Path) -> None:
     )
     command = f"bash -c {shlex.quote(script)}"
     for attempt in range(1, UPLOAD_ATTEMPTS + 1):
-        if stream_to_remote(host, command, tarball):
-            print(f"Uploaded {tarball.name} ({expected_size} bytes).")
+        if stream_to_remote(host, command, tarball, console=console):
+            console.success(f"Uploaded {tarball.name} ({expected_size} bytes).")
             return
         if attempt == UPLOAD_ATTEMPTS:
             raise DeployError(f"Upload of {tarball.name} to {host} failed after {UPLOAD_ATTEMPTS} attempts.")
-        print(f"Upload interrupted; retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
+        console.warning(f"Upload interrupted; retrying ({attempt}/{UPLOAD_ATTEMPTS - 1})...")
 
 
-def upload_release(host: str, root: str, version: str, tarball: Path, *, overwrite: bool = False) -> None:
+def upload_release(host: str, root: str, version: str, tarball: Path, *, overwrite: bool = False,
+                   console: Console | None = None) -> None:
     """Upload and extract a release into versions/<version>."""
 
+    console = console or CONSOLE
     release_dir = remote_path(root, "versions", version)
-    upload_tarball(host, root, tarball)
+    upload_tarball(host, root, tarball, console=console)
     if overwrite:
         run_remote(host, f"rm -rf {release_dir} && mkdir -p {release_dir}")
     else:
         run_remote(host, f"mkdir -p {release_dir}")
     run_remote(host, f"tar -xzf {remote_path(root, 'releases', tarball.name)} -C {release_dir}")
-    print(f"Uploaded version {version} to {host}:{root}/versions/{version}")
+    console.info(f"Uploaded version {version} to {host}:{root}/versions/{version}")
+
+
+class _FleetProgress:
+    """Renders fleet_restart.py JSON event lines as live console status."""
+
+    def __init__(self, version: str, console: Console) -> None:
+        self.version = version
+        self.console = console
+        self.failures: list[str] = []
+        self.done = False
+        self.error = ""
+        self.unreachable = False
+
+    def handle(self, raw: str) -> None:
+        """Render one raw output line from the fleet helper."""
+
+        line = raw.strip()
+        if not line:
+            return
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            self.console.warning(f"fleet: {line}")
+            return
+        if not isinstance(event, dict):
+            return
+        kind = event.get("type")
+        if kind == "begin":
+            total = event.get("total", 0)
+            skipped = event.get("skipped", [])
+            if total:
+                self.console.info(f"Rolling {total} running instance(s) to version {self.version}")
+            else:
+                self.console.info("No running spawned instances to restart.")
+            for item in skipped if isinstance(skipped, list) else []:
+                if isinstance(item, dict):
+                    self.console.warning(f"Skipped {item.get('name') or item.get('instance_id')}: {item.get('reason')}")
+        elif kind == "instance":
+            label = str(event.get("name") or event.get("instance_id") or "instance")
+            world = event.get("world")
+            label = f"{label} ({world})" if world else label
+            status = event.get("status")
+            if status == "updating":
+                self.console.start_spinner(f"Restarting {label} on {self.version}")
+            elif status == "waiting":
+                self.console.update_spinner(f"Waiting for {label} to report {self.version}")
+            elif status == "ready":
+                self.console.stop_spinner()
+                self.console.success(f"Restarted {label} on {self.version} ({event.get('elapsed', 0)}s)")
+            elif status == "failed":
+                self.console.stop_spinner()
+                self.console.error(f"Failed to restart {label}: {event.get('message')}")
+                self.failures.append(label)
+        elif kind == "done":
+            self.done = True
+        elif kind == "error":
+            self.error = str(event.get("message") or "fleet restart failed")
+            self.unreachable = event.get("code") == "unreachable"
+
+
+def render_fleet_events(version: str, lines: list[str], console: Console | None = None) -> list[str]:
+    """Render fleet helper event lines; return the labels of failed instances."""
+
+    progress = _FleetProgress(version, console or CONSOLE)
+    for line in lines:
+        progress.handle(line)
+    progress.console.stop_spinner()
+    return progress.failures
+
+
+def force_restart_fleet(host: str, root: str, version: str, console: Console | None = None) -> list[str]:
+    """Update every running spawned instance to *version* and restart it.
+
+    Runs ``tools/fleet_restart.py`` from the freshly deployed checkout on the
+    remote host, rendering its JSON event stream as live console status.
+    Returns the labels of instances that failed so deployment can finish its
+    own restart and readiness checks before reporting them.
+    """
+
+    console = console or CONSOLE
+    admin_env = remote_path(root, "admin.env")
+    if run_remote(host, f"test -f {admin_env}", check=False).returncode != 0:
+        console.info("No existing admin.env; nothing to force restart on a fresh install.")
+        return []
+    python = remote_path(root, "venv", "bin", "python")
+    helper = remote_path(root, "versions", version, "tools", "fleet_restart.py")
+    command = (
+        f"set -a; . {admin_env}; set +a; "
+        f"exec {python} {helper} --port \"$TRSERVER_MC_PORT\" --version {shlex.quote(version)}"
+    )
+    failures: list[str] = []
+    progress = _FleetProgress(version, console)
+
+    try:
+        status = stream_remote(host, command, progress.handle)
+    finally:
+        console.stop_spinner()
+    if status == 2 or (status != 0 and progress.unreachable):
+        console.warning("Mission Control was not reachable; fleet restart skipped.")
+        return []
+    if status != 0 or not progress.done:
+        raise DeployError(progress.error or "Fleet restart helper did not complete; check the remote MC log.")
+    failures = progress.failures
+    if failures:
+        console.warning(f"Fleet restart finished with {len(failures)} failure(s).")
+    else:
+        console.success("Fleet restart complete: all running instances are on the deployed version.")
+    return failures
 
 
 def deploy(
-    host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False
+    host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False,
+    force_restart: bool = False, console: Console | None = None,
 ) -> str:
     """Package and deploy a version, returning its label."""
 
+    console = console or CONSOLE
+    total_steps = 12 if force_restart else 11
+    step = 0
+
+    def phase(title: str) -> None:
+        nonlocal step
+        step += 1
+        console.phase(step, total_steps, title)
+
+    phase("Verifying working tree")
     if not dirty and git_dirty():
         raise DeployError("Uncommitted tracked changes detected. Commit them or pass --dirty.")
-    check_remote_prerequisites(host)
-    ensure_dirs(host, root)
-    ensure_python_env(host, root)
-    registry = write_services(host, root)
-    ensure_nginx(host, server_name, root, registry)
+
+    phase("Preparing remote host")
+    with console.spinner("Checking remote prerequisites", "Remote tooling ready"):
+        check_remote_prerequisites(host)
+    with console.spinner("Creating deployment directories", "Directories ready"):
+        ensure_dirs(host, root)
+    with console.spinner("Ensuring Python environment", "Python environment ready"):
+        ensure_python_env(host, root)
+
+    phase("Configuring service registry and nginx")
+    with console.spinner("Writing service registry", "Service registry ready"):
+        registry = write_services(host, root)
+    with console.spinner("Configuring nginx"):
+        ensure_nginx(host, server_name, root, registry, console=console)
+
+    phase("Recording release version")
     if keep_version:
-        version = current_version()
+        with console.spinner("Reusing newest recorded version"):
+            version = current_version()
+        console.info(f"Reusing version {version}")
     else:
         version, dirty = bump_version(dirty)
         if not dirty:
-            tag_version(version)
-    tarball = package(version, dirty)
-    upload_release(host, root, version, tarball, overwrite=keep_version)
-    install_requirements(host, root, version)
-    write_admin_env(host, root, server_name, registry)
-    ensure_keepalive(host, root)
-    run_remote(host, f"ln -sfn {remote_path(root, 'versions', version)} {remote_path(root, 'versions', 'latest')}")
-    restart_admin(host, root)
-    wait_for_admin(host, root, int(registry[ADMIN_SERVICE]["port"]), version)
-    print(f"Deployed version {version}; Mission Control is ready at https://{server_name}/")
+            with console.spinner(f"Tagging release v{version}"):
+                tag_version(version, console=console)
+        else:
+            console.info(f"Recorded dirty version {version}")
+
+    phase("Packaging release")
+    with console.spinner(f"Packing tinyrooms-{version}.tar.gz"):
+        tarball = package(version, dirty, console=console)
+
+    phase("Uploading release")
+    upload_release(host, root, version, tarball, overwrite=keep_version, console=console)
+
+    phase("Installing dependencies")
+    with console.spinner(f"Installing requirements for {version}", f"Requirements installed for {version}"):
+        install_requirements(host, root, version)
+
+    phase("Activating release")
+    with console.spinner(f"Pointing versions/latest at {version}", f"versions/latest now points at {version}"):
+        run_remote(host, f"ln -sfn {remote_path(root, 'versions', version)} {remote_path(root, 'versions', 'latest')}")
+
+    fleet_failures: list[str] = []
+    if force_restart:
+        phase("Force restarting running instances")
+        fleet_failures = force_restart_fleet(host, root, version, console=console)
+
+    phase("Writing environment and keepalive")
+    with console.spinner("Writing mission-control environment", "Environment ready"):
+        write_admin_env(host, root, server_name, registry)
+    with console.spinner("Installing keepalive", "Keepalive installed"):
+        ensure_keepalive(host, root)
+
+    phase("Restarting Mission Control")
+    with console.spinner("Restarting Mission Control", "Mission Control restarted"):
+        restart_admin(host, root)
+
+    phase("Verifying Mission Control")
+    with console.spinner(f"Waiting for version {version}", f"Mission Control {version} is ready"):
+        wait_for_admin(host, root, int(registry[ADMIN_SERVICE]["port"]), version)
+    if fleet_failures:
+        raise DeployError(f"Deployed version {version}, but force restart failed for: {', '.join(fleet_failures)}")
+    console.success(f"Deployed version {version}; Mission Control is ready at https://{server_name}/")
     return version
 
 
@@ -443,16 +665,18 @@ def nginx_config(server_name: str, root: str, registry: dict[str, dict[str, obje
     )
 
 
-def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dict[str, object]]) -> None:
+def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dict[str, object]],
+                 console: Console | None = None) -> None:
     """Install nginx if needed and write the Tinyrooms site configuration."""
 
+    console = console or CONSOLE
     result = run_remote(
         host,
         "{ command -v nginx || test -x /usr/sbin/nginx; } >/dev/null 2>&1 && echo yes || echo no",
         check=False,
     )
     if result.stdout.strip() != "yes":
-        print("Installing nginx via apt...")
+        console.info("Installing nginx via apt...")
         run_remote(host, "sudo -n apt-get update && sudo -n apt-get install -y nginx")
     run_remote(
         host,
@@ -480,7 +704,7 @@ def ensure_nginx(host: str, server_name: str, root: str, registry: dict[str, dic
     )
     run_remote(host, "sudo -n systemctl enable nginx >/dev/null 2>&1 || true")
     refresh_nginx(host, server_name, root, registry)
-    print("nginx configured.")
+    console.info("nginx configured.")
 
 
 def refresh_nginx(host: str, server_name: str, root: str, registry: dict[str, dict[str, object]]) -> None:
@@ -751,6 +975,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Reuse the newest recorded version and overwrite that release instead of bumping it.",
     )
+    parser.add_argument(
+        "--force-restart",
+        "--forcerestart",
+        action="store_true",
+        help="After activating the release, update every running spawned instance to the "
+             "deployed version and restart it before restarting Mission Control.",
+    )
     return parser.parse_args(argv)
 
 
@@ -769,12 +1000,15 @@ def main(argv: list[str] | None = None) -> int:
     """Prepare the remote host and deploy a release."""
 
     args = parse_args(argv)
+    console = Console()
     try:
         ssh_target, server_name = resolve_target(args.host, args.user)
         root = resolve_root(ssh_target, args.rootdir)
-        deploy(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version)
+        console.info(f"Deploying to {ssh_target} ({root})")
+        deploy(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version,
+               force_restart=args.force_restart, console=console)
     except DeployError as exc:
-        print(f"deploy: {exc}", file=sys.stderr)
+        console.error(f"deploy: {exc}")
         return 1
     return 0
 
