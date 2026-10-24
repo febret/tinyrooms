@@ -22,6 +22,7 @@ const previewPrice = document.getElementById("preview-price");
 const buyButton = document.getElementById("buy");
 const searchInput = document.getElementById("search");
 const walletAmount = document.getElementById("wallet-amount");
+const claimButton = document.getElementById("claim-bops");
 const connection = document.getElementById("connection");
 
 const propViewer = createPropViewerManager();
@@ -35,6 +36,7 @@ let loading = false;
 let loaded = false;
 let busy = false;
 let shopping = false;
+let claiming = false;
 let pendingPack = null;
 let activeTab = "cards";
 let sectionApplied = false;
@@ -310,6 +312,25 @@ async function buy() {
     renderPreview();
   }
 }
+
+async function claimBops() {
+  if (claiming) return;
+  claiming = true;
+  claimButton.disabled = true;
+  try {
+    const result = await Tiny.command(".claim_bops");
+    Tiny.celebrate();
+    Tiny.toast(result.message || "Daily Bops claimed.");
+    renderWallet();
+  } catch (error) {
+    Tiny.toast(error.message || "That claim was rejected.", true);
+  } finally {
+    claiming = false;
+    claimButton.disabled = false;
+  }
+}
+
+claimButton.onclick = () => { void claimBops(); };
 
 tabsRoot.addEventListener("click", event => {
   const button = event.target.closest("[data-tab]");

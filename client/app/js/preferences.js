@@ -3,6 +3,7 @@ const BUBBLE_TIMEOUT_KEY = "tinyrooms:bubble-timeout";
 const SIDEBAR_SIZE_KEY = "tinyrooms:sidebar-size";
 const TOOLBAR_SIZE_KEY = "tinyrooms:toolbar-size";
 const FULLSCREEN_KEY = "tinyrooms:fullscreen";
+const INVENTORY_COMPACT_KEY = "tinyrooms:inventory-compact";
 const PHONE_TRACK_KEY = "tinyrooms:phone-track";
 const PHONE_MUSIC_ENABLED_KEY = "tinyrooms:phone-music-enabled";
 
@@ -73,6 +74,16 @@ export function savedFullscreenIntent() {
 
 export function saveFullscreenIntent(enabled) {
   try { localStorage.setItem(FULLSCREEN_KEY, String(Boolean(enabled))); }
+  catch { /* Storage may be unavailable. */ }
+}
+
+export function savedInventoryCompact() {
+  try { return localStorage.getItem(INVENTORY_COMPACT_KEY) === "true"; }
+  catch { return false; }
+}
+
+export function saveInventoryCompact(enabled) {
+  try { localStorage.setItem(INVENTORY_COMPACT_KEY, String(Boolean(enabled))); }
   catch { /* Storage may be unavailable. */ }
 }
 

@@ -10,6 +10,9 @@ body { overflow: hidden; }
 .shop-wallet { order: 2; flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: baseline; gap: 5px; min-height: 34px; padding: 4px 8px; border-radius: 8px; background: linear-gradient(#3a2a12, #241708); color: var(--ink); font-size: 12px; white-space: nowrap; }
 .shop-wallet strong { color: var(--gold); font-size: 15px; }
 .shop-coin { color: var(--gold); }
+.shop-claim { order: 3; flex: 0 0 auto; min-height: 34px; padding: 4px 10px; border-radius: 8px; border: 1px solid #638b53; background: linear-gradient(#548344, #26581d); color: var(--ink); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.shop-claim:hover:not(:disabled) { filter: brightness(1.14); }
+.shop-claim:disabled { cursor: wait; opacity: .7; }
 .shop-tabs { order: 0; flex: 0 0 auto; display: flex; gap: 4px; }
 .shop-tab, .shop-tag { flex: 0 0 auto; min-height: 0; background: #04202a; color: var(--muted); }
 .shop-tab { min-height: 34px; padding: 5px 12px; border-radius: 7px; border: 1px solid transparent; font-weight: 600; }
@@ -67,6 +70,7 @@ body { overflow: hidden; }
   .shop-bar { gap: 4px; }
   .shop-tab { min-height: 32px; padding: 4px 10px; font-size: 13px; }
   .shop-search { flex-basis: 100%; order: 3; }
+  .shop-claim { order: 4; min-height: 32px; }
   .shop-search input { height: 32px; }
   .shop-wallet { min-height: 32px; }
   .shop-section, .shop-panel { padding: 4px; }

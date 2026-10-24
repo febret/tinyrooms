@@ -53,23 +53,23 @@ export function handIconMarkup(definition, stack) {
   `;
 }
 
-export function cardsGrid(stacks, scope, selection, emptyText) {
+export function cardsGrid(stacks, scope, selection, emptyText, { compact = false } = {}) {
   const kind = scope === "room" ? "room-card" : "inventory-card";
   return `
-    <div class="cards-grid">
+    <div class="cards-grid${compact ? " is-compact" : ""}">
       ${stacks.length
-        ? stacks.map(stack => tileMarkup(stack.definition, stack, selection.kind === kind && selection.id === stack.stackId, scope)).join("")
+        ? stacks.map(stack => tileMarkup(stack.definition, stack, selection.kind === kind && selection.id === stack.stackId, scope, { face: compact ? "illustration" : "full" })).join("")
         : `<div class="empty-state">${emptyText}</div>`}
     </div>
   `;
 }
 
-export function inventorySection(state, title, predicate) {
+export function inventorySection(state, title, predicate, { compact = false } = {}) {
   const stacks = state.room?.inventory?.filter(predicate) || [];
   return `
     <section class="inventory-group">
       <header><h3>${escapeHtml(title)}</h3><span>${stacks.length}</span></header>
-      ${cardsGrid(stacks, "inventory", state.selection, "Nothing here yet.")}
+      ${cardsGrid(stacks, "inventory", state.selection, "Nothing here yet.", { compact })}
     </section>
   `;
 }

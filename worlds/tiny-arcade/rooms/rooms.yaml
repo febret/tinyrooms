@@ -556,39 +556,6 @@ chess:
         content: CHESS
         font_id: serif
         color: '#ffd166'
-    chess-tip-rules:
-      prop: builtin:sign
-      pos:
-      - 4
-      - 55
-      - 0
-      rot:
-      - -0.45
-      - 0.1
-      - 0
-      scale: 1
-      sign_style: paper
-      surface:
-        text: 'HOW TO PLAY
-
-          1. Click a piece. 2. Click a green square. 3. Captures pay Bops. 4. Checkmate
-          pays 3 Kudos.'
-    chess-tip-staff:
-      prop: builtin:sign
-      pos:
-      - 96
-      - 55
-      - 0
-      rot:
-      - -0.45
-      - -0.1
-      - 0
-      scale: 1
-      sign_style: neon
-      surface:
-        text: 'STAFF RESET
-
-          Admin, moderator, or game master: use Reset game in room actions.'
   game:
     kind: chess
     controller: chess-controller

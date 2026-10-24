@@ -125,6 +125,9 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-sell-mode]").forEach(button => {
     button.onclick = () => onAction({ type: "toggle-sell-mode" });
   });
+  root.querySelectorAll("[data-compact-mode]").forEach(button => {
+    button.onclick = () => onAction({ type: "toggle-inventory-compact" });
+  });
   root.querySelectorAll("[data-level-up]").forEach(button => {
     button.onclick = () => onAction({ type: "level-up" });
   });
@@ -385,7 +388,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     const animateToolbar = root === coreRoot && toolbarReady;
     const previousToolbar = animateToolbar ? captureToolbarButtons(root) : null;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;

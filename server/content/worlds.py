@@ -310,7 +310,7 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
             id=WHITEBOARD_PROP_ID, label="Whiteboard",
             description="A shared whiteboard for notes and marker drawings.",
             model_name=None, model_path=None, decorative=True, animation=None,
-            scale=1.0, source="builtin", source_kind="builtin",
+            scale=1.0, editor_scale_max=5.0, source="builtin", source_kind="builtin",
             tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard",
         ),
     }

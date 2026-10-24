@@ -24,6 +24,8 @@ import {
 import {
   saveBubbleTimeout,
   savedBubbleTimeout,
+  savedInventoryCompact,
+  saveInventoryCompact,
   savedOutlineActiveProps,
   saveOutlineActiveProps,
   savedPhoneMusicEnabled,
@@ -533,7 +535,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -683,6 +685,11 @@ function reduce(state, action) {
   if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: action.tab === "Skills" ? state.views.skillStackId : null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
+  if (action.type === "toggle-inventory-compact") {
+    const enabled = !state.ui.inventoryCompact;
+    saveInventoryCompact(enabled);
+    return { ...state, ui: { ...state.ui, inventoryCompact: enabled } };
+  }
   if (action.type === "cancel-targeting") {
     const stack = findInventoryCard(state, state.ui.targeting?.stackId);
     const selection = stack && action.restoreSelection !== false

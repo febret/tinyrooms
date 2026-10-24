@@ -547,6 +547,8 @@ async function handleAction(action, { silentSound = false } = {}) {
     await mergeStack(action.stackId);
   } else if (action.type === "toggle-sell-mode") {
     store.dispatch({ type: "toggle-sell-mode" });
+  } else if (action.type === "toggle-inventory-compact") {
+    store.dispatch({ type: "toggle-inventory-compact" });
   } else if (action.type === "sell-click") {
     await sellInventoryCard(action.stackId, { store, sendCommand, playCoin: () => playTone("coin"), onError: showError, onToast: toast });
   } else if (action.type === "swap-sticker") {
