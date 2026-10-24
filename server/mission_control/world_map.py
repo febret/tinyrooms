@@ -68,18 +68,25 @@ class WorldMapManager:
             and self._config.world_map_reload_command is not None
         )
 
-    def update(self) -> None:
-        """Regenerate and install the map, reloading nginx only after a change."""
+    def update(self, force: bool = False) -> dict[str, object]:
+        """Regenerate and install the map, reloading nginx after a change.
+
+        With *force*, the map is reinstalled and nginx reloaded even when the
+        registry content is unchanged, repairing on-disk drift. Returns the
+        routed instance count and whether the file content changed.
+        """
 
         if not self.enabled:
-            return
+            return {"routed": 0, "changed": False}
         path = self._config.world_map_path
         assert path is not None
         content = render_world_map(self._registry.list())
+        routed = content.count("https://")
         with self._lock:
-            if content == self._last_content:
-                return
+            if content == self._last_content and not force:
+                return {"routed": routed, "changed": False}
             previous = self._read(path)
+            changed = previous != content
             staging = self._write_staging(content)
             try:
                 self._install(staging, path)
@@ -102,6 +109,7 @@ class WorldMapManager:
                 self._remove(staging)
             self._last_content = content
             LOGGER.info("world_map.updated", extra={"instances": content.count("https://")})
+            return {"routed": routed, "changed": changed}
 
     def _read(self, path: Path) -> str | None:
         try:

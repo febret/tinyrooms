@@ -358,6 +358,9 @@ class ServerInfoService:
                 "base_path": config.base_path,
                 "features": sorted(config.features),
                 "keepalive_configured": config.keepalive_path is not None,
+                "same_origin_worlds": config.same_origin_worlds,
+                "world_map_configured": config.world_map_path is not None
+                and config.world_map_reload_command is not None,
                 "repo_root": str(config.repo_root),
                 "content_root": str(config.content_root),
                 "install_root": str(self.install_root),

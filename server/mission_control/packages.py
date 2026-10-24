@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 import json
+import os
 import shutil
 import tempfile
 
@@ -225,39 +226,77 @@ class PackageManager:
                 **running_info,
             }
         ]
+        for candidate, info, registered_count, running_count, deletable, reason in self._deletable_checkout_rows(
+            running, registered
+        ):
+            versions.append(
+                {
+                    "id": candidate.name,
+                    "label": candidate.name,
+                    "path": str(candidate),
+                    "running": False,
+                    "instance_count": running_count,
+                    "registered_count": registered_count,
+                    "deletable": deletable,
+                    "delete_reason": reason,
+                    **info,
+                }
+            )
+        return versions
+
+    def _latest_target(self) -> Path | None:
+        """Return the resolved ``versions/latest`` target, if it is a symlink."""
+
+        latest = self._config.versions_path / "latest"
+        try:
+            if latest.is_symlink():
+                return latest.resolve()
+        except OSError:
+            return None
+        return None
+
+    def _deletable_checkout_rows(
+        self,
+        running: dict[str, int] | None = None,
+        registered: dict[str, int] | None = None,
+    ) -> list[tuple[Path, dict[str, object], int, int, bool, str]]:
+        """Return valid checkout dirs with their usage counts and deletability."""
+
+        running = running if running is not None else self._instance_counts(running_only=True)
+        registered = registered if registered is not None else self._instance_counts()
+        rows: list[tuple[Path, dict[str, object], int, int, bool, str]] = []
         versions_root = self._config.versions_path
-        if versions_root.is_dir():
-            running_resolved = self._config.repo_root.resolve()
-            for candidate in sorted(versions_root.iterdir()):
-                if not candidate.is_dir() or candidate.name == "latest":
+        if not versions_root.is_dir():
+            return rows
+        running_resolved = self._config.repo_root.resolve()
+        latest_target = self._latest_target()
+        for candidate in sorted(versions_root.iterdir()):
+            if not candidate.is_dir() or candidate.name == "latest":
+                continue
+            try:
+                if candidate.resolve() == running_resolved:
                     continue
+            except OSError:
+                pass
+            if latest_target is not None:
                 try:
-                    if candidate.resolve() == running_resolved:
+                    if candidate.resolve() == latest_target:
+                        info = version_info(candidate)
+                        rows.append((candidate, info, 0, 0, False, "The active latest version cannot be deleted."))
                         continue
                 except OSError:
                     pass
-                if not (candidate / "run.py").is_file() and not (candidate / "server").is_dir():
-                    continue
-                info = version_info(candidate)
-                label = str(info.get("build") or candidate.name)
-                aliases = {label, candidate.name}
-                running_count = sum(running.get(alias, 0) for alias in aliases)
-                registered_count = sum(registered.get(alias, 0) for alias in aliases)
-                deletable = registered_count == 0
-                versions.append(
-                    {
-                        "id": candidate.name,
-                        "label": candidate.name,
-                        "path": str(candidate),
-                        "running": False,
-                        "instance_count": running_count,
-                        "registered_count": registered_count,
-                        "deletable": deletable,
-                        "delete_reason": "" if deletable else f"{registered_count} registered instance(s) on this version.",
-                        **info,
-                    }
-                )
-        return versions
+            if not (candidate / "run.py").is_file() and not (candidate / "server").is_dir():
+                continue
+            info = version_info(candidate)
+            label = str(info.get("build") or candidate.name)
+            aliases = {label, candidate.name}
+            running_count = sum(running.get(alias, 0) for alias in aliases)
+            registered_count = sum(registered.get(alias, 0) for alias in aliases)
+            deletable = registered_count == 0
+            reason = "" if deletable else f"{registered_count} registered instance(s) on this version."
+            rows.append((candidate, info, registered_count, running_count, deletable, reason))
+        return rows
 
     def _instance_counts(self, *, running_only: bool = False) -> dict[str, int]:
         counts: dict[str, int] = {}
@@ -358,6 +397,13 @@ class PackageManager:
             raise ValueError("Unknown server version.") from exc
         if target == self._config.versions_path.resolve() or target == self._config.repo_root.resolve():
             raise ValueError("The running version cannot be deleted.")
+        latest_target = self._latest_target()
+        if latest_target is not None:
+            try:
+                if target.resolve() == latest_target:
+                    raise ValueError("The active latest version cannot be deleted.")
+            except OSError:
+                pass
         if not target.is_dir():
             raise ValueError("Server version is not installed.")
         count = self._instance_count_for(target, version_id)
@@ -371,6 +417,137 @@ class PackageManager:
             except OSError:
                 pass
         self._audit.record(actor, "version.delete", target=version_id)
+
+    def cleanup_candidates(self) -> list[dict[str, object]]:
+        """Return unused checkouts and orphan release tarballs eligible for cleanup.
+
+        Unused means no registered instance references the version; the running
+        checkout and the active ``latest`` target are never candidates. A tarball
+        is orphaned when no matching version directory exists.
+        """
+
+        candidates: list[dict[str, object]] = []
+        matched_ids: set[str] = set()
+        for candidate, info, _registered, _running, deletable, _reason in self._deletable_checkout_rows():
+            matched_ids.add(candidate.name)
+            if not deletable:
+                continue
+            candidates.append(
+                {
+                    "id": candidate.name,
+                    "kind": "version",
+                    "path": str(candidate),
+                    "size": self._path_size(candidate),
+                    "build": str(info.get("build") or ""),
+                    "reason": "No registered instances on this version.",
+                }
+            )
+        releases = self._config.releases_path
+        if releases.is_dir():
+            for tarball in sorted(releases.glob("tinyrooms-*.tar.gz")):
+                version_id = tarball.name[len("tinyrooms-") : -len(".tar.gz")]
+                if not version_id or version_id in matched_ids:
+                    continue
+                if (self._config.versions_path / version_id).is_dir():
+                    continue
+                try:
+                    size = tarball.stat().st_size
+                except OSError:
+                    size = 0
+                candidates.append(
+                    {
+                        "id": version_id,
+                        "kind": "tarball",
+                        "path": str(tarball),
+                        "size": size,
+                        "build": "",
+                        "reason": "Release artifact with no matching installed version.",
+                    }
+                )
+        candidates.sort(key=lambda item: str(item["id"]))
+        return candidates
+
+    def cleanup_versions(
+        self, version_ids: list[str] | None, *, actor: str
+    ) -> dict[str, object]:
+        """Delete cleanup candidates, rechecking each id before removal."""
+
+        wanted = set(version_ids) if version_ids is not None else None
+        deleted: list[str] = []
+        failed: list[dict[str, object]] = []
+        freed_bytes = 0
+        for candidate in self.cleanup_candidates():
+            candidate_id = str(candidate["id"])
+            if wanted is not None and candidate_id not in wanted:
+                continue
+            if candidate["kind"] == "tarball":
+                try:
+                    self.delete_tarball(candidate_id, actor=actor)
+                except ValueError as exc:
+                    failed.append({"id": candidate_id, "code": "tarball_delete_failed", "message": str(exc)})
+                else:
+                    freed_bytes += int(candidate["size"] or 0)
+                    deleted.append(candidate_id)
+            else:
+                try:
+                    self.delete_version(candidate_id, actor=actor)
+                except ValueError as exc:
+                    failed.append({"id": candidate_id, "code": "version_delete_failed", "message": str(exc)})
+                else:
+                    freed_bytes += int(candidate["size"] or 0)
+                    deleted.append(candidate_id)
+        if wanted is not None:
+            known = {str(item["id"]) for item in self.cleanup_candidates()}
+            for version_id in sorted(wanted - set(deleted) - {str(item["id"]) for item in failed} - known):
+                failed.append({"id": version_id, "code": "unknown_candidate", "message": "Cleanup candidate not found."})
+        return {"deleted": deleted, "failed": failed, "freed_bytes": freed_bytes}
+
+    def delete_tarball(self, version_id: str, *, actor: str) -> None:
+        """Delete an orphan release tarball with no matching installed version."""
+
+        if version_id in {RUNNING_VERSION_ID, "latest", ""}:
+            raise ValueError("The running version cannot be deleted.")
+        try:
+            target = ensure_contained(
+                self._config.releases_path / f"tinyrooms-{version_id}.tar.gz",
+                self._config.releases_path,
+                "release artifact",
+            )
+        except ConfigError as exc:
+            raise ValueError("Unknown release artifact.") from exc
+        if (self._config.versions_path / version_id).is_dir():
+            raise ValueError("Release artifact has a matching installed version.")
+        if not target.is_file():
+            raise ValueError("Release artifact is not installed.")
+        try:
+            target.unlink()
+        except OSError as exc:
+            raise ValueError(f"Could not delete release artifact: {exc}") from exc
+        self._audit.record(actor, "version.delete", target=version_id, detail={"kind": "tarball"})
+
+    @staticmethod
+    def _path_size(path: Path) -> int:
+        """Return recursive file bytes for *path*, skipping symlinks."""
+
+        total = 0
+        stack = [path]
+        while stack:
+            current = stack.pop()
+            try:
+                with os.scandir(current) as entries:
+                    for entry in entries:
+                        try:
+                            if entry.is_symlink():
+                                continue
+                            if entry.is_dir(follow_symlinks=False):
+                                stack.append(Path(entry.path))
+                            elif entry.is_file(follow_symlinks=False):
+                                total += entry.stat(follow_symlinks=False).st_size
+                        except OSError:
+                            continue
+            except OSError:
+                continue
+        return total
 
     def _instance_count_for(self, version_root: Path, fallback: str) -> int:
         try:

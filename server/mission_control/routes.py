@@ -117,6 +117,13 @@ class DeregisterPayload(BaseModel):
     instance_id: str
 
 
+class CleanupVersionsPayload(BaseModel):
+    """Bulk version-cleanup payload."""
+
+    dry_run: bool = False
+    ids: list[str] | None = None
+
+
 def _runtime(request: Request):
     return request.app.state.mc
 
@@ -774,6 +781,45 @@ async def delete_version(request: Request, version_id: str) -> dict[str, object]
     except ValueError as exc:
         return _json_error(400, "version_delete_failed", str(exc))
     return {"ok": True}
+
+
+@router.post("/api/mission-control/versions/cleanup")
+async def cleanup_versions(request: Request, payload: CleanupVersionsPayload) -> dict[str, object]:
+    """Preview or delete unused version checkouts and orphan release tarballs."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    if payload.dry_run:
+        candidates = await asyncio.to_thread(runtime.packages.cleanup_candidates)
+        return {"ok": True, "candidates": candidates}
+    result = await asyncio.to_thread(runtime.packages.cleanup_versions, payload.ids, actor="operator")
+    return {"ok": True, **result}
+
+
+@router.post("/api/mission-control/nginx/refresh")
+async def refresh_nginx(request: Request) -> dict[str, object]:
+    """Regenerate the nginx world map from running instances and reload nginx."""
+
+    from server.mission_control.world_map import WorldMapError
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    if not runtime.world_map.enabled:
+        return _json_error(400, "nginx_unconfigured", "Nginx world-map management is not configured.")
+    try:
+        result = await asyncio.to_thread(runtime.world_map.update, True)
+    except WorldMapError as exc:
+        return _json_error(502, "nginx_refresh_failed", str(exc))
+    except Exception as exc:  # noqa: BLE001 - surface refresh failures without crashing
+        return _json_error(502, "nginx_refresh_failed", f"{type(exc).__name__}: {exc}")
+    runtime.audit.record(
+        "operator",
+        "nginx.refresh",
+        detail={"routed": result["routed"], "changed": result["changed"]},
+    )
+    return {"ok": True, **result}
 
 
 # --- Server Info --------------------------------------------------------------
