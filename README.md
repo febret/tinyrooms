@@ -103,7 +103,7 @@ instance. See [fleet destination discovery](doc/mission-control.md#7-mission-con
 [tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
 
 ```bash
-python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version]
+python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version] [--force-restart]
 ```
 
 `host` accepts `user@host`; `-u` overrides the user. The default root is
@@ -120,6 +120,16 @@ TCP 80 and 443 need public ingress. `--dirty` skips the clean-tree check/tagging
 and marks the version dirty.
 `--keep-version` (also `--keepversion`) overwrites the newest recorded release locally/remotely instead
 of bumping the patch version.
+`--force-restart` (also `--forcerestart`) additionally rolls every running
+*spawned* instance onto the deployed version before Mission Control itself
+restarts: each such child is pointed at the new checkout and restarted, and
+the script waits for it to report the new build. External instances cannot be
+updated and are skipped with a warning; stopped instances are left untouched.
+Deployment always restarts Mission Control once to activate the release, so
+the flag adds the instance rollout, not an extra MC restart.
+Console output uses animated spinners, a byte progress bar for the upload,
+and colors when stdout is a TTY; otherwise it prints plain lines, and honors
+`NO_COLOR`.
 
 There is no separate `bootstrap`/`deploy` argument. For an existing installation
 under the former default, pass `~/.local/tinyrooms` explicitly; changing the
