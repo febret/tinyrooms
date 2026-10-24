@@ -224,7 +224,12 @@ function connectSocket() {
         if (pendingGameStateRoom !== room.id) {
           pendingGameStateRoom = room.id;
           setTimeout(() => {
-            if (pendingGameStateRoom === room.id) socket?.requestSnapshot();
+            if (pendingGameStateRoom === room.id) {
+              const current = store.getState().room;
+              socket?.requestSnapshot(current
+                ? { layoutRevision: current.layoutRevision, environmentRevision: current.environmentRevision }
+                : undefined);
+            }
           }, 250);
         }
       } else if (pendingGameStateRoom === room?.id) {
@@ -238,13 +243,26 @@ function connectSocket() {
         return;
       }
       store.dispatch({ type: "room-event", event: envelope.event });
-      if (["presence.enter", "presence.leave", "peep.enter", "peep.leave"].includes(envelope.event?.type)) {
+      const room = store.getState().room;
+      const revisions = room
+        ? { layoutRevision: room.layoutRevision, environmentRevision: room.environmentRevision }
+        : undefined;
+      if (envelope.event?.type === "presence.enter" || envelope.event?.type === "peep.enter") {
         peeps.noteMove(envelope.event);
-        socket?.requestSnapshot();
+        // The reducer patches the roster from the event's occupant/npc
+        // payload. Only re-request when the payload is absent (older
+        // behavior-generated events); the gated request below then returns
+        // just the changed sections.
+        const hasPayload = envelope.event?.type === "presence.enter"
+          ? (envelope.event?.occupant && typeof envelope.event.occupant === "object")
+          : (envelope.event?.npc && typeof envelope.event.npc === "object");
+        if (!hasPayload) socket?.requestSnapshot(revisions);
+      } else if (envelope.event?.type === "presence.leave" || envelope.event?.type === "peep.leave") {
+        peeps.noteMove(envelope.event);
       } else if (envelope.event?.type === "room.environment" || envelope.event?.type === "room.refresh") {
-        socket?.requestSnapshot();
+        socket?.requestSnapshot(revisions);
       } else if (envelope.event?.type === "room.reset") {
-        socket?.requestSnapshot();
+        socket?.requestSnapshot(revisions);
         const editor = store.getState().editor;
         if (editor && editor.roomId === envelope.event.room_id
             && Number(editor.baseRevision || 0) < Number(envelope.event.revision || 0)) {

@@ -563,6 +563,74 @@ class RoomService:
         position = self._sprites.ensure_user(account_id, room_id)
         return {} if position is None else {"sprite": {"position": list(position)}}
 
+    async def describe_occupant(self, account_id: str, room_id: str) -> dict[str, object] | None:
+        """Serialize one connected occupant for a presence-enter delta.
+
+        This is the same shape as one entry of ``build_snapshot``'s
+        ``occupants`` list, but read for a single account so a join broadcast
+        lets every recipient patch its list without re-requesting a snapshot.
+        Returns ``None`` when the account or its live connection is unknown.
+        """
+
+        account = self._profiles.get_account_by_id(account_id)
+        if account is None:
+            return None
+        connection = await self._connections.get(account_id)
+        if connection is None:
+            return None
+        with self._hub.locked():
+            views = self._stats.views([account_id])
+        view = views.get(account_id)
+        if view is None:
+            return None
+        counters = view.payload()
+        powers: tuple[str, ...] = ()
+        if self._powers is not None:
+            try:
+                powers = self._powers.effective_many([account]).get(account.id, ())
+            except Exception:
+                powers = ()
+        label = self._title_labels([account]).get(account.id, account.username_display)
+        vibes: dict[str, object] = {}
+        if self._vibes is not None:
+            try:
+                vibes = self._vibes.pairs_for(account.id, [account_id]).get(account_id, {})
+            except Exception:
+                vibes = {}
+        entry: dict[str, object] = {
+            "id": account.id,
+            "username": account.username_display,
+            "label": label,
+            "kind": "user",
+            "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
+            "powers": sorted(powers),
+            "statuses": list(counters["statuses"]),
+            "counters": counters,
+            "audio_enabled": connection.audio_enabled,
+            "quick_actions": self._user_quick_actions(account),
+            **self._user_sprite_payload(account.id, room_id),
+        }
+        if vibes:
+            entry["vibes"] = vibes
+        return entry
+
+    def describe_npc(self, peep_id: str, room_id: str) -> dict[str, object] | None:
+        """Serialize one NPC for a peep-enter delta, or ``None`` when unknown."""
+
+        peep = self._world.peeps.get(peep_id)
+        if peep is None:
+            return None
+        vibes: dict[str, object] | None = None
+        if self._vibes is not None:
+            try:
+                vibes = self._vibes.pairs_for("", [peep_id]).get(peep_id)
+            except Exception:
+                vibes = None
+        try:
+            return self.serialize_npc(peep, room_id, vibes=vibes or None)
+        except Exception:
+            return None
+
     @staticmethod
     def _user_quick_actions(account: AccountRecord) -> list[dict[str, object]]:
         return [
@@ -663,6 +731,7 @@ class RoomService:
                 room_id=move.destination_room_id,
                 source_room_id=move.source_room_id,
                 source_room_label=source_room.label,
+                npc=self.describe_npc(peep.id, move.destination_room_id),
             ),
         )
 
@@ -703,6 +772,7 @@ class RoomService:
                 room_id=room_id,
                 source_room_id=source_room_id,
                 source_room_label=source_room.label,
+                npc=self.describe_npc(peep.id, room_id),
             ),
         )
 
@@ -887,9 +957,23 @@ class RoomService:
         return []
 
     async def build_snapshot(
-        self, account: AccountRecord, room_id: str, *, note: str | None = None
+        self,
+        account: AccountRecord,
+        room_id: str,
+        *,
+        note: str | None = None,
+        known_layout_revision: int | None = None,
+        known_environment_revision: int | None = None,
     ) -> dict[str, object]:
-        """Build a coherent room snapshot for a specific account."""
+        """Build a coherent room snapshot for a specific account.
+
+        When the caller passes the client's cached ``known_*_revision``
+        tokens and they match the current revisions, the layout-dependent
+        sections (``props``, ``exits``) are omitted and flagged with
+        ``props_unchanged``/``exits_unchanged`` so the client keeps its
+        cached copies. Everything dynamic (occupants, cards, chat,
+        inventory, board state) is always sent.
+        """
 
         room = self._world.rooms[room_id]
         live_connections = await self._connections.list_room(room_id)
@@ -978,7 +1062,13 @@ class RoomService:
             quick_actions.append(
                 {"label": "Reset game", "command": f".act reset @prop:{game['controller']}"}
             )
-        return {
+        layout_unchanged = (
+            known_layout_revision is not None
+            and known_environment_revision is not None
+            and known_layout_revision == layout_revision
+            and known_environment_revision == environment_revision
+        )
+        snapshot: dict[str, object] = {
             "id": room.id,
             "label": room.label,
             "description": description,
@@ -996,22 +1086,31 @@ class RoomService:
             "metadata": {"note": note},
             "environment": environment,
             "environment_revision": environment_revision,
-            "exits": visible_exits,
-            "props": [
+        }
+        if layout_unchanged:
+            snapshot["props_unchanged"] = True
+            snapshot["exits_unchanged"] = True
+        else:
+            snapshot["exits"] = visible_exits
+            snapshot["props"] = [
                 self._serialize_prop(account, room, prop, dark=dark, disable_actions=disable_prop_actions)
                 for prop in self._visible_props(room, dark=dark)
-            ],
-            "occupants": occupants,
-            "npcs": self._room_peeps(room_id, vibes_by_id=vibes_by_id),
-            "room_cards": self._card_service.serialize_room_stacks(room_cards),
-            "chat_history": chat_history,
-            "inventory": self._card_service.serialize_inventory_stacks(inventory),
-            "editable": room_id in user_profile.owned_rooms,
-            "layout_revision": layout_revision,
-            "can_edit_room": can_edit_room,
-            "dialog": self._dialog_payload(account.id),
-            "quick_actions": quick_actions,
-        }
+            ]
+        snapshot.update(
+            {
+                "occupants": occupants,
+                "npcs": self._room_peeps(room_id, vibes_by_id=vibes_by_id),
+                "room_cards": self._card_service.serialize_room_stacks(room_cards),
+                "chat_history": chat_history,
+                "inventory": self._card_service.serialize_inventory_stacks(inventory),
+                "editable": room_id in user_profile.owned_rooms,
+                "layout_revision": layout_revision,
+                "can_edit_room": can_edit_room,
+                "dialog": self._dialog_payload(account.id),
+                "quick_actions": quick_actions,
+            }
+        )
+        return snapshot
 
     def _mod_room_actions(self, account: AccountRecord, room: RoomDefinition) -> list[dict[str, object]]:
         """Collect room-level quick actions contributed by mod runtime states."""
@@ -1227,6 +1326,7 @@ class RoomService:
                 room_id=destination_room.id,
                 source_room_id=source_room_id,
                 source_room_label=source_room.label,
+                occupant=await self.describe_occupant(account.id, destination_room.id),
             ),
             closed_activity=None if closed is None else self._activities.serialize(closed),
             behavior_results=behavior_results,

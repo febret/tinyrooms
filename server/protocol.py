@@ -31,6 +31,19 @@ class ClientCommandEnvelope:
 
 
 @dataclass(frozen=True, slots=True)
+class ClientSnapshotRequestEnvelope:
+    """A validated snapshot refresh request with the client's cached revisions.
+
+    Both revisions are opaque equality tokens: when they match the server's
+    current revisions the heavy layout sections are omitted from the reply.
+    Missing (``None``) means "no cache", so the server sends a full snapshot.
+    """
+
+    layout_revision: int | None = None
+    environment_revision: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ClientRtcPresenceEnvelope:
     """A validated audio chat presence toggle."""
 
@@ -69,6 +82,18 @@ def _require_optional_string(payload: dict[str, object], key: str, limit: int) -
     return value
 
 
+def _optional_revision(value: object) -> int | None:
+    """Parse an optional client-cached revision token for snapshot gating."""
+
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ProtocolError("'layout_revision' must be an integer.")
+    if isinstance(value, int):
+        return value if value >= 0 else 0
+    raise ProtocolError("'layout_revision' must be an integer.")
+
+
 def _validate_rtc_signal(signal: object) -> dict[str, object]:
     if not isinstance(signal, dict):
         raise ProtocolError("'signal' must be an object.")
@@ -100,7 +125,11 @@ def _validate_rtc_signal(signal: object) -> dict[str, object]:
 
 
 ParsedClientPayload = (
-    ClientCommandEnvelope | ClientRtcPresenceEnvelope | ClientRtcSignalEnvelope | None
+    ClientCommandEnvelope
+    | ClientSnapshotRequestEnvelope
+    | ClientRtcPresenceEnvelope
+    | ClientRtcSignalEnvelope
+    | None
 )
 
 
@@ -122,7 +151,10 @@ def parse_client_message(raw_text: str) -> tuple[str, ParsedClientPayload]:
         command = _require_string(payload, "command", MAX_COMMAND_SIZE)
         return envelope_type, ClientCommandEnvelope(request_id=request_id, command=command)
     if envelope_type == "snapshot.request":
-        return envelope_type, None
+        return envelope_type, ClientSnapshotRequestEnvelope(
+            layout_revision=_optional_revision(payload.get("layout_revision")),
+            environment_revision=_optional_revision(payload.get("environment_revision")),
+        )
     if envelope_type == "rtc.presence":
         enabled = payload.get("enabled")
         if not isinstance(enabled, bool):
@@ -262,6 +294,7 @@ def presence_enter_event(
     source_room_id: str | None = None,
     source_room_label: str | None = None,
     label: str | None = None,
+    occupant: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Build the room presence-enter event payload.
 
@@ -269,6 +302,8 @@ def presence_enter_event(
     from. They are omitted for a fresh login, whose source is unknown.
     ``label`` carries the composed title display label; clients fall back to
     ``username`` when it is absent.
+    ``occupant`` carries the joiner's snapshot-shaped occupant entry so
+    recipients can patch their occupant list without re-requesting a snapshot.
     """
 
     event = {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username}
@@ -278,6 +313,8 @@ def presence_enter_event(
         event["source_room_id"] = source_room_id
     if source_room_label is not None:
         event["source_room_label"] = source_room_label
+    if occupant is not None:
+        event["occupant"] = occupant
     return event
 
 
@@ -312,12 +349,19 @@ def peep_enter_event(
     room_id: str,
     source_room_id: str,
     source_room_label: str | None = None,
+    npc: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """Build the room event announcing an NPC peep entering *room_id*."""
+    """Build the room event announcing an NPC peep entering *room_id*.
+
+    ``npc`` carries the arrival's snapshot-shaped NPC entry so recipients can
+    patch their NPC list without re-requesting a snapshot.
+    """
 
     event = {"type": "peep.enter", "room_id": room_id, "peep_id": peep_id, "label": label, "source_room_id": source_room_id}
     if source_room_label is not None:
         event["source_room_label"] = source_room_label
+    if npc is not None:
+        event["npc"] = npc
     return event
 
 

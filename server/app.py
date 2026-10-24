@@ -1067,6 +1067,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                 room_id=room_id,
                 source_room_id=str(arrival["room_id"]) if arrival and arrival.get("room_id") else None,
                 source_room_label=str(arrival["room_label"]) if arrival and arrival.get("room_label") else None,
+                occupant=await runtime.rooms.describe_occupant(account.id, room_id),
             ),
             exclude_account_id=account.id,
         )
@@ -1102,7 +1103,14 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     await connection.close()
                     return
                 if envelope_type == "snapshot.request":
-                    refreshed_snapshot = await runtime.rooms.build_snapshot(current_account, connection.room_id or room_id)
+                    known_layout = getattr(client_payload, "layout_revision", None)
+                    known_environment = getattr(client_payload, "environment_revision", None)
+                    refreshed_snapshot = await runtime.rooms.build_snapshot(
+                        current_account,
+                        connection.room_id or room_id,
+                        known_layout_revision=known_layout,
+                        known_environment_revision=known_environment,
+                    )
                     await connection.send(room_snapshot_envelope(refreshed_snapshot))
                     continue
                 if envelope_type == "rtc.presence" and isinstance(client_payload, ClientRtcPresenceEnvelope):

@@ -14,6 +14,8 @@ import {
   normalizeGameState,
   normalizeInventoryStack,
   normalizeJournal,
+  normalizeNpc,
+  normalizeOccupant,
   normalizePack,
   normalizeRoom,
   normalizeRoomCard,
@@ -213,21 +215,59 @@ function applyServerEvent(state, event) {
     };
   }
   if (event.type === "presence.enter") {
+    const accountId = String(event.account_id || "");
+    let occupants = state.room.occupants;
+    if (accountId && !occupants.some(occupant => occupant.id === accountId)) {
+      // Prefer the server's occupant payload; fall back to a minimal entry
+      // built from the event so the list stays correct even when the payload
+      // is absent (e.g. older behavior-generated events).
+      const incoming = event.occupant && typeof event.occupant === "object"
+        ? normalizeOccupant({ ...event.occupant, id: event.occupant.id || accountId })
+        : normalizeOccupant({
+          id: accountId,
+          username: String(event.username || ""),
+          label: String(event.label || event.username || "Peep"),
+        });
+      occupants = [...occupants, incoming];
+    }
     return {
       ...state,
       room: {
         ...state.room,
+        occupants,
         chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.label || event.username} entered.`)].slice(-50),
       },
     };
   }
   if (event.type === "presence.leave") {
+    const accountId = String(event.account_id || "");
     return {
       ...state,
       room: {
         ...state.room,
+        occupants: accountId
+          ? state.room.occupants.filter(occupant => occupant.id !== accountId)
+          : state.room.occupants,
         chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.label || event.username} left.`)].slice(-50),
       },
+    };
+  }
+  if (event.type === "peep.enter") {
+    const peepId = String(event.peep_id || "");
+    let npcs = state.room.npcs;
+    if (peepId && !npcs.some(npc => npc.id === peepId)) {
+      const incoming = event.npc && typeof event.npc === "object"
+        ? normalizeNpc({ ...event.npc, id: event.npc.id || peepId })
+        : normalizeNpc({ id: peepId, label: String(event.label || peepId) });
+      npcs = [...npcs, incoming];
+    }
+    return { ...state, room: { ...state.room, npcs } };
+  }
+  if (event.type === "peep.leave") {
+    const peepId = String(event.peep_id || "");
+    return {
+      ...state,
+      room: { ...state.room, npcs: peepId ? state.room.npcs.filter(npc => npc.id !== peepId) : state.room.npcs },
     };
   }
   if (event.type === "presence.title") {

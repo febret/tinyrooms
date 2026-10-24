@@ -172,9 +172,14 @@ export function createSocketClient({
     disconnect() {
       manualDisconnect();
     },
-    requestSnapshot() {
+    requestSnapshot(revisions) {
       try {
-        sendJson({ v: 1, type: "snapshot.request" });
+        const envelope = { v: 1, type: "snapshot.request" };
+        const layout = Number(revisions?.layoutRevision);
+        const environment = Number(revisions?.environmentRevision);
+        if (Number.isFinite(layout) && layout >= 0) envelope.layout_revision = layout;
+        if (Number.isFinite(environment) && environment >= 0) envelope.environment_revision = environment;
+        sendJson(envelope);
       } catch {
         // Ignore refresh attempts while disconnected.
       }

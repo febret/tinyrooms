@@ -544,6 +544,11 @@ export function normalizeGameState(boardState) {
 
 export function normalizeRoom(room, previousRoom = null) {
   if (!room) return null;
+  // Revision-gated snapshots omit layout sections when the client is already
+  // current (props_unchanged/exits_unchanged). A missing key means "keep the
+  // cached copy"; an explicit empty array means "the room is now empty".
+  const keepProps = previousRoom && (room.props_unchanged === true || !("props" in room));
+  const keepExits = previousRoom && (room.exits_unchanged === true || !("exits" in room));
   return {
     id: String(room.id || ""),
     label: String(room.label || "Room"),
@@ -563,8 +568,8 @@ export function normalizeRoom(room, previousRoom = null) {
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
     environmentRevision: Number(room.environment_revision || 0),
-    exits: Array.isArray(room.exits) ? room.exits.map(normalizeExit) : [],
-    props: Array.isArray(room.props) ? room.props.map(normalizeProp) : [],
+    exits: keepExits ? previousRoom.exits : (Array.isArray(room.exits) ? room.exits.map(normalizeExit) : []),
+    props: keepProps ? previousRoom.props : (Array.isArray(room.props) ? room.props.map(normalizeProp) : []),
     occupants: Array.isArray(room.occupants) ? room.occupants.map(normalizeOccupant) : [],
     npcs: Array.isArray(room.npcs) ? room.npcs.map(normalizeNpc) : [],
     roomCards: Array.isArray(room.room_cards) ? room.room_cards.map(normalizeRoomCard) : [],
