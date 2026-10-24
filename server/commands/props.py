@@ -290,4 +290,10 @@ async def craft_make_command(context: CommandContext, command: ParsedCommand) ->
                     room_id=room_id,
                 )
             )
+        for part in context.titles.record_cook(context.account.id):
+            outcome.private_events.append(
+                {"type": "toast", "tone": "success", "text": f"Title unlocked: {part['label']}."}
+            )
+        account = context.profiles.get_account_by_id(context.account.id) or context.account
+        outcome.payload = {**(outcome.payload or {}), "user": context.serialize_user(account)}
     return outcome

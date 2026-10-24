@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import json
 import logging
 import sqlite3
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from server.content.gameplay import GameplayContent
@@ -20,6 +21,10 @@ from server.state.migrations import DatabaseHub
 
 
 LOGGER = logging.getLogger("tinyrooms.tasks")
+
+
+if TYPE_CHECKING:
+    from server.services.titles import TitleService
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +176,12 @@ class TaskService:
         self._timezone = timezone
         self._memories = memories
         self._cutscenes = cutscenes
+        self._titles: TitleService | None = None
+
+    def attach_titles(self, titles: TitleService) -> None:
+        """Wire the title service synced when tasks complete."""
+
+        self._titles = titles
 
     def _local_date(self, iso_timestamp: str | None) -> str:
         return game_date(iso_timestamp, self._timezone)
@@ -823,4 +834,13 @@ class TaskService:
                 if notification_sound and index == 0:
                     event["sound"] = sound_url(notification_sound)
                 events.append(event)
+        if self._titles is not None and any(change.kind == "completed" for change in changes):
+            try:
+                _, newly = self._titles.sync_unlocked(account_id)
+            except Exception as exc:  # noqa: BLE001 - feedback must never break the caller
+                LOGGER.warning("task.titlesync.failed account_id=%s error=%s", account_id, exc)
+                newly = []
+            for part in newly:
+                label = part.get("label", part.get("id", "title")) if isinstance(part, dict) else "title"
+                events.append({"type": "toast", "tone": "success", "text": f"Title unlocked: {label}."})
         return events

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
 from server.content.conditions import StatusCondition, parse_status_condition
+from server.content.titles import TitlesContent, load_titles_content
 from server.game.modifiers import STAT_TARGETS
 
 
@@ -122,6 +123,7 @@ class GameplayContent:
     levels: LevelTable
     bops: BopsSettings
     card_prices: SellSettings
+    titles: TitlesContent
 
 
 def _load_stats(path: Path) -> dict[str, StatDefinition]:
@@ -279,6 +281,7 @@ def load_gameplay_content(core_path: Path) -> GameplayContent:
     levels = _load_levels(core_path / "levels.yaml")
     bops = _load_bops(core_path / "bops.yaml")
     card_prices = _load_card_prices(core_path / "card_prices.yaml")
+    titles = load_titles_content(core_path / "titles.yaml")
     expected_levels = levels.max_level + 1
     if len(juice.max_energy_per_level) < expected_levels:
         raise ContentError(
@@ -297,4 +300,5 @@ def load_gameplay_content(core_path: Path) -> GameplayContent:
         levels=levels,
         bops=bops,
         card_prices=card_prices,
+        titles=titles,
     )

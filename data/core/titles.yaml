@@ -1,0 +1,126 @@
+# Global Titles: pre-set prefixes, nicknames, and suffixes for peep labels.
+# Titles cannot be created by mods or worlds; this file is the only source.
+# Format: <salutation> username "<nickname>" <crew-name>, <suffix>
+salutations:
+  - id: captain
+    label: Captain
+    unlock:
+      kind: level
+      level: 3
+  - id: principal
+    label: Principal
+    unlock:
+      kind: level
+      level: 8
+  - id: lord
+    label: Lord
+    unlock:
+      kind: level
+      level: 12
+  - id: lady
+    label: Lady
+    unlock:
+      kind: level
+      level: 12
+  - id: doctor
+    label: Dr.
+    unlock:
+      kind: level
+      level: 10
+  - id: chef
+    label: Chef
+    unlock:
+      kind: cook
+      count: 10
+  - id: teacher
+    label: Teacher
+    unlock:
+      kind: teach
+      count: 10
+nicknames:
+  - id: tourfriend
+    label: Tourfriend
+    unlock:
+      kind: task
+      task_id: house-tour
+  - id: mentor
+    label: Mentor
+    unlock:
+      kind: task
+      task_id: ten-lessons
+suffixes:
+  - id: suffix-level-1
+    label: Novice of Note
+    unlock:
+      kind: level
+      level: 1
+  - id: suffix-level-2
+    label: Student of Standing
+    unlock:
+      kind: level
+      level: 2
+  - id: suffix-level-3
+    label: Apprentice Adept
+    unlock:
+      kind: level
+      level: 3
+  - id: suffix-level-4
+    label: Candidate of Promise
+    unlock:
+      kind: level
+      level: 4
+  - id: suffix-level-5
+    label: Adept of the Halls
+    unlock:
+      kind: level
+      level: 5
+  - id: suffix-level-6
+    label: Master of the White
+    unlock:
+      kind: level
+      level: 6
+  - id: suffix-level-7
+    label: Master of the Green
+    unlock:
+      kind: level
+      level: 7
+  - id: suffix-level-8
+    label: Master of the Red
+    unlock:
+      kind: level
+      level: 8
+  - id: suffix-level-9
+    label: Master of the Black
+    unlock:
+      kind: level
+      level: 9
+  - id: suffix-level-10
+    label: Grand-Master at Large
+    unlock:
+      kind: level
+      level: 10
+  - id: suffix-level-11
+    label: Hero of the House
+    unlock:
+      kind: level
+      level: 11
+  - id: suffix-level-12
+    label: Super Hero Supreme
+    unlock:
+      kind: level
+      level: 12
+  - id: suffix-level-13
+    label: Legend in Residence
+    unlock:
+      kind: level
+      level: 13
+  - id: suffix-level-14
+    label: Titan of Tinyrooms
+    unlock:
+      kind: level
+      level: 14
+  - id: suffix-level-15
+    label: Ender of Ends
+    unlock:
+      kind: level
+      level: 15

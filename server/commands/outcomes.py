@@ -36,6 +36,7 @@ from server.services.rooms import RoomService
 from server.services.shop import ShopService
 from server.services.stats import StatsService
 from server.services.tasks import TaskService
+from server.services.titles import TitleService
 from server.state.world_state import WorldStateRepository
 
 
@@ -99,6 +100,7 @@ class CommandContext:
     behaviors: object
     dialogs: DialogService
     tasks: TaskService
+    titles: TitleService
     memories: MemoryService
     powers: PowersService
     ownership: OwnershipService

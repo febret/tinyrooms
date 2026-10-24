@@ -10,7 +10,7 @@ import yaml
 
 from server.content.common import ContentError
 from server.content.prop_definitions import load_prop_definition
-from tests.common import REPO_ROOT, load_test_world, load_world_activities
+from tests.common import REPO_ROOT, ServiceTestCase, load_test_world, load_world_activities
 
 
 def _write_text(path: Path, content: str) -> None:
@@ -116,7 +116,11 @@ class PropGameplayMigrationTests(unittest.TestCase):
         self.assertEqual(definition.activity, "classrooms")
         instance = world.rooms["hall"].props["classroom-door0"]
         self.assertFalse(hasattr(instance, "activity"))
-        self.assertTrue(instance.actions)
+        self.assertEqual(instance.actions, ())
+        self.assertEqual(
+            [(action.label, action.command) for action in definition.default_actions],
+            [("Enter the classroom", ".play classrooms")],
+        )
 
     def test_whiteboard_keeps_its_default_activity(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
@@ -164,6 +168,146 @@ class PropInstanceValidationTests(unittest.TestCase):
             with self.assertRaises(ContentError) as raised:
                 _load_probe(world_path)
         self.assertIn("only one", str(raised.exception))
+
+
+class PropDefaultActionTests(unittest.TestCase):
+    def test_self_placeholder_targets_the_placed_instance(self) -> None:
+        from server.content.prop_definitions import resolve_default_prop_actions
+
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        resolved = resolve_default_prop_actions(world.props["medicine-cabinet"], "custom:abc")
+        self.assertEqual(
+            [(action.label, action.command) for action in resolved],
+            [("Take medicine", ".dispense @prop:custom:abc")],
+        )
+
+    def test_behavior_actions_moved_off_authored_instances(self) -> None:
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        self.assertEqual(world.rooms["bathroom"].props["medicine0"].actions, ())
+        definition = world.props["medicine-cabinet"]
+        self.assertTrue(definition.default_actions)
+
+    def test_placed_dispenser_serializes_an_execute_action(self) -> None:
+        from unittest.mock import Mock
+
+        from server.content.worlds import PropInstanceDefinition
+        from server.services.rooms import RoomService
+
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        placed = PropInstanceDefinition(
+            id="custom:placed",
+            prop_id="medicine-cabinet",
+            pos=(50.0, 50.0, 0.0),
+            rot=(0.0, 0.0, 0.0),
+            scale=1.0,
+            actions=(),
+            personal=False,
+            animation=None,
+        )
+        room = world.rooms["bathroom"]
+        service = RoomService(
+            hub=Mock(),
+            profiles=Mock(),
+            world_state=Mock(),
+            connections=Mock(),
+            card_service=Mock(),
+            activities=Mock(),
+            world=world,
+            stats=Mock(),
+            command_verbs=frozenset({".dispense", ".craft", ".act", ".play"}),
+        )
+        payload = service._serialize_prop(Mock(), room, placed)
+        commands = [action["command"] for action in payload["quick_actions"]]
+        self.assertIn(".dispense @prop:custom:placed", commands)
+
+    def test_authored_dispenser_keeps_a_single_dispense_action(self) -> None:
+        from unittest.mock import Mock
+
+        from server.services.rooms import RoomService
+
+        world = load_test_world(REPO_ROOT / "worlds" / "scammon-academia")
+        room = world.rooms["teachers-lounge"]
+        service = RoomService(
+            hub=Mock(),
+            profiles=Mock(),
+            world_state=Mock(),
+            connections=Mock(),
+            card_service=Mock(),
+            activities=Mock(),
+            world=world,
+            stats=Mock(),
+            command_verbs=frozenset({".dispense", ".craft", ".act", ".play"}),
+        )
+        payload = service._serialize_prop(Mock(), room, room.props["pantry0"])
+        commands = [action["command"] for action in payload["quick_actions"]]
+        self.assertEqual(commands.count(".dispense @prop:pantry0"), 1)
+
+
+class PlacedPropBehaviorTests(ServiceTestCase):
+    """Player-placed behavior props must work like authored instances."""
+
+    def _placed(self, instance_id: str, prop_id: str):
+        from server.content.worlds import PropInstanceDefinition
+
+        return PropInstanceDefinition(
+            id=instance_id,
+            prop_id=prop_id,
+            pos=(50.0, 50.0, 0.0),
+            rot=(0.0, 0.0, 0.0),
+            scale=1.0,
+            actions=(),
+            personal=False,
+            animation=None,
+        )
+
+    def test_placed_dispenser_dispenses(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        from server.services.dispensers import DispenserService
+
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        account = self.create_account("placed-dispense")
+        placed = self._placed("custom:placed", "medicine-cabinet")
+        layout = SimpleNamespace(effective_props=lambda room_id: [placed])
+        service = DispenserService(
+            self.hub, self.profiles, self.catalog, world, layout=layout
+        )
+        result = service.dispense(account, "bathroom", "custom:placed")
+        self.assertTrue(result.granted)
+        self.assertIn(result.card_id, world.props["medicine-cabinet"].content)
+
+    def test_placed_crafting_station_resolves(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        from server.services.crafting import CraftingService
+
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        account = self.create_account("placed-craft")
+        placed = self._placed("custom:station", "kitchen-counter")
+        layout = SimpleNamespace(effective_props=lambda room_id: [placed])
+        service = CraftingService(
+            self.hub,
+            self.profiles,
+            Mock(),
+            Mock(),
+            self.catalog,
+            self.content,
+            world,
+            world.recipes,
+            layout=layout,
+        )
+        recipes = service.station_recipes(account, "kitchen", "custom:station")
+        self.assertIsInstance(recipes, tuple)
+
+    def test_authored_lookup_still_works_without_layout(self) -> None:
+        from server.services.dispensers import DispenserService
+
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        service = DispenserService(self.hub, self.profiles, self.catalog, world)
+        prop = service._prop("bathroom", "medicine0")
+        self.assertEqual(prop.prop_id, "medicine-cabinet")
 
 
 if __name__ == "__main__":

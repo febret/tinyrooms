@@ -546,7 +546,7 @@ kitchen-dresser:
   - market-fish
   - market-tofu
   - market-coconut-milk
-  cooldown: 5
+  cooldown: 20
   default_actions:
   - - Take an ingredient
     - .dispense @self
@@ -555,6 +555,7 @@ kitchen-dresser:
   - storage
   - shelf
   - furniture
+  one_per_room: true
 butterfly-curio-cabinet:
   label: Butterfly Curio Cabinet
   description: A hexagonal cabinet of pinned butterflies. Fascinating, educational,

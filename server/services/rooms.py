@@ -173,6 +173,22 @@ class RoomService:
 
         self._dialogs = dialogs
 
+    def attach_titles(self, titles: object) -> None:
+        """Wire the title service used for composed peep display labels."""
+
+        self._titles = titles
+
+    def _title_labels(self, accounts: list[AccountRecord]) -> dict[str, str]:
+        """Return composed display labels, falling back to bare usernames."""
+
+        titles = self.__dict__.get("_titles")
+        if titles is None or not accounts:
+            return {account.id: account.username_display for account in accounts}
+        try:
+            return titles.display_labels(accounts)
+        except Exception:
+            return {account.id: account.username_display for account in accounts}
+
     def current_room_for_account(self, account_id: str) -> str:
         """Return the remembered room for the given account."""
 
@@ -523,6 +539,7 @@ class RoomService:
         accounts = self._profiles.get_accounts_by_ids([connection.account_id for connection in live_connections])
         occupants: list[dict[str, object]] = []
         powers_by_account = self._powers.effective_many(list(accounts.values())) if self._powers is not None else {}
+        labels = self._title_labels(list(accounts.values()))
         for connection in live_connections:
             account = accounts.get(connection.account_id)
             if account is None:
@@ -531,6 +548,7 @@ class RoomService:
                 {
                     "id": account.id,
                     "username": account.username_display,
+                    "label": labels.get(account.id, account.username_display),
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{account.sticker}" if account.sticker else None,
                     "powers": sorted(powers_by_account.get(account.id, ())),
@@ -889,6 +907,7 @@ class RoomService:
             vibes_by_id = self._vibes.pairs_for(account.id, vibe_targets)
         occupants: list[dict[str, object]] = []
         powers_by_account = self._powers.effective_many(list(occupant_accounts.values())) if self._powers is not None else {}
+        labels = self._title_labels(list(occupant_accounts.values()))
         for connection in live_connections:
             occupant = occupant_accounts.get(connection.account_id)
             if occupant is None:
@@ -898,6 +917,7 @@ class RoomService:
                 {
                     "id": occupant.id,
                     "username": occupant.username_display,
+                    "label": labels.get(occupant.id, occupant.username_display),
                     "kind": "user",
                     "sticker_url": f"/assets/stickers/{occupant.sticker}" if occupant.sticker else None,
                     "powers": sorted(powers_by_account.get(occupant.id, ())),
@@ -1035,6 +1055,7 @@ class RoomService:
         entry = {
             "speaker_id": account.id,
             "speaker": account.username_display,
+            "speaker_label": self._title_labels([account]).get(account.id, account.username_display),
             "style": style,
             "text": text,
         }
@@ -1129,6 +1150,7 @@ class RoomService:
             source_event=presence_leave_event(
                 account_id=account.id,
                 username=account.username_display,
+                label=self._title_labels([account]).get(account.id, account.username_display),
                 room_id=source_room_id,
                 destination_room_id=destination_room_id,
                 direction=direction,
@@ -1185,6 +1207,7 @@ class RoomService:
                 )
             )
         snapshot = await self.build_snapshot(account, destination_room.id)
+        mover_label = self._title_labels([account]).get(account.id, account.username_display)
         return NavigationResult(
             source_room_id=source_room_id,
             destination_room_id=destination_room.id,
@@ -1192,6 +1215,7 @@ class RoomService:
             source_event=presence_leave_event(
                 account_id=account.id,
                 username=account.username_display,
+                label=mover_label,
                 room_id=source_room_id,
                 destination_room_id=destination_room.id,
                 direction=direction,
@@ -1199,6 +1223,7 @@ class RoomService:
             destination_event=presence_enter_event(
                 account_id=account.id,
                 username=account.username_display,
+                label=mover_label,
                 room_id=destination_room.id,
                 source_room_id=source_room_id,
                 source_room_label=source_room.label,

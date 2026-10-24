@@ -50,7 +50,10 @@ async def _resolve_target(context: CommandContext, token: str | None) -> tuple[s
     for occupant in await context.rooms.room_occupants(room_id):
         if kind == "peep" and occupant["id"] == value:
             return occupant["id"], str(occupant["username"]), False, None
-        if kind == "username" and str(occupant["username"]).casefold() == value.casefold():
+        if kind == "username" and value.casefold() in {
+            str(occupant["username"]).casefold(),
+            str(occupant.get("label", "")).casefold(),
+        }:
             return occupant["id"], str(occupant["username"]), False, None
     for peep in context.rooms.room_peeps(room_id):
         if kind == "peep" and peep["id"] == value:
@@ -453,10 +456,14 @@ async def unskill_command(context: CommandContext, command: ParsedCommand) -> Co
 async def level_up_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
     del command
     result = context.progression.level_up(context.account)
+    _, newly = context.titles.sync_unlocked(result.account.id)
+    private_events = [{"type": "toast", "tone": "success", "text": f"Level up! Welcome, {context.content.levels.get(result.account.level).label}."}]
+    for part in newly:
+        private_events.append({"type": "toast", "tone": "success", "text": f"Title unlocked: {part['label']}."})
     return CommandOutcome(
         message=f"You reached level {result.account.level}!",
         payload={"user": _user_payload(context), "counters": result.snapshot.payload()},
-        private_events=[{"type": "toast", "tone": "success", "text": f"Level up! Welcome, {context.content.levels.get(result.account.level).label}."}],
+        private_events=private_events,
     )
 
 

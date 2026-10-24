@@ -54,6 +54,7 @@ def build_command_context(
         behaviors=runtime.behaviors,
         dialogs=runtime.dialogs,
         tasks=runtime.tasks,
+        titles=runtime.titles,
         memories=runtime.memories,
         powers=runtime.powers,
         ownership=runtime.ownership,

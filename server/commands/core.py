@@ -518,7 +518,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, privileged, prop_shop, props, surfaces
+    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, privileged, prop_shop, props, surfaces, titles
 
     registry = CommandRegistry()
     registry.register(
@@ -827,6 +827,21 @@ def build_registry() -> CommandRegistry:
     )
     registry.register("task", "View one journal task.", task_command, usage=".task <task_id>", toast=False, log=False)
     registry.register("tasks", "List journal tasks.", tasks_command, usage=".tasks", toast=False, log=False)
+    registry.register("title", "View your titles and unlock progress.", titles.title_command, usage=".title", toast=False, log=False)
+    registry.register(
+        "title_set",
+        "Select a title part for your peep label.",
+        titles.title_set_command,
+        usage=".title_set <salutation|nickname|suffix> <title_id|none>",
+        help="Choose an unlocked title part, or 'none' to clear the slot.",
+    )
+    registry.register(
+        "title_crew",
+        "Set your crew name for your peep label.",
+        titles.title_crew_command,
+        usage=".title_crew <name|none>",
+        help="Free-text crew name shown in your peep label, or 'none' to clear it.",
+    )
     registry.register("unequip", "Unequip an item or action stack.", gameplay.unequip_command, usage=".unequip @card:<stack_id>")
     registry.register("unmute", "Remove a peep's mute.", privileged.unmute_command, usage=".unmute @peep", power="moderator")
     registry.register("unskill", "Remove a skill from a slot.", gameplay.unskill_command, usage=".unskill <slot>")

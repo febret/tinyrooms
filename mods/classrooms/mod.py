@@ -682,6 +682,10 @@ async def classroom_command(context: CommandContext, command: ParsedCommand) -> 
             if result.gpa >= 3.0:
                 signals.append({"event": "lesson_gpa_3"})
             outcome.private_events.extend(_record_task_signals(context, signals, room_id))
+            for part in context.titles.record_lesson(context.account.id):
+                outcome.private_events.append(
+                    {"type": "toast", "tone": "success", "text": f"Title unlocked: {part['label']}."}
+                )
             outcome.room_broadcasts.append(
                 PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id})
             )

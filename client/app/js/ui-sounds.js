@@ -35,7 +35,7 @@ export function actionSound(action) {
   if (type === "start-targeting" || type === "start-drop") return "card";
   if (type === "open-pack") return "open";
   if (type === "play-emote") return "card";
-  if (type === "toggle-sound" || type === "toggle-emote-menu") return "toggle";
+  if (type === "toggle-sound" || type === "toggle-emote-menu" || type === "toggle-titles") return "toggle";
   if (typeof action?.command === "string" && action.command.startsWith(".go ")) return "";
   return "click";
 }

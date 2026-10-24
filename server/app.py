@@ -115,6 +115,7 @@ from server.services.stickers import (
     write_custom_sticker,
 )
 from server.services.tasks import TaskService
+from server.services.titles import TitleService
 from server.services.world_editor import WorldEditorService
 from server.state.migrations import DatabaseHub, ensure_profile_database, ensure_world_database
 from server.state.npc_peep_states import NpcPeepStateRepository
@@ -197,6 +198,7 @@ class RuntimeState:
     pricing: CardPricingService
     dialogs: DialogService
     tasks: TaskService
+    titles: TitleService
     memories: MemoryService
     powers: PowersService
     audit: AuditService
@@ -426,6 +428,7 @@ async def _handle_replaced_connection(
             event=presence_leave_event(
                 account_id=replaced.account_id,
                 username=replaced.username,
+                label=runtime.titles.display_label_for(replaced.account_id),
                 room_id=replaced.room_id,
                 reason=reason,
             ),
@@ -488,6 +491,7 @@ def _build_runtime(
     stats = StatsService(hub, profiles, catalog, content, world.id)
     inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
     progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
+    titles = TitleService(hub, profiles, content)
     tasks = TaskService(
         hub,
         profiles,
@@ -610,6 +614,8 @@ def _build_runtime(
     dialogs.attach_dispatcher(behaviors)
     rooms.attach_dispatcher(behaviors)
     rooms.attach_dialogs(dialogs)
+    rooms.attach_titles(titles)
+    tasks.attach_titles(titles)
     runtime_holder: dict[str, RuntimeState] = {}
 
     async def _deliver_tick_result(result: object) -> None:
@@ -655,6 +661,7 @@ def _build_runtime(
         pricing=pricing,
         dialogs=dialogs,
         tasks=tasks,
+        titles=titles,
         memories=memories,
         powers=powers,
         audit=audit,
@@ -1048,6 +1055,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             event=presence_enter_event(
                 account_id=account.id,
                 username=account.username_display,
+                label=runtime.titles.display_label_for(account.id),
                 room_id=room_id,
                 source_room_id=str(arrival["room_id"]) if arrival and arrival.get("room_id") else None,
                 source_room_label=str(arrival["room_label"]) if arrival and arrival.get("room_label") else None,
@@ -1162,6 +1170,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                     event=presence_leave_event(
                         account_id=account.id,
                         username=account.username_display,
+                        label=runtime.titles.display_label_for(account.id),
                         room_id=connection.room_id,
                     ),
                     exclude_account_id=account.id,

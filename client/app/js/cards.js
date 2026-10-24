@@ -134,6 +134,20 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-swap-sticker]").forEach(button => {
     button.onclick = () => onAction({ type: "swap-sticker" });
   });
+  root.querySelectorAll("[data-title-slot]").forEach(select => {
+    select.onchange = () => onAction({ command: `.title_set ${select.dataset.titleSlot} ${select.value || "none"}` });
+  });
+  root.querySelectorAll("[data-titles-toggle]").forEach(button => {
+    button.onclick = () => onAction({ type: "toggle-titles" });
+  });
+  root.querySelectorAll("[data-title-crew-save]").forEach(button => {
+    button.onclick = () => {
+      const scope = button.closest("[data-title-crew]") || root;
+      const input = scope.querySelector("[data-title-crew-input]");
+      const value = input ? input.value.trim() : "";
+      onAction({ command: value ? `.title_crew ${value}` : ".title_crew none" });
+    };
+  });
   root.querySelectorAll("[data-emote-play]").forEach(button => {
     button.onclick = () => onAction({ type: "play-emote", stackId: button.dataset.emotePlay });
   });

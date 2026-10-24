@@ -261,14 +261,19 @@ def presence_enter_event(
     room_id: str,
     source_room_id: str | None = None,
     source_room_label: str | None = None,
+    label: str | None = None,
 ) -> dict[str, object]:
     """Build the room presence-enter event payload.
 
     ``source_room_id``/``source_room_label`` describe where the peep arrived
     from. They are omitted for a fresh login, whose source is unknown.
+    ``label`` carries the composed title display label; clients fall back to
+    ``username`` when it is absent.
     """
 
     event = {"type": "presence.enter", "room_id": room_id, "account_id": account_id, "username": username}
+    if label is not None:
+        event["label"] = label
     if source_room_id is not None:
         event["source_room_id"] = source_room_id
     if source_room_label is not None:
@@ -284,10 +289,13 @@ def presence_leave_event(
     destination_room_id: str | None = None,
     direction: str | None = None,
     reason: str | None = None,
+    label: str | None = None,
 ) -> dict[str, object]:
     """Build the room presence-leave event payload."""
 
     event = {"type": "presence.leave", "room_id": room_id, "account_id": account_id, "username": username}
+    if label is not None:
+        event["label"] = label
     if destination_room_id is not None:
         event["destination_room_id"] = destination_room_id
     if direction is not None:

@@ -229,10 +229,12 @@ export function normalizeActor(entity, { kind, labelSource }) {
 }
 
 export function normalizeOccupant(occupant) {
-  return normalizeActor(occupant, {
+  const normalized = normalizeActor(occupant, {
     kind: String(occupant?.kind || "user"),
-    labelSource: String(occupant?.username || occupant?.label || "Peep"),
+    labelSource: String(occupant?.label || occupant?.username || "Peep"),
   });
+  normalized.username = String(occupant?.username || normalized.username || "Peep");
+  return normalized;
 }
 
 export function normalizeNpc(npc) {
@@ -246,7 +248,7 @@ export function normalizeChatEntry(entry) {
   return {
     id: "",
     speakerId: entry?.speaker_id ? String(entry.speaker_id) : "",
-    speaker: String(entry?.speaker || entry?.username || "System"),
+    speaker: String(entry?.speaker_label || entry?.speaker || entry?.username || "System"),
     style: String(entry?.style || "normal"),
     text: String(entry?.text || ""),
     kind: entry?.speaker ? "chat" : "system",
@@ -368,6 +370,36 @@ export function normalizeTasks(tasks) {
   return { active, completed };
 }
 
+export function normalizeTitlePart(part) {
+  if (!part || typeof part !== "object") return null;
+  const unlock = part.unlock && typeof part.unlock === "object" ? { ...part.unlock } : { kind: "" };
+  return {
+    id: String(part.id || ""),
+    label: String(part.label || ""),
+    slot: String(part.slot || ""),
+    unlock,
+  };
+}
+
+export function normalizeTitles(titles) {
+  const catalog = Array.isArray(titles?.catalog) ? titles.catalog.map(normalizeTitlePart).filter(Boolean) : [];
+  const unlocked = Array.isArray(titles?.unlocked) ? titles.unlocked.map(entry => String(entry)) : [];
+  const selection = titles?.selection && typeof titles.selection === "object" ? titles.selection : {};
+  return {
+    catalog,
+    unlocked,
+    selection: {
+      salutation: selection.salutation ? String(selection.salutation) : null,
+      nickname: selection.nickname ? String(selection.nickname) : null,
+      suffix: selection.suffix ? String(selection.suffix) : null,
+      crewName: String(selection.crew_name || ""),
+      displayLabel: String(selection.display_label || ""),
+    },
+    cookedCount: Number(titles?.cooked_count || 0),
+    taughtCount: Number(titles?.taught_count || 0),
+  };
+}
+
 export function normalizeMemory(memory) {
   return {
     memoryId: String(memory?.memory_id || ""),
@@ -472,6 +504,7 @@ export function normalizeUser(user) {
     unlockedProps: Array.isArray(user.unlocked_props) ? user.unlocked_props.map(propId => String(propId)) : [],
     tasks: normalizeTasks(user.tasks),
     journal: normalizeJournal(user.journal),
+    titles: normalizeTitles(user.titles),
     worldId: String(user.world_id || ""),
     worldCssUrl: assetOrEmpty(user.world_css_url),
     rememberedRoom: String(user.remembered_room || ""),

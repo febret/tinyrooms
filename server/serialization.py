@@ -27,6 +27,7 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
     skills = runtime.progression.skill_slots(account, user_profile)
     friends = runtime.friends.serialize(account.id)
     beacons = runtime.beacons.serialize(account.id, runtime.world.id)
+    titles = runtime.titles.serialize_for(account)
     return {
         "id": account.id,
         "username": account.username_display,
@@ -89,4 +90,5 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "tasks": runtime.tasks.view_payload(account.id),
         "journal": runtime.memories.journal_payload(account.id),
         "powers": sorted(runtime.powers.effective(account)),
+        "titles": titles,
     }

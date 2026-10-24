@@ -199,8 +199,9 @@ function applyServerEvent(state, event) {
     return state;
   }
   if (event.type === "chat.message") {
-    const updatedOccupants = applyBubble(state.room.occupants, String(event.speaker_id || ""), event.speaker, String(event.text || ""), String(event.style || "normal"));
-    const updatedNpcs = applyBubble(state.room.npcs, String(event.speaker_id || ""), event.speaker, String(event.text || ""), String(event.style || "normal"));
+    const speaker = String(event.speaker_label || event.speaker || "");
+    const updatedOccupants = applyBubble(state.room.occupants, String(event.speaker_id || ""), speaker, String(event.text || ""), String(event.style || "normal"));
+    const updatedNpcs = applyBubble(state.room.npcs, String(event.speaker_id || ""), speaker, String(event.text || ""), String(event.style || "normal"));
     return {
       ...state,
       room: {
@@ -216,7 +217,7 @@ function applyServerEvent(state, event) {
       ...state,
       room: {
         ...state.room,
-        chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.username} entered.`)].slice(-50),
+        chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.label || event.username} entered.`)].slice(-50),
       },
     };
   }
@@ -225,7 +226,21 @@ function applyServerEvent(state, event) {
       ...state,
       room: {
         ...state.room,
-        chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.username} left.`)].slice(-50),
+        chatHistory: [...state.room.chatHistory, asSystemHistory(`${event.label || event.username} left.`)].slice(-50),
+      },
+    };
+  }
+  if (event.type === "presence.title") {
+    const targetId = String(event.account_id || "");
+    const label = String(event.label || event.username || "");
+    if (!targetId || !label) return state;
+    return {
+      ...state,
+      room: {
+        ...state.room,
+        occupants: state.room.occupants.map(occupant => (
+          occupant.id === targetId ? { ...occupant, label } : occupant
+        )),
       },
     };
   }
@@ -535,7 +550,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -685,6 +700,7 @@ function reduce(state, action) {
   if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: action.tab === "Skills" ? state.views.skillStackId : null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
+  if (action.type === "toggle-titles") return { ...state, ui: { ...state.ui, titlesOpen: !state.ui.titlesOpen } };
   if (action.type === "toggle-inventory-compact") {
     const enabled = !state.ui.inventoryCompact;
     saveInventoryCompact(enabled);

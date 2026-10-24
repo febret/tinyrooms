@@ -57,6 +57,12 @@ def _default_profile() -> dict[str, object]:
         "seen_cutscenes": [],
         # Persistent cosmetic decals rendered over the peep sticker.
         "decals": [],
+        # Lifetime activity counters backing title unlocks.
+        "cooked_count": 0,
+        "taught_count": 0,
+        # Unlocked global title part ids and the selected display parts.
+        "unlocked_titles": [],
+        "titles": {"salutation": None, "nickname": None, "suffix": None, "crew_name": ""},
     }
 
 
@@ -113,7 +119,36 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["seen_cutscenes"] = []
     else:
         merged["seen_cutscenes"] = [str(key) for key in merged["seen_cutscenes"] if str(key)]
+    for counter_key in ("cooked_count", "taught_count"):
+        try:
+            merged[counter_key] = max(0, int(merged.get(counter_key, 0) or 0))
+        except (TypeError, ValueError):
+            merged[counter_key] = 0
+    if not isinstance(merged.get("unlocked_titles"), list):
+        merged["unlocked_titles"] = []
+    else:
+        merged["unlocked_titles"] = [str(part_id) for part_id in merged["unlocked_titles"] if str(part_id)]
+    merged["titles"] = normalize_title_selection(merged.get("titles"))
     return merged
+
+
+def normalize_title_selection(raw: object) -> dict[str, object]:
+    """Coerce a stored title selection into its canonical shape."""
+
+    selection: dict[str, object] = {"salutation": None, "nickname": None, "suffix": None, "crew_name": ""}
+    if isinstance(raw, dict):
+        for slot in ("salutation", "nickname", "suffix"):
+            value = raw.get(slot)
+            selection[slot] = str(value) if isinstance(value, str) and value.strip() else None
+        crew_name = raw.get("crew_name")
+        selection["crew_name"] = str(crew_name).strip() if isinstance(crew_name, str) else ""
+    return selection
+
+
+def _normalize_title_selection(raw: object) -> dict[str, object]:
+    """Coerce a stored title selection into its canonical shape."""
+
+    return normalize_title_selection(raw)
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,6 +269,37 @@ class UserProfileRecord:
     def unlocked_props(self) -> tuple[str, ...]:
         raw = self.profile.get("unlocked_props")
         return tuple(str(entry) for entry in raw) if isinstance(raw, list) else ()
+
+    @property
+    def unlocked_titles(self) -> tuple[str, ...]:
+        raw = self.profile.get("unlocked_titles")
+        return tuple(str(entry) for entry in raw) if isinstance(raw, list) else ()
+
+    @property
+    def title_selection(self) -> dict[str, object]:
+        raw = self.profile.get("titles")
+        if not isinstance(raw, dict):
+            return {"salutation": None, "nickname": None, "suffix": None, "crew_name": ""}
+        return {
+            "salutation": raw.get("salutation") if isinstance(raw.get("salutation"), str) else None,
+            "nickname": raw.get("nickname") if isinstance(raw.get("nickname"), str) else None,
+            "suffix": raw.get("suffix") if isinstance(raw.get("suffix"), str) else None,
+            "crew_name": raw.get("crew_name") if isinstance(raw.get("crew_name"), str) else "",
+        }
+
+    @property
+    def cooked_count(self) -> int:
+        try:
+            return max(0, int(self.profile.get("cooked_count", 0) or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @property
+    def taught_count(self) -> int:
+        try:
+            return max(0, int(self.profile.get("taught_count", 0) or 0))
+        except (TypeError, ValueError):
+            return 0
 
     @property
     def known_recipes(self) -> tuple[str, ...]:
