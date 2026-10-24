@@ -1,7 +1,7 @@
 town:
   label: TinyTown
   description: 'A living tabletop town: a harbour, hills, downtown rooftops, and suburbs
-    that glow as the two-minute day turns to night.'
+    that glow as the ten-minute day turns to night.'
   board_type: diorama
   board_image: town-map.png
   board_image_style: stretch
@@ -10,7 +10,18 @@ town:
   - '#5f8f7d'
   - '#d7795c'
   - '#46697a'
-  props: {}
+  props:
+    custom:879760c5-fd17-40fc-87a9-13acf4ea8052:
+      prop: beachhut-wicker-trunk
+      pos:
+      - 50
+      - 50
+      - 0
+      rot:
+      - 0
+      - 0
+      - 0
+      scale: 1
   exits: {}
 home-entry:
   label: Entry Hall
@@ -178,8 +189,7 @@ home-living:
   exits: {}
 home-kitchen:
   label: Kitchen
-  description: A cheerful kitchen with a proper chopping board, a kettle always near
-    the boil, and a window over the sink.
+  description: ''
   board_type: basic
   board_image: floor-checker.png
   board_image_style: stretch

@@ -22,6 +22,14 @@ from server.protocol import (
 from server.services.activities import ActivityService
 from server.services.cards import CardService
 from server.services.environment import DIORAMA_BOARD_TYPE, diorama_environment
+from server.services.lighting import (
+    FIXTURE_LIGHT_COLOR,
+    WINDOW_NIGHT_COLOR,
+    LightingService,
+    is_toggleable,
+    prop_light_kind,
+)
+from server.services.prop_lights import PropLightService
 from server.services.npc_movement import NpcMove, resolve_npc_move
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.sprite_rooms import SpriteService
@@ -117,6 +125,8 @@ class RoomService:
         surfaces: PropSurfaceService | None = None,
         powers: object | None = None,
         vibes: object | None = None,
+        lighting: LightingService | None = None,
+        prop_lights: PropLightService | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -138,6 +148,8 @@ class RoomService:
         self._surfaces = surfaces
         self._powers = powers
         self._vibes = vibes
+        self._lighting = lighting or LightingService(world)
+        self._prop_lights = prop_lights or PropLightService()
         self._mod_states: list[object] = []
 
     @property
@@ -309,6 +321,51 @@ class RoomService:
         """Switch a prop instance's mesh state (alias of :meth:`set_prop_state`)."""
 
         return self.set_prop_state(room_id, prop_instance_id, state_name)
+
+    def toggle_prop_light(self, room_id: str, prop_instance_id: str) -> dict[str, object]:
+        """Toggle a light-fixture prop instance on or off at runtime."""
+
+        room = self._world.rooms.get(room_id)
+        if room is None:
+            raise ValueError("That room does not exist.")
+        instance = next(
+            (prop for prop in self._effective_props(room) if prop.id == prop_instance_id),
+            None,
+        )
+        if instance is None:
+            raise ValueError("That prop does not exist.")
+        definition = self._world.props[instance.prop_id]
+        if not is_toggleable(definition):
+            raise ValueError(f"{definition.label} cannot be toggled.")
+        if self._prop_lights is None:
+            raise ValueError("Prop lights are unavailable.")
+        self._prop_lights.toggle(room_id, prop_instance_id, True)
+        return {
+            "type": "room.prop.updated",
+            "room_id": room_id,
+            "prop": {
+                "id": prop_instance_id,
+                "light": self._light_payload(room_id, instance, definition),
+            },
+        }
+
+    def _light_payload(
+        self,
+        room_id: str,
+        prop: PropInstanceDefinition,
+        definition: PropDefinition,
+    ) -> dict[str, object] | None:
+        """Build the client-facing light payload for one prop instance."""
+
+        kind = prop_light_kind(definition)
+        if kind is None:
+            return None
+        if kind == "window":
+            return {"kind": "window", "on": True, "color": WINDOW_NIGHT_COLOR}
+        turned_on = True
+        if self._prop_lights is not None:
+            turned_on = self._prop_lights.is_on(room_id, prop.id, True)
+        return {"kind": "fixture", "on": turned_on, "color": FIXTURE_LIGHT_COLOR}
 
     def set_prop_active_effect(
         self,
@@ -711,6 +768,15 @@ class RoomService:
         else:
             quick_actions = self._visible_prop_actions(room, prop.actions)
             quick_actions.extend(self._surface_quick_actions(prop, prop_definition))
+            if is_toggleable(prop_definition):
+                turned_on = self._prop_lights.is_on(room.id, prop.id, True)
+                label = "Turn off" if turned_on else "Turn on"
+                toggle = self._normalize_quick_action(
+                    room,
+                    QuickAction(label=label, command=f".toggle @prop:{prop.id}"),
+                )
+                if toggle is not None:
+                    quick_actions.append(toggle)
             for state in self._mod_states:
                 personal_actions = getattr(state, "personal_actions", None)
                 if personal_actions is None:
@@ -739,6 +805,7 @@ class RoomService:
                 surface_kind_name,
                 default_content=prop.surface,
             ).serialize()
+        light = None if dark else self._light_payload(room.id, prop, prop_definition)
         return {
             "id": prop.id,
             "prop_id": prop.prop_id,
@@ -771,6 +838,7 @@ class RoomService:
             "effect_sets": {} if dark else self._effect_sets_payload(prop_definition),
             "active_effect": None if dark else self._active_effect(room.id, prop.id, prop_definition),
             "sounds": serialized_sounds,
+            **({"light": light} if light is not None else {}),
         }
 
     @staticmethod
@@ -836,6 +904,8 @@ class RoomService:
             dark = room.dark
         if room.board_type == DIORAMA_BOARD_TYPE:
             environment = diorama_environment(environment)
+        lighting_payload = self._lighting.snapshot_payload(room_id)
+        environment = {**environment, "lighting_preset": lighting_payload}
         viewer_view = occupant_views.get(account.id)
         viewer_statuses = viewer_view.statuses if viewer_view is not None else ()
         status_definitions = self._stats.content.statuses

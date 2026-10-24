@@ -7,6 +7,7 @@ from datetime import datetime
 import json
 import time
 
+from server.content.lighting import DAY_NIGHT_CYCLE_SECONDS, cycle_phase
 from server.content.worlds import WorldDefinition
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
@@ -15,7 +16,6 @@ from server.state.world_state import WorldStateRepository
 
 ENVIRONMENT_KEYS = ("lighting", "lighting_expires_at", "hidden_props", "disabled_exits", "disabled_actions")
 DIORAMA_BOARD_TYPE = "diorama"
-DIORAMA_CYCLE_SECONDS = 120.0
 
 
 def diorama_environment(
@@ -23,14 +23,13 @@ def diorama_environment(
     *,
     now: float | None = None,
 ) -> dict[str, object]:
-    """Add the shared wall-clock phase that drives a diorama's two-minute day."""
+    """Add the shared wall-clock phase that drives a diorama's day/night cycle"""
 
     seconds = time.time() if now is None else float(now)
-    phase = (seconds % DIORAMA_CYCLE_SECONDS) / DIORAMA_CYCLE_SECONDS
     return {
         **environment,
-        "time_of_day": round(phase, 6),
-        "day_cycle_seconds": DIORAMA_CYCLE_SECONDS,
+        "time_of_day": round(cycle_phase(seconds), 6),
+        "day_cycle_seconds": DAY_NIGHT_CYCLE_SECONDS,
     }
 
 

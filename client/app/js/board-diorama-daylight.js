@@ -2,6 +2,11 @@
 
 import * as THREE from "three";
 
+// The server is authoritative for the cycle length and always sends
+// day_cycle_seconds in snapshots (see DAY_NIGHT_CYCLE_SECONDS in
+// server/content/lighting.py). This constant is only a fallback for rooms
+// whose snapshot carries no usable duration; a parity test pins the two
+// together, since the runtimes cannot share code.
 export const DIORAMA_CYCLE_SECONDS = 600.0;
 
 /** Normalize a room environment phase into a continuous ten-minute cycle. */

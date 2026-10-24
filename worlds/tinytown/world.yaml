@@ -3,6 +3,7 @@ label: TinyTown
 description: A living tabletop town of districts, private homes, and very small lives.
 entry_room: town
 image: rooms/town-map.png
+environment: day
 palette:
 - '#f2d6a2'
 - '#5f8f7d'

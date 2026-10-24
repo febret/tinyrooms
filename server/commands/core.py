@@ -817,6 +817,13 @@ def build_registry() -> CommandRegistry:
     )
     registry.register("swap_sticker", "Swap your peep sticker for Bops.", gameplay.swap_sticker_command, usage=".swap_sticker <sticker>")
     registry.register("talk", "Talk to a peep and open its dialog.", talk_command, usage=".talk <peep>", toast=False, log=False)
+    registry.register(
+        "toggle",
+        "Toggle a prop (lamps switch on or off).",
+        props.toggle_command,
+        usage=".toggle @prop:<instance_id>",
+        toast=False,
+    )
     registry.register("task", "View one journal task.", task_command, usage=".task <task_id>", toast=False, log=False)
     registry.register("tasks", "List journal tasks.", tasks_command, usage=".tasks", toast=False, log=False)
     registry.register("unequip", "Unequip an item or action stack.", gameplay.unequip_command, usage=".unequip @card:<stack_id>")

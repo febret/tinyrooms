@@ -89,12 +89,14 @@ from server.services.dispensers import DispenserService
 from server.services.environment import EnvironmentService
 from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
+from server.services.lighting import LightingService
 from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.prop_editor import PropEditorService
+from server.services.prop_lights import PropLightService
 from server.services.prop_shop import PropShopService
 from server.services.prop_surfaces import PropSurfaceService
 from server.services.prop_states import PropStateService
@@ -203,6 +205,8 @@ class RuntimeState:
     layout: RoomLayoutService
     room_effects: RoomEffectService
     prop_states: PropStateService
+    lighting: LightingService
+    prop_lights: PropLightService
     cross_world: CrossWorldService
     mods: dict[str, object]
     mod_definitions: tuple[ModDefinition, ...]
@@ -509,6 +513,8 @@ def _build_runtime(
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)
     room_effects = RoomEffectService()
     prop_states = PropStateService()
+    lighting = LightingService(world)
+    prop_lights = PropLightService()
     layout = RoomLayoutService(
         hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
     )
@@ -559,6 +565,8 @@ def _build_runtime(
         room_effects=room_effects,
         prop_states=prop_states,
         peep_states=peep_states,
+        lighting=lighting,
+        prop_lights=prop_lights,
         surfaces=surfaces,
         powers=powers,
         vibes=vibes,
@@ -654,6 +662,8 @@ def _build_runtime(
         layout=layout,
         room_effects=room_effects,
         prop_states=prop_states,
+        lighting=lighting,
+        prop_lights=prop_lights,
         cross_world=cross_world,
         mods={},
         mod_definitions=mods.definitions,

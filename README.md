@@ -103,7 +103,7 @@ instance. See [fleet destination discovery](doc/mission-control.md#7-mission-con
 [tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
 
 ```bash
-python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--force-restart]
+python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--force] [--force-restart]
 ```
 
 `host` accepts `user@host`; `-u` overrides the user. The default root is
@@ -121,6 +121,8 @@ packages uncommitted changes as-is.
 The deploy script never modifies `version.json`: it ships the newest recorded
 version, overwriting that release locally and on the server. Cut a new release
 by editing `version.json` before deploying.
+If a local tarball or remote release/checkout already uses that version,
+deployment stops with an error unless `--force` is given to overwrite it.
 Releases carry runtime code, content, and tools only: design docs (`doc/`),
 test suites, and dev-only config are excluded to keep uploads small.
 `--force-restart` (also `--forcerestart`) additionally rolls every running
