@@ -152,6 +152,10 @@ classroom-oak-panel-door:
   decorative: false
   activity: classrooms
   one_per_room: true
+  default_actions:
+  - - Enter the classroom
+    - .play classrooms
+    - true
   scale: 1.35
   tags:
   - door

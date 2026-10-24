@@ -65,6 +65,9 @@ class PropDefinition:
     recipes: tuple[str, ...] = ()
     activity: str | None = None
     one_per_room: bool = False
+    # Default quick actions every placed instance receives. ``@self`` in a
+    # command targets the concrete instance being serialized.
+    default_actions: tuple[QuickAction, ...] = ()
     editor_scale_min: float = 0.25
     editor_scale_max: float = 4.0
     source: str = ""
@@ -194,6 +197,21 @@ def _load_actions(raw_value: Any) -> tuple[QuickAction, ...]:
             raise ContentError("Action default flag must be a boolean.")
         actions.append(QuickAction(label=label.strip(), command=command.strip(), default=is_default))
     return tuple(actions)
+
+
+def resolve_default_prop_actions(
+    definition: PropDefinition, instance_id: str
+) -> tuple[QuickAction, ...]:
+    """Return a definition's default actions targeted at one placed instance."""
+
+    return tuple(
+        QuickAction(
+            label=action.label,
+            command=action.command.replace("@self", f"@prop:{instance_id}"),
+            default=action.default,
+        )
+        for action in definition.default_actions
+    )
 
 
 def _load_vec3(raw_value: Any, label: str) -> tuple[float, float, float]:
@@ -504,6 +522,7 @@ def load_prop_definition(
     recipes = _load_identifier_list(raw_prop.get("recipes"), prop_id, "recipes")
     cooldown = _load_prop_cooldown(raw_prop.get("cooldown"), prop_id)
     one_per_room = bool(raw_prop.get("one_per_room", False))
+    default_actions = _load_actions(raw_prop.get("default_actions"))
     effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
     active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
     sprite_footprint = _load_sprite_footprint(raw_prop.get("sprite_footprint"), prop_id)
@@ -529,6 +548,7 @@ def load_prop_definition(
         recipes=recipes,
         activity=activity,
         one_per_room=one_per_room,
+        default_actions=default_actions,
         editor_scale_min=editor_scale_min,
         editor_scale_max=editor_scale_max,
         source=source,

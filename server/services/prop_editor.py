@@ -130,6 +130,12 @@ class PropEditorService:
             "recipes": list(definition.recipes),
             "one_per_room": definition.one_per_room,
             "render_kind": definition.render_kind,
+            "default_actions": [
+                [action.label, action.command, action.default]
+                if action.default
+                else [action.label, action.command]
+                for action in definition.default_actions
+            ],
             "tags": list(definition.tags),
             "price": definition.price,
             "locked": definition.locked,

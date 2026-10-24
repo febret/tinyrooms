@@ -35,10 +35,6 @@ hall:
       - 55
       - 0
       scale: 1.2510710194283634
-      actions:
-      - - Enter the classroom
-        - .play classrooms
-        - true
       rot:
       - 0
       - 1.6000000000001364
@@ -290,10 +286,6 @@ teachers-lounge:
       - 10
       - 0
       scale: 1
-      actions:
-      - - Read the recipe book
-        - .act read @prop:recipe-book0
-        - true
     prep-table0:
       prop: supermarket-prep-table
       pos:
@@ -301,10 +293,6 @@ teachers-lounge:
       - 44
       - 0
       scale: 1
-      actions:
-      - - Craft at the prep table
-        - .craft @prop:prep-table0
-        - true
     oven0:
       prop: supermarket-oven
       pos:
@@ -312,10 +300,6 @@ teachers-lounge:
       - 44
       - 0
       scale: 1
-      actions:
-      - - Craft at the oven
-        - .craft @prop:oven0
-        - true
     mixer0:
       prop: supermarket-mixer
       pos:
@@ -323,10 +307,6 @@ teachers-lounge:
       - 44
       - 0
       scale: 1
-      actions:
-      - - Craft at the mixer
-        - .craft @prop:mixer0
-        - true
     pantry0:
       prop: kitchen-dresser
       pos:
@@ -334,9 +314,6 @@ teachers-lounge:
       - 16
       - 0
       scale: 1.05
-      actions:
-      - - Take an ingredient
-        - .dispense pantry0
   exits:
     hall:
       label: Back to the hall

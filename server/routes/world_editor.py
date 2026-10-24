@@ -99,6 +99,12 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "cooldown": definition.cooldown,
             "recipes": list(definition.recipes),
             "one_per_room": definition.one_per_room,
+            "default_actions": [
+                [action.label, action.command, action.default]
+                if action.default
+                else [action.label, action.command]
+                for action in definition.default_actions
+            ],
         }
         for definition in world.props.values()
         if not definition.hidden

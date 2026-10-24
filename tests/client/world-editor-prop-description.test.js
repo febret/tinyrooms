@@ -40,9 +40,35 @@ test("the world editor renders a description override field", () => {
   assert.match(html, /Stock: A stock door description\./);
 });
 
+test("the world editor renders a label override field", () => {
+  const html = renderProperties(stateWithProp({ label: "Back Door" }));
+  assert.match(html, /data-instance-field="label"/);
+  assert.match(html, /Back Door/);
+  assert.match(html, /Stock: Wooden door/);
+});
+
+test("the world editor keeps gameplay fields on the prop definition", () => {
+  const state = stateWithProp({});
+  state.catalog.props[0].behavior = "dispenser";
+  const html = renderProperties(state);
+  assert.doesNotMatch(html, /data-instance-field="behavior"/);
+  assert.doesNotMatch(html, /data-instance-field="activity"/);
+  assert.doesNotMatch(html, /data-instance-field="cooldown"/);
+  assert.doesNotMatch(html, /data-instance-field="content"/);
+  assert.doesNotMatch(html, /data-instance-field="recipes"/);
+  assert.match(html, /behavior: dispenser/);
+});
+
 test("the world editor board preview uses the placed prop description", () => {
   const state = stateWithProp({ description: "The pink front door." });
   state.draft.rooms.hub.board_type = "basic";
   const room = buildBoardRoom(state.draft, state.catalog, "hub", "tutorial");
   assert.equal(room.props[0].description, "The pink front door.");
+});
+
+test("the world editor board preview uses the placed prop label", () => {
+  const state = stateWithProp({ label: "Back Door" });
+  state.draft.rooms.hub.board_type = "basic";
+  const room = buildBoardRoom(state.draft, state.catalog, "hub", "tutorial");
+  assert.equal(room.props[0].label, "Back Door");
 });

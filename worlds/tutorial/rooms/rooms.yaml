@@ -149,10 +149,6 @@ kitchen:
       - 10
       - 0
       scale: 1.513408307361747
-      actions:
-      - - Craft at the counter
-        - .craft @prop:breakfast0
-        - true
       rot:
       - 0
       - 1.5599999999998886
@@ -264,9 +260,6 @@ bathroom:
       - 15
       - 0
       scale: 1.9412074566593076
-      actions:
-      - - Take a shower
-        - .act shower @prop:shower0
       rot:
       - 0
       - 0.9000000000002046
@@ -278,9 +271,6 @@ bathroom:
       - 72.13867331631442
       - 19.96625935609626
       scale: 1.5038071611701174
-      actions:
-      - - Take medicine
-        - .dispense medicine0
       rot:
       - 0
       - 1.559999999999775
@@ -461,9 +451,6 @@ utility:
       - 0
       scale: 1.0154279810252993
       only_missing: true
-      actions:
-      - - Take supplies
-        - .dispense supplies0
       rot:
       - 0
       - 357.320000000002
@@ -476,9 +463,6 @@ utility:
       - 0
       scale: 1.1641602364321135
       only_missing: true
-      actions:
-      - - Take tools
-        - .dispense vacuum0
       rot:
       - 0
       - 357.5000000000002
@@ -568,9 +552,6 @@ basement:
       - 25
       - 0
       scale: 1.4096059254134254
-      actions:
-      - - Take the key
-        - .act take_key @prop:key0
     bugs0:
       prop: centipedes
       pos:

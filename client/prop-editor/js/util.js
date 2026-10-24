@@ -20,6 +20,29 @@ export function parseCsv(value) {
     .filter(Boolean);
 }
 
+export function parseLines(value) {
+  return String(value || "")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+}
+
+export function actionsToText(actions) {
+  return (actions || [])
+    .map(action => {
+      if (Array.isArray(action)) return action.join(" | ");
+      return `${action?.label ?? ""} | ${action?.command ?? ""}`;
+    })
+    .join("\n");
+}
+
+export function textToActions(value) {
+  return parseLines(value).map(line => {
+    const [label, command] = line.split("|").map(part => part.trim());
+    return [label, command || ""];
+  });
+}
+
 export function numberOr(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;

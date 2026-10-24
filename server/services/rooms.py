@@ -10,7 +10,7 @@ from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
-from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
+from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url, resolve_default_prop_actions
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
     MAX_CHAT_SIZE,
@@ -489,6 +489,22 @@ class RoomService:
             if self._environment.is_prop_visible(room.id, prop.id)
         ]
 
+    def _merged_prop_actions(
+        self,
+        prop: PropInstanceDefinition,
+        definition: PropDefinition,
+    ) -> tuple[QuickAction, ...]:
+        """Combine instance custom actions with the definition's defaults."""
+
+        merged = list(prop.actions)
+        seen = {action.command for action in merged}
+        for action in resolve_default_prop_actions(definition, prop.id):
+            if action.command in seen:
+                continue
+            seen.add(action.command)
+            merged.append(action)
+        return tuple(merged)
+
     def _visible_prop_actions(
         self,
         room: RoomDefinition,
@@ -766,7 +782,9 @@ class RoomService:
         if dark or disable_actions:
             quick_actions: list[dict[str, object]] = []
         else:
-            quick_actions = self._visible_prop_actions(room, prop.actions)
+            quick_actions = self._visible_prop_actions(
+                room, self._merged_prop_actions(prop, prop_definition)
+            )
             quick_actions.extend(self._surface_quick_actions(prop, prop_definition))
             if is_toggleable(prop_definition):
                 toggle = self._normalize_quick_action(

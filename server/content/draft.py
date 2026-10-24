@@ -388,6 +388,23 @@ def validate_structure(draft: dict[str, Any], references: DraftReferences) -> li
                     _issue(issues, f"{prop_path}.cooldown", "Prop cooldown must be a non-negative number.")
                 if prop.get("one_per_room") is not None and not isinstance(prop.get("one_per_room"), bool):
                     _issue(issues, f"{prop_path}.one_per_room", "Prop one_per_room must be a boolean.")
+                default_actions = prop.get("default_actions")
+                if default_actions is not None:
+                    if not isinstance(default_actions, list):
+                        _issue(issues, f"{prop_path}.default_actions", "Prop default_actions must be a list.")
+                    else:
+                        for index, entry in enumerate(default_actions):
+                            if (
+                                not isinstance(entry, list)
+                                or len(entry) not in (2, 3)
+                                or not isinstance(entry[0], str)
+                                or not isinstance(entry[1], str)
+                            ):
+                                _issue(
+                                    issues,
+                                    f"{prop_path}.default_actions[{index}]",
+                                    "Default actions must be [label, command] or [label, command, default] lists.",
+                                )
                 activity = prop.get("activity")
                 if (
                     isinstance(activity, str)

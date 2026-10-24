@@ -1,4 +1,5 @@
 import {
+  actionsToText,
   checkbox,
   escapeHtml,
   field,
@@ -68,7 +69,7 @@ export function renderPropsPanel(state) {
       </div>
       <fieldset class="pe-subgroup">
         <legend>Gameplay</legend>
-        <p class="pe-hint">Behavior, activity, content, cooldown, and recipes belong to the prop definition and apply to every placed instance.</p>
+                <p class="pe-hint">Behavior, activity, content, cooldown, and recipes belong to the prop definition and apply to every placed instance.</p>
         ${field("Behavior", `<select data-pe-prop="behavior" data-pe-kind="text">${selectOptions(behaviorOptions, prop.behavior || "")}</select>`)}
         ${field("Activity", `<select data-pe-prop="activity" data-pe-kind="text">${selectOptions(activityOptions, prop.activity || "")}</select>`)}
         <div class="pe-field-row">
@@ -77,6 +78,8 @@ export function renderPropsPanel(state) {
         </div>
         ${field("Content cards (comma-separated)", textInput((prop.content || []).join(", "), `data-pe-prop="content" data-pe-kind="csv"`))}
         ${field("Recipes (comma-separated)", textInput((prop.recipes || []).join(", "), `data-pe-prop="recipes" data-pe-kind="csv"`))}
+        ${field("Default actions (label | command per line)", textarea(actionsToText(prop.default_actions), `data-pe-prop="default_actions" data-pe-kind="actions"`, 3))}
+        <p class="pe-hint">Use <code>@self</code> in a command to target the placed instance.</p>
       </fieldset>
       <div class="pe-field-row">
         ${field("Editor min", numberInput(prop.editor_scale_min ?? 0.25, `data-pe-prop="editor_scale_min" data-pe-kind="number"`))}

@@ -48,6 +48,7 @@ from server.content.prop_definitions import (
     _load_text_recipe,
     _load_vec3,
     _validate_prop_effects,
+    resolve_default_prop_actions,
 )
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment

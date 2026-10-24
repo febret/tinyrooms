@@ -31,6 +31,9 @@ shower:
   model: shower.glb
   decorative: false
   behavior: shower
+  default_actions:
+  - - Take a shower
+    - .act shower @self
   scale: 1.306
   sounds:
     select: water1.wav
@@ -60,6 +63,9 @@ keys-cabinet:
   model: keys-cabinet.glb
   decorative: false
   behavior: key
+  default_actions:
+  - - Take the key
+    - .act take_key @self
   scale: 1.636
   sounds:
     select: tick.wav
@@ -87,6 +93,9 @@ vacuum-stand:
   - vacuum-cleaner
   - hand-light
   cooldown: 60
+  default_actions:
+  - - Take tools
+    - .dispense @self
   scale: 1.229
   sounds:
     select: click3.wav
@@ -102,6 +111,9 @@ supply-shelf:
   - pooper-scooper
   - plastic-bag
   cooldown: 60
+  default_actions:
+  - - Take supplies
+    - .dispense @self
   scale: 1.464
   sounds:
     select: click2.wav
@@ -114,6 +126,10 @@ kitchen-counter:
   decorative: false
   behavior: crafting
   one_per_room: true
+  default_actions:
+  - - Craft at the counter
+    - .craft @self
+    - true
   scale: 1.214
   tags:
   - crafting

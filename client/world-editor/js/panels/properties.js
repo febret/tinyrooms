@@ -113,6 +113,9 @@ function propPanel(state) {
     (definition?.content || []).length ? `content: ${(definition.content || []).join(", ")}` : "",
     (definition?.recipes || []).length ? `recipes: ${(definition.recipes || []).join(", ")}` : "",
     definition?.one_per_room ? "one per room" : "",
+    (definition?.default_actions || []).length
+      ? `default actions: ${(definition.default_actions || []).map(action => Array.isArray(action) ? action[0] : action?.label).join(", ")}`
+      : "",
   ].filter(Boolean).join(" · ");
   const picker = state.editorSettings?.picker;
   const picking = Boolean(picker && picker.roomId === selection.id && picker.sub === selection.sub);
@@ -133,7 +136,7 @@ function propPanel(state) {
       ${stockLabel ? `<p class="note">Stock: ${escapeHtml(stockLabel)}</p>` : ""}
       ${field("Description", textarea(instance.description ?? "", `data-instance-field="description"`, 2, "Leave blank to use the prop's stock description."))}
       ${stockDescription ? `<p class="note">Stock: ${escapeHtml(stockDescription)}</p>` : ""}
-      ${definitionBits ? `<p class="note">Prop definition: ${escapeHtml(definitionBits)}. Edit behavior, activity, content, cooldown, and recipes in the Prop Editor.</p>` : '<p class="note">Behavior, activity, content, cooldown, and recipes live on the prop definition. Edit them in the Prop Editor.</p>'}
+      ${definitionBits ? `<p class="note">Prop definition: ${escapeHtml(definitionBits)}. Edit behavior, activity, content, cooldown, recipes, and default actions in the Prop Editor.</p>` : '<p class="note">Behavior, activity, content, cooldown, recipes, and default actions live on the prop definition. Edit them in the Prop Editor.</p>'}
       <div class="field-row">
         ${field("X", numberInput(position[0], `data-instance-field="pos.0"`))}
         ${field("Y", numberInput(position[1], `data-instance-field="pos.1"`))}
