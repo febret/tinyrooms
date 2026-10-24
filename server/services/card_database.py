@@ -10,6 +10,7 @@ from server.content.cards import (
     CardCatalog,
     CardDefinition,
     card_asset_url,
+    card_background_url,
 )
 from server.content.recipes import RecipeDefinition
 
@@ -118,6 +119,7 @@ class CardDatabaseService:
             "label": definition.label,
             "description": definition.description,
             "image_url": _image_url(self._world_id, definition),
+            "background_url": card_background_url(definition.rarity, definition.tags),
             "scope": _scope(self._world_id, definition),
             "source": definition.source,
             "type": definition.type,

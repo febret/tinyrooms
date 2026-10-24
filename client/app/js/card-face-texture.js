@@ -64,8 +64,10 @@ export function cardFaceCanvas(definition, { scale = 2 } = {}) {
   }
   const fields = cardFaceFields(definition);
   const theme = cardTheme(fields);
-  const pending = artDataUrl(fields.imageUrl)
-    .then(imageHref => decodeSvg(cardFaceSvg(fields, { imageHref, idPrefix: "tex" })))
+  // SVG rasterized as an <img> cannot fetch external resources, so both the
+  // transparent subject and its container backdrop are inlined as data URLs.
+  const pending = Promise.all([artDataUrl(fields.imageUrl), artDataUrl(fields.backgroundUrl)])
+    .then(([imageHref, backgroundHref]) => decodeSvg(cardFaceSvg(fields, { imageHref, backgroundHref, idPrefix: "tex" })))
     .then(image => {
       const canvas = document.createElement("canvas");
       canvas.width = CARD_FACE_WIDTH * scale;

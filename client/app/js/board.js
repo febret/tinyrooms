@@ -41,8 +41,6 @@ import { createBoardRecovery } from "./board-recovery.js";
 import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
 import { DIORAMA_BOARD_TYPE, createDioramaBoard } from "./board-diorama.js";
-import { withBase } from "./base-path.js";
-const CARD_BACK = withBase("/assets/world/tutorial/cards/back.webp");
 const TOP = 0.045;
 const SCALE_DRAG_SENSITIVITY = 0.008;
 
@@ -159,7 +157,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   const textureLoader = new THREE.TextureLoader();
   const spriteLayer = createBoardSprites({ textureLoader, invalidate });
   const cardLayer = createBoardCards({
-    cardBackUrl: CARD_BACK,
     register,
     texture,
     setRecordTarget,
@@ -787,12 +784,12 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function clear() {
     if (!current) return;
     for (const record of current.props.values()) disposePropRecord(record);
-    for (const record of current.cards.values()) record.front?.dispose();
+    for (const record of current.cards.values()) record.spriteMaterial?.dispose();
     spriteLayer.clear(current);
     gameLayer.clear();
     canvas.dataset.fxCount = "0";
     scene.remove(current.root);
-    // Shared box geometry, card faces and textures are page-lifetime caches, so
+    // Shared shadow/face geometry and textures are page-lifetime caches, so
     // each entry releases only what it created before the graph is unlinked.
     current.floor?.dispose?.();
     detachBoardTree(current.root);

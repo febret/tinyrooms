@@ -1,5 +1,6 @@
+import { withBase } from "../base-path.js";
 import { cardFaceSvg } from "../card-face.js";
-import { cardRarityKey } from "../card-style.js";
+import { cardBackground, cardRarityKey } from "../card-style.js";
 import { escapeHtml } from "../presentation.js";
 
 export function rarityLabel(definition) {
@@ -25,7 +26,14 @@ export function longDescription(definition) {
   return lines.join(" ");
 }
 
-/** Card button; `face: "full"` composes the SVG card, `"illustration"` shows only the art. */
+/** Container backdrop behind transparent art in illustration mode and hand icons. */
+export function cardBackdropStyle(definition) {
+  const fallback = cardBackground(definition || {});
+  const raw = definition?.backgroundUrl || fallback.url;
+  return `background-image:url("${escapeHtml(withBase(String(raw || "")))}")`;
+}
+
+/** Card button; `face: "full"` composes the SVG card, `"illustration"` shows the art on its backdrop. */
 export function tileMarkup(definition, stack, selected, scope, { face = "full" } = {}) {
   const label = `${definition.label}${stack.quantity > 1 ? `, ${stack.quantity} copies` : ""}${stack.pinned ? ", pinned" : ""}${stack.equipped ? ", equipped" : ""}`;
   const rarity = cardRarityKey(definition.rarity);
@@ -34,7 +42,7 @@ export function tileMarkup(definition, stack, selected, scope, { face = "full" }
     <button type="button" class="game-card rarity-${rarity} ${selected ? "selected" : ""} ${stack.equipped ? "is-equipped" : ""}"
       data-stack-id="${escapeHtml(stack.stackId)}" data-scope="${scope}" data-rarity="${rarity}"${tags ? ` data-tags="${escapeHtml(tags)}"` : ""}
       aria-label="${escapeHtml(label)}" aria-pressed="${selected}" title="${escapeHtml(`${definition.label} · ${rarityLabel(definition)}`)}">
-      ${face === "full" ? cardFaceSvg(definition) : `<img class="card-illustration" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy">`}
+      ${face === "full" ? cardFaceSvg(definition) : `<span class="card-illustration-wrap" style="${cardBackdropStyle(definition)}"><img class="card-illustration" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy"></span>`}
       ${stack.quantity > 1 ? `<span class="card-badge quantity-badge" aria-hidden="true">×${escapeHtml(stack.quantity)}</span>` : ""}
       ${stack.pinned ? '<span class="card-badge pin-badge" aria-hidden="true">◆</span>' : ""}
       ${stack.equipped ? '<span class="card-badge equipped-badge" aria-hidden="true">✓</span>' : ""}
@@ -47,7 +55,7 @@ export function handIconMarkup(definition, stack) {
   return `
     <button type="button" class="hand-icon" data-stack-id="${escapeHtml(stack.stackId)}" data-scope="inventory"
       aria-label="${escapeHtml(label)}" aria-pressed="false" title="${escapeHtml(definition.label)}">
-      <img class="card-icon-art" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy" draggable="false">
+      <img class="card-icon-art" src="${escapeHtml(definition.imageUrl)}" alt="" loading="lazy" draggable="false" style="${cardBackdropStyle(definition)}">
       ${stack.quantity > 1 ? `<span class="card-badge quantity-badge hand-quantity-badge" aria-hidden="true">×${escapeHtml(stack.quantity)}</span>` : ""}
     </button>
   `;

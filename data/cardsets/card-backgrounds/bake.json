@@ -1,0 +1,81 @@
+{
+  "tasks": [
+    {
+      "label": "bg-rarity-common",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, soft radial light grey parchment glow with a faint paper grain vignette, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-rarity-common.png",
+      "args": { "width": 768, "height": 768, "seed": 71001, "steps": 25 }
+    },
+    {
+      "label": "bg-rarity-uncommon",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, soft radial mint green glow with a faint paper grain vignette, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-rarity-uncommon.png",
+      "args": { "width": 768, "height": 768, "seed": 71002, "steps": 25 }
+    },
+    {
+      "label": "bg-rarity-rare",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, soft radial sky blue glow with a faint paper grain vignette, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-rarity-rare.png",
+      "args": { "width": 768, "height": 768, "seed": 71003, "steps": 25 }
+    },
+    {
+      "label": "bg-rarity-epic",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, soft radial violet glow with a faint paper grain vignette and tiny sparkles, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-rarity-epic.png",
+      "args": { "width": 768, "height": 768, "seed": 71004, "steps": 25 }
+    },
+    {
+      "label": "bg-rarity-legendary",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, soft radial golden glow with a faint paper grain vignette and tiny sparkles, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-rarity-legendary.png",
+      "args": { "width": 768, "height": 768, "seed": 71005, "steps": 25 }
+    },
+    {
+      "label": "bg-tag-food",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, warm harvest field glow in soft olive green with faint wheat and leaf silhouettes at the edges, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-tag-food.png",
+      "args": { "width": 768, "height": 768, "seed": 71101, "steps": 25 }
+    },
+    {
+      "label": "bg-tag-paint",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, playful burnt orange glow with faint paint splat silhouettes at the edges, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-tag-paint.png",
+      "args": { "width": 768, "height": 768, "seed": 71102, "steps": 25 }
+    },
+    {
+      "label": "bg-tag-subject",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, cozy schoolbook rose glow with faint open-book and pencil silhouettes at the edges, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-tag-subject.png",
+      "args": { "width": 768, "height": 768, "seed": 71103, "steps": 25 }
+    },
+    {
+      "label": "bg-tag-medicine",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, calm teal apothecary glow with faint mortar and leaf silhouettes at the edges, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-tag-medicine.png",
+      "args": { "width": 768, "height": 768, "seed": 71104, "steps": 25 }
+    },
+    {
+      "label": "bg-tag-utility",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, cool slate blue workshop glow with faint gear and sparkle silhouettes at the edges, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-tag-utility.png",
+      "args": { "width": 768, "height": 768, "seed": 71105, "steps": 25 }
+    },
+    {
+      "label": "bg-tag-topic",
+      "tool": "image",
+      "prompt": "a subtle collectible card background texture, warm storybook amber glow with faint star and scroll silhouettes at the edges, flat vector illustration, clean minimal shapes, no subject, no object, no character, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "C:/workspace/tinyrooms-noon/data/cardsets/card-backgrounds/bg-tag-topic.png",
+      "args": { "width": 768, "height": 768, "seed": 71106, "steps": 25 }
+    }
+  ]
+}

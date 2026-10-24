@@ -186,6 +186,45 @@ const TAG_RULES = [
   { test: tag => tag === "topic", palette: () => TOPIC_ACCENT },
 ];
 
+/**
+ * Container backgrounds for transparent card art. Filenames match
+ * `data/card-backgrounds/` (served at `/assets/card-backgrounds/`); the
+ * server resolves the same grouping in `server/content/cards.py`.
+ */
+export const CARD_BACKGROUND_SET = "card-backgrounds";
+export const CARD_BACKGROUND_RARITIES = ["common", "uncommon", "rare", "epic", "legendary"];
+export const CARD_BACKGROUND_TAGS = ["food", "paint", "subject", "medicine", "utility", "topic"];
+
+const BACKGROUND_TAG_RULES = [
+  { test: tag => tag.startsWith("paintball-color-"), group: "paint" },
+  { test: tag => tag.startsWith("subject:") || tag.startsWith("skill:"), group: "subject" },
+  { test: tag => MEDICINE_TAGS.has(tag), group: "medicine" },
+  { test: tag => FOOD_TAGS.has(tag) || tag === "supermarket", group: "food" },
+  { test: tag => UTILITY_TAGS.has(tag) || CLEANING_TAGS.has(tag), group: "utility" },
+  { test: tag => PAINT_TAGS.has(tag), group: "paint" },
+  { test: tag => tag === "topic", group: "topic" },
+];
+
+/** Return the container background group for a card; tag families win, rarity is the fallback. */
+export function cardBackgroundGroup(definition) {
+  const raw = definition || {};
+  const tags = normalizeTags(raw.tags);
+  for (const rule of BACKGROUND_TAG_RULES) {
+    if (tags.some(tag => rule.test(tag))) return rule.group;
+  }
+  const key = cardRarityKey(raw.rarity);
+  return CARD_BACKGROUND_RARITIES.includes(key) ? key : "common";
+}
+
+/** Resolve the container background URL behind a card's transparent art. */
+export function cardBackground(definition) {
+  const explicit = definition && typeof definition.backgroundUrl === "string" ? definition.backgroundUrl.trim() : "";
+  if (explicit) return { group: cardBackgroundGroup(definition), url: explicit };
+  const group = cardBackgroundGroup(definition);
+  const file = CARD_BACKGROUND_TAGS.includes(group) ? `bg-tag-${group}.png` : `bg-rarity-${group}.png`;
+  return { group, url: `/assets/${CARD_BACKGROUND_SET}/${file}` };
+}
+
 export function cardRarityKey(rarity) {
   const key = String(rarity || "").trim().toLowerCase();
   return RARITY_STYLES[key] ? key : "common";

@@ -1,4 +1,4 @@
-import { cardTheme } from "./card-style.js";
+import { cardBackground, cardTheme } from "./card-style.js";
 import { escapeHtml } from "./presentation.js";
 import { withBase } from "./base-path.js";
 
@@ -6,7 +6,7 @@ import { withBase } from "./base-path.js";
 export const CARD_FACE_WIDTH = 310;
 export const CARD_FACE_HEIGHT = 440;
 // Bump when the layout changes so rasterized texture caches miss.
-export const CARD_FACE_STYLE_VERSION = 3;
+export const CARD_FACE_STYLE_VERSION = 4;
 
 const FONT = "Georgia, 'Times New Roman', serif";
 const BONUS_LABELS = {
@@ -28,6 +28,7 @@ export function cardFaceFields(definition) {
     label: String(raw.label || raw.id || "Card"),
     description: String(raw.description || ""),
     imageUrl: withBase(String(pick("imageUrl", "image_url") || "")),
+    backgroundUrl: withBase(String(pick("backgroundUrl", "background_url") || "")),
     type: String(raw.type || ""),
     rarity: String(raw.rarity || ""),
     category: String(raw.category || ""),
@@ -116,13 +117,19 @@ function diamond(cx, cy, radius, fill) {
 /**
  * Return a standalone SVG document string for one card's full face.
  * Options: `imageHref` overrides the art URL (data URLs for rasterizing),
- * `idPrefix` makes gradient ids deterministic, and `label` exposes the SVG as an
- * accessible image; otherwise it is decorative because its control is labelled.
+ *  `idPrefix` makes gradient ids deterministic, and `label` exposes the SVG as an
+ *  accessible image; otherwise it is decorative because its control is labelled.
+ *  `backgroundHref` overrides the container backdrop behind the transparent art.
  */
-export function cardFaceSvg(definition, { imageHref, idPrefix, label, className = "card-face" } = {}) {
+export function cardFaceSvg(definition, { imageHref, backgroundHref, idPrefix, label, className = "card-face" } = {}) {
   const fields = cardFaceFields(definition);
   const theme = cardTheme(fields);
   const id = idPrefix || `cf${(instanceCounter += 1).toString(36)}`;
+  // Transparent subject art layers over a themed container background that
+  // fills the art box. Texture rasterizers inline both as data URLs via
+  // `imageHref` / `backgroundHref`; the DOM path uses the plain URLs.
+  const background = cardBackground(fields);
+  const backdrop = backgroundHref || fields.backgroundUrl || withBase(background.url);
   const art = imageHref ?? fields.imageUrl;
   const title = fitTitle(fields.label);
   const titleTop = title.lines.length === 1 ? 289 + title.size * 0.35 : 281;
@@ -143,7 +150,8 @@ export function cardFaceSvg(definition, { imageHref, idPrefix, label, className 
 <rect x="13" y="13" width="${CARD_FACE_WIDTH - 26}" height="${CARD_FACE_HEIGHT - 26}" rx="12" fill="none" stroke="${theme.accent}" stroke-opacity=".2" stroke-width="2"/>
 <rect x="15" y="15" width="${CARD_FACE_WIDTH - 30}" height="${CARD_FACE_HEIGHT - 30}" rx="10" fill="none" stroke="#b88a3e" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" rx="9" fill="#16222c"/>
-${art ? `<image href="${escapeHtml(art)}" xlink:href="${escapeHtml(art)}" x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id}-art)"/>` : ""}
+${backdrop ? `<image href="${escapeHtml(backdrop)}" xlink:href="${escapeHtml(backdrop)}" x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id}-art)"/>` : ""}
+${art ? `<image href="${escapeHtml(art)}" xlink:href="${escapeHtml(art)}" x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" preserveAspectRatio="xMidYMid meet" clip-path="url(#${id}-art)"/>` : ""}
 <rect x="${ART.x}" y="${ART.y}" width="${ART.width}" height="${ART.height}" rx="9" fill="none" stroke="url(#${id}-frame)" stroke-width="4"/>
 <rect x="${ART.x + 3}" y="${ART.y + 3}" width="${ART.width - 6}" height="${ART.height - 6}" rx="7" fill="none" stroke="#2c1a06" stroke-opacity=".55" stroke-width="1"/>
 ${diamond(155, 9, 6, "url(#" + id + "-frame)")}${diamond(155, CARD_FACE_HEIGHT - 9, 6, "url(#" + id + "-frame)")}${diamond(9, 289, 6, "url(#" + id + "-frame)")}${diamond(CARD_FACE_WIDTH - 9, 289, 6, "url(#" + id + "-frame)")}

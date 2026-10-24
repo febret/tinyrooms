@@ -30,6 +30,67 @@ CARD_ART_PLACEHOLDER_PATH = (
 )
 CARD_ART_PLACEHOLDER_URL = "/app/assets/card-placeholder.svg"
 
+# Container backgrounds live in data/card-backgrounds/ and are served through
+# the generic cardset asset route as /assets/card-backgrounds/<file>. Card art
+# PNGs are transparent subjects; the UI layers them over these backgrounds
+# (see client/app/js/card-style.js, which mirrors the grouping below).
+CARD_BACKGROUND_SET = "card-backgrounds"
+CARD_BACKGROUND_RARITIES = ("common", "uncommon", "rare", "epic", "legendary")
+CARD_BACKGROUND_TAGS = ("food", "paint", "subject", "medicine", "utility", "topic")
+
+_FOOD_TAGS = frozenset({"food", "produce", "ingredient", "crafted-ingredient", "dish"})
+_MEDICINE_TAGS = frozenset({"medicine", "health", "medical"})
+_UTILITY_TAGS = frozenset({"utility", "tool", "tools", "scoop", "vacuum", "cleaning"})
+_PAINT_TAGS = frozenset({"paintgun", "paintball-ammo"})
+
+
+def card_background_group(
+    rarity: str | None,
+    tags: Sequence[str] | frozenset[str] | None,
+) -> str:
+    """Return the container background file for a card.
+
+    Tag families win over rarity so themed decks share a backdrop; rarity
+    owns the frame/glow and is the fallback for untagged cards. Mirrors the
+    client-side ``cardBackground`` grouping in card-style.js.
+    """
+
+    normalized = sorted({str(tag).strip().lower() for tag in (tags or ()) if str(tag).strip()})
+    for tag in normalized:
+        if tag.startswith("paintball-color-"):
+            return "bg-tag-paint.png"
+    for tag in normalized:
+        if tag.startswith("subject:") or tag.startswith("skill:"):
+            return "bg-tag-subject.png"
+    for tag in normalized:
+        if tag in _MEDICINE_TAGS:
+            return "bg-tag-medicine.png"
+    for tag in normalized:
+        if tag in _FOOD_TAGS or tag == "supermarket":
+            return "bg-tag-food.png"
+    for tag in normalized:
+        if tag in _UTILITY_TAGS:
+            return "bg-tag-utility.png"
+    for tag in normalized:
+        if tag in _PAINT_TAGS:
+            return "bg-tag-paint.png"
+    for tag in normalized:
+        if tag == "topic":
+            return "bg-tag-topic.png"
+    key = str(rarity or "").strip().lower()
+    if key not in CARD_BACKGROUND_RARITIES:
+        key = "common"
+    return f"bg-rarity-{key}.png"
+
+
+def card_background_url(
+    rarity: str | None,
+    tags: Sequence[str] | frozenset[str] | None,
+) -> str:
+    """Return the served URL of a card's container background."""
+
+    return f"/assets/{CARD_BACKGROUND_SET}/{card_background_group(rarity, tags)}"
+
 
 def card_asset_url(
     world_id: str,

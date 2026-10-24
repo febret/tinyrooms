@@ -1,43 +1,89 @@
 import * as THREE from "three";
 
 import { cardModelKey, detachBoardTree, positionKey } from "./board-helpers.js";
-import { material, sharedCardGeometry, sharedCardMaterial } from "./board-resources.js";
+
+const SPRITE_HEIGHT = 0.95;
+const SPRITE_LIFT = 0.03;
+const FALLBACK_ASPECT = 0.78;
+
+let shadowGeometry = null;
+let shadowMaterial = null;
+let shadowTexture = null;
+
+function groundShadowTexture() {
+  if (shadowTexture) return shadowTexture;
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 128;
+  const context = canvas.getContext("2d");
+  const gradient = context.createRadialGradient(64, 64, 6, 64, 64, 62);
+  gradient.addColorStop(0, "rgba(0,0,0,0.42)");
+  gradient.addColorStop(0.55, "rgba(0,0,0,0.22)");
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 128, 128);
+  shadowTexture = new THREE.CanvasTexture(canvas);
+  return shadowTexture;
+}
+
+/** One shared ground ellipse so dropped cards sit on the floor like peep stickers. */
+function groundShadow() {
+  if (!shadowGeometry) shadowGeometry = new THREE.PlaneGeometry(0.85, 0.55);
+  if (!shadowMaterial) {
+    shadowMaterial = new THREE.MeshBasicMaterial({
+      map: groundShadowTexture(),
+      transparent: true,
+      depthWrite: false,
+    });
+  }
+  const mesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.004;
+  return mesh;
+}
+
+function applyAspect(sprite, map) {
+  const image = map?.image;
+  const width = Number(image?.width) || 0;
+  const height = Number(image?.height) || 0;
+  const aspect = width > 0 && height > 0 ? width / height : FALLBACK_ASPECT;
+  sprite.scale.set(SPRITE_HEIGHT * aspect, SPRITE_HEIGHT, 1);
+}
 
 /** Room-card scene lifecycle, split out of board.js to keep the renderer small. */
-export function createBoardCards({ cardBackUrl, register, texture, setRecordTarget, invalidateScene, onRemoveGroup }) {
+export function createBoardCards({ register, texture, setRecordTarget, invalidateScene, onRemoveGroup }) {
   function add(entry, card) {
     invalidateScene();
     const group = new THREE.Group();
     register(entry, group, "room-card", card.stackId, card.position);
-    // The edge and back materials are identical for every card, so they are
-    // shared; only the front carries a card-specific texture and owns its
-    // material, so the record keeps a handle to release it.
-    const edge = sharedCardMaterial("#d5b887");
-    const back = sharedCardMaterial("#193e55");
-    const front = material("#fff7e3");
+    // Dropped cards render like peep stickers: a camera-facing sprite of the
+    // transparent subject art over a soft ground shadow. The card container
+    // (background + frame) stays in the inventory/inspection faces.
+    const spriteMaterial = new THREE.SpriteMaterial({
+      transparent: true,
+      alphaTest: 0.05,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.center.set(0.5, 0);
+    sprite.position.y = SPRITE_LIFT;
+    sprite.userData = { kind: "room-card", id: card.stackId };
+    applyAspect(sprite, null);
+    group.add(sprite);
+    group.add(groundShadow());
     entry.cards.set(card.stackId, {
-      id: card.stackId, group, card, front, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
+      id: card.stackId, group, card, sprite, spriteMaterial, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
       target: group.position.clone(),
     });
-    // BoxGeometry's +Y/-Y groups are the upper/lower faces, not +Z/-Z.
-    // Room cards are square illustration tiles; the full composed face is
-    // reserved for inspection, previews, and the inventory (card-face.js).
-    const mesh = new THREE.Mesh(sharedCardGeometry(), [edge, front, back]);
-    mesh.position.set(0, 0.028, 0);
-    mesh.castShadow = mesh.receiveShadow = true;
-    mesh.rotation.y = -0.08;
-    group.add(mesh);
     texture(entry, card.definition?.imageUrl, `${card.definition?.label || "Card"} illustration`, map => {
-      if (entry.cards.get(card.stackId)?.front !== front) return;
-      front.map = map;
-      front.color.set("#ffffff");
-      front.needsUpdate = true;
-    });
-    texture(entry, cardBackUrl, "card back artwork", map => {
-      if (entry.cards.get(card.stackId)?.front !== front) return;
-      back.map = map;
-      back.color.set("#ffffff");
-      back.needsUpdate = true;
+      const record = entry.cards.get(card.stackId);
+      if (!record || record.spriteMaterial !== spriteMaterial) return;
+      map.colorSpace = THREE.SRGBColorSpace;
+      spriteMaterial.map = map;
+      spriteMaterial.needsUpdate = true;
+      applyAspect(sprite, map);
+      invalidateScene();
     });
   }
 
@@ -52,9 +98,9 @@ export function createBoardCards({ cardBackUrl, register, texture, setRecordTarg
     invalidateScene();
     entry.root.remove(record.group);
     detachBoardTree(record.group);
-    // The card's own front material is the one thing in the group the shared
-    // caches did not hand out, so it is the one thing to release.
-    record.front?.dispose();
+    // The sprite material is this card's own; the shadow mesh and the loaded
+    // texture draw on shared caches and stay alive for other copies.
+    record.spriteMaterial?.dispose();
     const index = entry.pickables.indexOf(record.group);
     if (index >= 0) entry.pickables.splice(index, 1);
     entry.cards.delete(id);

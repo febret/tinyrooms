@@ -13,6 +13,7 @@ from server.content.cards import (
     CardCatalog,
     CardDefinition,
     card_asset_url,
+    card_background_url,
 )
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.content.sounds import sounds_payload
@@ -210,6 +211,7 @@ class CardService:
                 definition.image_name,
                 missing=definition.image_missing,
             ),
+            "background_url": card_background_url(definition.rarity, definition.tags),
             "rarity": definition.rarity,
             "quality": definition.quality,
             "target": definition.target,
