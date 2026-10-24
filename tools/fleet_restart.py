@@ -109,6 +109,10 @@ class McClient:
 
         data = None if body is None else json.dumps(body).encode("utf-8")
         request = urllib.request.Request(self._base_url + path, data=data, method=method)
+        # urllib defaults POST bodies to application/x-www-form-urlencoded, which
+        # FastAPI will not parse as JSON; declare the JSON body explicitly.
+        if data is not None:
+            request.add_header("Content-Type", "application/json")
         request.add_header("Origin", self._origin)
         if self._csrf is not None:
             request.add_header("X-CSRF-Token", self._csrf)

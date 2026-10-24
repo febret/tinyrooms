@@ -103,7 +103,7 @@ instance. See [fleet destination discovery](doc/mission-control.md#7-mission-con
 [tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
 
 ```bash
-python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version] [--force-restart]
+python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--force-restart]
 ```
 
 `host` accepts `user@host`; `-u` overrides the user. The default root is
@@ -116,10 +116,13 @@ and the operator passphrase sourced from `admin.env` establishes a session.
 Existing TLS files, secrets, and supported operator settings are preserved.
 Deployment serves worlds under the same origin at `/world/<instance-id>/`,
 binds world listeners to loopback, and regenerates the nginx world map. Only
-TCP 80 and 443 need public ingress. `--dirty` skips the clean-tree check/tagging
-and marks the version dirty.
-`--keep-version` (also `--keepversion`) overwrites the newest recorded release locally/remotely instead
-of bumping the patch version.
+TCP 80 and 443 need public ingress. `--dirty` skips the clean-tree check and
+packages uncommitted changes as-is.
+The deploy script never modifies `version.json`: it ships the newest recorded
+version, overwriting that release locally and on the server. Cut a new release
+by editing `version.json` before deploying.
+Releases carry runtime code, content, and tools only: design docs (`doc/`),
+test suites, and dev-only config are excluded to keep uploads small.
 `--force-restart` (also `--forcerestart`) additionally rolls every running
 *spawned* instance onto the deployed version before Mission Control itself
 restarts: each such child is pointed at the new checkout and restarted, and

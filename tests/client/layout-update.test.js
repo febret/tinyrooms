@@ -45,6 +45,29 @@ test("a layout update keeps authored prop actions and sounds while moving it", (
   assert.equal(merged[0].behavior, "portal");
 });
 
+test("a layout update keeps a lamp's switched light state", () => {
+  const light = { kind: "fixture", on: false, color: "#ffd9a1" };
+  const previous = [{
+    id: "lamp",
+    propId: "mushroom-table-lamp",
+    label: "Mushroom Lamp",
+    position: [50, 50, 0],
+    light,
+  }];
+  const merged = mergeLayoutProps(previous, [{
+    id: "lamp",
+    prop_id: "mushroom-table-lamp",
+    label: "Mushroom Lamp",
+    position: [60, 40, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    quick_actions: [],
+  }]);
+
+  assert.equal(merged.length, 1);
+  assert.deepEqual(merged[0].light, light);
+});
+
 test("a layout update adds new props and removes missing props", () => {
   const previous = [{ id: "old", propId: "chair", position: [20, 20, 0] }];
   const merged = mergeLayoutProps(previous, [{

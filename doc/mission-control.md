@@ -203,9 +203,14 @@ admin console; log refresh can be paused.
   immediate trigger/per-minute cron restarts MC; startup respawns those recorded
   children. External instances are not resumed. This differs from an ordinary
   MC restart, which restores identities but does not itself schedule children.
-
-Lifecycle actions do not regenerate nginx; there is no **Update nginx config**
-action or runtime nginx-management API. See [supervisor](../server/mission_control/supervisor.py).
+- **Refresh nginx**: regenerates the nginx world map from the currently
+  registered instances (same filter as the automatic updates) and reloads nginx
+  through `TRSERVER_MC_WORLD_MAP_RELOAD`, even when nothing changed, repairing
+  on-disk drift. Reports how many instances are routed and whether the file
+  changed; failures are reported without breaking management. The button is
+  disabled when world-map management is unconfigured. Full site configuration
+  stays deploy-owned; this action never rewrites it.
+  See [supervisor](../server/mission_control/supervisor.py).
 
 ### 5.4 Package Manager
 
@@ -216,8 +221,17 @@ Each checkout's own `version.json` supplies its build label. Content is managed
 on disk/deployed, not uploaded through the UI.
 
 **Delete version** removes its checkout and matching `releases/tinyrooms-<id>.tar.gz`.
-The running version, path escapes, and versions with **any registered instance**
-(including stopped/unreachable) are protected. Deletion is confirmed and audited.
+The running version, the active `latest` target, path escapes, and versions with
+**any registered instance** (including stopped/unreachable) are protected.
+Deletion is confirmed and audited.
+
+**Cleanup old versions** previews every deletable checkout plus orphaned
+`releases/tinyrooms-*.tar.gz` artifacts with no matching installed version
+(showing kind, path, size, and reason), lets the operator uncheck anything to
+keep, and deletes the confirmed selection after a final confirmation. Each
+candidate is rechecked server-side at deletion time, so a version that gained
+an instance after the preview is reported as failed rather than deleted. The
+result reports deleted/failed ids and freed bytes; deletions are audited.
 
 ### 5.5 User Manager
 

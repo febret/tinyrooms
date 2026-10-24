@@ -1,14 +1,16 @@
 """Deploy Tinyrooms distributions to remote hosts over SSH.
 
 Usage:
-    python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--keep-version] [--force-restart]
+    python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--force] [--force-restart]
 
 ``host`` may be a bare hostname or ``user@host``; ``-u/--user`` overrides the
 SSH user. Each deployment prepares missing host infrastructure, packages and
 uploads the release, installs dependencies, then activates it and checks Mission
-Control readiness. The default root is ``~/tinyrooms``. ``--keep-version`` reuses the
-newest recorded version instead of bumping, overwriting that release both
-locally and on the server.
+Control readiness. The default root is ``~/tinyrooms``. The deploy script never
+modifies ``version.json``: it ships the newest recorded version. If a local or
+remote artifact already exists with that version, deployment stops unless
+``--force`` is given to overwrite it. Cut a new release by editing
+``version.json`` before deploying.
 
 ``--force-restart`` additionally rolls every *running spawned* instance onto
 the deployed version before Mission Control itself restarts: each such child
@@ -38,8 +40,7 @@ import shlex
 import subprocess
 import sys
 import tarfile
-from collections.abc import Callable
-from datetime import UTC, datetime
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 
@@ -80,6 +81,21 @@ EXCLUDED_DIRS = frozenset(
         "attic",
         "users",
         "__pycache__",
+        # Design documentation and test suites ship in git only; releases carry
+        # runtime code, content, and tools.
+        "doc",
+        "tests",
+    }
+)
+EXCLUDED_FILES = frozenset(
+    {
+        ".gitignore",
+        "AGENTS.md",
+        "TASKS.md",
+        "playwright.config.js",
+        "playwright.perf.config.js",
+        "requirements-dev.txt",
+        "run_tests.sh",
     }
 )
 EXCLUDED_SUFFIXES = (".pyc", ".sqlite", ".sqlite3", ".db")
@@ -276,30 +292,9 @@ def current_version() -> str:
 
     entries = read_version_entries()
     if not entries:
-        raise DeployError("version.json has no version entries to keep.")
+        raise DeployError("version.json has no version entries.")
     current = latest_version(entries)
     return f"{int(current['major'])}.{int(current['minor'])}.{int(current['patch'])}"
-
-
-def bump_version(dirty: bool) -> tuple[str, bool]:
-    """Increment the patch version, write version.json, and return the label."""
-
-    entries = read_version_entries()
-    if not entries:
-        entries = [{"major": 0, "minor": 0, "patch": 0}]
-    current = latest_version(entries)
-    entry: dict[str, object] = {
-        "major": int(current["major"]),
-        "minor": int(current["minor"]),
-        "patch": int(current["patch"]) + 1,
-    }
-    if dirty:
-        entry["dirty"] = True
-    label = f"{entry['major']}.{entry['minor']}.{entry['patch']}"
-    entry["created"] = datetime.now(tz=UTC).isoformat()
-    entries.append(entry)
-    VERSION_FILE.write_text(json.dumps(entries, indent=4) + "\n", encoding="utf-8")
-    return label, dirty
 
 
 def git_dirty() -> bool:
@@ -309,16 +304,21 @@ def git_dirty() -> bool:
     return bool(result.stdout.strip())
 
 
-def tag_version(version: str, console: Console | None = None) -> None:
-    """Create a local git tag for the released version."""
+def release_members(root: Path) -> Iterator[tuple[Path, str]]:
+    """Yield ``(path, arcname)`` pairs included in a release tarball.
 
-    console = console or CONSOLE
-    tag = f"v{version}"
-    exists = run_local(["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"], check=False)
-    if exists.returncode == 0:
-        raise DeployError(f"Git tag {tag} already exists.")
-    run_local(["git", "tag", tag])
-    console.info(f"Tagged {tag}")
+    ``tools/fleet_restart.py`` and the other runtime helpers stay in the
+    release; design docs, tests, and dev-only files are omitted.
+    """
+
+    for current, dirs, files in os.walk(root):
+        dirs[:] = sorted(name for name in dirs if name not in EXCLUDED_DIRS)
+        base = Path(current)
+        for name in sorted(files):
+            if name in EXCLUDED_FILES or name.endswith(EXCLUDED_SUFFIXES):
+                continue
+            path = base / name
+            yield path, str(path.relative_to(root))
 
 
 def package(version: str, dirty: bool, console: Console | None = None) -> Path:
@@ -327,17 +327,14 @@ def package(version: str, dirty: bool, console: Console | None = None) -> Path:
     console = console or CONSOLE
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
     tarball = RELEASES_DIR / f"tinyrooms-{version}.tar.gz"
+    count = 0
     with tarfile.open(tarball, "w:gz") as archive:
-        for current, dirs, files in os.walk(REPO_ROOT):
-            dirs[:] = sorted(name for name in dirs if name not in EXCLUDED_DIRS)
-            base = Path(current)
-            for name in sorted(files):
-                if name.endswith(EXCLUDED_SUFFIXES):
-                    continue
-                path = base / name
-                archive.add(path, arcname=str(path.relative_to(REPO_ROOT)))
+        for path, arcname in release_members(REPO_ROOT):
+            archive.add(path, arcname=arcname)
+            count += 1
+    size_mb = tarball.stat().st_size / 1e6
     suffix = " (dirty)" if dirty else ""
-    console.info(f"Packaged {tarball.relative_to(REPO_ROOT)}{suffix}")
+    console.info(f"Packaged {tarball.relative_to(REPO_ROOT)} ({count} files, {size_mb:.0f} MB){suffix}")
     return tarball
 
 
@@ -349,6 +346,34 @@ def local_sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def local_artifact_clashes(version: str, releases_dir: Path | None = None) -> list[str]:
+    """Return descriptions of local artifacts that collide with *version*."""
+
+    releases_dir = RELEASES_DIR if releases_dir is None else releases_dir
+    tarball = releases_dir / f"tinyrooms-{version}.tar.gz"
+    if tarball.is_file():
+        return [f"local release {tarball}"]
+    return []
+
+
+def remote_artifact_clashes(host: str, root: str, version: str) -> list[str]:
+    """Return descriptions of remote artifacts that collide with *version*."""
+
+    clashes: list[str] = []
+    tarball_name = f"tinyrooms-{version}.tar.gz"
+    if run_remote(host, f"test -e {remote_path(root, 'releases', tarball_name)}", check=False).returncode == 0:
+        clashes.append(f"remote release {root}/releases/{tarball_name}")
+    if run_remote(host, f"test -e {remote_path(root, 'versions', version)}", check=False).returncode == 0:
+        clashes.append(f"remote checkout {root}/versions/{version}")
+    return clashes
+
+
+def existing_artifacts(host: str, root: str, version: str) -> list[str]:
+    """Return descriptions of local and remote artifacts already using *version*."""
+
+    return local_artifact_clashes(version) + remote_artifact_clashes(host, root, version)
 
 
 def stream_to_remote(host: str, command: str, tarball: Path, console: Console | None = None) -> bool:
@@ -548,8 +573,8 @@ def force_restart_fleet(host: str, root: str, version: str, console: Console | N
 
 
 def deploy(
-    host: str, server_name: str, root: str, dirty: bool, *, keep_version: bool = False,
-    force_restart: bool = False, console: Console | None = None,
+    host: str, server_name: str, root: str, dirty: bool, *,
+    force: bool = False, force_restart: bool = False, console: Console | None = None,
 ) -> str:
     """Package and deploy a version, returning its label."""
 
@@ -580,25 +605,26 @@ def deploy(
     with console.spinner("Configuring nginx"):
         ensure_nginx(host, server_name, root, registry, console=console)
 
-    phase("Recording release version")
-    if keep_version:
-        with console.spinner("Reusing newest recorded version"):
-            version = current_version()
-        console.info(f"Reusing version {version}")
-    else:
-        version, dirty = bump_version(dirty)
-        if not dirty:
-            with console.spinner(f"Tagging release v{version}"):
-                tag_version(version, console=console)
-        else:
-            console.info(f"Recorded dirty version {version}")
+    phase("Selecting release version")
+    with console.spinner("Reading newest recorded version"):
+        version = current_version()
+    with console.spinner("Checking for existing artifacts"):
+        clashes = existing_artifacts(host, root, version)
+    if clashes and not force:
+        raise DeployError(
+            f"Version {version} already exists ({'; '.join(clashes)}). "
+            "Pass --force to overwrite it."
+        )
+    if force and clashes:
+        console.warning(f"Overwriting existing artifacts for version {version}.")
+    console.info(f"Deploying version {version}")
 
     phase("Packaging release")
     with console.spinner(f"Packing tinyrooms-{version}.tar.gz"):
         tarball = package(version, dirty, console=console)
 
     phase("Uploading release")
-    upload_release(host, root, version, tarball, overwrite=keep_version, console=console)
+    upload_release(host, root, version, tarball, overwrite=True, console=console)
 
     phase("Installing dependencies")
     with console.spinner(f"Installing requirements for {version}", f"Requirements installed for {version}"):
@@ -968,12 +994,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("host", help="Remote hostname or user@hostname (passwordless SSH access required).")
     parser.add_argument("rootdir", nargs="?", default=DEFAULT_ROOT, help=f"Deployment root (default: {DEFAULT_ROOT}).")
     parser.add_argument("-u", "--user", help="SSH user; overrides any user embedded in the host argument.")
-    parser.add_argument("--dirty", action="store_true", help="Package uncommitted changes and skip git tagging.")
+    parser.add_argument("--dirty", action="store_true", help="Package with uncommitted changes (skip the clean-tree check).")
     parser.add_argument(
-        "--keep-version",
-        "--keepversion",
+        "--force",
         action="store_true",
-        help="Reuse the newest recorded version and overwrite that release instead of bumping it.",
+        help="Overwrite a local or remote artifact that already uses the deployed version.",
     )
     parser.add_argument(
         "--force-restart",
@@ -1005,7 +1030,7 @@ def main(argv: list[str] | None = None) -> int:
         ssh_target, server_name = resolve_target(args.host, args.user)
         root = resolve_root(ssh_target, args.rootdir)
         console.info(f"Deploying to {ssh_target} ({root})")
-        deploy(ssh_target, server_name, root, args.dirty, keep_version=args.keep_version,
+        deploy(ssh_target, server_name, root, args.dirty, force=args.force,
                force_restart=args.force_restart, console=console)
     except DeployError as exc:
         console.error(f"deploy: {exc}")
