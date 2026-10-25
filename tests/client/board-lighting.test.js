@@ -10,8 +10,8 @@ import {
   selectPropLights,
 } from "../../client/app/js/board-lighting.js";
 
-test("presets cover darkness, night, dusk, day, and dawn with render tuning", () => {
-  for (const name of ["darkness", "night", "dusk", "day", "dawn"]) {
+test("presets cover darkness, night, dusk, day, dawn, and fluorescent with render tuning", () => {
+  for (const name of ["darkness", "night", "dusk", "day", "dawn", "fluorescent"]) {
     const preset = LIGHTING_PRESETS[name];
     assert.ok(Number.isFinite(preset.hemisphere));
     assert.ok(Number.isFinite(preset.sunlight));

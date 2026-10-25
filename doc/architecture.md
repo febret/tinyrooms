@@ -243,6 +243,17 @@ headers. Users star tracks into their shared profile
 the chiptune.app top chart with tracks starred by other Tinyrooms users.
 Autoplay requires one user gesture.
 
+Phone text messages ([phone_messages.py](../server/services/phone_messages.py))
+live in the shared profile database as one row per phone copy, keyed by
+`player:<account>`, `npc:<world>:<npc>`, or `system:<source>` thread. The
+`.phone_msg` command lists, opens, sends, and marks threads read; only a small
+unread count rides on the account payload. A recipient connected to the same
+world process gets a `phone.message` room event with no `room_id` (plus a toast
+when the thread is not open); anyone elsewhere or offline pulls the inbox on
+the next app open. TinyTown roommates generate their own hourly texts from
+[roommate_messages.py](../mods/tinytown/roommate_messages.py), called from the
+household sim, and answer player texts with one canned reply each.
+
 Cutscenes remain available without a subsystem feature flag; reduced motion
 suppresses playback. Presentation cannot determine gameplay rewards or whether
 a transaction succeeded, and the server does not await playback acknowledgement.

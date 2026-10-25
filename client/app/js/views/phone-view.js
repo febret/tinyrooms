@@ -2,10 +2,12 @@ import { withBase } from "../base-path.js";
 import { escapeHtml } from "../presentation.js";
 import { parentPath, songForItem, starredSongs, trackLabel } from "../phone-music.js";
 import { friendsAppMarkup } from "./friends-view.js";
+import { messagesAppMarkup } from "./messages-view.js";
 
-const APP_LABELS = { apps: "Menu", friends: "Friends", chiptune: "Chiptune" };
+const APP_LABELS = { apps: "Menu", friends: "Friends", messages: "Messages", chiptune: "Chiptune" };
 const APP_ICONS = {
   friends: "/app/assets/phone/phone-icon-friends.png",
+  messages: "/app/assets/phone/phone-icon-messages.png",
   chiptune: "/app/assets/phone/phone-icon-chiptune.png",
 };
 const MUSIC_TABS = [
@@ -21,9 +23,11 @@ function clockLabel() {
   return `${hours}:${minutes}`;
 }
 
-function statusBarMarkup() {
+function statusBarMarkup(state) {
+  const unread = Number(state?.user?.phoneUnread || 0);
   return `<header class="phone-statusbar">
     <span class="phone-carrier">TINYROOMS</span>
+    ${unread ? `<span class="phone-mail" role="img" aria-label="${unread} unread texts">✉</span>` : ""}
     <span class="phone-status-time">${clockLabel()}</span>
     <span class="phone-status-icons" aria-hidden="true">
       <span class="phone-signal"><i></i><i></i><i></i><i></i></span>
@@ -35,6 +39,7 @@ function statusBarMarkup() {
 function homeMarkup(state) {
   const friends = state.user?.friends?.friends?.length || 0;
   const starred = state.user?.starredTracks?.length || 0;
+  const unread = Number(state.user?.phoneUnread || 0);
   const now = new Date();
   const date = now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toUpperCase();
   return `<div class="phone-home">
@@ -47,6 +52,11 @@ function homeMarkup(state) {
         <img class="phone-app-icon" src="${withBase(APP_ICONS.friends)}" alt="" width="40" height="40">
         <span class="phone-app-name">FRIENDS</span>
         <span class="phone-app-meta">${friends} ${friends === 1 ? "peep" : "peeps"}</span>
+      </button>
+      <button type="button" class="phone-app" role="listitem" data-phone-app="messages" aria-label="Open Messages app">
+        <img class="phone-app-icon" src="${withBase(APP_ICONS.messages)}" alt="" width="40" height="40" data-phone-icon="messages">
+        <span class="phone-app-name">MESSAGES</span>
+        <span class="phone-app-meta">${unread ? `${unread} new` : "no new texts"}</span>
       </button>
       <button type="button" class="phone-app" role="listitem" data-phone-app="chiptune" aria-label="Open Chiptune app">
         <img class="phone-app-icon" src="${withBase(APP_ICONS.chiptune)}" alt="" width="40" height="40">
@@ -144,6 +154,7 @@ function chiptuneMarkup(state) {
 function appMarkup(state) {
   const app = APP_LABELS[state.ui?.phoneApp] ? state.ui.phoneApp : "apps";
   if (app === "friends") return friendsAppMarkup(state);
+  if (app === "messages") return messagesAppMarkup(state);
   if (app === "chiptune") return chiptuneMarkup(state);
   return homeMarkup(state);
 }
@@ -151,6 +162,16 @@ function appMarkup(state) {
 function appHeaderMarkup(state) {
   const app = APP_LABELS[state.ui?.phoneApp] ? state.ui.phoneApp : "apps";
   if (app === "apps") return "";
+  if (app === "messages") {
+    const inbox = state.ui?.phoneMessages || {};
+    if (inbox.threadKey || inbox.picking) {
+      return `<header class="phone-app-header">
+        <button type="button" class="phone-back" data-phone-messages-action="back" aria-label="Back to texts">‹</button>
+        <img class="phone-app-mark" src="${withBase(APP_ICONS[app])}" alt="" width="20" height="20">
+        <h3>${escapeHtml(APP_LABELS[app].toUpperCase())}</h3>
+      </header>`;
+    }
+  }
   return `<header class="phone-app-header">
     <button type="button" class="phone-back" data-phone-home="1" aria-label="Back to apps">‹</button>
     <img class="phone-app-mark" src="${withBase(APP_ICONS[app])}" alt="" width="20" height="20">
@@ -270,7 +291,7 @@ function phoneKeypadMarkup(state) {
     <button type="button" class="phone-key" data-phone-key="volume-down" aria-label="Volume down" title="Volume is fixed while chiptune.app runs in its own frame" disabled>VOL−</button>
     <button type="button" class="phone-key" data-phone-key="music-star" aria-label="${starred ? "Unstar current track" : "Star current track"}" aria-pressed="${starred}" title="Star the current track">★</button>
     <button type="button" class="phone-key" data-phone-key="friend-prev" aria-label="Previous friend" title="Previous friend"${hasFriends ? "" : " disabled"}>◀</button>
-    <button type="button" class="phone-key" data-phone-key="messages" aria-label="Messages" title="Messages are not available yet" disabled>✉</button>
+    <button type="button" class="phone-key" data-phone-key="messages" aria-label="Messages" title="Open messages">✉</button>
     <button type="button" class="phone-key" data-phone-key="friend-next" aria-label="Next friend" title="Next friend"${hasFriends ? "" : " disabled"}>▶</button>
   </div>`;
 }
@@ -284,7 +305,7 @@ export function phoneView(state) {
           ${lidSvgMarkup()}
           <div class="phone-screen">
             <div class="phone-lcd">
-              ${statusBarMarkup()}
+              ${statusBarMarkup(state)}
               ${appHeaderMarkup(state)}
               <div class="phone-app-scroll" tabindex="0">${appMarkup(state)}</div>
               ${softKeysMarkup(state)}

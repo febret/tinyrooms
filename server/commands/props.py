@@ -23,6 +23,18 @@ def _prop_instance_id(token: str) -> str:
     return token
 
 
+def _parse_quantity(args: tuple[str, ...], index: int = 1) -> int:
+    if len(args) <= index:
+        return 1
+    try:
+        quantity = int(args[index])
+    except ValueError as exc:
+        raise CommandError("Quantity must be an integer.") from exc
+    if quantity < 1:
+        raise CommandError("Quantity must be at least 1.")
+    return quantity
+
+
 def _craft_binding(context: CommandContext) -> tuple[str, str]:
     activity = context.activities.get(context.account.id)
     if activity is None or activity.kind != "crafting":
@@ -120,6 +132,48 @@ async def toggle_command(context: CommandContext, command: ParsedCommand) -> Com
         payload={"light": {"prop_id": prop_instance_id, "on": turned_on}},
         room_broadcasts=[PendingRoomBroadcast(room_id=room_id, event=event)],
         toast=False,
+    )
+
+
+async def open_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Open a container prop and return its contents for the client popup."""
+
+    if not command.args:
+        raise CommandError("Choose a container to open.")
+    room_id = require_room_id(context)
+    prop_instance_id = _prop_instance_id(command.args[0])
+    try:
+        contents = context.containers.contents(room_id, prop_instance_id)
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    return CommandOutcome(
+        payload={"container": contents, "container_open": True}, toast=False, log=False
+    )
+
+
+async def take_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Take cards back out of a container prop into inventory."""
+
+    if len(command.args) < 2:
+        raise CommandError("Use '.take @prop:<id> @card:<stack_id> [quantity]'.")
+    room_id = require_room_id(context)
+    prop_instance_id = _prop_instance_id(command.args[0])
+    target = parse_target(command.args[1]) if command.args[1].startswith("@") else None
+    if target is None or target.kind != "card":
+        raise CommandError("Take requires a @card target from the container.")
+    quantity = _parse_quantity(command.args, 2)
+    try:
+        result = context.containers.take(context.account, room_id, prop_instance_id, target.value, quantity)
+    except ValueError as exc:
+        raise CommandError(str(exc)) from exc
+    return CommandOutcome(
+        message=f"Took {result.quantity}× {result.label}.",
+        payload=_mutation_payload(
+            context,
+            result.stacks,
+            container=context.containers.contents(room_id, prop_instance_id),
+        ),
+        private_events=[{"type": "toast", "tone": "success", "text": f"Took {result.label}."}],
     )
 
 

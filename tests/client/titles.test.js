@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { normalizeChatEntry, normalizeOccupant, normalizeTitles, normalizeUser } from "../../client/app/js/normalize.js";
 import { createStore } from "../../client/app/js/state.js";
-import { selfPagesMarkup } from "../../client/app/js/views/self-view.js";
+import { idCardView } from "../../client/app/js/views/id-card-view.js";
 
 test("occupants prefer the composed title label but keep the bare username", () => {
   const occupant = normalizeOccupant({ id: "a1", username: "Ada", label: 'Captain Ada "Tourfriend", Adept', kind: "user" });
@@ -64,9 +64,11 @@ test("presence.title updates the occupant label live", () => {
   assert.equal(occupant.username, "Ada");
 });
 
-test("self view shows a title nameplate below the level line", () => {
-  const pages = selfPagesMarkup({
-    ui: { titlesOpen: false },
+test("ID card shows a title nameplate below the level line", () => {
+  const markup = idCardView({
+    ui: { titlesOpen: false, idCardSide: "self" },
+    views: {},
+    room: { occupants: [] },
     user: {
       username: "Ada",
       level: 3,
@@ -84,16 +86,18 @@ test("self view shows a title nameplate below the level line", () => {
       }),
     },
   });
-  assert.match(pages.left, /journal-name">Ada</);
-  assert.match(pages.left, /data-titles-toggle/);
-  assert.match(pages.left, /Captain Ada/);
-  assert.match(pages.left, /aria-expanded="false"/);
-  assert.match(pages.left, /id="title-editor" hidden/);
+  assert.match(markup, /id-name">Ada</);
+  assert.match(markup, /data-titles-toggle/);
+  assert.match(markup, /Captain Ada/);
+  assert.match(markup, /aria-expanded="false"/);
+  assert.match(markup, /id="title-editor" hidden/);
 });
 
-test("self view opens the title editor with slots and locked hints", () => {
-  const pages = selfPagesMarkup({
-    ui: { titlesOpen: true },
+test("ID card opens the title editor with slots and locked hints", () => {
+  const markup = idCardView({
+    ui: { titlesOpen: true, idCardSide: "self" },
+    views: {},
+    room: { occupants: [] },
     user: {
       username: "Ada",
       level: 3,
@@ -111,13 +115,13 @@ test("self view opens the title editor with slots and locked hints", () => {
       }),
     },
   });
-  assert.match(pages.left, /aria-expanded="true"/);
-  assert.match(pages.left, /data-title-slot="salutation"/);
-  assert.match(pages.left, /data-title-slot="nickname"/);
-  assert.match(pages.left, /data-title-slot="suffix"/);
-  assert.match(pages.left, /data-title-crew-input/);
-  assert.match(pages.left, /<option value="captain" selected>Captain<\/option>/);
-  assert.doesNotMatch(pages.left, /Chef/);
+  assert.match(markup, /aria-expanded="true"/);
+  assert.match(markup, /data-title-slot="salutation"/);
+  assert.match(markup, /data-title-slot="nickname"/);
+  assert.match(markup, /data-title-slot="suffix"/);
+  assert.match(markup, /data-title-crew-input/);
+  assert.match(markup, /<option value="captain" selected>Captain<\/option>/);
+  assert.doesNotMatch(markup, /Chef/);
 });
 
 test("title editor toggle flips the ui flag", () => {

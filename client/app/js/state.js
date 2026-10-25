@@ -5,10 +5,13 @@ import { withBase } from "./base-path.js";
 import {
   assetOrEmpty,
   clone,
+  initialPhoneMessages,
   mergeLayoutProps,
+  mergePhoneMessages,
   normalizeActivity,
   normalizeCardDefinition,
   normalizeChatEntry,
+  normalizeContainer,
   normalizeCounters,
   normalizeDialog,
   normalizeGameState,
@@ -131,6 +134,48 @@ function updatePeepCounters(peeps, targetId, event) {
   });
 }
 
+function applyPhoneMessage(state, event) {
+  const key = String(event.thread_key || "");
+  if (!key) return state;
+  const inbox = state.ui.phoneMessages || initialPhoneMessages();
+  const viewing = state.views.main === "phone" && state.ui.phoneApp === "messages" && inbox.threadKey === key;
+  const sender = String(event.sender_name || "Unknown");
+  const body = String(event.body || event.preview || "");
+  const preview = String(event.preview || body.slice(0, 48));
+  const kind = key.startsWith("player:") ? "player" : key.startsWith("npc:") ? "npc" : "system";
+  const prior = (inbox.threads || []).find(thread => thread.threadKey === key);
+  const entry = {
+    threadKey: key,
+    kind: prior?.kind || kind,
+    peerName: prior?.peerName || sender,
+    preview,
+    lastAt: new Date().toISOString(),
+    unread: viewing ? 0 : (prior?.unread || 0) + 1,
+  };
+  const threads = [entry, ...(inbox.threads || []).filter(thread => thread.threadKey !== key)];
+  let messages = inbox.messages || [];
+  if (viewing && body) {
+    messages = [...messages, {
+      messageId: `live-${Date.now()}`,
+      direction: "in",
+      senderName: sender,
+      body,
+      createdAt: new Date().toISOString(),
+      read: true,
+    }].slice(-40);
+  }
+  const unread = typeof event.unread === "number" ? event.unread : (state.user?.phoneUnread || 0) + (viewing ? 0 : 1);
+  let next = {
+    ...state,
+    user: state.user ? { ...state.user, phoneUnread: unread } : state.user,
+    ui: { ...state.ui, phoneMessages: { ...inbox, threads, messages } },
+  };
+  if (!viewing && sender) {
+    next = { ...next, ui: { ...next.ui, toasts: [...next.ui.toasts.slice(-2), toastRecord(`New text from ${sender}.`, "info")] } };
+  }
+  return next;
+}
+
 function applyDialogPayload(state, rawDialog) {
   const dialog = normalizeDialog(rawDialog);
   const room = state.room ? { ...state.room, dialog } : state.room;
@@ -143,6 +188,7 @@ function applyDialogPayload(state, rawDialog) {
 function applyServerEvent(state, event) {
   if (!event || !state.room) return state;
   if (event.room_id && event.room_id !== state.room.id) return state;
+  if (event.type === "phone.message") return applyPhoneMessage(state, event);
   if (event.type === "counter.updated") {
     const targetId = String(event.target_id || "");
     return {
@@ -508,6 +554,13 @@ function mergeResultPayload(state, payload) {
   if (payload.journal) {
     next = { ...next, user: next.user ? { ...next.user, journal: normalizeJournal(payload.journal) } : next.user };
   }
+  if (payload.phone_messages) {
+    const inbox = mergePhoneMessages(next.ui.phoneMessages, payload.phone_messages);
+    const user = next.user && typeof payload.phone_messages.unread === "number"
+      ? { ...next.user, phoneUnread: payload.phone_messages.unread }
+      : next.user;
+    next = { ...next, user, ui: { ...next.ui, phoneMessages: inbox } };
+  }
   if (Array.isArray(payload.commands)) {
     next = {
       ...next,
@@ -554,6 +607,9 @@ function mergeResultPayload(state, payload) {
   if (payload.entity) {
     next = { ...next, describedEntity: clone(payload.entity) };
   }
+  if (payload.container) {
+    next = { ...next, container: normalizeContainer(payload.container) };
+  }
   return next;
 }
 
@@ -590,9 +646,10 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", idCardSide: "self", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, containerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", idCardSide: "self", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMessages: initialPhoneMessages(), phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
     commandCatalog: [],
     describedEntity: null,
+    container: null,
     editor: null,
   };
 }
@@ -702,18 +759,27 @@ function reduce(state, action) {
         skillStackId: action.view === "skills" ? action.stackId || null : null,
         skillPickerSlot: null,
       },
-      ui: { ...state.ui, idCardSide: idSide || state.ui.idCardSide, inventoryTab, phoneApp: view === "phone" ? "apps" : state.ui.phoneApp, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: { ...state.ui, idCardSide: idSide || state.ui.idCardSide, inventoryTab, phoneApp: view === "phone" ? "apps" : state.ui.phoneApp, phoneMessages: view === "phone" ? { ...state.ui.phoneMessages, threadKey: null, picking: false } : state.ui.phoneMessages, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
     };
   }
   if (action.type === "id-flip") {
     const side = state.ui.idCardSide === "skills" ? "self" : "skills";
     return { ...state, ui: { ...state.ui, idCardSide: side } };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false }, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
-  if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", phoneFriendIndex: 0, emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
-  if (action.type === "phone-home") return { ...state, ui: { ...state.ui, phoneApp: "apps" } };
+  if (action.type === "open-container") {
+    const container = normalizeContainer(action.container);
+    if (!container) return state;
+    return { ...state, container, ui: { ...state.ui, containerOpen: true } };
+  }
+  if (action.type === "close-container") return { ...state, ui: { ...state.ui, containerOpen: false } };
+  if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", phoneFriendIndex: 0, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false }, emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
+  if (action.type === "phone-home") return { ...state, ui: { ...state.ui, phoneApp: "apps", phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false } } };
+  if (action.type === "phone-messages-select") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: String(action.threadKey || ""), picking: false, messages: [] } } };
+  if (action.type === "phone-messages-new") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: true } } };
+  if (action.type === "phone-messages-back") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false } } };
   if (action.type === "phone-friend-step") {
     const count = (state.user?.friends?.friends || []).length;
     if (!count) return state;
@@ -827,7 +893,8 @@ function reduce(state, action) {
       room,
       selection: sameRoom ? state.selection : room ? { kind: "room", id: room.id } : state.selection,
       views: sameRoom ? state.views : { ...state.views, main: null, skillStackId: null, skillPickerSlot: null },
-      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: sameRoom ? state.ui : { ...state.ui, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false, containerOpen: false },
+      container: sameRoom ? state.container : null,
       editor: sameRoom ? state.editor : null,
       user: state.user ? { ...state.user, rememberedRoom: room?.id || state.user.rememberedRoom, inventory: room?.inventory || state.user.inventory } : state.user,
     };
@@ -911,6 +978,10 @@ export function findRoomCard(state, stackId) {
   return state.room?.roomCards.find(card => card.stackId === stackId) || null;
 }
 
+export function findContainerCard(state, stackId) {
+  return state.container?.cards.find(card => card.stackId === stackId) || null;
+}
+
 export function findInventoryCard(state, stackId) {
   return state.room?.inventory?.find(card => card.stackId === stackId)
     || state.user?.inventory?.find(card => card.stackId === stackId)
@@ -938,7 +1009,7 @@ export function findSelectedEntity(state) {
 }
 
 function selectionIsEligible(state, selection) {
-  return !["prop", "room-card"].includes(selection?.kind) || Boolean(findEntity(state, selection));
+  return !["prop", "room-card", "container-card"].includes(selection?.kind) || Boolean(findEntity(state, selection));
 }
 
 export function findEntity(state, selection) {
@@ -957,6 +1028,7 @@ function resolveEntity(state, selection) {
   }
   if (selection.kind === "task") return findTask(state, selection.id);
   if (selection.kind === "room-card") return findRoomCard(state, selection.id);
+  if (selection.kind === "container-card") return findContainerCard(state, selection.id);
   if (selection.kind === "inventory-card") return findInventoryCard(state, selection.id);
   if (selection.kind === "prop") return state.room.props.find(prop => prop.id === selection.id) || null;
   if (selection.kind === "peep") return state.room.occupants.find(peep => peep.id === selection.id)

@@ -19,6 +19,7 @@ from server.services.activity_results import ActivityResultService
 from server.services.audit import AuditService
 from server.services.beacons import BeaconService
 from server.services.cards import CardService
+from server.services.containers import ContainerService
 from server.services.crafting import CraftingService
 from server.services.cutscenes import CutsceneService
 from server.services.dialogs import DialogService
@@ -28,6 +29,7 @@ from server.services.friends import FriendsService
 from server.services.inventory import InventoryService
 from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
+from server.services.phone_messages import PhoneMessageService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
@@ -91,6 +93,7 @@ class CommandContext:
     actions: ActionsService
     friends: FriendsService
     beacons: BeaconService
+    phone_messages: PhoneMessageService
     shop: ShopService
     prop_shop: PropShopService
     pricing: CardPricingService
@@ -110,6 +113,7 @@ class CommandContext:
     connections: ConnectionRegistry
     dispensers: DispenserService
     crafting: CraftingService
+    containers: ContainerService
     recipes: dict[str, RecipeDefinition]
     mods: dict[str, object]
     cross_world: CrossWorldService

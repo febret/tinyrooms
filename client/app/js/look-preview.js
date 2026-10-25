@@ -1,6 +1,6 @@
 import { isExitProp } from "./exit-props.js";
 import { escapeHtml } from "./presentation.js";
-import { findInventoryCard, findRoomCard } from "./state.js";
+import { findContainerCard, findInventoryCard, findRoomCard } from "./state.js";
 
 /** Render the active dialog response above the selected peep display. */
 export function lookDialogBubble(state, description) {
@@ -40,6 +40,14 @@ export function lookPreview(state, description) {
     return {
       markup: `<button type="button" class="look-preview look-preview-button look-preview-3d" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><canvas data-prop-model="${escapeHtml(prop.modelUrl)}" data-prop-scale="${escapeHtml(prop.scale)}" aria-hidden="true"></canvas></button>`,
       action: { type: "open-view", view: "prop-details", propId: prop.id },
+    };
+  }
+  if (selection.kind === "container-card") {
+    const stack = findContainerCard(state, selection.id);
+    if (!stack?.definition) return { markup: "", action: null };
+    return {
+      markup: `<span class="look-preview look-preview-card" aria-hidden="true"><img class="look-preview-card-icon" src="${escapeHtml(stack.definition.imageUrl)}" alt=""></span>`,
+      action: null,
     };
   }
   if (selection.kind === "room-card" || selection.kind === "inventory-card") {

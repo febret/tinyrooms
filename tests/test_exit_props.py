@@ -147,6 +147,29 @@ class ExitToActionTests(ServiceTestCase):
         self.assertEqual(action["label"], "Out of the dollhouse")
         self.assertTrue(action.get("default"))
 
+    def test_disabled_exit_is_not_offered_from_a_prop(self) -> None:
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        room = world.rooms["foyer"]
+        environment = Mock()
+        environment.is_prop_visible.return_value = True
+        environment.is_action_enabled.return_value = True
+        environment.is_exit_enabled.return_value = False
+        service = RoomService(
+            hub=Mock(),
+            profiles=Mock(),
+            world_state=Mock(),
+            connections=Mock(),
+            card_service=Mock(),
+            activities=Mock(),
+            world=world,
+            stats=Mock(),
+            environment=environment,
+            command_verbs=frozenset({".go", ".look"}),
+        )
+        payload = service._serialize_prop(Mock(), room, room.props["hub-door0"])
+        commands = [action["command"] for action in payload["quick_actions"]]
+        self.assertNotIn(".go @way:hub", commands)
+
 
 class ExitStyleLoaderTests(unittest.TestCase):
     def _world_with_style(self, tmp: str, recipe: object, prop: str = "builtin:door") -> object:

@@ -82,6 +82,7 @@ from server.services.beacons import BeaconService
 from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
 from server.services.chiptune_stars import ChiptuneStarService
+from server.services.containers import ContainerService
 from server.services.crafting import CraftingService
 from server.services.cross_world import CrossWorldService
 from server.services.dialogs import DialogService
@@ -93,6 +94,7 @@ from server.services.inventory import InventoryService
 from server.services.lighting import LightingService
 from server.services.memories import MemoryService
 from server.services.ownership import OwnershipService
+from server.services.phone_messages import PhoneMessageService
 from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
@@ -191,6 +193,7 @@ class RuntimeState:
     progression: ProgressionService
     actions: ActionsService
     friends: FriendsService
+    phone_messages: PhoneMessageService
     chiptune_stars: ChiptuneStarService
     beacons: BeaconService
     shop: ShopService
@@ -215,6 +218,7 @@ class RuntimeState:
     mod_definitions: tuple[ModDefinition, ...]
     dispensers: DispenserService
     crafting: CraftingService
+    containers: ContainerService
     behaviors: BehaviorDispatcher
     ticker: RoomTicker
     vibes: VibesService
@@ -526,6 +530,7 @@ def _build_runtime(
         hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
     )
     dispensers = DispenserService(hub, profiles, catalog, world, equipped_caps=equipped_caps, environment=environment, layout=layout)
+    containers = ContainerService(hub, profiles, world_state, catalog, cards, world, equipped_caps=equipped_caps, environment=environment, layout=layout)
     crafting = CraftingService(hub, profiles, inventory, stats, catalog, content, world, world.recipes, environment=environment, layout=layout)
     registry = build_registry()
     for spec in mods.command_specs():
@@ -556,6 +561,7 @@ def _build_runtime(
         card_drops=card_drops,
     )
     friends = FriendsService(hub, profiles, is_online=connections.is_online, vibes=vibes)
+    phone_messages = PhoneMessageService(hub, profiles)
     chiptune_stars = ChiptuneStarService(profiles)
     cross_world = CrossWorldService(
         config=config,
@@ -665,6 +671,7 @@ def _build_runtime(
         progression=progression,
         actions=actions,
         friends=friends,
+        phone_messages=phone_messages,
         chiptune_stars=chiptune_stars,
         beacons=beacons,
         shop=shop,
@@ -689,6 +696,7 @@ def _build_runtime(
         mod_definitions=mods.definitions,
         dispensers=dispensers,
         crafting=crafting,
+        containers=containers,
         behaviors=behaviors,
         ticker=ticker,
         vibes=vibes,

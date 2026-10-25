@@ -1092,8 +1092,13 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
     if (dropArmed) {
-      const point = screenToBoardPosition(event.clientX, event.clientY);
       setDropHint(null);
+      const owner = pickGameplayOwner();
+      if (owner && owner.userData.kind === "prop") {
+        onSelect({ kind: "prop", id: owner.userData.id }, { x: event.clientX, y: event.clientY });
+        return;
+      }
+      const point = screenToBoardPosition(event.clientX, event.clientY);
       if (point) onDropPoint?.(resolveCardPosition(point.position), point.screen);
       return;
     }

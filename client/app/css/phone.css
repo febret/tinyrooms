@@ -95,6 +95,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .phone-screen {
@@ -132,6 +133,10 @@
   outline-offset: 2px;
   background: #fff6;
   opacity: .35;
+}
+
+.phone-hardkey:active:not(:disabled) {
+  transform: translate(-50%, calc(-50% + 1px));
 }
 
 @keyframes phone-flip-open {

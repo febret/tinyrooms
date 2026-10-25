@@ -20,7 +20,7 @@ from server.content.sounds import sounds_payload
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.services import dynamic_cards as dynamic_card_store
 from server.state.migrations import DatabaseHub
-from server.state.world_state import RoomCardStack, WorldStateRepository
+from server.state.world_state import ContainerCardStack, RoomCardStack, WorldStateRepository
 
 if TYPE_CHECKING:
     from server.services.pricing import CardPricingService
@@ -360,6 +360,43 @@ class CardService:
         payloads: list[dict[str, object]] = []
         for stack in materialized:
             payload = self.serialize_room_stack(stack, prefetched=prefetched)
+            if payload is not None:
+                payloads.append(payload)
+        return payloads
+
+    def serialize_container_stack(
+        self,
+        stack: ContainerCardStack,
+        *,
+        prefetched: dict[str, CardDefinition] | None = None,
+    ) -> dict[str, object] | None:
+        """Serialize a container card stack, or ``None`` when its definition is missing."""
+
+        definition = (prefetched or {}).get(stack.card_def_id)
+        if definition is None:
+            if not self.has_definition(stack.card_def_id):
+                self._warn_missing_definition(stack.stack_id, stack.card_def_id)
+                return None
+            definition = self.definition(stack.card_def_id)
+        payload = self._serialize_stack_base(
+            stack.stack_id,
+            stack.card_def_id,
+            stack.quantity,
+            False,
+            {"label": "Take 1", "command": f".take @prop:{stack.instance_id} @card:{stack.stack_id} 1"},
+            definition=definition,
+        )
+        payload["placed_by_account_id"] = stack.placed_by_account_id
+        return payload
+
+    def serialize_container_stacks(self, stacks: Iterable[ContainerCardStack]) -> list[dict[str, object]]:
+        """Serialize container card stacks, skipping entries with missing definitions."""
+
+        materialized = list(stacks)
+        prefetched = self.prefetch_dynamic_definitions([stack.card_def_id for stack in materialized])
+        payloads: list[dict[str, object]] = []
+        for stack in materialized:
+            payload = self.serialize_container_stack(stack, prefetched=prefetched)
             if payload is not None:
                 payloads.append(payload)
         return payloads

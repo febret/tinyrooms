@@ -2,11 +2,12 @@ import {
   buildEmoteCommand,
   buildEquipCommand,
   buildFriendCommand,
+  buildTakeCommand,
   buildUnequipCommand,
   buildTeachCommand,
   buildUseCommand,
 } from "./commands.js";
-import { findInventoryCard, findRoomCard, findSelectedEntity, findTask, hasSlottedSkill, isTargetableStack } from "./state.js";
+import { findContainerCard, findInventoryCard, findRoomCard, findSelectedEntity, findTask, hasSlottedSkill, isTargetableStack } from "./state.js";
 import { escapeHtml } from "./presentation.js";
 import { handIconMarkup, rarityLabel } from "./views/view-helpers.js";
 import { idCardView } from "./views/id-card-view.js";
@@ -210,6 +211,16 @@ function bindCardButtons(root, onSelect, onAction) {
       label: button.dataset.label,
     });
   });
+  root.querySelectorAll("[data-phone-messages-action]").forEach(button => {
+    button.onclick = () => onAction({ type: "phone-messages", action: button.dataset.phoneMessagesAction, threadKey: button.dataset.threadKey || "" });
+  });
+  root.querySelectorAll("form[data-phone-messages-compose]").forEach(form => {
+    form.onsubmit = event => {
+      event.preventDefault();
+      const body = String(new FormData(form).get("body") || "").trim();
+      if (body) onAction({ type: "phone-messages-send", threadKey: form.dataset.phoneMessagesCompose || "", body });
+    };
+  });
   root.querySelectorAll("form[data-phone-music-search]").forEach(form => {
     form.onsubmit = event => {
       event.preventDefault();
@@ -246,7 +257,7 @@ export function describeSelection(state) {
     const done = selected.steps.filter(step => step.complete).length;
     return { tag: selected.scope === "shared" ? "Shared Task" : "Task", title: selected.title, description: selected.description || `${done} of ${selected.steps.length} steps complete.`, imageUrl: "" };
   }
-  if (state.selection.kind === "room-card" || state.selection.kind === "inventory-card") return { tag: rarityLabel(selected.definition), title: selected.definition.label, description: selected.definition.description, imageUrl: selected.definition.imageUrl };
+  if (state.selection.kind === "room-card" || state.selection.kind === "inventory-card" || state.selection.kind === "container-card") return { tag: rarityLabel(selected.definition), title: selected.definition.label, description: selected.definition.description, imageUrl: selected.definition.imageUrl };
   if (state.selection.kind === "prop") return { tag: "Prop", title: selected.label, description: selected.description, imageUrl: "" };
   if (state.selection.kind === "peep") {
     const parts = [selected.description || "A peep in this room."];
@@ -361,6 +372,31 @@ export function selectionActions(state) {
     if (!isRoom) actions.push(...inventoryStackActions(stack));
     return actions;
   }
+  if (state.selection.kind === "container-card") {
+    const stack = findContainerCard(state, state.selection.id);
+    const container = state.container;
+    if (!stack || !container) return [];
+    const cardSound = stack.definition?.sounds?.select || "";
+    const soundOption = cardSound ? { sound: cardSound } : {};
+    const actions = [
+      {
+        label: "Take 1",
+        command: buildTakeCommand(container.instanceId, stack.stackId, 1),
+        tone: "primary",
+        disabled: stack.quantity < 1,
+        ...soundOption,
+      },
+    ];
+    if (stack.quantity > 1) {
+      actions.push({
+        label: "Take all",
+        command: buildTakeCommand(container.instanceId, stack.stackId, stack.quantity),
+        tone: "neutral",
+        ...soundOption,
+      });
+    }
+    return actions;
+  }
   return [];
 }
 
@@ -428,13 +464,13 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     const animateToolbar = root === coreRoot && toolbarReady;
     const previousToolbar = animateToolbar ? captureToolbarButtons(root) : null;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode", "titlesToggle", "titleSlot", "titleCrewInput", "titleCrewSave"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode", "titlesToggle", "titleSlot", "titleCrewInput", "titleCrewSave", "phoneMessageInput"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;
     const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
     const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
-    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .emote-menu-track, .equipped-hand";
+    const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .emote-menu-track, .equipped-hand, .phone-app-scroll";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
     root.innerHTML = markup;

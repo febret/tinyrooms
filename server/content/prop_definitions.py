@@ -30,6 +30,12 @@ PROP_RENDER_KINDS = frozenset({"model", "text", "sign", "whiteboard"}) | EXIT_PR
 # Gameplay fields owned by a prop definition. Authoring them on a room prop
 # instance is rejected so every instance of the prop behaves identically.
 MOVED_INSTANCE_PROP_FIELDS = frozenset({"activity", "behavior", "content", "cooldown", "recipes"})
+# Tags that mark a prop as a container ("closed containers only": open
+# shelves and bookshelves are excluded even though they carry `storage`).
+# Props with an authored behavior keep it; the rule only fills in behavior
+# for behavior-less container-like props.
+CONTAINER_TAGS = frozenset({"storage", "cabinet", "wardrobe", "trashcan", "bin", "crate", "nightstand"})
+CONTAINER_OPEN_TAGS = frozenset({"shelf", "bookshelf"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -543,12 +549,21 @@ def load_prop_definition(
     hidden = bool(raw_prop.get("hidden", False))
     requires_light = bool(raw_prop.get("requires_light", False))
     behavior = _load_optional_prop_name(raw_prop.get("behavior"), prop_id, "behavior")
+    if behavior is None:
+        tag_set = set(tags)
+        if tag_set & CONTAINER_TAGS and not tag_set & CONTAINER_OPEN_TAGS:
+            behavior = "container"
     activity = _load_optional_prop_name(raw_prop.get("activity"), prop_id, "activity")
     content = _load_identifier_list(raw_prop.get("content"), prop_id, "content")
     recipes = _load_identifier_list(raw_prop.get("recipes"), prop_id, "recipes")
     cooldown = _load_prop_cooldown(raw_prop.get("cooldown"), prop_id)
     one_per_room = bool(raw_prop.get("one_per_room", False))
     default_actions = _load_actions(raw_prop.get("default_actions"))
+    if behavior == "container" and not any(
+        action.command.strip() == ".open" or action.command.strip().lower().startswith(".open ")
+        for action in default_actions
+    ):
+        default_actions = (*default_actions, QuickAction(label="Open", command=".open @self"))
     effect_sets = _load_effect_sets(raw_prop.get("effects"), f"Prop '{prop_id}' effects")
     active_effect = _load_active_effect(raw_prop.get("active_effect"), effect_sets, prop_id)
     sprite_footprint = _load_sprite_footprint(raw_prop.get("sprite_footprint"), prop_id)

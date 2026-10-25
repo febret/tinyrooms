@@ -53,6 +53,20 @@ class RoomCardStack:
 
 
 @dataclass(frozen=True, slots=True)
+class ContainerCardStack:
+    """A persisted card stack stored inside a container prop."""
+
+    stack_id: str
+    room_id: str
+    instance_id: str
+    card_def_id: str
+    quantity: int
+    created_at: str
+    updated_at: str
+    placed_by_account_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class PlayerRoomRecord:
     """A persisted per-player classroom, backed by a ``room_states`` row.
 
@@ -84,6 +98,18 @@ class WorldStateRepository:
             position=_position_from_json(row["position_json"]),
             scope=row["scope"],
             pinned=bool(row["pinned"]),
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+            placed_by_account_id=row["placed_by_account_id"],
+        )
+
+    def _container_stack_from_row(self, row: sqlite3.Row) -> ContainerCardStack:
+        return ContainerCardStack(
+            stack_id=row["stack_id"],
+            room_id=row["room_id"],
+            instance_id=row["instance_id"],
+            card_def_id=row["card_def_id"],
+            quantity=int(row["quantity"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             placed_by_account_id=row["placed_by_account_id"],
@@ -204,6 +230,7 @@ class WorldStateRepository:
                     continue
                 connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
                 connection.execute("DELETE FROM world.prop_surfaces WHERE room_id = ?", (room_id,))
+                connection.execute("DELETE FROM world.container_cards WHERE room_id = ?", (room_id,))
                 self._insert_seed_cards(connection, room_id, room.initial_cards)
                 self._mark_room_initialized(connection, room_id)
                 self._seed_room_layout(connection, room_id, room, world)
@@ -218,6 +245,7 @@ class WorldStateRepository:
 
         with self._hub.transaction() as connection:
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            self.delete_room_container_cards(connection, room_id)
             stacks = self._insert_seed_cards(connection, room_id, initial_cards)
             self._mark_room_initialized(connection, room_id)
         return stacks
@@ -237,6 +265,7 @@ class WorldStateRepository:
         prop_instance_ids = set(room.props.keys())
         with self._hub.transaction() as connection:
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            self.delete_room_container_cards(connection, room_id)
             self._insert_seed_cards(connection, room_id, room.initial_cards)
             self._mark_room_initialized(connection, room_id)
             self._seed_room_layout(connection, room_id, room, world)
@@ -281,6 +310,7 @@ class WorldStateRepository:
 
         with self._hub.transaction() as connection:
             connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            self.delete_room_container_cards(connection, room_id)
             self._insert_seed_cards(connection, room_id, room.initial_cards)
             self._mark_room_initialized(connection, room_id)
             self._seed_room_layout(connection, room_id, room, world)
@@ -392,6 +422,7 @@ class WorldStateRepository:
 
         connection.execute("DELETE FROM world.room_states WHERE room_id = ?", (room_id,))
         connection.execute("DELETE FROM world.prop_surfaces WHERE room_id = ?", (room_id,))
+        connection.execute("DELETE FROM world.container_cards WHERE room_id = ?", (room_id,))
         self.invalidate_room_environment(room_id)
 
     def read_world_meta(self, key: str) -> str | None:
@@ -643,3 +674,115 @@ class WorldStateRepository:
             updated_at=now,
             placed_by_account_id=placed_by_account_id,
         )
+
+    def list_container_cards(self, room_id: str, instance_id: str) -> list[ContainerCardStack]:
+        """Return persisted container card stacks for one prop instance."""
+
+        with self._hub.locked() as connection:
+            rows = connection.execute(
+                "SELECT * FROM world.container_cards WHERE room_id = ? AND instance_id = ? ORDER BY created_at, stack_id",
+                (room_id, instance_id),
+            ).fetchall()
+        return [self._container_stack_from_row(row) for row in rows]
+
+    def add_container_card(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        room_id: str,
+        instance_id: str,
+        card_def_id: str,
+        quantity: int,
+        placed_by_account_id: str | None = None,
+    ) -> ContainerCardStack:
+        """Deposit quantity into a container, merging with its existing stack."""
+
+        if quantity < 1:
+            raise ValueError("Invalid quantity for that container stack.")
+        now = utc_now().isoformat()
+        connection.execute(
+            """
+            INSERT INTO world.container_cards (
+                stack_id, room_id, instance_id, card_def_id, quantity,
+                created_at, updated_at, placed_by_account_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(room_id, instance_id, card_def_id) DO UPDATE SET
+                quantity = quantity + excluded.quantity,
+                updated_at = excluded.updated_at
+            """,
+            (
+                f"container:{uuid.uuid4()}",
+                room_id,
+                instance_id,
+                card_def_id,
+                quantity,
+                now,
+                now,
+                placed_by_account_id,
+            ),
+        )
+        row = connection.execute(
+            "SELECT * FROM world.container_cards WHERE room_id = ? AND instance_id = ? AND card_def_id = ?",
+            (room_id, instance_id, card_def_id),
+        ).fetchone()
+        if row is None:  # pragma: no cover - the upsert above always leaves a row
+            raise ValueError("That container is no longer available.")
+        return self._container_stack_from_row(row)
+
+    def take_container_card(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        room_id: str,
+        instance_id: str,
+        stack_id: str,
+        quantity: int,
+    ) -> tuple[ContainerCardStack, bool]:
+        """Remove quantity from a container stack and return the prior stack state."""
+
+        row = connection.execute(
+            "SELECT * FROM world.container_cards WHERE room_id = ? AND instance_id = ? AND stack_id = ?",
+            (room_id, instance_id, stack_id),
+        ).fetchone()
+        if row is None:
+            raise ValueError("That card is no longer in the container.")
+        stack = self._container_stack_from_row(row)
+        if quantity < 1 or quantity > stack.quantity:
+            raise ValueError("Invalid quantity for that container stack.")
+        deleted = quantity == stack.quantity
+        if deleted:
+            connection.execute("DELETE FROM world.container_cards WHERE stack_id = ?", (stack_id,))
+        else:
+            connection.execute(
+                """
+                UPDATE world.container_cards
+                SET quantity = quantity - ?, updated_at = ?
+                WHERE stack_id = ?
+                """,
+                (quantity, utc_now().isoformat(), stack_id),
+            )
+        return stack, deleted
+
+    def delete_room_container_cards(self, connection: sqlite3.Connection, room_id: str) -> None:
+        """Delete every live container card stack in a room."""
+
+        connection.execute("DELETE FROM world.container_cards WHERE room_id = ?", (room_id,))
+
+    def delete_container_cards_except(
+        self,
+        connection: sqlite3.Connection,
+        room_id: str,
+        keep_instance_ids: set[str],
+    ) -> int:
+        """Delete container stacks for prop instances no longer in a room."""
+
+        if not keep_instance_ids:
+            cursor = connection.execute("DELETE FROM world.container_cards WHERE room_id = ?", (room_id,))
+            return cursor.rowcount
+        ids = sorted(keep_instance_ids)
+        placeholders = ",".join("?" for _ in ids)
+        cursor = connection.execute(
+            f"DELETE FROM world.container_cards WHERE room_id = ? AND instance_id NOT IN ({placeholders})",
+            (room_id, *ids),
+        )
+        return cursor.rowcount

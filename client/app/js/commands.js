@@ -5,7 +5,7 @@ export const COMMANDS = [
   { name: ".say <text>", summary: "Speak in the room." },
   { name: ".inspect @card:<id>", summary: "Inspect a prop or card." },
   { name: ".pickup @card:<stack> <qty>", summary: "Pick up a room stack quantity." },
-  { name: ".drop @card:<stack> <qty> [x y z]", summary: "Drop an owned stack quantity, optionally at a board position." },
+  { name: ".drop @card:<stack> <qty> [x y z]", summary: "Drop an owned stack quantity, optionally at a board position or into a container prop with @prop:<id>." },
   { name: ".equip @card:<stack>", summary: "Equip an item or action stack." },
   { name: ".unequip @card:<stack>", summary: "Unequip an item or action stack." },
   { name: ".use @card:<stack> [target]", summary: "Use an equipped card, optionally on a target peep." },
@@ -19,6 +19,8 @@ export const COMMANDS = [
   { name: ".claim_bops", summary: "Claim today's Daily Bops." },
   { name: ".buy_pack <pack> <operation_id>", summary: "Buy a sealed card pack for your inventory." },
   { name: ".open_pack @card:<stack> <operation_id>", summary: "Open a sealed pack and reveal its cards." },
+  { name: ".open @prop:<id>", summary: "Open a container prop and show its contents." },
+  { name: ".take @prop:<id> @card:<stack> <qty>", summary: "Take cards out of a container prop." },
   { name: ".sell @card:<stack> <qty>", summary: "Sell owned cards for Bops." },
   { name: ".friend <add|accept|decline|cancel|remove> <peep>", summary: "Manage friends." },
   { name: ".beacon <send|use|dismiss|list> [peep]", summary: "Send, follow, dismiss, or list friend beacons." },
@@ -74,6 +76,13 @@ export function buildBeaconCommand(action, accountId) {
   return `.beacon ${action}${suffix}`;
 }
 
+export function buildPhoneMessagesCommand(action, threadKey, body) {
+  if (action === "list") return ".phone_msg list";
+  if (action === "peers") return ".phone_msg peers";
+  if (action === "open" || action === "read") return `.phone_msg ${action} ${threadKey}`;
+  return `.phone_msg send ${threadKey} ${quote(body)}`;
+}
+
 export function buildPinCommand(peepId, mode) {
   return `.pin_peep @peep:${peepId}${mode ? ` ${mode}` : ""}`;
 }
@@ -116,4 +125,14 @@ export function buildSellCommand(stackId, quantity = 1) {
 
 export function buildMergeAllCommand() {
   return ".merge_all";
+}
+
+/** Build a drop-into-container command for one inventory stack. */
+export function buildContainerDropCommand(stackId, quantity, instanceId) {
+  return `.drop @card:${stackId} ${Math.max(1, Number(quantity || 1))} @prop:${instanceId}`;
+}
+
+/** Build a take-from-container command for one container card stack. */
+export function buildTakeCommand(instanceId, stackId, quantity = 1) {
+  return `.take @prop:${instanceId} @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
 }

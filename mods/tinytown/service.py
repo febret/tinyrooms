@@ -155,6 +155,14 @@ class TinytownHousing:
                     pass
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS world.tinytown_npc_message_hours (
+                    npc_id TEXT PRIMARY KEY,
+                    last_hour INTEGER NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS world.tinytown_unlocks (
                     account_id TEXT NOT NULL,
                     kind TEXT NOT NULL,
@@ -968,6 +976,40 @@ class TinytownService:
 
     def npc_payload(self, peep: object, room_id: str | None) -> dict[str, object] | None:
         return self.npcs.npc_payload(peep, room_id)
+
+    def phone_peers(self, owner_account_id: str) -> list[dict[str, str]]:
+        """Return adopted roommates the owner can text, as thread peers."""
+
+        if not self.available:
+            return []
+        from server.services.phone_messages import npc_thread_key
+
+        try:
+            records = self.npcs.records_for_owner(owner_account_id)
+        except Exception:  # noqa: BLE001 - peers must never break the inbox
+            return []
+        return [
+            {"thread_key": npc_thread_key("tinytown", record.npc_id), "name": record.name}
+            for record in records
+        ]
+
+    def roommate_reply_text(
+        self, owner: object, npc_id: str, player_text: str
+    ) -> tuple[str, str] | None:
+        """Return a canned (reply, name) for one owned roommate, if reachable."""
+
+        if not self.available:
+            return None
+        try:
+            record = self.npcs.record_for(npc_id)
+        except Exception:  # noqa: BLE001 - replies must never break sending
+            return None
+        if record is None or record.owner_account_id != getattr(owner, "id", None):
+            return None
+        from mods.tinytown.roommate_messages import choose_reply_text, snapshot_for
+
+        snapshot = snapshot_for(self.npcs, record)
+        return (choose_reply_text(self.npcs._random, record, snapshot, player_text), record.name)
 
     def room_quick_actions(self, account: object, room: RoomDefinition) -> tuple[object, ...]:
         if not self.available:

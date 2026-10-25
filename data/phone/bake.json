@@ -27,6 +27,19 @@
       }
     },
     {
+      "label": "phone-icon-messages",
+      "tool": "image",
+      "prompt": "early 2000s mobile phone pixel art, very low resolution, limited 16 color palette, crisp nearest-neighbor pixels, dithered shading, chunky outlines, no antialiasing, square mobile phone menu icon of a cream paper envelope with a dark navy outline, centered on a flat muted navy background, no text, no letters, no phone frame",
+      "output": "C:/workspace/tinyrooms-noon/client/app/assets/phone/phone-icon-messages.png",
+      "args": {
+        "width": 256,
+        "height": 256,
+        "seed": 241021,
+        "negative": "photorealistic, text, letters, logo, phone frame, background scenery, thin lines, smooth gradients",
+        "steps": 24
+      }
+    },
+    {
       "label": "phone-icon-chiptune",
       "tool": "image",
       "prompt": "early 2000s mobile phone pixel art, very low resolution, limited 16 color palette, crisp nearest-neighbor pixels, dithered shading, chunky outlines, no antialiasing, square mobile phone menu icon of a tiny portable music player with two chunky headphones and a musical note, orange and cream palette, dark brown outline, centered on a flat olive background, no text, no letters, no phone frame",

@@ -130,6 +130,10 @@ export function dismissInvalidSelection(state, isEligible) {
   if (state.selection.kind === "peep" && ![...state.room.occupants, ...state.room.npcs].some(peep => peep.id === state.selection.id)) {
     return { ...state, selection: { kind: "room", id: state.room.id } };
   }
+  if (state.selection.kind === "container-card"
+    && !(state.container?.cards || []).some(stack => stack.stackId === state.selection.id)) {
+    return { ...state, selection: { kind: "room", id: state.room.id } };
+  }
   return state;
 }
 

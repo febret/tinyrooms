@@ -198,6 +198,27 @@ async def use_command(context: CommandContext, command: ParsedCommand) -> Comman
         if room_id is None:
             raise CommandError("You are not currently in a room.")
         prop_target = _resolve_prop_target(context, target_token)
+        prop_definition = context.world.props.get(prop_target.prop_id)
+        if prop_definition is not None and prop_definition.behavior == "container":
+            # Storing a card in a container is not "using" it: no Energy is
+            # charged and one-use cards are kept intact inside the container.
+            try:
+                deposit = context.containers.deposit(
+                    context.account, room_id, prop_target.instance_id, stack_id
+                )
+            except ValueError as exc:
+                raise CommandError(str(exc)) from exc
+            return CommandOutcome(
+                message=f"Stored {deposit.label}.",
+                payload={
+                    "inventory": context.cards.serialize_inventory_stacks(deposit.stacks),
+                    "user": _user_payload(context),
+                    "container": context.containers.contents(room_id, prop_target.instance_id),
+                },
+                private_events=[
+                    {"type": "toast", "tone": "success", "text": f"Stored {deposit.label}."}
+                ],
+            )
         result = context.actions.use_card(
             context.account,
             stack_id=stack_id,

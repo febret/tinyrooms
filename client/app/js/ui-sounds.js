@@ -1,5 +1,5 @@
 import { playSound, preloadSounds } from "./audio.js";
-import { findInventoryCard, findRoomCard } from "./state.js";
+import { findContainerCard, findInventoryCard, findRoomCard } from "./state.js";
 
 function play(state, sound) {
   if (!sound) return;
@@ -10,6 +10,7 @@ function stackSound(state, selection) {
   if (!state || !selection) return "";
   const stack = selection.kind === "room-card"
     ? findRoomCard(state, selection.id)
+    : selection.kind === "container-card" ? findContainerCard(state, selection.id)
     : selection.kind === "inventory-card" ? findInventoryCard(state, selection.id) : null;
   return stack?.definition?.sounds?.select || "";
 }

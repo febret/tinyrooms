@@ -46,12 +46,12 @@ def _complete_task(test_case: ServiceTestCase, account_id: str, task_id: str) ->
 class TitleContentTest(ServiceTestCase):
     def test_seed_catalog_loads(self) -> None:
         titles = self.content.titles
-        self.assertEqual(len(titles.parts), 24)
+        self.assertEqual(len(titles.parts), 26)
         self.assertEqual(len(titles.by_slot("salutation")), 7)
-        self.assertEqual(len(titles.by_slot("nickname")), 2)
-        self.assertEqual(len(titles.by_slot("suffix")), 15)
+        self.assertEqual(len(titles.by_slot("nickname")), 3)
+        self.assertEqual(len(titles.by_slot("suffix")), 16)
         suffix_labels = [part.label for part in titles.by_slot("suffix")]
-        self.assertEqual(len(set(suffix_labels)), 15)
+        self.assertEqual(len(set(suffix_labels)), 16)
 
     def test_loader_rejects_duplicate_ids(self) -> None:
         with TemporaryDirectory() as directory:
@@ -233,7 +233,7 @@ class TitleUnlockTest(ServiceTestCase):
         account = self.create_account("TitlePayload")
         titles = _make_titles(self)
         payload = titles.serialize_for(account)
-        self.assertEqual(len(payload["catalog"]), 24)
+        self.assertEqual(len(payload["catalog"]), 26)
         self.assertEqual(payload["unlocked"], [])
         self.assertEqual(payload["selection"]["display_label"], "TitlePayload")
         self.assertEqual(payload["cooked_count"], 0)

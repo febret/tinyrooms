@@ -442,6 +442,10 @@ class RoomLayoutService:
         effective = self.effective_props(room_id)
         if self._surfaces is not None:
             self._surfaces.prune_room(room_id, {str(entry["id"]) for entry in props})
+        with self._hub.transaction() as connection:
+            self._world_state.delete_container_cards_except(
+                connection, room_id, {str(entry["id"]) for entry in props}
+            )
         return LayoutUpdate(
             room_id=room_id,
             revision=revision,

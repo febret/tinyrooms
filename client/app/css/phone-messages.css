@@ -1,0 +1,180 @@
+/* Monochrome late-90s SMS display: tight ink-on-green lines, no cards. */
+
+.phone-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.phone-sms-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--lcd-line);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--lcd-soft);
+}
+
+.phone-sms-link {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  min-width: 0;
+  min-height: 0;
+  font: inherit;
+  color: var(--lcd-ink);
+  cursor: pointer;
+}
+
+.phone-thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-thread {
+  border-bottom: 1px solid var(--lcd-line);
+}
+
+.phone-thread-open {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: stretch;
+  text-align: left;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 2px 0;
+  font: inherit;
+  color: var(--lcd-ink);
+  cursor: pointer;
+}
+
+.phone-thread-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.phone-thread-line strong {
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-thread.unread .phone-thread-line strong {
+  font-weight: 700;
+}
+
+.phone-thread-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  background: var(--lcd-ink);
+  vertical-align: baseline;
+}
+
+.phone-thread-meta {
+  font-size: 10px;
+  color: var(--lcd-soft);
+  white-space: nowrap;
+}
+
+.phone-thread-preview {
+  font-size: 10px;
+  color: var(--lcd-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-bubbles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.phone-bubble {
+  max-width: 100%;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.phone-bubble.in {
+  text-align: left;
+}
+
+.phone-bubble.out {
+  text-align: right;
+}
+
+.phone-bubble.out .phone-bubble-text::before {
+  content: "> ";
+}
+
+.phone-bubble-time {
+  font-size: 10px;
+  color: var(--lcd-soft);
+  margin-left: 4px;
+}
+
+.phone-bubble.out .phone-bubble-time {
+  margin-left: 4px;
+  margin-right: 0;
+}
+
+.phone-compose {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  margin-top: 2px;
+  padding-top: 3px;
+  border-top: 1px solid var(--lcd-line);
+}
+
+.phone-compose input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+  padding: 1px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--lcd-line);
+  color: var(--lcd-ink);
+}
+
+.phone-compose button {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  min-width: 0;
+  min-height: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--lcd-ink);
+  cursor: pointer;
+}
+
+.phone-mail {
+  font-size: 12px;
+}

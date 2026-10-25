@@ -9,8 +9,16 @@ import sqlite3
 import threading
 
 
-PROFILE_SCHEMA_VERSION = 12
-WORLD_SCHEMA_VERSION = 18
+from server.state.phone_messages_schema import (
+    PHONE_MESSAGES_COLUMNS,
+    PHONE_MESSAGES_FRESH_SQL,
+    PHONE_MESSAGES_INDEXES,
+    PHONE_MESSAGES_MIGRATION,
+)
+
+
+PROFILE_SCHEMA_VERSION = 13
+WORLD_SCHEMA_VERSION = 19
 
 
 def read_behavior_state(
@@ -262,6 +270,13 @@ PRAGMA user_version = 12;
 COMMIT;
 """
 
+# Phone inbox rows live in the shared profile database so the phone follows the
+# player across worlds; the fresh-database script gains the v13 table in place.
+_PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
+    "PRAGMA user_version = 12;",
+    PHONE_MESSAGES_FRESH_SQL + "\nPRAGMA user_version = 13;",
+)
+
 _WORLD_SCHEMA_SQL = """
 BEGIN;
 CREATE TABLE IF NOT EXISTS room_cards (
@@ -359,7 +374,22 @@ CREATE TABLE IF NOT EXISTS vibes (
     PRIMARY KEY (world_id, source_peep_id, target_peep_id)
 );
 CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id);
-PRAGMA user_version = 18;
+-- container_cards holds shared per-container card storage: deposits move cards
+-- out of inventory into (room_id, instance_id) stacks; the Open action reads
+-- them back. One row per card per container; quantity accumulates on deposit.
+CREATE TABLE IF NOT EXISTS container_cards (
+    stack_id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    instance_id TEXT NOT NULL,
+    card_def_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    placed_by_account_id TEXT,
+    UNIQUE (room_id, instance_id, card_def_id)
+);
+CREATE INDEX IF NOT EXISTS idx_container_cards_lookup ON container_cards(room_id, instance_id);
+PRAGMA user_version = 19;
 COMMIT;
 """
 
@@ -377,6 +407,7 @@ _PROFILE_TABLES = frozenset(
         "audit_log",
         "vibes",
         "dynamic_card_defs",
+        "phone_messages",
     }
 )
 
@@ -390,6 +421,7 @@ _WORLD_TABLES = frozenset(
         "npc_peep_states",
         "prop_surfaces",
         "vibes",
+        "container_cards",
     }
 )
 
@@ -602,6 +634,7 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     PRAGMA user_version = 12;
     COMMIT;
     """,
+    13: PHONE_MESSAGES_MIGRATION,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {
@@ -726,6 +759,23 @@ _WORLD_MIGRATIONS: dict[int, str] = {
     ALTER TABLE prop_surfaces ADD COLUMN locked_by_account_id TEXT;
     ALTER TABLE prop_surfaces ADD COLUMN locked_at TEXT;
     PRAGMA user_version = 18;
+    COMMIT;
+    """,
+    19: """
+    BEGIN;
+    CREATE TABLE IF NOT EXISTS container_cards (
+        stack_id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        instance_id TEXT NOT NULL,
+        card_def_id TEXT NOT NULL,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        placed_by_account_id TEXT,
+        UNIQUE (room_id, instance_id, card_def_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_container_cards_lookup ON container_cards(room_id, instance_id);
+    PRAGMA user_version = 19;
     COMMIT;
     """,
 }
@@ -891,6 +941,17 @@ _ROOM_CARDS_COLUMNS = (
     "placed_by_account_id",
 )
 
+_CONTAINER_CARDS_COLUMNS = (
+    "stack_id",
+    "room_id",
+    "instance_id",
+    "card_def_id",
+    "quantity",
+    "created_at",
+    "updated_at",
+    "placed_by_account_id",
+)
+
 _ACTIVITY_RECORDS_COLUMNS = (
     "account_id",
     "activity_kind",
@@ -1047,8 +1108,10 @@ def ensure_profile_database(path: Path) -> None:
             "audit_log": _AUDIT_LOG_COLUMNS,
             "vibes": _VIBES_COLUMNS,
             "dynamic_card_defs": _DYNAMIC_CARD_COLUMNS,
+            "phone_messages": PHONE_MESSAGES_COLUMNS,
         },
         extra_indexes=(
+            *PHONE_MESSAGES_INDEXES,
             "CREATE INDEX IF NOT EXISTS idx_dynamic_card_defs_base ON dynamic_card_defs(base_card_id)",
             "CREATE INDEX IF NOT EXISTS idx_sessions_account_id ON sessions(account_id)",
             "CREATE INDEX IF NOT EXISTS idx_profile_cards_owner ON profile_card_stacks(account_id, world_id)",
@@ -1083,6 +1146,7 @@ def ensure_world_database(path: Path) -> None:
             "npc_peep_states": _NPC_PEEP_STATES_COLUMNS,
             "prop_surfaces": _PROP_SURFACES_COLUMNS,
             "vibes": _VIBES_COLUMNS,
+            "container_cards": _CONTAINER_CARDS_COLUMNS,
         },
         extra_indexes=(
             "CREATE INDEX IF NOT EXISTS idx_room_cards_room_id ON room_cards(room_id)",
@@ -1091,6 +1155,7 @@ def ensure_world_database(path: Path) -> None:
             "ON room_states(owner_account_id) WHERE room_id LIKE 'classroom:%'",
             "CREATE INDEX IF NOT EXISTS idx_activity_records_kind ON activity_records(activity_kind)",
             "CREATE INDEX IF NOT EXISTS idx_vibes_target ON vibes(world_id, target_peep_id)",
+            "CREATE INDEX IF NOT EXISTS idx_container_cards_lookup ON container_cards(room_id, instance_id)",
         ),
         migrations=_WORLD_MIGRATIONS,
     )

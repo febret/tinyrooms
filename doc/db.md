@@ -122,7 +122,8 @@ Preserve these compatibility/future-intent distinctions:
 ## 3. World-state DB
 
 [WorldStateRepository](../server/state/world_state.py) owns room cards,
-initialization, layouts/environment, player-classroom records, and metadata.
+container cards, initialization, layouts/environment, player-classroom
+records, and metadata.
 [BehaviorDispatcher](../server/behaviors/dispatcher.py) persists trusted
 script state through intent transactions; scripts do not access SQL directly.
 [NPC state](../server/state/npc_peep_states.py) and
@@ -152,6 +153,15 @@ including player drops, with YAML seeds and marks the room initialized. This
 card reset does not itself reset the editable layout. Preserve that loss
 boundary when exposing reset tools.
 
+`container_cards` holds shared per-container storage for container props
+([ContainerService](../server/services/containers.py)): one row per card per
+`(room_id, instance_id)`, with quantity accumulating on deposit. Deposits move
+cards out of inventory without Energy charges or one-use consumption; takes
+move them back through the normal inventory grant path. Container contents
+survive restarts, are cleared by room initialization/reset (including
+`.reset_room`), and are pruned for prop instances removed by a layout save or
+a deleted room.
+
 Live room state includes owner, editable props, environment overrides, layout
 revision, and classroom door settings. Layout saves use optimistic concurrency.
 `classroom:` rooms reuse `room_states`; a partial unique index enforces one
@@ -160,7 +170,7 @@ and the repository rather than a duplicated JSON/column inventory.
 
 ### Durability boundaries
 
-Room cards/layout/ownership, behavior state, NPC state, world metadata, and
+Room cards, container cards, layout/ownership, behavior state, NPC state, world metadata, and
 activity records survive ordinary server restarts. Chat history is deliberately
 process-local and bounded by the protocol history limit; it is lost on restart.
 Broadcast ordering is in-process, with no persisted per-room sequence counter.

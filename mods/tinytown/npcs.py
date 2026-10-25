@@ -267,6 +267,9 @@ class NpcHouse(RoommateSystemsMixin):
     def records_for_house(self, house_id: str) -> list[NpcRecord]:
         return [record for record in self._rows() if record.house_id == house_id]
 
+    def records_for_owner(self, owner_account_id: str) -> list[NpcRecord]:
+        return [record for record in self._rows() if record.owner_account_id == owner_account_id]
+
     def _write(
         self,
         record: NpcRecord,
@@ -1009,6 +1012,9 @@ class NpcHouse(RoommateSystemsMixin):
         for house_id, house_elapsed_seconds in house_elapsed.items():
             self._accumulate_house_clocks(house_id, house_elapsed_seconds)
         self._run_house_ticks(houses, moment)
+        from mods.tinytown.roommate_messages import maybe_send_hourly_texts
+
+        await maybe_send_hourly_texts(self, records, moment)
         if emit:
             await self._emit_banter(houses, occupied)
 

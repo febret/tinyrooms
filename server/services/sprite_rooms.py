@@ -200,6 +200,18 @@ class SpriteService:
 
         self._user_positions.pop(account_id, None)
 
+    def position_of_npc(self, peep_id: str) -> tuple[str, tuple[float, float]] | None:
+        """Return an NPC's stored room and position without assigning one."""
+
+        stored = self._npc_positions.get(peep_id)
+        return None if stored is None else (stored[0], stored[1])
+
+    def position_of_user(self, account_id: str) -> tuple[str, tuple[float, float]] | None:
+        """Return a user's stored room and position without assigning one."""
+
+        stored = self._user_positions.get(account_id)
+        return None if stored is None else (stored[0], stored[1])
+
     def ensure_npc(self, peep_id: str, room_id: str) -> tuple[float, float] | None:
         """Return an NPC's sprite position, assigning one on first entry."""
 

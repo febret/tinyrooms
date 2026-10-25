@@ -470,7 +470,7 @@ the current one.
 
 ### Phone and Friends
 The Phone core card opens a skeuomorphic pocket phone. It starts on an apps page
-with **Friends** and **Chiptune** apps; a back control returns to the apps page.
+with **Friends**, **Messages**, and **Chiptune** apps; a back control returns to the apps page.
 The Friends app manages friendships and beacons. It shows each friend's online
 state and reciprocal vibes in both directions: the viewer's vibe toward that
 friend and the friend's vibe toward the viewer. Friends can be added through the
@@ -481,6 +481,22 @@ Incoming and outgoing requests and incoming beacons remain pending until
 accepted, declined, cancelled, followed, or dismissed, including while a user is
 offline. Acceptance creates a mutual friendship; either user can remove the
 friendship for both.
+
+### Messages
+The Phone's Messages app works like old-school SMS: a thread list, one open
+conversation, and a compose box, opened from the app grid or the keypad ✉ key.
+Players send free text (160 characters, no energy cost) to friends; friendship
+is required, muting blocks sending, and each side keeps its own copy, so
+unfriending preserves history but blocks new texts. Adopted TinyTown roommates
+text their owner on their own: each roommate has a 10% chance per hour to send
+a text shaped by its current action, traits, job state, interests, condition,
+and vibes toward the owner. Players can reply to roommate threads and get one
+immediate canned answer drawn from the same live state; replies never change
+vibes. Texts from other gameplay sources arrive as read-only notices. Threads
+persist in the shared profile, follow the player across worlds, and arrive live
+only when the recipient is connected to the same world process; otherwise they
+appear on the next open. An unread count badges the Messages icon and the
+status bar.
 
 ### Chiptune
 The Phone's Chiptune app is a personal player backed by chiptune.app. Users can

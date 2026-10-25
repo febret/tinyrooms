@@ -42,7 +42,7 @@ def _stub_world() -> object:
 class LightingContentTests(unittest.TestCase):
     def test_environments_cover_darkness_night_dusk_day_dawn(self) -> None:
         self.assertEqual(
-            tuple(LIGHTING_ENVIRONMENTS), ("darkness", "night", "dusk", "day", "dawn")
+            tuple(LIGHTING_ENVIRONMENTS), ("darkness", "night", "dusk", "day", "dawn", "fluorescent")
         )
 
     def test_validate_rejects_unknown_environment(self) -> None:

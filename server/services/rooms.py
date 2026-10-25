@@ -803,6 +803,17 @@ class RoomService:
     ) -> dict[str, object]:
         """Move a user's board sprite and return the room event to broadcast."""
 
+        for state in self._mod_states:
+            validate = getattr(state, "validate_sprite_move", None)
+            if validate is None:
+                continue
+            try:
+                problem = validate(account, room_id, x, y)
+            except Exception:  # noqa: BLE001 - movement validators must not break rooms
+                LOGGER.exception("room.mod_sprite_validation_failed")
+                continue
+            if problem:
+                raise ValueError(problem)
         position = self._sprites.set_user_position(account.id, room_id, x, y)
         return {
             "type": "peep.sprite",

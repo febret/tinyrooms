@@ -350,7 +350,39 @@ async def drop_command(context: CommandContext, command: ParsedCommand) -> Comma
     target = parse_target(command.args[0]) if command.args[0].startswith("@") else None
     if target is None or target.kind != "card":
         raise CommandError("Drop requires a @card target.")
-    quantity = _parse_quantity(command.args)
+    rest = command.args[1:]
+    quantity = 1
+    if rest and not rest[0].startswith("@"):
+        quantity = _parse_quantity(command.args)
+        rest = rest[1:]
+    if rest and rest[0].startswith("@"):
+        # Dropping onto a container prop stores the cards inside it instead
+        # of leaving them on the floor.
+        parsed = parse_target(rest[0])
+        if parsed.kind != "prop":
+            raise CommandError("Drop onto a target must use @prop:<id>.")
+        prop = context.rooms.require_prop_target(room_id, parsed.value)
+        definition = context.world.props.get(prop.prop_id)
+        if definition is None or definition.behavior != "container":
+            raise CommandError("That prop is not a container.")
+        try:
+            deposit = context.containers.deposit(
+                context.account, room_id, prop.id, target.value, quantity
+            )
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
+        account = context.profiles.get_account_by_id(context.account.id) or context.account
+        return CommandOutcome(
+            message=f"Stored {quantity}× {deposit.label}." if quantity > 1 else f"Stored {deposit.label}.",
+            payload={
+                "inventory": context.cards.serialize_inventory_stacks(deposit.stacks),
+                "user": context.serialize_user(account),
+                "container": context.containers.contents(room_id, prop.id),
+            },
+            private_events=[
+                {"type": "toast", "tone": "success", "text": f"Stored {deposit.label}."}
+            ],
+        )
     position = _parse_drop_position(command.args)
     mutation = context.cards.drop(context.account, room_id, target.value, quantity, pos=position)
     return CommandOutcome(
@@ -521,7 +553,7 @@ async def memory_delete_command(context: CommandContext, command: ParsedCommand)
 def build_registry() -> CommandRegistry:
     """Build the command registry."""
 
-    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, privileged, prop_shop, props, surfaces, titles
+    from server.commands import activity_hooks, cutscenes, gameplay, multiverse, phone_messages, privileged, prop_shop, props, surfaces, titles
 
     registry = CommandRegistry()
     registry.register(
@@ -635,7 +667,8 @@ def build_registry() -> CommandRegistry:
         "drop",
         "Drop a quantity from one of your inventory stacks.",
         drop_command,
-        usage=".drop @card:<stack_id> [quantity] [x y z]",
+        usage=".drop @card:<stack_id> [quantity] [x y z|@prop:<id>]",
+        help="Drop cards on the floor, or onto a container prop to store them inside it.",
     )
     registry.register("emote", "Play an owned emote card.", gameplay.emote_command, usage=".emote @card:<stack_id>", toast=False)
     registry.register("equip", "Equip an item or action stack.", gameplay.equip_command, usage=".equip @card:<stack_id>")
@@ -724,8 +757,32 @@ def build_registry() -> CommandRegistry:
         usage=".open_pack @card:<stack_id> <operation_id>",
         help="Consume a sealed pack and reveal its cards. The operation id makes opens idempotent.",
     )
+    registry.register(
+        "open",
+        "Open a container prop and show its contents.",
+        props.open_command,
+        usage=".open @prop:<instance_id>",
+        help="Look inside a container prop; the client shows its cards in a popup.",
+        toast=False,
+        log=False,
+    )
+    registry.register(
+        "take",
+        "Take cards out of a container prop.",
+        props.take_command,
+        usage=".take @prop:<instance_id> @card:<stack_id> [quantity]",
+        help="Move cards from a container back into your inventory.",
+    )
     registry.register("own", "Manage room ownership.", privileged.own_command, usage=".own <grant|remove|modify|show> <room_id> [@peep]", power="realtor")
     registry.register("packs", "List the card packs available for purchase.", gameplay.packs_command, usage=".packs")
+    registry.register(
+        "phone_msg",
+        "Send and read phone text messages.",
+        phone_messages.phone_msg_command,
+        usage=".phone_msg <list|peers|open|send|read> [thread] [text]",
+        toast=False,
+        log=False,
+    )
     registry.register("pickup", "Pick up a room card stack quantity.", pickup_command, usage=".pickup @card:<stack_id> [quantity]")
     registry.register(
         "pin_peep",

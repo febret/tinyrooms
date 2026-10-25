@@ -4,7 +4,7 @@ export function actionsBarMarkup(state, dialogActions, selectionActions, actionS
   if (state.ui.dropTargeting) {
     const drop = state.ui.dropTargeting;
     const count = drop.quantity > 1 ? ` ×${drop.quantity}` : "";
-    return `<span class="targeting-hint">Drop ${escapeHtml(drop.label)}${escapeHtml(count)} — click a spot in the room</span>
+    return `<span class="targeting-hint">Drop ${escapeHtml(drop.label)}${escapeHtml(count)} — click a spot in the room or a container</span>
       <button type="button" class="cancel" data-action-index="-1" data-sound="click">Cancel</button>`;
   }
   if (state.ui.targeting) {

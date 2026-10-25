@@ -92,6 +92,23 @@ export function normalizeRoomCard(stack) {
   };
 }
 
+export function normalizeContainerCard(stack) {
+  return {
+    ...normalizeStackBase(stack),
+    placedBy: stack?.placed_by_account_id ? String(stack.placed_by_account_id) : "",
+  };
+}
+
+export function normalizeContainer(container) {
+  if (!container || typeof container !== "object") return null;
+  return {
+    instanceId: String(container.instance_id || ""),
+    roomId: String(container.room_id || ""),
+    label: String(container.label || "Container"),
+    cards: Array.isArray(container.cards) ? container.cards.map(normalizeContainerCard) : [],
+  };
+}
+
 export function normalizeExit(exit) {
   return {
     id: String(exit?.id || ""),
@@ -491,8 +508,8 @@ export function normalizeUser(user) {
           outgoing: Array.isArray(user.friends.outgoing) ? [...user.friends.outgoing] : [],
         }
       : { friends: [], incoming: [], outgoing: [] },
-    beacons: Array.isArray(user.beacons) ? user.beacons.map(beacon => ({
-      fromAccountId: String(beacon.from_account_id || ""),
+    phoneUnread: Number(user.phone_unread || 0),
+    beacons: Array.isArray(user.beacons) ? user.beacons.map(beacon => ({      fromAccountId: String(beacon.from_account_id || ""),
       fromUsername: String(beacon.from_username || ""),
       worldId: String(beacon.world_id || ""),
       worldLabel: String(beacon.world_label || ""),
@@ -513,8 +530,60 @@ export function normalizeUser(user) {
   };
 }
 
-export function normalizeGameAssets(assets) {
-  if (!assets || typeof assets !== "object") return {};
+export function normalizePhoneThread(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    threadKey: String(raw.thread_key || ""),
+    kind: String(raw.kind || ""),
+    peerName: String(raw.peer_name || ""),
+    preview: String(raw.preview || ""),
+    lastAt: String(raw.last_at || ""),
+    unread: Number(raw.unread || 0),
+  };
+}
+
+export function normalizePhoneMessage(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    messageId: String(raw.message_id || ""),
+    direction: raw.direction === "out" ? "out" : "in",
+    senderName: String(raw.sender_name || ""),
+    body: String(raw.body || ""),
+    createdAt: String(raw.created_at || ""),
+    read: Boolean(raw.read),
+  };
+}
+
+export function initialPhoneMessages() {
+  return { threads: [], unread: 0, threadKey: null, messages: [], peers: [], picking: false };
+}
+
+export function mergePhoneMessages(previous, raw) {
+  const base = previous && typeof previous === "object" ? previous : initialPhoneMessages();
+  if (!raw || typeof raw !== "object") return { ...base, threads: [...base.threads], messages: [...base.messages], peers: [...base.peers] };
+  const threads = Array.isArray(raw.threads)
+    ? raw.threads.map(normalizePhoneThread).filter(thread => thread && thread.threadKey)
+    : [...base.threads];
+  const messages = Array.isArray(raw.messages)
+    ? raw.messages.map(normalizePhoneMessage).filter(message => message && message.messageId)
+    : base.messages;
+  const peers = Array.isArray(raw.peers)
+    ? raw.peers.map(peer => ({ threadKey: String(peer?.thread_key || ""), name: String(peer?.name || "") })).filter(peer => peer.threadKey)
+    : [...base.peers];
+  let threadKey = base.threadKey;
+  if (raw.thread && typeof raw.thread === "object") threadKey = String(raw.thread.thread_key || base.threadKey);
+  else if ("thread" in raw && raw.thread === null) threadKey = base.threadKey;
+  return {
+    threads,
+    unread: typeof raw.unread === "number" ? raw.unread : base.unread,
+    threadKey,
+    messages,
+    peers,
+    picking: base.picking,
+  };
+}
+
+export function normalizeGameAssets(assets) {  if (!assets || typeof assets !== "object") return {};
   return Object.fromEntries(Object.entries(assets).map(([name, url]) => [String(name), assetOrEmpty(url)]));
 }
 

@@ -11,7 +11,9 @@ import { syncEmoteChrome } from "./emote-chrome.js";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isFullscreen, onFullscreenChange } from "./fullscreen.js";
 import { syncPeepsChrome } from "./peeps-chrome.js";
 import { createPhoneMusic } from "./phone-music.js";
+import { handlePhoneMessagesAction, refreshPhoneMessages } from "./phone-actions.js";
 import { createRoomPicker } from "./room-picker.js";
+import { createContainerPanel } from "./container-panel.js";
 import { createCardsView, defaultSelectionAction, describeSelection, dialogActions, selectionActions } from "./cards.js";
 import { lookPreview } from "./look-preview.js";
 import { createCutsceneManager } from "./cutscenes/manager.js";
@@ -320,6 +322,10 @@ function connectSocket() {
       if (opened && (opened.replayed || store.getState().ui.reducedMotion)) {
         showPackReveal(opened.cards || []);
       }
+      const container = envelope.payload?.container;
+      if (envelope.payload?.container_open && container) {
+        store.dispatch({ type: "open-container", container });
+      }
     },
   });
   socket.connect();
@@ -499,6 +505,7 @@ async function handleAction(action, { silentSound = false } = {}) {
   } else if (action.type === "phone-app") {
     store.dispatch({ type: "phone-app", app: action.app });
     if (action.app === "friends") await refreshBeacons();
+    if (action.app === "messages") await refreshPhoneMessages({ store, sendCommand, showError });
     if (action.app === "chiptune") await phoneMusic.load(store.getState().ui.phoneMusic.mode || "suggestions", {
       path: store.getState().ui.phoneMusic.path,
       query: store.getState().ui.phoneMusic.query,
@@ -512,6 +519,10 @@ async function handleAction(action, { silentSound = false } = {}) {
     else if (action.key === "music-star") await phoneMusic.toggleStarCurrent();
     else if (action.key === "friend-prev") store.dispatch({ type: "phone-friend-step", delta: -1 });
     else if (action.key === "friend-next") store.dispatch({ type: "phone-friend-step", delta: 1 });
+    else if (action.key === "messages") {
+      store.dispatch({ type: "phone-app", app: "messages" });
+      await refreshPhoneMessages({ store, sendCommand, showError });
+    }
   } else if (action.type === "phone-music") {
     if (action.action === "play") phoneMusic.play({ song: action.song, label: action.label });
     else if (action.action === "stop") phoneMusic.stop();
@@ -555,6 +566,8 @@ async function handleAction(action, { silentSound = false } = {}) {
     try { await sendCommand(buildBeaconCommand(action.action, action.accountId)); } catch (error) { showError(error); }
   } else if (action.type === "beacon-refresh") {
     await refreshBeacons();
+  } else if (action.type === "phone-messages" || action.type === "phone-messages-send") {
+    await handlePhoneMessagesAction(action, { store, sendCommand, showError });
   } else if (action.type === "skill-slot") {
     const state = store.getState();
     if (action.stackId) {
@@ -982,6 +995,20 @@ const phoneMusic = createPhoneMusic({
   onToast: toast,
   onError: showError,
 });
+const containerPanel = createContainerPanel({
+  root: $("#container-panel"), store, thumbnails,
+  projectPosition: position => {
+    const project = board.projectPositionToScreen;
+    return typeof project === "function" ? project.call(board, position) : null;
+  },
+  onSelect(selection) {
+    if (dropTargeting?.handle(selection)) return;
+    if (targeting?.handle(selection)) return;
+    if (activateSelection(selection)) return;
+    store.dispatch({ type: "select", selection });
+    playSelectionSound(store.getState(), selection);
+  },
+});
 function syncPhoneFriendSelection(state) {
   syncPhoneFriend(state, panelLayer);
 }
@@ -1101,6 +1128,7 @@ async function render(state) {
   syncEmoteChrome(state, emoteToggle, emoteToggleIcon, emoteMenu);
   syncPeepsChrome(state, root);
   roomPicker.sync(state);
+  containerPanel.sync(state);
   phoneMusic.render(state);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   if (state.views.main === "phone" && previousView !== "phone") playPhoneOpen();
@@ -1194,6 +1222,7 @@ document.addEventListener("keydown", event => {
   if (state.ui.targeting) { event.preventDefault(); store.dispatch({ type: "cancel-targeting" }); return; }
   if (dialogs.active) { event.preventDefault(); dialogs.cancel(); return; }
   if (roomPicker.handleEscape(event)) return;
+  if (containerPanel.handleEscape(event)) return;
   if (settings.open) { settings.open = false; settings.querySelector("summary").focus(); return; }
   if (state.ui.emoteMenuOpen) {
     event.preventDefault();

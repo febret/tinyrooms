@@ -158,7 +158,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(idCard.locator('[data-id-flip="1"]')).toContainText("ID");
 });
 
-test("phone opens apps, friends, and the personal chiptune player", async ({ page, runtime }) => {
+test("phone opens apps, friends, messages, and the personal chiptune player", async ({ page, runtime }) => {
   test.slow();
   await page.route("**/api/chiptune/suggestions*", route => route.fulfill({
     json: {
@@ -172,7 +172,7 @@ test("phone opens apps, friends, and the personal chiptune player", async ({ pag
   const phone = page.getByRole("dialog", { name: "Phone", exact: true });
   await expect(phone).toBeVisible();
   await expect(phone.locator(".phone-lid svg")).toBeVisible();
-  await expect(phone.locator("[data-phone-app]")).toHaveCount(2);
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
   const toolbar = await page.locator(".topbar").boundingBox();
   const device = await phone.locator(".phone-device").boundingBox();
   expect(device.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height);
@@ -184,13 +184,20 @@ test("phone opens apps, friends, and the personal chiptune player", async ({ pag
   await expect(keypad.locator("button")).toHaveCount(9);
   await expect(keypad.locator('[data-phone-key="volume-up"]')).toBeDisabled();
   await expect(keypad.locator('[data-phone-key="volume-down"]')).toBeDisabled();
-  await expect(keypad.locator('[data-phone-key="messages"]')).toBeDisabled();
+  await expect(keypad.locator('[data-phone-key="messages"]')).toBeEnabled();
   await expect(keypad.locator('[data-phone-key="friend-prev"]')).toBeDisabled();
   await expect(keypad.locator('[data-phone-key="friend-next"]')).toBeDisabled();
   await expect(phone.locator(".phone-lcd")).toHaveCSS("font-size", "13.5px");
 
   await phone.locator('[data-phone-home="1"]').first().click();
-  await expect(phone.locator("[data-phone-app]")).toHaveCount(2);
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
+
+  await phone.locator('[data-phone-app="messages"]').click();
+  await expect(phone.getByText("No texts yet", { exact: false })).toBeVisible();
+  await keypad.locator('[data-phone-key="messages"]').click();
+  await expect(phone.getByText("No texts yet", { exact: false })).toBeVisible();
+  await phone.locator('[data-phone-home="1"]').first().click();
+  await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
 
   await phone.locator('[data-phone-app="chiptune"]').click();
   await expect(phone.getByText("TOP TRACKS", { exact: true })).toBeVisible();
