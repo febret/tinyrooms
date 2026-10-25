@@ -29,6 +29,8 @@
   opacity: 1;
   display: grid;
   place-items: center;
+  pointer-events: auto;
+  touch-action: manipulation;
   background: radial-gradient(circle at 35% 30%, #f6b8a8, #c0392b 62%, #7c1f14);
   border: 1px solid #5b130c;
   color: #fff;
