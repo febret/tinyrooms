@@ -186,12 +186,12 @@ admin console; log refresh can be paused.
   including host, base path, client URL, and version selection. If the saved
   port is unavailable, MC allocates another in-range port, updates the saved
   endpoint/identity, and logs `mc.port_reassigned` instead of failing to bind.
-- **Change version**: open an instance to its detail view and select another
-  installed server version in the Server Info card. MC re-resolves its world
-  for that checkout, persists the selection, and restarts a non-stopped child.
-  Shared worlds remain outside version roots. The main grid shows the running
-  build and exposes start/restart/resync/delete directly; version selection
-  lives in the detail view, which refreshes itself while the child restarts.
+- **Change version**: select another installed server version from the grid's
+  Version dropdown or from the Server Info card of the instance detail view.
+  MC re-resolves its world for that checkout, persists the selection, and
+  restarts a non-stopped child. Shared worlds remain outside version roots.
+  The detail view refreshes itself while the child restarts, so the reported
+  build catches up automatically.
 - **Rename**: spawned only; persists the label and restarts a non-stopped child,
   preserving id, direct URL, and any legacy base path.
 - **Delete**: stops/removes a child, identity file, and resume entry; leaves
