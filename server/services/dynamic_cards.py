@@ -255,7 +255,7 @@ STATUS_DROP_SPECS: tuple[StatusDropSpec, ...] = (
         chance=0.10,
         variants=(
             DropVariant(
-                base_candidates=("juicy-drink", "tasty-toast", "tomato-sauce"),
+                base_candidates=("stinky-pee", "juicy-drink", "tasty-toast", "tomato-sauce"),
                 label_template="{name}'s pee",
                 descriptions=(
                     "Still warm. {name} was here, and their bladder filed a complaint.",
@@ -265,7 +265,7 @@ STATUS_DROP_SPECS: tuple[StatusDropSpec, ...] = (
                 ),
             ),
             DropVariant(
-                base_candidates=("poop", "poop-in-a-bag", "plastic-bag"),
+                base_candidates=("stinky-poop", "poop", "poop-in-a-bag", "plastic-bag"),
                 label_template="{name}'s poop",
                 descriptions=(
                     "Fresh from {name}. Do not ask about the journey.",
@@ -333,14 +333,24 @@ class DynamicCardDrops:
         account_ids: list[str],
         *,
         now: datetime | None = None,
+        force: bool = False,
     ) -> list[PendingRoomBroadcast]:
-        """Roll one minute-cadence drop check for status-carrying occupants."""
+        """Roll one minute-cadence drop check for status-carrying occupants.
+
+        ``force=True`` bypasses the throttle stamp and the per-spec dice (used
+        by the admin force-drop command); the room cap and mint validation
+        still apply.
+        """
 
         from server.commands.outcomes import PendingRoomBroadcast
 
         moment = now or utc_now()
         previous = self._last_room_drop.get(room_id)
-        if previous is not None and moment - previous < timedelta(seconds=DROP_CHECK_PERIOD_SECONDS):
+        if (
+            not force
+            and previous is not None
+            and moment - previous < timedelta(seconds=DROP_CHECK_PERIOD_SECONDS)
+        ):
             return []
         users = [str(account_id) for account_id in dict.fromkeys(account_ids) if str(account_id)]
         if not users:
@@ -348,11 +358,16 @@ class DynamicCardDrops:
         room_stacks = self._world_state.list_room_cards(room_id)
         dynamic_count = sum(1 for stack in room_stacks if is_dynamic_card_id(stack.card_def_id))
         if dynamic_count >= MAX_DYNAMIC_ROOM_STACKS:
+            logger.warning(
+                "Dynamic drop skipped in %s: room already holds %d dynamic stacks.",
+                room_id,
+                dynamic_count,
+            )
             self._last_room_drop[room_id] = moment
             return []
         broadcasts: list[PendingRoomBroadcast] = []
         for account_id in users:
-            broadcast = self._mint_drop_for_specs(room_id, account_id)
+            broadcast = self._mint_drop_for_specs(room_id, account_id, force=force)
             if broadcast is not None:
                 broadcasts.append(broadcast)
                 dynamic_count += 1
@@ -362,15 +377,20 @@ class DynamicCardDrops:
         return broadcasts
 
     def _mint_drop_for_specs(
-        self, room_id: str, account_id: str
+        self, room_id: str, account_id: str, *, force: bool = False
     ) -> PendingRoomBroadcast | None:
         from server.commands.outcomes import PendingRoomBroadcast
 
         for spec in STATUS_DROP_SPECS:
-            if self._random_func() >= spec.chance:
+            if not force and self._random_func() >= spec.chance:
                 continue
-            variant = self._rng.choice(spec.variants)
-            return self._mint_drop(room_id, account_id, variant)
+            first = self._rng.choice(spec.variants)
+            ordered = [first, *(variant for variant in spec.variants if variant is not first)]
+            for variant in ordered:
+                if self._base_for(variant) is None:
+                    continue
+                return self._mint_drop(room_id, account_id, variant)
+            logger.warning("Dynamic drop skipped in %s: no base card available.", room_id)
         return None
 
     def _mint_drop(

@@ -218,6 +218,7 @@ class RuntimeState:
     behaviors: BehaviorDispatcher
     ticker: RoomTicker
     vibes: VibesService
+    card_drops: DynamicCardDrops
     started_at: float = field(default_factory=time.time)
     profile_revision: int = 0
     loaded_mods: object | None = None
@@ -539,19 +540,20 @@ def _build_runtime(
             log=spec["log"],
         )
     peep_states = NpcPeepStateRepository(hub, world)
+    card_drops = DynamicCardDrops(
+        hub=hub,
+        profiles=profiles,
+        world_state=world_state,
+        cards=cards,
+        catalog=catalog,
+    )
     vibes = VibesService(
         hub=hub,
         world=world,
         stats=stats,
         peep_states=peep_states,
         connections=connections,
-        card_drops=DynamicCardDrops(
-            hub=hub,
-            profiles=profiles,
-            world_state=world_state,
-            cards=cards,
-            catalog=catalog,
-        ),
+        card_drops=card_drops,
     )
     friends = FriendsService(hub, profiles, is_online=connections.is_online, vibes=vibes)
     chiptune_stars = ChiptuneStarService(profiles)
@@ -689,6 +691,7 @@ def _build_runtime(
         behaviors=behaviors,
         ticker=ticker,
         vibes=vibes,
+        card_drops=card_drops,
         loaded_mods=loaded_mods,
     )
     for mod_id, factory in mods.state_factories():

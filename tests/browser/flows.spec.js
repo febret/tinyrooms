@@ -54,9 +54,9 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   const statusButton = page.locator('#status-tools [data-status-toggle]');
   await expect(statusButton).toBeVisible();
   await statusButton.click();
-  const statusJournal = page.getByRole("dialog", { name: "Journal", exact: true });
+  const statusJournal = page.getByRole("dialog", { name: "Identity card", exact: true });
   await expect(statusJournal).toBeVisible();
-  await expect(statusJournal.locator('[data-journal-tab="Self"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(statusJournal.locator('[data-id-flip="1"]')).toContainText("Skills");
   await page.keyboard.press("Escape");
   await expect(statusJournal).toBeHidden();
   const bopsButton = page.locator("#bops-toggle");
@@ -134,22 +134,28 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await openCore(page, "journal");
   const journal = page.getByRole("dialog", { name: "Journal", exact: true });
   await expect(journal).toBeVisible();
-  await expect(journal.locator("[data-journal-tab]")).toHaveCount(4);
-  for (const tab of ["Tasks", "Memories", "Self", "Skills"]) {
+  await expect(journal.locator("[data-journal-tab]")).toHaveCount(2);
+  for (const tab of ["Tasks", "Memories"]) {
     const button = journal.locator(`[data-journal-tab="${tab}"]`);
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
     await expect(journal.locator(".journal-page")).toHaveCount(2);
     await expect(journal.locator(".journal-page-left")).toBeVisible();
     await expect(journal.locator(".journal-page-right")).toBeVisible();
-    if (tab === "Self") {
-      await expect(journal.getByRole("progressbar", { name: "Next level", exact: true })).toBeVisible();
-      for (const name of ["Health", "Energy", "Cleanliness"]) {
-        await expect(journal.getByRole("progressbar", { name, exact: true })).toBeVisible();
-      }
-      await expect(journal.locator("[data-level-up]")).toBeDisabled();
-    }
   }
+  await expect(journal.locator('[data-close-view="1"]')).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(journal).toBeHidden();
+  await statusButton.click();
+  const idCard = page.getByRole("dialog", { name: "Identity card", exact: true });
+  await expect(idCard).toBeVisible();
+  await expect(idCard.getByRole("progressbar", { name: "Next level", exact: true })).toBeVisible();
+  for (const name of ["Health", "Energy", "Clean"]) {
+    await expect(idCard.getByRole("progressbar", { name, exact: true })).toBeVisible();
+  }
+  await expect(idCard.locator("[data-level-up]")).toBeDisabled();
+  await idCard.locator('[data-id-flip="1"]').click();
+  await expect(idCard.locator('[data-id-flip="1"]')).toContainText("ID");
 });
 
 test("phone opens apps, friends, and the personal chiptune player", async ({ page, runtime }) => {
@@ -206,7 +212,7 @@ test("phone opens apps, friends, and the personal chiptune player", async ({ pag
   expect(mobileDevice.y).toBeGreaterThanOrEqual(mobileToolbar.y + mobileToolbar.height);
   expect(Math.abs(mobileDevice.x + mobileDevice.width / 2 - 195)).toBeLessThan(3);
 
-  await page.keyboard.press("Escape");
+  await phone.locator(".phone-close[data-close-view]").click();
   await expect(phone).toBeHidden();
 });
 

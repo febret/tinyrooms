@@ -8,7 +8,7 @@ from server.commands.outcomes import CommandContext, CommandError, CommandOutcom
 from server.commands.parser import ParsedCommand
 
 
-ALLOWED_ADMIN_COMMANDS = ("help", "status", "rooms", "audit", "say")
+ALLOWED_ADMIN_COMMANDS = ("help", "status", "rooms", "audit", "say", "stinky-drop")
 BLOCKED_ADMIN_COMMANDS = frozenset({"r", "k"})
 BLOCKED_MESSAGE = "The \\r and \\k console commands are not available."
 
@@ -42,6 +42,8 @@ async def dispatch_admin(context: CommandContext, command: ParsedCommand) -> Com
         return _admin_audit(context)
     if name == "say":
         return _admin_say(context, tokens[1:])
+    if name == "stinky-drop":
+        return await _admin_stinky_drop(context, tokens[1:])
     context.audit.safe_record(context.account.id, "admin.console", name or None, "rejected", {"reason": "unknown"})
     raise CommandError(f"Unknown admin command '{name}'. Available: {', '.join(ALLOWED_ADMIN_COMMANDS)}.")
 
@@ -57,6 +59,7 @@ def _admin_help(context: CommandContext) -> CommandOutcome:
                 {"name": "rooms", "summary": "List rooms in the world."},
                 {"name": "audit", "summary": "Show recent audit entries."},
                 {"name": "say", "summary": "Broadcast a server announcement."},
+                {"name": "stinky-drop", "summary": "Force a stinky drop roll for a room."},
             ]
         },
     )
@@ -98,3 +101,44 @@ def _admin_say(context: CommandContext, words: list[str]) -> CommandOutcome:
         for room_id in context.rooms.world.rooms
     ]
     return CommandOutcome(message="Announcement sent.", room_broadcasts=broadcasts)
+
+
+async def _admin_stinky_drop(context: CommandContext, words: list[str]) -> CommandOutcome:
+    room_id = words[0] if words else (context.connection.room_id or "")
+    if not room_id or room_id not in context.rooms.world.rooms:
+        raise CommandError("Use '\\stinky-drop <room>' with a valid room id.")
+    if context.card_drops is None:
+        raise CommandError("Dynamic card drops are not available in this runtime.")
+    occupants = await context.connections.list_room(room_id)
+    user_ids = [
+        str(getattr(occupant, "account_id", ""))
+        for occupant in occupants
+        if getattr(occupant, "account_id", None)
+    ]
+    views = context.stats.views(user_ids)
+    stinky = [
+        account_id
+        for account_id in user_ids
+        if views.get(account_id) is not None and "stinky" in views[account_id].statuses
+    ]
+    if not stinky:
+        context.audit.safe_record(context.account.id, "admin.stinky_drop", room_id, "ok", {"dropped": 0})
+        return CommandOutcome(message=f"No stinky peeps in {room_id}; nothing dropped.")
+    broadcasts = context.card_drops.maybe_drop(room_id, stinky, force=True)
+    added = [
+        str((broadcast.event.get("stack") or {}).get("definition", {}).get("label") or "?")
+        for broadcast in broadcasts
+        if broadcast.event.get("type") == "room.card.added"
+    ]
+    context.audit.safe_record(
+        context.account.id, "admin.stinky_drop", room_id, "ok", {"dropped": len(added)}
+    )
+    if not added:
+        return CommandOutcome(
+            message=f"Drop roll forced in {room_id} but nothing minted (room may be full).",
+            room_broadcasts=broadcasts,
+        )
+    return CommandOutcome(
+        message=f"Dropped {len(added)} card(s) in {room_id}: {', '.join(added)}.",
+        room_broadcasts=broadcasts,
+    )

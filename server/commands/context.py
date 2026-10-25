@@ -67,4 +67,5 @@ def build_command_context(
         recipes=runtime.world.recipes,
         cross_world=runtime.cross_world,
         reload_world=runtime.reload_world,
+        card_drops=runtime.card_drops,
     )

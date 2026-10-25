@@ -1,0 +1,21 @@
+# Shared bases for status-triggered dynamic cards (e.g. stinky pee/poop drops).
+# These art donors are never in any pack, dispenser, or dialog reward; dynamic
+# definitions mint personalized copies over this art so drops resolve in every
+# world. Kept inert: plain collectible items with no effect.
+stinky-pee:
+  label: "Suspicious Puddle"
+  description: "A warm little puddle of questionable origin. Best not to ask."
+  image: stinky-pee.png
+  type: item
+  rarity: Common
+  stack_limit: 10
+  tags: [stinky, waste]
+
+stinky-poop:
+  label: "Mystery Poop"
+  description: "A coiled mystery nobody claims. It claims you."
+  image: stinky-poop.png
+  type: item
+  rarity: Common
+  stack_limit: 10
+  tags: [stinky, waste]
