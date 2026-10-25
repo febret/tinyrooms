@@ -8,6 +8,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from server.content.common import LOGGER, ContentError, load_yaml_file, require_mapping, warn_unknown_card
+from server.content.exit_props import (
+    ARROW_PROP_ID,
+    DOOR_PROP_ID,
+    EXIT_PROP_RENDER_KINDS,
+    STAIRS_PROP_ID,
+)
 from server.content.prop_assets import PROP_MODEL_PLACEHOLDER_PATH
 from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
 from server.content.surface_props import SIGN_PROP_ID, WHITEBOARD_PROP_ID
@@ -20,7 +26,7 @@ if TYPE_CHECKING:
 PROPS_CONFIG_KEY = "CONFIG"
 DEFAULT_PROP_PRICE = 5
 FREE_PROPSET_SOURCES = frozenset({"base"})
-PROP_RENDER_KINDS = frozenset({"model", "text", "sign", "whiteboard"})
+PROP_RENDER_KINDS = frozenset({"model", "text", "sign", "whiteboard"}) | EXIT_PROP_RENDER_KINDS
 # Gameplay fields owned by a prop definition. Authoring them on a room prop
 # instance is rejected so every instance of the prop behaves identically.
 MOVED_INSTANCE_PROP_FIELDS = frozenset({"activity", "behavior", "content", "cooldown", "recipes"})
@@ -103,7 +109,7 @@ class PropInstanceDefinition:
     # Instance scale multiplies the definition's already file-adjusted scale.
     # Behavior, activity, content, cooldown, and recipes live on the prop
     # definition; an instance only overrides placement, label, description,
-    # custom quick actions, and surface recipes.
+    # custom quick actions, exit destination and finish, and surface recipes.
     id: str
     prop_id: str
     pos: tuple[float, float, float]
@@ -120,6 +126,8 @@ class PropInstanceDefinition:
     sounds: dict[str, str] = field(default_factory=dict)
     description: str | None = None
     label: str | None = None
+    exit_to: str | None = None
+    exit_style: dict[str, str] | None = None
 
 
 def _load_text_recipe(
@@ -158,6 +166,24 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
             model_name=None, model_path=None, decorative=True, animation=None,
             scale=1.0, activity="whiteboard", editor_scale_max=5.0, source="builtin", source_kind="builtin",
             tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard",
+        ),
+        DOOR_PROP_ID: PropDefinition(
+            id=DOOR_PROP_ID, label="Door", description="A simple door that can lead to a room exit.",
+            model_name=None, model_path=None, decorative=False, animation=None,
+            scale=1.0, source="builtin", source_kind="builtin",
+            tags=("exit", "door"), price=0, locked=False, render_kind="door",
+        ),
+        ARROW_PROP_ID: PropDefinition(
+            id=ARROW_PROP_ID, label="Arrow", description="A simple arrow that can lead to a room exit.",
+            model_name=None, model_path=None, decorative=False, animation=None,
+            scale=1.0, source="builtin", source_kind="builtin",
+            tags=("exit", "arrow"), price=0, locked=False, render_kind="arrow",
+        ),
+        STAIRS_PROP_ID: PropDefinition(
+            id=STAIRS_PROP_ID, label="Stairs", description="A simple set of stairs that can lead to a room exit.",
+            model_name=None, model_path=None, decorative=False, animation=None,
+            scale=1.0, source="builtin", source_kind="builtin",
+            tags=("exit", "stairs"), price=0, locked=False, render_kind="stairs",
         ),
     }
 

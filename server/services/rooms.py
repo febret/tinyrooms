@@ -8,6 +8,7 @@ import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
+from server.content.exit_props import EXIT_STYLES_BY_KIND, default_exit_finish
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url, resolve_default_prop_actions
@@ -507,6 +508,7 @@ class RoomService:
 
     def _merged_prop_actions(
         self,
+        room: RoomDefinition,
         prop: PropInstanceDefinition,
         definition: PropDefinition,
     ) -> tuple[QuickAction, ...]:
@@ -514,6 +516,19 @@ class RoomService:
 
         merged = list(prop.actions)
         seen = {action.command for action in merged}
+        if prop.exit_to:
+            exit_definition = room.exits.get(prop.exit_to)
+            if exit_definition is not None:
+                command = self._exit_command(prop.exit_to)
+                if command not in seen:
+                    seen.add(command)
+                    merged.append(
+                        QuickAction(
+                            label=exit_definition.label or prop.exit_to,
+                            command=command,
+                            default=True,
+                        )
+                    )
         for action in resolve_default_prop_actions(definition, prop.id):
             if action.command in seen:
                 continue
@@ -871,7 +886,7 @@ class RoomService:
             quick_actions: list[dict[str, object]] = []
         else:
             quick_actions = self._visible_prop_actions(
-                room, self._merged_prop_actions(prop, prop_definition)
+                room, self._merged_prop_actions(room, prop, prop_definition)
             )
             quick_actions.extend(self._surface_quick_actions(prop, prop_definition))
             if is_toggleable(prop_definition):
@@ -926,6 +941,17 @@ class RoomService:
                 else {}
             ),
             **({"surface": surface} if surface is not None else {}),
+            **(
+                {
+                    "exit_style": (
+                        dict(prop.exit_style)
+                        if prop.exit_style is not None
+                        else default_exit_finish(prop_definition.render_kind)
+                    )
+                }
+                if prop_definition.render_kind in EXIT_STYLES_BY_KIND
+                else {}
+            ),
             "label": "Something in the dark" if dark else (prop.label or prop_definition.label),
             "description": ""
             if dark

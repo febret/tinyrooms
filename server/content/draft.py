@@ -9,6 +9,13 @@ from typing import Any
 import yaml
 
 from server.content.common import ContentError
+from server.content.exit_props import (
+    ARROW_PROP_ID,
+    DOOR_PROP_ID,
+    EXIT_STYLES_BY_KIND,
+    STAIRS_PROP_ID,
+    validate_exit_finish,
+)
 from server.content.lighting import LIGHTING_ENVIRONMENTS
 from server.content.prop_definitions import PROP_RENDER_KINDS
 from server.content.surface_props import validate_sign_style
@@ -124,6 +131,9 @@ def _prop_render_kinds(draft_props: Any) -> dict[str, str]:
         "builtin:text": "text",
         "builtin:sign": "sign",
         "builtin:whiteboard": "whiteboard",
+        DOOR_PROP_ID: "door",
+        ARROW_PROP_ID: "arrow",
+        STAIRS_PROP_ID: "stairs",
     }
     if isinstance(draft_props, dict):
         for prop_id, prop in draft_props.items():
@@ -181,6 +191,8 @@ def _check_rooms(
                             if isinstance(value, bool) or not isinstance(value, (int, float)):
                                 _issue(issues, f"{map_path}.{axis}", f"editor.map.{axis} must be a number.")
         props = room.get("props")
+        raw_exits = room.get("exits")
+        exit_ids = frozenset(raw_exits) if isinstance(raw_exits, dict) else frozenset()
         if props is not None:
             if not isinstance(props, dict):
                 _issue(issues, f"{base}.props", "props must be a mapping.")
@@ -202,6 +214,21 @@ def _check_rooms(
                     if description is not None and not isinstance(description, str):
                         _issue(issues, f"{instance_path}.description", "Prop description must be a string.")
                     render_kind = prop_kinds.get(prop_id, "model") if isinstance(prop_id, str) else "model"
+                    exit_to = instance.get("exit_to")
+                    if exit_to is not None:
+                        if not isinstance(exit_to, str) or not exit_to:
+                            _issue(issues, f"{instance_path}.exit_to", "Prop exit_to must be a non-empty string.")
+                        elif exit_to not in exit_ids:
+                            _issue(issues, f"{instance_path}.exit_to", f"Unknown exit '{exit_to}'.")
+                    exit_style = instance.get("exit_style")
+                    if exit_style is not None:
+                        if render_kind not in EXIT_STYLES_BY_KIND:
+                            _issue(issues, f"{instance_path}.exit_style", "Only door, arrow, and stairs props may have an exit_style.")
+                        else:
+                            try:
+                                validate_exit_finish(exit_style, render_kind)
+                            except ValueError as exc:
+                                _issue(issues, f"{instance_path}.exit_style", str(exc))
                     if render_kind == "text":
                         try:
                             validate_text(instance.get("text"))

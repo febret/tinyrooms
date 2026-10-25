@@ -15,4 +15,5 @@ def on_quick_action(context, event):
         context.feedback("You already have the key. It is in your inventory, being smug.")
         return
     context.give_card("house-key")
+    context.update_task_progress("house-tour", "find-key")
     context.feedback("You pocket the little brass key. It is warm, which is either comforting or deeply wrong.", "success")

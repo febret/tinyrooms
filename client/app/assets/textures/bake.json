@@ -1,0 +1,43 @@
+{
+  "tasks": [
+    {
+      "label": "exit-texture-wood",
+      "tool": "image",
+      "prompt": "seamless tileable grayscale wood grain texture, straight vertical grain lines with subtle knots, neutral gray tones, flat even lighting, no shadows, no text, no watermark, no objects, full-frame pattern",
+      "output": "C:/workspace/tinyrooms-noon/client/app/assets/textures/exit-wood.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 41001,
+        "steps": 30,
+        "negative": "color, text, watermark, objects, people, lighting, shadows, vignette, border, frame"
+      }
+    },
+    {
+      "label": "exit-texture-stone",
+      "tool": "image",
+      "prompt": "seamless tileable grayscale stone texture, mottled concrete with fine speckles, neutral gray tones, flat even lighting, no shadows, no text, no watermark, no objects, full-frame pattern",
+      "output": "C:/workspace/tinyrooms-noon/client/app/assets/textures/exit-stone.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 41002,
+        "steps": 30,
+        "negative": "color, text, watermark, objects, people, lighting, shadows, vignette, border, frame"
+      }
+    },
+    {
+      "label": "exit-texture-metal",
+      "tool": "image",
+      "prompt": "seamless tileable grayscale brushed metal texture, fine horizontal brushing lines, neutral gray tones, flat even lighting, no shadows, no text, no watermark, no objects, full-frame pattern",
+      "output": "C:/workspace/tinyrooms-noon/client/app/assets/textures/exit-metal.png",
+      "args": {
+        "width": 512,
+        "height": 512,
+        "seed": 41003,
+        "steps": 30,
+        "negative": "color, text, watermark, objects, people, lighting, shadows, vignette, border, frame"
+      }
+    }
+  ]
+}

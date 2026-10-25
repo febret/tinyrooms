@@ -54,6 +54,7 @@ from server.content.prop_definitions import (
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
 from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
+from server.content.exit_props import load_exit_style
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
     MAX_WHITEBOARD_PROPS,
@@ -136,6 +137,9 @@ class DialogChoice:
     give_card: str | None
     start_task: str | None
     grant: int
+    vibe_delta: int = 0
+    grant_bops: int = 0
+    repeatable: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,6 +266,18 @@ def _parse_dialog_choice(
     raw_grant = raw_choice.get("grant")
     if raw_grant is not None and (isinstance(raw_grant, bool) or not isinstance(raw_grant, int)):
         raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'grant' must be an integer.")
+    raw_bops = raw_choice.get("grant_bops", 0)
+    if isinstance(raw_bops, bool) or not isinstance(raw_bops, int):
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'grant_bops' must be an integer.")
+    raw_vibe = raw_choice.get("vibe_delta", 0)
+    if isinstance(raw_vibe, bool) or not isinstance(raw_vibe, int):
+        raise ContentError(f"Peep '{peep_id}' dialog node '{node_id}' choice {index} 'vibe_delta' must be an integer.")
+    repeatable = raw_choice.get("repeatable") is True
+    if repeatable and (give_card is not None or raw_bops or raw_grant or raw_choice.get("start_task") is not None):
+        raise ContentError(
+            f"Peep '{peep_id}' dialog node '{node_id}' choice {index} is repeatable "
+            "and must not grant cards, Bops, Kudos, or start tasks."
+        )
     # Choice order participates in the persistent reward-ledger identity.
     # Inserting or reordering choices can reassign rewards to different actions.
     return DialogChoice(
@@ -276,6 +292,9 @@ def _parse_dialog_choice(
         give_card=give_card,
         start_task=str(raw_choice["start_task"]).strip() if raw_choice.get("start_task") is not None else None,
         grant=int(raw_grant) if raw_grant is not None else 0,
+        vibe_delta=int(raw_vibe),
+        grant_bops=int(raw_bops),
+        repeatable=repeatable,
     )
 
 
@@ -548,6 +567,13 @@ def load_world_definition(
             prop_id = str(raw_instance.get("prop", "")).strip()
             if prop_id not in props:
                 raise ContentError(f"Room '{room_id}' references unknown prop '{prop_id}'.")
+            raw_exit_to = raw_instance.get("exit_to")
+            if raw_exit_to is None:
+                exit_to = None
+            else:
+                if not isinstance(raw_exit_to, str) or not raw_exit_to.strip():
+                    raise ContentError(f"Prop '{prop_instance_id}' exit_to must be a non-empty string.")
+                exit_to = raw_exit_to.strip()
             only_missing = raw_instance.get("only_missing", False)
             if not isinstance(only_missing, bool):
                 raise ContentError(f"Prop '{prop_instance_id}' only_missing must be a boolean.")
@@ -594,6 +620,12 @@ def load_world_definition(
                 ),
                 description=description or None,
                 label=label or None,
+                exit_to=exit_to,
+                exit_style=load_exit_style(
+                    raw_instance,
+                    props[prop_id].render_kind,
+                    f"Room '{room_id}' prop '{prop_instance_id}'",
+                ),
             )
         kept_props = _validate_one_per_room(props, room_id, room_props.values())
         room_props = {instance.id: instance for instance in kept_props}
@@ -632,6 +664,11 @@ def load_world_definition(
                 npc_barrier=bool(raw_exit.get("npc_barrier", False)),
                 target_world_id=target_world_id,
             )
+        for instance in room_props.values():
+            if instance.exit_to is not None and instance.exit_to not in room_exits:
+                raise ContentError(
+                    f"Room '{room_id}' prop '{instance.id}' exit_to references unknown exit '{instance.exit_to}'."
+                )
         room_cards: list[InitialRoomCard] = []
         for index, raw_card in enumerate(raw_room.get("cards", []) or []):
             if not isinstance(raw_card, dict):

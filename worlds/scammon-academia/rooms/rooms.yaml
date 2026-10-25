@@ -67,9 +67,7 @@ hall:
       - 0
       - -1.6
       - 0
-      actions:
-      - - Enter the cafeteria
-        - .go @way:cafeteria
+      exit_to: cafeteria
     teachers-lounge-door0:
       prop: oak-panel-door
       pos:
@@ -77,9 +75,7 @@ hall:
       - 0
       - 0
       scale: 1.25
-      actions:
-      - - Enter the teachers' lounge
-        - .go @way:teachers-lounge
+      exit_to: teachers-lounge
   exits:
     cafeteria:
       label: Enter the cafeteria
@@ -118,9 +114,7 @@ cafeteria:
       - 0
       - 1.6
       - 0
-      actions:
-      - - Back to the hall
-        - .go @way:hall
+      exit_to: hall
     serving-counter0:
       prop: serving-counter
       pos:
@@ -242,6 +236,18 @@ player-classroom:
       - 56
       - 0
       scale: 1
+    hall-door0:
+      prop: builtin:door
+      pos:
+      - 0
+      - 55
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: hall
   exits:
     hall:
       label: Back to the hall
@@ -276,9 +282,7 @@ teachers-lounge:
       - 0
       - 1.6
       - 0
-      actions:
-      - - Back to the hall
-        - .go @way:hall
+      exit_to: hall
     recipe-book0:
       prop: supermarket-recipe-book
       pos:

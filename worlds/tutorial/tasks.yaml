@@ -38,6 +38,22 @@ house-tour:
       room_id: utility
     title: Find the utility room, where the tools are kept prisoner
     memory: I found the utility room. The vacuum looked back.
+  - step_id: bag-poop
+    trigger: signal
+    match:
+      event: poop_bagged
+    title: Bag Molly's mess with the pooper scooper and a plastic bag
+    memory_tag: bagged-poop
+    memory: I bagged up Molly's mess. It is my responsibility now, and it is in a
+      bag.
+  - step_id: find-key
+    trigger: signal
+    match:
+      event: key_taken
+    title: Steal the house key from the basement cabinet
+    memory_tag: got-key
+    memory: I pocketed the little brass key. It was warm, which I choose not to think
+      about.
   - step_id: reach-garden
     trigger: enter_room
     match:

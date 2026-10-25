@@ -19,6 +19,7 @@ def on_card_play(context, event):
     if card.consume_card and context.has_equipped_card(card.consume_card):
         context.remove_card(card.consume_card, 1)
         context.give_card(BAGGED_OUTPUT_CARD_ID)
+        context.update_task_progress("house-tour", "bag-poop")
         context.feedback("You bagged up a poop in a bag. Congratulations on your new responsibility.", "success")
         return
     context.give_card(BARE_OUTPUT_CARD_ID)

@@ -28,9 +28,7 @@ hub:
       - 357.7800000000009
       - 0
       scale: 1.6615683448199627
-      actions:
-      - - Enter
-        - .go exit0
+      exit_to: exit0
   exits:
     exit0:
       label: Enter the Dollhouse
@@ -65,9 +63,7 @@ foyer:
       - 0
       - 0
       scale: 1.4333294145603401
-      actions:
-      - - Open the front door
-        - .go @way:garden
+      exit_to: garden
     custom:cd33ce3b-9f49-4b9c-bade-9d8b1d15c056:
       prop: dusty-rose-sofa
       pos:
@@ -90,9 +86,7 @@ foyer:
       - 356.4800000000014
       - 0
       scale: 1
-      actions:
-      - - To Bedroom
-        - .go @way:bedroom
+      exit_to: bedroom
     custom:ec7b05f7-88b2-4d84-94fa-cd91e4a004eb:
       prop: open-french-doorway
       pos:
@@ -104,9 +98,24 @@ foyer:
       - 359.7000000000003
       - 0
       scale: 1.4105786355076788
-      actions:
-      - - To Kitchen
-        - .go @way:kitchen
+      exit_to: kitchen
+    hub-door0:
+      prop: builtin:door
+      pos:
+      - 0
+      - 45
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.1
+      exit_to: hub
+      exit_style:
+        style: arch
+        main: '#b07a4a'
+        accent: '#6b4a2f'
+        texture: wood
   exits:
     hub:
       label: Out of the dollhouse
@@ -197,9 +206,7 @@ kitchen:
       - 359.74
       - 0
       scale: 0.894044257500358
-      actions:
-      - - To Living Room
-        - .go @way:foyer
+      exit_to: foyer
     custom:8d0d8a48-da16-4ace-8d4f-705852d7be0f:
       prop: stucco-wall
       pos:
@@ -211,9 +218,7 @@ kitchen:
       - 359.74000000000024
       - 0
       scale: 0.8728426324887194
-      actions:
-      - - To Utility Room
-        - .go @way:utility
+      exit_to: utility
   cards:
   - card: tasty-toast
     quantity: 2
@@ -352,6 +357,30 @@ bathroom:
       - 0
       - 0
       scale: 0.7378608664505918
+    utility-door0:
+      prop: builtin:door
+      pos:
+      - 0
+      - 45
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: utility
+    bedroom-door0:
+      prop: builtin:door
+      pos:
+      - 100
+      - 90
+      - 0
+      rot:
+      - 0
+      - 268.6400000000008
+      - 0
+      scale: 1
+      exit_to: bedroom
   exits:
     utility:
       label: Back to the utility room
@@ -410,6 +439,35 @@ bedroom:
       - 0
       - 0
       scale: 1.3125870013111094
+    foyer-stairs0:
+      prop: builtin:stairs
+      pos:
+      - 0
+      - 50
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: foyer
+      exit_style:
+        style: straight
+        main: '#9d8b74'
+        accent: '#5c3a20'
+        texture: wood
+    bathroom-door0:
+      prop: builtin:door
+      pos:
+      - 100
+      - 50
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+      exit_to: bathroom
   cards:
   - card: seal-plushie
     quantity: 1
@@ -478,9 +536,7 @@ utility:
       - 1.579999999999984
       - 0
       scale: 1.503807161170112
-      actions:
-      - - Down to basement
-        - .go basement
+      exit_to: basement
     custom:fb71bccc-bf7f-4b71-90b9-0a022bc8e037:
       prop: satu-rug
       pos:
@@ -514,6 +570,30 @@ utility:
       - 0
       - 0
       scale: 1
+    kitchen-door0:
+      prop: builtin:door
+      pos:
+      - 0
+      - 45
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: kitchen
+    bathroom-door0:
+      prop: builtin:door
+      pos:
+      - 100
+      - 45
+      - 0
+      rot:
+      - 0
+      - -90
+      - 0
+      scale: 1
+      exit_to: bathroom
   exits:
     kitchen:
       label: Back to the kitchen
@@ -596,6 +676,7 @@ basement:
       - 354.9000000000019
       - 0
       scale: 1.4681454416819915
+      exit_to: utility
     custom:0a762312-a66a-4a76-913b-96285b5bd532:
       prop: filing-cabinet
       pos:
@@ -685,9 +766,7 @@ garden:
       - 0
       - 0
       scale: 1.7228846360108903
-      actions:
-      - - Enter
-        - .go foyer
+      exit_to: foyer
     garden-trashcan:
       prop: city-trashcan
       pos:

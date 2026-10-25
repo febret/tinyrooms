@@ -230,6 +230,8 @@ class RoomLayoutService:
                 surface=source.surface if source else None,
                 description=source.description if source else None,
                 label=source.label if source else None,
+                exit_to=source.exit_to if source else None,
+                exit_style=dict(source.exit_style) if source and source.exit_style else None,
             )
         return list(merged.values())
 

@@ -236,6 +236,40 @@ lobby:
           y: 510
           size: 40
           color: '#54f2ff'
+    chess-arrow0:
+      prop: builtin:arrow
+      pos:
+      - 20
+      - 50
+      - 0
+      rot:
+      - 0
+      - 270
+      - 0
+      scale: 1.5
+      exit_to: chess
+      exit_style:
+        style: floor
+        main: '#e8b23a'
+        accent: '#7a4d00'
+        texture: metal
+    paintball-arrow0:
+      prop: builtin:arrow
+      pos:
+      - 80
+      - 50
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1.5
+      exit_to: paintball
+      exit_style:
+        style: floor
+        main: '#4ee1c1'
+        accent: '#0d0b15'
+        texture: metal
   exits:
     chess:
       label: Enter the Chess Nook
@@ -555,6 +589,18 @@ chess:
         content: CHESS
         font_id: serif
         color: '#ffd166'
+    lobby-door0:
+      prop: builtin:door
+      pos:
+      - 0
+      - 50
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: lobby
   game:
     kind: chess
     controller: chess-controller
@@ -701,6 +747,18 @@ paintball:
       - 1.5600000000000591
       - 0
       scale: 1
+    lobby-door0:
+      prop: builtin:door
+      pos:
+      - 0
+      - 70
+      - 0
+      rot:
+      - 0
+      - 90
+      - 0
+      scale: 1
+      exit_to: lobby
   game:
     kind: paintball
     controller: paintball-vending
