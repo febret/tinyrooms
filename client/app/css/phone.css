@@ -25,24 +25,20 @@
   padding: 62px clamp(8px, 3vw, 34px) 12px;
 }
 
-.phone-view-close {
-  position: absolute;
-  top: 58px;
-  right: clamp(10px, 3vw, 34px);
-  z-index: 10;
-  width: auto;
-  min-width: 72px;
-  min-height: 34px;
-  padding: 0 14px;
-  border: 1px solid #3b7592;
-  border-radius: 8px;
-  background: #0a1d26;
-  color: var(--ink-bright);
+.phone-hardkey.phone-close {
+  opacity: 1;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #f6b8a8, #c0392b 62%, #7c1f14);
+  border: 1px solid #5b130c;
+  color: #fff;
   font-family: "Lucida Console", "Courier New", monospace;
-  font-size: 18px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  box-shadow: 0 2px 5px #0008;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 1px #0009;
+  box-shadow: 0 1px 3px #000a, inset 0 1px 0 #ffffff88;
+  cursor: pointer;
 }
 
 .phone-stage {

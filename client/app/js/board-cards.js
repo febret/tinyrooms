@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { cardModelKey, detachBoardTree, positionKey } from "./board-helpers.js";
 
 const SPRITE_HEIGHT = 0.95;
-const SPRITE_LIFT = 0.03;
+const SPRITE_LIFT = 0.005;
 const FALLBACK_ASPECT = 0.78;
 
 let shadowGeometry = null;

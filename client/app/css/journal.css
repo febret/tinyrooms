@@ -1,5 +1,8 @@
 /* Load after cards.css: journal additions share its leather and paper spread. */
 .journal-view .journal-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.journal-view .journal-tabs-row { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.journal-view .journal-tabs-row .journal-tabs { flex: 1 1 auto; min-width: 0; margin-top: 0; }
+.journal-view .journal-close { flex: 0 0 auto; min-height: 40px; padding: 6px 14px; border: 1px solid #c4a978; border-bottom-width: 3px; border-radius: 9px 9px 4px 4px; background: #e5d5b5; color: #493721; font-weight: 600; }
 .journal-view .journal-tabs button { min-height: 40px; padding: 6px 14px; border: 1px solid #c4a978; border-bottom-width: 3px; border-radius: 9px 9px 4px 4px; background: #e5d5b5; color: #493721; font-family: var(--journal-serif); font-weight: 600; box-shadow: 0 2px 4px #0003; }
 .journal-view .journal-tabs button.selected { background: #fcf1d9; border-color: #e0b46e; color: #3a2b1d; box-shadow: inset 0 -3px 0 #a9743a; }
 .journal-view .journal-page-inner { overflow-wrap: anywhere; }

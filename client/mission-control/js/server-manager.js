@@ -84,7 +84,7 @@ export function createServerManager(container, ctx) {
         el("td", {}, clientLink(server)),
         el("td", {}, statusBadge(server.status)),
         el("td", {}, server.world.label || server.world.id || "—"),
-        el("td", {}, server.version || server.version_id || "—"),
+        versionControl(server),
         el("td", {}, server.source),
         el("td", {}, formatUptime(server.uptime_seconds)),
         el("td", {}, String(server.users_online)),
@@ -251,7 +251,8 @@ export function createServerManager(container, ctx) {
   }
 
   function info(label, value) {
-    return el("div", {}, [el("div", { class: "muted", text: label }), el("div", { text: value })]);
+    const body = value instanceof Node ? value : el("div", { text: value });
+    return el("div", {}, [el("div", { class: "muted", text: label }), body]);
   }
 
   function clientLink(server) {
@@ -285,6 +286,14 @@ export function createServerManager(container, ctx) {
       el("span", { text: label }),
       select,
     ]);
+  }
+
+  function versionControl(server) {
+    if (server.source !== "spawned") return el("td", {}, versionLabel(server));
+    const control = versionSelect(server);
+    const select = control.querySelector("select");
+    if (select) select.addEventListener("click", (event) => event.stopPropagation());
+    return el("td", {}, control);
   }
 
   function gridActions(server) {

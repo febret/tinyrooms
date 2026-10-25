@@ -55,3 +55,19 @@ export function supportElevation(entry, others) {
   }
   return elevation;
 }
+
+/**
+ * Elevation a dropped card rests at, reusing the prop-stacking rule so cards
+ * land on the floor or on top of any props they intersect. `records` are the
+ * live prop records; `halfX`/`halfZ` are the card footprint half-extents.
+ */
+export function cardDropElevation(records, worldX, worldZ, halfX, halfZ) {
+  const entry = { id: "__card__", x: worldX, z: worldZ, halfX, halfZ };
+  const others = [];
+  for (const record of records || []) {
+    if (!record || record.id === entry.id) continue;
+    const metrics = stackMetrics(record, record.group.position.x, record.group.position.z);
+    if (metrics) others.push(metrics);
+  }
+  return Math.min(50, Math.max(0, supportElevation(entry, others)));
+}

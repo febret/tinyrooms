@@ -18,7 +18,7 @@ function titleSlotRow(slot, slotLabel, titles) {
   </div>`;
 }
 
-function titlesMarkup(user, open) {
+export function titlesMarkup(user, open) {
   const titles = user.titles || { catalog: [], unlocked: [], selection: {}, cookedCount: 0, taughtCount: 0 };
   const selection = titles.selection || {};
   const displayLabel = selection.displayLabel || user.username || "You";

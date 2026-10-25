@@ -82,14 +82,14 @@ export function inventorySection(state, title, predicate, { compact = false } = 
   `;
 }
 
-export function modalShell({ extraClass = "", ariaLabel, title = "", titleHtml = null, subtitle = "", subtitleHtml = null, body }) {
+export function modalShell({ extraClass = "", ariaLabel, title = "", titleHtml = null, subtitle = "", subtitleHtml = null, body, hideClose = false }) {
   const heading = titleHtml === null ? escapeHtml(title) : titleHtml;
   const subheading = subtitleHtml === null ? (subtitle ? `<p>${escapeHtml(subtitle)}</p>` : "") : subtitleHtml;
   return `
     <section class="board-modal ${extraClass}" role="dialog" aria-modal="false" aria-label="${escapeHtml(ariaLabel)}">
       <header class="modal-header">
         <div><h2>${heading}</h2>${subheading}</div>
-        <button type="button" class="quiet" data-close-view="1">Close</button>
+        ${hideClose ? "" : '<button type="button" class="quiet" data-close-view="1">Close</button>'}
       </header>
       ${body}
     </section>

@@ -273,6 +273,7 @@ h3 { font-size: 18px; }
 .global-shade { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: #000a; pointer-events: auto; }
 .global-dialog { width: min(480px, 100%); max-height: calc(100dvh - 40px); overflow: auto; padding: 18px; display: grid; gap: 12px; border-radius: 7px; background: #07131ff5; box-shadow: 0 12px 30px #000b; }
 .global-dialog p { line-height: 1.5; overflow-wrap: anywhere; }
+.global-dialog-thumb { display: block; width: min(100%, 220px); max-height: 220px; margin: 0 auto; border-radius: 10px; object-fit: contain; background: #0006; }
 .global-dialog.compact { max-width: 380px; }
 .dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
 .global-dialog input, .auth-form input { min-height: 44px; width: 100%; padding: 10px 12px; border: 1px solid #436779; background: #092332; border-radius: 7px; color: #f3f4f5; font-size: 16px; }

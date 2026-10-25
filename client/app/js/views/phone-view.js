@@ -278,7 +278,6 @@ function phoneKeypadMarkup(state) {
 export function phoneView(state) {
   const app = APP_LABELS[state.ui?.phoneApp] ? state.ui.phoneApp : "apps";
   return `<section class="board-modal phone-view" role="dialog" aria-modal="false" aria-label="Phone">
-    <button type="button" class="quiet phone-view-close" data-close-view="1">Close</button>
     <div class="phone-stage">
       <div class="phone-device" data-phone-screen-app="${app}">
         <div class="phone-lid">
@@ -295,7 +294,7 @@ export function phoneView(state) {
         <div class="phone-base">
           ${baseSvgMarkup()}
           ${phoneKeypadMarkup(state)}
-          <button type="button" class="phone-hardkey" data-phone-home="1" aria-label="Return to phone apps"></button>
+          <button type="button" class="phone-hardkey phone-close" data-close-view="1" aria-label="Close phone" title="Close phone">✕</button>
         </div>
       </div>
     </div>

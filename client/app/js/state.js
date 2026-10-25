@@ -590,7 +590,7 @@ function createInitialState() {
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
-    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
+    ui: { actionLogVisible: false, soundEnabled: true, outlineActiveProps: savedOutlineActiveProps(), bubbleTimeout: savedBubbleTimeout(), sidebarSize: savedSidebarSize(), toolbarSize: savedToolbarSize(), inventoryCompact: savedInventoryCompact(), fullscreen: false, audioEnabled: false, audioMuted: false, reducedMotion: REDUCED_MOTION, toasts: [], emoteMenuOpen: false, roomPickerOpen: false, peepsVisible: true, journalTab: "Tasks", inventoryTab: "Items", idCardSide: "self", journalMonthOffset: 0, journalTagFilter: "", phoneApp: "apps", phoneFriendIndex: 0, phoneMusic: initialPhoneMusic(), targeting: null, dropTargeting: null, sellMode: false, titlesOpen: false },
     commandCatalog: [],
     describedEntity: null,
     editor: null,
@@ -683,8 +683,8 @@ function reduce(state, action) {
   }
   if (action.type === "open-view") {
     if (action.view === "prop-details" && !selectionIsEligible(state, { kind: "prop", id: action.propId })) return state;
-    const journalTab = { self: "Self", skills: "Skills" }[action.view];
-    const view = journalTab ? "journal" : action.view;
+    const idSide = { self: "self", skills: "skills" }[action.view];
+    const view = idSide ? "id" : action.view;
     let selection = view === "prop-details" ? { kind: "prop", id: action.propId } : { kind: "core", id: view };
     let inventoryTab = state.ui.inventoryTab;
     if (view === "inventory") {
@@ -702,8 +702,12 @@ function reduce(state, action) {
         skillStackId: action.view === "skills" ? action.stackId || null : null,
         skillPickerSlot: null,
       },
-      ui: { ...state.ui, journalTab: journalTab || state.ui.journalTab, inventoryTab, phoneApp: view === "phone" ? "apps" : state.ui.phoneApp, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
+      ui: { ...state.ui, idCardSide: idSide || state.ui.idCardSide, inventoryTab, phoneApp: view === "phone" ? "apps" : state.ui.phoneApp, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false },
     };
+  }
+  if (action.type === "id-flip") {
+    const side = state.ui.idCardSide === "skills" ? "self" : "skills";
+    return { ...state, ui: { ...state.ui, idCardSide: side } };
   }
   if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
@@ -737,7 +741,7 @@ function reduce(state, action) {
   if (action.type === "toggle-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: !state.ui.emoteMenuOpen, roomPickerOpen: false, dropTargeting: null } };
   if (action.type === "toggle-peeps") return { ...state, ui: { ...state.ui, peepsVisible: !state.ui.peepsVisible } };
   if (action.type === "close-emote-menu") return { ...state, ui: { ...state.ui, emoteMenuOpen: false } };
-  if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: action.tab === "Skills" ? state.views.skillStackId : null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };
+  if (action.type === "journal-tab") return { ...state, selection: { kind: "core", id: "journal" }, views: { ...state.views, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, journalTab: action.tab, journalTagFilter: action.tag ? String(action.tag) : "", roomPickerOpen: false } };
   if (action.type === "journal-month") return { ...state, ui: { ...state.ui, journalMonthOffset: (state.ui.journalMonthOffset || 0) + Number(action.delta || 0) } };
   if (action.type === "toggle-sell-mode") return { ...state, ui: { ...state.ui, sellMode: !state.ui.sellMode } };
   if (action.type === "toggle-titles") return { ...state, ui: { ...state.ui, titlesOpen: !state.ui.titlesOpen } };
@@ -945,7 +949,10 @@ export function findEntity(state, selection) {
 function resolveEntity(state, selection) {
   if (!state.room) return null;
   if (selection.kind === "room") return state.room;
-  if (selection.kind === "core") return state.user?.coreCards?.[selection.id] || null;
+  if (selection.kind === "core") {
+    return state.user?.coreCards?.[selection.id]
+      || (selection.id === "id" ? state.user?.coreCards?.journal || { label: "ID Card", description: "Your identity and skills.", imageUrl: "" } : null);
+  }
   if (selection.kind === "task") return findTask(state, selection.id);
   if (selection.kind === "room-card") return findRoomCard(state, selection.id);
   if (selection.kind === "inventory-card") return findInventoryCard(state, selection.id);

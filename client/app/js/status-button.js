@@ -32,7 +32,7 @@ export function statusSnapshot(state) {
 export function statusButtonMarkup(state) {
   if (!state.loggedIn) return "";
   const { counters, statuses, definitions } = statusSnapshot(state);
-  const pressed = state.views.main === "journal" && state.ui.journalTab === "Self";
+  const pressed = state.views.main === "id";
   const summary = PILL_COUNTERS.map(entry => `${entry.label} ${counterText(counters, entry.key, entry.maximum)}`).join(" · ");
   const statusNames = statuses.map(id => definitions?.[id]?.label || id).filter(Boolean);
   const label = statusNames.length

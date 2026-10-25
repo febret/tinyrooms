@@ -96,7 +96,7 @@
   .board-modal .modal-header { padding-top: 36px; }
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 14px 8px; }
   .cards-grid .game-card { max-width: 128px; }
-  .inventory-view { padding: 8px 8px 10px calc(var(--sidebar-width) + 8px); gap: 6px; }
+  .inventory-view { padding: 8px 8px 10px; gap: 6px; }
   .inventory-view .modal-header { padding-top: 0; }
   .inventory-view .modal-header h2 { font-size: 20px; }
   .inventory-controls { gap: 4px 6px; margin-top: 4px; }
@@ -108,12 +108,17 @@
   .inventory-view .cards-grid .game-card { max-width: 117px; }
   .inventory-view.is-compact .cards-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
   .inventory-view.is-compact .cards-grid .game-card { max-width: 60px; }
+  /* Portrait phones always use the compact grid; the toggle is hidden below. */
+  .inventory-view .cards-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+  .inventory-view .cards-grid .game-card { width: 100%; max-width: 60px; }
+  .inventory-view .game-card > .card-illustration { aspect-ratio: 1 / 1; object-fit: cover; }
+  .inventory-action[data-compact-mode] { display: none; }
   .inventory-layout { display: flex; flex-direction: column; gap: 8px; }
   .inventory-content { order: 1; flex: 1 1 auto; gap: 6px; }
-  .inventory-preview { order: 2; align-self: auto; max-height: none; overflow: visible; display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: start; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
-  .inventory-preview-card { width: 96px; max-width: none; margin: 0; }
-  .inventory-preview-info { width: auto; max-height: 20vh; margin: 0; }
-  .inventory-preview-description { display: none; }
+  .inventory-preview { order: 2; align-self: auto; max-height: none; overflow: visible; display: grid; grid-template-columns: 148px minmax(0, 1fr); align-items: start; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .inventory-preview-card { width: 148px; max-width: none; margin: 0; }
+  .inventory-preview-info { width: auto; max-height: 30vh; margin: 0; }
+  .inventory-preview-description { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .inventory-preview-name { font-size: 17px; }
   .inventory-preview-metrics { margin-top: 6px; font-size: 12px; }
   .details-metrics { font-size: 13px; }
@@ -131,8 +136,8 @@
   .inventory-view .cards-grid .game-card { max-width: 100px; }
   .inventory-view.is-compact .cards-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
   .inventory-view.is-compact .cards-grid .game-card { max-width: 56px; }
-  .inventory-view .inventory-preview { grid-template-columns: 88px minmax(0, 1fr); gap: 8px; }
-  .inventory-view .inventory-preview-card { width: 88px; }
+  .inventory-view .inventory-preview { grid-template-columns: 140px minmax(0, 1fr); gap: 8px; }
+  .inventory-view .inventory-preview-card { width: 140px; }
   .inventory-preview-name { font-size: 15px; }
   .details-metrics { font-size: 14px; }
 }
@@ -187,6 +192,9 @@
 .action-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .journal-tabs { display: inline-flex; gap: 6px; margin-top: 4px; }
 .journal-tabs button.selected { background: var(--gold); color: #061923; }
+.journal-tabs-row { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; }
+.journal-tabs-row .journal-tabs { flex: 1 1 auto; min-width: 0; }
+.journal-close { flex: 0 0 auto; }
 .locked-state { font-size: 15px; }
 .inventory-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin-top: 6px; }
 .inventory-tabs { flex: 0 1 auto; min-width: 0; }
@@ -194,6 +202,7 @@
 .inventory-action { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; min-width: 32px; padding: 3px 9px; border-radius: 8px; font-size: 12px; }
 .inventory-action svg { flex: 0 0 auto; width: 15px; height: 15px; pointer-events: none; }
 .inventory-action[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.inventory-action.inventory-close { border-color: var(--gold); font-weight: 700; }
 .sell-mode .inventory-view .game-card { cursor: cell; box-shadow: 0 0 0 2px #85a651, 0 0 10px #70973899; }
 .sell-mode .inventory-view .game-card:hover { filter: brightness(1.12); }
 .choose-list { display: grid; gap: 6px; margin: 10px 0; }

@@ -1,0 +1,76 @@
+/* Plastic resident ID card: bright badge over the dark room UI. */
+.id-card-view { gap: 10px; }
+.id-card-view .modal-header { width: min(100%, 720px); }
+.id-card-actions button { min-height: 34px; padding: 4px 14px; border-radius: 8px; font-weight: 700; }
+.id-card-scene { width: min(100%, 720px); margin-inline: auto; perspective: 1600px; }
+.id-card { position: relative; min-height: min(62vh, 560px); transform-style: preserve-3d; transition: transform .55s cubic-bezier(.3, .7, .3, 1); }
+.id-card.flipped { transform: rotateY(180deg); }
+.id-face {
+  position: absolute; inset: 0;
+  display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px;
+  padding: 22px 24px 20px;
+  border-radius: 16px;
+  background:
+    linear-gradient(115deg, #ffffff00 30%, #ffffff9c 45%, #ffffff00 60%),
+    linear-gradient(#ffffff, #eef3f6 70%, #dfe8ee);
+  color: #1c2b33;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  box-shadow: 0 22px 44px #000b, inset 0 0 0 1px #ffffff, inset 0 0 0 3px #b9cdd6, inset 0 -18px 30px #9fb6c21f;
+  overflow: auto;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.id-back { transform: rotateY(180deg); grid-template-columns: minmax(0, 1fr); }
+.id-face::before {
+  content: ""; position: absolute; top: 10px; left: 50%; width: 120px; height: 12px;
+  transform: translateX(-50%); border-radius: 999px;
+  background: linear-gradient(#8b9aa2, #d7e1e6); box-shadow: inset 0 2px 3px #0007;
+}
+.id-face::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: repeating-linear-gradient(0deg, #00000008 0 1px, transparent 1px 3px);
+}
+.id-photo { position: relative; align-self: start; display: grid; gap: 6px; justify-items: center; padding: 12px 10px 10px; border: 1px solid #9fb2bc; border-radius: 10px; background: #fff; box-shadow: inset 0 0 0 3px #e3ecf0; }
+.id-photo img { width: 100%; max-width: 150px; height: 170px; object-fit: contain; background: linear-gradient(#dfe9ee, #f7fafb); border: 1px solid #b9cdd6; border-radius: 6px; }
+.id-photo-decals { position: absolute; inset: 12px 10px auto; height: 170px; pointer-events: none; }
+.id-photo-placeholder { display: grid; place-items: center; width: 100%; height: 170px; font-size: 64px; color: #7d97a3; background: #eef3f6; border-radius: 6px; }
+.id-photo-caption { font-size: 10px; letter-spacing: .18em; color: #5b7280; }
+.id-fields { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.id-brand { margin: 6px 0 0; font-size: 11px; font-weight: 800; letter-spacing: .22em; color: #2f6f8f; }
+.id-name { margin: 0; font-size: clamp(24px, 3vw, 34px); line-height: 1.05; letter-spacing: .01em; color: #10222b; overflow-wrap: anywhere; }
+.id-level { margin: 0; font-family: "Lucida Console", "Courier New", monospace; font-size: 13px; letter-spacing: .08em; color: #41606f; }
+.id-kudos-label { font-family: "Lucida Console", "Courier New", monospace; font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+.id-note { margin: 4px 0; font-size: 12.5px; color: #4c6572; }
+.id-counters { display: grid; gap: 4px; }
+.id-counters .counter-row { grid-template-columns: 64px 1fr 52px; font-size: 12px; }
+.id-counters .counter-track { height: 10px; }
+.id-statuses { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0; padding: 0; list-style: none; }
+.id-statuses li { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 1px solid #9fb2bc; border-radius: 999px; background: #fff; font-size: 12px; }
+.id-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; margin: 4px 0; }
+.id-stats > div { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 3px; border-bottom: 1px dotted #9fb2bc; }
+.id-stats dt { font-size: 11px; text-transform: capitalize; color: #527182; }
+.id-stats dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+.id-wallet { margin: 2px 0; padding: 6px 10px; border-radius: 8px; background: #10222b; color: #ffd98a; font-family: "Lucida Console", "Courier New", monospace; font-size: 13px; letter-spacing: .06em; }
+.id-wallet strong { float: right; font-size: 16px; }
+.id-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.id-actions button { min-height: 38px; }
+.id-fields .title-nameplate { border-color: #9fb2bc; background: #fff; color: #10222b; }
+.id-fields .title-editor { background: #f2f7f9; }
+.id-empty { color: #4c6572; }
+.id-skill-row h4 { margin: 8px 0 6px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #2f6f8f; }
+.id-skill-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.id-skill-slot { aspect-ratio: 3 / 4; border-radius: 10px; border: 2px dashed #8ba3af; background: #fff; color: #41606f; font-size: 22px; overflow: hidden; padding: 0; }
+.id-skill-slot img { width: 100%; height: 100%; object-fit: cover; }
+.id-skill-slot.filled { border-style: solid; border-color: #3f7a4e; }
+.id-skill-slot.locked { opacity: .55; }
+.id-skill-slot.selected { outline: 3px solid #2f6f8f; }
+@media (max-width: 560px) {
+  .id-face { grid-template-columns: 120px minmax(0, 1fr); gap: 12px; padding: 18px 14px 14px; }
+  .id-photo img, .id-photo-placeholder { height: 120px; }
+  .id-photo-decals { height: 120px; }
+  .id-stats { grid-template-columns: 1fr; }
+  .id-skill-slots { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .id-card { transition: none; }
+}

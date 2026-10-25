@@ -31,12 +31,14 @@ export function inventoryView(state) {
       ${inventoryAction({ action: "compact-mode", label: compact ? "Full Cards" : "Compact View", tone: "neutral", icon: ACTION_ICONS.compact, value: "1", pressed: compact })}
       ${inventoryAction({ action: "auto-merge", label: "Auto Merge", tone: "neutral", icon: ACTION_ICONS.merge })}
       ${inventoryAction({ action: "sell-mode", label: selling ? "Done Selling" : "Sell Mode", tone: selling ? "negative" : "neutral", icon: ACTION_ICONS.sell, pressed: selling })}
+      <button type="button" class="inventory-action inventory-close" data-close-view="1" aria-label="Close inventory" title="Close inventory">✕<span class="inventory-action-label">Close</span></button>
     </div>
   </div>`;
   return modalShell({
     extraClass: `wide inventory-view${compact ? " is-compact" : ""}`,
     ariaLabel: "Inventory",
     title: "Your Inventory",
+    hideClose: true,
     subtitleHtml: controls,
     body: `
       <div class="inventory-layout">

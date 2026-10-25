@@ -110,9 +110,12 @@ export function createDialogs(layer) {
         }, () => resolve(null));
       });
     },
-    description(title, text) {
+    description(title, text, imageUrl = "") {
+      const image = imageUrl
+        ? `<img class="global-dialog-thumb" src="${escapeHtml(imageUrl)}" alt="">`
+        : "";
       open(`<section class="global-dialog" role="dialog" aria-modal="true" aria-labelledby="description-title">
-        <h2 id="description-title">${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p>
+        <h2 id="description-title">${escapeHtml(title)}</h2>${image}<p>${escapeHtml(text)}</p>
         <div class="dialog-actions"><button type="button" class="close">Close</button></div></section>`,
       (shade, close) => { shade.querySelector("button").onclick = close; shade.querySelector("button").focus(); });
     },
