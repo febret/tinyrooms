@@ -185,6 +185,75 @@ class TinyTownArtMarket:
                     )
         return results
 
+    def list_generated(
+        self,
+        account: object,
+        *,
+        source_room_id: str,
+        title: str,
+        description: str,
+        price: int,
+        surface: dict[str, object],
+        source_instance_id: str,
+    ) -> ArtListing:
+        """List a roommate-painted piece generated on the house easel.
+
+        The surface already lives in whiteboard format, so buyers receive
+        locked whiteboard prints through the ordinary purchase flow.
+        """
+
+        clean_title = " ".join(str(title).split())[:MAX_LISTING_TITLE]
+        clean_description = " ".join(str(description).split())[:MAX_LISTING_DESCRIPTION]
+        if not clean_title:
+            raise ValueError("The painting needs a title before it can be listed.")
+        if isinstance(price, bool) or not isinstance(price, int):
+            raise ValueError("The gallery price must be a whole number.")
+        price = max(ART_PRICE_MIN, min(ART_PRICE_MAX, int(price)))
+        with self.hub.locked() as connection:
+            active = connection.execute(
+                "SELECT 1 FROM world.tinytown_art_listings WHERE seller_account_id = ? AND status = 'active'",
+                (account.id,),
+            ).fetchall()
+            same_source = connection.execute(
+                """
+                SELECT 1 FROM world.tinytown_art_listings
+                WHERE source_room_id = ? AND source_instance_id = ? AND status = 'active'
+                """,
+                (source_room_id, source_instance_id),
+            ).fetchone()
+        if same_source is not None:
+            raise ValueError("That painting is already hanging in the gallery.")
+        if len(active) >= MAX_ART_LISTINGS:
+            raise ValueError(f"You can have at most {MAX_ART_LISTINGS} pieces for sale at once.")
+        listing = ArtListing(
+            listing_id=f"artlisting:{uuid.uuid4().hex}",
+            seller_id=account.id,
+            source_room_id=source_room_id,
+            source_instance_id=source_instance_id,
+            title=clean_title,
+            description=clean_description,
+            price=int(price),
+            surface=json.loads(json.dumps(surface)),
+            status="active",
+            created_at=utc_now().isoformat(),
+        )
+        with self.hub.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO world.tinytown_art_listings (
+                    listing_id, seller_account_id, source_room_id, source_instance_id,
+                    title, description, price, surface_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    listing.listing_id, listing.seller_id, listing.source_room_id,
+                    listing.source_instance_id, listing.title, listing.description,
+                    listing.price, json.dumps(listing.surface), listing.created_at,
+                    listing.created_at,
+                ),
+            )
+        return listing
+
     def sell(
         self,
         account: object,

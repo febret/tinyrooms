@@ -39,8 +39,31 @@ class DialogResult:
     task_changes: list[object] = field(default_factory=list)
 
 
+def dialog_choice_guarded(choice: DialogChoice) -> bool:
+    """Return whether a dialog choice needs reward-ledger idempotency.
+
+    Choices carrying material rewards, behavior scripts, or mod settlement
+    actions are guarded so their effects apply once. Navigation, vibe-only,
+    and pure flavor choices are always reusable.
+    """
+
+    if bool(getattr(choice, "repeatable", False)):
+        return False
+    if choice.grant != 0 or int(getattr(choice, "grant_bops", 0) or 0) != 0:
+        return True
+    if choice.give_card is not None or choice.start_task is not None:
+        return True
+    return choice.action is not None or choice.script is not None
+
+
 class DialogService:
-    """Owns active dialog state and declarative side-effect application."""
+    """Owns active dialog state and declarative side-effect application.
+
+    Reward idempotency and navigation are independent: repeating a choice
+    always advances the conversation, while material rewards (Kudos, Bops,
+    cards, tasks) are granted once per choice through the reward ledger.
+    Vibe adjustments apply once per conversation session.
+    """
 
     def __init__(
         self,
@@ -53,6 +76,7 @@ class DialogService:
         world: WorldDefinition,
         tasks: object | None = None,
         peep_states: NpcPeepStateRepository | None = None,
+        vibes: object | None = None,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -62,13 +86,26 @@ class DialogService:
         self._world = world
         self._tasks = tasks
         self._peep_states = peep_states
+        self._vibes = vibes
         self._dispatcher: object | None = None
+        self._side_effect_hook: object | None = None
         self._active: dict[str, ActiveDialog] = {}
+        self._vibe_used: dict[str, set[str]] = {}
 
     def attach_dispatcher(self, dispatcher: object) -> None:
         """Wire the behavior dispatcher used for dialog script callbacks."""
 
         self._dispatcher = dispatcher
+
+    def attach_side_effect_hook(self, hook: object) -> None:
+        """Wire an optional hook run after a non-duplicate choice commits.
+
+        The hook receives ``(account, peep_id, choice)`` and lets mods settle
+        choice-specific state (such as roommate job claims) outside the dialog
+        transaction.
+        """
+
+        self._side_effect_hook = hook
 
     def _current_room(self, account_id: str) -> str:
         profile = self._profiles.get_user_profile(account_id)
@@ -114,6 +151,8 @@ class DialogService:
         if target_node not in dialog.nodes:
             raise ValueError("That dialog node does not exist.")
         existing = self._active.get(account.id)
+        if existing is None or existing.peep_id != peep_id:
+            self._vibe_used.pop(account.id, None)
         revision = existing.revision + 1 if existing is not None else 1
         active = ActiveDialog(
             account_id=account.id,
@@ -141,6 +180,17 @@ class DialogService:
 
         del connection
         self._active.pop(account_id, None)
+        self._vibe_used.pop(account_id, None)
+
+    def sessions_for_peep(self, peep_id: str) -> list[ActiveDialog]:
+        """Return every open dialog session currently talking to *peep_id*."""
+
+        return [active for active in self._active.values() if active.peep_id == peep_id]
+
+    def has_open_session(self, peep_id: str) -> bool:
+        """Return whether any user currently has a dialog open with *peep_id*."""
+
+        return any(active.peep_id == peep_id for active in self._active.values())
 
     def _condition_met(self, condition: object, counters: dict[str, object]) -> bool:
         if condition is None:
@@ -228,7 +278,7 @@ class DialogService:
         *,
         action_id: str | None = None,
     ) -> DialogResult:
-        """Choose a dialog option with full revalidation and idempotency."""
+        """Choose a dialog option, always advancing; rewards stay idempotent."""
 
         active = self.view(account.id)
         if active is None:
@@ -241,42 +291,60 @@ class DialogService:
             raise ValueError("That conversation has ended.")
         choice = self._resolve_choice(node, choice_index_or_action_id)
         resolved_action_id = action_id or (choice.action_id if choice is not None else None)
-        if resolved_action_id is None:
+        if resolved_action_id is None or choice is None:
             raise ValueError("That dialog choice is not available.")
         result = DialogResult(dialog=None, peep_id=active.peep_id, node_id=active.node_id, choice=choice)
-        duplicated = False
+        guarded = dialog_choice_guarded(choice)
+        ledger_key = f"dialog:{active.peep_id}:{resolved_action_id}" if guarded else None
+        already_claimed = False
         with self._hub.transaction() as connection:
             current = self.view(account.id)
             if current is None:
                 raise ValueError("That conversation has ended.")
-            ledger_key = f"dialog:{active.peep_id}:{resolved_action_id}"
-            duplicated = self._progression.has_ledger_entry(connection, account.id, ledger_key)
-            if not duplicated:
-                if choice is None:
-                    raise ValueError("That dialog choice is not available.")
-                if current.node_id != active.node_id:
-                    raise ValueError("That conversation has moved on.")
-                counters = self._stats.view(account.id).payload()
-                if not self._condition_met(choice.when, counters):
-                    raise ValueError("That choice is not available right now.")
+            if current.node_id != active.node_id:
+                raise ValueError("That conversation has moved on.")
+            counters = self._stats.view(account.id).payload()
+            if not self._condition_met(choice.when, counters):
+                raise ValueError("That choice is not available right now.")
+            if guarded:
+                already_claimed = self._progression.has_ledger_entry(
+                    connection, account.id, str(ledger_key)
+                )
+            if not already_claimed:
                 self._progression.grant_in_transaction(
                     connection,
                     account.id,
                     kudos=choice.grant,
+                    bops=int(getattr(choice, "grant_bops", 0) or 0),
                     ledger_key=ledger_key,
                     kind="dialog",
                 )
                 self._apply_side_effects(connection, account, choice, result)
-                if choice.end:
-                    self.end_in_transaction(connection, account.id)
-                else:
-                    self._active[account.id] = replace(
-                        current,
-                        node_id=choice.next_node_id,
-                        revision=current.revision + 1,
-                    )
-        result.duplicated = duplicated
-        if not duplicated and choice is not None and self._dispatcher is not None:
+            if choice.end:
+                self.end_in_transaction(connection, account.id)
+            else:
+                self._active[account.id] = replace(
+                    current,
+                    node_id=choice.next_node_id,
+                    revision=current.revision + 1,
+                )
+        vibe_delta = int(getattr(choice, "vibe_delta", 0) or 0)
+        if vibe_delta:
+            vibe_key = f"{active.peep_id}:{active.node_id}:{choice.index}"
+            used = self._vibe_used.setdefault(account.id, set())
+            if vibe_key not in used:
+                used.add(vibe_key)
+                if self._vibes is not None:
+                    adjust = getattr(self._vibes, "adjust", None)
+                    if callable(adjust):
+                        adjust(active.peep_id, account.id, vibe_delta)
+                        adjust(account.id, active.peep_id, vibe_delta)
+        if not already_claimed and self._side_effect_hook is not None:
+            hook = self._side_effect_hook
+            if callable(hook):
+                hook(account, active.peep_id, choice)
+        result.duplicated = already_claimed
+        if not already_claimed and self._dispatcher is not None:
             event = BehaviorEvent(
                 type="dialog_action",
                 actor=PeepRef(kind="user", peep_id=None, account_id=account.id),

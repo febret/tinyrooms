@@ -311,7 +311,10 @@ async def dialog_command(context: CommandContext, command: ParsedCommand) -> Com
     except ValueError as exc:
         raise CommandError("Dialog choice must be an index.") from exc
     result = await context.dialogs.choose(context.account, index)
-    outcome = CommandOutcome(message="Conversation updated.", payload={"dialog": result.dialog})
+    message = "Conversation updated."
+    if result.duplicated:
+        message = "You've already collected that reward, but the conversation carries on."
+    outcome = CommandOutcome(message=message, payload={"dialog": result.dialog})
     merge_behavior_result(context, outcome, result.behavior_result)
     outcome.private_events.extend(result.events)
     return outcome

@@ -763,6 +763,8 @@ class RoomService:
         source_room_id = self.peep_room(peep)
         if source_room_id == room_id:
             raise ValueError("That peep is already in that room.")
+        if self._dialogs is not None and self._dialogs.has_open_session(peep_id):
+            raise ValueError(f"{peep.label} is in conversation and cannot leave right now.")
         source_room = self._world.rooms.get(source_room_id)
         if source_room is None:
             raise ValueError("That peep is not in a known room.")

@@ -21,6 +21,15 @@ from mods.tinytown.catalog import (
     TRAITS_BY_ID,
 )
 from mods.tinytown.roommate_text import roommate_ad
+from mods.tinytown.interests import interest_label, random_interests
+from mods.tinytown.jobs import (
+    JOB_INTERVAL_SECONDS,
+    assign_job,
+    job_description,
+    job_label,
+    valid_job,
+)
+from mods.tinytown.roommate_systems import RoommateSystemsMixin
 from server.broadcast import broadcast_room_event
 from server.content.worlds import PeepDefinition, QuickAction
 from server.security import utc_now
@@ -177,9 +186,15 @@ class NpcRecord:
     action: str
     target: str
     last_tick: str
+    likes: str = ""
+    dislikes: str = ""
+    job_id: str = ""
+    job_claim_json: str = ""
+    job_ready_at: str = ""
+    job_cooldown_until: str = ""
 
 
-class NpcHouse:
+class NpcHouse(RoommateSystemsMixin):
     """Owns household NPCs, their stats, and their autonomous day."""
 
     def __init__(self, housing: object) -> None:
@@ -195,8 +210,21 @@ class NpcHouse:
         self.vibes = getattr(housing.runtime, "vibes", None)
         self._task: asyncio.Task[None] | None = None
         self._random = random.Random()
+        self._relationship_accum: dict[str, float] = {}
+        self._last_banter: dict[str, float] = {}
 
     # -- persistence ---------------------------------------------------------
+
+    @staticmethod
+    def _column(row: object, key: str, default: str = "") -> str:
+        try:
+            keys = row.keys()  # type: ignore[union-attr]
+        except AttributeError:
+            keys = ()
+        if key not in keys:
+            return default
+        value = row[key]  # type: ignore[index]
+        return str(value) if value is not None else default
 
     def _rows(self) -> list[NpcRecord]:
         with self.hub.locked() as connection:
@@ -223,6 +251,12 @@ class NpcHouse:
                     action=str(row["action"]),
                     target=str(row["target"]),
                     last_tick=str(row["last_tick"]),
+                    likes=self._column(row, "likes_interest"),
+                    dislikes=self._column(row, "dislikes_interest"),
+                    job_id=self._column(row, "job_id"),
+                    job_claim_json=self._column(row, "job_claim_json"),
+                    job_ready_at=self._column(row, "job_ready_at"),
+                    job_cooldown_until=self._column(row, "job_cooldown_until"),
                 )
             )
         return records
@@ -246,8 +280,10 @@ class NpcHouse:
                     """
                     INSERT INTO world.tinytown_npcs (
                         npc_id, house_id, owner_account_id, name, avatar, traits_json,
-                        stats_json, room_id, action, target, last_tick, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        stats_json, room_id, action, target, last_tick, created_at, updated_at,
+                        likes_interest, dislikes_interest, job_id, job_claim_json,
+                        job_ready_at, job_cooldown_until
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.npc_id,
@@ -263,6 +299,12 @@ class NpcHouse:
                         record.last_tick,
                         record.last_tick,
                         record.last_tick,
+                        record.likes,
+                        record.dislikes,
+                        record.job_id,
+                        record.job_claim_json,
+                        record.job_ready_at,
+                        record.job_cooldown_until,
                     ),
                 )
                 return True
@@ -276,12 +318,20 @@ class NpcHouse:
                 record.target,
                 record.last_tick,
                 utc_now().isoformat(),
+                record.likes,
+                record.dislikes,
+                record.job_id,
+                record.job_claim_json,
+                record.job_ready_at,
+                record.job_cooldown_until,
                 record.npc_id,
             ]
             statement = """
                 UPDATE world.tinytown_npcs SET
                     name = ?, avatar = ?, traits_json = ?, stats_json = ?, room_id = ?,
-                    action = ?, target = ?, last_tick = ?, updated_at = ?
+                    action = ?, target = ?, last_tick = ?, updated_at = ?,
+                    likes_interest = ?, dislikes_interest = ?, job_id = ?,
+                    job_claim_json = ?, job_ready_at = ?, job_cooldown_until = ?
                 WHERE npc_id = ?
             """
             if expected_last_tick is not None:
@@ -304,16 +354,45 @@ class NpcHouse:
         return (
             QuickAction(label="Check in", command=f".tinytown npc {npc_id}"),
             QuickAction(label="Play together", command=f".tinytown play {npc_id}"),
+            QuickAction(label="Talk", command=f".talk {npc_id}"),
         )
 
     def _describe(self, record: NpcRecord) -> str:
         labels = [TRAITS_BY_ID[trait].label for trait in record.traits if trait in TRAITS_BY_ID]
         traits = " and ".join(labels) if labels else "one of a kind"
-        return f"{record.name} is {traits}. {ACTION_LABELS.get(record.action, 'pottering about').capitalize()}."
+        working = f" {job_label(record.job_id).lower()}" if valid_job(record.job_id) else ""
+        return (
+            f"{record.name} is {traits}.{working} fancies {interest_label(record.likes)} "
+            f"and avoids {interest_label(record.dislikes)}. "
+            f"{ACTION_LABELS.get(record.action, 'pottering about').capitalize()}."
+        )
 
     def _register_peep(self, record: NpcRecord) -> None:
+        from mods.tinytown.roommate_dialog import build_roommate_dialog, condition_label
+        from server.services.vibes import describe_vibe
+
         avatar_file = self._avatar_file(record.avatar)
         image_path = (self.world.root_path / "peeps" / avatar_file).resolve()
+        dialog = None
+        try:
+            dialog = build_roommate_dialog(
+                record,
+                owner_toward_label=self._vibe_label(record.owner_account_id, record.npc_id, describe_vibe),
+                owner_from_label=self._vibe_label(record.npc_id, record.owner_account_id, describe_vibe),
+                housemates=self._housemate_cards(record, describe_vibe),
+                needs_blurb=self._needs_blurb(record),
+                job_label_text=job_label(record.job_id),
+                job_description_text=job_description(record.job_id),
+                job_state=self._job_dialog_state(record),
+                job_gate_blurb=self._job_gate_blurb(record),
+                job_ready=self._job_ready_payload(record),
+                energy_label=condition_label(record.stats.get("energy", 70.0)),
+                health_label=condition_label(record.stats.get("health", 80.0)),
+                cleanliness_label=condition_label(record.stats.get("cleanliness", 80.0)),
+            )
+        except Exception:  # noqa: BLE001 - a roommate is never left speechless by a bug
+            LOGGER.exception("tinytown.roommate_dialog_failed")
+            dialog = None
         self.world.peeps[record.npc_id] = PeepDefinition(
             id=record.npc_id,
             label=record.name,
@@ -323,7 +402,7 @@ class NpcHouse:
             image_path=image_path,
             script_name=None,
             actions=self._actions(record.npc_id),
-            dialog=None,
+            dialog=dialog,
             activity=None,
         )
         if self.peep_states is not None:
@@ -345,6 +424,7 @@ class NpcHouse:
                     continue
                 record = self._with(record, room_id=room_id)
                 self._write(record, created=False)
+            record = self._ensure_identity(record)
             self._register_peep(record)
 
     @staticmethod
@@ -361,6 +441,12 @@ class NpcHouse:
             "action": record.action,
             "target": record.target,
             "last_tick": record.last_tick,
+            "likes": record.likes,
+            "dislikes": record.dislikes,
+            "job_id": record.job_id,
+            "job_claim_json": record.job_claim_json,
+            "job_ready_at": record.job_ready_at,
+            "job_cooldown_until": record.job_cooldown_until,
         }
         values.update(changes)
         return NpcRecord(**values)  # type: ignore[arg-type]
@@ -412,6 +498,8 @@ class NpcHouse:
         return payload
 
     def npc_summary(self, record: NpcRecord, room_label: str) -> dict[str, object]:
+        from mods.tinytown.roommate_dialog import condition_label
+
         return {
             "id": record.npc_id,
             "name": record.name,
@@ -422,13 +510,22 @@ class NpcHouse:
                 for trait in record.traits
                 if trait in TRAITS_BY_ID
             ],
-            "stats": {
-                "energy": round(record.stats.get("energy", 70.0), 1),
-                "health": round(record.stats.get("health", 80.0), 1),
-                "cleanliness": round(record.stats.get("cleanliness", 80.0), 1),
-                "max_energy": MAX_STAT,
-                "max_health": MAX_STAT,
-                "max_cleanliness": MAX_STAT,
+            "condition": {
+                "energy": condition_label(record.stats.get("energy", 70.0)),
+                "health": condition_label(record.stats.get("health", 80.0)),
+                "cleanliness": condition_label(record.stats.get("cleanliness", 80.0)),
+            },
+            "likes": {
+                "id": record.likes,
+                "label": interest_label(record.likes),
+            },
+            "dislikes": {
+                "id": record.dislikes,
+                "label": interest_label(record.dislikes),
+            },
+            "job": {
+                "id": record.job_id,
+                "label": job_label(record.job_id),
             },
             "action": record.action,
             "action_label": ACTION_LABELS.get(record.action, record.action),
@@ -500,6 +597,10 @@ class NpcHouse:
             raise ValueError(f"A house can hold at most {MAX_NPCS_PER_HOUSE} household peeps.")
         now = utc_now().isoformat()
         validated_traits = self._validate_traits(traits)
+        likes, dislikes = random_interests(self._random)
+        from datetime import timedelta
+
+        first_shift_at = (utc_now() + timedelta(seconds=JOB_INTERVAL_SECONDS)).isoformat()
         record = NpcRecord(
             npc_id=f"ttnpc:{uuid.uuid4().hex}",
             house_id=house_id,
@@ -512,6 +613,12 @@ class NpcHouse:
             action="idle",
             target="",
             last_tick=now,
+            likes=likes,
+            dislikes=dislikes,
+            job_id=assign_job(self._random, validated_traits),
+            job_claim_json="",
+            job_ready_at="",
+            job_cooldown_until=first_shift_at,
         )
         self._write(record, created=True)
         self._register_peep(record)
@@ -556,6 +663,8 @@ class NpcHouse:
     # -- interaction ---------------------------------------------------------
 
     def checkin(self, account: object, npc_id: str, room_id: str) -> tuple[NpcRecord, str, str]:
+        from mods.tinytown.roommate_dialog import condition_label
+
         record = self.record_for(npc_id)
         if record is None or record.npc_id not in self.world.peeps:
             raise ValueError("That household peep does not exist.")
@@ -564,8 +673,10 @@ class NpcHouse:
         traits = [TRAITS_BY_ID[trait].label for trait in record.traits if trait in TRAITS_BY_ID]
         summary = (
             f"{record.name} ({', '.join(traits)}) is {ACTION_LABELS.get(record.action, 'pottering about')}. "
-            f"Energy {round(record.stats.get('energy', 0))} · Health {round(record.stats.get('health', 0))} · "
-            f"Cleanliness {round(record.stats.get('cleanliness', 0))}."
+            f"Energy feels {condition_label(record.stats.get('energy', 0))}, "
+            f"health {condition_label(record.stats.get('health', 0))}, "
+            f"cleanliness {condition_label(record.stats.get('cleanliness', 0))}. "
+            f"Fancies {interest_label(record.likes)}; avoids {interest_label(record.dislikes)}."
         )
         line = self._line(record, record.action, record.target)
         return record, f"{summary} \"{line}\"", line
@@ -876,6 +987,11 @@ class NpcHouse:
             if emit:
                 await self._emit(record, occupied, spoken_rooms)
             self._adjust_vibes(record, house_npcs.get(record.house_id, []))
+            self._accumulate_house_clocks(record.house_id, elapsed)
+
+        self._run_house_ticks(houses, moment)
+        if emit:
+            await self._emit_banter(houses, occupied)
 
     async def _emit(self, record: NpcRecord, occupied: set[str], spoken_rooms: set[str]) -> None:
         if record.room_id not in occupied:

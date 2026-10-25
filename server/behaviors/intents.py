@@ -1006,6 +1006,12 @@ class BehaviorIntentMixin:
         deferred: list[object],
     ) -> None:
         del context
+        peep_id = str(payload.get("peep_id", ""))
+        dialogs = getattr(self, "_dialogs", None)
+        has_open = getattr(dialogs, "has_open_session", None)
+        if callable(has_open) and peep_id and has_open(peep_id):
+            self._log("behavior.intent.skipped", kind="move_peep", reason="in_conversation")
+            return
         sprite_actions.apply_move_peep(
             world=self._world,
             peep_states=self._peep_states,

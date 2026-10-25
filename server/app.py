@@ -594,6 +594,7 @@ def _build_runtime(
         world=world,
         tasks=tasks,
         peep_states=peep_states,
+        vibes=vibes,
     )
     behavior_loader = BehaviorLoader()
     scripts = behavior_loader.load_world(world)

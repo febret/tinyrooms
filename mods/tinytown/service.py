@@ -141,6 +141,18 @@ class TinytownHousing:
                 )
                 """
             )
+            for statement in (
+                "ALTER TABLE world.tinytown_npcs ADD COLUMN likes_interest TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_npcs ADD COLUMN dislikes_interest TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_npcs ADD COLUMN job_id TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_npcs ADD COLUMN job_claim_json TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_npcs ADD COLUMN job_ready_at TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_npcs ADD COLUMN job_cooldown_until TEXT NOT NULL DEFAULT ''",
+            ):
+                try:
+                    connection.execute(statement)
+                except sqlite3.OperationalError:
+                    pass
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS world.tinytown_unlocks (
@@ -167,6 +179,15 @@ class TinytownHousing:
                 )
                 """
             )
+            for statement in (
+                "ALTER TABLE world.tinytown_roommate_candidates ADD COLUMN likes_interest TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_roommate_candidates ADD COLUMN dislikes_interest TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world.tinytown_roommate_candidates ADD COLUMN job_hint TEXT NOT NULL DEFAULT ''",
+            ):
+                try:
+                    connection.execute(statement)
+                except sqlite3.OperationalError:
+                    pass
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS world.idx_tinytown_candidates_house "
                 "ON tinytown_roommate_candidates(owner_account_id, house_id, created_at)"
@@ -928,10 +949,18 @@ class TinytownService:
 
     def prepare(self) -> None:
         self.housing.prepare()
+        self._wire_dialog_settlement()
 
     def start(self) -> None:
         self.npcs.start()
         self._day_night.start()
+        self._wire_dialog_settlement()
+
+    def _wire_dialog_settlement(self) -> None:
+        dialogs = getattr(self.runtime, "dialogs", None)
+        attach = getattr(dialogs, "attach_side_effect_hook", None)
+        if callable(attach):
+            attach(self.npcs.on_dialog_choice)
 
     def stop(self) -> None:
         self.npcs.stop()
