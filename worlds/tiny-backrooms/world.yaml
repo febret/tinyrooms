@@ -6,7 +6,7 @@ description: A horror maze in three levels. Search the Backrooms, the Upside
 entry_room: br-r0c0
 image: rooms/br-floor.png
 css: horror.css
-environment: darkness
+environment: fluorescent
 palette:
 - '#c9b458'
 - '#3a5a8c'

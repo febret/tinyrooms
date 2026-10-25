@@ -8,7 +8,7 @@ br-r0c0:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -40,7 +40,7 @@ br-r0c1:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -68,7 +68,7 @@ br-r0c2:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -96,7 +96,7 @@ br-r0c3:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -128,7 +128,7 @@ br-r0c4:
   - '#8a7a3a'
   - '#4a4423'
   dark: true
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -154,7 +154,7 @@ br-r1c0:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -181,7 +181,7 @@ br-r1c1:
   - '#8a7a3a'
   - '#4a4423'
   dark: true
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -215,7 +215,7 @@ br-r1c2:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -252,7 +252,7 @@ br-r1c3:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -283,7 +283,7 @@ br-r1c4:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -310,7 +310,7 @@ br-r2c0:
   - '#8a7a3a'
   - '#4a4423'
   dark: true
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -338,7 +338,7 @@ br-r2c1:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -372,7 +372,7 @@ br-r2c2:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -406,7 +406,7 @@ br-r2c3:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -443,7 +443,7 @@ br-r2c4:
   - '#8a7a3a'
   - '#4a4423'
   dark: true
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -474,7 +474,7 @@ br-r3c0:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -502,7 +502,7 @@ br-r3c1:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -539,7 +539,7 @@ br-r3c2:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -571,7 +571,7 @@ br-r3c3:
   - '#8a7a3a'
   - '#4a4423'
   dark: true
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -605,7 +605,7 @@ br-r3c4:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -637,7 +637,7 @@ br-r4c0:
   - '#8a7a3a'
   - '#4a4423'
   dark: true
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -665,7 +665,7 @@ br-r4c1:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -696,7 +696,7 @@ br-r4c2:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -724,7 +724,7 @@ br-r4c3:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -764,7 +764,7 @@ br-r4c4:
   - '#c9b458'
   - '#8a7a3a'
   - '#4a4423'
-  environment: darkness
+  environment: fluorescent
   editor:
     environment:
     - palette
@@ -2376,6 +2376,7 @@ surface:
   description: "Warm sunlight and clean air. The humming is gone. You made it out of the Tiny Backrooms."
   board_type: basic
   board_image: surface-floor.png
+  environment: day
   board_image_style: stretch
   palette:
   - '#f5e9c8'
