@@ -187,6 +187,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   const pointers = new Map();
+  const pointerCurrent = new Map();
   let gestureMoved = false;
   let blocked = true;
   let disposed = false;
@@ -374,7 +375,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     const bounds = canvasBounds();
     if (!bounds) return null;
     const world = new THREE.Vector3(...boardPosition(position));
-    world.y += TOP;
+    world.y += TOP + boardLift;
     const projected = world.project(camera);
     if (!Number.isFinite(projected.x) || projected.z > 1) return null;
     return ndcToScreen(projected, bounds);
@@ -387,7 +388,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       return;
     }
     const world = new THREE.Vector3(...boardPosition(position));
-    world.y += TOP + 0.012;
+    world.y += TOP + boardLift + 0.012;
     dropHint.position.copy(world);
     dropHint.visible = true;
   }
@@ -434,12 +435,14 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function applyBoardLift(delta) {
     if (!current || disposed || !Number.isFinite(delta) || delta === 0) return;
     boardLift = Math.min(BOARD_LIFT_MAX, Math.max(BOARD_LIFT_MIN, boardLift + delta));
-    current.root.position.y = boardLift;
+    syncBoardLift();
     markAdjusted();
   }
 
   function syncBoardLift() {
-    if (current) current.root.position.y = boardLift;
+    if (!current) return;
+    current.root.position.y = boardLift;
+    FLOOR_PLANE.constant = -(TOP + boardLift);
   }
 
   /**
@@ -984,9 +987,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
     if (!pointers.size) gestureMoved = false;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    pointerCurrent.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.size > 1) {
       gestureMoved = true;
-      const ys = [...pointers.values()].map(point => point.y);
+      const ys = [...pointerCurrent.values()].map(point => point.y);
       twoFingerLift = { lastY: ys.reduce((sum, y) => sum + y, 0) / ys.length };
     }
   }
@@ -1021,13 +1025,15 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       return;
     }
     if (!editEnabled && pointers.size >= 2) {
-      const stored = pointers.get(event.pointerId);
-      if (stored) {
+      const currentPointer = pointerCurrent.get(event.pointerId);
+      if (currentPointer) {
+        currentPointer.x = event.clientX;
+        currentPointer.y = event.clientY;
         if (!twoFingerLift) {
-          const ys = [...pointers.values()].map(point => point.y);
+          const ys = [...pointerCurrent.values()].map(point => point.y);
           twoFingerLift = { lastY: ys.reduce((sum, y) => sum + y, 0) / ys.length };
         }
-        const ys = [...pointers.entries()].map(([id, point]) => (id === event.pointerId ? event.clientY : point.y));
+        const ys = [...pointerCurrent.values()].map(point => point.y);
         const average = ys.reduce((sum, y) => sum + y, 0) / ys.length;
         applyBoardLift(-(average - twoFingerLift.lastY) * BOARD_LIFT_PX);
         twoFingerLift.lastY = average;
@@ -1035,6 +1041,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       gestureMoved = true;
       if (dropArmed) setDropHint(null);
       return;
+    }
+    const currentPointer = pointerCurrent.get(event.pointerId);
+    if (currentPointer) {
+      currentPointer.x = event.clientX;
+      currentPointer.y = event.clientY;
     }
     if (dropArmed) {
       const point = screenToBoardPosition(event.clientX, event.clientY);
@@ -1050,6 +1061,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       releaseOrbit();
       gestureMoved = true;
       pointers.delete(event.pointerId);
+      pointerCurrent.delete(event.pointerId);
       return;
     }
     if (editEnabled) {
@@ -1074,6 +1086,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
     const start = pointers.get(event.pointerId);
     pointers.delete(event.pointerId);
+    pointerCurrent.delete(event.pointerId);
     if (pointers.size < 2) twoFingerLift = null;
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
@@ -1101,6 +1114,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     if (shiftDrag?.pointerId === event.pointerId) shiftDrag = null;
     releaseOrbit();
     pointers.delete(event.pointerId);
+    pointerCurrent.delete(event.pointerId);
     if (pointers.size < 2) twoFingerLift = null;
     gestureMoved = true;
   }
@@ -1175,7 +1189,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     if (selectionRing.visible && selectionObject) {
       selectionRing.position.set(
         selectionObject.position.x,
-        selectionObject.position.y + 0.06,
+        selectionObject.position.y + boardLift + 0.06,
         selectionObject.position.z,
       );
     }

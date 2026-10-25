@@ -1,8 +1,46 @@
 import { decalDataUrl } from "../decals.js";
 import { escapeHtml } from "../presentation.js";
 import { findInventoryCard } from "../state.js";
-import { titlesMarkup } from "./self-view.js";
 import { counterBar, modalShell } from "./view-helpers.js";
+
+function titleSlotRow(slot, slotLabel, titles) {
+  const unlocked = new Set(titles.unlocked || []);
+  const selected = titles.selection?.[slot] || "none";
+  const choices = (titles.catalog || []).filter(part => part.slot === slot && unlocked.has(part.id));
+  const options = [`<option value="none"${selected === "none" ? " selected" : ""}>None</option>`];
+  for (const part of choices) {
+    options.push(
+      `<option value="${escapeHtml(part.id)}"${selected === part.id ? " selected" : ""}>${escapeHtml(part.label)}</option>`,
+    );
+  }
+  return `<div class="title-slot">
+    <span class="title-slot-name" id="title-slot-${escapeHtml(slot)}">${escapeHtml(slotLabel)}</span>
+    <select data-title-slot="${escapeHtml(slot)}" aria-labelledby="title-slot-${escapeHtml(slot)}">${options.join("")}</select>
+  </div>`;
+}
+
+export function titlesMarkup(user, open) {
+  const titles = user.titles || { catalog: [], unlocked: [], selection: {}, cookedCount: 0, taughtCount: 0 };
+  const selection = titles.selection || {};
+  const displayLabel = selection.displayLabel || user.username || "You";
+  return `
+      <button type="button" class="title-nameplate" data-titles-toggle="1" aria-expanded="${open ? "true" : "false"}" aria-controls="title-editor" title="${open ? "Close the title editor" : "Edit your titles"}">
+        <span class="title-nameplate-label">${escapeHtml(displayLabel)}</span>
+        <span class="title-nameplate-action" aria-hidden="true">${open ? "✓ Done" : "✎ Titles"}</span>
+      </button>
+      <div class="title-editor" id="title-editor"${open ? "" : " hidden"}>
+        ${titleSlotRow("salutation", "Salutation", titles)}
+        ${titleSlotRow("nickname", "Nickname", titles)}
+        ${titleSlotRow("suffix", "Suffix", titles)}
+        <div class="title-slot">
+          <span class="title-slot-name" id="title-slot-crew">Crew name</span>
+          <div class="title-crew-row" data-title-crew="1">
+            <input type="text" data-title-crew-input="1" maxlength="24" value="${escapeHtml(selection.crewName || "")}" placeholder="Optional crew name" aria-labelledby="title-slot-crew">
+            <button type="button" class="title-save" data-title-crew-save="1">Save</button>
+          </div>
+        </div>
+      </div>`;
+}
 
 function skillGridMarkup(state, pending) {
   const slots = state.user?.skills || [];
@@ -103,8 +141,8 @@ export function idCardView(state) {
     body: `
       <div class="id-card-scene">
         <div class="id-card ${showingSkills ? "flipped" : ""}">
-          <section class="id-face id-front" aria-label="Identity side">${selfFaceMarkup(state)}</section>
-          <section class="id-face id-back" aria-label="Skills side" aria-hidden="${showingSkills ? "false" : "true"}">${skillsFaceMarkup(state)}</section>
+          <section class="id-face id-front" aria-label="Identity side" aria-hidden="${showingSkills ? "true" : "false"}"${showingSkills ? " inert" : ""}>${selfFaceMarkup(state)}</section>
+          <section class="id-face id-back" aria-label="Skills side" aria-hidden="${showingSkills ? "false" : "true"}"${showingSkills ? "" : " inert"}>${skillsFaceMarkup(state)}</section>
         </div>
       </div>`,
   });

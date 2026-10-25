@@ -17,7 +17,7 @@ from server.content.surface_props import (
 )
 from server.services.prop_surfaces import PropSurfaceService
 from tests.common import (
-    Milestone2IntegrationTestCase,
+    IntegrationTestCase,
     ServiceTestCase,
     auth_cookies,
     auth_headers,
@@ -141,7 +141,7 @@ class PropSurfaceServiceTests(ServiceTestCase):
         )
 
 
-class SurfaceRuntimeTests(Milestone2IntegrationTestCase):
+class SurfaceRuntimeTests(IntegrationTestCase):
     def setUp(self) -> None:
         super().setUp()
         runtime = self.runtime()

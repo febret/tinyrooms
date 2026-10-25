@@ -11,7 +11,7 @@ set -euo pipefail
 #
 #   --public-host  Hostname or IP the browser uses and that is advertised in
 #                  client URLs and Mission Control's public origin. Setting it
-#                  also binds the four listeners to 0.0.0.0 so remote clients
+#                  also binds the five listeners to 0.0.0.0 so remote clients
 #                  can connect. When omitted, everything stays on 127.0.0.1.
 #                  Use a LAN IP or DNS name clients can reach; the self-signed
 #                  certificate only covers local addresses.
@@ -150,7 +150,7 @@ Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
   Tiny Arcade      : https://$PUBLIC_HOST:$ARCADE_PORT/
   TinyTown         : https://$PUBLIC_HOST:$TINYTOWN_PORT/
   Tiny Backrooms   : https://$PUBLIC_HOST:$BACKROOMS_PORT/
-Mission Control manages all four worlds; the Multiverse travels between them.
+Mission Control manages all five worlds; the Multiverse travels between them.
 Press Ctrl-C to stop everything.
 EOF
 

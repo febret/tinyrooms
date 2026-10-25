@@ -16,8 +16,8 @@ function stateWith({ counters, statuses, journal = false } = {}) {
       },
     },
     room: { occupants: [] },
-    views: { main: journal ? "journal" : null },
-    ui: { journalTab: journal ? "Self" : "Tasks", reducedMotion: false },
+    views: { main: journal ? "id" : null },
+    ui: { idCardSide: journal ? "self" : "skills", reducedMotion: false },
   };
 }
 
@@ -45,6 +45,6 @@ test("active statuses are exposed for the cycling badge", () => {
   assert.ok(markup.includes("Active statuses: Stinky, Tired"));
 });
 
-test("the button is pressed on the journal self page", () => {
+test("the button is pressed on the identity card view", () => {
   assert.ok(statusButtonMarkup(stateWith({ journal: true })).includes('aria-pressed="true"'));
 });

@@ -950,8 +950,10 @@ function resolveEntity(state, selection) {
   if (!state.room) return null;
   if (selection.kind === "room") return state.room;
   if (selection.kind === "core") {
-    return state.user?.coreCards?.[selection.id]
-      || (selection.id === "id" ? state.user?.coreCards?.journal || { label: "ID Card", description: "Your identity and skills.", imageUrl: "" } : null);
+    if (selection.id === "id") {
+      return { id: "id", label: "ID Card", description: "Your identity and skills.", imageUrl: "" };
+    }
+    return state.user?.coreCards?.[selection.id] || null;
   }
   if (selection.kind === "task") return findTask(state, selection.id);
   if (selection.kind === "room-card") return findRoomCard(state, selection.id);

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -69,7 +68,6 @@ from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
 BOARD_TYPES = frozenset({"basic", "diorama"})
-LOGGER = logging.getLogger("tinyrooms.content")
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 from server.content.prop_assets import (  # noqa: E402
     prop_model_url,
@@ -377,32 +375,19 @@ def _validate_one_per_room(
     props: Mapping[str, PropDefinition],
     room_id: str,
     instances: Iterable[PropInstanceDefinition],
-) -> list[PropInstanceDefinition]:
-    """Keep the first instance of each one_per_room prop, ignoring extras.
+) -> None:
+    """Reject rooms placing more than one instance of a one_per_room prop."""
 
-    Extra instances are dropped with a warning so a single authoring mistake
-    does not prevent the world from loading and the server from starting.
-    """
-
-    seen: dict[str, str] = {}
-    kept: list[PropInstanceDefinition] = []
+    counts: dict[str, int] = {}
     for instance in instances:
         definition = props[instance.prop_id]
         if not definition.one_per_room:
-            kept.append(instance)
             continue
-        if instance.prop_id not in seen:
-            seen[instance.prop_id] = instance.id
-            kept.append(instance)
-            continue
-        LOGGER.warning(
-            "Room '%s' may contain only one '%s' prop; keeping '%s' and ignoring '%s'.",
-            room_id,
-            instance.prop_id,
-            seen[instance.prop_id],
-            instance.id,
-        )
-    return kept
+        counts[instance.prop_id] = counts.get(instance.prop_id, 0) + 1
+        if counts[instance.prop_id] > 1:
+            raise ContentError(
+                f"Room '{room_id}' may contain only one '{instance.prop_id}' prop."
+            )
 
 
 def load_world_definition(
@@ -627,8 +612,7 @@ def load_world_definition(
                     f"Room '{room_id}' prop '{prop_instance_id}'",
                 ),
             )
-        kept_props = _validate_one_per_room(props, room_id, room_props.values())
-        room_props = {instance.id: instance for instance in kept_props}
+        _validate_one_per_room(props, room_id, room_props.values())
         texts = [instance.text for instance in room_props.values() if instance.text is not None]
         if len(texts) > MAX_TEXT_PROPS:
             raise ContentError(f"Room '{room_id}' may contain at most {MAX_TEXT_PROPS} text props.")

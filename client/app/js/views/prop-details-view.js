@@ -1,3 +1,4 @@
+import { isExitProp } from "../exit-props.js";
 import { escapeHtml } from "../presentation.js";
 import { modalShell } from "./view-helpers.js";
 
@@ -9,7 +10,7 @@ export function propDetailsView(state) {
     : prop.renderKind === "whiteboard"
       ? `<p class="surface-prop-content">${(prop.surface?.content?.strokes || []).length} strokes · ${(prop.surface?.content?.texts || []).length} notes</p>`
       : "";
-  const isBuiltinExit = prop.renderKind === "door" || prop.renderKind === "arrow" || prop.renderKind === "stairs";
+  const isBuiltinExit = isExitProp(prop);
   return modalShell({
     extraClass: "prop-details-view",
     ariaLabel: "Prop Details",

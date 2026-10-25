@@ -428,7 +428,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     const animateToolbar = root === coreRoot && toolbarReady;
     const previousToolbar = animateToolbar ? captureToolbarButtons(root) : null;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode", "titlesToggle", "titleSlot", "titleCrewInput", "titleCrewSave"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;

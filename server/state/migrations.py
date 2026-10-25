@@ -374,9 +374,9 @@ _PROFILE_TABLES = frozenset(
         "pack_opens",
         "task_progress",
         "memories",
-    "audit_log",
-    "vibes",
-    "dynamic_card_defs",
+        "audit_log",
+        "vibes",
+        "dynamic_card_defs",
     }
 )
 

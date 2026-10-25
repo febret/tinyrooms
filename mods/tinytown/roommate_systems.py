@@ -21,8 +21,6 @@ from mods.tinytown.jobs import (
     cook_outputs,
     engineer_payout,
     generate_painting_surface,
-    job_description,
-    job_label,
     musician_gig,
     positive_band,
     requirement_blurb,
@@ -49,6 +47,25 @@ if TYPE_CHECKING:
 
 
 LOGGER = logging.getLogger("tinyrooms.mod.tinytown")
+
+
+def parse_claim_action(action: str) -> tuple[str, str, str] | None:
+    """Split a ``tinytown_claim:<npc>:<bucket>:<kind>`` action.
+
+    NPC ids contain a colon (``ttnpc:<uuid>``), so the suffix must be split
+    from the right instead of treating every colon as a separator.
+    """
+
+    prefix = "tinytown_claim:"
+    if not action.startswith(prefix):
+        return None
+    parts = action[len(prefix):].rsplit(":", 2)
+    if len(parts) != 3:
+        return None
+    npc_id, bucket, kind = (part.strip() for part in parts)
+    if not npc_id or not bucket or not kind:
+        return None
+    return npc_id, bucket, kind
 
 
 class RoommateSystemsMixin:
@@ -109,21 +126,8 @@ class RoommateSystemsMixin:
         from collections import Counter
 
         counts: Counter[str] = Counter()
-        room_ids = getattr(house, "room_ids", {}) or {}
-        for room_id in room_ids.values():
-            try:
-                props = self.layout.effective_props(str(room_id))
-            except (KeyError, ValueError, AttributeError):
-                continue
-            for prop in props or []:
-                try:
-                    definition = self.world.props.get(prop.prop_id)
-                except (AttributeError, KeyError):
-                    continue
-                if definition is None:
-                    continue
-                for tag in getattr(definition, "tags", ()):
-                    counts[str(tag)] += 1
+        for tags in self._house_tag_lists(house):
+            counts.update(tags)
         return dict(counts)
 
     def _house_tag_lists(self, house: object) -> list[tuple[str, ...]]:
@@ -201,10 +205,10 @@ class RoommateSystemsMixin:
             self._settle_claim(account, peep_id, action)
 
     def _settle_claim(self, account: object, peep_id: str, action: str) -> None:
-        parts = action.split(":")
-        if len(parts) < 4:
+        parsed = parse_claim_action(action)
+        if parsed is None:
             return
-        _, npc_id, bucket = parts[0], parts[1], parts[2]
+        npc_id, bucket, kind = parsed
         if npc_id != peep_id:
             return
         record = self.record_for(npc_id)
@@ -213,7 +217,6 @@ class RoommateSystemsMixin:
         payload = self._job_ready_payload(record)
         if not isinstance(payload, dict) or str(payload.get("bucket")) != str(bucket):
             return
-        kind = parts[3] if len(parts) > 3 else ""
         try:
             if kind == "art":
                 self._list_npc_painting(account, record, payload)
@@ -262,12 +265,6 @@ class RoommateSystemsMixin:
             self.vibes.adjust_many(deltas)
 
     # -- house clocks, jobs, and banter --------------------------------------
-
-    def _job_label_text(self, job_id: str) -> str:
-        return job_label(job_id)
-
-    def _job_description_text(self, job_id: str) -> str:
-        return job_description(job_id)
 
     def _accumulate_house_clocks(self, house_id: str, elapsed: float) -> None:
         self._relationship_accum[house_id] = self._relationship_accum.get(house_id, 0.0) + elapsed

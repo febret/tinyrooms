@@ -264,6 +264,9 @@ class RoommateCandidates:
             candidate.name,
             candidate.avatar,
             candidate.traits,
+            likes=candidate.likes,
+            dislikes=candidate.dislikes,
+            job_id=candidate.job_hint,
         )
         self._delete(candidate.candidate_id)
         house = self.housing.record_for(target_house_id)

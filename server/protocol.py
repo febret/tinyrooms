@@ -82,16 +82,16 @@ def _require_optional_string(payload: dict[str, object], key: str, limit: int) -
     return value
 
 
-def _optional_revision(value: object) -> int | None:
+def _optional_revision(value: object, field: str) -> int | None:
     """Parse an optional client-cached revision token for snapshot gating."""
 
     if value is None:
         return None
     if isinstance(value, bool):
-        raise ProtocolError("'layout_revision' must be an integer.")
+        raise ProtocolError(f"'{field}' must be an integer.")
     if isinstance(value, int):
         return value if value >= 0 else 0
-    raise ProtocolError("'layout_revision' must be an integer.")
+    raise ProtocolError(f"'{field}' must be an integer.")
 
 
 def _validate_rtc_signal(signal: object) -> dict[str, object]:
@@ -152,8 +152,8 @@ def parse_client_message(raw_text: str) -> tuple[str, ParsedClientPayload]:
         return envelope_type, ClientCommandEnvelope(request_id=request_id, command=command)
     if envelope_type == "snapshot.request":
         return envelope_type, ClientSnapshotRequestEnvelope(
-            layout_revision=_optional_revision(payload.get("layout_revision")),
-            environment_revision=_optional_revision(payload.get("environment_revision")),
+            layout_revision=_optional_revision(payload.get("layout_revision"), "layout_revision"),
+            environment_revision=_optional_revision(payload.get("environment_revision"), "environment_revision"),
         )
     if envelope_type == "rtc.presence":
         enabled = payload.get("enabled")

@@ -19,7 +19,7 @@ from server.content.common import ContentError
 from server.services.cross_world import CrossWorldService
 from tests.common import (
     REPO_ROOT,
-    Milestone2IntegrationTestCase,
+    IntegrationTestCase,
     RuntimeTestCase,
     load_test_world,
     websocket_headers,
@@ -126,7 +126,7 @@ class MultiverseActivityAssetsTests(RuntimeTestCase):
             self.assertTrue(response.content, path)
 
 
-class MultiverseCommandIntegrationTests(Milestone2IntegrationTestCase):
+class MultiverseCommandIntegrationTests(IntegrationTestCase):
     def _client_for(self):
         def handler(request: httpx.Request) -> httpx.Response:
             if request.url.path == "/api/mc/worlds":

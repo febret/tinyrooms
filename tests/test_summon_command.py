@@ -9,10 +9,10 @@ from server.commands.core import dispatch_command
 from server.commands.outcomes import CommandError
 from server.commands.parser import parse_command
 from server.connections import SyntheticConnection
-from tests.common import Milestone2IntegrationTestCase
+from tests.common import IntegrationTestCase
 
 
-class SummonCommandTests(Milestone2IntegrationTestCase):
+class SummonCommandTests(IntegrationTestCase):
     """Exercise the admin-only `.summon` command through the runtime."""
 
     def setUp(self) -> None:

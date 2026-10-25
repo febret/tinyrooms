@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { footprintsOverlap, supportElevation } from "../../client/app/js/editing/prop-stacking.js";
+import { cardDropElevation, footprintsOverlap, supportElevation } from "../../client/app/js/editing/prop-stacking.js";
 
 const dragged = { id: "dragged", x: 0, z: 0, halfX: 1, halfZ: 1, topZ: 0 };
 
@@ -24,4 +24,21 @@ test("supportElevation rests on the highest top among overlapping props", () => 
   const high = { id: "high", x: 1, z: 0, halfX: 1, halfZ: 1, topZ: 8 };
   assert.equal(supportElevation(dragged, [low, high]), 8);
   assert.equal(supportElevation(dragged, [high, low]), 8);
+});
+
+function propRecord(id, x, z, topZ) {
+  const size = 2;
+  return {
+    id,
+    group: { position: { x, z }, rotation: { y: 0 }, scale: { x: 1 } },
+    prop: { position: [50, 50, topZ - size / 0.1] },
+    bounds: { min: { x: -1, y: 0, z: -1 }, max: { x: 1, y: size, z: 1 } },
+  };
+}
+
+test("cardDropElevation is zero on the empty floor and rests on props", () => {
+  assert.equal(cardDropElevation([], 0, 0, 0.425, 0.275), 0);
+  const records = [propRecord("table", 0, 0, 12)];
+  assert.equal(cardDropElevation(records, 0, 0, 0.425, 0.275), 12);
+  assert.equal(cardDropElevation(records, 10, 10, 0.425, 0.275), 0);
 });

@@ -57,14 +57,6 @@ class TitleService:
 
         return [part.to_payload() for part in self._content.titles.parts.values()]
 
-    def _completed_task_ids(self, account_id: str) -> set[str]:
-        with self._hub.locked() as connection:
-            rows = connection.execute(
-                "SELECT task_id FROM task_progress WHERE account_id = ? AND status = 'completed'",
-                (account_id,),
-            ).fetchall()
-        return {str(row["task_id"]) for row in rows}
-
     def _backfill_counts(self, connection: sqlite3.Connection, account_id: str, profile: dict[str, object]) -> None:
         """Seed lifetime counters once from historical task progress, if any."""
 
@@ -116,36 +108,59 @@ class TitleService:
         if taught <= 0 and best_taught > 0:
             profile["taught_count"] = best_taught
 
-    def is_unlocked(
+    def _unlock_ids(
         self,
-        part: TitlePart,
+        account: AccountRecord,
+        counts: dict[str, object],
+        completed: set[str],
+    ) -> list[str]:
+        """Return the sorted unlocked title ids for the given account state."""
+
+        try:
+            cooked = int(counts.get("cooked_count", 0) or 0)
+        except (TypeError, ValueError):
+            cooked = 0
+        try:
+            taught = int(counts.get("taught_count", 0) or 0)
+        except (TypeError, ValueError):
+            taught = 0
+        unlocked: list[str] = []
+        for part in self._content.titles.parts.values():
+            unlock = part.unlock
+            if unlock.kind == "level" and account.level >= int(unlock.level or 0):
+                unlocked.append(part.id)
+            elif unlock.kind == "task" and str(unlock.task_id) in completed:
+                unlocked.append(part.id)
+            elif unlock.kind == "cook" and cooked >= int(unlock.count or 0):
+                unlocked.append(part.id)
+            elif unlock.kind == "teach" and taught >= int(unlock.count or 0):
+                unlocked.append(part.id)
+        return sorted(unlocked)
+
+    def read_unlocked(
+        self,
         account: AccountRecord,
         profile: UserProfileRecord,
-        completed_tasks: set[str] | None = None,
-    ) -> bool:
-        """Return whether *part* is unlocked for the account."""
+    ) -> tuple[list[str], int, int]:
+        """Compute unlocks without persisting them.
 
-        unlock = part.unlock
-        if unlock.kind == "level":
-            return account.level >= int(unlock.level or 0)
-        if unlock.kind == "task":
-            tasks = completed_tasks if completed_tasks is not None else self._completed_task_ids(account.id)
-            return str(unlock.task_id) in tasks
-        if unlock.kind == "cook":
-            return profile.cooked_count >= int(unlock.count or 0)
-        if unlock.kind == "teach":
-            return profile.taught_count >= int(unlock.count or 0)
-        return False
+        Returns ``(unlocked_ids, cooked_count, taught_count)`` so callers can
+        render the payload without opening a write transaction.
+        """
 
-    def unlocked_ids(self, account: AccountRecord, profile: UserProfileRecord) -> set[str]:
-        """Recompute the full unlocked set from level, tasks, and counters."""
-
-        completed = self._completed_task_ids(account.id)
-        return {
-            part.id
-            for part in self._content.titles.parts.values()
-            if self.is_unlocked(part, account, profile, completed)
+        counts: dict[str, object] = {
+            "cooked_count": profile.cooked_count,
+            "taught_count": profile.taught_count,
         }
+        with self._hub.locked() as connection:
+            self._backfill_counts(connection, account.id, counts)
+            rows = connection.execute(
+                "SELECT task_id FROM task_progress WHERE account_id = ? AND status = 'completed'",
+                (account.id,),
+            ).fetchall()
+            completed = {str(row["task_id"]) for row in rows}
+        unlocked = self._unlock_ids(account, counts, completed)
+        return unlocked, int(counts.get("cooked_count", 0) or 0), int(counts.get("taught_count", 0) or 0)
 
     def sync_unlocked(self, account_id: str) -> tuple[list[str], list[dict[str, object]]]:
         """Persist the recomputed unlock set and return (unlocked, newly_unlocked)."""
@@ -175,30 +190,7 @@ class TitleService:
 
         def mutate(data: dict[str, object]) -> None:
             self._backfill_counts(connection, account.id, data)
-            cooked = data.get("cooked_count", 0)
-            taught = data.get("taught_count", 0)
-            unlocked: list[str] = []
-            for part in self._content.titles.parts.values():
-                unlock = part.unlock
-                if unlock.kind == "level" and account.level >= int(unlock.level or 0):
-                    unlocked.append(part.id)
-                elif unlock.kind == "task" and str(unlock.task_id) in completed:
-                    unlocked.append(part.id)
-                elif unlock.kind == "cook":
-                    try:
-                        count = int(cooked or 0)
-                    except (TypeError, ValueError):
-                        count = 0
-                    if count >= int(unlock.count or 0):
-                        unlocked.append(part.id)
-                elif unlock.kind == "teach":
-                    try:
-                        count = int(taught or 0)
-                    except (TypeError, ValueError):
-                        count = 0
-                    if count >= int(unlock.count or 0):
-                        unlocked.append(part.id)
-            data["unlocked_titles"] = sorted(unlocked)
+            data["unlocked_titles"] = self._unlock_ids(account, data, completed)
 
         previous = set(profile.unlocked_titles)
         updated = self._profiles.update_profile_in_transaction(connection, account.id, mutate)
@@ -359,20 +351,18 @@ class TitleService:
         return label
 
     def serialize_for(self, account: AccountRecord) -> dict[str, object]:
-        """Build the client-facing titles payload, syncing unlocks first."""
+        """Build the client-facing titles payload without writing to the DB."""
 
         profile = self._profiles.get_user_profile(account.id)
         if profile is None:
             raise ValueError("Unknown account.")
-        unlocked, _ = self.sync_unlocked(account.id)
-        selection = self.selection_payload(account.id)
-        fresh = self._profiles.get_user_profile(account.id) or profile
+        unlocked, cooked, taught = self.read_unlocked(account, profile)
         return {
             "catalog": self.catalog_payload(),
             "unlocked": unlocked,
-            "selection": selection,
-            "cooked_count": fresh.cooked_count,
-            "taught_count": fresh.taught_count,
+            "selection": self.selection_payload(account.id),
+            "cooked_count": cooked,
+            "taught_count": taught,
         }
 
 

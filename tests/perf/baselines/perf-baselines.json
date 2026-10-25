@@ -27,7 +27,7 @@
   "client/board/programs": {
     "note": "Compiled shader programs; one program per material variant, not per entity.",
     "unit": "count",
-    "value": 6
+    "value": 9
   },
   "client/board/shadow-auto-update": {
     "note": "1 means Three.js re-renders the shadow depth buffer every frame.",

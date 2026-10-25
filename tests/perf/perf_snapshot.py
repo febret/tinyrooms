@@ -208,17 +208,40 @@ class SnapshotContentTests(PerfCase):
     async def test_repeat_snapshots_are_identical(self) -> None:
         """The environment cache must return the same data as a cold read."""
 
+        def _without_wall_clock(environment: dict[str, object]) -> dict[str, object]:
+            """Drop wall-clock-driven keys that advance between two snapshots.
+
+            ``time_of_day`` is ``round(cycle_phase(time.time()), 6)`` (see
+            ``LightingService.snapshot_payload`` and ``diorama_environment``), so
+            two back-to-back snapshots can differ in the 6th decimal even when
+            the cache is correct. The cache owns persisted keys, not the phase.
+            """
+
+            scrubbed = dict(environment)
+            scrubbed.pop("time_of_day", None)
+            preset = scrubbed.get("lighting_preset")
+            if isinstance(preset, dict):
+                scrubbed["lighting_preset"] = {
+                    key: value for key, value in preset.items() if key != "time_of_day"
+                }
+            return scrubbed
+
         definition = self.runtime.world.rooms[ENTRY_ROOM]
         first = await self.rooms.build_snapshot(self.account, ENTRY_ROOM)
         self.runtime.world_state.invalidate_room_environment()
         self.runtime.rooms._layout = None  # bypass the layout cache for a true cold read
         second = await self.rooms.build_snapshot(self.account, ENTRY_ROOM)
-        for field in ("props", "exits", "npcs", "environment", "environment_revision"):
+        for field in ("props", "exits", "npcs", "environment_revision"):
             self.assertEqual(
                 first[field],
                 second[field],
                 f"snapshot field '{field}' differs between a cached and an uncached read",
             )
+        self.assertEqual(
+            _without_wall_clock(first["environment"]),  # type: ignore[arg-type]
+            _without_wall_clock(second["environment"]),  # type: ignore[arg-type]
+            "snapshot field 'environment' differs between a cached and an uncached read",
+        )
         self.assertEqual(len(definition.props), len(second["props"]))
 
     async def test_environment_writes_are_visible_to_later_reads(self) -> None:

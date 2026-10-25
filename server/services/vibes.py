@@ -207,7 +207,17 @@ class VibesService:
         ]
         drop_broadcasts: list[PendingRoomBroadcast] = []
         if self._card_drops is not None and stinky_users:
-            drop_broadcasts = self._card_drops.maybe_drop(room_id, stinky_users, now=moment)
+            statuses_by_account = {
+                account_id: set(views[account_id].statuses)
+                for account_id in stinky_users
+                if views.get(account_id) is not None
+            }
+            drop_broadcasts = self._card_drops.maybe_drop(
+                room_id,
+                stinky_users,
+                now=moment,
+                statuses_by_account=statuses_by_account,
+            )
 
         if len(peeps) < 2:
             if not drop_broadcasts:

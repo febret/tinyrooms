@@ -344,7 +344,7 @@ class RuntimeTestCase(unittest.TestCase):
         return result
 
 
-class Milestone2IntegrationTestCase(RuntimeTestCase):
+class IntegrationTestCase(RuntimeTestCase):
     """Shared helpers for live-server Milestone 2 tests."""
 
     def runtime(self):

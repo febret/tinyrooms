@@ -145,12 +145,6 @@ def normalize_title_selection(raw: object) -> dict[str, object]:
     return selection
 
 
-def _normalize_title_selection(raw: object) -> dict[str, object]:
-    """Coerce a stored title selection into its canonical shape."""
-
-    return normalize_title_selection(raw)
-
-
 @dataclass(frozen=True, slots=True)
 class AccountRecord:
     """A stored account record."""

@@ -21,7 +21,7 @@ from mods.tinytown.catalog import (
     TRAITS_BY_ID,
 )
 from mods.tinytown.roommate_text import roommate_ad
-from mods.tinytown.interests import interest_label, random_interests
+from mods.tinytown.interests import INTERESTS_BY_ID, interest_label, random_interests
 from mods.tinytown.jobs import (
     JOB_INTERVAL_SECONDS,
     assign_job,
@@ -591,13 +591,29 @@ class NpcHouse(RoommateSystemsMixin):
                 stats["health"] += 4
         return stats
 
-    def add(self, account: object, house_id: str, name: str, avatar: str, traits: object) -> NpcRecord:
+    def add(
+        self,
+        account: object,
+        house_id: str,
+        name: str,
+        avatar: str,
+        traits: object,
+        *,
+        likes: str = "",
+        dislikes: str = "",
+        job_id: str = "",
+    ) -> NpcRecord:
         house = self._require_owned_house(account, house_id)
         if len(self.records_for_house(house_id)) >= MAX_NPCS_PER_HOUSE:
             raise ValueError(f"A house can hold at most {MAX_NPCS_PER_HOUSE} household peeps.")
         now = utc_now().isoformat()
         validated_traits = self._validate_traits(traits)
-        likes, dislikes = random_interests(self._random)
+        if (
+            likes not in INTERESTS_BY_ID
+            or dislikes not in INTERESTS_BY_ID
+            or likes == dislikes
+        ):
+            likes, dislikes = random_interests(self._random)
         from datetime import timedelta
 
         first_shift_at = (utc_now() + timedelta(seconds=JOB_INTERVAL_SECONDS)).isoformat()
@@ -615,7 +631,7 @@ class NpcHouse(RoommateSystemsMixin):
             last_tick=now,
             likes=likes,
             dislikes=dislikes,
-            job_id=assign_job(self._random, validated_traits),
+            job_id=job_id if valid_job(job_id) else assign_job(self._random, validated_traits),
             job_claim_json="",
             job_ready_at="",
             job_cooldown_until=first_shift_at,
@@ -936,6 +952,7 @@ class NpcHouse(RoommateSystemsMixin):
         house_npcs: dict[str, list[str]] = {}
         for record in records:
             house_npcs.setdefault(record.house_id, []).append(record.npc_id)
+        house_elapsed: dict[str, float] = {}
         room_ids = {record.room_id for record in records}
         occupied: set[str] = set()
         if emit and getattr(self.runtime, "connections", None) is not None:
@@ -987,8 +1004,10 @@ class NpcHouse(RoommateSystemsMixin):
             if emit:
                 await self._emit(record, occupied, spoken_rooms)
             self._adjust_vibes(record, house_npcs.get(record.house_id, []))
-            self._accumulate_house_clocks(record.house_id, elapsed)
+            house_elapsed.setdefault(record.house_id, elapsed)
 
+        for house_id, house_elapsed_seconds in house_elapsed.items():
+            self._accumulate_house_clocks(house_id, house_elapsed_seconds)
         self._run_house_ticks(houses, moment)
         if emit:
             await self._emit_banter(houses, occupied)

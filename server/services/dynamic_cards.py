@@ -15,7 +15,7 @@ Prefer bases from shared ``data/cardsets`` for cross-world dynamics.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 import logging
@@ -28,7 +28,7 @@ from server.content.cards import CardCatalog, CardDefinition
 from server.profiles import DynamicCardRecord, ProfileRepository
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
-from server.state.world_state import RoomCardStack, WorldStateRepository
+from server.state.world_state import WorldStateRepository
 
 if TYPE_CHECKING:
     from server.commands.outcomes import PendingRoomBroadcast
@@ -334,6 +334,7 @@ class DynamicCardDrops:
         *,
         now: datetime | None = None,
         force: bool = False,
+        statuses_by_account: Mapping[str, set[str]] | None = None,
     ) -> list[PendingRoomBroadcast]:
         """Roll one minute-cadence drop check for status-carrying occupants.
 
@@ -367,7 +368,8 @@ class DynamicCardDrops:
             return []
         broadcasts: list[PendingRoomBroadcast] = []
         for account_id in users:
-            broadcast = self._mint_drop_for_specs(room_id, account_id, force=force)
+            statuses = statuses_by_account.get(account_id) if statuses_by_account is not None else None
+            broadcast = self._mint_drop_for_specs(room_id, account_id, force=force, statuses=statuses)
             if broadcast is not None:
                 broadcasts.append(broadcast)
                 dynamic_count += 1
@@ -377,11 +379,18 @@ class DynamicCardDrops:
         return broadcasts
 
     def _mint_drop_for_specs(
-        self, room_id: str, account_id: str, *, force: bool = False
+        self,
+        room_id: str,
+        account_id: str,
+        *,
+        force: bool = False,
+        statuses: set[str] | None = None,
     ) -> PendingRoomBroadcast | None:
         from server.commands.outcomes import PendingRoomBroadcast
 
         for spec in STATUS_DROP_SPECS:
+            if statuses is not None and spec.status not in statuses:
+                continue
             if not force and self._random_func() >= spec.chance:
                 continue
             first = self._rng.choice(spec.variants)

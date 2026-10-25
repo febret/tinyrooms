@@ -727,9 +727,17 @@ class Supervisor:
             return None
         self._recover_conflicting_port(record)
         self._persist_identity(record)
-        process = self._spawn_process(dict(record.spawn_config))
+        try:
+            process = self._spawn_process(dict(record.spawn_config))
+        except Exception:  # noqa: BLE001 - surface a structured failure, not a 500
+            LOGGER.exception("mc.restart_spawn_failed instance_id=%s", instance_id)
+            self._registry.set_status(instance_id, STATUS_STOPPED)
+            self._changed()
+            return None
         revived = self._registry.revive(instance_id, process_handle=process, instance_dir=record.instance_dir)
         if revived is None:
+            self._terminate_process(process)
+            self._changed()
             return None
         self._record_pid(revived, process)
         self._capture_output(revived, process)
@@ -739,16 +747,31 @@ class Supervisor:
         return revived
 
     def start_existing(self, instance_id: str, *, actor: str = "mission-control") -> InstanceRecord | None:
-        """Start a stopped spawned child using its saved settings and identity."""
+        """Start a stopped (or restored-but-dead) spawned child."""
 
         record = self._registry.get(instance_id)
-        if record is None or record.spawn_config is None or record.status != STATUS_STOPPED:
+        if record is None or record.spawn_config is None:
+            return None
+        can_start = record.status == STATUS_STOPPED or (
+            record.status == STATUS_UNREACHABLE
+            and record.process_handle is None
+            and not self._saved_port_occupied(record)
+        )
+        if not can_start:
             return None
         self._recover_conflicting_port(record)
         self._persist_identity(record)
-        process = self._spawn_process(dict(record.spawn_config))
+        try:
+            process = self._spawn_process(dict(record.spawn_config))
+        except Exception:  # noqa: BLE001 - surface a structured failure, not a 500
+            LOGGER.exception("mc.start_spawn_failed instance_id=%s", instance_id)
+            self._registry.set_status(instance_id, STATUS_STOPPED)
+            self._changed()
+            return None
         revived = self._registry.revive(instance_id, process_handle=process)
         if revived is None:
+            self._terminate_process(process)
+            self._changed()
             return None
         self._record_pid(revived, process)
         self._capture_output(revived, process)
@@ -756,6 +779,22 @@ class Supervisor:
         self._audit.record(actor, "instance.start", target=instance_id)
         self._changed()
         return revived
+
+    @staticmethod
+    def _terminate_process(process: subprocess.Popen) -> None:
+        """Best-effort termination of a process this server just spawned."""
+
+        if process.poll() is not None:
+            return
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                LOGGER.warning(json.dumps({"event": "mc.spawn_cleanup_timeout"}))
 
     def change_version(
         self,
@@ -771,13 +810,24 @@ class Supervisor:
         record = self._registry.get(instance_id)
         if record is None or record.spawn_config is None:
             return None
+        previous = {
+            key: record.spawn_config.get(key)
+            for key in ("version_id", "version_path", "world_path")
+        }
         record.spawn_config["version_id"] = version_id
         record.spawn_config["version_path"] = str(version_path)
         record.spawn_config["world_path"] = str(world_path)
+        if record.status != STATUS_STOPPED:
+            restarted = self.restart(instance_id, actor=actor)
+            if restarted is None:
+                record.spawn_config.update(previous)
+                self._persist_identity(record)
+                self._changed()
+                return None
+            self._audit.record(actor, "instance.version", target=instance_id, detail={"version": version_id})
+            return restarted
         self._persist_identity(record)
         self._audit.record(actor, "instance.version", target=instance_id, detail={"version": version_id})
-        if record.status != STATUS_STOPPED:
-            return self.restart(instance_id, actor=actor)
         self._changed()
         return record
 
@@ -804,7 +854,13 @@ class Supervisor:
         record = self._registry.get(instance_id)
         if record is None:
             return False
-        self.stop(instance_id, actor=actor)
+        if not self.stop(instance_id, actor=actor):
+            LOGGER.warning(json.dumps({
+                "event": "mc.delete_refused",
+                "instance_id": instance_id,
+                "detail": "child could not be stopped; refusing to orphan it",
+            }))
+            return False
         self._registry.remove(instance_id)
         if record.instance_dir:
             (Path(record.instance_dir) / "instance.json").unlink(missing_ok=True)

@@ -141,6 +141,7 @@ class RoomService:
         self._allowed_verbs = set(command_verbs or ()) | BASE_QUICK_COMMANDS
         self._behaviors: object | None = None
         self._dialogs: object | None = None
+        self._titles: object | None = None
         self._environment = environment
         self._layout = layout
         self._room_effects = room_effects
@@ -182,12 +183,13 @@ class RoomService:
     def _title_labels(self, accounts: list[AccountRecord]) -> dict[str, str]:
         """Return composed display labels, falling back to bare usernames."""
 
-        titles = self.__dict__.get("_titles")
+        titles = self._titles
         if titles is None or not accounts:
             return {account.id: account.username_display for account in accounts}
         try:
             return titles.display_labels(accounts)
-        except Exception:
+        except Exception:  # noqa: BLE001 - labels must not break room serialization
+            LOGGER.exception("room.title_labels_failed")
             return {account.id: account.username_display for account in accounts}
 
     def current_room_for_account(self, account_id: str) -> str:
@@ -449,8 +451,11 @@ class RoomService:
         is_default = action.default
         if command.startswith(".go "):
             remainder = command[4:].strip()
-            if remainder in room.exits:
-                command = self._exit_command(remainder)
+            exit_id = remainder[len("@way:"):] if remainder.startswith("@way:") else remainder
+            if exit_id in room.exits:
+                if self._environment is not None and not self._environment.is_exit_enabled(room.id, exit_id):
+                    return None
+                command = self._exit_command(exit_id)
                 is_default = True
         if command.split(maxsplit=1)[0] not in self._allowed_verbs:
             return None
@@ -515,7 +520,7 @@ class RoomService:
         """Combine instance custom actions with the definition's defaults."""
 
         merged = list(prop.actions)
-        seen = {action.command for action in merged}
+        seen = {self._canonical_action_command(room, action.command) for action in merged}
         if prop.exit_to:
             exit_definition = room.exits.get(prop.exit_to)
             if exit_definition is not None:
@@ -530,11 +535,21 @@ class RoomService:
                         )
                     )
         for action in resolve_default_prop_actions(definition, prop.id):
-            if action.command in seen:
+            command = self._canonical_action_command(room, action.command)
+            if command in seen:
                 continue
-            seen.add(action.command)
+            seen.add(command)
             merged.append(action)
         return tuple(merged)
+
+    def _canonical_action_command(self, room: RoomDefinition, command: str) -> str:
+        """Normalize legacy ``.go <exit>`` commands for deduplication."""
+
+        if not command.startswith(".go "):
+            return command
+        remainder = command[4:].strip()
+        exit_id = remainder[len("@way:"):] if remainder.startswith("@way:") else remainder
+        return self._exit_command(exit_id) if exit_id in room.exits else command
 
     def _visible_prop_actions(
         self,
@@ -606,12 +621,6 @@ class RoomService:
             except Exception:
                 powers = ()
         label = self._title_labels([account]).get(account.id, account.username_display)
-        vibes: dict[str, object] = {}
-        if self._vibes is not None:
-            try:
-                vibes = self._vibes.pairs_for(account.id, [account_id]).get(account_id, {})
-            except Exception:
-                vibes = {}
         entry: dict[str, object] = {
             "id": account.id,
             "username": account.username_display,
@@ -625,8 +634,6 @@ class RoomService:
             "quick_actions": self._user_quick_actions(account),
             **self._user_sprite_payload(account.id, room_id),
         }
-        if vibes:
-            entry["vibes"] = vibes
         return entry
 
     def describe_npc(self, peep_id: str, room_id: str) -> dict[str, object] | None:
@@ -635,14 +642,8 @@ class RoomService:
         peep = self._world.peeps.get(peep_id)
         if peep is None:
             return None
-        vibes: dict[str, object] | None = None
-        if self._vibes is not None:
-            try:
-                vibes = self._vibes.pairs_for("", [peep_id]).get(peep_id)
-            except Exception:
-                vibes = None
         try:
-            return self.serialize_npc(peep, room_id, vibes=vibes or None)
+            return self.serialize_npc(peep, room_id)
         except Exception:
             return None
 
@@ -1198,6 +1199,8 @@ class RoomService:
         source_room = self._world.rooms[source_room_id]
         if exit_id not in source_room.exits:
             raise ValueError("That exit is not available from this room.")
+        if self._environment is not None and not self._environment.is_exit_enabled(source_room_id, exit_id):
+            raise ValueError("That way is closed right now.")
         exit_definition = source_room.exits[exit_id]
         destination_room = self._world.rooms[exit_definition.target_room_id]
         if exit_definition.locked:

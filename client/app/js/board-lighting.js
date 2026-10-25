@@ -36,6 +36,12 @@ export const LIGHTING_PRESETS = {
     sun: "#ffd9a1", fillColor: "#9fcbd8",
     exposure: 1.0,
   },
+  fluorescent: {
+    hemisphere: 0.7, sunlight: 0.5, fill: 0.22,
+    hemisphereSky: "#c9b458", hemisphereGround: "#4a4423",
+    sun: "#ffe9a8", fillColor: "#b8c48a",
+    exposure: 0.85,
+  },
 };
 
 const FIXTURE_INTENSITY = 4.2;

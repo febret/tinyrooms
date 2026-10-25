@@ -9,7 +9,7 @@ from typing import Any
 from server.content.common import ContentError
 
 
-LIGHTING_ENVIRONMENTS = ("darkness", "night", "dusk", "day", "dawn")
+LIGHTING_ENVIRONMENTS = ("darkness", "night", "dusk", "day", "dawn", "fluorescent")
 DEFAULT_LIGHTING_ENVIRONMENT = "day"
 
 # Single source of truth for the shared day-night cycle length, in seconds.
@@ -42,6 +42,7 @@ PRESETS: dict[str, LightingPreset] = {
     "dusk": LightingPreset(name="dusk", color="#c98a6b", level=0.65, kind="directional"),
     "day": LightingPreset(name="day", color="#fff3d9", level=1.0, kind="directional"),
     "dawn": LightingPreset(name="dawn", color="#f7c9a0", level=0.75, kind="directional"),
+    "fluorescent": LightingPreset(name="fluorescent", color="#d8c86a", level=0.55, kind="fluorescent"),
 }
 
 
