@@ -400,6 +400,17 @@ class BehaviorContext:
             payload.update(_target_payload(resolved))
         self._append("hide_prop", payload)
 
+    def set_prop_state(self, state_name: str, *, instance_id: str | None = None, target: PropRef | None = None) -> None:
+        """Queue switching a prop instance to one of its authored mesh states."""
+
+        resolved = target if target is not None else self.target
+        if instance_id is None and isinstance(resolved, PropRef):
+            instance_id = resolved.instance_id
+        payload: dict[str, object] = {"state_name": str(state_name), "instance_id": instance_id}
+        if isinstance(resolved, PropRef):
+            payload.update(_target_payload(resolved))
+        self._append("set_prop_state", payload)
+
     def clear_source(self, source: str) -> None:
         """Queue clearing a named source from every peep in the acting room."""
 

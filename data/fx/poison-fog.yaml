@@ -1,0 +1,20 @@
+# Poison fog: low green seep for poisoned rooms. Textures live beside this
+# file and are served from /assets/fx/.
+id: poison-fog
+label: Poison Fog
+layers:
+  - type: particle
+    preset: smoke
+    texture: smoke-puff.png
+    rate: 8
+    lifetime: [2.2, 3.6]
+    size: [0.6, 1.6]
+    speed: 0.12
+    spread: 40
+    gravity: -0.01
+    color: "#5fae4e"
+    opacity: [0.55, 0.0]
+    additive: false
+    max_particles: 48
+    anchor: base
+    offset: [0, 0, 0]

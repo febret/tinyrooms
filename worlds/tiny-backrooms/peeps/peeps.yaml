@@ -1,0 +1,275 @@
+traveler-br:
+  label: Traveler Mara
+  description: A patched-coat traveler with a humming flashlight and a map drawn
+    on wallpaper. She has survived the Backrooms twice. The wallpaper disagrees.
+  room: br-r0c0
+  image: traveler-br.png
+  script: traveler.py
+  activity: picture-pieces
+  actions:
+  - - Chat
+    - .talk traveler-br
+  - - Study pictures
+    - .play traveler-br
+  dialog:
+    start:
+      text: 'You are in the Backrooms, and you are still alive, so you are already
+        ahead of most. I am Mara. Four photo quarters per level, doors that eat
+        symbols in order, and one monster per level that eats travelers. Pick a
+        topic, then move.'
+      choices:
+      - label: Where is the exit?
+        next: entrance
+      - label: Where are the photos?
+        next: photos
+      - label: What hunts here?
+        next: monster
+      - label: What gear do I need?
+        next: gear
+      - label: Help me escape this level
+        next: help
+    entrance:
+      text: 'Far corner, southeast, past the fog and the static. The first door
+        wants HOLLOW EYE, KNOTTED BELL, BRASS KEY, PAPER MOTH, in that order. Use the pieces on
+        it like keys. The restored photo it spits out IS the key that opens it.'
+      choices:
+      - label: Back
+        next: start
+    photos:
+      text: 'Search the furniture: lights, cabinets, coolers, stains. Three quarters
+        come free. The fourth is carried by the Blue Girl herself. Study fragments
+        at my workbench to see the order, then feed the door.'
+      choices:
+      - label: Back
+        next: start
+    monster:
+      text: 'The Blue Girl wears the dark like a dress. Searching the wrong cabinet
+        wakes her, and then you have about two minutes of dread. Face her with
+        the music box EQUIPPED. Run and the dread fades, and then she collects.'
+      choices:
+      - label: Back
+        next: start
+    gear:
+      text: 'Flashlight for the dark rooms, med-cache by this entrance for rations,
+        my old tool crate near the exit for the music box. Glitches hate my spare
+        deglitcher. Take it; I have three.'
+      choices:
+      - label: Take the spare deglitcher
+        next: start
+        give_card: deglitcher
+      - label: Back
+        next: start
+    help:
+      text: 'Then listen: search, assemble, recite, descend. The Upside Down is
+        colder and the rules do not change, only the teeth.'
+      choices:
+      - label: Begin the escape
+        next: start
+        start_task: tb-escape-1
+      - label: Back
+        next: start
+traveler-ud:
+  label: Hunter Jonathan
+  description: A tired hunter in a Hawkins jacket, bow restrung with vine. He
+    maps the Upside Down in chalk on his own sleeves.
+  room: ud-r2c2
+  image: traveler-ud.png
+  script: traveler.py
+  activity: picture-pieces
+  actions:
+  - - Chat
+    - .talk traveler-ud
+  - - Study pictures
+    - .play traveler-ud
+  dialog:
+    start:
+      text: 'You got out of the yellow rooms. Good. I am Jonathan. This place runs
+        the same con with colder teeth: four quarters, a door with sockets, and
+        a Demogorgon holding the last one hostage.'
+      choices:
+      - label: Where is the exit?
+        next: entrance
+      - label: Where are the photos?
+        next: photos
+      - label: What hunts here?
+        next: monster
+      - label: What gear do I need?
+        next: gear
+      - label: Help me escape this level
+        next: help
+    entrance:
+      text: 'Southeast corner again. The pattern holds because it is bait. The
+        blast door wants ASHEN STAR, PETAL MAW, IRON FANG, DROWNED BELL. Do not improvise.'
+      choices:
+      - label: Back
+        next: start
+    photos:
+      text: 'Nests, bikes, radios, ash. Three quarters for the searching. The fourth
+        belongs to the Demogorgon until an iron bat introduces itself.'
+      choices:
+      - label: Back
+        next: start
+    monster:
+      text: 'Petals, teeth, no mercy. It marks you when it wakes and gives you
+        about two minutes. Iron bat, EQUIPPED, used on it or through the confrontation.
+        Cowards get collected after the dread fades.'
+      choices:
+      - label: Back
+        next: start
+    gear:
+      text: 'Armory crate near the exit: bat, gas mask, flashlight. Med-cache at
+        the arrival for rations. Take my spare flashlight too; the dark rooms here
+        are truly dark.'
+      choices:
+      - label: Take the spare flashlight
+        next: start
+        give_card: backrooms-flashlight
+      - label: Back
+        next: start
+    help:
+      text: 'Then go quiet and go fast. The Outer Plane is worse the way drowning
+        is worse than rain.'
+      choices:
+      - label: Begin the descent
+        next: start
+        start_task: tb-escape-2
+      - label: Back
+        next: start
+traveler-op:
+  label: Cartographer of the Abyss
+  description: A hooded figure taking notes in a book that writes back. They
+    have mapped further than anyone and returned with fewer shadows than they left with.
+  room: op-r2c2
+  image: traveler-op.png
+  script: traveler.py
+  activity: picture-pieces
+  actions:
+  - - Chat
+    - .talk traveler-op
+  - - Study pictures
+    - .play traveler-op
+  dialog:
+    start:
+      text: 'The last level. I am the Cartographer, and my map ends at the coral
+        door. Four violet quarters, one Shoggoth holding the last, and sunlight
+        for whoever finishes. Ask, then finish.'
+      choices:
+      - label: Where is the exit?
+        next: entrance
+      - label: Where are the photos?
+        next: photos
+      - label: What hunts here?
+        next: monster
+      - label: What gear do I need?
+        next: gear
+      - label: Help me escape everything
+        next: help
+    entrance:
+      text: 'Southeast, where the sea is loudest. The coral door wants YAWNING SIGIL,
+        SIXTEEN THROATS, BLACK TIDE, CROOKED CROWN. Beyond it: morning. I have it on good authority.'
+      choices:
+      - label: Back
+        next: start
+    photos:
+      text: 'Obelisks, idols, pools, chimes. Three for the bold. The fourth is
+        inside the Shoggoth in the way food is inside a stomach. Bring the elder sign.'
+      choices:
+      - label: Back
+        next: start
+    monster:
+      text: 'It is a throat with ambitions. It marks, it waits out your dread,
+        it collects. Elder sign EQUIPPED. Two minutes. Do not negotiate with soup.'
+      choices:
+      - label: Back
+        next: start
+    gear:
+      text: 'Reliquary near the exit: the sign, a hazmat suit, a flashlight. The
+        static here eats the un suited, and the fog eats the unmasked. Take my
+        last almond water; I am saving room for sunlight.'
+      choices:
+      - label: Take the almond water
+        next: start
+        give_card: almond-water
+      - label: Back
+        next: start
+    help:
+      text: 'Then do what none of us managed: all three doors, all three beasts,
+        out before breakfast. The sun memorial waits past the last door.'
+      choices:
+      - label: Begin the final escape
+        next: start
+        start_task: tb-escape-3
+      - label: Back
+        next: start
+glitch-rat:
+  label: Glitch Rat
+  description: A rat rendered at the wrong framerate. It bites in keyframes and
+    nests in the Backrooms west wall.
+  room: br-r1c4
+  image: glitch-rat.png
+  script: glitch.py
+  actions:
+  - - Poke
+    - .act poke @peep:glitch-rat
+  - - Scan
+    - .act scan @peep:glitch-rat
+glitch-spider:
+  label: Glitch Spider
+  description: Leg-first rendering, all legs angry. It guards the southern
+    Backrooms in patchy bursts.
+  room: br-r3c0
+  image: glitch-spider.png
+  script: glitch.py
+  actions:
+  - - Poke
+    - .act poke @peep:glitch-spider
+  - - Scan
+    - .act scan @peep:glitch-spider
+glitch-monkey:
+  label: Glitch Monkey
+  description: CompressedAudio screeching, barrel-throwing, vine-swinging
+    compression artifact with a grudge.
+  room: ud-r0c2
+  image: glitch-monkey.png
+  script: glitch.py
+  actions:
+  - - Poke
+    - .act poke @peep:glitch-monkey
+  - - Scan
+    - .act scan @peep:glitch-monkey
+glitch-bat:
+  label: Glitch Bat
+  description: A bat that flickers through walls and screams static. It roosts
+    near the Upside exit approach.
+  room: ud-r4c1
+  image: glitch-bat.png
+  script: glitch.py
+  actions:
+  - - Poke
+    - .act poke @peep:glitch-bat
+  - - Scan
+    - .act scan @peep:glitch-bat
+glitch-worm:
+  label: Glitch Worm
+  description: Desynced segments, each half biting independently. It churns the
+    violet soil of the Outer Plane.
+  room: op-r1c1
+  image: glitch-worm.png
+  script: glitch.py
+  actions:
+  - - Poke
+    - .act poke @peep:glitch-worm
+  - - Scan
+    - .act scan @peep:glitch-worm
+glitch-hound:
+  label: Glitch Hound
+  description: It buffers mid-lunge and arrives all at once. The Cartographer
+    lost a boot to it. The boot is still buffering.
+  room: op-r3c3
+  image: glitch-hound.png
+  script: glitch.py
+  actions:
+  - - Poke
+    - .act poke @peep:glitch-hound
+  - - Scan
+    - .act scan @peep:glitch-hound

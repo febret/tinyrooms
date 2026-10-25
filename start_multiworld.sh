@@ -55,6 +55,7 @@ MC_PORT="${MC_PORT:-8001}"
 TUTORIAL_PORT="${TUTORIAL_PORT:-5100}"
 SCAMMON_PORT="${SCAMMON_PORT:-5101}"
 ARCADE_PORT="${ARCADE_PORT:-5102}"
+BACKROOMS_PORT="${BACKROOMS_PORT:-5104}"
 TINYTOWN_PORT="${TINYTOWN_PORT:-5103}"
 
 export TRSERVER_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-deadbeef}"
@@ -138,6 +139,7 @@ start_world tutorial "$TUTORIAL_PORT" tutorial-1 "Tutorial"
 start_world scammon-academia "$SCAMMON_PORT" scammon-1 "Scammon Academia"
 start_world tiny-arcade "$ARCADE_PORT" arcade-1 "Tiny Arcade"
 start_world tinytown "$TINYTOWN_PORT" tinytown-1 "TinyTown"
+start_world tiny-backrooms "$BACKROOMS_PORT" backrooms-1 "Tiny Backrooms"
 
 cat <<EOF
 Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
@@ -147,6 +149,7 @@ Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
   Scammon Academia : https://$PUBLIC_HOST:$SCAMMON_PORT/
   Tiny Arcade      : https://$PUBLIC_HOST:$ARCADE_PORT/
   TinyTown         : https://$PUBLIC_HOST:$TINYTOWN_PORT/
+  Tiny Backrooms   : https://$PUBLIC_HOST:$BACKROOMS_PORT/
 Mission Control manages all four worlds; the Multiverse travels between them.
 Press Ctrl-C to stop everything.
 EOF

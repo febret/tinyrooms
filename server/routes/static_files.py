@@ -28,7 +28,11 @@ def _safe_path(root: Path, requested_path: str) -> Path:
 
 
 def _activity_roots(runtime: RuntimeState) -> tuple[Path, ...]:
-    return (runtime.config.activities_path, *(mod.activities_path for mod in runtime.mod_definitions))
+    return (
+        runtime.world.root_path / "activities",
+        runtime.config.activities_path,
+        *(mod.activities_path for mod in runtime.mod_definitions),
+    )
 
 
 def _propset_roots(runtime: RuntimeState) -> tuple[Path, ...]:

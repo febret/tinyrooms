@@ -1,0 +1,208 @@
+tb-escape-1:
+  title: Leave the Backrooms
+  description: Meet Mara, gather the four yellow quarters, survive the Blue Girl,
+    and unlock the first exit door into the cold blue below.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - tiny-backrooms
+  memory: I left the humming yellow rooms behind. They are still humming my name.
+  reward:
+    kudos: 2
+    cards:
+    - almond-water
+  sounds:
+    started: task-notify.wav
+    completed: applause.wav
+    notification: beep1.wav
+  steps:
+  - step_id: meet-mara
+    trigger: dialog_action
+    match:
+      peep_id: traveler-br
+    title: Let Traveler Mara explain the Backrooms
+    memory_tag: met-mara
+    memory: Mara taught me the doors, the photos, and the thing in the dark.
+  - step_id: piece-br-0
+    trigger: signal
+    match:
+      event: piece-br-0
+    title: Find the HOLLOW EYE quarter in the Backrooms
+    memory: I found the circle quarter, humming faintly.
+  - step_id: piece-br-1
+    trigger: signal
+    match:
+      event: piece-br-1
+    title: Find the KNOTTED BELL quarter in the Backrooms
+    memory: I found the triangle quarter behind something ordinary.
+  - step_id: piece-br-2
+    trigger: signal
+    match:
+      event: piece-br-2
+    title: Find the BRASS KEY quarter in the Backrooms
+    memory: I found the square quarter where the light hides things.
+  - step_id: meet-blue-girl
+    trigger: signal
+    match:
+      event: meet-blue-girl
+    title: Wake the Blue Girl and survive the meeting
+    memory: She stood up out of the dark wearing it. I am still breathing.
+  - step_id: slay-blue-girl
+    trigger: signal
+    match:
+      event: slay-blue-girl
+    title: Turn the Blue Girl with the music box and take the PAPER MOTH quarter
+    memory_tag: slew-blue-girl
+    memory: The music box played and she folded away like a bad dream.
+  - step_id: open-br-door
+    trigger: signal
+    match:
+      event: open-br-door
+    title: Recite HOLLOW EYE, KNOTTED BELL, BRASS KEY, PAPER MOTH on the first exit door
+    memory_tag: opened-br-door
+    memory: The first door drank the symbols and opened onto cold blue air.
+  - step_id: reach-upside
+    trigger: enter_room
+    match:
+      room_id: ud-r0c0
+    title: Descend into the Upside Down
+    memory: I stepped down into blue murk and ash. It is worse. It is better than yellow.
+tb-escape-2:
+  title: Leave the Upside Down
+  description: Meet Jonathan, gather the four blue quarters, survive the Demogorgon,
+    and unlock the blast door into the violet abyss.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - tiny-backrooms
+  memory: I left the cold blue murk. Something with petals watched me go.
+  reward:
+    kudos: 2
+    cards:
+    - portal-jerky
+  sounds:
+    started: task-notify.wav
+    completed: applause.wav
+    notification: beep1.wav
+  steps:
+  - step_id: meet-jonathan
+    trigger: dialog_action
+    match:
+      peep_id: traveler-ud
+    title: Let Hunter Jonathan explain the Upside Down
+    memory_tag: met-jonathan
+    memory: Jonathan taught me the vines, the ash, and the teeth.
+  - step_id: piece-ud-0
+    trigger: signal
+    match:
+      event: piece-ud-0
+    title: Find the ASHEN STAR quarter in the Upside Down
+    memory: I found the star quarter rotting in the blue.
+  - step_id: piece-ud-1
+    trigger: signal
+    match:
+      event: piece-ud-1
+    title: Find the PETAL MAW quarter in the Upside Down
+    memory: I found the square quarter sunk in ash.
+  - step_id: piece-ud-2
+    trigger: signal
+    match:
+      event: piece-ud-2
+    title: Find the IRON FANG quarter in the Upside Down
+    memory: I found the triangle quarter hanging in the vines.
+  - step_id: meet-demogorgon
+    trigger: signal
+    match:
+      event: meet-demogorgon
+    title: Wake the Demogorgon and survive the meeting
+    memory: Petals opened where a face should be. I am still loud and alive.
+  - step_id: slay-demogorgon
+    trigger: signal
+    match:
+      event: slay-demogorgon
+    title: Turn the Demogorgon with the iron bat and take the DROWNED BELL quarter
+    memory_tag: slew-demogorgon
+    memory: Cold iron ended the argument. The circle quarter was the prize.
+  - step_id: open-ud-door
+    trigger: signal
+    match:
+      event: open-ud-door
+    title: Recite ASHEN STAR, PETAL MAW, IRON FANG, DROWNED BELL on the blast door
+    memory_tag: opened-ud-door
+    memory: The blast door drank the symbols and opened onto violet static.
+  - step_id: reach-abyss
+    trigger: enter_room
+    match:
+      room_id: op-r0c0
+    title: Descend into the Outer Plane
+    memory: I stepped down into purple wrongness. My shadow arrived first.
+tb-escape-3:
+  title: Leave the Outer Plane
+  description: Meet the Cartographer, gather the four violet quarters, survive
+    the Shoggoth, unlock the coral door, and touch the sun.
+  scope: personal
+  revision: 1
+  memory_tags:
+  - tiny-backrooms
+  memory: I escaped the Tiny Backrooms entirely. Sunlight has never tasted so ordinary, so perfect.
+  reward:
+    kudos: 4
+    cards:
+    - ectoplasm-vial
+  sounds:
+    started: task-notify.wav
+    completed: applause.wav
+    notification: beep1.wav
+  steps:
+  - step_id: meet-cartographer
+    trigger: dialog_action
+    match:
+      peep_id: traveler-op
+    title: Let the Cartographer explain the Outer Plane
+    memory_tag: met-cartographer
+    memory: The Cartographer taught me the sea, the signs, and the soup.
+  - step_id: piece-op-0
+    trigger: signal
+    match:
+      event: piece-op-0
+    title: Find the YAWNING SIGIL quarter in the Outer Plane
+    memory: I found the triangle quarter leaning the wrong way.
+  - step_id: piece-op-1
+    trigger: signal
+    match:
+      event: piece-op-1
+    title: Find the SIXTEEN THROATS quarter in the Outer Plane
+    memory: I found the star quarter watching from too close.
+  - step_id: piece-op-2
+    trigger: signal
+    match:
+      event: piece-op-2
+    title: Find the BLACK TIDE quarter in the Outer Plane
+    memory: I found the circle quarter rippling on black water.
+  - step_id: meet-shoggoth
+    trigger: signal
+    match:
+      event: meet-shoggoth
+    title: Wake the Shoggoth and survive the meeting
+    memory: It bubbled my name in sixteen throats. I declined to answer.
+  - step_id: slay-shoggoth
+    trigger: signal
+    match:
+      event: slay-shoggoth
+    title: Turn the Shoggoth with the elder sign and take the CROOKED CROWN quarter
+    memory_tag: slew-shoggoth
+    memory: The sign held. The mass forgot my shape. The square quarter was mine.
+  - step_id: open-op-door
+    trigger: signal
+    match:
+      event: open-op-door
+    title: Recite YAWNING SIGIL, SIXTEEN THROATS, BLACK TIDE, CROOKED CROWN on the coral door
+    memory_tag: opened-op-door
+    memory: The coral door drank the symbols and breathed out morning.
+  - step_id: reach-surface
+    trigger: enter_room
+    match:
+      room_id: surface
+    title: Step into the sunlight and touch the memorial
+    memory_tag: escaped
+    memory: Sunlight. Real, warm, indifferent sunlight. I made it out.

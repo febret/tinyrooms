@@ -21,6 +21,33 @@ BASE_HEALTH_FALLBACK = 50.0
 BASE_CLEANLINESS_FALLBACK = 100.0
 
 
+def _source_active(entries: object, now: datetime) -> bool:
+    """Return whether a named buff source still contributes.
+
+    Sources written without an expiry (for example permanent modifier sources)
+    stay active. Sources written with ``expires_at`` entries are active while
+    any entry lacks an expiry or expires in the future.
+    """
+
+    if not isinstance(entries, list):
+        return False
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        raw = entry.get("expires_at")
+        if raw is None:
+            return True
+        try:
+            expires_at = datetime.fromisoformat(str(raw))
+        except (TypeError, ValueError):
+            return True
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=now.tzinfo)
+        if expires_at > now:
+            return True
+    return False
+
+
 @dataclass(frozen=True, slots=True)
 class PeepSnapshot:
     """A consistent view of an account's effective state and counters."""
@@ -201,12 +228,18 @@ class StatsService:
         sources = self._active_sources(profile)
         if not sources:
             return ()
+        raw_sources = profile.buffs.get("sources") if isinstance(profile.buffs, dict) else None
+        now = utc_now()
         immunities = self._status_immunities(profile)
         return tuple(
             status_id
             for status_id, definition in self._content.statuses.items()
             if definition.source is not None
             and definition.source in sources
+            and _source_active(
+                raw_sources.get(definition.source) if isinstance(raw_sources, dict) else None,
+                now,
+            )
             and status_id not in immunities
         )
 

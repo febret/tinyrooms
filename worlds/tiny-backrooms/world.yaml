@@ -1,0 +1,16 @@
+id: tiny-backrooms
+label: The Tiny Backrooms
+description: A horror maze in three levels. Search the Backrooms, the Upside
+  Down, and the Outer Plane for torn picture pieces, read the symbols in order,
+  and unlock each exit door before its monster finds you.
+entry_room: br-r0c0
+image: rooms/br-floor.png
+css: horror.css
+environment: darkness
+palette:
+- '#c9b458'
+- '#3a5a8c'
+- '#6b4a8c'
+- '#170f2e'
+requires_mods: []
+powers: {}

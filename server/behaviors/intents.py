@@ -17,6 +17,7 @@ from server.behaviors.context import BehaviorContext, Intent
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.commands.outcomes import PendingRoomBroadcast
 from server.content.levels import DEFAULT_MAX_EQUIPPED
+from server.content.prop_assets import prop_model_url
 from server.game.buffs import BuffInstance, DAILY, TIMED, apply_buff as apply_buff_instances
 from server.game.decals import clear_decals, decals_payload, upsert_decal
 from server.security import utc_now
@@ -113,6 +114,8 @@ class BehaviorIntentMixin:
             self._apply_set_environment(connection, payload, context, event, result)
         elif kind == "hide_prop":
             self._apply_hide_prop(connection, payload, context, event, result)
+        elif kind == "set_prop_state":
+            self._apply_set_prop_state(payload, context, event, result)
         elif kind == "clear_source":
             self._apply_clear_source(payload, event, deferred)
         elif kind == "set_game_state":
@@ -407,6 +410,16 @@ class BehaviorIntentMixin:
         )
         updated = apply_buff_instances(instances, incoming, now)
         self._profiles.write_buffs(connection, account_id, [item.to_payload() for item in updated])
+        source = str(payload.get("source") or "").strip()
+        if source:
+            # Timed buff sources drive source-based statuses (for example the
+            # horror dread that scares its victim). They expire with the buff;
+            # explicit clear_source calls still remove them early.
+            self._profiles.write_buff_sources(
+                connection,
+                account_id,
+                {source: [{"expires_at": expires.isoformat()}]},
+            )
 
     def _apply_decals(
         self,
@@ -1085,6 +1098,64 @@ class BehaviorIntentMixin:
             self._log("behavior.intent.skipped", kind="hide_prop", error=str(exc))
             return
         result.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event=update.event()))
+
+    def _apply_set_prop_state(
+        self,
+        payload: Mapping[str, object],
+        context: BehaviorContext,
+        event: BehaviorEvent,
+        result: BehaviorResult,
+    ) -> None:
+        room_id = event.room_id
+        if not isinstance(room_id, str) or not room_id:
+            room_id = payload.get("target_room_id")
+        if not isinstance(room_id, str) or not room_id:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="no_room")
+            return
+        instance_id = payload.get("instance_id")
+        if not isinstance(instance_id, str) or not instance_id:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="no_instance")
+            return
+        state_name = str(payload.get("state_name", ""))
+        room = self._world.rooms.get(room_id)
+        if room is None:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="unknown_room")
+            return
+        instance = room.props.get(instance_id)
+        if instance is None:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="unknown_instance")
+            return
+        definition = self._world.props.get(instance.prop_id)
+        if definition is None or not definition.states:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="no_states")
+            return
+        if state_name not in definition.states:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="unknown_state")
+            return
+        if self._prop_states is None:
+            self._log("behavior.intent.skipped", kind="set_prop_state", reason="no_service")
+            return
+        try:
+            self._prop_states.set(room_id, instance_id, state_name)
+            model_url = prop_model_url(self._world.id, definition, state_name)
+        except Exception as exc:  # noqa: BLE001 - a state switch must not break the room loop
+            self._log("behavior.intent.skipped", kind="set_prop_state", error=str(exc))
+            return
+        result.room_broadcasts.append(
+            PendingRoomBroadcast(
+                room_id=room_id,
+                event={
+                    "type": "room.prop.updated",
+                    "room_id": room_id,
+                    "prop": {
+                        "id": instance_id,
+                        "state": state_name,
+                        "active_state": state_name,
+                        "model_url": model_url,
+                    },
+                },
+            )
+        )
 
     def _apply_clear_source(
         self,

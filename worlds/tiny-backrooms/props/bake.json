@@ -1,0 +1,433 @@
+{
+  "simplify": {
+    "strategy": "auto",
+    "target": 500,
+    "flat_target": 100,
+    "wall_target": 200,
+    "bake_resolution": 1024,
+    "remesh_resolution": 160,
+    "max_deviation": 0.05
+  },
+  "tasks": [
+    {
+      "label": "filing-cabinet",
+      "tool": "asset",
+      "prompt": "a rusted yellow metal office filing cabinet with drawers labeled 1974, one drawer slightly open with darkness inside, backrooms horror furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/filing-cabinet.glb",
+      "args": {
+        "seed": 71001,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "exit-door-br",
+      "tool": "asset",
+      "prompt": "a riveted steel exit door with four empty glowing symbol sockets in a row, yellow industrial horror door, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/exit-door-br.glb",
+      "args": {
+        "seed": 71002,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "picture-workbench",
+      "tool": "asset",
+      "prompt": "a traveler workbench with string, pins, torn photographs and a cracked magnifier, horror investigation furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/picture-workbench.glb",
+      "args": {
+        "seed": 71003,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "humming-fluorescent",
+      "tool": "asset",
+      "prompt": "a buzzing yellow fluorescent tube light fixture with a metal housing, backrooms horror lighting, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/humming-fluorescent.glb",
+      "args": {
+        "seed": 72001,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "damp-carpet",
+      "tool": "asset",
+      "prompt": "a square of stained damp yellow office carpet, dark wet patch in the center, backrooms horror flooring sample, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/damp-carpet.glb",
+      "args": {
+        "seed": 72002,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "yellow-wallpaper",
+      "tool": "asset",
+      "prompt": "a tall slab of greasy yellow diamond-pattern wallpaper panel, peeling at the seams, backrooms horror wall, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/yellow-wallpaper.glb",
+      "args": {
+        "seed": 72003,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "office-chair",
+      "tool": "asset",
+      "prompt": "an abandoned gray fabric office chair slowly turned sideways, one wheel missing, backrooms horror furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/office-chair.glb",
+      "args": {
+        "seed": 72005,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "water-cooler",
+      "tool": "asset",
+      "prompt": "a gurgling office water cooler with a huge bottle full of cloudy almost-water, backrooms horror appliance, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/water-cooler.glb",
+      "args": {
+        "seed": 72006,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "exit-sign-flicker",
+      "tool": "asset",
+      "prompt": "a glowing red EXIT sign box with one flickering letter, industrial horror signage, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/exit-sign-flicker.glb",
+      "args": {
+        "seed": 72007,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "snack-vending",
+      "tool": "asset",
+      "prompt": "a dead snack vending machine with one coil holding a photograph instead of crisps, dim glass front, horror vending machine, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/snack-vending.glb",
+      "args": {
+        "seed": 72008,
+        "faces": 2500
+      }
+    },
+    {
+      "label": "ceiling-tile",
+      "tool": "asset",
+      "prompt": "a sagging stained ceiling tile with a person-shaped water stain, one corner pushed up, backrooms horror ceiling piece, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/ceiling-tile.glb",
+      "args": {
+        "seed": 72009,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "carpet-stain",
+      "tool": "asset",
+      "prompt": "a dark scrubbed carpet stain sample with grit and glass glinting in the fibers, backrooms horror flooring, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/carpet-stain.glb",
+      "args": {
+        "seed": 72010,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "vine-wall",
+      "tool": "asset",
+      "prompt": "a wall slab of black pulsing vines with faint veins of light, upside-down horror wall, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/vine-wall.glb",
+      "args": {
+        "seed": 72011,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "spore-cluster",
+      "tool": "asset",
+      "prompt": "a cluster of pale breathing spore pods, one burst open scattering glitter, upside-down horror growth, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/spore-cluster.glb",
+      "args": {
+        "seed": 72012,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "christmas-lights",
+      "tool": "asset",
+      "prompt": "a tangled nest of dead christmas lights wire with one ticking bulb, upside-down horror wire nest, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/christmas-lights.glb",
+      "args": {
+        "seed": 72013,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "hawkins-bike",
+      "tool": "asset",
+      "prompt": "a rusted kid-sized bicycle with bent handlebars and a leather satchel, upside-down horror vehicle, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/hawkins-bike.glb",
+      "args": {
+        "seed": 72014,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "demodog-nest",
+      "tool": "asset",
+      "prompt": "a nest of shredded lab coats lined with teeth marks, upside-down horror nest, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/demodog-nest.glb",
+      "args": {
+        "seed": 72015,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "floating-rock",
+      "tool": "asset",
+      "prompt": "a gray rock hovering with faint blue glow beneath it, upside-down horror floating stone, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/floating-rock.glb",
+      "args": {
+        "seed": 72016,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "ash-pile",
+      "tool": "asset",
+      "prompt": "a cone-shaped pile of gray ash with a half-burned photograph corner on top, upside-down horror debris, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/ash-pile.glb",
+      "args": {
+        "seed": 72017,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "broken-radio",
+      "tool": "asset",
+      "prompt": "a broken 1980s lab radio with a smashed speaker and hissing dial, upside-down horror electronics, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/broken-radio.glb",
+      "args": {
+        "seed": 72018,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "lab-door",
+      "tool": "asset",
+      "prompt": "a sealed gray lab blast door stenciled HAWKINS with a smashed porthole, upside-down horror door, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/lab-door.glb",
+      "args": {
+        "seed": 72019,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "mindflayer-lichen",
+      "tool": "asset",
+      "prompt": "a bruise-colored flinching lichen crust on a rock slab, upside-down horror growth, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/mindflayer-lichen.glb",
+      "args": {
+        "seed": 72020,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "non-euclid-obelisk",
+      "tool": "asset",
+      "prompt": "a black stone obelisk with too many sides and a glowing crease, eldritch horror monolith, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/non-euclid-obelisk.glb",
+      "args": {
+        "seed": 72021,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "chanting-idol",
+      "tool": "asset",
+      "prompt": "a small chanting stone idol with an open wailing mouth and offerings at its base, eldritch horror statue, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/chanting-idol.glb",
+      "args": {
+        "seed": 72022,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "black-sea-pool",
+      "tool": "asset",
+      "prompt": "a perfectly still pool of black water in a stone basin, stars reflected wrongly, eldritch horror pool, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/black-sea-pool.glb",
+      "args": {
+        "seed": 72023,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "tentacle-coral",
+      "tool": "asset",
+      "prompt": "a waving tentacle coral in violet and teal clutching a damp photograph, eldritch horror coral, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/tentacle-coral.glb",
+      "args": {
+        "seed": 72024,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "shoggoth-slime",
+      "tool": "asset",
+      "prompt": "a glistening warm shoggoth slime trail looping around a photo quarter, eldritch horror slime, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/shoggoth-slime.glb",
+      "args": {
+        "seed": 72025,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "elder-rune-stone",
+      "tool": "asset",
+      "prompt": "a gray rune stone carved with a glowing elder sign ward, eldritch horror standing stone, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/elder-rune-stone.glb",
+      "args": {
+        "seed": 72026,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "void-window",
+      "tool": "asset",
+      "prompt": "a stone window frame onto a starfield that looks back, cold stone sill, eldritch horror window, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/void-window.glb",
+      "args": {
+        "seed": 72027,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "gibbering-mound",
+      "tool": "asset",
+      "prompt": "a gibbering mound of borrowed mouths on a fleshy hillock, eldritch horror mound, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/gibbering-mound.glb",
+      "args": {
+        "seed": 72028,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "bone-chime",
+      "tool": "asset",
+      "prompt": "a wind chime of long bones with a photo quarter hanging from the longest, eldritch horror chime, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/bone-chime.glb",
+      "args": {
+        "seed": 72029,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "starry-abyss",
+      "tool": "asset",
+      "prompt": "an iron grate over a starry abyss with a snagged flat paper on the bars, eldritch horror grate, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/starry-abyss.glb",
+      "args": {
+        "seed": 72030,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "exit-door-ud",
+      "tool": "asset",
+      "prompt": "a gray lab blast door veined with black vines and four empty symbol sockets, upside-down horror door, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/exit-door-ud.glb",
+      "args": {
+        "seed": 72031,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "exit-door-op",
+      "tool": "asset",
+      "prompt": "a breathing door of black coral with four gibbering symbol sockets, eldritch horror door, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/exit-door-op.glb",
+      "args": {
+        "seed": 72032,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "med-cache",
+      "tool": "asset",
+      "prompt": "a recharging field med kit crate with almond water bottles and jerky packs, horror survival cache, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/med-cache.glb",
+      "args": {
+        "seed": 72033,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "sun-memorial",
+      "tool": "asset",
+      "prompt": "a small brass sun plaque bolted to warm concrete, hopeful memorial, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/sun-memorial.glb",
+      "args": {
+        "seed": 72035,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "blue-girl",
+      "tool": "asset",
+      "prompt": "terrifying small girl in a tattered blue dress with black hollow eyes and long black hair, standing pose, dark horror character figure, full body, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/blue-girl.glb",
+      "args": {
+        "seed": 72036,
+        "faces": 3000
+      }
+    },
+    {
+      "label": "demogorgon",
+      "tool": "asset",
+      "prompt": "terrifying demodog beast with opening petal teeth and glistening maw, muscular humanoid body with claws, horror monster figure, full body, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/demogorgon.glb",
+      "args": {
+        "seed": 72037,
+        "faces": 3000
+      }
+    },
+    {
+      "label": "shoggoth",
+      "tool": "asset",
+      "prompt": "bubbling shoggoth mass of eyes and mouths, amorphous eldritch bulk with pseudopods, horror monster figure, full body, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/shoggoth.glb",
+      "args": {
+        "seed": 72038,
+        "faces": 3000
+      }
+    },
+    {
+      "label": "poison-vent",
+      "tool": "asset",
+      "prompt": "a rusted floor vent seeping green fog, horror hazard prop, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/poison-vent.glb",
+      "args": {
+        "seed": 71005,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "rad-rod",
+      "tool": "asset",
+      "prompt": "a cracked emitter rod spitting yellow static sparks, horror hazard prop, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/rad-rod.glb",
+      "args": {
+        "seed": 71006,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "tool-crate",
+      "tool": "asset",
+      "prompt": "a brass-bound wooden tool crate with a music box, a glitch gun and a flashlight inside, horror survival cache, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/props/tool-crate.glb",
+      "args": {
+        "seed": 71004,
+        "faces": 2000
+      }
+    }
+  ]
+}

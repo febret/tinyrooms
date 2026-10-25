@@ -1,0 +1,20 @@
+# Radioactive static: yellow spark snow for radioactive rooms. Textures live
+# beside this file and are served from /assets/fx/.
+id: rad-static
+label: Radioactive Static
+layers:
+  - type: particle
+    preset: sparks
+    texture: spark.png
+    rate: 14
+    lifetime: [0.8, 1.6]
+    size: [0.08, 0.22]
+    speed: 0.5
+    spread: 60
+    gravity: 0.35
+    color: "#ffe066"
+    opacity: [0.9, 0.0]
+    additive: true
+    max_particles: 64
+    anchor: top
+    offset: [0, 0, 0]

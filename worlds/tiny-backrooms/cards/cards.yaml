@@ -1,0 +1,384 @@
+# The Tiny Backrooms card catalog: 12 picture pieces, 3 marks, 3 restored
+# pictures, 3 monster tools, 4 survival tools, 4 consumables, 4 sellable loot.
+tb-piece-br-0:
+  label: Torn Photo, Backrooms I
+  description: A blurry quarter of a humming yellow photograph. A HOLLOW EYE stares out of
+    the grain, socketed in static. Keep it; the exit door wants the symbols in order.
+  image: tb-piece-br-0.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-br-1:
+  label: Torn Photo, Backrooms II
+  description: A blurry quarter of a humming yellow photograph. A KNOTTED BELL hangs in the
+    blur, its rope tied in a knot no hand could tie. The exit door wants the symbols in order.
+  image: tb-piece-br-1.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-br-2:
+  label: Torn Photo, Backrooms III
+  description: A blurry quarter of a humming yellow photograph. A BRASS KEY lies tilted across
+    the grain, its teeth biting nothing. The exit door wants the symbols in order.
+  image: tb-piece-br-2.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-br-3:
+  label: Torn Photo, Backrooms IV
+  description: A blurry quarter of a humming yellow photograph. A PAPER MOTH burns pale
+    through the grain. Win it back from the thing wearing the dark.
+  image: tb-piece-br-3.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-ud-0:
+  label: Torn Photo, Upside I
+  description: A cold blue quarter of a ruined photograph. An ASHEN STAR rots in the
+    emulsion. The exit door wants the symbols in order.
+  image: tb-piece-ud-0.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-ud-1:
+  label: Torn Photo, Upside II
+  description: A cold blue quarter of a ruined photograph. A PETAL MAW opens in the ash,
+    ringed with patient teeth. The exit door wants the symbols in order.
+  image: tb-piece-ud-1.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-ud-2:
+  label: Torn Photo, Upside III
+  description: A cold blue quarter of a ruined photograph. An IRON FANG hangs in the vines,
+    cold and patient. The exit door wants the symbols in order.
+  image: tb-piece-ud-2.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-ud-3:
+  label: Torn Photo, Upside IV
+  description: A cold blue quarter of a ruined photograph. A DROWNED BELL tolls silently
+    under black water. Win it back from the Demogorgon.
+  image: tb-piece-ud-3.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-op-0:
+  label: Torn Photo, Abyss I
+  description: A violet quarter of an impossible photograph. A YAWNING SIGIL leans the
+    wrong way. The exit door wants the symbols in order.
+  image: tb-piece-op-0.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-op-1:
+  label: Torn Photo, Abyss II
+  description: A violet quarter of an impossible photograph. SIXTEEN THROATS sing from too
+    close. The exit door wants the symbols in order.
+  image: tb-piece-op-1.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-op-2:
+  label: Torn Photo, Abyss III
+  description: A violet quarter of an impossible photograph. The BLACK TIDE ripples like a
+    sea with opinions. The exit door wants the symbols in order.
+  image: tb-piece-op-2.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-piece-op-3:
+  label: Torn Photo, Abyss IV
+  description: A violet quarter of an impossible photograph. A CROOKED CROWN gibbers at
+    the edge. Win it back from the Shoggoth.
+  image: tb-piece-op-3.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: prop
+  tags: [code]
+tb-mark-br:
+  label: Marked by the Blue Girl
+  description: She has your scent now. Face her at the humming cabinet with the
+    music box before the dread fades, or she will drag you back to the entrance
+    with nothing left.
+  image: tb-mark-br.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  decorative: true
+tb-mark-ud:
+  label: Marked by the Demogorgon
+  description: Petals have opened somewhere behind you. Face it with the iron
+    bat before the dread fades, or be dragged back to the entrance with nothing.
+  image: tb-mark-ud.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  decorative: true
+tb-mark-op:
+  label: Marked by the Shoggoth
+  description: It bubbles your name in sixteen throats. Face it with the elder
+    sign before the dread fades, or be dragged back with nothing left.
+  image: tb-mark-op.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  decorative: true
+tb-restored-br:
+  label: Restored Photo, Backrooms
+  description: 'The yellow photograph whole again: CIRCLE, TRIANGLE, SQUARE, STAR.
+    The first exit door will open for this.'
+  image: tb-restored-br.png
+  type: item
+  rarity: Epic
+  stack_limit: 1
+  one_use: false
+  quest: true
+tb-restored-ud:
+  label: Restored Photo, Upside Down
+  description: 'The blue photograph whole again: STAR, SQUARE, TRIANGLE, CIRCLE.
+    The second exit door will open for this.'
+  image: tb-restored-ud.png
+  type: item
+  rarity: Epic
+  stack_limit: 1
+  one_use: false
+  quest: true
+tb-restored-op:
+  label: Restored Photo, Outer Plane
+  description: 'The violet photograph whole again: TRIANGLE, STAR, CIRCLE, SQUARE.
+    The last exit door will open for this.'
+  image: tb-restored-op.png
+  type: item
+  rarity: Epic
+  stack_limit: 1
+  one_use: false
+  quest: true
+lullaby-music-box:
+  label: Lullaby Music Box
+  description: Wind it and let it play. The Blue Girl always stops to listen.
+    Equip it, then use it on her. That is your whole plan. It is a good plan.
+  image: lullaby-music-box.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: peep
+  tags: [lullaby]
+  sounds:
+    select: click2.wav
+    use: chirp3.wav
+iron-bat:
+  label: Iron Bat
+  description: Cold iron, taped grip, old science-fair champion sticker. The
+    Demogorgon respects only this. Equip it, then use it on the beast.
+  image: iron-bat.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: peep
+  tags: [iron]
+  sounds:
+    select: click2.wav
+    use: swish.wav
+elder-sign:
+  label: Elder Sign
+  description: A crooked five-pointed ward that hurts to look at. The Shoggoth
+    cannot hold its shape near it. Equip it, then use it on the mass.
+  image: elder-sign.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: peep
+  tags: [elder]
+  sounds:
+    select: click2.wav
+    use: cutscene-start.wav
+deglitcher:
+  label: Deglitcher
+  description: A traveler's patched-together glitch gun. Equip it, then use it
+    on any glitch creature to debug it out of existence.
+  image: deglitcher.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: peep
+  tags: [deglitch]
+  sounds:
+    select: click2.wav
+    use: mech2.wav
+gas-mask:
+  label: Gas Mask
+  description: Scratched lenses, faithful filter. Equip it to breathe easy in
+    poisoned green fog. The hazmat suit covers this too.
+  image: gas-mask.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  passive: true
+  bonuses: {constitution: 1}
+hazmat-suit:
+  label: Hazmat Suit
+  description: A patched yellow suit that crinkles when you move. Equip it to
+    ignore poison fog and radioactive static alike.
+  image: hazmat-suit.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  passive: true
+  bonuses: {constitution: 2}
+backrooms-flashlight:
+  label: Backrooms Flashlight
+  description: Heavy, dented, dependable. Use it in a dark room to light it for
+    a minute. Searching the dark without one is not searching.
+  image: backrooms-flashlight.png
+  type: item
+  stack_limit: 10
+  one_use: false
+  energy_cost: 0
+  target: room
+  effect: light
+  duration: 60
+  sounds:
+    select: click2.wav
+    use: switch.wav
+almond-water:
+  label: Almond Water
+  description: Smells like marzipan, tastes like survival. Restores 25 Health.
+    Costs 2 Energy.
+  image: almond-water.png
+  stack_limit: 10
+  one_use: true
+  energy_cost: 2
+  target: peep
+  effect: health
+  amount: 25
+  sounds:
+    select: bubble1.wav
+    use: bubble1.wav
+portal-jerky:
+  label: Portal Jerky
+  description: Chewy, peppery, faintly humming. Restores 20 Energy, even when Tired.
+  image: portal-jerky.png
+  stack_limit: 10
+  one_use: true
+  energy_cost: 0
+  target: self
+  effect: energy
+  amount: 20
+  sounds:
+    select: click2.wav
+    use: crunch1.wav
+mold-bread:
+  label: Mold Bread
+  description: The mold is the best part. Probably. Restores 10 Health. Costs 2 Energy.
+  image: mold-bread.png
+  stack_limit: 10
+  one_use: true
+  energy_cost: 2
+  target: peep
+  effect: health
+  amount: 10
+  sounds:
+    select: click2.wav
+    use: crunch1.wav
+static-candy:
+  label: Static Candy
+  description: Pops and crackles on your tongue. Restores 10 Energy, even when Tired.
+  image: static-candy.png
+  stack_limit: 10
+  one_use: true
+  energy_cost: 0
+  target: self
+  effect: energy
+  amount: 10
+  sounds:
+    select: bubble1.wav
+    use: crunch1.wav
+fluorescent-tube:
+  label: Humming Fluorescent Tube
+  description: Still warm, still humming its one note. A choice salvage-stall
+    piece for collectors of cursed lighting.
+  image: fluorescent-tube.png
+  decorative: true
+demodog-tooth:
+  label: Demodog Tooth
+  description: Sharp enough to etch glass. Sells well to people who should know
+    better.
+  image: demodog-tooth.png
+  decorative: true
+ectoplasm-vial:
+  label: Ectoplasm Vial
+  description: It sloshes uphill. Sealed tight, worth a fortune to the right
+    occultist.
+  image: ectoplasm-vial.png
+  decorative: true
+black-seashell:
+  label: Black Seashell
+  description: Hold it to your ear and hear sixteen throats singing. A prize
+    for the bravest shelf.
+  image: black-seashell.png
+  decorative: true

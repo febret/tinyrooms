@@ -1,0 +1,12 @@
+# Horror shake: a violent whole-prop shudder for monster encounters.
+id: horror-shake
+label: Horror Shake
+layers:
+  - type: transform
+    motion: shake
+    amplitude: 0.12
+    period: 0.35
+  - type: outline
+    color: "#e5484d"
+    thickness: 0.05
+    opacity: 0.8

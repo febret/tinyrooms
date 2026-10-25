@@ -1,0 +1,10 @@
+# pack definition
+label: Tiny Backrooms Survival Pack
+description: Field rations, spare batteries, and one rumor of a way out. Three
+  cards for 10 Bops.
+back_image: back.png
+price: 10
+size: 3
+cards: [almond-water, portal-jerky, mold-bread, static-candy, backrooms-flashlight, deglitcher, gas-mask, fluorescent-tube, demodog-tooth, ectoplasm-vial, black-seashell]
+# Injected while the opener owns no flashlight, so the dark rooms stay reachable.
+guaranteed: [backrooms-flashlight]
