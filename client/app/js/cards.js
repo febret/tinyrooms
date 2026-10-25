@@ -9,6 +9,7 @@ import {
 import { findInventoryCard, findRoomCard, findSelectedEntity, findTask, hasSlottedSkill, isTargetableStack } from "./state.js";
 import { escapeHtml } from "./presentation.js";
 import { handIconMarkup, rarityLabel } from "./views/view-helpers.js";
+import { idCardView } from "./views/id-card-view.js";
 import { inventoryView } from "./views/inventory-view.js";
 import { emoteMenuMarkup } from "./views/emote-menu.js";
 import { propDetailsView } from "./views/prop-details-view.js";
@@ -154,6 +155,27 @@ function bindCardButtons(root, onSelect, onAction) {
   root.querySelectorAll("[data-journal-tab]").forEach(button => {
     button.onclick = () => onAction({ type: "journal-tab", tab: button.dataset.journalTab });
   });
+  root.querySelectorAll("[data-id-flip]").forEach(button => {
+    button.onclick = () => onAction({ type: "id-flip" });
+  });
+  // A sticker URL can 404 (e.g. a custom render that was never persisted).
+  // Degrade to the placeholder instead of leaving a broken-image icon, since
+  // the decal overlay is a data URL and would otherwise paint on its own.
+  root.querySelectorAll("[data-id-photo]").forEach(img => {
+    const degrade = () => {
+      const frame = img.closest(".id-photo");
+      frame?.querySelectorAll("img").forEach(node => node.remove());
+      if (frame && !frame.querySelector(".id-photo-placeholder")) {
+        const fallback = document.createElement("span");
+        fallback.className = "id-photo-placeholder";
+        fallback.setAttribute("aria-hidden", "true");
+        fallback.textContent = "✦";
+        frame.prepend(fallback);
+      }
+    };
+    img.onerror = degrade;
+    if (img.complete && img.naturalWidth === 0) degrade();
+  });
   root.querySelectorAll("[data-inventory-tab]").forEach(button => {
     button.onclick = () => onAction({ type: "inventory-tab", tab: button.dataset.inventoryTab });
   });
@@ -203,6 +225,7 @@ function boardModal(state) {
   if (view === "inventory") return inventoryView(state);
   if (view === "prop-details") return propDetailsView(state);
   if (view === "journal") return journalView(state);
+  if (view === "id") return idCardView(state);
   if (view === "phone") return phoneView(state);
   return "";
 }
@@ -215,7 +238,10 @@ export function describeSelection(state) {
     const description = [gameStatus, state.room.description || state.room.note || "Current room."].filter(Boolean).join("\n\n");
     return { tag: "Room", title: state.room.label, description, imageUrl: state.room.board.imageUrl };
   }
-  if (state.selection.kind === "core") return { tag: "", title: selected.label, description: state.selection.id === "journal" ? "Your peep, skills, friends, tasks and memories." : selected.description, imageUrl: selected.imageUrl };
+  if (state.selection.kind === "core") {
+    if (state.selection.id === "id") return { tag: "", title: "ID Card", description: "Your identity and skills.", imageUrl: "" };
+    return { tag: "", title: selected.label, description: state.selection.id === "journal" ? "Your tasks and memories." : selected.description, imageUrl: selected.imageUrl };
+  }
   if (state.selection.kind === "task") {
     const done = selected.steps.filter(step => step.complete).length;
     return { tag: selected.scope === "shared" ? "Shared Task" : "Task", title: selected.title, description: selected.description || `${done} of ${selected.steps.length} steps complete.`, imageUrl: "" };
@@ -402,7 +428,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     const animateToolbar = root === coreRoot && toolbarReady;
     const previousToolbar = animateToolbar ? captureToolbarButtons(root) : null;
     const active = root.contains(document.activeElement) ? document.activeElement : null;
-    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode"]
+    const identity = active && ["skillSlot", "journalTab", "inventoryTab", "idFlip", "journalMonth", "accountId", "memoryId", "stackId", "coreId", "openMultiverse", "closeView", "compactMode"]
       .find(key => active.dataset[key] !== undefined);
     const value = identity ? active.dataset[identity] : null;
     const friendAction = active?.dataset.friendAction;

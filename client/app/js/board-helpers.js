@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { createTextProp, isTextProp } from "./text-props.js";
 import { createSignProp, createWhiteboardProp, isSurfaceProp, surfaceModelKey } from "./surface-props.js";
+import { createExitProp, exitPropModelKey, isExitProp, loadExitTexture, resolveExitFinish } from "./exit-props.js";
 import { withBase } from "./base-path.js";
 
 export const FLOOR_WIDTH = 12.05;
@@ -192,6 +193,7 @@ export function propModelKey(prop) {
     prop.propId, prop.modelUrl, prop.label, prop.renderKind || prop.render_kind,
     isTextProp(prop) ? [prop.text?.content, prop.text?.font_id, prop.text?.color] : null,
     isSurfaceProp(prop) ? surfaceModelKey(prop) : null,
+    isExitProp(prop) ? exitPropModelKey(prop) : null,
   ]);
 }
 
@@ -205,6 +207,12 @@ export async function loadPropModel(prop, loader) {
     const scene = (prop.renderKind || prop.render_kind) === "sign"
       ? createSignProp(prop)
       : createWhiteboardProp(prop);
+    return { scene, scenes: [scene], animations: [] };
+  }
+  if (isExitProp(prop)) {
+    const finish = resolveExitFinish(prop);
+    const texture = await loadExitTexture(finish.texture);
+    const scene = createExitProp(prop, texture ? { [finish.texture]: texture } : {});
     return { scene, scenes: [scene], animations: [] };
   }
   return loader.loadAsync(withBase(prop.modelUrl));

@@ -8,7 +8,7 @@ function skillGridMarkup(state, pending) {
   const slots = state.user?.skills || [];
   const ranks = [...new Set(slots.map(slot => slot.rank))];
   if (!ranks.length) return '<p class="id-empty">No skill slots available yet.</p>';
-  return ranks.map(rank => {
+  return `<div class="id-skills-grid">${ranks.map(rank => {
     const ranked = slots.filter(slot => slot.rank === rank);
     return `<section class="id-skill-row" aria-label="${escapeHtml(rank)} skills">
       <h4>${escapeHtml(rank)}</h4>
@@ -25,12 +25,16 @@ function skillGridMarkup(state, pending) {
         </button>`;
       }).join("")}</div>
     </section>`;
-  }).join("");
+  }).join("")}</div>`;
 }
 
 function selfFaceMarkup(state) {
   const user = state.user || {};
   const counters = user.counters || {};
+  // Prefer the live self-peep presence art; the profile sticker lags until it
+  // is confirmed, while room presence may already carry the artwork.
+  const selfPeep = (state.room?.occupants || []).find(peep => peep.id === user.id) || null;
+  const photoUrl = selfPeep?.stickerUrl || user.stickerUrl || "";
   const decalUrl = decalDataUrl(user.id, counters.decals);
   const kudos = Number.isFinite(user.kudos) ? user.kudos : 0;
   const cost = user.kudosToNext;
@@ -43,8 +47,8 @@ function selfFaceMarkup(state) {
   const titlesOpen = Boolean(state.ui?.titlesOpen);
   return `
     <div class="id-photo">
-      ${user.stickerUrl
-        ? `<img src="${escapeHtml(user.stickerUrl)}" alt="${escapeHtml(user.username || "Your")} sticker">
+      ${photoUrl
+        ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(user.username || "Your")} sticker" data-id-photo="1">
            ${decalUrl ? `<img class="id-photo-decals" src="${escapeHtml(decalUrl)}" alt="" aria-hidden="true">` : ""}`
         : '<span class="id-photo-placeholder" aria-hidden="true">✦</span>'}
       <span class="id-photo-caption">ID PHOTO</span>

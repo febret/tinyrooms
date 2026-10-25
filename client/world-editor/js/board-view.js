@@ -23,6 +23,7 @@ export function buildBoardRoom(draft, catalog, roomId, worldId) {
         modelUrl: withBase(definition.model_url || ""),
         renderKind: definition.render_kind || "model",
         ...(instance.text ? { text: { ...instance.text } } : {}),
+        ...(instance.exit_style ? { exit_style: { ...instance.exit_style } } : {}),
         label: instance.label || definition.label || instance.prop,
         description: instance.description || definition.description || "",
         animation: instance.animation || "",

@@ -1,6 +1,6 @@
 import { updateMarkup } from "../presentation.js";
 import {
-  editRoomView, editorConflictMarkup, editorSelectedName, signStyleMarkup,
+  editRoomView, editorConflictMarkup, editorSelectedName, exitFinishMarkup, signStyleMarkup,
 } from "../views/edit-room-view.js";
 import { availableLibrary, selectedInstance } from "./edit-reducer.js";
 import { bindEditorLibrary, createLibraryFilter } from "./library-filter.js";
@@ -28,6 +28,15 @@ export function bindEditorControls(root, onAction) {
   });
   root.querySelectorAll("[data-edit-sign-style]").forEach(button => {
     button.onclick = () => onAction({ type: "edit-sign-style", signStyle: button.dataset.editSignStyle });
+  });
+  root.querySelectorAll("[data-edit-exit-style]").forEach(control => {
+    const fire = () => onAction({
+      type: "edit-exit-style",
+      key: control.dataset.editExitStyle,
+      value: control.tagName === "INPUT" ? control.value : control.dataset.exitValue,
+    });
+    if (control.tagName === "INPUT") control.onchange = fire;
+    else control.onclick = fire;
   });
 }
 
@@ -82,6 +91,10 @@ export function createEditorDock({
       const styleRegion = root.querySelector("[data-editor-sign-styles]");
       if (styleRegion && updateMarkup(styleRegion, signStyleMarkup(editor, selected))) {
         bindEditorControls(styleRegion, onAction);
+      }
+      const exitRegion = root.querySelector("[data-editor-exit-styles]");
+      if (exitRegion && updateMarkup(exitRegion, exitFinishMarkup(editor, selected))) {
+        bindEditorControls(exitRegion, onAction);
       }
       const deleteButton = root.querySelector("[data-editor-delete]");
       if (deleteButton) deleteButton.disabled = !selected;

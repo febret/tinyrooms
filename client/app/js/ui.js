@@ -392,7 +392,7 @@ function renderLook(state) {
     <strong class="look-name" title="${escapeHtml(description.title)}">${escapeHtml(description.title)}</strong>
     <button type="button" class="look-description" data-focus-key="description" title="${escapeHtml(description.description)}" aria-label="Read full description">${escapeHtml(description.description)}</button>
     </div>`)) {
-    look.querySelector(".look-description").onclick = () => dialogs.description(description.title, description.description);
+    look.querySelector(".look-description").onclick = () => dialogs.description(description.title, description.description, description.imageUrl || "");
   }
   const inspect = look.querySelector("[data-look-inspect]");
   if (inspect) inspect.onclick = () => handleAction(preview.action, { silentSound: true });
@@ -415,7 +415,8 @@ async function handleAction(action, { silentSound = false } = {}) {
   if (action.type === "open-view" || action.type === "core-toggle") {
     const view = action.view || action.id;
     const state = store.getState();
-    const closing = state.views.main === view;
+    const resolved = view === "self" || view === "skills" ? "id" : view;
+    const closing = state.views.main === resolved || state.views.main === view;
     // Leaving or closing the editor commits the layout first. The editor stays
     // open when the save conflicts or fails so changes are never dropped.
     if (state.editor && state.views.main === "edit-room") {
@@ -465,6 +466,11 @@ async function handleAction(action, { silentSound = false } = {}) {
     if (editor?.selectedId) {
       store.dispatch({ type: "editor-sign-style", id: editor.selectedId, signStyle: action.signStyle });
     }
+  } else if (action.type === "edit-exit-style") {
+    const editor = store.getState().editor;
+    if (editor?.selectedId) {
+      store.dispatch({ type: "editor-exit-style", id: editor.selectedId, key: action.key, value: action.value });
+    }
   } else if (action.type === "edit-action") {
     await applyEditorAction(action);
   } else if (action.type === "open-prop-editor") {
@@ -484,6 +490,8 @@ async function handleAction(action, { silentSound = false } = {}) {
   } else if (action.type === "play-emote") {
     store.dispatch({ type: "close-emote-menu" });
     try { await sendCommand(buildEmoteCommand(action.stackId)); } catch (error) { showError(error); }
+  } else if (action.type === "id-flip") {
+    store.dispatch({ type: "id-flip" });
   } else if (action.type === "journal-tab") {
     store.dispatch({ type: "journal-tab", tab: action.tab, tag: action.tag });
     if (action.tab === "Tasks") await refreshTasks();
@@ -1064,7 +1072,7 @@ async function render(state) {
   syncWorldStylesheet(state);
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
-  toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone");
+  toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone" || state.views.main === "id");
   toggleClass(root, "editing", Boolean(state.editor));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));
   toggleClass(root, "drop-targeting", Boolean(state.ui.dropTargeting));

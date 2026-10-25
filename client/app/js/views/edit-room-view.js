@@ -1,7 +1,6 @@
 import { escapeHtml } from "../presentation.js";
 import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "../editing/prop-library.js";
 import { availableLibrary, libraryEntry, selectedInstance } from "../editing/edit-reducer.js";
-
 const BOARD_STYLES = ["stretch", "tile", "tile-w", "tile-h"];
 
 export function editorPalette(state, editor = state.editor) {
@@ -58,6 +57,23 @@ export function signStyleMarkup(editor, selected) {
   return styles.map(style => `<button type="button" data-edit-sign-style="${escapeHtml(style.id)}" aria-pressed="${(selected.signStyle || editor.signOptions?.default_style || "wood") === style.id}">${escapeHtml(style.label)}</button>`).join("");
 }
 
+/** Exit finish chooser for the currently selected door, arrow, or stairs prop. */
+export function exitFinishMarkup(editor, selected) {
+  const entry = selected ? libraryEntry(editor, selected.propId) : null;
+  const kind = entry?.renderKind;
+  const options = editor.exitStyleOptions;
+  const variants = options?.[kind];
+  if (!selected || !entry || !variants) return "";
+  const finish = { ...(options?.defaults?.[kind] || {}), ...(selected.exitStyle || {}) };
+  const color = value => escapeHtml(String(value || "#ffffff").toLowerCase());
+  return `
+    ${(variants || []).map(style => `<button type="button" data-edit-exit-style="style" data-exit-value="${escapeHtml(style.id)}" aria-pressed="${finish.style === style.id}">${escapeHtml(style.label)}</button>`).join("")}
+    <label class="editor-color">Main <input type="color" data-edit-exit-style="main" value="${color(finish.main)}"></label>
+    <label class="editor-color">Accent <input type="color" data-edit-exit-style="accent" value="${color(finish.accent)}"></label>
+    ${(options?.textures || []).map(texture => `<button type="button" data-edit-exit-style="texture" data-exit-value="${escapeHtml(texture.id)}" aria-pressed="${(finish.texture || "plain") === texture.id}">${escapeHtml(texture.label)}</button>`).join("")}
+  `;
+}
+
 function selectionMarkup(editor) {
   const selected = selectedInstance(editor);
   return `
@@ -78,6 +94,7 @@ export function editorSettingsView(state) {
     ${environmentRow(state, editor)}
     <strong>${escapeHtml(editorSelectedName(editor, selectedInstance(editor)))}</strong>
     <div class="editor-sign-styles" data-editor-sign-styles role="group" aria-label="Sign finish">${signStyleMarkup(editor, selectedInstance(editor))}</div>
+    <div class="editor-exit-styles" data-editor-exit-styles role="group" aria-label="Exit finish">${exitFinishMarkup(editor, selectedInstance(editor))}</div>
     ${selectionMarkup(editor)}
     ${snapRow(editor)}
   </section>`;
@@ -129,6 +146,7 @@ export function editRoomView(state, { authoring = false } = {}) {
         <strong>Edit Room</strong>
         <span class="editor-selected-name" data-edit-selected-name aria-live="polite">No prop selected</span>
         <div class="editor-sign-styles" data-editor-sign-styles role="group" aria-label="Sign finish">${signStyleMarkup(editor, selectedInstance(editor))}</div>
+        <div class="editor-exit-styles" data-editor-exit-styles role="group" aria-label="Exit finish">${exitFinishMarkup(editor, selectedInstance(editor))}</div>
         ${libraryTagMarkup(library)}
         <input type="search" class="editor-search" data-edit-search placeholder="Search props" aria-label="Search props">
         ${authoring ? "" : '<button type="button" class="editor-shop-button" data-edit-action="shop">🛒 Shop</button>'}

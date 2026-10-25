@@ -31,11 +31,13 @@ export function worldRoomEditor(state, roomId) {
     text_options: state.catalog?.text_options,
     sign_options: state.catalog?.sign_options,
     whiteboard_options: state.catalog?.whiteboard_options,
+    exit_style_options: state.catalog?.exit_style_options,
     props: Object.entries(room.props || {}).filter(([, prop]) => visible.has(prop.prop)).map(([id, prop]) => ({
       id, prop_id: prop.prop, position: prop.pos, rotation: prop.rot, scale: prop.scale,
       locked: Boolean(settings.locks?.[roomId]?.[id]),
       ...(prop.text ? { text: { ...prop.text } } : {}),
       ...(typeof prop.sign_style === "string" ? { sign_style: prop.sign_style } : {}),
+      ...(prop.exit_style && typeof prop.exit_style === "object" ? { exit_style: { ...prop.exit_style } } : {}),
       ...(prop.surface && typeof prop.surface === "object" ? { surface: prop.surface } : {}),
     })),
     environment_whitelist: ["palette", "board_image_style"],
@@ -70,6 +72,7 @@ export function applyRoomEditorChanges(room, before, after) {
       room.props[prop.id] = { prop: prop.propId, pos: prop.position, rot: prop.rotation, scale: prop.scale };
       if (prop.text) room.props[prop.id].text = { ...prop.text };
       if (prop.signStyle) room.props[prop.id].sign_style = prop.signStyle;
+      if (prop.exitStyle) room.props[prop.id].exit_style = { ...prop.exitStyle };
       continue;
     }
     const target = room.props[prop.id];
@@ -83,6 +86,10 @@ export function applyRoomEditorChanges(room, before, after) {
     if (old.signStyle !== prop.signStyle) {
       if (prop.signStyle) target.sign_style = prop.signStyle;
       else delete target.sign_style;
+    }
+    if (JSON.stringify(old.exitStyle) !== JSON.stringify(prop.exitStyle)) {
+      if (prop.exitStyle) target.exit_style = { ...prop.exitStyle };
+      else delete target.exit_style;
     }
   }
   for (const key of ["palette", "board_image_style"]) {
@@ -130,6 +137,10 @@ export function createWorldRoomEditor(store, getRoomId) {
     if (action.type === "edit-sign-style") {
       const editor = worldRoomEditor(store.state, getRoomId());
       return dispatch({ type: "editor-sign-style", id: editor?.selectedId, signStyle: action.signStyle });
+    }
+    if (action.type === "edit-exit-style") {
+      const editor = worldRoomEditor(store.state, getRoomId());
+      return dispatch({ type: "editor-exit-style", id: editor?.selectedId, key: action.key, value: action.value });
     }
     if (action.type === "edit-snap") return dispatch({ type: "editor-snap", which: action.which, value: action.value });
     if (action.type === "edit-style") return dispatch({ type: "editor-env", key: "board_image_style", value: action.value });

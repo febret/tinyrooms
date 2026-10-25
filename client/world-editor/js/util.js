@@ -58,11 +58,6 @@ export function textToActions(value) {
   });
 }
 
-export function exitPropAction(exitId, exit) {
-  const label = String(exit?.label || "").trim() || exitId;
-  return [label, `.go @way:${exitId}`];
-}
-
 export function cardLabel(catalog, cardId) {
   const entry = (catalog?.cards || []).find(card => card.id === cardId);
   return entry ? entry.label : cardId;

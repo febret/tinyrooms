@@ -1,4 +1,4 @@
-import { escapeHtml, selectOptions, actionsToText, exitPropAction } from "../util.js";
+import { escapeHtml, selectOptions, actionsToText } from "../util.js";
 import { renderDialogNodeEditor } from "./dialog.js";
 
 function field(label, input) {
@@ -73,24 +73,16 @@ function roomPanel(state) {
   `;
 }
 
-function exitActionButtons(room, instance) {
+function exitToField(room, instance) {
   const exits = Object.entries(room.exits || {});
-  if (!exits.length) return '<p class="note">Add an exit to this room to create exit actions.</p>';
-  const commands = new Set((Array.isArray(instance.actions) ? instance.actions : [])
-    .map(action => (Array.isArray(action) ? action[1] : action?.command))
-    .filter(command => typeof command === "string"));
-  return `
-    <div class="field">
-      <span>Add exit action</span>
-      <div class="exit-action-row">
-        ${exits.map(([exitId, exit]) => {
-          const [label, command] = exitPropAction(exitId, exit);
-          const added = commands.has(command);
-          return `<button type="button" class="quiet" data-instance-exit-action="${escapeHtml(exitId)}"${added ? " disabled" : ""} title="${escapeHtml(added ? "Already added" : command)}">${escapeHtml(label)}</button>`;
-        }).join("")}
-      </div>
-    </div>
-  `;
+  const options = [
+    { value: "", label: "(none)" },
+    ...exits.map(([exitId, exit]) => ({
+      value: exitId,
+      label: exit?.label ? `${exit.label} (${exitId})` : exitId,
+    })),
+  ];
+  return field("Exit to", `<select data-instance-field="exit_to">${selectOptions(options, instance.exit_to || "")}</select>`);
 }
 
 function propPanel(state) {
@@ -149,7 +141,7 @@ function propPanel(state) {
       ${field("Animation", textInput(instance.animation || "", `data-instance-field="animation"`))}
       <label class="mini-check">${checkbox(Boolean(instance.only_missing), `data-instance-field="only_missing"`)} dispense only missing cards</label>
       ${field("Actions (label | command per line)", textarea(actionsToText(instance.actions), `data-instance-field="actions"`, 3))}
-      ${exitActionButtons(room, instance)}
+      ${exitToField(room, instance)}
       ${field("Draw weights (JSON)", textarea(JSON.stringify(instance.draw_weight || {}), `data-instance-field="draw_weight"`, 2))}
       <button type="button" class="negative" data-instance-delete>Delete prop</button>
     </div>

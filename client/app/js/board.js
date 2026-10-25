@@ -19,10 +19,11 @@ import {
 } from "./board-helpers.js";
 import { isTextProp } from "./text-props.js";
 import { isSurfaceProp } from "./surface-props.js";
+import { isExitProp } from "./exit-props.js";
 import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "./editing/gizmo.js";
 import { createEditModifier } from "./editing/edit-modifier.js";
 import { snapPositionValue } from "./editing/edit-reducer.js";
-import { stackMetrics, supportElevation } from "./editing/prop-stacking.js";
+import { cardDropElevation, stackMetrics, supportElevation } from "./editing/prop-stacking.js";
 import { createPropEffects } from "./prop-effects.js";
 import { createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import {
@@ -43,6 +44,13 @@ import { playPropAnimation } from "./board-animations.js";
 import { DIORAMA_BOARD_TYPE, createDioramaBoard } from "./board-diorama.js";
 const TOP = 0.045;
 const SCALE_DRAG_SENSITIVITY = 0.008;
+/** Card footprint used for stacking, matching the ground shadow ellipse. */
+const CARD_HALF_X = 0.425;
+const CARD_HALF_Z = 0.275;
+/** Vertical drag sensitivity: screen pixels to board world units. */
+const BOARD_LIFT_PX = 0.015;
+const BOARD_LIFT_MIN = -4;
+const BOARD_LIFT_MAX = 6;
 
 /** Convert an authoritative position into its board-space target, resting on the floor. */
 function targetPosition(position) {
@@ -195,6 +203,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   let editGesture = null;
   let editDrag = null;
   let orbitSuppressed = false;
+  let boardLift = 0;
+  let shiftDrag = null;
+  let twoFingerLift = null;
   let reducedMotion = false;
   let showActiveProps = false;
   let roomDark = false;
@@ -419,6 +430,28 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     return [position[0], position[1], Math.min(50, Math.max(0, supportElevation(entry, others)))];
   }
 
+  /** Shift the whole room board up or down, keeping the offset clamped. */
+  function applyBoardLift(delta) {
+    if (!current || disposed || !Number.isFinite(delta) || delta === 0) return;
+    boardLift = Math.min(BOARD_LIFT_MAX, Math.max(BOARD_LIFT_MIN, boardLift + delta));
+    current.root.position.y = boardLift;
+    markAdjusted();
+  }
+
+  function syncBoardLift() {
+    if (current) current.root.position.y = boardLift;
+  }
+
+  /**
+   * Resolve a dropped card's height with the same prop-stacking rule used by
+   * the editor, so cards land on the floor or on top of intersecting props.
+   */
+  function resolveCardPosition(position) {
+    if (!current || current.diorama || !Array.isArray(position)) return position;
+    const world = boardPosition(position);
+    return [position[0], position[1], cardDropElevation(current.props.values(), world[0], world[2], CARD_HALF_X, CARD_HALF_Z)];
+  }
+
   /** True when a screen point falls inside the selected prop's drag circle. */
   function pickDragCircle(event) {
     if (editSelectionLocked() || !editSelectionObject || !editSelectionId || !(gizmo.circleRadius > 0) || !setRayFromEvent(event)) return null;
@@ -586,7 +619,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
-    if (!isTextProp(prop) && !isSurfaceProp(prop) && !prop.modelUrl) {
+    if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop) && !prop.modelUrl) {
       fail(entry, `${prop.label} model is missing`);
       return;
     }
@@ -612,7 +645,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       }
       // The server sends the combined definition + instance scale, applied by `group`;
       // here we only ground the model so its base rests on the floor.
-      if (!isTextProp(prop) && !isSurfaceProp(prop)) shareModelTextures(model, prop.modelUrl);
+      if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop)) shareModelTextures(model, prop.modelUrl);
       const visual = new THREE.Group();
       visual.position.y = -bounds.min.y;
       visual.add(model);
@@ -817,7 +850,9 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       pending: 0, errors: new Set(), label: room.label,
     };
     current = entry;
+    boardLift = 0;
     scene.add(entry.root);
+    syncBoardLift();
     invalidateScene();
     applyFloor(entry, room);
     syncProps(entry, room);
@@ -941,9 +976,19 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (propId) onEditSelect?.(propId);
       return;
     }
+    if (!editEnabled && event.shiftKey) {
+      shiftDrag = { pointerId: event.pointerId, lastY: event.clientY };
+      gestureMoved = true;
+      suppressOrbit();
+      return;
+    }
     if (!pointers.size) gestureMoved = false;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (pointers.size > 1) gestureMoved = true;
+    if (pointers.size > 1) {
+      gestureMoved = true;
+      const ys = [...pointers.values()].map(point => point.y);
+      twoFingerLift = { lastY: ys.reduce((sum, y) => sum + y, 0) / ys.length };
+    }
   }
 
   function pointerMove(event) {
@@ -969,15 +1014,44 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         return;
       }
     }
+    if (!editEnabled && shiftDrag && shiftDrag.pointerId === event.pointerId) {
+      applyBoardLift((shiftDrag.lastY - event.clientY) * BOARD_LIFT_PX);
+      shiftDrag.lastY = event.clientY;
+      gestureMoved = true;
+      return;
+    }
+    if (!editEnabled && pointers.size >= 2) {
+      const stored = pointers.get(event.pointerId);
+      if (stored) {
+        if (!twoFingerLift) {
+          const ys = [...pointers.values()].map(point => point.y);
+          twoFingerLift = { lastY: ys.reduce((sum, y) => sum + y, 0) / ys.length };
+        }
+        const ys = [...pointers.entries()].map(([id, point]) => (id === event.pointerId ? event.clientY : point.y));
+        const average = ys.reduce((sum, y) => sum + y, 0) / ys.length;
+        applyBoardLift(-(average - twoFingerLift.lastY) * BOARD_LIFT_PX);
+        twoFingerLift.lastY = average;
+      }
+      gestureMoved = true;
+      if (dropArmed) setDropHint(null);
+      return;
+    }
     if (dropArmed) {
       const point = screenToBoardPosition(event.clientX, event.clientY);
-      setDropHint(point?.position || null);
+      setDropHint(point?.position ? resolveCardPosition(point.position) : null);
     }
     const start = pointers.get(event.pointerId);
     if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) gestureMoved = true;
   }
 
   function pointerUp(event) {
+    if (!editEnabled && shiftDrag && shiftDrag.pointerId === event.pointerId) {
+      shiftDrag = null;
+      releaseOrbit();
+      gestureMoved = true;
+      pointers.delete(event.pointerId);
+      return;
+    }
     if (editEnabled) {
       if (editGesture && editGesture.pointerId === event.pointerId) {
         const gesture = editGesture;
@@ -1000,13 +1074,14 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
     const start = pointers.get(event.pointerId);
     pointers.delete(event.pointerId);
+    if (pointers.size < 2) twoFingerLift = null;
     if (blocked || !start || gestureMoved || pointers.size
       || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     if (!setRayFromEvent(event)) return;
     if (dropArmed) {
       const point = screenToBoardPosition(event.clientX, event.clientY);
       setDropHint(null);
-      if (point) onDropPoint?.(point.position, point.screen);
+      if (point) onDropPoint?.(resolveCardPosition(point.position), point.screen);
       return;
     }
     if (gameInputEnabled && gameLayer.pointerUp(event.clientX, event.clientY)) return;
@@ -1023,8 +1098,10 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function pointerCancel(event) {
     editGesture = null;
     editDrag = null;
+    if (shiftDrag?.pointerId === event.pointerId) shiftDrag = null;
     releaseOrbit();
     pointers.delete(event.pointerId);
+    if (pointers.size < 2) twoFingerLift = null;
     gestureMoved = true;
   }
 
@@ -1246,6 +1323,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     projectPositionToScreen,
     /** Show or clear the floor marker used while arming a card drop. */
     setDropHint,
+    /** Resolve a drop position onto the floor or the top of intersecting props. */
+    resolveCardDrop: resolveCardPosition,
     /** Cancel an in-progress edit gesture. Returns null when none was active, else whether an undo is owed. */
     cancelEditGesture() {
       const gesture = editGesture || editDrag;

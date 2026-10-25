@@ -9,7 +9,8 @@ import {
 } from "./api.js";
 import { createBoardView } from "./board-view.js";
 import { createStore } from "./store.js";
-import { escapeHtml, exitPropAction, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
+import { escapeHtml, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
+import { roomQualityReport } from "./quality.js";
 import {
   applyDialogGraphChanges,
   applyRoomGraphChanges,
@@ -202,11 +203,12 @@ function render() {
   if (!state.draft) return;
   renderToolbar(state);
   renderTabs(state);
+  const quality = roomQualityReport(state.draft, state.catalog);
   elements.rooms.innerHTML = `
     <div class="search-row">
       <input type="search" id="room-search" placeholder="Search rooms" aria-label="Search rooms" value="${escapeHtml(roomFilter)}">
     </div>
-    <div id="room-list-host">${renderRoomList(state.draft, state.selection, roomFilter)}</div>
+    <div id="room-list-host">${renderRoomList(state.draft, state.selection, roomFilter, quality)}</div>
     <button type="button" class="quiet" data-room-add>Add room</button>
   `;
   const roomId = currentRoomId();
@@ -468,6 +470,10 @@ function changeInstanceField(fieldName, target) {
       else delete instance.description;
     }
     else if (fieldName === "actions") instance.actions = textToActions(target.value);
+    else if (fieldName === "exit_to") {
+      if (target.value) instance.exit_to = target.value;
+      else delete instance.exit_to;
+    }
     else if (fieldName === "draw_weight") instance.draw_weight = parseJson(target.value, {});
     else if (fieldName === "only_missing") {
       if (target.checked) instance.only_missing = true;
@@ -481,22 +487,6 @@ function changeInstanceField(fieldName, target) {
       if (!Array.isArray(instance[arrayName])) instance[arrayName] = arrayName === "pos" ? [50, 50, 0] : [0, 0, 0];
       setPath(instance, fieldName, numberOr(target.value, 0));
     } else if (fieldName === "scale") instance.scale = Math.max(0.05, numberOr(target.value, 1));
-  });
-}
-
-function addInstanceExitAction(exitId) {
-  const { selection } = store.state;
-  const room = store.state.draft?.rooms?.[selection.id];
-  const exit = room?.exits?.[exitId];
-  const instance = room?.props?.[selection.sub];
-  if (!exit || !instance) return;
-  const action = exitPropAction(exitId, exit);
-  const command = action[1];
-  const actions = Array.isArray(instance.actions) ? instance.actions : [];
-  if (actions.some(entry => (Array.isArray(entry) ? entry[1] : entry?.command) === command)) return;
-  updateInstance(target => {
-    if (!Array.isArray(target.actions)) target.actions = [];
-    target.actions.push(action);
   });
 }
 
@@ -599,7 +589,6 @@ function handleClick(target) {
   if (dataset.exitAdd !== undefined) return addExit();
   if (dataset.exitDelete !== undefined) return deleteExit(dataset.exitDelete);
   if (dataset.propAdd !== undefined) return addProp(dataset.propAdd);
-  if (dataset.instanceExitAction !== undefined) return addInstanceExitAction(dataset.instanceExitAction);
   if (dataset.instanceDelete !== undefined) return deleteInstance();
   if (dataset.peepAdd !== undefined) return addPeep();
   if (dataset.peepDelete !== undefined) return deletePeep();
@@ -692,6 +681,9 @@ function deleteExit(exitId) {
   store.update(draft => {
     const room = draft.rooms?.[roomId];
     if (room?.exits) delete room.exits[exitId];
+    for (const instance of Object.values(room?.props || {})) {
+      if (instance?.exit_to === exitId) delete instance.exit_to;
+    }
   });
   store.select({ kind: "room", id: roomId });
 }
@@ -920,7 +912,7 @@ document.addEventListener("change", event => {
 });
 
 document.addEventListener("click", event => {
-  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-exit-action],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
+  const target = event.target.closest("[data-action],[data-prop-pick],[data-prop-pick-cancel],[data-tab],[data-room],[data-room-add],[data-room-delete],[data-card-add],[data-card-delete],[data-exit-add],[data-exit-delete],[data-prop-add],[data-instance-delete],[data-peep-add],[data-peep-delete],[data-peep-select],[data-dialog-node-add],[data-dialog-node-delete],[data-dialog-choice-add],[data-dialog-choice-delete],[data-task-add],[data-task-delete],[data-recipe-add],[data-recipe-delete],[data-activity-add],[data-activity-delete],[data-lower-tab],[data-graph-fit],[data-dialog-create],[data-confirm-publish],[data-cancel-publish]");
   if (!target) return;
   if (target.dataset.room !== undefined && target.dataset.roomAdd === undefined && target.dataset.roomDelete === undefined) {
     store.select({ kind: "room", id: target.dataset.room });
@@ -933,7 +925,7 @@ document.addEventListener("input", event => {
   if (event.target?.id === "room-search") {
     roomFilter = event.target.value;
     const host = document.getElementById("room-list-host");
-    if (host) host.innerHTML = renderRoomList(store.state.draft, store.state.selection, roomFilter);
+    if (host) host.innerHTML = renderRoomList(store.state.draft, store.state.selection, roomFilter, roomQualityReport(store.state.draft, store.state.catalog));
   }
 });
 

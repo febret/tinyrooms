@@ -29,6 +29,12 @@ export function lookPreview(state, description) {
         action: { type: "open-view", view: "prop-details", propId: prop.id },
       };
     }
+    if (prop?.renderKind === "door" || prop?.renderKind === "arrow" || prop?.renderKind === "stairs") {
+      return {
+        markup: `<button type="button" class="look-preview look-preview-button look-preview-surface" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><span aria-hidden="true">➔</span> ${escapeHtml(prop.label)}</button>`,
+        action: { type: "open-view", view: "prop-details", propId: prop.id },
+      };
+    }
     if (!prop?.modelUrl) return { markup: "", action: null };
     return {
       markup: `<button type="button" class="look-preview look-preview-button look-preview-3d" data-look-inspect="prop" data-sound="open" data-focus-key="look-inspect" aria-label="Inspect ${escapeHtml(prop.label)}" title="Inspect ${escapeHtml(prop.label)}"><canvas data-prop-model="${escapeHtml(prop.modelUrl)}" data-prop-scale="${escapeHtml(prop.scale)}" aria-hidden="true"></canvas></button>`,

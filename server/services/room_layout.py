@@ -8,6 +8,11 @@ from pathlib import Path
 import re
 import uuid
 
+from server.content.exit_props import (
+    EXIT_STYLES_BY_KIND,
+    exit_style_options,
+    validate_exit_finish,
+)
 from server.content.surface_props import (
     DEFAULT_SIGN_STYLE,
     MAX_SIGN_PROPS,
@@ -231,7 +236,11 @@ class RoomLayoutService:
                 description=source.description if source else None,
                 label=source.label if source else None,
                 exit_to=source.exit_to if source else None,
-                exit_style=dict(source.exit_style) if source and source.exit_style else None,
+                exit_style=(
+                    dict(entry["exit_style"])
+                    if isinstance(entry.get("exit_style"), dict)
+                    else (dict(source.exit_style) if source and source.exit_style else None)
+                ),
             )
         return list(merged.values())
 
@@ -303,6 +312,7 @@ class RoomLayoutService:
             "render_kind": definition.render_kind,
             **({"text": dict(instance.text)} if instance.text is not None else {}),
             **({"sign_style": _read_sign_style(instance.sign_style)} if definition.render_kind == "sign" else {}),
+            **({"exit_style": dict(instance.exit_style)} if instance.exit_style is not None else {}),
             **({"surface": surface} if surface is not None else {}),
             "label": instance.label or definition.label,
             "description": instance.description if instance.description is not None else definition.description,
@@ -349,6 +359,7 @@ class RoomLayoutService:
                 "locked": live_locked.get(instance.id, False),
                 **({"text": dict(instance.text)} if instance.text is not None else {}),
                 **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
+                **({"exit_style": dict(instance.exit_style)} if instance.exit_style is not None else {}),
             }
             for instance in self.effective_props(room.id)
         ]
@@ -395,6 +406,7 @@ class RoomLayoutService:
             "text_options": text_options(),
             "sign_options": sign_options(),
             "whiteboard_options": whiteboard_options(),
+            "exit_style_options": exit_style_options(),
         }
 
     def save(
@@ -586,6 +598,15 @@ class RoomLayoutService:
                 sign_style = validate_sign_style(entry.get("sign_style"))
             elif "sign_style" in entry:
                 raise ValueError("Only sign props may have a sign_style.")
+            exit_style = None
+            if definition is not None and definition.render_kind in EXIT_STYLES_BY_KIND:
+                if entry.get("exit_style") is not None:
+                    try:
+                        exit_style = validate_exit_finish(entry.get("exit_style"), definition.render_kind)
+                    except ValueError as exc:
+                        raise ValueError(f"Layout prop '{instance_id}' exit_style: {exc}") from exc
+            elif "exit_style" in entry:
+                raise ValueError("Only door, arrow, and stairs props may have an exit_style.")
             props.append(
                 {
                     "id": instance_id,
@@ -596,6 +617,7 @@ class RoomLayoutService:
                     "locked": bool(entry.get("locked")),
                     **({"text": text} if text is not None else {}),
                     **({"sign_style": sign_style} if sign_style is not None else {}),
+                    **({"exit_style": exit_style} if exit_style is not None else {}),
                 }
             )
         for instance_id, entry in hidden_existing.items():

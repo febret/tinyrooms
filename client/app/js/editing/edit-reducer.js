@@ -1,7 +1,11 @@
+import { isExitProp, resolveExitFinish } from "../exit-props.js";
+
 const UNDO_LIMIT = 50;
 export const POSITION_SNAP = 5;
 const ROTATION_SNAP = 15;
 const SCALE_STEP = 1.15;
+
+const EXIT_FINISH_KEYS = ["style", "main", "accent", "texture"];
 
 function clone(value) {
   return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value));
@@ -25,6 +29,8 @@ function normalizeInstance(entry) {
     locked: Boolean(entry?.locked),
     ...(entry?.text ? { text: { ...entry.text } } : {}),
     ...(typeof entry?.sign_style === "string" ? { signStyle: entry.sign_style } : {}),
+    ...(entry?.exit_style && typeof entry.exit_style === "object" ? { exitStyle: { ...entry.exit_style } } : {}),
+    ...(entry?.exitStyle && typeof entry.exitStyle === "object" ? { exitStyle: { ...entry.exitStyle } } : {}),
     ...(entry?.surface && typeof entry.surface === "object" ? { surface: { ...entry.surface } } : {}),
     state: typeof entry?.state === "string" ? entry.state : "",
     states: entry?.states && typeof entry.states === "object" ? { ...entry.states } : {},
@@ -77,6 +83,7 @@ export function normalizeEditorView(view) {
     textOptions: view?.text_options || null,
     signOptions: view?.sign_options || null,
     whiteboardOptions: view?.whiteboard_options || null,
+    exitStyleOptions: view?.exit_style_options || null,
     environmentWhitelist: Array.isArray(view?.environment_whitelist) ? [...view.environment_whitelist] : [],
     environment,
     savedEnvironment: { ...environment },
@@ -108,6 +115,7 @@ export function editorPatch(editor) {
       locked: Boolean(instance.locked),
       ...(instance.text ? { text: { ...instance.text } } : {}),
       ...(instance.signStyle ? { sign_style: instance.signStyle } : {}),
+      ...(instance.exitStyle ? { exit_style: { ...instance.exitStyle } } : {}),
     })),
     environment: editor.environment,
   };
@@ -154,6 +162,7 @@ export function editorBoardProps(editor) {
       renderKind: entry?.renderKind || "model",
       ...(instance.text ? { text: { ...instance.text } } : {}),
       ...(instance.signStyle ? { signStyle: instance.signStyle } : (entry?.renderKind === "sign" ? { signStyle: entry.defaultSignStyle || "wood" } : {})),
+      ...(instance.exitStyle ? { exitStyle: { ...instance.exitStyle } } : {}),
       ...(surface ? { surface } : {}),
       label: entry?.label || "Prop",
       description: entry?.description || "",
@@ -247,6 +256,7 @@ export function editorReducer(state, action) {
         scale: clamp(1, entry.scaleMin, entry.scaleMax),
         ...(action.text ? { text: { ...action.text } } : {}),
         ...(entry.renderKind === "sign" ? { signStyle: action.signStyle || entry.defaultSignStyle || "wood" } : {}),
+        ...(isExitProp(entry) ? { exitStyle: resolveExitFinish({ renderKind: entry.renderKind }) } : {}),
         ...(defaultSurfaceFor(entry) ? { surface: defaultSurfaceFor(entry) } : {}),
       };
       const next = pushUndo(editor);
@@ -267,6 +277,16 @@ export function editorReducer(state, action) {
       if (!instance || instance.locked) return state;
       if (instance.signStyle === action.signStyle) return state;
       return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, signStyle: action.signStyle })) };
+    }
+    case "editor-exit-style": {
+      if (!editor?.canEdit || !action.id || !EXIT_FINISH_KEYS.includes(action.key)) return state;
+      const instance = editor.props.find(entry => entry.id === action.id);
+      if (!instance || instance.locked) return state;
+      const entry = libraryEntry(editor, instance.propId);
+      if (!entry || !isExitProp(entry)) return state;
+      const next = { ...resolveExitFinish({ renderKind: entry.renderKind }), ...(instance.exitStyle || {}), [action.key]: action.value };
+      if (JSON.stringify(instance.exitStyle) === JSON.stringify(next)) return state;
+      return { ...state, editor: updateInstance(pushUndo(editor), action.id, current => ({ ...current, exitStyle: next })) };
     }
     case "editor-remove": {
       if (!editor) return state;

@@ -47,6 +47,11 @@
 .editor-sign-styles { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
 .editor-sign-styles button { padding: 2px 5px; font-size: 10px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; }
 .editor-sign-styles button[aria-pressed="true"] { border-color: #c99043; background: #241708; color: #ffd9a8; }
+.editor-exit-styles { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.editor-exit-styles button { padding: 2px 5px; font-size: 10px; border: 1px solid #2b4652; background: #0a1d26; color: #dce7ea; }
+.editor-exit-styles button[aria-pressed="true"] { border-color: #c99043; background: #241708; color: #ffd9a8; }
+.editor-color { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #9fb7bd; }
+.editor-color input[type="color"] { width: 28px; height: 22px; padding: 0; border: 1px solid #2b4652; background: #0a1d26; }
 .sign-dialog { width: min(560px, 94vw); }
 .sign-dialog label { display: flex; flex-direction: column; gap: 4px; }
 .sign-dialog textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; color: inherit; background: #0a1d26; border: 1px solid #547381; padding: 8px; }
