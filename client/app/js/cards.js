@@ -517,7 +517,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
       update(coreRoot, coreOrder.map(id => coreMarkup(
         coreCards[id],
         state.views.main === id || (state.selection.kind === "core" && state.selection.id === id),
-      ) + (id === "inventory" ? `${bopsButtonMarkup(state.user?.bops)}${showMultiverse ? multiverseButtonMarkup() : ""}${roomPicker}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
+      ) + (id === "inventory" ? `${roomPicker}${bopsButtonMarkup(state.user?.bops)}${showMultiverse ? multiverseButtonMarkup() : ""}` : "")).join(""      ) + (showTinymag ? `${tinymagButtonMarkup()}${keyringButtonMarkup()}` : "") + editButtonMarkup(state.room, isAdmin, selectedProp, canReviewCutscenes));
       const handChanged = update(handRoot, equipped.length ? `<div class="equipped-hand" role="group" aria-label="Equipped cards" style="--equipped-count:${equipped.length}">
         ${equipped.map(stack => handIconMarkup(stack.definition, stack)).join("")}
       </div>` : "");
