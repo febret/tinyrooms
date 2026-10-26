@@ -134,7 +134,21 @@ export function defaultSurfaceFor(entry) {
     return { kind: "sign", revision: 0, content: { text: "New sign" } };
   }
   if (entry?.renderKind === "whiteboard") {
-    return { kind: "whiteboard", revision: 0, content: { strokes: [], texts: [] } };
+    return {
+      kind: "whiteboard",
+      revision: 0,
+      content: {
+        image_url: "",
+        image_hash: "",
+        frame: {
+          outer: "bevel",
+          inner: "hairline",
+          matte: "gallery",
+          main: "#7a5230",
+          accent: "#c9a45c",
+        },
+      },
+    };
   }
   return null;
 }

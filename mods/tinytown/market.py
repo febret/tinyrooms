@@ -24,6 +24,16 @@ MAX_MARKET_LISTINGS = 120
 WHITEBOARD_SLOTS = ((18.0, 9.0), (39.0, 9.0), (61.0, 9.0), (82.0, 9.0))
 
 
+def _has_board_image(content: object) -> bool:
+    """Return whether a whiteboard surface carries artwork, in any supported shape."""
+
+    if not isinstance(content, dict):
+        return False
+    if content.get("image_url") or content.get("image"):
+        return True
+    return bool(content.get("strokes") or content.get("texts"))
+
+
 @dataclass(frozen=True, slots=True)
 class ArtListing:
     listing_id: str
@@ -59,12 +69,33 @@ class TinyTownArtMarket:
         self.layout = housing.runtime.layout
         self.surfaces = housing.runtime.surfaces
         self.world_state = housing.runtime.world_state
+        self._art_surfaces: dict[str, dict[str, object]] | None = None
+
+    def art_payloads(self) -> list[dict[str, object]]:
+        """Return image-backed catalog payloads, materializing generated art once."""
+
+        if self._art_surfaces is None:
+            self._art_surfaces = {
+                piece.id: self.surfaces.materialize_whiteboard(piece.surface, allow_legacy=True)
+                for piece in ART_PIECES
+            }
+        return [
+            art_payload(piece, self._art_surfaces[piece.id])
+            for piece in ART_PIECES
+        ]
 
     def _listing_from_row(self, row: object) -> ArtListing:
         try:
             surface = json.loads(row["surface_json"])
         except (TypeError, ValueError):
             surface = {}
+        if isinstance(surface, dict) and (
+            "strokes" in surface or "texts" in surface or "image" in surface
+        ):
+            try:
+                surface = self.surfaces.materialize_whiteboard(surface)
+            except ValueError:
+                surface = {}
         return ArtListing(
             listing_id=str(row["listing_id"]),
             seller_id=str(row["seller_account_id"]),
@@ -169,7 +200,7 @@ class TinyTownArtMarket:
                     surface = self.surfaces.get(room_id, instance_id, "whiteboard")
                     if surface.locked or not surface.content:
                         continue
-                    if not surface.content.get("strokes") and not surface.content.get("texts"):
+                    if not _has_board_image(surface.content):
                         continue
                     active = active_sources.get((room_id, instance_id))
                     results.append(
@@ -198,8 +229,8 @@ class TinyTownArtMarket:
     ) -> ArtListing:
         """List a roommate-painted piece generated on the house easel.
 
-        The surface already lives in whiteboard format, so buyers receive
-        locked whiteboard prints through the ordinary purchase flow.
+        Generated surfaces are materialized into canonical image-backed content,
+        so buyers receive locked whiteboard prints through the ordinary purchase flow.
         """
 
         clean_title = " ".join(str(title).split())[:MAX_LISTING_TITLE]
@@ -225,6 +256,7 @@ class TinyTownArtMarket:
             raise ValueError("That painting is already hanging in the gallery.")
         if len(active) >= MAX_ART_LISTINGS:
             raise ValueError(f"You can have at most {MAX_ART_LISTINGS} pieces for sale at once.")
+        canonical_surface = self.surfaces.materialize_whiteboard(surface, allow_legacy=True)
         listing = ArtListing(
             listing_id=f"artlisting:{uuid.uuid4().hex}",
             seller_id=account.id,
@@ -233,7 +265,7 @@ class TinyTownArtMarket:
             title=clean_title,
             description=clean_description,
             price=int(price),
-            surface=json.loads(json.dumps(surface)),
+            surface=json.loads(json.dumps(canonical_surface)),
             status="active",
             created_at=utc_now().isoformat(),
         )
@@ -282,7 +314,7 @@ class TinyTownArtMarket:
         surface = self.surfaces.get(room_id, instance_id, "whiteboard")
         if surface.locked:
             raise ValueError("Purchased art cannot be listed for sale.")
-        if not surface.content.get("strokes") and not surface.content.get("texts"):
+        if not _has_board_image(surface.content):
             raise ValueError("Draw something on the whiteboard before listing it.")
         with self.hub.locked() as connection:
             active = connection.execute(
@@ -395,7 +427,7 @@ class TinyTownArtMarket:
             "room": room_payload,
             "can_hang": can_hang,
             "floors": floors,
-            "art": [art_payload(piece) for piece in ART_PIECES],
+            "art": self.art_payloads(),
             "unlocked_art": [
                 piece.id for piece in ART_PIECES if self.housing.is_unlocked(account.id, "art", piece.id)
             ],

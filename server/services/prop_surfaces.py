@@ -4,15 +4,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import logging
 
 from server.content.surface_props import (
     DEFAULT_SIGN_SURFACE,
+    DEFAULT_WHITEBOARD_FRAME,
     DEFAULT_WHITEBOARD_SURFACE,
+    rasterize_legacy_whiteboard,
     validate_sign_text,
     validate_whiteboard,
+    validate_whiteboard_frame,
 )
 from server.security import utc_now
+from server.services.whiteboard_images import WhiteboardImageStore
 from server.state.migrations import DatabaseHub
+
+
+LOGGER = logging.getLogger("tinyrooms.surfaces")
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +57,22 @@ def surface_kind(render_kind: str) -> str | None:
     return None
 
 
+def _copy_surface_content(content: dict[str, object]) -> dict[str, object]:
+    copied = dict(content)
+    frame = copied.get("frame")
+    if isinstance(frame, dict):
+        copied["frame"] = dict(frame)
+    return copied
+
+
+def _blank_whiteboard_content() -> dict[str, object]:
+    return {
+        "image_url": "",
+        "image_hash": "",
+        "frame": dict(DEFAULT_WHITEBOARD_FRAME),
+    }
+
+
 def default_surface(
     instance_id: str,
     kind: str,
@@ -58,7 +82,7 @@ def default_surface(
     return SurfaceRecord(
         instance_id=instance_id,
         kind=kind,
-        content=dict(content if content is not None else fallback),
+        content=_copy_surface_content(content if content is not None else fallback),
         revision=0,
     )
 
@@ -66,8 +90,17 @@ def default_surface(
 class PropSurfaceService:
     """Read and write per-instance surface content with last-write-wins revisions."""
 
-    def __init__(self, hub: DatabaseHub) -> None:
+    def __init__(
+        self,
+        hub: DatabaseHub,
+        image_store: WhiteboardImageStore | None = None,
+        *,
+        allow_legacy_whiteboards: bool = False,
+    ) -> None:
         self._hub = hub
+        self._images = image_store
+        self._allow_legacy_whiteboards = allow_legacy_whiteboards
+        self._default_cache: dict[tuple[str, str], tuple[str, dict[str, object]]] = {}
 
     def get(
         self,
@@ -85,8 +118,31 @@ class PropSurfaceService:
                 (room_id, instance_id),
             ).fetchone()
         if row is None:
-            return default_surface(instance_id, kind, default_content)
-        return _surface_from_row(row)
+            content = (
+                _copy_surface_content(default_content)
+                if isinstance(default_content, dict)
+                else _blank_whiteboard_content()
+                if kind == "whiteboard"
+                else dict(DEFAULT_SIGN_SURFACE)
+            )
+            if kind == "whiteboard":
+                content = self._canonicalize_default(room_id, instance_id, content)
+            return SurfaceRecord(instance_id=instance_id, kind=kind, content=content, revision=0)
+        record = _surface_from_row(row)
+        if record.kind == "whiteboard":
+            upgraded = self._upgrade_row_content(room_id, instance_id, record.content)
+            if upgraded is not None:
+                record = SurfaceRecord(
+                    instance_id=record.instance_id,
+                    kind=record.kind,
+                    content=upgraded,
+                    revision=record.revision,
+                    updated_by=record.updated_by,
+                    locked=record.locked,
+                    locked_by=record.locked_by,
+                    locked_at=record.locked_at,
+                )
+        return record
 
     def save_sign(
         self,
@@ -108,7 +164,7 @@ class PropSurfaceService:
         *,
         connection: object | None = None,
     ) -> SurfaceRecord:
-        """Validate and store an editable whiteboard's strokes and text labels."""
+        """Validate and store an editable whiteboard's image and frame."""
 
         if self.is_locked(room_id, instance_id):
             raise ValueError("This artwork is locked and cannot be modified.")
@@ -117,7 +173,7 @@ class PropSurfaceService:
             instance_id,
             "whiteboard",
             account_id,
-            validate_whiteboard(raw_content),
+            self._prepare_whiteboard_content(raw_content),
             connection=connection,
         )
 
@@ -138,11 +194,23 @@ class PropSurfaceService:
             instance_id,
             "whiteboard",
             account_id,
-            validate_whiteboard(raw_content),
+            self._prepare_whiteboard_content(raw_content),
             locked=locked,
             lock_owner=account_id if locked else None,
             connection=connection,
         )
+
+    def materialize_whiteboard(
+        self, raw_content: object, *, allow_legacy: bool | None = None
+    ) -> dict[str, object]:
+        """Convert generated or legacy content into canonical image-backed content.
+
+        Pass ``allow_legacy=True`` for first-party generated art, which always
+        converts. Reading pre-existing legacy client data defaults to the
+        ``svg-boards`` compatibility flag.
+        """
+
+        return self._prepare_whiteboard_content(raw_content, allow_legacy=allow_legacy)
 
     def is_locked(self, room_id: str, instance_id: str) -> bool:
         """Return whether a stored surface is locked against content edits."""
@@ -153,6 +221,95 @@ class PropSurfaceService:
                 (room_id, instance_id),
             ).fetchone()
         return bool(row is not None and row["locked"])
+
+    def _prepare_whiteboard_content(
+        self, raw_content: object, *, allow_legacy: bool | None = None
+    ) -> dict[str, object]:
+        """Convert an upload, asset reference, or legacy board into canonical content."""
+
+        legacy_allowed = self._allow_legacy_whiteboards if allow_legacy is None else allow_legacy
+        if not isinstance(raw_content, dict):
+            raise ValueError("Whiteboard content must be an object.")
+        if "strokes" in raw_content or "texts" in raw_content:
+            if not legacy_allowed:
+                raise ValueError("Legacy vector whiteboards require --legacy-features svg-boards.")
+            image = rasterize_legacy_whiteboard(raw_content)
+            frame = validate_whiteboard_frame(raw_content.get("frame"))
+            return self._store_upload(image, frame)
+        if "image" in raw_content:
+            frame = validate_whiteboard_frame(raw_content.get("frame"))
+            return self._store_upload(raw_content["image"], frame)
+        content = validate_whiteboard(raw_content)
+        if content["image_url"] and self._images is not None:
+            if not self._images.exists(str(content["image_hash"])):
+                raise ValueError("That whiteboard image is no longer available.")
+        return content
+
+    def _store_upload(self, image: object, frame: dict[str, str]) -> dict[str, object]:
+        """Store a PNG data URL and return canonical asset-backed content."""
+
+        if self._images is None:
+            raise ValueError("Whiteboard image storage is unavailable.")
+        stored = self._images.store_data_url(image)
+        return {
+            "image_url": stored["image_url"],
+            "image_hash": stored["image_hash"],
+            "frame": dict(frame),
+        }
+
+    def _canonicalize_default(
+        self,
+        room_id: str,
+        instance_id: str,
+        content: dict[str, object],
+    ) -> dict[str, object]:
+        """Convert authored/default whiteboard content without writing a DB row."""
+
+        try:
+            signature = json.dumps(content, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            return _blank_whiteboard_content()
+        cached = self._default_cache.get((room_id, instance_id))
+        if cached is not None and cached[0] == signature:
+            return _copy_surface_content(cached[1])
+        try:
+            canonical = self._prepare_whiteboard_content(content)
+        except ValueError as exc:
+            LOGGER.warning("whiteboard default unavailable: %s", exc)
+            canonical = _blank_whiteboard_content()
+        self._default_cache[(room_id, instance_id)] = (signature, _copy_surface_content(canonical))
+        return canonical
+
+    def _upgrade_row_content(
+        self,
+        room_id: str,
+        instance_id: str,
+        content: dict[str, object],
+    ) -> dict[str, object] | None:
+        """Upgrade stored legacy/upload content to canonical form when needed."""
+
+        if not isinstance(content, dict):
+            return None
+        if "strokes" in content or "texts" in content or "image" in content:
+            try:
+                upgraded = self._prepare_whiteboard_content(content)
+            except ValueError as exc:
+                LOGGER.warning("legacy whiteboard unavailable: %s", exc)
+                return _blank_whiteboard_content()
+            payload = json.dumps(upgraded, separators=(",", ":"))
+            with self._hub.transaction() as connection:
+                connection.execute(
+                    "UPDATE world.prop_surfaces SET content_json = ? WHERE room_id = ? AND instance_id = ?",
+                    (payload, room_id, instance_id),
+                )
+            return upgraded
+        try:
+            canonical = validate_whiteboard(content)
+        except ValueError:
+            return None
+        if canonical != content:
+            return canonical
+        return None
 
     def _write(
         self,
@@ -274,7 +431,7 @@ def _surface_from_row(row: object) -> SurfaceRecord:
     if kind == "sign" and not isinstance(content, dict):
         content = dict(DEFAULT_SIGN_SURFACE)
     if kind == "whiteboard" and not isinstance(content, dict):
-        content = dict(DEFAULT_WHITEBOARD_SURFACE)
+        content = _blank_whiteboard_content()
     keys = row.keys()
     return SurfaceRecord(
         instance_id=str(row["instance_id"]),

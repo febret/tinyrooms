@@ -103,7 +103,7 @@ class PropGameplayMigrationTests(unittest.TestCase):
         self.assertFalse(hasattr(instance, "content"))
 
     def test_chess_controller_is_a_dedicated_text_prop(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade")
+        world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade", allow_legacy_whiteboards=True)
         definition = world.props["chess-controller"]
         self.assertEqual(definition.render_kind, "text")
         self.assertEqual(definition.behavior, "chess")

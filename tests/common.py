@@ -117,7 +117,7 @@ def load_world_fx():
     return load_effect_catalog(REPO_ROOT / "data" / "fx")
 
 
-def load_test_world(world_path: Path, card_ids: set[str] | None = None):
+def load_test_world(world_path: Path, card_ids: set[str] | None = None, *, allow_legacy_whiteboards: bool = False):
     """Load a world definition with core + mod activities and props applied."""
 
     from server.config import KNOWN_FEATURES
@@ -138,6 +138,7 @@ def load_test_world(world_path: Path, card_ids: set[str] | None = None):
         mod_props=load_world_mod_props(),
         fx_root=REPO_ROOT / "data" / "fx",
         extra_recipes=catalog.recipes,
+        allow_legacy_whiteboards=allow_legacy_whiteboards,
     )
 
 
@@ -251,6 +252,8 @@ class RuntimeTestCase(unittest.TestCase):
             local_path=self.runtime_path,
             drafts_path=self.runtime_path / "drafts",
             revisions_path=self.runtime_path / "revisions",
+            custom_stickers_path=self.runtime_path / "stickers",
+            whiteboard_images_path=self.runtime_path / "whiteboards",
         )
         self._open_client()
 

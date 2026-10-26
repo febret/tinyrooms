@@ -231,7 +231,7 @@ class ExitStyleLoaderTests(unittest.TestCase):
         self.assertTrue(any(issue.path == "rooms.hub.props.door0.exit_style" for issue in issues))
 
     def test_exit_style_serializes_with_defaults_when_absent(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade")
+        world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade", allow_legacy_whiteboards=True)
         room = world.rooms["chess"]
         service = RoomService(
             hub=Mock(),
@@ -339,7 +339,10 @@ class ShippedExitCoverageTests(unittest.TestCase):
     def test_every_authored_exit_is_reachable_through_a_prop(self) -> None:
         worlds = ("tutorial", "scammon-academia", "tiny-arcade", "tinytown")
         for world_name in worlds:
-            world = load_test_world(REPO_ROOT / "worlds" / world_name)
+            world = load_test_world(
+                REPO_ROOT / "worlds" / world_name,
+                allow_legacy_whiteboards=world_name == "tiny-arcade",
+            )
             for room_id, room in world.rooms.items():
                 missing = sorted(set(room.exits) - _covered_exits(room))
                 self.assertEqual(

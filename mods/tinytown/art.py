@@ -1,7 +1,8 @@
-"""Vector art sold by TinyTown's Art Market.
+"""Image-backed art sold by TinyTown's Art Market.
 
-Each piece is drawn from whiteboard strokes, so hanging art uses the same
-server-authoritative surface pipeline as any player-made whiteboard drawing.
+Each piece starts from generated vector strokes so the catalog stays procedural,
+but market payloads and whiteboard installs always use canonical image-backed
+surfaces produced through the shared whiteboard pipeline.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from dataclasses import dataclass
 import math
 from typing import Iterable
 
-from server.content.surface_props import validate_whiteboard
+from server.content.surface_props import normalize_legacy_whiteboard
 
 
 WIDTH = 1024
@@ -437,7 +438,7 @@ ART_PIECES = tuple(
             "description": description,
             "price": price,
             "tags": tags,
-            "surface": validate_whiteboard(surface),
+            "surface": normalize_legacy_whiteboard(surface),
         }
     )
     for piece_id, label, description, price, tags, surface in (
@@ -461,8 +462,8 @@ ART_PIECES = tuple(
 ART_BY_ID = {piece.id: piece for piece in ART_PIECES}
 
 
-def art_payload(piece: ArtPiece) -> dict[str, object]:
-    """Serialize one art piece for the Art Market iframe."""
+def art_payload(piece: ArtPiece, surface: dict[str, object]) -> dict[str, object]:
+    """Serialize one art piece for the Art Market iframe with image-backed content."""
 
     return {
         "id": piece.id,
@@ -470,5 +471,5 @@ def art_payload(piece: ArtPiece) -> dict[str, object]:
         "description": piece.description,
         "price": piece.price,
         "tags": list(piece.tags),
-        "surface": piece.surface,
+        "surface": dict(surface),
     }

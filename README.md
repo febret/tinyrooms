@@ -41,6 +41,15 @@ registration; changing it does not affect existing accounts.
 Use `TRSERVER_FEATURES` for optional tools, `TRSERVER_ADMINS` for bootstrap admin
 usernames, and `TRSERVER_MODS` for mod selection. Reverse-proxy deployments can
 set `TRSERVER_BASE_PATH` and additional `TRSERVER_PUBLIC_ORIGIN` values.
+Whiteboard PNG uploads are stored as content-addressed files under
+`TRSERVER_WHITEBOARD_IMAGES_PATH` (default `.local/whiteboards`). Pre-image
+vector whiteboards are only read and converted when legacy support is enabled:
+
+```powershell
+python run.py --legacy-features svg-boards
+```
+
+`TRSERVER_LEGACY_FEATURES=svg-boards` selects the same compatibility mode.
 MC configuration, shared content, identity, and TLS settings are documented in
 [Mission Control](doc/mission-control.md#3-configuration).
 

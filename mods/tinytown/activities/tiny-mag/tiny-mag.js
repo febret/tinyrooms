@@ -1,4 +1,4 @@
-import { WHITEBOARD_HEIGHT, WHITEBOARD_WIDTH, drawWhiteboard } from "../../app/js/surface-canvas.js";
+import { paintWhiteboardPreview } from "../../app/js/surface-canvas.js";
 import { ART_PAGES, COPY, DISTRICT_PAGES, PAGES, PAGE_IDS } from "./tiny-mag-copy.js";
 import { districtTemplates, renderDistrictEmpty, renderDistrictLeft, renderDistrictRight } from "./tiny-mag-districts.js";
 import { renderHomeChoices, renderRoommateLeft, renderRoommateRight } from "./tiny-mag-roommates.js";
@@ -77,11 +77,7 @@ function paintPreviews() {
   for (const element of document.querySelectorAll("canvas[data-surface-key]")) {
     const surface = state.previews.get(element.dataset.surfaceKey);
     if (!surface) continue;
-    element.width = WHITEBOARD_WIDTH;
-    element.height = WHITEBOARD_HEIGHT;
-    const context = element.getContext("2d");
-    if (!context) continue;
-    drawWhiteboard(context, surface.content || surface);
+    void paintWhiteboardPreview(element, surface.content || surface);
   }
 }
 

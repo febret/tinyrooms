@@ -9,7 +9,7 @@ from pathlib import Path
 import sqlite3
 import uuid
 
-from mods.tinytown.art import ART_BY_ID, ART_PIECES, art_payload
+from mods.tinytown.art import ART_BY_ID, ART_PIECES
 from mods.tinytown.catalog import (
     DISTRICTS,
     DISTRICTS_BY_ID,
@@ -753,7 +753,7 @@ class TinytownHousing:
                 "current_floor": floor.id if floor is not None else "",
             },
             "floors": [self._floor_payload(entry, account.id, floor.id if floor else None) for entry in self._floors.values()],
-            "art": [art_payload(piece) for piece in ART_PIECES],
+            "art": self.market.art_payloads(),
             "unlocked_art": [
                 piece.id for piece in ART_PIECES if self.is_unlocked(account.id, "art", piece.id)
             ],
@@ -911,7 +911,8 @@ class TinytownHousing:
             }
         )
         try:
-            surface = self._surfaces.install_whiteboard(room_id, instance_id, account.id, piece.surface, locked=True)
+            generated = self._surfaces.materialize_whiteboard(piece.surface, allow_legacy=True)
+            surface = self._surfaces.install_whiteboard(room_id, instance_id, account.id, generated, locked=True)
             update = self._layout.save(
                 account,
                 room_id,

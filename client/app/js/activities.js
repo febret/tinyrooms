@@ -190,6 +190,14 @@ export function createActivityManager({
     entry.closing = true;
     entry.close.disabled = true;
     try {
+      const flush = await flushActivity(entry);
+      if (!flush.ok && !flush.timedOut) {
+        onToast(flush.message || "The whiteboard could not be saved before closing.", "error");
+        return;
+      }
+      if (!flush.ok && flush.timedOut) {
+        onToast(flush.message || "The whiteboard did not respond before closing.", "error");
+      }
       await onActivityBridge(entry.activity, bridgeType);
     } catch (error) {
       onToast(error instanceof Error ? error.message : String(error), "error");
@@ -197,6 +205,28 @@ export function createActivityManager({
       entry.closing = false;
       entry.close.disabled = false;
     }
+  }
+
+  let flushSequence = 0;
+  const flushWaiters = new Map();
+
+  function flushActivity(entry) {
+    if (entry.activity.kind !== "whiteboard" || !entry.iframe.contentWindow) {
+      return Promise.resolve({ ok: true });
+    }
+    const requestId = `flush-${Date.now()}-${++flushSequence}`;
+    return new Promise(resolve => {
+      const timer = window.setTimeout(() => {
+        flushWaiters.delete(requestId);
+        resolve({ ok: false, timedOut: true, message: "The whiteboard did not respond before closing." });
+      }, 6000);
+      flushWaiters.set(requestId, { resolve, timer });
+      entry.iframe.contentWindow.postMessage({
+        type: "tinyrooms.host.before-close",
+        activityId: entry.activity.id,
+        requestId,
+      }, window.location.origin);
+    });
   }
 
   function makeWindow(activity) {
@@ -304,6 +334,18 @@ export function createActivityManager({
         onToast(`Activity could not report ready: ${error instanceof Error ? error.message : String(error)}`, "error");
       }
       sendState(entry);
+      return;
+    }
+    if (event.data.type === "tinyrooms.activity.before-close-result") {
+      const waiter = flushWaiters.get(event.data.requestId);
+      if (waiter) {
+        window.clearTimeout(waiter.timer);
+        flushWaiters.delete(event.data.requestId);
+        waiter.resolve({
+          ok: event.data.ok !== false,
+          message: String(event.data.message || ""),
+        });
+      }
       return;
     }
     if (event.data.type === "tinyrooms.activity.command") {

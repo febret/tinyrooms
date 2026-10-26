@@ -30,6 +30,9 @@ KNOWN_FEATURES = frozenset(
         *MC_FEATURE_ALIASES,
     }
 )
+# Opt-in compatibility for whiteboards drawn before image-backed surfaces.
+# svg-boards enables reading and rasterizing legacy vector whiteboards.
+KNOWN_LEGACY_FEATURES = frozenset({"svg-boards"})
 
 
 def selects_mission_control(raw_value: str) -> bool:
@@ -142,6 +145,8 @@ class AppConfig:
     worldstate_path: Path
     # Rendered player stickers, separate from bundled preset artwork.
     custom_stickers_path: Path
+    # Content-addressed player whiteboard PNGs, separate from bundled artwork.
+    whiteboard_images_path: Path
     # Bundled/search roots for propsets and prop-effect definitions/sprites.
     propsets_path: Path
     fx_path: Path
@@ -191,6 +196,8 @@ class AppConfig:
     # Root-page redirect for unauthenticated or wrong-world/instance profiles;
     # legacy profiles without an instance id may pass a matching world check.
     entry_url: str | None = None
+    # Opt-in compatibility for legacy content, such as vector whiteboards.
+    legacy_features: frozenset[str] = frozenset()
 
     @property
     def client_path(self) -> Path:
@@ -290,6 +297,22 @@ def parse_features(raw_value: str) -> frozenset[str]:
     return frozenset(features)
 
 
+def parse_legacy_features(raw_value: str) -> frozenset[str]:
+    """Parse comma-separated legacy compatibility flags such as svg-boards."""
+
+    legacy: set[str] = set()
+    for item in raw_value.split(","):
+        feature = item.strip()
+        if not feature:
+            continue
+        if not _FEATURE_PATTERN.match(feature):
+            raise ConfigError(f"Invalid legacy feature flag '{feature}'.")
+        if feature not in KNOWN_LEGACY_FEATURES:
+            raise ConfigError(f"Unsupported legacy feature flag '{feature}'.")
+        legacy.add(feature)
+    return frozenset(legacy)
+
+
 def parse_mods(raw_value: str) -> frozenset[str]:
     """Parse a comma-separated mod list; ``*`` selects every installed mod."""
 
@@ -372,6 +395,12 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     if custom_stickers_path.exists() and not custom_stickers_path.is_dir():
         raise ConfigError(f"TRSERVER_CUSTOM_STICKERS_PATH must be a directory: {custom_stickers_path}")
 
+    whiteboard_images_value = values.get("TRSERVER_WHITEBOARD_IMAGES_PATH", str(local_path / "whiteboards"))
+    whiteboard_images_path = Path(whiteboard_images_value).expanduser()
+    whiteboard_images_path.mkdir(parents=True, exist_ok=True)
+    if whiteboard_images_path.exists() and not whiteboard_images_path.is_dir():
+        raise ConfigError(f"TRSERVER_WHITEBOARD_IMAGES_PATH must be a directory: {whiteboard_images_path}")
+
     propsets_path = Path(
         values.get("TRSERVER_PROPSETS_PATH", str(root / "data" / "propsets"))
     ).expanduser().resolve()
@@ -381,6 +410,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
 
     feature_value = values.get("TRSERVER_FEATURES", "")
     features = parse_features(feature_value)
+    legacy_features = parse_legacy_features(values.get("TRSERVER_LEGACY_FEATURES", ""))
 
     admin_value = values.get("TRSERVER_ADMINS", "")
     bootstrap_admins = frozenset(
@@ -450,10 +480,12 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         world_path=world_path.resolve(),
         worldstate_path=worldstate_path.resolve(),
         custom_stickers_path=custom_stickers_path.resolve(),
+        whiteboard_images_path=whiteboard_images_path.resolve(),
         propsets_path=propsets_path,
         fx_path=fx_path,
         new_account_passphrase=passphrase,
         features=features,
+        legacy_features=legacy_features,
         bootstrap_admins=bootstrap_admins,
         timezone_name=timezone_name,
         timezone=timezone,

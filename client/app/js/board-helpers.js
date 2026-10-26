@@ -206,7 +206,7 @@ export async function loadPropModel(prop, loader) {
   if (isSurfaceProp(prop)) {
     const scene = (prop.renderKind || prop.render_kind) === "sign"
       ? createSignProp(prop)
-      : createWhiteboardProp(prop);
+      : await createWhiteboardProp(prop);
     return { scene, scenes: [scene], animations: [] };
   }
   if (isExitProp(prop)) {

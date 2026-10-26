@@ -8,7 +8,7 @@ export function propDetailsView(state) {
   const surfaceSummary = prop.renderKind === "sign"
     ? `<p class="surface-prop-content">${escapeHtml(prop.surface?.content?.text || "New sign")}</p>`
     : prop.renderKind === "whiteboard"
-      ? `<p class="surface-prop-content">${(prop.surface?.content?.strokes || []).length} strokes · ${(prop.surface?.content?.texts || []).length} notes</p>`
+      ? `<p class="surface-prop-content">${prop.surface?.content?.image_url || prop.surface?.content?.image ? `Shared board image · revision ${prop.surface?.revision || 0}` : "Blank shared board image"}</p>`
       : "";
   const isBuiltinExit = isExitProp(prop);
   return modalShell({

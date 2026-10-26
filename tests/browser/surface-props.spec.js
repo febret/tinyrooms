@@ -14,6 +14,24 @@ test("procedural sign and whiteboard render without GLTF requests", async ({ pag
   await page.evaluate(async () => {
     const { createBoard } = await import("/app/js/board.js");
     window.board = createBoard({ canvas: document.querySelector("canvas"), overlay: document.querySelector("#status") });
+    const artwork = document.createElement("canvas");
+    artwork.width = 1024;
+    artwork.height = 640;
+    const painting = artwork.getContext("2d");
+    painting.fillStyle = "#fbfbf7";
+    painting.fillRect(0, 0, 1024, 640);
+    painting.strokeStyle = "#d64545";
+    painting.lineWidth = 8;
+    painting.lineCap = "round";
+    painting.beginPath();
+    painting.moveTo(40, 40);
+    painting.lineTo(240, 180);
+    painting.lineTo(480, 80);
+    painting.stroke();
+    painting.fillStyle = "#1f2933";
+    painting.font = "600 56px Trebuchet MS, sans-serif";
+    painting.fillText("Plan", 40, 240);
+    const frame = { outer: "bevel", inner: "hairline", matte: "gallery", main: "#7a5230", accent: "#c9a45c" };
     window.state = {
       user: { initialStickerComplete: true }, ui: { reducedMotion: true },
       room: {
@@ -30,8 +48,8 @@ test("procedural sign and whiteboard render without GLTF requests", async ({ pag
             surface: {
               kind: "whiteboard", revision: 1,
               content: {
-                strokes: [{ color: "#d64545", width: 8, points: [[40, 40], [240, 180], [480, 80]] }],
-                texts: [{ text: "Plan", x: 40, y: 240, size: 56, color: "#1f2933" }],
+                image: artwork.toDataURL("image/png"),
+                frame,
               },
             },
           },

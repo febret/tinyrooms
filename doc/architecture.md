@@ -89,17 +89,21 @@ Props may also declare named mesh `states` and an authored `active_state`.
 [rooms.py](../server/services/rooms.py) can switch a room instance's state at
 runtime and broadcasts `room.prop.updated`; clients reload the active model.
 
-The built-in sign and whiteboard are procedural surfaces. Their text/drawing is
-stored by [prop_surfaces.py](../server/services/prop_surfaces.py) in the
+The built-in sign is a procedural surface; the built-in whiteboard is an
+image-backed surface. Sign text and whiteboard content are stored by
+[prop_surfaces.py](../server/services/prop_surfaces.py) in the
 `prop_surfaces` world table, validated by
 [surface_props.py](../server/content/surface_props.py), and rendered client-side
 by [surface-props.js](../client/app/js/surface-props.js) /
 [surface-canvas.js](../client/app/js/surface-canvas.js). Saves broadcast
 `room.prop.surface` with a monotonic revision; clients ignore stale revisions.
-Whiteboard drawings are vector strokes and text, not uploaded images. The room
+Whiteboard uploads are validated as 1024x640 PNGs, stored as content-addressed
+files by [whiteboard_images.py](../server/services/whiteboard_images.py), and
+shared as `/assets/whiteboards/<sha256>.png` URLs plus frame metadata. The room
 editor's environment allowlist includes a validated `board_image` override for
 world-authored floor textures; layout updates carry the new image URL alongside
-palette and tiling.
+palette and tiling. Pre-image vector whiteboards are only converted when the
+server is started with `--legacy-features svg-boards`.
 
 Mods may expose `start()`/`stop()` lifecycle hooks for background work. TinyTown
 uses this for autonomous household NPCs while its private multi-room houses,
@@ -166,7 +170,9 @@ and source window before accepting bridge messages. Guest commands use the
 normal server command pipeline; iframe isolation must not bypass authority.
 Whiteboard activities save through the `activity.surface` bridge message only
 after the server resolves the bound prop instance from its own activity config.
-See [host bridge](../client/app/js/activities.js),
+The paint activity auto-saves dirty boards every five seconds and flushes
+pending edits through a host/iframe before-close handshake; there is no manual
+save button. See [host bridge](../client/app/js/activities.js),
 [guest bridge](../client/activities/shared.js), and
 [server bridge](../server/routes/activity_bridge.py).
 

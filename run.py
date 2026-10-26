@@ -146,6 +146,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the Tinyrooms Milestone 1 backend.")
     parser.add_argument("--host", help="Override TRSERVER_HOST for this run.")
     parser.add_argument("--port", type=int, help="Override TRSERVER_PORT for this run.")
+    parser.add_argument(
+        "--legacy-features",
+        help="Comma-separated legacy compatibility flags; use svg-boards for pre-image vector whiteboards.",
+    )
     parser.add_argument("--certfile", help="Use an existing PEM certificate file.")
     parser.add_argument("--keyfile", help="Use an existing PEM key file.")
     return parser.parse_args()
@@ -171,6 +175,8 @@ def main() -> int:
                 env_values["TRSERVER_HOST"] = args.host
             if args.port:
                 env_values["TRSERVER_PORT"] = str(args.port)
+            if args.legacy_features:
+                env_values["TRSERVER_LEGACY_FEATURES"] = args.legacy_features
             config = load_config(env=env_values)
             app = create_app(config)
             local_path = config.local_path

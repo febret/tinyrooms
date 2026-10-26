@@ -58,6 +58,26 @@ test("adding a sign seeds its default finish and blank surface", () => {
   assert.equal(boardProp.surface.kind, "sign");
 });
 
+test("adding a whiteboard seeds a blank image-backed surface", () => {
+  const editor = normalizeEditorView({
+    room_id: "room:test",
+    revision: 1,
+    can_edit: true,
+    props: [],
+    library: [{
+      prop_id: "builtin:whiteboard",
+      label: "Whiteboard",
+      render_kind: "whiteboard",
+      scale_min: 0.5,
+      scale_max: 2,
+    }],
+  });
+  const surface = defaultSurfaceFor(editor.library[0]);
+  assert.equal(surface.kind, "whiteboard");
+  assert.equal(surface.content.image_url, "");
+  assert.equal(surface.content.frame.outer, "bevel");
+});
+
 test("sign finish changes are undoable editor state", () => {
   let state = { editor: editorWithSign() };
   state = editorReducer(state, { type: "editor-add", propId: "builtin:sign" });

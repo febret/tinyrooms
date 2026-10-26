@@ -202,6 +202,15 @@
     return () => listeners.delete(listener);
   }
 
+  let beforeCloseHandler = null;
+
+  function onBeforeClose(handler) {
+    beforeCloseHandler = typeof handler === "function" ? handler : null;
+    return () => {
+      if (beforeCloseHandler === handler) beforeCloseHandler = null;
+    };
+  }
+
   function card(id) {
     const inventory = state?.room?.inventory || state?.user?.inventory || [];
     const stack = inventory.find(item => item.definition?.id === id || item.stackId === id);
@@ -222,6 +231,26 @@
       state = event.data.state;
       roomMuted = state?.config?.soundEnabled === false;
       listeners.forEach(listener => listener(state));
+      return;
+    }
+    if (event.data.type === "tinyrooms.host.before-close") {
+      (async () => {
+        let ok = true;
+        let message = "Ready to close.";
+        try {
+          if (beforeCloseHandler) await beforeCloseHandler();
+        } catch (error) {
+          ok = false;
+          message = error instanceof Error ? error.message : String(error);
+        }
+        window.parent.postMessage({
+          type: "tinyrooms.activity.before-close-result",
+          activityId,
+          requestId: event.data.requestId,
+          ok,
+          message,
+        }, origin);
+      })();
       return;
     }
     if (event.data.type === "tinyrooms.host.result" && pending.has(event.data.requestId)) {
@@ -248,6 +277,7 @@
     command,
     result,
     saveSurface,
+    onBeforeClose,
     confirmSticker,
     notify,
     close,

@@ -1,3 +1,6 @@
+import { withBase } from "./base-path.js";
+import { drawWhiteboardFrame, frameLayout, normalizeFrame } from "./whiteboard-frame.js";
+
 export const SIGN_STYLE_IDS = Object.freeze(["wood", "chalk", "brass", "paper", "neon"]);
 export const SIGN_WIDTH = 1024;
 export const SIGN_HEIGHT = 512;
@@ -106,69 +109,76 @@ function drawSignTexture(context, styleId, style) {
   context.globalAlpha = 1;
 }
 
-export function renderWhiteboardCanvas(surface) {
+const whiteboardImageCache = new Map();
+
+export function whiteboardArtworkSource(content) {
+  if (typeof content?.image_url === "string" && content.image_url) {
+    return withBase(content.image_url);
+  }
+  if (typeof content?.image === "string" && content.image) {
+    return content.image;
+  }
+  return "";
+}
+
+export function loadWhiteboardArtwork(content) {
+  const source = whiteboardArtworkSource(content);
+  if (!source) return Promise.resolve(null);
+  if (whiteboardImageCache.has(source)) return whiteboardImageCache.get(source);
+  const pending = new Promise(resolve => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = source;
+  }).then(image => {
+    if (!image) whiteboardImageCache.delete(source);
+    while (whiteboardImageCache.size > 24) {
+      whiteboardImageCache.delete(whiteboardImageCache.keys().next().value);
+    }
+    return image;
+  });
+  whiteboardImageCache.set(source, pending);
+  return pending;
+}
+
+export function paintWhiteboardArtwork(context, artwork, layout) {
+  context.save();
+  context.beginPath();
+  context.rect(layout.artX, layout.artY, layout.artWidth, layout.artHeight);
+  context.clip();
+  if (artwork) {
+    context.drawImage(artwork, layout.artX, layout.artY, layout.artWidth, layout.artHeight);
+  } else {
+    context.fillStyle = "#fbfbf7";
+    context.fillRect(layout.artX, layout.artY, layout.artWidth, layout.artHeight);
+    context.strokeStyle = "#d9ded8";
+    context.lineWidth = 4;
+    context.strokeRect(layout.artX + 2, layout.artY + 2, layout.artWidth - 4, layout.artHeight - 4);
+  }
+  context.restore();
+}
+
+export async function renderWhiteboardCanvas(content = {}) {
+  const frame = normalizeFrame(content?.frame);
+  const layout = frameLayout(frame);
   const canvas = document.createElement("canvas");
-  canvas.width = WHITEBOARD_WIDTH;
-  canvas.height = WHITEBOARD_HEIGHT;
+  canvas.width = layout.width;
+  canvas.height = layout.height;
   const context = canvas.getContext("2d");
   if (!context) return canvas;
-  drawWhiteboard(context, surface);
+  drawWhiteboardFrame(context, frame, canvas.width, canvas.height);
+  const artwork = await loadWhiteboardArtwork(content);
+  paintWhiteboardArtwork(context, artwork, layout);
   return canvas;
 }
 
-/** Draw a validated whiteboard surface into any 2D context at its canonical size. */
-export function drawWhiteboard(context, surface) {
-  context.fillStyle = "#fbfbf7";
-  context.fillRect(0, 0, WHITEBOARD_WIDTH, WHITEBOARD_HEIGHT);
-  context.strokeStyle = "#d9ded8";
-  context.lineWidth = 8;
-  context.strokeRect(4, 4, WHITEBOARD_WIDTH - 8, WHITEBOARD_HEIGHT - 8);
-  const strokes = Array.isArray(surface?.strokes) ? surface.strokes : [];
-  for (const stroke of strokes) {
-    const points = Array.isArray(stroke?.points) ? stroke.points : [];
-    if (!points.length) continue;
-    context.strokeStyle = validColor(stroke?.color, "#1f2933");
-    context.lineWidth = clampNumber(stroke?.width, 1, 40, 6);
-    context.lineCap = "round";
-    context.lineJoin = "round";
-    context.beginPath();
-    points.forEach((point, index) => {
-      const x = clampNumber(point?.[0], 0, WHITEBOARD_WIDTH, 0);
-      const y = clampNumber(point?.[1], 0, WHITEBOARD_HEIGHT, 0);
-      if (index === 0) context.moveTo(x, y);
-      else context.lineTo(x, y);
-    });
-    if (points.length === 1) {
-      const point = points[0];
-      context.arc(
-        clampNumber(point?.[0], 0, WHITEBOARD_WIDTH, 0),
-        clampNumber(point?.[1], 0, WHITEBOARD_HEIGHT, 0),
-        context.lineWidth / 2,
-        0,
-        Math.PI * 2,
-      );
-      context.fillStyle = context.strokeStyle;
-      context.fill();
-    } else {
-      context.stroke();
-    }
-  }
-  const texts = Array.isArray(surface?.texts) ? surface.texts : [];
-  for (const item of texts) {
-    const text = typeof item?.text === "string" ? item.text : "";
-    if (!text) continue;
-    const size = clampNumber(item?.size, 12, 120, 48);
-    context.fillStyle = validColor(item?.color, "#1f2933");
-    context.font = `600 ${size}px "Trebuchet MS", sans-serif`;
-    context.textAlign = "left";
-    context.textBaseline = "top";
-    context.fillText(
-      text,
-      clampNumber(item?.x, 0, WHITEBOARD_WIDTH, 0),
-      clampNumber(item?.y, 0, WHITEBOARD_HEIGHT, 0),
-      WHITEBOARD_WIDTH,
-    );
-  }
+export async function paintWhiteboardPreview(canvas, content = {}) {
+  const framed = await renderWhiteboardCanvas(content);
+  canvas.width = framed.width;
+  canvas.height = framed.height;
+  const context = canvas.getContext("2d");
+  if (context) context.drawImage(framed, 0, 0);
 }
 
 /** Wrap text to a pixel width while preserving explicit newlines and a line cap. */

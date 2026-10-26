@@ -134,7 +134,7 @@ start_world() {
   TRSERVER_CLIENT_URL="https://$PUBLIC_HOST:$port" \
   TRSERVER_ENTRY_URL="https://$PUBLIC_HOST:$MC_PORT" \
   TRSERVER_MC_INSECURE_TLS=1 \
-  python run.py --host "$BIND_HOST" --port "$port" &
+  python run.py --host "$BIND_HOST" --port "$port" --legacy-features svg-boards &
   PIDS+=("$!")
 }
 

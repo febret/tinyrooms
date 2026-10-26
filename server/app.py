@@ -104,6 +104,7 @@ from server.services.asset_bakery import AssetBakeryService
 from server.services.prop_lights import PropLightService
 from server.services.prop_shop import PropShopService
 from server.services.prop_surfaces import PropSurfaceService
+from server.services.whiteboard_images import WhiteboardImageStore
 from server.services.prop_states import PropStateService
 from server.services.room_effects import RoomEffectService
 from server.services.room_layout import RoomLayoutService
@@ -525,7 +526,12 @@ def _build_runtime(
     beacons = BeaconService(profiles)
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
-    surfaces = PropSurfaceService(hub)
+    whiteboard_images = WhiteboardImageStore(config.whiteboard_images_path)
+    surfaces = PropSurfaceService(
+        hub,
+        whiteboard_images,
+        allow_legacy_whiteboards="svg-boards" in config.legacy_features,
+    )
     audit = AuditService(hub, world.id)
     powers = PowersService(hub, profiles, world, config.bootstrap_admins, audit)
     ownership = OwnershipService(hub, profiles, world_state, world, has_power=powers.has_power)

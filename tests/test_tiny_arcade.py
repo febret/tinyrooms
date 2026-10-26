@@ -11,7 +11,7 @@ CHESS_PATH = WORLD_PATH / "props" / "chess.py"
 
 class TinyArcadeContentTests(unittest.TestCase):
     def test_world_loads_and_game_envelopes_resolve(self) -> None:
-        world = load_test_world(WORLD_PATH)
+        world = load_test_world(WORLD_PATH, allow_legacy_whiteboards=True)
         games = {
             room_id: room.game
             for room_id, room in world.rooms.items()

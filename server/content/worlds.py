@@ -406,6 +406,7 @@ def load_world_definition(
     fx_root: Path | None = None,
     extra_recipes: Mapping[str, RecipeDefinition] | None = None,
     known_sounds: frozenset[str] | None = None,
+    allow_legacy_whiteboards: bool = False,
 ) -> WorldDefinition:
     """Load the immutable world definition set from YAML."""
 
@@ -596,6 +597,7 @@ def load_world_definition(
                     raw_instance,
                     props[prop_id].render_kind,
                     f"Room '{room_id}' prop '{prop_instance_id}' surface",
+                    allow_legacy_whiteboards=allow_legacy_whiteboards,
                 ),
                 sounds=parse_sounds(
                     raw_instance.get("sounds"),

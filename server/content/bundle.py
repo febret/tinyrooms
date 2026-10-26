@@ -78,5 +78,6 @@ def load_world_bundle(
         fx_root=config.fx_path,
         extra_recipes=catalog.recipes,
         known_sounds=known_sounds,
+        allow_legacy_whiteboards="svg-boards" in config.legacy_features,
     )
     return WorldBundle(catalog=catalog, content=content, world=world)
