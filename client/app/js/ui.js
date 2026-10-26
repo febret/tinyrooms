@@ -22,6 +22,7 @@ import {
   buildBeaconCommand,
   buildEmoteCommand,
   buildFriendCommand,
+  buildPhoneMessagesCommand,
   buildQuantityCommand,
   buildSkillCommand,
   buildSplitCommand,
@@ -245,6 +246,16 @@ function connectSocket() {
         return;
       }
       store.dispatch({ type: "room-event", event: envelope.event });
+      if (envelope.event?.type === "phone.message") {
+        // A text arriving on the open thread is shown as read: tell the
+        // server so the badge does not linger until the next refresh.
+        const state = store.getState();
+        const key = String(envelope.event.thread_key || "");
+        if (key && state.views.main === "phone" && state.ui.phoneApp === "messages"
+          && state.ui.phoneMessages?.threadKey === key) {
+          void sendCommand(buildPhoneMessagesCommand("read", key)).catch(() => {});
+        }
+      }
       const room = store.getState().room;
       const revisions = room
         ? { layoutRevision: room.layoutRevision, environmentRevision: room.environmentRevision }

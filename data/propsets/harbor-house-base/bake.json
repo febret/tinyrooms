@@ -1,213 +1,213 @@
 {
- "simplify": {
-  "strategy": "auto",
-  "target": 500,
-  "flat_target": 100,
-  "wall_target": 200,
-  "bake_resolution": 1024,
-  "remesh_resolution": 160,
-  "max_deviation": 0.05
- },
- "tasks": [
-  {
-   "label": "harbor-oak-settle",
-   "tool": "asset",
-   "prompt": "a deep oiled-oak wooden settle bench with a high back, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-oak-settle.glb",
-   "args": {
-    "seed": 3201,
-    "faces": 500
-   }
+  "simplify": {
+    "strategy": "auto",
+    "target": 500,
+    "flat_target": 100,
+    "wall_target": 200,
+    "bake_resolution": 1024,
+    "remesh_resolution": 160,
+    "max_deviation": 0.05
   },
-  {
-   "label": "harbor-leather-club-chair",
-   "tool": "asset",
-   "prompt": "a brown leather club armchair with brass studs, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-leather-club-chair.glb",
-   "args": {
-    "seed": 3202,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-rope-stool",
-   "tool": "asset",
-   "prompt": "a short stool with a coiled rope base and round oak seat, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-rope-stool.glb",
-   "args": {
-    "seed": 3203,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-window-seat",
-   "tool": "asset",
-   "prompt": "a cushioned wooden window seat bench with navy pads, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-window-seat.glb",
-   "args": {
-    "seed": 3204,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-brass-desk-lamp",
-   "tool": "asset",
-   "prompt": "a brass bankers desk lamp with a green glass shade, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-brass-desk-lamp.glb",
-   "args": {
-    "seed": 3205,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-cage-pendant",
-   "tool": "asset",
-   "prompt": "a hanging industrial cage pendant lamp in aged brass, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-cage-pendant.glb",
-   "args": {
-    "seed": 3206,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-mast-floor-lamp",
-   "tool": "asset",
-   "prompt": "a tall floor lamp shaped like a ship mast with a canvas shade, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-mast-floor-lamp.glb",
-   "args": {
-    "seed": 3207,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-chart-table",
-   "tool": "asset",
-   "prompt": "a broad wooden chart table with map drawers, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-chart-table.glb",
-   "args": {
-    "seed": 3208,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-coffee-table",
-   "tool": "asset",
-   "prompt": "a low rectangular coffee table with slatted hatch top, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-coffee-table.glb",
-   "args": {
-    "seed": 3209,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-side-table",
-   "tool": "asset",
-   "prompt": "a small round side table painted red and white like a buoy, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-side-table.glb",
-   "args": {
-    "seed": 3210,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-map-cabinet",
-   "tool": "asset",
-   "prompt": "a wooden flat-drawer map cabinet with brass pulls, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-map-cabinet.glb",
-   "args": {
-    "seed": 3211,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-rope-bookshelf",
-   "tool": "asset",
-   "prompt": "a small oak bookshelf with rope side supports, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-rope-bookshelf.glb",
-   "args": {
-    "seed": 3212,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-kit-chest",
-   "tool": "asset",
-   "prompt": "a wooden sailor chest with rope handles and brass corners, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-kit-chest.glb",
-   "args": {
-    "seed": 3213,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-berth-bed",
-   "tool": "asset",
-   "prompt": "a single wooden berth bed with navy bedding and brass rails, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-berth-bed.glb",
-   "args": {
-    "seed": 3214,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-runner-rug",
-   "tool": "asset",
-   "prompt": "a long woven runner rug in navy and beige stripes, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-runner-rug.glb",
-   "args": {
-    "seed": 3215,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-brass-mirror",
-   "tool": "asset",
-   "prompt": "a round porthole-style mirror with a brass frame, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-brass-mirror.glb",
-   "args": {
-    "seed": 3216,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-barometer",
-   "tool": "asset",
-   "prompt": "a round brass ship barometer on a wooden mount, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-barometer.glb",
-   "args": {
-    "seed": 3217,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-knot-plant-pot",
-   "tool": "asset",
-   "prompt": "a potted fern in a rope-wrapped ceramic pot, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-knot-plant-pot.glb",
-   "args": {
-    "seed": 3218,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-signal-flags",
-   "tool": "asset",
-   "prompt": "a wall string of small nautical signal flags, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-signal-flags.glb",
-   "args": {
-    "seed": 3219,
-    "faces": 500
-   }
-  },
-  {
-   "label": "harbor-coat-stand",
-   "tool": "asset",
-   "prompt": "a tall oak coat stand with wooden pegs, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "data/propsets/harbor-house-base/harbor-coat-stand.glb",
-   "args": {
-    "seed": 3220,
-    "faces": 500
-   }
-  }
- ]
+  "tasks": [
+    {
+      "label": "harbor-oak-settle",
+      "tool": "asset",
+      "prompt": "a deep oiled-oak wooden settle bench with a high back, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-oak-settle.glb",
+      "args": {
+        "seed": 3201,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-leather-club-chair",
+      "tool": "asset",
+      "prompt": "a brown leather club armchair with brass studs, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-leather-club-chair.glb",
+      "args": {
+        "seed": 3202,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-rope-stool",
+      "tool": "asset",
+      "prompt": "a short stool with a coiled rope base and round oak seat, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-rope-stool.glb",
+      "args": {
+        "seed": 3203,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-window-seat",
+      "tool": "asset",
+      "prompt": "a cushioned wooden window seat bench with navy pads, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-window-seat.glb",
+      "args": {
+        "seed": 3204,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-brass-desk-lamp",
+      "tool": "asset",
+      "prompt": "a brass bankers desk lamp with a green glass shade, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-brass-desk-lamp.glb",
+      "args": {
+        "seed": 3205,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-cage-pendant",
+      "tool": "asset",
+      "prompt": "a hanging industrial cage pendant lamp in aged brass, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-cage-pendant.glb",
+      "args": {
+        "seed": 3206,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-mast-floor-lamp",
+      "tool": "asset",
+      "prompt": "a tall floor lamp shaped like a ship mast with a canvas shade, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-mast-floor-lamp.glb",
+      "args": {
+        "seed": 3207,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-chart-table",
+      "tool": "asset",
+      "prompt": "a broad wooden chart table with map drawers, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-chart-table.glb",
+      "args": {
+        "seed": 3208,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-coffee-table",
+      "tool": "asset",
+      "prompt": "a low rectangular coffee table with slatted hatch top, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-coffee-table.glb",
+      "args": {
+        "seed": 3209,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-side-table",
+      "tool": "asset",
+      "prompt": "a small round side table painted red and white like a buoy, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-side-table.glb",
+      "args": {
+        "seed": 3210,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-map-cabinet",
+      "tool": "asset",
+      "prompt": "a wooden flat-drawer map cabinet with brass pulls, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-map-cabinet.glb",
+      "args": {
+        "seed": 3211,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-rope-bookshelf",
+      "tool": "asset",
+      "prompt": "a small oak bookshelf with rope side supports, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-rope-bookshelf.glb",
+      "args": {
+        "seed": 3212,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-kit-chest",
+      "tool": "asset",
+      "prompt": "a wooden sailor chest with rope handles and brass corners, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-kit-chest.glb",
+      "args": {
+        "seed": 3213,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-berth-bed",
+      "tool": "asset",
+      "prompt": "a single wooden berth bed with navy bedding and brass rails, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-berth-bed.glb",
+      "args": {
+        "seed": 3214,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-runner-rug",
+      "tool": "asset",
+      "prompt": "a long woven runner rug in navy and beige stripes, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-runner-rug.glb",
+      "args": {
+        "seed": 1546643107,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-brass-mirror",
+      "tool": "asset",
+      "prompt": "a round porthole-style mirror with a brass frame, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-brass-mirror.glb",
+      "args": {
+        "seed": 3216,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-barometer",
+      "tool": "asset",
+      "prompt": "a round brass ship barometer on a wooden mount, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-barometer.glb",
+      "args": {
+        "seed": 3217,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-knot-plant-pot",
+      "tool": "asset",
+      "prompt": "a potted fern in a rope-wrapped ceramic pot, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-knot-plant-pot.glb",
+      "args": {
+        "seed": 3218,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-signal-flags",
+      "tool": "asset",
+      "prompt": "a wall string of small nautical signal flags, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-signal-flags.glb",
+      "args": {
+        "seed": 1260088945,
+        "faces": 500
+      }
+    },
+    {
+      "label": "harbor-coat-stand",
+      "tool": "asset",
+      "prompt": "a tall oak coat stand with wooden pegs, navy and brass nautical harbor house, oiled wood and rope, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "data/propsets/harbor-house-base/harbor-coat-stand.glb",
+      "args": {
+        "seed": 3220,
+        "faces": 500
+      }
+    }
+  ]
 }

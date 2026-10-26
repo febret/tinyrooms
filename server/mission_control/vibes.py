@@ -49,9 +49,17 @@ class VibesManager:
         audit: McAuditLog,
     ) -> None:
         self._hub = hub
-        self._profiles = profiles
         self._registry = registry
         self._audit = audit
+
+    def _source_is_account(self, source_peep_id: str) -> bool:
+        """Return whether a source id belongs to a player account."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                "SELECT id FROM accounts WHERE id = ?", (source_peep_id,)
+            ).fetchone()
+        return row is not None
 
     def stores(self) -> list[dict[str, object]]:
         """Return every editable vibe store: profile plus spawned world DBs."""
@@ -189,6 +197,11 @@ class VibesManager:
         if not -100 <= amount <= 100:
             raise ValueError("'value' must be between -100 and 100.")
         timestamp = utc_now().isoformat()
+        if store == PROFILE_STORE:
+            if not self._source_is_account(source):
+                raise ValueError("Profile-store vibes must come from a player account.")
+        elif self._source_is_account(source):
+            raise ValueError("Account vibes belong in the shared profile store.")
         statement = """
             INSERT INTO vibes (world_id, source_peep_id, target_peep_id, value, updated_at)
             VALUES (?, ?, ?, ?, ?)
@@ -197,16 +210,21 @@ class VibesManager:
                 updated_at = excluded.updated_at
         """
         params = (world, source, target, amount, timestamp)
-        if store == PROFILE_STORE:
-            with self._hub.transaction() as connection:
-                connection.execute(statement, params)
-        else:
-            path = self._world_database(store)
-            connection = _open_world_database(path)
-            try:
-                connection.execute(statement, params)
-            finally:
-                connection.close()
+        try:
+            if store == PROFILE_STORE:
+                with self._hub.transaction() as connection:
+                    connection.execute(statement, params)
+            else:
+                path = self._world_database(store)
+                connection = _open_world_database(path)
+                try:
+                    if not _has_vibes_table(connection):
+                        raise ValueError("This world database has no vibes table.")
+                    connection.execute(statement, params)
+                finally:
+                    connection.close()
+        except (sqlite3.Error, OSError) as exc:
+            raise ValueError(f"Could not write that vibe row: {exc}.") from exc
         self._audit.record(
             actor,
             "vibes.edit",
@@ -232,22 +250,32 @@ class VibesManager:
         target = str(target_peep_id or "").strip()
         if not world or not source or not target:
             raise ValueError("world_id, source_peep_id, and target_peep_id are required.")
+        if store == PROFILE_STORE:
+            if not self._source_is_account(source):
+                raise ValueError("Profile-store vibes must come from a player account.")
+        elif self._source_is_account(source):
+            raise ValueError("Account vibes belong in the shared profile store.")
         statement = "DELETE FROM vibes WHERE world_id = ? AND source_peep_id = ? AND target_peep_id = ?"
         params = (world, source, target)
-        if store == PROFILE_STORE:
-            with self._hub.transaction() as connection:
-                cursor = connection.execute(statement, params)
-                if cursor.rowcount == 0:
-                    raise ValueError("Unknown vibe row.")
-        else:
-            path = self._world_database(store)
-            connection = _open_world_database(path)
-            try:
-                cursor = connection.execute(statement, params)
-                if cursor.rowcount == 0:
-                    raise ValueError("Unknown vibe row.")
-            finally:
-                connection.close()
+        try:
+            if store == PROFILE_STORE:
+                with self._hub.transaction() as connection:
+                    cursor = connection.execute(statement, params)
+                    if cursor.rowcount == 0:
+                        raise ValueError("Unknown vibe row.")
+            else:
+                path = self._world_database(store)
+                connection = _open_world_database(path)
+                try:
+                    if not _has_vibes_table(connection):
+                        raise ValueError("This world database has no vibes table.")
+                    cursor = connection.execute(statement, params)
+                    if cursor.rowcount == 0:
+                        raise ValueError("Unknown vibe row.")
+                finally:
+                    connection.close()
+        except (sqlite3.Error, OSError) as exc:
+            raise ValueError(f"Could not delete that vibe row: {exc}.") from exc
         self._audit.record(
             actor,
             "vibes.delete",

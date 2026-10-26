@@ -270,7 +270,10 @@ def resolve_output_local(config: AppConfig, output: str) -> Path | None:
     text = output.strip().replace("\\", "/")
     hint = _output_suffix_hint(text)
     if hint:
-        return config.repo_root / hint
+        try:
+            return ensure_contained(config.repo_root / hint, config.repo_root, "output")
+        except (ConfigError, OSError):
+            return None
     candidate = Path(output.strip())
     if not candidate.is_absolute():
         candidate = config.repo_root / candidate
@@ -287,7 +290,7 @@ def preview_url_for(config: AppConfig, output: str) -> str:
     if local is None:
         return ""
     try:
-        rel = local.relative_to(config.repo_root).as_posix()
+        rel = local.relative_to(config.repo_root.resolve()).as_posix()
     except ValueError:
         return ""
     parts = rel.split("/")
@@ -469,8 +472,21 @@ class AssetBakeryService:
         original = _read_json(path)
         _tasks, _simplify, shape = split_document(original)
         cleaned_tasks, cleaned_simplify = validate_document(tasks, simplify)
+        for task in cleaned_tasks:
+            output = str(task.get("output") or "")
+            if output and resolve_output_local(self._config, output) is None:
+                raise AssetBakeryValidationError(
+                    f"task '{task.get('label')}' output escapes the repository."
+                )
         if shape == "list" and not cleaned_simplify:
             payload: Any = cleaned_tasks
+        elif isinstance(original, dict):
+            payload = dict(original)
+            payload["tasks"] = cleaned_tasks
+            if cleaned_simplify:
+                payload["simplify"] = cleaned_simplify
+            else:
+                payload.pop("simplify", None)
         else:
             payload = {"tasks": cleaned_tasks}
             if cleaned_simplify:

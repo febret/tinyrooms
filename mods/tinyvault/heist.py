@@ -16,9 +16,7 @@ from mods.tinyvault.director import HeistDirector
 from mods.tinyvault.guards import GuardState, angle_to
 from mods.tinyvault.jobs import describe_generated, generate_job
 from mods.tinyvault.models import (
-    BRIEFING_SECONDS,
     CONSOLE_COOLDOWN,
-    HANGAR_ROOM,
     HIDEOUT_ROOM,
     META_KEY,
     MOD_ID,
@@ -51,6 +49,37 @@ def _now() -> float:
 
 def _iso_now() -> str:
     return iso_now()
+
+
+SAFECRACK_SYMBOLS = ("circle", "triangle", "square", "diamond", "star", "key")
+
+
+def _hash_safecrack_seed(seed: object) -> int:
+    """FNV-1a hash matching the safecrack client puzzle generator."""
+
+    digest = 2166136261
+    for character in str(seed or ""):
+        digest ^= ord(character)
+        digest = (digest * 16777619) & 0xFFFFFFFF
+    return digest
+
+
+def safecrack_sequence(seed: object, difficulty: object = 2) -> list[str]:
+    """Generate the expected tumbler order for one cracking session."""
+
+    try:
+        level = int(difficulty or 2)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        level = 2
+    length = min(6, max(3, 2 + level))
+    state = _hash_safecrack_seed(seed) or 1
+    sequence: list[str] = []
+    while len(sequence) < length:
+        state = (state * 1103515245 + 12345) & 0xFFFFFFFF
+        symbol = SAFECRACK_SYMBOLS[state % len(SAFECRACK_SYMBOLS)]
+        if not sequence or sequence[-1] != symbol:
+            sequence.append(symbol)
+    return sequence
 
 
 class HeistService(HeistDirector):
@@ -343,6 +372,7 @@ class HeistService(HeistDirector):
         if member is None or member.status not in {"active", "left"}:
             raise ValueError("You are not on this crew.")
         member.status = "left"
+        member.inside = False
         member.provisional.clear()
         actives = [item for item in self.job.crew.values() if item.status == "active"]
         if member.leader and actives:
@@ -381,6 +411,13 @@ class HeistService(HeistDirector):
         if room_id != HIDEOUT_ROOM and room_id not in self.job.template.target_rooms:
             raise ValueError("Return to the hideout to enter the bank.")
         if self.job.phase == "briefing":
+            crew_size = len(
+                [item for item in self.job.crew.values() if item.status == "active"]
+            ) + (1 if self.job.bot else 0)
+            if crew_size < self.job.template.min_crew:
+                raise ValueError(
+                    f"This score needs at least {self.job.template.min_crew} crew."
+                )
             await self._stage_job()
         if self.job.phase not in {"infiltration", "vault", "escape"}:
             raise ValueError("This job is no longer enterable.")
@@ -388,6 +425,7 @@ class HeistService(HeistDirector):
             account, room_id, self.job.template.entry_room_id, direction="a service entrance"
         )
         self.job.entered = True
+        member.inside = True
         return HeistResult(
             message="You slip into the bank.",
             navigation=navigation,
@@ -581,7 +619,9 @@ class HeistService(HeistDirector):
         result.payload = {"status": await self.status_payload()}
         return result
 
-    async def safecrack_result(self, account: object, room_id: str, success: bool, seconds: float) -> HeistResult:
+    async def safecrack_result(
+        self, account: object, room_id: str, symbols: list[str], seconds: float
+    ) -> HeistResult:
         """Resolve one safe-cracking attempt from the activity bridge command."""
 
         self._require_job()
@@ -593,27 +633,32 @@ class HeistService(HeistDirector):
             raise ValueError("Only the driller can report this attempt.")
         if not self._owns(account.id, "heist-drill"):
             raise ValueError("You need the vault drill.")
+        attempts = self.job.vault.attempts
         session = self.runtime.activities.get(account.id)
         if session is None or session.kind != "safecrack" or session.id != self.job.vault.session_id:
-            self.job.vault = VaultAttempt(status="locked")
+            self.job.vault = VaultAttempt(status="locked", attempts=attempts)
             raise ValueError("The cracking session is no longer active.")
         elapsed = float(seconds)
         if not math.isfinite(elapsed) or elapsed < SAFECRACK_MIN_SECONDS or elapsed > self._crack_time_limit():
-            self.job.vault = VaultAttempt(status="locked")
+            self.job.vault = VaultAttempt(status="locked", attempts=attempts)
             raise ValueError("That cracking report looks tampered with.")
-        if success:
-            self.job.vault = VaultAttempt(status="open")
-            self.job.phase = "vault"
-            await self._set_prop_state(room_id, "vault-door", "open")
-            result = HeistResult(message="The vault sighs open. Close the safecrack window and grab the loot.")
-            result.room_broadcasts.extend(await self._cutscene_broadcasts("vault-open", room_id, "room"))
-            result.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id}))
+        expected = safecrack_sequence(
+            f"{self.job.seed}:{attempts}", 2 + self.job.template.heat_tier
+        )
+        attempt = [str(symbol).strip().lower() for symbol in symbols or []]
+        if attempt != expected:
+            self.job.vault = VaultAttempt(status="locked", attempts=attempts)
+            self.job.cooldowns[(account.id, "heist-drill")] = _now() + 10.0
+            self.job.alarm_score = min(120.0, self.job.alarm_score + 10.0)
+            result = HeistResult(message="The drill slips. The vault stays shut and the noise carries.")
             result.payload = {"status": await self.status_payload()}
             return result
-        self.job.vault = VaultAttempt(status="locked")
-        self.job.cooldowns[(account.id, "heist-drill")] = _now() + 10.0
-        self.job.alarm_score = min(120.0, self.job.alarm_score + 10.0)
-        result = HeistResult(message="The drill slips. The vault stays shut and the noise carries.")
+        self.job.vault = VaultAttempt(status="open", attempts=attempts)
+        self.job.phase = "vault"
+        await self._set_prop_state(room_id, "vault-door", "open")
+        result = HeistResult(message="The vault sighs open. Close the safecrack window and grab the loot.")
+        result.room_broadcasts.extend(await self._cutscene_broadcasts("vault-open", room_id, "room"))
+        result.room_broadcasts.append(PendingRoomBroadcast(room_id=room_id, event={"type": "room.refresh", "room_id": room_id}))
         result.payload = {"status": await self.status_payload()}
         return result
 
@@ -625,6 +670,8 @@ class HeistService(HeistDirector):
         member = self._require_active(account.id)
         if room_id not in self.job.template.escape_rooms:
             raise ValueError("Escape from the alley or the roof.")
+        if room_id == "bank-roof" and self.job.exit_blocks.get(("bank-roof", "alley")):
+            raise ValueError("Rig the rappel line before escaping from the roof.")
         payout = sum(award.value for award in member.provisional)
         cards = [award.card_id for award in member.provisional]
         ledger = f"heist:{self.job.run_id}:{account.id}:loot"
@@ -632,13 +679,9 @@ class HeistService(HeistDirector):
             self.runtime.progression.grant_in_transaction(
                 connection, account.id, bops=payout, cards=tuple(cards), ledger_key=ledger, kind="heist-loot"
             )
-        for award in member.provisional:
-            if award.card_id == "heist-art":
-                self.job.objectives_done.add("artful")
-        if "heist-diamond" in {award.card_id for award in member.provisional}:
-            self.job.objectives_done.add("diamond-run")
         member.provisional.clear()
         member.status = "escaped"
+        member.inside = False
         self.job.paid_total += payout
         navigation = await self.runtime.rooms.enter_room(account, room_id, HIDEOUT_ROOM, direction="a getaway")
         result = HeistResult(
@@ -678,7 +721,7 @@ class HeistService(HeistDirector):
 
         def mutate(meta: dict[str, Any]) -> None:
             entry = meta.setdefault("heat", {}).setdefault(account.id, {"value": 0, "day": today})
-            entry["value"] = max(0, int(entry.get("value", 0)) - 1)
+            entry["value"] = max(0, self._decayed_heat(meta, account.id) - 1)
             entry["day"] = today
 
         with self.runtime.hub.transaction() as connection:
@@ -983,9 +1026,14 @@ class HeistService(HeistDirector):
         self, account: object, member: CrewMember, room_id: str, prop_id: str | None, now: float
     ) -> HeistResult:
         assert self.job is not None
-        if prop_id is None:
-            raise ValueError("Aim the EMP at a camera, laser, or console.")
-        definition = self.runtime.world.props[self.runtime.world.rooms[room_id].props[prop_id].prop_id]
+        if prop_id is None or self._instance_rooms.get(prop_id) != room_id:
+            raise ValueError("Aim the EMP at a camera, laser, or console in this room.")
+        prop = self.runtime.world.rooms[room_id].props.get(prop_id)
+        if prop is None:
+            raise ValueError("Aim the EMP at a camera, laser, or console in this room.")
+        definition = self.runtime.world.props.get(prop.prop_id)
+        if definition is None:
+            raise ValueError("Aim the EMP at a camera, laser, or console in this room.")
         tags = set(definition.tags)
         duration = self.content.tools["heist-emp"].duration_seconds or 30.0
         if self.job.bot is not None and self.job.bot.role_id == "slicer":

@@ -414,6 +414,7 @@ class HeistDirector:
             return
         account = self.runtime.profiles.get_account_by_id(account_id)
         member.status = "caught"
+        member.inside = False
         member.provisional.clear()
         if account is not None:
             broadcasts.extend(await self._cutscene_private(account, "busted"))
@@ -428,7 +429,9 @@ class HeistDirector:
 
     def _anyone_inside(self) -> bool:
         assert self.job is not None
-        return any(member.status == "active" for member in self.job.crew.values())
+        return any(
+            member.status == "active" and member.inside for member in self.job.crew.values()
+        )
 
     async def _finalize(self) -> list[PendingRoomBroadcast]:
         assert self.job is not None
@@ -437,9 +440,28 @@ class HeistDirector:
         clean = bool(escaped) and not self.job.alarm_raised
         result = "clean" if clean else "completed" if escaped else "failed"
         elapsed = monotonic_now() - (self.job.infiltrated_at or self.job.started_at)
-        speed_objective = next((item for item in self.job.template.objectives if item.kind == "speed"), None)
-        if speed_objective is not None and speed_objective.seconds is not None and elapsed <= speed_objective.seconds and escaped:
-            self.job.objectives_done.add("speedrun")
+        if escaped:
+            for objective in self.job.template.objectives:
+                if objective.kind == "ghost" and not self.job.alarm_raised:
+                    self.job.objectives_done.add(objective.id)
+                elif (
+                    objective.kind == "speed"
+                    and objective.seconds is not None
+                    and elapsed <= objective.seconds
+                ):
+                    self.job.objectives_done.add(objective.id)
+                elif (
+                    objective.kind == "loot_card"
+                    and objective.card_id is not None
+                    and objective.card_id in self.job.cards_stolen
+                ):
+                    self.job.objectives_done.add(objective.id)
+                elif (
+                    objective.kind == "loot_prop"
+                    and objective.prop_instance_id is not None
+                    and objective.prop_instance_id in self.job.props_stolen
+                ):
+                    self.job.objectives_done.add(objective.id)
         bonus = self.job.template.rewards.bops // max(1, len(escaped)) if escaped else 0
         if clean:
             bonus += 15
@@ -588,6 +610,7 @@ class HeistDirector:
             if member.status != "active" or self.runtime.connections.is_online(member.account_id):
                 continue
             member.status = "left"
+            member.inside = False
             member.provisional.clear()
         actives = [item for item in self.job.crew.values() if item.status == "active"]
         if actives and self.job.leader_id not in {item.account_id for item in actives}:

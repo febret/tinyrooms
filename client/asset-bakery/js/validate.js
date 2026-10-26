@@ -64,11 +64,3 @@ export function tasksSnapshot(tasks, simplify) {
     simplify: simplify || {},
   });
 }
-
-export function summarizeFile(tasks) {
-  const tools = {};
-  for (const task of tasks || []) {
-    tools[task.tool] = (tools[task.tool] || 0) + 1;
-  }
-  return { count: (tasks || []).length, tools };
-}

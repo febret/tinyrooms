@@ -74,16 +74,16 @@ async function replay() {
   showing = false;
 }
 
-async function report(success) {
+async function report(solved) {
   finished = true;
   render();
   if (!window.TinyActivity) return;
   try {
     const response = await window.TinyActivity.command(
-      `.heist safecrack_result success=${success ? "true" : "false"} time=${elapsedSeconds().toFixed(1)}`
+      `.heist safecrack_result symbols=${attempt.join(",")} time=${elapsedSeconds().toFixed(1)}`
     );
     status.textContent = response?.message || "The vault decides.";
-    if (success) {
+    if (solved) {
       window.TinyActivity.celebrate();
       window.TinyActivity.close("complete");
     }

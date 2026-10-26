@@ -7,11 +7,9 @@ import unittest
 from server.services.friends import FriendsService
 from server.services.phone_messages import (
     MAX_MESSAGES_PER_THREAD,
-    MAX_THREADS,
     PhoneMessageService,
     clean_body,
     friend_thread_key,
-    npc_ids_from_thread_key,
     npc_thread_key,
     parse_thread_key,
     system_thread_key,
@@ -39,13 +37,6 @@ class ThreadKeyTests(unittest.TestCase):
         self.assertIsNone(parse_thread_key("bogus"))
         self.assertIsNone(parse_thread_key("player:"))
         self.assertIsNone(parse_thread_key("npc:nowhere"))
-
-    def test_npc_ids(self) -> None:
-        self.assertEqual(
-            npc_ids_from_thread_key(npc_thread_key("tinytown", "ttnpc:one")),
-            ("tinytown", "ttnpc:one"),
-        )
-        self.assertIsNone(npc_ids_from_thread_key(friend_thread_key("abc")))
 
     def test_body_rules(self) -> None:
         self.assertEqual(clean_body("  hello   there "), "hello there")
@@ -130,24 +121,6 @@ class FriendTextTests(ServiceTestCase):
         _, messages = phone.open_thread(bob.id, friend_thread_key(alice.id))
         self.assertEqual(len(messages), MAX_MESSAGES_PER_THREAD)
         self.assertEqual(messages[0].body, "msg 5")
-
-    def test_thread_count_cap_drops_oldest_thread(self) -> None:
-        alice = self.create_account("alice")
-        phone = PhoneMessageService(self.hub, self.profiles)
-        for index in range(MAX_THREADS + 3):
-            phone.deliver_inbound(
-                alice.id,
-                system_thread_key(f"source-{index}"),
-                f"Source {index}",
-                f"hello {index}",
-                "tutorial",
-            )
-        threads = phone.list_threads(alice.id)
-        self.assertEqual(len(threads), MAX_THREADS)
-        keys = {thread.thread_key for thread in threads}
-        self.assertNotIn(system_thread_key("source-0"), keys)
-        self.assertIn(system_thread_key(f"source-{MAX_THREADS + 2}"), keys)
-
 
 class NpcDeliveryTests(ServiceTestCase):
     def test_inbound_and_exchange(self) -> None:

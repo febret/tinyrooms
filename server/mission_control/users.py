@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 import json
 import sqlite3
+from typing import Any
 
 from server.content.worlds import POWER_NAMES
 from server.mission_control.audit import McAuditLog
@@ -47,10 +48,31 @@ def _parse_powers(raw: object) -> list[str]:
 class UserManager:
     """Search, inspect, and edit accounts in the shared profile database."""
 
-    def __init__(self, hub: DatabaseHub, profiles: ProfileRepository, audit: McAuditLog) -> None:
+    def __init__(
+        self,
+        hub: DatabaseHub,
+        profiles: ProfileRepository,
+        audit: McAuditLog,
+        *,
+        card_catalog_for: Any = None,
+    ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._audit = audit
+        self._card_catalog_for = card_catalog_for
+
+    def _definition_for(self, world_id: str | None, card_def_id: str) -> Any | None:
+        """Return the card definition for a grant, or None when unknown."""
+
+        if self._card_catalog_for is None:
+            return None
+        try:
+            catalog = self._card_catalog_for(world_id)
+        except Exception:  # noqa: BLE001 - validation must fail closed
+            return None
+        if catalog is None:
+            return None
+        return getattr(catalog, "cards", {}).get(card_def_id)
 
     def search(self, query: str | None = None, *, limit: int = 50) -> list[dict[str, object]]:
         """List account summaries, optionally filtered by username or id."""
@@ -224,11 +246,17 @@ class UserManager:
             raise ValueError("'quantity' must be at least 1. Use delete to remove a stack.")
         with self._hub.transaction() as connection:
             row = connection.execute(
-                "SELECT stack_id FROM profile_card_stacks WHERE account_id = ? AND stack_id = ?",
+                "SELECT stack_id, card_def_id, world_id FROM profile_card_stacks WHERE account_id = ? AND stack_id = ?",
                 (account_id, stack_id),
             ).fetchone()
             if row is None:
                 raise ValueError("Unknown inventory stack.")
+            definition = self._definition_for(row["world_id"], str(row["card_def_id"]))
+            if definition is None:
+                raise ValueError("That stack's card is not in this world's catalog.")
+            limit = int(getattr(definition, "stack_limit", 1) or 1)
+            if amount > limit:
+                raise ValueError(f"'quantity' cannot exceed the stack limit of {limit}.")
             self._profiles.set_stack_quantity(
                 connection, account_id=account_id, stack_id=stack_id, quantity=amount
             )
@@ -289,6 +317,12 @@ class UserManager:
         account = self._profiles.get_account_by_id(account_id)
         if account is None:
             raise ValueError("Unknown account.")
+        definition = self._definition_for(world, card)
+        if definition is None:
+            raise ValueError("Unknown card for the selected world. Check the card id.")
+        limit = int(getattr(definition, "stack_limit", 1) or 1)
+        if amount > limit:
+            raise ValueError(f"'quantity' cannot exceed the stack limit of {limit}.")
         with self._hub.transaction() as connection:
             stack = self._profiles.create_inventory_stack(
                 connection,

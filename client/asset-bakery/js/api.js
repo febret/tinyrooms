@@ -58,10 +58,6 @@ export function loadJobs() {
   return request("GET", "/api/asset-bakery/jobs");
 }
 
-export function loadJob(jobId) {
-  return request("GET", `/api/asset-bakery/jobs/${encodeURIComponent(jobId)}`);
-}
-
 export function postprocess(payload) {
   return request("POST", "/api/asset-bakery/postprocess", payload);
 }

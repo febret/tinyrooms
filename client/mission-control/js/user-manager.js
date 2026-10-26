@@ -4,7 +4,7 @@ import { clear, el } from "./dom.js";
 const POWERS = ["admin", "realtor", "builder", "moderator", "game-master"];
 
 export function createUserManager(container, ctx) {
-  const state = { users: [], selectedId: null, detail: null, destination: null };
+  const state = { users: [], selectedId: null, detail: null, destination: null, adjusting: false };
 
   async function load(query = "") {
     const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
@@ -134,17 +134,21 @@ export function createUserManager(container, ctx) {
   }
 
   async function quickAdjust(fieldName, delta) {
+    if (state.adjusting) return;
     const account = state.detail.account;
     const next = Number(account[fieldName] || 0) + delta;
     if (next < 0) {
       ctx.setBanner(`${fieldName} cannot go below zero.`);
       return;
     }
+    state.adjusting = true;
     try {
       await api.patch(`/api/mission-control/users/${account.id}`, { fields: { [fieldName]: next } });
       await openDetail(account.id);
     } catch (error) {
       ctx.setBanner(error.message);
+    } finally {
+      state.adjusting = false;
     }
   }
 

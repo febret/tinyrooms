@@ -125,7 +125,6 @@ class JobTemplate:
     max_crew: int
     heat_tier: int
     guard_count: int
-    security_budget: int
     deposit: int
     rewards: JobRewards
     time_limit_seconds: float
@@ -360,7 +359,6 @@ def _load_job(
         max_crew=max_crew,
         heat_tier=heat_tier,
         guard_count=guard_count,
-        security_budget=_as_count(raw_job.get("security_budget"), f"{label} security_budget", minimum=1),
         deposit=_as_count(raw_job.get("deposit"), f"{label} deposit"),
         rewards=JobRewards(
             bops=_as_count(raw_rewards.get("bops"), f"{label} reward bops"),

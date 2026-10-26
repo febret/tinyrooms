@@ -11,14 +11,7 @@ export async function refreshPhoneMessages(ctx) {
 export async function handlePhoneMessagesAction(action, ctx) {
   const { store, sendCommand, showError } = ctx;
   if (action.type === "phone-messages") {
-    if (action.action === "open") {
-      store.dispatch({ type: "phone-messages-select", threadKey: action.threadKey });
-      try {
-        await sendCommand(buildPhoneMessagesCommand("open", action.threadKey));
-      } catch (error) {
-        showError(error);
-      }
-    } else if (action.action === "pick") {
+    if (action.action === "open" || action.action === "pick") {
       store.dispatch({ type: "phone-messages-select", threadKey: action.threadKey });
       try {
         await sendCommand(buildPhoneMessagesCommand("open", action.threadKey));

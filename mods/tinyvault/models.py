@@ -64,6 +64,7 @@ class CrewMember:
     username: str
     leader: bool = False
     status: str = "active"
+    inside: bool = False
     joined_at: float = 0.0
     provisional: list[LootAward] = field(default_factory=list)
 

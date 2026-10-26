@@ -1,53 +1,467 @@
 {
-  "simplify": {"strategy": "auto", "target": 500, "flat_target": 100, "wall_target": 200, "bake_resolution": 1024, "remesh_resolution": 160, "max_deviation": 0.05},
+  "simplify": {
+    "strategy": "auto",
+    "target": 500,
+    "flat_target": 100,
+    "wall_target": 200,
+    "bake_resolution": 1024,
+    "remesh_resolution": 160,
+    "max_deviation": 0.05
+  },
   "tasks": [
-  {"label": "student-desk", "tool": "asset", "prompt": "a child-sized elementary school student desk, bright blue molded plastic desktop with a small pencil groove, sturdy gray steel legs, a matching yellow plastic chair tucked underneath, clean cheerful school furniture, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/student-desk.glb", "args": {"seed": 71001, "faces": 2000}},
-  {"label": "chalkboard", "tool": "asset", "prompt": "a wide classroom chalkboard with a warm yellow wooden frame, dark green writing surface with faint chalk marks, a wooden chalk tray holding white chalk and a blue felt eraser, school colors blue and yellow accents, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/chalkboard.glb", "args": {"seed": 71002, "faces": 2000}},
-  {"label": "teacher-desk", "tool": "asset", "prompt": "a simple solid wooden elementary school teacher desk, flat warm oak top, a closed flat front panel with three blue painted drawer fronts and small yellow round knobs, solid sides, nothing on top, clean recognizable furniture, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/teacher-desk.glb", "args": {"seed": 71503, "faces": 2000}},
-  {"label": "classroom-bookshelf", "tool": "asset", "prompt": "a low wide classroom bookshelf of light wood holding colorful children picture books, the bottom row fitted with blue and yellow plastic storage bins, tidy elementary school furniture, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/classroom-bookshelf.glb", "args": {"seed": 71004, "faces": 2000}},
-  {"label": "wall-clock", "tool": "asset", "prompt": "a round elementary school wall clock seen straight on, flat white circular clock face printed with black numerals and two black hands, a thick bright blue circular rim, flat solid front, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/wall-clock.glb", "args": {"seed": 71505, "faces": 1500}, "simplify": {"strategy": "decimate", "target": 500}},
-  {"label": "alphabet-bulletin-board", "tool": "asset", "prompt": "a flat rectangular classroom bulletin board seen straight on, a thick blue wooden frame around a cream cork center, a neat row of pinned yellow square alphabet letter cards, a small gray husky dog mascot logo pinned at the top center, flat solid backing, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/alphabet-bulletin-board.glb", "args": {"seed": 71506, "faces": 2000}, "simplify": {"strategy": "decimate", "target": 500}},
-
-  {"label": "cafeteria-table", "tool": "asset", "prompt": "a long elementary school cafeteria folding table with a speckled gray top and a row of attached round blue molded plastic stools, yellow painted folding legs, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/cafeteria-table.glb", "args": {"seed": 71007, "faces": 2500}},
-  {"label": "lunch-tray-stack", "tool": "asset", "prompt": "a neat tall stack of blue rectangular plastic school lunch trays with raised rims, a couple of small yellow milk cartons perched on top, cafeteria supplies, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/lunch-tray-stack.glb", "args": {"seed": 71008, "faces": 1800}},
-  {"label": "milk-crate", "tool": "asset", "prompt": "a bright yellow plastic school milk crate, simple clean molded cube with square open lattice walls and a solid flat bottom, four small blue and white milk cartons standing upright inside, tidy cafeteria storage, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/milk-crate.glb", "args": {"seed": 71509, "faces": 1500}},
-  {"label": "serving-counter", "tool": "asset", "prompt": "a school cafeteria serving counter with a stainless steel top, a clear sneeze guard panel, and a front panel painted blue with a yellow stripe and small round serving wells of food, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/serving-counter.glb", "args": {"seed": 71010, "faces": 2500}},
-  {"label": "recycling-bin", "tool": "asset", "prompt": "a blue plastic school recycling bin with a yellow lid and a yellow recycling arrows symbol on the front, a small gray husky dog mascot sticker on the side, wheels on one edge, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/recycling-bin.glb", "args": {"seed": 71011, "faces": 1500}},
-
-  {"label": "principal-desk", "tool": "asset", "prompt": "a sturdy wooden principal office desk with blue painted drawer fronts, small yellow round handles, a yellow desk nameplate on top, a tidy desk lamp and a stack of papers, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/principal-desk.glb", "args": {"seed": 71012, "faces": 2000}},
-  {"label": "filing-cabinet", "tool": "asset", "prompt": "a gray metal school office filing cabinet with four drawers, small blue label holders and yellow drawer pulls, closed tidy cabinet, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/filing-cabinet.glb", "args": {"seed": 71013, "faces": 1800}},
-  {"label": "office-chair", "tool": "asset", "prompt": "a blue rolling office chair with a yellow seat cushion, black padded backrest, five-star swivel base with casters, school office chair, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/office-chair.glb", "args": {"seed": 71014, "faces": 2000}},
-  {"label": "pa-speaker", "tool": "asset", "prompt": "a closed rectangular school PA intercom speaker box, solid bright blue plastic housing with a completely flat yellow perforated grille panel covering the entire front face, two small round yellow control knobs, no openings or gaps, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/pa-speaker.glb", "args": {"seed": 72515, "faces": 2000}},
-
-  {"label": "school-sink", "tool": "asset", "prompt": "a child-height school bathroom sink, one solid white porcelain pedestal basin with a smooth curved front and an integral rounded backsplash, a blue and white checker tile pattern on the backsplash, a chrome faucet and a yellow soap dispenser on the rim, seamless single-piece ceramic, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/school-sink.glb", "args": {"seed": 71516, "faces": 2000}},
-  {"label": "school-toilet", "tool": "asset", "prompt": "a small child-sized elementary school toilet, white porcelain with a simple rounded seat and a compact cistern, a blue flush button, clean and friendly, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/school-toilet.glb", "args": {"seed": 71017, "faces": 2000}},
-  {"label": "paper-towel-dispenser", "tool": "asset", "prompt": "a closed rectangular blue plastic wall paper towel dispenser, solid smooth blue front face with a wide yellow accent band across the lower half, a narrow horizontal slot along the bottom with a folded white paper towel hanging out, no openings other than the slot, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/paper-towel-dispenser.glb", "args": {"seed": 72518, "faces": 2000}},
-  {"label": "drinking-fountain", "tool": "asset", "prompt": "a hallway drinking fountain with a chrome bubbler on a blue metal basin, a small yellow push button, and a gray speckled sloped pedestal, school water fountain, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/drinking-fountain.glb", "args": {"seed": 71019, "faces": 1800}},
-
-  {"label": "mascot-banner", "tool": "asset", "prompt": "a flat triangular blue felt school pennant banner, seen straight on, a bold gray husky dog mascot head logo printed in the center, a yellow border trim along the edges, a small yellow tassel at the wide end, flat solid flag with no text, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/mascot-banner.glb", "args": {"seed": 71520, "faces": 1500}, "simplify": {"strategy": "decimate", "target": 500}},
-  {"label": "mascot-logo-sign", "tool": "asset", "prompt": "a round school wall sign with a bold gray husky dog mascot logo on a deep blue field, a thick yellow ring border and two small mounting screws, glossy enamel mascot badge, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/mascot-logo-sign.glb", "args": {"seed": 1000, "faces": 1000}},
-
-  {"label": "student-desk-broken", "tool": "asset", "prompt": "a ruined broken child-sized elementary school student desk, bright blue molded plastic desktop cracked and split in two, collapsed buckled gray steel legs, the matching yellow plastic chair tipped over and broken beside it, splintered debris, clean cheerful school furniture style, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/student-desk-broken.glb", "args": {"seed": 81001, "faces": 2000}},
-  {"label": "chalkboard-broken", "tool": "asset", "prompt": "a ruined broken classroom chalkboard with a warm yellow wooden frame splintered and cracked, dark green writing surface smashed with a large jagged hole, broken wooden chalk tray spilling white chalk and a shattered blue felt eraser, school colors blue and yellow accents, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/chalkboard-broken.glb", "args": {"seed": 81002, "faces": 2000}},
-  {"label": "teacher-desk-broken", "tool": "asset", "prompt": "a ruined broken solid wooden elementary school teacher desk, flat warm oak top split and collapsed, front panels broken with three blue painted drawer fronts hanging open and splintered, small yellow round knobs scattered, clean recognizable furniture, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/teacher-desk-broken.glb", "args": {"seed": 81803, "faces": 2000}},
-  {"label": "classroom-bookshelf-broken", "tool": "asset", "prompt": "a ruined broken low wide classroom bookshelf of light wood, shelves collapsed and tilted, colorful children picture books scattered and torn, cracked blue and yellow plastic storage bins spilled on the floor, tidy elementary school furniture ruined, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/classroom-bookshelf-broken.glb", "args": {"seed": 81004, "faces": 2000}},
-  {"label": "wall-clock-broken", "tool": "asset", "prompt": "a ruined broken round elementary school wall clock seen straight on, shattered white circular clock face with cracked glass and black numerals, two bent black hands, thick bright blue circular rim dented and chipped, flat solid front, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/wall-clock-broken.glb", "args": {"seed": 81805, "faces": 1500}, "simplify": {"strategy": "decimate", "target": 500}},
-  {"label": "alphabet-bulletin-board-broken", "tool": "asset", "prompt": "a ruined broken flat rectangular classroom bulletin board seen straight on, blue wooden frame cracked and split, torn cream cork center with pinned yellow square alphabet letter cards ripped and scattered, the small gray husky dog mascot logo torn at the top center, flat solid backing, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/alphabet-bulletin-board-broken.glb", "args": {"seed": 81806, "faces": 2000}, "simplify": {"strategy": "decimate", "target": 500}},
-  {"label": "cafeteria-table-broken", "tool": "asset", "prompt": "a ruined broken long elementary school cafeteria folding table, speckled gray top cracked and caved in, attached round blue molded plastic stools broken and scattered, bent yellow painted folding legs collapsed underneath, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/cafeteria-table-broken.glb", "args": {"seed": 81007, "faces": 2500}},
-  {"label": "lunch-tray-stack-broken", "tool": "asset", "prompt": "a ruined broken toppled pile of blue rectangular plastic school lunch trays, several cracked and scattered across the floor, bent rims, crushed yellow milk cartons spilled and leaking, cafeteria supplies ruined, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/lunch-tray-stack-broken.glb", "args": {"seed": 81008, "faces": 1800}},
-  {"label": "milk-crate-broken", "tool": "asset", "prompt": "a ruined broken bright yellow plastic school milk crate, molded cube crushed and cracked open with square lattice walls snapped and collapsed, trampled blue and white milk cartons crushed and leaking on the ground, tidy cafeteria storage ruined, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/milk-crate-broken.glb", "args": {"seed": 81809, "faces": 1500}},
-  {"label": "serving-counter-broken", "tool": "asset", "prompt": "a ruined broken school cafeteria serving counter, dented stainless steel top collapsed, cracked sneeze guard panel broken away, front blue panel with a scuffed yellow stripe torn and splintered, small round serving wells spilled and empty, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/serving-counter-broken.glb", "args": {"seed": 81010, "faces": 2500}},
-  {"label": "recycling-bin-broken", "tool": "asset", "prompt": "a ruined broken blue plastic school recycling bin, yellow lid cracked and torn open, front yellow recycling arrows symbol scratched off, gray husky dog mascot sticker peeling, dented wheels and split sides with scattered paper spilling out, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/recycling-bin-broken.glb", "args": {"seed": 81011, "faces": 1500}},
-  {"label": "principal-desk-broken", "tool": "asset", "prompt": "a ruined broken sturdy wooden principal office desk, blue painted drawer fronts smashed and hanging open, yellow round handles scattered, cracked yellow desk nameplate, the tidy desk lamp and stack of papers knocked over and scattered, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/principal-desk-broken.glb", "args": {"seed": 81012, "faces": 2000}},
-  {"label": "filing-cabinet-broken", "tool": "asset", "prompt": "a ruined broken gray metal school office filing cabinet, four drawers dented and hanging open, bent blue label holders and yellow drawer pulls scattered, rumpled manila folders spilled across the floor, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/filing-cabinet-broken.glb", "args": {"seed": 81013, "faces": 1800}},
-  {"label": "office-chair-broken", "tool": "asset", "prompt": "a ruined broken blue rolling office chair, yellow seat cushion torn and split, black padded backrest cracked and hanging loose, five-star swivel base bent with casters scattered, school office chair ruined, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/office-chair-broken.glb", "args": {"seed": 81014, "faces": 2000}},
-  {"label": "pa-speaker-broken", "tool": "asset", "prompt": "a ruined broken rectangular school PA intercom speaker box, cracked and dented bright blue plastic housing, flat yellow perforated grille panel torn open at one corner, two small round yellow control knobs snapped off, scorch marks, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/pa-speaker-broken.glb", "args": {"seed": 82815, "faces": 2000}},
-  {"label": "school-sink-broken", "tool": "asset", "prompt": "a ruined broken child-height school bathroom pedestal sink, cracked white porcelain basin split open, rounded backsplash tiles missing and chipped, bent chrome faucet and yellow soap dispenser knocked off, debris, seamless single-piece ceramic ruined, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/school-sink-broken.glb", "args": {"seed": 81816, "faces": 2000}},
-  {"label": "school-toilet-broken", "tool": "asset", "prompt": "a ruined broken small child-sized elementary school toilet, cracked white porcelain bowl and shattered seat, compact cistern broken with the blue flush button snapped off, debris scattered, clean and friendly style ruined, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/school-toilet-broken.glb", "args": {"seed": 81017, "faces": 2000}},
-  {"label": "paper-towel-dispenser-broken", "tool": "asset", "prompt": "a ruined broken rectangular blue plastic wall paper towel dispenser, cracked and dented solid blue front face, wide yellow accent band scuffed and peeling, narrow bottom slot torn open with a shredded white paper towel hanging out, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/paper-towel-dispenser-broken.glb", "args": {"seed": 82818, "faces": 2000}},
-  {"label": "drinking-fountain-broken", "tool": "asset", "prompt": "a ruined broken hallway drinking fountain, bent chrome bubbler spraying and cracked, blue metal basin dented and split, small yellow push button snapped off, gray speckled sloped pedestal cracked and crumbling, contamination debris, school water fountain ruined, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/drinking-fountain-broken.glb", "args": {"seed": 81019, "faces": 1800}},
-  {"label": "mascot-banner-broken", "tool": "asset", "prompt": "a ruined broken flat triangular blue felt school pennant banner, seen straight on, torn and faded fabric with frayed edges, the bold gray husky dog mascot head logo ripped and stained in the center, yellow border trim torn away, small yellow tassel shredded, flat solid flag with no text, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/mascot-banner-broken.glb", "args": {"seed": 81820, "faces": 1500}, "simplify": {"strategy": "decimate", "target": 500}},
-  {"label": "mascot-logo-sign-broken", "tool": "asset", "prompt": "a ruined broken round school wall sign, deep blue field cracked and dented, the bold gray husky dog mascot logo scratched and faded, thick yellow ring border chipped and bent, two mounting screws snapped, dull grimy enamel mascot badge, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/mascot-logo-sign-broken.glb", "args": {"seed": 81021, "faces": 1000}},
-  {"label": "portal-broken", "tool": "asset", "prompt": "a ruined broken magical doorway portal, cracked dark stone archway with shattered and dim glowing blue runes, flickering fading light, rubble at the base, freestanding isolated single prop, no surrounding ground or scenery", "output": "worlds/scammon-academia/props/portal-broken.glb", "args": {"seed": 81022, "faces": 2500}}
-]
+    {
+      "label": "student-desk",
+      "tool": "asset",
+      "prompt": "a child-sized elementary school student desk, bright blue molded plastic desktop with a small pencil groove, sturdy gray steel legs, a matching yellow plastic chair tucked underneath, clean cheerful school furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/student-desk.glb",
+      "args": {
+        "seed": 71001,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "chalkboard",
+      "tool": "asset",
+      "prompt": "a wide classroom chalkboard with a warm yellow wooden frame, dark green writing surface with faint chalk marks, a wooden chalk tray holding white chalk and a blue felt eraser, school colors blue and yellow accents, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/chalkboard.glb",
+      "args": {
+        "seed": 71002,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "teacher-desk",
+      "tool": "asset",
+      "prompt": "a simple solid wooden elementary school teacher desk, flat warm oak top, a closed flat front panel with three blue painted drawer fronts and small yellow round knobs, solid sides, nothing on top, clean recognizable furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/teacher-desk.glb",
+      "args": {
+        "seed": 71503,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "classroom-bookshelf",
+      "tool": "asset",
+      "prompt": "a low wide classroom bookshelf of light wood holding colorful children picture books, the bottom row fitted with blue and yellow plastic storage bins, tidy elementary school furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/classroom-bookshelf.glb",
+      "args": {
+        "seed": 71004,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "wall-clock",
+      "tool": "asset",
+      "prompt": "a round elementary school wall clock seen straight on, flat white circular clock face printed with black numerals and two black hands, a thick bright blue circular rim, flat solid front, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/wall-clock.glb",
+      "args": {
+        "seed": 71505,
+        "faces": 1500
+      },
+      "simplify": {
+        "strategy": "decimate",
+        "target": 500
+      }
+    },
+    {
+      "label": "alphabet-bulletin-board",
+      "tool": "asset",
+      "prompt": "a flat rectangular classroom bulletin board seen straight on, a thick blue wooden frame around a cream cork center, a neat row of pinned yellow square alphabet letter cards, a small gray husky dog mascot logo pinned at the top center, flat solid backing, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/alphabet-bulletin-board.glb",
+      "args": {
+        "seed": 71506,
+        "faces": 2000
+      },
+      "simplify": {
+        "strategy": "decimate",
+        "target": 500
+      }
+    },
+    {
+      "label": "cafeteria-table",
+      "tool": "asset",
+      "prompt": "a long elementary school cafeteria folding table with a speckled gray top and a row of attached round blue molded plastic stools, yellow painted folding legs, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/cafeteria-table.glb",
+      "args": {
+        "seed": 71007,
+        "faces": 2500
+      }
+    },
+    {
+      "label": "lunch-tray-stack",
+      "tool": "asset",
+      "prompt": "a neat tall stack of blue rectangular plastic school lunch trays with raised rims, a couple of small yellow milk cartons perched on top, cafeteria supplies, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/lunch-tray-stack.glb",
+      "args": {
+        "seed": 71008,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "milk-crate",
+      "tool": "asset",
+      "prompt": "a bright yellow plastic school milk crate, simple clean molded cube with square open lattice walls and a solid flat bottom, four small blue and white milk cartons standing upright inside, tidy cafeteria storage, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/milk-crate.glb",
+      "args": {
+        "seed": 71509,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "serving-counter",
+      "tool": "asset",
+      "prompt": "a school cafeteria serving counter with a stainless steel top, a clear sneeze guard panel, and a front panel painted blue with a yellow stripe and small round serving wells of food, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/serving-counter.glb",
+      "args": {
+        "seed": 71010,
+        "faces": 2500
+      }
+    },
+    {
+      "label": "recycling-bin",
+      "tool": "asset",
+      "prompt": "a blue plastic school recycling bin with a yellow lid and a yellow recycling arrows symbol on the front, a small gray husky dog mascot sticker on the side, wheels on one edge, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/recycling-bin.glb",
+      "args": {
+        "seed": 71011,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "principal-desk",
+      "tool": "asset",
+      "prompt": "a sturdy wooden principal office desk with blue painted drawer fronts, small yellow round handles, a yellow desk nameplate on top, a tidy desk lamp and a stack of papers, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/principal-desk.glb",
+      "args": {
+        "seed": 71012,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "filing-cabinet",
+      "tool": "asset",
+      "prompt": "a gray metal school office filing cabinet with four drawers, small blue label holders and yellow drawer pulls, closed tidy cabinet, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/filing-cabinet.glb",
+      "args": {
+        "seed": 71013,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "office-chair",
+      "tool": "asset",
+      "prompt": "a blue rolling office chair with a yellow seat cushion, black padded backrest, five-star swivel base with casters, school office chair, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/office-chair.glb",
+      "args": {
+        "seed": 568557495,
+        "faces": 1000
+      }
+    },
+    {
+      "label": "pa-speaker",
+      "tool": "asset",
+      "prompt": "a closed rectangular school PA intercom speaker box, solid bright blue plastic housing with a completely flat yellow perforated grille panel covering the entire front face, two small round yellow control knobs, no openings or gaps, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/pa-speaker.glb",
+      "args": {
+        "seed": 72515,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "school-sink",
+      "tool": "asset",
+      "prompt": "a child-height school bathroom sink, one solid white porcelain pedestal basin with a smooth curved front and an integral rounded backsplash, a blue and white checker tile pattern on the backsplash, a chrome faucet and a yellow soap dispenser on the rim, seamless single-piece ceramic, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/school-sink.glb",
+      "args": {
+        "seed": 71516,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "school-toilet",
+      "tool": "asset",
+      "prompt": "a small child-sized elementary school toilet, white porcelain with a simple rounded seat and a compact cistern, a blue flush button, clean and friendly, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/school-toilet.glb",
+      "args": {
+        "seed": 71017,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "paper-towel-dispenser",
+      "tool": "asset",
+      "prompt": "a closed rectangular blue plastic wall paper towel dispenser, solid smooth blue front face with a wide yellow accent band across the lower half, a narrow horizontal slot along the bottom with a folded white paper towel hanging out, no openings other than the slot, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/paper-towel-dispenser.glb",
+      "args": {
+        "seed": 72518,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "drinking-fountain",
+      "tool": "asset",
+      "prompt": "a hallway drinking fountain with a chrome bubbler on a blue metal basin, a small yellow push button, and a gray speckled sloped pedestal, school water fountain, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/drinking-fountain.glb",
+      "args": {
+        "seed": 71019,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "mascot-banner",
+      "tool": "asset",
+      "prompt": "a flat triangular blue felt school pennant banner, seen straight on, a bold gray husky dog mascot head logo printed in the center, a yellow border trim along the edges, a small yellow tassel at the wide end, flat solid flag with no text, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/mascot-banner.glb",
+      "args": {
+        "seed": 71520,
+        "faces": 1500
+      },
+      "simplify": {
+        "strategy": "decimate",
+        "target": 500
+      }
+    },
+    {
+      "label": "mascot-logo-sign",
+      "tool": "asset",
+      "prompt": "a round school wall sign with a bold gray husky dog mascot logo on a deep blue field, a thick yellow ring border and two small mounting screws, glossy enamel mascot badge, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/mascot-logo-sign.glb",
+      "args": {
+        "seed": 1000,
+        "faces": 1000
+      }
+    },
+    {
+      "label": "student-desk-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken child-sized elementary school student desk, bright blue molded plastic desktop cracked and split in two, collapsed buckled gray steel legs, the matching yellow plastic chair tipped over and broken beside it, splintered debris, clean cheerful school furniture style, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/student-desk-broken.glb",
+      "args": {
+        "seed": 81001,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "chalkboard-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken classroom chalkboard with a warm yellow wooden frame splintered and cracked, dark green writing surface smashed with a large jagged hole, broken wooden chalk tray spilling white chalk and a shattered blue felt eraser, school colors blue and yellow accents, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/chalkboard-broken.glb",
+      "args": {
+        "seed": 81002,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "teacher-desk-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken solid wooden elementary school teacher desk, flat warm oak top split and collapsed, front panels broken with three blue painted drawer fronts hanging open and splintered, small yellow round knobs scattered, clean recognizable furniture, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/teacher-desk-broken.glb",
+      "args": {
+        "seed": 81803,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "classroom-bookshelf-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken low wide classroom bookshelf of light wood, shelves collapsed and tilted, colorful children picture books scattered and torn, cracked blue and yellow plastic storage bins spilled on the floor, tidy elementary school furniture ruined, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/classroom-bookshelf-broken.glb",
+      "args": {
+        "seed": 81004,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "wall-clock-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken round elementary school wall clock seen straight on, shattered white circular clock face with cracked glass and black numerals, two bent black hands, thick bright blue circular rim dented and chipped, flat solid front, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/wall-clock-broken.glb",
+      "args": {
+        "seed": 81805,
+        "faces": 1500
+      },
+      "simplify": {
+        "strategy": "decimate",
+        "target": 500
+      }
+    },
+    {
+      "label": "alphabet-bulletin-board-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken flat rectangular classroom bulletin board seen straight on, blue wooden frame cracked and split, torn cream cork center with pinned yellow square alphabet letter cards ripped and scattered, the small gray husky dog mascot logo torn at the top center, flat solid backing, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/alphabet-bulletin-board-broken.glb",
+      "args": {
+        "seed": 81806,
+        "faces": 2000
+      },
+      "simplify": {
+        "strategy": "decimate",
+        "target": 500
+      }
+    },
+    {
+      "label": "cafeteria-table-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken long elementary school cafeteria folding table, speckled gray top cracked and caved in, attached round blue molded plastic stools broken and scattered, bent yellow painted folding legs collapsed underneath, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/cafeteria-table-broken.glb",
+      "args": {
+        "seed": 81007,
+        "faces": 2500
+      }
+    },
+    {
+      "label": "lunch-tray-stack-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken toppled pile of blue rectangular plastic school lunch trays, several cracked and scattered across the floor, bent rims, crushed yellow milk cartons spilled and leaking, cafeteria supplies ruined, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/lunch-tray-stack-broken.glb",
+      "args": {
+        "seed": 81008,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "milk-crate-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken bright yellow plastic school milk crate, molded cube crushed and cracked open with square lattice walls snapped and collapsed, trampled blue and white milk cartons crushed and leaking on the ground, tidy cafeteria storage ruined, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/milk-crate-broken.glb",
+      "args": {
+        "seed": 81809,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "serving-counter-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken school cafeteria serving counter, dented stainless steel top collapsed, cracked sneeze guard panel broken away, front blue panel with a scuffed yellow stripe torn and splintered, small round serving wells spilled and empty, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/serving-counter-broken.glb",
+      "args": {
+        "seed": 81010,
+        "faces": 2500
+      }
+    },
+    {
+      "label": "recycling-bin-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken blue plastic school recycling bin, yellow lid cracked and torn open, front yellow recycling arrows symbol scratched off, gray husky dog mascot sticker peeling, dented wheels and split sides with scattered paper spilling out, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/recycling-bin-broken.glb",
+      "args": {
+        "seed": 81011,
+        "faces": 1500
+      }
+    },
+    {
+      "label": "principal-desk-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken sturdy wooden principal office desk, blue painted drawer fronts smashed and hanging open, yellow round handles scattered, cracked yellow desk nameplate, the tidy desk lamp and stack of papers knocked over and scattered, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/principal-desk-broken.glb",
+      "args": {
+        "seed": 81012,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "filing-cabinet-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken gray metal school office filing cabinet, four drawers dented and hanging open, bent blue label holders and yellow drawer pulls scattered, rumpled manila folders spilled across the floor, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/filing-cabinet-broken.glb",
+      "args": {
+        "seed": 81013,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "office-chair-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken blue rolling office chair, yellow seat cushion torn and split, black padded backrest cracked and hanging loose, five-star swivel base bent with casters scattered, school office chair ruined, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/office-chair-broken.glb",
+      "args": {
+        "seed": 81014,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "pa-speaker-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken rectangular school PA intercom speaker box, cracked and dented bright blue plastic housing, flat yellow perforated grille panel torn open at one corner, two small round yellow control knobs snapped off, scorch marks, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/pa-speaker-broken.glb",
+      "args": {
+        "seed": 82815,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "school-sink-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken child-height school bathroom pedestal sink, cracked white porcelain basin split open, rounded backsplash tiles missing and chipped, bent chrome faucet and yellow soap dispenser knocked off, debris, seamless single-piece ceramic ruined, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/school-sink-broken.glb",
+      "args": {
+        "seed": 81816,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "school-toilet-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken small child-sized elementary school toilet, cracked white porcelain bowl and shattered seat, compact cistern broken with the blue flush button snapped off, debris scattered, clean and friendly style ruined, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/school-toilet-broken.glb",
+      "args": {
+        "seed": 81017,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "paper-towel-dispenser-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken rectangular blue plastic wall paper towel dispenser, cracked and dented solid blue front face, wide yellow accent band scuffed and peeling, narrow bottom slot torn open with a shredded white paper towel hanging out, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/paper-towel-dispenser-broken.glb",
+      "args": {
+        "seed": 82818,
+        "faces": 2000
+      }
+    },
+    {
+      "label": "drinking-fountain-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken hallway drinking fountain, bent chrome bubbler spraying and cracked, blue metal basin dented and split, small yellow push button snapped off, gray speckled sloped pedestal cracked and crumbling, contamination debris, school water fountain ruined, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/drinking-fountain-broken.glb",
+      "args": {
+        "seed": 81019,
+        "faces": 1800
+      }
+    },
+    {
+      "label": "mascot-banner-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken flat triangular blue felt school pennant banner, seen straight on, torn and faded fabric with frayed edges, the bold gray husky dog mascot head logo ripped and stained in the center, yellow border trim torn away, small yellow tassel shredded, flat solid flag with no text, clean simple product render, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/mascot-banner-broken.glb",
+      "args": {
+        "seed": 81820,
+        "faces": 1500
+      },
+      "simplify": {
+        "strategy": "decimate",
+        "target": 500
+      }
+    },
+    {
+      "label": "mascot-logo-sign-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken round school wall sign, deep blue field cracked and dented, the bold gray husky dog mascot logo scratched and faded, thick yellow ring border chipped and bent, two mounting screws snapped, dull grimy enamel mascot badge, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/mascot-logo-sign-broken.glb",
+      "args": {
+        "seed": 81021,
+        "faces": 1000
+      }
+    },
+    {
+      "label": "portal-broken",
+      "tool": "asset",
+      "prompt": "a ruined broken magical doorway portal, cracked dark stone archway with shattered and dim glowing blue runes, flickering fading light, rubble at the base, freestanding isolated single prop, no surrounding ground or scenery",
+      "output": "worlds/scammon-academia/props/portal-broken.glb",
+      "args": {
+        "seed": 81022,
+        "faces": 2500
+      }
+    }
+  ]
 }

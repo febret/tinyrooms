@@ -67,23 +67,22 @@ def _optional_prop_token(args: tuple[str, ...]) -> str | None:
     return None
 
 
-def _parse_result_args(args: tuple[str, ...]) -> tuple[bool, float]:
-    success = False
+def _parse_result_args(args: tuple[str, ...]) -> tuple[list[str], float]:
+    symbols: list[str] = []
     seconds = 0.0
     for token in args:
         if "=" not in token:
             continue
         key, _, value = token.partition("=")
         key = key.strip().lower()
-        value = value.strip().lower()
-        if key == "success":
-            success = value in {"1", "true", "yes", "success"}
+        if key in {"symbol", "symbols", "attempt", "sequence"}:
+            symbols = [part.strip().lower() for part in value.split(",") if part.strip()]
         elif key in {"time", "seconds"}:
             try:
-                seconds = float(value)
+                seconds = float(value.strip())
             except ValueError as exc:
                 raise CommandError("Time must be a number of seconds.") from exc
-    return success, seconds
+    return symbols, seconds
 
 
 async def _open_board(context: CommandContext, service: HeistService, room_id: str) -> CommandOutcome:
@@ -209,8 +208,8 @@ async def heist_command(context: CommandContext, command: ParsedCommand) -> Comm
         if action == "safecrack":
             return _outcome(context, await service.open_safecrack(context.account, room_id))
         if action == "safecrack_result":
-            success, seconds = _parse_result_args(rest)
-            return _outcome(context, await service.safecrack_result(context.account, room_id, success, seconds))
+            symbols, seconds = _parse_result_args(rest)
+            return _outcome(context, await service.safecrack_result(context.account, room_id, symbols, seconds))
         if action == "escape":
             return _outcome(context, await service.escape_job(context.account, room_id))
         if action == "laylow":

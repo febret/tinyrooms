@@ -93,7 +93,7 @@ def require_power_access(
     return account
 
 
-def require_admin_access(runtime, request: Request, *, feature: str):
+def require_admin_access(runtime, request: Request, *, feature: str, audit_action: str | None = None):
     """Gate an admin-only route by feature flag, session, and admin power."""
 
     return require_power_access(
@@ -101,7 +101,7 @@ def require_admin_access(runtime, request: Request, *, feature: str):
         request,
         feature=feature,
         powers=frozenset({"admin"}),
-        audit_action="prop_editor.access_denied",
+        audit_action=audit_action or "prop_editor.access_denied",
     )
 
 

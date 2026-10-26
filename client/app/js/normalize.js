@@ -509,15 +509,16 @@ export function normalizeUser(user) {
         }
       : { friends: [], incoming: [], outgoing: [] },
     phoneUnread: Number(user.phone_unread || 0),
-    beacons: Array.isArray(user.beacons) ? user.beacons.map(beacon => ({      fromAccountId: String(beacon.from_account_id || ""),
-      fromUsername: String(beacon.from_username || ""),
-      worldId: String(beacon.world_id || ""),
-      worldLabel: String(beacon.world_label || ""),
-      roomId: String(beacon.room_id || ""),
-      roomLabel: String(beacon.room_label || ""),
-      createdAt: String(beacon.created_at || ""),
-      crossWorld: Boolean(beacon.cross_world),
-    })) : [],
+      beacons: Array.isArray(user.beacons) ? user.beacons.map(beacon => ({
+        fromAccountId: String(beacon.from_account_id || ""),
+        fromUsername: String(beacon.from_username || ""),
+        worldId: String(beacon.world_id || ""),
+        worldLabel: String(beacon.world_label || ""),
+        roomId: String(beacon.room_id || ""),
+        roomLabel: String(beacon.room_label || ""),
+        createdAt: String(beacon.created_at || ""),
+        crossWorld: Boolean(beacon.cross_world),
+      })) : [],
     packs: Array.isArray(user.packs) ? user.packs.map(normalizePack) : [],
     unlockedProps: Array.isArray(user.unlocked_props) ? user.unlocked_props.map(propId => String(propId)) : [],
     tasks: normalizeTasks(user.tasks),
@@ -583,7 +584,8 @@ export function mergePhoneMessages(previous, raw) {
   };
 }
 
-export function normalizeGameAssets(assets) {  if (!assets || typeof assets !== "object") return {};
+export function normalizeGameAssets(assets) {
+  if (!assets || typeof assets !== "object") return {};
   return Object.fromEntries(Object.entries(assets).map(([name, url]) => [String(name), assetOrEmpty(url)]));
 }
 

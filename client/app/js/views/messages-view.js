@@ -8,8 +8,9 @@ function threadKindLetter(kind) {
 }
 
 function clockOf(iso) {
-  const text = String(iso || "");
-  return text.length >= 16 ? text.slice(11, 16) : "";
+  const time = new Date(String(iso || ""));
+  if (!Number.isFinite(time.getTime())) return "";
+  return time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function threadMeta(thread) {

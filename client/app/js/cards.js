@@ -470,6 +470,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
     const friendAction = active?.dataset.friendAction;
     const isTextInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
     const caret = isTextInput ? { start: active.selectionStart, end: active.selectionEnd } : null;
+    const typedValue = isTextInput && typeof active.value === "string" ? active.value : null;
     const scrollSelector = ".modal-scroll, .board-modal, .journal-page-inner, .emote-menu-track, .equipped-hand, .phone-app-scroll";
     const scrolls = [...root.querySelectorAll(scrollSelector)]
       .map(element => ({ top: element.scrollTop, left: element.scrollLeft }));
@@ -484,6 +485,10 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
         .find(element => element.dataset[identity] === value && (!friendAction || element.dataset.friendAction === friendAction));
       if (restored) {
         restored.focus({ preventScroll: true });
+        if (typedValue !== null && "value" in restored && typeof restored.value === "string"
+          && (restored.tagName === "INPUT" || restored.tagName === "TEXTAREA")) {
+          restored.value = typedValue;
+        }
         if (caret && typeof restored.setSelectionRange === "function") {
           try { restored.setSelectionRange(caret.start, caret.end); } catch { /* ignore non-text inputs */ }
         }

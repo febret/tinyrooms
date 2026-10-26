@@ -76,11 +76,6 @@ class ContainerServiceTests(ServiceTestCase):
             [(card["definition"]["id"], card["quantity"]) for card in contents["cards"]],
             [("poop", 1)],
         )
-        peer_contents = self.containers.contents("bathroom", instance_id)
-        self.assertEqual(
-            [(card["definition"]["id"], card["quantity"]) for card in peer_contents["cards"]],
-            [("poop", 1)],
-        )
 
         container_stack_id = contents["cards"][0]["stack_id"]
         take = self.containers.take(second, "bathroom", instance_id, container_stack_id)

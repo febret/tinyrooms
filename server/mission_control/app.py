@@ -79,7 +79,28 @@ def build_runtime(config: MCConfig) -> McRuntime:
     supervisor = Supervisor(config, registry, audit, on_change=world_map.update)
     packages = PackageManager(config, registry, audit)
     server_info = ServerInfoService(config)
-    users = UserManager(hub, profiles, audit)
+
+    def _card_catalog_for(world_id: str | None) -> object | None:
+        """Load the running build's card catalog for one world (or globals)."""
+
+        from server.content.cards import load_card_catalog
+
+        try:
+            version_root = packages.resolve_version(None)
+            cardsets_root = version_root / "data" / "cardsets"
+            extra = (
+                (config.shared_cardsets_root,)
+                if config.shared_cardsets_root.is_dir()
+                else ()
+            )
+            world_path = (
+                packages.resolve_world(None, world_id) if world_id else version_root
+            )
+            return load_card_catalog(cardsets_root, world_path, extra_cardsets_roots=extra)
+        except Exception:  # noqa: BLE001 - validation fails closed below
+            return None
+
+    users = UserManager(hub, profiles, audit, card_catalog_for=_card_catalog_for)
     vibes = VibesManager(hub, profiles, registry, audit)
     verify: object = True
     if config.insecure_tls:

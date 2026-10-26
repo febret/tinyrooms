@@ -774,7 +774,12 @@ function reduce(state, action) {
     if (!container) return state;
     return { ...state, container, ui: { ...state.ui, containerOpen: true } };
   }
-  if (action.type === "close-container") return { ...state, ui: { ...state.ui, containerOpen: false } };
+  if (action.type === "close-container") {
+    const selection = state.selection?.kind === "container-card" && state.room
+      ? { kind: "room", id: state.room.id }
+      : state.selection;
+    return { ...state, selection, container: null, ui: { ...state.ui, containerOpen: false } };
+  }
   if (action.type === "phone-app") return { ...state, selection: { kind: "core", id: "phone" }, views: { ...state.views, main: "phone" }, ui: { ...state.ui, phoneApp: action.app || "apps", phoneFriendIndex: 0, phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false }, emoteMenuOpen: false, roomPickerOpen: false, dropTargeting: null } };
   if (action.type === "phone-home") return { ...state, ui: { ...state.ui, phoneApp: "apps", phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false } } };
   if (action.type === "phone-messages-select") return { ...state, ui: { ...state.ui, phoneMessages: { ...state.ui.phoneMessages, threadKey: String(action.threadKey || ""), picking: false, messages: [] } } };

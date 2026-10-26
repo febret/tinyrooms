@@ -64,7 +64,6 @@ jobs:
     max_crew: 2
     heat_tier: 0
     guard_count: 2
-    security_budget: 3
     deposit: 3
     rewards: {bops: 25, kudos: 2}
     time_limit_seconds: 420
@@ -120,7 +119,6 @@ jobs:
     max_crew: 4
     heat_tier: 1
     guard_count: 3
-    security_budget: 5
     deposit: 6
     rewards: {bops: 45, kudos: 3}
     time_limit_seconds: 420
@@ -187,7 +185,6 @@ jobs:
     max_crew: 4
     heat_tier: 2
     guard_count: 4
-    security_budget: 7
     deposit: 10
     rewards: {bops: 70, kudos: 4}
     time_limit_seconds: 390
@@ -270,7 +267,6 @@ jobs:
     max_crew: 4
     heat_tier: 3
     guard_count: 5
-    security_budget: 9
     deposit: 15
     rewards: {bops: 100, kudos: 5}
     time_limit_seconds: 360

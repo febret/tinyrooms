@@ -85,8 +85,11 @@ test("thread list marks unread threads", () => {
   assert.match(markup, /Pip/);
   assert.match(markup, /Wren/);
   assert.match(markup, /phone-thread-dot/);
-  assert.match(markup, /F · 10:05 · 2/);
-  assert.match(markup, /R · 09:00/);
+  const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pipTime = new Date("2026-10-25T10:05:00+00:00").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const wrenTime = new Date("2026-10-25T09:00:00+00:00").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  assert.match(markup, new RegExp(`F · ${escapeRegExp(pipTime)} · 2`));
+  assert.match(markup, new RegExp(`R · ${escapeRegExp(wrenTime)}`));
   assert.doesNotMatch(markup, /NEW/);
 });
 
@@ -169,4 +172,24 @@ test("live phone events update the inbox and toast when hidden", () => {
   assert.equal(state.ui.phoneMessages.threads.length, 1);
   assert.equal(state.user.phoneUnread, 1);
   assert.equal(state.ui.toasts.length, before + 1);
+});
+
+test("live phone events append to the open thread without a toast", () => {
+  const store = createStore();
+  store.dispatch({ type: "bootstrap", user: { id: "self", username: "Ada", inventory: [] } });
+  store.dispatch({
+    type: "snapshot",
+    room: { id: "hub", occupants: [], npcs: [], inventory: [], roomCards: [], props: [] },
+  });
+  store.dispatch({ type: "phone-app", app: "messages" });
+  store.dispatch({ type: "phone-messages-select", threadKey: "player:abc" });
+  const before = store.getState().ui.toasts.length;
+  store.dispatch({
+    type: "room-event",
+    event: { type: "phone.message", thread_key: "player:abc", sender_name: "Pip", preview: "hey", body: "hey there", unread: 1 },
+  });
+  const state = store.getState();
+  assert.equal(state.ui.phoneMessages.threads[0].unread, 0);
+  assert.equal(state.ui.phoneMessages.messages.length, 1);
+  assert.equal(state.ui.toasts.length, before);
 });

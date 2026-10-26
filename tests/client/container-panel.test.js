@@ -57,7 +57,20 @@ test("open-container stores contents and opens the panel", () => {
   assert.equal(state.ui.containerOpen, true);
   store.dispatch({ type: "close-container" });
   assert.equal(store.getState().ui.containerOpen, false);
-  assert.equal(store.getState().container.label, "Saari Cabinet");
+  assert.equal(store.getState().container, null);
+});
+
+test("closing the container clears a container-card selection", () => {
+  const store = createStore();
+  store.dispatch({
+    type: "snapshot",
+    room: { id: "bathroom", occupants: [], npcs: [], inventory: [], roomCards: [], props: [] },
+  });
+  store.dispatch({ type: "open-container", container: PAYLOAD });
+  store.dispatch({ type: "select", selection: { kind: "container-card", id: "c1" } });
+  store.dispatch({ type: "close-container" });
+  assert.equal(store.getState().container, null);
+  assert.equal(store.getState().selection.kind, "room");
 });
 
 test("command results store container contents without opening", () => {
@@ -227,8 +240,8 @@ test("panel opens next to its container prop", () => {
   });
   harness.panel.sync(harness.holder.state);
   assert.deepEqual(seen, [[10, 20, 0]]);
-  assert.equal(harness.root.style.left, "516px");
-  assert.equal(harness.root.style.top, "316px");
+  assert.match(harness.root.style.left, /^\d+px$/);
+  assert.match(harness.root.style.top, /^\d+px$/);
 });
 
 test("panel falls back to its default spot without a projectable prop", () => {

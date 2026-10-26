@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.commands.core import require_room_id
+from server.commands.core import _parse_quantity, require_room_id
 from server.commands.outcomes import (
     CommandContext,
     CommandError,
@@ -21,18 +21,6 @@ def _prop_instance_id(token: str) -> str:
             raise CommandError("Prop targets must use @prop:<id>.")
         return target.value
     return token
-
-
-def _parse_quantity(args: tuple[str, ...], index: int = 1) -> int:
-    if len(args) <= index:
-        return 1
-    try:
-        quantity = int(args[index])
-    except ValueError as exc:
-        raise CommandError("Quantity must be an integer.") from exc
-    if quantity < 1:
-        raise CommandError("Quantity must be at least 1.")
-    return quantity
 
 
 def _craft_binding(context: CommandContext) -> tuple[str, str]:

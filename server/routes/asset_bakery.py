@@ -77,7 +77,7 @@ async def asset_bakery_page(request: Request, requested_path: str = "") -> Respo
     """Serve the Asset Bakery single-page app behind feature and admin gates."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     return _serve_page(runtime, _editor_root(runtime), requested_path)
 
 
@@ -86,7 +86,7 @@ async def asset_bakery_files(request: Request) -> dict[str, object]:
     """List every bake.json file available to the server."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     catalog = await run_in_threadpool(runtime.asset_bakery_service().catalog)
     return {"ok": True, **catalog}
 
@@ -96,7 +96,7 @@ async def asset_bakery_file(request: Request, file_id: str) -> dict[str, object]
     """Load one bake.json file with editable tasks and output previews."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     try:
         payload = await run_in_threadpool(runtime.asset_bakery_service().load_file, file_id)
     except AssetBakeryError as exc:
@@ -109,7 +109,7 @@ async def asset_bakery_save_file(request: Request, payload: SaveBakeryFilePayloa
     """Validate and atomically rewrite one bake.json file."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     session = require_session(runtime, request)
     enforce_authenticated_post(runtime, request, session)
     service = runtime.asset_bakery_service()
@@ -132,7 +132,7 @@ async def asset_bakery_reseed(request: Request, payload: ReseedPayload) -> JSONR
     """Assign fresh random seeds to every pinned seed in a bake file."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     session = require_session(runtime, request)
     enforce_authenticated_post(runtime, request, session)
     service = runtime.asset_bakery_service()
@@ -154,7 +154,7 @@ async def asset_bakery_bake(request: Request, payload: BakePayload) -> JSONRespo
     """Queue a background bake of one file or a filtered subset of tasks."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     session = require_session(runtime, request)
     enforce_authenticated_post(runtime, request, session)
     service = runtime.asset_bakery_service()
@@ -178,7 +178,7 @@ async def asset_bakery_jobs(request: Request) -> dict[str, object]:
     """List recent background bake jobs."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     return {"ok": True, "jobs": [job_payload(job) for job in list_jobs()]}
 
 
@@ -187,7 +187,7 @@ async def asset_bakery_job(request: Request, job_id: str) -> dict[str, object]:
     """Return one background bake job with its captured log tail."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     try:
         job = get_job(job_id)
     except AssetBakeryError as exc:
@@ -200,7 +200,7 @@ async def asset_bakery_postprocess(request: Request, payload: PostprocessPayload
     """Apply a basic image edit to a baked task output."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     session = require_session(runtime, request)
     enforce_authenticated_post(runtime, request, session)
     service = runtime.asset_bakery_service()
@@ -226,7 +226,7 @@ async def asset_bakery_output(request: Request, file_id: str, label: str) -> Res
     """Serve a baked task output for preview, mapping it inside the repo."""
 
     runtime = get_runtime(request)
-    require_admin_access(runtime, request, feature="asset-bakery")
+    require_admin_access(runtime, request, feature="asset-bakery", audit_action="asset_bakery.access_denied")
     service = runtime.asset_bakery_service()
     try:
         payload = await run_in_threadpool(service.load_file, file_id)
