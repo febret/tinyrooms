@@ -33,6 +33,9 @@ KNOWN_FEATURES = frozenset(
 # Opt-in compatibility for whiteboards drawn before image-backed surfaces.
 # svg-boards enables reading and rasterizing legacy vector whiteboards.
 KNOWN_LEGACY_FEATURES = frozenset({"svg-boards"})
+# Legacy flags inherited by spawned world children unless an explicit value
+# (including the empty string, which disables them) is saved for the instance.
+DEFAULT_LEGACY_FEATURES = "svg-boards"
 
 
 def selects_mission_control(raw_value: str) -> bool:

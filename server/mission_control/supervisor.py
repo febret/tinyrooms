@@ -16,7 +16,12 @@ import threading
 import time
 import uuid
 
-from server.config import normalize_base_path, selects_mission_control, validate_instance_id
+from server.config import (
+    DEFAULT_LEGACY_FEATURES,
+    normalize_base_path,
+    selects_mission_control,
+    validate_instance_id,
+)
 from server.mission_control.audit import McAuditLog
 from server.mission_control.config import MCConfig
 from server.mission_control.registry import (
@@ -32,6 +37,7 @@ from server.mission_control.registry import (
 
 LOGGER = logging.getLogger("tinyrooms.mc")
 RESUME_FILE = "resume.json"
+DEFAULT_CHILD_LEGACY_FEATURES = DEFAULT_LEGACY_FEATURES
 
 
 def port_is_available(host: str, port: int) -> bool:
@@ -107,6 +113,14 @@ def sanitize_child_features(raw: str) -> str:
         for part in raw.split(",")
         if part.strip() and not selects_mission_control(part)
     )
+
+
+def normalize_child_legacy_features(raw: str | None) -> str:
+    """Return the child legacy-features value, defaulting to svg-boards."""
+
+    if raw is None:
+        return DEFAULT_CHILD_LEGACY_FEATURES
+    return ",".join(part.strip() for part in raw.split(",") if part.strip())
 
 
 def _pid_alive(pid: int) -> bool:
@@ -419,6 +433,9 @@ class Supervisor:
                 config = data["spawn_config"]
                 if not instance_id or not isinstance(config, dict) or self._registry.get(instance_id):
                     continue
+                if "legacy_features" not in config:
+                    config["legacy_features"] = DEFAULT_CHILD_LEGACY_FEATURES
+                    self._write_identity(path, instance_id, config)
                 if self._config.same_origin_worlds:
                     config["host"] = self._config.instance_host
                     config["base_path"] = same_origin_base_path(self._config.base_path, instance_id)
@@ -452,6 +469,7 @@ class Supervisor:
         host: str | None = None,
         port: int | None = None,
         features: str = "",
+        legacy_features: str | None = None,
         admins: str = "",
         mods: str | None = None,
         actor: str = "mission-control",
@@ -498,6 +516,7 @@ class Supervisor:
             "host": host,
             "port": allocated_port,
             "features": features,
+            "legacy_features": normalize_child_legacy_features(legacy_features),
             "admins": admins,
             "mods": mods if mods is not None else self._config.mods,
             "base_path": resolved_base_path,
@@ -538,6 +557,7 @@ class Supervisor:
         return taken
 
     def _spawn_process(self, config: dict[str, object]) -> subprocess.Popen:
+        raw_legacy = config.get("legacy_features")
         env = self._build_env(
             name=str(config["name"]),
             world_path=Path(str(config["world_path"])),
@@ -546,6 +566,9 @@ class Supervisor:
             host=str(config["host"]),
             port=int(config["port"]),
             features=str(config.get("features") or ""),
+            legacy_features=normalize_child_legacy_features(
+                str(raw_legacy) if isinstance(raw_legacy, str) else None
+            ),
             admins=str(config.get("admins") or ""),
             mods=config.get("mods") if isinstance(config.get("mods"), str) else None,
             base_path=str(config.get("base_path") or ""),
@@ -584,9 +607,10 @@ class Supervisor:
         host: str,
         port: int,
         features: str,
-        admins: str,
-        mods: str | None,
-        base_path: str,
+        legacy_features: str = DEFAULT_CHILD_LEGACY_FEATURES,
+        admins: str = "",
+        mods: str | None = None,
+        base_path: str = "",
         instance_id: str = "",
         client_url: str = "",
     ) -> dict[str, str]:
@@ -601,6 +625,7 @@ class Supervisor:
         env["TRSERVER_BASE_PATH"] = base_path
         env["TRSERVER_NEW_ACCOUNT_PASSPHRASE"] = self._config.new_account_passphrase
         env["TRSERVER_FEATURES"] = sanitize_child_features(features)
+        env["TRSERVER_LEGACY_FEATURES"] = normalize_child_legacy_features(legacy_features)
         env["TRSERVER_ADMINS"] = admins
         env["TRSERVER_MODS"] = mods if mods is not None else self._config.mods
         env["TRSERVER_MC_ENDPOINT"] = _endpoint(self._config.host, self._config.port).removeprefix("https://")
@@ -831,6 +856,47 @@ class Supervisor:
         self._changed()
         return record
 
+    def set_legacy_features(
+        self,
+        instance_id: str,
+        *,
+        legacy_features: str,
+        actor: str = "mission-control",
+    ) -> InstanceRecord | None:
+        """Update a spawned instance's saved legacy flags and apply them."""
+
+        record = self._registry.get(instance_id)
+        if record is None or record.spawn_config is None:
+            return None
+        had_previous = "legacy_features" in record.spawn_config
+        previous = record.spawn_config.get("legacy_features")
+        normalized = normalize_child_legacy_features(legacy_features)
+        if isinstance(previous, str) and previous == normalized:
+            return record
+        record.spawn_config["legacy_features"] = normalized
+        if record.status != STATUS_STOPPED:
+            restarted = self.restart(instance_id, actor=actor)
+            if restarted is None:
+                if had_previous:
+                    record.spawn_config["legacy_features"] = previous
+                else:
+                    del record.spawn_config["legacy_features"]
+                self._persist_identity(record)
+                self._changed()
+                return None
+            self._audit.record(
+                actor, "instance.legacy_features",
+                target=instance_id, detail={"legacy_features": normalized},
+            )
+            return restarted
+        self._persist_identity(record)
+        self._audit.record(
+            actor, "instance.legacy_features",
+            target=instance_id, detail={"legacy_features": normalized},
+        )
+        self._changed()
+        return record
+
     def rename(self, instance_id: str, name: str, *, actor: str = "mission-control") -> InstanceRecord | None:
         """Rename a spawned child while preserving its direct URL and legacy route."""
 
@@ -944,6 +1010,9 @@ class Supervisor:
                     host=str(entry["host"]) if entry.get("host") else None,
                     port=int(entry["port"]) if entry.get("port") else None,
                     features=str(entry.get("features") or ""),
+                    legacy_features=str(entry["legacy_features"])
+                    if isinstance(entry.get("legacy_features"), str)
+                    else None,
                     admins=str(entry.get("admins") or ""),
                     mods=entry.get("mods") if isinstance(entry.get("mods"), str) else None,
                     base_path=str(entry.get("base_path") or ""),

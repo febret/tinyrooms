@@ -12,7 +12,7 @@ from datetime import datetime
 import threading
 import uuid
 
-from server.config import validate_instance_id, validate_public_url
+from server.config import DEFAULT_LEGACY_FEATURES, validate_instance_id, validate_public_url
 from server.security import utc_now
 
 
@@ -328,6 +328,10 @@ class InstanceRegistry:
         status = record.status
         if status in {STATUS_RUNNING, STATUS_STARTING} and age is not None and age > self.stale_after_seconds:
             status = STATUS_UNREACHABLE
+        legacy_features: object = None
+        if record.source == SPAWNED:
+            saved = (record.spawn_config or {}).get("legacy_features")
+            legacy_features = saved if isinstance(saved, str) else DEFAULT_LEGACY_FEATURES
         return {
             "instance_id": record.instance_id,
             "name": record.name,
@@ -342,6 +346,7 @@ class InstanceRegistry:
             },
             "version": record.version,
             "version_id": (record.spawn_config or {}).get("version_id"),
+            "legacy_features": legacy_features,
             "protocol_version": record.protocol_version,
             "started_at": record.started_at,
             "base_path": record.base_path,

@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
-from server.config import ConfigError, normalize_base_path
+from server.config import ConfigError, normalize_base_path, parse_legacy_features
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
 from server.mission_control.packages import RUNNING_VERSION_ID
 from server.mission_control.registry import (
@@ -59,6 +59,7 @@ class StartInstancePayload(BaseModel):
     host: str | None = None
     port: int | None = None
     features: str = ""
+    legacy_features: str | None = None
     admins: str = ""
     mods: str | None = None
 
@@ -73,6 +74,12 @@ class ChangeVersionPayload(BaseModel):
     """Instance version-change payload."""
 
     version: str | None = None
+
+
+class SetLegacyFeaturesPayload(BaseModel):
+    """Instance legacy-features payload; the empty string disables them."""
+
+    legacy_features: str = ""
 
 
 class EditUserPayload(BaseModel):
@@ -455,6 +462,10 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         return _json_error(400, "worldstate_invalid", "Worldstate DB must be an existing .sqlite3 file.")
     users_path = Path(payload.users_path).expanduser() if payload.users_path else None
     name = payload.name or payload.world
+    try:
+        parse_legacy_features(payload.legacy_features or "")
+    except ConfigError as exc:
+        return _json_error(400, "legacy_features_invalid", str(exc))
     spawned = runtime.supervisor.start(
         name=name,
         world_path=world_path,
@@ -463,6 +474,7 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         host=payload.host,
         port=payload.port,
         features=payload.features,
+        legacy_features=payload.legacy_features,
         admins=payload.admins,
         mods=payload.mods,
         version_path=version_path,
@@ -598,6 +610,35 @@ async def change_server_version(
     )
     if updated is None:
         return _json_error(409, "version_unavailable", "Instance version cannot be changed.")
+    return {"ok": True, "server": runtime.registry.snapshot(updated)}
+
+
+@router.post("/api/mission-control/servers/{instance_id}/legacy-features")
+async def set_server_legacy_features(
+    request: Request,
+    instance_id: str,
+    payload: SetLegacyFeaturesPayload,
+) -> dict[str, object]:
+    """Update a spawned instance's legacy compatibility flags and apply them."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    record = runtime.registry.get(instance_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Instance not found.")
+    if record.source != SPAWNED or record.spawn_config is None:
+        return _json_error(400, "legacy_external", "Only spawned instances can change legacy features.")
+    try:
+        parse_legacy_features(payload.legacy_features)
+    except ConfigError as exc:
+        return _json_error(400, "legacy_features_invalid", str(exc))
+    updated = runtime.supervisor.set_legacy_features(
+        instance_id,
+        legacy_features=payload.legacy_features,
+    )
+    if updated is None:
+        return _json_error(409, "legacy_features_unavailable", "Instance legacy features cannot be changed.")
     return {"ok": True, "server": runtime.registry.snapshot(updated)}
 
 

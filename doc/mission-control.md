@@ -177,7 +177,8 @@ Detailed fields and rendering live in the [UI source](../client/mission-control/
 
 Choose an installed code version and shared/version-bundled world; optionally
 select an existing worldstate DB (blank creates fresh state), users path,
-name/bind/port, features, admins, and mods. MC allocates an instance directory,
+name/bind/port, features, legacy features (default `svg-boards`), admins, and
+mods. MC allocates an instance directory,
 persists its launch settings, then runs that checkout's `run.py`. Use the shared
 users path for player destinations. Detail provides runtime stats, bounded
 stdout/stderr tails for children (polled logs for external servers), and an
@@ -198,6 +199,12 @@ snapshot, so they stay consistent while the tab is open.
   restarts a non-stopped child. Shared worlds remain outside version roots.
   The detail view refreshes itself while the child restarts, so the reported
   build catches up automatically.
+- **Legacy features**: the detail view's Legacy features dropdown shows the
+  saved value (`svg-boards` by default, `Disabled` for an empty value) for a
+  spawned instance. Changing it persists the selection and restarts a
+  non-stopped child so the new `TRSERVER_LEGACY_FEATURES` value applies; a
+  stopped instance keeps the saved value for its next start. Restart, version
+  changes, and reboot resume preserve the saved value.
 - **Rename**: spawned only; persists the label and restarts a non-stopped child,
   preserving id, direct URL, and any legacy base path.
 - **Delete**: stops/removes a child, identity file, and resume entry; leaves

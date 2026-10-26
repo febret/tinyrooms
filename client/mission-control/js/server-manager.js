@@ -180,6 +180,7 @@ export function createServerManager(container, ctx) {
       field("Host (optional)", el("input", { name: "host", placeholder: "configured default" })),
       field("Port (optional)", el("input", { name: "port", type: "number", placeholder: "auto" })),
       field("Features (optional)", el("input", { name: "features", placeholder: "dev_sample_activity" })),
+      field("Legacy features", el("input", { name: "legacy_features", value: "svg-boards", placeholder: "svg-boards" })),
       field("Admins (optional)", el("input", { name: "admins", placeholder: "siteadmin" })),
       field("Mods (optional)", el("input", { name: "mods", placeholder: "*" })),
       el("div", { class: "row" }, el("button", { class: "primary", type: "submit", text: "Start instance" })),
@@ -196,7 +197,7 @@ export function createServerManager(container, ctx) {
     const data = new FormData(form);
     const payload = {};
     for (const [key, value] of data.entries()) {
-      if (value !== "") payload[key] = key === "port" ? Number(value) : value;
+      if (value !== "" || key === "legacy_features") payload[key] = key === "port" ? Number(value) : value;
     }
     if (!payload.world) {
       ctx.setBanner("Choose a world definition first.");
@@ -249,6 +250,7 @@ export function createServerManager(container, ctx) {
         info("Source", detail.source),
         info("World", detail.world.label || detail.world.id || "—"),
         detail.source === "spawned" ? info("Version", versionSelect(detail)) : info("Version", versionLabel(detail)),
+        detail.source === "spawned" ? info("Legacy features", legacySelect(detail)) : info("Legacy features", "—"),
         info("Uptime", formatUptime(detail.uptime_seconds)),
         info("Users online", String(detail.users_online)),
         info("Rooms", stats.rooms !== undefined ? String(stats.rooms) : "—"),
@@ -315,6 +317,43 @@ export function createServerManager(container, ctx) {
     const select = control.querySelector("select");
     if (select) select.addEventListener("click", (event) => event.stopPropagation());
     return el("td", {}, control);
+  }
+
+  function legacyLabel(server) {
+    return typeof server.legacy_features === "string" && server.legacy_features !== ""
+      ? server.legacy_features
+      : "Disabled";
+  }
+
+  function legacySelect(server) {
+    const current = typeof server.legacy_features === "string" ? server.legacy_features : "svg-boards";
+    const options = [
+      el("option", { value: "svg-boards", selected: current === "svg-boards", text: "svg-boards (legacy whiteboards)" }),
+      el("option", { value: "", selected: current === "", text: "Disabled" }),
+    ];
+    if (current !== "svg-boards" && current !== "") {
+      options.unshift(el("option", { value: current, selected: true, text: `Current: ${current}` }));
+    }
+    const select = el("select", {
+      "aria-label": `Legacy features for ${server.name}`,
+      onchange: (event) => {
+        setLegacyFeatures(server, event.target.value).catch(showError);
+      },
+    }, options);
+    return el("div", { class: "stack" }, [
+      el("span", { text: legacyLabel(server) }),
+      select,
+    ]);
+  }
+
+  async function setLegacyFeatures(server, legacyFeatures) {
+    await api.post(`/api/mission-control/servers/${server.instance_id}/legacy-features`, { legacy_features: legacyFeatures });
+    if (state.selectedId === server.instance_id) {
+      await refreshDetail();
+    } else {
+      await refreshList();
+    }
+    ctx.setBanner(`Updating legacy features for ${server.name}; restarting.`);
   }
 
   function gridActions(server) {
