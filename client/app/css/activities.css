@@ -1,4 +1,4 @@
-.activity-layer { position: fixed; inset: 0; z-index: 47; isolation: isolate; pointer-events: none; }
+.activity-layer { position: fixed; inset: 0; height: 100vh; height: var(--app-height, 100vh); z-index: 47; isolation: isolate; pointer-events: none; }
 .app-shell.activity-maximized .sidebar, .app-shell.activity-maximized .bottom-stack { visibility: hidden; }
 .activity-layer > .activity-window { pointer-events: auto; }
 .activity-pills { display: flex; align-items: center; gap: 6px; min-width: 0; }

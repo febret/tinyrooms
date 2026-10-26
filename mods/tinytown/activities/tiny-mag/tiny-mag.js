@@ -497,7 +497,12 @@ function fitBook() {
   const width = stage.clientWidth;
   const height = stage.clientHeight;
   if (!width || !height) return;
-  const ratio = state.portrait ? PAGE_RATIO : SPREAD_RATIO;
+  if (state.portrait) {
+    bookFrame.style.width = `${Math.floor(width)}px`;
+    bookFrame.style.height = `${Math.floor(height)}px`;
+    return;
+  }
+  const ratio = SPREAD_RATIO;
   let bookWidth = Math.min(width, height * ratio);
   let bookHeight = bookWidth / ratio;
   if (bookHeight > height) {

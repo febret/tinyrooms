@@ -4,6 +4,7 @@
 .id-card-actions button { min-height: 34px; padding: 4px 14px; border-radius: 8px; font-weight: 700; }
 .id-card-scene { width: min(100%, 720px); margin-inline: auto; perspective: 1600px; }
 .id-card { position: relative; display: grid; min-height: min(62vh, 560px); transform-style: preserve-3d; transition: transform .55s cubic-bezier(.3, .7, .3, 1); }
+.app-shell.immersive-view .id-card { min-height: 0; }
 .id-card.flipped { transform: rotateY(180deg); }
 .id-face {
   position: relative; grid-area: 1 / 1; min-width: 0;
@@ -69,9 +70,12 @@
 .id-skill-slot.locked { opacity: .55; }
 .id-skill-slot.selected { outline: 3px solid #2f6f8f; }
 @media (max-width: 560px) {
-  .id-face { grid-template-columns: 120px minmax(0, 1fr); gap: 12px; padding: 18px 14px 14px; }
-  .id-photo img, .id-photo-placeholder { height: 120px; }
-  .id-photo-decals { height: 120px; }
+  .id-card-view { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .id-face { grid-template-columns: 108px minmax(0, 1fr); gap: 10px; padding: 14px 10px 12px; border-radius: 12px; }
+  .id-photo { padding: 6px; }
+  .id-photo img, .id-photo-placeholder { height: 110px; }
+  .id-photo-decals { height: 110px; }
+  .id-name { font-size: 24px; }
   .id-stats { grid-template-columns: 1fr; }
   .id-skills-grid { grid-template-columns: minmax(0, 1fr); }
   .id-skill-slots { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }

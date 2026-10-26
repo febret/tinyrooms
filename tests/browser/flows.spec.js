@@ -57,8 +57,10 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   const statusJournal = page.getByRole("dialog", { name: "Identity card", exact: true });
   await expect(statusJournal).toBeVisible();
   await expect(statusJournal.locator('[data-id-flip="1"]')).toContainText("Skills");
+  await expect(page.locator(".interaction-dock")).toBeHidden();
   await page.keyboard.press("Escape");
   await expect(statusJournal).toBeHidden();
+  await expect(page.locator(".interaction-dock")).toBeVisible();
   const bopsButton = page.locator("#bops-toggle");
   await expect(bopsButton).toBeVisible();
   await expect(bopsButton.locator(".bops-number")).toBeVisible();
@@ -113,6 +115,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await preview.click();
   const inventory = page.getByRole("dialog", { name: "Inventory", exact: true });
   await expect(inventory).toBeVisible();
+  await expect(page.locator(".interaction-dock")).toBeVisible();
   await expect(inventory.locator(".inventory-preview canvas[data-card-face]")).toBeVisible();
   await expect(inventory.locator(".inventory-preview-name")).toHaveText(cardLabel);
   await inventory.locator('[data-inventory-tab="Emotes"]').click();
@@ -144,8 +147,10 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
     await expect(journal.locator(".journal-page-right")).toBeVisible();
   }
   await expect(journal.locator('[data-close-view="1"]')).toBeVisible();
+  await expect(page.locator(".interaction-dock")).toBeHidden();
   await page.keyboard.press("Escape");
   await expect(journal).toBeHidden();
+  await expect(page.locator(".interaction-dock")).toBeVisible();
   await statusButton.click();
   const idCard = page.getByRole("dialog", { name: "Identity card", exact: true });
   await expect(idCard).toBeVisible();
@@ -156,6 +161,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(idCard.locator("[data-level-up]")).toBeDisabled();
   await idCard.locator('[data-id-flip="1"]').click();
   await expect(idCard.locator('[data-id-flip="1"]')).toContainText("ID");
+  await expect(page.locator(".interaction-dock")).toBeHidden();
 });
 
 test("phone opens apps, friends, messages, and the personal chiptune player", async ({ page, runtime }) => {
@@ -171,6 +177,7 @@ test("phone opens apps, friends, messages, and the personal chiptune player", as
   await openCore(page, "phone");
   const phone = page.getByRole("dialog", { name: "Phone", exact: true });
   await expect(phone).toBeVisible();
+  await expect(page.locator(".interaction-dock")).toBeHidden();
   await expect(phone.locator(".phone-lid svg")).toBeVisible();
   await expect(phone.locator("[data-phone-app]")).toHaveCount(3);
   const toolbar = await page.locator(".topbar").boundingBox();
@@ -219,8 +226,12 @@ test("phone opens apps, friends, messages, and the personal chiptune player", as
   expect(mobileDevice.y).toBeGreaterThanOrEqual(mobileToolbar.y + mobileToolbar.height);
   expect(Math.abs(mobileDevice.x + mobileDevice.width / 2 - 195)).toBeLessThan(3);
 
-  await phone.locator(".phone-close[data-close-view]").click();
+  await phone.locator(".phone-search input").focus();
+  await expect(phone.locator(".phone-base")).toBeHidden();
+  await expect(phone.locator(".phone-typing-close")).toBeVisible();
+  await phone.locator(".phone-typing-close").click();
   await expect(phone).toBeHidden();
+  await expect(page.locator(".interaction-dock")).toBeVisible();
 });
 
 test("journal keeps a two-page spread on large portrait screens", async ({ page, runtime }) => {

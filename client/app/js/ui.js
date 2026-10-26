@@ -98,6 +98,46 @@ let fullscreenRestoreArmed = false;
 let leavingPage = false;
 store.dispatch({ type: "fullscreen-state", active: isFullscreen() });
 
+const phoneKeyboardQuery = window.matchMedia("(any-pointer: coarse), (max-width: 780px), (max-height: 550px), (orientation: portrait)");
+let pendingAppHeightFrame = 0;
+
+function syncAppHeight() {
+  const viewport = window.visualViewport;
+  const scale = viewport?.scale || 1;
+  const height = viewport && scale <= 1.01
+    ? Math.min(window.innerHeight, Math.round(viewport.height))
+    : window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", `${Math.max(240, Math.round(height))}px`);
+  syncPhoneTyping();
+}
+
+function scheduleAppHeight() {
+  if (pendingAppHeightFrame) return;
+  pendingAppHeightFrame = window.requestAnimationFrame(() => {
+    pendingAppHeightFrame = 0;
+    syncAppHeight();
+  });
+}
+
+function syncPhoneTyping(state = store.getState()) {
+  const active = document.activeElement;
+  const inPhone = Boolean(active?.closest?.(".phone-view"));
+  const typingInput = Boolean(active?.matches?.("input, textarea")) && inPhone;
+  const typingClose = Boolean(active?.matches?.(".phone-typing-close"));
+  const typing = state.views.main === "phone"
+    && (typingInput || typingClose)
+    && phoneKeyboardQuery.matches;
+  toggleClass(root, "phone-typing", Boolean(typing));
+}
+
+panelLayer.addEventListener("focusin", () => syncPhoneTyping());
+panelLayer.addEventListener("focusout", () => window.setTimeout(() => syncPhoneTyping(), 0));
+phoneKeyboardQuery.addEventListener?.("change", () => syncPhoneTyping());
+window.addEventListener("resize", scheduleAppHeight);
+window.visualViewport?.addEventListener("resize", scheduleAppHeight);
+window.visualViewport?.addEventListener("scroll", scheduleAppHeight);
+syncAppHeight();
+
 function armFullscreenRestoreFallback() {
   if (fullscreenRestoreArmed) return;
   fullscreenRestoreArmed = true;
@@ -1115,6 +1155,7 @@ async function render(state) {
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
   toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone" || state.views.main === "id");
+  toggleClass(root, "immersive-view", state.views.main === "journal" || state.views.main === "phone" || state.views.main === "id");
   toggleClass(root, "editing", Boolean(state.editor));
   toggleClass(root, "targeting", Boolean(state.ui.targeting));
   toggleClass(root, "drop-targeting", Boolean(state.ui.dropTargeting));
@@ -1159,6 +1200,7 @@ async function render(state) {
     }
   }
   previousView = state.views.main;
+  syncPhoneTyping(state);
   renderCommandPalette(state);
   // Iframes must not wait for room textures/models to finish loading.
   await activities.sync(state.activities);

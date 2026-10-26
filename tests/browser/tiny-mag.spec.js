@@ -76,4 +76,19 @@ test("flip through Tiny Mag, buy a home, and meet roommates", async ({ page, run
   await frame.locator("#next").click();
   await expect(frame.locator("#page-right")).toBeVisible();
   await expect(frame.locator("#page-left")).toBeHidden();
+
+  const magFrame = await page.locator('iframe[src*="/activities/tiny-mag/"]').boundingBox();
+  const magShell = await frame.locator(".mag-shell").boundingBox();
+  expect(Math.abs(magShell.height - magFrame.height)).toBeLessThan(2);
+  const magStage = await frame.locator(".mag-stage").boundingBox();
+  const magBook = await frame.locator("#book").boundingBox();
+  expect(magBook.height).toBeGreaterThan(magStage.height * 0.85);
+  await frame.locator('.rail-btn[data-page="district-downtown"]').click();
+  await expect(frame.locator("#page-left").getByRole("heading", { name: "Downtown" })).toBeVisible();
+  const downtownHomes = frame.locator("#page-left .district-home");
+  await expect(downtownHomes).toHaveCount(2);
+  const downtownScroll = frame.locator("#page-left .page-scroll");
+  await downtownScroll.evaluate(page => { page.scrollTop = page.scrollHeight; });
+  await expect(downtownHomes.last()).toBeVisible();
+  await expect(frame.locator("#page-left .district-note")).toBeVisible();
 });

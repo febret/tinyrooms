@@ -528,6 +528,20 @@
 }
 .sell-form .row { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 9px; }
 
+@media (orientation: portrait) {
+  .mag-book.district .page-scroll { overflow-x: hidden; overflow-y: auto; }
+  .district-spread { height: auto; min-height: 100%; }
+  .district-homes,
+  .district-homes--left,
+  .district-homes--right { flex: 0 0 auto; grid-template-rows: none; }
+  .district-home { overflow: visible; }
+  .district-pair { min-height: 0; }
+  .district-home-dek { display: block; overflow: visible; -webkit-line-clamp: unset; }
+  .district-figure { overflow: visible; }
+  .district-figure img { height: auto; max-height: 220px; aspect-ratio: 16 / 10; }
+  .sell-form input { font-size: 16px; }
+}
+
 @media (orientation: landscape) and (max-height: 700px) {
   .masthead { font-size: clamp(52px, 8.4vw, 106px); }
   .page-title { font-size: clamp(28px, 3.5vw, 46px); }
@@ -555,8 +569,13 @@
   .masthead { font-size: clamp(58px, 19vw, 96px); }
   .cover-title { font-size: clamp(36px, 11vw, 58px); }
   .district-title { font-size: clamp(28px, 7vw, 40px); }
+  .district-home--hero,
+  .district-home--wide { grid-template-columns: minmax(0, 1fr); }
   .district-home--row { grid-template-columns: 88px minmax(0, 1fr); }
-  .district-home-dek { -webkit-line-clamp: 2; }
+  .district-home--tall,
+  .district-home--small { grid-template-rows: auto auto; }
+  .district-pair { grid-template-columns: minmax(0, 1fr); }
+  .district-figure img { max-height: 180px; }
   .listing-card { grid-template-columns: minmax(0, 1fr); }
   .listing-card .art-frame { max-width: 260px; }
   .sell-form .row { grid-template-columns: minmax(0, 1fr); }

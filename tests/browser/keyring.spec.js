@@ -45,4 +45,11 @@ test("hang keys on the Keyring, lock a door, and greet a roommate", async ({ pag
 
   await page.locator("#keyring-toggle").click();  await expect(keys.getByRole("heading", { name: "The Keyring" })).toBeVisible();
   await expect(keys.locator(".resident")).toHaveCount(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const keysFrame = await page.locator('iframe[src*="/activities/keyring/"]').boundingBox();
+  const keysShell = await keys.locator(".keyring-shell").boundingBox();
+  expect(Math.abs(keysShell.height - keysFrame.height)).toBeLessThan(2);
+  await keys.locator(".keyring-shell").evaluate(shell => { shell.scrollTop = shell.scrollHeight; });
+  await expect(keys.locator(".open-houses")).toBeVisible();
 });

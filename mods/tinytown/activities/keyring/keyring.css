@@ -42,13 +42,15 @@ body.keyring-body::before {
 .keyring-shell {
   position: relative;
   z-index: 1;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: clamp(10px, 2vh, 22px) clamp(10px, 2vw, 24px) 24px;
   scrollbar-width: thin;
   scrollbar-color: #d8a94e55 transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 .connection {
@@ -269,6 +271,25 @@ body.keyring-body::before {
   .keyring-columns { grid-template-columns: minmax(0, 1fr); }
   .key-hooks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .open-houses-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (orientation: portrait) {
+  .keyring-shell { padding: 8px 8px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .keyring-cabinet { padding: 14px 10px 16px; }
+  .keyring-header { margin-bottom: 10px; }
+  .keyring-title { padding: 3px 16px 6px; font-size: clamp(26px, 8vw, 40px); }
+  .keyring-count { margin-top: 7px; }
+  .key-board { padding: 10px 10px 14px; }
+  .key-hooks { gap: 8px; }
+  .key-detail { padding: 14px 12px; }
+  .open-houses { margin-top: 12px; padding: 10px 10px 12px; }
+}
+
+@media (max-height: 620px) {
+  .keyring-shell { padding: 6px 8px 10px; }
+  .keyring-cabinet { padding: 10px; }
+  .keyring-header { margin-bottom: 8px; }
+  .keyring-title { padding: 2px 12px 5px; font-size: clamp(24px, 4.5vw, 32px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

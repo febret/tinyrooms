@@ -48,7 +48,7 @@ h1, h2, h3, p { margin: 0; }
 h1 { font-size: 32px; }
 h2 { font-size: 24px; font-weight: 500; }
 h3 { font-size: 18px; }
-.app-shell { height: 100vh; height: 100dvh; position: relative; isolation: isolate; overflow: hidden; background: var(--shell-bg); }
+.app-shell { height: 100vh; height: var(--app-height, 100vh); position: relative; isolation: isolate; overflow: hidden; background: var(--shell-bg); }
 .topbar { position: absolute; inset: 0 0 auto; z-index: 45; height: var(--topbar-height); display: flex; align-items: center; gap: var(--toolbar-gap); padding: 6px 10px; background: linear-gradient(#02090cf5, #041018e8); border-bottom: 1px solid #ffffff1f; box-shadow: 0 2px 10px #0006; pointer-events: auto; }
 .topbar-scroll { display: flex; align-items: center; gap: var(--toolbar-gap); flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .topbar-scroll::-webkit-scrollbar { display: none; }
@@ -143,6 +143,8 @@ h3 { font-size: 18px; }
 .app-shell.full-view .panel-layer:not(:empty)::before { inset: 0; }
 .app-shell.full-view .card-hand { display: none; }
 .app-shell.full-view .look-preview, .app-shell.full-view .look-dialog-bubble { display: none; }
+.app-shell.immersive-view { --dock-height: 0px; --tray-height: 0px; }
+.app-shell.immersive-view .bottom-stack { display: none; }
 .bottom-stack { position: absolute; inset: auto 0 0; z-index: 40; pointer-events: none; }
 .card-hand { height: var(--tray-height); padding: 6px 14px 0 var(--preview-lane-width); display: flex; align-items: flex-end; justify-content: flex-end; pointer-events: none; }
 .card-hand button { pointer-events: auto; }

@@ -25,6 +25,44 @@
   padding: 62px clamp(8px, 3vw, 34px) 12px;
 }
 
+.phone-typing-close {
+  display: none;
+  position: absolute;
+  top: calc(var(--topbar-height) + 8px);
+  right: 8px;
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.app-shell.phone-typing .phone-view {
+  padding-bottom: 4px;
+}
+
+.app-shell.phone-typing .phone-device {
+  height: min(100%, 560px, calc((100vw - 16px) * 340 / 300));
+  aspect-ratio: 300 / 340;
+}
+
+.app-shell.phone-typing .phone-lid {
+  flex: 1 1 auto;
+}
+
+.app-shell.phone-typing .phone-base,
+.app-shell.phone-typing .phone-softkeys {
+  display: none;
+}
+
+.app-shell.phone-typing .phone-typing-close {
+  display: grid;
+}
+
 .phone-hardkey.phone-close {
   opacity: 1;
   display: grid;
@@ -258,6 +296,7 @@
   padding: 3px 4px 2px;
   scrollbar-width: thin;
   scrollbar-color: var(--lcd-line) transparent;
+  scroll-padding-bottom: 12px;
 }
 
 .phone-app-scroll:focus-visible {
@@ -703,6 +742,7 @@
   font: inherit;
   font-size: 12px;
   box-shadow: inset 1px 1px 0 #9cac84;
+  scroll-margin-block: 12px;
 }
 
 .phone-music-tabs {
@@ -878,13 +918,20 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (any-pointer: coarse), (max-width: 780px), (orientation: portrait) {
+  .phone-search input,
+  .phone-compose input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 520px), (orientation: portrait) {
   .phone-view {
-    padding: 58px 8px 8px;
+    padding: 54px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .phone-device {
-    height: min(100%, 560px);
+    height: min(100%, 800px, calc((100vw - 16px) * 560 / 300));
   }
 }
 

@@ -46,12 +46,12 @@ body.mag-body::before {
 .mag-shell {
   position: relative;
   z-index: 1;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 8px;
-  padding: 10px clamp(10px, 1.8vw, 24px) 8px;
+  padding: 10px clamp(10px, 1.8vw, 24px) calc(8px + env(safe-area-inset-bottom, 0px));
   overflow: hidden;
 }
 
@@ -331,7 +331,7 @@ body.mag-body::before {
 .mag-dialog {
   width: min(480px, calc(100vw - 28px));
   max-width: none;
-  max-height: calc(100dvh - 28px);
+  max-height: calc(100vh - 28px);
   padding: 0;
   border: 0;
   color: var(--ink);
@@ -343,7 +343,7 @@ body.mag-body::before {
   backdrop-filter: blur(4px);
 }
 .mag-dialog-card {
-  max-height: calc(100dvh - 28px);
+  max-height: calc(100vh - 28px);
   overflow: auto;
   padding: clamp(24px, 5vw, 38px);
   border: 1px solid #b8a78d;
@@ -411,14 +411,23 @@ body.mag-body::before {
   .mag-shell {
     grid-template-rows: minmax(0, 1fr) auto;
     gap: 6px;
-    padding: 8px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   }
   .mag-dock {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 6px;
+    min-height: 36px;
     padding-top: 5px;
   }
-  .mag-rail { gap: 2px 0; }
+  .mag-rail {
+    gap: 2px 0;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .mag-rail::-webkit-scrollbar { display: none; }
+  .page-scroll { -webkit-overflow-scrolling: touch; }
   .rail-group { padding: 0 5px; }
   .rail-label { font-size: 5.5px; letter-spacing: .1em; }
   .rail-btn { min-width: 20px; height: 20px; font-size: 7px; line-height: 20px; }

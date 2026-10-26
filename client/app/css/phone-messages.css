@@ -160,6 +160,7 @@
   border: 0;
   border-bottom: 1px solid var(--lcd-line);
   color: var(--lcd-ink);
+  scroll-margin-block: 12px;
 }
 
 .phone-compose button {
