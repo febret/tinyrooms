@@ -87,6 +87,31 @@ class RepairUserDestinationPayload(BaseModel):
     instance_id: str
 
 
+class AddInventoryPayload(BaseModel):
+    """Grant-one-stack payload for a player's inventory."""
+
+    card_def_id: str
+    quantity: int = 1
+    world_id: str | None = None
+    scope: str = "global"
+
+
+class EditInventoryPayload(BaseModel):
+    """Set-quantity payload for one inventory stack."""
+
+    quantity: int
+
+
+class EditVibePayload(BaseModel):
+    """Upsert payload for one directed vibe score."""
+
+    store: str
+    world_id: str
+    source_peep_id: str
+    target_peep_id: str
+    value: int
+
+
 class RegisterPayload(BaseModel):
     """Instance registration payload (world -> mission control)."""
 
@@ -923,6 +948,117 @@ async def edit_user(request: Request, account_id: str, payload: EditUserPayload)
     except ValueError as exc:
         return _json_error(400, "user_edit_rejected", str(exc))
     return {"ok": True, "user": updated}
+
+
+@router.post("/api/mission-control/users/{account_id}/inventory")
+async def add_inventory(request: Request, account_id: str, payload: AddInventoryPayload) -> dict[str, object]:
+    """Grant one new inventory stack to a player."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    try:
+        stack = runtime.users.add_inventory(
+            "operator",
+            account_id,
+            payload.card_def_id,
+            payload.quantity,
+            payload.world_id,
+            payload.scope,
+        )
+    except ValueError as exc:
+        return _json_error(400, "inventory_rejected", str(exc))
+    return {"ok": True, "stack": stack}
+
+
+@router.patch("/api/mission-control/users/{account_id}/inventory/{stack_id}")
+async def edit_inventory_stack(
+    request: Request,
+    account_id: str,
+    stack_id: str,
+    payload: EditInventoryPayload,
+) -> dict[str, object]:
+    """Set the quantity of one owned inventory stack."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    try:
+        runtime.users.edit_inventory("operator", account_id, stack_id, payload.quantity)
+    except ValueError as exc:
+        return _json_error(400, "inventory_rejected", str(exc))
+    return {"ok": True}
+
+
+@router.delete("/api/mission-control/users/{account_id}/inventory/{stack_id}")
+async def delete_inventory_stack(request: Request, account_id: str, stack_id: str) -> dict[str, object]:
+    """Delete one owned inventory stack."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    try:
+        runtime.users.delete_inventory("operator", account_id, stack_id)
+    except ValueError as exc:
+        return _json_error(400, "inventory_rejected", str(exc))
+    return {"ok": True}
+
+
+# --- Vibes Manager ------------------------------------------------------------
+
+
+@router.get("/api/mission-control/vibes")
+async def list_vibes(request: Request, q: str | None = None, limit: int = 200) -> dict[str, object]:
+    """List vibe rows from the profile DB and reachable spawned world DBs."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    return {
+        "ok": True,
+        "stores": runtime.vibes.stores(),
+        **runtime.vibes.list_rows(q, limit=max(1, min(limit, 500))),
+    }
+
+
+@router.patch("/api/mission-control/vibes")
+async def edit_vibe(request: Request, payload: EditVibePayload) -> dict[str, object]:
+    """Upsert one directed vibe score."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    try:
+        row = runtime.vibes.edit(
+            "operator",
+            payload.store,
+            payload.world_id,
+            payload.source_peep_id,
+            payload.target_peep_id,
+            payload.value,
+        )
+    except ValueError as exc:
+        return _json_error(400, "vibes_rejected", str(exc))
+    return {"ok": True, "vibe": row}
+
+
+@router.delete("/api/mission-control/vibes")
+async def delete_vibe(
+    request: Request,
+    store: str,
+    world_id: str,
+    source_peep_id: str,
+    target_peep_id: str,
+) -> dict[str, object]:
+    """Delete one directed vibe score."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    try:
+        runtime.vibes.delete("operator", store, world_id, source_peep_id, target_peep_id)
+    except ValueError as exc:
+        return _json_error(400, "vibes_rejected", str(exc))
+    return {"ok": True}
 
 
 @router.get("/api/mission-control/users/{account_id}/destination")

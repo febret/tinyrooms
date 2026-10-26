@@ -751,9 +751,13 @@ function renderTopBar(state) {
       }
       if (which === "logout") {
         try {
-          await api.logout();
+          const result = await api.logout();
           socket?.disconnect();
           settings.open = false;
+          if (result && typeof result.redirect_url === "string" && result.redirect_url) {
+            window.location.assign(result.redirect_url);
+            return;
+          }
           store.dispatch({ type: "session", loggedIn: false, csrfToken: "", user: null });
         } catch (error) { showError(error); }
       }

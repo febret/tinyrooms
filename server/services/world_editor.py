@@ -12,7 +12,7 @@ import tempfile
 from server.config import AppConfig
 from server.content.bundle import WorldBundle, load_world_bundle
 from server.content.cards import load_card_catalog
-from server.content.sounds import load_sound_names
+from server.content.sounds import load_sound_names, world_sound_names
 from server.content.common import ContentError
 from server.content.draft import (
     DRAFT_FORMAT_VERSION,
@@ -318,7 +318,9 @@ class WorldEditorService:
     def _loader_errors(self, draft: dict[str, object]) -> list[DraftIssue]:
         staged = self._stage(draft)
         errors: list[DraftIssue] = []
-        known_sounds = load_sound_names(self._config.sounds_path)
+        known_sounds = load_sound_names(self._config.sounds_path) | world_sound_names(
+            self._config.world_path
+        )
         try:
             try:
                 catalog = load_card_catalog(

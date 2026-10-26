@@ -4,6 +4,7 @@ import { createServerManager } from "./server-manager.js";
 import { createServerInfo } from "./server-info.js";
 import { createPackageManager } from "./package-manager.js";
 import { createUserManager } from "./user-manager.js";
+import { createVibesManager } from "./vibes-manager.js";
 
 const loginScreen = document.getElementById("login-screen");
 const appShell = document.getElementById("app-shell");
@@ -51,6 +52,7 @@ const views = {
   server: createServerInfo(document.getElementById("panel-server"), ctx),
   packages: createPackageManager(document.getElementById("panel-packages"), ctx),
   users: createUserManager(document.getElementById("panel-users"), ctx),
+  vibes: createVibesManager(document.getElementById("panel-vibes"), ctx),
   audit: { activate: renderAudit, deactivate: () => {} },
 };
 

@@ -216,6 +216,107 @@ class UserManager:
             raise ValueError("Unknown account.")
         return self._summaries([updated])[0]
 
+    def edit_inventory(self, actor: str, account_id: str, stack_id: str, quantity: int) -> None:
+        """Set an absolute quantity on one owned inventory stack."""
+
+        amount = _as_int(quantity, "quantity")
+        if amount < 1:
+            raise ValueError("'quantity' must be at least 1. Use delete to remove a stack.")
+        with self._hub.transaction() as connection:
+            row = connection.execute(
+                "SELECT stack_id FROM profile_card_stacks WHERE account_id = ? AND stack_id = ?",
+                (account_id, stack_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Unknown inventory stack.")
+            self._profiles.set_stack_quantity(
+                connection, account_id=account_id, stack_id=stack_id, quantity=amount
+            )
+        self._audit.record(
+            actor,
+            "user.inventory.update",
+            target=account_id,
+            result="ok",
+            detail={"stack_id": stack_id, "quantity": amount},
+        )
+
+    def delete_inventory(self, actor: str, account_id: str, stack_id: str) -> None:
+        """Delete one owned inventory stack."""
+
+        with self._hub.transaction() as connection:
+            row = connection.execute(
+                "SELECT stack_id FROM profile_card_stacks WHERE account_id = ? AND stack_id = ?",
+                (account_id, stack_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Unknown inventory stack.")
+            connection.execute(
+                "DELETE FROM profile_card_stacks WHERE account_id = ? AND stack_id = ?",
+                (account_id, stack_id),
+            )
+        self._audit.record(
+            actor,
+            "user.inventory.delete",
+            target=account_id,
+            result="ok",
+            detail={"stack_id": stack_id},
+        )
+
+    def add_inventory(
+        self,
+        actor: str,
+        account_id: str,
+        card_def_id: str,
+        quantity: int,
+        world_id: str | None,
+        scope: str,
+    ) -> dict[str, object]:
+        """Grant one new inventory stack to an account and return it."""
+
+        card = str(card_def_id or "").strip()
+        if not card:
+            raise ValueError("A card id is required.")
+        amount = _as_int(quantity, "quantity")
+        if amount < 1:
+            raise ValueError("'quantity' must be at least 1.")
+        if scope not in {"global", "world"}:
+            raise ValueError("'scope' must be 'global' or 'world'.")
+        world = (str(world_id).strip() if world_id else "") or None
+        if scope == "world" and not world:
+            raise ValueError("A world id is required for world-scoped stacks.")
+        if scope == "global":
+            world = None
+        account = self._profiles.get_account_by_id(account_id)
+        if account is None:
+            raise ValueError("Unknown account.")
+        with self._hub.transaction() as connection:
+            stack = self._profiles.create_inventory_stack(
+                connection,
+                account_id=account_id,
+                world_id=world,
+                card_def_id=card,
+                quantity=amount,
+                scope=scope,
+            )
+        self._audit.record(
+            actor,
+            "user.inventory.add",
+            target=account_id,
+            result="ok",
+            detail={"stack_id": stack.stack_id, "card_def_id": card, "quantity": amount,
+                    "world_id": world, "scope": scope},
+        )
+        return {
+            "stack_id": stack.stack_id,
+            "account_id": stack.account_id,
+            "world_id": stack.world_id,
+            "card_def_id": stack.card_def_id,
+            "quantity": stack.quantity,
+            "scope": stack.scope,
+            "equipped": stack.equipped,
+            "pinned": stack.pinned,
+        }
+
 
 def _as_int(value: object, label: str) -> int:
     try:

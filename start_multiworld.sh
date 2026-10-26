@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Start a local multi-world Tinyrooms: Mission Control plus the tutorial,
-# scammon-academia, tiny-arcade, and tinytown world servers, all sharing one profile
+# scammon-academia, tiny-arcade, tinytown, tiny-backrooms, and tiny-vault world
+# servers, all sharing one profile
 # database and one advertised hostname so cross-world teleporters can hand the
 # browser between ports.
 #
@@ -17,7 +18,8 @@ set -euo pipefail
 #                  certificate only covers local addresses.
 #
 # Ports and credentials are overridable via MC_PORT / TUTORIAL_PORT /
-# SCAMMON_PORT / ARCADE_PORT / TINYTOWN_PORT (and the TRSERVER_* environment). This is a
+# SCAMMON_PORT / ARCADE_PORT / TINYTOWN_PORT / BACKROOMS_PORT / VAULT_PORT
+# (and the TRSERVER_* environment). This is a
 # local-development launcher: it uses self-signed certificates and default
 # development creds.
 
@@ -57,6 +59,7 @@ SCAMMON_PORT="${SCAMMON_PORT:-5101}"
 ARCADE_PORT="${ARCADE_PORT:-5102}"
 BACKROOMS_PORT="${BACKROOMS_PORT:-5104}"
 TINYTOWN_PORT="${TINYTOWN_PORT:-5103}"
+VAULT_PORT="${VAULT_PORT:-5105}"
 
 export TRSERVER_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-deadbeef}"
 export TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_MC_NEW_ACCOUNT_PASSPHRASE:-$TRSERVER_NEW_ACCOUNT_PASSPHRASE}"
@@ -140,6 +143,7 @@ start_world scammon-academia "$SCAMMON_PORT" scammon-1 "Scammon Academia"
 start_world tiny-arcade "$ARCADE_PORT" arcade-1 "Tiny Arcade"
 start_world tinytown "$TINYTOWN_PORT" tinytown-1 "TinyTown"
 start_world tiny-backrooms "$BACKROOMS_PORT" backrooms-1 "Tiny Backrooms"
+start_world tiny-vault "$VAULT_PORT" vault-1 "Tiny Vault"
 
 cat <<EOF
 Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
@@ -150,6 +154,7 @@ Tinyrooms multiworld is starting (bind $BIND_HOST, advertised as $PUBLIC_HOST):
   Tiny Arcade      : https://$PUBLIC_HOST:$ARCADE_PORT/
   TinyTown         : https://$PUBLIC_HOST:$TINYTOWN_PORT/
   Tiny Backrooms   : https://$PUBLIC_HOST:$BACKROOMS_PORT/
+  Tiny Vault       : https://$PUBLIC_HOST:$VAULT_PORT/
 Mission Control manages all five worlds; the Multiverse travels between them.
 Press Ctrl-C to stop everything.
 EOF

@@ -198,9 +198,10 @@ def register_static_routes(app: FastAPI) -> None:
         runtime = get_runtime(request)
         if not filename.lower().endswith(".wav"):
             raise HTTPException(status_code=404, detail="Sound asset not found.")
-        candidate = _safe_path(runtime.config.sounds_path, filename)
-        if candidate.is_file():
-            return FileResponse(candidate, headers={"Cache-Control": "public, max-age=3600"})
+        for root in (runtime.world.root_path / "sounds", runtime.config.sounds_path):
+            candidate = _safe_path(root, filename)
+            if candidate.is_file():
+                return FileResponse(candidate, headers={"Cache-Control": "public, max-age=3600"})
         raise HTTPException(status_code=404, detail="Sound asset not found.")
 
     @app.get("/assets/{cardset}/{filename}")

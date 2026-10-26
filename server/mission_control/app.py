@@ -30,6 +30,7 @@ from server.mission_control.server_info import ServerInfoService
 from server.mission_control.showcase import EntryShowcase, router as showcase_router
 from server.mission_control.supervisor import Supervisor
 from server.mission_control.users import UserManager
+from server.mission_control.vibes import VibesManager
 from server.mission_control.world_map import WorldMapManager
 from server.profiles import ProfileRepository
 from server.security import RateLimitError, RateLimiter, SecurityError
@@ -55,6 +56,7 @@ class McRuntime:
     packages: PackageManager
     server_info: ServerInfoService
     users: UserManager
+    vibes: VibesManager
     sessions: McSessionStore
     limiter: RateLimiter
     http: httpx.AsyncClient
@@ -78,6 +80,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
     packages = PackageManager(config, registry, audit)
     server_info = ServerInfoService(config)
     users = UserManager(hub, profiles, audit)
+    vibes = VibesManager(hub, profiles, registry, audit)
     verify: object = True
     if config.insecure_tls:
         verify = False
@@ -97,6 +100,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
         packages=packages,
         server_info=server_info,
         users=users,
+        vibes=vibes,
         sessions=McSessionStore(),
         limiter=RateLimiter(),
         http=http,

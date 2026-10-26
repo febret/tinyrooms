@@ -31,7 +31,7 @@ from server.content.fx import (
 )
 from server.content.prop_definitions import PROP_RENDER_KINDS
 from server.content.staging import dump_yaml
-from server.content.sounds import load_sound_names
+from server.content.sounds import load_sound_names, world_sound_names
 from server.content.worlds import (
     PROPS_CONFIG_KEY,
     PropDefinition,
@@ -373,7 +373,8 @@ class PropEditorService:
                 source=source,
                 source_kind=source_kind,
                 scale_adjust=scale_adjust,
-                known_sounds=load_sound_names(self._config.sounds_path),
+                known_sounds=load_sound_names(self._config.sounds_path)
+                | world_sound_names(world.root_path),
             )
         except ContentError as exc:
             raise PropEditorValidationError(str(exc)) from exc

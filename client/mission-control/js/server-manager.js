@@ -35,6 +35,12 @@ export function createServerManager(container, ctx) {
     state.summary = data.summary;
     if (state.selectedId) {
       await refreshDetail();
+      return;
+    }
+    if (state.listBody && state.listBody.isConnected
+        && state.summaryEl && state.summaryEl.isConnected && state.servers.length) {
+      state.listBody.replaceChildren(...serverRows());
+      state.summaryEl.textContent = summaryText();
     } else {
       render();
     }
@@ -67,8 +73,14 @@ export function createServerManager(container, ctx) {
   function schedule() {
     if (state.timer) window.clearInterval(state.timer);
     state.timer = window.setInterval(() => {
-      if (!state.autoRefresh || !state.selectedId) return;
-      refreshDetail().catch(() => {});
+      if (state.selectedId) {
+        if (!state.autoRefresh) return;
+        refreshDetail().catch(() => {});
+        return;
+      }
+      const focused = document.activeElement;
+      if (focused && container.contains(focused) && focused.matches("input:not([type=checkbox]), select, textarea")) return;
+      refreshList().catch(() => {});
     }, REFRESH_MS);
   }
 
@@ -77,8 +89,12 @@ export function createServerManager(container, ctx) {
     container.append(state.selectedId ? renderDrilldown() : renderList());
   }
 
-  function renderList() {
-    const rows = state.servers.map((server) =>
+  function summaryText() {
+    return `${state.summary.running || 0} running · ${state.summary.total || 0} known`;
+  }
+
+  function serverRows() {
+    return state.servers.map((server) =>
       el("tr", { class: "clickable", onclick: () => select(server.instance_id) }, [
         el("td", {}, [server.name, server.is_default ? el("span", { class: "badge", text: "Default" }) : ""]),
         el("td", {}, clientLink(server)),
@@ -92,11 +108,16 @@ export function createServerManager(container, ctx) {
         el("td", {}, gridActions(server)),
       ]),
     );
+  }
+
+  function renderList() {
+    state.summaryEl = el("span", { class: "muted", text: summaryText() });
+    state.listBody = el("tbody", {}, serverRows());
     return el("div", { class: "stack" }, [
       el("div", { class: "row spread" }, [
         el("h2", { text: "Server Manager" }),
         el("div", { class: "row" }, [
-          el("span", { class: "muted", text: `${state.summary.running || 0} running · ${state.summary.total || 0} known` }),
+          state.summaryEl,
           el("button", { type: "button", onclick: () => reboot(), text: "Reboot" }),
           el("button", {
             type: "button",
@@ -118,7 +139,7 @@ export function createServerManager(container, ctx) {
                 el("th", { text: "Uptime" }), el("th", { text: "Users" }), el("th", { text: "Heartbeat" }),
                 el("th", { text: "Actions" }),
               ])),
-              el("tbody", {}, rows),
+              state.listBody,
             ])
           : el("p", { class: "muted", text: "No instances registered yet." }),
       ]),
@@ -207,7 +228,7 @@ export function createServerManager(container, ctx) {
     return el("div", { class: "stack" }, [
       el("div", { class: "row spread" }, [
         el("div", { class: "row" }, [
-          el("button", { type: "button", onclick: () => { state.selectedId = null; if (state.timer) window.clearInterval(state.timer); render(); }, text: "← Back" }),
+          el("button", { type: "button", onclick: () => { state.selectedId = null; state.detail = null; state.summaryEl = null; state.listBody = null; refreshList().catch(showError); }, text: "← Back" }),
           el("h2", { text: detail.name }),
           statusBadge(detail.status),
           detail.is_default ? el("span", { class: "badge", text: "Default" }) : "",
@@ -535,7 +556,7 @@ export function createServerManager(container, ctx) {
   return {
     activate: () => {
       const reload = typeof ctx.reloadVersions === "function" ? ctx.reloadVersions() : Promise.resolve();
-      return reload.then(() => loadNginxStatus()).then(refreshList).catch(showError);
+      return reload.then(() => loadNginxStatus()).then(() => { schedule(); return refreshList(); }).catch(showError);
     },
     deactivate: () => { if (state.timer) window.clearInterval(state.timer); },
   };

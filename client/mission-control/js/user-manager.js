@@ -91,6 +91,8 @@ export function createUserManager(container, ctx) {
         el("h2", { text: account.username_display }),
       ]),
       el("div", { class: "card" }, [el("h3", { text: "Edit" }), form]),
+      renderCurrencies(),
+      renderInventory(),
       renderDestination(),
       el("div", { class: "card" }, [
         el("h3", { text: "Related rows" }),
@@ -103,6 +105,173 @@ export function createUserManager(container, ctx) {
         relation("Audit entries", detail.audit_log.length),
       ]),
     ]);
+  }
+
+  function renderCurrencies() {
+    const account = state.detail.account;
+    return el("div", { class: "card" }, [
+      el("h3", { text: "Currencies" }),
+      currencyRow("Kudos", "kudos", account.kudos),
+      currencyRow("Bops", "bops", account.bops),
+    ]);
+  }
+
+  function currencyRow(label, fieldName, value) {
+    return el("div", { class: "row spread" }, [
+      el("div", { class: "row" }, [
+        el("span", { class: "muted", text: label }),
+        el("span", { text: String(value) }),
+      ]),
+      el("div", { class: "row grid-actions" }, [-10, -1, 1, 10].map((delta) =>
+        el("button", {
+          type: "button",
+          onclick: () => quickAdjust(fieldName, delta).catch(showError),
+          "aria-label": `${delta > 0 ? "Add" : "Remove"} ${Math.abs(delta)} ${label.toLowerCase()}`,
+          text: delta > 0 ? `+${delta}` : String(delta),
+        }),
+      )),
+    ]);
+  }
+
+  async function quickAdjust(fieldName, delta) {
+    const account = state.detail.account;
+    const next = Number(account[fieldName] || 0) + delta;
+    if (next < 0) {
+      ctx.setBanner(`${fieldName} cannot go below zero.`);
+      return;
+    }
+    try {
+      await api.patch(`/api/mission-control/users/${account.id}`, { fields: { [fieldName]: next } });
+      await openDetail(account.id);
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
+  }
+
+  function renderInventory() {
+    const detail = state.detail;
+    const stacks = Array.isArray(detail.profile_card_stacks) ? detail.profile_card_stacks : [];
+    return el("div", { class: "card" }, [
+      el("h3", { text: "Inventory" }),
+      stacks.length
+        ? el("table", {}, [
+            el("thead", {}, el("tr", {}, [
+              el("th", { text: "Card" }), el("th", { text: "World" }), el("th", { text: "Qty" }),
+              el("th", { text: "Scope" }), el("th", { text: "Flags" }), el("th", { text: "Actions" }),
+            ])),
+            el("tbody", {}, stacks.map((stack) => stackRow(stack))),
+          ])
+        : el("p", { class: "muted", text: "No inventory stacks." }),
+      renderAddStack(stacks),
+    ]);
+  }
+
+  function stackRow(stack) {
+    const flags = [stack.equipped ? "equipped" : null, stack.pinned ? "pinned" : null].filter(Boolean).join(" · ") || "—";
+    const quantityInput = el("input", {
+      type: "number",
+      min: "1",
+      value: String(stack.quantity),
+      "aria-label": `Quantity for ${stack.card_def_id}`,
+    });
+    return el("tr", {}, [
+      el("td", { text: stack.card_def_id }),
+      el("td", { text: stack.world_id || "all worlds" }),
+      el("td", {}, quantityInput),
+      el("td", { text: stack.scope }),
+      el("td", { class: "muted", text: flags }),
+      el("td", {}, el("div", { class: "row grid-actions" }, [
+        el("button", {
+          type: "button",
+          onclick: () => saveStack(stack, quantityInput).catch(showError),
+          text: "Update",
+        }),
+        el("button", {
+          type: "button",
+          class: "danger",
+          onclick: () => deleteStack(stack).catch(showError),
+          text: "Delete",
+        }),
+      ])),
+    ]);
+  }
+
+  function renderAddStack(stacks) {
+    const knownIds = [...new Set(stacks.map((stack) => String(stack.card_def_id || "")))].filter(Boolean).sort();
+    const cardInput = el("input", { placeholder: "card id", "aria-label": "Card id", list: "inventory-card-ids" });
+    const quantityInput = el("input", { type: "number", min: "1", value: "1", "aria-label": "Quantity" });
+    const worldInput = el("input", { placeholder: "world id (blank = all worlds)", "aria-label": "World id" });
+    const scopeSelect = el("select", { "aria-label": "Scope" }, [
+      el("option", { value: "global", text: "global" }),
+      el("option", { value: "world", text: "world" }),
+    ]);
+    const suggestions = el("datalist", { id: "inventory-card-ids" }, knownIds.map((id) => el("option", { value: id })));
+    return el("div", { class: "stack" }, [
+      el("span", { class: "muted", text: "Add a stack" }),
+      suggestions,
+      el("div", { class: "grid cols-2" }, [
+        field("Card id", cardInput),
+        field("Quantity", quantityInput),
+        field("World id (blank = all worlds)", worldInput),
+        field("Scope", scopeSelect),
+      ]),
+      el("div", { class: "row" }, el("button", {
+        type: "button",
+        class: "primary",
+        onclick: () => addStack(cardInput, quantityInput, worldInput, scopeSelect).catch(showError),
+        text: "Add stack",
+      })),
+    ]);
+  }
+
+  async function saveStack(stack, quantityInput) {
+    const quantity = Number(quantityInput.value);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      ctx.setBanner("Quantity must be a whole number of at least 1.");
+      return;
+    }
+    try {
+      await api.patch(
+        `/api/mission-control/users/${state.selectedId}/inventory/${encodeURIComponent(stack.stack_id)}`,
+        { quantity },
+      );
+      await openDetail(state.selectedId);
+      ctx.setBanner("Inventory stack updated.");
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
+  }
+
+  async function deleteStack(stack) {
+    if (!window.confirm(`Delete the "${stack.card_def_id}" stack?`)) return;
+    try {
+      await api.del(`/api/mission-control/users/${state.selectedId}/inventory/${encodeURIComponent(stack.stack_id)}`);
+      await openDetail(state.selectedId);
+      ctx.setBanner("Inventory stack deleted.");
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
+  }
+
+  async function addStack(cardInput, quantityInput, worldInput, scopeSelect) {
+    const cardId = cardInput.value.trim();
+    const quantity = Number(quantityInput.value || 1);
+    if (!cardId) {
+      ctx.setBanner("A card id is required.");
+      return;
+    }
+    try {
+      await api.post(`/api/mission-control/users/${state.selectedId}/inventory`, {
+        card_def_id: cardId,
+        quantity,
+        world_id: worldInput.value.trim() || null,
+        scope: scopeSelect.value,
+      });
+      await openDetail(state.selectedId);
+      ctx.setBanner("Inventory stack added.");
+    } catch (error) {
+      ctx.setBanner(error.message);
+    }
   }
 
   function renderDestination() {
@@ -146,6 +315,10 @@ export function createUserManager(container, ctx) {
       ...rows,
       el("div", { class: "row" }, controls),
     ]);
+  }
+
+  function relation(label, value) {
+    return destinationRow(label, String(value));
   }
 
   function destinationRow(label, value) {

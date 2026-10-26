@@ -9,8 +9,8 @@ This is the canonical entry, lifecycle, security, and deployment contract.
 
 MC manages world servers and a shared profile database. Public player login and
 invitation-gated creation are at `/`; operator administration is at
-`/mission-control`. Its four tabs are Server Manager, Package Manager, Server
-Info, and User Manager. Operator access uses a separate passphrase/session;
+`/mission-control`. Its tabs are Server Manager, Package Manager, Server
+Info, User Manager, Vibes Manager, and Audit. Operator access uses a separate passphrase/session;
 it is neither a replacement for the in-world `\admin` console nor a sandbox
 for untrusted code.
 
@@ -162,12 +162,15 @@ The operator shell is public; protected API operations require an independent
 MC session (401 otherwise). Passphrase login requires Origin, constant-time
 comparison, and source-address rate limiting. Cookies are `tr_mc_session` and
 `tr_mc_csrf`; authenticated mutations require Origin + `X-CSRF-Token`. Logout
-clears the session/cookies. See [auth](../server/mission_control/auth.py) and
+clears the session/cookies. A world server with `TRSERVER_ENTRY_URL` also
+returns it as `redirect_url` from `/api/auth/logout`, so the game client sends
+the player back to the mission-control entry login page instead of the in-world
+login screen. See [auth](../server/mission_control/auth.py) and
 [routes](../server/mission_control/routes.py).
 
 ### 5.2 Tabbed shell
 
-Four tabs share operator/version information and disconnect/error reporting.
+The tabs share operator/version information and disconnect/error reporting.
 Detailed fields and rendering live in the [UI source](../client/mission-control/).
 
 ### 5.3 Server Manager
@@ -178,7 +181,10 @@ name/bind/port, features, admins, and mods. MC allocates an instance directory,
 persists its launch settings, then runs that checkout's `run.py`. Use the shared
 users path for player destinations. Detail provides runtime stats, bounded
 stdout/stderr tails for children (polled logs for external servers), and an
-admin console; log refresh can be paused.
+admin console; log refresh can be paused. The instance grid auto-refreshes every
+5 seconds (skipping a tick while a grid input is focused); detail refreshes on
+the same cadence. Users online and uptime in both views read the same registry
+snapshot, so they stay consistent while the tab is open.
 
 - **Start / Stop / Restart**: MC controls children; external servers receive
   cooperative shutdown/restart. **Start** resumes a stopped spawned child with
@@ -241,13 +247,26 @@ result reports deleted/failed ids and freed bytes; deletions are audited.
 
 [User management](../server/mission_control/users.py) searches accounts, displays
 related profile/session/inventory/reward/task/memory/audit rows, and edits
-supported account fields/powers through repository methods. Edits are validated
-and recorded in MC's audit ring. The detail view also shows the saved destination
+supported account fields/powers through repository methods. Kudos and Bops have
+quick `-10/-1/+1/+10` controls on top of the exact-value edit form; the
+Inventory card edits existing stack quantities, deletes stacks, and grants new
+stacks (global or world-scoped). Edits are validated and
+recorded in MC's audit ring. The detail view also shows the saved destination
 and lets an operator explicitly repair it to another running same-world instance.
 **Resync** targets one/all running instances and reports per-instance
 success/failure; use it to refresh live clients after edits.
 
-### 5.6 Server Info
+### 5.6 Vibes Manager
+
+[Vibes management](../server/mission_control/vibes.py) lists every row of the
+`vibes` table across the shared profile database and each spawned instance's
+worldstate database (player rows live in the profile DB; NPC rows in world DBs),
+with account display names resolved where a peep id is an account. Operators can
+search, set any `-100..100` score (upserting new pairs), and delete rows; all
+changes are audited. External instances' world DBs are not reachable from MC and
+do not appear; profile rows for their players still do.
+
+### 5.7 Server Info
 
 [Server Info](../server/mission_control/server_info.py) is operator-only/read-only
 and excludes token/passphrase secrets. It reports host/process/resource/config
