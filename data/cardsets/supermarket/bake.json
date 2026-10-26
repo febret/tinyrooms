@@ -4,7 +4,7 @@
       "label": "supermarket-pack-back",
       "tool": "image",
       "prompt": "a symmetrical collectible card back for a friendly supermarket, showing a paper grocery bag full of vegetables and a small blue pharmacy cross on a warm cream field with a green border, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/supermarket-pack-back.png",
+      "output": "data/cardsets/supermarket/supermarket-pack-back.png",
       "args": {
         "width": 768,
         "height": 1152,
@@ -16,7 +16,7 @@
       "label": "market-carrot",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of carrot, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-carrot.png",
+      "output": "data/cardsets/supermarket/market-carrot.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -28,7 +28,7 @@
       "label": "market-potato",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of potato, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-potato.png",
+      "output": "data/cardsets/supermarket/market-potato.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -40,7 +40,7 @@
       "label": "market-onion",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of onion, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-onion.png",
+      "output": "data/cardsets/supermarket/market-onion.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -52,7 +52,7 @@
       "label": "market-garlic",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of garlic, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-garlic.png",
+      "output": "data/cardsets/supermarket/market-garlic.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -64,7 +64,7 @@
       "label": "market-tomato",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of tomato, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-tomato.png",
+      "output": "data/cardsets/supermarket/market-tomato.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -76,7 +76,7 @@
       "label": "market-lettuce",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of lettuce, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-lettuce.png",
+      "output": "data/cardsets/supermarket/market-lettuce.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -88,7 +88,7 @@
       "label": "market-spinach",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of spinach, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-spinach.png",
+      "output": "data/cardsets/supermarket/market-spinach.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -100,7 +100,7 @@
       "label": "market-broccoli",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of broccoli, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-broccoli.png",
+      "output": "data/cardsets/supermarket/market-broccoli.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -112,7 +112,7 @@
       "label": "market-cauliflower",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cauliflower, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cauliflower.png",
+      "output": "data/cardsets/supermarket/market-cauliflower.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -124,7 +124,7 @@
       "label": "market-bell-pepper",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of bell pepper, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-bell-pepper.png",
+      "output": "data/cardsets/supermarket/market-bell-pepper.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -136,7 +136,7 @@
       "label": "market-chili-pepper",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of chili pepper, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-chili-pepper.png",
+      "output": "data/cardsets/supermarket/market-chili-pepper.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -148,7 +148,7 @@
       "label": "market-cucumber",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cucumber, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cucumber.png",
+      "output": "data/cardsets/supermarket/market-cucumber.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -160,7 +160,7 @@
       "label": "market-zucchini",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of zucchini, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-zucchini.png",
+      "output": "data/cardsets/supermarket/market-zucchini.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -172,7 +172,7 @@
       "label": "market-eggplant",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of eggplant, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-eggplant.png",
+      "output": "data/cardsets/supermarket/market-eggplant.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -184,7 +184,7 @@
       "label": "market-pumpkin",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of pumpkin, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-pumpkin.png",
+      "output": "data/cardsets/supermarket/market-pumpkin.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -196,7 +196,7 @@
       "label": "market-corn",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of sweet corn, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-corn.png",
+      "output": "data/cardsets/supermarket/market-corn.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -208,7 +208,7 @@
       "label": "market-peas",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of green peas, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-peas.png",
+      "output": "data/cardsets/supermarket/market-peas.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -220,7 +220,7 @@
       "label": "market-green-beans",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of green beans, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-green-beans.png",
+      "output": "data/cardsets/supermarket/market-green-beans.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -232,7 +232,7 @@
       "label": "market-mushroom",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of mushroom, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-mushroom.png",
+      "output": "data/cardsets/supermarket/market-mushroom.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -244,7 +244,7 @@
       "label": "market-celery",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of celery, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-celery.png",
+      "output": "data/cardsets/supermarket/market-celery.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -256,7 +256,7 @@
       "label": "market-kale",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of kale, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-kale.png",
+      "output": "data/cardsets/supermarket/market-kale.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -268,7 +268,7 @@
       "label": "market-sweet-potato",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of sweet potato, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-sweet-potato.png",
+      "output": "data/cardsets/supermarket/market-sweet-potato.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -280,7 +280,7 @@
       "label": "market-ginger",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of ginger, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-ginger.png",
+      "output": "data/cardsets/supermarket/market-ginger.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -292,7 +292,7 @@
       "label": "market-lemon",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of lemon, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-lemon.png",
+      "output": "data/cardsets/supermarket/market-lemon.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -304,7 +304,7 @@
       "label": "market-apple",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of apple, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-apple.png",
+      "output": "data/cardsets/supermarket/market-apple.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -316,7 +316,7 @@
       "label": "market-banana",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of banana, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-banana.png",
+      "output": "data/cardsets/supermarket/market-banana.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -328,7 +328,7 @@
       "label": "market-strawberry",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of strawberry, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-strawberry.png",
+      "output": "data/cardsets/supermarket/market-strawberry.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -340,7 +340,7 @@
       "label": "market-blueberry",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of blueberry, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-blueberry.png",
+      "output": "data/cardsets/supermarket/market-blueberry.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -352,7 +352,7 @@
       "label": "market-avocado",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of avocado, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-avocado.png",
+      "output": "data/cardsets/supermarket/market-avocado.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -364,7 +364,7 @@
       "label": "market-basil",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of basil, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-basil.png",
+      "output": "data/cardsets/supermarket/market-basil.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -376,7 +376,7 @@
       "label": "market-coconut",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of coconut, fresh produce, cheerful market display illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-coconut.png",
+      "output": "data/cardsets/supermarket/market-coconut.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -388,7 +388,7 @@
       "label": "market-water",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of spring water, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-water.png",
+      "output": "data/cardsets/supermarket/market-water.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -400,7 +400,7 @@
       "label": "market-flour",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of flour, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-flour.png",
+      "output": "data/cardsets/supermarket/market-flour.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -412,7 +412,7 @@
       "label": "market-sugar",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of sugar, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-sugar.png",
+      "output": "data/cardsets/supermarket/market-sugar.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -424,7 +424,7 @@
       "label": "market-salt",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of salt, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-salt.png",
+      "output": "data/cardsets/supermarket/market-salt.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -436,7 +436,7 @@
       "label": "market-black-pepper",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of black pepper, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-black-pepper.png",
+      "output": "data/cardsets/supermarket/market-black-pepper.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -448,7 +448,7 @@
       "label": "market-olive-oil",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of olive oil, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-olive-oil.png",
+      "output": "data/cardsets/supermarket/market-olive-oil.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -460,7 +460,7 @@
       "label": "market-butter",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of butter, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-butter.png",
+      "output": "data/cardsets/supermarket/market-butter.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -472,7 +472,7 @@
       "label": "market-milk",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of milk, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-milk.png",
+      "output": "data/cardsets/supermarket/market-milk.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -484,7 +484,7 @@
       "label": "market-cream",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cream, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cream.png",
+      "output": "data/cardsets/supermarket/market-cream.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -496,7 +496,7 @@
       "label": "market-cheese",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cheese, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cheese.png",
+      "output": "data/cardsets/supermarket/market-cheese.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -508,7 +508,7 @@
       "label": "market-egg",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of egg, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-egg.png",
+      "output": "data/cardsets/supermarket/market-egg.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -520,7 +520,7 @@
       "label": "market-yeast",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of yeast, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-yeast.png",
+      "output": "data/cardsets/supermarket/market-yeast.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -532,7 +532,7 @@
       "label": "market-baking-powder",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of baking powder, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-baking-powder.png",
+      "output": "data/cardsets/supermarket/market-baking-powder.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -544,7 +544,7 @@
       "label": "market-vanilla-extract",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of vanilla extract, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-vanilla-extract.png",
+      "output": "data/cardsets/supermarket/market-vanilla-extract.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -556,7 +556,7 @@
       "label": "market-honey",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of honey, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-honey.png",
+      "output": "data/cardsets/supermarket/market-honey.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -568,7 +568,7 @@
       "label": "market-rice",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of rice, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-rice.png",
+      "output": "data/cardsets/supermarket/market-rice.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -580,7 +580,7 @@
       "label": "market-pasta",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of dry pasta, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-pasta.png",
+      "output": "data/cardsets/supermarket/market-pasta.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -592,7 +592,7 @@
       "label": "market-noodles",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of noodles, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-noodles.png",
+      "output": "data/cardsets/supermarket/market-noodles.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -604,7 +604,7 @@
       "label": "market-bread",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of bread, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-bread.png",
+      "output": "data/cardsets/supermarket/market-bread.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -616,7 +616,7 @@
       "label": "market-breadcrumbs",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of breadcrumbs, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-breadcrumbs.png",
+      "output": "data/cardsets/supermarket/market-breadcrumbs.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -628,7 +628,7 @@
       "label": "market-vinegar",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of vinegar, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-vinegar.png",
+      "output": "data/cardsets/supermarket/market-vinegar.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -640,7 +640,7 @@
       "label": "market-soy-sauce",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of soy sauce, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-soy-sauce.png",
+      "output": "data/cardsets/supermarket/market-soy-sauce.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -652,7 +652,7 @@
       "label": "market-ketchup",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of ketchup, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-ketchup.png",
+      "output": "data/cardsets/supermarket/market-ketchup.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -664,7 +664,7 @@
       "label": "market-mayonnaise",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of mayonnaise, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-mayonnaise.png",
+      "output": "data/cardsets/supermarket/market-mayonnaise.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -676,7 +676,7 @@
       "label": "market-mustard",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of mustard, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-mustard.png",
+      "output": "data/cardsets/supermarket/market-mustard.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -688,7 +688,7 @@
       "label": "market-yogurt",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of yogurt, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-yogurt.png",
+      "output": "data/cardsets/supermarket/market-yogurt.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -700,7 +700,7 @@
       "label": "market-oats",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of oats, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-oats.png",
+      "output": "data/cardsets/supermarket/market-oats.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -712,7 +712,7 @@
       "label": "market-cereal",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cereal, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cereal.png",
+      "output": "data/cardsets/supermarket/market-cereal.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -724,7 +724,7 @@
       "label": "market-chocolate",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of chocolate, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-chocolate.png",
+      "output": "data/cardsets/supermarket/market-chocolate.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -736,7 +736,7 @@
       "label": "market-cocoa",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cocoa powder, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cocoa.png",
+      "output": "data/cardsets/supermarket/market-cocoa.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -748,7 +748,7 @@
       "label": "market-coffee",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of coffee, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-coffee.png",
+      "output": "data/cardsets/supermarket/market-coffee.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -760,7 +760,7 @@
       "label": "market-tea",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of tea, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-tea.png",
+      "output": "data/cardsets/supermarket/market-tea.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -772,7 +772,7 @@
       "label": "market-chickpeas",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of chickpeas, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-chickpeas.png",
+      "output": "data/cardsets/supermarket/market-chickpeas.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -784,7 +784,7 @@
       "label": "market-chicken",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of chicken, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-chicken.png",
+      "output": "data/cardsets/supermarket/market-chicken.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -796,7 +796,7 @@
       "label": "market-beef",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of beef, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-beef.png",
+      "output": "data/cardsets/supermarket/market-beef.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -808,7 +808,7 @@
       "label": "market-bacon",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of bacon, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-bacon.png",
+      "output": "data/cardsets/supermarket/market-bacon.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -820,7 +820,7 @@
       "label": "market-fish",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of fish, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-fish.png",
+      "output": "data/cardsets/supermarket/market-fish.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -832,7 +832,7 @@
       "label": "market-tofu",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of tofu, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-tofu.png",
+      "output": "data/cardsets/supermarket/market-tofu.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -844,7 +844,7 @@
       "label": "market-coconut-milk",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of coconut milk, packaged pantry staple, clean product illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-coconut-milk.png",
+      "output": "data/cardsets/supermarket/market-coconut-milk.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -856,7 +856,7 @@
       "label": "market-chopped-vegetables",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of chopped vegetables, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-chopped-vegetables.png",
+      "output": "data/cardsets/supermarket/market-chopped-vegetables.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -868,7 +868,7 @@
       "label": "market-tomato-paste",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of tomato paste, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-tomato-paste.png",
+      "output": "data/cardsets/supermarket/market-tomato-paste.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -880,7 +880,7 @@
       "label": "market-tomato-sauce",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of tomato sauce, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-tomato-sauce.png",
+      "output": "data/cardsets/supermarket/market-tomato-sauce.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -892,7 +892,7 @@
       "label": "market-vegetable-stock",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of vegetable stock, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-vegetable-stock.png",
+      "output": "data/cardsets/supermarket/market-vegetable-stock.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -904,7 +904,7 @@
       "label": "market-bread-dough",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of bread dough, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-bread-dough.png",
+      "output": "data/cardsets/supermarket/market-bread-dough.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -916,7 +916,7 @@
       "label": "market-pasta-dough",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of pasta dough, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-pasta-dough.png",
+      "output": "data/cardsets/supermarket/market-pasta-dough.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -928,7 +928,7 @@
       "label": "market-salad-dressing",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of salad dressing, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-salad-dressing.png",
+      "output": "data/cardsets/supermarket/market-salad-dressing.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -940,7 +940,7 @@
       "label": "market-cooked-rice",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cooked rice, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cooked-rice.png",
+      "output": "data/cardsets/supermarket/market-cooked-rice.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -952,7 +952,7 @@
       "label": "market-mashed-potatoes",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of mashed potatoes, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-mashed-potatoes.png",
+      "output": "data/cardsets/supermarket/market-mashed-potatoes.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -964,7 +964,7 @@
       "label": "market-pie-crust",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of pie crust, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-pie-crust.png",
+      "output": "data/cardsets/supermarket/market-pie-crust.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -976,7 +976,7 @@
       "label": "market-cake-batter",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cake batter, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cake-batter.png",
+      "output": "data/cardsets/supermarket/market-cake-batter.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -988,7 +988,7 @@
       "label": "market-cookie-dough",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cookie dough, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cookie-dough.png",
+      "output": "data/cardsets/supermarket/market-cookie-dough.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1000,7 +1000,7 @@
       "label": "market-pesto",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of pesto, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-pesto.png",
+      "output": "data/cardsets/supermarket/market-pesto.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1012,7 +1012,7 @@
       "label": "market-hummus",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of hummus, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-hummus.png",
+      "output": "data/cardsets/supermarket/market-hummus.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1024,7 +1024,7 @@
       "label": "market-smoothie-base",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of smoothie base, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-smoothie-base.png",
+      "output": "data/cardsets/supermarket/market-smoothie-base.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1036,7 +1036,7 @@
       "label": "market-curry-paste",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of curry paste, prepared food ingredient in a small bowl or jar, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-curry-paste.png",
+      "output": "data/cardsets/supermarket/market-curry-paste.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1048,7 +1048,7 @@
       "label": "market-omelette",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of omelette, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-omelette.png",
+      "output": "data/cardsets/supermarket/market-omelette.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1060,7 +1060,7 @@
       "label": "market-fish-and-chips",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of fish and chips, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-fish-and-chips.png",
+      "output": "data/cardsets/supermarket/market-fish-and-chips.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1072,7 +1072,7 @@
       "label": "market-cooked-pasta",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cooked pasta, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cooked-pasta.png",
+      "output": "data/cardsets/supermarket/market-cooked-pasta.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1084,7 +1084,7 @@
       "label": "market-baked-bread",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of baked bread, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-baked-bread.png",
+      "output": "data/cardsets/supermarket/market-baked-bread.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1096,7 +1096,7 @@
       "label": "market-pizza",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of pizza, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-pizza.png",
+      "output": "data/cardsets/supermarket/market-pizza.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1108,7 +1108,7 @@
       "label": "market-apple-pie",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of apple pie, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-apple-pie.png",
+      "output": "data/cardsets/supermarket/market-apple-pie.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1120,7 +1120,7 @@
       "label": "market-cake",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of celebration cake, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cake.png",
+      "output": "data/cardsets/supermarket/market-cake.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1132,7 +1132,7 @@
       "label": "market-cookies",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cookies, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cookies.png",
+      "output": "data/cardsets/supermarket/market-cookies.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1144,7 +1144,7 @@
       "label": "market-blueberry-muffins",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of blueberry muffins, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-blueberry-muffins.png",
+      "output": "data/cardsets/supermarket/market-blueberry-muffins.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1156,7 +1156,7 @@
       "label": "market-roasted-vegetables",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of roasted vegetables, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-roasted-vegetables.png",
+      "output": "data/cardsets/supermarket/market-roasted-vegetables.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1168,7 +1168,7 @@
       "label": "market-garden-salad",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of garden salad, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-garden-salad.png",
+      "output": "data/cardsets/supermarket/market-garden-salad.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1180,7 +1180,7 @@
       "label": "market-soup",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of vegetable soup, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-soup.png",
+      "output": "data/cardsets/supermarket/market-soup.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1192,7 +1192,7 @@
       "label": "market-stir-fry",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of tofu stir-fry, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-stir-fry.png",
+      "output": "data/cardsets/supermarket/market-stir-fry.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1204,7 +1204,7 @@
       "label": "market-curry",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of chicken curry, a plated finished dish, appetizing and colorful, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-curry.png",
+      "output": "data/cardsets/supermarket/market-curry.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1216,7 +1216,7 @@
       "label": "market-bandage",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of bandage, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-bandage.png",
+      "output": "data/cardsets/supermarket/market-bandage.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1228,7 +1228,7 @@
       "label": "market-painkillers",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of painkillers, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-painkillers.png",
+      "output": "data/cardsets/supermarket/market-painkillers.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1240,7 +1240,7 @@
       "label": "market-cough-syrup",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cough syrup, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cough-syrup.png",
+      "output": "data/cardsets/supermarket/market-cough-syrup.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1252,7 +1252,7 @@
       "label": "market-vitamins",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of vitamins, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-vitamins.png",
+      "output": "data/cardsets/supermarket/market-vitamins.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1264,7 +1264,7 @@
       "label": "market-antiseptic-cream",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of antiseptic cream, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-antiseptic-cream.png",
+      "output": "data/cardsets/supermarket/market-antiseptic-cream.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1276,7 +1276,7 @@
       "label": "market-cold-pack",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of cold pack, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-cold-pack.png",
+      "output": "data/cardsets/supermarket/market-cold-pack.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1288,7 +1288,7 @@
       "label": "market-herbal-tea",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of herbal tea, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-herbal-tea.png",
+      "output": "data/cardsets/supermarket/market-herbal-tea.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1300,7 +1300,7 @@
       "label": "market-stomach-settler",
       "tool": "image",
       "prompt": "a centered supermarket card illustration of stomach settler, a friendly medicine package, clean pharmacy illustration, flat vector illustration, clean bold shapes, cheerful supermarket storybook style, plain warm cream background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/supermarket/market-stomach-settler.png",
+      "output": "data/cardsets/supermarket/market-stomach-settler.png",
       "args": {
         "width": 768,
         "height": 768,

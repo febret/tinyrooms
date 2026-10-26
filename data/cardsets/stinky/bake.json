@@ -3,20 +3,20 @@
     {
       "label": "stinky-pee",
       "tool": "image",
-      "prompt": "a centered collectible card illustration of a small glossy cartoon puddle of yellow pee with a shiny highlight and two tiny green stink lines curling above it, cheeky storybook style, flat vector illustration, clean bold shapes, plain transparent background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/stinky/stinky-pee.png",
+      "prompt": "a centered collectible card illustration of a small flat cartoon puddle of yellow urine and two green stink lines curling above it, cheeky storybook style, flat vector illustration, clean bold shapes, plain transparent background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
+      "output": "data/cardsets/stinky/stinky-pee.png",
       "args": {
         "width": 768,
         "height": 768,
-        "seed": 93001,
-        "steps": 25
+        "seed": 290464454,
+        "steps": 20
       }
     },
     {
       "label": "stinky-poop",
       "tool": "image",
       "prompt": "a centered collectible card illustration of a glossy coiled cartoon poop with a shiny highlight and three tiny green stink lines curling above it, cheeky storybook style, flat vector illustration, clean bold shapes, plain transparent background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/data/cardsets/stinky/stinky-poop.png",
+      "output": "data/cardsets/stinky/stinky-poop.png",
       "args": {
         "width": 768,
         "height": 768,

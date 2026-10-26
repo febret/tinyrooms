@@ -4,7 +4,7 @@
       "label": "br-floor",
       "tool": "image",
       "prompt": "flat top-down endless yellow backrooms carpet texture with greasy diamond wallpaper pattern tones, humming fluorescent monotony, seamless, evenly lit, no walls, no furniture, no text, no logos",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/rooms/br-floor.png",
+      "output": "worlds/tiny-backrooms/rooms/br-floor.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -16,7 +16,7 @@
       "label": "ud-floor",
       "tool": "image",
       "prompt": "flat top-down upside-down ash ground texture, cold blue murk with black vine traces and drifting spores, seamless, evenly lit, no walls, no furniture, no text, no logos",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/rooms/ud-floor.png",
+      "output": "worlds/tiny-backrooms/rooms/ud-floor.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -28,7 +28,7 @@
       "label": "op-floor",
       "tool": "image",
       "prompt": "flat top-down alien violet abyss stone texture with non-euclid arcs and faint tentacle grooves, unsettling purple glow, seamless, evenly lit, no walls, no furniture, no text, no logos",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/rooms/op-floor.png",
+      "output": "worlds/tiny-backrooms/rooms/op-floor.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -40,7 +40,7 @@
       "label": "surface-floor",
       "tool": "image",
       "prompt": "flat top-down warm sunlit concrete texture with a small brass sun inlay, clean morning light, seamless, evenly lit, no furniture, no text, no logos",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/rooms/surface-floor.png",
+      "output": "worlds/tiny-backrooms/rooms/surface-floor.png",
       "args": {
         "width": 768,
         "height": 768,

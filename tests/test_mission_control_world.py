@@ -257,5 +257,37 @@ class WorldMcApiTests(unittest.TestCase):
         stop.assert_called_once()
 
 
+    def test_logout_returns_entry_redirect(self) -> None:
+        runtime = self.client.app.state.runtime
+        runtime.config = replace(runtime.config, entry_url="https://tiny.example")
+        runtime.profiles.create_account(
+            "logoutplayer", "password123!", runtime.world.id, runtime.world.entry_room_id
+        )
+        result = runtime.accounts.login("logoutplayer", "password123!", "test")
+        self.client.cookies.set("tr_session", result.session_token)
+        self.client.cookies.set("tr_csrf", result.csrf_token)
+        response = self.client.post(
+            "/api/auth/logout",
+            headers={"origin": "https://127.0.0.1:5000", "x-csrf-token": result.csrf_token},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["redirect_url"], "https://tiny.example")
+
+    def test_logout_without_entry_url_returns_null_redirect(self) -> None:
+        runtime = self.client.app.state.runtime
+        runtime.profiles.create_account(
+            "localplayer", "password123!", runtime.world.id, runtime.world.entry_room_id
+        )
+        result = runtime.accounts.login("localplayer", "password123!", "test")
+        self.client.cookies.set("tr_session", result.session_token)
+        self.client.cookies.set("tr_csrf", result.csrf_token)
+        response = self.client.post(
+            "/api/auth/logout",
+            headers={"origin": "https://127.0.0.1:5000", "x-csrf-token": result.csrf_token},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIsNone(response.json()["redirect_url"])
+
+
 if __name__ == "__main__":
     unittest.main()

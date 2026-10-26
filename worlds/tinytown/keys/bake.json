@@ -7,140 +7,140 @@
       "label": "tinytown-key-micro-loft",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single small brass house key with a round bow, a long shaft, and clear teeth cuts along the blade, with a tiny cinnamon-coloured leather loop through the bow. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/micro-loft.png",
+      "output": "worlds/tinytown/keys/micro-loft.png",
       "args": { "width": 768, "height": 768, "seed": 97701, "steps": 28 }
     },
     {
       "label": "tinytown-key-brick-studio",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single sturdy copper house key with a brick-red enamel tag on a plain steel ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/brick-studio.png",
+      "output": "worlds/tinytown/keys/brick-studio.png",
       "args": { "width": 768, "height": 768, "seed": 97702, "steps": 28 }
     },
     {
       "label": "tinytown-key-neon-flat",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single graphite-grey city key with a hot-pink enamel fob on a black split ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/neon-flat.png",
+      "output": "worlds/tinytown/keys/neon-flat.png",
       "args": { "width": 768, "height": 768, "seed": 97703, "steps": 28 }
     },
     {
       "label": "tinytown-key-clocktower-apartment",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single antique silver house key with a small brass clock-hand charm on a dark leather strap. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/clocktower-apartment.png",
+      "output": "worlds/tinytown/keys/clocktower-apartment.png",
       "args": { "width": 768, "height": 768, "seed": 97704, "steps": 28 }
     },
     {
       "label": "tinytown-key-skyline-penthouse",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single jeweled platinum master key on an ornate gold presentation ring with filigree, a city-skyline crest, and a black velvet tassel. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/skyline-penthouse.png",
+      "output": "worlds/tinytown/keys/skyline-penthouse.png",
       "args": { "width": 768, "height": 768, "seed": 97705, "steps": 28 }
     },
     {
       "label": "tinytown-key-beach-hut",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single small pewter beach key with a sea-glass bead and a tiny shell charm on a simple cotton cord. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/beach-hut.png",
+      "output": "worlds/tinytown/keys/beach-hut.png",
       "args": { "width": 768, "height": 768, "seed": 97706, "steps": 28 }
     },
     {
       "label": "tinytown-key-tidepool-cottage",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single polished brass cottage key with a tidepool-blue enamel fob on a plain brass ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/tidepool-cottage.png",
+      "output": "worlds/tinytown/keys/tidepool-cottage.png",
       "args": { "width": 768, "height": 768, "seed": 97707, "steps": 28 }
     },
     {
       "label": "tinytown-key-lighthouse-keep",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single solid brass keeper's key with a red-striped enamel ring and a small storm-lantern charm. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/lighthouse-keep.png",
+      "output": "worlds/tinytown/keys/lighthouse-keep.png",
       "args": { "width": 768, "height": 768, "seed": 97708, "steps": 28 }
     },
     {
       "label": "tinytown-key-harbor-house",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single steel harbor key with a rope-knot keyring and a small painted buoy tag. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/harbor-house.png",
+      "output": "worlds/tinytown/keys/harbor-house.png",
       "args": { "width": 768, "height": 768, "seed": 97709, "steps": 28 }
     },
     {
       "label": "tinytown-key-seaglass-villa",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single opal-inlaid silver key on a sea-glass and pearl keyring with a small mother-of-pearl disc. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/seaglass-villa.png",
+      "output": "worlds/tinytown/keys/seaglass-villa.png",
       "args": { "width": 768, "height": 768, "seed": 97710, "steps": 28 }
     },
     {
       "label": "tinytown-key-hilltop-cabin",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single hand-forged iron cabin key with a carved wooden fob on a plain leather loop. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/hilltop-cabin.png",
+      "output": "worlds/tinytown/keys/hilltop-cabin.png",
       "args": { "width": 768, "height": 768, "seed": 97711, "steps": 28 }
     },
     {
       "label": "tinytown-key-wildflower-cottage",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single brass cottage key with a pressed-wildflower resin fob on a plain brass ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/wildflower-cottage.png",
+      "output": "worlds/tinytown/keys/wildflower-cottage.png",
       "args": { "width": 768, "height": 768, "seed": 97712, "steps": 28 }
     },
     {
       "label": "tinytown-key-orchard-house",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single copper house key with an apple-green enamel crest fob on a dark leather strap. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/orchard-house.png",
+      "output": "worlds/tinytown/keys/orchard-house.png",
       "args": { "width": 768, "height": 768, "seed": 97713, "steps": 28 }
     },
     {
       "label": "tinytown-key-vineyard-manor",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single ornate gold manor key with grape-vine filigree and a burgundy velvet tassel on a jeweled gold ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/vineyard-manor.png",
+      "output": "worlds/tinytown/keys/vineyard-manor.png",
       "args": { "width": 768, "height": 768, "seed": 97714, "steps": 28 }
     },
     {
       "label": "tinytown-key-observatory-estate",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single silver-gilt estate key with a star-chart enamel fob and a sapphire cabochon on an ornate midnight-blue velvet ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/observatory-estate.png",
+      "output": "worlds/tinytown/keys/observatory-estate.png",
       "args": { "width": 768, "height": 768, "seed": 97715, "steps": 28 }
     },
     {
       "label": "tinytown-key-starter-bungalow",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single simple steel bungalow key on a plain brown leather loop. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/starter-bungalow.png",
+      "output": "worlds/tinytown/keys/starter-bungalow.png",
       "args": { "width": 768, "height": 768, "seed": 97716, "steps": 28 }
     },
     {
       "label": "tinytown-key-maple-family-home",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single warm brass family key with a small maple-leaf charm on a plain brass ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/maple-family-home.png",
+      "output": "worlds/tinytown/keys/maple-family-home.png",
       "args": { "width": 768, "height": 768, "seed": 97717, "steps": 28 }
     },
     {
       "label": "tinytown-key-garden-terrace",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single silver terrace key with a green enamel leaf fob on a dark leather strap. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/garden-terrace.png",
+      "output": "worlds/tinytown/keys/garden-terrace.png",
       "args": { "width": 768, "height": 768, "seed": 97718, "steps": 28 }
     },
     {
       "label": "tinytown-key-willow-pool-house",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single gold pool-house key with willow-leaf filigree and a jade cabochon on a teal velvet tassel ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/willow-pool-house.png",
+      "output": "worlds/tinytown/keys/willow-pool-house.png",
       "args": { "width": 768, "height": 768, "seed": 97719, "steps": 28 }
     },
     {
       "label": "tinytown-key-grand-manor",
       "tool": "image",
       "prompt": "This is an RGBA format image with transparency. A single ornate gold master key with a family crest, ruby cabochons, and a deep-red velvet presentation tassel on a jeweled gold ring. The image has an alpha channel and a transparent background. No text, no letters, no numbers, no watermark, no hands.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/keys/grand-manor.png",
+      "output": "worlds/tinytown/keys/grand-manor.png",
       "args": { "width": 768, "height": 768, "seed": 97720, "steps": 28 }
     }
   ]

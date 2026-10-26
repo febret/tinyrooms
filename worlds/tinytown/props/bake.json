@@ -13,7 +13,7 @@
       "label": "tinytown-art-easel",
       "tool": "asset",
       "prompt": "a wooden artist's studio easel with a blank stretched canvas, a small tray of paint pots and two brushes, warm honey wood, sturdy tripod legs, isolated single prop, no surrounding ground, no text, game-ready",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-art-easel.glb",
+      "output": "worlds/tinytown/props/tinytown-art-easel.glb",
       "args": {
         "seed": 96402,
         "faces": 4000
@@ -23,7 +23,7 @@
       "label": "tinytown-bathtub",
       "tool": "asset",
       "prompt": "a generous white roll-top bathtub on four small brass feet, soft rounded rim, one silver tap, a folded cream towel over the side, isolated single prop, no surrounding ground, no text, game-ready",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-bathtub.glb",
+      "output": "worlds/tinytown/props/tinytown-bathtub.glb",
       "args": {
         "seed": 96403,
         "faces": 5000
@@ -33,7 +33,7 @@
       "label": "tinytown-pool",
       "tool": "asset",
       "prompt": "a rectangular garden plunge pool with a pale stone tiled rim, clear turquoise water, a few ripples, small brass step rail at one end, isolated single prop with its own shallow stone base, no deck or garden, no text, game-ready",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/props/tinytown-pool.glb",
+      "output": "worlds/tinytown/props/tinytown-pool.glb",
       "args": {
         "seed": 96404,
         "faces": 4500

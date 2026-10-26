@@ -4,7 +4,7 @@
       "label": "piece-br-0",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, yellow backrooms wallpaper tones with a dark girl silhouette, a hollow eye socket staring from static emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-br-0.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-br-0.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -17,7 +17,7 @@
       "label": "piece-br-1",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, yellow backrooms wallpaper tones with a dark girl silhouette, a brass bell tied in an impossible knot emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-br-1.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-br-1.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -30,7 +30,7 @@
       "label": "piece-br-2",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, yellow backrooms wallpaper tones with a dark girl silhouette, a brass key with teeth biting nothing emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-br-2.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-br-2.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -43,7 +43,7 @@
       "label": "piece-br-3",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, yellow backrooms wallpaper tones with a dark girl silhouette, a pale paper moth burning through grain emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-br-3.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-br-3.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -56,7 +56,7 @@
       "label": "piece-ud-0",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, cold blue upside-down ash tones with demodog teeth, an ashen star rotting into gray flakes emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-ud-0.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-ud-0.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -69,7 +69,7 @@
       "label": "piece-ud-1",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, cold blue upside-down ash tones with demodog teeth, a circular petal maw ringed with teeth emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-ud-1.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-ud-1.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -82,7 +82,7 @@
       "label": "piece-ud-2",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, cold blue upside-down ash tones with demodog teeth, a single cold iron fang emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-ud-2.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-ud-2.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -95,7 +95,7 @@
       "label": "piece-ud-3",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, cold blue upside-down ash tones with demodog teeth, a drowned bell tolling silently underwater emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-ud-3.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-ud-3.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -108,7 +108,7 @@
       "label": "piece-op-0",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, violet eldritch abyss tones with shoggoth eyes, a leaning yawning geometric sigil emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-op-0.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-op-0.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -121,7 +121,7 @@
       "label": "piece-op-1",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, violet eldritch abyss tones with shoggoth eyes, sixteen singing throats clustered together emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-op-1.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-op-1.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -134,7 +134,7 @@
       "label": "piece-op-2",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, violet eldritch abyss tones with shoggoth eyes, a rippling black tide wave emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-op-2.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-op-2.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -147,7 +147,7 @@
       "label": "piece-op-3",
       "tool": "image",
       "prompt": "blurry out-of-focus horror photograph quarter, violet eldritch abyss tones with shoggoth eyes, a crooked crown with gibbering points emerging from VHS grain, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-piece-op-3.png",
+      "output": "worlds/tiny-backrooms/cards/tb-piece-op-3.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -160,7 +160,7 @@
       "label": "music-box",
       "tool": "image",
       "prompt": "flat vector collectible card art of a brass lullaby music box with an open lid and notes, centered large icon on deep yellow panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/lullaby-music-box.png",
+      "output": "worlds/tiny-backrooms/cards/lullaby-music-box.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -172,7 +172,7 @@
       "label": "iron-bat",
       "tool": "image",
       "prompt": "flat vector collectible card art of a taped iron baseball bat with a champion sticker, centered large icon on deep blue panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/iron-bat.png",
+      "output": "worlds/tiny-backrooms/cards/iron-bat.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -184,7 +184,7 @@
       "label": "elder-sign",
       "tool": "image",
       "prompt": "flat vector collectible card art of a crooked five-pointed elder sign ward glowing violet, centered large icon on dark purple panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/elder-sign.png",
+      "output": "worlds/tiny-backrooms/cards/elder-sign.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -196,7 +196,7 @@
       "label": "deglitcher",
       "tool": "image",
       "prompt": "flat vector collectible card art of a patched together glitch gun tool with green diodes, centered large icon on dark teal panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/deglitcher.png",
+      "output": "worlds/tiny-backrooms/cards/deglitcher.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -208,7 +208,7 @@
       "label": "mark-br",
       "tool": "image",
       "prompt": "dark horror card art of a blue girl eye staring from black, red dread mark, centered icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-mark-br.png",
+      "output": "worlds/tiny-backrooms/cards/tb-mark-br.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -221,7 +221,7 @@
       "label": "mark-ud",
       "tool": "image",
       "prompt": "dark horror card art of demodog petal teeth in blue murk, red dread mark, centered icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-mark-ud.png",
+      "output": "worlds/tiny-backrooms/cards/tb-mark-ud.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -234,7 +234,7 @@
       "label": "mark-op",
       "tool": "image",
       "prompt": "dark horror card art of a shoggoth eye mass in violet gloom, red dread mark, centered icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-mark-op.png",
+      "output": "worlds/tiny-backrooms/cards/tb-mark-op.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -247,7 +247,7 @@
       "label": "restored-br",
       "tool": "image",
       "prompt": "restored yellow horror photograph whole, circle triangle square star symbols in a row, centered, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-restored-br.png",
+      "output": "worlds/tiny-backrooms/cards/tb-restored-br.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -260,7 +260,7 @@
       "label": "restored-ud",
       "tool": "image",
       "prompt": "restored blue horror photograph whole, star square triangle circle symbols in a row, centered, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-restored-ud.png",
+      "output": "worlds/tiny-backrooms/cards/tb-restored-ud.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -273,7 +273,7 @@
       "label": "restored-op",
       "tool": "image",
       "prompt": "restored violet horror photograph whole, triangle star circle square symbols in a row, centered, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/tb-restored-op.png",
+      "output": "worlds/tiny-backrooms/cards/tb-restored-op.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -286,7 +286,7 @@
       "label": "gas-mask",
       "tool": "image",
       "prompt": "flat vector card art of a scratched gas mask with round lenses, centered large icon on olive panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/gas-mask.png",
+      "output": "worlds/tiny-backrooms/cards/gas-mask.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -299,7 +299,7 @@
       "label": "hazmat-suit",
       "tool": "image",
       "prompt": "flat vector card art of a patched yellow hazmat suit, centered large icon on mustard panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/hazmat-suit.png",
+      "output": "worlds/tiny-backrooms/cards/hazmat-suit.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -312,7 +312,7 @@
       "label": "flashlight",
       "tool": "image",
       "prompt": "flat vector card art of a heavy dented flashlight beaming, centered large icon on slate panel, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/backrooms-flashlight.png",
+      "output": "worlds/tiny-backrooms/cards/backrooms-flashlight.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -325,7 +325,7 @@
       "label": "almond-water",
       "tool": "image",
       "prompt": "flat vector card art of a small almond water bottle, marzipan tones, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/almond-water.png",
+      "output": "worlds/tiny-backrooms/cards/almond-water.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -338,7 +338,7 @@
       "label": "portal-jerky",
       "tool": "image",
       "prompt": "flat vector card art of peppery jerky strips faintly humming, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/portal-jerky.png",
+      "output": "worlds/tiny-backrooms/cards/portal-jerky.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -351,7 +351,7 @@
       "label": "mold-bread",
       "tool": "image",
       "prompt": "flat vector card art of a bread slice with delicious mold veins, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/mold-bread.png",
+      "output": "worlds/tiny-backrooms/cards/mold-bread.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -364,7 +364,7 @@
       "label": "static-candy",
       "tool": "image",
       "prompt": "flat vector card art of crackling static candy sparking violet, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/static-candy.png",
+      "output": "worlds/tiny-backrooms/cards/static-candy.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -377,7 +377,7 @@
       "label": "fluorescent-tube",
       "tool": "image",
       "prompt": "flat vector card art of a humming fluorescent tube, warm glow, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/fluorescent-tube.png",
+      "output": "worlds/tiny-backrooms/cards/fluorescent-tube.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -390,7 +390,7 @@
       "label": "demodog-tooth",
       "tool": "image",
       "prompt": "flat vector card art of a sharp demodog tooth etching glass, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/demodog-tooth.png",
+      "output": "worlds/tiny-backrooms/cards/demodog-tooth.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -403,7 +403,7 @@
       "label": "ectoplasm-vial",
       "tool": "image",
       "prompt": "flat vector card art of a sealed vial of uphill-sloshing ectoplasm, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/ectoplasm-vial.png",
+      "output": "worlds/tiny-backrooms/cards/ectoplasm-vial.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -416,7 +416,7 @@
       "label": "seashell",
       "tool": "image",
       "prompt": "flat vector card art of a black seashell singing violet, centered large icon, simple clean vector illustration, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/black-seashell.png",
+      "output": "worlds/tiny-backrooms/cards/black-seashell.png",
       "args": {
         "width": 512,
         "height": 512,
@@ -429,7 +429,7 @@
       "label": "card-back",
       "tool": "image",
       "prompt": "card back design, deep violet-black with a brass ring and three stars, ornate horror border, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-backrooms/cards/back.png",
+      "output": "worlds/tiny-backrooms/cards/back.png",
       "args": {
         "width": 512,
         "height": 768,

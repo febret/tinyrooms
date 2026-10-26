@@ -198,6 +198,11 @@ Enable tools with `TRSERVER_FEATURES`; powers are also required:
 - `cutscene-catalog` at `/cutscene-catalog`: `admin` or `game-master`; reviews
   every cutscene in the loaded world (including hidden and gated scenes), edits
   placeholder overrides, and plays local-only previews.
+- `asset-bakery` at `/asset-bakery`: `admin`; loads every `bake.json` available
+  to the server, previews baked PNG/GLB outputs, edits bake parameters
+  (prompt, seed, sizes, faces, simplify), and reruns single tasks or batches
+  through `tools/bake_assets.py`. Image tasks also offer background removal,
+  resize, and trim postprocessing.
 
 For example, set `$env:TRSERVER_FEATURES = "prop-editor"` and
 `$env:TRSERVER_ADMINS = "siteadmin"` before `python run.py`.
@@ -227,6 +232,12 @@ without writing anything, and `--force` re-renders outputs that already exist.
 input JSON (preserving its formatting) and forces those assets to regenerate, so
 a run produces new variations. Set `TR_BAKE_DIR` to use a different
 `../delphi-comfyui` location.
+
+The admin Asset Bakery UI (`TRSERVER_FEATURES=asset-bakery`, `/asset-bakery`)
+exposes the same workflow in the browser: pick a file, edit task prompts and
+args, save or reseed the JSON, then queue a background bake and watch its log.
+Bake jobs run `tools/bake_assets.py` in-process order; image outputs can also
+be postprocessed (background removal, resize, trim) before rebaking.
 
 ## Verification
 

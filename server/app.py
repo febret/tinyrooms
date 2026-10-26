@@ -44,6 +44,7 @@ from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.serialization import serialize_account as _serialize_account
 from server.routes import card_database as card_database_routes
 from server.routes import chiptune as chiptune_routes
+from server.routes import asset_bakery as asset_bakery_routes
 from server.routes import cutscene_catalog as cutscene_catalog_routes
 from server.routes import cutscenes as cutscene_routes
 from server.routes import prop_editor as prop_editor_routes
@@ -99,6 +100,7 @@ from server.services.powers import PowersService
 from server.services.pricing import CardPricingService
 from server.services.progression import ProgressionService
 from server.services.prop_editor import PropEditorService
+from server.services.asset_bakery import AssetBakeryService
 from server.services.prop_lights import PropLightService
 from server.services.prop_shop import PropShopService
 from server.services.prop_surfaces import PropSurfaceService
@@ -274,6 +276,11 @@ class RuntimeState:
             self.audit,
             card_ids=set(self.catalog.cards),
         )
+
+    def asset_bakery_service(self) -> AssetBakeryService:
+        """Return an Asset Bakery service bound to this runtime."""
+
+        return AssetBakeryService(self.config, self.audit)
 
     async def set_prop_active_effect(self, room_id: str, prop_instance_id: str, set_name: str) -> None:
         """Switch a prop's active effect set and broadcast it to the room."""
@@ -874,7 +881,12 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
                 reason="signed_out",
                 message="You signed out.",
             )
-        response = JSONResponse({"ok": True})
+        response = JSONResponse({
+            "ok": True,
+            # Worlds reached through mission control entry send the browser back
+            # to the MC login page after logout; standalone worlds stay local.
+            "redirect_url": runtime.config.entry_url,
+        })
         _clear_session_cookies(response)
         return response
 
@@ -1235,6 +1247,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(world_editor_routes.router)
     app.include_router(card_database_routes.router)
     app.include_router(prop_editor_routes.router)
+    app.include_router(asset_bakery_routes.router)
     app.include_router(room_layout_routes.router)
     app.include_router(surface_routes.router)
     app.include_router(chiptune_routes.router)

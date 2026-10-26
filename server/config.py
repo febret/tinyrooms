@@ -16,7 +16,7 @@ _BASE_PATH_PATTERN = re.compile(r"^/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
 MC_FEATURE_ALIASES = frozenset({"mission-control", "mission_control"})
 # MC aliases select the launcher process; they are not needed to enroll a world.
 # Editor flags enable routes, not powers: world-editor/card-database still require
-# builder, game-master, or admin; prop-editor requires admin.
+# builder, game-master, or admin; prop-editor and asset-bakery require admin.
 # Cutscenes have no subsystem flag; reduced motion suppresses client playback.
 KNOWN_FEATURES = frozenset(
     {
@@ -26,6 +26,7 @@ KNOWN_FEATURES = frozenset(
         "card-database",
         "prop-editor",
         "cutscene-catalog",
+        "asset-bakery",
         *MC_FEATURE_ALIASES,
     }
 )

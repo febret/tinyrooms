@@ -4,7 +4,7 @@
       "label": "teleporter-instruction-manual",
       "tool": "image",
       "prompt": "Flat front-facing collectible item card design, a cream instruction book with brass corners and a glowing turquoise teleporter ring illustrated on its open pages, gold diagram arrows, centered large recognizable book icon on a deep teal blue panel, simple clean vector illustration, pastel colors, gold stars. Thin rounded antique gold double card border. Warm pale parchment title band across the bottom third, title text Teleporter Instruction Manual. Tiny uppercase caption PLEASE READ BEFORE DEPARTURE. Cohesive elegant board game card, flat printed design, no perspective, no outer wooden frame, no scenery.",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tutorial/cards/teleporter-instruction-manual.png",
+      "output": "worlds/tutorial/cards/teleporter-instruction-manual.png",
       "args": {"width": 768, "height": 1152, "seed": 67213, "negative": "empty panel, illegible, gothic, filigree, wood frame, photorealistic, ornate oval, dark brown, monochrome", "steps": 30}
     }
   ]

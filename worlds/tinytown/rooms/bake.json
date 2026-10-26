@@ -4,7 +4,7 @@
       "label": "tinytown-house-micro-loft",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Micro Loft, a narrow little loft above a bakery, warm yellow awning, one big round window, potted plants on the sill, dense downtown edge with warm street glow, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-micro-loft.png",
+      "output": "worlds/tinytown/rooms/preview-micro-loft.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -16,7 +16,7 @@
       "label": "tinytown-house-brick-studio",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Brick Studio, a small red brick studio with a huge arched window, rooftop plants, and a blue front door, dense downtown edge with warm street glow, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-brick-studio.png",
+      "output": "worlds/tinytown/rooms/preview-brick-studio.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -28,7 +28,7 @@
       "label": "tinytown-house-neon-flat",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Neon Flat, a slim city apartment with a glowing magenta and cyan neon sign, dark facade, tiny balcony, dense downtown edge with warm street glow, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-neon-flat.png",
+      "output": "worlds/tinytown/rooms/preview-neon-flat.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -40,7 +40,7 @@
       "label": "tinytown-house-clocktower-apartment",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Clocktower Apartment, a tall apartment wrapped around an old stone clock tower, copper roof, narrow windows, dense downtown edge with warm street glow, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-clocktower-apartment.png",
+      "output": "worlds/tinytown/rooms/preview-clocktower-apartment.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -52,7 +52,7 @@
       "label": "tinytown-house-skyline-penthouse",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Skyline Penthouse, a glass and brass penthouse on top of a small tower, rooftop terrace, city glow, dense downtown edge with warm street glow, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-skyline-penthouse.png",
+      "output": "worlds/tinytown/rooms/preview-skyline-penthouse.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -64,7 +64,7 @@
       "label": "tinytown-house-beach-hut",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Beach Hut, a tiny turquoise beach hut on short stilts, striped awning, surfboard leaning outside, seaside setting with salt air and harbor light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-beach-hut.png",
+      "output": "worlds/tinytown/rooms/preview-beach-hut.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -76,7 +76,7 @@
       "label": "tinytown-house-tidepool-cottage",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Tidepool Cottage, a round-windowed pastel cottage with a shell path and a little porch, seaside setting with salt air and harbor light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-tidepool-cottage.png",
+      "output": "worlds/tinytown/rooms/preview-tidepool-cottage.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -88,7 +88,7 @@
       "label": "tinytown-house-lighthouse-keep",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Lighthouse Keep, a white lighthouse keeper's cottage with a red-striped tower, storm lantern, rocky base, seaside setting with salt air and harbor light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-lighthouse-keep.png",
+      "output": "worlds/tinytown/rooms/preview-lighthouse-keep.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -100,7 +100,7 @@
       "label": "tinytown-house-harbor-house",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Harbor House, a broad blue-grey harbor house with a balcony, buoys, and a small boat tied below, seaside setting with salt air and harbor light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-harbor-house.png",
+      "output": "worlds/tinytown/rooms/preview-harbor-house.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -112,7 +112,7 @@
       "label": "tinytown-house-seaglass-villa",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Sea Glass Villa, a pastel sea-glass villa with a courtyard, small pool, and tiled roof, seaside setting with salt air and harbor light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-seaglass-villa.png",
+      "output": "worlds/tinytown/rooms/preview-seaglass-villa.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -124,7 +124,7 @@
       "label": "tinytown-house-hilltop-cabin",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Hilltop Cabin, a timber cabin with a mossy green roof, chimney smoke, and a steep hill base, green hillside setting with winding path and orchard light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-hilltop-cabin.png",
+      "output": "worlds/tinytown/rooms/preview-hilltop-cabin.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -136,7 +136,7 @@
       "label": "tinytown-house-wildflower-cottage",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Wildflower Cottage, a cream cottage with a flower-covered roof, crooked chimney, and bright garden, green hillside setting with winding path and orchard light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-wildflower-cottage.png",
+      "output": "worlds/tinytown/rooms/preview-wildflower-cottage.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -148,7 +148,7 @@
       "label": "tinytown-house-orchard-house",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Orchard House, a long low stone house among apple trees, baskets by the door, warm windows, green hillside setting with winding path and orchard light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-orchard-house.png",
+      "output": "worlds/tinytown/rooms/preview-orchard-house.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -160,7 +160,7 @@
       "label": "tinytown-house-vineyard-manor",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Vineyard Manor, a stone manor with grapevines, a walled courtyard, and deep red shutters, green hillside setting with winding path and orchard light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-vineyard-manor.png",
+      "output": "worlds/tinytown/rooms/preview-vineyard-manor.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -172,7 +172,7 @@
       "label": "tinytown-house-observatory-estate",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Observatory Estate, a manor with a brass observatory dome, tall windows, and a starry exposed roof, green hillside setting with winding path and orchard light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-observatory-estate.png",
+      "output": "worlds/tinytown/rooms/preview-observatory-estate.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -184,7 +184,7 @@
       "label": "tinytown-house-starter-bungalow",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Starter Bungalow, a tidy little bungalow with a green door, crooked mailbox, and one proud sunflower, leafy suburban lane with soft afternoon light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-starter-bungalow.png",
+      "output": "worlds/tinytown/rooms/preview-starter-bungalow.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -196,7 +196,7 @@
       "label": "tinytown-house-maple-family-home",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Maple Family Home, a red brick family home under a maple tree, wide porch, bicycles by the path, leafy suburban lane with soft afternoon light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-maple-family-home.png",
+      "output": "worlds/tinytown/rooms/preview-maple-family-home.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -208,7 +208,7 @@
       "label": "tinytown-house-garden-terrace",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Garden Terrace, a terraced green home with a garden wall, climbing roses, and warm kitchen windows, leafy suburban lane with soft afternoon light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-garden-terrace.png",
+      "output": "worlds/tinytown/rooms/preview-garden-terrace.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -220,7 +220,7 @@
       "label": "tinytown-house-willow-pool-house",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Willow Pool House, a roomy modern cottage with a willow tree, a small pool, and a timber deck, leafy suburban lane with soft afternoon light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-willow-pool-house.png",
+      "output": "worlds/tinytown/rooms/preview-willow-pool-house.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -232,7 +232,7 @@
       "label": "tinytown-house-grand-manor",
       "tool": "image",
       "prompt": "isometric miniature diorama exterior of a cozy Grand Manor, a grand brick manor with tall windows, columns, a garden, and a broad front step, leafy suburban lane with soft afternoon light, single detached house on a small rounded base, storybook game art, clean bold shapes, warm inviting windows, soft shadows, no people, no text, no letters, no words, no numbers, no watermark, plain soft cream background, centered composition",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/preview-grand-manor.png",
+      "output": "worlds/tinytown/rooms/preview-grand-manor.png",
       "args": {
         "width": 1024,
         "height": 640,
@@ -244,7 +244,7 @@
       "label": "tinytown-town-map",
       "tool": "image",
       "prompt": "hand-painted top-down illustrated map of a pocket-sized storybook town, four clear districts: a dense downtown with a clock tower and brick rooftops on the left, a harbor and lighthouse along the sea at the top right, green hills with orchard cottages and a small observatory at the bottom right, leafy suburbs with gardens at the bottom left, winding cream roads, tiny trees, flower beds, soft warm afternoon light, miniature diorama game art, no text, no letters, no words, no numbers, no labels, no watermark, no people",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/town-map.png",
+      "output": "worlds/tinytown/rooms/town-map.png",
       "args": {
         "width": 1024,
         "height": 768,
@@ -256,7 +256,7 @@
       "label": "tinytown-floor-oak",
       "tool": "image",
       "prompt": "seamless warm honey oak wide plank floor, soft satin finish, realistic wood grain, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-oak.png",
+      "output": "worlds/tinytown/rooms/floor-oak.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -268,7 +268,7 @@
       "label": "tinytown-floor-terracotta",
       "tool": "image",
       "prompt": "seamless sun-baked terracotta square tile floor, hand-pressed edges, warm clay tones, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-terracotta.png",
+      "output": "worlds/tinytown/rooms/floor-terracotta.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -280,7 +280,7 @@
       "label": "tinytown-floor-checker",
       "tool": "image",
       "prompt": "seamless cream and charcoal checkerboard tile floor, crisp grout lines, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-checker.png",
+      "output": "worlds/tinytown/rooms/floor-checker.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -292,7 +292,7 @@
       "label": "tinytown-floor-sea-glass",
       "tool": "image",
       "prompt": "seamless frosted sea-glass tile floor, soft green-blue squares, watery sheen, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-sea-glass.png",
+      "output": "worlds/tinytown/rooms/floor-sea-glass.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -304,7 +304,7 @@
       "label": "tinytown-floor-herringbone",
       "tool": "image",
       "prompt": "seamless dark walnut herringbone parquet floor, rich brown grain, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-herringbone.png",
+      "output": "worlds/tinytown/rooms/floor-herringbone.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -316,7 +316,7 @@
       "label": "tinytown-floor-linen",
       "tool": "image",
       "prompt": "seamless oat and cream woven linen carpet texture, soft natural fibers, subtle weave, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-linen.png",
+      "output": "worlds/tinytown/rooms/floor-linen.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -328,7 +328,7 @@
       "label": "tinytown-floor-slate",
       "tool": "image",
       "prompt": "seamless split slate stone floor, cool grey layers, pale mortar, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-slate.png",
+      "output": "worlds/tinytown/rooms/floor-slate.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -340,7 +340,7 @@
       "label": "tinytown-floor-moss",
       "tool": "image",
       "prompt": "seamless deep moss green wool carpet texture, soft dense fibers, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-moss.png",
+      "output": "worlds/tinytown/rooms/floor-moss.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -352,7 +352,7 @@
       "label": "tinytown-floor-sandstone",
       "tool": "image",
       "prompt": "seamless pale sandstone flagstone floor, warm layered stone, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-sandstone.png",
+      "output": "worlds/tinytown/rooms/floor-sandstone.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -364,7 +364,7 @@
       "label": "tinytown-floor-starlight",
       "tool": "image",
       "prompt": "seamless dark midnight marble floor with fine white quartz veins like tiny constellations, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-starlight.png",
+      "output": "worlds/tinytown/rooms/floor-starlight.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -376,7 +376,7 @@
       "label": "tinytown-floor-marble",
       "tool": "image",
       "prompt": "seamless soft white cloud marble floor with grey veining, polished, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-marble.png",
+      "output": "worlds/tinytown/rooms/floor-marble.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -388,7 +388,7 @@
       "label": "tinytown-floor-cork",
       "tool": "image",
       "prompt": "seamless warm apricot and rust cork tile floor, springy speckled texture, flat top-down texture, evenly lit, no perspective, no furniture, no walls, no text",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tinytown/rooms/floor-cork.png",
+      "output": "worlds/tinytown/rooms/floor-cork.png",
       "args": {
         "width": 1024,
         "height": 1024,

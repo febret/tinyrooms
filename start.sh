@@ -12,7 +12,7 @@ export TRSERVER_NEW_ACCOUNT_PASSPHRASE="${TRSERVER_NEW_ACCOUNT_PASSPHRASE:-deadb
 export TRSERVER_MODS="${TRSERVER_MODS:-*}"
 # Enable the authoring applications (World Editor + Card Database) locally.
 # Set TRSERVER_FEATURES=mission-control to launch the mission-control server instead.
-export TRSERVER_FEATURES="${TRSERVER_FEATURES:-dev_sample_activity,world-editor,card-database,prop-editor,cutscene-catalog}"
+export TRSERVER_FEATURES="${TRSERVER_FEATURES:-dev_sample_activity,world-editor,card-database,prop-editor,cutscene-catalog,asset-bakery}"
 # Grant admin (which includes editor access) to a local account, e.g.:
 # export TRSERVER_ADMINS="${TRSERVER_ADMINS:-}"
 

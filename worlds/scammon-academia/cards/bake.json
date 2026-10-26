@@ -4,7 +4,7 @@
       "label": "academia-pack-back",
       "tool": "image",
       "prompt": "a symmetrical collectible card back with a smiling gray husky dog crest inside a yellow circle on a deep blue field framed by a thin yellow border, flat vector illustration, clean bold shapes, cheerful children's picture-book style, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/academia-pack-back.png",
+      "output": "worlds/scammon-academia/cards/academia-pack-back.png",
       "args": {
         "width": 768,
         "height": 1152,
@@ -16,7 +16,7 @@
       "label": "skill-reading",
       "tool": "image",
       "prompt": "a centered school emblem for the Reading subject showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-reading.png",
+      "output": "worlds/scammon-academia/cards/skill-reading.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -28,7 +28,7 @@
       "label": "skill-writing",
       "tool": "image",
       "prompt": "a centered school emblem for the Writing subject showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-writing.png",
+      "output": "worlds/scammon-academia/cards/skill-writing.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -40,7 +40,7 @@
       "label": "skill-math",
       "tool": "image",
       "prompt": "a centered school emblem for the Math subject showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-math.png",
+      "output": "worlds/scammon-academia/cards/skill-math.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -52,7 +52,7 @@
       "label": "skill-history",
       "tool": "image",
       "prompt": "a centered school emblem for the History subject showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-history.png",
+      "output": "worlds/scammon-academia/cards/skill-history.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -64,7 +64,7 @@
       "label": "skill-geography",
       "tool": "image",
       "prompt": "a centered school emblem for the Geography subject showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-geography.png",
+      "output": "worlds/scammon-academia/cards/skill-geography.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -76,7 +76,7 @@
       "label": "skill-chemistry",
       "tool": "image",
       "prompt": "a centered school emblem for the Chemistry subject showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-chemistry.png",
+      "output": "worlds/scammon-academia/cards/skill-chemistry.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -88,7 +88,7 @@
       "label": "skill-tech",
       "tool": "image",
       "prompt": "a centered school emblem for the Tech subject showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-tech.png",
+      "output": "worlds/scammon-academia/cards/skill-tech.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -100,7 +100,7 @@
       "label": "skill-sport",
       "tool": "image",
       "prompt": "a centered school emblem for the Sport subject showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-sport.png",
+      "output": "worlds/scammon-academia/cards/skill-sport.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -112,7 +112,7 @@
       "label": "skill-biology",
       "tool": "image",
       "prompt": "a centered school emblem for the Biology subject showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, blue and yellow school colors on a plain deep blue background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/skill-biology.png",
+      "output": "worlds/scammon-academia/cards/skill-biology.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -124,7 +124,7 @@
       "label": "topic-reading-alphabet",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Alphabet Adventure for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-alphabet.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-alphabet.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -136,7 +136,7 @@
       "label": "topic-reading-phonics",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Phonics Pop for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-phonics.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-phonics.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -148,7 +148,7 @@
       "label": "topic-reading-sight-words",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Sight Words for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-sight-words.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-sight-words.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -160,7 +160,7 @@
       "label": "topic-reading-story-time",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Story Time for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-story-time.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-story-time.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -172,7 +172,7 @@
       "label": "topic-reading-rhyming",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Rhyme Time for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-rhyming.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-rhyming.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -184,7 +184,7 @@
       "label": "topic-reading-comprehension",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Comprehension for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-comprehension.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-comprehension.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -196,7 +196,7 @@
       "label": "topic-reading-poetry",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Poetry Corner for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-poetry.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-poetry.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -208,7 +208,7 @@
       "label": "topic-reading-fairy-tales",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Fairy Tales for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-fairy-tales.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-fairy-tales.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -220,7 +220,7 @@
       "label": "topic-reading-vocabulary",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Big Vocabulary for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-vocabulary.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-vocabulary.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -232,7 +232,7 @@
       "label": "topic-reading-book-clubs",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Book Club for a Reading lesson, showing an open storybook with a golden bookmark, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-reading-book-clubs.png",
+      "output": "worlds/scammon-academia/cards/topic-reading-book-clubs.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -244,7 +244,7 @@
       "label": "topic-writing-handwriting",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Neat Handwriting for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-handwriting.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-handwriting.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -256,7 +256,7 @@
       "label": "topic-writing-spelling",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Spelling Bee for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-spelling.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-spelling.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -268,7 +268,7 @@
       "label": "topic-writing-sentences",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Great Sentences for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-sentences.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-sentences.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -280,7 +280,7 @@
       "label": "topic-writing-punctuation",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Punctuation Power for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-punctuation.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-punctuation.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -292,7 +292,7 @@
       "label": "topic-writing-paragraphs",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Paragraph Builder for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-paragraphs.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-paragraphs.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -304,7 +304,7 @@
       "label": "topic-writing-storytelling",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Storytelling for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-storytelling.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-storytelling.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -316,7 +316,7 @@
       "label": "topic-writing-letters",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Friendly Letters for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-letters.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-letters.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -328,7 +328,7 @@
       "label": "topic-writing-journaling",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Journaling for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-journaling.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-journaling.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -340,7 +340,7 @@
       "label": "topic-writing-grammar",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Grammar Puzzle for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-grammar.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-grammar.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -352,7 +352,7 @@
       "label": "topic-writing-creative-writing",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Creative Writing for a Writing lesson, showing a pencil writing on lined paper, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-writing-creative-writing.png",
+      "output": "worlds/scammon-academia/cards/topic-writing-creative-writing.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -364,7 +364,7 @@
       "label": "topic-math-counting",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Count With Me for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-counting.png",
+      "output": "worlds/scammon-academia/cards/topic-math-counting.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -376,7 +376,7 @@
       "label": "topic-math-addition",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Addition Action for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-addition.png",
+      "output": "worlds/scammon-academia/cards/topic-math-addition.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -388,7 +388,7 @@
       "label": "topic-math-subtraction",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Subtraction Slide for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-subtraction.png",
+      "output": "worlds/scammon-academia/cards/topic-math-subtraction.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -400,7 +400,7 @@
       "label": "topic-math-multiplication",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Times Tables for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-multiplication.png",
+      "output": "worlds/scammon-academia/cards/topic-math-multiplication.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -412,7 +412,7 @@
       "label": "topic-math-division",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Division Dash for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-division.png",
+      "output": "worlds/scammon-academia/cards/topic-math-division.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -424,7 +424,7 @@
       "label": "topic-math-fractions",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Fraction Slices for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-fractions.png",
+      "output": "worlds/scammon-academia/cards/topic-math-fractions.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -436,7 +436,7 @@
       "label": "topic-math-shapes",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Shape Safari for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-shapes.png",
+      "output": "worlds/scammon-academia/cards/topic-math-shapes.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -448,7 +448,7 @@
       "label": "topic-math-measurement",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Measuring Things for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-measurement.png",
+      "output": "worlds/scammon-academia/cards/topic-math-measurement.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -460,7 +460,7 @@
       "label": "topic-math-time",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Telling Time for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-time.png",
+      "output": "worlds/scammon-academia/cards/topic-math-time.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -472,7 +472,7 @@
       "label": "topic-math-word-problems",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Word Problems for a Math lesson, showing bright numbers beside a plus and a minus sign, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-math-word-problems.png",
+      "output": "worlds/scammon-academia/cards/topic-math-word-problems.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -484,7 +484,7 @@
       "label": "topic-history-ancient-egypt",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Ancient Egypt for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-ancient-egypt.png",
+      "output": "worlds/scammon-academia/cards/topic-history-ancient-egypt.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -496,7 +496,7 @@
       "label": "topic-history-knights",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Knights & Castles for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-knights.png",
+      "output": "worlds/scammon-academia/cards/topic-history-knights.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -508,7 +508,7 @@
       "label": "topic-history-vikings",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Viking Voyages for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-vikings.png",
+      "output": "worlds/scammon-academia/cards/topic-history-vikings.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -520,7 +520,7 @@
       "label": "topic-history-explorers",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Brave Explorers for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-explorers.png",
+      "output": "worlds/scammon-academia/cards/topic-history-explorers.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -532,7 +532,7 @@
       "label": "topic-history-castles",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Castle Life for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-castles.png",
+      "output": "worlds/scammon-academia/cards/topic-history-castles.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -544,7 +544,7 @@
       "label": "topic-history-ancient-rome",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Ancient Rome for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-ancient-rome.png",
+      "output": "worlds/scammon-academia/cards/topic-history-ancient-rome.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -556,7 +556,7 @@
       "label": "topic-history-revolution",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Revolutions for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-revolution.png",
+      "output": "worlds/scammon-academia/cards/topic-history-revolution.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -568,7 +568,7 @@
       "label": "topic-history-pioneers",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Pioneers for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-pioneers.png",
+      "output": "worlds/scammon-academia/cards/topic-history-pioneers.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -580,7 +580,7 @@
       "label": "topic-history-pharaohs",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Pharaohs for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-pharaohs.png",
+      "output": "worlds/scammon-academia/cards/topic-history-pharaohs.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -592,7 +592,7 @@
       "label": "topic-history-timelines",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Timelines for a History lesson, showing a rolled scroll and an hourglass, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-history-timelines.png",
+      "output": "worlds/scammon-academia/cards/topic-history-timelines.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -604,7 +604,7 @@
       "label": "topic-geography-continents",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Seven Continents for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-continents.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-continents.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -616,7 +616,7 @@
       "label": "topic-geography-oceans",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Oceans Deep for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-oceans.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-oceans.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -628,7 +628,7 @@
       "label": "topic-geography-mountains",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Mighty Mountains for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-mountains.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-mountains.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -640,7 +640,7 @@
       "label": "topic-geography-rivers",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Rivers Run for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-rivers.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-rivers.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -652,7 +652,7 @@
       "label": "topic-geography-deserts",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Deserts for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-deserts.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-deserts.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -664,7 +664,7 @@
       "label": "topic-geography-capitals",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Capital Cities for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-capitals.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-capitals.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -676,7 +676,7 @@
       "label": "topic-geography-maps",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Reading Maps for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-maps.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-maps.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -688,7 +688,7 @@
       "label": "topic-geography-climates",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Climates for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-climates.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-climates.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -700,7 +700,7 @@
       "label": "topic-geography-volcanoes",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Volcanoes for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-volcanoes.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-volcanoes.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -712,7 +712,7 @@
       "label": "topic-geography-landmarks",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about World Landmarks for a Geography lesson, showing a globe with green continents and blue oceans, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-geography-landmarks.png",
+      "output": "worlds/scammon-academia/cards/topic-geography-landmarks.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -724,7 +724,7 @@
       "label": "topic-chemistry-atoms",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Tiny Atoms for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-atoms.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-atoms.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -736,7 +736,7 @@
       "label": "topic-chemistry-molecules",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Molecules for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-molecules.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-molecules.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -748,7 +748,7 @@
       "label": "topic-chemistry-reactions",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Reactions for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-reactions.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-reactions.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -760,7 +760,7 @@
       "label": "topic-chemistry-acids-bases",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Acids & Bases for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-acids-bases.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-acids-bases.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -772,7 +772,7 @@
       "label": "topic-chemistry-periodic-table",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Periodic Table for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-periodic-table.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-periodic-table.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -784,7 +784,7 @@
       "label": "topic-chemistry-mixtures",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Mixtures for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-mixtures.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-mixtures.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -796,7 +796,7 @@
       "label": "topic-chemistry-gases",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Gases for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-gases.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-gases.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -808,7 +808,7 @@
       "label": "topic-chemistry-crystals",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Crystals for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-crystals.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-crystals.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -820,7 +820,7 @@
       "label": "topic-chemistry-solutions",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Solutions for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-solutions.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-solutions.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -832,7 +832,7 @@
       "label": "topic-chemistry-safe-lab",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Lab Safety for a Chemistry lesson, showing a bubbling round flask and two test tubes, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-chemistry-safe-lab.png",
+      "output": "worlds/scammon-academia/cards/topic-chemistry-safe-lab.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -844,7 +844,7 @@
       "label": "topic-tech-coding",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Coding for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-coding.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-coding.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -856,7 +856,7 @@
       "label": "topic-tech-robots",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Robots for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-robots.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-robots.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -868,7 +868,7 @@
       "label": "topic-tech-internet",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about The Internet for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-internet.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-internet.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -880,7 +880,7 @@
       "label": "topic-tech-circuits",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Circuits for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-circuits.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-circuits.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -892,7 +892,7 @@
       "label": "topic-tech-rockets",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Rockets for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-rockets.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-rockets.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -904,7 +904,7 @@
       "label": "topic-tech-ai",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Friendly AI for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-ai.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-ai.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -916,7 +916,7 @@
       "label": "topic-tech-3d-printing",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about 3D Printing for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-3d-printing.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-3d-printing.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -928,7 +928,7 @@
       "label": "topic-tech-keyboards",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Keyboards for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-keyboards.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-keyboards.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -940,7 +940,7 @@
       "label": "topic-tech-cybersecurity",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Cyber Safety for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-cybersecurity.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-cybersecurity.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -952,7 +952,7 @@
       "label": "topic-tech-solar-power",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Solar Power for a Tech lesson, showing a small laptop beside a toy robot, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-tech-solar-power.png",
+      "output": "worlds/scammon-academia/cards/topic-tech-solar-power.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -964,7 +964,7 @@
       "label": "topic-sport-soccer",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Soccer for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-soccer.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-soccer.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -976,7 +976,7 @@
       "label": "topic-sport-basketball",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Basketball for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-basketball.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-basketball.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -988,7 +988,7 @@
       "label": "topic-sport-running",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Running for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-running.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-running.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1000,7 +1000,7 @@
       "label": "topic-sport-swimming",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Swimming for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-swimming.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-swimming.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1012,7 +1012,7 @@
       "label": "topic-sport-gymnastics",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Gymnastics for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-gymnastics.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-gymnastics.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1024,7 +1024,7 @@
       "label": "topic-sport-yoga",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Yoga for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-yoga.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-yoga.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1036,7 +1036,7 @@
       "label": "topic-sport-tennis",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Tennis for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-tennis.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-tennis.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1048,7 +1048,7 @@
       "label": "topic-sport-cycling",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Cycling for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-cycling.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-cycling.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1060,7 +1060,7 @@
       "label": "topic-sport-team-spirit",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Team Spirit for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-team-spirit.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-team-spirit.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1072,7 +1072,7 @@
       "label": "topic-sport-warm-ups",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Warm Ups for a Sport lesson, showing a soccer ball beside a silver whistle, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-sport-warm-ups.png",
+      "output": "worlds/scammon-academia/cards/topic-sport-warm-ups.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1084,7 +1084,7 @@
       "label": "topic-biology-cells",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Cells for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-cells.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-cells.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1096,7 +1096,7 @@
       "label": "topic-biology-plants",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Plants for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-plants.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-plants.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1108,7 +1108,7 @@
       "label": "topic-biology-animals",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Animals for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-animals.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-animals.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1120,7 +1120,7 @@
       "label": "topic-biology-ecosystems",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Ecosystems for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-ecosystems.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-ecosystems.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1132,7 +1132,7 @@
       "label": "topic-biology-photosynthesis",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Photosynthesis for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-photosynthesis.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-photosynthesis.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1144,7 +1144,7 @@
       "label": "topic-biology-human-body",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Human Body for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-human-body.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-human-body.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1156,7 +1156,7 @@
       "label": "topic-biology-insects",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Insects for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-insects.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-insects.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1168,7 +1168,7 @@
       "label": "topic-biology-dinosaurs",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Dinosaurs for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-dinosaurs.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-dinosaurs.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1180,7 +1180,7 @@
       "label": "topic-biology-food-chains",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Food Chains for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-food-chains.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-food-chains.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -1192,7 +1192,7 @@
       "label": "topic-biology-habitats",
       "tool": "image",
       "prompt": "a cheerful children's textbook illustration about Habitats for a Biology lesson, showing a green leaf and an orange butterfly, flat vector illustration, clean bold shapes, cheerful children's picture-book style, plain light background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/scammon-academia/cards/topic-biology-habitats.png",
+      "output": "worlds/scammon-academia/cards/topic-biology-habitats.png",
       "args": {
         "width": 768,
         "height": 768,

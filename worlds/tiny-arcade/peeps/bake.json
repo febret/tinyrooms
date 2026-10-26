@@ -4,28 +4,28 @@
       "label": "paintbot-pip",
       "tool": "image",
       "prompt": "a cute chunky paintball robot peep sticker, round teal body with a silver funnel hat, big happy white eyes, tiny orange paintball blaster in one hand, magenta paint splat on its cheek, flat vector sticker illustration, clean bold outlines, plain deep purple background, full body, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/peeps/paintbot-pip.png",
+      "output": "worlds/tiny-arcade/peeps/paintbot-pip.png",
       "args": {"width": 768, "height": 768, "seed": 95501, "steps": 26}
     },
     {
       "label": "paintbot-bolt",
       "tool": "image",
       "prompt": "a lanky paintball robot peep sticker, tall violet body with long spindly arms, a single blue visor eye, a long cyan paintball blaster, blue paint splat on its chest, flat vector sticker illustration, clean bold outlines, plain deep purple background, full body, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/peeps/paintbot-bolt.png",
+      "output": "worlds/tiny-arcade/peeps/paintbot-bolt.png",
       "args": {"width": 768, "height": 768, "seed": 95502, "steps": 26}
     },
     {
       "label": "paintbot-mim",
       "tool": "image",
       "prompt": "a small round paintball robot peep sticker, lime green body with a mirrored chrome face plate, two little antennae, a yellow paintball blaster held sideways, yellow paint splat on its shoulder, flat vector sticker illustration, clean bold outlines, plain deep purple background, full body, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/peeps/paintbot-mim.png",
+      "output": "worlds/tiny-arcade/peeps/paintbot-mim.png",
       "args": {"width": 768, "height": 768, "seed": 95503, "steps": 26}
     },
     {
       "label": "paintbot-cog",
       "tool": "image",
       "prompt": "a sturdy paintball robot peep sticker, blocky orange body with a barrel-shaped torso, heavy tread feet, a big purple paintball blaster, purple paint splat on its helmet, flat vector sticker illustration, clean bold outlines, plain deep purple background, full body, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/peeps/paintbot-cog.png",
+      "output": "worlds/tiny-arcade/peeps/paintbot-cog.png",
       "args": {"width": 768, "height": 768, "seed": 95504, "steps": 26}
     }
   ]

@@ -23,7 +23,7 @@
       "label": "heist-lockpick",
       "tool": "image",
       "prompt": "{{card}}, brass lockpicks working inside a steel padlock keyway, metal shavings",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-lockpick.png",
+      "output": "worlds/tiny-vault/cards/heist-lockpick.png",
       "args": {
         "template": "card",
         "seed": 96001
@@ -33,7 +33,7 @@
       "label": "heist-disguise",
       "tool": "image",
       "prompt": "{{card}}, sly grinning thief face half hidden under a navy guard cap with a fake black mustache, noir shadows",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-disguise.png",
+      "output": "worlds/tiny-vault/cards/heist-disguise.png",
       "args": {
         "template": "card",
         "seed": 96002
@@ -43,7 +43,7 @@
       "label": "heist-smoke",
       "tool": "image",
       "prompt": "{{card}}, thick gray smoke roiling everywhere with one small round bomb glowing inside it",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-smoke.png",
+      "output": "worlds/tiny-vault/cards/heist-smoke.png",
       "args": {
         "template": "card",
         "seed": 96003
@@ -53,7 +53,7 @@
       "label": "heist-emp",
       "tool": "image",
       "prompt": "{{card}}, brass pocket EMP device erupting in blue lightning arcs",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-emp.png",
+      "output": "worlds/tiny-vault/cards/heist-emp.png",
       "args": {
         "template": "card",
         "seed": 96004
@@ -63,7 +63,7 @@
       "label": "heist-decoy",
       "tool": "image",
       "prompt": "{{card}}, tiny chirping brass decoy gadget with visible golden sound waves",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-decoy.png",
+      "output": "worlds/tiny-vault/cards/heist-decoy.png",
       "args": {
         "template": "card",
         "seed": 96005
@@ -73,7 +73,7 @@
       "label": "heist-jammer",
       "tool": "image",
       "prompt": "{{card}}, alarm jammer box with tall antenna wrapped in red jamming signal rings",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-jammer.png",
+      "output": "worlds/tiny-vault/cards/heist-jammer.png",
       "args": {
         "template": "card",
         "seed": 96006
@@ -83,7 +83,7 @@
       "label": "heist-drill",
       "tool": "image",
       "prompt": "{{card}}, diamond drill bit biting into a brushed steel vault door, sparks and curls of metal",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-drill.png",
+      "output": "worlds/tiny-vault/cards/heist-drill.png",
       "args": {
         "template": "card",
         "seed": 96007
@@ -93,7 +93,7 @@
       "label": "heist-grapple",
       "tool": "image",
       "prompt": "{{card}}, steel grapple hook with coiled rope swinging across a night rooftop sky",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-grapple.png",
+      "output": "worlds/tiny-vault/cards/heist-grapple.png",
       "args": {
         "template": "card",
         "seed": 96008
@@ -103,7 +103,7 @@
       "label": "heist-gold-bar",
       "tool": "image",
       "prompt": "{{card}}, pile of gleaming stamped gold bars stacked high in warm vault light",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-gold-bar.png",
+      "output": "worlds/tiny-vault/cards/heist-gold-bar.png",
       "args": {
         "template": "card",
         "seed": 96009
@@ -113,7 +113,7 @@
       "label": "heist-bear-bond",
       "tool": "image",
       "prompt": "{{card}}, fanned bearer bonds with red wax seals spread over dark mahogany",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-bear-bond.png",
+      "output": "worlds/tiny-vault/cards/heist-bear-bond.png",
       "args": {
         "template": "card",
         "seed": 96010
@@ -123,7 +123,7 @@
       "label": "heist-diamond",
       "tool": "image",
       "prompt": "{{card}}, giant sparkling faceted diamond throwing rainbow refractions on black velvet",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-diamond.png",
+      "output": "worlds/tiny-vault/cards/heist-diamond.png",
       "args": {
         "template": "card",
         "seed": 96011
@@ -133,7 +133,7 @@
       "label": "heist-art",
       "tool": "image",
       "prompt": "{{card}}, tiny ornate gilt-framed oil painting of a moonlit harbor with ships",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-art.png",
+      "output": "worlds/tiny-vault/cards/heist-art.png",
       "args": {
         "template": "card",
         "seed": 96012
@@ -143,7 +143,7 @@
       "label": "heist-master-key",
       "tool": "image",
       "prompt": "{{card}}, giant ornate golden skeleton key trophy under a spotlight with falling confetti",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/cards/heist-master-key.png",
+      "output": "worlds/tiny-vault/cards/heist-master-key.png",
       "args": {
         "template": "card",
         "seed": 96013
@@ -163,7 +163,7 @@
       "label": "hideout-floor",
       "tool": "image",
       "prompt": "{{floor}}, dark worn criminal hideout wooden planks",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/hideout-floor.png",
+      "output": "worlds/tiny-vault/rooms/hideout-floor.png",
       "args": {
         "template": "floor",
         "seed": 96101
@@ -173,7 +173,7 @@
       "label": "lobby-floor",
       "tool": "image",
       "prompt": "{{floor}}, elegant bank lobby marble tiles with thin brass inlay grid",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/lobby-floor.png",
+      "output": "worlds/tiny-vault/rooms/lobby-floor.png",
       "args": {
         "template": "floor",
         "seed": 96102
@@ -183,7 +183,7 @@
       "label": "offices-floor",
       "tool": "image",
       "prompt": "{{floor}}, modern office carpet tiles in blue gray squares",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/offices-floor.png",
+      "output": "worlds/tiny-vault/rooms/offices-floor.png",
       "args": {
         "template": "floor",
         "seed": 96103
@@ -193,7 +193,7 @@
       "label": "security-floor",
       "tool": "image",
       "prompt": "{{floor}}, dark security control room metal plates with faint green seams",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/security-floor.png",
+      "output": "worlds/tiny-vault/rooms/security-floor.png",
       "args": {
         "template": "floor",
         "seed": 96104
@@ -203,7 +203,7 @@
       "label": "vault-floor",
       "tool": "image",
       "prompt": "{{floor}}, riveted steel bank vault floor plates",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/vault-floor.png",
+      "output": "worlds/tiny-vault/rooms/vault-floor.png",
       "args": {
         "template": "floor",
         "seed": 96105
@@ -213,7 +213,7 @@
       "label": "alley-floor",
       "tool": "image",
       "prompt": "{{floor}}, wet asphalt service alley with a painted line and one drain grate at the edge",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/alley-floor.png",
+      "output": "worlds/tiny-vault/rooms/alley-floor.png",
       "args": {
         "template": "floor",
         "seed": 96106
@@ -223,7 +223,7 @@
       "label": "roof-floor",
       "tool": "image",
       "prompt": "{{floor}}, gravel bank rooftop tar with seams",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/roof-floor.png",
+      "output": "worlds/tiny-vault/rooms/roof-floor.png",
       "args": {
         "template": "floor",
         "seed": 96107
@@ -233,7 +233,7 @@
       "label": "hangar-floor",
       "tool": "image",
       "prompt": "{{floor}}, dark guard locker room concrete with a yellow hazard stripe border",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/rooms/hangar-floor.png",
+      "output": "worlds/tiny-vault/rooms/hangar-floor.png",
       "args": {
         "template": "floor",
         "seed": 96108
@@ -253,7 +253,7 @@
       "label": "bot-lookout",
       "tool": "image",
       "prompt": "{{peep}}, small friendly brass lookout robot with big binocular eyes and a periscope",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/peeps/bot-lookout.png",
+      "output": "worlds/tiny-vault/peeps/bot-lookout.png",
       "args": {
         "template": "peep",
         "seed": 96201
@@ -263,7 +263,7 @@
       "label": "bot-muscle",
       "tool": "image",
       "prompt": "{{peep}}, bulky friendly copper muscle robot with crate-lifting clamp arms",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/peeps/bot-muscle.png",
+      "output": "worlds/tiny-vault/peeps/bot-muscle.png",
       "args": {
         "template": "peep",
         "seed": 96202
@@ -273,7 +273,7 @@
       "label": "bot-slicer",
       "tool": "image",
       "prompt": "{{peep}}, clever slim silver hacker robot with antenna and a tiny keyboard",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/peeps/bot-slicer.png",
+      "output": "worlds/tiny-vault/peeps/bot-slicer.png",
       "args": {
         "template": "peep",
         "seed": 96203
@@ -292,7 +292,7 @@
       "label": "vault-locked",
       "tool": "asset",
       "prompt": "{{prop}}, front view of a massive round steel bank vault door facing the viewer, huge centered spoke wheel handle and brass dial, symmetrical, riveted rim",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/vault-locked.glb",
+      "output": "worlds/tiny-vault/props/vault-locked.glb",
       "args": {
         "template": "prop",
         "seed": 96401
@@ -302,7 +302,7 @@
       "label": "vault-open",
       "tool": "asset",
       "prompt": "{{prop}}, open bank vault doorway filled with neatly stacked glowing gold bars, bright warm light flooding out, no dark areas, cheerful",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/vault-open.glb",
+      "output": "worlds/tiny-vault/props/vault-open.glb",
       "args": {
         "template": "prop",
         "seed": 96327
@@ -312,7 +312,7 @@
       "label": "vault-door-locked",
       "tool": "asset",
       "prompt": "{{prop}}, tall riveted steel interior bank door with round combination dial and heavy hinges, closed",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/vault-door-locked.glb",
+      "output": "worlds/tiny-vault/props/vault-door-locked.glb",
       "args": {
         "template": "prop",
         "seed": 96303
@@ -322,7 +322,7 @@
       "label": "vault-door-open",
       "tool": "asset",
       "prompt": "{{prop}}, tall riveted steel interior bank door ajar with warm light spilling through the gap",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/vault-door-open.glb",
+      "output": "worlds/tiny-vault/props/vault-door-open.glb",
       "args": {
         "template": "prop",
         "seed": 96304
@@ -332,7 +332,7 @@
       "label": "laser-active",
       "tool": "asset",
       "prompt": "{{prop}}, two identical short brass posts with three straight parallel red laser beams stretched horizontally between them, symmetrical side view, plain",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/laser-active.glb",
+      "output": "worlds/tiny-vault/props/laser-active.glb",
       "args": {
         "template": "prop",
         "seed": 96405
@@ -342,7 +342,7 @@
       "label": "laser-disabled",
       "tool": "asset",
       "prompt": "{{prop}}, two short brass security posts with dark dead emitter lenses, no beams",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/laser-disabled.glb",
+      "output": "worlds/tiny-vault/props/laser-disabled.glb",
       "args": {
         "template": "prop",
         "seed": 96306
@@ -352,7 +352,7 @@
       "label": "console",
       "tool": "asset",
       "prompt": "{{prop}}, retro beige CRT security terminal with glowing green screen and chunky keyboard",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/console.glb",
+      "output": "worlds/tiny-vault/props/console.glb",
       "args": {
         "template": "prop",
         "seed": 96307
@@ -362,7 +362,7 @@
       "label": "alarm-panel",
       "tool": "asset",
       "prompt": "{{prop}}, front view of a steel wall alarm panel board facing the viewer with four big glowing round indicator lamps red yellow green blue in a row and a small brass bell on top, flat and symmetrical",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/alarm-panel.glb",
+      "output": "worlds/tiny-vault/props/alarm-panel.glb",
       "args": {
         "template": "prop",
         "seed": 96358
@@ -372,7 +372,7 @@
       "label": "loot-diamond",
       "tool": "asset",
       "prompt": "{{prop}}, brilliant sparkling blue-white faceted diamond on a small dark velvet cushion",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/loot-diamond.glb",
+      "output": "worlds/tiny-vault/props/loot-diamond.glb",
       "args": {
         "template": "prop",
         "seed": 96309
@@ -382,7 +382,7 @@
       "label": "loot-art",
       "tool": "asset",
       "prompt": "{{prop}}, small gilt-framed oil painting of a stormy sea with ships on a tiny easel",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/props/loot-art.glb",
+      "output": "worlds/tiny-vault/props/loot-art.glb",
       "args": {
         "template": "prop",
         "seed": 96310
@@ -402,7 +402,7 @@
       "label": "ui-brass",
       "tool": "image",
       "prompt": "{{uitex}}, brushed brass metal plate with fine horizontal grain and rivets at corners",
-      "output": "C:/workspace/tinyrooms-noon/mods/tinyvault/activities/heist-board/ui-brass.png",
+      "output": "mods/tinyvault/activities/heist-board/ui-brass.png",
       "args": {
         "template": "uitex",
         "seed": 96401
@@ -412,7 +412,7 @@
       "label": "ui-felt",
       "tool": "image",
       "prompt": "{{uitex}}, dark green baize casino felt with subtle fiber noise",
-      "output": "C:/workspace/tinyrooms-noon/mods/tinyvault/activities/heist-board/ui-felt.png",
+      "output": "mods/tinyvault/activities/heist-board/ui-felt.png",
       "args": {
         "template": "uitex",
         "seed": 96402
@@ -422,7 +422,7 @@
       "label": "ui-blueprint",
       "tool": "image",
       "prompt": "{{uitex}}, aged heist blueprint paper with faint white grid and coffee stains at edges",
-      "output": "C:/workspace/tinyrooms-noon/mods/tinyvault/activities/heist-board/ui-blueprint.png",
+      "output": "mods/tinyvault/activities/heist-board/ui-blueprint.png",
       "args": {
         "template": "uitex",
         "seed": 96403
@@ -432,7 +432,7 @@
       "label": "ui-steel",
       "tool": "image",
       "prompt": "{{uitex}}, dark brushed gunmetal steel with vertical grain",
-      "output": "C:/workspace/tinyrooms-noon/mods/tinyvault/activities/heist-board/ui-steel.png",
+      "output": "mods/tinyvault/activities/heist-board/ui-steel.png",
       "args": {
         "template": "uitex",
         "seed": 96404
@@ -451,7 +451,7 @@
       "label": "heist-drill",
       "tool": "sound",
       "prompt": "industrial diamond drill boring into a steel vault door, harsh mechanical grinding",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-drill.wav",
+      "output": "worlds/tiny-vault/sounds/heist-drill.wav",
       "args": {
         "template": "sfx",
         "seed": 96501,
@@ -462,7 +462,7 @@
       "label": "heist-alarm",
       "tool": "sound",
       "prompt": "vintage bank alarm bell ringing urgently, metallic clang loop",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-alarm.wav",
+      "output": "worlds/tiny-vault/sounds/heist-alarm.wav",
       "args": {
         "template": "sfx",
         "seed": 96502,
@@ -473,7 +473,7 @@
       "label": "heist-vault-open",
       "tool": "sound",
       "prompt": "massive steel vault door clunking open with hydraulic hiss",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-vault-open.wav",
+      "output": "worlds/tiny-vault/sounds/heist-vault-open.wav",
       "args": {
         "template": "sfx",
         "seed": 96503,
@@ -484,7 +484,7 @@
       "label": "heist-lockpick",
       "tool": "sound",
       "prompt": "delicate lockpick clicks and tension wrench scrapes in a padlock",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-lockpick.wav",
+      "output": "worlds/tiny-vault/sounds/heist-lockpick.wav",
       "args": {
         "template": "sfx",
         "seed": 96504,
@@ -495,7 +495,7 @@
       "label": "heist-emp",
       "tool": "sound",
       "prompt": "electromagnetic pulse zap followed by power-down whine",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-emp.wav",
+      "output": "worlds/tiny-vault/sounds/heist-emp.wav",
       "args": {
         "template": "sfx",
         "seed": 96505,
@@ -506,7 +506,7 @@
       "label": "heist-smoke",
       "tool": "sound",
       "prompt": "smoke bomb pop and fizzy smoke release hiss",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-smoke.wav",
+      "output": "worlds/tiny-vault/sounds/heist-smoke.wav",
       "args": {
         "template": "sfx",
         "seed": 96506,
@@ -517,7 +517,7 @@
       "label": "heist-gold",
       "tool": "sound",
       "prompt": "gold bars clinking together, bright metallic clinks",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-gold.wav",
+      "output": "worlds/tiny-vault/sounds/heist-gold.wav",
       "args": {
         "template": "sfx",
         "seed": 96507,
@@ -528,7 +528,7 @@
       "label": "heist-paper",
       "tool": "sound",
       "prompt": "paper banknotes shuffling and folding crisply",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-paper.wav",
+      "output": "worlds/tiny-vault/sounds/heist-paper.wav",
       "args": {
         "template": "sfx",
         "seed": 96508,
@@ -539,7 +539,7 @@
       "label": "heist-success",
       "tool": "sound",
       "prompt": "jazzy heist success sting, brushed drums upright bass and brass hit",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-success.wav",
+      "output": "worlds/tiny-vault/sounds/heist-success.wav",
       "args": {
         "template": "sfx",
         "seed": 96509,
@@ -550,7 +550,7 @@
       "label": "heist-fail",
       "tool": "sound",
       "prompt": "comedic busted sting, descending slide whistle into a dull thud",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-fail.wav",
+      "output": "worlds/tiny-vault/sounds/heist-fail.wav",
       "args": {
         "template": "sfx",
         "seed": 96510,
@@ -561,7 +561,7 @@
       "label": "heist-whistle",
       "tool": "sound",
       "prompt": "sharp referee guard whistle blow, two blasts",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-whistle.wav",
+      "output": "worlds/tiny-vault/sounds/heist-whistle.wav",
       "args": {
         "template": "sfx",
         "seed": 96511,
@@ -572,7 +572,7 @@
       "label": "heist-grapple",
       "tool": "sound",
       "prompt": "rope zipline zip and steel hook clang",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-vault/sounds/heist-grapple.wav",
+      "output": "worlds/tiny-vault/sounds/heist-grapple.wav",
       "args": {
         "template": "sfx",
         "seed": 96512,

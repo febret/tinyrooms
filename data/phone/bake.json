@@ -4,7 +4,7 @@
       "label": "phone-wallpaper",
       "tool": "image",
       "prompt": "early 2000s mobile phone pixel art, very low resolution, limited 16 color palette, crisp nearest-neighbor pixels, dithered shading, chunky outlines, no antialiasing, abstract sunset over pixel mountains for an early 2000s mobile phone display, dithered orange and teal gradient sky, tiny pale stars, simple 96 by 128 pixel composition, no text, no icons, no phone frame",
-      "output": "C:/workspace/tinyrooms-noon/client/app/assets/phone/phone-wallpaper.png",
+      "output": "client/app/assets/phone/phone-wallpaper.png",
       "args": {
         "width": 384,
         "height": 512,
@@ -17,7 +17,7 @@
       "label": "phone-icon-friends",
       "tool": "image",
       "prompt": "early 2000s mobile phone pixel art, very low resolution, limited 16 color palette, crisp nearest-neighbor pixels, dithered shading, chunky outlines, no antialiasing, square mobile phone menu icon of two friendly people side by side, simple heads and shoulders, cyan and cream palette, dark navy outline, centered on a flat muted navy background, no text, no letters, no phone frame",
-      "output": "C:/workspace/tinyrooms-noon/client/app/assets/phone/phone-icon-friends.png",
+      "output": "client/app/assets/phone/phone-icon-friends.png",
       "args": {
         "width": 256,
         "height": 256,
@@ -30,7 +30,7 @@
       "label": "phone-icon-messages",
       "tool": "image",
       "prompt": "early 2000s mobile phone pixel art, very low resolution, limited 16 color palette, crisp nearest-neighbor pixels, dithered shading, chunky outlines, no antialiasing, square mobile phone menu icon of a cream paper envelope with a dark navy outline, centered on a flat muted navy background, no text, no letters, no phone frame",
-      "output": "C:/workspace/tinyrooms-noon/client/app/assets/phone/phone-icon-messages.png",
+      "output": "client/app/assets/phone/phone-icon-messages.png",
       "args": {
         "width": 256,
         "height": 256,
@@ -43,7 +43,7 @@
       "label": "phone-icon-chiptune",
       "tool": "image",
       "prompt": "early 2000s mobile phone pixel art, very low resolution, limited 16 color palette, crisp nearest-neighbor pixels, dithered shading, chunky outlines, no antialiasing, square mobile phone menu icon of a tiny portable music player with two chunky headphones and a musical note, orange and cream palette, dark brown outline, centered on a flat olive background, no text, no letters, no phone frame",
-      "output": "C:/workspace/tinyrooms-noon/client/app/assets/phone/phone-icon-chiptune.png",
+      "output": "client/app/assets/phone/phone-icon-chiptune.png",
       "args": {
         "width": 256,
         "height": 256,

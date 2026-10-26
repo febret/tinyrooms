@@ -13,7 +13,7 @@
    "label": "poolhouse-teak-lounger",
    "tool": "asset",
    "prompt": "a teak sun lounger with a turquoise cushion, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-teak-lounger.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-teak-lounger.glb",
    "args": {
     "seed": 3901,
     "faces": 500
@@ -23,7 +23,7 @@
    "label": "poolhouse-cabana-sofa",
    "tool": "asset",
    "prompt": "a white outdoor cabana sofa, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-cabana-sofa.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-cabana-sofa.glb",
    "args": {
     "seed": 3902,
     "faces": 500
@@ -33,7 +33,7 @@
    "label": "poolhouse-director-chair",
    "tool": "asset",
    "prompt": "a canvas director chair with teak frame, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-director-chair.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-director-chair.glb",
    "args": {
     "seed": 3903,
     "faces": 500
@@ -43,7 +43,7 @@
    "label": "poolhouse-pool-stool",
    "tool": "asset",
    "prompt": "a turquoise round bar stool, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-pool-stool.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-pool-stool.glb",
    "args": {
     "seed": 3904,
     "faces": 500
@@ -53,7 +53,7 @@
    "label": "poolhouse-umbrella-lamp",
    "tool": "asset",
    "prompt": "a floor lamp with a parasol-shaped shade, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-umbrella-lamp.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-umbrella-lamp.glb",
    "args": {
     "seed": 3905,
     "faces": 500
@@ -63,7 +63,7 @@
    "label": "poolhouse-globe-string",
    "tool": "asset",
    "prompt": "a string of glowing globe party lights, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-globe-string.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-globe-string.glb",
    "args": {
     "seed": 3906,
     "faces": 500
@@ -73,7 +73,7 @@
    "label": "poolhouse-lantern-table",
    "tool": "asset",
    "prompt": "a glass garden lantern with a candle glow, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-lantern-table.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-lantern-table.glb",
    "args": {
     "seed": 3907,
     "faces": 500
@@ -83,7 +83,7 @@
    "label": "poolhouse-plank-table",
    "tool": "asset",
    "prompt": "a long teak outdoor dining table, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-plank-table.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-plank-table.glb",
    "args": {
     "seed": 3908,
     "faces": 500
@@ -93,7 +93,7 @@
    "label": "poolhouse-tray-table",
    "tool": "asset",
    "prompt": "a small tray-top drinks table, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-tray-table.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-tray-table.glb",
    "args": {
     "seed": 3909,
     "faces": 500
@@ -103,7 +103,7 @@
    "label": "poolhouse-ice-table",
    "tool": "asset",
    "prompt": "a side table with a built-in ice bucket, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-ice-table.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-ice-table.glb",
    "args": {
     "seed": 3910,
     "faces": 500
@@ -113,7 +113,7 @@
    "label": "poolhouse-towel-shelf",
    "tool": "asset",
    "prompt": "a slatted teak shelf stacked with folded towels, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-towel-shelf.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-towel-shelf.glb",
    "args": {
     "seed": 3911,
     "faces": 500
@@ -123,7 +123,7 @@
    "label": "poolhouse-locker",
    "tool": "asset",
    "prompt": "a white metal pool locker cabinet, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-locker.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-locker.glb",
    "args": {
     "seed": 3912,
     "faces": 500
@@ -133,7 +133,7 @@
    "label": "poolhouse-basket",
    "tool": "asset",
    "prompt": "a large woven basket holding pool floats, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-basket.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-basket.glb",
    "args": {
     "seed": 3913,
     "faces": 500
@@ -143,7 +143,7 @@
    "label": "poolhouse-daybed",
    "tool": "asset",
    "prompt": "an outdoor daybed with white curtains, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-daybed.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-daybed.glb",
    "args": {
     "seed": 3914,
     "faces": 500
@@ -153,7 +153,7 @@
    "label": "poolhouse-stripe-rug",
    "tool": "asset",
    "prompt": "a flat outdoor rug with cabana stripes, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-stripe-rug.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-stripe-rug.glb",
    "args": {
     "seed": 3915,
     "faces": 500
@@ -163,7 +163,7 @@
    "label": "poolhouse-life-ring",
    "tool": "asset",
    "prompt": "a white and red life ring wall decoration, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-life-ring.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-life-ring.glb",
    "args": {
     "seed": 3916,
     "faces": 500
@@ -173,7 +173,7 @@
    "label": "poolhouse-sun-clock",
    "tool": "asset",
    "prompt": "a round outdoor wall clock, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-sun-clock.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-sun-clock.glb",
    "args": {
     "seed": 3917,
     "faces": 500
@@ -183,7 +183,7 @@
    "label": "poolhouse-palm-pair",
    "tool": "asset",
    "prompt": "two small potted palm trees in striped pots, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-palm-pair.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-palm-pair.glb",
    "args": {
     "seed": 3918,
     "faces": 500
@@ -193,7 +193,7 @@
    "label": "poolhouse-pitcher-vase",
    "tool": "asset",
    "prompt": "a turquoise pitcher vase with hibiscus flowers, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-pitcher-vase.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-pitcher-vase.glb",
    "args": {
     "seed": 3919,
     "faces": 500
@@ -203,7 +203,7 @@
    "label": "poolhouse-changing-screen",
    "tool": "asset",
    "prompt": "a teak folding changing screen with canvas, pool house, white rattan teak and turquoise, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/pool-house-base/poolhouse-changing-screen.glb",
+   "output": "data/propsets/pool-house-base/poolhouse-changing-screen.glb",
    "args": {
     "seed": 3920,
     "faces": 500

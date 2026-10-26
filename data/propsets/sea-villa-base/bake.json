@@ -13,7 +13,7 @@
    "label": "seavilla-aqua-sofa",
    "tool": "asset",
    "prompt": "a curved two-seat sofa in pale aqua fabric, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-aqua-sofa.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-aqua-sofa.glb",
    "args": {
     "seed": 3301,
     "faces": 500
@@ -23,7 +23,7 @@
    "label": "seavilla-shell-armchair",
    "tool": "asset",
    "prompt": "a cream scallop-shell shaped armchair, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-shell-armchair.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-shell-armchair.glb",
    "args": {
     "seed": 3302,
     "faces": 500
@@ -33,7 +33,7 @@
    "label": "seavilla-rattan-dining-chair",
    "tool": "asset",
    "prompt": "a bleached rattan dining chair with a pale cushion, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-rattan-dining-chair.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-rattan-dining-chair.glb",
    "args": {
     "seed": 3303,
     "faces": 500
@@ -43,7 +43,7 @@
    "label": "seavilla-poolside-lounger",
    "tool": "asset",
    "prompt": "a white poolside sun lounger with a rolled towel, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-poolside-lounger.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-poolside-lounger.glb",
    "args": {
     "seed": 3304,
     "faces": 500
@@ -53,7 +53,7 @@
    "label": "seavilla-glass-orb-lamp",
    "tool": "asset",
    "prompt": "a tall floor lamp with a sea-glass orb shade, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-glass-orb-lamp.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-glass-orb-lamp.glb",
    "args": {
     "seed": 3305,
     "faces": 500
@@ -63,7 +63,7 @@
    "label": "seavilla-coral-table-lamp",
    "tool": "asset",
    "prompt": "a white coral-shaped table lamp, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-coral-table-lamp.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-coral-table-lamp.glb",
    "args": {
     "seed": 3306,
     "faces": 500
@@ -73,7 +73,7 @@
    "label": "seavilla-drift-pendant",
    "tool": "asset",
    "prompt": "a hanging pendant of frosted sea-glass discs, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-drift-pendant.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-drift-pendant.glb",
    "args": {
     "seed": 3307,
     "faces": 500
@@ -83,7 +83,7 @@
    "label": "seavilla-oval-coffee-table",
    "tool": "asset",
    "prompt": "an oval travertine coffee table, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-oval-coffee-table.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-oval-coffee-table.glb",
    "args": {
     "seed": 3308,
     "faces": 500
@@ -93,7 +93,7 @@
    "label": "seavilla-mosaic-side-table",
    "tool": "asset",
    "prompt": "a small round side table with a sea-glass mosaic top, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-mosaic-side-table.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-mosaic-side-table.glb",
    "args": {
     "seed": 3309,
     "faces": 500
@@ -103,7 +103,7 @@
    "label": "seavilla-dining-table",
    "tool": "asset",
    "prompt": "a long pale wood dining table for six, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-dining-table.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-dining-table.glb",
    "args": {
     "seed": 3310,
     "faces": 500
@@ -113,7 +113,7 @@
    "label": "seavilla-arched-shelf",
    "tool": "asset",
    "prompt": "a small arched plaster wall shelf, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-arched-shelf.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-arched-shelf.glb",
    "args": {
     "seed": 3311,
     "faces": 500
@@ -123,7 +123,7 @@
    "label": "seavilla-cane-cabinet",
    "tool": "asset",
    "prompt": "a washed-oak cabinet with woven cane doors, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-cane-cabinet.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-cane-cabinet.glb",
    "args": {
     "seed": 3312,
     "faces": 500
@@ -133,7 +133,7 @@
    "label": "seavilla-woven-hamper",
    "tool": "asset",
    "prompt": "a tall woven seagrass hamper with a lid, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-woven-hamper.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-woven-hamper.glb",
    "args": {
     "seed": 3313,
     "faces": 500
@@ -143,7 +143,7 @@
    "label": "seavilla-canopy-bed",
    "tool": "asset",
    "prompt": "a white four-poster canopy bed with sheer curtains, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-canopy-bed.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-canopy-bed.glb",
    "args": {
     "seed": 3314,
     "faces": 500
@@ -153,7 +153,7 @@
    "label": "seavilla-wave-rug",
    "tool": "asset",
    "prompt": "a soft flat rug with pale aqua wave pattern, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-wave-rug.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-wave-rug.glb",
    "args": {
     "seed": 3315,
     "faces": 500
@@ -163,7 +163,7 @@
    "label": "seavilla-arch-mirror",
    "tool": "asset",
    "prompt": "a tall arched mirror with a thin brass frame, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-arch-mirror.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-arch-mirror.glb",
    "args": {
     "seed": 3316,
     "faces": 500
@@ -173,7 +173,7 @@
    "label": "seavilla-sun-clock",
    "tool": "asset",
    "prompt": "a gold sunburst wall clock, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-sun-clock.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-sun-clock.glb",
    "args": {
     "seed": 3317,
     "faces": 500
@@ -183,7 +183,7 @@
    "label": "seavilla-olive-pot",
    "tool": "asset",
    "prompt": "a small potted olive tree in a limewashed pot, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-olive-pot.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-olive-pot.glb",
    "args": {
     "seed": 3318,
     "faces": 500
@@ -193,7 +193,7 @@
    "label": "seavilla-urchin-vase",
    "tool": "asset",
    "prompt": "a spiky sea-urchin shaped ceramic vase, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-urchin-vase.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-urchin-vase.glb",
    "args": {
     "seed": 3319,
     "faces": 500
@@ -203,7 +203,7 @@
    "label": "seavilla-linen-curtain",
    "tool": "asset",
    "prompt": "a tall sheer linen curtain panel on a brass rod, pastel sea-glass villa, pale aqua plaster and bleached rattan, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/sea-villa-base/seavilla-linen-curtain.glb",
+   "output": "data/propsets/sea-villa-base/seavilla-linen-curtain.glb",
    "args": {
     "seed": 3320,
     "faces": 500

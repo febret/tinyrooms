@@ -13,7 +13,7 @@
    "label": "neon-modular-sofa",
    "tool": "asset",
    "prompt": "a low modular sectional sofa in grey fabric, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-modular-sofa.glb",
+   "output": "data/propsets/neon-flat-base/neon-modular-sofa.glb",
    "args": {
     "seed": 3601,
     "faces": 500
@@ -23,7 +23,7 @@
    "label": "neon-acrylic-chair",
    "tool": "asset",
    "prompt": "a transparent acrylic side chair, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-acrylic-chair.glb",
+   "output": "data/propsets/neon-flat-base/neon-acrylic-chair.glb",
    "args": {
     "seed": 3602,
     "faces": 500
@@ -33,7 +33,7 @@
    "label": "neon-bar-stool",
    "tool": "asset",
    "prompt": "a chrome bar stool with a magenta seat, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-bar-stool.glb",
+   "output": "data/propsets/neon-flat-base/neon-bar-stool.glb",
    "args": {
     "seed": 3603,
     "faces": 500
@@ -43,7 +43,7 @@
    "label": "neon-pouf-lounger",
    "tool": "asset",
    "prompt": "a hot pink vinyl pouf lounger chair, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-pouf-lounger.glb",
+   "output": "data/propsets/neon-flat-base/neon-pouf-lounger.glb",
    "args": {
     "seed": 3604,
     "faces": 500
@@ -53,7 +53,7 @@
    "label": "neon-tube-floor-lamp",
    "tool": "asset",
    "prompt": "a tall glowing neon tube floor lamp, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-tube-floor-lamp.glb",
+   "output": "data/propsets/neon-flat-base/neon-tube-floor-lamp.glb",
    "args": {
     "seed": 3605,
     "faces": 500
@@ -63,7 +63,7 @@
    "label": "neon-sign-heart",
    "tool": "asset",
    "prompt": "a pink neon heart wall sign, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-sign-heart.glb",
+   "output": "data/propsets/neon-flat-base/neon-sign-heart.glb",
    "args": {
     "seed": 3606,
     "faces": 500
@@ -73,7 +73,7 @@
    "label": "neon-desk-strip",
    "tool": "asset",
    "prompt": "a slim LED desk lamp bar with colour glow, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-desk-strip.glb",
+   "output": "data/propsets/neon-flat-base/neon-desk-strip.glb",
    "args": {
     "seed": 3607,
     "faces": 500
@@ -83,7 +83,7 @@
    "label": "neon-glass-desk",
    "tool": "asset",
    "prompt": "a glass-top desk on chrome trestle legs, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-glass-desk.glb",
+   "output": "data/propsets/neon-flat-base/neon-glass-desk.glb",
    "args": {
     "seed": 3608,
     "faces": 500
@@ -93,7 +93,7 @@
    "label": "neon-pedestal-table",
    "tool": "asset",
    "prompt": "a white tulip pedestal side table, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-pedestal-table.glb",
+   "output": "data/propsets/neon-flat-base/neon-pedestal-table.glb",
    "args": {
     "seed": 3609,
     "faces": 500
@@ -103,7 +103,7 @@
    "label": "neon-lowboard",
    "tool": "asset",
    "prompt": "a glossy black lowboard with an LED light strip, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-lowboard.glb",
+   "output": "data/propsets/neon-flat-base/neon-lowboard.glb",
    "args": {
     "seed": 3610,
     "faces": 500
@@ -113,7 +113,7 @@
    "label": "neon-cube-shelf",
    "tool": "asset",
    "prompt": "a backlit modular cube shelf, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-cube-shelf.glb",
+   "output": "data/propsets/neon-flat-base/neon-cube-shelf.glb",
    "args": {
     "seed": 3611,
     "faces": 500
@@ -123,7 +123,7 @@
    "label": "neon-locker-cabinet",
    "tool": "asset",
    "prompt": "a teal powder-coated metal locker cabinet, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-locker-cabinet.glb",
+   "output": "data/propsets/neon-flat-base/neon-locker-cabinet.glb",
    "args": {
     "seed": 3612,
     "faces": 500
@@ -133,7 +133,7 @@
    "label": "neon-crate-stack",
    "tool": "asset",
    "prompt": "a stack of colourful plastic milk crates, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-crate-stack.glb",
+   "output": "data/propsets/neon-flat-base/neon-crate-stack.glb",
    "args": {
     "seed": 3613,
     "faces": 500
@@ -143,7 +143,7 @@
    "label": "neon-platform-bed",
    "tool": "asset",
    "prompt": "a low platform bed with glowing underlight, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-platform-bed.glb",
+   "output": "data/propsets/neon-flat-base/neon-platform-bed.glb",
    "args": {
     "seed": 3614,
     "faces": 500
@@ -153,7 +153,7 @@
    "label": "neon-grid-rug",
    "tool": "asset",
    "prompt": "a black rug printed with a cyan retro grid, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-grid-rug.glb",
+   "output": "data/propsets/neon-flat-base/neon-grid-rug.glb",
    "args": {
     "seed": 3615,
     "faces": 500
@@ -163,7 +163,7 @@
    "label": "neon-infinity-mirror",
    "tool": "asset",
    "prompt": "a round LED infinity mirror, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-infinity-mirror.glb",
+   "output": "data/propsets/neon-flat-base/neon-infinity-mirror.glb",
    "args": {
     "seed": 3616,
     "faces": 500
@@ -173,7 +173,7 @@
    "label": "neon-flip-clock",
    "tool": "asset",
    "prompt": "a retro flip clock, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-flip-clock.glb",
+   "output": "data/propsets/neon-flat-base/neon-flip-clock.glb",
    "args": {
     "seed": 3617,
     "faces": 500
@@ -183,7 +183,7 @@
    "label": "neon-snake-plant",
    "tool": "asset",
    "prompt": "a snake plant in a chrome pot, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-snake-plant.glb",
+   "output": "data/propsets/neon-flat-base/neon-snake-plant.glb",
    "args": {
     "seed": 3618,
     "faces": 500
@@ -193,7 +193,7 @@
    "label": "neon-bolt-vase",
    "tool": "asset",
    "prompt": "a lightning-bolt shaped ceramic vase, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-bolt-vase.glb",
+   "output": "data/propsets/neon-flat-base/neon-bolt-vase.glb",
    "args": {
     "seed": 3619,
     "faces": 500
@@ -203,7 +203,7 @@
    "label": "neon-shoji-screen",
    "tool": "asset",
    "prompt": "a backlit white shoji folding screen, neon downtown apartment, glossy acrylic and glowing neon, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/neon-flat-base/neon-shoji-screen.glb",
+   "output": "data/propsets/neon-flat-base/neon-shoji-screen.glb",
    "args": {
     "seed": 3620,
     "faces": 500

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#061923">
+    <title>Asset Bakery · Tinyrooms</title>
+    <link rel="icon" href="/assets/stickers/s1.png">
+    <link rel="stylesheet" href="/app/css/tool-base.css">
+    <link rel="stylesheet" href="/asset-bakery/asset-bakery.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/app/vendor/three/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="ab-app" class="ab-shell">
+      <header id="ab-toolbar" class="ab-toolbar" aria-label="Asset Bakery toolbar"></header>
+      <div class="ab-body">
+        <aside id="ab-files" class="ab-files" aria-label="Bake file selection"></aside>
+        <main class="ab-stage">
+          <section id="ab-preview" class="ab-preview" aria-label="Asset preview">
+            <div id="ab-preview-media" class="ab-preview-media"></div>
+            <div id="ab-preview-info" class="ab-preview-info" aria-live="polite"></div>
+          </section>
+          <section id="ab-tasks" class="ab-tasks" aria-label="Bake tasks"></section>
+          <section id="ab-jobs" class="ab-jobs" aria-label="Baking queue"></section>
+        </main>
+        <aside id="ab-sidebar" class="ab-sidebar" aria-label="Task editor">
+          <nav id="ab-tabs" class="ab-tabs" aria-label="Bakery views"></nav>
+          <section id="ab-editor" class="ab-pane" aria-label="Task properties"></section>
+          <section id="ab-postprocess" class="ab-pane" hidden aria-label="Postprocess tools"></section>
+          <section id="ab-bake" class="ab-pane" hidden aria-label="File and bake jobs"></section>
+        </aside>
+      </div>
+      <p id="ab-toast" class="ab-toast" aria-live="polite"></p>
+    </div>
+    <script type="module" src="/asset-bakery/js/app.js"></script>
+  </body>
+</html>

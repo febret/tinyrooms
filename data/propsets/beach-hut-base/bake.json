@@ -13,7 +13,7 @@
    "label": "beachhut-rattan-lounger",
    "tool": "asset",
    "prompt": "a low woven rattan beach lounger with a coral-striped cushion, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-rattan-lounger.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-rattan-lounger.glb",
    "args": {
     "seed": 3101,
     "faces": 500
@@ -23,7 +23,7 @@
    "label": "beachhut-driftwood-bench",
    "tool": "asset",
    "prompt": "a rustic bench made of smooth grey driftwood planks, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-driftwood-bench.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-driftwood-bench.glb",
    "args": {
     "seed": 3102,
     "faces": 500
@@ -33,7 +33,7 @@
    "label": "beachhut-canvas-deckchair",
    "tool": "asset",
    "prompt": "a folding wooden deckchair with striped sailcloth canvas seat, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-canvas-deckchair.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-canvas-deckchair.glb",
    "args": {
     "seed": 3103,
     "faces": 500
@@ -43,7 +43,7 @@
    "label": "beachhut-wicker-peacock-chair",
    "tool": "asset",
    "prompt": "a tall woven wicker peacock chair with a fan back, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-wicker-peacock-chair.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-wicker-peacock-chair.glb",
    "args": {
     "seed": 3104,
     "faces": 500
@@ -53,7 +53,7 @@
    "label": "beachhut-rope-floor-lamp",
    "tool": "asset",
    "prompt": "a tall floor lamp with a rope-wrapped pole and linen drum shade, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-rope-floor-lamp.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-rope-floor-lamp.glb",
    "args": {
     "seed": 3105,
     "faces": 500
@@ -63,7 +63,7 @@
    "label": "beachhut-fishing-lantern",
    "tool": "asset",
    "prompt": "a small brass ship lantern with warm glowing glass, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-fishing-lantern.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-fishing-lantern.glb",
    "args": {
     "seed": 3106,
     "faces": 500
@@ -73,7 +73,7 @@
    "label": "beachhut-shell-pendant",
    "tool": "asset",
    "prompt": "a hanging pendant lamp decorated with pale seashells, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-shell-pendant.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-shell-pendant.glb",
    "args": {
     "seed": 3107,
     "faces": 500
@@ -83,7 +83,7 @@
    "label": "beachhut-crate-coffee-table",
    "tool": "asset",
    "prompt": "a low square coffee table made from a whitewashed wooden fish crate, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-crate-coffee-table.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-crate-coffee-table.glb",
    "args": {
     "seed": 3108,
     "faces": 500
@@ -93,7 +93,7 @@
    "label": "beachhut-round-bamboo-table",
    "tool": "asset",
    "prompt": "a round bamboo side table with a woven top, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-round-bamboo-table.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-round-bamboo-table.glb",
    "args": {
     "seed": 3109,
     "faces": 500
@@ -103,7 +103,7 @@
    "label": "beachhut-driftwood-desk",
    "tool": "asset",
    "prompt": "a small writing desk made of bleached driftwood with one drawer, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-driftwood-desk.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-driftwood-desk.glb",
    "args": {
     "seed": 3110,
     "faces": 500
@@ -113,7 +113,7 @@
    "label": "beachhut-net-shelf",
    "tool": "asset",
    "prompt": "a small pine wall shelf with a draped fishing net, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-net-shelf.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-net-shelf.glb",
    "args": {
     "seed": 3111,
     "faces": 500
@@ -123,7 +123,7 @@
    "label": "beachhut-striped-cabinet",
    "tool": "asset",
    "prompt": "a small two-door cabinet painted with vertical beach-hut stripes, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-striped-cabinet.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-striped-cabinet.glb",
    "args": {
     "seed": 3112,
     "faces": 500
@@ -133,7 +133,7 @@
    "label": "beachhut-wicker-trunk",
    "tool": "asset",
    "prompt": "a lidded woven wicker storage trunk with leather straps, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-wicker-trunk.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-wicker-trunk.glb",
    "args": {
     "seed": 3113,
     "faces": 500
@@ -143,7 +143,7 @@
    "label": "beachhut-bunk-bed",
    "tool": "asset",
    "prompt": "a compact white wooden bunk bed with striped bedding, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-bunk-bed.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-bunk-bed.glb",
    "args": {
     "seed": 3114,
     "faces": 500
@@ -153,7 +153,7 @@
    "label": "beachhut-stripe-rug",
    "tool": "asset",
    "prompt": "a flat woven cotton rug with sand coral and sea-blue stripes, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-stripe-rug.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-stripe-rug.glb",
    "args": {
     "seed": 3115,
     "faces": 500
@@ -163,7 +163,7 @@
    "label": "beachhut-round-mirror",
    "tool": "asset",
    "prompt": "a round wall mirror framed with thick pale rope, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-round-mirror.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-round-mirror.glb",
    "args": {
     "seed": 3116,
     "faces": 500
@@ -173,7 +173,7 @@
    "label": "beachhut-tide-clock",
    "tool": "asset",
    "prompt": "a round wall clock painted with tide markings and a small anchor, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-tide-clock.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-tide-clock.glb",
    "args": {
     "seed": 3117,
     "faces": 500
@@ -183,7 +183,7 @@
    "label": "beachhut-palm-pot",
    "tool": "asset",
    "prompt": "a small potted palm tree in a chipped enamel bucket, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-palm-pot.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-palm-pot.glb",
    "args": {
     "seed": 3118,
     "faces": 500
@@ -193,7 +193,7 @@
    "label": "beachhut-foam-vase",
    "tool": "asset",
    "prompt": "a sea-glass green vase holding dune grass sprigs, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-foam-vase.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-foam-vase.glb",
    "args": {
     "seed": 3119,
     "faces": 500
@@ -203,7 +203,7 @@
    "label": "beachhut-shutter-screen",
    "tool": "asset",
    "prompt": "a three-panel folding wooden shutter screen painted white, sun-bleached coastal beach hut, whitewashed wood and coral accents, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/beach-hut-base/beachhut-shutter-screen.glb",
+   "output": "data/propsets/beach-hut-base/beachhut-shutter-screen.glb",
    "args": {
     "seed": 3120,
     "faces": 500

@@ -69,7 +69,7 @@ export TRSERVER_MC_TOKEN="${TRSERVER_MC_TOKEN:-deadbeef-token}"
 export TRSERVER_MODS="${TRSERVER_MODS:-*}"
 
 # A handful of authoring/activity features, but never mission-control on worlds.
-WORLD_FEATURES="${WORLD_FEATURES:-dev_sample_activity,world-editor,card-database,prop-editor,cutscene-catalog}"
+WORLD_FEATURES="${WORLD_FEATURES:-dev_sample_activity,world-editor,card-database,prop-editor,cutscene-catalog,asset-bakery}"
 
 ROOT=".local/multiworld"
 USERS="$ROOT/users"

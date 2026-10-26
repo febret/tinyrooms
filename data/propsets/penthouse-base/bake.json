@@ -13,7 +13,7 @@
    "label": "penthouse-velvet-sofa",
    "tool": "asset",
    "prompt": "a deep emerald velvet three-seat sofa with brass feet, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-velvet-sofa.glb",
+   "output": "data/propsets/penthouse-base/penthouse-velvet-sofa.glb",
    "args": {
     "seed": 3501,
     "faces": 500
@@ -23,7 +23,7 @@
    "label": "penthouse-barrel-chair",
    "tool": "asset",
    "prompt": "a cream boucle barrel armchair, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-barrel-chair.glb",
+   "output": "data/propsets/penthouse-base/penthouse-barrel-chair.glb",
    "args": {
     "seed": 3502,
     "faces": 500
@@ -33,7 +33,7 @@
    "label": "penthouse-dining-chair",
    "tool": "asset",
    "prompt": "an elegant cognac leather dining chair with brass legs, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-dining-chair.glb",
+   "output": "data/propsets/penthouse-base/penthouse-dining-chair.glb",
    "args": {
     "seed": 3503,
     "faces": 500
@@ -43,7 +43,7 @@
    "label": "penthouse-ottoman-bench",
    "tool": "asset",
    "prompt": "a long charcoal wool ottoman bench, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-ottoman-bench.glb",
+   "output": "data/propsets/penthouse-base/penthouse-ottoman-bench.glb",
    "args": {
     "seed": 3504,
     "faces": 500
@@ -53,7 +53,7 @@
    "label": "penthouse-arc-lamp",
    "tool": "asset",
    "prompt": "a tall arc floor lamp with a marble base and dome shade, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-arc-lamp.glb",
+   "output": "data/propsets/penthouse-base/penthouse-arc-lamp.glb",
    "args": {
     "seed": 3505,
     "faces": 500
@@ -63,7 +63,7 @@
    "label": "penthouse-globe-lamp",
    "tool": "asset",
    "prompt": "a table lamp with a smoked-glass globe shade, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-globe-lamp.glb",
+   "output": "data/propsets/penthouse-base/penthouse-globe-lamp.glb",
    "args": {
     "seed": 3506,
     "faces": 500
@@ -73,7 +73,7 @@
    "label": "penthouse-chandelier",
    "tool": "asset",
    "prompt": "a small brass chandelier with glass rods, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-chandelier.glb",
+   "output": "data/propsets/penthouse-base/penthouse-chandelier.glb",
    "args": {
     "seed": 3507,
     "faces": 500
@@ -83,7 +83,7 @@
    "label": "penthouse-marble-coffee-table",
    "tool": "asset",
    "prompt": "a rectangular black marble coffee table with brass trim, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-marble-coffee-table.glb",
+   "output": "data/propsets/penthouse-base/penthouse-marble-coffee-table.glb",
    "args": {
     "seed": 3508,
     "faces": 500
@@ -93,7 +93,7 @@
    "label": "penthouse-glass-side-table",
    "tool": "asset",
    "prompt": "a small smoked-glass side table on a brass stem, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-glass-side-table.glb",
+   "output": "data/propsets/penthouse-base/penthouse-glass-side-table.glb",
    "args": {
     "seed": 3509,
     "faces": 500
@@ -103,7 +103,7 @@
    "label": "penthouse-dining-table",
    "tool": "asset",
    "prompt": "a long dark marble dining table, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-dining-table.glb",
+   "output": "data/propsets/penthouse-base/penthouse-dining-table.glb",
    "args": {
     "seed": 3510,
     "faces": 500
@@ -113,7 +113,7 @@
    "label": "penthouse-display-shelf",
    "tool": "asset",
    "prompt": "a tall brass and glass display shelf, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-display-shelf.glb",
+   "output": "data/propsets/penthouse-base/penthouse-display-shelf.glb",
    "args": {
     "seed": 3511,
     "faces": 500
@@ -123,7 +123,7 @@
    "label": "penthouse-credenza",
    "tool": "asset",
    "prompt": "a low walnut credenza with brass inlay, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-credenza.glb",
+   "output": "data/propsets/penthouse-base/penthouse-credenza.glb",
    "args": {
     "seed": 3512,
     "faces": 500
@@ -133,7 +133,7 @@
    "label": "penthouse-bar-cart",
    "tool": "asset",
    "prompt": "a brass two-tier bar cart with glass shelves, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-bar-cart.glb",
+   "output": "data/propsets/penthouse-base/penthouse-bar-cart.glb",
    "args": {
     "seed": 3513,
     "faces": 500
@@ -143,7 +143,7 @@
    "label": "penthouse-king-bed",
    "tool": "asset",
    "prompt": "a king bed with a channel-tufted velvet headboard, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-king-bed.glb",
+   "output": "data/propsets/penthouse-base/penthouse-king-bed.glb",
    "args": {
     "seed": 3514,
     "faces": 500
@@ -153,7 +153,7 @@
    "label": "penthouse-silk-rug",
    "tool": "asset",
    "prompt": "a champagne-coloured silk rug with subtle sheen, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-silk-rug.glb",
+   "output": "data/propsets/penthouse-base/penthouse-silk-rug.glb",
    "args": {
     "seed": 3515,
     "faces": 500
@@ -163,7 +163,7 @@
    "label": "penthouse-floor-mirror",
    "tool": "asset",
    "prompt": "a tall brass cheval floor mirror, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-floor-mirror.glb",
+   "output": "data/propsets/penthouse-base/penthouse-floor-mirror.glb",
    "args": {
     "seed": 3516,
     "faces": 500
@@ -173,7 +173,7 @@
    "label": "penthouse-deco-clock",
    "tool": "asset",
    "prompt": "an art-deco marble and brass mantel clock, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-deco-clock.glb",
+   "output": "data/propsets/penthouse-base/penthouse-deco-clock.glb",
    "args": {
     "seed": 3517,
     "faces": 500
@@ -183,7 +183,7 @@
    "label": "penthouse-orchid-pot",
    "tool": "asset",
    "prompt": "a white orchid in a small marble pot, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-orchid-pot.glb",
+   "output": "data/propsets/penthouse-base/penthouse-orchid-pot.glb",
    "args": {
     "seed": 3518,
     "faces": 500
@@ -193,7 +193,7 @@
    "label": "penthouse-decanter-vase",
    "tool": "asset",
    "prompt": "a cut-crystal vase, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-decanter-vase.glb",
+   "output": "data/propsets/penthouse-base/penthouse-decanter-vase.glb",
    "args": {
     "seed": 3519,
     "faces": 500
@@ -203,7 +203,7 @@
    "label": "penthouse-room-divider",
    "tool": "asset",
    "prompt": "a folding smoked-glass room divider with brass frame, luxury city penthouse, dark marble brass and smoked glass, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/penthouse-base/penthouse-room-divider.glb",
+   "output": "data/propsets/penthouse-base/penthouse-room-divider.glb",
    "args": {
     "seed": 3520,
     "faces": 500

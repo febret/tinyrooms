@@ -4,7 +4,7 @@
       "label": "arcade-lobby-floor",
       "tool": "image",
       "prompt": "flat top-down arcade lobby carpet texture, deep purple with tiny neon confetti and geometric speckles, seamless, evenly lit, no walls, no furniture, no text, no logos",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/rooms/lobby.png",
+      "output": "worlds/tiny-arcade/rooms/lobby.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -16,7 +16,7 @@
       "label": "chess-nook-floor",
       "tool": "image",
       "prompt": "flat top-down dark purple arcade carpet texture with subtle geometric diamonds, seamless, evenly lit, no walls, no furniture, no chessboard, no text, no logos",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/rooms/chess-floor.png",
+      "output": "worlds/tiny-arcade/rooms/chess-floor.png",
       "args": {
         "width": 768,
         "height": 768,
@@ -28,7 +28,7 @@
       "label": "chess-wood-grain",
       "tool": "image",
       "prompt": "seamless dark walnut wood grain texture, flat even lighting, fine warm brown grain, no squares, no chessboard, no border, no text, no perspective",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/rooms/wood-grain.png",
+      "output": "worlds/tiny-arcade/rooms/wood-grain.png",
       "args": {
         "width": 1024,
         "height": 1024,
@@ -40,7 +40,7 @@
       "label": "paintball-arena-floor",
       "tool": "image",
       "prompt": "flat top-down paintball arena floor texture, dark violet rubber mat with a glowing magenta and cyan boundary line frame, a faint cyan center circle, a few faded multicolored paint splats, seamless, evenly lit, no walls, no furniture, no text, no logos, no perspective",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/rooms/paintball-arena.png",
+      "output": "worlds/tiny-arcade/rooms/paintball-arena.png",
       "args": {
         "width": 1024,
         "height": 1024,

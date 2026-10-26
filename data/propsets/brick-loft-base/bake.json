@@ -13,7 +13,7 @@
    "label": "brickloft-steel-sofa",
    "tool": "asset",
    "prompt": "a charcoal fabric two-seat sofa on a black steel frame, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-steel-sofa.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-steel-sofa.glb",
    "args": {
     "seed": 3401,
     "faces": 500
@@ -23,7 +23,7 @@
    "label": "brickloft-tolix-chair",
    "tool": "asset",
    "prompt": "a dark pressed-steel industrial side chair, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-tolix-chair.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-tolix-chair.glb",
    "args": {
     "seed": 3402,
     "faces": 500
@@ -33,7 +33,7 @@
    "label": "brickloft-leather-armchair",
    "tool": "asset",
    "prompt": "a cognac brown leather armchair with steel legs, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-leather-armchair.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-leather-armchair.glb",
    "args": {
     "seed": 3403,
     "faces": 500
@@ -43,7 +43,7 @@
    "label": "brickloft-drafting-stool",
    "tool": "asset",
    "prompt": "a tall adjustable industrial drafting stool, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-drafting-stool.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-drafting-stool.glb",
    "args": {
     "seed": 3404,
     "faces": 500
@@ -53,7 +53,7 @@
    "label": "brickloft-cage-floor-lamp",
    "tool": "asset",
    "prompt": "a tall black caged industrial floor lamp, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-cage-floor-lamp.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-cage-floor-lamp.glb",
    "args": {
     "seed": 3405,
     "faces": 500
@@ -63,7 +63,7 @@
    "label": "brickloft-enamel-pendant",
    "tool": "asset",
    "prompt": "a hanging green enamel factory pendant lamp, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-enamel-pendant.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-enamel-pendant.glb",
    "args": {
     "seed": 3406,
     "faces": 500
@@ -73,7 +73,7 @@
    "label": "brickloft-edison-desk-lamp",
    "tool": "asset",
    "prompt": "a desk lamp with an exposed Edison bulb and iron base, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-edison-desk-lamp.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-edison-desk-lamp.glb",
    "args": {
     "seed": 3407,
     "faces": 500
@@ -83,7 +83,7 @@
    "label": "brickloft-scaffold-desk",
    "tool": "asset",
    "prompt": "a long desk of scaffold boards on black pipe legs, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-scaffold-desk.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-scaffold-desk.glb",
    "args": {
     "seed": 3408,
     "faces": 500
@@ -93,7 +93,7 @@
    "label": "brickloft-spool-table",
    "tool": "asset",
    "prompt": "a round coffee table made from a wooden cable spool, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-spool-table.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-spool-table.glb",
    "args": {
     "seed": 3409,
     "faces": 500
@@ -103,7 +103,7 @@
    "label": "brickloft-welded-side-table",
    "tool": "asset",
    "prompt": "a small square welded steel side table, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-welded-side-table.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-welded-side-table.glb",
    "args": {
     "seed": 3410,
     "faces": 500
@@ -113,7 +113,7 @@
    "label": "brickloft-pipe-shelf",
    "tool": "asset",
    "prompt": "a wall shelf of wood boards on black iron pipes, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-pipe-shelf.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-pipe-shelf.glb",
    "args": {
     "seed": 3411,
     "faces": 500
@@ -123,7 +123,7 @@
    "label": "brickloft-flat-file",
    "tool": "asset",
    "prompt": "a wide steel flat-file drawer cabinet, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-flat-file.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-flat-file.glb",
    "args": {
     "seed": 3412,
     "faces": 500
@@ -133,7 +133,7 @@
    "label": "brickloft-locker",
    "tool": "asset",
    "prompt": "a tall metal locker cabinet with vents, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-locker.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-locker.glb",
    "args": {
     "seed": 3413,
     "faces": 500
@@ -143,7 +143,7 @@
    "label": "brickloft-platform-bed",
    "tool": "asset",
    "prompt": "a low wooden platform bed with grey bedding, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-platform-bed.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-platform-bed.glb",
    "args": {
     "seed": 3414,
     "faces": 500
@@ -153,7 +153,7 @@
    "label": "brickloft-kilims-rug",
    "tool": "asset",
    "prompt": "a flat woven kilim rug in rust and charcoal, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-kilims-rug.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-kilims-rug.glb",
    "args": {
     "seed": 3415,
     "faces": 500
@@ -163,7 +163,7 @@
    "label": "brickloft-steel-mirror",
    "tool": "asset",
    "prompt": "a round mirror with a black steel frame, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-steel-mirror.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-steel-mirror.glb",
    "args": {
     "seed": 3416,
     "faces": 500
@@ -173,7 +173,7 @@
    "label": "brickloft-station-clock",
    "tool": "asset",
    "prompt": "a round double-sided industrial station clock, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-station-clock.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-station-clock.glb",
    "args": {
     "seed": 3417,
     "faces": 500
@@ -183,7 +183,7 @@
    "label": "brickloft-fig-pot",
    "tool": "asset",
    "prompt": "a potted fiddle-leaf fig in a concrete pot, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-fig-pot.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-fig-pot.glb",
    "args": {
     "seed": 3418,
     "faces": 500
@@ -193,7 +193,7 @@
    "label": "brickloft-paint-vase",
    "tool": "asset",
    "prompt": "a ceramic vase glazed with paint-splash colours, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-paint-vase.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-paint-vase.glb",
    "args": {
     "seed": 3419,
     "faces": 500
@@ -203,7 +203,7 @@
    "label": "brickloft-brick-screen",
    "tool": "asset",
    "prompt": "a folding canvas studio divider screen on a steel frame, artist industrial brick loft, black steel and reclaimed timber, freestanding isolated single prop, no surrounding ground or scenery",
-   "output": "C:/workspace/tinyrooms-noon/data/propsets/brick-loft-base/brickloft-brick-screen.glb",
+   "output": "data/propsets/brick-loft-base/brickloft-brick-screen.glb",
    "args": {
     "seed": 3420,
     "faces": 500

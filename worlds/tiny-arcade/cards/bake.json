@@ -4,56 +4,56 @@
       "label": "paintball-blaster-splash",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a chunky orange and teal paintball marker blaster with a round hopper and a short barrel, a single pink paint splat behind it, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-blaster-splash.png",
+      "output": "worlds/tiny-arcade/cards/paintball-blaster-splash.png",
       "args": {"width": 768, "height": 768, "seed": 95301, "steps": 28}
     },
     {
       "label": "paintball-blaster-neon",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a sleek blue and magenta paintball marker blaster with a glowing neon stripe and a round hopper, a blue paint splat behind it, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-blaster-neon.png",
+      "output": "worlds/tiny-arcade/cards/paintball-blaster-neon.png",
       "args": {"width": 768, "height": 768, "seed": 95302, "steps": 28}
     },
     {
       "label": "paintball-blaster-prism",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a large tournament paintball marker blaster with a prismatic chrome barrel spraying a rainbow fan of paint, round hopper, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-blaster-prism.png",
+      "output": "worlds/tiny-arcade/cards/paintball-blaster-prism.png",
       "args": {"width": 768, "height": 768, "seed": 95303, "steps": 28}
     },
     {
       "label": "paintball-cherry",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a small cluster of bright cherry red paintballs with a glossy highlight, a red paint splat behind them, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-cherry.png",
+      "output": "worlds/tiny-arcade/cards/paintball-cherry.png",
       "args": {"width": 768, "height": 768, "seed": 95304, "steps": 24}
     },
     {
       "label": "paintball-berry",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a small cluster of electric berry blue paintballs with a glossy highlight, a blue paint splat behind them, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-berry.png",
+      "output": "worlds/tiny-arcade/cards/paintball-berry.png",
       "args": {"width": 768, "height": 768, "seed": 95305, "steps": 24}
     },
     {
       "label": "paintball-lime",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a small cluster of acid lime green paintballs with a glossy highlight, a green paint splat behind them, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-lime.png",
+      "output": "worlds/tiny-arcade/cards/paintball-lime.png",
       "args": {"width": 768, "height": 768, "seed": 95306, "steps": 24}
     },
     {
       "label": "paintball-lemon",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a small cluster of sun yellow paintballs with a glossy highlight, a yellow paint splat behind them, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-lemon.png",
+      "output": "worlds/tiny-arcade/cards/paintball-lemon.png",
       "args": {"width": 768, "height": 768, "seed": 95307, "steps": 24}
     },
     {
       "label": "paintball-grape",
       "tool": "image",
       "prompt": "centered collectible item card illustration of a small cluster of neon grape purple paintballs with a glossy highlight, a purple paint splat behind them, flat vector illustration, clean bold shapes, neon arcade storybook style, plain deep purple background, no text, no letters, no words, no numbers, no captions, no labels, no watermark, textless image",
-      "output": "C:/workspace/tinyrooms-noon/worlds/tiny-arcade/cards/paintball-grape.png",
+      "output": "worlds/tiny-arcade/cards/paintball-grape.png",
       "args": {"width": 768, "height": 768, "seed": 95308, "steps": 24}
     }
   ]
