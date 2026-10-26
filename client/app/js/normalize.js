@@ -335,6 +335,7 @@ export function normalizeDialog(dialog) {
     nodeId: String(dialog.node_id || ""),
     revision: Number(dialog.revision || 0),
     text: String(dialog.text || ""),
+    sound: assetOrEmpty(dialog.sound),
     choices: Array.isArray(dialog.choices)
       ? dialog.choices.map(choice => ({
           label: String(choice.label || ""),
@@ -370,6 +371,7 @@ export function normalizeTask(task) {
     reward: {
       kudos: Number(task.reward?.kudos || 0),
       cards: Array.isArray(task.reward?.cards) ? task.reward.cards.map(String) : [],
+      props: Array.isArray(task.reward?.props) ? task.reward.props.map(String) : [],
     },
     memoryTags: Array.isArray(task.memory_tags) ? task.memory_tags.map(String) : [],
     repeatable: Boolean(task.repeatable),

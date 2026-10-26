@@ -20,6 +20,17 @@ SKILL_SLOTS_PER_RANK = 5
 MAX_SKILL_SLOTS = len(SKILL_RANKS) * SKILL_SLOTS_PER_RANK
 
 
+def _add_unlocks(profile: dict[str, object], prop_ids: tuple[str, ...]) -> None:
+    """Append *prop_ids* to the profile's shared prop unlock list."""
+
+    raw = profile.get("unlocked_props")
+    owned = [str(entry) for entry in raw] if isinstance(raw, list) else []
+    for prop_id in prop_ids:
+        if prop_id and prop_id not in owned:
+            owned.append(prop_id)
+    profile["unlocked_props"] = owned
+
+
 @dataclass(frozen=True, slots=True)
 class SkillSlot:
     """A single skill-grid slot and its occupant stack, if any."""
@@ -213,6 +224,7 @@ class ProgressionService:
         kudos: int = 0,
         bops: int = 0,
         cards: tuple[str, ...] | list[str] = (),
+        props: tuple[str, ...] | list[str] = (),
         kind: str = "reward",
     ) -> bool:
         """Apply a reward exactly once, returning False on a duplicate."""
@@ -222,6 +234,7 @@ class ProgressionService:
             kudos=kudos,
             bops=bops,
             cards=tuple(cards),
+            props=tuple(props),
             ledger_key=ledger_key,
             kind=kind,
         )
@@ -233,6 +246,7 @@ class ProgressionService:
         kudos: int,
         bops: int,
         cards: tuple[str, ...],
+        props: tuple[str, ...] = (),
         ledger_key: str,
         kind: str,
     ) -> bool:
@@ -243,6 +257,7 @@ class ProgressionService:
                 kudos=kudos,
                 bops=bops,
                 cards=cards,
+                props=props,
                 ledger_key=ledger_key,
                 kind=kind,
             )
@@ -269,6 +284,7 @@ class ProgressionService:
         kudos: int = 0,
         bops: int = 0,
         cards: tuple[str, ...] | list[str] = (),
+        props: tuple[str, ...] | list[str] = (),
         ledger_key: str | None = None,
         kind: str = "reward",
     ) -> bool:
@@ -276,9 +292,11 @@ class ProgressionService:
 
         When *ledger_key* is omitted the grant always applies and is not
         recorded; callers needing idempotency must supply a stable key.
+        Prop ids are appended to the shared ``unlocked_props`` profile list.
         """
 
         now = utc_now()
+        prop_list = [str(prop_id) for prop_id in props if str(prop_id)]
         if ledger_key is not None:
             existing = connection.execute(
                 "SELECT 1 FROM reward_ledger WHERE ledger_key = ? AND account_id = ?",
@@ -300,12 +318,20 @@ class ProgressionService:
                     account_id,
                     self._world_id,
                     kind,
-                    json.dumps({"kudos": kudos, "bops": bops, "cards": list(cards)}),
+                    json.dumps(
+                        {"kudos": kudos, "bops": bops, "cards": list(cards), "props": prop_list}
+                    ),
                     now.isoformat(),
                 ),
             )
         for card_id in cards:
             self._grant_card(connection, account_id, card_id)
+        if prop_list:
+            self._profiles.update_profile_in_transaction(
+                connection,
+                account_id,
+                lambda profile_json, owned=tuple(prop_list): _add_unlocks(profile_json, owned),
+            )
         if kudos or bops:
             self._profiles.update_progress(
                 connection,

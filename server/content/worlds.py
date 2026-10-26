@@ -52,7 +52,7 @@ from server.content.prop_definitions import (
 )
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
-from server.content.sounds import PROP_SOUND_KEYS, parse_sounds
+from server.content.sounds import PROP_SOUND_KEYS, parse_sound, parse_sounds
 from server.content.exit_props import load_exit_style
 from server.content.surface_props import (
     MAX_SIGN_PROPS,
@@ -147,6 +147,8 @@ class DialogNode:
     id: str
     text: str
     choices: tuple[DialogChoice, ...]
+    # Optional voice bark or signature sting played when the node opens.
+    sound: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -296,7 +298,13 @@ def _parse_dialog_choice(
     )
 
 
-def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefinition | None:
+def _load_dialog(
+    raw_value: Any,
+    peep_id: str,
+    card_ids: set[str],
+    *,
+    known_sounds: frozenset[str] | None = None,
+) -> DialogDefinition | None:
     if raw_value is None:
         return None
     if not isinstance(raw_value, dict) or not raw_value:
@@ -315,7 +323,16 @@ def _load_dialog(raw_value: Any, peep_id: str, card_ids: set[str]) -> DialogDefi
             _parse_dialog_choice(raw_choice, peep_id=peep_id, node_id=node_id, index=index, card_ids=card_ids)
             for index, raw_choice in enumerate(raw_choices)
         )
-        nodes[node_id] = DialogNode(id=node_id, text=text, choices=choices)
+        nodes[node_id] = DialogNode(
+            id=node_id,
+            text=text,
+            choices=choices,
+            sound=parse_sound(
+                raw_node.get("sound"),
+                f"Peep '{peep_id}' dialog node '{node_id}'",
+                known_sounds,
+            ),
+        )
     if "start" not in nodes:
         raise ContentError(f"Peep '{peep_id}' dialog must define a 'start' node.")
     for node in nodes.values():
@@ -737,7 +754,7 @@ def load_world_definition(
             image_path=image_path,
             script_name=str(raw_peep["script"]) if "script" in raw_peep else None,
             actions=_load_actions(raw_peep.get("actions")),
-            dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids),
+            dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids, known_sounds=known_sounds),
             activity=str(raw_peep["activity"]).strip() if raw_peep.get("activity") else None,
         )
 
@@ -787,7 +804,9 @@ def load_world_definition(
         peeps=peeps,
         activities=activities,
         cutscenes=cutscenes,
-        tasks=load_task_definitions(world_path, card_ids, known_sounds=known_sounds),
+        tasks=load_task_definitions(
+            world_path, card_ids, known_sounds=known_sounds, prop_ids=set(props)
+        ),
         powers=_load_world_powers(world_payload.get("powers"), world_file),
         recipes=recipes,
         requires_mods=requires_mods,

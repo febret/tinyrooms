@@ -7,6 +7,7 @@ import sqlite3
 
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.content.cards import CardCatalog
+from server.content.sounds import sound_url
 from server.content.worlds import DialogChoice, DialogDefinition, WorldDefinition
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.cards import grant_card_to_inventory
@@ -218,6 +219,7 @@ class DialogService:
             "node_id": active.node_id,
             "revision": active.revision,
             "text": node.text,
+            "sound": sound_url(node.sound) if node.sound else "",
             "choices": [
                 {
                     "label": choice.label,

@@ -145,7 +145,9 @@ def _reward_from_payload(payload: dict[str, object]) -> TaskReward:
         kudos = 0
     raw_cards = payload.get("cards")
     cards = tuple(str(card) for card in raw_cards) if isinstance(raw_cards, list) else ()
-    return TaskReward(kudos=max(0, kudos), cards=cards)
+    raw_props = payload.get("props")
+    props = tuple(str(prop_id) for prop_id in raw_props) if isinstance(raw_props, list) else ()
+    return TaskReward(kudos=max(0, kudos), cards=cards, props=props)
 
 
 class TaskService:
@@ -419,6 +421,7 @@ class TaskService:
                 recipient,
                 kudos=definition.reward.kudos,
                 cards=definition.reward.cards,
+                props=definition.reward.props,
                 ledger_key=ledger_key,
                 kind="task",
             )
@@ -842,6 +845,22 @@ class TaskService:
                 if notification_sound and index == 0:
                     event["sound"] = sound_url(notification_sound)
                 events.append(event)
+            if change.kind == "completed" and task_definition is not None:
+                for prop_id in task_definition.reward.props:
+                    events.append(
+                        {"type": "prop.unlocked", "prop_id": prop_id, "account_id": account_id}
+                    )
+                if task_definition.reward.props:
+                    events.append(
+                        {
+                            "type": "toast",
+                            "tone": "success",
+                            "text": (
+                                f"{len(task_definition.reward.props)} props unlocked "
+                                "for room decorating."
+                            ),
+                        }
+                    )
         if self._titles is not None and any(change.kind == "completed" for change in changes):
             try:
                 _, newly = self._titles.sync_unlocked(account_id)

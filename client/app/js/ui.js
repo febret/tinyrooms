@@ -88,6 +88,7 @@ let authKey = "";
 let previousUser = null;
 let previousRoom = null;
 let previousView = null;
+let previousDialogKey = "";
 let renderRevision = 0;
 let refreshPromise = null;
 let pendingGameStateRoom = "";
@@ -1145,8 +1146,17 @@ async function render(state) {
   if (previousUser !== state.user?.id || previousRoom !== state.room?.id) {
     previousUser = state.user?.id;
     previousRoom = state.room?.id;
+    previousDialogKey = "";
     dialogs.closeAll();
     if (revision !== renderRevision) return;
+  }
+  const dialog = state.room?.dialog;
+  const dialogKey = dialog ? `${dialog.peepId}:${dialog.nodeId}:${dialog.revision}` : "";
+  if (dialog?.sound && dialogKey && dialogKey !== previousDialogKey) {
+    previousDialogKey = dialogKey;
+    playSound(dialog.sound, state.ui.soundEnabled);
+  } else if (!dialogKey) {
+    previousDialogKey = "";
   }
   toggleAttribute(root, "auth", state.loggedIn ? "in" : "out");
   toggleAttribute(root, "sidebarSize", state.ui.sidebarSize || "normal");

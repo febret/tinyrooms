@@ -14,6 +14,7 @@ function taskMarkup(task, selected) {
   const reward = [
     task.reward.kudos ? `${task.reward.kudos} Kudos` : "",
     ...task.reward.cards,
+    task.reward.props?.length ? `${task.reward.props.length} props` : "",
   ].filter(Boolean).join(", ");
   const meta = [
     task.worldLabel || "",

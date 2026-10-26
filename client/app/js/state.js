@@ -512,8 +512,17 @@ function applyServerEvent(state, event) {
   if (event.type === "task.updated" && event.tasks) {
     return { ...state, user: state.user ? { ...state.user, tasks: normalizeTasks(event.tasks) } : state.user };
   }
+  if (event.type === "prop.unlocked" && event.prop_id) {
+    if (!state.user) return state;
+    const propId = String(event.prop_id);
+    const owned = Array.isArray(state.user.unlockedProps) ? state.user.unlockedProps : [];
+    if (owned.includes(propId)) return state;
+    return { ...state, user: { ...state.user, unlockedProps: [...owned, propId] } };
+  }
   return state;
 }
+
+export { applyServerEvent };
 
 function mergeResultPayload(state, payload) {
   if (!payload) return state;

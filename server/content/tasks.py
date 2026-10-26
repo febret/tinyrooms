@@ -66,11 +66,16 @@ class TaskReward:
 
     kudos: int = 0
     cards: tuple[str, ...] = ()
+    # Prop ids permanently unlocked for the recipient's room editor via the
+    # shared ``unlocked_props`` profile list. Props must resolve to world
+    # props (validated when prop ids are supplied); unlocks are granted once
+    # under the same reward-ledger entry as the Kudos/cards reward.
+    props: tuple[str, ...] = ()
 
     def to_payload(self) -> dict[str, object]:
         """Serialize the reward definition."""
 
-        return {"kudos": self.kudos, "cards": list(self.cards)}
+        return {"kudos": self.kudos, "cards": list(self.cards), "props": list(self.props)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,7 +160,32 @@ def _parse_step(raw_step: Any, task_id: str, index: int, path: Path) -> TaskStep
     )
 
 
-def _parse_reward(raw_reward: Any, task_id: str, card_ids: set[str], path: Path) -> TaskReward:
+def _parse_props(
+    raw_value: Any, task_id: str, prop_ids: set[str] | None, path: Path
+) -> tuple[str, ...]:
+    raw_props = raw_value or []
+    if not isinstance(raw_props, list):
+        raise ContentError(f"Task '{task_id}' reward props must be a list.")
+    props = tuple(str(prop_id).strip() for prop_id in raw_props if str(prop_id).strip())
+    if prop_ids is not None:
+        unknown = sorted(set(props) - set(prop_ids))
+        if unknown:
+            raise ContentError(
+                f"Task '{task_id}' reward references unknown props {unknown} in {path}."
+            )
+    if len(set(props)) != len(props):
+        raise ContentError(f"Task '{task_id}' reward lists duplicate props.")
+    return props
+
+
+def _parse_reward(
+    raw_reward: Any,
+    task_id: str,
+    card_ids: set[str],
+    path: Path,
+    *,
+    prop_ids: set[str] | None = None,
+) -> TaskReward:
     if raw_reward is None:
         return TaskReward()
     if not isinstance(raw_reward, dict):
@@ -173,7 +203,11 @@ def _parse_reward(raw_reward: Any, task_id: str, card_ids: set[str], path: Path)
             f"Task '{task_id}' reward",
         )
     )
-    return TaskReward(kudos=int(raw_kudos), cards=cards)
+    return TaskReward(
+        kudos=int(raw_kudos),
+        cards=cards,
+        props=_parse_props(raw_reward.get("props"), task_id, prop_ids, path),
+    )
 
 
 def _parse_definition(
@@ -183,6 +217,7 @@ def _parse_definition(
     path: Path,
     *,
     known_sounds: frozenset[str] | None = None,
+    prop_ids: set[str] | None = None,
 ) -> TaskDefinition:
     if not isinstance(raw, dict):
         raise ContentError(f"Task '{task_id}' must be a mapping in {path}.")
@@ -238,7 +273,7 @@ def _parse_definition(
         title=title,
         description=str(raw.get("description", "")).strip(),
         steps=steps,
-        reward=_parse_reward(raw.get("reward"), task_id, card_ids, path),
+        reward=_parse_reward(raw.get("reward"), task_id, card_ids, path, prop_ids=prop_ids),
         memory_tags=memory_tags,
         repeatable=repeatable,
         reset_policy=reset_policy,
@@ -261,6 +296,7 @@ def load_task_definitions(
     card_ids: set[str],
     *,
     known_sounds: frozenset[str] | None = None,
+    prop_ids: set[str] | None = None,
 ) -> dict[str, TaskDefinition]:
     """Load and validate every task definition for a world."""
 
@@ -278,5 +314,6 @@ def load_task_definitions(
             card_ids,
             path,
             known_sounds=known_sounds,
+            prop_ids=prop_ids,
         )
     return tasks
