@@ -39,7 +39,7 @@ heist-smoke:
     select: click2.wav
     use: heist-smoke.wav
 heist-emp:
-  label: Pocket EMP
+  label: EMP
   description: Disables one camera or laser grid. Consumable.
   image: heist-emp.png
   type: item
@@ -104,7 +104,7 @@ heist-grapple:
     select: click2.wav
     use: heist-grapple.wav
 heist-gold-bar:
-  label: Tiny Gold Bar
+  label: Gold Bar
   description: Provisional loot. It only pays if you reach an escape.
   image: heist-gold-bar.png
   type: item
@@ -146,7 +146,7 @@ heist-diamond:
     select: ring.wav
     use: heist-gold.wav
 heist-art:
-  label: Miniature Masterpiece
+  label: Gallery Piece
   description: Provisional loot. It only pays if you reach an escape.
   image: heist-art.png
   type: item

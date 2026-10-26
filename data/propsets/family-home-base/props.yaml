@@ -134,7 +134,7 @@ family-bunk-bed:
   - furniture
 family-play-rug:
   label: Play Rug
-  description: A road-map rug for small cars.
+  description: A road-map rug with room for ambitious toy traffic.
   model: family-play-rug.glb
   decorative: true
   scale: 1.6

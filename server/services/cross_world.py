@@ -19,10 +19,7 @@ from server.config import AppConfig
 from server.content.worlds import ExitDefinition
 from server.profiles import AccountRecord, ProfileRepository
 from server.services.powers import PowersService
-from server.services.progression import ProgressionService
 from server.state.migrations import DatabaseHub
-
-MULTIVERSE_MAP_CARD_ID = "multiverse-map"
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +64,6 @@ class CrossWorldService:
         hub: DatabaseHub,
         profiles: ProfileRepository,
         world_id: str,
-        progression: ProgressionService,
         powers: PowersService,
         client: httpx.AsyncClient | None = None,
     ) -> None:
@@ -75,7 +71,6 @@ class CrossWorldService:
         self._hub = hub
         self._profiles = profiles
         self._world_id = world_id
-        self._progression = progression
         self._powers = powers
         self._client = client
 
@@ -200,13 +195,13 @@ class CrossWorldService:
             entry_room_id=str(entry_room) if entry_room else None,
         )
 
-    def check_multiverse_map(self, account: AccountRecord) -> None:
-        """Require the Multiverse Map skill, or the admin power, for cross-world travel."""
+    def check_multiverse_access(self, account: AccountRecord) -> None:
+        """Require permanent Multiverse Map access, or the admin power, for cross-world travel."""
 
         if self._powers.has_power(account.id, "admin"):
             return
-        if not self._progression.has_slotted_skill(account, MULTIVERSE_MAP_CARD_ID):
-            raise CommandError("Slot the Multiverse Map skill to cross between worlds.")
+        if not self._profiles.has_multiverse_access(account.id):
+            raise CommandError("Use the Multiverse Map to unlock cross-world travel.")
 
     def _check_exit(self, account: AccountRecord, exit_definition: ExitDefinition) -> None:
         if exit_definition.target_world_id is None:
@@ -217,7 +212,7 @@ class CrossWorldService:
             inventory_ids = {stack.card_def_id for stack in self._profiles.list_inventory(account.id, self._world_id)}
             if exit_definition.requires_card_id not in inventory_ids:
                 raise CommandError(f"You need {exit_definition.requires_card_id} to go that way.")
-        self.check_multiverse_map(account)
+        self.check_multiverse_access(account)
 
     async def prepare(self, account: AccountRecord, exit_definition: ExitDefinition) -> TravelPlan:
         """Validate the exit and resolve its destination without side effects."""
@@ -238,9 +233,9 @@ class CrossWorldService:
         world_id: str,
         room_id: str | None = None,
     ) -> TravelPlan:
-        """Resolve a cross-world destination, requiring the slotted map or admin power."""
+        """Resolve a cross-world destination, requiring permanent access or admin power."""
 
-        self.check_multiverse_map(account)
+        self.check_multiverse_access(account)
         destination = await self.resolve_destination(world_id)
         return TravelPlan(
             world_id=destination.world_id,

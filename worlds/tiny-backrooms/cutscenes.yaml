@@ -14,7 +14,7 @@ summon-blue-girl:
     start: cutscene-start.wav
   text:
   - {at: 200, speaker: The Hum, say: 'The fluorescent note stops. Every light in the maze holds its breath.', sound: retro-error.wav}
-  - {at: 2600, speaker: Blue Girl, say: 'You opened the wrong drawer, little traveler. Now we play until the dread runs out.', sound: hiss.wav}
+  - {at: 2600, speaker: Blue Girl, say: 'You opened the wrong drawer, wayward traveler. Now we play until the dread runs out.', sound: hiss.wav}
 summon-demogorgon:
   title: Petals Open
   script: summon-demogorgon.js
@@ -31,7 +31,7 @@ summon-demogorgon:
     start: cutscene-start.wav
   text:
   - {at: 200, speaker: The Vines, say: 'The black vines go still. Ash hangs in the air like held snow.', sound: retro-error.wav}
-  - {at: 2600, speaker: Demogorgon, say: 'LOUD. SMALL. MINE. Unless the iron says otherwise.', sound: hiss.wav}
+  - {at: 2600, speaker: Demogorgon, say: 'LOUD. HERE. MINE. Unless the iron says otherwise.', sound: hiss.wav}
 summon-shoggoth:
   title: It Bubbles
   script: summon-shoggoth.js

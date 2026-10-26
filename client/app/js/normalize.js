@@ -477,6 +477,7 @@ export function normalizeUser(user) {
       .map(definition => definition.id),
     activity: normalizeActivity(user.activity),
     showActivityLog: Boolean(user.show_activity_log),
+    multiverseAccess: Boolean(user.multiverse_access),
     level: Number(user.level || 0),
     levelLabel: String(user.level_label || ""),
     kudos: Number(user.kudos || 0),

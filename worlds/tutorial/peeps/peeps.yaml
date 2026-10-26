@@ -26,9 +26,9 @@ caretaker:
   dialog:
     start:
       text: Welcome in! I'm Pip — chief fixer, tour guide, and the only one here who
-        doesn't shed. This dollhouse is a whole tiny home, which means a whole tiny
-        list of things that can go wrong. Pick a topic; I'll keep the useful parts
-        under the sarcasm.
+        doesn't shed. This dollhouse runs like a full household, with a short fuse
+        box, a long chore ledger, and many ways to get dusty. Pick a topic; I'll keep
+        the useful parts under the sarcasm.
       choices:
       - label: House chores
         next: chores

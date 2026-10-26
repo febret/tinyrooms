@@ -2,8 +2,8 @@ CONFIG:
   scale_adjust: 2.0
 city-trashcan:
   label: City Trashcan
-  description: A sturdy green city bin. Keeping the neighborhood tidy, one little
-    bag at a time.
+  description: A sturdy green city bin. Keeping the neighborhood tidy, one bag
+    at a time.
   model: city-trashcan.glb
   decorative: true
   behavior: trashcan
@@ -68,8 +68,8 @@ teal-egg-chair:
   - furniture
 window-daybed:
   label: Window Daybed
-  description: Crocheted blanket plus embroidered cushions equals maximum cozy. NGL,
-    you may never get up.
+  description: Crocheted blanket plus embroidered cushions. NGL, you may never
+    get up.
   model: window-daybed.glb
   decorative: true
   scale: 1.3
@@ -256,7 +256,7 @@ rattan-side-table:
   - furniture
 milking-stool-table:
   label: Stool Table
-  description: Fake it till you make it, little buddy.
+  description: Fake it till you make it, apprentice.
   model: milking-stool-table.glb
   decorative: true
   scale: 0.9
@@ -386,8 +386,8 @@ wicker-fern-basket:
   - fern
 apothecary-cabinet:
   label: Apothecary Cabinet
-  description: Dozens of tiny labeled drawers. What is inside? Nobody knows. That
-    is the fun part.
+  description: Dozens of labeled drawers with illegible handwriting. What is
+    inside? Nobody knows. That is the fun part.
   model: apothecary-cabinet.glb
   decorative: true
   scale: 1.35
@@ -431,7 +431,7 @@ tall-wardrobe:
   - furniture
 medicine-cabinet:
   label: Medicine Cabinet
-  description: Mirrored cabinet crammed with tiny bottles. Ninety percent mystery,
+  description: Mirrored cabinet crammed with vials. Ninety percent mystery,
     one hundred percent mood.
   model: medicine-cabinet.glb
   decorative: false
@@ -629,8 +629,8 @@ metal-industrial-stairwell:
   - building
 garden-deck-stairwell:
   label: Garden Deck Stairwell
-  description: Outdoor timber steps up to a little deck. Sunsets included at no extra
-    charge.
+  description: Outdoor timber steps up to a sun-washed deck. Sunsets included at
+    no extra charge.
   model: garden-deck-stairwell.glb
   decorative: true
   scale: 1.5
@@ -667,7 +667,7 @@ exposed-stone-wall:
   - building
 shiplap-wood-wall:
   label: Shiplap Wood Wall
-  description: Whitewashed horizontal boards. Fixer-upper energy, but make it cozy.
+  description: Whitewashed horizontal boards. Fixer-upper energy, fully committed.
   model: shiplap-wood-wall.glb
   decorative: true
   scale: 1.5
@@ -677,7 +677,7 @@ shiplap-wood-wall:
   hidden: true
 floral-wallpaper-wall:
   label: Floral Wallpaper Wall
-  description: Vintage wallpaper dotted with tiny red roses. Grandma approved.
+  description: Vintage wallpaper dotted with red roses. Grandma approved.
   model: floral-wallpaper-wall.glb
   decorative: true
   scale: 1.5
@@ -816,7 +816,7 @@ rustic-barn-door:
   - building
 arched-iron-door:
   label: Arched Iron Door
-  description: Arched oak with iron bands and a ring pull. Very castle, very cozy.
+  description: Arched oak with iron bands and a ring pull. Very castle, zero drafts.
   model: arched-iron-door.glb
   decorative: true
   scale: 1.35
@@ -926,7 +926,7 @@ arched-cottage-window:
   - building
 supermarket-prep-table:
   label: Supermarket Prep Table
-  description: A sturdy stainless prep table with a cutting board and tidy little
+  description: A sturdy stainless prep table with a cutting board and nested
     bowls. Perfect for chopping, kneading, and mixing by hand.
   model: supermarket-prep-table.glb
   decorative: false

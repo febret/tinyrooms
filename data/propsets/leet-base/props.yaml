@@ -239,7 +239,7 @@ chrome-desk-lamp:
   - desk
 neon-robot-arm:
   label: Neon Robot Arm
-  description: A small orange arm flexing at glowing neon joints.
+  description: An orange robot arm flexing at glowing neon joints.
   model: neon-robot-arm.glb
   decorative: true
   scale: 1.0

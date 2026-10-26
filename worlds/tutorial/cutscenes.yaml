@@ -51,7 +51,7 @@ tutorial-end:
     start: applause.wav
   text:
     - {at: 400, speaker: Pip, say: "You did it! The house is still standing, which is more than I expected.", sound: task-complete.wav}
-    - {at: 2400, speaker: Pip, say: "The little house is all yours, $me. Try not to let it unionize."}
+    - {at: 2400, speaker: Pip, say: "The house is conditionally yours, $me. Try not to let it unionize."}
 centipede-vacuum:
   title: Vacuum Justice
   script: centipede-vacuum.js

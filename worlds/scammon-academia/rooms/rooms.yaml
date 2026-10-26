@@ -254,7 +254,7 @@ player-classroom:
       target: hall
 teachers-lounge:
   label: Teachers' Lounge
-  description: A cozy little staff room with a stocked pantry, a well-used prep table,
+  description: A lived-in staff room with a stocked pantry, a well-used prep table,
     a warm oven, a stand mixer, and a cookbook full of supermarket recipes.
   board_type: basic
   board_image: teachers-lounge.png

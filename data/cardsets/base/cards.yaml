@@ -59,7 +59,7 @@ nimble:
   bonuses: {dexterity: 1}
 charming:
   label: Charming
-  description: A little everyday warmth. Charisma +1 while slotted.
+  description: Everyday warmth, delivered without ceremony. Charisma +1 while slotted.
   image: charming-art.webp
   type: skill
   rank: Script Kiddo
@@ -75,7 +75,7 @@ stylish:
   bonuses: {fanciness: 1}
 spirited:
   label: Spirited
-  description: A little extra get-up-and-go. Maximum Energy +10 while slotted.
+  description: An extra charge that arrives before motivation does. Maximum Energy +10 while slotted.
   image: spirited-art.webp
   type: skill
   rank: Script Kiddo
@@ -84,23 +84,25 @@ spirited:
 # Tutorial reward. Kept out of the base pack draw list so every peep earns one.
 multiverse-map:
   label: Multiverse Map
-  description: A folded map of every world. Slot it to open the Multiverse from the toolbar and cross between worlds and follow beacons.
+  description: A folded chart of every connected world. Use it to permanently unlock Multiverse travel; the map never leaves your collection.
   image: multiverse-map-art.png
-  type: skill
-  rank: Script Kiddo
+  type: item
   rarity: Uncommon
   stack_limit: 1
+  one_use: false
+  energy_cost: 0
+  effect: multiverse
   quest: true
 wave:
-  label: Little Wave
-  description: An animated hello, made for sharing.
+  label: Wave
+  description: An animated hello with impeccable timing.
   image: wave-art.webp
   animation: wave.gif
   type: emote
   rarity: Common
 happy-dance:
   label: Happy Dance
-  description: A tiny, looping victory dance.
+  description: A looping victory dance with suspicious stamina.
   image: happy-dance-art.webp
   animation: happy-dance.gif
   type: emote

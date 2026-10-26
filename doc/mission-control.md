@@ -247,7 +247,9 @@ result reports deleted/failed ids and freed bytes; deletions are audited.
 
 [User management](../server/mission_control/users.py) searches accounts, displays
 related profile/session/inventory/reward/task/memory/audit rows, and edits
-supported account fields/powers through repository methods. Kudos and Bops have
+supported account fields, profile flags, and powers through repository methods.
+The editor includes a Multiverse travel checkbox that sets or clears the shared
+`multiverse_access` profile flag. Kudos and Bops have
 quick `-10/-1/+1/+10` controls on top of the exact-value edit form; the
 Inventory card edits existing stack quantities, deletes stacks, and grants new
 stacks (global or world-scoped). Edits are validated and

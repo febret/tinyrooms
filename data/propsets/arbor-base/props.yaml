@@ -71,7 +71,7 @@ twisted-dead-tree:
   tags: [tree, decoration]
 mini-pine-bonsai:
   label: Mini Pine Bonsai
-  description: A tiny pine trained into a shallow stone tray.
+  description: A pine disciplined into a shallow stone tray.
   model: mini-pine-bonsai.glb
   decorative: true
   scale: 0.7
@@ -87,7 +87,7 @@ boxwood-ball:
   tags: [shrub, topiary]
 hedgerow-shrub:
   label: Hedgerow Shrub
-  description: A wild leafy shrub dusted with small white flowers.
+  description: A wild leafy shrub dusted with white blossoms.
   model: hedgerow-shrub.glb
   decorative: true
   scale: 1.1
@@ -217,7 +217,7 @@ granite-boulder:
   tags: [rock, mineral]
 pebble-pile:
   label: Pebble Pile
-  description: A little heap of smooth river pebbles.
+  description: A heap of smooth river pebbles with excellent posture.
   model: pebble-pile.glb
   decorative: true
   scale: 0.8
@@ -252,7 +252,7 @@ mossy-rock:
   tags: [rock, plant]
 stepping-stones:
   label: Stepping Stones
-  description: Flat stones laid into a little garden path.
+  description: Flat stones laid into a deliberate garden path.
   model: stepping-stones.glb
   decorative: true
   scale: 1.3
@@ -312,7 +312,7 @@ horsetail-reeds:
 # --- Woodland floor ---------------------------------------------------------
 mushroom-ring:
   label: Mushroom Ring
-  description: A fairy ring of little red-capped mushrooms.
+  description: A fairy ring of red-capped mushrooms with suspicious choreography.
   model: mushroom-ring.glb
   decorative: true
   scale: 0.7
@@ -326,7 +326,7 @@ toadstool-cluster:
   tags: [decoration, plant]
 mossy-log:
   label: Mossy Log
-  description: A fallen log furred with moss and tiny mushrooms.
+  description: A fallen log furred with moss and button mushrooms.
   model: mossy-log.glb
   decorative: true
   scale: 1.0
@@ -347,7 +347,7 @@ driftwood:
   tags: [decoration, foliage]
 ivy-vine:
   label: Ivy Vine
-  description: Climbing ivy winding up a small frame.
+  description: Climbing ivy scaling a trellis like it owns the deed.
   model: ivy-vine.glb
   decorative: true
   scale: 1.3

@@ -32,7 +32,7 @@ damp-carpet:
 yellow-wallpaper:
   label: Yellow Wallpaper
   description: Greasy diamond-pattern paper, peeling at the seams. It bulges in
-    one spot, like a pocket.
+    one spot, like a held breath.
   model: yellow-wallpaper.glb
   decorative: false
   behavior: investigate
@@ -682,7 +682,7 @@ rad-rod:
 # --- Finale ---
 sun-memorial:
   label: Sun Memorial
-  description: A small brass sun bolted to warm concrete. Touch it. You earned it.
+  description: A brass sun bolted to warm concrete. Touch it. You earned it.
   model: sun-memorial.glb
   decorative: false
   behavior: investigate

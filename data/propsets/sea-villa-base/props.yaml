@@ -161,7 +161,7 @@ seavilla-sun-clock:
   - decoration
 seavilla-olive-pot:
   label: Olive Pot
-  description: A small olive tree in a limewashed pot.
+  description: An olive tree settled into a limewashed pot.
   model: seavilla-olive-pot.glb
   decorative: true
   scale: 1.0

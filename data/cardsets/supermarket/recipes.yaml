@@ -74,7 +74,7 @@ market-mashed-potatoes:
 
 market-pie-crust:
   label: "Make pie crust"
-  description: "Butter and flour become a flaky little stage for fruit."
+  description: "Butter and flour become a flaky stage built for fruit."
   station: prep-table
   ingredients: {market-flour: 1, market-butter: 1}
   output: {market-pie-crust: 1}
@@ -146,7 +146,7 @@ market-fish-and-chips:
 
 market-cooked-pasta:
   label: "Cook pasta"
-  description: "Boil the fresh pasta until it still has a little bounce."
+  description: "Boil the fresh pasta until it still has backbone."
   station: prep-table
   ingredients: {market-pasta-dough: 1, market-water: 1, market-salt: 1}
   output: {market-cooked-pasta: 1}
@@ -194,7 +194,7 @@ market-cookies:
 
 market-blueberry-muffins:
   label: "Bake blueberry muffins"
-  description: "Blueberries hide inside tender little muffins. Sneaky."
+  description: "Blueberries hide inside tender muffins. Sneaky."
   station: oven
   ingredients: {market-cake-batter: 1, market-blueberry: 1}
   output: {market-blueberry-muffins: 2}

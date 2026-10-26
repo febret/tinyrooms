@@ -575,7 +575,6 @@ def _build_runtime(
         hub=hub,
         profiles=profiles,
         world_id=world.id,
-        progression=progression,
         powers=powers,
     )
     rooms = RoomService(

@@ -11,6 +11,6 @@ dev-sample:
   feature: dev_sample_activity
 multiverse:
   title: Multiverse
-  skill: multiverse-map
+  flag: multiverse_access
 whiteboard:
   title: Whiteboard

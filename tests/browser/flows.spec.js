@@ -86,7 +86,7 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await page.locator("#settings summary").click();
   const pickerToggle = page.locator("#room-picker-toggle");
   const picker = page.locator("#room-picker");
-  await expect(page.locator('#core-tools [data-core-id="inventory"] + #room-picker-toggle')).toBeVisible();
+  await expect(page.locator('#core-tools [data-core-id="inventory"] ~ #room-picker-toggle')).toBeVisible();
   await pickerToggle.click();
   await expect(picker).toBeVisible();
   await expect(pickerToggle).toHaveAttribute("aria-expanded", "true");

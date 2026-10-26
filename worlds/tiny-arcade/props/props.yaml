@@ -1,6 +1,6 @@
 chess-pawn-white:
   label: White Pawn
-  description: A small ivory pawn with a chipped base.
+  description: An ivory pawn with a chipped base and an undefeated posture problem.
   model: chess-pawn-white.glb
   decorative: true
   scale: 0.62
@@ -18,7 +18,7 @@ chess-knight-white:
   - piece
 chess-bishop-white:
   label: White Bishop
-  description: A tall ivory bishop with a tiny notch in its mitre.
+  description: A tall ivory bishop with a dueling scar in its mitre.
   model: chess-bishop-white.glb
   decorative: true
   scale: 0.9
@@ -36,7 +36,7 @@ chess-rook-white:
   - piece
 chess-queen-white:
   label: White Queen
-  description: An ivory queen with a crown full of tiny points.
+  description: An ivory queen with a crown sharp enough to win arguments.
   model: chess-queen-white.glb
   decorative: true
   scale: 1
@@ -90,7 +90,7 @@ chess-rook-black:
   - piece
 chess-queen-black:
   label: Black Queen
-  description: A dark queen with a crown like a little iron fence.
+  description: A dark queen with a crown like a wrought-iron fence.
   model: chess-queen-black.glb
   decorative: true
   scale: 1

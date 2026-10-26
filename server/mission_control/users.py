@@ -24,6 +24,7 @@ _EDITABLE_FIELDS = frozenset(
         "initial_sticker_complete",
         "muted",
         "mute_minutes",
+        "multiverse_access",
         "powers",
     }
 )
@@ -174,6 +175,7 @@ class UserManager:
                 parsed_profile = {}
             if isinstance(parsed_profile, dict):
                 profile_view["last_instance_id"] = parsed_profile.get("last_instance_id")
+                profile_view["multiverse_access"] = bool(parsed_profile.get("multiverse_access", False))
         return {
             "account": account,
             "profile": profile_view,
@@ -220,6 +222,9 @@ class UserManager:
                 kwargs["muted_by"] = None
         if kwargs:
             self._profiles.admin_update_account(account_id, **kwargs)
+
+        if "multiverse_access" in fields:
+            self._profiles.set_multiverse_access(account_id, bool(fields["multiverse_access"]))
 
         if "powers" in fields:
             requested = fields["powers"]

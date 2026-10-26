@@ -60,7 +60,7 @@ penthouse-globe-lamp:
   - lamp
 penthouse-chandelier:
   label: Chandelier
-  description: A small brass chandelier of glass rods.
+  description: A brass chandelier of glass rods with opinions about lighting.
   model: penthouse-chandelier.glb
   decorative: true
   scale: 1.0

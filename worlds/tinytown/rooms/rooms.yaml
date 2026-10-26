@@ -25,7 +25,7 @@ town:
   exits: {}
 home-entry:
   label: Entry Hall
-  description: A bright little front hall. Coats, keys, and a sign that knows everyone
+  description: A bright front hall. Coats, keys, and a sign that knows everyone
     in the house.
   board_type: basic
   board_image: floor-oak.png
@@ -104,8 +104,7 @@ home-entry:
   exits: {}
 home-living:
   label: Living Room
-  description: Deep seats, warm lamps, and a rug that has hosted a thousand small
-    conversations.
+  description: Deep seats, warm lamps, and a rug that has overheard a thousand negotiations.
   board_type: basic
   board_image: floor-linen.png
   board_image_style: stretch
@@ -476,8 +475,8 @@ home-studio:
   exits: {}
 home-garden:
   label: Garden
-  description: A pocket garden with warm stones, flowers doing their own thing, and
-    room to stand still.
+  description: A walled garden with warm stones, unruly flowers, and room to
+    stand still.
   board_type: basic
   board_image: floor-sandstone.png
   board_image_style: stretch
@@ -777,7 +776,7 @@ home-workshop:
   exits: {}
 home-roof:
   label: Roof Terrace
-  description: A little sky terrace with planters, warm lights, and more stars than
+  description: A sky terrace with planters, warm lights, and more stars than
     the street below.
   board_type: basic
   board_image: floor-slate.png
@@ -924,7 +923,7 @@ home-pool:
   exits: {}
 home-nursery:
   label: Nursery
-  description: A small bright room with a low bed, soft rug, and a shelf of things
+  description: A sunlit room with a low bed, a soft rug, and a shelf of things
     that go clatter.
   board_type: basic
   board_image: floor-linen.png

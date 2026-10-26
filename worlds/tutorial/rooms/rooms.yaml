@@ -1,6 +1,6 @@
 hub:
   label: The Hub
-  description: A sunlit pocket plaza with a dollhouse that is either adorable or a
+  description: A sunlit landing plaza with a dollhouse that is either festive or a
     trap. The brochure refuses to clarify.
   board_type: basic
   board_image: hub.jpg
@@ -35,7 +35,7 @@ hub:
       target: foyer
 foyer:
   label: The Living Room
-  description: A tiny living room with big opinions. The front door leads outside;
+  description: A living room with strong opinions. The front door leads outside;
     everything else leads to chores.
   board_type: basic
   board_image: foyer.png

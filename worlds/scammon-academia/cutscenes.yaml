@@ -551,7 +551,7 @@ topic-geography-landmarks:
     topic_card: "$card:topic-geography-landmarks"
 
 topic-chemistry-atoms:
-  title: "Tiny Atoms"
+  title: "Atoms"
   script: topic-chemistry-atoms.js
   frame: movie
   duration: 5000

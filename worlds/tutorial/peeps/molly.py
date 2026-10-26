@@ -69,4 +69,4 @@ def on_quick_action(context, event):
         context.npc_say(_stinky_line(context))
         return
     if event.action == "pet":
-        context.feedback("Molly leans into your hand and purrs like a tiny motor that knows it is being paid in attention.")
+        context.feedback("Molly leans into your hand and purrs like a tuned engine that knows it is being paid in attention.")

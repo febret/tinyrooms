@@ -75,6 +75,13 @@ export function createUserManager(container, ctx) {
       field("Sticker", el("input", { name: "sticker", value: account.sticker || "" })),
       field("Mute minutes (0 to unmute)", el("input", { name: "mute_minutes", type: "number", value: "0" })),
       el("div", { class: "stack" }, [
+        el("span", { class: "muted", text: "Multiverse travel" }),
+        el("label", { class: "row" }, [
+          el("input", { type: "checkbox", name: "multiverse_access", checked: Boolean(detail.profile?.multiverse_access) }),
+          el("span", { text: "Unlock cross-world travel" }),
+        ]),
+      ]),
+      el("div", { class: "stack" }, [
         el("span", { class: "muted", text: "Powers" }),
         el("div", { class: "row" }, POWERS.map((power) =>
           el("label", { class: "row" }, [
@@ -353,6 +360,7 @@ export function createUserManager(container, ctx) {
       bops: Number(data.get("bops")),
       shared_energy: Number(data.get("shared_energy")),
       sticker: data.get("sticker") || null,
+      multiverse_access: Boolean(data.get("multiverse_access")),
       powers: POWERS.filter((power) => data.get(`power-${power}`)),
     };
     const minutes = Number(data.get("mute_minutes") || 0);

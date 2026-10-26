@@ -10,7 +10,7 @@ ballet-shoes:
   bonuses: {charisma: 1, fanciness: 2}
 fancy-wallet:
   label: Fancy Wallet
-  description: A tiny golden clasp that implies a tiny golden fortune. It contains lint and one expired coupon.
+  description: A golden clasp that implies a matching fortune. It contains lint and one expired coupon.
   image: fancy-wallet-art.webp
   decorative: true
 hand-light:
@@ -48,7 +48,7 @@ plastic-bag:
   stack_limit: 10
 poop-in-a-bag:
   label: Poop in a Bag
-  description: A neat little parcel of consequences. Equip it, then drag it onto the garden trashcan or Use it on the bin. The bin knows what it did.
+  description: A neat parcel of consequences. Equip it, then drag it onto the garden trashcan or Use it on the bin. The bin knows what it did.
   image: poop-in-bag-art.webp
   stack_limit: 10
   one_use: true
@@ -84,7 +84,7 @@ pooper-scooper:
     use: swish.wav
 seal-plushie:
   label: Seal Plushie
-  description: A cute seal plushie. Smells faintly of justice and absolutely nothing else.
+  description: A seal plushie with courtroom posture. Smells faintly of justice and absolutely nothing else.
   image: seal-plushie-art.webp
   decorative: true
 tasty-toast:
@@ -126,7 +126,7 @@ house-key:
     use: open-metal.wav
 vacuum-cleaner:
   label: Vacuum Cleaner
-  description: A cheerful little vacuum with a taste for centipedes. Equip it, then use it on the basement bugs. Reusable, unbothered, faintly smug.
+  description: A cheerful vacuum with a taste for centipedes and a spotless record. Equip it, then use it on the basement bugs. Reusable, unbothered, faintly smug.
   image: vacuum-cleaner-art.webp
   type: item
   rarity: Common

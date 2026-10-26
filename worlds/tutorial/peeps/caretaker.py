@@ -1,4 +1,4 @@
-"""Small behavior hooks for the house's declarative tutorial guide."""
+"""Behavior hooks for the house's declarative tutorial guide."""
 
 from __future__ import annotations
 

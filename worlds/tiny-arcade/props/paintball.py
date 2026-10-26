@@ -606,7 +606,7 @@ def _bot_commentary(context, state: dict[str, Any]) -> None:
 
 
 async def _run_bots(context, state: dict[str, Any], now: datetime) -> None:
-    """Move active paintbots a little and let them take server-authoritative shots."""
+    """Advance active paintbots and let them take server-authoritative shots."""
 
     bots = _bot_participants(context, state)
     if not bots:

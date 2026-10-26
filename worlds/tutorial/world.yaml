@@ -1,7 +1,7 @@
 id: tutorial
 label: The Little House
-description: A pocket-sized home where the chores have opinions and the basement is
-  definitely hiding something.
+description: A dollhouse home where the chores have opinions and the basement is
+  definitely keeping score.
 entry_room: hub
 image: rooms/hub.jpg
 css: cutscenes.css

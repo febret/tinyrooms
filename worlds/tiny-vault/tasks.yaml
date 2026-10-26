@@ -1,10 +1,10 @@
 first-job:
-  title: First Tiny Job
+  title: First Job
   description: Finish one vault heist, loud or quiet.
   scope: personal
   revision: 1
   memory_tags: [tiny-vault]
-  memory: I finished my first Tiny Vault job. The fence paid; the guards complained.
+  memory: I finished my first vault job. The fence paid; the guards complained.
   reward:
     kudos: 2
     cards: [heist-gold-bar]
@@ -70,7 +70,7 @@ daily-score:
   repeatable: true
   reset_policy: daily
   memory_tags: [tiny-vault]
-  memory: Another day, another tiny score.
+  memory: Another day, another clean score.
   reward:
     kudos: 1
     cards: [heist-bear-bond]

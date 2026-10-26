@@ -23,6 +23,9 @@ class ActivityDefinition:
     # start_cost is Energy per round start, not per window open. record enables
     # personal/world best times for captured rounds lasting at least
     # min_completed_round seconds; abandoned rounds do not qualify.
+    # YAML flag becomes required_flag: the launch requires that persisted user
+    # profile flag (for example multiverse_access), unless the account has the
+    # admin power.
     id: str
     title: str
     aliases: tuple[str, ...]
@@ -30,6 +33,7 @@ class ActivityDefinition:
     required_feature: str | None
     source: str
     required_skill: str | None = None
+    required_flag: str | None = None
     start_cost: int = 0
     record: bool = False
     min_completed_round: float = 0.0
@@ -86,6 +90,11 @@ def load_activity_definitions(
             required_skill = str(required_skill).strip()
             if not required_skill:
                 raise ContentError(f"Activity '{activity_id}' skill must be a non-empty string.")
+        required_flag = raw.get("flag")
+        if required_flag is not None:
+            required_flag = str(required_flag).strip()
+            if not required_flag:
+                raise ContentError(f"Activity '{activity_id}' flag must be a non-empty string.")
         raw_cost = raw.get("start_cost", 0)
         if isinstance(raw_cost, bool) or not isinstance(raw_cost, int) or raw_cost < 0:
             raise ContentError(f"Activity '{activity_id}' start_cost must be a non-negative integer.")
@@ -105,6 +114,7 @@ def load_activity_definitions(
             required_feature=required_feature,
             source=source,
             required_skill=required_skill,
+            required_flag=required_flag,
             start_cost=int(raw_cost),
             record=raw_record,
             min_completed_round=float(raw_min),

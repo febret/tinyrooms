@@ -87,7 +87,7 @@ italian-marble-coffee-table:
   - furniture
 italian-gueridon-table:
   label: Gueridon
-  description: A small round gueridon for espresso.
+  description: A walnut gueridon built for serious espresso.
   model: italian-gueridon-table.glb
   decorative: true
   scale: 0.9
@@ -170,7 +170,7 @@ italian-lemon-pot:
   - decoration
 italian-amphora:
   label: Amphora
-  description: A small amphora vase, strictly decorative.
+  description: An amphora vase, strictly decorative and proud of it.
   model: italian-amphora.glb
   decorative: true
   scale: 0.8

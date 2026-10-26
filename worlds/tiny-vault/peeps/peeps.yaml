@@ -11,7 +11,7 @@ fence-mara:
     - .heist heat
   dialog:
     start:
-      text: So you want to rob a tiny bank. Cute. Buy tools from the locker, start
+      text: So you want to crack this bank. Bold. Buy tools from the locker, start
         a job from the board, and stay out of the red cones. Heat follows success;
         lay low if the city starts recognizing you.
       choices:

@@ -573,7 +573,7 @@ topic-geography-landmarks:
   tags: [topic, subject:geography, skill:skill-geography]
 
 topic-chemistry-atoms:
-  label: "Tiny Atoms"
+  label: "Atoms"
   description: "A Chemistry topic you can teach your class."
   image: topic-chemistry-atoms.png
   type: item

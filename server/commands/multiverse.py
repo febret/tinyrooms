@@ -39,7 +39,7 @@ async def multiverse_worlds_command(context: CommandContext, command: ParsedComm
     """Return the running worlds available to the Multiverse activity."""
 
     del command
-    context.cross_world.check_multiverse_map(context.account)
+    context.cross_world.check_multiverse_access(context.account)
     worlds = await context.cross_world.list_worlds()
     for world in worlds:
         world["friends"] = _friend_stickers(context, world)

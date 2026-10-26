@@ -4,7 +4,7 @@
 # world. Kept inert: plain collectible items with no effect.
 stinky-pee:
   label: "Suspicious Puddle"
-  description: "A warm little puddle of questionable origin. Best not to ask."
+  description: "A warm puddle of questionable origin. Best not to ask."
   image: stinky-pee.png
   type: item
   rarity: Common

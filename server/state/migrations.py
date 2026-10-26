@@ -17,7 +17,7 @@ from server.state.phone_messages_schema import (
 )
 
 
-PROFILE_SCHEMA_VERSION = 13
+PROFILE_SCHEMA_VERSION = 14
 WORLD_SCHEMA_VERSION = 19
 
 
@@ -274,7 +274,7 @@ COMMIT;
 # player across worlds; the fresh-database script gains the v13 table in place.
 _PROFILE_SCHEMA_SQL = _PROFILE_SCHEMA_SQL.replace(
     "PRAGMA user_version = 12;",
-    PHONE_MESSAGES_FRESH_SQL + "\nPRAGMA user_version = 13;",
+    PHONE_MESSAGES_FRESH_SQL + "\nPRAGMA user_version = 14;",
 )
 
 _WORLD_SCHEMA_SQL = """
@@ -635,6 +635,39 @@ _PROFILE_MIGRATIONS: dict[int, str] = {
     COMMIT;
     """,
     13: PHONE_MESSAGES_MIGRATION,
+    14: """
+    BEGIN;
+    -- The Multiverse Map is no longer a slotted skill card: owning it unlocks
+    -- the shared multiverse_access profile flag, and any legacy slotted copies
+    -- are removed from skill slots without touching other slotted skills.
+    UPDATE user_profiles
+    SET profile_json = json_set(profile_json, '$.multiverse_access', json('true'))
+    WHERE account_id IN (
+        SELECT account_id FROM profile_card_stacks WHERE card_def_id = 'multiverse-map'
+    );
+    UPDATE user_profiles
+    SET profile_json = json_set(
+        profile_json,
+        '$.skills',
+        (
+            SELECT COALESCE(json_group_array(value), json('[]'))
+            FROM json_each(json_extract(user_profiles.profile_json, '$.skills'))
+            WHERE value NOT IN (
+                SELECT stack_id FROM profile_card_stacks WHERE card_def_id = 'multiverse-map'
+            )
+        )
+    )
+    WHERE json_type(profile_json, '$.skills') = 'array'
+        AND EXISTS (
+            SELECT 1
+            FROM json_each(json_extract(user_profiles.profile_json, '$.skills'))
+            WHERE value IN (
+                SELECT stack_id FROM profile_card_stacks WHERE card_def_id = 'multiverse-map'
+            )
+        );
+    PRAGMA user_version = 14;
+    COMMIT;
+    """,
 }
 
 _WORLD_MIGRATIONS: dict[int, str] = {

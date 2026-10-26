@@ -21,7 +21,8 @@ EMOTE_COSTS = {"Expression": 1, "Animation": 2, "Cutscene": 5}
 HEALTH_EFFECT = "health"
 ENERGY_EFFECT = "energy"
 LIGHT_EFFECT = "light"
-CORE_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT, LIGHT_EFFECT})
+MULTIVERSE_EFFECT = "multiverse"
+CORE_EFFECTS = frozenset({HEALTH_EFFECT, ENERGY_EFFECT, LIGHT_EFFECT, MULTIVERSE_EFFECT})
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +188,15 @@ class ActionsService:
                 else:
                     actor = self._stats.reconcile_in_transaction(connection, account.id)
                     message = f"You gave {resolved_label} {definition.label} (+{healed:.0f} Health)."
+            elif definition.effect == MULTIVERSE_EFFECT:
+                profile = self._profiles.get_user_profile(account.id)
+                already_unlocked = profile is not None and profile.multiverse_access
+                self._profiles.set_multiverse_access_in_transaction(connection, account.id, True)
+                actor = self._stats.reconcile_in_transaction(connection, account.id)
+                if already_unlocked:
+                    message = f"{definition.label} has already unlocked cross-world travel."
+                else:
+                    message = f"You unfolded the {definition.label}. Cross-world travel is now unlocked."
             elif target_prop is not None or (
                 (target_account_id is not None or target_is_npc)
                 and definition.effect not in CORE_EFFECTS

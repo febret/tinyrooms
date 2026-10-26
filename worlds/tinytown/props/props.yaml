@@ -19,7 +19,7 @@ tinytown-art-easel:
 tinytown-bathtub:
   label: Deep Bath
   description: A generous roll-top tub with brass feet. Excellent for steam, thinking,
-    and very small boats.
+    and ceremonial rubber-duck regattas.
   model: tinytown-bathtub.glb
   decorative: true
   scale: 1.9

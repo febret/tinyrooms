@@ -49,6 +49,8 @@ def _default_profile() -> dict[str, object]:
         "starred_tracks": [],
         "statuses": [],
         "show_activity_log": False,
+        # Permanent cross-world travel unlocked by using the Multiverse Map.
+        "multiverse_access": False,
         "ui_settings": {},
         "unlocked_props": [],
         # Recipe ids learned from cardset recipe books.
@@ -105,6 +107,8 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["statuses"] = []
     if not isinstance(merged.get("show_activity_log"), bool):
         merged["show_activity_log"] = False
+    if not isinstance(merged.get("multiverse_access"), bool):
+        merged["multiverse_access"] = False
     if not isinstance(merged.get("ui_settings"), dict):
         merged["ui_settings"] = {}
     if not isinstance(merged.get("unlocked_props"), list):
@@ -252,6 +256,12 @@ class UserProfileRecord:
     @property
     def show_activity_log(self) -> bool:
         return bool(self.profile.get("show_activity_log", False))
+
+    @property
+    def multiverse_access(self) -> bool:
+        """Return whether the Multiverse Map has permanently unlocked cross-world travel."""
+
+        return bool(self.profile.get("multiverse_access", False))
 
     @property
     def pinned_peeps(self) -> tuple[str, ...]:
@@ -1500,3 +1510,32 @@ class ProfileRepository:
                 profile["show_activity_log"] = bool(visible)
 
             return self._update_profile_json(connection, account_id, _set_visible)
+
+    def has_multiverse_access(self, account_id: str) -> bool:
+        """Return whether the account has permanent Multiverse Map travel unlocked."""
+
+        profile = self.get_user_profile(account_id)
+        return bool(profile is not None and profile.multiverse_access)
+
+    def set_multiverse_access(
+        self,
+        account_id: str,
+        enabled: bool,
+    ) -> UserProfileRecord:
+        """Persist the cross-world travel flag and return the updated user profile."""
+
+        with self._hub.transaction() as connection:
+            return self.set_multiverse_access_in_transaction(connection, account_id, enabled)
+
+    def set_multiverse_access_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        account_id: str,
+        enabled: bool,
+    ) -> UserProfileRecord:
+        """Persist the cross-world travel flag inside an existing transaction."""
+
+        def _set_access(profile: dict[str, object]) -> None:
+            profile["multiverse_access"] = bool(enabled)
+
+        return self._update_profile_json(connection, account_id, _set_access)

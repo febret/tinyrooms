@@ -7,7 +7,7 @@ import {
   buildTeachCommand,
   buildUseCommand,
 } from "./commands.js";
-import { findContainerCard, findInventoryCard, findRoomCard, findSelectedEntity, findTask, hasSlottedSkill, isTargetableStack } from "./state.js";
+import { findContainerCard, findInventoryCard, findRoomCard, findSelectedEntity, findTask, isTargetableStack } from "./state.js";
 import { escapeHtml } from "./presentation.js";
 import { handIconMarkup, rarityLabel } from "./views/view-helpers.js";
 import { idCardView } from "./views/id-card-view.js";
@@ -510,7 +510,7 @@ export function createCardsView({ coreRoot, handRoot, menuRoot, panelRoot, edito
       const selectedProp = state.selection.kind === "prop" ? findSelectedEntity(state) : null;
       const isAdmin = (state.user?.powers || []).includes("admin");
       const canReviewCutscenes = (state.user?.powers || []).some(power => power === "admin" || power === "game-master");
-      const showMultiverse = isAdmin || hasSlottedSkill(state, "multiverse-map");
+      const showMultiverse = isAdmin || Boolean(state.user?.multiverseAccess);
       const showTinymag = state.user?.worldId === "tinytown";
       const equipped = (state.room?.inventory || []).filter(stack => stack.equipped);
       const roomPicker = `<button type="button" id="room-picker-toggle" class="icon-button" aria-label="Look around" title="Look around" aria-haspopup="dialog" aria-controls="room-picker" aria-expanded="${Boolean(state.ui.roomPickerOpen)}">${uiIconMarkup("room-picker")}</button>`;

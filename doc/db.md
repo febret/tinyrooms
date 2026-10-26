@@ -68,8 +68,9 @@ rewrite only that key, preserving the saved world and room. See
 `remember_instance`, `reassign_last_instance`, and `ensure_user_profile` paths.
 
 `profile_json` is extensible and normalized with defaults on read. Friends,
-requests, pinned peeps, skill slots, statuses, UI settings, and unlocked props
-are current consumers; do not treat all gameplay JSON as unused placeholders.
+requests, pinned peeps, skill slots, statuses, UI settings, unlocked props, and
+the `multiverse_access` travel flag are current consumers; do not treat all
+gameplay JSON as unused placeholders.
 
 Room authority is world-local: `room_states.owner_account_id` is read by
 [OwnershipService](../server/services/ownership.py). Its grant/revoke paths

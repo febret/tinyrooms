@@ -19,7 +19,7 @@ portal:
     select: computer2.wav
     action: door-open-old.wav
 dollhouse:
-  label: A Cute Dollhouse
+  label: Dollhouse
   description: A whole home in miniature. Search once every ten minutes, or step right
     inside and become emotionally responsible for it.
   model: dollhouse.glb
@@ -40,8 +40,8 @@ shower:
     action: water1.wav
 litter-tray:
   label: Molly's Litter Tray
-  description: A little chore with big consequences. Equip a pooper scooper, then
-    use it here. Bring a plastic bag, unless you enjoy carrying evidence.
+  description: A thankless chore with outsized consequences. Equip a pooper scooper,
+    then use it here. Bring a plastic bag, unless you enjoy carrying evidence.
   model: litter-tray.glb
   decorative: false
   behavior: litter-tray
@@ -58,7 +58,7 @@ locked-front-door:
     action: door-close.wav
 keys-cabinet:
   label: Spare Key Cabinet
-  description: A tiny brass key hangs on the sunflower hook, but only once the centipedes
+  description: A brass key hangs on the sunflower hook, but only once the centipedes
     are gone. The hook is judging your chore speed.
   model: keys-cabinet.glb
   decorative: false
@@ -72,7 +72,7 @@ keys-cabinet:
     action: open-metal.wav
 centipedes:
   label: House Centipedes
-  description: All those tiny feet and not one of them pays rent. Borrow the utility-room
+  description: A committee of legs, none of which pay rent. Borrow the utility-room
     vacuum and use it here to clear them out.
   model: centipedes.glb
   decorative: false
@@ -151,7 +151,7 @@ bed:
   decorative: true
   scale: 1.389
 plant:
-  label: Little Monstera
+  label: Monstera
   description: Glossy leaves, a wonky terracotta pot, and one new shoot that is absolutely
     plotting something.
   model: quaternius_cc0-cactus-775.glb
@@ -159,7 +159,7 @@ plant:
   scale: 0.76
 bookshelf:
   label: Story Shelf
-  description: Hand-bound books and a tiny keepsake house. The books are arranged
+  description: Hand-bound books and a dollhouse keepsake. The books are arranged
     by vibes, not author.
   model: bookshelf.glb
   decorative: true
@@ -167,7 +167,7 @@ bookshelf:
   effects: {}
 framed-picture:
   label: A Sunny Picture
-  description: A hand-painted sun over a little blue hill. It is either art or a threat
+  description: A hand-painted sun over a low blue hill. It is either art or a threat
     with good lighting.
   model: framed-picture.glb
   decorative: true
@@ -187,7 +187,7 @@ lamp:
   decorative: true
   scale: 1.065
 vending:
-  label: Pocket Card Shop
+  label: Card Shop
   description: Base, Tutorial, and Memebase packs. Three cards for 10 Bops; unlimited
     stock, limited judgment.
   model: lesiakower-vending-1586.glb

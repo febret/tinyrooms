@@ -115,7 +115,7 @@ baroque-dresser:
   - furniture
 gilded-birdcage:
   label: Gilded Birdcage
-  description: A little golden pavilion of a cage, with a porcelain bird within.
+  description: A golden pavilion of a cage, with a porcelain bird within.
   model: gilded-birdcage.glb
   decorative: true
   scale: 1.2
@@ -187,7 +187,7 @@ cherub-fountain:
   - decoration
 gilt-oval-tray:
   label: Gilt Oval Tray
-  description: A gilded oval mirror on little scrolled feet.
+  description: A gilded oval mirror on scrolled feet.
   model: gilt-oval-tray.glb
   decorative: true
   scale: 0.8

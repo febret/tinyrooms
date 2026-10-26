@@ -87,7 +87,7 @@ beachhut-round-bamboo-table:
   - furniture
 beachhut-driftwood-desk:
   label: Driftwood Desk
-  description: A small writing desk for postcards and tide timetables.
+  description: A driftwood writing desk for postcards and tide timetables.
   model: beachhut-driftwood-desk.glb
   decorative: true
   scale: 1.3
@@ -97,7 +97,7 @@ beachhut-driftwood-desk:
   - furniture
 beachhut-net-shelf:
   label: Net Shelf
-  description: A pine shelf strung with a fishing net for small treasures.
+  description: A pine shelf strung with a fishing net for beachcombed keepsakes.
   model: beachhut-net-shelf.glb
   decorative: true
   scale: 1.0
@@ -162,7 +162,7 @@ beachhut-tide-clock:
   - decoration
 beachhut-palm-pot:
   label: Palm Pot
-  description: A small palm in a chipped enamel bucket.
+  description: A palm wrestling a chipped enamel bucket.
   model: beachhut-palm-pot.glb
   decorative: true
   scale: 0.9

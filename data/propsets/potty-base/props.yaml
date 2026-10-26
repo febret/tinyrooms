@@ -21,8 +21,8 @@ victorian-high-tank:
   - decoration
 gilded-throne-toilet:
   label: Gilded Throne
-  description: A gold-plated throne with a tufted velvet seat and a little crown on
-    top.
+  description: A gold-plated throne with a tufted velvet seat and a crown finial
+    on top.
   model: gilded-throne-toilet.glb
   decorative: true
   scale: 1.15

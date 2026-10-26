@@ -72,6 +72,8 @@ def serialize_account(runtime: RuntimeState, account: AccountRecord) -> dict[str
         "packs": [preview.as_dict() for preview in runtime.shop.packs()],
         # Persisted user-profile preference for displaying the action log.
         "show_activity_log": user_profile.show_activity_log,
+        # Permanent cross-world travel unlocked by using the Multiverse Map.
+        "multiverse_access": user_profile.multiverse_access,
         # This payload's loaded world; remembered_room is nullable saved navigation
         # context from the profile, not proof of a live connection in that room.
         "world_id": runtime.world.id,

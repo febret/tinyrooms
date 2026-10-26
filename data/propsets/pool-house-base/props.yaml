@@ -42,7 +42,7 @@ poolhouse-pool-stool:
   - furniture
 poolhouse-umbrella-lamp:
   label: Umbrella Lamp
-  description: A floor lamp under a tiny parasol shade.
+  description: A floor lamp under a parasol shade with resort ambitions.
   model: poolhouse-umbrella-lamp.glb
   decorative: true
   scale: 1.2

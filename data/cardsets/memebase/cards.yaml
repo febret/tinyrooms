@@ -29,7 +29,7 @@ tina-uhh:
   rarity: Common
 troll-dance:
   label: Troll Dance
-  description: A triumphant little jig for when the plan comes together.
+  description: A triumphant jig for when the plan somehow works.
   image: troll-dance-art.webp
   animation: download.png
   type: emote
@@ -57,7 +57,7 @@ troll-problem:
   rarity: Common
 pixel-hamster:
   label: Pixel Hamster
-  description: A plump little rodent rendered in loving chunky pixels.
+  description: A plump rodent rendered in loving chunky pixels.
   image: pixel-hamster-art.webp
   animation: tumblr_mit6l0CKMR1rfjowdo1_500.gif
   type: emote

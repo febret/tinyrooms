@@ -1,6 +1,6 @@
 // Shared, data-driven topic cutscene engine for Scammon Academia lessons.
 //
-// Every topic scene is a tiny module that imports this engine with a unique
+// Every topic scene is a focused module that imports this engine with a unique
 // recipe (background, accent, glyph set, motion, and caption). The recipe
 // drives distinct visuals and animation, so each card still gets its own
 // cutscene while the animation plumbing lives in one trusted module.

@@ -15,7 +15,7 @@ market-carrot:
 
 market-potato:
   label: "Potato"
-  description: "A lumpy little multitasker. Boil it, mash it, or hide it in a sock."
+  description: "A lumpy multitasker with strong opinions. Boil it, mash it, or hide it in a sock."
   image: market-potato.png
   type: item
   rarity: Common
@@ -93,7 +93,7 @@ market-spinach:
 
 market-broccoli:
   label: "Broccoli"
-  description: "A tiny tree that tastes better than it looks. Usually."
+  description: "A broccoli crown that tastes better than it looks. Usually."
   image: market-broccoli.png
   type: item
   rarity: Common
@@ -132,7 +132,7 @@ market-bell-pepper:
 
 market-chili-pepper:
   label: "Chili Pepper"
-  description: "A small pepper with strong opinions about your tongue."
+  description: "A pepper with strong opinions about your tongue."
   image: market-chili-pepper.png
   type: item
   rarity: Common
@@ -197,7 +197,7 @@ market-pumpkin:
 
 market-corn:
   label: "Sweet Corn"
-  description: "A row of tiny yellow teeth that tastes like summer."
+  description: "Sweet kernels in strict formation; summer, chewable."
   image: market-corn.png
   type: item
   rarity: Common
@@ -210,7 +210,7 @@ market-corn:
 
 market-peas:
   label: "Green Peas"
-  description: "Small, green, and impossible to eat one at a time."
+  description: "Green, restless, and impossible to eat one at a time."
   image: market-peas.png
   type: item
   rarity: Common
@@ -236,7 +236,7 @@ market-green-beans:
 
 market-mushroom:
   label: "Mushroom"
-  description: "A mysterious little umbrella from the shady part of the forest."
+  description: "An umbrella from the shady part of the forest, minus the forest."
   image: market-mushroom.png
   type: item
   rarity: Common
@@ -327,7 +327,7 @@ market-apple:
 
 market-banana:
   label: "Banana"
-  description: "Nature's pocket snack, with a built-in wrapper."
+  description: "A self-wrapped snack with a peel you can trust."
   image: market-banana.png
   type: item
   rarity: Common
@@ -340,7 +340,7 @@ market-banana:
 
 market-strawberry:
   label: "Strawberry"
-  description: "A tiny red heart with seeds on the outside."
+  description: "A red heart with seeds on the outside; anatomically confident."
   image: market-strawberry.png
   type: item
   rarity: Common
@@ -353,7 +353,7 @@ market-strawberry:
 
 market-blueberry:
   label: "Blueberry"
-  description: "A blue little bomb of juice and purple fingers."
+  description: "A blue burst of juice and purple fingers."
   image: market-blueberry.png
   type: item
   rarity: Common
@@ -379,7 +379,7 @@ market-avocado:
 
 market-basil:
   label: "Basil"
-  description: "A fragrant little leaf that thinks it runs the kitchen."
+  description: "A fragrant leaf with seniority in the kitchen."
   image: market-basil.png
   type: item
   rarity: Common
@@ -444,7 +444,7 @@ market-sugar:
 
 market-salt:
   label: "Salt"
-  description: "A tiny crystal that makes everything taste more like itself."
+  description: "A crystal that makes everything taste more like itself."
   image: market-salt.png
   type: item
   rarity: Common
@@ -535,7 +535,7 @@ market-cheese:
 
 market-egg:
   label: "Egg"
-  description: "A small oval miracle with a shell."
+  description: "An oval miracle with a shell."
   image: market-egg.png
   type: item
   rarity: Common
@@ -548,7 +548,7 @@ market-egg:
 
 market-yeast:
   label: "Yeast"
-  description: "Tiny organisms with a big rise-and-shine attitude."
+  description: "Microscopic overachievers with a rise-and-shine attitude."
   image: market-yeast.png
   type: item
   rarity: Common
@@ -574,7 +574,7 @@ market-baking-powder:
 
 market-vanilla-extract:
   label: "Vanilla Extract"
-  description: "A tiny bottle of expensive-smelling magic."
+  description: "A bottle of expensive-smelling magic."
   image: market-vanilla-extract.png
   type: item
   rarity: Common
@@ -600,7 +600,7 @@ market-honey:
 
 market-rice:
   label: "Rice"
-  description: "Tiny grains that multiply in the pot like magic."
+  description: "Grains that multiply in the pot like gossip."
   image: market-rice.png
   type: item
   rarity: Common
@@ -678,7 +678,7 @@ market-vinegar:
 
 market-soy-sauce:
   label: "Soy Sauce"
-  description: "A salty little bottle of umami."
+  description: "A salty bottle of uncompromising umami."
   image: market-soy-sauce.png
   type: item
   rarity: Common
@@ -743,7 +743,7 @@ market-yogurt:
 
 market-oats:
   label: "Oats"
-  description: "A bowl of tiny flakes that sticks to your ribs."
+  description: "A bowl of flakes engineered to stick to your ribs."
   image: market-oats.png
   type: item
   rarity: Common
@@ -795,7 +795,7 @@ market-cocoa:
 
 market-coffee:
   label: "Coffee"
-  description: "A bitter little bean that powers the whole school."
+  description: "A bitter bean that powers the whole school."
   image: market-coffee.png
   type: item
   rarity: Common
@@ -808,7 +808,7 @@ market-coffee:
 
 market-tea:
   label: "Tea"
-  description: "A cozy cup of leaf water with big opinions."
+  description: "A steaming cup of leaf water with strong opinions."
   image: market-tea.png
   type: item
   rarity: Common
@@ -821,7 +821,7 @@ market-tea:
 
 market-chickpeas:
   label: "Chickpeas"
-  description: "Little round legumes plotting to become hummus."
+  description: "Round legumes quietly plotting to become hummus."
   image: market-chickpeas.png
   type: item
   rarity: Common
@@ -925,7 +925,7 @@ market-chopped-vegetables:
 
 market-tomato-paste:
   label: "Tomato Paste"
-  description: "Tomatoes concentrated into a tiny red powerhouse."
+  description: "Tomatoes concentrated into a red powerhouse."
   image: market-tomato-paste.png
   type: item
   rarity: Uncommon
@@ -1094,7 +1094,7 @@ market-hummus:
 
 market-smoothie-base:
   label: "Smoothie Base"
-  description: "A thick fruit blend. Add milk and a tiny umbrella."
+  description: "A thick fruit blend. Add milk and a paper umbrella."
   image: market-smoothie-base.png
   type: item
   rarity: Rare
@@ -1120,7 +1120,7 @@ market-curry-paste:
 
 market-omelette:
   label: "Omelette"
-  description: "A folded egg masterpiece, best served with a proud little flourish."
+  description: "A folded egg masterpiece, best served with a deliberate flourish."
   image: market-omelette.png
   type: item
   rarity: Rare
@@ -1224,7 +1224,7 @@ market-cookies:
 
 market-blueberry-muffins:
   label: "Blueberry Muffins"
-  description: "Little blueberry treasures in a tender muffin coat."
+  description: "Blueberry compacts in a tender muffin chassis. Sneaky."
   image: market-blueberry-muffins.png
   type: item
   rarity: Rare
@@ -1302,7 +1302,7 @@ market-curry:
 
 market-bandage:
   label: "Bandage"
-  description: "A classic sticky strip for life's little paper cuts."
+  description: "A classic sticky strip for everyday paper cuts."
   image: market-bandage.png
   type: item
   rarity: Common
@@ -1315,7 +1315,7 @@ market-bandage:
 
 market-painkillers:
   label: "Painkillers"
-  description: "A tiny tablet with a big 'not today, headache' energy."
+  description: "A tablet with a defiant 'not today, headache' policy."
   image: market-painkillers.png
   type: item
   rarity: Common
@@ -1341,7 +1341,7 @@ market-cough-syrup:
 
 market-vitamins:
   label: "Vitamins"
-  description: "A bright little tablet that promises to fix your whole day."
+  description: "A bright tablet that promises to salvage the whole day."
   image: market-vitamins.png
   type: item
   rarity: Uncommon
@@ -1393,7 +1393,7 @@ market-herbal-tea:
 
 market-stomach-settler:
   label: "Stomach Settler"
-  description: "A chalky little helper for a tummy that has seen things."
+  description: "A chalky negotiator for a stomach that has seen things."
   image: market-stomach-settler.png
   type: item
   rarity: Uncommon

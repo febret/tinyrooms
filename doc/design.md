@@ -1044,13 +1044,14 @@ every world currently running under the same Mission Control server as a
 shimmering portal, showing its name, description, world image, population, and
 the stickers of the viewer's friends who are online there. World authors may set
 an optional `image` in `world.yaml`; otherwise a placeholder is shown.
-Opening the Multiverse and travelling requires the `Multiverse Map` skill to be
-slotted, unless the user has the admin power. While the skill is slotted, a
-vortex button beside Inventory opens the activity; removing the skill hides the
-button. The tutorial awards the card once when a bagged poop is thrown into the
-garden trashcan. An authored cross-world exit may specify a destination room;
-otherwise the Multiverse leads to the destination world's entry room. If the
-destination is unavailable or entry is denied, the user remains in the source
+Opening the Multiverse and travelling requires permanent Multiverse Map access,
+unless the user has the admin power. Using the normal Multiverse Map card sets
+the shared `multiverse_access` profile flag; while it is enabled, a vortex
+button beside Inventory opens the activity. Revoking the flag in Mission Control
+hides the button. The tutorial awards the card once when a bagged poop is thrown
+into the garden trashcan. An authored cross-world exit may specify a destination
+room; otherwise the Multiverse leads to the destination world's entry room. If
+the destination is unavailable or entry is denied, the user remains in the source
 room with no Energy charge or loadout changes. Native cards are removed from the
 loadout only after a successful transfer. Successful cross-world travel has the
 same default cost of 1 Energy as an in-world room change. Authored exits may
@@ -1058,8 +1059,8 @@ override that cost; Energy-consuming exits remain unavailable while Tired.
 
 Friends may send a beacon that records the sender's world and room at send time.
 Following a same-world beacon moves the recipient to that room without the map.
-Following a cross-world beacon requires the `Multiverse Map` skill to be slotted
-unless the user has the admin power. It uses the same destination resolution as
+Following a cross-world beacon requires permanent Multiverse Map access unless
+the user has the admin power. It uses the same destination resolution as
 a cross-world exit and consumes the beacon. Beacons persist in the shared
 profile until used or dismissed, so they work while the sender is offline and
 across world boundaries.
@@ -1229,6 +1230,11 @@ Task progress is personal by default, including in the tutorial. Worlds can
 explicitly define shared tasks. Users may cooperate on shared room puzzles,
 but each task must specify who receives progress, completion credit, and rewards.
 Completing an objective does not automatically credit everyone in the room.
+
+Task steps may be completed in any order; the server does not enforce the
+authored step sequence. Worlds that need an order should gate the later
+mechanical action itself (for example, by requiring an item before a door,
+prop, or exit can be used).
 
 Tasks are one-time by default. Meeting their completion conditions automatically
 grants their rewards once and moves them to completed tasks. Revisiting an

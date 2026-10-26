@@ -72,6 +72,12 @@ def start_activity(
         raise CommandError(f"{definition.title} is not available.")
     if definition.rooms and room_id not in definition.rooms:
         raise CommandError(f"{definition.title} is not available here.")
+    if definition.required_flag and not context.powers.has_power(context.account.id, "admin"):
+        if definition.required_flag == "multiverse_access":
+            if not context.profiles.has_multiverse_access(context.account.id):
+                raise CommandError("Use the Multiverse Map to unlock the Multiverse.")
+        else:
+            raise CommandError(f"{definition.title} is not available.")
     if definition.required_skill and not context.powers.has_power(context.account.id, "admin"):
         if not context.progression.has_slotted_skill(context.account, definition.required_skill):
             raise CommandError(

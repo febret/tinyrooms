@@ -14,7 +14,7 @@ heist-briefing:
   sounds:
     start: cutscene-start.wav
   text:
-  - {at: 300, speaker: Mara, say: 'Small crew, small bank, big manners. Stay out of the red cones.', sound: click2.wav}
+  - {at: 300, speaker: Mara, say: 'Lean crew, heavy vault, strict manners. Stay out of the red cones.', sound: click2.wav}
   - {at: 2600, speaker: Mara, say: 'Drill the vault, grab only what you can carry, and leave before lockdown.', sound: beep1.wav}
 alarm-raised:
   title: Alarm Raised

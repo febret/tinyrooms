@@ -149,7 +149,7 @@ def _reward_from_payload(payload: dict[str, object]) -> TaskReward:
 
 
 class TaskService:
-    """Advances ordered task steps, grants rewards once, and records memories."""
+    """Advances task steps in any trigger order, grants rewards once, and records memories."""
 
     def __init__(
         self,
@@ -717,11 +717,17 @@ class TaskService:
                     continue
                 steps = state["steps"]
                 assert isinstance(steps, list)
-                index = self._first_incomplete(definition, steps)
+                index = next(
+                    (
+                        candidate
+                        for candidate, step in enumerate(definition.steps)
+                        if int(steps[candidate]["progress"]) < step.amount
+                        and step.trigger == trigger
+                        and step.matches(fields)
+                    ),
+                    None,
+                )
                 if index is None:
-                    continue
-                step = definition.steps[index]
-                if step.trigger != trigger or not step.matches(fields):
                     continue
                 if started:
                     changes.append(
@@ -742,7 +748,11 @@ class TaskService:
         step_id: str | None = None,
         amount: int = 1,
     ) -> list[TaskChange]:
-        """Advance an explicit task step for a behavior intent, enforcing order."""
+        """Advance an explicit task step for a behavior intent.
+
+        Steps may complete in any order; callers use world mechanics when an
+        objective should be gated by gameplay instead.
+        """
 
         definition = self._definitions.get(task_id)
         if definition is None or self._profiles.get_account_by_id(account_id) is None:
@@ -758,8 +768,6 @@ class TaskService:
             if step_id is not None:
                 index = next((i for i, step in enumerate(definition.steps) if step.step_id == step_id), None)
                 if index is None:
-                    return []
-                if any(int(steps[i]["progress"]) < definition.steps[i].amount for i in range(index)):
                     return []
             else:
                 index = self._first_incomplete(definition, steps)

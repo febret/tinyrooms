@@ -109,7 +109,7 @@ heist-console:
     action: type.wav
 heist-alarm-panel:
   label: Alarm Panel
-  description: 'Four little lights: calm, curious, furious, and lockdown.'
+  description: 'Four status lights: calm, curious, furious, and lockdown.'
   model: alarm-panel.glb
   decorative: false
   scale: 1
@@ -167,7 +167,7 @@ heist-loot-bond:
     action: draw.wav
 heist-loot-diamond:
   label: Loose Diamonds
-  description: Small, loud, and valuable. Do not juggle.
+  description: Bright, loud, and valuable. Do not juggle.
   model: loot-diamond.glb
   decorative: false
   scale: 1
@@ -179,8 +179,8 @@ heist-loot-diamond:
     select: ring.wav
     action: ring.wav
 heist-loot-art:
-  label: Miniature Masterpiece
-  description: A tiny museum piece. The frame alone could buy lunch.
+  label: Gallery Piece
+  description: A framed score built for a getaway bag. The frame alone could buy lunch.
   model: loot-art.glb
   decorative: false
   scale: 1

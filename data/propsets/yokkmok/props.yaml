@@ -79,7 +79,7 @@ jarvi-coffee-table:
   - furniture
 puro-side-table:
   label: Puro Side Table
-  description: A small round table with one polite little drawer.
+  description: A round side table with one drawer that minds its manners.
   model: puro-side-table.glb
   decorative: true
   scale: 0.95
@@ -130,7 +130,7 @@ reppu-bench:
   - storage
 metsa-bookshelf:
   label: Metsa Bookshelf
-  description: Open white and pine shelves for books and small treasures.
+  description: Open white and pine shelves for books and keepsakes.
   model: metsa-bookshelf.glb
   decorative: true
   scale: 1.2
@@ -167,7 +167,7 @@ kielo-floor-lamp:
   - lamp
 taika-table-lamp:
   label: Taika Table Lamp
-  description: A small white dome on a wooden base.
+  description: A white dome shade on a wooden base.
   model: taika-table-lamp.glb
   decorative: true
   scale: 0.85

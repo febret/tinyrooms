@@ -1,7 +1,7 @@
 id: tiny-vault
 label: The Tiny Vault
-description: A miniature bank built for one small crew, patient guards, loud alarms,
-  and very quiet drills.
+description: A night-shift bank built for a one-person crew, patient guards, loud
+  alarms, and very quiet drills.
 entry_room: hideout
 image: rooms/hideout-floor.png
 css: cutscenes.css

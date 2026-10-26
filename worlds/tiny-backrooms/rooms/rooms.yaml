@@ -820,7 +820,7 @@ ud-r0c0:
       target: ud-r0c1
 ud-r0c1:
   label: "Vine Choke"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -916,7 +916,7 @@ ud-r0c3:
       target: ud-r0c2
 ud-r0c4:
   label: "Spore Drift"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one. It is pitch dark in here."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one. It is pitch dark in here."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -1001,7 +1001,7 @@ ud-r1c1:
       target: ud-r1c2
 ud-r1c2:
   label: "Frost Bite"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one. The air crackles with a sickly yellow static."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one. The air crackles with a sickly yellow static."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -1092,7 +1092,7 @@ ud-r1c4:
       target: ud-r0c4
 ud-r2c0:
   label: "Copper Air"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one. It is pitch dark in here."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one. It is pitch dark in here."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -1189,7 +1189,7 @@ ud-r2c2:
       target: ud-r2c3
 ud-r2c3:
   label: "Rotting Pike"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one. A green fog crawls the floor and the air crackles yellow."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one. A green fog crawls the floor and the air crackles yellow."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -1288,7 +1288,7 @@ ud-r3c0:
       target: ud-r3c1
 ud-r3c1:
   label: "Vine Mire"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -1388,7 +1388,7 @@ ud-r3c3:
       target: ud-r3c4
 ud-r3c4:
   label: "Blue Expanse"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one. The air crackles with a sickly yellow static."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one. The air crackles with a sickly yellow static."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -1485,7 +1485,7 @@ ud-r4c1:
       target: ud-r4c0
 ud-r4c2:
   label: "Copper Hollow"
-  description: "A ruined echo of a small town street. Christmas lights burn in the dark for no one."
+  description: "A ruined echo of a shuttered town street. Christmas lights burn in the dark for no one."
   board_type: basic
   board_image: ud-floor.png
   board_image_style: stretch
@@ -2373,7 +2373,7 @@ op-r4c4:
       npc_barrier: true
 surface:
   label: "The Way Out"
-  description: "Warm sunlight and clean air. The humming is gone. You made it out of the Tiny Backrooms."
+  description: "Warm sunlight and clean air. The humming is gone. You made it out of the Backrooms."
   board_type: basic
   board_image: surface-floor.png
   environment: day

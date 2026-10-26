@@ -60,7 +60,7 @@ harbor-cage-pendant:
   - lamp
 harbor-mast-floor-lamp:
   label: Mast Floor Lamp
-  description: A floor lamp shaped like a little mast.
+  description: A floor lamp shaped like a ship's mast.
   model: harbor-mast-floor-lamp.glb
   decorative: true
   scale: 1.3

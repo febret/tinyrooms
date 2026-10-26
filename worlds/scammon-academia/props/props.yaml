@@ -17,8 +17,8 @@ student-desk:
   active_state: intact
 chalkboard:
   label: Classroom Chalkboard
-  description: A green board in a yellow wooden frame. The chalk tray is always a
-    little dusty.
+  description: A green board in a yellow wooden frame. The chalk tray has earned its
+    dust.
   model: chalkboard.glb
   decorative: true
   scale: 1
@@ -62,7 +62,7 @@ classroom-bookshelf:
 alphabet-bulletin-board:
   label: Alphabet Bulletin Board
   description: A blue-framed cork board pinned with a neat row of yellow alphabet
-    cards and a little husky mascot at the top.
+    cards and a husky mascot holding court at the top.
   model: alphabet-bulletin-board.glb
   decorative: true
   scale: 1
@@ -90,7 +90,7 @@ cafeteria-table:
   active_state: intact
 lunch-tray-stack:
   label: Lunch Tray Stack
-  description: A tidy stack of blue trays with two little milk cartons on top.
+  description: A tidy stack of blue trays with two milk cartons riding on top.
   model: lunch-tray-stack.glb
   decorative: true
   scale: 0.8
@@ -255,7 +255,7 @@ school-sink:
   active_state: intact
 school-toilet:
   label: School Toilet
-  description: A small white toilet with a blue flush button. Just the right size.
+  description: A white toilet with a blue flush button. Built for real hallway emergencies.
   model: school-toilet.glb
   decorative: true
   scale: 0.9

@@ -30,7 +30,7 @@ from tests.mc_helpers import McHttpTestCase
 MC_TOKEN = "shared"
 
 
-def _activity_definition(skill: str | None = "multiverse-map") -> ActivityDefinition:
+def _activity_definition(flag: str | None = "multiverse_access") -> ActivityDefinition:
     return ActivityDefinition(
         id="multiverse",
         title="Multiverse",
@@ -38,27 +38,28 @@ def _activity_definition(skill: str | None = "multiverse-map") -> ActivityDefini
         rooms=(),
         required_feature=None,
         source="test",
-        required_skill=skill,
+        required_flag=flag,
     )
 
 
-class ActivitySkillGateTests(unittest.TestCase):
-    def _context(self, *, admin: bool, slotted: bool):
+class ActivityAccessGateTests(unittest.TestCase):
+    def _context(self, *, admin: bool, unlocked: bool):
         context = SimpleNamespace(
             account=SimpleNamespace(id="account-1"),
             powers=Mock(),
             progression=Mock(),
+            profiles=Mock(),
             activities=Mock(),
         )
         context.powers.has_power.return_value = admin
-        context.progression.has_slotted_skill.return_value = slotted
+        context.profiles.has_multiverse_access.return_value = unlocked
         session = SimpleNamespace(id="session-1")
         context.activities.start.return_value = (session, None)
         context.activities.serialize.return_value = {"id": "session-1"}
         return context
 
-    def test_launch_requires_slotted_map(self) -> None:
-        context = self._context(admin=False, slotted=False)
+    def test_launch_requires_multiverse_access(self) -> None:
+        context = self._context(admin=False, unlocked=False)
         with self.assertRaises(CommandError) as caught:
             start_activity(
                 context,
@@ -69,8 +70,8 @@ class ActivitySkillGateTests(unittest.TestCase):
         self.assertIn("Multiverse Map", str(caught.exception))
         context.activities.start.assert_not_called()
 
-    def test_launch_allows_slotted_map(self) -> None:
-        context = self._context(admin=False, slotted=True)
+    def test_launch_allows_multiverse_access(self) -> None:
+        context = self._context(admin=False, unlocked=True)
         outcome = start_activity(
             context,
             ResolvedActivity(_activity_definition()),
@@ -82,16 +83,24 @@ class ActivitySkillGateTests(unittest.TestCase):
 
 
 class MultiverseContentTests(unittest.TestCase):
-    def test_core_activity_requires_multiverse_map(self) -> None:
+    def test_core_activity_requires_multiverse_access(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
         definition = world.activities["multiverse"]
-        self.assertEqual(definition.required_skill, "multiverse-map")
+        self.assertIsNone(definition.required_skill)
+        self.assertEqual(definition.required_flag, "multiverse_access")
 
     def test_activity_skill_must_be_non_empty(self) -> None:
         with TemporaryDirectory() as root:
             path = Path(root) / "activities.yaml"
             path.write_text("test:\n  title: Test\n  skill: '   '\n", encoding="utf-8")
             with self.assertRaisesRegex(ContentError, "skill must be a non-empty string"):
+                load_activity_definitions(path, source="test")
+
+    def test_activity_flag_must_be_non_empty(self) -> None:
+        with TemporaryDirectory() as root:
+            path = Path(root) / "activities.yaml"
+            path.write_text("test:\n  title: Test\n  flag: '   '\n", encoding="utf-8")
+            with self.assertRaisesRegex(ContentError, "flag must be a non-empty string"):
                 load_activity_definitions(path, source="test")
 
     def test_world_images_are_loaded_from_world_yaml(self) -> None:
@@ -190,10 +199,7 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
         account_id = self.account_id(credentials)
         stack_id = self.grant_card(account_id, "multiverse-map")
         runtime = self.runtime()
-        account = runtime.profiles.get_account_by_id(account_id)
-        with runtime.hub.transaction() as connection:
-            account = runtime.profiles.update_progress(connection, account, level=1)
-        runtime.progression.slot_skill(account, 0, stack_id)
+        self.assertFalse(runtime.profiles.has_multiverse_access(account_id))
         runtime.config = replace(runtime.config, mc_endpoint="mc.example:8001", mc_token=MC_TOKEN)
         runtime.cross_world._config = runtime.config  # noqa: SLF001
         runtime.cross_world._client = self._client_for()  # noqa: SLF001
@@ -203,6 +209,16 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
             headers=websocket_headers(credentials["session_token"], credentials["csrf_token"]),
         ) as socket:
             socket.receive_json()
+            used = self.command(socket, "multiverse-unlock", f".use @card:{stack_id}")
+            self.assertTrue(used["ok"], used)
+            self.assertTrue(runtime.profiles.has_multiverse_access(account_id))
+            owned = [
+                stack
+                for stack in runtime.profiles.list_inventory(account_id, runtime.world.id)
+                if stack.card_def_id == "multiverse-map"
+            ]
+            self.assertEqual([stack.quantity for stack in owned], [1])
+
             opened = self.command(socket, "multiverse-open", ".play multiverse")
             self.assertTrue(opened["ok"], opened)
             self.assertIn("/activities/multiverse/", opened["payload"]["activity"]["iframe_url"])
@@ -218,6 +234,21 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
             self.assertTrue(travel["ok"], travel)
             self.assertEqual(travel["payload"]["travel"]["url"], "https://testserver:5101")
             self.assertEqual(travel["payload"]["travel"]["room_id"], "hall")
+
+    def test_multiverse_commands_require_access_without_the_flag(self) -> None:
+        credentials = self.create_ready_account("multiverse-locked")
+        runtime = self.runtime()
+        account_id = self.account_id(credentials)
+        self.assertFalse(runtime.profiles.has_multiverse_access(account_id))
+
+        with self.client.websocket_connect(
+            "/ws",
+            headers=websocket_headers(credentials["session_token"], credentials["csrf_token"]),
+        ) as socket:
+            socket.receive_json()
+            listing = self.command(socket, "multiverse-denied", ".multiverse_worlds")
+            self.assertFalse(listing["ok"], listing)
+            self.assertIn("unlock cross-world travel", listing["message"])
 
 
 class FleetWorldsTests(McHttpTestCase):
@@ -352,7 +383,6 @@ class CrossWorldWorldListTests(unittest.TestCase):
             hub=Mock(),
             profiles=Mock(),
             world_id="tutorial",
-            progression=Mock(),
             powers=Mock(),
             client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
         )
