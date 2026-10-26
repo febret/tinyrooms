@@ -1,0 +1,162 @@
+/* Mara's back-room job board: green baize, brass fittings, blueprint job slips. */
+
+.board-shell {
+  gap: 10px;
+  background:
+    linear-gradient(#04141bcc, #04141bcc),
+    url("./ui-felt.png");
+  background-size: auto, 220px;
+}
+
+.board-shell .heading {
+  position: relative;
+  align-items: center;
+  padding: 12px 16px 12px 56px;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 22px 50%, #5a3d16 0 5px, #2b1f0c 6px, transparent 7px),
+    radial-gradient(circle at calc(100% - 22px) 50%, #5a3d16 0 5px, #2b1f0c 6px, transparent 7px),
+    linear-gradient(#8a6a2fb8, #8a6a2fb8),
+    url("./ui-brass.png");
+  background-size: auto, auto, auto, cover;
+  box-shadow: 0 4px 10px #000a, inset 0 1px 0 #ffe9b088, inset 0 -2px 4px #0007;
+}
+
+.board-shell .heading h1 {
+  color: #241a08;
+  text-shadow: 0 1px 0 #ffe9b099;
+  letter-spacing: 0.06em;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+#heat-badge {
+  background: #241a08;
+  color: #ffd76a;
+  border: 1px solid #c9a24a;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-weight: 700;
+}
+
+.board-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.board-tabs button {
+  flex: 1 1 auto;
+  border: 1px solid #6b5320;
+  border-radius: 8px;
+  color: #241a08;
+  font-weight: 700;
+  background:
+    radial-gradient(circle at 8px 50%, #3d2c0e 0 2px, transparent 3px),
+    radial-gradient(circle at calc(100% - 8px) 50%, #3d2c0e 0 2px, transparent 3px),
+    linear-gradient(#e8c96a, #b98f2e);
+  box-shadow: 0 3px 6px #000a, inset 0 1px 0 #fff8;
+  text-shadow: 0 1px 0 #ffe9b077;
+}
+
+.board-tabs button[aria-selected="true"] {
+  outline: 3px solid #7de3a8;
+  outline-offset: 1px;
+  background:
+    radial-gradient(circle at 8px 50%, #3d2c0e 0 2px, transparent 3px),
+    radial-gradient(circle at calc(100% - 8px) 50%, #3d2c0e 0 2px, transparent 3px),
+    linear-gradient(#ffe9a8, #d9ab3a);
+}
+
+.board-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  background: transparent;
+  border: 0;
+  padding: 2px;
+}
+
+.board-job,
+.board-row {
+  position: relative;
+  border-radius: 3px;
+  padding: 14px 14px 12px;
+  color: #2b2118;
+  background:
+    radial-gradient(circle at 50% 8px, #a33b2e 0 6px, #7c2a20 7px, #0006 8px, transparent 9px),
+    url("./ui-blueprint.png");
+  background-size: auto, cover;
+  box-shadow: 0 5px 10px #000b;
+}
+
+.board-job h2,
+.board-row h2 {
+  font-size: 18px;
+  font-family: Georgia, "Times New Roman", serif;
+  border-bottom: 2px solid #2b211866;
+  padding-bottom: 4px;
+}
+
+.board-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: #4a3d2c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.board-job p,
+.board-row p {
+  color: #2b2118;
+}
+
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.board-actions button {
+  border: 1px solid #5a1f16;
+  border-radius: 8px;
+  color: #ffe9d2;
+  font-weight: 700;
+  background: linear-gradient(#8a3b28, #4a1c12);
+  box-shadow: 0 3px 6px #000a, inset 0 1px 0 #ffb59a66;
+  text-shadow: 0 1px 2px #000;
+}
+
+.board-actions button.primary {
+  border-color: #6b5320;
+  color: #241a08;
+  background: linear-gradient(#ffd76a, #b98f2e);
+  text-shadow: 0 1px 0 #ffe9b077;
+  box-shadow: 0 3px 6px #000a, inset 0 1px 0 #fff8;
+}
+
+.board-locked {
+  color: #7c2a20;
+  font-weight: 700;
+}
+
+.board-shell .muted,
+.board-shell .smallprint {
+  color: #cdbf9f;
+}
+
+.board-shell .connection {
+  color: #ffb3a3;
+}
+
+@media (max-width: 520px) {
+  .board-actions button {
+    flex: 1 1 46%;
+  }
+
+  .board-shell .heading {
+    padding-left: 44px;
+  }
+}

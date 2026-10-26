@@ -25,6 +25,12 @@ def load_sound_names(root: Path) -> frozenset[str]:
     return frozenset(path.name for path in root.glob("*.wav") if path.is_file())
 
 
+def world_sound_names(world_root: Path) -> frozenset[str]:
+    """Return the sound file names authored inside a world's ``sounds/`` directory."""
+
+    return load_sound_names(world_root / "sounds")
+
+
 def validate_sound_name(value: Any, label: str, known_sounds: frozenset[str] | None = None) -> str:
     """Return a validated sound file name."""
 

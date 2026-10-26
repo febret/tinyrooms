@@ -1,0 +1,88 @@
+heist-briefing:
+  title: The Plan
+  script: heist-briefing.js
+  frame: movie
+  duration: 6400
+  audience: private
+  room_bound: true
+  aliases: [briefing]
+  max_queue: 1
+  params:
+    stage_background: '#101c33'
+    caption_color: '#f7f5ed'
+    me: '$me'
+  sounds:
+    start: cutscene-start.wav
+  text:
+  - {at: 300, speaker: Mara, say: 'Small crew, small bank, big manners. Stay out of the red cones.', sound: click2.wav}
+  - {at: 2600, speaker: Mara, say: 'Drill the vault, grab only what you can carry, and leave before lockdown.', sound: beep1.wav}
+alarm-raised:
+  title: Alarm Raised
+  script: alarm-raised.js
+  frame: letterbox
+  duration: 5600
+  audience: room
+  room_bound: true
+  aliases: [alarm]
+  max_queue: 1
+  params:
+    stage_background: '#3d0f14'
+    caption_color: '#ffe4de'
+  sounds:
+    start: heist-alarm.wav
+  text:
+  - {at: 200, speaker: Alarm, say: 'Attention: someone is being extremely suspicious.', sound: heist-alarm.wav}
+  - {at: 2400, speaker: Guards, say: 'Check every corner. Especially the quiet ones.', sound: heist-whistle.wav}
+vault-open:
+  title: Vault Open
+  script: vault-open.js
+  frame: movie
+  duration: 5600
+  audience: room
+  room_bound: true
+  aliases: [vault]
+  max_queue: 1
+  params:
+    stage_background: '#122b1c'
+    caption_color: '#e9ffe9'
+  sounds:
+    start: heist-vault-open.wav
+  text:
+  - {at: 200, speaker: Vault, say: 'Click. Hiss. Retirement plans.', sound: heist-vault-open.wav}
+  - {at: 2400, speaker: Crew, say: 'Grab it gently. Diamonds bruise emotionally.', sound: heist-gold.wav}
+clean-escape:
+  title: Clean Escape
+  script: clean-escape.js
+  frame: movie
+  duration: 6000
+  audience: private
+  room_bound: false
+  aliases: [escape]
+  max_queue: 1
+  params:
+    stage_background: '#0d2430'
+    caption_color: '#f7f5ed'
+    me: '$me'
+  sounds:
+    start: heist-success.wav
+  text:
+  - {at: 300, speaker: Mara, say: 'No alarm, no chase, no paperwork. My favorite kind of crime.', sound: applause.wav}
+  - {at: 2700, speaker: Mara, say: '$me, you walk like a rumor. Take the clean bonus.', sound: heist-gold.wav}
+busted:
+  title: Busted
+  script: busted.js
+  frame: letterbox
+  duration: 6000
+  audience: private
+  room_bound: false
+  aliases: [bust]
+  max_queue: 1
+  params:
+    stage_background: '#2b1215'
+    caption_color: '#ffd9d1'
+    me: '$me'
+  sounds:
+    start: heist-fail.wav
+  text:
+  - {at: 300, speaker: Guards, say: 'Got one! Somebody write this down twice.', sound: heist-whistle.wav}
+  - {at: 2700, speaker: Mara, say: '$me, the deposit is gone but the crew is not. Walk it off.', sound: grunt.wav}

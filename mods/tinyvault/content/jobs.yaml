@@ -1,0 +1,355 @@
+tools:
+  heist-lockpick:
+    label: Lockpick Set
+    price: 4
+    kind: reusable
+    cooldown_seconds: 5
+  heist-disguise:
+    label: Guard Disguise
+    price: 6
+    kind: reusable
+    cooldown_seconds: 45
+    duration_seconds: 30
+  heist-smoke:
+    label: Smoke Bomb
+    price: 3
+    kind: consumable
+    duration_seconds: 20
+  heist-emp:
+    label: Pocket EMP
+    price: 6
+    kind: consumable
+    duration_seconds: 30
+  heist-decoy:
+    label: Noise Decoy
+    price: 4
+    kind: consumable
+    duration_seconds: 18
+  heist-jammer:
+    label: Alarm Jammer
+    price: 8
+    kind: consumable
+    duration_seconds: 60
+  heist-drill:
+    label: Vault Drill
+    price: 6
+    kind: reusable
+    cooldown_seconds: 10
+  heist-grapple:
+    label: Grapple Rig
+    price: 8
+    kind: reusable
+    cooldown_seconds: 0
+bot_roles:
+  lookout:
+    label: Wren the Lookout
+    peep: bot-lookout
+    price: 15
+    description: Cameras and guards notice the crew 25% more slowly.
+  muscle:
+    label: Brick the Muscle
+    peep: bot-muscle
+    price: 20
+    description: Vault drilling finishes 30% sooner and heavy loot pays 20% more.
+  slicer:
+    label: Patch the Slicer
+    peep: bot-slicer
+    price: 20
+    description: EMP and console shutdowns last 50% longer.
+jobs:
+  bank-training:
+    label: Copperline Savings
+    description: A sleepy branch with two guards, two cameras, and one forgiving vault.
+    min_crew: 1
+    max_crew: 2
+    heat_tier: 0
+    guard_count: 2
+    security_budget: 3
+    deposit: 3
+    rewards: {bops: 25, kudos: 2}
+    time_limit_seconds: 420
+    target_rooms: [bank-lobby, bank-offices, bank-security, bank-vault, bank-alley, bank-roof]
+    entry_room: bank-lobby
+    vault_room: bank-vault
+    escape_rooms: [bank-alley, bank-roof]
+    guard_pool: [guard-ledger, guard-marble]
+    reinforcement_pool: []
+    camera_count: 2
+    laser_count: 0
+    loot_count: 3
+    objectives:
+    - {id: ghost-run, kind: ghost, label: 'Leave without raising the alarm'}
+    - {id: speedrun, kind: speed, seconds: 360, label: 'Finish within six minutes'}
+    routes:
+      guard-ledger:
+        room: bank-lobby
+        speed: 7.0
+        pause_seconds: 2.0
+        vision_range: 32.0
+        vision_cone: 75.0
+        waypoints: [[30, 52], [50, 52], [70, 52], [70, 36], [50, 36], [30, 36]]
+      guard-marble:
+        room: bank-offices
+        speed: 7.0
+        pause_seconds: 2.0
+        vision_range: 30.0
+        vision_cone: 70.0
+        waypoints: [[25, 68], [50, 68], [72, 68], [72, 52], [50, 52], [25, 52]]
+    cameras:
+    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
+    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
+    lasers: []
+    doors:
+    - {room: bank-offices, prop: east-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-security, prop: south-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-offices, prop: roof-stairs, exit: roof, locked: false, alarm_lock: true}
+    - {room: bank-roof, prop: roof-drop, exit: alley, locked: true, alarm_lock: false}
+    loot:
+    - {room: bank-vault, prop: vault-gold-a, card: heist-gold-bar, value: 25, weight: 3}
+    - {room: bank-vault, prop: vault-gold-b, card: heist-gold-bar, value: 25, weight: 3}
+    - {room: bank-vault, prop: vault-bond-a, card: heist-bear-bond, value: 20, weight: 3}
+    - {room: bank-vault, prop: vault-bond-b, card: heist-bear-bond, value: 20, weight: 1}
+    - {room: bank-vault, prop: vault-diamond, card: heist-diamond, value: 50, weight: 1}
+    - {room: bank-vault, prop: vault-diamond-b, card: heist-diamond, value: 50, weight: 0}
+    - {room: bank-vault, prop: vault-art-a, card: heist-art, value: 35, weight: 0}
+    - {room: bank-vault, prop: vault-art-b, card: heist-art, value: 35, weight: 0}
+  bank-standard:
+    label: First National Tiny Bank
+    description: Three guards, three cameras, locked vault doors, and real diamonds.
+    min_crew: 1
+    max_crew: 4
+    heat_tier: 1
+    guard_count: 3
+    security_budget: 5
+    deposit: 6
+    rewards: {bops: 45, kudos: 3}
+    time_limit_seconds: 420
+    target_rooms: [bank-lobby, bank-offices, bank-security, bank-vault, bank-alley, bank-roof]
+    entry_room: bank-lobby
+    vault_room: bank-vault
+    escape_rooms: [bank-alley, bank-roof]
+    guard_pool: [guard-ledger, guard-marble, guard-slate]
+    reinforcement_pool: []
+    camera_count: 3
+    laser_count: 1
+    loot_count: 4
+    objectives:
+    - {id: ghost-run, kind: ghost, label: 'Leave without raising the alarm'}
+    - {id: diamond-run, kind: loot_card, card: heist-diamond, label: 'Steal at least one diamond'}
+    - {id: speedrun, kind: speed, seconds: 330, label: 'Finish within five and a half minutes'}
+    routes:
+      guard-ledger:
+        room: bank-lobby
+        speed: 7.5
+        pause_seconds: 2.0
+        vision_range: 33.0
+        vision_cone: 75.0
+        waypoints: [[28, 52], [50, 52], [72, 52], [72, 36], [50, 36], [28, 36]]
+      guard-marble:
+        room: bank-offices
+        speed: 7.5
+        pause_seconds: 2.0
+        vision_range: 31.0
+        vision_cone: 72.0
+        waypoints: [[24, 70], [50, 70], [72, 70], [72, 52], [50, 52], [24, 52]]
+      guard-slate:
+        room: bank-security
+        speed: 7.0
+        pause_seconds: 2.5
+        vision_range: 30.0
+        vision_cone: 70.0
+        waypoints: [[28, 68], [50, 68], [72, 68], [72, 52], [50, 52], [28, 52]]
+    cameras:
+    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
+    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
+    - {room: bank-security, prop: security-camera, x: 86, y: 14, facing: 180, range: 36, cone: 75}
+    lasers:
+    - {room: bank-security, prop: security-laser, exit: vault, locked: true}
+    doors:
+    - {room: bank-offices, prop: east-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-security, prop: south-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-offices, prop: roof-stairs, exit: roof, locked: true, alarm_lock: true}
+    - {room: bank-roof, prop: roof-drop, exit: alley, locked: true, alarm_lock: false}
+    loot:
+    - {room: bank-vault, prop: vault-gold-a, card: heist-gold-bar, value: 25, weight: 3}
+    - {room: bank-vault, prop: vault-gold-b, card: heist-gold-bar, value: 25, weight: 2}
+    - {room: bank-vault, prop: vault-bond-a, card: heist-bear-bond, value: 20, weight: 3}
+    - {room: bank-vault, prop: vault-bond-b, card: heist-bear-bond, value: 20, weight: 2}
+    - {room: bank-vault, prop: vault-diamond, card: heist-diamond, value: 50, weight: 3}
+    - {room: bank-vault, prop: vault-diamond-b, card: heist-diamond, value: 50, weight: 1}
+    - {room: bank-vault, prop: vault-art-a, card: heist-art, value: 35, weight: 1}
+    - {room: bank-vault, prop: vault-art-b, card: heist-art, value: 35, weight: 0}
+  bank-gala:
+    label: Gala Trust Night Depository
+    description: Four guards, lasers, art worth stealing, and cameras that never blink
+      at the same time.
+    min_crew: 2
+    max_crew: 4
+    heat_tier: 2
+    guard_count: 4
+    security_budget: 7
+    deposit: 10
+    rewards: {bops: 70, kudos: 4}
+    time_limit_seconds: 390
+    target_rooms: [bank-lobby, bank-offices, bank-security, bank-vault, bank-alley, bank-roof]
+    entry_room: bank-lobby
+    vault_room: bank-vault
+    escape_rooms: [bank-alley, bank-roof]
+    guard_pool: [guard-ledger, guard-marble, guard-slate, guard-onyx]
+    reinforcement_pool: [guard-crane]
+    camera_count: 4
+    laser_count: 2
+    loot_count: 6
+    objectives:
+    - {id: ghost-run, kind: ghost, label: 'Leave without raising the alarm'}
+    - {id: artful, kind: loot_prop, prop: vault-art-a, card: heist-art, label: 'Steal the gala centerpiece'}
+    - {id: speedrun, kind: speed, seconds: 300, label: 'Finish within five minutes'}
+    routes:
+      guard-ledger:
+        room: bank-lobby
+        speed: 8.0
+        pause_seconds: 1.8
+        vision_range: 34.0
+        vision_cone: 78.0
+        waypoints: [[28, 52], [50, 52], [72, 52], [72, 36], [50, 36], [28, 36]]
+      guard-marble:
+        room: bank-offices
+        speed: 8.0
+        pause_seconds: 1.8
+        vision_range: 32.0
+        vision_cone: 74.0
+        waypoints: [[24, 70], [50, 70], [72, 70], [72, 52], [50, 52], [24, 52]]
+      guard-slate:
+        room: bank-security
+        speed: 7.5
+        pause_seconds: 2.0
+        vision_range: 31.0
+        vision_cone: 72.0
+        waypoints: [[28, 68], [50, 68], [72, 68], [72, 52], [50, 52], [28, 52]]
+      guard-onyx:
+        room: bank-offices
+        speed: 8.0
+        pause_seconds: 1.5
+        vision_range: 30.0
+        vision_cone: 80.0
+        waypoints: [[30, 60], [70, 60], [70, 72], [30, 72]]
+      guard-crane:
+        room: bank-alley
+        speed: 9.0
+        pause_seconds: 1.2
+        vision_range: 32.0
+        vision_cone: 75.0
+        waypoints: [[30, 68], [50, 68], [70, 68], [70, 40], [50, 40], [30, 40]]
+    cameras:
+    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
+    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
+    - {room: bank-security, prop: security-camera, x: 86, y: 14, facing: 180, range: 36, cone: 75}
+    - {room: bank-vault, prop: vault-camera, x: 50, y: 8, facing: 90, range: 45, cone: 70}
+    lasers:
+    - {room: bank-security, prop: security-laser, exit: vault, locked: true}
+    - {room: bank-offices, prop: offices-laser, exit: vault, locked: true}
+    doors:
+    - {room: bank-offices, prop: east-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-security, prop: south-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-offices, prop: roof-stairs, exit: roof, locked: true, alarm_lock: true}
+    - {room: bank-roof, prop: roof-drop, exit: alley, locked: true, alarm_lock: false}
+    loot:
+    - {room: bank-vault, prop: vault-gold-a, card: heist-gold-bar, value: 25, weight: 2}
+    - {room: bank-vault, prop: vault-gold-b, card: heist-gold-bar, value: 25, weight: 2}
+    - {room: bank-vault, prop: vault-bond-a, card: heist-bear-bond, value: 20, weight: 2}
+    - {room: bank-vault, prop: vault-bond-b, card: heist-bear-bond, value: 20, weight: 2}
+    - {room: bank-vault, prop: vault-diamond, card: heist-diamond, value: 50, weight: 3}
+    - {room: bank-vault, prop: vault-diamond-b, card: heist-diamond, value: 50, weight: 2}
+    - {room: bank-vault, prop: vault-art-a, card: heist-art, value: 35, weight: 3}
+    - {room: bank-vault, prop: vault-art-b, card: heist-art, value: 35, weight: 1}
+  bank-reserve:
+    label: Federal Tiny Reserve
+    description: Maximum security, the chief herself, reinforcements, and the best
+      loot in miniature banking.
+    min_crew: 2
+    max_crew: 4
+    heat_tier: 3
+    guard_count: 5
+    security_budget: 9
+    deposit: 15
+    rewards: {bops: 100, kudos: 5}
+    time_limit_seconds: 360
+    target_rooms: [bank-lobby, bank-offices, bank-security, bank-vault, bank-alley, bank-roof]
+    entry_room: bank-lobby
+    vault_room: bank-vault
+    escape_rooms: [bank-alley, bank-roof]
+    guard_pool: [guard-ledger, guard-marble, guard-slate, guard-onyx, guard-elite]
+    reinforcement_pool: [guard-crane]
+    camera_count: 4
+    laser_count: 2
+    loot_count: 8
+    objectives:
+    - {id: ghost-run, kind: ghost, label: 'Leave without raising the alarm'}
+    - {id: artful, kind: loot_prop, prop: vault-art-a, card: heist-art, label: 'Steal the reserve centerpiece'}
+    - {id: diamond-run, kind: loot_card, card: heist-diamond, label: 'Steal at least one diamond'}
+    - {id: speedrun, kind: speed, seconds: 270, label: 'Finish within four and a half minutes'}
+    routes:
+      guard-ledger:
+        room: bank-lobby
+        speed: 8.5
+        pause_seconds: 1.5
+        vision_range: 35.0
+        vision_cone: 80.0
+        waypoints: [[28, 52], [50, 52], [72, 52], [72, 36], [50, 36], [28, 36]]
+      guard-marble:
+        room: bank-offices
+        speed: 8.5
+        pause_seconds: 1.5
+        vision_range: 33.0
+        vision_cone: 76.0
+        waypoints: [[24, 70], [50, 70], [72, 70], [72, 52], [50, 52], [24, 52]]
+      guard-slate:
+        room: bank-security
+        speed: 8.0
+        pause_seconds: 1.8
+        vision_range: 32.0
+        vision_cone: 74.0
+        waypoints: [[28, 68], [50, 68], [72, 68], [72, 52], [50, 52], [28, 52]]
+      guard-onyx:
+        room: bank-offices
+        speed: 8.5
+        pause_seconds: 1.2
+        vision_range: 31.0
+        vision_cone: 82.0
+        waypoints: [[30, 60], [70, 60], [70, 72], [30, 72]]
+      guard-elite:
+        room: bank-vault
+        speed: 8.0
+        pause_seconds: 2.5
+        vision_range: 38.0
+        vision_cone: 85.0
+        waypoints: [[30, 30], [50, 30], [70, 30], [70, 40], [50, 40], [30, 40]]
+      guard-crane:
+        room: bank-alley
+        speed: 9.5
+        pause_seconds: 1.0
+        vision_range: 33.0
+        vision_cone: 78.0
+        waypoints: [[30, 68], [50, 68], [70, 68], [70, 40], [50, 40], [30, 40]]
+    cameras:
+    - {room: bank-lobby, prop: lobby-camera, x: 50, y: 10, facing: 90, range: 42, cone: 80}
+    - {room: bank-offices, prop: office-camera, x: 50, y: 10, facing: 90, range: 40, cone: 75}
+    - {room: bank-security, prop: security-camera, x: 86, y: 14, facing: 180, range: 36, cone: 75}
+    - {room: bank-vault, prop: vault-camera, x: 50, y: 8, facing: 90, range: 45, cone: 70}
+    lasers:
+    - {room: bank-security, prop: security-laser, exit: vault, locked: true}
+    - {room: bank-offices, prop: offices-laser, exit: vault, locked: true}
+    doors:
+    - {room: bank-offices, prop: east-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-security, prop: south-vault-door, exit: vault, locked: true, alarm_lock: true}
+    - {room: bank-offices, prop: roof-stairs, exit: roof, locked: true, alarm_lock: true}
+    - {room: bank-roof, prop: roof-drop, exit: alley, locked: true, alarm_lock: false}
+    loot:
+    - {room: bank-vault, prop: vault-gold-a, card: heist-gold-bar, value: 25, weight: 3}
+    - {room: bank-vault, prop: vault-gold-b, card: heist-gold-bar, value: 25, weight: 3}
+    - {room: bank-vault, prop: vault-bond-a, card: heist-bear-bond, value: 20, weight: 3}
+    - {room: bank-vault, prop: vault-bond-b, card: heist-bear-bond, value: 20, weight: 3}
+    - {room: bank-vault, prop: vault-diamond, card: heist-diamond, value: 50, weight: 3}
+    - {room: bank-vault, prop: vault-diamond-b, card: heist-diamond, value: 50, weight: 3}
+    - {room: bank-vault, prop: vault-art-a, card: heist-art, value: 35, weight: 3}
+    - {room: bank-vault, prop: vault-art-b, card: heist-art, value: 35, weight: 3}

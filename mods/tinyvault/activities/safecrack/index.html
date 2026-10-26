@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="full-height">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Safecrack</title>
+    <link rel="stylesheet" href="/activities/shared.css">
+    <link rel="stylesheet" href="./safecrack.css">
+  </head>
+  <body>
+    <main class="shell viewport-column crack-shell">
+      <p class="connection" id="connection" role="status">Waiting for Tinyrooms…</p>
+      <div class="heading">
+        <h1>Safecrack</h1>
+        <p class="badge" id="timer">--s left</p>
+      </div>
+      <p class="muted" id="instruction">Memorize the tumbler clicks, then repeat them in order.</p>
+      <section class="crack-sequence" id="sequence" aria-label="Tumbler sequence"></section>
+      <section class="crack-pad" id="pad" aria-label="Tumbler buttons"></section>
+      <div class="actions">
+        <button type="button" class="quiet" id="replay">Replay clicks</button>
+        <button type="button" class="quiet" id="clear">Clear</button>
+      </div>
+      <p id="status" role="status">The drill is warm.</p>
+    </main>
+    <script src="/activities/shared.js"></script>
+    <script type="module" src="./safecrack.js"></script>
+  </body>
+</html>

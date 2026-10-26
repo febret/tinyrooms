@@ -1,0 +1,8 @@
+heist-board:
+  title: The Job Board
+  aliases: [jobs]
+  rooms: [hideout]
+safecrack:
+  title: Safecrack
+  aliases: [vault]
+  rooms: [bank-vault]

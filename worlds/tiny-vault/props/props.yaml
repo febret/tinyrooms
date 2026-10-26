@@ -1,0 +1,223 @@
+CONFIG:
+  scale_adjust: 1
+heist-job-board:
+  label: Job Board
+  description: Cork, string, and four increasingly illegal bank brochures.
+  render_kind: sign
+  decorative: false
+  activity: heist-board
+  tags:
+  - heist-board
+  - heist
+  default_actions:
+  - - Open the job board
+    - .heist board
+    - true
+  sounds:
+    select: click2.wav
+    action: draw.wav
+heist-tool-shelf:
+  label: Tool Locker
+  description: Lockpicks, disguises, smoke, EMPs, decoys, jammers, drills, and one
+    grapple with trust issues.
+  model: tool-shelf.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-shop
+  - heist
+  default_actions:
+  - - Review the loadout
+    - .heist shop
+    - true
+  sprite_footprint: [5, 3]
+  sounds:
+    select: click2.wav
+    action: open-metal.wav
+heist-vault-door:
+  label: Vault Door
+  description: A steel bank door. It accepts lockpicks, drills, and poor decisions.
+  scale: 1
+  tags:
+  - heist-door
+  - heist
+  states:
+    locked: vault-door-locked.glb
+    open: vault-door-open.glb
+  active_state: locked
+  sprite_footprint: [4, 2]
+  sounds:
+    select: click3.wav
+    action: open-metal.wav
+heist-office-door:
+  label: Office Door
+  description: A wooden office door with a brass lock and a paper schedule.
+  scale: 1
+  tags:
+  - heist-door
+  - heist
+  states:
+    locked: office-door-locked.glb
+    open: office-door-open.glb
+  active_state: locked
+  sprite_footprint: [4, 2]
+  sounds:
+    select: click3.wav
+    action: door-open-old.wav
+heist-camera:
+  label: Security Camera
+  description: A patient glass eye. It watches cones, not excuses.
+  scale: 1
+  tags:
+  - heist-camera
+  - heist
+  states:
+    active: camera-active.glb
+    disabled: camera-disabled.glb
+  active_state: active
+  sprite_footprint: [2, 2]
+  sounds:
+    select: computer2.wav
+    action: switch.wav
+heist-laser:
+  label: Laser Grid
+  description: A humming red lattice across the only convenient doorway.
+  scale: 1
+  tags:
+  - heist-laser
+  - heist
+  states:
+    active: laser-active.glb
+    disabled: laser-disabled.glb
+  active_state: active
+  sprite_footprint: [5, 2]
+  sounds:
+    select: hiss.wav
+    action: switch.wav
+heist-console:
+  label: Security Console
+  description: A beige terminal with root access and no password hygiene.
+  model: console.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-console
+  - heist
+  sprite_footprint: [4, 3]
+  sounds:
+    select: computer2.wav
+    action: type.wav
+heist-alarm-panel:
+  label: Alarm Panel
+  description: 'Four little lights: calm, curious, furious, and lockdown.'
+  model: alarm-panel.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-alarm
+  - heist
+  default_actions:
+  - - Check the alarm
+    - .heist status
+    - true
+  sprite_footprint: [3, 2]
+  sounds:
+    select: beep1.wav
+    action: beep1.wav
+heist-vault:
+  label: The Vault
+  description: A round steel mouth full of other people's retirement plans.
+  scale: 1
+  tags:
+  - heist-vault
+  - heist
+  states:
+    locked: vault-locked.glb
+    open: vault-open.glb
+  active_state: locked
+  sprite_footprint: [7, 4]
+  sounds:
+    select: click3.wav
+    action: heist-vault-open.wav
+heist-loot-gold:
+  label: Gold Bars
+  description: Heavy, shiny, and extremely portable if nobody asks questions.
+  model: loot-gold.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-loot
+  - heist
+  sprite_footprint: [3, 2]
+  sounds:
+    select: ring.wav
+    action: ring.wav
+heist-loot-bond:
+  label: Bearer Bonds
+  description: Paper promises worth real Bops. Fold carefully.
+  model: loot-bond.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-loot
+  - heist
+  sprite_footprint: [3, 2]
+  sounds:
+    select: draw.wav
+    action: draw.wav
+heist-loot-diamond:
+  label: Loose Diamonds
+  description: Small, loud, and valuable. Do not juggle.
+  model: loot-diamond.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-loot
+  - heist
+  sprite_footprint: [3, 2]
+  sounds:
+    select: ring.wav
+    action: ring.wav
+heist-loot-art:
+  label: Miniature Masterpiece
+  description: A tiny museum piece. The frame alone could buy lunch.
+  model: loot-art.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-loot
+  - heist
+  sprite_footprint: [3, 2]
+  sounds:
+    select: click2.wav
+    action: applause.wav
+heist-getaway:
+  label: Getaway Door
+  description: An unlocked-looking doorway to somewhere poorer and safer.
+  model: getaway-door.glb
+  decorative: false
+  scale: 1.2
+  tags:
+  - heist-getaway
+  - heist
+  default_actions:
+  - - Escape with the loot
+    - .heist escape
+    - true
+  sprite_footprint: [4, 2]
+  sounds:
+    select: door1.wav
+    action: door-open-old.wav
+heist-grapple:
+  label: Roof Winch
+  description: A maintenance winch with a fresh cable and a suspicious new hook.
+  model: grapple-anchor.glb
+  decorative: false
+  scale: 1
+  tags:
+  - heist-grapple
+  - heist
+  sprite_footprint: [3, 2]
+  sounds:
+    select: click2.wav
+    action: heist-grapple.wav

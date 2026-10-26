@@ -1,0 +1,35 @@
+.heist-cutscene-title {
+  margin: 0 0 12px;
+  color: #f7f5ed;
+  font: 700 clamp(28px, 6vw, 54px)/1 Arial, sans-serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-shadow: 0 3px 0 #00000088, 0 0 22px #c9a24a55;
+}
+
+.heist-cutscene-title.heist-alarm,
+.heist-cutscene-title.heist-busted {
+  color: #ffd9d1;
+  text-shadow: 0 3px 0 #00000088, 0 0 26px #ff4d4d99;
+}
+
+.heist-cutscene-title.heist-vault,
+.heist-cutscene-title.heist-clean {
+  color: #e9ffe9;
+  text-shadow: 0 3px 0 #00000088, 0 0 26px #7de3a866;
+}
+
+.heist-cutscene-crew {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.heist-cutscene-note {
+  max-width: 520px;
+  margin: 0 auto 12px;
+  color: #f7f5ed;
+  font: 16px/1.5 Arial, sans-serif;
+  text-align: center;
+}

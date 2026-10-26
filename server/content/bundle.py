@@ -16,7 +16,7 @@ from server.content.activities import load_activity_definitions
 from server.content.cards import CardCatalog, cutscene_card_references, load_card_catalog
 from server.content.cutscenes import load_cutscene_definitions
 from server.content.gameplay import GameplayContent, load_gameplay_content
-from server.content.sounds import load_sound_names
+from server.content.sounds import load_sound_names, world_sound_names
 from server.content.worlds import WorldDefinition, load_world_definition
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ def load_world_bundle(
     """Load catalog, gameplay content, and world definition for *world_path*."""
 
     extra_cardsets = (config.shared_cardsets_path,) if config.shared_cardsets_path is not None else ()
-    known_sounds = load_sound_names(config.sounds_path)
+    known_sounds = load_sound_names(config.sounds_path) | world_sound_names(world_path)
     catalog = load_card_catalog(
         config.cardsets_path,
         world_path,

@@ -1,0 +1,121 @@
+/* Safecrack bench: gunmetal steel, brass dials, blueprint instruction plate. */
+
+.crack-shell {
+  gap: 10px;
+  background:
+    linear-gradient(#0a1016cc, #0a1016cc),
+    url("./ui-steel.png");
+  background-size: auto, 260px;
+}
+
+.crack-shell .heading {
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #6b5320;
+  background:
+    radial-gradient(circle at 18px 50%, #3d2c0e 0 4px, #14100a 5px, transparent 6px),
+    radial-gradient(circle at calc(100% - 18px) 50%, #3d2c0e 0 4px, #14100a 5px, transparent 6px),
+    url("./ui-brass.png");
+  background-size: auto, auto, cover;
+  box-shadow: 0 4px 10px #000c, inset 0 1px 0 #ffe9b088;
+}
+
+.crack-shell .heading h1 {
+  color: #241a08;
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 #ffe9b099;
+}
+
+#timer {
+  background: #0a0505;
+  color: #ff6b5e;
+  border: 2px inset #3d2c0e;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px #ff6b5e99;
+}
+
+#instruction {
+  border-radius: 3px;
+  padding: 10px 14px;
+  color: #2b2118;
+  background: url("./ui-blueprint.png");
+  background-size: cover;
+  box-shadow: 0 4px 8px #000b;
+}
+
+.crack-sequence,
+.crack-pad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crack-sequence .crack-tumbler {
+  min-width: 64px;
+  min-height: 64px;
+  border-radius: 12px;
+  border: 2px solid #14100a;
+  background: #0a0505;
+  color: #8a7a5a;
+  font-weight: 700;
+  text-transform: capitalize;
+  box-shadow: inset 0 2px 6px #000;
+}
+
+.crack-sequence .crack-tumbler.lit {
+  color: #ffd76a;
+  border-color: #c9a24a;
+  outline: 0;
+  text-shadow: 0 0 10px #ffd76a;
+  box-shadow: inset 0 2px 6px #000, 0 0 12px #c9a24a88;
+}
+
+.crack-pad .crack-tumbler {
+  min-width: 64px;
+  min-height: 64px;
+  border-radius: 50%;
+  border: 2px solid #6b5320;
+  color: #241a08;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #d9ab3a 55%, #7a5a1a);
+  box-shadow: 0 4px 8px #000c, inset 0 2px 3px #fff9, inset 0 -3px 6px #0006;
+  text-shadow: 0 1px 0 #ffe9b077;
+}
+
+.crack-pad .crack-tumbler:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px #000c, inset 0 2px 6px #0007;
+}
+
+.crack-pad .crack-tumbler:disabled {
+  opacity: 0.55;
+}
+
+.crack-shell .actions button {
+  border: 1px solid #6b5320;
+  color: #241a08;
+  font-weight: 700;
+  background: linear-gradient(#e8c96a, #b98f2e);
+  box-shadow: 0 3px 6px #000a, inset 0 1px 0 #fff8;
+}
+
+.crack-shell #status {
+  color: #e8ddc4;
+  font-weight: 700;
+}
+
+.crack-shell .connection {
+  color: #ffb3a3;
+}
+
+@media (max-width: 520px) {
+  .crack-tumbler {
+    flex: 1 1 30%;
+  }
+}

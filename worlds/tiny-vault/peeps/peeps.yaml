@@ -1,0 +1,81 @@
+fence-mara:
+  label: Fence Mara
+  description: A retired thief who now sells other people's courage back to them at
+    fair prices.
+  room: hideout
+  image: fence-mara.png
+  actions:
+  - - Ask about jobs
+    - .heist board
+  - - Ask about heat
+    - .heist heat
+  dialog:
+    start:
+      text: So you want to rob a tiny bank. Cute. Buy tools from the locker, start
+        a job from the board, and stay out of the red cones. Heat follows success;
+        lay low if the city starts recognizing you.
+      choices:
+      - label: What tools should I buy?
+        next: tools
+      - label: What happens if we are caught?
+        next: caught
+      - label: Enough talk.
+        end: true
+    tools:
+      text: Lockpicks open doors. Disguises buy patience. Smoke and decoys buy distance.
+        EMPs buy silence. Drills buy vaults. Grapples buy a second way out. Jammers
+        buy one delayed mistake.
+      choices:
+      - label: Back
+        next: start
+    caught:
+      text: Caught means dropped loot, a lost deposit, a short walk home, and a story
+        the guards will exaggerate. Nobody loses their tools or their crew.
+      choices:
+      - label: Back
+        next: start
+guard-ledger:
+  label: Guard Ledger
+  description: A lobby guard who files incident reports before the incident.
+  room: guard-hangar
+  image: guard-ledger.png
+guard-marble:
+  label: Guard Marble
+  description: An office guard with a heavy tread and a light sleep schedule.
+  room: guard-hangar
+  image: guard-marble.png
+guard-slate:
+  label: Guard Slate
+  description: A security-hub guard who trusts the monitors more than his own eyes.
+  room: guard-hangar
+  image: guard-slate.png
+guard-onyx:
+  label: Guard Onyx
+  description: A floating guard who covers whatever room feels too quiet.
+  room: guard-hangar
+  image: guard-onyx.png
+guard-crane:
+  label: Guard Crane
+  description: A fast reinforcement guard with a whistle and no sense of humor.
+  room: guard-hangar
+  image: guard-crane.png
+guard-elite:
+  label: Chief Brass
+  description: The security chief. Wider vision, longer memory, shorter patience.
+  room: guard-hangar
+  image: guard-elite.png
+bot-lookout:
+  label: Wren the Lookout
+  description: A bot crewmate who watches cameras so the crew can watch the loot.
+  room: guard-hangar
+  image: bot-lookout.png
+bot-muscle:
+  label: Brick the Muscle
+  description: A bot crewmate who carries drills, loot, and grudges.
+  room: guard-hangar
+  image: bot-muscle.png
+bot-slicer:
+  label: Patch the Slicer
+  description: A bot crewmate who sweet-talks security consoles.
+  room: guard-hangar
+  image: bot-slicer.png

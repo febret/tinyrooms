@@ -1,0 +1,16 @@
+id: tiny-vault
+label: The Tiny Vault
+description: A miniature bank built for one small crew, patient guards, loud alarms,
+  and very quiet drills.
+entry_room: hideout
+image: rooms/hideout-floor.png
+css: cutscenes.css
+environment: night
+palette:
+- '#1d2f4a'
+- '#c9a24a'
+- '#7de3a8'
+- '#e35d5b'
+requires_mods:
+- tinyvault
+powers: {}

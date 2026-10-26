@@ -1,0 +1,456 @@
+hideout:
+  label: The Hideout
+  description: A lamplit back room with a job board, tool lockers, and a fence who
+    knows more than the paperwork.
+  board_type: basic
+  board_image: hideout-floor.png
+  board_image_style: stretch
+  palette:
+  - '#241d18'
+  - '#c9a24a'
+  - '#4a6b8a'
+  environment: night
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 0
+      y: 0
+  props:
+    job-board:
+      prop: heist-job-board
+      pos: [50, 16, 0]
+      rot: [0, 0, 0]
+      scale: 1.4
+      sign_style: chalk
+      surface:
+        text: 'TINY VAULT JOBS
+
+Open the board, buy tools, mark a leader.'
+    tool-shelf:
+      prop: heist-tool-shelf
+      pos: [20, 20, 0]
+      rot: [0, 0, 0]
+      scale: 1.1
+    planning-table:
+      prop: live-edge-slab-table
+      pos: [50, 55, 0]
+      rot: [0, 0, 0]
+      scale: 1.1
+    hideout-chair-a:
+      prop: mustard-armchair
+      pos: [36, 68, 0]
+      rot: [0, 20, 0]
+      scale: 1
+    hideout-chair-b:
+      prop: mustard-armchair
+      pos: [64, 68, 0]
+      rot: [0, -20, 0]
+      scale: 1
+    hideout-lamp:
+      prop: bookstack-floor-lamp
+      pos: [84, 20, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits: {}
+bank-lobby:
+  label: Bank Lobby
+  description: Marble counters, sleepy plants, one very awake camera, and three ways
+    deeper into trouble.
+  board_type: basic
+  board_image: lobby-floor.png
+  board_image_style: stretch
+  palette:
+  - '#e8ddc4'
+  - '#1d2f4a'
+  - '#c9a24a'
+  sprites_enabled: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 120
+      y: 0
+  props:
+    lobby-counter:
+      prop: live-edge-slab-table
+      pos: [50, 22, 0]
+      rot: [0, 0, 0]
+      scale: 1.2
+    lobby-plant-a:
+      prop: monstera-in-pot
+      pos: [12, 20, 0]
+      rot: [0, 0, 0]
+      scale: 0.9
+    lobby-plant-b:
+      prop: monstera-in-pot
+      pos: [88, 20, 0]
+      rot: [0, 0, 0]
+      scale: 0.9
+    lobby-camera:
+      prop: heist-camera
+      pos: [50, 10, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    lobby-rug:
+      prop: persian-medallion-rug
+      pos: [50, 84, 0]
+      rot: [0, 0, 0]
+      scale: 0.7
+    lobby-file:
+      prop: filing-cabinet
+      pos: [14, 72, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits:
+    offices:
+      label: To the offices
+      target: bank-offices
+    security:
+      label: To security
+      target: bank-security
+    alley:
+      label: To the alley
+      target: bank-alley
+bank-offices:
+  label: Bank Offices
+  description: Rows of desks, humming terminals, locked doors, and a staircase with
+    opinions about the roof.
+  board_type: basic
+  board_image: offices-floor.png
+  board_image_style: stretch
+  palette:
+  - '#dfe6ee'
+  - '#33506e'
+  - '#c9a24a'
+  sprites_enabled: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 240
+      y: 0
+  props:
+    office-desk-a:
+      prop: hacker-desk
+      pos: [28, 24, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    office-desk-b:
+      prop: neon-glass-desk
+      pos: [72, 24, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    office-chair-a:
+      prop: orange-office-chair
+      pos: [28, 38, 0]
+      rot: [0, 180, 0]
+      scale: 1
+    office-chair-b:
+      prop: orange-office-chair
+      pos: [72, 38, 0]
+      rot: [0, 180, 0]
+      scale: 1
+    office-camera:
+      prop: heist-camera
+      pos: [50, 10, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    east-vault-door:
+      prop: heist-vault-door
+      pos: [90, 52, 0]
+      rot: [0, -90, 0]
+      scale: 1.1
+      exit_to: vault
+    offices-laser:
+      prop: heist-laser
+      pos: [82, 52, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    roof-stairs:
+      prop: heist-office-door
+      pos: [50, 8, 0]
+      rot: [0, 0, 0]
+      scale: 1.1
+      exit_to: roof
+    office-cabinet:
+      prop: filing-cabinet
+      pos: [12, 74, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits:
+    lobby:
+      label: Back to the lobby
+      target: bank-lobby
+    vault:
+      label: Through the east vault door
+      target: bank-vault
+    roof:
+      label: Up to the roof
+      target: bank-roof
+bank-security:
+  label: Security Hub
+  description: Camera monitors, a laser grid, an alarm panel, and a console that
+    absolutely should not be touched.
+  board_type: basic
+  board_image: security-floor.png
+  board_image_style: stretch
+  palette:
+  - '#101820'
+  - '#7de3a8'
+  - '#e35d5b'
+  sprites_enabled: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 120
+      y: 120
+  props:
+    security-console:
+      prop: heist-console
+      pos: [34, 30, 0]
+      rot: [0, 0, 0]
+      scale: 1.1
+    security-monitor:
+      prop: neon-workstation
+      pos: [66, 28, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    security-alarm:
+      prop: heist-alarm-panel
+      pos: [50, 12, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    security-camera:
+      prop: heist-camera
+      pos: [86, 14, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    south-vault-door:
+      prop: heist-vault-door
+      pos: [50, 90, 0]
+      rot: [0, 180, 0]
+      scale: 1.1
+      exit_to: vault
+    security-laser:
+      prop: heist-laser
+      pos: [50, 78, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    security-rack:
+      prop: server-rack
+      pos: [14, 24, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits:
+    lobby:
+      label: Back to the lobby
+      target: bank-lobby
+    vault:
+      label: Through the south vault door
+      target: bank-vault
+bank-vault:
+  label: The Vault
+  description: A steel room with one loud door, one quieter drill, and shelves of
+    other people's money.
+  board_type: basic
+  board_image: vault-floor.png
+  board_image_style: stretch
+  palette:
+  - '#3a3f4a'
+  - '#c9a24a'
+  - '#e8ddc4'
+  sprites_enabled: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 240
+      y: 120
+  props:
+    vault-door:
+      prop: heist-vault
+      pos: [50, 16, 0]
+      rot: [0, 0, 0]
+      scale: 1.8
+    vault-camera:
+      prop: heist-camera
+      pos: [50, 8, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-gold-a:
+      prop: heist-loot-gold
+      pos: [30, 46, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-gold-b:
+      prop: heist-loot-gold
+      pos: [42, 46, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-bond-a:
+      prop: heist-loot-bond
+      pos: [58, 46, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-bond-b:
+      prop: heist-loot-bond
+      pos: [70, 46, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-diamond:
+      prop: heist-loot-diamond
+      pos: [36, 64, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-diamond-b:
+      prop: heist-loot-diamond
+      pos: [48, 64, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-art-a:
+      prop: heist-loot-art
+      pos: [64, 64, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    vault-art-b:
+      prop: heist-loot-art
+      pos: [76, 56, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits:
+    offices:
+      label: Back to the offices
+      target: bank-offices
+    security:
+      label: Back to security
+      target: bank-security
+bank-alley:
+  label: Service Alley
+  description: Trash cans, a getaway doorway, and the fastest route from rich to
+    gone.
+  board_type: basic
+  board_image: alley-floor.png
+  board_image_style: stretch
+  palette:
+  - '#27272e'
+  - '#8a93a6'
+  - '#c9a24a'
+  sprites_enabled: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 0
+      y: 120
+  props:
+    getaway-door:
+      prop: heist-getaway
+      pos: [50, 18, 0]
+      rot: [0, 0, 0]
+      scale: 1.4
+      exit_to: lobby
+    alley-can-a:
+      prop: galvanized-trashcan
+      pos: [20, 52, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    alley-can-b:
+      prop: galvanized-trashcan
+      pos: [80, 52, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    alley-crate:
+      prop: neon-crate-stack
+      pos: [82, 80, 0]
+      rot: [0, 0, 0]
+      scale: 0.9
+  exits:
+    lobby:
+      label: Slip back into the lobby
+      target: bank-lobby
+bank-roof:
+  label: Bank Roof
+  description: Wind, gravel, a maintenance winch, and one extremely unofficial way
+    down.
+  board_type: basic
+  board_image: roof-floor.png
+  board_image_style: stretch
+  palette:
+  - '#3c4454'
+  - '#c9a24a'
+  - '#7de3a8'
+  sprites_enabled: true
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: 240
+      y: -120
+  props:
+    roof-winch:
+      prop: heist-grapple
+      pos: [50, 24, 0]
+      rot: [0, 0, 0]
+      scale: 1.1
+    roof-drop:
+      prop: heist-getaway
+      pos: [50, 78, 0]
+      rot: [0, 180, 0]
+      scale: 1.2
+      exit_to: alley
+    roof-vent-a:
+      prop: bookstack-floor-lamp
+      pos: [18, 34, 0]
+      rot: [0, 0, 0]
+      scale: 1
+    roof-vent-b:
+      prop: bookstack-floor-lamp
+      pos: [82, 34, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits:
+    offices:
+      label: Climb back down
+      target: bank-offices
+    alley:
+      label: Rappel into the alley
+      target: bank-alley
+guard-hangar:
+  label: Guard Hangar
+  description: An offstage waiting room for patrol schedules, spare suspicion, and
+    bot crewmates.
+  board_type: basic
+  board_image: hangar-floor.png
+  board_image_style: stretch
+  palette:
+  - '#141414'
+  - '#5a5f6a'
+  - '#c9a24a'
+  editor:
+    environment:
+    - palette
+    - board_image_style
+    map:
+      x: -120
+      y: 0
+  props:
+    guard-bunks:
+      prop: gym-lockers
+      pos: [50, 30, 0]
+      rot: [0, 0, 0]
+      scale: 1.1
+    bot-charger:
+      prop: server-rack
+      pos: [20, 60, 0]
+      rot: [0, 0, 0]
+      scale: 1
+  exits: {}

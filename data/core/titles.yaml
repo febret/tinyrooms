@@ -48,6 +48,11 @@ nicknames:
     unlock:
       kind: task
       task_id: ten-lessons
+  - id: ghost
+    label: Ghost
+    unlock:
+      kind: task
+      task_id: master-thief
 suffixes:
   - id: suffix-level-1
     label: Novice of Note
@@ -124,3 +129,8 @@ suffixes:
     unlock:
       kind: level
       level: 15
+  - id: suffix-inside-job
+    label: Inside Job
+    unlock:
+      kind: task
+      task_id: master-thief

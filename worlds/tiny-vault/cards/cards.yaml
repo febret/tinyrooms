@@ -1,0 +1,176 @@
+heist-lockpick:
+  label: Lockpick Set
+  description: Opens one locked heist door. Reusable, quiet, and judgmental about
+    cheap locks.
+  image: heist-lockpick.png
+  type: item
+  rarity: Common
+  stack_limit: 1
+  one_use: false
+  target: prop
+  tags: [heist, tool]
+  sounds:
+    select: click2.wav
+    use: heist-lockpick.wav
+heist-disguise:
+  label: Guard Disguise
+  description: Reduces guard suspicion for a short shift. Reusable after a cooldown.
+  image: heist-disguise.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 1
+  one_use: false
+  target: self
+  tags: [heist, tool]
+  sounds:
+    select: click2.wav
+    use: swish.wav
+heist-smoke:
+  label: Smoke Bomb
+  description: Blocks guard and camera vision in your room. Consumable.
+  image: heist-smoke.png
+  type: item
+  rarity: Common
+  stack_limit: 5
+  one_use: true
+  target: room
+  tags: [heist, tool]
+  sounds:
+    select: click2.wav
+    use: heist-smoke.wav
+heist-emp:
+  label: Pocket EMP
+  description: Disables one camera or laser grid. Consumable.
+  image: heist-emp.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 5
+  one_use: true
+  target: prop
+  tags: [heist, tool]
+  sounds:
+    select: computer2.wav
+    use: heist-emp.wav
+heist-decoy:
+  label: Noise Decoy
+  description: Lures nearby guards toward your position. Consumable.
+  image: heist-decoy.png
+  type: item
+  rarity: Common
+  stack_limit: 5
+  one_use: true
+  target: room
+  tags: [heist, tool]
+  sounds:
+    select: click2.wav
+    use: heist-whistle.wav
+heist-jammer:
+  label: Alarm Jammer
+  description: Delays the next alarm escalation once per job. Consumable.
+  image: heist-jammer.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 5
+  one_use: true
+  target: room
+  tags: [heist, tool]
+  sounds:
+    select: beep1.wav
+    use: switch.wav
+heist-drill:
+  label: Vault Drill
+  description: Starts the safe-cracking activity at a locked vault. Reusable.
+  image: heist-drill.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  target: prop
+  tags: [heist, tool]
+  sounds:
+    select: click2.wav
+    use: heist-drill.wav
+heist-grapple:
+  label: Grapple Rig
+  description: Unlocks the roof rappel route for the whole crew. Reusable.
+  image: heist-grapple.png
+  type: item
+  rarity: Rare
+  stack_limit: 1
+  one_use: false
+  target: prop
+  tags: [heist, tool]
+  sounds:
+    select: click2.wav
+    use: heist-grapple.wav
+heist-gold-bar:
+  label: Tiny Gold Bar
+  description: Provisional loot. It only pays if you reach an escape.
+  image: heist-gold-bar.png
+  type: item
+  rarity: Rare
+  stack_limit: 9
+  one_use: false
+  quest: true
+  target: self
+  tags: [heist, loot]
+  sounds:
+    select: ring.wav
+    use: heist-gold.wav
+heist-bear-bond:
+  label: Bearer Bond
+  description: Provisional loot. It only pays if you reach an escape.
+  image: heist-bear-bond.png
+  type: item
+  rarity: Uncommon
+  stack_limit: 9
+  one_use: false
+  quest: true
+  target: self
+  tags: [heist, loot]
+  sounds:
+    select: draw.wav
+    use: heist-paper.wav
+heist-diamond:
+  label: Loose Diamond
+  description: Provisional loot. It only pays if you reach an escape.
+  image: heist-diamond.png
+  type: item
+  rarity: Epic
+  stack_limit: 9
+  one_use: false
+  quest: true
+  target: self
+  tags: [heist, loot]
+  sounds:
+    select: ring.wav
+    use: heist-gold.wav
+heist-art:
+  label: Miniature Masterpiece
+  description: Provisional loot. It only pays if you reach an escape.
+  image: heist-art.png
+  type: item
+  rarity: Epic
+  stack_limit: 1
+  one_use: false
+  quest: true
+  target: self
+  tags: [heist, loot]
+  sounds:
+    select: click2.wav
+    use: applause.wav
+heist-master-key:
+  label: Master Key Trophy
+  description: Awarded for a career of clean getaways. Opens bragging rights everywhere.
+  image: heist-master-key.png
+  type: item
+  rarity: Legendary
+  stack_limit: 1
+  one_use: false
+  decorative: true
+  quest: true
+  target: self
+  tags: [heist, trophy]
+  sounds:
+    select: applause.wav
+    use: heist-success.wav
