@@ -34,6 +34,7 @@ DEFAULT_WORLD_PORTS = {
     "tiny-backrooms": 5104,
     "tiny-vault": 5105,
     "bobs-burgers": 5106,
+    "brainrot-borgo": 5107,
 }
 DEFAULT_INSTANCE_IDS = {
     "tutorial": "tutorial-1",
@@ -43,6 +44,7 @@ DEFAULT_INSTANCE_IDS = {
     "tiny-backrooms": "backrooms-1",
     "tiny-vault": "vault-1",
     "bobs-burgers": "bobs-1",
+    "brainrot-borgo": "brainrot-1",
 }
 LEGACY_PORT_ENV = {
     "tutorial": "TUTORIAL_PORT",
@@ -52,6 +54,7 @@ LEGACY_PORT_ENV = {
     "tiny-backrooms": "BACKROOMS_PORT",
     "tiny-vault": "VAULT_PORT",
     "bobs-burgers": "BOBS_PORT",
+    "brainrot-borgo": "BRAINROT_PORT",
 }
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 

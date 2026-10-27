@@ -11,7 +11,8 @@
       "id": "scammon-academia",
       "port": 5101,
       "instance_id": "scammon-1",
-      "label": "Scammon Academia"
+      "label": "Scammon Academia",
+      "path": "../tinyrooms-workshop/worlds/scammon-academia"
     },
     {
       "id": "tiny-arcade",
@@ -29,7 +30,8 @@
       "id": "tiny-backrooms",
       "port": 5104,
       "instance_id": "backrooms-1",
-      "label": "Tiny Backrooms"
+      "label": "Tiny Backrooms",
+      "path": "../tinyrooms-workshop/worlds/tiny-backrooms"
     },
     {
       "id": "tiny-vault",
@@ -43,6 +45,14 @@
       "instance_id": "bobs-1",
       "label": "Bob's Burgers",
       "path": "../tinyrooms-workshop/worlds/bobs-burgers",
+      "shared_content": "../tinyrooms-workshop"
+    },
+    {
+      "id": "brainrot-borgo",
+      "port": 5107,
+      "instance_id": "brainrot-1",
+      "label": "Borgo Brainrot",
+      "path": "../tinyrooms-workshop/worlds/brainrot-borgo",
       "shared_content": "../tinyrooms-workshop"
     }
   ]
