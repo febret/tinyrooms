@@ -43,7 +43,28 @@ class InstanceLifecycleTests(McHttpTestCase):
         self.spawn_patch.start()
         self.addCleanup(self.spawn_patch.stop)
 
-    def add_spawned(self, name: str = "tutorial", port: int = 5099, base_path: str = "/tutorial"):
+    def _free_port(self) -> int:
+        used = {
+            int(record.spawn_config["port"])
+            for record in self.runtime.registry.list()
+            if record.spawn_config and record.spawn_config.get("port") is not None
+        }
+        for port in range(5000, 6000):
+            if port in used:
+                continue
+            check = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                check.bind(("127.0.0.1", port))
+            except OSError:
+                continue
+            finally:
+                check.close()
+            return port
+        raise AssertionError("could not find a free test port")
+
+    def add_spawned(self, name: str = "tutorial", port: int | None = None, base_path: str = "/tutorial"):
+        if port is None:
+            port = self._free_port()
         (self.root / "instance").mkdir(exist_ok=True)
         return self.runtime.registry.register_spawned(
             name=name,
@@ -93,6 +114,7 @@ class InstanceLifecycleTests(McHttpTestCase):
 
     def test_restart_spawned_keeps_id(self) -> None:
         record = self.add_spawned()
+        expected_port = record.spawn_config["port"]
         response = self.client.post(
             f"/api/mission-control/servers/{record.instance_id}/restart",
             headers=self.csrf_headers(),
@@ -102,8 +124,8 @@ class InstanceLifecycleTests(McHttpTestCase):
         server = response.json()["server"]
         self.assertEqual(server["instance_id"], record.instance_id)
         self.assertEqual(server["base_path"], "/tutorial")
-        self.assertEqual(record.spawn_config["port"], 5099)
-        self.assertEqual(server["endpoint"], "https://127.0.0.1:5099")
+        self.assertEqual(record.spawn_config["port"], expected_port)
+        self.assertEqual(server["endpoint"], f"https://127.0.0.1:{expected_port}")
 
     def test_rename_spawned_preserves_route(self) -> None:
         record = self.add_spawned()
@@ -133,7 +155,7 @@ class InstanceLifecycleTests(McHttpTestCase):
     def test_delete_with_successor_reassigns_saved_destinations(self) -> None:
         record = self.add_spawned()
         record.world_id = "tutorial"
-        successor = self.add_spawned(name="successor", port=5098)
+        successor = self.add_spawned(name="successor")
         successor.world_id = "tutorial"
         successor.registered_at = "2026-01-01T00:00:00+00:00"
         self.runtime.registry.set_status(successor.instance_id, "running")
@@ -157,7 +179,7 @@ class InstanceLifecycleTests(McHttpTestCase):
     def test_user_destination_repair_updates_profile(self) -> None:
         record = self.add_spawned()
         record.world_id = "tutorial"
-        record.client_url = "https://127.0.0.1:5099/tutorial"
+        record.client_url = f"https://127.0.0.1:{int(record.spawn_config['port'])}/tutorial"
         record.registered_at = "2026-01-01T00:00:00+00:00"
         self.runtime.registry.set_status(record.instance_id, "running")
         account = self.runtime.profiles.create_account("player", "password123!", "tutorial", "hub")
@@ -209,8 +231,9 @@ class InstanceLifecycleTests(McHttpTestCase):
         self.assertEqual(response.json()["code"], "rename_external")
 
     def test_restart_reassigns_a_conflicting_saved_port(self) -> None:
-        record = self.add_spawned(port=5099)
-        self.occupy_port(5099)
+        record = self.add_spawned()
+        saved_port = int(record.spawn_config["port"])
+        self.occupy_port(saved_port)
 
         response = self.client.post(
             f"/api/mission-control/servers/{record.instance_id}/restart",
@@ -220,14 +243,15 @@ class InstanceLifecycleTests(McHttpTestCase):
 
         self.assertEqual(response.status_code, 200)
         server = response.json()["server"]
-        self.assertNotEqual(server["endpoint"], "https://127.0.0.1:5099")
-        self.assertNotEqual(record.spawn_config["port"], 5099)
+        self.assertNotEqual(server["endpoint"], f"https://127.0.0.1:{saved_port}")
+        self.assertNotEqual(record.spawn_config["port"], saved_port)
         self.assertTrue(5000 <= record.spawn_config["port"] <= 5999)
 
     def test_start_stopped_instance_reassigns_a_conflicting_saved_port(self) -> None:
-        record = self.add_spawned(port=5099)
+        record = self.add_spawned()
+        saved_port = int(record.spawn_config["port"])
         self.runtime.registry.set_status(record.instance_id, STATUS_STOPPED)
-        self.occupy_port(5099)
+        self.occupy_port(saved_port)
 
         response = self.client.post(
             f"/api/mission-control/servers/{record.instance_id}/start",
@@ -236,25 +260,26 @@ class InstanceLifecycleTests(McHttpTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.json()["server"]["endpoint"], "https://127.0.0.1:5099")
-        self.assertNotEqual(record.spawn_config["port"], 5099)
+        self.assertNotEqual(response.json()["server"]["endpoint"], f"https://127.0.0.1:{saved_port}")
+        self.assertNotEqual(record.spawn_config["port"], saved_port)
 
     def test_resume_reassigns_a_port_held_after_reboot(self) -> None:
-        record = self.add_spawned(port=5099)
+        record = self.add_spawned()
+        saved_port = int(record.spawn_config["port"])
         self.runtime.registry.set_status(record.instance_id, STATUS_RUNNING)
         self.runtime.supervisor.prepare_reboot()
-        self.occupy_port(5099)
+        self.occupy_port(saved_port)
 
         resumed = self.runtime.supervisor.resume_pending()
 
         self.assertIn(record.instance_id, resumed)
         resumed_record = self.runtime.registry.get(record.instance_id)
         self.assertIsNotNone(resumed_record)
-        self.assertNotEqual(resumed_record.spawn_config["port"], 5099)
-        self.assertNotEqual(resumed_record.endpoint, "https://127.0.0.1:5099")
+        self.assertNotEqual(resumed_record.spawn_config["port"], saved_port)
+        self.assertNotEqual(resumed_record.endpoint, f"https://127.0.0.1:{saved_port}")
 
     def test_change_instance_version_updates_saved_configuration(self) -> None:
-        record = self.add_spawned(port=5099)
+        record = self.add_spawned()
         record.world_id = "tutorial"
 
         response = self.client.post(

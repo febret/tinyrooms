@@ -337,10 +337,11 @@ class RoomLayoutExitStyleTests(IntegrationTestCase):
 
 class ShippedExitCoverageTests(unittest.TestCase):
     def test_every_authored_exit_is_reachable_through_a_prop(self) -> None:
-        worlds = ("tutorial", "scammon-academia", "tiny-arcade", "tinytown")
+        worlds = ("tutorial", "tiny-arcade", "tinytown")
         for world_name in worlds:
+            world_root = REPO_ROOT / "worlds"
             world = load_test_world(
-                REPO_ROOT / "worlds" / world_name,
+                world_root / world_name,
                 allow_legacy_whiteboards=world_name == "tiny-arcade",
             )
             for room_id, room in world.rooms.items():

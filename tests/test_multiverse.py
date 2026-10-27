@@ -6,6 +6,7 @@ import asyncio
 from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -62,8 +63,8 @@ class MultiverseCoreAssetsTests(RuntimeTestCase):
     def test_core_view_document_and_assets_are_served(self) -> None:
         index = self.client.get("/")
         self.assertEqual(index.status_code, 200, index.text)
-        self.assertIn("/app/js/views/multiverse-view.js", index.text)
         self.assertIn("/app/css/multiverse.css", index.text)
+        self.assertIn("/app/js/ui.js", index.text)
         for path in (
             "/app/js/views/multiverse-view.js",
             "/app/css/multiverse.css",

@@ -110,18 +110,6 @@ class PropGameplayMigrationTests(unittest.TestCase):
         instance = world.rooms["chess"].props["chess-controller"]
         self.assertEqual(instance.text, {"content": "CHESS", "font_id": "serif", "color": "#ffd166"})
 
-    def test_classroom_door_activity_lives_on_the_definition(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "scammon-academia")
-        definition = world.props["classroom-oak-panel-door"]
-        self.assertEqual(definition.activity, "classrooms")
-        instance = world.rooms["hall"].props["classroom-door0"]
-        self.assertFalse(hasattr(instance, "activity"))
-        self.assertEqual(instance.actions, ())
-        self.assertEqual(
-            [(action.label, action.command) for action in definition.default_actions],
-            [("Enter the classroom", ".play classrooms")],
-        )
-
     def test_whiteboard_keeps_its_default_activity(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
         self.assertEqual(world.props["builtin:whiteboard"].activity, "whiteboard")
@@ -225,8 +213,8 @@ class PropDefaultActionTests(unittest.TestCase):
 
         from server.services.rooms import RoomService
 
-        world = load_test_world(REPO_ROOT / "worlds" / "scammon-academia")
-        room = world.rooms["teachers-lounge"]
+        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
+        room = world.rooms["bathroom"]
         service = RoomService(
             hub=Mock(),
             profiles=Mock(),
@@ -238,9 +226,9 @@ class PropDefaultActionTests(unittest.TestCase):
             stats=Mock(),
             command_verbs=frozenset({".dispense", ".craft", ".act", ".play"}),
         )
-        payload = service._serialize_prop(Mock(), room, room.props["pantry0"])
+        payload = service._serialize_prop(Mock(), room, room.props["medicine0"])
         commands = [action["command"] for action in payload["quick_actions"]]
-        self.assertEqual(commands.count(".dispense @prop:pantry0"), 1)
+        self.assertEqual(commands.count(".dispense @prop:medicine0"), 1)
 
 
 class PlacedPropBehaviorTests(ServiceTestCase):

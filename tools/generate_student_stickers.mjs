@@ -3,7 +3,7 @@
 // Students are grouped into last-name families that share a palette, hair and
 // signature accessory. Each student's outfit, shoes, eyes and extras also
 // encode their favorite subjects and classroom trait. The generated roster is
-// written to worlds/scammon-academia/peeps/students.json; the classrooms mod
+// written to ../tinyrooms-workshop/worlds/scammon-academia/peeps/students.json; the classrooms mod
 // loads the same manifest so every avatar matches its student's attributes.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -17,7 +17,7 @@ import {
 } from "../client/activities/sticker-designer/parts.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const WORLD_DIR = join(here, "..", "worlds", "scammon-academia");
+const WORLD_DIR = join(here, "..", "..", "tinyrooms-workshop", "worlds", "scammon-academia");
 const OUTPUT_DIR = join(WORLD_DIR, "peeps");
 const PARTS_DIR = join(here, "..", "client", "activities", "sticker-designer", "parts");
 const MANIFEST_PATH = join(OUTPUT_DIR, "students.json");
