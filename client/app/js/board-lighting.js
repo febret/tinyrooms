@@ -50,6 +50,12 @@ export const LIGHTING_PRESETS = {
   },
 };
 
+/** Dark-room tint shared by peep sprites, room cards, and the darkness preset. */
+export const DARK_SPRITE_LIGHTING = Object.freeze({
+  color: LIGHTING_PRESETS.darkness.spriteColor,
+  opacity: LIGHTING_PRESETS.darkness.spriteOpacity,
+});
+
 // Prop lights are tuned up by roughly 30% so lamps and windows read clearly
 // against the environment recipes above.
 const FIXTURE_INTENSITY = 5.5;
@@ -80,8 +86,8 @@ export function ambientBoostForLampCount(lampCount, windowCount = 0) {
 
 /**
  * Count the props that contribute ambient light, independent of the point-light
- * budget. Switched-on fixtures always count; windows count when their pale
- * outside light is visible at night or twilight.
+ * budget. Switched-on fixtures count whenever their point lights are active;
+ * windows count when their pale outside light is visible at night or twilight.
  */
 export function selectAmbientSources(props, presetName) {
   let lamps = 0;
@@ -90,7 +96,7 @@ export function selectAmbientSources(props, presetName) {
     const light = prop?.light;
     if (!light || typeof light !== "object") continue;
     if (light.kind === "fixture") {
-      if (light.on !== false) lamps += 1;
+      if (light.on !== false && presetName !== "day") lamps += 1;
     } else if (light.kind === "window"
       && (presetName === "night" || presetName === "dusk" || presetName === "dawn")) {
       windows += 1;
@@ -99,19 +105,26 @@ export function selectAmbientSources(props, presetName) {
   return { lamps, windows };
 }
 
-/** Sprite tint recipe for an environment preset (sprites cannot receive lights). */
-export function spriteLightingForPreset(preset) {
+/** Resolve a lighting recipe to the color/opacity pair used by sprite materials. */
+export function lightingTint(lighting) {
   return {
-    color: preset?.spriteColor || "#ffffff",
-    opacity: Number.isFinite(preset?.spriteOpacity) ? preset.spriteOpacity : 1,
+    color: typeof lighting?.color === "string"
+      ? lighting.color
+      : (lighting?.color?.getHexString?.() || "#ffffff"),
+    opacity: Number.isFinite(lighting?.opacity) ? lighting.opacity : 1,
   };
 }
 
-/** Sprite tint recipe for an interpolated diorama daylight frame. */
-export function spriteLightingForDaylight(daylight) {
+/** Stable dedupe key for sprite tints; opacity is quantized to avoid per-frame work. */
+export function lightingTintKey(tint) {
+  return `${tint.color}|${tint.opacity.toFixed(2)}`;
+}
+
+/** Sprite tint recipe for an environment preset or interpolated daylight frame. */
+export function spriteLightingForPreset(recipe) {
   return {
-    color: daylight?.sprite || "#ffffff",
-    opacity: Number.isFinite(daylight?.spriteOpacity) ? daylight.spriteOpacity : 1,
+    color: recipe?.spriteColor || "#ffffff",
+    opacity: Number.isFinite(recipe?.spriteOpacity) ? recipe.spriteOpacity : 1,
   };
 }
 

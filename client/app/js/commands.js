@@ -23,7 +23,7 @@ export const COMMANDS = [
   { name: ".take @prop:<id> @card:<stack> <qty>", summary: "Take cards out of a container prop." },
   { name: ".sell @card:<stack> <qty>", summary: "Sell owned cards for Bops." },
   { name: ".friend <add|accept|decline|cancel|remove|list> [peep]", summary: "Manage friends." },
-  { name: ".goto @peep:<id>", summary: "Visit a friend or peep at their current position." },
+  { name: ".goto @peep:<id>", summary: "Visit an online player or peep at their current position." },
   { name: ".pin_peep @peep:<id> [on|off]", summary: "Pin or unpin a peep in your sidebar." },
   { name: ".swap_sticker <sticker>", summary: "Swap your peep sticker for Bops." },
   { name: ".shop", summary: "Open the Shop on its Cards or Props section." },

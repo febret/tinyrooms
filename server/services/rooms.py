@@ -11,7 +11,7 @@ from server.connections import ConnectionRegistry
 from server.content.exit_props import EXIT_STYLES_BY_KIND, default_exit_finish
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
-from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url, resolve_default_prop_actions
+from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
     MAX_CHAT_SIZE,
@@ -30,8 +30,15 @@ from server.services.lighting import (
     is_toggleable,
     prop_light_kind,
 )
-from server.services.prop_lights import PropLightService
 from server.services.npc_movement import NpcMove, resolve_npc_move
+from server.services.prop_actions import (
+    exit_command as make_exit_command,
+    merged_prop_actions,
+    normalize_quick_action,
+    surface_actions,
+    visible_prop_actions,
+)
+from server.services.prop_lights import PropLightService
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.services.sprite_rooms import SpriteService
 from server.services.stats import StatsService
@@ -435,36 +442,19 @@ class RoomService:
 
     @staticmethod
     def _exit_command(exit_id: str) -> str:
-        return f".go @way:{exit_id}"
-
-    def _action_enabled(self, room_id: str, command: str) -> bool:
-        if self._environment is None:
-            return True
-        return bool(self._environment.is_action_enabled(room_id, command.split(maxsplit=1)[0]))
+        return make_exit_command(exit_id)
 
     def _normalize_quick_action(
         self,
         room: RoomDefinition,
         action: QuickAction,
     ) -> dict[str, object] | None:
-        command = action.command
-        is_default = action.default
-        if command.startswith(".go "):
-            remainder = command[4:].strip()
-            exit_id = remainder[len("@way:"):] if remainder.startswith("@way:") else remainder
-            if exit_id in room.exits:
-                if self._environment is not None and not self._environment.is_exit_enabled(room.id, exit_id):
-                    return None
-                command = self._exit_command(exit_id)
-                is_default = True
-        if command.split(maxsplit=1)[0] not in self._allowed_verbs:
-            return None
-        if not self._action_enabled(room.id, command):
-            return None
-        normalized: dict[str, object] = {"label": action.label, "command": command}
-        if is_default:
-            normalized["default"] = True
-        return normalized
+        return normalize_quick_action(
+            room,
+            action,
+            environment=self._environment,
+            allowed_verbs=self._allowed_verbs,
+        )
 
     def _visible_exits(self, room: RoomDefinition) -> list[ExitDefinition]:
         if self._environment is None:
@@ -519,48 +509,19 @@ class RoomService:
     ) -> tuple[QuickAction, ...]:
         """Combine instance custom actions with the definition's defaults."""
 
-        merged = list(prop.actions)
-        seen = {self._canonical_action_command(room, action.command) for action in merged}
-        if prop.exit_to:
-            exit_definition = room.exits.get(prop.exit_to)
-            if exit_definition is not None:
-                command = self._exit_command(prop.exit_to)
-                if command not in seen:
-                    seen.add(command)
-                    merged.append(
-                        QuickAction(
-                            label=exit_definition.label or prop.exit_to,
-                            command=command,
-                            default=True,
-                        )
-                    )
-        for action in resolve_default_prop_actions(definition, prop.id):
-            command = self._canonical_action_command(room, action.command)
-            if command in seen:
-                continue
-            seen.add(command)
-            merged.append(action)
-        return tuple(merged)
-
-    def _canonical_action_command(self, room: RoomDefinition, command: str) -> str:
-        """Normalize legacy ``.go <exit>`` commands for deduplication."""
-
-        if not command.startswith(".go "):
-            return command
-        remainder = command[4:].strip()
-        exit_id = remainder[len("@way:"):] if remainder.startswith("@way:") else remainder
-        return self._exit_command(exit_id) if exit_id in room.exits else command
+        return merged_prop_actions(room, prop, definition)
 
     def _visible_prop_actions(
         self,
         room: RoomDefinition,
         actions: tuple[QuickAction, ...],
     ) -> list[dict[str, object]]:
-        return [
-            normalized
-            for action in actions
-            if (normalized := self._normalize_quick_action(room, action)) is not None
-        ]
+        return visible_prop_actions(
+            room,
+            actions,
+            environment=self._environment,
+            allowed_verbs=self._allowed_verbs,
+        )
 
     async def room_occupants(self, room_id: str) -> list[dict[str, object]]:
         """Serialize connected users in a room."""
@@ -899,17 +860,15 @@ class RoomService:
         if dark or disable_actions:
             quick_actions: list[dict[str, object]] = []
         else:
-            quick_actions = self._visible_prop_actions(
-                room, self._merged_prop_actions(room, prop, prop_definition)
+            actions: tuple[QuickAction, ...] = (
+                self._merged_prop_actions(room, prop, prop_definition)
+                + surface_actions(prop, prop_definition)
             )
-            quick_actions.extend(self._surface_quick_actions(prop, prop_definition))
             if is_toggleable(prop_definition):
-                toggle = self._normalize_quick_action(
-                    room,
+                actions = actions + (
                     QuickAction(label="Toggle light", command=f".toggle @prop:{prop.id}"),
                 )
-                if toggle is not None:
-                    quick_actions.append(toggle)
+            quick_actions = self._visible_prop_actions(room, actions)
             for state in self._mod_states:
                 personal_actions = getattr(state, "personal_actions", None)
                 if personal_actions is None:
@@ -985,17 +944,6 @@ class RoomService:
             "sounds": serialized_sounds,
             **({"light": light} if light is not None else {}),
         }
-
-    @staticmethod
-    def _surface_quick_actions(
-        prop: PropInstanceDefinition,
-        definition: PropDefinition,
-    ) -> list[dict[str, object]]:
-        if definition.render_kind == "sign":
-            return [{"label": "Edit sign", "command": f".sign {prop.id}", "default": True}]
-        if definition.render_kind == "whiteboard":
-            return [{"label": "Open whiteboard", "command": f".play {prop.id}", "default": True}]
-        return []
 
     async def build_snapshot(
         self,

@@ -242,8 +242,8 @@ track changes reload it and volume/seek are unavailable. Pause works by unloadin
 the frame. The physical-style phone-base media keys drive prev/play-pause/next
 through a queue built from the currently visible list. The keypad carries star,
 messages, close, friend navigation, and Go to; previous/next friend steps cycle
-a highlighted friend in the Friends app, and Go to visits that friend or the
-friend or peep selected by an open Messages thread. Playback is
+a highlighted player in the Friends app, and Go to visits that player or the
+player or peep selected by an open Messages thread. Playback is
 per-user and never changes room state. The selected track and on/off preference
 are kept in browser `localStorage`. Catalog search, browse, top tracks, and
 Tinyrooms community stars are proxied server-side by

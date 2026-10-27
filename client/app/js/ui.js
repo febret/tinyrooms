@@ -1,6 +1,7 @@
 import { createApiClient } from "./api.js";
 import { withBase } from "./base-path.js";
 import { createActivityManager } from "./activities.js";
+import { activityResultPayload } from "./activity-result-payload.js";
 import { createChatAutocomplete } from "./autocomplete.js";
 import { createChatHistory } from "./chat-history.js";
 import { playSound } from "./audio.js";
@@ -420,7 +421,7 @@ async function sendCommand(rawCommand) {
 async function bridgeActivity(activity, type, payload = {}) {
   const response = await api.bridgeActivity(activity, type, payload);
   const events = response.closed ? [{ type: "activity.closed", activity: response.closed, reason: response.reason || "cancelled" }] : [];
-  store.dispatch({ type: "result", ok: true, message: "", payload: { activity: response.activity || null }, events });
+  store.dispatch({ type: "result", ok: true, message: "", payload: activityResultPayload(response), events });
   return response;
 }
 
@@ -579,10 +580,7 @@ async function handleAction(action, { silentSound = false } = {}) {
       store.dispatch({ type: "phone-app", app: "messages" });
       await refreshPhoneMessages({ store, sendCommand, showError });
     } else if (action.key === "close") {
-      const closingState = store.getState();
-      if (closingState.views.main === "phone") await closePhoneAnimated();
-      if (store.getState().views.main !== closingState.views.main) return;
-      store.dispatch({ type: "close-view" });
+      await handleAction({ type: "close-view" });
     } else if (action.key === "goto") {
       const target = phoneGotoTarget(store.getState());
       if (!target) {

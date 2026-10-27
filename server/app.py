@@ -725,6 +725,7 @@ def _build_runtime(
         tick_hook = getattr(state, "on_room_tick", None)
         if callable(tick_hook):
             ticker.add_tick_hook(tick_hook)
+
     def _lighting_cycle_tick(room_id: str) -> list[PendingRoomBroadcast]:
         del room_id
         return [

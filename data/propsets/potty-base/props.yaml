@@ -6,7 +6,6 @@ cottage-toilet:
   model: cottage-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -20,7 +19,6 @@ victorian-high-tank:
   model: victorian-high-tank.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -36,7 +34,6 @@ gilded-throne-toilet:
   model: gilded-throne-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -51,7 +48,6 @@ marble-imperial-toilet:
   model: marble-imperial-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -66,7 +62,6 @@ piano-toilet:
   model: piano-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -82,7 +77,6 @@ rocket-toilet:
   model: rocket-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -97,7 +91,6 @@ hollow-log-toilet:
   model: hollow-log-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -111,7 +104,6 @@ shark-jaws-toilet:
   model: shark-jaws-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -126,7 +118,6 @@ royal-frog-toilet:
   model: royal-frog-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self
@@ -141,7 +132,6 @@ disco-glam-toilet:
   model: disco-glam-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self

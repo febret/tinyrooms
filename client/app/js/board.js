@@ -27,7 +27,7 @@ import { cardDropElevation, stackMetrics, supportElevation } from "./editing/pro
 import { createPropEffects } from "./prop-effects.js";
 import { createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import {
-  LIGHTING_PRESETS,
+  DARK_SPRITE_LIGHTING,
   MAX_PROP_LIGHTS,
   PROP_LIGHT_DISTANCE,
   applyBoardBackdrop,
@@ -38,7 +38,6 @@ import {
   resolveRoomLighting,
   selectAmbientSources,
   selectPropLights,
-  spriteLightingForDaylight,
   spriteLightingForPreset,
 } from "./board-lighting.js";
 import { createBoardOutlines } from "./board-outlines.js";
@@ -1209,9 +1208,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         const day = dioramaFrame?.daylight;
         if (day) {
           applyBoardBackdrop(canvas, day.sky, day.ground);
-          spriteLighting = roomDark
-            ? spriteLightingForPreset(LIGHTING_PRESETS.darkness)
-            : spriteLightingForDaylight(day);
+          spriteLighting = roomDark ? DARK_SPRITE_LIGHTING : spriteLightingForPreset(day);
           applySpriteLighting(current, spriteLighting);
         }
       }
@@ -1363,9 +1360,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         syncPropLights(lightSelection.lights);
         const day = current.diorama.daylight;
         applyBoardBackdrop(canvas, day.sky, day.ground);
-        spriteLighting = roomDark
-          ? spriteLightingForPreset(LIGHTING_PRESETS.darkness)
-          : spriteLightingForDaylight(day);
+        spriteLighting = roomDark ? DARK_SPRITE_LIGHTING : spriteLightingForPreset(day);
       } else {
         resetBoardLights(lights);
         if (applyEnvironmentLighting(lights, preset, renderer, ambientSources.lamps, ambientSources.windows)) invalidate();

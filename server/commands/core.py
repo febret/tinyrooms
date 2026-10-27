@@ -680,7 +680,7 @@ def build_registry() -> CommandRegistry:
     )
     registry.register(
         "goto",
-        "Visit a friend or peep at their current position.",
+        "Visit an online player or peep at their current position.",
         gameplay.goto_command,
         usage=".goto <@peep:<id>|@npc:<world_id>:<npc_id>>",
     )

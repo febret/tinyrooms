@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+import { DARK_SPRITE_LIGHTING, lightingTint, lightingTintKey } from "./board-lighting.js";
 import { boardPosition } from "./board-helpers.js";
 import { loadSharedTexture, sharedTexture } from "./board-resources.js";
 import { decalCanvas, stinkCanvas } from "./decals.js";
@@ -9,8 +10,6 @@ const SPRITE_HEIGHT = 1.8;
 const SPRITE_MOVE_SMOOTHING = 5;
 const FALLBACK_ASPECT = 0.78;
 const BUBBLE_REFERENCE_PX = 100;
-const DARK_TINT = "#8b9194";
-const DARK_OPACITY = 0.6;
 
 /** Keep a bubble at a fixed size ratio to the peep sprite it belongs to. */
 export function spriteBubbleScale(pixelHeight) {
@@ -42,7 +41,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
   }
 
   function currentTint(record) {
-    if (record.dark) return { color: DARK_TINT, opacity: DARK_OPACITY };
+    if (record.dark) return DARK_SPRITE_LIGHTING;
     return record.lighting || { color: "#ffffff", opacity: 1 };
   }
 
@@ -57,21 +56,14 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     }
   }
 
-  function lightingKey(lighting) {
-    const color = typeof lighting?.color === "string"
-      ? lighting.color
-      : (lighting?.color?.getHexString?.() || "#ffffff");
-    const opacity = Number.isFinite(lighting?.opacity) ? lighting.opacity : 1;
-    return `${color}|${opacity}`;
-  }
-
   function applyLighting(entry, lighting) {
     if (!entry?.sprites) return false;
-    const key = lightingKey(lighting);
+    const tint = lightingTint(lighting);
+    const key = lightingTintKey(tint);
     let changed = false;
     for (const record of entry.sprites.values()) {
       if (record.lightingKey === key) continue;
-      record.lighting = lighting;
+      record.lighting = tint;
       record.lightingKey = key;
       applyTint(record);
       changed = true;

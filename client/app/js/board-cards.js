@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+import { lightingTint, lightingTintKey } from "./board-lighting.js";
 import { cardModelKey, detachBoardTree, positionKey } from "./board-helpers.js";
 
 const SPRITE_HEIGHT = 0.95;
@@ -54,18 +55,15 @@ function applyAspect(sprite, map) {
 export function createBoardCards({ register, texture, setRecordTarget, invalidateScene, onRemoveGroup }) {
   function applyLighting(entry, lighting) {
     if (!entry?.cards) return false;
-    const color = typeof lighting?.color === "string"
-      ? lighting.color
-      : (lighting?.color?.getHexString?.() || "#ffffff");
-    const opacity = Number.isFinite(lighting?.opacity) ? lighting.opacity : 1;
-    const key = `${color}|${opacity}`;
+    const tint = lightingTint(lighting);
+    const key = lightingTintKey(tint);
     let changed = false;
     for (const record of entry.cards.values()) {
       if (record.lightingKey === key) continue;
-      record.lighting = lighting;
+      record.lighting = tint;
       record.lightingKey = key;
-      record.spriteMaterial.color.set(lighting?.color || "#ffffff");
-      record.spriteMaterial.opacity = opacity;
+      record.spriteMaterial.color.set(tint.color);
+      record.spriteMaterial.opacity = tint.opacity;
       changed = true;
     }
     return changed;

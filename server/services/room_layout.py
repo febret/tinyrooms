@@ -36,13 +36,17 @@ from server.content.worlds import (
     RoomDefinition,
     WorldDefinition,
     prop_model_url,
-    resolve_default_prop_actions,
 )
 from server.content.sounds import sounds_payload
 from server.profiles import AccountRecord
 from server.services.environment import EnvironmentService
 from server.services.lighting import is_toggleable
 from server.services.ownership import OwnershipService
+from server.services.prop_actions import (
+    merged_prop_actions,
+    surface_actions,
+    visible_prop_actions,
+)
 from server.services.prop_shop import PropShopService, serialize_prop_entry
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
 from server.state.migrations import DatabaseHub
@@ -367,44 +371,24 @@ class RoomLayoutService:
         if dark:
             return []
         definition = self._world.props[instance.prop_id]
-        merged = list(instance.actions)
-        seen = {action.command for action in merged}
-        if instance.exit_to:
-            exit_definition = room.exits.get(instance.exit_to)
-            if exit_definition is not None:
-                command = f".go @way:{instance.exit_to}"
-                if command not in seen:
-                    seen.add(command)
-                    merged.append(
-                        QuickAction(
-                            label=exit_definition.label or instance.exit_to,
-                            command=command,
-                            default=True,
-                        )
-                    )
-        for action in resolve_default_prop_actions(definition, instance.id):
-            if action.command in seen:
-                continue
-            seen.add(action.command)
-            merged.append(action)
-        actions: list[dict[str, object]] = [
-            {
-                "label": action.label,
-                "command": action.command,
-                **({"default": True} if action.default else {}),
-            }
-            for action in merged
-        ]
-        if definition.render_kind == "sign":
-            actions.append({"label": "Edit sign", "command": f".sign {instance.id}", "default": True})
-        elif definition.render_kind == "whiteboard":
-            actions.append({"label": "Open whiteboard", "command": f".play {instance.id}", "default": True})
+        actions: tuple[QuickAction, ...] = (
+            merged_prop_actions(room, instance, definition)
+            + surface_actions(instance, definition)
+        )
         if is_toggleable(definition):
-            actions.append({"label": "Toggle light", "command": f".toggle @prop:{instance.id}"})
+            actions = actions + (
+                QuickAction(label="Toggle light", command=f".toggle @prop:{instance.id}"),
+            )
+        serialized = visible_prop_actions(
+            room,
+            actions,
+            environment=self._environment,
+            allowed_verbs=None,
+        )
         action_sound = sounds_payload({**definition.sounds, **instance.sounds}).get("action")
         if action_sound is not None:
-            actions = [{**action, "sound": action_sound} for action in actions]
-        return actions
+            serialized = [{**action, "sound": action_sound} for action in serialized]
+        return serialized
 
     def _serialize_library(self, definition: PropDefinition) -> dict[str, object]:
         # Locking is reported statically; the client hides locked props unless

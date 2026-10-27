@@ -34,74 +34,74 @@ const DAY_KEYS = [
     ambient: 0.62, sun: 0.02, fill: 0.2, night: 1,
     sky: "#435582", ground: "#263340", sunColor: "#8da7e8", fillColor: "#8da8e4",
     water: 0.18, exposure: 0.88,
-    sprite: "#aab8d6", spriteOpacity: 0.9,
+    spriteColor: "#aab8d6", spriteOpacity: 0.9,
   },
   {
     at: 0.18,
     ambient: 0.64, sun: 0.02, fill: 0.21, night: 1,
     sky: "#4b5c84", ground: "#273542", sunColor: "#93a5dd", fillColor: "#8ca3df",
     water: 0.19, exposure: 0.89,
-    sprite: "#aab8d6", spriteOpacity: 0.9,
+    spriteColor: "#aab8d6", spriteOpacity: 0.9,
   },
   {
     at: 0.24,
     ambient: 0.7, sun: 0.55, fill: 0.16, night: 0.65,
     sky: "#c58f78", ground: "#453c38", sunColor: "#ffbb7c", fillColor: "#9ab6d7",
     water: 0.35, exposure: 0.86,
-    sprite: "#dcb49d", spriteOpacity: 0.95,
+    spriteColor: "#dcb49d", spriteOpacity: 0.95,
   },
   {
     at: 0.3,
     ambient: 1.15, sun: 1.7, fill: 0.34, night: 0.12,
     sky: "#f7d6ae", ground: "#5b6554", sunColor: "#ffd9a1", fillColor: "#9fcbd8",
     water: 0.8, exposure: 1.0,
-    sprite: "#eed2b8", spriteOpacity: 0.97,
+    spriteColor: "#eed2b8", spriteOpacity: 0.97,
   },
   {
     at: 0.5,
     ambient: 1.5, sun: 2.4, fill: 0.46, night: 0,
     sky: "#e8f1ef", ground: "#6a7f63", sunColor: "#fff1cf", fillColor: "#b9e0e0",
     water: 1, exposure: 1.08,
-    sprite: "#ffffff", spriteOpacity: 1,
+    spriteColor: "#ffffff", spriteOpacity: 1,
   },
   {
     at: 0.7,
     ambient: 1.25, sun: 2.0, fill: 0.38, night: 0,
     sky: "#f8dfb5", ground: "#6b6c55", sunColor: "#ffe1a4", fillColor: "#b6d9dc",
     water: 0.9, exposure: 1.03,
-    sprite: "#fbf0db", spriteOpacity: 0.99,
+    spriteColor: "#fbf0db", spriteOpacity: 0.99,
   },
   {
     at: 0.76,
     ambient: 0.85, sun: 1.15, fill: 0.24, night: 0.25,
     sky: "#f0b087", ground: "#584d45", sunColor: "#ffb16d", fillColor: "#a9c1d6",
     water: 0.62, exposure: 0.95,
-    sprite: "#e6c0a5", spriteOpacity: 0.95,
+    spriteColor: "#e6c0a5", spriteOpacity: 0.95,
   },
   {
     at: 0.82,
     ambient: 0.55, sun: 0.3, fill: 0.12, night: 0.75,
     sky: "#8b6d83", ground: "#302f3c", sunColor: "#ee8f68", fillColor: "#8497c4",
     water: 0.3, exposure: 0.85,
-    sprite: "#a9b4cd", spriteOpacity: 0.88,
+    spriteColor: "#a9b4cd", spriteOpacity: 0.88,
   },
   {
     at: 0.9,
     ambient: 0.62, sun: 0.02, fill: 0.2, night: 1,
     sky: "#455883", ground: "#25333f", sunColor: "#94a6dc", fillColor: "#8ba5e2",
     water: 0.18, exposure: 0.88,
-    sprite: "#aab8d6", spriteOpacity: 0.9,
+    spriteColor: "#aab8d6", spriteOpacity: 0.9,
   },
   {
     at: 1,
     ambient: 0.62, sun: 0.02, fill: 0.2, night: 1,
     sky: "#435582", ground: "#263340", sunColor: "#8da7e8", fillColor: "#8da8e4",
     water: 0.18, exposure: 0.88,
-    sprite: "#aab8d6", spriteOpacity: 0.9,
+    spriteColor: "#aab8d6", spriteOpacity: 0.9,
   },
 ];
 
-const COLOR_FIELDS = ["sky", "ground", "sunColor", "fillColor", "sprite"];
+const COLOR_FIELDS = ["sky", "ground", "sunColor", "fillColor", "spriteColor"];
 
 function mixLighting(from, to, t) {
   const mixed = { ...from, ...to };

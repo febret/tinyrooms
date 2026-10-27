@@ -479,8 +479,10 @@ request). The friends list is part of the shared user profile, and Journal
 monthly progress includes the number of new friends made in the month.
 Incoming and outgoing requests remain pending until accepted, declined, or
 cancelled. Acceptance creates a mutual friendship; either user can remove the
-friendship for both. The keypad Go to button visits a highlighted friend, or the
-friend or peep selected by an open Messages thread, at their current position.
+friendship for both. The keypad Go to button visits an online player, or the
+peep selected by an open Messages thread, at their current position. Cross-world
+peep visits travel to the destination world's entry room because peep positions
+are not shared across processes.
 
 ### Messages
 The Phone's Messages app works like old-school SMS: a thread list, one open
@@ -1057,12 +1059,13 @@ loadout only after a successful transfer. Successful cross-world travel has the
 same default cost of 1 Energy as an in-world room change. Authored exits may
 override that cost; Energy-consuming exits remain unavailable while Tired.
 
-A player can go directly to an online friend's current position. Same-world visits
-use the friend's live room presence. Cross-world visits require permanent
+A player can go directly to any online player's current position. Same-world
+visits use the target's live room presence. Cross-world visits require permanent
 Multiverse Map access unless the user has the admin power, and use the same
-destination resolution as a cross-world exit. The keypad Go to button uses the
-highlighted friend in the Friends app, or the friend or current-world peep in an
-open Messages thread.
+destination resolution as a cross-world exit. Peep visits in another world
+travel to that world's entry room; peep positions are not shared across
+processes. The keypad Go to button uses the highlighted player in the Friends
+app or the player or peep in an open Messages thread.
 
 ### World Editor
 The World Editor is available at the URL `world-editor` when that feature is

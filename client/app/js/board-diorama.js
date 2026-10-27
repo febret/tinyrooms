@@ -1159,7 +1159,7 @@ export function createDioramaBoard({
   function setSceneLights(lights) {
     // The diorama owns the shared scene lights while it is visible.
     const phase = cyclePhaseAt(cycle, (performance.now() - startedAt) / 1000);
-    const day = currentDaylight();
+    const day = daylightForPhase(phase);
     const solar = (phase - 0.25) * Math.PI * 2;
     const lampAmbient = Math.min(lampLights.length * 0.012, 0.16) * day.night;
     lights.hemisphere.color.copy(day.sky);

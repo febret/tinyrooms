@@ -608,18 +608,60 @@ async def friend_command(context: CommandContext, command: ParsedCommand) -> Com
     return CommandOutcome(message=message, payload={"user": _user_payload(context)})
 
 
+async def _travel_to_world(
+    context: CommandContext,
+    source_room_id: str,
+    world_id: str,
+    room_id: str | None,
+    *,
+    direction: str,
+    message: str,
+) -> CommandOutcome:
+    """Travel to another world, reusing the cross-world destination contract."""
+
+    plan = await context.cross_world.prepare_world(context.account, world_id, room_id)
+    departure = await context.rooms.depart_to_world(
+        context.account,
+        source_room_id,
+        direction=direction,
+        destination_room_id=plan.room_id or None,
+    )
+    payload = context.cross_world.commit(
+        context.account,
+        plan,
+        source_room_id=source_room_id,
+        source_room_label=context.rooms.room_definition(source_room_id).label,
+        source_world_label=context.world.label,
+    )
+    return departure_outcome(context, departure, payload, message=message)
+
+
 async def _visit_npc(
     context: CommandContext,
     world_id: str,
     npc_id: str,
     source_room_id: str,
 ) -> CommandOutcome:
-    """Move the caller to an NPC's current room in this world."""
+    """Move the caller to an NPC's current room, across worlds when possible."""
 
     if not npc_id:
         raise CommandError("Choose a peep to visit.")
-    if world_id != context.world.id:
-        raise CommandError("That peep is not in this world.")
+    if world_id and world_id != context.world.id:
+        context.cross_world.check_multiverse_access(context.account)
+        worlds = await context.cross_world.list_worlds()
+        world = next(
+            (entry for entry in worlds if str(entry.get("id")) == world_id),
+            None,
+        )
+        world_label = str(world.get("label") or world_id) if world is not None else world_id
+        return await _travel_to_world(
+            context,
+            source_room_id,
+            world_id,
+            None,
+            direction=f"visiting {npc_id}",
+            message=f"You travel across worlds to {world_label}.",
+        )
     peep = context.world.peeps.get(npc_id)
     if peep is None:
         raise CommandError("That peep could not be found.")
@@ -639,18 +681,15 @@ async def _visit_npc(
     )
 
 
-async def _visit_friend(
+async def _visit_player(
     context: CommandContext,
     target: AccountRecord,
     source_room_id: str,
 ) -> CommandOutcome:
-    """Move the caller to a friend's current room, across worlds when allowed."""
+    """Move the caller to an online player's current room, across worlds when allowed."""
 
     if target.id == context.account.id:
         raise CommandError("You cannot visit yourself.")
-    actor_profile = context.profiles.get_user_profile(context.account.id)
-    if actor_profile is None or target.id not in actor_profile.friends:
-        raise CommandError("You can only visit friends.")
     profile = context.profiles.get_user_profile(target.id)
     if profile is None:
         raise CommandError("That peep could not be found.")
@@ -683,37 +722,21 @@ async def _visit_friend(
     )
     if not online:
         raise CommandError(f"{target.username_display} is not online.")
-    plan = await context.cross_world.prepare_world(
-        context.account,
+    return await _travel_to_world(
+        context,
+        source_room_id,
         profile.last_world_id,
         profile.remembered_room or None,
-    )
-    departure = await context.rooms.depart_to_world(
-        context.account,
-        source_room_id,
         direction=f"visiting {target.username_display}",
-        destination_room_id=plan.room_id or None,
-    )
-    payload = context.cross_world.commit(
-        context.account,
-        plan,
-        source_room_id=source_room_id,
-        source_room_label=context.rooms.room_definition(source_room_id).label,
-        source_world_label=context.world.label,
-    )
-    return departure_outcome(
-        context,
-        departure,
-        payload,
         message=f"You travel across worlds to {target.username_display}.",
     )
 
 
 async def goto_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    """Visit a friend or peep at their current position."""
+    """Visit an online player or peep at their current position."""
 
     if not command.args:
-        raise CommandError("Choose a friend or peep to visit.")
+        raise CommandError("Choose a player or peep to visit.")
     token = command.args[0]
     source_room_id = context.connection.room_id
     if source_room_id is None:
@@ -726,12 +749,12 @@ async def goto_command(context: CommandContext, command: ParsedCommand) -> Comma
     if token.startswith("@peep:"):
         account_id = token[len("@peep:"):].strip()
         if not account_id:
-            raise CommandError("Choose a friend or peep to visit.")
+            raise CommandError("Choose a player or peep to visit.")
         target = context.profiles.get_account_by_id(account_id)
         if target is not None:
-            return await _visit_friend(context, target, source_room_id)
+            return await _visit_player(context, target, source_room_id)
         return await _visit_npc(context, context.world.id, account_id, source_room_id)
-    raise CommandError("Choose a friend or peep to visit.")
+    raise CommandError("Choose a player or peep to visit.")
 
 
 async def pin_peep_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

@@ -2,17 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  DARK_SPRITE_LIGHTING,
   LIGHTING_PRESETS,
   MAX_PROP_LIGHTS,
   ambientBoostForLampCount,
   applyBoardBackdrop,
   backdropForPreset,
   clearBoardBackdrop,
+  lightingTint,
+  lightingTintKey,
   propLightWorldPosition,
   resolveRoomLighting,
   selectAmbientSources,
   selectPropLights,
-  spriteLightingForDaylight,
   spriteLightingForPreset,
 } from "../../client/app/js/board-lighting.js";
 import { daylightForPhase } from "../../client/app/js/board-diorama-daylight.js";
@@ -63,7 +65,7 @@ test("ambient sources count even when their point lights are budgeted out", () =
   ];
   assert.deepEqual(selectAmbientSources(props, "night"), { lamps: 1, windows: 1 });
   assert.deepEqual(selectAmbientSources(props, "dusk"), { lamps: 1, windows: 1 });
-  assert.deepEqual(selectAmbientSources(props, "day"), { lamps: 1, windows: 0 });
+  assert.deepEqual(selectAmbientSources(props, "day"), { lamps: 0, windows: 0 });
   assert.deepEqual(selectAmbientSources(props, "darkness"), { lamps: 1, windows: 0 });
 });
 
@@ -124,28 +126,25 @@ test("prop light positions project above the board", () => {
   assert.equal(z, 0);
 });
 
-test("sprite lighting follows the environment preset", () => {
-  assert.deepEqual(spriteLightingForPreset(LIGHTING_PRESETS.day), {
+test("sprite lighting follows presets and diorama daylight", () => {
+  assert.deepEqual(lightingTint(spriteLightingForPreset(LIGHTING_PRESETS.day)), {
     color: "#ffffff",
     opacity: 1,
   });
-  const night = spriteLightingForPreset(LIGHTING_PRESETS.night);
+  const night = lightingTint(spriteLightingForPreset(LIGHTING_PRESETS.night));
   assert.equal(night.color, "#aab8d6");
   assert.equal(night.opacity, 0.9);
-  const darkness = spriteLightingForPreset(LIGHTING_PRESETS.darkness);
-  assert.ok(darkness.opacity < night.opacity);
-  assert.deepEqual(spriteLightingForDaylight({ sprite: "#123456", spriteOpacity: 0.5 }), {
-    color: "#123456",
-    opacity: 0.5,
+  assert.deepEqual(DARK_SPRITE_LIGHTING, {
+    color: LIGHTING_PRESETS.darkness.spriteColor,
+    opacity: LIGHTING_PRESETS.darkness.spriteOpacity,
   });
-});
 
-test("diorama daylight interpolates sprite tint through the cycle", () => {
-  const day = daylightForPhase(0.5);
-  const night = daylightForPhase(0);
-  assert.equal(day.spriteOpacity, 1);
-  assert.ok(night.spriteOpacity < day.spriteOpacity);
-  assert.notEqual(day.sprite.getHexString(), night.sprite.getHexString());
+  const day = lightingTint(spriteLightingForPreset(daylightForPhase(0.5)));
+  const dark = lightingTint(spriteLightingForPreset(daylightForPhase(0)));
+  assert.equal(day.opacity, 1);
+  assert.ok(dark.opacity < day.opacity);
+  assert.notEqual(day.color, dark.color);
+  assert.equal(lightingTintKey({ color: "#123456", opacity: 0.5001 }), "#123456|0.50");
 });
 
 test("board backdrop follows preset colors and clears when removed", () => {
