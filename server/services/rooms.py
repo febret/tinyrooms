@@ -1120,6 +1120,7 @@ class RoomService:
                 "dark": dark,
                 "base_dark": room.dark,
                 "sprites_enabled": room.sprites_enabled,
+                "sprite_scale": room.sprite_scale,
                 "game": game,
                 "state": game_state,
             },

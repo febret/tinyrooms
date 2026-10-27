@@ -771,7 +771,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function syncSprites(entry, room) {
     const enabled = Boolean(room.board?.spritesEnabled);
     const actors = enabled ? [...(room.occupants || []), ...(room.npcs || [])] : [];
-    spriteLayer.sync(entry, actors, roomDark);
+    const spriteScale = Number(room.board?.spriteScale) > 0 ? Number(room.board?.spriteScale) : 1;
+    spriteLayer.sync(entry, actors, roomDark, spriteScale);
   }
 
   /** Replace the floor only when the board artwork or palette actually changes. */

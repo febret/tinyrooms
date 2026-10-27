@@ -116,6 +116,10 @@ class RoomDefinition:
     editor_environment: tuple[str, ...] = ()
     template: bool = False
     sprites_enabled: bool = False
+    # Visual multiplier for 2D peep sprites in sprite-mode rooms. Authored per
+    # room so worlds with large character art (or tiny critters) can tune the
+    # shared sprite height without touching other worlds.
+    sprite_scale: float = 1.0
     game: RoomGameDefinition | None = None
     environment: str | None = None
 
@@ -354,6 +358,26 @@ def _load_dialog(
     if unreachable:
         raise ContentError(f"Peep '{peep_id}' dialog has unreachable nodes {unreachable}.")
     return DialogDefinition(start_node_id="start", nodes=nodes)
+
+
+MIN_SPRITE_SCALE = 0.5
+MAX_SPRITE_SCALE = 3.0
+
+
+def _load_sprite_scale(raw_value: Any, room_id: str) -> float:
+    """Parse an authored peep-sprite scale multiplier for one room."""
+
+    if raw_value is None:
+        return 1.0
+    if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
+        raise ContentError(f"Room '{room_id}' sprite_scale must be a number.")
+    scale = float(raw_value)
+    if not MIN_SPRITE_SCALE <= scale <= MAX_SPRITE_SCALE:
+        raise ContentError(
+            f"Room '{room_id}' sprite_scale must be between "
+            f"{MIN_SPRITE_SCALE} and {MAX_SPRITE_SCALE}."
+        )
+    return scale
 
 
 def _as_paths(value: Path | Sequence[Path] | None) -> list[Path]:
@@ -716,6 +740,7 @@ def load_world_definition(
             editor_environment=load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
+            sprite_scale=_load_sprite_scale(raw_room.get("sprite_scale"), room_id),
             game=game,
             environment=validate_lighting_name(
                 raw_room.get("environment"), f"Room '{room_id}' environment"

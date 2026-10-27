@@ -638,6 +638,7 @@ export function normalizeRoom(room, previousRoom = null) {
       dark: Boolean(room.board?.dark),
       baseDark: Boolean(room.board?.base_dark ?? room.board?.dark),
       spritesEnabled: Boolean(room.board?.sprites_enabled),
+      spriteScale: Number(room.board?.sprite_scale) > 0 ? Number(room.board?.sprite_scale) : 1,
       game: normalizeRoomGame(room.board?.game),
       state: normalizeGameState(room.board?.state),
     },

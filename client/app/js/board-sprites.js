@@ -29,12 +29,13 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     return target;
   }
 
-  function applyScale(record, map) {
+  function applyScale(entry, record, map) {
     const image = map?.image;
     const width = Number(image?.width) || 0;
     const height = Number(image?.height) || 0;
     const aspect = width > 0 && height > 0 ? width / height : FALLBACK_ASPECT;
-    record.baseScale = [SPRITE_HEIGHT * aspect, SPRITE_HEIGHT];
+    const scale = SPRITE_HEIGHT * (Number(entry.spriteScale) > 0 ? Number(entry.spriteScale) : 1);
+    record.baseScale = [scale * aspect, scale];
     record.sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
   }
 
@@ -46,7 +47,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     sprite.userData = { kind: "peep", id: record.id };
     entry.root.add(sprite);
     record.sprite = sprite;
-    applyScale(record, record.material.map);
+    applyScale(entry, record, record.material.map);
   }
 
   function makePickable(entry, record) {
@@ -61,7 +62,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       record.material.map = cached;
       record.material.needsUpdate = true;
       record.sprite.visible = true;
-      applyScale(record, cached);
+      applyScale(entry, record, cached);
       makePickable(entry, record);
       invalidate();
       return;
@@ -72,7 +73,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       record.material.map = map;
       record.material.needsUpdate = true;
       record.sprite.visible = true;
-      applyScale(record, map);
+      applyScale(entry, record, map);
       makePickable(entry, record);
       invalidate();
     }, () => {
@@ -216,7 +217,14 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     syncStinkOverlay(entry, record, actor);
   }
 
-  function sync(entry, actors, dark = false) {
+  function sync(entry, actors, dark = false, spriteScale = 1) {
+    const nextScale = Number(spriteScale) > 0 ? Number(spriteScale) : 1;
+    if (entry.spriteScale !== nextScale) {
+      entry.spriteScale = nextScale;
+      for (const record of entry.sprites.values()) {
+        if (record.sprite) applyScale(entry, record, record.material.map);
+      }
+    }
     const wanted = new Map();
     for (const actor of Array.isArray(actors) ? actors : []) {
       if (!Array.isArray(actor?.spritePosition) || actor.spritePosition.length < 2) continue;
