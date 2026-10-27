@@ -1,9 +1,5 @@
 import { escapeHtml } from "../presentation.js";
 
-function sendBeaconButton(entry) {
-  return `<button type="button" class="positive" data-beacon-action="send" data-account-id="${escapeHtml(entry.account_id)}" aria-label="${escapeHtml(`Send beacon: ${entry.username}`)}">Send Beacon</button>`;
-}
-
 function vibeMarkup(vibes) {
   const toward = vibes?.toward?.label || "Neutral 😐";
   const from = vibes?.from?.label || "Neutral 😐";
@@ -13,39 +9,18 @@ function vibeMarkup(vibes) {
   </div>`;
 }
 
-function friendEntryMarkup(entry, actions, extraActions = "", { selected = false, index = null } = {}) {
+function friendEntryMarkup(entry, actions, { selected = false, index = null } = {}) {
   return `<li class="friend-entry${selected ? " selected" : ""}"${selected ? ' aria-current="true"' : ""}${index === null ? "" : ` data-phone-friend-index="${index}"`}>
     <div class="friend-identity"><span class="friend-name ${entry.online ? "online" : ""}">${escapeHtml(entry.username)}</span>
       <span class="friend-presence">${entry.online ? "Online" : "Offline"}</span></div>
     ${vibeMarkup(entry.vibes)}
-    <div class="friend-actions">${actions.map(({ action, label, tone }) => `<button type="button" class="${tone}" data-friend-action="${action}" data-account-id="${escapeHtml(entry.account_id)}" aria-label="${escapeHtml(`${label}: ${entry.username}`)}">${escapeHtml(label)}</button>`).join("")}${extraActions}</div>
+    <div class="friend-actions">${actions.map(({ action, label, tone }) => `<button type="button" class="${tone}" data-friend-action="${action}" data-account-id="${escapeHtml(entry.account_id)}" aria-label="${escapeHtml(`${label}: ${entry.username}`)}">${escapeHtml(label)}</button>`).join("")}</div>
   </li>`;
 }
 
-function friendGroupMarkup(title, entries, actions, emptyText, { beacon = false, selectedIndex = null } = {}) {
+function friendGroupMarkup(title, entries, actions, emptyText, { selectedIndex = null } = {}) {
   return `<section class="friend-group"><h3>${escapeHtml(title)} <span class="phone-count">${entries.length}</span></h3>
-    ${entries.length ? `<ul>${entries.map((entry, position) => friendEntryMarkup(entry, actions, beacon ? sendBeaconButton(entry) : "", { selected: position === selectedIndex, index: position })).join("")}</ul>` : `<p class="empty-state">${escapeHtml(emptyText)}</p>`}
-  </section>`;
-}
-
-function beaconEntryMarkup(beacon) {
-  const place = beacon.crossWorld
-    ? `${beacon.worldLabel || beacon.worldId} · ${beacon.roomLabel || beacon.roomId}`
-    : beacon.roomLabel || beacon.roomId;
-  return `<li class="friend-entry beacon-entry">
-    <div class="friend-identity"><span class="friend-name">${escapeHtml(beacon.fromUsername)}</span>
-      <span class="friend-presence">${escapeHtml(place)}</span></div>
-    <div class="friend-actions">
-      <button type="button" class="positive" data-beacon-action="use" data-account-id="${escapeHtml(beacon.fromAccountId)}" aria-label="${escapeHtml(`Travel to ${beacon.fromUsername}'s beacon`)}">Travel</button>
-      <button type="button" class="negative" data-beacon-action="dismiss" data-account-id="${escapeHtml(beacon.fromAccountId)}" aria-label="${escapeHtml(`Dismiss ${beacon.fromUsername}'s beacon`)}">Dismiss</button>
-    </div>
-  </li>`;
-}
-
-function beaconGroupMarkup(beacons) {
-  return `<section class="friend-group"><h3>Incoming beacons <span class="phone-count">${beacons.length}</span>
-      <button type="button" class="cancel" data-beacon-refresh aria-label="Refresh beacons">Refresh</button></h3>
-    ${beacons.length ? `<ul>${beacons.map(beaconEntryMarkup).join("")}</ul>` : `<p class="empty-state">No beacons waiting. Friends can send you one from their Friends app.</p>`}
+    ${entries.length ? `<ul>${entries.map((entry, position) => friendEntryMarkup(entry, actions, { selected: position === selectedIndex, index: position })).join("")}</ul>` : `<p class="empty-state">${escapeHtml(emptyText)}</p>`}
   </section>`;
 }
 
@@ -55,10 +30,9 @@ export function friendsPagesMarkup(state) {
   const selectedIndex = entries.length ? Math.max(0, Math.min(Number(state.ui?.phoneFriendIndex || 0), entries.length - 1)) : null;
   return {
     leftLabel: "Friends",
-    rightLabel: "Beacons and friend requests",
-    left: friendGroupMarkup("Friends", entries, [{ action: "remove", label: "Remove", tone: "negative" }], "No friends yet. Select another peep and choose Add Friend.", { beacon: true, selectedIndex }),
-    right: `${beaconGroupMarkup(state.user?.beacons || [])}
-      ${friendGroupMarkup("Incoming requests", friends.incoming || [], [{ action: "accept", label: "Accept", tone: "positive" }, { action: "decline", label: "Decline", tone: "negative" }], "No incoming requests.")}
+    rightLabel: "Friend requests",
+    left: friendGroupMarkup("Friends", entries, [{ action: "remove", label: "Remove", tone: "negative" }], "No friends yet. Select another peep and choose Add Friend.", { selectedIndex }),
+    right: `${friendGroupMarkup("Incoming requests", friends.incoming || [], [{ action: "accept", label: "Accept", tone: "positive" }, { action: "decline", label: "Decline", tone: "negative" }], "No incoming requests.")}
       ${friendGroupMarkup("Sent requests", friends.outgoing || [], [{ action: "cancel", label: "Cancel", tone: "cancel" }], "No pending sent requests.")}`,
   };
 }
@@ -69,6 +43,6 @@ export function friendsAppMarkup(state) {
     <p class="phone-eyebrow">Good company</p>
     ${pages.left}
     ${pages.right}
-    <p class="phone-note">New friendships start with a hello. Select a peep to send a friend request, then send a beacon to invite them to your room.</p>
+    <p class="phone-note">New friendships start with a hello. Select a peep to send a friend request, then use Go to to visit them.</p>
   </div>`;
 }

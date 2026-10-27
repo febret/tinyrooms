@@ -22,8 +22,8 @@ export const COMMANDS = [
   { name: ".open @prop:<id>", summary: "Open a container prop and show its contents." },
   { name: ".take @prop:<id> @card:<stack> <qty>", summary: "Take cards out of a container prop." },
   { name: ".sell @card:<stack> <qty>", summary: "Sell owned cards for Bops." },
-  { name: ".friend <add|accept|decline|cancel|remove> <peep>", summary: "Manage friends." },
-  { name: ".beacon <send|use|dismiss|list> [peep]", summary: "Send, follow, dismiss, or list friend beacons." },
+  { name: ".friend <add|accept|decline|cancel|remove|list> [peep]", summary: "Manage friends." },
+  { name: ".goto @peep:<id>", summary: "Visit a friend or peep at their current position." },
   { name: ".pin_peep @peep:<id> [on|off]", summary: "Pin or unpin a peep in your sidebar." },
   { name: ".swap_sticker <sticker>", summary: "Swap your peep sticker for Bops." },
   { name: ".shop", summary: "Open the Shop on its Cards or Props section." },
@@ -69,11 +69,6 @@ export function buildUnskillCommand(slotIndex) {
 
 export function buildFriendCommand(action, accountId) {
   return `.friend ${action} @peep:${accountId}`;
-}
-
-export function buildBeaconCommand(action, accountId) {
-  const suffix = accountId ? ` @peep:${accountId}` : "";
-  return `.beacon ${action}${suffix}`;
 }
 
 export function buildPhoneMessagesCommand(action, threadKey, body) {

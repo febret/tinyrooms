@@ -19,8 +19,7 @@ from server.commands.travel import departure_outcome, navigation_outcome
 from server.profiles import AccountRecord
 from server.services.actions import ActionResult, PropTarget
 
-VALID_FRIEND_ACTIONS = {"add", "accept", "decline", "cancel", "remove"}
-VALID_BEACON_ACTIONS = {"send", "use", "dismiss", "list"}
+VALID_FRIEND_ACTIONS = {"add", "accept", "decline", "cancel", "remove", "list"}
 MAX_PINNED_PEEPS = 25
 
 
@@ -581,11 +580,15 @@ async def shop_command(context: CommandContext, command: ParsedCommand) -> Comma
 
 
 async def friend_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    if len(command.args) < 2:
-        raise CommandError("Use '.friend <add|accept|decline|cancel|remove> <peep>'.")
+    if not command.args:
+        raise CommandError("Use '.friend <add|accept|decline|cancel|remove|list> [peep]'.")
     action = command.args[0].lower()
     if action not in VALID_FRIEND_ACTIONS:
         raise CommandError("Unknown friend action.")
+    if action == "list":
+        return CommandOutcome(payload={"user": _user_payload(context)}, toast=False, log=False)
+    if len(command.args) < 2:
+        raise CommandError("Choose a peep.")
     target = _resolve_account_target(context, command.args[1])
     if action == "add":
         context.friends.send_request(context.account, target)
@@ -605,90 +608,130 @@ async def friend_command(context: CommandContext, command: ParsedCommand) -> Com
     return CommandOutcome(message=message, payload={"user": _user_payload(context)})
 
 
-async def beacon_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    if not command.args:
-        raise CommandError("Use '.beacon <send|use|dismiss|list> [peep]'.")
-    action = command.args[0].lower()
-    if action not in VALID_BEACON_ACTIONS:
-        raise CommandError("Unknown beacon action.")
-    if action == "list":
-        return CommandOutcome(payload={"user": _user_payload(context)}, toast=False)
-    if len(command.args) < 2:
-        raise CommandError("Choose a peep.")
-    target = _resolve_account_target(context, command.args[1])
-    if action == "send":
-        room_id = context.connection.room_id
-        if room_id is None:
-            raise CommandError("You are not currently in a room.")
-        room = context.rooms.room_definition(room_id)
-        context.beacons.send(
-            context.account,
-            target,
-            world_id=context.world.id,
-            world_label=context.world.label,
-            room_id=room_id,
-            room_label=room.label,
-        )
-        return CommandOutcome(
-            message=f"Beacon sent to {target.username_display}.",
-            payload={"user": _user_payload(context)},
-        )
-    if action == "dismiss":
-        if not context.beacons.remove(context.account.id, target.id):
-            raise CommandError("There is no beacon from that peep.")
-        return CommandOutcome(
-            message=f"Dismissed {target.username_display}'s beacon.",
-            payload={"user": _user_payload(context)},
-        )
-    beacon = context.beacons.find(context.account.id, target.id)
-    if beacon is None:
-        raise CommandError("There is no beacon from that peep.")
-    room_id = context.connection.room_id
-    if room_id is None:
-        raise CommandError("You are not currently in a room.")
-    beacon_world_id = str(beacon.get("world_id") or "")
-    beacon_room_id = str(beacon.get("room_id") or "")
-    if not beacon_world_id or not beacon_room_id:
-        raise CommandError("That beacon is no longer valid.")
-    beacon_room_label = str(beacon.get("room_label") or beacon_room_id)
-    if beacon_world_id == context.world.id:
+async def _visit_npc(
+    context: CommandContext,
+    world_id: str,
+    npc_id: str,
+    source_room_id: str,
+) -> CommandOutcome:
+    """Move the caller to an NPC's current room in this world."""
+
+    if not npc_id:
+        raise CommandError("Choose a peep to visit.")
+    if world_id != context.world.id:
+        raise CommandError("That peep is not in this world.")
+    peep = context.world.peeps.get(npc_id)
+    if peep is None:
+        raise CommandError("That peep could not be found.")
+    destination_room_id = context.rooms.peep_room(peep)
+    if destination_room_id == source_room_id:
+        return CommandOutcome(message=f"{peep.label} is already here.")
+    navigation = await context.rooms.enter_room(
+        context.account,
+        source_room_id,
+        destination_room_id,
+        direction=f"visiting {peep.label}",
+    )
+    return navigation_outcome(
+        context,
+        navigation,
+        message=f"You visit {peep.label}.",
+    )
+
+
+async def _visit_friend(
+    context: CommandContext,
+    target: AccountRecord,
+    source_room_id: str,
+) -> CommandOutcome:
+    """Move the caller to a friend's current room, across worlds when allowed."""
+
+    if target.id == context.account.id:
+        raise CommandError("You cannot visit yourself.")
+    actor_profile = context.profiles.get_user_profile(context.account.id)
+    if actor_profile is None or target.id not in actor_profile.friends:
+        raise CommandError("You can only visit friends.")
+    profile = context.profiles.get_user_profile(target.id)
+    if profile is None:
+        raise CommandError("That peep could not be found.")
+    local = await context.connections.get(target.id)
+    if local is not None:
+        room_id = local.room_id or profile.remembered_room or context.world.entry_room_id
+        if room_id not in context.world.rooms:
+            room_id = context.world.entry_room_id
+        if room_id == source_room_id:
+            return CommandOutcome(message=f"You are already with {target.username_display}.")
         navigation = await context.rooms.enter_room(
             context.account,
+            source_room_id,
             room_id,
-            beacon_room_id,
-            direction=f"{target.username_display}'s beacon",
+            direction=f"visiting {target.username_display}",
         )
-        context.beacons.remove(context.account.id, target.id)
         return navigation_outcome(
             context,
             navigation,
-            message=f"You follow {target.username_display}'s beacon to {beacon_room_label}.",
+            message=f"You visit {target.username_display}.",
         )
+    if profile.last_world_id == context.world.id or not profile.last_world_id:
+        raise CommandError(f"{target.username_display} is not online.")
+    context.cross_world.check_multiverse_access(context.account)
+    worlds = await context.cross_world.list_worlds()
+    online = any(
+        isinstance(world.get("online_account_ids"), list)
+        and target.id in {str(entry) for entry in world.get("online_account_ids") or []}
+        for world in worlds
+    )
+    if not online:
+        raise CommandError(f"{target.username_display} is not online.")
     plan = await context.cross_world.prepare_world(
         context.account,
-        beacon_world_id,
-        beacon_room_id,
+        profile.last_world_id,
+        profile.remembered_room or None,
     )
     departure = await context.rooms.depart_to_world(
         context.account,
-        room_id,
-        direction=f"{target.username_display}'s beacon",
+        source_room_id,
+        direction=f"visiting {target.username_display}",
         destination_room_id=plan.room_id or None,
     )
     payload = context.cross_world.commit(
         context.account,
         plan,
-        source_room_id=room_id,
-        source_room_label=context.rooms.room_definition(room_id).label,
+        source_room_id=source_room_id,
+        source_room_label=context.rooms.room_definition(source_room_id).label,
         source_world_label=context.world.label,
     )
-    context.beacons.remove(context.account.id, target.id)
     return departure_outcome(
         context,
         departure,
         payload,
-        message=f"You follow {target.username_display}'s beacon across worlds.",
+        message=f"You travel across worlds to {target.username_display}.",
     )
+
+
+async def goto_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
+    """Visit a friend or peep at their current position."""
+
+    if not command.args:
+        raise CommandError("Choose a friend or peep to visit.")
+    token = command.args[0]
+    source_room_id = context.connection.room_id
+    if source_room_id is None:
+        raise CommandError("You are not currently in a room.")
+    if token.startswith("@npc:"):
+        world_id, separator, npc_id = token[len("@npc:"):].partition(":")
+        if separator:
+            return await _visit_npc(context, world_id.strip(), npc_id.strip(), source_room_id)
+        return await _visit_npc(context, context.world.id, world_id.strip(), source_room_id)
+    if token.startswith("@peep:"):
+        account_id = token[len("@peep:"):].strip()
+        if not account_id:
+            raise CommandError("Choose a friend or peep to visit.")
+        target = context.profiles.get_account_by_id(account_id)
+        if target is not None:
+            return await _visit_friend(context, target, source_room_id)
+        return await _visit_npc(context, context.world.id, account_id, source_room_id)
+    raise CommandError("Choose a friend or peep to visit.")
 
 
 async def pin_peep_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:

@@ -35,7 +35,7 @@ COMMANDS = 200
 #: Every attribute ``build_command_context`` reads off the runtime.
 RUNTIME_SLOTS = (
     "profiles", "world_state", "rooms", "cards", "activities", "activity_results", "cutscenes",
-    "registry", "stats", "inventory", "progression", "actions", "friends", "beacons", "shop",
+    "registry", "stats", "inventory", "progression", "actions", "friends", "shop",
     "prop_shop", "pricing", "content", "behaviors", "dialogs", "tasks", "titles", "memories",
     "powers", "ownership", "environment", "audit", "connections", "mods",
     "dispensers", "crafting", "cross_world",

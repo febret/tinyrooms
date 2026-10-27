@@ -185,15 +185,18 @@ test("phone opens apps, friends, messages, and the personal chiptune player", as
   expect(device.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height);
 
   await phone.locator('[data-phone-app="friends"]').click();
-  await expect(phone).toContainText("Incoming beacons");
   await expect(phone).toContainText("Incoming requests");
+  await expect(phone).toContainText("Sent requests");
   const keypad = phone.locator(".phone-keypad");
-  await expect(keypad.locator("button")).toHaveCount(9);
-  await expect(keypad.locator('[data-phone-key="volume-up"]')).toBeDisabled();
-  await expect(keypad.locator('[data-phone-key="volume-down"]')).toBeDisabled();
+  await expect(keypad.locator("button")).toHaveCount(6);
+  await expect(keypad.locator('[data-phone-key="volume-up"]')).toHaveCount(0);
+  await expect(keypad.locator('[data-phone-key="volume-down"]')).toHaveCount(0);
   await expect(keypad.locator('[data-phone-key="messages"]')).toBeEnabled();
+  await expect(keypad.locator('[data-phone-key="close"]')).toBeEnabled();
+  await expect(keypad.locator('[data-phone-key="goto"]')).toBeDisabled();
   await expect(keypad.locator('[data-phone-key="friend-prev"]')).toBeDisabled();
   await expect(keypad.locator('[data-phone-key="friend-next"]')).toBeDisabled();
+  await expect(phone.locator(".phone-media-toggle")).toBeEnabled();
   await expect(phone.locator(".phone-lcd")).toHaveCSS("font-size", "13.5px");
 
   await phone.locator('[data-phone-home="1"]').first().click();
@@ -213,12 +216,21 @@ test("phone opens apps, friends, messages, and the personal chiptune player", as
   await expect(phone.getByRole("button", { name: "Play Top Track", exact: true })).toBeVisible();
   await phone.getByRole("button", { name: "Play Top Track", exact: true }).click();
   await expect(phone.locator(".phone-now-playing.playing")).toBeVisible();
-  await keypad.locator('[data-phone-key="music-next"]').click();
+  await phone.locator('[data-phone-key="music-next"]').click();
   await expect(phone.locator(".phone-now-copy strong")).toContainText("Starred Track");
-  await keypad.locator('[data-phone-key="music-prev"]').click();
+  await phone.locator('[data-phone-key="music-prev"]').click();
   await expect(phone.locator(".phone-now-copy strong")).toContainText("Top Track");
   await keypad.locator('[data-phone-key="music-star"]').click();
   await expect(keypad.locator('[data-phone-key="music-star"]')).toHaveAttribute("aria-pressed", "true");
+
+  const deviceBox = await phone.locator(".phone-device").boundingBox();
+  await page.mouse.click(deviceBox.x + deviceBox.width + 12, deviceBox.y + 40);
+  await expect(phone).toBeHidden();
+  await expect(page.locator(".interaction-dock")).toBeVisible();
+  await openCore(page, "phone");
+  await expect(phone).toBeVisible();
+  await phone.locator('[data-phone-app="chiptune"]').click();
+  await expect(phone.locator(".phone-search input")).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileToolbar = await page.locator(".topbar").boundingBox();

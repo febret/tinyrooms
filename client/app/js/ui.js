@@ -19,7 +19,6 @@ import { lookPreview } from "./look-preview.js";
 import { createCutsceneManager } from "./cutscenes/manager.js";
 import {
   COMMANDS,
-  buildBeaconCommand,
   buildEmoteCommand,
   buildFriendCommand,
   buildPhoneMessagesCommand,
@@ -29,6 +28,7 @@ import {
   buildUnskillCommand,
   chatToCommand,
 } from "./commands.js";
+import { buildGotoCommand, phoneGotoTarget } from "./phone-goto.js";
 import { createDialogs } from "./dialogs.js";
 import { createCardMotion } from "./card-motion.js";
 import { createDropController } from "./drop-targeting.js";
@@ -493,7 +493,6 @@ async function handleAction(action, { silentSound = false } = {}) {
       const tab = store.getState().ui.journalTab;
       if (tab === "Tasks") await refreshTasks();
       if (tab === "Memories") await refreshJournalMonth();
-      if (tab === "Friends") await refreshBeacons();
     }
   } else if (action.type === "close-view") {
     const state = store.getState();
@@ -502,6 +501,7 @@ async function handleAction(action, { silentSound = false } = {}) {
       return;
     }
     if (state.views.main === "phone") await closePhoneAnimated();
+    if (store.getState().views.main !== state.views.main) return;
     store.dispatch({ type: action.type });
   } else if (action.type === "open-shop") {
     await openShop(action.section);
@@ -556,7 +556,7 @@ async function handleAction(action, { silentSound = false } = {}) {
     if (action.tab === "Memories") await refreshJournalMonth();
   } else if (action.type === "phone-app") {
     store.dispatch({ type: "phone-app", app: action.app });
-    if (action.app === "friends") await refreshBeacons();
+    if (action.app === "friends") await refreshFriends();
     if (action.app === "messages") await refreshPhoneMessages({ store, sendCommand, showError });
     if (action.app === "chiptune") await phoneMusic.load(store.getState().ui.phoneMusic.mode || "suggestions", {
       path: store.getState().ui.phoneMusic.path,
@@ -574,6 +574,18 @@ async function handleAction(action, { silentSound = false } = {}) {
     else if (action.key === "messages") {
       store.dispatch({ type: "phone-app", app: "messages" });
       await refreshPhoneMessages({ store, sendCommand, showError });
+    } else if (action.key === "close") {
+      const closingState = store.getState();
+      if (closingState.views.main === "phone") await closePhoneAnimated();
+      if (store.getState().views.main !== closingState.views.main) return;
+      store.dispatch({ type: "close-view" });
+    } else if (action.key === "goto") {
+      const target = phoneGotoTarget(store.getState());
+      if (!target) {
+        toast("Select a friend or peep first.", "info");
+        return;
+      }
+      try { await sendCommand(buildGotoCommand(target)); } catch (error) { showError(error); }
     }
   } else if (action.type === "phone-music") {
     if (action.action === "play") phoneMusic.play({ song: action.song, label: action.label });
@@ -614,10 +626,6 @@ async function handleAction(action, { silentSound = false } = {}) {
     try { await sendCommand(".level_up"); } catch (error) { showError(error); }
   } else if (action.type === "friend-action") {
     try { await sendCommand(buildFriendCommand(action.action, action.accountId)); } catch (error) { showError(error); }
-  } else if (action.type === "beacon-action") {
-    try { await sendCommand(buildBeaconCommand(action.action, action.accountId)); } catch (error) { showError(error); }
-  } else if (action.type === "beacon-refresh") {
-    await refreshBeacons();
   } else if (action.type === "phone-messages" || action.type === "phone-messages-send") {
     await handlePhoneMessagesAction(action, { store, sendCommand, showError });
   } else if (action.type === "skill-slot") {
@@ -670,9 +678,9 @@ async function refreshTasks() {
   } catch (error) { showError(error); }
 }
 
-async function refreshBeacons() {
+async function refreshFriends() {
   try {
-    await sendCommand(buildBeaconCommand("list"));
+    await sendCommand(".friend list");
   } catch (error) { showError(error); }
 }
 
@@ -1264,6 +1272,9 @@ document.addEventListener("pointerdown", event => {
     && !emoteToggle.contains(event.target)
   ) {
     store.dispatch({ type: "close-emote-menu" });
+  }
+  if (state.views.main === "phone" && !dialogs.active && !event.target?.closest?.(".phone-device, .phone-typing-close")) {
+    void handleAction({ type: "close-view" });
   }
 });
 installButtonSoundHandler({ document, store });

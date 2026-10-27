@@ -673,16 +673,16 @@ def build_registry() -> CommandRegistry:
     registry.register("emote", "Play an owned emote card.", gameplay.emote_command, usage=".emote @card:<stack_id>", toast=False)
     registry.register("equip", "Equip an item or action stack.", gameplay.equip_command, usage=".equip @card:<stack_id>")
     registry.register(
-        "beacon",
-        "Send, follow, dismiss, or list friend beacons.",
-        gameplay.beacon_command,
-        usage=".beacon <send|use|dismiss|list> [peep]",
-    )
-    registry.register(
         "friend",
         "Manage friends and friend requests.",
         gameplay.friend_command,
-        usage=".friend <add|accept|decline|cancel|remove> <peep>",
+        usage=".friend <add|accept|decline|cancel|remove|list> [peep]",
+    )
+    registry.register(
+        "goto",
+        "Visit a friend or peep at their current position.",
+        gameplay.goto_command,
+        usage=".goto <@peep:<id>|@npc:<world_id>:<npc_id>>",
     )
     registry.register(
         "gm",

@@ -45,7 +45,6 @@ def _default_profile() -> dict[str, object]:
         "friend_requests_received": [],
         "pinned_peeps": [],
         "skills": [],
-        "beacons": [],
         "starred_tracks": [],
         "statuses": [],
         "show_activity_log": False,
@@ -92,10 +91,6 @@ def _normalize_profile(raw: object) -> dict[str, object]:
         merged["skills"] = []
     if not isinstance(merged.get("decals"), list):
         merged["decals"] = []
-    if not isinstance(merged.get("beacons"), list):
-        merged["beacons"] = []
-    else:
-        merged["beacons"] = [entry for entry in merged["beacons"] if isinstance(entry, dict)]
     if not isinstance(merged.get("starred_tracks"), list):
         merged["starred_tracks"] = []
     else:

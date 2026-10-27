@@ -17,7 +17,6 @@ from server.content.recipes import RecipeDefinition
 from server.services.activities import ActivityService
 from server.services.activity_results import ActivityResultService
 from server.services.audit import AuditService
-from server.services.beacons import BeaconService
 from server.services.cards import CardService
 from server.services.containers import ContainerService
 from server.services.crafting import CraftingService
@@ -92,7 +91,6 @@ class CommandContext:
     progression: ProgressionService
     actions: ActionsService
     friends: FriendsService
-    beacons: BeaconService
     phone_messages: PhoneMessageService
     shop: ShopService
     prop_shop: PropShopService

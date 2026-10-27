@@ -63,22 +63,35 @@
   display: grid;
 }
 
-.phone-hardkey.phone-close {
+.phone-hardkey.phone-media {
   opacity: 1;
   display: grid;
   place-items: center;
   pointer-events: auto;
   touch-action: manipulation;
-  background: radial-gradient(circle at 35% 30%, #f6b8a8, #c0392b 62%, #7c1f14);
-  border: 1px solid #5b130c;
-  color: #fff;
+  background: linear-gradient(#f4f8f9, #c3ccce 55%, #98a3a7);
+  border: 1px solid #4c585d;
+  color: #233035;
   font-family: "Lucida Console", "Courier New", monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1;
-  text-shadow: 0 1px 1px #0009;
-  box-shadow: 0 1px 3px #000a, inset 0 1px 0 #ffffff88;
+  box-shadow: 0 1px 2px #0009, inset 0 1px 0 #fff;
   cursor: pointer;
+}
+
+.phone-hardkey.phone-media-prev {
+  left: 30%;
+}
+
+.phone-hardkey.phone-media-next {
+  left: 70%;
+}
+
+.phone-hardkey.phone-media[aria-pressed="true"] {
+  background: linear-gradient(#f0c785, #c98d4b);
+  border-color: #7c4924;
+  color: #3c2414;
 }
 
 .phone-stage {
@@ -510,19 +523,6 @@
   text-transform: uppercase;
 }
 
-.phone-app-body .friend-group h3 [data-beacon-refresh] {
-  min-height: 14px;
-  margin-left: auto;
-  padding: 0 3px;
-  border: 1px solid #173326;
-  border-radius: 0;
-  background: #eef4d9;
-  color: #071c14;
-  font: inherit;
-  font-size: 10.5px;
-  box-shadow: inset -1px -1px 0 #879b70;
-}
-
 .phone-app-body .friend-group ul {
   display: grid;
   gap: 0;
@@ -870,8 +870,8 @@
   height: 36.8%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 7% 4%;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 9% 4%;
   margin: 0;
   padding: 0;
 }
@@ -906,6 +906,19 @@
   opacity: .55;
   cursor: not-allowed;
   filter: saturate(.4);
+}
+
+.phone-key-danger {
+  background: linear-gradient(#f6b8a8, #c0392b 62%, #7c1f14);
+  border-color: #5b130c;
+  color: #fff;
+  text-shadow: 0 1px 1px #0009;
+}
+
+.phone-key-goto {
+  background: linear-gradient(#d2e3b0, #a9c47a 65%, #8aa763);
+  border-color: #4f6b2f;
+  color: #23411f;
 }
 
 @media (max-height: 620px) and (orientation: landscape) {

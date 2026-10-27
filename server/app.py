@@ -79,7 +79,6 @@ from server.services.cutscenes import CutsceneService
 from server.services.activity_results import ActivityResultService
 from server.services.actions import ActionsService
 from server.services.audit import AuditService
-from server.services.beacons import BeaconService
 from server.services.card_database import CardDatabaseService
 from server.services.cards import CardService
 from server.services.chiptune_stars import ChiptuneStarService
@@ -198,7 +197,6 @@ class RuntimeState:
     friends: FriendsService
     phone_messages: PhoneMessageService
     chiptune_stars: ChiptuneStarService
-    beacons: BeaconService
     shop: ShopService
     prop_shop: PropShopService
     surfaces: PropSurfaceService
@@ -523,7 +521,6 @@ def _build_runtime(
         hub, profiles, stats, progression, tasks, world.id, world.activities
     )
     actions = ActionsService(hub, profiles, stats, catalog, world.id, environment=environment)
-    beacons = BeaconService(profiles)
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
     whiteboard_images = WhiteboardImageStore(config.whiteboard_images_path)
@@ -685,7 +682,6 @@ def _build_runtime(
         friends=friends,
         phone_messages=phone_messages,
         chiptune_stars=chiptune_stars,
-        beacons=beacons,
         shop=shop,
         prop_shop=prop_shop,
         surfaces=surfaces,

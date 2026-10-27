@@ -113,10 +113,10 @@ test("skills face groups ranks without an internal scroll container", () => {
   assert.ok(back.includes("id-skills-grid"));
 });
 
-test("phone close affordance lives on the keypad dpad", () => {
+test("phone media controls live on the base and close lives on the keypad", () => {
   const markup = phoneView(baseState());
-  assert.ok(markup.includes('class="phone-hardkey phone-close"'));
-  assert.ok(markup.includes("data-close-view"));
+  assert.ok(markup.includes('class="phone-hardkey phone-media phone-media-toggle"'));
+  assert.ok(markup.includes('data-phone-key="close"'));
   assert.ok(!markup.includes("phone-view-close"));
 });
 

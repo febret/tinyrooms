@@ -1,4 +1,5 @@
 import { withBase } from "../base-path.js";
+import { phoneGotoTarget } from "../phone-goto.js";
 import { escapeHtml } from "../presentation.js";
 import { parentPath, songForItem, starredSongs, trackLabel } from "../phone-music.js";
 import { friendsAppMarkup } from "./friends-view.js";
@@ -280,24 +281,24 @@ function baseSvgMarkup() {
 
 function phoneKeypadMarkup(state) {
   const music = state.ui?.phoneMusic || {};
-  const playing = Boolean(music.enabled && music.track);
   const starred = music.track ? starredSongs(state.user).has(music.track.song) : false;
   const hasFriends = (state.user?.friends?.friends || []).length > 0;
+  const gotoTarget = phoneGotoTarget(state);
+  const gotoLabel = gotoTarget?.label ? `Go to ${gotoTarget.label}` : "Go to selected friend or peep";
   return `<div class="phone-keypad" role="group" aria-label="Phone keypad">
-    <button type="button" class="phone-key" data-phone-key="music-prev" aria-label="Previous track" title="Previous track">⏮</button>
-    <button type="button" class="phone-key" data-phone-key="music-toggle" aria-label="${playing ? "Pause" : "Play"}" aria-pressed="${playing}" title="${playing ? "Pause" : "Play"}">${playing ? "❚❚" : "▶"}</button>
-    <button type="button" class="phone-key" data-phone-key="music-next" aria-label="Next track" title="Next track">⏭</button>
-    <button type="button" class="phone-key" data-phone-key="volume-up" aria-label="Volume up" title="Volume is fixed while chiptune.app runs in its own frame" disabled>VOL+</button>
-    <button type="button" class="phone-key" data-phone-key="volume-down" aria-label="Volume down" title="Volume is fixed while chiptune.app runs in its own frame" disabled>VOL−</button>
     <button type="button" class="phone-key" data-phone-key="music-star" aria-label="${starred ? "Unstar current track" : "Star current track"}" aria-pressed="${starred}" title="Star the current track">★</button>
-    <button type="button" class="phone-key" data-phone-key="friend-prev" aria-label="Previous friend" title="Previous friend"${hasFriends ? "" : " disabled"}>◀</button>
     <button type="button" class="phone-key" data-phone-key="messages" aria-label="Messages" title="Open messages">✉</button>
+    <button type="button" class="phone-key phone-key-danger" data-phone-key="close" aria-label="Close phone" title="Close phone">CLOSE</button>
+    <button type="button" class="phone-key" data-phone-key="friend-prev" aria-label="Previous friend" title="Previous friend"${hasFriends ? "" : " disabled"}>◀</button>
+    <button type="button" class="phone-key phone-key-goto" data-phone-key="goto" aria-label="${escapeHtml(gotoLabel)}" title="${escapeHtml(gotoLabel)}"${gotoTarget ? "" : " disabled"}>GO TO</button>
     <button type="button" class="phone-key" data-phone-key="friend-next" aria-label="Next friend" title="Next friend"${hasFriends ? "" : " disabled"}>▶</button>
   </div>`;
 }
 
 export function phoneView(state) {
   const app = APP_LABELS[state.ui?.phoneApp] ? state.ui.phoneApp : "apps";
+  const music = state.ui?.phoneMusic || {};
+  const playing = Boolean(music.enabled && music.track);
   return `<section class="board-modal phone-view" role="dialog" aria-modal="false" aria-label="Phone">
     <button type="button" class="phone-typing-close" data-close-view="1" aria-label="Close phone" title="Close phone">✕</button>
     <div class="phone-stage">
@@ -316,7 +317,9 @@ export function phoneView(state) {
         <div class="phone-base">
           ${baseSvgMarkup()}
           ${phoneKeypadMarkup(state)}
-          <button type="button" class="phone-hardkey phone-close" data-close-view="1" aria-label="Close phone" title="Close phone">✕</button>
+          <button type="button" class="phone-hardkey phone-media phone-media-prev" data-phone-key="music-prev" aria-label="Previous track" title="Previous track">⏮</button>
+          <button type="button" class="phone-hardkey phone-media phone-media-toggle" data-phone-key="music-toggle" aria-label="${playing ? "Pause" : "Play"}" aria-pressed="${playing}" title="${playing ? "Pause" : "Play"}">${playing ? "❚❚" : "▶"}</button>
+          <button type="button" class="phone-hardkey phone-media phone-media-next" data-phone-key="music-next" aria-label="Next track" title="Next track">⏭</button>
         </div>
       </div>
     </div>
