@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from server.base_path import BasePathMiddleware, render_html
 from server.config import ensure_contained
+from server.instance_policy import InstancePolicyStore
 from server.mission_control import routes as mc_routes
 from server.mission_control.audit import McAuditLog
 from server.mission_control.auth import McSessionStore
@@ -48,6 +49,7 @@ class McRuntime:
     config: MCConfig
     hub: DatabaseHub
     profiles: ProfileRepository
+    policy_store: InstancePolicyStore
     audit: McAuditLog
     registry: InstanceRegistry
     retired: RetiredInstanceStore
@@ -71,12 +73,18 @@ def build_runtime(config: MCConfig) -> McRuntime:
 
     ensure_profile_database(config.profiles_db_path)
     hub = DatabaseHub(config.profiles_db_path)
-    profiles = ProfileRepository(hub)
+    policy_store = InstancePolicyStore(
+        config.instance_policy_path or (config.users_path / "instance-policy.json"),
+        fallback_invitation=config.new_account_passphrase,
+    )
+    profiles = ProfileRepository(hub, policy_store=policy_store)
     audit = McAuditLog()
     registry = InstanceRegistry(stale_after_seconds=config.heartbeat_seconds * 3)
     retired = RetiredInstanceStore(config.instances_path)
     world_map = WorldMapManager(config, registry)
-    supervisor = Supervisor(config, registry, audit, on_change=world_map.update)
+    supervisor = Supervisor(
+        config, registry, audit, on_change=world_map.update, policy_store=policy_store
+    )
     packages = PackageManager(config, registry, audit)
     server_info = ServerInfoService(config)
 
@@ -113,6 +121,7 @@ def build_runtime(config: MCConfig) -> McRuntime:
         config=config,
         hub=hub,
         profiles=profiles,
+        policy_store=policy_store,
         audit=audit,
         registry=registry,
         retired=retired,
@@ -125,7 +134,9 @@ def build_runtime(config: MCConfig) -> McRuntime:
         sessions=McSessionStore(),
         limiter=RateLimiter(),
         http=http,
-        player_auth=PlayerAuthService(profiles, config.new_account_passphrase),
+        player_auth=PlayerAuthService(
+            profiles, config.new_account_passphrase, policy_store=policy_store
+        ),
         entry_settings=EntrySettings(config.instances_path),
         entry_showcase=EntryShowcase(config),
     )

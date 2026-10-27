@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+import hmac
 import time
 
 from server.config import AppConfig
+from server.instance_policy import AccountLimitError, InstancePolicyStore
 from server.profiles import AccountRecord, ProfileRepository, SessionRecord
 from server.security import RateLimiter, SecurityError, normalize_username, validate_password, verify_password
 from server.services.stickers import custom_sticker_name, write_custom_sticker
@@ -27,20 +29,40 @@ class AuthenticationError(SecurityError):
 
 
 class AccountConflictError(ValueError):
-    """Raised when an account cannot be created because its username exists."""
+    """Raised when an account cannot be created."""
+
+    def __init__(self, message: str, *, code: str = "account_conflict") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class AccountService:
     """Account lifecycle service for create/login/logout and sticker completion."""
 
-    def __init__(self, config: AppConfig, profiles: ProfileRepository, world_id: str, entry_room_id: str) -> None:
+    def __init__(
+        self,
+        config: AppConfig,
+        profiles: ProfileRepository,
+        world_id: str,
+        entry_room_id: str,
+        policy_store: InstancePolicyStore | None = None,
+    ) -> None:
         self._config = config
         self._profiles = profiles
         self._world_id = world_id
         self._entry_room_id = entry_room_id
+        self._policy_store = policy_store
         self._create_limiter = RateLimiter()
         self._login_limiter = RateLimiter()
         self._stickers: tuple[str, ...] | None = None
+
+    @property
+    def invitation(self) -> str:
+        """Return the current invitation, preferring the shared policy file."""
+
+        if self._policy_store is not None:
+            return self._policy_store.load().invitation_code
+        return self._config.new_account_passphrase
 
     def _limit(self, limiter: RateLimiter, bucket: str, *, limit: int, window_seconds: int) -> None:
         limiter.check(bucket, limit=limit, window_seconds=window_seconds, now_ts=time.time())
@@ -77,7 +99,7 @@ class AccountService:
         display_name, username_key = normalize_username(username)
         self._limit(self._create_limiter, f"create:user:{username_key}", limit=3, window_seconds=60)
         validate_password(password)
-        if passphrase != self._config.new_account_passphrase:
+        if not hmac.compare_digest(passphrase.encode("utf-8"), self.invitation.encode("utf-8")):
             raise AuthenticationError("The new-account passphrase is incorrect.")
         try:
             account = self._profiles.create_account(
@@ -86,6 +108,10 @@ class AccountService:
                 self._world_id,
                 self._entry_room_id,
             )
+        except AccountLimitError as exc:
+            raise AccountConflictError(
+                "account_limit_reached", code="account_limit_reached"
+            ) from exc
         except ValueError as exc:
             raise AccountConflictError(str(exc)) from exc
         issued, _ = self._profiles.issue_session(account.id)

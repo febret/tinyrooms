@@ -1,1 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="reconnect-arrow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9ff0a8"/><stop offset="1" stop-color="#2f8f57"/></linearGradient></defs><path d="M20 12a8 8 0 1 1-2.3-5.7" fill="none" stroke="url(#reconnect-arrow)" stroke-width="2.4" stroke-linecap="round"/><path d="M20 3.5V8h-4.5" fill="none" stroke="url(#reconnect-arrow)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="reconnect-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9ecd9"/><stop offset="1" stop-color="#4d9e5f"/></linearGradient>
+    <linearGradient id="reconnect-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a5a35"/><stop offset="1" stop-color="#0b141b"/></linearGradient>
+    <linearGradient id="reconnect-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3f25"/><stop offset="1" stop-color="#070d12"/></linearGradient>
+    <radialGradient id="reconnect-shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".7" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="reconnect-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="56.5" rx="20" ry="5" fill="url(#reconnect-shadow)"/>
+  <polygon points="15,36 32,46 32,55 15,45" fill="url(#reconnect-left)"/>
+  <polygon points="32,46 49,36 49,45 32,55" fill="url(#reconnect-right)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="url(#reconnect-top)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1"/>
+  <polygon points="22,31.5 32,26.8 42,31.5 32,33.6" fill="url(#reconnect-sheen)" opacity=".55"/>
+  <g>
+    <path d="M46 24a12 12 0 1 1-3.5-8.5" fill="none" stroke="#2f8f57" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M46 24a12 12 0 1 1-3.5-8.5" fill="none" stroke="#9ff0a8" stroke-width="1.2" stroke-linecap="round"/>
+    <polygon points="42.5,8 45,17 36.5,15.5" fill="#9ff0a8" stroke="#1d4d2a" stroke-width="1.1"/>
+    <circle cx="32" cy="24" r="3" fill="#fff" stroke="#2f8f57" stroke-width="1.2"/>
+    <polygon points="31,22 33.5,24 31,26" fill="#2f8f57"/>
+  </g>
+</svg>

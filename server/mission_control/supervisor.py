@@ -22,6 +22,7 @@ from server.config import (
     selects_mission_control,
     validate_instance_id,
 )
+from server.instance_policy import InstancePolicyStore, WorldLimitError
 from server.mission_control.audit import McAuditLog
 from server.mission_control.config import MCConfig
 from server.mission_control.registry import (
@@ -274,10 +275,15 @@ class Supervisor:
         *,
         spawn: Callable[..., subprocess.Popen] | None = None,
         on_change: Callable[[], None] | None = None,
+        policy_store: InstancePolicyStore | None = None,
     ) -> None:
         self._config = config
         self._registry = registry
         self._audit = audit
+        self._policy_store = policy_store or InstancePolicyStore(
+            config.instance_policy_path or (config.users_path / "instance-policy.json"),
+            fallback_invitation=config.new_account_passphrase,
+        )
         self._spawn = spawn or subprocess.Popen
         self._on_change = on_change
         self._last_change_error: str | None = None
@@ -481,6 +487,19 @@ class Supervisor:
     ) -> InstanceRecord:
         """Spawn a child ``run.py`` and register it with the instance registry."""
 
+        policy = self._policy_store.load()
+        max_worlds = int(policy.max_worlds)
+        if max_worlds > 0:
+            active = [record for record in self._registry.list() if record.source == SPAWNED]
+            if len(active) >= max_worlds:
+                self._audit.record(
+                    actor,
+                    "instance.start",
+                    target=name,
+                    result="denied",
+                    detail={"code": "world_limit_reached", "max_worlds": max_worlds},
+                )
+                raise WorldLimitError("world_limit_reached")
         instance_id = validate_instance_id(instance_id or "")
         host = self._config.instance_host if self._config.same_origin_worlds else (host or self._config.instance_host)
         if port is not None and not self._config.instance_port_min <= port <= self._config.instance_port_max:

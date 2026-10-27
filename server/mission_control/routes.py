@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from server.commands.admin import ALLOWED_ADMIN_COMMANDS
 from server.config import ConfigError, normalize_base_path, parse_legacy_features
+from server.instance_policy import InstancePolicyError, WorldLimitError
 from server.mission_control.auth import MC_CSRF_COOKIE, MC_SESSION_COOKIE, McSession
 from server.mission_control.packages import RUNNING_VERSION_ID
 from server.mission_control.registry import (
@@ -425,6 +426,84 @@ async def session_status(request: Request) -> dict[str, object]:
 # --- Server Manager -----------------------------------------------------------
 
 
+@router.get("/api/mission-control/instance-policy")
+async def get_instance_policy(request: Request) -> dict[str, object]:
+    """Return the shared invitation and cap policy."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    return {"ok": True, "policy": runtime.policy_store.load().to_dict()}
+
+
+@router.put("/api/mission-control/instance-policy")
+async def update_instance_policy(request: Request) -> dict[str, object]:
+    """Atomically update any subset of the shared policy."""
+
+    runtime = _runtime(request)
+    session = _require_operator(request)
+    _enforce_post(request, session)
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid request payload.") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid request payload.")
+    unknown = set(payload) - {"invitation_code", "max_guests", "max_worlds"}
+    if unknown:
+        return _json_error(400, "invalid_policy", "Unknown policy fields.")
+    try:
+        policy = runtime.policy_store.update(
+            invitation_code=payload.get("invitation_code"),
+            max_guests=payload.get("max_guests"),
+            max_worlds=payload.get("max_worlds"),
+        )
+    except InstancePolicyError as exc:
+        return _json_error(400, "invalid_policy", str(exc))
+    runtime.audit.record(
+        "operator",
+        "instance.policy",
+        target="instance-policy",
+        detail={"fields": sorted(payload)},
+    )
+    return {"ok": True, "policy": policy.to_dict()}
+
+
+@router.get("/api/mission-control/usage")
+async def get_usage(request: Request) -> dict[str, object]:
+    """Return account, activity, and world usage from authoritative sources."""
+
+    _require_operator(request)
+    runtime = _runtime(request)
+    policy = runtime.policy_store.load()
+    worlds: list[dict[str, object]] = []
+    users_online = 0
+    for record in runtime.registry.list():
+        users_online += int(record.users_online or 0)
+        worldstate_path = None
+        if record.spawn_config is not None:
+            value = record.spawn_config.get("worldstate_path")
+            worldstate_path = str(value) if value else None
+        worlds.append(
+            {
+                "world_id": record.world_id,
+                "instance_id": record.instance_id,
+                "status": record.status,
+                "users_online": int(record.users_online or 0),
+                "worldstate_path": worldstate_path,
+            }
+        )
+    return {
+        "ok": True,
+        "usage": {
+            "account_count": runtime.profiles.count_accounts(),
+            "max_guests": int(policy.max_guests),
+            "users_online": users_online,
+            "last_guest_activity_at": runtime.profiles.latest_session_activity(),
+            "worlds": worlds,
+        },
+    }
+
+
 @router.get("/api/mission-control/servers")
 async def list_servers(request: Request) -> dict[str, object]:
     """List known instances with a status summary."""
@@ -466,20 +545,23 @@ async def start_server(request: Request, payload: StartInstancePayload) -> dict[
         parse_legacy_features(payload.legacy_features or "")
     except ConfigError as exc:
         return _json_error(400, "legacy_features_invalid", str(exc))
-    spawned = runtime.supervisor.start(
-        name=name,
-        world_path=world_path,
-        worldstate_path=worldstate_path,
-        users_path=users_path,
-        host=payload.host,
-        port=payload.port,
-        features=payload.features,
-        legacy_features=payload.legacy_features,
-        admins=payload.admins,
-        mods=payload.mods,
-        version_path=version_path,
-        version_id=payload.version or RUNNING_VERSION_ID,
-    )
+    try:
+        spawned = runtime.supervisor.start(
+            name=name,
+            world_path=world_path,
+            worldstate_path=worldstate_path,
+            users_path=users_path,
+            host=payload.host,
+            port=payload.port,
+            features=payload.features,
+            legacy_features=payload.legacy_features,
+            admins=payload.admins,
+            mods=payload.mods,
+            version_path=version_path,
+            version_id=payload.version or RUNNING_VERSION_ID,
+        )
+    except WorldLimitError as exc:
+        return _json_error(409, "world_limit_reached", str(exc))
     return _with_route_warning(runtime, {"ok": True, "server": runtime.registry.snapshot(spawned)})
 
 

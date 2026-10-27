@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from server.instance_policy import AccountLimitError, InstancePolicyStore
 from server.mission_control.registry import SPAWNED, STATUS_RUNNING, InstanceRecord
 from server.mission_control.routes import _client_key, _enforce_post, _require_operator, _require_token
 from server.profiles import ProfileRepository, SessionRecord
@@ -72,10 +73,24 @@ class RepairDestination(BaseModel):
 class PlayerAuthService:
     """Shared-database authentication with runtime-lifetime attempt limits."""
 
-    def __init__(self, profiles: ProfileRepository, invitation: str) -> None:
+    def __init__(
+        self,
+        profiles: ProfileRepository,
+        invitation: str,
+        policy_store: InstancePolicyStore | None = None,
+    ) -> None:
         self.profiles = profiles
-        self.invitation = invitation
+        self._invitation = invitation
+        self._policy_store = policy_store
         self.limiter = RateLimiter()
+
+    @property
+    def invitation(self) -> str:
+        """Return the current invitation, preferring the shared policy file."""
+
+        if self._policy_store is not None:
+            return self._policy_store.load().invitation_code
+        return self._invitation
 
     def validate(self, credentials: Credentials, source: str, *, creating: bool = False) -> str:
         """Apply the same input validation and limits as world account services."""
@@ -402,6 +417,12 @@ async def create(request: Request, payload: CreateCredentials) -> Response:
                          f"Instance {_instance_label(record)} has not reported its entry room. Restart it in Server Manager.")
     try:
         account = runtime.profiles.create_account(display, payload.password, record.world_id, record.entry_room_id)
+    except AccountLimitError as exc:
+        raise EntryError(
+            409,
+            "account_limit_reached",
+            "This instance has reached its guest account limit.",
+        ) from exc
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
     runtime.profiles.remember_instance(account.id, record.instance_id)

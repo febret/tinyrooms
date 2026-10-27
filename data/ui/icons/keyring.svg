@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="keyring-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8e2d2"/><stop offset="1" stop-color="#9a8f6f"/></linearGradient>
+    <linearGradient id="keyring-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d5641"/><stop offset="1" stop-color="#0b141b"/></linearGradient>
+    <linearGradient id="keyring-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#413c2d"/><stop offset="1" stop-color="#070d12"/></linearGradient>
+    <radialGradient id="keyring-shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".7" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="keyring-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="56.5" rx="20" ry="5" fill="url(#keyring-shadow)"/>
+  <polygon points="15,36 32,46 32,55 15,45" fill="url(#keyring-left)"/>
+  <polygon points="32,46 49,36 49,45 32,55" fill="url(#keyring-right)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="url(#keyring-top)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1"/>
+  <polygon points="22,31.5 32,26.8 42,31.5 32,33.6" fill="url(#keyring-sheen)" opacity=".55"/>
+  <g>
+    <ellipse cx="32" cy="16" rx="9" ry="5.4" fill="none" stroke="#8a6b2f" stroke-width="2.6"/>
+    <ellipse cx="32" cy="16" rx="9" ry="5.4" fill="none" stroke="#ffe9ad" stroke-width=".9" opacity=".8"/>
+    <g>
+      <circle cx="27" cy="26" r="3.2" fill="none" stroke="#c9d4db" stroke-width="2"/>
+      <rect x="25.4" y="28.5" width="3.2" height="9" rx="1" fill="#c9d4db" stroke="#55636d" stroke-width=".9"/>
+      <rect x="25.4" y="31" width="2" height="1.4" fill="#55636d"/>
+      <rect x="25.4" y="33.6" width="2" height="1.4" fill="#55636d"/>
+      <circle cx="37" cy="27" r="3.2" fill="none" stroke="#e8a94e" stroke-width="2"/>
+      <rect x="35.4" y="29.5" width="3.2" height="8" rx="1" fill="#e8a94e" stroke="#5f3a0c" stroke-width=".9"/>
+      <rect x="36.8" y="32" width="1.8" height="1.4" fill="#5f3a0c"/>
+    </g>
+  </g>
+</svg>

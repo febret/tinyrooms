@@ -9,6 +9,7 @@ import json
 import sqlite3
 import uuid
 
+from server.instance_policy import AccountLimitError, InstancePolicyStore
 from server.security import (
     IssuedSession,
     create_session,
@@ -327,8 +328,13 @@ class UserProfileRecord:
 class ProfileRepository:
     """Repository for account, session, inventory, and world-profile data."""
 
-    def __init__(self, hub: DatabaseHub) -> None:
+    def __init__(
+        self,
+        hub: DatabaseHub,
+        policy_store: InstancePolicyStore | None = None,
+    ) -> None:
         self._hub = hub
+        self._policy_store = policy_store
 
     def _account_from_row(self, row: sqlite3.Row) -> AccountRecord:
         return AccountRecord(
@@ -511,12 +517,19 @@ class ProfileRepository:
         account_id = str(uuid.uuid4())
         password_digest = hash_password(password)
         with self._hub.transaction() as connection:
+            max_guests = 0
+            if self._policy_store is not None:
+                max_guests = int(self._policy_store.load().max_guests)
             existing = connection.execute(
                 "SELECT id FROM accounts WHERE username_key = ?",
                 (username_key,),
             ).fetchone()
             if existing is not None:
                 raise ValueError("That username is already taken.")
+            if max_guests > 0:
+                account_count = connection.execute("SELECT COUNT(*) FROM accounts").fetchone()[0]
+                if int(account_count) >= max_guests:
+                    raise AccountLimitError("account_limit_reached")
             connection.execute(
                 """
                 INSERT INTO accounts (
@@ -1116,6 +1129,27 @@ class ProfileRepository:
         """Persist the stable instance without changing the remembered room."""
 
         self.update_profile(account_id, lambda profile: profile.update(last_instance_id=instance_id))
+
+    def count_accounts(self) -> int:
+        """Return the number of game accounts in the shared profile database."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute("SELECT COUNT(*) FROM accounts").fetchone()
+        return int(row[0]) if row is not None else 0
+
+    def latest_session_activity(self) -> str | None:
+        """Return the newest authenticated player-session activity timestamp."""
+
+        with self._hub.locked() as connection:
+            row = connection.execute(
+                """
+                SELECT MAX(s.last_seen_at)
+                  FROM sessions AS s
+                  JOIN accounts AS a ON a.id = s.account_id
+                """
+            ).fetchone()
+        value = row[0] if row is not None else None
+        return str(value) if value else None
 
     def count_accounts_for_instance(self, instance_id: str) -> int:
         """Count profiles whose saved destination is *instance_id*."""

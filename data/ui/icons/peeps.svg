@@ -1,1 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="peeps-skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3bd"/><stop offset="1" stop-color="#d19a5d"/></linearGradient><linearGradient id="peeps-shirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ecae6"/><stop offset="1" stop-color="#2b6d93"/></linearGradient></defs><circle cx="9" cy="8" r="3.1" fill="url(#peeps-skin)" stroke="#5b3a1c" stroke-width="1"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0z" fill="url(#peeps-shirt)" stroke="#16394b" stroke-width="1"/><circle cx="16.6" cy="9" r="2.5" fill="url(#peeps-skin)" stroke="#5b3a1c" stroke-width="1"/><path d="M13.4 19a4.4 4.4 0 0 1 7.7-2.9" fill="url(#peeps-shirt)" stroke="#16394b" stroke-width="1"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="peeps-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9e8ee"/><stop offset="1" stop-color="#7fa3b3"/></linearGradient>
+    <linearGradient id="peeps-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d6b78"/><stop offset="1" stop-color="#0b141b"/></linearGradient>
+    <linearGradient id="peeps-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#354a53"/><stop offset="1" stop-color="#070d12"/></linearGradient>
+    <radialGradient id="peeps-shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".7" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="peeps-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="56.5" rx="20" ry="5" fill="url(#peeps-shadow)"/>
+  <polygon points="15,36 32,46 32,55 15,45" fill="url(#peeps-left)"/>
+  <polygon points="32,46 49,36 49,45 32,55" fill="url(#peeps-right)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="url(#peeps-top)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1"/>
+  <polygon points="22,31.5 32,26.8 42,31.5 32,33.6" fill="url(#peeps-sheen)" opacity=".55"/>
+  <g>
+    <polygon points="20,34 26,30.8 32,34 32,40 20,40" fill="#2f8f57" stroke="#123f26" stroke-width="1"/>
+    <polygon points="20,34 26,30.8 26,33.6 20,36.8" fill="#3fae6c"/>
+    <circle cx="26" cy="24" r="5.4" fill="#ffe3bd" stroke="#8b5620" stroke-width="1.1"/>
+    <circle cx="24.2" cy="22.2" r="1.4" fill="#fff" opacity=".7"/>
+    <circle cx="24.4" cy="24.5" r=".9" fill="#3a2a12"/>
+    <circle cx="27.8" cy="24.5" r=".9" fill="#3a2a12"/>
+    <path d="M24.2 27.2q1.8 1.4 3.6 0" stroke="#8b5620" stroke-width="1" fill="none" stroke-linecap="round"/>
+    <polygon points="34,35 38.5,32.6 43,35 43,40 34,40" fill="#4c9bd0" stroke="#17394d" stroke-width="1"/>
+    <polygon points="43,35 38.5,32.6 38.5,35.4 43,37.8" fill="#35789b"/>
+    <circle cx="38.5" cy="26.5" r="4.6" fill="#f0bd76" stroke="#5f3a0c" stroke-width="1.1"/>
+    <circle cx="37" cy="24.9" r="1.2" fill="#fff" opacity=".7"/>
+    <circle cx="37.1" cy="26.9" r=".8" fill="#3a2a12"/>
+    <circle cx="40" cy="26.9" r=".8" fill="#3a2a12"/>
+  </g>
+</svg>

@@ -85,6 +85,8 @@ class MCConfig:
     # listener cert. Deployment reuses nginx's certificate/key for direct worlds.
     instance_certfile: Path | None = None
     instance_keyfile: Path | None = None
+    # Shared invitation/guest/world policy file. Defaults to the users directory.
+    instance_policy_path: Path | None = None
 
     @property
     def public_origin(self) -> str:
@@ -333,6 +335,13 @@ def load_mc_config(
         if path is not None and not path.is_file():
             raise ConfigError(f"Instance TLS file does not exist: {path}")
 
+    policy_raw = values.get("TRSERVER_MC_INSTANCE_POLICY_PATH", "").strip()
+    instance_policy_path = (
+        Path(policy_raw).expanduser()
+        if policy_raw
+        else users_path / "instance-policy.json"
+    )
+
     return MCConfig(
         repo_root=root,
         host=host,
@@ -363,4 +372,5 @@ def load_mc_config(
         instance_port_max=instance_port_max,
         instance_certfile=instance_certfile,
         instance_keyfile=instance_keyfile,
+        instance_policy_path=instance_policy_path,
     )

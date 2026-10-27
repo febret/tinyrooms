@@ -31,6 +31,7 @@ from server.commands.outcomes import CommandError, PendingRoomBroadcast
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
 from server.config import AppConfig, load_config
+from server.instance_policy import InstancePolicyStore
 from server.connections import ConnectionRegistry, LiveConnection
 from server.content.bundle import WorldBundle, load_world_bundle
 from server.content.cards import CardCatalog, ContentError
@@ -479,9 +480,17 @@ def _build_runtime(
     content = bundle.content
     world = bundle.world
     mods = loaded_mods
-    profiles = profiles or ProfileRepository(hub)
+    policy_store = InstancePolicyStore(
+        config.instance_policy_path or (config.users_path / "instance-policy.json"),
+        fallback_invitation=config.new_account_passphrase,
+    )
+    profiles = profiles or ProfileRepository(hub, policy_store=policy_store)
+    if getattr(profiles, "_policy_store", None) is None:
+        profiles._policy_store = policy_store
     world_state = world_state or WorldStateRepository(hub)
-    accounts = AccountService(config, profiles, world.id, world.entry_room_id)
+    accounts = AccountService(
+        config, profiles, world.id, world.entry_room_id, policy_store=policy_store
+    )
     activities = ActivityService(config)
     connections = connections or ConnectionRegistry()
     equipped_caps = {level: definition.max_equipped for level, definition in content.levels.levels.items()}
@@ -798,7 +807,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     @app.exception_handler(AccountConflictError)
     async def account_conflict_handler(request: Request, exc: AccountConflictError) -> JSONResponse:  # noqa: ARG001
-        return _json_error(409, "account_conflict", str(exc))
+        return _json_error(409, getattr(exc, "code", "account_conflict"), str(exc))
 
     @app.exception_handler(RateLimitError)
     async def rate_limit_error_handler(request: Request, exc: RateLimitError) -> JSONResponse:  # noqa: ARG001

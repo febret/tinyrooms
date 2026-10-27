@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="clapper-board" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5c452b"/><stop offset="1" stop-color="#2e200f"/></linearGradient></defs><path d="M4 4.8 5.2 2.5h14.6L19 5z" fill="#8c2f2f" stroke="#2a0909" stroke-width="1"/><path d="M6.7 2.5 8.4 5M11 2.5l1.7 2.5M15.3 2.5 17 5" stroke="#f3e6c2" stroke-width="1.4"/><rect x="4" y="7.5" width="16" height="12.2" rx="1.6" fill="url(#clapper-board)" stroke="#1d1206" stroke-width="1.2"/><path d="M6 10.5h12M6 13.4h12" stroke="#f3e6c2" stroke-width="1" opacity=".65"/><rect x="9" y="14.4" width="2.4" height="3.8" rx=".7" fill="#f3e6c2"/><rect x="12.6" y="14.4" width="2.4" height="3.8" rx=".7" fill="#f3e6c2"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="clapper-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e3d9c8"/><stop offset="1" stop-color="#8a7350"/></linearGradient>
+    <linearGradient id="clapper-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#54452e"/><stop offset="1" stop-color="#0b141b"/></linearGradient>
+    <linearGradient id="clapper-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a301f"/><stop offset="1" stop-color="#070d12"/></linearGradient>
+    <radialGradient id="clapper-shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".7" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="clapper-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="56.5" rx="20" ry="5" fill="url(#clapper-shadow)"/>
+  <polygon points="15,36 32,46 32,55 15,45" fill="url(#clapper-left)"/>
+  <polygon points="32,46 49,36 49,45 32,55" fill="url(#clapper-right)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="url(#clapper-top)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1"/>
+  <polygon points="22,31.5 32,26.8 42,31.5 32,33.6" fill="url(#clapper-sheen)" opacity=".55"/>
+  <g>
+    <polygon points="20,29 32,22.5 44,29 32,35.5" fill="#3a2a12" stroke="#1d1004" stroke-width="1"/>
+    <polygon points="20,29 32,35.5 32,42 20,35.5" fill="#6b4a22"/>
+    <polygon points="44,29 32,35.5 32,42 44,35.5" fill="#4a3416"/>
+    <polygon points="20,22 32,15.5 44,22 32,28.5" fill="#8c2f2f" stroke="#2a0909" stroke-width="1" transform="translate(0 -1)"/>
+    <g fill="#f4ead2">
+      <polygon points="24,20.5 27,18.8 28.4,20.6 25.4,22.3"/>
+      <polygon points="30,17.2 33,15.5 34.4,17.3 31.4,19"/>
+      <polygon points="36,20.5 39,18.8 40.4,20.6 37.4,22.3"/>
+    </g>
+    <circle cx="26" cy="32" r="1.4" fill="#ffe9ad"/>
+  </g>
+</svg>

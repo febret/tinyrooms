@@ -1,1 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="edit-wood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f0bd76"/><stop offset=".5" stop-color="#cf8e3f"/><stop offset="1" stop-color="#8b5620"/></linearGradient><linearGradient id="edit-ferrule" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3f6f7"/><stop offset=".5" stop-color="#9fb0b7"/><stop offset="1" stop-color="#55636a"/></linearGradient></defs><path d="M4 20l1-3.5L15.5 6l2.5 2.5L7.5 19z" fill="url(#edit-wood)" stroke="#4a2d0e" stroke-width="1"/><path d="M4 20l4.3-1.1L6.2 16.7z" fill="#f4dfba" stroke="#4a2d0e" stroke-width="1"/><path d="M4 20l1.5-1.5 1.5 1.5z" fill="#2b2b2b"/><rect x="14.6" y="3.7" width="5.2" height="3.4" rx="1" transform="rotate(45 14.6 3.7)" fill="url(#edit-ferrule)" stroke="#2f3a40" stroke-width=".9"/><rect x="18.2" y="1.8" width="3.4" height="2.8" rx="1.2" transform="rotate(45 18.2 1.8)" fill="#d96c6c" stroke="#5f1f1f" stroke-width=".9"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="edit-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2e3c2"/><stop offset="1" stop-color="#b98d52"/></linearGradient>
+    <linearGradient id="edit-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c5a2e"/><stop offset="1" stop-color="#0b141b"/></linearGradient>
+    <linearGradient id="edit-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#54401f"/><stop offset="1" stop-color="#070d12"/></linearGradient>
+    <radialGradient id="edit-shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".7" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="edit-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="56.5" rx="20" ry="5" fill="url(#edit-shadow)"/>
+  <polygon points="15,36 32,46 32,55 15,45" fill="url(#edit-left)"/>
+  <polygon points="32,46 49,36 49,45 32,55" fill="url(#edit-right)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="url(#edit-top)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1"/>
+  <polygon points="22,31.5 32,26.8 42,31.5 32,33.6" fill="url(#edit-sheen)" opacity=".55"/>
+  <g>
+    <polygon points="28,15 36,15 36,31 32,35 28,31" fill="#e8a94e" stroke="#5f3a0c" stroke-width="1"/>
+    <polygon points="30.4,15 33.2,15 33.2,31 32,32.2 30.4,31" fill="#f7cf87"/>
+    <polygon points="28,11 36,11 36,15 28,15" fill="#9aa7b1" stroke="#4a545c" stroke-width="1"/>
+    <polygon points="28,7 36,7 36,11 28,11" fill="#c96a6a" stroke="#5f1d1d" stroke-width="1"/>
+    <polygon points="28,31 32,35 32,37.5 28,33.5" fill="#f4ead2" stroke="#3a2a12" stroke-width="1"/>
+    <polygon points="32,35 36,31 36,33.5 32,37.5" fill="#cbb98f" stroke="#3a2a12" stroke-width="1"/>
+    <circle cx="29.6" cy="12.4" r=".9" fill="#fff" opacity=".7"/>
+  </g>
+</svg>

@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><radialGradient id="bops-coin" cx=".38" cy=".32" r=".85"><stop offset="0" stop-color="#fff6c4"/><stop offset=".45" stop-color="#ffd75e"/><stop offset=".8" stop-color="#d9941f"/><stop offset="1" stop-color="#8a5a0c"/></radialGradient><linearGradient id="bops-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c5210"/><stop offset=".5" stop-color="#a9761c"/><stop offset="1" stop-color="#5d3c0a"/></linearGradient></defs><circle cx="12" cy="12" r="9.2" fill="url(#bops-coin)" stroke="url(#bops-rim)" stroke-width="1.8"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#8a5a0c" stroke-width="1" opacity=".7"/><text x="12" y="16.4" text-anchor="middle" font-family="Georgia, serif" font-size="10" font-weight="bold" fill="#6b4708">B</text><path d="M7.4 7.6c1.2-1.2 3-2 4.8-2" stroke="#fff" stroke-width="1.2" fill="none" opacity=".75" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bops-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffedb5"/><stop offset="1" stop-color="#cf952f"/></linearGradient>
+    <linearGradient id="bops-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c5a1c"/><stop offset="1" stop-color="#0b141b"/></linearGradient>
+    <linearGradient id="bops-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#54401f"/><stop offset="1" stop-color="#070d12"/></linearGradient>
+    <radialGradient id="bops-shadow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".7" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="bops-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="56.5" rx="20" ry="5" fill="url(#bops-shadow)"/>
+  <polygon points="15,36 32,46 32,55 15,45" fill="url(#bops-left)"/>
+  <polygon points="32,46 49,36 49,45 32,55" fill="url(#bops-right)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="url(#bops-top)"/>
+  <polygon points="32,26 49,36 32,46 15,36" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1"/>
+  <polygon points="22,31.5 32,26.8 42,31.5 32,33.6" fill="url(#bops-sheen)" opacity=".55"/>
+  <g>
+    <ellipse cx="32" cy="33" rx="10" ry="5" fill="#8a5a0c"/>
+    <rect x="22" y="24" width="20" height="9" fill="#d9941f"/>
+    <ellipse cx="32" cy="24" rx="10" ry="5" fill="#ffd75e" stroke="#6b4708" stroke-width="1.2"/>
+    <rect x="22" y="19" width="20" height="9" fill="#e8ae2e"/>
+    <ellipse cx="32" cy="19" rx="10" ry="5" fill="#ffe9ad" stroke="#6b4708" stroke-width="1.2"/>
+    <rect x="24" y="13" width="16" height="8" fill="#d9941f"/>
+    <ellipse cx="32" cy="13" rx="8" ry="4" fill="#fff6c4" stroke="#6b4708" stroke-width="1.2"/>
+    <ellipse cx="32" cy="13.2" rx="4.6" ry="2.2" fill="none" stroke="#b98a1e" stroke-width="1" opacity=".85"/>
+    <ellipse cx="32" cy="13.2" rx="2.2" ry="1" fill="#e8ae2e" stroke="#8a5a0c" stroke-width=".8"/>
+    <ellipse cx="28.5" cy="11.6" rx="3.4" ry="1.4" fill="#fff" opacity=".6"/>
+  </g>
+</svg>

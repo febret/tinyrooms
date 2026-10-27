@@ -191,6 +191,9 @@ class AppConfig:
     # destinations must set it too. A transient registry id cannot satisfy health.
     # Entry resolves the exact saved instance; only legacy profiles lacking one
     # may match a unique world, never silently falling back to the default.
+    # Shared policy for invitation, guest cap, and world cap. Defaults to
+    # <users_path>/instance-policy.json when not configured.
+    instance_policy_path: Path | None = None
     mc_instance_id: str | None = None
     # Browser destination, separate from the management endpoint; registration
     # derives the world listener URL + base_path when omitted. Parsing allows
@@ -470,6 +473,12 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
 
     base_path = normalize_base_path(values.get("TRSERVER_BASE_PATH", ""))
     public_origins = parse_origins(values.get("TRSERVER_PUBLIC_ORIGIN", ""))
+    policy_raw = values.get("TRSERVER_INSTANCE_POLICY_PATH", "").strip()
+    instance_policy_path = (
+        Path(policy_raw).expanduser()
+        if policy_raw
+        else users_path / "instance-policy.json"
+    )
     mc_instance_id = validate_instance_id(values.get("TRSERVER_MC_INSTANCE_ID", ""))
     client_url = validate_public_url(values.get("TRSERVER_CLIENT_URL", ""), "TRSERVER_CLIENT_URL")
     entry_url = validate_public_url(values.get("TRSERVER_ENTRY_URL", ""), "TRSERVER_ENTRY_URL")
@@ -506,6 +515,7 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         mc_insecure_tls=mc_insecure_tls,
         base_path=base_path,
         public_origins=public_origins,
+        instance_policy_path=instance_policy_path,
         mc_instance_id=mc_instance_id,
         client_url=client_url,
         entry_url=entry_url,
