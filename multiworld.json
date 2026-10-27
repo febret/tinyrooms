@@ -1,0 +1,49 @@
+{
+  "mods": ["*"],
+  "worlds": [
+    {
+      "id": "tutorial",
+      "port": 5100,
+      "instance_id": "tutorial-1",
+      "label": "Tutorial"
+    },
+    {
+      "id": "scammon-academia",
+      "port": 5101,
+      "instance_id": "scammon-1",
+      "label": "Scammon Academia"
+    },
+    {
+      "id": "tiny-arcade",
+      "port": 5102,
+      "instance_id": "arcade-1",
+      "label": "Tiny Arcade"
+    },
+    {
+      "id": "tinytown",
+      "port": 5103,
+      "instance_id": "tinytown-1",
+      "label": "TinyTown"
+    },
+    {
+      "id": "tiny-backrooms",
+      "port": 5104,
+      "instance_id": "backrooms-1",
+      "label": "Tiny Backrooms"
+    },
+    {
+      "id": "tiny-vault",
+      "port": 5105,
+      "instance_id": "vault-1",
+      "label": "Tiny Vault"
+    },
+    {
+      "id": "bobs-burgers",
+      "port": 5106,
+      "instance_id": "bobs-1",
+      "label": "Bob's Burgers",
+      "path": "../tinyrooms-workshop/worlds/bobs-burgers",
+      "shared_content": "../tinyrooms-workshop"
+    }
+  ]
+}

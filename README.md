@@ -82,12 +82,17 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 ## Multiworld
 
 [Bash users] `./start_multiworld.sh` starts a local Mission Control plus the
-tutorial, scammon-academia, tiny-arcade, tinytown, tiny-backrooms,
-tiny-vault, and bobs-burgers world servers sharing one
-profile database and one advertised hostname. It uses development credentials and
-self-signed certificates; override `MC_PORT`, `TUTORIAL_PORT`, `SCAMMON_PORT`,
-`ARCADE_PORT`, `TINYTOWN_PORT`, `BACKROOMS_PORT`, `VAULT_PORT`, `BOBS_PORT`,
-or `PUBLIC_HOST` as needed.
+worlds listed in [multiworld.json](multiworld.json), sharing one profile
+database and one advertised hostname. Edit that JSON file to choose the fleet:
+each `worlds` entry may be a world id string or an object with `id` plus
+optional `port`, `instance_id`, `label`, and `mods`; a `path` may point the
+world at a directory outside `worlds/` (for example a sibling workshop
+checkout), with an optional `shared_content` root layered in for that world's
+own cardsets/propsets. The top-level `mods` list applies by default. [`start_multiworld.py`](start_multiworld.py) reads the file
+and manages the child servers. It uses development credentials and self-signed
+certificates; override `MC_PORT` or `PUBLIC_HOST` as needed, and per-world ports
+with `MULTIWORLD_<WORLD>_PORT` or the legacy `TUTORIAL_PORT`, `SCAMMON_PORT`,
+`ARCADE_PORT`, `TINYTOWN_PORT`, `BACKROOMS_PORT`, `VAULT_PORT`, and `BOBS_PORT`.
 
 ```bash
 ./start_multiworld.sh
@@ -101,9 +106,12 @@ or `PUBLIC_HOST` as needed.
 # Bob's Burgers:    https://127.0.0.1:5106/
 
 # To accept connections from other machines, pass a reachable address. This also
-# binds the five listeners to 0.0.0.0; the browser uses the advertised host so
-# the shared session cookie keeps working across ports:
+# binds all listeners to 0.0.0.0; the browser uses the advertised host so the
+# shared session cookie keeps working across ports:
 ./start_multiworld.sh --public-host 192.168.1.50
+
+# Use an alternate fleet definition:
+./start_multiworld.sh --config my-multiworld.json
 ```
 
 Author cross-world exits in a room's `rooms.yaml` with `target_world: <world-id>`
