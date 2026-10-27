@@ -51,6 +51,7 @@ function normalizeLibrary(entries) {
       baseScale: Number(entry?.base_scale || 1),
       scaleMin: Number(entry?.scale_min ?? 0.25),
       scaleMax: Number(entry?.scale_max ?? 4),
+      resizable: Boolean(entry?.resizable),
       source: String(entry?.source || ""),
       tags: (Array.isArray(entry?.tags) ? entry.tags : []).map(tag => String(tag).trim().toLowerCase()).filter(Boolean),
       price: Number(entry?.price ?? 5),
@@ -161,15 +162,17 @@ export function selectedInstance(editor) {
 /** Convert draft instances into the normalized prop shape the board renders. */
 export function editorBoardProps(editor) {
   if (!editor) return [];
-  return editor.props.map(instance => {
+    return editor.props.map(instance => {
     const entry = libraryEntry(editor, instance.propId);
     const surface = instance.surface || defaultSurfaceFor(entry);
+    const resizable = Boolean(entry?.resizable);
     return {
       id: instance.id,
       propId: instance.propId,
       position: [...instance.position],
       rotation: [...instance.rotation],
-      scale: instance.scale * (entry?.baseScale ?? 1),
+      scale: (resizable ? instance.scale : 1) * (entry?.baseScale ?? 1),
+      resizable,
       locked: Boolean(instance.locked),
       behavior: "",
       modelUrl: entry?.modelUrl || "",
@@ -319,6 +322,7 @@ export function editorReducer(state, action) {
         if (action.rotation) return { ...instance, rotation: snapRotation(editor, action.rotation) };
         if (typeof action.scale === "number") {
           const entry = libraryEntry(editor, instance.propId);
+          if (!entry?.resizable) return instance;
           return { ...instance, scale: clamp(action.scale, entry?.scaleMin ?? 0.25, entry?.scaleMax ?? 4) };
         }
         return instance;
@@ -356,6 +360,7 @@ export function editorReducer(state, action) {
       const instance = selectedInstance(editor);
       if (!instance || instance.locked) return state;
       const entry = libraryEntry(editor, instance.propId);
+      if (!entry?.resizable) return state;
       const factor = Number(action.factor || SCALE_STEP);
       const next = action.gesture ? editor : pushUndo(editor);
       return {

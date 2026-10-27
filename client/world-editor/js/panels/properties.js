@@ -94,6 +94,7 @@ function propPanel(state) {
   const position = Array.isArray(instance.pos) ? instance.pos : [50, 50, 0];
   const rotation = Array.isArray(instance.rot) ? instance.rot : [0, 0, 0];
   const definition = (catalog?.props || []).find(prop => prop.id === instance.prop);
+  const resizable = definition?.resizable === true;
   const isText = definition?.render_kind === "text" || instance.prop === "builtin:text";
   const currentLabel = instance.label || definition?.label || instance.prop;
   const stockLabel = definition?.label || "";
@@ -136,7 +137,9 @@ function propPanel(state) {
       </div>
       <div class="field-row">
         ${field("Rot Y", numberInput(rotation[1], `data-instance-field="rot.1"`, "15"))}
-        ${field("Scale", numberInput(instance.scale ?? 1, `data-instance-field="scale"`))}
+        ${resizable
+          ? field("Scale", numberInput(instance.scale ?? 1, `data-instance-field="scale"`))
+          : '<p class="note">Fixed size (scales in rooms are ignored unless the prop is resizable).</p>'}
       </div>
       ${field("Animation", textInput(instance.animation || "", `data-instance-field="animation"`))}
       <label class="mini-check">${checkbox(Boolean(instance.only_missing), `data-instance-field="only_missing"`)} dispense only missing cards</label>

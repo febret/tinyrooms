@@ -140,6 +140,7 @@ class PropEditorService:
             "price": definition.price,
             "locked": definition.locked,
             "hidden": definition.hidden,
+            "resizable": definition.resizable,
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,
             "states": {

@@ -90,6 +90,7 @@ export function renderPropsPanel(state) {
         <label class="pe-check">${checkbox(Boolean(prop.decorative), `data-pe-prop="decorative" data-pe-kind="bool"`)} decorative</label>
         <label class="pe-check">${checkbox(Boolean(prop.locked), `data-pe-prop="locked" data-pe-kind="bool"`)} locked</label>
         <label class="pe-check" title="Hide from the room editor, prop shop, and all in-game prop lists and renders.">${checkbox(Boolean(prop.hidden), `data-pe-prop="hidden" data-pe-kind="bool"`)} hidden</label>
+        <label class="pe-check" title="Room owners may resize this prop in room edit mode; otherwise instances always render at the authored scale.">${checkbox(Boolean(prop.resizable), `data-pe-prop="resizable" data-pe-kind="bool"`)} resizable</label>
       </div>
       ${prop.hidden ? '<p class="pe-hint">Hidden: this prop is excluded from the room editor, the prop shop, and every in-game render and list, but stays in its room definitions.</p>' : ""}
       ${field("Tags (comma-separated)", textInput((prop.tags || []).join(", "), `data-pe-prop="tags" data-pe-kind="csv"`))}

@@ -38,6 +38,7 @@ from server.content.prop_definitions import (
     PropStateDefinition,
     QuickAction,
     builtin_prop_definitions,
+    instance_scale_for,
     load_prop_definition,
     load_props_scale_adjust,
     load_propset,
@@ -617,7 +618,7 @@ def load_world_definition(
                 prop_id=prop_id,
                 pos=_load_vec3(raw_instance.get("pos"), f"Room '{room_id}' prop '{prop_instance_id}' pos"),
                 rot=_load_vec3(raw_instance.get("rot"), f"Room '{room_id}' prop '{prop_instance_id}' rot"),
-                scale=float(raw_instance.get("scale", 1.0)),
+                scale=instance_scale_for(props[prop_id], raw_instance.get("scale", 1.0)),
                 actions=_load_actions(raw_instance.get("actions")),
                 personal=bool(raw_instance.get("personal", False)),
                 animation=_load_animation(

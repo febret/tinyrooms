@@ -141,6 +141,7 @@ export function normalizeProp(prop) {
     position: Array.isArray(prop?.position) ? prop.position : [50, 50, 0],
     rotation: Array.isArray(prop?.rotation) ? prop.rotation : [0, 0, 0],
     scale: Number(prop?.scale || 1),
+    resizable: prop?.resizable !== false,
     behavior: String(prop?.behavior || ""),
     modelUrl: assetOrEmpty(prop?.model_url),
     renderKind: String(prop?.render_kind || "model"),

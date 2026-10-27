@@ -945,6 +945,7 @@ class RoomService:
             "position": list(prop.pos),
             "rotation": list(prop.rot),
             "scale": prop.scale * prop_definition.scale,
+            "resizable": prop_definition.resizable,
             "behavior": None if dark else prop_definition.behavior,
             "model_url": prop_model_url(self._world.id, prop_definition, active_state),
             "render_kind": prop_definition.render_kind,

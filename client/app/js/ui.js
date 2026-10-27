@@ -43,7 +43,7 @@ import { BUBBLE_TIMEOUT_CHOICES, saveFullscreenIntent, savedFullscreenIntent } f
 import { escapeHtml, updateMarkup } from "./presentation.js";
 import { createPropViewerManager } from "./prop-viewer.js";
 import { createCardViewerManager } from "./card-viewer.js";
-import { createSocketClient } from "./socket.js";
+import { createSocketClient, snapshotRefreshForEvent } from "./socket.js";
 import { createStore } from "./state.js";
 import { createStatusButton } from "./status-button.js";
 import { topBarMarkup } from "./top-bar.js";
@@ -301,26 +301,30 @@ function connectSocket() {
       const revisions = room
         ? { layoutRevision: room.layoutRevision, environmentRevision: room.environmentRevision }
         : undefined;
-      if (envelope.event?.type === "presence.enter" || envelope.event?.type === "peep.enter") {
+      if (envelope.event?.type === "presence.enter" || envelope.event?.type === "peep.enter"
+        || envelope.event?.type === "presence.leave" || envelope.event?.type === "peep.leave") {
         peeps.noteMove(envelope.event);
-        // The reducer patches the roster from the event's occupant/npc
-        // payload. Only re-request when the payload is absent (older
-        // behavior-generated events); the gated request below then returns
-        // just the changed sections.
-        const hasPayload = envelope.event?.type === "presence.enter"
-          ? (envelope.event?.occupant && typeof envelope.event.occupant === "object")
-          : (envelope.event?.npc && typeof envelope.event.npc === "object");
-        if (!hasPayload) socket?.requestSnapshot(revisions);
-      } else if (envelope.event?.type === "presence.leave" || envelope.event?.type === "peep.leave") {
-        peeps.noteMove(envelope.event);
-      } else if (envelope.event?.type === "room.environment" || envelope.event?.type === "room.refresh") {
-        socket?.requestSnapshot(revisions);
-      } else if (envelope.event?.type === "room.reset") {
-        socket?.requestSnapshot(revisions);
+      }
+      // A world reload rebuilds prop definitions without bumping the room
+      // layout revision, so it needs the full snapshot; a revision-gated
+      // request would omit the props whose scale just changed.
+      const refresh = snapshotRefreshForEvent(envelope.event);
+      if (refresh === "full") socket?.requestSnapshot();
+      else if (refresh === "gated") socket?.requestSnapshot(revisions);
+      if (envelope.event?.type === "room.reset") {
         const editor = store.getState().editor;
         if (editor && editor.roomId === envelope.event.room_id
             && Number(editor.baseRevision || 0) < Number(envelope.event.revision || 0)) {
           void openRoomEditor();
+        }
+      } else if (envelope.event?.type === "world.reloaded") {
+        const editor = store.getState().editor;
+        if (editor) {
+          if (editor.dirty) {
+            toast("The world reloaded; reopen the room editor to see updated prop scales.");
+          } else {
+            void openRoomEditor();
+          }
         }
       }
     },

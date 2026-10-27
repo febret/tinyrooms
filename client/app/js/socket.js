@@ -11,6 +11,31 @@ function requestId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Classify a live room event into the snapshot refresh it requires.
+ *
+ * Returns "none", "gated" (a revision-gated snapshot that omits unchanged
+ * layout sections), or "full". A world reload rebuilds prop definitions
+ * without bumping the room layout revision, so only a full snapshot picks
+ * up rescaled props.
+ */
+export function snapshotRefreshForEvent(event) {
+  if (!event || typeof event.type !== "string") return "none";
+  switch (event.type) {
+    case "world.reloaded":
+      return "full";
+    case "room.environment":
+    case "room.refresh":
+    case "room.reset":
+      return "gated";
+    case "presence.enter":
+    case "peep.enter":
+      return event.occupant || event.npc ? "none" : "gated";
+    default:
+      return "none";
+  }
+}
+
 /** Connect to /ws, route envelopes, and resolve one promise per command request_id. */
 export function createSocketClient({
   onStatus,

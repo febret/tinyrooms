@@ -457,6 +457,11 @@ function changeInstanceField(fieldName, target) {
   const editor = worldRoomEditor(store.state, currentRoomId());
   if ((fieldName.startsWith("pos.") || fieldName.startsWith("rot.") || fieldName === "scale")
     && editor?.props.find(prop => prop.id === editor.selectedId)?.locked) return;
+  if (fieldName === "scale") {
+    const selected = editor?.props.find(prop => prop.id === editor.selectedId);
+    const entry = selected ? editor.library.find(prop => prop.propId === selected.propId) : null;
+    if (!entry?.resizable) return;
+  }
   updateInstance(instance => {
     if (fieldName === "prop") {
       if (instance.prop !== "builtin:text" && target.value !== "builtin:text") instance.prop = target.value;

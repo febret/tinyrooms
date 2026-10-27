@@ -13,6 +13,7 @@ from server.content.exit_props import (
     exit_style_options,
     validate_exit_finish,
 )
+from server.content.prop_definitions import instance_scale_for
 from server.content.surface_props import (
     DEFAULT_SIGN_STYLE,
     MAX_SIGN_PROPS,
@@ -224,7 +225,7 @@ class RoomLayoutService:
                 prop_id=definition.id,
                 pos=_vector(entry.get("position"), (50.0, 50.0, 0.0)),
                 rot=_vector(entry.get("rotation"), (0.0, 0.0, 0.0)),
-                scale=float(entry.get("scale", 1.0)),
+                scale=instance_scale_for(definition, entry.get("scale", 1.0)),
                 actions=source.actions if source else (),
                 personal=source.personal if source else False,
                 animation=source.animation if source else None,
@@ -308,6 +309,7 @@ class RoomLayoutService:
             "position": list(instance.pos),
             "rotation": list(instance.rot),
             "scale": instance.scale * definition.scale,
+            "resizable": definition.resizable,
             "behavior": definition.behavior,
             "model_url": prop_model_url(
                 self._world.id,
@@ -607,7 +609,7 @@ class RoomLayoutService:
                     "prop_id": instance.prop_id,
                     "position": list(instance.pos),
                     "rotation": list(instance.rot),
-                    "scale": float(instance.scale),
+                    "scale": instance_scale_for(definition, instance.scale),
                     "locked": False,
                     **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
                 }
@@ -617,13 +619,13 @@ class RoomLayoutService:
             definition = self._world.props.get(str(entry.get("prop_id")))
             if definition is None or not definition.hidden:
                 continue
-            hidden_existing[str(entry.get("id"))] = {
-                "id": str(entry.get("id")),
-                "prop_id": definition.id,
-                "position": list(_vector(entry.get("position"), (50.0, 50.0, 0.0))),
-                "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
-                "scale": float(entry.get("scale", 1.0)),
-                "locked": bool(entry.get("locked")),
+                hidden_existing[str(entry.get("id"))] = {
+                    "id": str(entry.get("id")),
+                    "prop_id": definition.id,
+                    "position": list(_vector(entry.get("position"), (50.0, 50.0, 0.0))),
+                    "rotation": list(_vector(entry.get("rotation"), (0.0, 0.0, 0.0))),
+                    "scale": instance_scale_for(definition, entry.get("scale", 1.0)),
+                    "locked": bool(entry.get("locked")),
                 **({"sign_style": str(entry["sign_style"])} if isinstance(entry.get("sign_style"), str) else {}),
             }
         seen: set[str] = set()
@@ -699,14 +701,14 @@ class RoomLayoutService:
             definition = self._world.props[instance.prop_id]
             if definition.hidden or definition.decorative:
                 continue
-            props.append(
-                {
-                    "id": instance.id,
-                    "prop_id": instance.prop_id,
-                    "position": list(instance.pos),
-                    "rotation": list(instance.rot),
-                    "scale": float(instance.scale),
-                    "locked": False,
+                props.append(
+                    {
+                        "id": instance.id,
+                        "prop_id": instance.prop_id,
+                        "position": list(instance.pos),
+                        "rotation": list(instance.rot),
+                        "scale": instance_scale_for(definition, instance.scale),
+                        "locked": False,
                     **({"text": dict(instance.text)} if instance.text is not None else {}),
                     **({"sign_style": instance.sign_style} if instance.sign_style is not None else {}),
                 }
@@ -773,6 +775,8 @@ class RoomLayoutService:
 
     @staticmethod
     def _validate_scale(raw_value: object, definition: PropDefinition) -> float:
+        if not definition.resizable:
+            return 1.0
         if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
             raise ValueError("Prop scale must be a number.")
         scale = float(raw_value)

@@ -91,6 +91,7 @@ def _catalog_payload(runtime) -> dict[str, object]:
             "scale": definition.scale,
             "editor_scale_min": definition.editor_scale_min,
             "editor_scale_max": definition.editor_scale_max,
+            "resizable": definition.resizable,
             "tags": list(definition.tags),
             "price": definition.price,
             "locked": definition.locked,

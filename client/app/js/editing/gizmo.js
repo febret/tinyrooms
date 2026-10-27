@@ -82,24 +82,38 @@ export function createGizmo() {
 
   let circleRadiusWorld = 0;
   let verticalMode = false;
+  // Non-resizable props keep the top handle in elevate mode so Shift is not
+  // required to move them vertically; the scale handle is simply unavailable.
+  let propResizable = true;
+
+  function applyHandleMode() {
+    const elevate = verticalMode || !propResizable;
+    scaleCube.visible = !elevate;
+    elevateArrow.visible = elevate;
+    scaleStem.material = elevate ? elevateMaterial : scaleMaterial;
+    scaleStem.userData.editMode = elevate ? "elevate" : "scale";
+  }
 
   return {
     group,
     // The drag circle is hit-tested by distance in board.js, so only the raised handles raycast.
     get pickables() {
-      return verticalMode ? [rotateKnob, scaleStem, elevateArrow] : [rotateKnob, scaleStem, scaleCube];
+      const elevate = verticalMode || !propResizable;
+      return elevate ? [rotateKnob, scaleStem, elevateArrow] : [rotateKnob, scaleStem, scaleCube];
     },
     /** World-space radius of the drag circle from the most recent setTarget. */
     get circleRadius() {
       return circleRadiusWorld;
     },
+    /** Whether the selected prop may be resized; updates the top handle mode. */
+    setResizable(active) {
+      propResizable = Boolean(active);
+      applyHandleMode();
+    },
     /** Swap the top handle between scaling (box) and vertical movement (arrow). */
     setVerticalMode(active) {
       verticalMode = Boolean(active);
-      scaleCube.visible = !verticalMode;
-      elevateArrow.visible = verticalMode;
-      scaleStem.material = verticalMode ? elevateMaterial : scaleMaterial;
-      scaleStem.userData.editMode = verticalMode ? "elevate" : "scale";
+      applyHandleMode();
     },
     setTarget(worldPosition, scale, propHeight = 0, footprint = 0) {
       group.position.set(worldPosition[0], worldPosition[1] + GIZMO_HEIGHT, worldPosition[2]);

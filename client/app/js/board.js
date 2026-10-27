@@ -339,6 +339,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       : null;
     if (editSelectionObject !== previousEditSelection) changed = true;
     const showGizmo = Boolean(editSelectionObject && !editSelectionLocked());
+    gizmo.setResizable(editSelectionResizable());
     if (showGizmo) {
       gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
     }
@@ -424,6 +425,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   /** Whether the prop currently under the gizmo is locked against transforms. */
   function editSelectionLocked() {
     return Boolean(current?.props.get(editSelectionId)?.prop?.locked);
+  }
+
+  /** Whether the prop currently under the gizmo may be resized. Unknown payloads default to resizable. */
+  function editSelectionResizable() {
+    return current?.props.get(editSelectionId)?.prop?.resizable !== false;
   }
 
   /**

@@ -89,6 +89,7 @@ class PropDefinition:
     locked: bool = False
     hidden: bool = False
     requires_light: bool = False
+    resizable: bool = False
     model_missing: bool = False
     # Set names select ordered lists of catalog effect ids, not gameplay effects.
     # This active_effect is the authored default; RoomService can override it per
@@ -136,6 +137,18 @@ class PropInstanceDefinition:
     exit_style: dict[str, str] | None = None
 
 
+def instance_scale_for(definition: PropDefinition, raw_value: object = 1.0) -> float:
+    """Return the effective room-instance scale multiplier for a definition.
+
+    Non-resizable props always render at their definition scale, so any
+    room-instance multiplier is ignored (never validated, never applied).
+    """
+
+    if not definition.resizable:
+        return 1.0
+    return float(raw_value)
+
+
 def _load_text_recipe(
     raw_instance: dict[str, Any], render_kind: str, room_id: str, instance_id: str,
 ) -> dict[str, str] | None:
@@ -158,38 +171,38 @@ def builtin_prop_definitions() -> dict[str, PropDefinition]:
             id=TEXT_PROP_ID, label="Text", description="Custom three-dimensional text.",
             model_name=None, model_path=None, decorative=True, animation=None,
             scale=1.0, source="builtin", source_kind="builtin",
-            tags=("text",), price=0, locked=False, render_kind="text",
+            tags=("text",), price=0, locked=False, render_kind="text", resizable=True,
         ),
         SIGN_PROP_ID: PropDefinition(
             id=SIGN_PROP_ID, label="Sign", description="An editable sign with a choice of finishes.",
             model_name=None, model_path=None, decorative=True, animation=None,
             scale=1.0, source="builtin", source_kind="builtin",
-            tags=("sign", "editable"), price=0, locked=False, render_kind="sign",
+            tags=("sign", "editable"), price=0, locked=False, render_kind="sign", resizable=True,
         ),
         WHITEBOARD_PROP_ID: PropDefinition(
             id=WHITEBOARD_PROP_ID, label="Whiteboard",
             description="A shared whiteboard for notes and marker drawings.",
             model_name=None, model_path=None, decorative=True, animation=None,
             scale=1.0, activity="whiteboard", editor_scale_max=5.0, source="builtin", source_kind="builtin",
-            tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard",
+            tags=("whiteboard", "editable"), price=0, locked=False, render_kind="whiteboard", resizable=True,
         ),
         DOOR_PROP_ID: PropDefinition(
             id=DOOR_PROP_ID, label="Door", description="A simple door that can lead to a room exit.",
             model_name=None, model_path=None, decorative=False, animation=None,
             scale=1.0, source="builtin", source_kind="builtin",
-            tags=("exit", "door"), price=0, locked=False, render_kind="door",
+            tags=("exit", "door"), price=0, locked=False, render_kind="door", resizable=True,
         ),
         ARROW_PROP_ID: PropDefinition(
             id=ARROW_PROP_ID, label="Arrow", description="A simple arrow that can lead to a room exit.",
             model_name=None, model_path=None, decorative=False, animation=None,
             scale=1.0, source="builtin", source_kind="builtin",
-            tags=("exit", "arrow"), price=0, locked=False, render_kind="arrow",
+            tags=("exit", "arrow"), price=0, locked=False, render_kind="arrow", resizable=True,
         ),
         STAIRS_PROP_ID: PropDefinition(
             id=STAIRS_PROP_ID, label="Stairs", description="A simple set of stairs that can lead to a room exit.",
             model_name=None, model_path=None, decorative=False, animation=None,
             scale=1.0, source="builtin", source_kind="builtin",
-            tags=("exit", "stairs"), price=0, locked=False, render_kind="stairs",
+            tags=("exit", "stairs"), price=0, locked=False, render_kind="stairs", resizable=True,
         ),
     }
 
@@ -548,6 +561,7 @@ def load_prop_definition(
         locked = decorative and source_kind == "propset" and source not in FREE_PROPSET_SOURCES
     hidden = bool(raw_prop.get("hidden", False))
     requires_light = bool(raw_prop.get("requires_light", False))
+    resizable = bool(raw_prop.get("resizable", False))
     behavior = _load_optional_prop_name(raw_prop.get("behavior"), prop_id, "behavior")
     if behavior is None:
         tag_set = set(tags)
@@ -599,6 +613,7 @@ def load_prop_definition(
         locked=locked,
         hidden=hidden,
         requires_light=requires_light,
+        resizable=resizable,
         effect_sets=effect_sets,
         active_effect=active_effect,
         render_kind=render_kind,

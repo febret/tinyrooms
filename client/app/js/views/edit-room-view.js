@@ -27,10 +27,12 @@ function environmentRow(state, editor) {
 }
 
 /** Text shown in the selected-prop meta line, or the empty prompt. */
-export function editorMetaText(selected) {
+export function editorMetaText(selected, entry) {
   if (!selected) return "Select a prop on the board to move, rotate, or scale it.";
   const [x, y] = selected.position;
-  return `Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}° · Scale ${selected.scale.toFixed(2)}`;
+  const detail = `Position ${Math.round(x)}, ${Math.round(y)} · Rotation ${Math.round(selected.rotation[1])}°`;
+  if (entry && !entry.resizable) return `${detail} · Fixed size`;
+  return `${detail} · Scale ${selected.scale.toFixed(2)}`;
 }
 
 /** Display name of the current selection, or the empty placeholder. */
@@ -76,8 +78,9 @@ export function exitFinishMarkup(editor, selected) {
 
 function selectionMarkup(editor) {
   const selected = selectedInstance(editor);
+  const entry = selected ? libraryEntry(editor, selected.propId) : null;
   return `
-    <p class="editor-meta${selected ? "" : " editor-meta-empty"}">${escapeHtml(editorMetaText(selected))}</p>
+    <p class="editor-meta${selected ? "" : " editor-meta-empty"}">${escapeHtml(editorMetaText(selected, entry))}</p>
     <div class="editor-buttons" data-editor-buttons ${selected ? "" : "hidden"}>
       <button type="button" data-edit-action="lock" aria-pressed="${Boolean(selected?.locked)}">${selected?.locked ? "Unlock" : "Lock"}</button>
       <button type="button" class="negative" data-edit-action="remove">Remove</button>

@@ -18,6 +18,7 @@ export function worldRoomEditor(state, roomId) {
     // Authors can arrange functional props and retain the existing authoring bounds.
     scale_min: 0.05,
     scale_max: Number.MAX_VALUE,
+    resizable: Boolean(prop.resizable),
     source: prop.source,
     tags: prop.tags,
     locked: false,
