@@ -3,7 +3,7 @@ import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitContro
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import {
   applyFloorImageStyle, floorKey, loadSharedTexture, makeFloor,
-  setDarkened, setGhosted, sharedTexture, shareModelTextures, unavailableMarker,
+  setDarkened, setGhosted, setPropLightGlow, sharedTexture, shareModelTextures, unavailableMarker,
 } from "./board-resources.js";
 import {
   advanceRecords,
@@ -27,12 +27,19 @@ import { cardDropElevation, stackMetrics, supportElevation } from "./editing/pro
 import { createPropEffects } from "./prop-effects.js";
 import { createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import {
+  LIGHTING_PRESETS,
   MAX_PROP_LIGHTS,
   PROP_LIGHT_DISTANCE,
+  applyBoardBackdrop,
   applyEnvironmentLighting,
+  backdropForPreset,
+  clearBoardBackdrop,
   propLightWorldPosition,
   resolveRoomLighting,
+  selectAmbientSources,
   selectPropLights,
+  spriteLightingForDaylight,
+  spriteLightingForPreset,
 } from "./board-lighting.js";
 import { createBoardOutlines } from "./board-outlines.js";
 import { createBoardSprites } from "./board-sprites.js";
@@ -183,6 +190,13 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     reactSprite: (id, options) => (current ? spriteLayer.react(current, id, options) : false),
   });
   gameLayer.setActionHandler(action => onGameAction?.(action));
+
+  function applySpriteLighting(entry, lighting) {
+    const spritesChanged = spriteLayer.applyLighting(entry, lighting);
+    const cardsChanged = cardLayer.applyLighting(entry, lighting);
+    return spritesChanged || cardsChanged;
+  }
+
   const clock = new THREE.Clock();
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -211,6 +225,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   let showActiveProps = false;
   let roomDark = false;
   let roomScared = false;
+  let spriteLighting = { color: "#ffffff", opacity: 1 };
   let gameInputEnabled = true;
   let dropArmed = false;
   let userAdjusted = false;
@@ -664,6 +679,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       record.scenes = gltf.scenes || [model];
       setGhosted(record, Boolean(record.prop.ghost));
       setDarkened(record, roomDark);
+      setPropLightGlow(record, record.prop.light);
       playPropAnimation(entry, record, record.prop, model, record.clips, isCurrent, invalidate);
       buildRecordEffects(record, record.prop, model, bounds, visual);
       entry.pending -= 1;
@@ -719,6 +735,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     if (moved) invalidateScene();
     setGhosted(record, Boolean(prop.ghost));
     setDarkened(record, roomDark);
+    setPropLightGlow(record, prop.light);
     setRecordTarget(record, prop.position);
     if (propEffectKey(prop) !== record.effectKey) {
       if (record.model && record.visual && record.bounds) {
@@ -1180,8 +1197,18 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     recovery.resetFrameErrors();
     const delta = Math.min(clock.getDelta(), 0.1);
     if (current) {
-      current.diorama?.update(delta, { reducedMotion });
-      if (current.diorama) current.diorama.setSceneLights(lights);
+      const dioramaFrame = current.diorama?.update(delta, { reducedMotion });
+      if (current.diorama) {
+        current.diorama.setSceneLights(lights);
+        const day = dioramaFrame?.daylight;
+        if (day) {
+          applyBoardBackdrop(canvas, day.sky, day.ground);
+          spriteLighting = roomDark
+            ? spriteLightingForPreset(LIGHTING_PRESETS.darkness)
+            : spriteLightingForDaylight(day);
+          applySpriteLighting(current, spriteLighting);
+        }
+      }
       if (roomScared && !reducedMotion && !editEnabled) scaredShake(current.root, clock.elapsedTime);
       for (const record of current.props.values()) {
         for (const mixer of record.mixers) mixer.update(delta);
@@ -1296,6 +1323,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         canvas.dataset.boardType = "";
         canvas.dataset.diorama = "false";
         canvas.dataset.boardReady = "false";
+        clearBoardBackdrop(canvas);
+        spriteLighting = { color: "#ffffff", opacity: 1 };
         if (!recovery.renderFailed) {
           overlay.textContent = "Your room will appear here.";
           overlay.dataset.status = "idle";
@@ -1319,17 +1348,27 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       const lightSelection = editEnabled
         ? { lights: [], lamps: 0, windows: 0 }
         : selectPropLights(state.room.props, preset.name, MAX_PROP_LIGHTS);
-      // Windows feed the ambient level for night environments only.
-      const windowCount = preset.name === "night" ? lightSelection.windows : 0;
+      const ambientSources = editEnabled
+        ? { lamps: 0, windows: 0 }
+        : selectAmbientSources(state.room.props, preset.name);
       if (current?.diorama) {
         current.diorama.setRoomDark(roomDark);
         current.diorama.setSceneLights(lights);
         syncPropLights(lightSelection.lights);
+        const day = current.diorama.daylight;
+        applyBoardBackdrop(canvas, day.sky, day.ground);
+        spriteLighting = roomDark
+          ? spriteLightingForPreset(LIGHTING_PRESETS.darkness)
+          : spriteLightingForDaylight(day);
       } else {
         resetBoardLights(lights);
-        if (applyEnvironmentLighting(lights, preset, renderer, lightSelection.lamps, windowCount)) invalidate();
+        if (applyEnvironmentLighting(lights, preset, renderer, ambientSources.lamps, ambientSources.windows)) invalidate();
         syncPropLights(lightSelection.lights);
+        const backdrop = backdropForPreset(preset);
+        applyBoardBackdrop(canvas, backdrop.top, backdrop.bottom);
+        spriteLighting = spriteLightingForPreset(preset);
       }
+      if (applySpriteLighting(current, spriteLighting)) invalidate();
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
       if (current?.sprites?.size && (!needsPeepAnchors || needsPeepAnchors())) {

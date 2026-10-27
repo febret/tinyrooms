@@ -52,6 +52,25 @@ function applyAspect(sprite, map) {
 
 /** Room-card scene lifecycle, split out of board.js to keep the renderer small. */
 export function createBoardCards({ register, texture, setRecordTarget, invalidateScene, onRemoveGroup }) {
+  function applyLighting(entry, lighting) {
+    if (!entry?.cards) return false;
+    const color = typeof lighting?.color === "string"
+      ? lighting.color
+      : (lighting?.color?.getHexString?.() || "#ffffff");
+    const opacity = Number.isFinite(lighting?.opacity) ? lighting.opacity : 1;
+    const key = `${color}|${opacity}`;
+    let changed = false;
+    for (const record of entry.cards.values()) {
+      if (record.lightingKey === key) continue;
+      record.lighting = lighting;
+      record.lightingKey = key;
+      record.spriteMaterial.color.set(lighting?.color || "#ffffff");
+      record.spriteMaterial.opacity = opacity;
+      changed = true;
+    }
+    return changed;
+  }
+
   function add(entry, card) {
     invalidateScene();
     const group = new THREE.Group();
@@ -74,7 +93,7 @@ export function createBoardCards({ register, texture, setRecordTarget, invalidat
     group.add(groundShadow());
     entry.cards.set(card.stackId, {
       id: card.stackId, group, card, sprite, spriteMaterial, modelKey: cardModelKey(card), positionKey: positionKey(card.position),
-      target: group.position.clone(),
+      target: group.position.clone(), lighting: null, lightingKey: "",
     });
     texture(entry, card.definition?.imageUrl, `${card.definition?.label || "Card"} illustration`, map => {
       const record = entry.cards.get(card.stackId);
@@ -107,5 +126,5 @@ export function createBoardCards({ register, texture, setRecordTarget, invalidat
     onRemoveGroup?.(record.group);
   }
 
-  return { add, update, remove };
+  return { add, update, remove, applyLighting };
 }

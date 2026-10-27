@@ -5,10 +5,17 @@ import {
   LIGHTING_PRESETS,
   MAX_PROP_LIGHTS,
   ambientBoostForLampCount,
+  applyBoardBackdrop,
+  backdropForPreset,
+  clearBoardBackdrop,
   propLightWorldPosition,
   resolveRoomLighting,
+  selectAmbientSources,
   selectPropLights,
+  spriteLightingForDaylight,
+  spriteLightingForPreset,
 } from "../../client/app/js/board-lighting.js";
+import { daylightForPhase } from "../../client/app/js/board-diorama-daylight.js";
 
 test("presets cover darkness, night, dusk, day, dawn, and fluorescent with render tuning", () => {
   for (const name of ["darkness", "night", "dusk", "day", "dawn", "fluorescent"]) {
@@ -17,6 +24,8 @@ test("presets cover darkness, night, dusk, day, dawn, and fluorescent with rende
     assert.ok(Number.isFinite(preset.sunlight));
     assert.ok(Number.isFinite(preset.fill));
     assert.ok(preset.exposure > 0);
+    assert.match(preset.spriteColor, /^#[0-9a-f]{6}$/);
+    assert.ok(preset.spriteOpacity > 0 && preset.spriteOpacity <= 1);
   }
 });
 
@@ -34,22 +43,35 @@ test("lamps are bright point lights that also lift the ambient level", () => {
   const lamp = { id: "lamp", position: [50, 50, 0], light: { kind: "fixture", on: true, color: "#ffd9a1" } };
   const night = selectPropLights([lamp], "night");
   assert.equal(night.lights[0].kind, "fixture");
-  assert.equal(night.lights[0].intensity, 4.2);
+  assert.equal(night.lights[0].intensity, 5.5);
   assert.equal(night.lamps, 1);
   assert.equal(night.windows, 0);
   assert.equal(ambientBoostForLampCount(0), 0);
-  assert.equal(ambientBoostForLampCount(1), 0.7);
-  assert.equal(ambientBoostForLampCount(2), 1.4);
-  assert.equal(ambientBoostForLampCount(10), 1.4);
-  assert.equal(ambientBoostForLampCount(0, 2), 0.7);
-  assert.equal(ambientBoostForLampCount(2, 2), 1.4);
+  assert.equal(ambientBoostForLampCount(1), 0.4);
+  assert.equal(ambientBoostForLampCount(2), 0.8);
+  assert.equal(ambientBoostForLampCount(10), 1);
+  assert.equal(ambientBoostForLampCount(0, 2), 0.36);
+  assert.equal(ambientBoostForLampCount(2, 2), 1);
+});
+
+test("ambient sources count even when their point lights are budgeted out", () => {
+  const props = [
+    { id: "lamp-on", light: { kind: "fixture", on: true } },
+    { id: "lamp-off", light: { kind: "fixture", on: false } },
+    { id: "window", light: { kind: "window" } },
+    { id: "table", light: undefined },
+  ];
+  assert.deepEqual(selectAmbientSources(props, "night"), { lamps: 1, windows: 1 });
+  assert.deepEqual(selectAmbientSources(props, "dusk"), { lamps: 1, windows: 1 });
+  assert.deepEqual(selectAmbientSources(props, "day"), { lamps: 1, windows: 0 });
+  assert.deepEqual(selectAmbientSources(props, "darkness"), { lamps: 1, windows: 0 });
 });
 
 test("windows emit in night, dusk, and dawn, and lift ambient at night", () => {
   const window = { id: "win", position: [10, 10, 0], light: { kind: "window", on: true, color: "#8da7e8" } };
-  assert.equal(selectPropLights([window], "night").lights[0].intensity, 0.9);
-  assert.equal(selectPropLights([window], "dusk").lights[0].intensity, 0.6);
-  assert.equal(selectPropLights([window], "dawn").lights[0].intensity, 0.6);
+  assert.equal(selectPropLights([window], "night").lights[0].intensity, 1.2);
+  assert.equal(selectPropLights([window], "dusk").lights[0].intensity, 0.8);
+  assert.equal(selectPropLights([window], "dawn").lights[0].intensity, 0.8);
   assert.deepEqual(selectPropLights([window], "day").lights, []);
   assert.deepEqual(selectPropLights([window], "darkness").lights, []);
   assert.equal(selectPropLights([window], "night").windows, 1);
@@ -100,4 +122,43 @@ test("prop light positions project above the board", () => {
   assert.equal(x, 0);
   assert.ok(y > 1);
   assert.equal(z, 0);
+});
+
+test("sprite lighting follows the environment preset", () => {
+  assert.deepEqual(spriteLightingForPreset(LIGHTING_PRESETS.day), {
+    color: "#ffffff",
+    opacity: 1,
+  });
+  const night = spriteLightingForPreset(LIGHTING_PRESETS.night);
+  assert.equal(night.color, "#aab8d6");
+  assert.equal(night.opacity, 0.9);
+  const darkness = spriteLightingForPreset(LIGHTING_PRESETS.darkness);
+  assert.ok(darkness.opacity < night.opacity);
+  assert.deepEqual(spriteLightingForDaylight({ sprite: "#123456", spriteOpacity: 0.5 }), {
+    color: "#123456",
+    opacity: 0.5,
+  });
+});
+
+test("diorama daylight interpolates sprite tint through the cycle", () => {
+  const day = daylightForPhase(0.5);
+  const night = daylightForPhase(0);
+  assert.equal(day.spriteOpacity, 1);
+  assert.ok(night.spriteOpacity < day.spriteOpacity);
+  assert.notEqual(day.sprite.getHexString(), night.sprite.getHexString());
+});
+
+test("board backdrop follows preset colors and clears when removed", () => {
+  const preset = LIGHTING_PRESETS.night;
+  assert.deepEqual(backdropForPreset(preset), {
+    top: preset.hemisphereSky,
+    bottom: preset.hemisphereGround,
+  });
+  const element = { style: { background: "" }, dataset: {} };
+  assert.equal(applyBoardBackdrop(element, "#112233", "#445566"), true);
+  assert.match(element.style.background, /#112233/);
+  assert.match(element.style.background, /#445566/);
+  assert.equal(applyBoardBackdrop(element, "#112233", "#445566"), false);
+  clearBoardBackdrop(element);
+  assert.equal(element.style.background, "");
 });

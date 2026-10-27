@@ -68,6 +68,24 @@ test("a layout update keeps a lamp's switched light state", () => {
   assert.deepEqual(merged[0].light, light);
 });
 
+test("a layout update gives a new prop its broadcast quick actions", () => {
+  const merged = mergeLayoutProps([{ id: "old", propId: "chair", position: [20, 20, 0] }], [{
+    id: "custom:new",
+    prop_id: "cottage-toilet",
+    label: "Cottage Toilet",
+    behavior: "toilet",
+    position: [80, 80, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    quick_actions: [{ label: "Use the toilet", command: ".act toilet @prop:custom:new" }],
+  }]);
+
+  assert.deepEqual(merged.map(prop => prop.id), ["custom:new"]);
+  assert.deepEqual(merged[0].quickActions, [
+    { label: "Use the toilet", command: ".act toilet @prop:custom:new" },
+  ]);
+});
+
 test("a layout update adds new props and removes missing props", () => {
   const previous = [{ id: "old", propId: "chair", position: [20, 20, 0] }];
   const merged = mergeLayoutProps(previous, [{

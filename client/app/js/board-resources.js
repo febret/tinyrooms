@@ -314,3 +314,64 @@ export function unavailableMarker(parent) {
   parent.add(marker);
   return marker;
 }
+
+const PROP_LIGHT_GLOW_INTENSITY = 1.4;
+const PROP_LIGHT_GLOW_WHITE = new THREE.Color("#ffffff");
+const PROP_LIGHT_GLOW_FALLBACK = { fixture: "#ffe2b0", window: "#d8e7ff" };
+
+/**
+ * Make a light fixture or window self-illuminated.
+ *
+ * Scene point lights are often inside the fixture (or behind the window glass),
+ * so the prop itself can sit in its own shadow. Driving the mesh's emissive
+ * channel keeps the source visibly bright from every angle and camera rotation.
+ * Original emissive settings are retained for when the light switches off.
+ */
+export function setPropLightGlow(record, light) {
+  if (!record?.model) return;
+  const active = Boolean(light && light.kind && light.on !== false);
+  const key = active
+    ? `${light.kind}|${light.color || PROP_LIGHT_GLOW_FALLBACK[light.kind] || "#ffffff"}`
+    : "";
+  if (record.lightGlowKey === key) return;
+  record.lightGlowKey = key;
+  if (!record.lightGlowMaterials) {
+    record.lightGlowMaterials = [];
+    const seen = new Set();
+    record.model.traverse(node => {
+      if (!node.isMesh || !node.material) return;
+      for (const item of Array.isArray(node.material) ? node.material : [node.material]) {
+        if (seen.has(item) || !item.emissive) continue;
+        seen.add(item);
+        record.lightGlowMaterials.push({
+          material: item,
+          emissive: item.emissive.clone(),
+          emissiveIntensity: item.emissiveIntensity,
+          emissiveMap: item.emissiveMap || null,
+        });
+      }
+    });
+  }
+  const glow = active
+    ? new THREE.Color(light.color || PROP_LIGHT_GLOW_FALLBACK[light.kind] || "#ffffff")
+      .lerp(PROP_LIGHT_GLOW_WHITE, 0.45)
+    : null;
+  for (const saved of record.lightGlowMaterials) {
+    const item = saved.material;
+    if (glow) {
+      item.emissive.copy(glow);
+      item.emissiveIntensity = PROP_LIGHT_GLOW_INTENSITY;
+      if (item.emissiveMap !== item.map) {
+        item.emissiveMap = item.map;
+        item.needsUpdate = true;
+      }
+    } else {
+      item.emissive.copy(saved.emissive);
+      item.emissiveIntensity = saved.emissiveIntensity;
+      if (item.emissiveMap !== saved.emissiveMap) {
+        item.emissiveMap = saved.emissiveMap;
+        item.needsUpdate = true;
+      }
+    }
+  }
+}

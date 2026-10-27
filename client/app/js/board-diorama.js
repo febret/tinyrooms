@@ -1103,21 +1103,25 @@ export function createDioramaBoard({
     setExposure(day.exposure);
     materials.waterMaterial.uniforms.uLight.value = day.water;
     materials.waterMaterial.uniforms.uNight.value = day.night;
-    windows.warm.emissiveIntensity = 0.035 + day.night * 2.15;
-    windows.cool.emissiveIntensity = 0.018 + day.night * 1.15;
-    materials.lampBulb.emissiveIntensity = 0.15 + day.night * 3.1;
-    materials.lanternGlass.emissiveIntensity = 0.25 + day.night * 2.3;
-    materials.glowMaterial.opacity = day.night * 0.8;
+    windows.warm.emissiveIntensity = 0.035 + day.night * 2.8;
+    windows.cool.emissiveIntensity = 0.018 + day.night * 1.5;
+    materials.lampBulb.emissiveIntensity = 0.15 + day.night * 4.03;
+    materials.lanternGlass.emissiveIntensity = 0.25 + day.night * 3.0;
+    materials.glowMaterial.opacity = day.night * 0.9;
     materials.clock.emissiveIntensity = 0.03 + day.night * 0.9;
-    lighthouse.beamMaterial.opacity = day.night * 0.045;
-    lightReflectionMaterial.opacity = day.night * 0.48;
+    lighthouse.beamMaterial.opacity = day.night * 0.06;
+    lightReflectionMaterial.opacity = day.night * 0.62;
     const flicker = 0.94 + Math.sin(performance.now() * 0.004) * 0.06 * day.night;
     for (const light of lampLights) {
       light.color.set(LAMP_GLOW);
-      light.intensity = day.night * 4.65 * flicker;
+      light.intensity = day.night * 6.05 * flicker;
     }
-    lighthouse.lantern.intensity = day.night * 3.1;
-    fireflyMaterial.opacity = day.night * 0.74;
+    lighthouse.lantern.intensity = day.night * 4.03;
+    fireflyMaterial.opacity = day.night * 0.9;
+  }
+
+  function currentDaylight() {
+    return daylightForPhase(cyclePhaseAt(cycle, (performance.now() - startedAt) / 1000));
   }
 
   function update(delta, { reducedMotion = false } = {}) {
@@ -1155,11 +1159,14 @@ export function createDioramaBoard({
   function setSceneLights(lights) {
     // The diorama owns the shared scene lights while it is visible.
     const phase = cyclePhaseAt(cycle, (performance.now() - startedAt) / 1000);
-    const day = daylightForPhase(phase);
+    const day = currentDaylight();
     const solar = (phase - 0.25) * Math.PI * 2;
+    const lampAmbient = Math.min(lampLights.length * 0.012, 0.16) * day.night;
     lights.hemisphere.color.copy(day.sky);
     lights.hemisphere.groundColor.copy(day.ground);
-    lights.hemisphere.intensity = roomDark ? Math.min(day.ambient, 0.24) : day.ambient;
+    lights.hemisphere.intensity = roomDark
+      ? Math.min(day.ambient, 0.24)
+      : Math.min(day.ambient + lampAmbient, 2.0);
     lights.sunlight.color.copy(day.sunColor);
     lights.sunlight.intensity = roomDark ? 0 : Math.max(day.sun, day.night * 0.48);
     lights.sunlight.position.set(
@@ -1177,6 +1184,9 @@ export function createDioramaBoard({
     setSceneLights,
     setRoomDark(value) {
       roomDark = Boolean(value);
+    },
+    get daylight() {
+      return currentDaylight();
     },
     get phase() {
       return lastPhase;

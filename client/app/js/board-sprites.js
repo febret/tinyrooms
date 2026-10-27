@@ -9,6 +9,8 @@ const SPRITE_HEIGHT = 1.8;
 const SPRITE_MOVE_SMOOTHING = 5;
 const FALLBACK_ASPECT = 0.78;
 const BUBBLE_REFERENCE_PX = 100;
+const DARK_TINT = "#8b9194";
+const DARK_OPACITY = 0.6;
 
 /** Keep a bubble at a fixed size ratio to the peep sprite it belongs to. */
 export function spriteBubbleScale(pixelHeight) {
@@ -37,6 +39,44 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     const scale = SPRITE_HEIGHT * (Number(entry.spriteScale) > 0 ? Number(entry.spriteScale) : 1);
     record.baseScale = [scale * aspect, scale];
     record.sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
+  }
+
+  function currentTint(record) {
+    if (record.dark) return { color: DARK_TINT, opacity: DARK_OPACITY };
+    return record.lighting || { color: "#ffffff", opacity: 1 };
+  }
+
+  function applyTint(record) {
+    const tint = currentTint(record);
+    if (!record.reaction) record.material.color.set(tint.color);
+    record.material.opacity = tint.opacity;
+    for (const overlay of [record.decalOverlay, record.stinkOverlay]) {
+      if (!overlay) continue;
+      overlay.material.color.set(tint.color);
+      overlay.material.opacity = tint.opacity;
+    }
+  }
+
+  function lightingKey(lighting) {
+    const color = typeof lighting?.color === "string"
+      ? lighting.color
+      : (lighting?.color?.getHexString?.() || "#ffffff");
+    const opacity = Number.isFinite(lighting?.opacity) ? lighting.opacity : 1;
+    return `${color}|${opacity}`;
+  }
+
+  function applyLighting(entry, lighting) {
+    if (!entry?.sprites) return false;
+    const key = lightingKey(lighting);
+    let changed = false;
+    for (const record of entry.sprites.values()) {
+      if (record.lightingKey === key) continue;
+      record.lighting = lighting;
+      record.lightingKey = key;
+      applyTint(record);
+      changed = true;
+    }
+    return changed;
   }
 
   function build(record, entry) {
@@ -90,8 +130,8 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       alphaTest: 0.04,
       depthWrite: false,
       toneMapped: false,
-      color: dark ? "#8b9194" : "#ffffff",
-      opacity: dark ? 0.6 : 1,
+      color: "#ffffff",
+      opacity: 1,
     });
     const record = {
       id,
@@ -102,8 +142,9 @@ export function createBoardSprites({ textureLoader, invalidate }) {
       url: "",
       failed: false,
       dark: Boolean(dark),
+      lighting: null,
+      lightingKey: "",
       baseScale: [SPRITE_HEIGHT, SPRITE_HEIGHT],
-      tint: dark ? "#8b9194" : "#ffffff",
       reaction: null,
       decalOverlay: null,
       decalKey: "",
@@ -112,6 +153,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     };
     entry.sprites.set(id, record);
     build(record, entry);
+    applyTint(record);
     const url = String(actor.stickerUrl || "");
     if (url) loadTexture(record, entry, url);
     return record;
@@ -149,6 +191,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     entry.root.add(overlay);
     if (kind === "stink") record.stinkOverlay = overlay;
     else record.decalOverlay = overlay;
+    applyTint(record);
   }
 
   function clearDecalOverlay(entry, record) {
@@ -199,9 +242,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     record.target.copy(targetPosition(actor.spritePosition));
     if (record.dark !== Boolean(dark)) {
       record.dark = Boolean(dark);
-      record.tint = dark ? "#8b9194" : "#ffffff";
-      if (!record.reaction) record.material.color.set(record.tint);
-      record.material.opacity = dark ? 0.6 : 1;
+      applyTint(record);
       record.material.needsUpdate = true;
     }
     const url = String(actor.stickerUrl || "");
@@ -274,7 +315,7 @@ export function createBoardSprites({ textureLoader, invalidate }) {
         record.reaction.remaining -= delta;
         if (record.reaction.remaining <= 0) {
           record.reaction = null;
-          record.material.color.set(record.tint);
+          applyTint(record);
           record.material.needsUpdate = true;
           if (record.baseScale) sprite.scale.set(record.baseScale[0], record.baseScale[1], 1);
         } else {
@@ -348,5 +389,5 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     return result;
   }
 
-  return { sync, advance, isAnimating, clear, anchors, react };
+  return { sync, advance, isAnimating, clear, anchors, react, applyLighting };
 }

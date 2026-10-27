@@ -111,20 +111,26 @@ function asSystemHistory(text) {
   return { id: crypto.randomUUID(), kind: "system", speaker: "", speakerId: "", style: "normal", text };
 }
 
+/** Merge a counter.updated event into an existing counters record, keeping untouched fields. */
+function countersFromEvent(existing, event) {
+  const current = existing && typeof existing === "object" ? existing : {};
+  return {
+    ...current,
+    health: Number(event.health ?? current.health ?? 0),
+    energy: Number(event.energy ?? current.energy ?? 0),
+    cleanliness: Number(event.cleanliness ?? current.cleanliness ?? 0),
+    maxHealth: Number(event.max_health ?? current.maxHealth ?? 0),
+    maxEnergy: Number(event.max_energy ?? current.maxEnergy ?? 0),
+    maxCleanliness: Number(event.max_cleanliness ?? current.maxCleanliness ?? 0),
+    statuses: Array.isArray(event.statuses) ? [...event.statuses] : (current.statuses || []),
+    decals: Array.isArray(event.decals) ? event.decals.map(entry => ({ ...entry })) : (current.decals || []),
+  };
+}
+
 function updatePeepCounters(peeps, targetId, event) {
   return peeps.map(peep => {
     if (peep.id !== targetId) return peep;
-    const counters = {
-      ...(peep.counters || {}),
-      health: Number(event.health ?? peep.counters?.health ?? 0),
-      energy: Number(event.energy ?? peep.counters?.energy ?? 0),
-      cleanliness: Number(event.cleanliness ?? peep.counters?.cleanliness ?? 0),
-      maxHealth: Number(event.max_health ?? peep.counters?.maxHealth ?? 0),
-      maxEnergy: Number(event.max_energy ?? peep.counters?.maxEnergy ?? 0),
-      maxCleanliness: Number(event.max_cleanliness ?? peep.counters?.maxCleanliness ?? 0),
-      statuses: Array.isArray(event.statuses) ? [...event.statuses] : (peep.counters?.statuses || []),
-      decals: Array.isArray(event.decals) ? event.decals.map(entry => ({ ...entry })) : (peep.counters?.decals || []),
-    };
+    const counters = countersFromEvent(peep.counters, event);
     return {
       ...peep,
       counters,
@@ -132,6 +138,43 @@ function updatePeepCounters(peeps, targetId, event) {
       decals: Array.isArray(event.decals) ? event.decals.map(entry => ({ ...entry })) : peep.decals,
     };
   });
+}
+
+/**
+ * Mirror a counter.updated event aimed at the current user into the profile
+ * record. Room broadcasts only patch occupants, but the ID card and other
+ * profile views render state.user.counters, so without this the identity card
+ * lags behind the wellbeing button for ambient or third-party changes.
+ */
+function applyCounterEventToSelf(state, event) {
+  const targetId = String(event.target_id || "");
+  const user = state.user;
+  if (!user || !targetId || user.id !== targetId) return state;
+  const counters = countersFromEvent(user.counters, event);
+  return {
+    ...state,
+    user: {
+      ...user,
+      counters,
+      statuses: Array.isArray(event.statuses) ? [...event.statuses] : user.statuses,
+      sharedEnergy: counters.energy,
+    },
+  };
+}
+
+/** Mirror a normalized counters snapshot onto the self occupant, if present. */
+function applyNormalizedCountersToSelfOccupant(room, accountId, counters) {
+  if (!room || !accountId || !counters) return room;
+  const patch = peeps => peeps.map(peep => {
+    if (peep.id !== accountId) return peep;
+    return {
+      ...peep,
+      counters: { ...(peep.counters || {}), ...counters },
+      statuses: [...counters.statuses],
+      decals: counters.decals.map(entry => ({ ...entry })),
+    };
+  });
+  return { ...room, occupants: patch(room.occupants || []) };
 }
 
 function applyPhoneMessage(state, event) {
@@ -191,7 +234,7 @@ function applyServerEvent(state, event) {
   if (event.type === "phone.message") return applyPhoneMessage(state, event);
   if (event.type === "counter.updated") {
     const targetId = String(event.target_id || "");
-    return {
+    const withRoom = {
       ...state,
       room: {
         ...state.room,
@@ -199,6 +242,7 @@ function applyServerEvent(state, event) {
         npcs: updatePeepCounters(state.room.npcs, targetId, event),
       },
     };
+    return applyCounterEventToSelf(withRoom, event);
   }
   if (event.type === "peep.sprite") {
     const targetId = String(event.peep_id || event.account_id || "");
@@ -544,6 +588,15 @@ function mergeResultPayload(state, payload) {
           sharedEnergy: counters.energy,
         },
       };
+      // Command results carry fresh counters without a counter.updated
+      // broadcast (e.g. skill slotting, level up), so patch the self occupant
+      // too; otherwise the wellbeing button lags behind the identity card.
+      if (next.room) {
+        next = {
+          ...next,
+          room: applyNormalizedCountersToSelfOccupant(next.room, next.user.id, counters),
+        };
+      }
     }
   }
   if (Array.isArray(payload.pinned_peeps)) {

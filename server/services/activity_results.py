@@ -145,8 +145,14 @@ class ActivityResultService:
         account: AccountRecord,
         kind: str,
         result: object,
+        *,
+        record_tasks: bool = True,
     ) -> CompleteResult:
-        """Validate and record a finished round."""
+        """Validate and record a finished round.
+
+        The bridge disables *record_tasks* when it dispatches a behavior event
+        for the same result; the dispatcher records the task trigger once.
+        """
 
         definition = self._require_definition(kind)
         seconds, captured = self._validate_result(result)
@@ -157,10 +163,14 @@ class ActivityResultService:
                 self._record_best(connection, account.id, kind, seconds)
                 recorded = True
             records = self._read_records(connection, account.id, kind)
-        changes = self._tasks.record(
-            account.id,
-            "activity_result",
-            {**result_fields, "activity": kind},
+        changes = (
+            self._tasks.record(
+                account.id,
+                "activity_result",
+                {**result_fields, "activity": kind},
+            )
+            if record_tasks
+            else []
         )
         private_events: list[dict[str, object]] = []
         if changes:

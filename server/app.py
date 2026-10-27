@@ -27,7 +27,7 @@ from server.broadcast import broadcast_room_event as _broadcast_room_event
 from server.broadcast import deliver_behavior_result as _deliver_behavior_result
 from server.commands.context import build_command_context
 from server.commands.core import build_registry, dispatch_command
-from server.commands.outcomes import CommandError
+from server.commands.outcomes import CommandError, PendingRoomBroadcast
 from server.commands.parser import CommandParseError, parse_command
 from server.commands.registry import CommandRegistry
 from server.config import AppConfig, load_config
@@ -535,6 +535,7 @@ def _build_runtime(
     room_effects = RoomEffectService()
     prop_states = PropStateService()
     lighting = LightingService(world)
+    lighting.apply_cycle()
     prop_lights = PropLightService()
     layout = RoomLayoutService(
         hub, world, world_state, ownership, environment, prop_shop, room_effects, prop_states, surfaces
@@ -724,6 +725,17 @@ def _build_runtime(
         tick_hook = getattr(state, "on_room_tick", None)
         if callable(tick_hook):
             ticker.add_tick_hook(tick_hook)
+    def _lighting_cycle_tick(room_id: str) -> list[PendingRoomBroadcast]:
+        del room_id
+        return [
+            PendingRoomBroadcast(
+                room_id=changed_room,
+                event={"type": "room.refresh", "room_id": changed_room},
+            )
+            for changed_room in lighting.apply_cycle()
+        ]
+
+    ticker.add_tick_hook(_lighting_cycle_tick)
     ticker.add_tick_hook(vibes.on_room_tick)
     runtime_holder["runtime"] = runtime
     return runtime

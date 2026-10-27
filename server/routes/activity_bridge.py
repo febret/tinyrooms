@@ -6,7 +6,9 @@ import hmac
 
 from fastapi.responses import JSONResponse
 
+from server.behaviors.events import BehaviorEvent, PeepRef
 from server.broadcast import deliver_behavior_result
+from server.serialization import serialize_account
 
 
 def _rejected(message: str) -> JSONResponse:
@@ -29,19 +31,39 @@ async def handle_activity_result(runtime: object, session: object, activity: obj
     account = runtime.profiles.get_account_by_id(session.account_id)
     if account is None:
         return _rejected("Unknown account.")
+    raw_result = payload.get("result")
     try:
         outcome = runtime.activity_results.complete(
             account,
             activity.kind,
-            payload.get("result"),
+            raw_result,
+            record_tasks=False,
         )
     except ValueError as exc:
         return _rejected(str(exc))
-    await deliver_behavior_result(runtime, outcome)
-    return {
+    # The dispatcher records the task trigger once and gives world scripts a
+    # chance to react to the signed result (for example, awarding a quest card).
+    result_fields = dict(raw_result) if isinstance(raw_result, dict) else {}
+    behavior = await runtime.behaviors.dispatch(
+        BehaviorEvent(
+            type="activity_result",
+            actor=PeepRef(kind="user", peep_id=None, account_id=account.id),
+            target=None,
+            room_id=activity.room_id,
+            data={**result_fields, "activity": activity.kind},
+        )
+    )
+    await deliver_behavior_result(runtime, behavior)
+    response: dict[str, object] = {
         "ok": True,
         "activity": runtime.activities.serialize(activity),
         "records": outcome.records.to_payload(),
         "recorded": outcome.recorded,
         "seconds": outcome.seconds,
     }
+    if getattr(behavior, "inventory_changed_for", None) == account.id:
+        stacks = runtime.profiles.list_inventory(account.id, runtime.world.id)
+        current = runtime.profiles.get_account_by_id(account.id) or account
+        response["inventory"] = runtime.cards.serialize_inventory_stacks(stacks)
+        response["user"] = serialize_account(runtime, current)
+    return response
