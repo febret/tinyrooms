@@ -20,7 +20,7 @@ from server.content.lighting import LIGHTING_ENVIRONMENTS
 from server.content.prop_definitions import PROP_RENDER_KINDS
 from server.content.surface_props import validate_sign_style
 from server.content.text_props import validate_text
-from server.content.worlds import PROPS_CONFIG_KEY
+from server.content.worlds import EXIT_TRANSITION_TYPES, PROPS_CONFIG_KEY
 
 
 DRAFT_FORMAT_VERSION = 1
@@ -273,6 +273,10 @@ def _check_rooms(
                             _issue(issues, f"{exit_path}.target", f"Exit target '{target}' is not a room.")
                     elif not has_world:
                         _issue(issues, f"{exit_path}.target", "Exit target is required.")
+                    transition = exit_definition.get("transition")
+                    if transition is not None and transition not in EXIT_TRANSITION_TYPES:
+                        allowed = ", ".join(sorted(EXIT_TRANSITION_TYPES))
+                        _issue(issues, f"{exit_path}.transition", f"Exit transition must be one of: {allowed}.")
         cards = room.get("cards")
         if cards is not None:
             if not isinstance(cards, list):

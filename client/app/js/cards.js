@@ -83,7 +83,7 @@ function bindCardButtons(root, onSelect, onAction) {
     button.onclick = () => onAction({ type: "core-toggle", id: button.dataset.coreId });
   });
   root.querySelectorAll("[data-open-multiverse]").forEach(button => {
-    button.onclick = () => onAction({ command: ".play multiverse" });
+    button.onclick = () => onAction({ type: "open-view", view: "multiverse", sound: "multiverseOpen" });
   });
   root.querySelectorAll("[data-open-tinymag]").forEach(button => {
     button.onclick = () => onAction({ command: ".tinytown open" });

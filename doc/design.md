@@ -936,6 +936,22 @@ quick actions when looking at the room (and are displayed by default when enteri
 the room for the first time). Selecting the quick action to take a specific exit
 moves the user to that room. 
 
+Exits accept an optional `transition` key that selects how the old room is
+replaced by the destination. Supported values are:
+
+- `crossfade` (default): fade the old room out while the new room fades in.
+- `zoom-in`: zoom through the old room into the new one.
+- `swipe-east`, `swipe-west`, `swipe-north`, `swipe-south`, `swipe-up`,
+  `swipe-down`: the old room slides out in the named direction and the new room
+  enters from the opposite side.
+
+Swipe directions use world axes: east/west are `+X`/`-X`, north/south are
+`-Z`/`+Z`, and up/down are `+Y`/`-Y`. The board stays visually stable when the
+camera orbits. Clients with reduced motion enabled replace transitions with an
+immediate room change. Cross-world exits keep their existing client handoff.
+The World Editor exposes the transition selector on each exit in the room
+properties sidebar.
+
 
 ### Environment and Effects
 Rooms can have an environment defined on them, which affects how the room
@@ -1040,16 +1056,17 @@ Item/action equipment and slotted skills use one shared loadout. Leaving a world
 removes its native cards from that loadout, ending their bonuses and freeing their
 slots. Those cards remain saved in their native-world collection; returning does
 not automatically equip or slot them again.
-In-game travel between cooperating worlds is available through the Multiverse
-activity or through explicitly authored cross-world exits. The Multiverse lists
-every world currently running under the same Mission Control server as a
-shimmering portal, showing its name, description, world image, population, and
-the stickers of the viewer's friends who are online there. World authors may set
-an optional `image` in `world.yaml`; otherwise a placeholder is shown.
+In-game travel between cooperating worlds is available through the core Multiverse
+view or through explicitly authored cross-world exits. The Multiverse shows
+every world currently running under the same Mission Control server as planets
+around a vortex, using each world's large image for its planet, along with its
+name, description, population, and the stickers of the viewer's friends who are
+online there. World authors may set an optional `image` in `world.yaml`;
+otherwise a generated placeholder planet is shown.
 Opening the Multiverse and travelling requires permanent Multiverse Map access,
 unless the user has the admin power. Using the normal Multiverse Map card sets
 the shared `multiverse_access` profile flag; while it is enabled, a vortex
-button beside Inventory opens the activity. Revoking the flag in Mission Control
+button beside Inventory opens the core Multiverse view. Revoking the flag in Mission Control
 hides the button. The tutorial awards the card once when a bagged poop is thrown
 into the garden trashcan. An authored cross-world exit may specify a destination
 room; otherwise the Multiverse leads to the destination world's entry room. If

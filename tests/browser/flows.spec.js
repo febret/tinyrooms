@@ -276,8 +276,15 @@ test("room board recovers from WebGL context loss", async ({ page, runtime }) =>
   await expect(canvas).toHaveAttribute("data-board-ready", "true");
 });
 
-test("admins see the Multiverse toggle in the toolbar", async ({ page, runtime }) => {
+test("admins open and close the core Multiverse view", async ({ page, runtime }) => {
   await createReadyAccount(page, runtime, "siteadmin");
+  await expect(page.locator("#multiverse-toggle")).toBeVisible();
+  await page.locator("#multiverse-toggle").click();
+  await expect(page.locator("#multiverse-layer")).toHaveAttribute("data-state", "open");
+  await expect(page.getByRole("dialog", { name: "The Multiverse" })).toBeVisible();
+  await expect(page.locator("[data-multiverse-status]")).not.toBeEmpty();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#multiverse-layer")).toBeHidden();
   await expect(page.locator("#multiverse-toggle")).toBeVisible();
 });
 

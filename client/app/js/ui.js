@@ -4,7 +4,7 @@ import { createActivityManager } from "./activities.js";
 import { activityResultPayload } from "./activity-result-payload.js";
 import { createChatAutocomplete } from "./autocomplete.js";
 import { createChatHistory } from "./chat-history.js";
-import { playSound } from "./audio.js";
+import { playSound, preloadSounds } from "./audio.js";
 import { actionSound, installButtonSoundHandler, playActionSound, playRoomSound, playSelectionSound, playToastSound } from "./ui-sounds.js";
 import { createBoard } from "./board.js";
 import { createPropActionButton } from "./prop-action-button.js";
@@ -51,6 +51,7 @@ import { topBarMarkup } from "./top-bar.js";
 import { actionLogMarkup, actionsBarMarkup, syncPhoneFriendSelection as syncPhoneFriend } from "./ui-panels.js";
 import { mergeStack as mergeStackAction, openPack as openPackAction, openStickerSwap as openStickerSwapAction, showPackReveal as showPackRevealView } from "./ui-inventory.js";
 import { createTargetingController } from "./targeting.js";
+import { createMultiverseView } from "./views/multiverse-view.js";
 import { sellInventoryCard } from "./sell.js";
 import { createVoiceChat } from "./voice.js";
 
@@ -95,6 +96,8 @@ let refreshPromise = null;
 let pendingGameStateRoom = "";
 let targeting = null;
 let dropTargeting = null;
+let multiverseView = null;
+let multiverseNavigating = false;
 const canFullscreen = fullscreenSupported();
 let fullscreenRestoreArmed = false;
 let leavingPage = false;
@@ -248,6 +251,83 @@ function closePhoneAnimated() {
   return phoneClosePromise;
 }
 
+const MULTIVERSE_SOUNDS = ["multiverseOpen", "multiverseClose", "multiverseHover", "multiverseSelect", "multiverseTravel"];
+
+async function refreshMultiverse() {
+  const state = store.getState();
+  if (!state.room || !state.transport.connected) {
+    store.dispatch({ type: "multiverse-error", message: "Connect to the room before reading the map." });
+    return;
+  }
+  store.dispatch({ type: "multiverse-loading" });
+  try {
+    await sendCommand(".multiverse_worlds");
+  } catch (error) {
+    // Command failures also surface through the result toast pipeline.
+    if (store.getState().views.main === "multiverse") {
+      store.dispatch({ type: "multiverse-error", message: error instanceof Error ? error.message : String(error) });
+    } else {
+      showError(error);
+    }
+  }
+}
+
+async function closeMultiverseView({ sound = "" } = {}) {
+  if (store.getState().views.main !== "multiverse") return;
+  if (sound) playTone(sound);
+  try {
+    await multiverseView?.closeAnimated();
+  } catch {
+    // Closing must never trap the user in the vortex.
+  }
+  if (store.getState().views.main !== "multiverse") return;
+  store.dispatch({ type: "close-view" });
+}
+
+async function travelMultiverse(worldId) {
+  const id = String(worldId || "");
+  if (!id) return;
+  const state = store.getState();
+  const world = state.multiverse.worlds.find(entry => entry.id === id);
+  if (!world || world.current || state.multiverse.travelingId === id) return;
+  store.dispatch({ type: "multiverse-traveling", id });
+  try {
+    await sendCommand(`.multiverse_travel ${id}`);
+  } catch (error) {
+    store.dispatch({ type: "multiverse-travel-failed", message: error instanceof Error ? error.message : String(error) });
+    showError(error);
+  }
+}
+
+function beginMultiverseNavigation(url) {
+  const target = String(url || "");
+  if (!target || multiverseNavigating) return;
+  multiverseNavigating = true;
+  if (store.getState().views.main !== "multiverse" || !multiverseView) {
+    toast("Stepping through the portal...");
+    window.location.assign(target);
+    return;
+  }
+  playTone("multiverseTravel");
+  const delay = multiverseView.depart();
+  window.setTimeout(() => window.location.assign(target), delay);
+}
+
+function applyMultiverseInert(state) {
+  const active = state.views.main === "multiverse";
+  for (const selector of [".topbar", ".sidebar", ".board-frame", ".bottom-stack", ".bubble-layer", "#action-log"]) {
+    const node = root.querySelector(selector);
+    if (node) node.inert = active;
+  }
+  if (activityLayer) activityLayer.inert = active;
+  if (active) {
+    const picker = $("#room-picker");
+    if (picker) picker.inert = true;
+    const container = $("#container-panel");
+    if (container) container.inert = true;
+  }
+}
+
 function logCutscene(cutscene) {
   const title = String(cutscene?.title || "").trim();
   if (!title || cutscene?.hidden) return;
@@ -343,8 +423,7 @@ function connectSocket() {
     onResult(envelope) {
       const travelUrl = envelope.payload?.travel?.url;
       if (travelUrl) {
-        toast("Stepping through the portal...");
-        window.location.assign(String(travelUrl));
+        beginMultiverseNavigation(String(travelUrl));
         return;
       }
       const signEditor = envelope.payload?.sign_editor;
@@ -487,12 +566,20 @@ async function handleAction(action, { silentSound = false } = {}) {
       if (view === "edit-room") return;
     }
     if (closing && view === "phone") await closePhoneAnimated();
+    if (closing && view === "multiverse") {
+      await closeMultiverseView({ sound: "multiverseClose" });
+      return;
+    }
     store.dispatch({
       type: closing ? "close-view" : "open-view",
       view,
       propId: action.propId,
       stackId: action.stackId,
     });
+    if (!closing && view === "multiverse") {
+      preloadSounds(MULTIVERSE_SOUNDS);
+      await refreshMultiverse();
+    }
     if (!closing && view === "edit-room") await openRoomEditor();
     if (!closing && view === "journal") {
       const tab = store.getState().ui.journalTab;
@@ -503,6 +590,10 @@ async function handleAction(action, { silentSound = false } = {}) {
     const state = store.getState();
     if (action.type === "close-view" && state.views.main === "edit-room" && state.editor) {
       await saveAndCloseEditor();
+      return;
+    }
+    if (state.views.main === "multiverse") {
+      await closeMultiverseView({ sound: "multiverseClose" });
       return;
     }
     if (state.views.main === "phone") await closePhoneAnimated();
@@ -1096,6 +1187,15 @@ const activities = createActivityManager({
   onActivityBridge: bridgeActivity, onCommand: sendCommand,
   onStickerConfirm: confirmSticker, onToast: toast,
 });
+multiverseView = createMultiverseView({
+  layer: $("#multiverse-layer"),
+  getState: () => store.getState(),
+  onRefresh: () => { void refreshMultiverse(); },
+  onSelect: id => store.dispatch({ type: "multiverse-select", id }),
+  onTravel: id => { void travelMultiverse(id); },
+  onClose: () => { void closeMultiverseView({ sound: "multiverseClose" }); },
+  onSound: name => playTone(name),
+});
 
 const applyInert = createInertSweep({
   root, panelLayer, activityLayer, settings,
@@ -1174,6 +1274,7 @@ async function render(state) {
   syncWorldStylesheet(state);
   toggleClass(root, "onboarding", Boolean(state.loggedIn && !state.user?.initialStickerComplete));
   toggleClass(root, "has-view", Boolean(state.views.main));
+  toggleClass(root, "multiverse-open", state.views.main === "multiverse");
   toggleClass(root, "full-view", state.views.main === "inventory" || state.views.main === "journal" || state.views.main === "phone" || state.views.main === "id");
   toggleClass(root, "immersive-view", state.views.main === "journal" || state.views.main === "phone" || state.views.main === "id");
   toggleClass(root, "editing", Boolean(state.editor));
@@ -1206,6 +1307,8 @@ async function render(state) {
   roomPicker.sync(state);
   containerPanel.sync(state);
   phoneMusic.render(state);
+  applyMultiverseInert(state);
+  multiverseView?.sync(state);
   if (state.views.main === "journal" && previousView !== "journal") playJournalOpen();
   if (state.views.main === "phone" && previousView !== "phone") playPhoneOpen();
   propViewers.sync($("#look-bar"), state.ui.reducedMotion);
@@ -1214,9 +1317,15 @@ async function render(state) {
   thumbnails.sync(editorRoot);
   if (!dialogs.active) {
     if (state.views.main && previousView !== state.views.main) {
-      panelLayer.querySelector("[data-close-view]")?.focus({ preventScroll: true });
+      if (state.views.main !== "multiverse") {
+        panelLayer.querySelector("[data-close-view]")?.focus({ preventScroll: true });
+      }
     } else if (!state.views.main && previousView) {
-      $("#core-tools").querySelector(`[data-core-id="${CSS.escape(previousView)}"]`)?.focus({ preventScroll: true });
+      if (previousView === "multiverse") {
+        $("#multiverse-toggle")?.focus({ preventScroll: true });
+      } else {
+        $("#core-tools").querySelector(`[data-core-id="${CSS.escape(previousView)}"]`)?.focus({ preventScroll: true });
+      }
     }
   }
   previousView = state.views.main;

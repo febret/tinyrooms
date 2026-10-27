@@ -1,6 +1,7 @@
 /** Room, card, actor, and game-state normalization helpers. */
 
 import { withBase } from "./base-path.js";
+import { normalizeRoomTransition } from "./board-transitions.js";
 
 export function clone(value) {
   return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value));
@@ -116,6 +117,7 @@ export function normalizeExit(exit) {
     targetRoomId: String(exit?.target_room_id || ""),
     locked: Boolean(exit?.locked),
     requiresCardId: exit?.requires_card_id ? String(exit.requires_card_id) : "",
+    transition: normalizeRoomTransition(exit?.transition),
     quickAction: exit?.quick_action && typeof exit.quick_action.command === "string"
       ? { label: exit.quick_action.label, command: exit.quick_action.command }
       : null,
@@ -453,6 +455,36 @@ export function normalizeJournal(journal) {
   };
 }
 
+export function normalizeMultiverseWorlds(raw) {
+  if (!Array.isArray(raw)) return [];
+  const worlds = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const id = String(entry.id || "").trim();
+    if (!id) continue;
+    const friends = Array.isArray(entry.friends)
+      ? entry.friends.map(friend => ({
+        accountId: String(friend?.account_id || friend?.id || ""),
+        username: String(friend?.username || friend?.username_display || "Friend"),
+        stickerUrl: String(friend?.sticker_url || friend?.stickerUrl || ""),
+      })).filter(friend => friend.accountId || friend.username)
+      : [];
+    worlds.push({
+      id,
+      label: String(entry.label || id || "A world"),
+      description: String(entry.description || ""),
+      imageUrl: String(entry.image_url || entry.imageUrl || ""),
+      usersOnline: Math.max(0, Number(entry.users_online ?? entry.usersOnline ?? 0) || 0),
+      onlineAccountIds: Array.isArray(entry.online_account_ids)
+        ? entry.online_account_ids.map(value => String(value))
+        : [],
+      current: Boolean(entry.current),
+      friends,
+    });
+  }
+  return worlds;
+}
+
 export function normalizeUser(user) {
   if (!user) return null;
   const normalizedCore = (Array.isArray(user.core_cards) ? user.core_cards : [])
@@ -636,6 +668,7 @@ export function normalizeRoom(room, previousRoom = null) {
     note: String(room.metadata?.note || ""),
     environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
     environmentRevision: Number(room.environment_revision || 0),
+    transition: normalizeRoomTransition(room.transition),
     exits: keepExits ? previousRoom.exits : (Array.isArray(room.exits) ? room.exits.map(normalizeExit) : []),
     props: keepProps ? previousRoom.props : (Array.isArray(room.props) ? room.props.map(normalizeProp) : []),
     occupants: Array.isArray(room.occupants) ? room.occupants.map(normalizeOccupant) : [],

@@ -73,6 +73,7 @@ class NavigationResult:
     destination_event: dict[str, object]
     closed_activity: dict[str, object] | None
     behavior_results: list[object] = field(default_factory=list)
+    transition: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -792,6 +793,7 @@ class RoomService:
             "locked": exit_definition.locked,
             "requires_card_id": exit_definition.requires_card_id,
             "npc_barrier": exit_definition.npc_barrier,
+            "transition": exit_definition.transition,
             "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
         }
 
@@ -953,6 +955,7 @@ class RoomService:
         note: str | None = None,
         known_layout_revision: int | None = None,
         known_environment_revision: int | None = None,
+        transition: str | None = None,
     ) -> dict[str, object]:
         """Build a coherent room snapshot for a specific account.
 
@@ -1077,6 +1080,8 @@ class RoomService:
             "environment": environment,
             "environment_revision": environment_revision,
         }
+        if transition is not None:
+            snapshot["transition"] = transition
         if layout_unchanged:
             snapshot["props_unchanged"] = True
             snapshot["exits_unchanged"] = True
@@ -1175,6 +1180,7 @@ class RoomService:
             source_room=source_room,
             destination_room=destination_room,
             direction=exit_definition.label,
+            transition=exit_definition.transition,
         )
 
     async def enter_room(
@@ -1257,6 +1263,7 @@ class RoomService:
         source_room: RoomDefinition,
         destination_room: RoomDefinition,
         direction: str,
+        transition: str | None = None,
     ) -> NavigationResult:
         """Perform a room change and return ordered room events."""
 
@@ -1297,7 +1304,7 @@ class RoomService:
                     )
                 )
             )
-        snapshot = await self.build_snapshot(account, destination_room.id)
+        snapshot = await self.build_snapshot(account, destination_room.id, transition=transition)
         mover_label = self._title_labels([account]).get(account.id, account.username_display)
         return NavigationResult(
             source_room_id=source_room_id,
@@ -1322,4 +1329,5 @@ class RoomService:
             ),
             closed_activity=None if closed is None else self._activities.serialize(closed),
             behavior_results=behavior_results,
+            transition=transition,
         )

@@ -1,4 +1,4 @@
-"""Multiverse activity commands for discovering and travelling between worlds."""
+"""Core Multiverse view commands for discovering and travelling between worlds."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def _friend_stickers(context: CommandContext, world: dict[str, object]) -> list[
 
 
 async def multiverse_worlds_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    """Return the running worlds available to the Multiverse activity."""
+    """Return the running worlds available to the core Multiverse view."""
 
     del command
     context.cross_world.check_multiverse_access(context.account)
@@ -47,7 +47,7 @@ async def multiverse_worlds_command(context: CommandContext, command: ParsedComm
 
 
 async def multiverse_travel_command(context: CommandContext, command: ParsedCommand) -> CommandOutcome:
-    """Travel to a world selected in the Multiverse activity."""
+    """Travel to a world selected in the core Multiverse view."""
 
     if not command.args:
         raise CommandError("Choose a world to visit.")

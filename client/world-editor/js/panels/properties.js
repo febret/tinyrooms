@@ -1,4 +1,5 @@
 import { escapeHtml, selectOptions, actionsToText } from "../util.js";
+import { ROOM_TRANSITION_OPTIONS } from "../../../app/js/board-transitions.js";
 import { renderDialogNodeEditor } from "./dialog.js";
 
 function field(label, input) {
@@ -26,6 +27,13 @@ function panelHeader(title, subtitle) {
   return `<header class="properties-head"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(subtitle || "")}</p></header>`;
 }
 
+function exitTransitionField(exitId, transition) {
+  return field(
+    "Transition",
+    `<select data-exit-field="${escapeHtml(exitId)}:transition">${selectOptions(ROOM_TRANSITION_OPTIONS, transition || "crossfade")}</select>`,
+  );
+}
+
 function roomPanel(state) {
   const { draft, catalog, selection } = state;
   const roomId = selection.id;
@@ -37,38 +45,43 @@ function roomPanel(state) {
   const roomOptions = Object.keys(draft.rooms || {}).map(id => ({ value: id, label: id }));
   return `
     ${panelHeader(room.label || roomId, `Room · ${roomId}`)}
-    <div class="properties-body">
-      ${field("Room id", textInput(roomId, `data-room-id`, "room-id"))}
-      ${field("Label", textInput(room.label, `data-room-field="label"`))}
-      ${field("Description", textarea(room.description, `data-room-field="description"`, 3))}
-      ${field("Board type", textInput(room.board_type || "basic", `data-room-field="board_type"`))}
-      ${field("Board image", `<select data-room-field="board_image">${selectOptions(catalog?.board_images || [], room.board_image)}</select>`)}
+    <div class="properties-body is-compact room-properties">
       <div class="field-row">
+        ${field("Room id", textInput(roomId, `data-room-id`, "room-id"))}
+        ${field("Label", textInput(room.label, `data-room-field="label"`))}
+      </div>
+      ${field("Description", textarea(room.description, `data-room-field="description"`, 2))}
+      <div class="field-row">
+        ${field("Board type", textInput(room.board_type || "basic", `data-room-field="board_type"`))}
+        ${field("Board image", `<select data-room-field="board_image">${selectOptions(catalog?.board_images || [], room.board_image)}</select>`)}
+      </div>
+      <div class="check-row">
         <label class="mini-check">${checkbox(Boolean(room.dark), `data-room-field="dark"`)} dark</label>
         <label class="mini-check">${checkbox(Boolean(room.template), `data-room-field="template"`)} template</label>
-      </div>
-      <fieldset class="subgroup">
-        <legend>Editor environment whitelist</legend>
+        <span class="check-row-label">Editor env</span>
         <label class="mini-check">${checkbox(environment.includes("palette"), `data-room-editor-env="palette"`)} palette</label>
         <label class="mini-check">${checkbox(environment.includes("board_image_style"), `data-room-editor-env="board_image_style"`)} board_image_style</label>
-      </fieldset>
+      </div>
       ${field("Initial room cards (comma)", textInput(initialCards.map(card => card.card).join(", "), `data-room-field="cards"`))}
-      <fieldset class="subgroup">
+      <fieldset class="subgroup exits-subgroup">
         <legend>Exits</legend>
         ${exits.map(([exitId, exit]) => `
-          <div class="list-card">
+          <div class="list-card exit-card">
             <div class="list-card-head">
               <code title="${escapeHtml(exitId)}">${escapeHtml(exitId)}</code>
-              <button type="button" class="icon-button" data-exit-delete="${escapeHtml(exitId)}" aria-label="Delete exit">✕</button>
+              <button type="button" class="icon-button compact-icon" data-exit-delete="${escapeHtml(exitId)}" aria-label="Delete exit">✕</button>
             </div>
-            ${field("Label", textInput(exit.label || "", `data-exit-field="${escapeHtml(exitId)}:label"`, "Label"))}
-            ${field("Target room", `<select data-exit-field="${escapeHtml(exitId)}:target">${selectOptions(roomOptions, exit.target)}</select>`)}
-            <label class="mini-check">${checkbox(Boolean(exit.locked), `data-exit-field="${escapeHtml(exitId)}:locked"`)} locked</label>
+            <div class="exit-card-grid">
+              ${field("Label", textInput(exit.label || "", `data-exit-field="${escapeHtml(exitId)}:label"`, "Label"))}
+              ${field("Target", `<select data-exit-field="${escapeHtml(exitId)}:target">${selectOptions(roomOptions, exit.target)}</select>`)}
+              ${exitTransitionField(exitId, exit.transition)}
+              <label class="mini-check exit-locked">${checkbox(Boolean(exit.locked), `data-exit-field="${escapeHtml(exitId)}:locked"`)} locked</label>
+            </div>
           </div>
         `).join("") || '<p class="empty-state">No exits.</p>'}
-        <button type="button" class="quiet" data-exit-add>Add exit</button>
+        <button type="button" class="quiet compact-button" data-exit-add>Add exit</button>
       </fieldset>
-      <button type="button" class="negative" data-room-delete="${escapeHtml(roomId)}">Delete room</button>
+      <button type="button" class="negative compact-button" data-room-delete="${escapeHtml(roomId)}">Delete room</button>
     </div>
   `;
 }
@@ -220,12 +233,13 @@ function exitPanel(state) {
   const exitId = selection.sub;
   return `
     ${panelHeader(`Exit · ${exitId}`, `Room · ${selection.id}`)}
-    <div class="properties-body">
+    <div class="properties-body is-compact">
       ${field("Label", textInput(exit.label || "", `data-exit-field="${escapeHtml(exitId)}:label"`))}
       ${field("Target room", `<select data-exit-field="${escapeHtml(exitId)}:target">${selectOptions(roomOptions, exit.target)}</select>`)}
+      ${exitTransitionField(exitId, exit.transition)}
       ${field("Requires card", `<select data-exit-field="${escapeHtml(exitId)}:requires">${selectOptions(cardOptions, exit.requires || "")}</select>`)}
       <label class="mini-check">${checkbox(Boolean(exit.locked), `data-exit-field="${escapeHtml(exitId)}:locked"`)} locked</label>
-      <button type="button" class="negative" data-exit-delete="${escapeHtml(exitId)}">Delete exit</button>
+      <button type="button" class="negative compact-button" data-exit-delete="${escapeHtml(exitId)}">Delete exit</button>
     </div>
   `;
 }

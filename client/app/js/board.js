@@ -48,7 +48,10 @@ import { createBoardRecovery } from "./board-recovery.js";
 import { createBoardGames } from "./board-games.js";
 import { playPropAnimation } from "./board-animations.js";
 import { DIORAMA_BOARD_TYPE, createDioramaBoard } from "./board-diorama.js";
+import { applyFade, collectFadeMaterials, restoreFade } from "./board-fade.js";
+import { ROOM_TRANSITION_MS, transitionFrame, usesFade } from "./board-transitions.js";
 const TOP = 0.045;
+const PROP_FADE_MS = 0.28;
 const SCALE_DRAG_SENSITIVITY = 0.008;
 /** Card footprint used for stacking, matching the ground shadow ellipse. */
 const CARD_HALF_X = 0.425;
@@ -206,6 +209,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   let disposed = false;
   let revision = 0;
   let current = null;
+  let roomTransition = null;
   let roomId = "";
   let spritesEnabled = false;
   let selection = null;
@@ -462,6 +466,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function syncBoardLift() {
     if (!current) return;
     current.root.position.y = boardLift;
+    if (roomTransition) roomTransition.newBase.y = boardLift;
     FLOOR_PLANE.constant = -(TOP + boardLift);
   }
 
@@ -586,6 +591,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
 
   /** Release a prop model's per-instance geometry and materials, keeping shared textures. */
   function disposePropRecord(record) {
+    finishPropFade(record);
     stopRecordAnimations(record);
     record.effectController?.dispose();
     record.effectController = null;
@@ -593,6 +599,53 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     setGhosted(record, false);
     setDarkened(record, false);
     disposeBoardTree([record.group, ...(record.scenes || [])], { textures: record.ownsTextures === true });
+  }
+
+  function removePlaceholder(record) {
+    if (!record.placeholder) return;
+    record.group.remove(record.placeholder);
+    disposeBoardTree(record.placeholder);
+    record.placeholder = null;
+  }
+
+  /** Fade a freshly loaded model in while its loading marker fades out. */
+  function startPropFade(record) {
+    if (reducedMotion) {
+      finishPropFade(record);
+      return;
+    }
+    record.fade = {
+      elapsed: 0,
+      duration: PROP_FADE_MS,
+      model: collectFadeMaterials(record.visual),
+      placeholder: record.placeholder ? collectFadeMaterials(record.placeholder) : null,
+    };
+    applyFade(record.fade.model, 0);
+    if (record.fade.placeholder) applyFade(record.fade.placeholder, 1);
+    invalidate();
+  }
+
+  function finishPropFade(record) {
+    if (record.fade) {
+      restoreFade(record.fade.model);
+      if (record.fade.placeholder) restoreFade(record.fade.placeholder);
+      record.fade = null;
+    }
+    removePlaceholder(record);
+  }
+
+  function advancePropFade(record, delta) {
+    const fade = record.fade;
+    if (!fade) return;
+    fade.elapsed += delta;
+    const progress = Math.min(1, fade.elapsed / fade.duration);
+    const alpha = 1 - (1 - progress) ** 3;
+    applyFade(fade.model, alpha);
+    if (fade.placeholder) applyFade(fade.placeholder, 1 - alpha);
+    if (progress >= 1) {
+      finishPropFade(record);
+      invalidateScene();
+    }
   }
 
   /** Build (or rebuild) a prop record's effect controller from its effect sets. */
@@ -639,9 +692,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       model: null, clips: [], animation: prop.animation || "", animationActive: false, mixers: [], animTimers: [], scenes: [],
       target: group.position.clone(), ghosted: false, darkened: false, override: null, materials: null,
       ownsTextures: isTextProp(prop) || isSurfaceProp(prop), effectController: null, effectKey: "",
+      placeholder: null, fade: null,
     };
     entry.props.set(prop.id, record);
     const placeholder = unavailableMarker(group);
+    record.placeholder = placeholder;
     if (!isTextProp(prop) && !isSurfaceProp(prop) && !isExitProp(prop) && !prop.modelUrl) {
       fail(entry, `${prop.label} model is missing`);
       return;
@@ -672,10 +727,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       const visual = new THREE.Group();
       visual.position.y = -bounds.min.y;
       visual.add(model);
-      group.remove(placeholder);
-      // The placeholder is a per-prop temporary that owns its geometry and
-      // material outright, so unlike shared resources it really is disposed.
-      disposeBoardTree(placeholder);
       group.add(visual);
       record.model = model;
       record.visual = visual;
@@ -687,6 +738,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       setPropLightGlow(record, record.prop.light);
       playPropAnimation(entry, record, record.prop, model, record.clips, isCurrent, invalidate);
       buildRecordEffects(record, record.prop, model, bounds, visual);
+      startPropFade(record);
       entry.pending -= 1;
       invalidateScene();
       if (!userAdjusted) scheduleFit();
@@ -714,7 +766,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
    */
   let fitFrame = 0;
   function scheduleFit() {
-    if (userAdjusted || fitFrame || disposed) return;
+    if (userAdjusted || fitFrame || disposed || roomTransition) return;
     fitFrame = requestAnimationFrame(() => {
       fitFrame = 0;
       if (!userAdjusted && current) {
@@ -840,18 +892,106 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     });
   }
 
-  function clear() {
-    if (!current) return;
-    for (const record of current.props.values()) disposePropRecord(record);
-    for (const record of current.cards.values()) record.spriteMaterial?.dispose();
-    spriteLayer.clear(current);
-    gameLayer.clear();
-    canvas.dataset.fxCount = "0";
-    scene.remove(current.root);
+  function disposeEntry(entry, { clearGame = false } = {}) {
+    if (!entry) return;
+    for (const record of entry.props.values()) disposePropRecord(record);
+    for (const record of entry.cards.values()) record.spriteMaterial?.dispose();
+    spriteLayer.clear(entry);
+    if (clearGame) gameLayer.clear();
+    scene.remove(entry.root);
     // Shared shadow/face geometry and textures are page-lifetime caches, so
     // each entry releases only what it created before the graph is unlinked.
-    current.floor?.dispose?.();
-    detachBoardTree(current.root);
+    entry.floor?.dispose?.();
+    detachBoardTree(entry.root);
+  }
+
+  function transitionViewExtents() {
+    const distance = Math.max(1, camera.position.distanceTo(controls.target));
+    const viewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * distance;
+    const viewWidth = viewHeight * Math.max(1, camera.aspect || 1);
+    return {
+      width: Math.max(12, viewWidth) * 1.15,
+      height: Math.max(10, viewHeight) * 1.15,
+      depth: Math.max(12, viewWidth, viewHeight) * 1.15,
+    };
+  }
+
+  function applyTransitionRoot(root, base, baseScale, offset, scale) {
+    root.position.set(base.x + offset[0], base.y + offset[1], base.z + offset[2]);
+    root.scale.set(baseScale.x * scale, baseScale.y * scale, baseScale.z * scale);
+  }
+
+  function startRoomTransition(previous, next, type) {
+    const oldBase = previous.root.position.clone();
+    const newBase = next.root.position.clone();
+    const oldScale = previous.root.scale.clone();
+    const newScale = next.root.scale.clone();
+    let fade = null;
+    if (usesFade(type)) {
+      fade = collectFadeMaterials(previous.root);
+      applyFade(fade, 1);
+      previous.root.traverse(node => {
+        if (node.isMesh) node.castShadow = node.receiveShadow = false;
+      });
+    }
+    roomTransition = {
+      type, elapsed: 0, duration: ROOM_TRANSITION_MS / 1000,
+      oldEntry: previous, newEntry: next, view: transitionViewExtents(),
+      oldBase, newBase, oldScale, newScale, fade,
+    };
+    controls.enabled = false;
+    canvas.dataset.roomTransition = type;
+    advanceRoomTransition(0);
+    invalidateScene();
+  }
+
+  function finishRoomTransition() {
+    if (!roomTransition) return;
+    const transition = roomTransition;
+    roomTransition = null;
+    if (transition.fade) restoreFade(transition.fade);
+    transition.newEntry.root.position.copy(transition.newBase);
+    transition.newEntry.root.scale.copy(transition.newScale);
+    disposeEntry(transition.oldEntry);
+    canvas.dataset.roomTransition = "";
+    controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
+    if (!userAdjusted) fit(false);
+    invalidateScene();
+  }
+
+  function abortTransition() {
+    if (!roomTransition) {
+      return;
+    }
+    const transition = roomTransition;
+    roomTransition = null;
+    if (transition.fade) restoreFade(transition.fade);
+    transition.newEntry.root.position.copy(transition.newBase);
+    transition.newEntry.root.scale.copy(transition.newScale);
+    disposeEntry(transition.oldEntry);
+    canvas.dataset.roomTransition = "";
+    controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
+    invalidateScene();
+  }
+
+  function advanceRoomTransition(delta) {
+    if (!roomTransition) return;
+    const transition = roomTransition;
+    transition.elapsed += delta;
+    const progress = Math.min(1, transition.elapsed / transition.duration);
+    const frame = transitionFrame(transition.type, progress, transition.view);
+    applyTransitionRoot(transition.oldEntry.root, transition.oldBase, transition.oldScale, frame.oldOffset, frame.oldScale);
+    applyTransitionRoot(transition.newEntry.root, transition.newBase, transition.newScale, frame.newOffset, frame.newScale);
+    if (transition.fade) applyFade(transition.fade, frame.oldOpacity);
+    if (progress >= 1) finishRoomTransition();
+    else if (transition.type !== "crossfade") invalidateScene();
+  }
+
+  function clear() {
+    abortTransition();
+    if (!current) return;
+    disposeEntry(current, { clearGame: true });
+    canvas.dataset.fxCount = "0";
     current = null;
     selectionObject = null;
     editSelectionObject = null;
@@ -864,9 +1004,8 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     }
   }
 
-  function rebuild(room) {
+  function createEntry(room) {
     revision += 1;
-    clear();
     roomId = room.id;
     spritesEnabled = Boolean(room.board?.spritesEnabled);
     userAdjusted = false;
@@ -885,8 +1024,28 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     syncCards(entry, room);
     syncSprites(entry, room);
     syncGame(entry, room);
-    if (!userAdjusted) fit(true);
     status(entry);
+    return entry;
+  }
+
+  function rebuild(room) {
+    clear();
+    const entry = createEntry(room);
+    if (!userAdjusted) fit(true);
+    return entry;
+  }
+
+  function changeRoom(room) {
+    const previous = current;
+    const type = room.transition || "";
+    if (!previous || !type || reducedMotion) {
+      rebuild(room);
+      return;
+    }
+    abortTransition();
+    const entry = createEntry(room);
+    if (!userAdjusted) fit(false);
+    startRoomTransition(previous, entry, type);
   }
 
   function syncRoom(room) {
@@ -1182,9 +1341,11 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
    */
   function sceneIsAnimating() {
     if (!current) return false;
+    if (roomTransition) return true;
     if (current.diorama) return !blocked;
     if (roomScared && !reducedMotion) return true;
     for (const record of current.props.values()) {
+      if (record.fade) return true;
       if (record.animationActive) return true;
       if (record.effectController?.isAnimating?.()) return true;
       if (record.target && !record.group.position.equals(record.target)) return true;
@@ -1216,12 +1377,14 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       for (const record of current.props.values()) {
         for (const mixer of record.mixers) mixer.update(delta);
         record.effectController?.update(delta);
+        advancePropFade(record, delta);
       }
       advanceRecords(current.props.values(), delta, reducedMotion);
       advanceRecords(current.cards.values(), delta, reducedMotion);
       spriteLayer.advance(current, delta, reducedMotion);
       gameLayer.advance(delta);
     }
+    advanceRoomTransition(delta);
     if (selectionRing.visible && selectionObject) {
       selectionRing.position.set(
         selectionObject.position.x,
@@ -1290,6 +1453,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         shadowAutoUpdate: renderer.shadowMap.autoUpdate,
         shadowMapSize: lights.sunlight.shadow.mapSize.width,
         pixelRatio: renderer.getPixelRatio(),
+        transition: roomTransition?.type || "",
         renderFailed: recovery.renderFailed,
       };
     },
@@ -1313,7 +1477,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       dropArmed = Boolean(state.ui?.dropTargeting) && !current?.diorama;
       gameInputEnabled = !blocked && !state.ui?.targeting && !state.ui?.dropTargeting && !state.room?.dialog;
       if (wasDropArmed && !dropArmed) setDropHint(null);
-      controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed;
+      controls.enabled = !blocked && !recovery.renderFailed && !orbitSuppressed && !roomTransition;
       if (blocked) {
         pointers.clear();
         gestureMoved = true;
@@ -1342,7 +1506,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (roomDark !== wasDark) invalidate();
       if (!roomScared && current) settleShake(current.root);
       if (!current || roomId !== state.room.id) {
-        rebuild(state.room);
+        changeRoom(state.room);
       } else {
         syncRoom(state.room);
       }

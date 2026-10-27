@@ -317,14 +317,14 @@ The fleet channel also exposes cross-world discovery:
 `GET /api/mc/worlds` (token-authenticated) groups running instances by world and
 returns each world's id, label, description, image metadata, population, online
 account ids, and candidate instances with client URLs. The in-game Multiverse
-activity uses this to render portals and friend presence. A participating world
+view uses this to render planets and friend presence. A participating world
 still verifies that a candidate client URL shares its login hostname before
 offering or travelling to it.
 
 `GET /api/mc/instances/{world_id}/destination` (token-authenticated) resolves a
 running instance serving `world_id` and returns `{ok, instance_id, world_id,
 client_url, entry_room_id}`. A participating world calls it when a player uses
-the Multiverse or an authored cross-world exit, then redirects the browser to
+the Multiverse view or an authored cross-world exit, then redirects the browser to
 `client_url` after verifying the hostname matches so the host-only session
 cookie is shared. Validation reuses the entry-destination checks
 (running/registered, world identity, shared database for spawned instances, and

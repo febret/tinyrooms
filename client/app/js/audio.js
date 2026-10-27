@@ -18,6 +18,11 @@ const UI_SOUND_FILES = {
   close: "door-close.wav",
   toggle: "switch.wav",
   cutscene: "cutscene-start.wav",
+  multiverseOpen: "multiverse-open.wav",
+  multiverseClose: "multiverse-close.wav",
+  multiverseHover: "multiverse-hover.wav",
+  multiverseSelect: "multiverse-select.wav",
+  multiverseTravel: "multiverse-travel.wav",
 };
 
 let context;

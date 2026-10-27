@@ -561,7 +561,7 @@ def _world_image_url(record: InstanceRecord) -> str:
 
 @router.get("/api/mc/worlds")
 async def fleet_worlds(request: Request) -> Response:
-    """List running worlds for the in-game Multiverse activity.
+    """List running worlds for the in-game Multiverse view.
 
     Token-authenticated fleet endpoint. Instances are grouped by world so the
     caller can choose a destination that shares its browser hostname.

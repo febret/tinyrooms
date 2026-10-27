@@ -1,4 +1,4 @@
-"""Multiverse activity discovery, travel, and presentation contracts."""
+"""Multiverse core view discovery, travel, and presentation contracts."""
 
 from __future__ import annotations
 
@@ -6,15 +6,13 @@ import asyncio
 from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 
-from server.commands.activity_launch import ResolvedActivity, start_activity
 from server.commands.outcomes import CommandError
-from server.content.activities import ActivityDefinition, load_activity_definitions
+from server.content.activities import load_activity_definitions
 from server.content.common import ContentError
 from server.services.cross_world import CrossWorldService
 from tests.common import (
@@ -30,64 +28,12 @@ from tests.mc_helpers import McHttpTestCase
 MC_TOKEN = "shared"
 
 
-def _activity_definition(flag: str | None = "multiverse_access") -> ActivityDefinition:
-    return ActivityDefinition(
-        id="multiverse",
-        title="Multiverse",
-        aliases=(),
-        rooms=(),
-        required_feature=None,
-        source="test",
-        required_flag=flag,
-    )
-
-
-class ActivityAccessGateTests(unittest.TestCase):
-    def _context(self, *, admin: bool, unlocked: bool):
-        context = SimpleNamespace(
-            account=SimpleNamespace(id="account-1"),
-            powers=Mock(),
-            progression=Mock(),
-            profiles=Mock(),
-            activities=Mock(),
-        )
-        context.powers.has_power.return_value = admin
-        context.profiles.has_multiverse_access.return_value = unlocked
-        session = SimpleNamespace(id="session-1")
-        context.activities.start.return_value = (session, None)
-        context.activities.serialize.return_value = {"id": "session-1"}
-        return context
-
-    def test_launch_requires_multiverse_access(self) -> None:
-        context = self._context(admin=False, unlocked=False)
-        with self.assertRaises(CommandError) as caught:
-            start_activity(
-                context,
-                ResolvedActivity(_activity_definition()),
-                room_id="hub",
-                replace_existing=False,
-            )
-        self.assertIn("Multiverse Map", str(caught.exception))
-        context.activities.start.assert_not_called()
-
-    def test_launch_allows_multiverse_access(self) -> None:
-        context = self._context(admin=False, unlocked=True)
-        outcome = start_activity(
-            context,
-            ResolvedActivity(_activity_definition()),
-            room_id="hub",
-            replace_existing=False,
-        )
-        self.assertEqual(outcome.payload["activity"], {"id": "session-1"})
-        context.activities.start.assert_called_once()
-
-
 class MultiverseContentTests(unittest.TestCase):
-    def test_core_activity_requires_multiverse_access(self) -> None:
+    def test_multiverse_is_not_an_activity(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
-        definition = world.activities["multiverse"]
-        self.assertIsNone(definition.required_skill)
-        self.assertEqual(definition.required_flag, "multiverse_access")
+        self.assertNotIn("multiverse", world.activities)
+        core = load_activity_definitions(REPO_ROOT / "data" / "core" / "activities.yaml", source="test")
+        self.assertNotIn("multiverse", core)
 
     def test_activity_skill_must_be_non_empty(self) -> None:
         with TemporaryDirectory() as root:
@@ -103,14 +49,6 @@ class MultiverseContentTests(unittest.TestCase):
             with self.assertRaisesRegex(ContentError, "flag must be a non-empty string"):
                 load_activity_definitions(path, source="test")
 
-    def test_world_images_are_loaded_from_world_yaml(self) -> None:
-        tutorial = load_test_world(REPO_ROOT / "worlds" / "tutorial")
-        scammon = load_test_world(REPO_ROOT / "worlds" / "scammon-academia")
-        self.assertEqual(tutorial.image_name, "rooms/hub.jpg")
-        self.assertTrue(tutorial.image_path is not None and tutorial.image_path.is_file())
-        self.assertEqual(scammon.image_name, "rooms/hall.png")
-        self.assertTrue(scammon.image_path is not None and scammon.image_path.is_file())
-
 
 class WorldImageRouteTests(RuntimeTestCase):
     def test_world_image_is_served(self) -> None:
@@ -120,15 +58,23 @@ class WorldImageRouteTests(RuntimeTestCase):
         self.assertIn(response.headers.get("content-type", ""), {"image/jpeg", "image/png"})
 
 
-class MultiverseActivityAssetsTests(RuntimeTestCase):
-    def test_activity_document_and_assets_are_served(self) -> None:
-        index = self.client.get("/activities/multiverse/")
+class MultiverseCoreAssetsTests(RuntimeTestCase):
+    def test_core_view_document_and_assets_are_served(self) -> None:
+        index = self.client.get("/")
         self.assertEqual(index.status_code, 200, index.text)
-        self.assertIn("multiverse.js", index.text)
+        self.assertIn("/app/js/views/multiverse-view.js", index.text)
+        self.assertIn("/app/css/multiverse.css", index.text)
         for path in (
-            "/activities/multiverse/multiverse.js",
-            "/activities/multiverse/multiverse.css",
-            "/activities/multiverse/world-placeholder.svg",
+            "/app/js/views/multiverse-view.js",
+            "/app/css/multiverse.css",
+            "/app/assets/textures/multiverse-nebula.png",
+            "/app/assets/textures/multiverse-vortex.png",
+            "/app/assets/textures/multiverse-world-placeholder.png",
+            "/assets/sounds/multiverse-open.wav",
+            "/assets/sounds/multiverse-close.wav",
+            "/assets/sounds/multiverse-hover.wav",
+            "/assets/sounds/multiverse-select.wav",
+            "/assets/sounds/multiverse-travel.wav",
         ):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200, path)
@@ -218,10 +164,6 @@ class MultiverseCommandIntegrationTests(IntegrationTestCase):
                 if stack.card_def_id == "multiverse-map"
             ]
             self.assertEqual([stack.quantity for stack in owned], [1])
-
-            opened = self.command(socket, "multiverse-open", ".play multiverse")
-            self.assertTrue(opened["ok"], opened)
-            self.assertIn("/activities/multiverse/", opened["payload"]["activity"]["iframe_url"])
 
             listing = self.command(socket, "multiverse-list", ".multiverse_worlds")
             self.assertTrue(listing["ok"], listing)

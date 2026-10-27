@@ -9,8 +9,5 @@ dev-sample:
   title: Sample Activity
   aliases: [sample]
   feature: dev_sample_activity
-multiverse:
-  title: Multiverse
-  flag: multiverse_access
 whiteboard:
   title: Whiteboard

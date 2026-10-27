@@ -258,7 +258,7 @@ export function createActivityManager({
       min: node.querySelector(".activity-min"),
       close: node.querySelector(".activity-close"),
       minimized: false,
-      height: activity.kind === "sticker-designer" || activity.kind === "multiverse" ? 640 : 560,
+      height: activity.kind === "sticker-designer" ? 640 : 560,
     };
     if (pillRoot) {
       entry.pill = document.createElement("button");

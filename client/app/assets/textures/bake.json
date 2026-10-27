@@ -38,6 +38,45 @@
         "steps": 30,
         "negative": "color, text, watermark, objects, people, lighting, shadows, vignette, border, frame"
       }
+    },
+    {
+      "label": "multiverse-nebula",
+      "tool": "image",
+      "prompt": "vast deep-space nebula seen from inside a wormhole, colossal luminous spiral vortex of violet and cyan gas, scattered fine stars, soft volumetric glow, dramatic cosmic game background, painterly, high detail, no planets, no spacecraft, no text",
+      "output": "client/app/assets/textures/multiverse-nebula.png",
+      "args": {
+        "width": 1536,
+        "height": 1024,
+        "seed": 52001,
+        "steps": 30,
+        "negative": "text, watermark, logo, user interface, frame, border, planets, spacecraft, people, low contrast, flat background"
+      }
+    },
+    {
+      "label": "multiverse-vortex",
+      "tool": "image",
+      "prompt": "looking down a luminous wormhole tunnel, concentric rings of violet plasma and teal starlight, radial light streaks toward a brilliant center, dark edges, cosmic game background, no text",
+      "output": "client/app/assets/textures/multiverse-vortex.png",
+      "args": {
+        "width": 1024,
+        "height": 1024,
+        "seed": 52002,
+        "steps": 30,
+        "negative": "text, watermark, logo, user interface, frame, border, planets, spacecraft, people"
+      }
+    },
+    {
+      "label": "multiverse-world-placeholder",
+      "tool": "image",
+      "prompt": "mysterious violet and teal gas giant planet filling the frame, soft luminous cloud bands, glowing crescent rim light, dark starry background, painterly game art, no text, no spacecraft",
+      "output": "client/app/assets/textures/multiverse-world-placeholder.png",
+      "args": {
+        "width": 1024,
+        "height": 1024,
+        "seed": 52003,
+        "steps": 30,
+        "negative": "text, watermark, logo, user interface, frame, border, spacecraft, people, low detail"
+      }
     }
   ]
 }

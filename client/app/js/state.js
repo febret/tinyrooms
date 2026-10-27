@@ -17,6 +17,7 @@ import {
   normalizeGameState,
   normalizeInventoryStack,
   normalizeJournal,
+  normalizeMultiverseWorlds,
   normalizeNpc,
   normalizeOccupant,
   normalizePack,
@@ -568,6 +569,17 @@ function applyServerEvent(state, event) {
 
 export { applyServerEvent };
 
+function initialMultiverse() {
+  return { status: "idle", worlds: [], selectedId: "", travelingId: "", error: "" };
+}
+
+/** Keep the previous selection when it still exists; otherwise prefer the current world. */
+function nextMultiverseSelection(previous, worlds) {
+  if (previous && worlds.some(world => world.id === previous)) return previous;
+  const current = worlds.find(world => world.current);
+  return current?.id || worlds[0]?.id || "";
+}
+
 function mergeResultPayload(state, payload) {
   if (!payload) return state;
   let next = state;
@@ -666,6 +678,23 @@ function mergeResultPayload(state, payload) {
   if ("dialog" in payload) {
     next = applyDialogPayload(next, payload.dialog);
   }
+  if (Array.isArray(payload.worlds)) {
+    const worlds = normalizeMultiverseWorlds(payload.worlds);
+    const travelingId = next.multiverse.travelingId && worlds.some(world => world.id === next.multiverse.travelingId)
+      ? next.multiverse.travelingId
+      : "";
+    next = {
+      ...next,
+      multiverse: {
+        ...next.multiverse,
+        status: "ready",
+        worlds,
+        selectedId: nextMultiverseSelection(next.multiverse.selectedId, worlds),
+        travelingId,
+        error: "",
+      },
+    };
+  }
   if (payload.entity) {
     next = { ...next, describedEntity: clone(payload.entity) };
   }
@@ -705,6 +734,7 @@ function createInitialState() {
     room: null,
     stickers: [],
     activities: [],
+    multiverse: initialMultiverse(),
     rtc: { iceServers: [] },
     selection: { kind: "none", id: "" },
     views: { auth: true, main: null, commandPalette: false, propId: null, skillStackId: null, skillPickerSlot: null },
@@ -730,6 +760,7 @@ function reduce(state, action) {
       user,
       room: action.loggedIn ? state.room : null,
       activities: user?.activity ? [user.activity] : [],
+      multiverse: action.loggedIn ? state.multiverse : initialMultiverse(),
       ui: { ...state.ui, actionLogVisible: Boolean(user?.showActivityLog), soundEnabled: state.ui.soundEnabled, audioEnabled: false, audioMuted: false, phoneApp: action.loggedIn ? state.ui.phoneApp : "apps", phoneMusic: action.loggedIn ? state.ui.phoneMusic : { ...initialPhoneMusic(), enabled: false }, dropTargeting: action.loggedIn ? state.ui.dropTargeting : null },
       views: { auth: !action.loggedIn, main: null, commandPalette: false, skillStackId: null, skillPickerSlot: null },
       auth: { ...state.auth, busy: false, error: "" },
@@ -805,6 +836,9 @@ function reduce(state, action) {
     const idSide = { self: "self", skills: "skills" }[action.view];
     const view = idSide ? "id" : action.view;
     let selection = view === "prop-details" ? { kind: "prop", id: action.propId } : { kind: "core", id: view };
+    if (view === "multiverse") {
+      selection = state.room ? { kind: "room", id: state.room.id } : { kind: "none", id: "" };
+    }
     let inventoryTab = state.ui.inventoryTab;
     if (view === "inventory") {
       const next = openInventoryState(state);
@@ -828,7 +862,44 @@ function reduce(state, action) {
     const side = state.ui.idCardSide === "skills" ? "self" : "skills";
     return { ...state, ui: { ...state.ui, idCardSide: side } };
   }
-  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false }, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false } };
+  if (action.type === "close-view") return { ...state, selection: state.room ? { kind: "room", id: state.room.id } : state.selection, views: { ...state.views, main: null, skillStackId: null, skillPickerSlot: null }, ui: { ...state.ui, phoneApp: "apps", phoneMessages: { ...state.ui.phoneMessages, threadKey: null, picking: false }, targeting: null, dropTargeting: null, sellMode: false, emoteMenuOpen: false, roomPickerOpen: false }, multiverse: { ...state.multiverse, travelingId: "" } };
+  if (action.type === "multiverse-loading") {
+    return { ...state, multiverse: { ...state.multiverse, status: "loading", error: "" } };
+  }
+  if (action.type === "multiverse-error") {
+    return {
+      ...state,
+      multiverse: {
+        ...state.multiverse,
+        status: "error",
+        travelingId: "",
+        error: String(action.message || action.error || "The Multiverse could not be reached."),
+      },
+    };
+  }
+  if (action.type === "multiverse-select") {
+    const id = String(action.id || "");
+    if (!id || !state.multiverse.worlds.some(world => world.id === id)) return state;
+    if (state.multiverse.selectedId === id) return state;
+    return { ...state, multiverse: { ...state.multiverse, selectedId: id } };
+  }
+  if (action.type === "multiverse-traveling") {
+    const id = String(action.id || "");
+    if (!id) return state;
+    return { ...state, multiverse: { ...state.multiverse, travelingId: id, error: "" } };
+  }
+  if (action.type === "multiverse-travel-failed") {
+    return {
+      ...state,
+      multiverse: {
+        ...state.multiverse,
+        travelingId: "",
+        status: state.multiverse.worlds.length ? state.multiverse.status : "error",
+        error: String(action.message || action.error || "That portal did not open."),
+      },
+    };
+  }
+  if (action.type === "multiverse-reset") return { ...state, multiverse: initialMultiverse() };
   if (action.type === "toggle-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: !state.ui.roomPickerOpen, emoteMenuOpen: false } };
   if (action.type === "close-room-picker") return { ...state, views: { ...state.views, skillPickerSlot: null }, ui: { ...state.ui, roomPickerOpen: false } };
   if (action.type === "open-container") {

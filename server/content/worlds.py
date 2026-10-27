@@ -69,6 +69,17 @@ from server.content.text_props import MAX_ROOM_TEXT_LENGTH, MAX_TEXT_PROPS
 
 BOARD_IMAGE_STYLES = frozenset({"stretch", "tile", "tile-w", "tile-h"})
 BOARD_TYPES = frozenset({"basic", "diorama"})
+DEFAULT_EXIT_TRANSITION = "crossfade"
+EXIT_TRANSITION_TYPES = frozenset({
+    "crossfade",
+    "zoom-in",
+    "swipe-east",
+    "swipe-west",
+    "swipe-north",
+    "swipe-south",
+    "swipe-up",
+    "swipe-down",
+})
 POWER_NAMES = ("admin", "realtor", "builder", "moderator", "game-master")
 from server.content.prop_assets import (  # noqa: E402
     prop_model_url,
@@ -86,6 +97,7 @@ class ExitDefinition:
     requires_card_id: str | None
     npc_barrier: bool = False
     target_world_id: str | None = None
+    transition: str = DEFAULT_EXIT_TRANSITION
 
 
 @dataclass(frozen=True, slots=True)
@@ -683,6 +695,16 @@ def load_world_definition(
             target_room_id = str(raw_exit.get("target", "")).strip()
             if target_world_id is None and not target_room_id:
                 raise ContentError(f"Exit '{room_id}.{exit_id}' must define a target room or target world.")
+            raw_transition = raw_exit.get("transition")
+            if raw_transition is None:
+                transition = DEFAULT_EXIT_TRANSITION
+            elif not isinstance(raw_transition, str) or raw_transition not in EXIT_TRANSITION_TYPES:
+                allowed = ", ".join(sorted(EXIT_TRANSITION_TYPES))
+                raise ContentError(
+                    f"Exit '{room_id}.{exit_id}' transition must be one of: {allowed}."
+                )
+            else:
+                transition = raw_transition
             room_exits[exit_id] = ExitDefinition(
                 id=exit_id,
                 label=str(raw_exit.get("label", "")).strip(),
@@ -691,6 +713,7 @@ def load_world_definition(
                 requires_card_id=requires_card_id,
                 npc_barrier=bool(raw_exit.get("npc_barrier", False)),
                 target_world_id=target_world_id,
+                transition=transition,
             )
         for instance in room_props.values():
             if instance.exit_to is not None and instance.exit_to not in room_exits:

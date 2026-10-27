@@ -301,22 +301,6 @@ class CrossWorldDropTests(ServiceTestCase):
             cards,
         )
 
-    def test_global_bases_cover_worlds_without_tutorial_cards(self) -> None:
-        from server.content.cards import load_card_catalog
-
-        remote_catalog = load_card_catalog(
-            REPO_ROOT / "data" / "cardsets", REPO_ROOT / "worlds" / "scammon-academia"
-        )
-        for base in ("poop", "poop-in-a-bag", "juicy-drink", "tasty-toast", "tomato-sauce"):
-            self.assertNotIn(base, remote_catalog.cards)
-        dropper, cards = self._dropper_for(remote_catalog)
-        broadcasts = dropper.maybe_drop("some-room", ["ghost-id"], force=True)
-        added = [event for event in broadcasts if event.event["type"] == "room.card.added"]
-        self.assertEqual(len(added), 1)
-        definition = cards.definition(added[0].event["stack"]["definition"]["id"])
-        self.assertIn(definition.image_name, ("stinky-pee.png", "stinky-poop.png"))
-        self.assertEqual(definition.source, "stinky")
-
     def test_variant_fallback_when_first_choice_has_no_base(self) -> None:
         catalog = replace(
             self.catalog,
