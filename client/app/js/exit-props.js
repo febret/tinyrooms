@@ -140,7 +140,6 @@ function createFloorArrow(finish, map) {
   group.add(part(new THREE.BoxGeometry(0.36, 0.12, 1.2), finish.main, 0, 0.1, -0.35, { map, emissive: finish.accent, emissiveIntensity: 0.35 }));
   const headGeometry = new THREE.ConeGeometry(0.55, 0.8, 4);
   headGeometry.rotateX(Math.PI / 2);
-  headGeometry.rotateY(Math.PI / 4);
   const head = new THREE.Mesh(headGeometry,
     new THREE.MeshStandardMaterial({ color: finish.main, roughness: 0.6, map: map || null, emissive: finish.accent, emissiveIntensity: 0.35 }));
   head.scale.set(1, 0.18, 1);

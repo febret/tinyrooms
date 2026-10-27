@@ -22,6 +22,11 @@ tinytown-bathtub:
     and ceremonial rubber-duck regattas.
   model: tinytown-bathtub.glb
   decorative: true
+  behavior: washing-station
+  cooldown: 120
+  default_actions:
+  - - Take a bath
+    - .act bathe @self
   scale: 1.9
   editor_scale_min: 0.5
   editor_scale_max: 2
@@ -37,6 +42,11 @@ tinytown-pool:
     a proper splash.
   model: tinytown-pool.glb
   decorative: true
+  behavior: washing-station
+  cooldown: 120
+  default_actions:
+  - - Take a dip
+    - .act swim @self
   scale: 3
   editor_scale_min: 0.4
   editor_scale_max: 2

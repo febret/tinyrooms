@@ -18,4 +18,6 @@ BUILTIN_BEHAVIORS: dict[str, str] = {
     "recipe-book": "builtin:recipe-book",
     "shop": "builtin:shop",
     "supplies": "builtin:supplies",
+    "toilet": "builtin:toilet",
+    "washing-station": "builtin:washing-station",
 }

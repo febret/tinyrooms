@@ -31,12 +31,16 @@ from server.content.worlds import (
     BOARD_IMAGE_STYLES,
     PropDefinition,
     PropInstanceDefinition,
+    QuickAction,
     RoomDefinition,
     WorldDefinition,
     prop_model_url,
+    resolve_default_prop_actions,
 )
+from server.content.sounds import sounds_payload
 from server.profiles import AccountRecord
 from server.services.environment import EnvironmentService
+from server.services.lighting import is_toggleable
 from server.services.ownership import OwnershipService
 from server.services.prop_shop import PropShopService, serialize_prop_entry
 from server.services.prop_surfaces import PropSurfaceService, surface_kind
@@ -292,6 +296,7 @@ class RoomLayoutService:
         }
 
     def _serialize_instance(self, room_id: str, instance: PropInstanceDefinition) -> dict[str, object]:
+        room = self._room(room_id)
         definition = self._world.props[instance.prop_id]
         animation = instance.animation if instance.animation is not None else definition.animation
         state_payload = self._state_payload(room_id, instance.id, definition)
@@ -317,7 +322,7 @@ class RoomLayoutService:
             "label": instance.label or definition.label,
             "description": instance.description if instance.description is not None else definition.description,
             "animation": animation,
-            "quick_actions": [],
+            "quick_actions": self._static_quick_actions(room, instance),
             **state_payload,
             **self._effect_payload(room_id, instance.id, definition),
         }
@@ -337,6 +342,67 @@ class RoomLayoutService:
             kind,
             default_content=instance.surface,
         ).serialize()
+
+    def _static_quick_actions(
+        self,
+        room: RoomDefinition,
+        instance: PropInstanceDefinition,
+    ) -> list[dict[str, object]]:
+        """Build account-independent quick actions for a layout broadcast prop.
+
+        Layout updates fan out to every occupant in one shared payload, so
+        per-account contributions (mod personal actions, status-gated actions)
+        stay in the per-viewer room snapshot. Everything static — instance
+        customs, definition defaults, surface editors, and light toggles —
+        ships with the broadcast so newly placed props are usable immediately
+        instead of waiting for a re-enter snapshot.
+        """
+
+        if self._environment is not None:
+            dark = self._environment.lighting(room.id) == "dark"
+        else:
+            dark = room.dark
+        if dark:
+            return []
+        definition = self._world.props[instance.prop_id]
+        merged = list(instance.actions)
+        seen = {action.command for action in merged}
+        if instance.exit_to:
+            exit_definition = room.exits.get(instance.exit_to)
+            if exit_definition is not None:
+                command = f".go @way:{instance.exit_to}"
+                if command not in seen:
+                    seen.add(command)
+                    merged.append(
+                        QuickAction(
+                            label=exit_definition.label or instance.exit_to,
+                            command=command,
+                            default=True,
+                        )
+                    )
+        for action in resolve_default_prop_actions(definition, instance.id):
+            if action.command in seen:
+                continue
+            seen.add(action.command)
+            merged.append(action)
+        actions: list[dict[str, object]] = [
+            {
+                "label": action.label,
+                "command": action.command,
+                **({"default": True} if action.default else {}),
+            }
+            for action in merged
+        ]
+        if definition.render_kind == "sign":
+            actions.append({"label": "Edit sign", "command": f".sign {instance.id}", "default": True})
+        elif definition.render_kind == "whiteboard":
+            actions.append({"label": "Open whiteboard", "command": f".play {instance.id}", "default": True})
+        if is_toggleable(definition):
+            actions.append({"label": "Toggle light", "command": f".toggle @prop:{instance.id}"})
+        action_sound = sounds_payload({**definition.sounds, **instance.sounds}).get("action")
+        if action_sound is not None:
+            actions = [{**action, "sound": action_sound} for action in actions]
+        return actions
 
     def _serialize_library(self, definition: PropDefinition) -> dict[str, object]:
         # Locking is reported statically; the client hides locked props unless

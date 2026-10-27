@@ -244,6 +244,11 @@ school-sink:
     pump.
   model: school-sink.glb
   decorative: true
+  behavior: washing-station
+  cooldown: 120
+  default_actions:
+  - - Wash up
+    - .act wash @self
   scale: 0.9
   tags:
   - bathroom
@@ -258,6 +263,11 @@ school-toilet:
   description: A white toilet with a blue flush button. Built for real hallway emergencies.
   model: school-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 0.9
   tags:
   - bathroom

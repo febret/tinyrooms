@@ -471,16 +471,16 @@ the current one.
 ### Phone and Friends
 The Phone core card opens a skeuomorphic pocket phone. It starts on an apps page
 with **Friends**, **Messages**, and **Chiptune** apps; a back control returns to the apps page.
-The Friends app manages friendships and beacons. It shows each friend's online
+The Friends app manages friendships. It shows each friend's online
 state and reciprocal vibes in both directions: the viewer's vibe toward that
 friend and the friend's vibe toward the viewer. Friends can be added through the
 `Add Friend` quick action on another user's peep (the other user must accept the
 request). The friends list is part of the shared user profile, and Journal
 monthly progress includes the number of new friends made in the month.
-Incoming and outgoing requests and incoming beacons remain pending until
-accepted, declined, cancelled, followed, or dismissed, including while a user is
-offline. Acceptance creates a mutual friendship; either user can remove the
-friendship for both.
+Incoming and outgoing requests remain pending until accepted, declined, or
+cancelled. Acceptance creates a mutual friendship; either user can remove the
+friendship for both. The keypad Go to button visits a highlighted friend, or the
+friend or peep selected by an open Messages thread, at their current position.
 
 ### Messages
 The Phone's Messages app works like old-school SMS: a thread list, one open
@@ -505,7 +505,7 @@ suggests the chiptune.app top chart and tracks starred by other Tinyrooms users.
 Playback is per-user and never changes the room's music; the selected track and
 on/off preference are remembered locally in the browser. Because playback runs
 through a cross-origin chiptune.app frame, volume and playback
-position are unavailable (the phone's volume keys are shown but disabled), and autoplay requires one user gesture.
+position are unavailable, and autoplay requires one user gesture.
 
 
 -------------------------------------------------------------------------------
@@ -1057,13 +1057,12 @@ loadout only after a successful transfer. Successful cross-world travel has the
 same default cost of 1 Energy as an in-world room change. Authored exits may
 override that cost; Energy-consuming exits remain unavailable while Tired.
 
-Friends may send a beacon that records the sender's world and room at send time.
-Following a same-world beacon moves the recipient to that room without the map.
-Following a cross-world beacon requires permanent Multiverse Map access unless
-the user has the admin power. It uses the same destination resolution as
-a cross-world exit and consumes the beacon. Beacons persist in the shared
-profile until used or dismissed, so they work while the sender is offline and
-across world boundaries.
+A player can go directly to an online friend's current position. Same-world visits
+use the friend's live room presence. Cross-world visits require permanent
+Multiverse Map access unless the user has the admin power, and use the same
+destination resolution as a cross-world exit. The keypad Go to button uses the
+highlighted friend in the Friends app, or the friend or current-world peep in an
+open Messages thread.
 
 ### World Editor
 The World Editor is available at the URL `world-editor` when that feature is

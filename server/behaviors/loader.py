@@ -57,6 +57,13 @@ def _builtin_behavior_module(name: str) -> ModuleType:
         return _builtin_module()
 
 
+def builtin_behavior_script(name: str) -> BehaviorScript:
+    """Return the shared script for a built-in behavior name."""
+
+    script_id = BUILTIN_BEHAVIORS[name]
+    return BehaviorScript(script_id=script_id, path=None, module=_builtin_behavior_module(name))
+
+
 class BehaviorLoader:
     """Import trusted scripts once per resolved path at definition time."""
 
@@ -98,6 +105,22 @@ class BehaviorLoader:
                 return python_path
         raise ContentError(f"Prop '{instance_id}' references missing behavior script '{script}'.")
 
+    def import_prop_behavior(
+        self,
+        world: WorldDefinition,
+        behavior: str,
+        instance_id: str,
+    ) -> BehaviorScript:
+        """Import one prop behavior script, mapping builtins to shared modules.
+
+        Used at dispatch time for live-layout-placed props, which have no
+        load-time attachment. World file scripts stay cached by resolved path.
+        """
+
+        if behavior in BUILTIN_BEHAVIORS:
+            return builtin_behavior_script(behavior)
+        return self.import_script(self._resolve_prop(world, behavior, instance_id))
+
     def load_world(self, world: WorldDefinition) -> BehaviorScripts:
         """Import every referenced script and build the attachment maps."""
 
@@ -122,22 +145,10 @@ class BehaviorLoader:
                 behavior = world.props[prop.prop_id].behavior
                 if not behavior:
                     continue
-                if behavior in BUILTIN_BEHAVIORS:
-                    script_id = BUILTIN_BEHAVIORS[behavior]
-                    scripts.setdefault(
-                        script_id,
-                        BehaviorScript(
-                            script_id=script_id,
-                            path=None,
-                            module=_builtin_behavior_module(behavior),
-                        ),
-                    )
-                else:
-                    script = self.import_script(self._resolve_prop(world, behavior, prop.id))
-                    scripts[script.script_id] = script
-                    script_id = script.script_id
+                script = self.import_prop_behavior(world, behavior, prop.id)
+                scripts.setdefault(script.script_id, script)
                 prop_attachments[prop.id] = BehaviorAttachment(
-                    script_id=script_id,
+                    script_id=script.script_id,
                     namespace="prop",
                     instance_id=prop.id,
                     ref=PropRef(instance_id=prop.id, prop_id=prop.prop_id, room_id=room.id),

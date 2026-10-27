@@ -13,8 +13,9 @@ import time
 from server.behaviors.context import BehaviorContext, CardView
 from server.behaviors.events import BehaviorEvent, PeepRef, PropRef
 from server.behaviors.intents import BehaviorIntentMixin, BehaviorResult
-from server.behaviors.loader import BehaviorAttachment, BehaviorScripts
+from server.behaviors.loader import BehaviorAttachment, BehaviorScripts, builtin_behavior_script
 from server.content.cards import CardCatalog
+from server.content.common import ContentError
 from server.content.levels import DEFAULT_MAX_EQUIPPED
 from server.content.worlds import WorldDefinition
 from server.profiles import ProfileRepository
@@ -186,6 +187,8 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 return self._room_attachments_for(event.room_id or "")
             if isinstance(target, PropRef):
                 attachment = self._scripts.prop_attachments.get(target.instance_id)
+                if attachment is None:
+                    attachment = self._live_prop_attachment(target)
                 return [attachment] if attachment is not None else []
             if event.type == "card_play" and target is None:
                 # A card used with no target is a room-level action: every script
@@ -211,6 +214,43 @@ class BehaviorDispatcher(BehaviorIntentMixin):
                 if hasattr(script.module, "on_activity_result")
             ]
         return []
+
+    def _live_prop_attachment(self, target: PropRef) -> BehaviorAttachment | None:
+        """Attach a behavior to a live-layout-placed prop with no load-time script.
+
+        The loader only attaches authored room props at startup; props added
+        later through the room editor (or materialized by mods) resolve here on
+        first use and are cached, so per-instance behavior state — including
+        cooldowns — persists exactly like authored placements. Unknown or
+        behavior-less props still resolve to no attachment.
+        """
+
+        existing = self._scripts.prop_attachments.get(target.instance_id)
+        if existing is not None:
+            return existing
+        definition = self._world.props.get(target.prop_id)
+        if definition is None or not definition.behavior:
+            return None
+        try:
+            if self._loader is not None and hasattr(self._loader, "import_prop_behavior"):
+                script = self._loader.import_prop_behavior(self._world, definition.behavior, target.instance_id)
+            else:
+                from server.behaviors.builtin import BUILTIN_BEHAVIORS
+
+                if definition.behavior not in BUILTIN_BEHAVIORS:
+                    return None
+                script = builtin_behavior_script(definition.behavior)
+        except ContentError:
+            return None
+        self._scripts.scripts.setdefault(script.script_id, script)
+        attachment = BehaviorAttachment(
+            script_id=script.script_id,
+            namespace="prop",
+            instance_id=target.instance_id,
+            ref=target,
+        )
+        self._scripts.prop_attachments[target.instance_id] = attachment
+        return attachment
 
     def _actor_view(self, event: BehaviorEvent) -> dict[str, object]:
         """Return the acting user's statuses, counters, and inventory for scripts."""

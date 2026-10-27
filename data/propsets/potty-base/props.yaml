@@ -5,6 +5,11 @@ cottage-toilet:
   description: A dependable white ceramic loo with a plain wooden seat.
   model: cottage-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 0.9
   tags:
   - plumbing
@@ -14,6 +19,11 @@ victorian-high-tank:
   description: An ornate water closet of hand-painted china on a brass pull chain.
   model: victorian-high-tank.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.2
   tags:
   - plumbing
@@ -25,6 +35,11 @@ gilded-throne-toilet:
     on top.
   model: gilded-throne-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.15
   tags:
   - plumbing
@@ -35,6 +50,11 @@ marble-imperial-toilet:
   description: An emperor's marble throne on lion paws, its lid crusted with jewels.
   model: marble-imperial-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.2
   tags:
   - plumbing
@@ -45,6 +65,11 @@ piano-toilet:
   description: A baby grand you play one note at a time, lid up.
   model: piano-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.25
   tags:
   - plumbing
@@ -56,6 +81,11 @@ rocket-toilet:
   description: A chrome rocket bound for the stars. Countdown sold separately.
   model: rocket-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.3
   tags:
   - plumbing
@@ -66,6 +96,11 @@ hollow-log-toilet:
   description: A rustic hollow-log commode. Moss included, plumbing optional.
   model: hollow-log-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.1
   tags:
   - plumbing
@@ -75,6 +110,11 @@ shark-jaws-toilet:
   description: A toilet held in the jaws of a great white. Hold your nerve.
   model: shark-jaws-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.3
   tags:
   - plumbing
@@ -85,6 +125,11 @@ royal-frog-toilet:
   description: A crowned frog with a round lily-pad seat. Ribbit respectfully.
   model: royal-frog-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.15
   tags:
   - plumbing
@@ -95,6 +140,11 @@ disco-glam-toilet:
   description: A mirror-ball throne that lights up warm when you sit. Stayin' alive.
   model: disco-glam-toilet.glb
   decorative: true
+  behavior: toilet
+  cooldown: 600
+  default_actions:
+  - - Use the toilet
+    - .act toilet @self
   scale: 1.15
   tags:
   - plumbing
