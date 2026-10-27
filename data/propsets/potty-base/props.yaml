@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 2.0
+  scale_adjust: 1.8
 cottage-toilet:
   label: Cottage Toilet
   description: A dependable white ceramic loo with a plain wooden seat.
@@ -9,7 +9,7 @@ cottage-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 0.9
+  scale: 1.15
   tags:
   - plumbing
   - toilet
@@ -29,8 +29,8 @@ victorian-high-tank:
   - decoration
 gilded-throne-toilet:
   label: Gilded Throne
-  description: A gold-plated throne with a tufted velvet seat and a crown finial
-    on top.
+  description: A gold-plated throne with a tufted velvet seat and a crown finial on
+    top.
   model: gilded-throne-toilet.glb
   decorative: true
   behavior: toilet
@@ -121,7 +121,7 @@ royal-frog-toilet:
   default_actions:
   - - Use the toilet
     - .act toilet @self
-  scale: 1.15
+  scale: 1
   tags:
   - plumbing
   - toilet

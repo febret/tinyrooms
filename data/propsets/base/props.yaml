@@ -2,8 +2,8 @@ CONFIG:
   scale_adjust: 2.0
 city-trashcan:
   label: City Trashcan
-  description: A sturdy green city bin. Keeping the neighborhood tidy, one bag
-    at a time.
+  description: A sturdy green city bin. Keeping the neighborhood tidy, one bag at
+    a time.
   model: city-trashcan.glb
   decorative: true
   behavior: trashcan
@@ -50,7 +50,7 @@ dusty-rose-sofa:
     different friend groups.
   model: dusty-rose-sofa.glb
   decorative: true
-  scale: 1.4
+  scale: 1.8
   tags:
   - seating
   - sofa
@@ -61,15 +61,15 @@ teal-egg-chair:
     baby.
   model: teal-egg-chair.glb
   decorative: true
-  scale: 1.0
+  scale: 1
   tags:
   - seating
   - chair
   - furniture
 window-daybed:
   label: Window Daybed
-  description: Crocheted blanket plus embroidered cushions. NGL, you may never
-    get up.
+  description: Crocheted blanket plus embroidered cushions. NGL, you may never get
+    up.
   model: window-daybed.glb
   decorative: true
   scale: 1.3
@@ -87,6 +87,7 @@ braided-rainbow-rug:
   tags:
   - rug
   - decoration
+  resizable: true
 persian-medallion-rug:
   label: Persian Medallion Rug
   description: Deep red, deep indigo, deep vibes. So classic it basically writes its
@@ -97,6 +98,7 @@ persian-medallion-rug:
   tags:
   - rug
   - decoration
+  resizable: true
 sheepskin-rug:
   label: Sheepskin Rug
   description: Fluffy cream cloud energy. Toe beans engaged. This rug is a whole entire
@@ -152,7 +154,7 @@ dragonfly-tiffany-lamp:
     back.
   model: dragonfly-tiffany-lamp.glb
   decorative: true
-  scale: 1.0
+  scale: 0.7
   tags:
   - lighting
   - lamp
@@ -241,7 +243,7 @@ bookstack-floor-lamp:
     Literally.
   model: bookstack-floor-lamp.glb
   decorative: true
-  scale: 1.25
+  scale: 1.5
   tags:
   - lighting
   - lamp
@@ -250,7 +252,7 @@ rattan-side-table:
   description: It is giving breezy sunroom realness.
   model: rattan-side-table.glb
   decorative: true
-  scale: 1.0
+  scale: 0.75
   tags:
   - table
   - furniture
@@ -353,7 +355,7 @@ pink-orchid:
   description: Elegant, dramatic, completely unbothered.
   model: pink-orchid.glb
   decorative: true
-  scale: 0.6
+  scale: 0.85
   tags:
   - plant
   - flower
@@ -386,8 +388,8 @@ wicker-fern-basket:
   - fern
 apothecary-cabinet:
   label: Apothecary Cabinet
-  description: Dozens of labeled drawers with illegible handwriting. What is
-    inside? Nobody knows. That is the fun part.
+  description: Dozens of labeled drawers with illegible handwriting. What is inside?
+    Nobody knows. That is the fun part.
   model: apothecary-cabinet.glb
   decorative: true
   scale: 1.35
@@ -424,15 +426,15 @@ tall-wardrobe:
     Probably just coats.
   model: tall-wardrobe.glb
   decorative: true
-  scale: 1.4
+  scale: 1.8
   tags:
   - storage
   - wardrobe
   - furniture
 medicine-cabinet:
   label: Medicine Cabinet
-  description: Mirrored cabinet crammed with vials. Ninety percent mystery,
-    one hundred percent mood.
+  description: Mirrored cabinet crammed with vials. Ninety percent mystery, one hundred
+    percent mood.
   model: medicine-cabinet.glb
   decorative: false
   behavior: dispenser
@@ -450,7 +452,7 @@ medicine-cabinet:
   default_actions:
   - - Take medicine
     - .dispense @self
-  scale: 0.8
+  scale: 1
   tags:
   - storage
   - cabinet
@@ -550,7 +552,7 @@ kitchen-dresser:
   default_actions:
   - - Take an ingredient
     - .dispense @self
-  scale: 1.2
+  scale: 1.5
   tags:
   - storage
   - shelf
@@ -629,8 +631,8 @@ metal-industrial-stairwell:
   - building
 garden-deck-stairwell:
   label: Garden Deck Stairwell
-  description: Outdoor timber steps up to a sun-washed deck. Sunsets included at
-    no extra charge.
+  description: Outdoor timber steps up to a sun-washed deck. Sunsets included at no
+    extra charge.
   model: garden-deck-stairwell.glb
   decorative: true
   scale: 1.5
@@ -782,7 +784,7 @@ oak-panel-door:
   description: Solid oak, raised panels, one very knobbable brass knob.
   model: oak-panel-door.glb
   decorative: true
-  scale: 1.35
+  scale: 1.7
   tags:
   - door
   - building
@@ -791,7 +793,7 @@ red-front-door:
   description: Glossy red and cheerful. The official color of coming home.
   model: red-front-door.glb
   decorative: true
-  scale: 1.35
+  scale: 1.75
   tags:
   - door
   - building
@@ -872,7 +874,7 @@ open-french-doorway:
   description: Double French doors thrown wide open. The breeze has entered the chat.
   model: open-french-doorway.glb
   decorative: true
-  scale: 1.45
+  scale: 1.8
   tags:
   - door
   - doorway
@@ -884,7 +886,7 @@ bay-window:
   description: Three angled panes and a seat ledge. Prime people-watching real estate.
   model: bay-window.glb
   decorative: true
-  scale: 1.2
+  scale: 1.8
   tags:
   - window
   - building
@@ -893,7 +895,7 @@ casement-window:
   description: White frame, side-hinged sashes, maximum breeze.
   model: casement-window.glb
   decorative: true
-  scale: 1.1
+  scale: 1.3
   tags:
   - window
   - building
@@ -902,7 +904,7 @@ stained-glass-window:
   description: Jewel-toned diamonds and roundels. Instant cathedral.
   model: stained-glass-window.glb
   decorative: true
-  scale: 1.15
+  scale: 1.8
   tags:
   - window
   - building
@@ -920,14 +922,14 @@ arched-cottage-window:
   description: Arched top, diamond lattice. Storybook, but functional.
   model: arched-cottage-window.glb
   decorative: true
-  scale: 1.1
+  scale: 1.5
   tags:
   - window
   - building
 supermarket-prep-table:
   label: Supermarket Prep Table
-  description: A sturdy stainless prep table with a cutting board and nested
-    bowls. Perfect for chopping, kneading, and mixing by hand.
+  description: A sturdy stainless prep table with a cutting board and nested bowls.
+    Perfect for chopping, kneading, and mixing by hand.
   model: supermarket-prep-table.glb
   decorative: false
   behavior: crafting
@@ -936,7 +938,7 @@ supermarket-prep-table:
   - - Craft at the prep table
     - .craft @self
     - true
-  scale: 1.0
+  scale: 1.15
   tags:
   - crafting
   - kitchen
@@ -971,7 +973,7 @@ supermarket-mixer:
   - - Craft at the mixer
     - .craft @self
     - true
-  scale: 0.9
+  scale: 0.6
   tags:
   - crafting
   - kitchen

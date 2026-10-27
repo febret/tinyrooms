@@ -11,7 +11,7 @@ import {
 import { renderEffectsPanel } from "./effects-panel.js";
 import { createPreviewViewer } from "./preview.js";
 import { renderPropsPanel } from "./props-panel.js";
-import { escapeHtml, clone, numberOr, parseCsv, setPath, textToActions } from "./util.js";
+import { escapeHtml, clone, configScaleDirty, numberOr, parseCsv, setPath, textToActions } from "./util.js";
 import { libraryGridMarkup, libraryPropsetMarkup, libraryTagMarkup } from "../../app/js/editing/prop-library.js";
 import { bindEditorLibrary } from "../../app/js/editing/library-filter.js";
 import { createThumbnailManager } from "../../app/js/editing/prop-thumbnails.js";
@@ -31,6 +31,7 @@ const state = {
   propSnapshot: null,
   propScale: null,
   file: null,
+  fileSnapshot: null,
   selectedEffectId: null,
   effectDraft: null,
   effectSnapshot: null,
@@ -60,6 +61,15 @@ function equal(a, b) {
 
 function propDirty() {
   return state.propDraft != null && !equal(state.propDraft, state.propSnapshot);
+}
+
+/** File-level CONFIG (scale_adjust) edits are unsaved changes too; otherwise Save stays disabled. */
+function fileDirty() {
+  return configScaleDirty(state.file, state.fileSnapshot);
+}
+
+function formDirty() {
+  return propDirty() || fileDirty();
 }
 
 function effectDirty() {
@@ -207,7 +217,7 @@ function render({ library = true } = {}) {
   renderToolbar();
   renderTabs();
   if (library) renderLibrary();
-  elements.propPane.innerHTML = renderPropsPanel({ ...state, propDirty: propDirty() });
+  elements.propPane.innerHTML = renderPropsPanel({ ...state, propDirty: formDirty() });
   elements.effectPane.innerHTML = renderEffectsPanel({ ...state, effectDirty: effectDirty() });
   renderPreview();
   elements.toast.textContent = state.error || state.status || "";
@@ -244,7 +254,7 @@ async function selectProp(propId, { force = false } = {}) {
   if (!force && state.selected?.id === propId) return;
   const summary = (state.catalog?.props || []).find(prop => prop.id === propId);
   if (!summary) return;
-  if (!force && propDirty() && state.selected) {
+  if (!force && formDirty() && state.selected) {
     state.status = `Saving ${state.selected.id}…`;
     state.error = "";
     render();
@@ -261,6 +271,7 @@ async function selectProp(propId, { force = false } = {}) {
   state.propSnapshot = clone(body.prop.raw);
   state.propScale = body.prop.scale;
   state.file = body.file;
+  state.fileSnapshot = clone(body.file);
   hiddenOverrides.set(propId, Boolean(body.prop.raw.hidden));
   state.activeTab = "props";
   state.error = "";
@@ -424,6 +435,7 @@ async function persistCurrentProp() {
   state.propSnapshot = clone(body.prop.raw);
   state.propScale = body.prop.scale;
   state.file = body.file;
+  state.fileSnapshot = clone(body.file);
   hiddenOverrides.set(state.selected.id, Boolean(body.prop.raw.hidden));
   await refreshCatalog();
   return body;
@@ -468,6 +480,11 @@ async function runReload() {
   state.error = "";
   render();
   try {
+    if (state.selected && formDirty()) {
+      state.status = `Saving ${state.selected.id} before reload…`;
+      render();
+      await persistCurrentProp();
+    }
     const body = await reloadWorld();
     hiddenOverrides.clear();
     await refreshCatalog();
@@ -507,7 +524,10 @@ function handleChange(target) {
   }
   if (dataset.peProp !== undefined) return changeProp(target);
   if (dataset.peFile !== undefined) {
+    if (!state.file) return render();
     state.file.scale_adjust = readValue(target, dataset.peKind);
+    state.status = "Unsaved file changes.";
+    state.error = "";
     return render();
   }
   if (dataset.peEffect !== undefined) return changeEffect(target);
@@ -526,6 +546,7 @@ function handleClick(target) {
   if (dataset.peSaveProp !== undefined) return saveCurrentProp();
   if (dataset.peResetProp !== undefined) {
     state.propDraft = clone(state.propSnapshot);
+    if (state.fileSnapshot) state.file = clone(state.fileSnapshot);
     return render();
   }
   if (dataset.peAddSet !== undefined) return addSet();

@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 2
+  scale_adjust: 2.0
 portal:
   label: A Glowing Portal
   description: A familiar doorway shimmering with possibilities. Somebody definitely
@@ -34,7 +34,7 @@ shower:
   default_actions:
   - - Take a shower
     - .act shower @self
-  scale: 1.306
+  scale: 2.006
   sounds:
     select: water1.wav
     action: water1.wav
@@ -45,14 +45,14 @@ litter-tray:
   model: litter-tray.glb
   decorative: false
   behavior: litter-tray
-  scale: 1.488
+  scale: 1.038
 locked-front-door:
   label: The Front Door
   description: The way out of the house. The key is in the dark basement, once the
     centipedes are gone. The door is not locked; it is simply disappointed in you.
   model: locked-front-door.glb
   decorative: false
-  scale: 1.374
+  scale: 1.774
   sounds:
     select: click3.wav
     action: door-close.wav
@@ -149,7 +149,7 @@ bed:
     last good decision.
   model: bed.glb
   decorative: true
-  scale: 1.389
+  scale: 1.75
 plant:
   label: Monstera
   description: Glossy leaves, a wonky terracotta pot, and one new shoot that is absolutely
@@ -159,8 +159,8 @@ plant:
   scale: 0.76
 bookshelf:
   label: Story Shelf
-  description: Hand-bound books and a dollhouse keepsake. The books are arranged
-    by vibes, not author.
+  description: Hand-bound books and a dollhouse keepsake. The books are arranged by
+    vibes, not author.
   model: bookshelf.glb
   decorative: true
   scale: 1.155

@@ -48,6 +48,12 @@ export function numberOr(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/** True when the file-level CONFIG differs from its saved snapshot. Only `scale_adjust` is editable. */
+export function configScaleDirty(file, fileSnapshot) {
+  if (!file || !fileSnapshot) return false;
+  return file.scale_adjust !== fileSnapshot.scale_adjust;
+}
+
 export function getPath(object, path) {
   return path.split(".").reduce((cursor, key) => {
     if (cursor == null) return undefined;

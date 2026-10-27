@@ -245,7 +245,6 @@ school-sink:
   model: school-sink.glb
   decorative: true
   behavior: washing-station
-  cooldown: 120
   default_actions:
   - - Wash up
     - .act wash @self
@@ -264,7 +263,6 @@ school-toilet:
   model: school-toilet.glb
   decorative: true
   behavior: toilet
-  cooldown: 600
   default_actions:
   - - Use the toilet
     - .act toilet @self

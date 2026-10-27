@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 1
+  scale_adjust: 1.6
 tinytown-art-easel:
   label: Art Easel
   description: A wooden studio easel with a blank canvas. The Art Market delivers
@@ -23,7 +23,6 @@ tinytown-bathtub:
   model: tinytown-bathtub.glb
   decorative: true
   behavior: washing-station
-  cooldown: 120
   default_actions:
   - - Take a bath
     - .act bathe @self
@@ -43,7 +42,6 @@ tinytown-pool:
   model: tinytown-pool.glb
   decorative: true
   behavior: washing-station
-  cooldown: 120
   default_actions:
   - - Take a dip
     - .act swim @self

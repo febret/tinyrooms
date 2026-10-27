@@ -1,5 +1,5 @@
 CONFIG:
-  scale_adjust: 2.0
+  scale_adjust: 1.8
 beige-terminal:
   label: Beige Terminal
   description: A beige CRT terminal with a green phosphor glow and keys that clack.
@@ -184,7 +184,7 @@ orange-office-chair:
   description: A moulded orange swivel chair on a chrome star base.
   model: orange-office-chair.glb
   decorative: true
-  scale: 1.1
+  scale: 1
   tags:
   - seating
   - chair
@@ -232,7 +232,7 @@ chrome-desk-lamp:
   description: A chrome lamp on a flexible arm with a fiercely neon bulb.
   model: chrome-desk-lamp.glb
   decorative: true
-  scale: 0.9
+  scale: 0.8
   tags:
   - lighting
   - lamp

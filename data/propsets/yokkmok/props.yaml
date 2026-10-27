@@ -54,7 +54,7 @@ lumi-bed:
   description: A low white platform bed with a pale pine frame.
   model: lumi-bed.glb
   decorative: true
-  scale: 1.5
+  scale: 1.7
   tags:
   - bed
   - furniture
@@ -133,7 +133,7 @@ metsa-bookshelf:
   description: Open white and pine shelves for books and keepsakes.
   model: metsa-bookshelf.glb
   decorative: true
-  scale: 1.2
+  scale: 1.8
   tags:
   - storage
   - shelf
@@ -143,7 +143,7 @@ kori-basket:
   description: A woven basket with a folded grey blanket tucked inside.
   model: kori-basket.glb
   decorative: true
-  scale: 0.7
+  scale: 0.8
   tags:
   - storage
   - decoration
