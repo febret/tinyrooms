@@ -66,6 +66,20 @@ class CleanupCandidatesTests(McHttpTestCase):
         self.assertEqual(by_id["ghost"]["kind"], "tarball")
         self.assertNotIn("used1", by_id)
 
+    def test_hashed_tarballs_match_their_version_checkout(self) -> None:
+        digest = "ab" * 32
+        _make_version(self.root, "9.9.9")
+        _make_tarball(self.root, f"9.9.9-{digest}")
+        _make_tarball(self.root, f"ghost-{digest}")
+
+        by_id = {item["id"]: item for item in self.runtime.packages.cleanup_candidates()}
+        self.assertIn(f"ghost-{digest}", by_id)
+        self.assertEqual(by_id[f"ghost-{digest}"]["kind"], "tarball")
+        self.assertNotIn(f"9.9.9-{digest}", by_id)
+
+        self.runtime.packages.delete_version("9.9.9", actor="operator")
+        self.assertFalse((self.root / "releases" / f"tinyrooms-9.9.9-{digest}.tar.gz").exists())
+
     def test_used_checkout_never_candidate(self) -> None:
         _make_version(self.root, "used2")
         self.register_versioned("used2")

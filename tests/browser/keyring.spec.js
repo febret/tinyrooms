@@ -13,7 +13,7 @@ test("hang keys on the Keyring, lock a door, and greet a roommate", async ({ pag
   await mag.locator('.contents-list li[data-page="district-downtown"]').click();
   await mag.getByRole("button", { name: /Take the keys · 100 Bops/ }).first().click();
   await mag.getByRole("button", { name: /Confirm · 100 Bops/ }).click();
-  await expect(mag.getByText(/Owned ×1/)).toBeVisible();
+  await expect(mag.getByText("Owned", { exact: true })).toBeVisible();
 
   await page.locator("#keyring-toggle").click();
   const keys = page.frameLocator('iframe[src*="/activities/keyring/"]');

@@ -15,13 +15,17 @@ from pathlib import Path
 import hashlib
 import json
 import os
-import re
 
 from server.content.common import ContentError, load_yaml_file, require_mapping
+from server.fleet_config import entry_enabled, entry_path, entry_world_id
+from server.version import (
+    DEPLOY_MANIFEST_FILE,
+    package_filename,
+    split_package_stem,
+)
 
 
 DEFAULT_CONTENT_FILE = "multiworld.json"
-DEPLOY_MANIFEST_NAME = "deploy-manifest.json"
 KIND_WORLD = "world"
 KIND_MOD = "mod"
 KIND_CARDSET = "cardset"
@@ -35,7 +39,6 @@ CONTENT_PREFIXES = {
 }
 EXCLUDED_DIRS = frozenset({"__pycache__", ".git", ".pytest_cache", "node_modules"})
 EXCLUDED_SUFFIXES = (".pyc", ".sqlite", ".sqlite3", ".db")
-_HASH_SUFFIX = re.compile(r"^(?P<version>.+)-(?P<hash>[0-9a-f]{64})$")
 
 
 class ContentConfigError(ValueError):
@@ -71,11 +74,6 @@ class ContentSelection:
 
         return (*self.worlds, *self.mods, *self.cardsets, *self.propsets)
 
-    def ids(self, kind: str) -> list[str]:
-        """Return the ids selected for *kind*."""
-
-        return [entry.id for entry in getattr(self, f"{kind}s")]
-
     def prefixes(self) -> tuple[str, ...]:
         """Return release paths owned by this selection, not runtime files."""
 
@@ -87,11 +85,10 @@ class ContentSelection:
         return {
             "version": version,
             "version_hash": version_hash,
-            "content_hash": version_hash,
-            "worlds": self.ids(KIND_WORLD),
-            "mods": self.ids(KIND_MOD),
-            "cardsets": self.ids(KIND_CARDSET),
-            "propsets": self.ids(KIND_PROPSET),
+            "worlds": [entry.id for entry in self.worlds],
+            "mods": [entry.id for entry in self.mods],
+            "cardsets": [entry.id for entry in self.cardsets],
+            "propsets": [entry.id for entry in self.propsets],
         }
 
 
@@ -138,39 +135,6 @@ def _read_config(path: Path) -> dict[str, object]:
     return payload
 
 
-def _enabled(entry: object) -> bool:
-    if not isinstance(entry, dict):
-        return True
-    value = entry.get("enabled", True)
-    if not isinstance(value, bool):
-        raise ContentConfigError("World 'enabled' must be a boolean.")
-    return value
-
-
-def _world_id(entry: object, index: int) -> str:
-    if isinstance(entry, str):
-        world_id = entry.strip()
-    elif isinstance(entry, dict):
-        raw = entry.get("id", entry.get("world"))
-        if not isinstance(raw, str):
-            raise ContentConfigError(f"worlds[{index}] must have a string 'id'.")
-        world_id = raw.strip()
-    else:
-        raise ContentConfigError(f"worlds[{index}] must be a world id or an object.")
-    if not world_id:
-        raise ContentConfigError(f"worlds[{index}] has an empty world id.")
-    return world_id
-
-
-def _optional_path(entry: Mapping[str, object], key: str, index: int) -> str | None:
-    value = entry.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value.strip():
-        raise ContentConfigError(f"worlds[{index}].{key} must be a non-empty path string.")
-    return value.strip()
-
-
 def _string_list(value: object, label: str) -> tuple[str, ...]:
     if value is None:
         return ()
@@ -207,9 +171,12 @@ def _world_requirement(
     except ContentError as exc:
         raise ContentConfigError(str(exc)) from exc
     label = f"World '{directory.name}'"
-    shared_content = (
-        _resolve_path(shared, bases, f"{label} shared_content") if shared is not None else None
-    )
+    if shared is not None:
+        shared_content = _resolve_path(shared, bases, f"{label} shared_content")
+        if not shared_content.is_dir():
+            raise ContentConfigError(f"{label} shared_content '{shared}' is not a directory.")
+    else:
+        shared_content = None
     cardsets = payload.get("requires_cardsets", payload.get("cardsets"))
     propsets = payload.get("requires_propsets", payload.get("propsets"))
     return _WorldRequirement(
@@ -250,10 +217,6 @@ def _discover_mods(root: Path) -> dict[str, tuple[Path, tuple[str, ...]]]:
     return found
 
 
-def _merge_maps(target: dict[str, object], source: Mapping[str, object]) -> None:
-    target.update(source)
-
-
 def _all_cardsets(root: Path) -> dict[str, Path]:
     found: dict[str, Path] = {}
     if not root.is_dir():
@@ -275,8 +238,8 @@ def _prop_references(world: Path) -> set[str]:
         return references
     try:
         payload = load_yaml_file(rooms_file)
-    except ContentError:
-        return references
+    except ContentError as exc:
+        raise ContentConfigError(f"World '{world.name}' has invalid rooms: {exc}") from exc
 
     def visit(value: object) -> None:
         if isinstance(value, dict):
@@ -291,6 +254,21 @@ def _prop_references(world: Path) -> set[str]:
 
     visit(payload)
     return references
+
+
+def _authored_prop_ids(world: Path) -> set[str]:
+    """Return prop ids defined by the world itself (outside any propset)."""
+
+    props_file = world / "props" / "props.yaml"
+    if not props_file.is_file():
+        return set()
+    try:
+        payload = load_yaml_file(props_file)
+    except ContentError as exc:
+        raise ContentConfigError(f"World '{world.name}' has invalid props: {exc}") from exc
+    if not isinstance(payload, dict):
+        return set()
+    return {str(key) for key in payload if isinstance(key, str) and key != "CONFIG"}
 
 
 def _propset_ids(root: Path) -> dict[str, set[str]]:
@@ -379,19 +357,19 @@ def load_content_selection(
     requirements: list[_WorldRequirement] = []
     seen_worlds: set[str] = set()
     for index, entry in enumerate(entries):
-        if not _enabled(entry):
+        if not entry_enabled(entry, index, error=ContentConfigError):
             continue
-        world_id = _world_id(entry, index)
+        world_id = entry_world_id(entry, index, error=ContentConfigError)
         if world_id in seen_worlds:
             raise ContentConfigError(f"World '{world_id}' appears more than once.")
         seen_worlds.add(world_id)
-        world_path = _optional_path(entry, "path", index) if isinstance(entry, dict) else None
+        world_path = entry_path(entry, index, "path", error=ContentConfigError)
         directory = (
             _resolve_path(world_path, bases, f"World '{world_id}' path")
             if world_path is not None
             else _resolve_default_world(world_id, bases)
         )
-        shared = _optional_path(entry, "shared_content", index) if isinstance(entry, dict) else None
+        shared = entry_path(entry, index, "shared_content", error=ContentConfigError)
         requirements.append(
             _world_requirement(
                 world_id, directory, index=index, bases=bases, shared=shared
@@ -414,11 +392,11 @@ def load_content_selection(
     propsets_available: dict[str, Path] = {}
     propset_contents: dict[str, set[str]] = {}
     for mod_root in mod_roots:
-        _merge_maps(mods_available, _discover_mods(mod_root))
+        mods_available.update(_discover_mods(mod_root))
     for cardset_root in cardset_roots:
-        _merge_maps(cardsets_available, _all_cardsets(cardset_root))
+        cardsets_available.update(_all_cardsets(cardset_root))
     for propset_root in propset_roots:
-        _merge_maps(propsets_available, _discover(propset_root, "props.yaml"))
+        propsets_available.update(_discover(propset_root, "props.yaml"))
         propset_contents.update(_propset_ids(propset_root))
 
     for special in ("base", "card-backgrounds"):
@@ -432,6 +410,7 @@ def load_content_selection(
     required_propsets: set[str] = set()
     include_all_cardsets = False
     inferred_props: set[str] = set()
+    inferred_by_world: dict[str, set[str]] = {}
     for requirement in requirements:
         required_mods.update(requirement.mods)
         if requirement.cardsets is None:
@@ -439,7 +418,9 @@ def load_content_selection(
         else:
             required_cardsets.update(requirement.cardsets)
         if requirement.propsets is None:
-            inferred_props.update(_prop_references(requirement.directory))
+            references = _prop_references(requirement.directory)
+            inferred_by_world[requirement.id] = references
+            inferred_props.update(references)
         else:
             required_propsets.update(requirement.propsets)
 
@@ -447,6 +428,25 @@ def load_content_selection(
     if include_all_cardsets:
         required_cardsets.update(cardsets_available)
     cardset_ids = _resolve_required(cardsets_available, required_cardsets, "cardset")
+    known_props: set[str] = set()
+    for prop_ids in propset_contents.values():
+        known_props.update(prop_ids)
+    for requirement in requirements:
+        known_props.update(_authored_prop_ids(requirement.directory))
+    unresolved: list[str] = []
+    for requirement in requirements:
+        missing = sorted(
+            reference
+            for reference in inferred_by_world.get(requirement.id, set())
+            if reference not in known_props
+            and not reference.startswith(("builtin:", "custom:"))
+        )
+        if missing:
+            unresolved.append(f"World '{requirement.id}': {', '.join(missing)}")
+    if unresolved:
+        raise ContentConfigError(
+            "Unknown prop reference(s) with no defining propset: " + "; ".join(unresolved)
+        )
     for propset_id, prop_ids in propset_contents.items():
         if prop_ids & inferred_props:
             required_propsets.add(propset_id)
@@ -496,18 +496,3 @@ def content_hash(selection: ContentSelection) -> str:
                 digest.update(block)
         digest.update(b"\0")
     return digest.hexdigest()
-
-
-def package_filename(version: str, version_hash: str) -> str:
-    """Return the release tarball name carrying *version* and its content hash."""
-
-    return f"tinyrooms-{version}-{version_hash}.tar.gz"
-
-
-def split_package_stem(stem: str) -> tuple[str, str | None]:
-    """Return ``(version, hash)`` for a release tarball stem."""
-
-    match = _HASH_SUFFIX.match(stem)
-    if match is None:
-        return stem, None
-    return match.group("version"), match.group("hash")

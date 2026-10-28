@@ -26,7 +26,7 @@ test("flip through Tiny Mag, buy a home, and meet roommates", async ({ page, run
   expect(districtFits).toEqual([true, true]);
   await frame.getByRole("button", { name: /Take the keys · 100 Bops/ }).first().click();
   await frame.getByRole("button", { name: /Confirm · 100 Bops/ }).click();
-  await expect(frame.getByText(/Owned ×1/)).toBeVisible();
+  await expect(frame.getByText("Owned", { exact: true })).toBeVisible();
   await expect(frame.locator("#wallet")).toHaveText("60");
   await expect(frame.locator("#homes-rail")).toHaveCount(0);
 

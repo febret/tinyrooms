@@ -1,8 +1,8 @@
 // Procedural TinyTown tabletop diorama.
 //
 // The town board is not a baked prop: an irregular height-field island is
-// generated at runtime, then dressed with reusable meshes for roads, houses,
-// trees, lamps, a harbour, and a clock tower.
+// generated at runtime, then dressed with roads, trees, lamps, the harbour,
+// and the residents' GLB house models served per viewer.
 
 import * as THREE from "three";
 import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
@@ -25,244 +25,19 @@ import {
   seededRandom,
   terrainHeightAt,
 } from "./board-diorama-terrain.js";
+import {
+  makeCobbleTexture,
+  makeDetailTexture,
+  makeGlowTexture,
+  makeGroundTexture,
+  makePlaqueTexture,
+  makeStarTexture,
+  makeWoodTexture,
+} from "./board-diorama-textures.js";
 
 export const DIORAMA_BOARD_TYPE = "diorama";
 const GROUP_LIFT = 0.045;
-const WARM_WINDOW = "#ffb45e";
-const COOL_WINDOW = "#b6dcff";
 const LAMP_GLOW = "#ffd58a";
-
-function makeCanvasTexture(width, height, draw, { repeatX = 1, repeatY = 1 } = {}) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  draw(context, width, height);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(repeatX, repeatY);
-  texture.anisotropy = 4;
-  return texture;
-}
-
-function makeGroundTexture() {
-  return makeCanvasTexture(512, 512, (context, width, height) => {
-    context.fillStyle = "#f3f2e9";
-    context.fillRect(0, 0, width, height);
-    const random = seededRandom(8127);
-    for (let index = 0; index < 3600; index += 1) {
-      const x = random() * width;
-      const y = random() * height;
-      const size = 0.6 + random() * 2.2;
-      context.fillStyle = random() > 0.55
-        ? `rgba(83,101,60,${0.05 + random() * 0.1})`
-        : `rgba(255,255,245,${0.06 + random() * 0.12})`;
-      context.beginPath();
-      context.ellipse(x, y, size, size * (0.5 + random() * 0.8), random() * Math.PI, 0, Math.PI * 2);
-      context.fill();
-    }
-    context.lineWidth = 0.8;
-    for (let blade = 0; blade < 520; blade += 1) {
-      const x = random() * width;
-      const y = random() * height;
-      const lean = (random() - 0.5) * 5;
-      context.strokeStyle = `rgba(72,92,54,${0.08 + random() * 0.12})`;
-      context.beginPath();
-      context.moveTo(x, y + 3);
-      context.quadraticCurveTo(x + lean * 0.4, y, x + lean, y - 3 - random() * 3);
-      context.stroke();
-    }
-  }, { repeatX: 5, repeatY: 4 });
-}
-
-function makeDetailTexture() {
-  return makeCanvasTexture(256, 256, (context, width, height) => {
-    const image = context.createImageData(width, height);
-    for (let index = 0; index < image.data.length; index += 4) {
-      const value = 112 + Math.floor(Math.random() * 46);
-      image.data[index] = value;
-      image.data[index + 1] = value;
-      image.data[index + 2] = value;
-      image.data[index + 3] = 255;
-    }
-    context.putImageData(image, 0, 0);
-  }, { repeatX: 18, repeatY: 15 });
-}
-
-function makeCobbleTexture() {
-  return makeCanvasTexture(512, 512, (context, width, height) => {
-    context.fillStyle = "#a99c84";
-    context.fillRect(0, 0, width, height);
-    const random = seededRandom(3319);
-    const rowHeight = 52;
-    for (let row = 0; row < 11; row += 1) {
-      const offset = row % 2 ? -28 : 0;
-      for (let column = 0; column < 11; column += 1) {
-        const x = column * 52 + offset + random() * 10;
-        const y = row * rowHeight + random() * 8;
-        const radiusX = 20 + random() * 7;
-        const radiusY = 17 + random() * 6;
-        context.fillStyle = `hsl(${31 + random() * 13} ${10 + random() * 9}% ${53 + random() * 16}%)`;
-        context.beginPath();
-        context.moveTo(x, y - radiusY);
-        context.bezierCurveTo(x + radiusX, y - radiusY, x + radiusX * 1.05, y + radiusY * 0.2, x + radiusX * 0.55, y + radiusY);
-        context.bezierCurveTo(x + radiusX * 0.1, y + radiusY * 1.15, x - radiusX * 0.7, y + radiusY * 0.9, x - radiusX, y + radiusY * 0.2);
-        context.bezierCurveTo(x - radiusX * 1.05, y - radiusY * 0.5, x - radiusX * 0.4, y - radiusY * 1.1, x, y - radiusY);
-        context.fill();
-        context.strokeStyle = "rgba(66,55,40,0.28)";
-        context.lineWidth = 2;
-        context.stroke();
-        context.fillStyle = "rgba(255,250,228,0.16)";
-        context.beginPath();
-        context.ellipse(x - radiusX * 0.28, y - radiusY * 0.36, radiusX * 0.5, radiusY * 0.28, -0.3, 0, Math.PI * 2);
-        context.fill();
-      }
-    }
-  }, { repeatX: 3, repeatY: 2.2 });
-}
-
-function makeWoodTexture() {
-  return makeCanvasTexture(512, 256, (context, width, height) => {
-    const random = seededRandom(6151);
-    const base = context.createLinearGradient(0, 0, width, 0);
-    base.addColorStop(0, "#6f4c31");
-    base.addColorStop(0.45, "#805b3d");
-    base.addColorStop(1, "#67452c");
-    context.fillStyle = base;
-    context.fillRect(0, 0, width, height);
-    for (let line = 0; line < 72; line += 1) {
-      const y = random() * height;
-      context.strokeStyle = `rgba(${34 + random() * 28},${21 + random() * 18},${12 + random() * 12},${0.16 + random() * 0.3})`;
-      context.lineWidth = 0.5 + random() * 2.1;
-      context.beginPath();
-      context.moveTo(0, y);
-      for (let x = 0; x <= width; x += 12) {
-        context.lineTo(x, y + Math.sin(x * 0.045 + line * 0.9) * (1.6 + random() * 1.5));
-      }
-      context.stroke();
-    }
-    for (let knot = 0; knot < 7; knot += 1) {
-      const x = 40 + random() * (width - 80);
-      const y = 24 + random() * (height - 48);
-      for (let ring = 1; ring <= 4; ring += 1) {
-        context.strokeStyle = `rgba(46,29,16,${0.18 - ring * 0.025})`;
-        context.lineWidth = 1.2;
-        context.beginPath();
-        context.ellipse(x, y, ring * 4.5, ring * 2.2, 0.2, 0, Math.PI * 2);
-        context.stroke();
-      }
-    }
-  }, { repeatX: 2, repeatY: 1 });
-}
-
-function makePlaqueTexture() {
-  return makeCanvasTexture(512, 128, (context, width, height) => {
-    const gradient = context.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, "#d8b86a");
-    gradient.addColorStop(0.48, "#a97b33");
-    gradient.addColorStop(1, "#745022");
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, width, height);
-    context.strokeStyle = "rgba(65,39,12,0.9)";
-    context.lineWidth = 8;
-    context.strokeRect(6, 6, width - 12, height - 12);
-    context.fillStyle = "#2f2114";
-    context.textAlign = "center";
-    context.font = "700 49px Georgia, serif";
-    context.fillText("TINYTOWN", width / 2, 68);
-    context.font = "600 17px Georgia, serif";
-    context.letterSpacing = "4px";
-    context.fillText("EST. 2026 · POPULATION: MANY PEEPS", width / 2, 101);
-  });
-}
-
-function makeClockTexture() {
-  return makeCanvasTexture(256, 256, (context, width, height) => {
-    context.clearRect(0, 0, width, height);
-    context.fillStyle = "#f5e6c4";
-    context.beginPath();
-    context.arc(width / 2, height / 2, 116, 0, Math.PI * 2);
-    context.fill();
-    context.strokeStyle = "#7f5a2c";
-    context.lineWidth = 12;
-    context.stroke();
-    context.fillStyle = "#3b2a1c";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.font = "700 28px Georgia, serif";
-    for (let mark = 0; mark < 12; mark += 1) {
-      const angle = mark / 12 * Math.PI * 2;
-      context.save();
-      context.translate(width / 2 + Math.sin(angle) * 82, height / 2 - Math.cos(angle) * 82);
-      context.rotate(angle);
-      context.fillText(String(mark === 0 ? 12 : mark), 0, 0);
-      context.restore();
-    }
-    context.fillStyle = "#c98b3f";
-    context.beginPath();
-    context.arc(width / 2, height / 2, 8, 0, Math.PI * 2);
-    context.fill();
-  });
-}
-
-function makeGlowTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 128;
-  canvas.height = 128;
-  const context = canvas.getContext("2d");
-  const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 62);
-  gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.22, "rgba(255,239,190,0.78)");
-  gradient.addColorStop(1, "rgba(255,190,94,0)");
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 128, 128);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function makeStarTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 128;
-  canvas.height = 128;
-  const context = canvas.getContext("2d");
-  const glow = context.createRadialGradient(64, 64, 1, 64, 64, 62);
-  glow.addColorStop(0, "rgba(255,252,225,1)");
-  glow.addColorStop(0.25, "rgba(255,227,138,0.65)");
-  glow.addColorStop(0.6, "rgba(255,183,72,0.18)");
-  glow.addColorStop(1, "rgba(255,170,60,0)");
-  context.fillStyle = glow;
-  context.fillRect(0, 0, 128, 128);
-
-  context.save();
-  context.translate(64, 64);
-  context.beginPath();
-  for (let point = 0; point < 10; point += 1) {
-    const angle = -Math.PI / 2 + point * Math.PI / 5;
-    const radius = point % 2 === 0 ? 43 : 17;
-    const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius;
-    if (point === 0) context.moveTo(x, y);
-    else context.lineTo(x, y);
-  }
-  context.closePath();
-  const star = context.createLinearGradient(0, -42, 0, 42);
-  star.addColorStop(0, "#fffdf0");
-  star.addColorStop(0.5, "#ffe28a");
-  star.addColorStop(1, "#f4a83f");
-  context.fillStyle = star;
-  context.fill();
-  context.lineWidth = 3;
-  context.strokeStyle = "rgba(255,252,228,0.92)";
-  context.stroke();
-  context.restore();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
 
 const HOUSE_FOOTPRINT_Y = 0.055;
 const HOUSE_REVEAL_MS = 980;
@@ -333,6 +108,7 @@ function createHouseLayer(parent, materials, houseData) {
       }
       const model = gltf.scene || (gltf.scenes || [])[0];
       if (!model) {
+        disposeBoardTree(gltf.scenes || [gltf.scene]);
         makeFallback(record);
         return;
       }
@@ -340,6 +116,7 @@ function createHouseLayer(parent, materials, houseData) {
       const size = initial.getSize(new THREE.Vector3());
       const widest = Math.max(size.x, size.z);
       if (!Number.isFinite(widest) || widest <= 0) {
+        disposeBoardTree(gltf.scenes || [gltf.scene]);
         makeFallback(record);
         return;
       }
@@ -360,8 +137,11 @@ function createHouseLayer(parent, materials, houseData) {
       });
       record.visual.add(model);
       record.model = model;
-      const boxed = new THREE.Box3().setFromObject(record.visual);
-      record.top = Math.max(0.55, boxed.max.y);
+      // Measure from `fitted`, not from `record.visual`: the house group is
+      // scaled to HOUSE_FOOTPRINT_Y until the reveal animation finishes, so a
+      // world-space box over `record.visual` would report a squashed height.
+      const houseHeight = Math.max(0, fitted.max.y - fitted.min.y);
+      record.top = Math.max(0.55, houseHeight);
       record.star.position.y = record.top + 0.24;
       const proxyWidth = target * 0.98;
       record.pick.geometry.dispose();
@@ -472,7 +252,7 @@ function createHouseLayer(parent, materials, houseData) {
     };
     records.push(record);
     pickables.push(group);
-    loadHouse(record, info, index);
+    if (record.available) loadHouse(record, info, index);
   });
 
   function update(elapsed, { reducedMotion = false, requestShadow = () => {} } = {}) {
@@ -521,8 +301,7 @@ function createHouseLayer(parent, materials, houseData) {
   function dispose() {
     disposed = true;
     for (const record of records) {
-      if (!record.model) continue;
-      setTextured(record, true);
+      if (record.model) setTextured(record, true);
       record.footprint.dispose();
     }
   }
@@ -653,270 +432,6 @@ function gableGeometry(width, depth, height) {
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
-}
-
-function addWindow(parent, {
-  x = 0, y = 0, z = 0, rotation = 0, width = 0.13, height = 0.16, material,
-  frameMaterial,
-}) {
-  const holder = new THREE.Group();
-  holder.position.set(x, y, z);
-  holder.rotation.y = rotation;
-  parent.add(holder);
-  box(holder, [width + 0.026, height + 0.026, 0.022], [0, 0, 0], frameMaterial);
-  box(holder, [width, height, 0.012], [0, 0, 0.014], material);
-  box(holder, [0.012, height, 0.016], [0, 0, 0.022], frameMaterial);
-  box(holder, [width, 0.012, 0.016], [0, 0, 0.022], frameMaterial);
-  return holder;
-}
-
-function addCottage(parent, options, materials, windows) {
-  const {
-    x, z, rotation = 0, width = 0.55, depth = 0.46, height = 0.52,
-    wall = "#e7cf9c", roof = "#a95f4a", scale = 1,
-  } = options;
-  const group = new THREE.Group();
-  const ground = terrainHeightAt(x, z);
-  group.position.set(x, ground, z);
-  group.rotation.y = rotation;
-  group.scale.setScalar(scale);
-  parent.add(group);
-
-  const foundation = materials.standard("#887567", { roughness: 0.95 });
-  const wallMaterial = materials.standard(wall);
-  const roofMaterial = materials.standard(roof, { roughness: 0.74 });
-  const trim = materials.standard("#f4e5c8");
-  const doorMaterial = materials.standard("#5e3d2d", { roughness: 0.8 });
-  const frame = materials.standard("#4a3427", { roughness: 0.9 });
-
-  box(group, [width + 0.05, 0.6, depth + 0.05], [0, -0.28, 0], foundation);
-  box(group, [width, height, depth], [0, height / 2, 0], wallMaterial);
-  const roofHeight = 0.24 + height * 0.22;
-  const roofMesh = new THREE.Mesh(gableGeometry(width + 0.11, depth + 0.11, roofHeight), roofMaterial);
-  roofMesh.position.y = height;
-  roofMesh.castShadow = true;
-  roofMesh.receiveShadow = true;
-  group.add(roofMesh);
-
-  box(group, [0.11, 0.16, 0.025], [0, 0.085, depth / 2 + 0.015], doorMaterial);
-  box(group, [0.16, 0.022, 0.06], [0, 0.18, depth / 2 + 0.045], trim);
-
-  const lit = hash2(x * 9, z * 7) > 0.35;
-  const windowMaterial = lit ? windows.warm : windows.cool;
-  addWindow(group, {
-    x: -width * 0.27, y: height * 0.62, z: depth / 2 + 0.012,
-    width: width * 0.22, height: height * 0.26, material: windowMaterial, frameMaterial: frame,
-  });
-  addWindow(group, {
-    x: width * 0.27, y: height * 0.62, z: depth / 2 + 0.012,
-    width: width * 0.22, height: height * 0.26, material: windowMaterial, frameMaterial: frame,
-  });
-  addWindow(group, {
-    x: width / 2 + 0.012, y: height * 0.62, z: 0, rotation: Math.PI / 2,
-    width: depth * 0.24, height: height * 0.24, material: windowMaterial, frameMaterial: frame,
-  });
-  if (lit) {
-    const halo = new THREE.Sprite(materials.glowMaterial);
-    halo.position.set(0, height * 0.62, depth / 2 + 0.08);
-    halo.scale.set(0.38, 0.38, 1);
-    group.add(halo);
-  }
-
-  box(group, [0.075, 0.22, 0.075], [width * 0.27, height + roofHeight * 0.5, -depth * 0.22], foundation);
-  box(group, [0.07, 0.018, 0.06], [width * 0.27, height + roofHeight * 0.5 + 0.12, -depth * 0.22], roofMaterial);
-  box(group, [0.2, 0.018, 0.26], [0, 0.022, depth / 2 + 0.11], trim);
-
-  return group;
-}
-
-function addTownhouse(parent, options, materials, windows) {
-  const {
-    x, z, rotation = 0, width = 0.62, depth = 0.52, height = 1.1,
-    wall = "#c56f55", roof = "#7f4a3b",
-  } = options;
-  const group = new THREE.Group();
-  const ground = terrainHeightAt(x, z);
-  group.position.set(x, ground, z);
-  group.rotation.y = rotation;
-  parent.add(group);
-
-  const foundation = materials.standard("#7f6a5b", { roughness: 0.95 });
-  const wallMaterial = materials.standard(wall);
-  const roofMaterial = materials.standard(roof);
-  const trim = materials.standard("#efe0c1");
-  const awningMaterial = materials.standard("#4c8379");
-  const frame = materials.standard("#3d2d24", { roughness: 0.9 });
-  const doorMaterial = materials.standard("#4e332b");
-
-  box(group, [width + 0.06, 0.72, depth + 0.06], [0, -0.33, 0], foundation);
-  box(group, [width, height, depth], [0, height / 2, 0], wallMaterial);
-  box(group, [width + 0.08, 0.08, depth + 0.08], [0, height + 0.02, 0], trim);
-  box(group, [width + 0.02, 0.1, depth + 0.02], [0, height + 0.09, 0], roofMaterial);
-  box(group, [width * 0.62, 0.08, 0.12], [0, 0.1, depth / 2 + 0.04], awningMaterial, [-0.16, 0, 0]);
-  box(group, [0.14, 0.2, 0.026], [0, 0.1, depth / 2 + 0.016], doorMaterial);
-
-  const lit = hash2(x * 5, z * 11) > 0.3;
-  const windowMaterial = lit ? windows.warm : windows.cool;
-  const rows = height > 1.2 ? 3 : 2;
-  for (let row = 0; row < rows; row += 1) {
-    const y = 0.34 + row * (height * 0.25);
-    for (const side of [-1, 1]) {
-      addWindow(group, {
-        x: side * width * 0.24, y, z: depth / 2 + 0.014,
-        width: width * 0.18, height: height * 0.12, material: windowMaterial, frameMaterial: frame,
-      });
-      addWindow(group, {
-        x: side * (width / 2 + 0.014), y, z: 0, rotation: Math.PI / 2,
-        width: depth * 0.19, height: height * 0.12, material: windowMaterial, frameMaterial: frame,
-      });
-    }
-  }
-  if (lit) {
-    const halo = new THREE.Sprite(materials.glowMaterial);
-    halo.position.set(0, height * 0.55, depth / 2 + 0.08);
-    halo.scale.set(0.5, 0.5, 1);
-    group.add(halo);
-  }
-  box(group, [width * 0.42, 0.035, 0.05], [0, height + 0.16, 0], trim);
-  box(group, [0.1, 0.3, 0.1], [-width * 0.3, height + 0.25, -depth * 0.2], foundation);
-  return group;
-}
-
-function addHarborHouse(parent, options, materials, windows) {
-  const group = addCottage(parent, {
-    ...options,
-    width: options.width || 0.48,
-    depth: options.depth || 0.42,
-    height: options.height || 0.44,
-    roof: options.roof || "#4d7d86",
-    wall: options.wall || "#e4bd7c",
-  }, materials, windows);
-  const posts = materials.standard("#5c4635");
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      box(group, [0.045, 0.26, 0.045], [sx * 0.17, -0.2, sz * 0.15], posts);
-    }
-  }
-  return group;
-}
-
-function addClockTower(parent, materials, windows) {
-  const x = -0.1;
-  const z = -0.2;
-  const ground = terrainHeightAt(x, z);
-  const group = new THREE.Group();
-  group.position.set(x, ground, z);
-  parent.add(group);
-
-  const stone = materials.standard("#b8a68f", { roughness: 0.92 });
-  const trim = materials.standard("#e5d6b9");
-  const roof = materials.standard("#55776f");
-  const faceMaterial = materials.clock;
-  const handsMaterial = materials.standard("#31251c", { roughness: 0.7 });
-
-  box(group, [0.52, 0.12, 0.52], [0, 0.04, 0], stone);
-  box(group, [0.34, 1.2, 0.34], [0, 0.66, 0], stone);
-  box(group, [0.43, 0.09, 0.43], [0, 1.28, 0], trim);
-  box(group, [0.4, 0.06, 0.4], [0, 0.37, 0], trim);
-  box(group, [0.4, 0.06, 0.4], [0, 0.96, 0], trim);
-
-  const faceGeometry = new THREE.PlaneGeometry(0.23, 0.23);
-  const faces = [
-    [0, 1.05, 0.176, 0],
-    [0, 1.05, -0.176, Math.PI],
-    [0.176, 1.05, 0, Math.PI / 2],
-    [-0.176, 1.05, 0, -Math.PI / 2],
-  ];
-  const hands = [];
-  for (const [fx, fy, fz, rotation] of faces) {
-    const face = new THREE.Mesh(faceGeometry, faceMaterial);
-    face.position.set(fx, fy, fz);
-    face.rotation.y = rotation;
-    group.add(face);
-    const handGroup = new THREE.Group();
-    handGroup.position.set(fx, fy, fz);
-    handGroup.rotation.y = rotation;
-    group.add(handGroup);
-    box(handGroup, [0.012, 0.07, 0.01], [0, 0.025, 0.012], handsMaterial);
-    box(handGroup, [0.009, 0.095, 0.01], [-0.012, 0.04, 0.02], handsMaterial, [0, 0, -0.6]);
-    hands.push(handGroup);
-  }
-
-  const roofMesh = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.28, 4), roof);
-  roofMesh.position.y = 1.45;
-  roofMesh.rotation.y = Math.PI / 4;
-  roofMesh.castShadow = true;
-  group.add(roofMesh);
-  box(group, [0.025, 0.2, 0.025], [0, 1.65, 0], handsMaterial);
-  cylinder(group, 0.022, 0.022, 0.13, 8, [0, 1.76, 0], materials.lampBulb);
-
-  return { group, hands, faceMaterial };
-}
-
-function addLighthouse(parent, materials) {
-  const x = 3.9;
-  const z = -1.65;
-  const ground = Math.max(WATER_LEVEL + 0.02, terrainHeightAt(x, z));
-  const group = new THREE.Group();
-  group.position.set(x, ground, z);
-  parent.add(group);
-
-  const rock = materials.standard("#6e6960", { roughness: 1 });
-  const white = materials.standard("#f0ead8");
-  const red = materials.standard("#b64e42");
-  for (const [dx, dz, scale] of [[0, 0, 0.34], [0.3, 0.08, 0.2], [-0.24, 0.15, 0.17], [0.12, -0.22, 0.16]]) {
-    const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(scale, 0), rock);
-    mesh.position.set(dx, -0.06 + scale * 0.5, dz);
-    mesh.rotation.set(dx, dz, 0.4);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-  }
-
-  const base = 0.13;
-  for (let index = 0; index < 5; index += 1) {
-    const radiusTop = 0.13 - index * 0.012;
-    const radiusBottom = 0.145 - index * 0.012;
-    cylinder(group, radiusTop, radiusBottom, 0.2, 18, [0, base + index * 0.2, 0], index % 2 ? red : white);
-  }
-  cylinder(group, 0.17, 0.15, 0.07, 18, [0, base + 1.02, 0], red);
-  cylinder(group, 0.145, 0.145, 0.15, 12, [0, base + 1.1, 0], materials.lanternGlass);
-  cylinder(group, 0.17, 0.16, 0.06, 12, [0, base + 1.2, 0], red);
-  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.16, 16), red);
-  cap.position.y = base + 1.31;
-  cap.castShadow = true;
-  group.add(cap);
-
-  const lantern = new THREE.PointLight("#ffd38a", 0, 2.8, 2);
-  lantern.position.set(0, base + 1.1, 0);
-  group.add(lantern);
-  const glow = new THREE.Sprite(materials.glowMaterial);
-  glow.position.set(0, base + 1.1, 0);
-  glow.scale.set(0.72, 0.72, 1);
-  group.add(glow);
-
-  const beamMaterial = new THREE.MeshBasicMaterial({
-    color: "#ffe3a6",
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    side: THREE.DoubleSide,
-  });
-  const beamGeometry = new THREE.ConeGeometry(0.34, 2.2, 20, 1, true);
-  beamGeometry.translate(0, 1.1, 0);
-  beamGeometry.rotateZ(Math.PI / 2);
-  beamGeometry.translate(2.2, 0, 0);
-  const beamGroup = new THREE.Group();
-  beamGroup.position.y = base + 1.1;
-  group.add(beamGroup);
-  const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-  beamGroup.add(beam);
-  const backBeam = new THREE.Mesh(beamGeometry, beamMaterial);
-  backBeam.rotation.y = Math.PI;
-  beamGroup.add(backBeam);
-
-  return { group, lantern, glow, beamGroup, beamMaterial };
 }
 
 function addBoat(parent, x, z, sailColor, phase, materials) {
@@ -1253,7 +768,6 @@ export function createDioramaBoard({
   materials.cobbleTexture = makeCobbleTexture();
   materials.woodTexture = makeWoodTexture();
   materials.plaqueTexture = makePlaqueTexture();
-  materials.clockTexture = makeClockTexture();
   materials.glowTexture = makeGlowTexture();
   materials.starTexture = makeStarTexture();
   materials.waterMaterial = makeWaterMaterial();
@@ -1279,24 +793,6 @@ export function createDioramaBoard({
     roughness: 0.42,
     metalness: 0.35,
   });
-  const windows = {
-    warm: new THREE.MeshStandardMaterial({
-      color: "#dfb574", emissive: WARM_WINDOW, emissiveIntensity: 0.04, roughness: 0.42,
-    }),
-    cool: new THREE.MeshStandardMaterial({
-      color: "#6d8a96", emissive: COOL_WINDOW, emissiveIntensity: 0.02, roughness: 0.34,
-    }),
-  };
-  materials.windows = windows;
-  const clockFace = new THREE.MeshStandardMaterial({
-    map: materials.clockTexture,
-    emissiveMap: materials.clockTexture,
-    emissive: "#ffd78a",
-    emissiveIntensity: 0.03,
-    roughness: 0.62,
-  });
-  materials.clock = clockFace;
-
   group.add(makePlinth(materials));
   const terrain = buildTerrain(materials);
   group.add(terrain);
@@ -1462,12 +958,9 @@ export function createDioramaBoard({
     setExposure(day.exposure);
     materials.waterMaterial.uniforms.uLight.value = day.water;
     materials.waterMaterial.uniforms.uNight.value = day.night;
-    windows.warm.emissiveIntensity = 0.035 + day.night * 2.8;
-    windows.cool.emissiveIntensity = 0.018 + day.night * 1.5;
     materials.lampBulb.emissiveIntensity = 0.15 + day.night * 4.03;
     materials.lanternGlass.emissiveIntensity = 0.25 + day.night * 3.0;
     materials.glowMaterial.opacity = day.night * 0.9;
-    materials.clock.emissiveIntensity = 0.03 + day.night * 0.9;
     lightReflectionMaterial.opacity = day.night * 0.62;
     const flicker = 0.94 + Math.sin(performance.now() * 0.004) * 0.06 * day.night;
     for (const light of lampLights) {

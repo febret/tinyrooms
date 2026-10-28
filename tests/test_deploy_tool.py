@@ -34,10 +34,7 @@ class ParseArgsTests(unittest.TestCase):
     def test_content_flag(self) -> None:
         args = deploy.parse_args(["example.com", "--content", "fleet.json"])
         self.assertEqual(args.content, Path("fleet.json"))
-
-    def test_content_defaults_to_multiworld(self) -> None:
-        args = deploy.parse_args(["example.com"])
-        self.assertEqual(args.content.name, "multiworld.json")
+        self.assertEqual(deploy.parse_args(["example.com"]).content.name, "multiworld.json")
 
     def test_force_flag(self) -> None:
         args = deploy.parse_args(["example.com", "--force"])

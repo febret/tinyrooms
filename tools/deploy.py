@@ -115,15 +115,14 @@ if _TOOLS_DIR not in sys.path:
 from deploy_console import CONSOLE, Console  # noqa: E402
 from deploy_content import (  # noqa: E402
     DEFAULT_CONTENT_FILE,
-    DEPLOY_MANIFEST_NAME,
     ContentConfigError,
     ContentSelection,
     content_hash,
     iter_content_members,
     load_content_selection,
-    package_filename,
 )
 from server.mission_control.nginx_template import site_config  # noqa: E402
+from server.version import DEPLOY_MANIFEST_FILE, package_filename  # noqa: E402
 
 
 class DeployError(RuntimeError):
@@ -365,23 +364,17 @@ def package(
     dirty: bool,
     console: Console | None = None,
     *,
-    selection: ContentSelection | None = None,
+    selection: ContentSelection,
     version_hash: str | None = None,
-    content_path: Path | str | None = None,
 ) -> Path:
     """Create the self-contained release tarball for *version*.
 
-    Worlds and their required mods/cardsets/propsets are selected from
-    *content_path* (``multiworld.json`` by default). The tarball name carries
-    the content hash so identical deployments share one identifiable package.
+    *selection* comes from ``deploy()`` via ``load_content_selection``; the
+    tarball name carries the content hash so identical deployments share one
+    identifiable package.
     """
 
     console = console or CONSOLE
-    if selection is None:
-        try:
-            selection = load_content_selection(content_path or DEFAULT_CONTENT_FILE)
-        except ContentConfigError as exc:
-            raise DeployError(str(exc)) from exc
     digest = version_hash or content_hash(selection)
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
     tarball = RELEASES_DIR / package_filename(version, digest)
@@ -391,7 +384,7 @@ def package(
         for path, arcname in release_members(REPO_ROOT, selection):
             archive.add(path, arcname=arcname)
             count += 1
-        info = tarfile.TarInfo(DEPLOY_MANIFEST_NAME)
+        info = tarfile.TarInfo(DEPLOY_MANIFEST_FILE)
         info.size = len(manifest)
         info.mode = 0o644
         archive.addfile(info, io.BytesIO(manifest))

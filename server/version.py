@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 import subprocess
 
@@ -13,6 +14,7 @@ from server.state.migrations import PROFILE_SCHEMA_VERSION, WORLD_SCHEMA_VERSION
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = REPO_ROOT / "version.json"
 DEPLOY_MANIFEST_FILE = "deploy-manifest.json"
+_RELEASE_HASH_SUFFIX = re.compile(r"^(?P<version>.+)-(?P<hash>[0-9a-f]{64})$")
 
 
 class VersionFileError(RuntimeError):
@@ -69,8 +71,23 @@ def deployment_version_hash(path: Path = REPO_ROOT) -> str | None:
     manifest = deployment_manifest(path)
     if manifest is None:
         return None
-    value = manifest.get("version_hash", manifest.get("content_hash"))
+    value = manifest.get("version_hash")
     return str(value) if value else None
+
+
+def package_filename(version: str, version_hash: str) -> str:
+    """Return the release tarball name carrying *version* and its content hash."""
+
+    return f"tinyrooms-{version}-{version_hash}.tar.gz"
+
+
+def split_package_stem(stem: str) -> tuple[str, str | None]:
+    """Return ``(version, hash)`` for a release tarball stem."""
+
+    match = _RELEASE_HASH_SUFFIX.match(stem)
+    if match is None:
+        return stem, None
+    return match.group("version"), match.group("hash")
 
 
 def _load_build_version_hash() -> str | None:

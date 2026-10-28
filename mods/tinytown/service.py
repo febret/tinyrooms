@@ -603,6 +603,12 @@ class TinytownHousing:
         by_template: dict[str, list[HouseRecord]] = {}
         for record in records:
             by_template.setdefault(record.template_id, []).append(record)
+        owner_names = {
+            account_id: account.username_display
+            for account_id, account in self._profiles.get_accounts_by_ids(
+                [record.owner_account_id for record in records]
+            ).items()
+        }
         houses: list[dict[str, object]] = []
         for template in self._templates.values():
             template_records = by_template.get(template.id, [])
@@ -615,7 +621,9 @@ class TinytownHousing:
                 entry = {
                     "house_id": record.house_id,
                     "owner_id": record.owner_account_id,
-                    "owner_username": self._owner_name(record.owner_account_id),
+                    "owner_username": owner_names.get(
+                        record.owner_account_id, "A former resident"
+                    ),
                     "is_owner": is_owner,
                     "entry_room_id": self.entry_room(record),
                 }

@@ -16,6 +16,8 @@ import sys
 import time
 import urllib.request
 
+from server.fleet_config import entry_enabled, entry_path, entry_world_id
+
 
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG_PATH = REPO_ROOT / "multiworld.json"
@@ -133,36 +135,11 @@ def _port_env_names(world_id: str) -> tuple[str, ...]:
 
 
 def _enabled(entry: Any, index: int) -> bool:
-    if not isinstance(entry, dict):
-        return True
-    value = entry.get("enabled", True)
-    if not isinstance(value, bool):
-        raise MultiworldConfigError(f"worlds[{index}].enabled must be a boolean.")
-    return value
+    return entry_enabled(entry, index, error=MultiworldConfigError)
 
 
 def _world_id(entry: Any, index: int) -> str:
-    context = f"worlds[{index}]"
-    if isinstance(entry, str):
-        world_id = entry.strip()
-    elif isinstance(entry, dict):
-        raw_id = entry.get("id", entry.get("world"))
-        if not isinstance(raw_id, str):
-            raise MultiworldConfigError(f"{context} must have a string 'id'.")
-        world_id = raw_id.strip()
-    else:
-        raise MultiworldConfigError(f"{context} must be a world id or an object.")
-    if not _ID_PATTERN.match(world_id):
-        raise MultiworldConfigError(f"{context} has an invalid world id '{world_id}'.")
-    return world_id
-
-
-def _optional_path(value: Any, context: str) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value.strip():
-        raise MultiworldConfigError(f"{context} must be a non-empty path string.")
-    return value.strip()
+    return entry_world_id(entry, index, error=MultiworldConfigError)
 
 
 def _world_options(entry: Any, index: int) -> tuple[Any, Any, str | None, Any, str | None, str | None]:
@@ -179,8 +156,8 @@ def _world_options(entry: Any, index: int) -> tuple[Any, Any, str | None, Any, s
     if label is not None and not isinstance(label, str):
         raise MultiworldConfigError(f"{context}.label must be a string.")
     mods = _as_mods(entry.get("mods"), f"{context}.mods")
-    path = _optional_path(entry.get("path"), f"{context}.path")
-    shared_content = _optional_path(entry.get("shared_content"), f"{context}.shared_content")
+    path = entry_path(entry, index, "path", error=MultiworldConfigError)
+    shared_content = entry_path(entry, index, "shared_content", error=MultiworldConfigError)
     return port, instance_id, label, mods, path, shared_content
 
 

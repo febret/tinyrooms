@@ -29,11 +29,13 @@ SPEC.loader.exec_module(deploy)
 from deploy_content import (  # noqa: E402
     content_hash,
     load_content_selection,
+)
+from server.version import (  # noqa: E402
+    deployment_version_hash,
     package_filename,
     split_package_stem,
+    version_info,
 )
-from server.mission_control.registry import InstanceRegistry  # noqa: E402
-from server.version import deployment_version_hash, version_info  # noqa: E402
 import start_multiworld  # noqa: E402
 
 
@@ -149,18 +151,6 @@ class LauncherEnabledTests(unittest.TestCase):
 
 
 class DeploymentHashMetadataTests(unittest.TestCase):
-    def test_registry_snapshot_carries_version_hash(self) -> None:
-        registry = InstanceRegistry()
-        record = registry.register({
-            "instance_name": "alpha",
-            "endpoint": "https://127.0.0.1:5000",
-            "instance_id": "alpha-1",
-            "version": "1.2.3",
-            "version_hash": "abc123",
-            "world": {"id": "alpha"},
-        })
-        self.assertEqual(registry.snapshot(record)["version_hash"], "abc123")
-
     def test_version_info_reads_manifest_hash(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
