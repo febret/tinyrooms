@@ -39,6 +39,30 @@ class WorldClientConfigTests(unittest.TestCase):
         self.assertEqual(config.mc_token, "shared")
         self.assertTrue(config.mc_insecure_tls)
 
+    def test_options_path_loads_gameplay_options(self) -> None:
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            options_path = root / "options.json"
+            options_path.write_text(
+                '{"mechanics": {"energy": false}, "card_drops": {"cleanliness": false}}',
+                encoding="utf-8",
+            )
+            env = _base_env(root)
+            env["TRSERVER_OPTIONS_PATH"] = str(options_path)
+            config = load_config(env=env, repo_root=REPO_ROOT)
+            self.assertEqual(config.options_path, options_path.resolve())
+            self.assertFalse(config.gameplay_options.energy_enabled)
+            self.assertFalse(config.gameplay_options.card_drops.cleanliness)
+
+            env["TRSERVER_OPTIONS_PATH"] = str(root / "missing.json")
+            with self.assertRaises(ConfigError):
+                load_config(env=env, repo_root=REPO_ROOT)
+
+            options_path.write_text("{not json", encoding="utf-8")
+            env["TRSERVER_OPTIONS_PATH"] = str(options_path)
+            with self.assertRaises(ConfigError):
+                load_config(env=env, repo_root=REPO_ROOT)
+
 
 class McConfigTests(unittest.TestCase):
     def _env(self, root: Path, **overrides: str) -> dict[str, str]:

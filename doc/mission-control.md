@@ -128,6 +128,10 @@ management endpoint; `TRSERVER_ENTRY_URL` controls root redirects.
 `TRSERVER_SHARED_CONTENT_PATH` supplies shared content (§8.4).
 `TRSERVER_MC_CA_FILE` verifies MC TLS; `TRSERVER_MC_INSECURE_TLS=1` skips it.
 MC supplies these settings to children; external servers must configure them.
+World operators can additionally use `TRSERVER_OPTIONS_PATH` (or
+`run.py --options`) to load the optional gameplay options contract from
+[gameplay_options](../server/gameplay_options.py); Mission Control does not
+manage that file.
 
 ## 4. Components and file layout
 

@@ -152,6 +152,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--certfile", help="Use an existing PEM certificate file.")
     parser.add_argument("--keyfile", help="Use an existing PEM key file.")
+    parser.add_argument(
+        "--options",
+        help="Path to a gameplay options.json file; also available as TRSERVER_OPTIONS_PATH.",
+    )
     return parser.parse_args()
 
 
@@ -161,6 +165,8 @@ def main() -> int:
     args = parse_args()
     env_values = dict(os.environ)
     mission_control = is_mission_control(env_values)
+    if mission_control and args.options:
+        raise SystemExit("--options applies to world servers, not mission control.")
     try:
         if mission_control:
             if args.host:
@@ -177,6 +183,8 @@ def main() -> int:
                 env_values["TRSERVER_PORT"] = str(args.port)
             if args.legacy_features:
                 env_values["TRSERVER_LEGACY_FEATURES"] = args.legacy_features
+            if args.options:
+                env_values["TRSERVER_OPTIONS_PATH"] = args.options
             config = load_config(env=env_values)
             app = create_app(config)
             local_path = config.local_path

@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING
 import uuid
 
 from server.content.cards import CardCatalog, CardDefinition
+from server.gameplay_options import DEFAULT_GAMEPLAY_OPTIONS, GameplayOptions
 from server.profiles import DynamicCardRecord, ProfileRepository
 from server.security import utc_now
 from server.state.migrations import DatabaseHub
@@ -278,8 +279,7 @@ STATUS_DROP_SPECS: tuple[StatusDropSpec, ...] = (
     ),
 )
 
-DROP_CHECK_PERIOD_SECONDS = 60
-MAX_DYNAMIC_ROOM_STACKS = 10
+
 
 
 class DynamicCardDrops:
@@ -305,12 +305,14 @@ class DynamicCardDrops:
         catalog: CardCatalog,
         rng: random.Random | None = None,
         random_func: Callable[[], float] | None = None,
+        options: GameplayOptions = DEFAULT_GAMEPLAY_OPTIONS,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._world_state = world_state
         self._cards = cards
         self._catalog = catalog
+        self._options = options
         self._rng = rng or random.Random()
         self._random_func = random_func or self._rng.random
         self._last_room_drop: dict[str, datetime] = {}
@@ -350,7 +352,8 @@ class DynamicCardDrops:
         if (
             not force
             and previous is not None
-            and moment - previous < timedelta(seconds=DROP_CHECK_PERIOD_SECONDS)
+            and moment - previous
+            < timedelta(seconds=self._options.constants.dynamic_card_check_seconds)
         ):
             return []
         users = [str(account_id) for account_id in dict.fromkeys(account_ids) if str(account_id)]
@@ -358,7 +361,8 @@ class DynamicCardDrops:
             return []
         room_stacks = self._world_state.list_room_cards(room_id)
         dynamic_count = sum(1 for stack in room_stacks if is_dynamic_card_id(stack.card_def_id))
-        if dynamic_count >= MAX_DYNAMIC_ROOM_STACKS:
+        max_stacks = self._options.constants.max_dynamic_room_stacks
+        if dynamic_count >= max_stacks:
             logger.warning(
                 "Dynamic drop skipped in %s: room already holds %d dynamic stacks.",
                 room_id,
@@ -373,7 +377,7 @@ class DynamicCardDrops:
             if broadcast is not None:
                 broadcasts.append(broadcast)
                 dynamic_count += 1
-                if dynamic_count >= MAX_DYNAMIC_ROOM_STACKS:
+                if dynamic_count >= max_stacks:
                     break
         self._last_room_drop[room_id] = moment
         return broadcasts
@@ -391,7 +395,9 @@ class DynamicCardDrops:
         for spec in STATUS_DROP_SPECS:
             if statuses is not None and spec.status not in statuses:
                 continue
-            if not force and self._random_func() >= spec.chance:
+            if not self._options.drop_enabled(spec.status):
+                continue
+            if not force and self._random_func() >= self._options.constants.dynamic_card_drop_chance:
                 continue
             first = self._rng.choice(spec.variants)
             ordered = [first, *(variant for variant in spec.variants if variant is not first)]

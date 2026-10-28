@@ -18,6 +18,7 @@ from server.content.cutscenes import load_cutscene_definitions
 from server.content.gameplay import GameplayContent, load_gameplay_content
 from server.content.sounds import load_sound_names, world_sound_names
 from server.content.worlds import WorldDefinition, load_world_definition
+from server.gameplay_options import GameplayOptionsError, apply_gameplay_options
 
 if TYPE_CHECKING:
     from server.mods import LoadedMods
@@ -48,6 +49,10 @@ def load_world_bundle(
         known_sounds=known_sounds,
     )
     content = load_gameplay_content(config.repo_root / "data" / "core")
+    try:
+        content = apply_gameplay_options(content, config.gameplay_options)
+    except GameplayOptionsError as exc:
+        raise ValueError(f"Invalid gameplay options: {exc}") from exc
     core_activities = load_activity_definitions(
         config.repo_root / "data" / "core" / "activities.yaml",
         source="core",

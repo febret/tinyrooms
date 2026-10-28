@@ -9,6 +9,7 @@ import sqlite3
 from server.content.cards import NON_EQUIP_TYPES, CardCatalog
 from server.content.gameplay import GameplayContent
 from server.game.buffs import BuffInstance, active_modifiers, expire
+from server.gameplay_options import DEFAULT_GAMEPLAY_OPTIONS, GameplayOptions
 from server.game.decals import decals_payload, normalize_decals
 from server.game.modifiers import Modifier, bonuses_to_modifiers, clamp_counter
 from server.game.state import EffectivePeepState, compute_effective_state
@@ -115,18 +116,26 @@ class StatsService:
         catalog: CardCatalog,
         content: GameplayContent,
         world_id: str,
+        options: GameplayOptions = DEFAULT_GAMEPLAY_OPTIONS,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
         self._catalog = catalog
         self._content = content
         self._world_id = world_id
+        self._options = options
 
     @property
     def content(self) -> GameplayContent:
         """Expose loaded gameplay content to sibling services."""
 
         return self._content
+
+    @property
+    def energy_enabled(self) -> bool:
+        """Return whether Energy costs and restrictions are active."""
+
+        return self._options.energy_enabled
 
     def _card_modifiers(
         self,
@@ -308,6 +317,7 @@ class StatsService:
             previous_statuses=profile.active_statuses,
             modifiers=modifiers,
             external_statuses=self.external_statuses(profile),
+            suppressed_statuses=self._options.suppressed_statuses(),
         )
 
     def _recharge_energy(
@@ -323,6 +333,9 @@ class StatsService:
         full minute passes, so Tired applies and clears per the design.
         """
 
+        if not self._options.energy_enabled:
+            maximum = self.compute_state(account, profile, now=now, stacks=stacks).max_energy
+            return float(maximum), account.last_energy_at
         last = parse_timestamp(account.last_energy_at)
         if last is None:
             return account.shared_energy, account.last_energy_at
@@ -349,8 +362,11 @@ class StatsService:
         energy, last_energy_at = self._recharge_energy(account, profile, now)
         state = self.compute_state(account, profile, now=now, energy=energy)
         counters = normalize_counters(profile.counters)
-        health = clamp_counter(counters["health"], state.max_health)
-        cleanliness = clamp_counter(counters["cleanliness"], state.max_cleanliness)
+        health = self._counter_value("health", counters["health"], state.max_health)
+        cleanliness = self._counter_value(
+            "cleanliness", counters["cleanliness"], state.max_cleanliness
+        )
+        energy = self._counter_value("energy", energy, state.max_energy)
         if energy != account.shared_energy or last_energy_at != account.last_energy_at:
             account = self._profiles.update_progress(
                 connection,
@@ -434,8 +450,11 @@ class StatsService:
         energy, _last_energy_at = self._recharge_energy(account, profile, now, stacks)
         state = self.compute_state(account, profile, now=now, energy=energy, stacks=stacks)
         counters = normalize_counters(profile.counters)
-        health = clamp_counter(counters["health"], state.max_health)
-        cleanliness = clamp_counter(counters["cleanliness"], state.max_cleanliness)
+        health = self._counter_value("health", counters["health"], state.max_health)
+        cleanliness = self._counter_value(
+            "cleanliness", counters["cleanliness"], state.max_cleanliness
+        )
+        energy = self._counter_value("energy", energy, state.max_energy)
         return PeepSnapshot(
             account=account,
             effective=state,
@@ -444,6 +463,13 @@ class StatsService:
             cleanliness=cleanliness,
             decals=normalize_decals(profile.decals),
         )
+
+    def _counter_value(self, counter: str, value: float, maximum: int) -> float:
+        """Return a clamped counter, forced to its maximum when disabled."""
+
+        if not self._options.counter_enabled(counter):
+            return float(maximum)
+        return clamp_counter(value, maximum)
 
     def reconcile_in_transaction(self, connection: sqlite3.Connection, account_id: str) -> PeepSnapshot:
         """Reconcile Energy and statuses inside a caller-owned transaction."""
@@ -462,11 +488,17 @@ class StatsService:
 
         with self._hub.transaction() as connection:
             snapshot = self._reconcile(connection, account_id, now=utc_now())
-            health = clamp_counter(snapshot.health + health_delta, snapshot.effective.max_health)
-            cleanliness = clamp_counter(
-                snapshot.cleanliness + cleanliness_delta, snapshot.effective.max_cleanliness
+            health = self._counter_value(
+                "health", snapshot.health + health_delta, snapshot.effective.max_health
             )
-            energy = clamp_counter(snapshot.energy + energy_delta, snapshot.effective.max_energy)
+            cleanliness = self._counter_value(
+                "cleanliness",
+                snapshot.cleanliness + cleanliness_delta,
+                snapshot.effective.max_cleanliness,
+            )
+            energy = self._counter_value(
+                "energy", snapshot.energy + energy_delta, snapshot.effective.max_energy
+            )
             return self._persist_counters(connection, snapshot, health, energy, cleanliness)
 
     def charge(
@@ -512,8 +544,11 @@ class StatsService:
         self._assert_can_charge(snapshot, amount, allow_while_tired=allow_while_tired)
         return snapshot
 
-    @staticmethod
-    def _assert_can_charge(snapshot: PeepSnapshot, amount: float, *, allow_while_tired: bool) -> None:
+    def _assert_can_charge(
+        self, snapshot: PeepSnapshot, amount: float, *, allow_while_tired: bool
+    ) -> None:
+        if not self._options.energy_enabled:
+            return
         if "tired" in snapshot.statuses and not allow_while_tired:
             raise ValueError("You are too tired for that. Rest up first.")
         if amount > snapshot.energy:
@@ -528,6 +563,8 @@ class StatsService:
         allow_while_tired: bool,
     ) -> PeepSnapshot:
         snapshot = self._reconcile(connection, account_id, now=utc_now())
+        if not self._options.energy_enabled:
+            return snapshot
         self._assert_can_charge(snapshot, amount, allow_while_tired=allow_while_tired)
         energy = clamp_counter(snapshot.energy - max(0.0, amount), snapshot.effective.max_energy)
         return self._persist_counters(connection, snapshot, snapshot.health, energy, snapshot.cleanliness)
@@ -544,11 +581,17 @@ class StatsService:
         """Apply counter deltas inside a caller-owned transaction."""
 
         snapshot = self._reconcile(connection, account_id, now=utc_now())
-        health = clamp_counter(snapshot.health + health_delta, snapshot.effective.max_health)
-        cleanliness = clamp_counter(
-            snapshot.cleanliness + cleanliness_delta, snapshot.effective.max_cleanliness
+        health = self._counter_value(
+            "health", snapshot.health + health_delta, snapshot.effective.max_health
         )
-        energy = clamp_counter(snapshot.energy + energy_delta, snapshot.effective.max_energy)
+        cleanliness = self._counter_value(
+            "cleanliness",
+            snapshot.cleanliness + cleanliness_delta,
+            snapshot.effective.max_cleanliness,
+        )
+        energy = self._counter_value(
+            "energy", snapshot.energy + energy_delta, snapshot.effective.max_energy
+        )
         return self._persist_counters(connection, snapshot, health, energy, cleanliness)
 
     def _persist_counters(
@@ -572,10 +615,11 @@ class StatsService:
             previous_statuses=snapshot.statuses,
             modifiers=modifiers,
             external_statuses=self.external_statuses(profile),
+            suppressed_statuses=self._options.suppressed_statuses(),
         )
-        health = clamp_counter(health, state.max_health)
-        cleanliness = clamp_counter(cleanliness, state.max_cleanliness)
-        energy = clamp_counter(energy, state.max_energy)
+        health = self._counter_value("health", health, state.max_health)
+        cleanliness = self._counter_value("cleanliness", cleanliness, state.max_cleanliness)
+        energy = self._counter_value("energy", energy, state.max_energy)
         self._profiles.write_counters(
             connection, snapshot.account.id, {"health": health, "cleanliness": cleanliness}
         )

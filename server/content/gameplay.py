@@ -11,6 +11,10 @@ from server.content.titles import TitlesContent, load_titles_content
 from server.game.modifiers import STAT_TARGETS
 
 
+BASE_MAX_HEALTH = 50
+BASE_MAX_CLEANLINESS = 100
+
+
 @dataclass(frozen=True, slots=True)
 class StatDefinition:
     """A named base statistic."""
@@ -124,6 +128,8 @@ class GameplayContent:
     bops: BopsSettings
     card_prices: SellSettings
     titles: TitlesContent
+    base_max_health: int = BASE_MAX_HEALTH
+    base_max_cleanliness: int = BASE_MAX_CLEANLINESS
 
 
 def _load_stats(path: Path) -> dict[str, StatDefinition]:

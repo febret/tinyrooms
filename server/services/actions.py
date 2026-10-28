@@ -10,14 +10,13 @@ from server.content.cards import (
     CardDefinition,
     card_asset_url,
 )
+from server.gameplay_options import DEFAULT_GAMEPLAY_OPTIONS, GameplayOptions
 from server.profiles import AccountRecord, InventoryStack, ProfileRepository
 from server.services import dynamic_cards as dynamic_card_store
 from server.services.cards import require_inventory_stack
 from server.services.stats import PeepSnapshot, StatsService
 from server.state.migrations import DatabaseHub
 
-DEFAULT_CARD_ENERGY_COST = 2
-EMOTE_COSTS = {"Expression": 1, "Animation": 2, "Cutscene": 5}
 HEALTH_EFFECT = "health"
 ENERGY_EFFECT = "energy"
 LIGHT_EFFECT = "light"
@@ -80,6 +79,7 @@ class ActionsService:
         catalog: CardCatalog,
         world_id: str,
         environment: object | None = None,
+        options: GameplayOptions = DEFAULT_GAMEPLAY_OPTIONS,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -87,6 +87,7 @@ class ActionsService:
         self._catalog = catalog
         self._world_id = world_id
         self._environment = environment
+        self._options = options
 
     def _definition(self, card_def_id: str) -> CardDefinition:
         return dynamic_card_store.require_definition(self._catalog, self._profiles, card_def_id)
@@ -97,11 +98,19 @@ class ActionsService:
     def energy_cost(self, definition: CardDefinition) -> int:
         """Return the Energy cost of playing a card."""
 
+        constants = self._options.constants
+        if not self._options.energy_enabled:
+            return 0
         if definition.energy_cost is not None:
             return int(definition.energy_cost)
         if definition.type == "emote":
-            return EMOTE_COSTS.get(definition.category or "Expression", 0)
-        return DEFAULT_CARD_ENERGY_COST
+            emote_costs = {
+                "Expression": constants.energy_cost_expression,
+                "Animation": constants.energy_cost_animation,
+                "Cutscene": constants.energy_cost_cutscene_emote,
+            }
+            return emote_costs.get(definition.category or "Expression", 0)
+        return constants.energy_cost_card
 
     def use_card(
         self,

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from server.commands.outcomes import PendingRoomBroadcast
 from server.content.worlds import WorldDefinition
+from server.gameplay_options import DEFAULT_GAMEPLAY_OPTIONS, GameplayOptions
 from server.security import utc_now
 from server.services.stats import StatsService
 from server.state.migrations import DatabaseHub
@@ -18,10 +19,6 @@ from server.state.vibes import VibesRepository
 if TYPE_CHECKING:
     from server.services.dynamic_cards import DynamicCardDrops
 
-
-PERIODIC_SECONDS = 60
-STINKY_VIBE_DELTA = -1
-CHARISMA_VIBE_BASE = 1
 
 VIBE_BANDS: tuple[tuple[int, int, str], ...] = (
     (76, 100, "Supreme BFF 😍"),
@@ -59,6 +56,7 @@ class VibesService:
         peep_states: NpcPeepStateRepository | None = None,
         connections: object | None = None,
         card_drops: DynamicCardDrops | None = None,
+        options: GameplayOptions = DEFAULT_GAMEPLAY_OPTIONS,
     ) -> None:
         self._hub = hub
         self._world = world
@@ -66,6 +64,7 @@ class VibesService:
         self._peep_states = peep_states
         self._connections = connections
         self._card_drops = card_drops
+        self._options = options
         self._repo = VibesRepository(hub)
         self._last_room_update: dict[str, datetime] = {}
 
@@ -185,7 +184,9 @@ class VibesService:
 
         moment = now or utc_now()
         previous = self._last_room_update.get(room_id)
-        if previous is not None and moment - previous < timedelta(seconds=PERIODIC_SECONDS):
+        if previous is not None and moment - previous < timedelta(
+            seconds=self._options.constants.vibe_check_seconds
+        ):
             return []
 
         users = [str(account_id) for account_id in dict.fromkeys(user_ids) if str(account_id)]
@@ -237,8 +238,9 @@ class VibesService:
             view = views.get(target_id)
             if view is None:
                 continue
-            charisma = int(view.effective.stats.get("charisma", CHARISMA_VIBE_BASE))
-            delta = charisma - CHARISMA_VIBE_BASE
+            base = self._options.constants.charisma_vibe_base
+            charisma = int(view.effective.stats.get("charisma", base))
+            delta = charisma - base
             if delta:
                 for source_id in peeps:
                     if source_id != target_id:
@@ -252,7 +254,7 @@ class VibesService:
             for source_id in peeps:
                 if source_id != target_id:
                     key = (source_id, target_id)
-                    deltas[key] = deltas.get(key, 0) + STINKY_VIBE_DELTA
+                    deltas[key] = deltas.get(key, 0) + self._options.constants.stinky_vibe_delta
 
         updated: dict[tuple[str, str], int] = {}
         if deltas:

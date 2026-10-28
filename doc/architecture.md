@@ -37,7 +37,7 @@ through a generated map. See the canonical
 | Boundary | Source entry points |
 | --- | --- |
 | HTTPS launch and application assembly | [run.py](../run.py), [server/app.py](../server/app.py) |
-| Environment parsing and security | [config](../server/config.py), [security](../server/security.py) |
+| Environment parsing, gameplay options, and security | [config](../server/config.py), [gameplay options](../server/gameplay_options.py), [security](../server/security.py) |
 | Accounts and profile persistence | [accounts](../server/accounts.py), [profiles](../server/profiles.py), [serialization](../server/serialization.py) |
 | Protocol and live connections | [protocol](../server/protocol.py), [connections](../server/connections.py) |
 | Command parsing/dispatch | [parser](../server/commands/parser.py), [registry](../server/commands/registry.py) |

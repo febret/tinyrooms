@@ -84,7 +84,7 @@ def start_activity(
                 f"Slot the {definition.required_skill.replace('-', ' ').title()} skill to use {definition.title}."
             )
     config: dict[str, object] = {
-        "start_cost": definition.start_cost,
+        "start_cost": definition.start_cost if context.stats.energy_enabled else 0,
         "record": definition.record,
         "min_completed_round": definition.min_completed_round,
     }

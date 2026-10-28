@@ -93,7 +93,8 @@ def _base_maxima(
     """Return (max_health, max_energy, max_cleanliness)."""
 
     constitution = effective_value(1, modifiers_for(modifiers, "constitution"), minimum=0)
-    max_health_base = max(BASE_HEALTH, BASE_HEALTH * constitution)
+    base_health = content.base_max_health
+    max_health_base = max(base_health, base_health * constitution)
     max_health = effective_value(max_health_base, modifiers_for(modifiers, MAX_HEALTH_TARGET), minimum=1)
     max_energy = effective_value(
         content.juice.max_energy(level),
@@ -101,7 +102,7 @@ def _base_maxima(
         minimum=1,
     )
     max_cleanliness = effective_value(
-        BASE_CLEANLINESS,
+        content.base_max_cleanliness,
         modifiers_for(modifiers, MAX_CLEANLINESS_TARGET),
         minimum=1,
     )
@@ -116,6 +117,7 @@ def compute_effective_state(
     previous_statuses: Sequence[str] = (),
     modifiers: Sequence[Modifier] = (),
     external_statuses: Sequence[str] = (),
+    suppressed_statuses: frozenset[str] = frozenset(),
 ) -> EffectivePeepState:
     """Compute the full effective state given counters, equipment/skills/buffs.
 
@@ -142,7 +144,9 @@ def compute_effective_state(
     for status_id in external_statuses:
         if status_id in content.statuses and status_id not in statuses:
             statuses.append(status_id)
-    statuses = tuple(statuses)
+    statuses = tuple(
+        status_id for status_id in statuses if status_id not in suppressed_statuses
+    )
     all_modifiers = (*modifiers, *status_modifiers(content, statuses))
     stats = {
         stat: effective_value(1, modifiers_for(all_modifiers, stat), minimum=0) for stat in STAT_TARGETS

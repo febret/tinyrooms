@@ -588,6 +588,13 @@ Health, Energy, and Cleanliness, together with the Sick, Stinky, and Tired statu
 rules, are shipped core defaults rather than illustrative examples. Worlds can
 override or extend these defaults.
 
+Operators can also tune these mechanics per server with an optional `options.json`
+passed through `run.py --options` / `TRSERVER_OPTIONS_PATH`. It can disable the
+Energy, Sickness, and Cleanliness mechanics, toggle their dynamic card drops, and
+override the mechanic-tied constants without editing core YAML. Disabling a
+mechanic bypasses its counter changes and status while leaving the counter
+visible at its maximum. Missing fields use these core defaults.
+
 
 ### Kudos
 Kudos are one of the main "currencies" of the game. They are gained by completing

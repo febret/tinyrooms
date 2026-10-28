@@ -133,7 +133,7 @@ class ActivityResultService:
         """Charge the activity's start cost and report the round."""
 
         definition = self._require_definition(kind)
-        charged = int(definition.start_cost)
+        charged = int(definition.start_cost) if self._stats.energy_enabled else 0
         with self._hub.transaction() as connection:
             if charged:
                 self._stats.charge_in_transaction(connection, account.id, charged)

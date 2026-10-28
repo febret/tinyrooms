@@ -479,6 +479,7 @@ def _build_runtime(
     catalog = bundle.catalog
     content = bundle.content
     world = bundle.world
+    options = config.gameplay_options
     mods = loaded_mods
     policy_store = InstancePolicyStore(
         config.instance_policy_path or (config.users_path / "instance-policy.json"),
@@ -509,7 +510,7 @@ def _build_runtime(
         valid_stickers=frozenset(accounts.list_stickers()),
         memories=memories,
     )
-    stats = StatsService(hub, profiles, catalog, content, world.id)
+    stats = StatsService(hub, profiles, catalog, content, world.id, options=options)
     inventory = InventoryService(hub, profiles, stats, catalog, content.levels, world.id)
     progression = ProgressionService(hub, profiles, stats, catalog, content, world.id)
     titles = TitleService(hub, profiles, content)
@@ -529,7 +530,9 @@ def _build_runtime(
     activity_results = ActivityResultService(
         hub, profiles, stats, progression, tasks, world.id, world.activities
     )
-    actions = ActionsService(hub, profiles, stats, catalog, world.id, environment=environment)
+    actions = ActionsService(
+        hub, profiles, stats, catalog, world.id, environment=environment, options=options
+    )
     shop = ShopService(hub, profiles, catalog, content, world.id)
     prop_shop = PropShopService(hub, profiles, world)
     whiteboard_images = WhiteboardImageStore(config.whiteboard_images_path)
@@ -571,6 +574,7 @@ def _build_runtime(
         world_state=world_state,
         cards=cards,
         catalog=catalog,
+        options=options,
     )
     vibes = VibesService(
         hub=hub,
@@ -579,6 +583,7 @@ def _build_runtime(
         peep_states=peep_states,
         connections=connections,
         card_drops=card_drops,
+        options=options,
     )
     friends = FriendsService(hub, profiles, is_online=connections.is_online, vibes=vibes)
     phone_messages = PhoneMessageService(hub, profiles)
@@ -610,6 +615,7 @@ def _build_runtime(
         surfaces=surfaces,
         powers=powers,
         vibes=vibes,
+        options=options,
     )
     peep_states.set_room_change_listener(rooms.sprites.forget_npc)
     dialogs = DialogService(

@@ -240,7 +240,7 @@ class CraftingService:
             recipe_id=recipe.id,
             label=recipe.label,
             description=recipe.description,
-            energy_cost=recipe.energy_cost,
+            energy_cost=recipe.energy_cost if self._stats.energy_enabled else 0,
             ingredients=ingredients,
             output=output,
         )

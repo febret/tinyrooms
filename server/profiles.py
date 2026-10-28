@@ -509,13 +509,27 @@ class ProfileRepository:
             updated = connection.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
         return self._account_from_row(updated)
 
-    def create_account(self, username: str, password: str, world_id: str, entry_room: str) -> AccountRecord:
-        """Create an account with default starting state."""
+    def create_account(
+        self,
+        username: str,
+        password: str,
+        world_id: str,
+        entry_room: str,
+        *,
+        starting_energy: int | None = None,
+        starting_counters: dict[str, object] | None = None,
+    ) -> AccountRecord:
+        """Create an account with default or configured starting state."""
 
         display_name, username_key = normalize_username(username)
         now = utc_now().isoformat()
         account_id = str(uuid.uuid4())
         password_digest = hash_password(password)
+        energy = 80 if starting_energy is None else max(0, int(starting_energy))
+        counters = {
+            **STARTING_WORLD_COUNTERS,
+            **(starting_counters or {}),
+        }
         with self._hub.transaction() as connection:
             max_guests = 0
             if self._policy_store is not None:
@@ -537,13 +551,14 @@ class ProfileRepository:
                     initial_sticker_complete, level, kudos, bops,
                     shared_energy, last_energy_at, last_daily_claim,
                     active_session_generation, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, NULL, 0, 0, 0, 10, 80, ?, NULL, 0, ?, ?)
+                ) VALUES (?, ?, ?, ?, NULL, 0, 0, 0, 10, ?, ?, NULL, 0, ?, ?)
                 """,
                 (
                     account_id,
                     display_name,
                     username_key,
                     password_digest,
+                    energy,
                     now,
                     now,
                     now,
@@ -571,7 +586,7 @@ class ProfileRepository:
                     account_id,
                     world_id,
                     entry_room,
-                    json.dumps(STARTING_WORLD_COUNTERS),
+                    json.dumps(counters),
                     json.dumps(_default_profile()),
                     now,
                 ),

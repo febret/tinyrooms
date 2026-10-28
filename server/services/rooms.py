@@ -12,6 +12,7 @@ from server.content.exit_props import EXIT_STYLES_BY_KIND, default_exit_finish
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
+from server.gameplay_options import DEFAULT_GAMEPLAY_OPTIONS, GameplayOptions
 from server.profiles import AccountRecord, ProfileRepository
 from server.protocol import (
     MAX_CHAT_SIZE,
@@ -110,9 +111,6 @@ class NpcSummonResult:
 class RoomService:
     """Authoritative room state assembly and mutations."""
 
-    ROOM_CHANGE_ENERGY_COST = 1
-    CHAT_ENERGY_COST = 1
-
     def __init__(
         self,
         *,
@@ -136,6 +134,7 @@ class RoomService:
         vibes: object | None = None,
         lighting: LightingService | None = None,
         prop_lights: PropLightService | None = None,
+        options: GameplayOptions = DEFAULT_GAMEPLAY_OPTIONS,
     ) -> None:
         self._hub = hub
         self._profiles = profiles
@@ -160,6 +159,11 @@ class RoomService:
         self._vibes = vibes
         self._lighting = lighting or LightingService(world)
         self._prop_lights = prop_lights or PropLightService()
+        constants = options.constants
+        self._room_change_energy_cost = (
+            constants.energy_cost_room_change if options.energy_enabled else 0
+        )
+        self._chat_energy_cost = constants.energy_cost_chat if options.energy_enabled else 0
         self._mod_states: list[object] = []
 
     @property
@@ -1165,8 +1169,8 @@ class RoomService:
             "text": text,
         }
         with self._hub.transaction() as connection:
-            if self.CHAT_ENERGY_COST:
-                self._stats.charge_in_transaction(connection, account.id, self.CHAT_ENERGY_COST)
+            if self._chat_energy_cost:
+                self._stats.charge_in_transaction(connection, account.id, self._chat_energy_cost)
         self._world_state.append_chat_message(room_id, entry)
         return {"type": "chat.message", "room_id": room_id, **entry}
 
@@ -1248,8 +1252,8 @@ class RoomService:
         if self._dialogs is not None:
             self._dialogs.end(account.id, "room_changed")
         with self._hub.transaction() as connection:
-            if self.ROOM_CHANGE_ENERGY_COST:
-                self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
+            if self._room_change_energy_cost:
+                self._stats.charge_in_transaction(connection, account.id, self._room_change_energy_cost)
         await self._connections.set_room(account.id, None)
         self._sprites.forget_user(account.id)
         closed = self._activities.close(account.id)
@@ -1296,8 +1300,8 @@ class RoomService:
         if self._dialogs is not None:
             self._dialogs.end(account.id, "room_changed")
         with self._hub.transaction() as connection:
-            if self.ROOM_CHANGE_ENERGY_COST:
-                self._stats.charge_in_transaction(connection, account.id, self.ROOM_CHANGE_ENERGY_COST)
+            if self._room_change_energy_cost:
+                self._stats.charge_in_transaction(connection, account.id, self._room_change_energy_cost)
             self._profiles.set_remembered_room(connection, account.id, self._world.id, destination_room.id)
         await self._connections.set_room(account.id, destination_room.id)
         self._sprites.forget_user(account.id)

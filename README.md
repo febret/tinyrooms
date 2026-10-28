@@ -50,7 +50,20 @@ python run.py --legacy-features svg-boards
 ```
 
 `TRSERVER_LEGACY_FEATURES=svg-boards` selects the same compatibility mode.
-MC configuration, shared content, identity, and TLS settings are documented in
+
+Gameplay tuning can be loaded from an optional `options.json` without editing
+core content. Pass it with `--options` or `TRSERVER_OPTIONS_PATH`:
+
+```powershell
+python run.py --options .local/options.json
+```
+
+The file can disable Energy, Sickness, and Cleanliness mechanics, toggle the
+Sickness/Cleanliness dynamic card drops independently, and override the
+mechanic-tied constants (recharge rates, base maxima, Energy costs, drop
+cadence/chance/room cap, and vibe penalties). Missing fields keep core defaults
+and unknown fields are rejected. MC configuration, shared content, identity, and
+TLS settings are documented in
 [Mission Control](doc/mission-control.md#3-configuration).
 
 ## Mission Control

@@ -101,12 +101,21 @@ class AccountService:
         validate_password(password)
         if not hmac.compare_digest(passphrase.encode("utf-8"), self.invitation.encode("utf-8")):
             raise AuthenticationError("The new-account passphrase is incorrect.")
+        constants = self._config.gameplay_options.constants
+        starting_counters = {
+            "health": constants.base_max_health,
+            "max_health": constants.base_max_health,
+            "cleanliness": constants.base_max_cleanliness,
+            "max_cleanliness": constants.base_max_cleanliness,
+        }
         try:
             account = self._profiles.create_account(
                 display_name,
                 password,
                 self._world_id,
                 self._entry_room_id,
+                starting_energy=constants.max_energy_per_level[0],
+                starting_counters=starting_counters,
             )
         except AccountLimitError as exc:
             raise AccountConflictError(

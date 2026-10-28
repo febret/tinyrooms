@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
 import os
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from server.gameplay_options import (
+    GameplayOptions,
+    GameplayOptionsError,
+    load_gameplay_options,
+)
 
 
 _FEATURE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
@@ -204,6 +210,9 @@ class AppConfig:
     entry_url: str | None = None
     # Opt-in compatibility for legacy content, such as vector whiteboards.
     legacy_features: frozenset[str] = frozenset()
+    # Optional per-instance gameplay tuning; absent means core defaults.
+    options_path: Path | None = None
+    gameplay_options: GameplayOptions = field(default_factory=GameplayOptions)
 
     @property
     def client_path(self) -> Path:
@@ -483,6 +492,13 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
     client_url = validate_public_url(values.get("TRSERVER_CLIENT_URL", ""), "TRSERVER_CLIENT_URL")
     entry_url = validate_public_url(values.get("TRSERVER_ENTRY_URL", ""), "TRSERVER_ENTRY_URL")
 
+    options_raw = values.get("TRSERVER_OPTIONS_PATH", "").strip()
+    options_path = Path(options_raw).expanduser().resolve() if options_raw else None
+    try:
+        gameplay_options = load_gameplay_options(options_path)
+    except GameplayOptionsError as exc:
+        raise ConfigError(str(exc)) from exc
+
     return AppConfig(
         repo_root=root,
         local_path=local_path,
@@ -519,4 +535,6 @@ def load_config(env: dict[str, str] | None = None, repo_root: Path | None = None
         mc_instance_id=mc_instance_id,
         client_url=client_url,
         entry_url=entry_url,
+        options_path=options_path,
+        gameplay_options=gameplay_options,
     )

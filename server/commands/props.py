@@ -215,7 +215,7 @@ async def craft_command(context: CommandContext, command: ParsedCommand) -> Comm
             "label": definition.label,
             "description": definition.description,
             "station": definition.station or "",
-            "energy_cost": definition.energy_cost,
+            "energy_cost": definition.energy_cost if context.stats.energy_enabled else 0,
             "ingredients": [
                 {
                     "card_id": item.card_id,
