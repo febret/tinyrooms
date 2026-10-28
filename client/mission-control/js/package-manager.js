@@ -37,6 +37,7 @@ export function createPackageManager(container, ctx) {
             el("thead", {}, el("tr", {}, [
               el("th", { text: "Id" }),
               el("th", { text: "Build" }),
+              el("th", { text: "Hash" }),
               el("th", { text: "Protocol" }),
               el("th", { text: "Commit" }),
               el("th", { text: "Instances" }),
@@ -103,6 +104,7 @@ export function createPackageManager(container, ctx) {
         version.running ? el("span", { class: "badge ok", text: "running" }) : "",
       ]),
       el("td", { text: version.build || "—" }),
+      el("td", { class: "path", text: version.version_hash || "—" }),
       el("td", { text: String(version.protocol ?? "—") }),
       el("td", { text: version.commit || "—" }),
       el("td", { text: instanceLabel(version) }),

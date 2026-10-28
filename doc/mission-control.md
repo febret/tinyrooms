@@ -371,7 +371,11 @@ See [migrations](../server/state/migrations.py) and [profiles](../server/profile
 
 [Deploy invocation](../README.md#deploying) and [tools/deploy.py](../tools/deploy.py)
 are the entry points. One command handles fresh hosts and upgrades, with default
-root `~/tinyrooms`; there is no operation selector. Existing installs under
+root `~/tinyrooms`; there is no operation selector. The default content file is
+`multiworld.json` (`--content` overrides it); only enabled worlds are packaged,
+along with their required mods/cardsets/propsets. The tarball name includes a
+SHA-256 content hash, and each checkout records it in `deploy-manifest.json` so
+Mission Control can identify identical deployments. Existing installs under
 `~/.local/tinyrooms` must continue passing that root explicitly or be migrated
 separately. Passwordless SSH is required; missing nginx and Python
 venv/pip packages are installed via apt/noninteractive sudo. Remote uploads

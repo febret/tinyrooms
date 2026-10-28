@@ -132,6 +132,15 @@ def _port_env_names(world_id: str) -> tuple[str, ...]:
     return tuple(names)
 
 
+def _enabled(entry: Any, index: int) -> bool:
+    if not isinstance(entry, dict):
+        return True
+    value = entry.get("enabled", True)
+    if not isinstance(value, bool):
+        raise MultiworldConfigError(f"worlds[{index}].enabled must be a boolean.")
+    return value
+
+
 def _world_id(entry: Any, index: int) -> str:
     context = f"worlds[{index}]"
     if isinstance(entry, str):
@@ -218,6 +227,8 @@ def load_multiworld_config(
     used_worlds: set[str] = set()
     used_instances: set[str] = set()
     for index, entry in enumerate(entries):
+        if not _enabled(entry, index):
+            continue
         world_id = _world_id(entry, index)
         if world_id in used_worlds:
             raise MultiworldConfigError(f"World '{world_id}' appears more than once.")
@@ -274,6 +285,9 @@ def load_multiworld_config(
                 shared_content=shared_content,
             )
         )
+
+    if not worlds:
+        raise MultiworldConfigError("No worlds are enabled in the multiworld file.")
 
     default_instance = payload.get("default_instance_id")
     if default_instance is not None:

@@ -3,12 +3,14 @@
   "worlds": [
     {
       "id": "tutorial",
+      "enabled": true,
       "port": 5100,
       "instance_id": "tutorial-1",
       "label": "Tutorial"
     },
     {
       "id": "scammon-academia",
+      "enabled": true,
       "port": 5101,
       "instance_id": "scammon-1",
       "label": "Scammon Academia",
@@ -16,18 +18,21 @@
     },
     {
       "id": "tiny-arcade",
+      "enabled": true,
       "port": 5102,
       "instance_id": "arcade-1",
       "label": "Tiny Arcade"
     },
     {
       "id": "tinytown",
+      "enabled": true,
       "port": 5103,
       "instance_id": "tinytown-1",
       "label": "TinyTown"
     },
     {
       "id": "tiny-backrooms",
+      "enabled": true,
       "port": 5104,
       "instance_id": "backrooms-1",
       "label": "Tiny Backrooms",
@@ -35,12 +40,14 @@
     },
     {
       "id": "tiny-vault",
+      "enabled": true,
       "port": 5105,
       "instance_id": "vault-1",
       "label": "Tiny Vault"
     },
     {
       "id": "bobs-burgers",
+      "enabled": true,
       "port": 5106,
       "instance_id": "bobs-1",
       "label": "Bob's Burgers",
@@ -49,6 +56,7 @@
     },
     {
       "id": "brainrot-borgo",
+      "enabled": true,
       "port": 5107,
       "instance_id": "brainrot-1",
       "label": "Borgo Brainrot",

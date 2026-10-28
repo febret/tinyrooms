@@ -31,6 +31,14 @@ class ParseArgsTests(unittest.TestCase):
         args = deploy.parse_args(["example.com"])
         self.assertFalse(args.force_restart)
 
+    def test_content_flag(self) -> None:
+        args = deploy.parse_args(["example.com", "--content", "fleet.json"])
+        self.assertEqual(args.content, Path("fleet.json"))
+
+    def test_content_defaults_to_multiworld(self) -> None:
+        args = deploy.parse_args(["example.com"])
+        self.assertEqual(args.content.name, "multiworld.json")
+
     def test_force_flag(self) -> None:
         args = deploy.parse_args(["example.com", "--force"])
         self.assertTrue(args.force)
@@ -318,6 +326,11 @@ class ArtifactGuardTests(unittest.TestCase):
                 "admin": {"port": "8001", "base_path": "", "feature": "mission-control"}}),
             mock.patch.object(deploy, "ensure_nginx"),
             mock.patch.object(deploy, "current_version", return_value="9.9.9"),
+            mock.patch.object(
+                deploy,
+                "load_content_selection",
+                return_value=deploy.ContentSelection((), (), (), ()),
+            ),
             mock.patch.object(deploy, "run_remote", side_effect=fake_run_remote),
             mock.patch.object(deploy, "package", return_value=releases / "tinyrooms-9.9.9.tar.gz"),
             mock.patch.object(deploy, "install_requirements"),

@@ -101,6 +101,7 @@ export function createServerManager(container, ctx) {
         el("td", {}, statusBadge(server.status)),
         el("td", {}, server.world.label || server.world.id || "—"),
         versionControl(server),
+        el("td", { class: "path", text: versionHash(server) }),
         el("td", {}, server.source),
         el("td", {}, formatUptime(server.uptime_seconds)),
         el("td", {}, String(server.users_online)),
@@ -135,9 +136,9 @@ export function createServerManager(container, ctx) {
           ? el("table", {}, [
               el("thead", {}, el("tr", {}, [
                  el("th", { text: "Name" }), el("th", { text: "Client URL" }), el("th", { text: "Status" }),
-                el("th", { text: "World" }), el("th", { text: "Version" }), el("th", { text: "Source" }),
-                el("th", { text: "Uptime" }), el("th", { text: "Users" }), el("th", { text: "Heartbeat" }),
-                el("th", { text: "Actions" }),
+                el("th", { text: "World" }), el("th", { text: "Version" }), el("th", { text: "Hash" }),
+                el("th", { text: "Source" }), el("th", { text: "Uptime" }), el("th", { text: "Users" }),
+                el("th", { text: "Heartbeat" }), el("th", { text: "Actions" }),
               ])),
               state.listBody,
             ])
@@ -250,6 +251,7 @@ export function createServerManager(container, ctx) {
         info("Source", detail.source),
         info("World", detail.world.label || detail.world.id || "—"),
         detail.source === "spawned" ? info("Version", versionSelect(detail)) : info("Version", versionLabel(detail)),
+        info("Version hash", el("span", { class: "path", text: versionHash(detail) })),
         detail.source === "spawned" ? info("Legacy features", legacySelect(detail)) : info("Legacy features", "—"),
         info("Uptime", formatUptime(detail.uptime_seconds)),
         info("Users online", String(detail.users_online)),
@@ -286,6 +288,12 @@ export function createServerManager(container, ctx) {
 
   function versionLabel(server) {
     return server.version || server.version_id || "—";
+  }
+
+  function versionHash(server) {
+    if (server.version_hash) return server.version_hash;
+    const version = ctx.versions().find((candidate) => candidate.id === server.version_id);
+    return (version && version.version_hash) || "—";
   }
 
   function versionSelect(server) {

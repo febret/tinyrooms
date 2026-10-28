@@ -84,8 +84,9 @@ See the canonical [entry rules](doc/mission-control.md#21-player-entry-and-desti
 [Bash users] `./start_multiworld.sh` starts a local Mission Control plus the
 worlds listed in [multiworld.json](multiworld.json), sharing one profile
 database and one advertised hostname. Edit that JSON file to choose the fleet:
-each `worlds` entry may be a world id string or an object with `id` plus
-optional `port`, `instance_id`, `label`, and `mods`; a `path` may point the
+world entries are skipped when they set `"enabled": false`; each `worlds`
+entry may be a world id string or an object with `id` plus optional `enabled`,
+`port`, `instance_id`, `label`, and `mods`; a `path` may point the
 world at a directory outside `worlds/` (for example a sibling workshop
 checkout), with an optional `shared_content` root layered in for that world's
 own cardsets/propsets. The top-level `mods` list applies by default. [`start_multiworld.py`](start_multiworld.py) reads the file
@@ -125,14 +126,21 @@ instance. See [fleet destination discovery](doc/mission-control.md#7-mission-con
 [tools/deploy.py](tools/deploy.py) deploys over passwordless SSH:
 
 ```bash
-python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--force] [--force-restart]
+python tools/deploy.py <host> [rootdir] [-u USER] [--content FILE] [--dirty] [--force] [--force-restart]
 ```
 
 `host` accepts `user@host`; `-u` overrides the user. The default root is
-`~/tinyrooms`. The same command prepares a fresh host or updates an existing
-installation: it ensures nginx/TLS, directories, and the Python environment,
-uploads a release, installs dependencies, refreshes configuration and cron
-keepalive, then repoints `versions/latest` and restarts Mission Control once.
+`~/tinyrooms`. `--content` selects the deployment content file
+(default `./multiworld.json`). Only worlds marked `"enabled": true` are
+packaged, together with the mods, cardsets, and propsets their `world.yaml`
+requires (`requires_mods`, `requires_cardsets`, `requires_propsets`; absent
+cardset/propset declarations include the available content needed by those
+worlds). Worlds and content may live outside `worlds/` or `data/` when their
+content entry supplies `path`/`shared_content`. The same command prepares a
+fresh host or updates an existing installation: it ensures nginx/TLS,
+directories, and the Python environment, uploads a release, installs
+dependencies, refreshes configuration and cron keepalive, then repoints
+`versions/latest` and restarts Mission Control once.
 It reports success only after the expected MC version answers its session API
 and the operator passphrase sourced from `admin.env` establishes a session.
 Existing TLS files, secrets, and supported operator settings are preserved.
@@ -142,8 +150,12 @@ TCP 80 and 443 need public ingress. `--dirty` skips the clean-tree check and
 packages uncommitted changes as-is.
 The deploy script never modifies `version.json`: it ships the newest recorded
 version. Cut a new release by editing `version.json` before deploying.
-If a local tarball or remote release/checkout already uses that version,
-deployment stops with an error unless `--force` is given to overwrite it.
+Packages are named `tinyrooms-<version>-<content-hash>.tar.gz`; the SHA-256
+hash covers the selected worlds/mods/cardsets/propsets, so identical content
+sets are identifiable across builds and Mission Control shows the hash for
+running servers. If a local tarball or remote release/checkout already uses
+that version, deployment stops with an error unless `--force` is given to
+overwrite it.
 Releases carry runtime code, content, and tools only: design docs (`doc/`),
 test suites, and dev-only config are excluded to keep uploads small.
 `--force-restart` (also `--forcerestart`) additionally rolls every running

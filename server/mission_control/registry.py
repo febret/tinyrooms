@@ -47,6 +47,7 @@ class InstanceRecord:
     world_description: str = ""
     world_image: str = ""
     version: str | None = None
+    version_hash: str | None = None
     protocol_version: int | None = None
     # World-reported process start, unlike MC's registration/heartbeat receipt times.
     started_at: str | None = None
@@ -151,6 +152,8 @@ class InstanceRegistry:
             record.world_description = str(world.get("description") or "")
             record.world_image = str(world.get("image") or "")
             record.version = str(payload.get("version")) if payload.get("version") else None
+            version_hash = payload.get("version_hash")
+            record.version_hash = str(version_hash) if version_hash else None
             protocol = payload.get("protocol_version")
             record.protocol_version = int(protocol) if isinstance(protocol, int) else None
             record.started_at = str(payload.get("started_at")) if payload.get("started_at") else None
@@ -213,6 +216,7 @@ class InstanceRegistry:
                 record.instance_dir = instance_dir
             record.status = STATUS_STARTING
             record.version = None
+            record.version_hash = None
             record.log_buffer.clear()
             return record
 
@@ -345,6 +349,7 @@ class InstanceRegistry:
                 "image": record.world_image,
             },
             "version": record.version,
+            "version_hash": record.version_hash,
             "version_id": (record.spawn_config or {}).get("version_id"),
             "legacy_features": legacy_features,
             "protocol_version": record.protocol_version,

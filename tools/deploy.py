@@ -1,16 +1,21 @@
 """Deploy Tinyrooms distributions to remote hosts over SSH.
 
 Usage:
-    python tools/deploy.py <host> [rootdir] [-u USER] [--dirty] [--force] [--force-restart]
+    python tools/deploy.py <host> [rootdir] [-u USER] [--content FILE] [--dirty]
+                           [--force] [--force-restart]
 
 ``host`` may be a bare hostname or ``user@host``; ``-u/--user`` overrides the
 SSH user. Each deployment prepares missing host infrastructure, packages and
 uploads the release, installs dependencies, then activates it and checks Mission
-Control readiness. The default root is ``~/tinyrooms``. The deploy script never
-modifies ``version.json``: it ships the newest recorded version. If a local or
-remote artifact already exists with that version, deployment stops unless
-``--force`` is given to overwrite it. Cut a new release by editing
-``version.json`` before deploying.
+Control readiness. Worlds come from the deployment content file (default
+``multiworld.json``); only entries enabled in that file are packaged, together
+with the mods, cardsets, and propsets their ``world.yaml`` requires. The
+tarball name carries a SHA-256 content hash, and a ``deploy-manifest.json`` in
+the package records it for Mission Control. The default root is ``~/tinyrooms``.
+The deploy script never modifies ``version.json``: it ships the newest recorded
+version. If a local or remote artifact already exists with that version,
+deployment stops unless ``--force`` is given to overwrite it. Cut a new release
+by editing ``version.json`` before deploying.
 
 ``--force-restart`` additionally rolls every *running spawned* instance onto
 the deployed version before Mission Control itself restarts: each such child
@@ -32,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -107,6 +113,16 @@ if _TOOLS_DIR not in sys.path:
     sys.path.insert(0, _TOOLS_DIR)
 
 from deploy_console import CONSOLE, Console  # noqa: E402
+from deploy_content import (  # noqa: E402
+    DEFAULT_CONTENT_FILE,
+    DEPLOY_MANIFEST_NAME,
+    ContentConfigError,
+    ContentSelection,
+    content_hash,
+    iter_content_members,
+    load_content_selection,
+    package_filename,
+)
 from server.mission_control.nginx_template import site_config  # noqa: E402
 
 
@@ -304,37 +320,88 @@ def git_dirty() -> bool:
     return bool(result.stdout.strip())
 
 
-def release_members(root: Path) -> Iterator[tuple[Path, str]]:
+def release_members(
+    root: Path,
+    selection: ContentSelection | None = None,
+) -> Iterator[tuple[Path, str]]:
     """Yield ``(path, arcname)`` pairs included in a release tarball.
 
     ``tools/fleet_restart.py`` and the other runtime helpers stay in the
-    release; design docs, tests, and dev-only files are omitted.
+    release; design docs, tests, and dev-only files are omitted. When a content
+    selection is supplied, runtime content roots are replaced by exactly the
+    selected worlds, mods, cardsets, and propsets, which may live outside
+    *root*.
     """
+
+    prefixes = selection.prefixes() if selection is not None else ()
+
+    def selected(relative: str) -> bool:
+        return any(
+            relative == prefix or relative.startswith(prefix + "/") for prefix in prefixes
+        )
 
     for current, dirs, files in os.walk(root):
         dirs[:] = sorted(name for name in dirs if name not in EXCLUDED_DIRS)
         base = Path(current)
+        relative_root = base.relative_to(root)
+        if selection is not None and selected(relative_root.as_posix()):
+            dirs[:] = []
+            continue
         for name in sorted(files):
             if name in EXCLUDED_FILES or name.endswith(EXCLUDED_SUFFIXES):
                 continue
             path = base / name
-            yield path, str(path.relative_to(root))
+            relative = path.relative_to(root)
+            if selection is not None and selected(relative.as_posix()):
+                continue
+            yield path, str(relative)
+    if selection is not None:
+        for entry in selection.entries():
+            yield from iter_content_members(entry)
 
 
-def package(version: str, dirty: bool, console: Console | None = None) -> Path:
-    """Create the self-contained release tarball for *version*."""
+def package(
+    version: str,
+    dirty: bool,
+    console: Console | None = None,
+    *,
+    selection: ContentSelection | None = None,
+    version_hash: str | None = None,
+    content_path: Path | str | None = None,
+) -> Path:
+    """Create the self-contained release tarball for *version*.
+
+    Worlds and their required mods/cardsets/propsets are selected from
+    *content_path* (``multiworld.json`` by default). The tarball name carries
+    the content hash so identical deployments share one identifiable package.
+    """
 
     console = console or CONSOLE
+    if selection is None:
+        try:
+            selection = load_content_selection(content_path or DEFAULT_CONTENT_FILE)
+        except ContentConfigError as exc:
+            raise DeployError(str(exc)) from exc
+    digest = version_hash or content_hash(selection)
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
-    tarball = RELEASES_DIR / f"tinyrooms-{version}.tar.gz"
+    tarball = RELEASES_DIR / package_filename(version, digest)
+    manifest = json.dumps(selection.manifest(version, digest), indent=2, sort_keys=True).encode("utf-8")
     count = 0
     with tarfile.open(tarball, "w:gz") as archive:
-        for path, arcname in release_members(REPO_ROOT):
+        for path, arcname in release_members(REPO_ROOT, selection):
             archive.add(path, arcname=arcname)
             count += 1
+        info = tarfile.TarInfo(DEPLOY_MANIFEST_NAME)
+        info.size = len(manifest)
+        info.mode = 0o644
+        archive.addfile(info, io.BytesIO(manifest))
+        count += 1
     size_mb = tarball.stat().st_size / 1e6
     suffix = " (dirty)" if dirty else ""
-    console.info(f"Packaged {tarball.relative_to(REPO_ROOT)} ({count} files, {size_mb:.0f} MB){suffix}")
+    console.info(
+        f"Packaged {tarball.relative_to(REPO_ROOT)} ({count} files, {size_mb:.0f} MB, "
+        f"hash {digest[:12]}){suffix}"
+    )
     return tarball
 
 
@@ -348,32 +415,59 @@ def local_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def local_artifact_clashes(version: str, releases_dir: Path | None = None) -> list[str]:
+def _release_names(version: str, version_hash: str | None) -> list[str]:
+    names = [f"tinyrooms-{version}.tar.gz"]
+    if version_hash:
+        hashed = package_filename(version, version_hash)
+        if hashed not in names:
+            names.insert(0, hashed)
+    return names
+
+
+def local_artifact_clashes(
+    version: str,
+    releases_dir: Path | None = None,
+    version_hash: str | None = None,
+) -> list[str]:
     """Return descriptions of local artifacts that collide with *version*."""
 
     releases_dir = RELEASES_DIR if releases_dir is None else releases_dir
-    tarball = releases_dir / f"tinyrooms-{version}.tar.gz"
-    if tarball.is_file():
-        return [f"local release {tarball}"]
-    return []
+    clashes: list[str] = []
+    for name in _release_names(version, version_hash):
+        tarball = releases_dir / name
+        if tarball.is_file():
+            clashes.append(f"local release {tarball}")
+    return clashes
 
 
-def remote_artifact_clashes(host: str, root: str, version: str) -> list[str]:
+def remote_artifact_clashes(
+    host: str,
+    root: str,
+    version: str,
+    version_hash: str | None = None,
+) -> list[str]:
     """Return descriptions of remote artifacts that collide with *version*."""
 
     clashes: list[str] = []
-    tarball_name = f"tinyrooms-{version}.tar.gz"
-    if run_remote(host, f"test -e {remote_path(root, 'releases', tarball_name)}", check=False).returncode == 0:
-        clashes.append(f"remote release {root}/releases/{tarball_name}")
+    for tarball_name in _release_names(version, version_hash):
+        if run_remote(host, f"test -e {remote_path(root, 'releases', tarball_name)}", check=False).returncode == 0:
+            clashes.append(f"remote release {root}/releases/{tarball_name}")
     if run_remote(host, f"test -e {remote_path(root, 'versions', version)}", check=False).returncode == 0:
         clashes.append(f"remote checkout {root}/versions/{version}")
     return clashes
 
 
-def existing_artifacts(host: str, root: str, version: str) -> list[str]:
+def existing_artifacts(
+    host: str,
+    root: str,
+    version: str,
+    version_hash: str | None = None,
+) -> list[str]:
     """Return descriptions of local and remote artifacts already using *version*."""
 
-    return local_artifact_clashes(version) + remote_artifact_clashes(host, root, version)
+    return local_artifact_clashes(version, version_hash=version_hash) + remote_artifact_clashes(
+        host, root, version, version_hash
+    )
 
 
 def stream_to_remote(host: str, command: str, tarball: Path, console: Console | None = None) -> bool:
@@ -575,6 +669,7 @@ def force_restart_fleet(host: str, root: str, version: str, console: Console | N
 def deploy(
     host: str, server_name: str, root: str, dirty: bool, *,
     force: bool = False, force_restart: bool = False, console: Console | None = None,
+    content_path: Path | str | None = None,
 ) -> str:
     """Package and deploy a version, returning its label."""
 
@@ -608,8 +703,14 @@ def deploy(
     phase("Selecting release version")
     with console.spinner("Reading newest recorded version"):
         version = current_version()
+    with console.spinner("Selecting deployment content"):
+        try:
+            selection = load_content_selection(content_path or DEFAULT_CONTENT_FILE)
+        except ContentConfigError as exc:
+            raise DeployError(str(exc)) from exc
+        version_hash = content_hash(selection)
     with console.spinner("Checking for existing artifacts"):
-        clashes = existing_artifacts(host, root, version)
+        clashes = existing_artifacts(host, root, version, version_hash)
     if clashes and not force:
         raise DeployError(
             f"Version {version} already exists ({'; '.join(clashes)}). "
@@ -617,11 +718,19 @@ def deploy(
         )
     if force and clashes:
         console.warning(f"Overwriting existing artifacts for version {version}.")
-    console.info(f"Deploying version {version}")
+    console.info(
+        f"Deploying version {version} (content hash {version_hash[:12]}): "
+        f"{len(selection.worlds)} world(s), {len(selection.mods)} mod(s), "
+        f"{len(selection.cardsets)} cardset(s), {len(selection.propsets)} propset(s)"
+    )
 
     phase("Packaging release")
-    with console.spinner(f"Packing tinyrooms-{version}.tar.gz"):
-        tarball = package(version, dirty, console=console)
+    tarball_name = package_filename(version, version_hash)
+    with console.spinner(f"Packing {tarball_name}"):
+        tarball = package(
+            version, dirty, console=console,
+            selection=selection, version_hash=version_hash,
+        )
 
     phase("Uploading release")
     upload_release(host, root, version, tarball, overwrite=True, console=console)
@@ -994,6 +1103,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("host", help="Remote hostname or user@hostname (passwordless SSH access required).")
     parser.add_argument("rootdir", nargs="?", default=DEFAULT_ROOT, help=f"Deployment root (default: {DEFAULT_ROOT}).")
     parser.add_argument("-u", "--user", help="SSH user; overrides any user embedded in the host argument.")
+    parser.add_argument(
+        "--content",
+        type=Path,
+        default=REPO_ROOT / DEFAULT_CONTENT_FILE,
+        help=f"Deployment content file (default: {DEFAULT_CONTENT_FILE}).",
+    )
     parser.add_argument("--dirty", action="store_true", help="Package with uncommitted changes (skip the clean-tree check).")
     parser.add_argument(
         "--force",
@@ -1031,7 +1146,8 @@ def main(argv: list[str] | None = None) -> int:
         root = resolve_root(ssh_target, args.rootdir)
         console.info(f"Deploying to {ssh_target} ({root})")
         deploy(ssh_target, server_name, root, args.dirty, force=args.force,
-               force_restart=args.force_restart, console=console)
+               force_restart=args.force_restart, console=console,
+               content_path=args.content)
     except DeployError as exc:
         console.error(f"deploy: {exc}")
         return 1

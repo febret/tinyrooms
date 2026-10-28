@@ -12,6 +12,7 @@ from server.state.migrations import PROFILE_SCHEMA_VERSION, WORLD_SCHEMA_VERSION
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = REPO_ROOT / "version.json"
+DEPLOY_MANIFEST_FILE = "deploy-manifest.json"
 
 
 class VersionFileError(RuntimeError):
@@ -51,6 +52,34 @@ def _load_build_version() -> str:
 BUILD_VERSION = _load_build_version()
 
 
+def deployment_manifest(path: Path = REPO_ROOT) -> dict[str, object] | None:
+    """Return the deployment manifest bundled beside *path*, if present."""
+
+    manifest_path = path / DEPLOY_MANIFEST_FILE
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def deployment_version_hash(path: Path = REPO_ROOT) -> str | None:
+    """Return the content hash recorded for a deployed checkout."""
+
+    manifest = deployment_manifest(path)
+    if manifest is None:
+        return None
+    value = manifest.get("version_hash", manifest.get("content_hash"))
+    return str(value) if value else None
+
+
+def _load_build_version_hash() -> str | None:
+    return deployment_version_hash()
+
+
+BUILD_VERSION_HASH = _load_build_version_hash()
+
+
 def schema_versions() -> dict[str, int]:
     """Return the profile and world schema versions supported by this build."""
 
@@ -88,6 +117,7 @@ def version_info(path: Path) -> dict[str, object]:
         build = BUILD_VERSION
     return {
         "build": build,
+        "version_hash": deployment_version_hash(path),
         "protocol": PROTOCOL_VERSION,
         "commit": git_describe(path),
         "schema": schema_versions(),

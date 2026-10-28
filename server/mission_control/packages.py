@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import json
 import os
+import re
 import shutil
 import tempfile
 
@@ -38,6 +39,16 @@ PACKAGE_KINDS = (KIND_WORLD, KIND_CARDSET, KIND_PROPSET)
 
 RUNNING_VERSION_ID = "running"
 MANIFEST_NAMES = ("package.json", "package.yaml")
+_RELEASE_HASH_SUFFIX = re.compile(r"^(?P<version>.+)-(?P<hash>[0-9a-f]{64})$")
+
+
+def _release_stem_parts(stem: str) -> tuple[str, str | None]:
+    """Return ``(version, hash)`` for a release tarball stem."""
+
+    match = _RELEASE_HASH_SUFFIX.match(stem)
+    if match is None:
+        return stem, None
+    return match.group("version"), match.group("hash")
 
 
 @dataclass
@@ -413,8 +424,11 @@ class PackageManager:
             shutil.rmtree(target)
         except OSError as exc:
             raise ValueError(f"Could not delete server version: {exc}") from exc
-        tarball = self._config.releases_path / f"tinyrooms-{version_id}.tar.gz"
-        if tarball.is_file():
+        for tarball in self._config.releases_path.glob(f"tinyrooms-{version_id}*.tar.gz"):
+            stem = tarball.name[len("tinyrooms-") : -len(".tar.gz")]
+            release_version, _release_hash = _release_stem_parts(stem)
+            if release_version != version_id:
+                continue
             try:
                 tarball.unlink()
             except OSError:
@@ -448,8 +462,9 @@ class PackageManager:
         releases = self._config.releases_path
         if releases.is_dir():
             for tarball in sorted(releases.glob("tinyrooms-*.tar.gz")):
-                version_id = tarball.name[len("tinyrooms-") : -len(".tar.gz")]
-                if not version_id or version_id in matched_ids:
+                stem = tarball.name[len("tinyrooms-") : -len(".tar.gz")]
+                version_id, _release_hash = _release_stem_parts(stem)
+                if not stem or version_id in matched_ids:
                     continue
                 if (self._config.versions_path / version_id).is_dir():
                     continue
@@ -459,7 +474,7 @@ class PackageManager:
                     size = 0
                 candidates.append(
                     {
-                        "id": version_id,
+                        "id": stem,
                         "kind": "tarball",
                         "path": str(tarball),
                         "size": size,
@@ -511,6 +526,7 @@ class PackageManager:
 
         if version_id in {RUNNING_VERSION_ID, "latest", ""}:
             raise ValueError("The running version cannot be deleted.")
+        release_version, _release_hash = _release_stem_parts(version_id)
         try:
             target = ensure_contained(
                 self._config.releases_path / f"tinyrooms-{version_id}.tar.gz",
@@ -519,7 +535,7 @@ class PackageManager:
             )
         except ConfigError as exc:
             raise ValueError("Unknown release artifact.") from exc
-        if (self._config.versions_path / version_id).is_dir():
+        if (self._config.versions_path / release_version).is_dir():
             raise ValueError("Release artifact has a matching installed version.")
         if not target.is_file():
             raise ValueError("Release artifact is not installed.")

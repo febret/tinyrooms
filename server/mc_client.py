@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from server.protocol import PROTOCOL_VERSION
-from server.version import BUILD_VERSION
+from server.version import BUILD_VERSION, BUILD_VERSION_HASH
 
 
 if TYPE_CHECKING:
@@ -93,6 +93,7 @@ class McClient:
             "instance_name": config.mc_name or f"{self._runtime.world.id}@{config.host}:{config.port}",
             "endpoint": _world_endpoint(config.host, config.port),
             "version": BUILD_VERSION,
+            "version_hash": BUILD_VERSION_HASH,
             "protocol_version": PROTOCOL_VERSION,
             "pid": os.getpid(),
             "world": {"id": self._runtime.world.id, "label": self._runtime.world.label,
