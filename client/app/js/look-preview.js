@@ -21,6 +21,9 @@ export function lookPreview(state, description) {
     const previewMarkup = `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">`;
     return { markup: `${previewMarkup}${lookDialogBubble(state, description)}`, action: null };
   }
+  if (selection.kind === "house" && description.imageUrl) {
+    return { markup: `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">`, action: null };
+  }
   if (selection.kind === "prop") {
     const prop = state.room?.props?.find(candidate => candidate.id === selection.id);
     if (prop?.renderKind === "sign" || prop?.renderKind === "whiteboard") {

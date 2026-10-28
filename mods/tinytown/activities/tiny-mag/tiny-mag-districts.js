@@ -12,6 +12,9 @@ export function districtPriceRange(entries, money) {
 
 function buyActions(template, ctx) {
   const labels = COPY.labels;
+  if (Number(template.owned || 0) > 0) {
+    return `<button type="button" class="mag-btn quiet district-buy" disabled>${labels.ownedOne}</button>`;
+  }
   const pending = ctx.pendingBuy === template.id;
   const canAfford = ctx.wallet >= Number(template.price || 0);
   if (pending) {
@@ -45,7 +48,7 @@ function districtCard(template, ctx, variant) {
         ${unlockLine(template, ctx)}
         <div class="price-line">
           <span class="price">${ctx.money(template.price)} Bops</span>
-          ${template.owned ? `<span class="badge good">Owned ×${template.owned}</span>` : ""}
+          ${template.owned ? `<span class="badge good">Owned</span>` : ""}
         </div>
         <div class="actions">${buyActions(template, ctx)}</div>
       </div>

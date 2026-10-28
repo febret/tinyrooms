@@ -140,10 +140,11 @@ export function buildTerrain(materials) {
   geometry.computeVertexNormals();
   const material = new THREE.MeshStandardMaterial({
     vertexColors: true,
+    map: materials.groundTexture,
     roughness: 0.96,
     metalness: 0,
     bumpMap: materials.detailTexture,
-    bumpScale: 0.012,
+    bumpScale: 0.014,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;

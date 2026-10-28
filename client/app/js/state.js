@@ -14,6 +14,7 @@ import {
   normalizeContainer,
   normalizeCounters,
   normalizeDialog,
+  normalizeEnvironment,
   normalizeGameState,
   normalizeInventoryStack,
   normalizeJournal,
@@ -390,7 +391,9 @@ function applyServerEvent(state, event) {
   if (event.type === "room.environment") {
     const revision = Number(event.revision || 0);
     if (revision <= Number(state.room.environmentRevision || 0)) return state;
-    const environment = event.environment && typeof event.environment === "object" ? { ...event.environment } : {};
+    const environment = normalizeEnvironment(event.environment);
+    const previousDiorama = state.room.environment?.diorama;
+    if (!environment.diorama && previousDiorama) environment.diorama = previousDiorama;
     return {
       ...state,
       room: {
@@ -1146,8 +1149,13 @@ export function findSelectedEntity(state) {
   return findEntity(state, state.selection);
 }
 
+export function findHouse(state, houseId) {
+  const houses = state.room?.environment?.diorama?.houses;
+  return Array.isArray(houses) ? houses.find(house => house.id === houseId) || null : null;
+}
+
 function selectionIsEligible(state, selection) {
-  return !["prop", "room-card", "container-card"].includes(selection?.kind) || Boolean(findEntity(state, selection));
+  return !["prop", "room-card", "container-card", "house"].includes(selection?.kind) || Boolean(findEntity(state, selection));
 }
 
 export function findEntity(state, selection) {
@@ -1169,6 +1177,7 @@ function resolveEntity(state, selection) {
   if (selection.kind === "container-card") return findContainerCard(state, selection.id);
   if (selection.kind === "inventory-card") return findInventoryCard(state, selection.id);
   if (selection.kind === "prop") return state.room.props.find(prop => prop.id === selection.id) || null;
+  if (selection.kind === "house") return findHouse(state, selection.id);
   if (selection.kind === "peep") return state.room.occupants.find(peep => peep.id === selection.id)
     || state.room.npcs.find(peep => peep.id === selection.id) || null;
   return null;

@@ -38,6 +38,246 @@
         "seed": 96404,
         "faces": 4500
       }
+    },
+    {
+      "label": "tinytown-house-micro-loft",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Micro Loft house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-micro-loft.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-micro-loft.png",
+        "seed": 97101,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-brick-studio",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Brick Studio house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-brick-studio.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-brick-studio.png",
+        "seed": 97102,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-neon-flat",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Neon Flat house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-neon-flat.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-neon-flat.png",
+        "seed": 97103,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-clocktower-apartment",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Clocktower Apartment house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-clocktower-apartment.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-clocktower-apartment.png",
+        "seed": 97104,
+        "faces": 7000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-skyline-penthouse",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Skyline Penthouse house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-skyline-penthouse.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-skyline-penthouse.png",
+        "seed": 97105,
+        "faces": 7000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-beach-hut",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Beach Hut house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-beach-hut.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-beach-hut.png",
+        "seed": 97106,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-tidepool-cottage",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Tidepool Cottage house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-tidepool-cottage.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-tidepool-cottage.png",
+        "seed": 97107,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-lighthouse-keep",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Lighthouse Keep house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-lighthouse-keep.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-lighthouse-keep.png",
+        "seed": 97108,
+        "faces": 7000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-harbor-house",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Harbor House house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-harbor-house.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-harbor-house.png",
+        "seed": 97109,
+        "faces": 6500
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-seaglass-villa",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Sea Glass Villa house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-seaglass-villa.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-seaglass-villa.png",
+        "seed": 97110,
+        "faces": 7000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-hilltop-cabin",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Hilltop Cabin house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-hilltop-cabin.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-hilltop-cabin.png",
+        "seed": 97111,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-wildflower-cottage",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Wildflower Cottage house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-wildflower-cottage.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-wildflower-cottage.png",
+        "seed": 97112,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-orchard-house",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Orchard House house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-orchard-house.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-orchard-house.png",
+        "seed": 97113,
+        "faces": 6500
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-vineyard-manor",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Vineyard Manor house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-vineyard-manor.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-vineyard-manor.png",
+        "seed": 97114,
+        "faces": 7000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-observatory-estate",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Observatory Estate house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-observatory-estate.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-observatory-estate.png",
+        "seed": 97115,
+        "faces": 7500
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-starter-bungalow",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Starter Bungalow house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-starter-bungalow.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-starter-bungalow.png",
+        "seed": 97116,
+        "faces": 6000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-maple-family-home",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Maple Family Home house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-maple-family-home.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-maple-family-home.png",
+        "seed": 97117,
+        "faces": 6500
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-garden-terrace",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Garden Terrace house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-garden-terrace.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-garden-terrace.png",
+        "seed": 97118,
+        "faces": 6500
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-willow-pool-house",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Willow Pool House house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-willow-pool-house.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-willow-pool-house.png",
+        "seed": 97119,
+        "faces": 7000
+      },
+      "simplify": false
+    },
+    {
+      "label": "tinytown-house-grand-manor",
+      "tool": "asset",
+      "prompt": "cozy storybook miniature Grand Manor house diorama, isolated game asset, no text",
+      "output": "worlds/tinytown/props/house-grand-manor.glb",
+      "args": {
+        "image": "worlds/tinytown/rooms/preview-grand-manor.png",
+        "seed": 97120,
+        "faces": 7500
+      },
+      "simplify": false
     }
   ]
 }

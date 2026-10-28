@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from mods.tinytown.catalog import DISTRICTS_BY_ID
-from mods.tinytown.service import TinytownService
+from mods.tinytown.service import ENTRY_ROOM_ID, TinytownService
 from server.commands.activity_launch import ResolvedActivity, start_activity
 from server.commands.core import require_room_id
 from server.commands.outcomes import (
@@ -36,6 +36,15 @@ def _user_payload(context: CommandContext) -> dict[str, object]:
 def _toast(outcome: CommandOutcome, text: str, tone: str = "success") -> CommandOutcome:
     outcome.private_events.append({"type": "toast", "tone": tone, "text": text})
     return outcome
+
+
+def _town_refresh() -> PendingRoomBroadcast:
+    """Ask everyone in town to refresh their account-specific house models."""
+
+    return PendingRoomBroadcast(
+        room_id=ENTRY_ROOM_ID,
+        event={"type": "room.refresh", "room_id": ENTRY_ROOM_ID},
+    )
 
 
 def _owned_current_room(context: CommandContext, service: TinytownService) -> tuple[str, object]:
@@ -150,6 +159,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
                 message=f"You bought the {house['label']}.",
                 payload={"house": house, "user": _user_payload(context)},
                 toast=False,
+                room_broadcasts=[_town_refresh()],
             ),
             f"The keys to the {house['label']} are yours.",
         )
@@ -214,6 +224,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
                 message="Your front door is locked." if locked else "Your front door is unlocked.",
                 payload={"house": house},
                 toast=False,
+                room_broadcasts=[_town_refresh()],
             ),
             "Front door locked." if locked else "Front door unlocked.",
         )

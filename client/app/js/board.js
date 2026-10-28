@@ -327,6 +327,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       selectionObject = object;
       if (object.userData.kind !== "prop") {
         selectionRing.position.set(object.position.x, object.position.y + 0.06, object.position.z);
+        selectionRing.scale.setScalar(object.userData.kind === "house" ? 0.62 : 1);
         selectionRing.visible = true;
       }
       break;
@@ -852,10 +853,15 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   /** Replace the floor only when the board artwork or palette actually changes. */
   function applyFloor(entry, room) {
     const board = room.board || {};
-    const key = floorKey(board);
+    const dioramaData = room.environment?.diorama || null;
+    const key = `${floorKey(board)}|${JSON.stringify(dioramaData)}`;
     if (entry.floor && entry.floor.key === key) return;
     invalidateScene();
     if (entry.floor) {
+      if (entry.floor.diorama) {
+        const stale = new Set(entry.floor.diorama.pickables || []);
+        entry.pickables = entry.pickables.filter(object => !stale.has(object));
+      }
       entry.root.remove(entry.floor.group);
       if (!entry.floor.diorama) detachBoardTree(entry.floor.group);
       entry.floor.dispose();
@@ -875,6 +881,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
         },
       });
       entry.root.add(diorama.group);
+      entry.pickables.push(...(diorama.pickables || []));
       entry.diorama = diorama;
       entry.floor = { group: diorama.group, diorama, dispose: () => diorama.dispose(), key };
       return;

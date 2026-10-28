@@ -5,7 +5,9 @@
 // trees, lamps, a harbour, and a clock tower.
 
 import * as THREE from "three";
+import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 
+import { withBase } from "./base-path.js";
 import { disposeBoardTree } from "./board-helpers.js";
 import {
   cyclePhaseAt,
@@ -45,6 +47,36 @@ function makeCanvasTexture(width, height, draw, { repeatX = 1, repeatY = 1 } = {
   return texture;
 }
 
+function makeGroundTexture() {
+  return makeCanvasTexture(512, 512, (context, width, height) => {
+    context.fillStyle = "#f3f2e9";
+    context.fillRect(0, 0, width, height);
+    const random = seededRandom(8127);
+    for (let index = 0; index < 3600; index += 1) {
+      const x = random() * width;
+      const y = random() * height;
+      const size = 0.6 + random() * 2.2;
+      context.fillStyle = random() > 0.55
+        ? `rgba(83,101,60,${0.05 + random() * 0.1})`
+        : `rgba(255,255,245,${0.06 + random() * 0.12})`;
+      context.beginPath();
+      context.ellipse(x, y, size, size * (0.5 + random() * 0.8), random() * Math.PI, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.lineWidth = 0.8;
+    for (let blade = 0; blade < 520; blade += 1) {
+      const x = random() * width;
+      const y = random() * height;
+      const lean = (random() - 0.5) * 5;
+      context.strokeStyle = `rgba(72,92,54,${0.08 + random() * 0.12})`;
+      context.beginPath();
+      context.moveTo(x, y + 3);
+      context.quadraticCurveTo(x + lean * 0.4, y, x + lean, y - 3 - random() * 3);
+      context.stroke();
+    }
+  }, { repeatX: 5, repeatY: 4 });
+}
+
 function makeDetailTexture() {
   return makeCanvasTexture(256, 256, (context, width, height) => {
     const image = context.createImageData(width, height);
@@ -60,36 +92,67 @@ function makeDetailTexture() {
 }
 
 function makeCobbleTexture() {
-  return makeCanvasTexture(256, 256, (context, width, height) => {
-    context.fillStyle = "#b6aa93";
+  return makeCanvasTexture(512, 512, (context, width, height) => {
+    context.fillStyle = "#a99c84";
     context.fillRect(0, 0, width, height);
-    for (let row = 0; row < 9; row += 1) {
-      for (let column = 0; column < 9; column += 1) {
-        const x = column * 30 + (row % 2 ? 14 : 0) + Math.random() * 4;
-        const y = row * 30 + Math.random() * 4;
-        context.fillStyle = `hsl(${32 + Math.random() * 12} 14% ${62 + Math.random() * 12}%)`;
+    const random = seededRandom(3319);
+    const rowHeight = 52;
+    for (let row = 0; row < 11; row += 1) {
+      const offset = row % 2 ? -28 : 0;
+      for (let column = 0; column < 11; column += 1) {
+        const x = column * 52 + offset + random() * 10;
+        const y = row * rowHeight + random() * 8;
+        const radiusX = 20 + random() * 7;
+        const radiusY = 17 + random() * 6;
+        context.fillStyle = `hsl(${31 + random() * 13} ${10 + random() * 9}% ${53 + random() * 16}%)`;
         context.beginPath();
-        context.ellipse(x, y, 13 + Math.random() * 2, 9 + Math.random() * 2, 0.1, 0, Math.PI * 2);
+        context.moveTo(x, y - radiusY);
+        context.bezierCurveTo(x + radiusX, y - radiusY, x + radiusX * 1.05, y + radiusY * 0.2, x + radiusX * 0.55, y + radiusY);
+        context.bezierCurveTo(x + radiusX * 0.1, y + radiusY * 1.15, x - radiusX * 0.7, y + radiusY * 0.9, x - radiusX, y + radiusY * 0.2);
+        context.bezierCurveTo(x - radiusX * 1.05, y - radiusY * 0.5, x - radiusX * 0.4, y - radiusY * 1.1, x, y - radiusY);
+        context.fill();
+        context.strokeStyle = "rgba(66,55,40,0.28)";
+        context.lineWidth = 2;
+        context.stroke();
+        context.fillStyle = "rgba(255,250,228,0.16)";
+        context.beginPath();
+        context.ellipse(x - radiusX * 0.28, y - radiusY * 0.36, radiusX * 0.5, radiusY * 0.28, -0.3, 0, Math.PI * 2);
         context.fill();
       }
     }
-  }, { repeatX: 3, repeatY: 2 });
+  }, { repeatX: 3, repeatY: 2.2 });
 }
 
 function makeWoodTexture() {
-  return makeCanvasTexture(256, 128, (context, width, height) => {
-    context.fillStyle = "#6a482e";
+  return makeCanvasTexture(512, 256, (context, width, height) => {
+    const random = seededRandom(6151);
+    const base = context.createLinearGradient(0, 0, width, 0);
+    base.addColorStop(0, "#6f4c31");
+    base.addColorStop(0.45, "#805b3d");
+    base.addColorStop(1, "#67452c");
+    context.fillStyle = base;
     context.fillRect(0, 0, width, height);
-    for (let line = 0; line < 34; line += 1) {
-      const y = Math.random() * height;
-      context.strokeStyle = `rgba(${38 + Math.random() * 26},${24 + Math.random() * 16},${14 + Math.random() * 10},0.35)`;
-      context.lineWidth = 0.5 + Math.random() * 1.5;
+    for (let line = 0; line < 72; line += 1) {
+      const y = random() * height;
+      context.strokeStyle = `rgba(${34 + random() * 28},${21 + random() * 18},${12 + random() * 12},${0.16 + random() * 0.3})`;
+      context.lineWidth = 0.5 + random() * 2.1;
       context.beginPath();
       context.moveTo(0, y);
-      for (let x = 0; x <= width; x += 16) {
-        context.lineTo(x, y + Math.sin(x * 0.06 + line) * 2.4);
+      for (let x = 0; x <= width; x += 12) {
+        context.lineTo(x, y + Math.sin(x * 0.045 + line * 0.9) * (1.6 + random() * 1.5));
       }
       context.stroke();
+    }
+    for (let knot = 0; knot < 7; knot += 1) {
+      const x = 40 + random() * (width - 80);
+      const y = 24 + random() * (height - 48);
+      for (let ring = 1; ring <= 4; ring += 1) {
+        context.strokeStyle = `rgba(46,29,16,${0.18 - ring * 0.025})`;
+        context.lineWidth = 1.2;
+        context.beginPath();
+        context.ellipse(x, y, ring * 4.5, ring * 2.2, 0.2, 0, Math.PI * 2);
+        context.stroke();
+      }
     }
   }, { repeatX: 2, repeatY: 1 });
 }
@@ -158,6 +221,313 @@ function makeGlowTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+function makeStarTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 128;
+  const context = canvas.getContext("2d");
+  const glow = context.createRadialGradient(64, 64, 1, 64, 64, 62);
+  glow.addColorStop(0, "rgba(255,252,225,1)");
+  glow.addColorStop(0.25, "rgba(255,227,138,0.65)");
+  glow.addColorStop(0.6, "rgba(255,183,72,0.18)");
+  glow.addColorStop(1, "rgba(255,170,60,0)");
+  context.fillStyle = glow;
+  context.fillRect(0, 0, 128, 128);
+
+  context.save();
+  context.translate(64, 64);
+  context.beginPath();
+  for (let point = 0; point < 10; point += 1) {
+    const angle = -Math.PI / 2 + point * Math.PI / 5;
+    const radius = point % 2 === 0 ? 43 : 17;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (point === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+  }
+  context.closePath();
+  const star = context.createLinearGradient(0, -42, 0, 42);
+  star.addColorStop(0, "#fffdf0");
+  star.addColorStop(0.5, "#ffe28a");
+  star.addColorStop(1, "#f4a83f");
+  context.fillStyle = star;
+  context.fill();
+  context.lineWidth = 3;
+  context.strokeStyle = "rgba(255,252,228,0.92)";
+  context.stroke();
+  context.restore();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const HOUSE_FOOTPRINT_Y = 0.055;
+const HOUSE_REVEAL_MS = 980;
+
+function easeOutBack(value) {
+  const c1 = 1.34;
+  const c3 = c1 + 1;
+  return 1 + c3 * (value - 1) ** 3 + c1 * (value - 1) ** 2;
+}
+
+function createHouseLayer(parent, materials, houseData) {
+  const loader = new GLTFLoader();
+  const records = [];
+  const pickables = [];
+  let disposed = false;
+  let lastRevealShadowAt = 0;
+
+  function houseColor(info, index) {
+    const palette = Array.isArray(info.palette) ? info.palette : [];
+    const raw = palette[index % Math.max(1, palette.length)] || info.district_accent || "#87977c";
+    const color = new THREE.Color(raw);
+    if (color.r + color.g + color.b < 0.9) color.offsetHSL(0, 0.02, 0.17);
+    return color;
+  }
+
+  function setTextured(record, textured) {
+    if (record.mode === (textured ? "full" : "footprint")) return;
+    record.mode = textured ? "full" : "footprint";
+    for (const entry of record.meshes) {
+      if (textured) {
+        entry.mesh.material = Array.isArray(entry.materials)
+          ? [...entry.materials]
+          : entry.materials;
+      } else {
+        entry.mesh.material = Array.isArray(entry.materials)
+          ? entry.materials.map(() => record.footprint)
+          : record.footprint;
+      }
+    }
+  }
+
+  function scheduleReveal(record) {
+    record.revealDone = false;
+    record.revealAt = performance.now() + 140 + record.order * 48;
+  }
+
+  function makeFallback(record) {
+    const group = record.visual;
+    box(group, [0.72, 0.34, 0.54], [0, 0.17, 0], record.footprint);
+    const roof = new THREE.Mesh(gableGeometry(0.84, 0.65, 0.3), record.footprint);
+    roof.position.y = 0.34;
+    roof.castShadow = true;
+    roof.receiveShadow = true;
+    group.add(roof);
+    box(group, [0.08, 0.15, 0.03], [0, 0.09, 0.28], record.footprint);
+    record.top = 0.7;
+    record.star.position.y = record.top + 0.22;
+    record.mode = "";
+    setTextured(record, false);
+    scheduleReveal(record);
+  }
+
+  function loadHouse(record, info, index) {
+    loader.loadAsync(withBase(info.model_url)).then(gltf => {
+      if (disposed) {
+        disposeBoardTree(gltf.scenes || [gltf.scene]);
+        return;
+      }
+      const model = gltf.scene || (gltf.scenes || [])[0];
+      if (!model) {
+        makeFallback(record);
+        return;
+      }
+      const initial = new THREE.Box3().setFromObject(model);
+      const size = initial.getSize(new THREE.Vector3());
+      const widest = Math.max(size.x, size.z);
+      if (!Number.isFinite(widest) || widest <= 0) {
+        makeFallback(record);
+        return;
+      }
+      const target = Math.max(0.55, Number(info.lot?.scale) || 1) * 1.05;
+      model.scale.multiplyScalar(target / widest);
+      model.updateMatrixWorld(true);
+      const fitted = new THREE.Box3().setFromObject(model);
+      const center = fitted.getCenter(new THREE.Vector3());
+      model.position.x -= center.x;
+      model.position.z -= center.z;
+      model.position.y -= fitted.min.y;
+      model.traverse(node => {
+        if (!node.isMesh) return;
+        node.castShadow = true;
+        node.receiveShadow = true;
+        const materialsForMesh = Array.isArray(node.material) ? [...node.material] : node.material;
+        record.meshes.push({ mesh: node, materials: materialsForMesh });
+      });
+      record.visual.add(model);
+      record.model = model;
+      const boxed = new THREE.Box3().setFromObject(record.visual);
+      record.top = Math.max(0.55, boxed.max.y);
+      record.star.position.y = record.top + 0.24;
+      const proxyWidth = target * 0.98;
+      record.pick.geometry.dispose();
+      record.pick.geometry = new THREE.BoxGeometry(proxyWidth, record.top + 0.12, proxyWidth);
+      record.pick.position.y = (record.top + 0.12) / 2;
+      record.mode = "";
+      setTextured(record, false);
+      record.group.scale.y = HOUSE_FOOTPRINT_Y;
+      scheduleReveal(record);
+    }).catch(error => {
+      console.warn(`TinyTown house model failed: ${info.id}`, error);
+      if (!disposed) makeFallback(record);
+    });
+  }
+
+  function lotGroundHeight(x, z, scale) {
+    let height = terrainHeightAt(x, z);
+    const radius = 0.5 * scale;
+    for (let step = 0; step < 8; step += 1) {
+      const angle = step / 8 * Math.PI * 2;
+      height = Math.max(height, terrainHeightAt(
+        x + Math.cos(angle) * radius,
+        z + Math.sin(angle) * radius,
+      ));
+    }
+    return height;
+  }
+
+  (Array.isArray(houseData) ? houseData : []).forEach((info, index) => {
+    const lot = info.lot || {};
+    const x = Number(lot.x) || 0;
+    const z = Number(lot.z) || 0;
+    const scale = Math.max(0.55, Number(lot.scale) || 1);
+    const group = new THREE.Group();
+    group.name = `tinytown-house-${info.id}`;
+    group.position.set(x, lotGroundHeight(x, z, scale) + 0.01, z);
+    group.rotation.y = Number(lot.rotation) || 0;
+    group.userData.kind = "house";
+    group.userData.id = info.id;
+    group.scale.y = HOUSE_FOOTPRINT_Y;
+    parent.add(group);
+
+    const padMaterial = materials.standard("#b9a983", { roughness: 0.98 });
+    cylinder(group, 0.5 * scale, 0.54 * scale, 0.035, 20, [0, 0.012, 0], padMaterial);
+
+    const pickMaterial = new THREE.MeshBasicMaterial({
+      transparent: true, opacity: 0, depthWrite: false, colorWrite: false,
+    });
+    const pick = new THREE.Mesh(new THREE.BoxGeometry(0.9 * scale, 1.0, 0.9 * scale), pickMaterial);
+    pick.position.y = 0.5;
+    pick.castShadow = false;
+    pick.receiveShadow = false;
+    group.add(pick);
+
+    const visual = new THREE.Group();
+    group.add(visual);
+
+    const footprint = new THREE.MeshStandardMaterial({
+      color: houseColor(info, index),
+      roughness: 1,
+      metalness: 0,
+      flatShading: true,
+    });
+    const star = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: materials.starTexture,
+      color: "#fff1b8",
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }));
+    star.scale.set(0.34, 0.34, 1);
+    star.visible = false;
+    star.position.y = 1;
+    group.add(star);
+
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: info.district_accent || "#ffe2a0",
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.21, 0.27, 28), ringMaterial);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.045;
+    group.add(ring);
+
+    const record = {
+      info,
+      group,
+      visual,
+      pick,
+      star,
+      ring,
+      ringMaterial,
+      footprint,
+      meshes: [],
+      model: null,
+      mode: "",
+      owned: Boolean(info.owned),
+      available: Boolean(info.available || info.owned),
+      top: 0.8,
+      order: index,
+      revealAt: Number.POSITIVE_INFINITY,
+      revealDone: false,
+    };
+    records.push(record);
+    pickables.push(group);
+    loadHouse(record, info, index);
+  });
+
+  function update(elapsed, { reducedMotion = false, requestShadow = () => {} } = {}) {
+    const now = performance.now();
+    let animating = false;
+    for (const record of records) {
+      if (record.available) {
+        const raw = reducedMotion ? 1 : Math.min(1, Math.max(0, (now - record.revealAt) / HOUSE_REVEAL_MS));
+        const eased = raw >= 1 ? 1 : Math.max(0, easeOutBack(raw));
+        const lift = HOUSE_FOOTPRINT_Y + (1 - HOUSE_FOOTPRINT_Y) * eased;
+        record.group.scale.y = lift;
+        if (!record.revealDone && raw > 0.08) setTextured(record, true);
+        if (raw >= 1) record.revealDone = true;
+        else animating = true;
+        const pulse = Math.min(1, raw / 0.72);
+        record.ringMaterial.opacity = raw < 1 ? Math.sin(pulse * Math.PI) * 0.72 : 0;
+        record.ring.scale.setScalar(0.6 + pulse * 1.6);
+        if (record.owned) {
+          const alpha = Math.min(1, Math.max(0, (raw - 0.55) / 0.45));
+          record.star.visible = alpha > 0.01;
+          record.star.material.opacity = alpha;
+          if (record.star.visible) {
+            const seed = Number.isFinite(record.revealAt) ? record.revealAt * 0.001 : 0;
+            const pulse = 1 + Math.sin(elapsed * 2.6 + seed) * 0.06;
+            const size = 0.34 * pulse * (0.75 + alpha * 0.25);
+            record.star.scale.set(size, size, 1);
+            record.star.position.y = record.top + 0.24 + Math.sin(elapsed * 1.7 + seed) * 0.035;
+            record.star.material.rotation = Math.sin(elapsed * 0.7 + seed) * 0.12;
+          }
+        } else {
+          record.star.visible = false;
+        }
+      } else {
+        record.group.scale.y = HOUSE_FOOTPRINT_Y;
+        setTextured(record, false);
+        record.star.visible = false;
+        record.ringMaterial.opacity = 0;
+      }
+    }
+    if (animating && now - lastRevealShadowAt > 90) {
+      lastRevealShadowAt = now;
+      requestShadow();
+    }
+  }
+
+  function dispose() {
+    disposed = true;
+    for (const record of records) {
+      if (!record.model) continue;
+      setTextured(record, true);
+      record.footprint.dispose();
+    }
+  }
+
+  return { pickables, update, dispose };
 }
 
 function makeWaterMaterial() {
@@ -732,7 +1102,7 @@ function addTrees(parent, spots, type, materials) {
   if (highlights) parent.add(highlights);
 }
 
-function addFlowerBeds(parent, materials) {
+function addFlowerBeds(parent, materials, blockers = []) {
   const dummy = new THREE.Object3D();
   const flowerGeometry = new THREE.IcosahedronGeometry(0.028, 0);
   const flowerMaterial = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.8 });
@@ -740,9 +1110,10 @@ function addFlowerBeds(parent, materials) {
   const colors = ["#e88b79", "#f3c55b", "#d97ab0", "#f7e8ce", "#8fb5dc"];
   const beds = [
     [-2.4, 0.55, 0.45, 0.24],
-    [1.8, 2.7, 0.42, 0.22],
-    [-0.5, 2.63, 0.34, 0.2],
-    [3.1, 1.2, 0.32, 0.2],
+    [-2.9, 1.45, 0.38, 0.22],
+    [0.85, 1.35, 0.34, 0.2],
+    [2.05, 1.65, 0.3, 0.2],
+    [-1.55, 2.05, 0.32, 0.2],
   ];
   for (const [x, z, radius, height] of beds) {
     for (let index = 0; index < 14; index += 1) {
@@ -750,6 +1121,7 @@ function addFlowerBeds(parent, materials) {
       const distance = Math.sqrt(Math.random()) * radius;
       const fx = x + Math.cos(angle) * distance;
       const fz = z + Math.sin(angle) * distance;
+      if (blockers.some(blocker => Math.hypot(fx - blocker.x, fz - blocker.z) < blocker.r)) continue;
       flowers.push({ x: fx, z: fz, y: terrainHeightAt(fx, fz) + height * 0.5 + 0.05, color: colors[index % colors.length] });
     }
   }
@@ -767,18 +1139,19 @@ function addFlowerBeds(parent, materials) {
   return mesh;
 }
 
-function addRocks(parent, materials) {
+function addRocks(parent, materials, blockers = []) {
   const random = seededRandom(7341);
   const geometry = new THREE.DodecahedronGeometry(1, 0);
   const material = materials.standard("#76736b", { roughness: 1, flatShading: true });
   const spots = [];
-  for (let attempt = 0; attempt < 120 && spots.length < 23; attempt += 1) {
+  for (let attempt = 0; attempt < 160 && spots.length < 23; attempt += 1) {
     const angle = random() * Math.PI * 2;
     const radius = 0.9 + random() * 0.09;
     const x = Math.cos(angle) * 5.7 * radius;
     const z = Math.sin(angle) * 4.75 * radius;
     const height = terrainHeightAt(x, z);
     if (height < WATER_LEVEL - 0.08 || height > WATER_LEVEL + 0.18) continue;
+    if (blockers.some(blocker => Math.hypot(x - blocker.x, z - blocker.z) < blocker.r)) continue;
     spots.push({ x, z, height, size: 0.07 + random() * 0.13, rotation: random() * Math.PI });
   }
   const mesh = new THREE.InstancedMesh(geometry, material, spots.length);
@@ -797,16 +1170,17 @@ function addRocks(parent, materials) {
   return mesh;
 }
 
-function addBushes(parent, materials) {
+function addBushes(parent, materials, blockers = []) {
   const random = seededRandom(1987);
   const geometry = new THREE.IcosahedronGeometry(1, 0);
   const material = materials.standard("#5e8253", { roughness: 1, flatShading: true });
   const spots = [];
-  for (let attempt = 0; attempt < 150 && spots.length < 34; attempt += 1) {
+  for (let attempt = 0; attempt < 220 && spots.length < 28; attempt += 1) {
     const x = (random() * 2 - 1) * 4.9;
     const z = (random() * 2 - 1) * 4.1;
     const height = terrainHeightAt(x, z);
     if (height < WATER_LEVEL + 0.17 || Math.hypot(x, z) < 1.35) continue;
+    if (blockers.some(blocker => Math.hypot(x - blocker.x, z - blocker.z) < blocker.r)) continue;
     spots.push({ x, z, height, size: 0.06 + random() * 0.1, rotation: random() * Math.PI });
   }
   const mesh = new THREE.InstancedMesh(geometry, material, spots.length);
@@ -874,12 +1248,14 @@ export function createDioramaBoard({
   group.position.y = GROUP_LIFT;
 
   const materials = createPalette();
+  materials.groundTexture = makeGroundTexture();
   materials.detailTexture = makeDetailTexture();
   materials.cobbleTexture = makeCobbleTexture();
   materials.woodTexture = makeWoodTexture();
   materials.plaqueTexture = makePlaqueTexture();
   materials.clockTexture = makeClockTexture();
   materials.glowTexture = makeGlowTexture();
+  materials.starTexture = makeStarTexture();
   materials.waterMaterial = makeWaterMaterial();
 
   materials.wood = materials.standard("#805b3d", { map: materials.woodTexture, roughness: 0.84 });
@@ -967,79 +1343,62 @@ export function createDioramaBoard({
   road.add(makeRibbon(southRoad, 0.29, materials.standard("#9f927c", { roughness: 1 }), 0.012));
   road.add(makeRibbon(southRoad, 0.23, materials.cobble, 0.02));
 
-  const plazaGround = terrainHeightAt(-0.1, 0.55);
-  cylinder(group, 0.82, 0.88, 0.055, 36, [-0.1, plazaGround + 0.02, 0.55], materials.cobble);
+  const plazaX = -1.42;
+  const plazaZ = 1.04;
+  const plazaGround = terrainHeightAt(plazaX, plazaZ);
+  cylinder(group, 0.82, 0.88, 0.055, 36, [plazaX, plazaGround + 0.02, plazaZ], materials.cobble);
   const plazaRing = new THREE.Mesh(
     new THREE.TorusGeometry(0.84, 0.016, 8, 48),
     materials.standard("#a38b63", { metalness: 0.55, roughness: 0.46 }),
   );
   plazaRing.rotation.x = Math.PI / 2;
-  plazaRing.position.set(-0.1, plazaGround + 0.058, 0.55);
+  plazaRing.position.set(plazaX, plazaGround + 0.058, plazaZ);
   group.add(plazaRing);
 
-  const buildings = [
-    { x: -1.52, z: -0.82, rotation: 0.1, kind: "townhouse", width: 0.66, depth: 0.52, height: 1.34, wall: "#c57257", roof: "#744238" },
-    { x: -0.42, z: -1.18, rotation: -0.08, kind: "townhouse", width: 0.58, depth: 0.5, height: 1.52, wall: "#d3a558", roof: "#814b3f" },
-    { x: 0.8, z: -1.32, rotation: 0.16, kind: "townhouse", width: 0.68, depth: 0.5, height: 1.08, wall: "#cf8062", roof: "#654b47" },
-    { x: 1.62, z: -0.14, rotation: -0.26, kind: "townhouse", width: 0.56, depth: 0.48, height: 0.9, wall: "#b96d58", roof: "#7c4c3b" },
-    { x: 0.62, z: 0.92, rotation: 0.2, kind: "townhouse", width: 0.62, depth: 0.48, height: 1.12, wall: "#d29b61", roof: "#6b4a3f" },
-    { x: -1.68, z: 1.18, rotation: -0.24, kind: "townhouse", width: 0.58, depth: 0.5, height: 0.98, wall: "#c98063", roof: "#6e4a40" },
-
-    { x: 2.9, z: 1.35, rotation: 0.48, kind: "harbor", wall: "#e1b578", roof: "#4f7d86" },
-    { x: 3.38, z: 2.08, rotation: 0.22, kind: "harbor", wall: "#d89879", roof: "#3f6b75" },
-    { x: 2.08, z: 2.35, rotation: -0.4, kind: "harbor", wall: "#e2c28b", roof: "#567f80" },
-
-    { x: -3.35, z: -1.75, rotation: 0.32, kind: "cottage", width: 0.52, depth: 0.44, height: 0.48, wall: "#e0c68f", roof: "#95604b" },
-    { x: -2.38, z: -2.45, rotation: -0.36, kind: "cottage", width: 0.47, depth: 0.42, height: 0.44, wall: "#d9b978", roof: "#7f5a4c" },
-    { x: -4.12, z: -0.82, rotation: 0.84, kind: "cottage", width: 0.46, depth: 0.4, height: 0.46, wall: "#e3c699", roof: "#8b5b49" },
-    { x: -3.55, z: 0.48, rotation: -0.18, kind: "cottage", width: 0.54, depth: 0.46, height: 0.5, wall: "#d7b07a", roof: "#805246" },
-
-    { x: 0.72, z: 2.7, rotation: -0.22, kind: "cottage", width: 0.55, depth: 0.45, height: 0.45, wall: "#e0c183", roof: "#a45c4e" },
-    { x: -0.34, z: 2.92, rotation: 0.24, kind: "cottage", width: 0.5, depth: 0.43, height: 0.43, wall: "#d6b68e", roof: "#8e5948" },
-    { x: 1.55, z: 2.95, rotation: 0.44, kind: "cottage", width: 0.52, depth: 0.44, height: 0.42, wall: "#e7cf9d", roof: "#9c6751" },
-  ];
-  for (const building of buildings) {
-    const options = { ...building };
-    if (building.kind === "townhouse") addTownhouse(group, options, materials, windows);
-    else if (building.kind === "harbor") addHarborHouse(group, options, materials, windows);
-    else addCottage(group, options, materials, windows);
-  }
-
-  const tower = addClockTower(group, materials, windows);
-  const lighthouse = addLighthouse(group, materials);
+  const houses = Array.isArray(environment?.diorama?.houses) ? environment.diorama.houses : [];
+  const houseLayer = createHouseLayer(group, materials, houses);
   addFountain(group, materials);
 
+  const houseBlockers = houses.map(house => {
+    const lot = house.lot || {};
+    return {
+      x: Number(lot.x) || 0,
+      z: Number(lot.z) || 0,
+      r: Math.max(0.58, (Number(lot.scale) || 1) * 0.82),
+    };
+  });
+  const lampSpots = [
+    [-2.95, 0.78], [-1.95, 0.45], [-0.72, 1.05], [0.45, 1.35],
+    [1.85, 0.85], [2.72, 1.62], [-0.95, -0.55], [0.5, 1.95], [1.55, 2.0],
+    [-2.1, 2.25],
+  ];
   const lampLights = [];
-  for (const [x, z] of [
-    [-2.9, 0.78], [-1.62, 0.42], [-0.34, 0.34], [0.98, 0.55],
-    [2.2, 0.76], [3.15, 1.18], [-0.8, -0.58], [0.38, 1.82], [1.15, 2.62],
-  ]) {
+  for (const [x, z] of lampSpots) {
+    if (houses.some(house => {
+      const lot = house.lot || {};
+      const radius = Math.max(0.6, (Number(lot.scale) || 1) * 0.72);
+      return Math.hypot(x - (Number(lot.x) || 0), z - (Number(lot.z) || 0)) < radius;
+    })) continue;
     addLamp(group, x, z, materials, lampLights);
-  }
-  for (const [x, z] of [[-1.5, -0.82], [0.8, -1.32], [2.9, 1.35], [-3.35, -1.75]]) {
-    const light = new THREE.PointLight("#ffc980", 0, 1.65, 2);
-    light.position.set(x, terrainHeightAt(x, z) + 0.43, z);
-    group.add(light);
-    lampLights.push(light);
   }
   addPier(group, materials);
 
   const blockers = [
-    ...buildings.map(building => ({ x: building.x, z: building.z, r: 0.58 })),
-    { x: -0.1, z: -0.2, r: 0.62 },
+    ...houseBlockers,
+    { x: plazaX, z: plazaZ, r: 0.92 },
     { x: 3.9, z: -1.65, r: 0.55 },
-    { x: -0.1, z: 0.55, r: 0.9 },
-    { x: -1.42, z: 1.04, r: 0.46 },
+    { x: 3.2, z: 0.7, r: 0.4 },
   ];
   const treeRandom = seededRandom(44121);
   const decidTrees = [];
   const coniferTrees = [];
   const zones = [
-    { count: 34, x: -3.45, z: -1.55, rx: 1.6, rz: 1.55 },
-    { count: 22, x: 0.9, z: 3.1, rx: 1.95, rz: 0.85 },
-    { count: 14, x: 2.5, z: 2.8, rx: 1.1, rz: 0.9 },
-    { count: 12, x: -2.2, z: 2.65, rx: 1.6, rz: 0.72 },
-    { count: 8, x: 4.0, z: 0.1, rx: 0.55, rz: 1.0 },
+    { count: 22, x: -3.25, z: -1.9, rx: 1.7, rz: 1.2 },
+    { count: 14, x: -0.2, z: 2.95, rx: 1.75, rz: 0.55 },
+    { count: 8, x: 2.85, z: 2.35, rx: 0.7, rz: 0.45 },
+    { count: 12, x: -2.85, z: 1.85, rx: 1.25, rz: 0.9 },
+    { count: 6, x: 3.65, z: 0.05, rx: 0.45, rz: 0.9 },
+    { count: 8, x: 0.2, z: -2.4, rx: 1.5, rz: 0.6 },
   ];
   for (const zone of zones) {
     let added = 0;
@@ -1064,9 +1423,9 @@ export function createDioramaBoard({
   }
   addTrees(group, decidTrees, "deciduous", materials);
   addTrees(group, coniferTrees, "conifer", materials);
-  addFlowerBeds(group, materials);
-  addRocks(group, materials);
-  addBushes(group, materials);
+  addFlowerBeds(group, materials, blockers);
+  addRocks(group, materials, blockers);
+  addBushes(group, materials, blockers);
 
   const floaters = [
     addBoat(group, 3.55, -0.15, "#f3e0b0", 0.1, materials),
@@ -1109,14 +1468,12 @@ export function createDioramaBoard({
     materials.lanternGlass.emissiveIntensity = 0.25 + day.night * 3.0;
     materials.glowMaterial.opacity = day.night * 0.9;
     materials.clock.emissiveIntensity = 0.03 + day.night * 0.9;
-    lighthouse.beamMaterial.opacity = day.night * 0.06;
     lightReflectionMaterial.opacity = day.night * 0.62;
     const flicker = 0.94 + Math.sin(performance.now() * 0.004) * 0.06 * day.night;
     for (const light of lampLights) {
       light.color.set(LAMP_GLOW);
       light.intensity = day.night * 6.05 * flicker;
     }
-    lighthouse.lantern.intensity = day.night * 4.03;
     fireflyMaterial.opacity = day.night * 0.9;
   }
 
@@ -1137,18 +1494,14 @@ export function createDioramaBoard({
     }
     applyLighting(day);
     materials.waterMaterial.uniforms.uTime.value = reducedMotion ? elapsed * 0.28 : elapsed;
-    lighthouse.beamGroup.rotation.y = elapsed * 0.46;
     for (const floater of floaters) {
       const bob = Math.sin(elapsed * 1.25 + floater.phase) * (reducedMotion ? 0.006 : 0.018);
       floater.group.position.y = floater.baseY + bob;
       floater.group.rotation.z = Math.sin(elapsed * 1.1 + floater.phase) * (reducedMotion ? 0.006 : 0.024);
     }
-    for (const hand of tower.hands) {
-      hand.children[0].rotation.z = -phase * 2 * Math.PI * 2;
-      hand.children[1].rotation.z = -phase * 24 * Math.PI * 2 - 0.6;
-    }
+    houseLayer.update(elapsed, { reducedMotion, requestShadow });
     fireflies.rotation.y = elapsed * 0.018;
-    if (elapsed - lastShadowAt > 1.6) {
+    if (elapsed - lastShadowAt > 1.2) {
       lastShadowAt = elapsed;
       requestShadow();
     }
@@ -1180,6 +1533,7 @@ export function createDioramaBoard({
 
   return {
     group,
+    pickables: houseLayer.pickables,
     update,
     setSceneLights,
     setRoomDark(value) {
@@ -1193,6 +1547,7 @@ export function createDioramaBoard({
     },
     dispose() {
       disposed = true;
+      houseLayer.dispose();
       disposeBoardTree(group);
     },
   };

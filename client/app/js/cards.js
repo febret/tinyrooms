@@ -252,6 +252,20 @@ export function describeSelection(state) {
     return { tag: selected.scope === "shared" ? "Shared Task" : "Task", title: selected.title, description: selected.description || `${done} of ${selected.steps.length} steps complete.`, imageUrl: "" };
   }
   if (state.selection.kind === "room-card" || state.selection.kind === "inventory-card" || state.selection.kind === "container-card") return { tag: rarityLabel(selected.definition), title: selected.definition.label, description: selected.definition.description, imageUrl: selected.definition.imageUrl };
+  if (state.selection.kind === "house") {
+    const doors = Array.isArray(selected.instances) ? selected.instances.length : 0;
+    const status = selected.owned
+      ? "You own one of these."
+      : doors
+        ? `${doors} ${doors === 1 ? "door is" : "doors are"} open to visit.`
+        : "Nobody you know has a key yet.";
+    return {
+      tag: selected.district_label || "Home",
+      title: selected.label,
+      description: `${selected.description} ${selected.size} home · ${selected.price} Bops. ${status}`,
+      imageUrl: selected.preview_url || "",
+    };
+  }
   if (state.selection.kind === "prop") return { tag: "Prop", title: selected.label, description: selected.description, imageUrl: "" };
   if (state.selection.kind === "peep") {
     const parts = [selected.description || "A peep in this room."];
@@ -304,6 +318,19 @@ export function selectionActions(state) {
     return [
       { label: `Open ${definition.label}`, local: { type: "open-view", view: state.selection.id }, tone: "primary" },
     ];
+  }
+  if (state.selection.kind === "house") {
+    const house = findSelectedEntity(state);
+    if (!house) return [];
+    const instances = Array.isArray(house.instances) ? house.instances : [];
+    const actions = instances.map((instance, index) => ({
+      label: instance.is_owner ? "Go home" : `Visit ${instance.owner_username}`,
+      command: `.tinytown enter ${instance.house_id}`,
+      tone: instance.is_owner ? "positive" : "neutral",
+      ...(index === 0 ? { default: true } : {}),
+    }));
+    actions.push({ label: "Browse homes", command: ".tinytown open", tone: "neutral" });
+    return actions;
   }
   if (state.selection.kind === "prop") {
     const prop = findSelectedEntity(state);

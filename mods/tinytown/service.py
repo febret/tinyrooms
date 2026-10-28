@@ -596,6 +596,56 @@ class TinytownHousing:
         )
         return 150 if granted else 0
 
+    def diorama_payload(self, account: object) -> dict[str, object]:
+        """Describe every house model the viewer may see on the town diorama."""
+
+        records = self._records()
+        by_template: dict[str, list[HouseRecord]] = {}
+        for record in records:
+            by_template.setdefault(record.template_id, []).append(record)
+        houses: list[dict[str, object]] = []
+        for template in self._templates.values():
+            template_records = by_template.get(template.id, [])
+            owned = any(record.owner_account_id == account.id for record in template_records)
+            instances: list[dict[str, object]] = []
+            for record in template_records:
+                is_owner = record.owner_account_id == account.id
+                if not is_owner and record.locked:
+                    continue
+                entry = {
+                    "house_id": record.house_id,
+                    "owner_id": record.owner_account_id,
+                    "owner_username": self._owner_name(record.owner_account_id),
+                    "is_owner": is_owner,
+                    "entry_room_id": self.entry_room(record),
+                }
+                if is_owner:
+                    instances.insert(0, entry)
+                else:
+                    instances.append(entry)
+            district = DISTRICTS_BY_ID[template.district]
+            houses.append(
+                {
+                    "id": template.id,
+                    "label": template.label,
+                    "description": template.description,
+                    "district": template.district,
+                    "district_label": district.label,
+                    "district_accent": district.accent,
+                    "price": template.price,
+                    "size": template.size,
+                    "palette": list(template.palette),
+                    "model_url": f"/assets/world/{self._world.id}/props/{template.model}",
+                    "preview_url": f"/assets/world/{self._world.id}/rooms/{template.preview}",
+                    "key_url": f"/assets/world/{self._world.id}/keys/{template.id}.png",
+                    "lot": template.lot.payload(),
+                    "owned": owned,
+                    "available": owned or bool(instances),
+                    "instances": instances,
+                }
+            )
+        return {"houses": houses}
+
     def list_payload(self, account: object) -> dict[str, object]:
         records = self._records()
         mine = [record for record in records if record.owner_account_id == account.id]
@@ -630,7 +680,12 @@ class TinytownHousing:
         template = self._templates.get(template_id)
         if template is None:
             raise ValueError("That house template does not exist.")
-        if len(self.records_for_owner(account.id)) >= MAX_HOUSES:
+        owned = self.records_for_owner(account.id)
+        if any(record.template_id == template.id for record in owned):
+            raise ValueError(
+                f"You already own a {template.label}. One copy of each home is plenty."
+            )
+        if len(owned) >= MAX_HOUSES:
             raise ValueError(f"You already own {MAX_HOUSES} homes. That is quite enough keys.")
         house_id = uuid.uuid4().hex
         room_ids = {room.key: self._room_id(house_id, room.key) for room in template.rooms}
@@ -1020,6 +1075,17 @@ class TinytownService:
 
             return (QuickAction(label="Find your TinyTown home", command=".play tiny-mag"),)
         return ()
+
+    def diorama_payload(self, account: object, room: RoomDefinition) -> dict[str, object] | None:
+        """Contribute the viewer's house ownership and visitable instances."""
+
+        if not self.available or room.id != ENTRY_ROOM_ID:
+            return None
+        try:
+            return self.housing.diorama_payload(account)
+        except Exception:  # noqa: BLE001 - diorama decoration must never break a room
+            LOGGER.exception("tinytown.diorama_payload_failed")
+            return None
 
     def personal_actions(self, account: object, prop: object) -> tuple[object, ...]:
         del account, prop

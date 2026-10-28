@@ -11,6 +11,26 @@ export function assetOrEmpty(value) {
   return typeof value === "string" && value ? withBase(value) : "";
 }
 
+export function normalizeEnvironment(environment) {
+  if (!environment || typeof environment !== "object") return {};
+  const diorama = environment.diorama;
+  if (!diorama || typeof diorama !== "object" || !Array.isArray(diorama.houses)) {
+    return { ...environment };
+  }
+  return {
+    ...environment,
+    diorama: {
+      ...diorama,
+      houses: diorama.houses.map(house => ({
+        ...house,
+        model_url: assetOrEmpty(house.model_url),
+        preview_url: assetOrEmpty(house.preview_url),
+        key_url: assetOrEmpty(house.key_url),
+      })),
+    },
+  };
+}
+
 export function normalizeQuickActions(actions) {
   return Array.isArray(actions)
     ? actions
@@ -666,7 +686,7 @@ export function normalizeRoom(room, previousRoom = null) {
       state: normalizeGameState(room.board?.state),
     },
     note: String(room.metadata?.note || ""),
-    environment: room.environment && typeof room.environment === "object" ? { ...room.environment } : {},
+    environment: normalizeEnvironment(room.environment),
     environmentRevision: Number(room.environment_revision || 0),
     transition: normalizeRoomTransition(room.transition),
     exits: keepExits ? previousRoom.exits : (Array.isArray(room.exits) ? room.exits.map(normalizeExit) : []),

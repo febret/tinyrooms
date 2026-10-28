@@ -1016,6 +1016,17 @@ class RoomService:
             dark = room.dark
         if room.board_type == DIORAMA_BOARD_TYPE:
             environment = diorama_environment(environment)
+            for state in self._mod_states:
+                hook = getattr(state, "diorama_payload", None)
+                if hook is None:
+                    continue
+                try:
+                    extra = hook(account, room)
+                except Exception:  # noqa: BLE001 - mod decoration must not break snapshots
+                    LOGGER.exception("room.mod_diorama_payload_failed")
+                    continue
+                if isinstance(extra, dict):
+                    environment = {**environment, "diorama": extra}
         lighting_payload = self._lighting.snapshot_payload(room_id, dark=dark)
         environment = {**environment, "lighting_preset": lighting_payload}
         viewer_view = occupant_views.get(account.id)

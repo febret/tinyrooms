@@ -10,18 +10,7 @@ town:
   - '#5f8f7d'
   - '#d7795c'
   - '#46697a'
-  props:
-    custom:879760c5-fd17-40fc-87a9-13acf4ea8052:
-      prop: beachhut-wicker-trunk
-      pos:
-      - 50
-      - 50
-      - 0
-      rot:
-      - 0
-      - 0
-      - 0
-      scale: 1
+  props: {}
   exits: {}
 home-entry:
   label: Entry Hall

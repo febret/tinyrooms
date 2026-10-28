@@ -213,6 +213,7 @@ export const COPY = {
     submit: "Send to print",
     currentlyFitted: "Currently fitted",
     ownedApply: "Owned · Apply",
+    ownedOne: "One key per home",
     visitHouse: "Visit",
     cancelBuy: "Cancel",
   },

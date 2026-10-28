@@ -13,6 +13,7 @@ from server.content.worlds import WorldDefinition
 
 _HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 _IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp"})
+_MODEL_SUFFIXES = frozenset({".glb"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +35,24 @@ class HouseRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class HouseLot:
+    """Where a house model sits on the town diorama."""
+
+    x: float
+    z: float
+    rotation: float = 0.0
+    scale: float = 1.0
+
+    def payload(self) -> dict[str, float]:
+        return {
+            "x": self.x,
+            "z": self.z,
+            "rotation": self.rotation,
+            "scale": self.scale,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class HouseTemplate:
     id: str
     label: str
@@ -45,6 +64,8 @@ class HouseTemplate:
     palette: tuple[str, ...]
     rooms: tuple[HouseRoomTemplate, ...]
     unlocks: tuple[str, ...] = ()
+    model: str = ""
+    lot: HouseLot = HouseLot(0.0, 0.0)
 
     @property
     def entry_key(self) -> str:
@@ -74,6 +95,39 @@ def _image_path(root: Path, raw_name: str, context: str) -> Path:
     return path
 
 
+def _load_house_model(root: Path, raw_model: object, template_id: str) -> str:
+    name = str(raw_model or "").strip()
+    if not name or Path(name).name != name or Path(name).suffix.lower() not in _MODEL_SUFFIXES:
+        raise ContentError(
+            f"House template '{template_id}' must name a .glb model in the world's props folder."
+        )
+    path = (root / "props" / name).resolve()
+    if not path.is_file():
+        raise ContentError(f"House template '{template_id}' references missing model '{name}'.")
+    return name
+
+
+def _load_house_lot(raw_lot: object, template_id: str) -> HouseLot:
+    if not isinstance(raw_lot, dict):
+        raise ContentError(f"House template '{template_id}' must define a diorama lot.")
+    try:
+        x = float(raw_lot.get("x"))
+        z = float(raw_lot.get("z"))
+        rotation = float(raw_lot.get("rotation", 0.0))
+        scale = float(raw_lot.get("scale", 1.0))
+    except (TypeError, ValueError) as exc:
+        raise ContentError(
+            f"House template '{template_id}' lot must use numeric x, z, rotation, and scale."
+        ) from exc
+    if not -5.8 <= x <= 5.8 or not -4.8 <= z <= 4.8:
+        raise ContentError(f"House template '{template_id}' lot is outside the diorama island.")
+    if not -6.3 <= rotation <= 6.3:
+        raise ContentError(f"House template '{template_id}' lot rotation must be in radians.")
+    if not 0.4 <= scale <= 1.8:
+        raise ContentError(f"House template '{template_id}' lot scale must be between 0.4 and 1.8.")
+    return HouseLot(x=x, z=z, rotation=rotation, scale=scale)
+
+
 def load_house_templates(path: Path, world: WorldDefinition) -> dict[str, HouseTemplate]:
     """Load every authored house template and validate its blueprint rooms."""
 
@@ -96,6 +150,8 @@ def load_house_templates(path: Path, world: WorldDefinition) -> dict[str, HouseT
             raise ContentError(f"House template '{template_id}' price must be between 100 and 10000 Bops.")
         preview = str(raw.get("preview", "")).strip()
         _image_path(world.root_path, preview, f"House template '{template_id}' preview")
+        model = _load_house_model(world.root_path, raw.get("model"), template_id)
+        lot = _load_house_lot(raw.get("lot"), template_id)
         raw_unlocks = raw.get("unlocks", []) or []
         if not isinstance(raw_unlocks, list) or not all(
             isinstance(entry, str) and entry.strip() for entry in raw_unlocks
@@ -160,6 +216,8 @@ def load_house_templates(path: Path, world: WorldDefinition) -> dict[str, HouseT
             palette=palette,
             rooms=tuple(rooms),
             unlocks=unlocks,
+            model=model,
+            lot=lot,
         )
     if not templates:
         raise ContentError(f"{path} does not define any house templates.")
