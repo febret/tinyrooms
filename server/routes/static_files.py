@@ -92,7 +92,7 @@ def register_static_routes(app: FastAPI) -> None:
                 return RedirectResponse(runtime.config.entry_url, headers={"Cache-Control": "no-store"})
         index_path = runtime.config.app_path / "index.html"
         if index_path.is_file():
-            return render_html(index_path, runtime.config.base_path)
+            return render_html(index_path, runtime.config.base_path, headers={"Cache-Control": "no-cache"})
         return Response(
             "<!doctype html><html><body><h1>Tinyrooms backend ready</h1>"
             "<p>The backend is running. Add the frontend files under client/app/index.html when available.</p>"
@@ -105,7 +105,7 @@ def register_static_routes(app: FastAPI) -> None:
         runtime = get_runtime(request)
         candidate = _safe_path(runtime.config.app_path, requested_path)
         if candidate.is_file():
-            return FileResponse(candidate)
+            return FileResponse(candidate, headers={"Cache-Control": "no-cache"})
         raise HTTPException(status_code=404, detail="App file not found.")
 
     @app.get("/activities/{activity_name}/")

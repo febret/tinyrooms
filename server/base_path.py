@@ -79,13 +79,14 @@ def render_html(
     *,
     media_type: str = _MIME_HTML,
     document_path: str = "/",
+    headers: dict[str, str] | None = None,
 ) -> Response:
     """Serve *path* as HTML, injecting the base path when one is configured."""
 
     if not base_path or not media_type.startswith(_MIME_HTML):
-        return FileResponse(path, media_type=media_type)
+        return FileResponse(path, media_type=media_type, headers=headers)
     text = path.read_text(encoding="utf-8")
-    return HTMLResponse(inject_base_path(text, base_path, document_path))
+    return HTMLResponse(inject_base_path(text, base_path, document_path), headers=headers)
 
 
 class BasePathMiddleware:

@@ -343,7 +343,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       : null;
     if (editSelectionObject !== previousEditSelection) changed = true;
     const showGizmo = Boolean(editSelectionObject && !editSelectionLocked());
-    gizmo.setResizable(editSelectionResizable());
+    if (typeof gizmo.setResizable === "function") gizmo.setResizable(editSelectionResizable());
     if (showGizmo) {
       gizmo.setTarget(editSelectionObject.position.toArray(), editSelectionObject.scale.x, selectedPropHeight(), selectedPropFootprint());
     }

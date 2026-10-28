@@ -105,7 +105,11 @@ export function createGizmo() {
     get circleRadius() {
       return circleRadiusWorld;
     },
-    /** Whether the selected prop may be resized; updates the top handle mode. */
+    /** Whether the selected prop may currently be resized. */
+    getResizable() {
+      return propResizable;
+    },
+    /** Update whether the selected prop may be resized; updates the top handle mode. */
     setResizable(active) {
       propResizable = Boolean(active);
       applyHandleMode();
