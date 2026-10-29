@@ -33,7 +33,7 @@ CARD_ART_PLACEHOLDER_URL = "/app/assets/card-placeholder.svg"
 # Container backgrounds live in data/card-backgrounds/ and are served through
 # the generic cardset asset route as /assets/card-backgrounds/<file>. Card art
 # PNGs are transparent subjects; the UI layers them over these backgrounds
-# (see client/app/js/card-style.js, which mirrors the grouping below).
+# (see client/app/js/cards/card-style.js, which mirrors the grouping below).
 CARD_BACKGROUND_SET = "card-backgrounds"
 CARD_BACKGROUND_RARITIES = ("common", "uncommon", "rare", "epic", "legendary")
 CARD_BACKGROUND_TAGS = ("food", "paint", "subject", "medicine", "utility", "topic")
@@ -112,7 +112,7 @@ class CardDefinition:
     """Immutable card definition."""
 
     # image is the required card illustration only (no frame, title, or stats):
-    # clients compose full faces from metadata (client/app/js/card-face.js). Sealed
+    # clients compose full faces from metadata (client/app/js/cards/card-face.js). Sealed
     # packs use their back art; animation is optional bubble art. Both resolve
     # beside cards.yaml. See doc/card-art.md.
     # one_use consumes a copy only on successful use. Passive cards work while

@@ -1,7 +1,7 @@
 import { withBase } from "./base-path.js";
 import { escapeHtml } from "./presentation.js";
 import { buildMergeCommand, buildSwapStickerCommand } from "./commands.js";
-import { cardFaceSvg } from "./card-face.js";
+import { cardFaceSvg } from "./cards/card-face.js";
 
 export function operationId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

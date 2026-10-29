@@ -1,4 +1,4 @@
-import { createBoard } from "../../app/js/board.js";
+import { createBoard } from "../../app/js/board/board.js";
 import { withBase } from "../../app/js/base-path.js";
 
 function cardEntry(catalog, cardId) {

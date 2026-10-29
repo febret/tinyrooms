@@ -1,4 +1,4 @@
-import { toggleClass } from "./inert.js";
+import { toggleClass } from "../inert.js";
 
 /** Reflect the Peeps sidebar visibility onto the root. */
 export function syncPeepsChrome(state, root) {

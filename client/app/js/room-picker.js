@@ -1,5 +1,5 @@
 import { escapeHtml } from "./presentation.js";
-import { hasActivePropActions } from "./prop-actions.js";
+import { hasActivePropActions } from "./props/prop-actions.js";
 import { tileMarkup } from "./views/view-helpers.js";
 
 function propMarkup(prop, selection) {

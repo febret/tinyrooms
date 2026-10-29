@@ -153,7 +153,7 @@ What is known about the failure, for whoever picks it up:
   regardless, but the underlying difference survived that fix.
 
 The texture half of the problem is already solved independently:
-`shareModelTextures` in [board resources](../client/app/js/board-resources.js) dedupes prop textures per
+`shareModelTextures` in [board resources](../client/app/js/board/board-resources.js) dedupes prop textures per
 asset without touching the model lifecycle, which is where the 205 → 101 came
 from.
 

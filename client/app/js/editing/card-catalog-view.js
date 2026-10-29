@@ -1,5 +1,5 @@
 import { escapeHtml } from "../presentation.js";
-import { cardFaceSvg } from "../card-face.js";
+import { cardFaceSvg } from "../cards/card-face.js";
 
 export function filterCards(cards, query = "", source = "") {
   const search = query.trim().toLowerCase();

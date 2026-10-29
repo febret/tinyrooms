@@ -7,7 +7,7 @@ import {
   editorReducer,
   normalizeEditorView,
 } from "../../client/app/js/editing/edit-reducer.js";
-import { propModelKey } from "../../client/app/js/board-helpers.js";
+import { propModelKey } from "../../client/app/js/board/board-helpers.js";
 import { exitFinishMarkup } from "../../client/app/js/views/edit-room-view.js";
 import {
   applyRoomEditorChanges,

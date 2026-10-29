@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { disposeBoardTree } from "./board-helpers.js";
-import { createViewerStage } from "./viewer-stage.js";
-import { withBase } from "./base-path.js";
+import { GLTFLoader } from "../../vendor/three/examples/jsm/loaders/GLTFLoader.js";
+import { disposeBoardTree } from "../board/board-helpers.js";
+import { createViewerStage } from "../viewer-stage.js";
+import { withBase } from "../base-path.js";
 
 const loader = new GLTFLoader();
 

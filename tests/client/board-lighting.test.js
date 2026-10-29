@@ -16,8 +16,8 @@ import {
   selectAmbientSources,
   selectPropLights,
   spriteLightingForPreset,
-} from "../../client/app/js/board-lighting.js";
-import { daylightForPhase } from "../../client/app/js/board-diorama-daylight.js";
+} from "../../client/app/js/board/board-lighting.js";
+import { daylightForPhase } from "../../client/app/js/board/board-diorama-daylight.js";
 
 test("presets cover darkness, night, dusk, day, dawn, and fluorescent with render tuning", () => {
   for (const name of ["darkness", "night", "dusk", "day", "dawn", "fluorescent"]) {

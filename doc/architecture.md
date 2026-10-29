@@ -87,7 +87,7 @@ definition's authored scale. Room owners may place
 non-decorative props; `decorative` remains the marketplace/showcase flag.
 Effect definitions are loaded by
 [fx.py](../server/content/fx.py) and rendered by
-[prop-effects.js](../client/app/js/prop-effects.js); reduced motion suppresses effects.
+[prop-effects.js](../client/app/js/props/prop-effects.js); reduced motion suppresses effects.
 Props may also declare named mesh `states` and an authored `active_state`.
 [rooms.py](../server/services/rooms.py) can switch a room instance's state at
 runtime and broadcasts `room.prop.updated`; clients reload the active model.

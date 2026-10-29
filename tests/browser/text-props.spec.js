@@ -19,7 +19,7 @@ test("procedural text renders, updates and releases stale models without GLTF re
   await page.goto("/__text-render-check");
   await page.evaluate(async () => {
     const THREE = await import("three");
-    const { createBoard } = await import("/app/js/board.js");
+    const { createBoard } = await import("/app/js/board/board.js");
     window.disposedTextGeometries = 0;
     const dispose = THREE.BufferGeometry.prototype.dispose;
     THREE.BufferGeometry.prototype.dispose = function () {

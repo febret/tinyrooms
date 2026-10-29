@@ -8,7 +8,7 @@
  * makes the stacking rule unit-testable without a renderer.
  */
 
-import { ELEVATION_PER_UNIT } from "../board-helpers.js";
+import { ELEVATION_PER_UNIT } from "../board/board-helpers.js";
 
 /**
  * Footprint and top-elevation metrics used to decide how high a dragged prop rests.

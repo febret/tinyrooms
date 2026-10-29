@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { describeSelection, selectionActions } from "../../client/app/js/cards.js";
+import { describeSelection, selectionActions } from "../../client/app/js/cards/cards.js";
 import { createStore, isTargetableStack } from "../../client/app/js/state.js";
 
 function selectedState(stack) {

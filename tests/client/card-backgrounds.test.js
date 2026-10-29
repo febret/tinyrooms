@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { cardFaceSvg } from "../../client/app/js/card-face.js";
-import { cardBackground, cardBackgroundGroup } from "../../client/app/js/card-style.js";
+import { cardFaceSvg } from "../../client/app/js/cards/card-face.js";
+import { cardBackground, cardBackgroundGroup } from "../../client/app/js/cards/card-style.js";
 import { cardBackdropStyle } from "../../client/app/js/views/view-helpers.js";
 
 test("background groups mirror the server resolver", () => {

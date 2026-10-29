@@ -1,5 +1,5 @@
-import { cardFaceFields } from "../card-face.js";
-import { cardRarityKey, cardTheme, tagAccent } from "../card-style.js";
+import { cardFaceFields } from "../cards/card-face.js";
+import { cardRarityKey, cardTheme, tagAccent } from "../cards/card-style.js";
 import { escapeHtml } from "../presentation.js";
 import { longDescription, rarityLabel } from "./view-helpers.js";
 

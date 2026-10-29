@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { selectionActions } from "../../client/app/js/cards.js";
+import { selectionActions } from "../../client/app/js/cards/cards.js";
 import { buildContainerDropCommand, buildTakeCommand } from "../../client/app/js/commands.js";
 import { createDropController } from "../../client/app/js/drop-targeting.js";
 

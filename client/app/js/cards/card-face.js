@@ -1,6 +1,6 @@
 import { cardBackground, cardTheme } from "./card-style.js";
-import { escapeHtml } from "./presentation.js";
-import { withBase } from "./base-path.js";
+import { escapeHtml } from "../presentation.js";
+import { withBase } from "../base-path.js";
 
 /** Full card faces are composed SVG: one layout for DOM cards and 3D textures. */
 export const CARD_FACE_WIDTH = 310;

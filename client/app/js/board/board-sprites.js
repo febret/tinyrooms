@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { DARK_SPRITE_LIGHTING, lightingTint, lightingTintKey } from "./board-lighting.js";
 import { boardPosition } from "./board-helpers.js";
 import { loadSharedTexture, sharedTexture } from "./board-resources.js";
-import { decalCanvas, stinkCanvas } from "./decals.js";
+import { decalCanvas, stinkCanvas } from "../decals.js";
 
 const TOP = 0.045;
 const SPRITE_HEIGHT = 1.8;

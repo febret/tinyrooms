@@ -1,4 +1,4 @@
-import { findInventoryCard, findRoomCard } from "./state.js";
+import { findInventoryCard, findRoomCard } from "../state.js";
 
 const FLIGHT_MS = 320;
 

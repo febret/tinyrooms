@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { containerPanelMarkup, createContainerPanel } from "../../client/app/js/container-panel.js";
-import { describeSelection, selectionActions } from "../../client/app/js/cards.js";
+import { describeSelection, selectionActions } from "../../client/app/js/cards/cards.js";
 import { normalizeContainer } from "../../client/app/js/normalize.js";
 import { createStore } from "../../client/app/js/state.js";
 

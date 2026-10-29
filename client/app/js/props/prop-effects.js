@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { withBase } from "./base-path.js";
+import { withBase } from "../base-path.js";
 
 /**
  * Render YAML-defined prop effects in the room board.

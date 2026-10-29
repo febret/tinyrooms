@@ -5,9 +5,9 @@
 // and the residents' GLB house models served per viewer.
 
 import * as THREE from "three";
-import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader } from "../../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 
-import { withBase } from "./base-path.js";
+import { withBase } from "../base-path.js";
 import { disposeBoardTree } from "./board-helpers.js";
 import {
   cyclePhaseAt,

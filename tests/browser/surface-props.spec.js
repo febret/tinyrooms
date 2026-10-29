@@ -12,7 +12,7 @@ test("procedural sign and whiteboard render without GLTF requests", async ({ pag
   }));
   await page.goto("/__surface-render-check");
   await page.evaluate(async () => {
-    const { createBoard } = await import("/app/js/board.js");
+    const { createBoard } = await import("/app/js/board/board.js");
     window.board = createBoard({ canvas: document.querySelector("canvas"), overlay: document.querySelector("#status") });
     const artwork = document.createElement("canvas");
     artwork.width = 1024;

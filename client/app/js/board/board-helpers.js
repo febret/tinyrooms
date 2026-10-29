@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { createTextProp, isTextProp } from "./text-props.js";
-import { createSignProp, createWhiteboardProp, isSurfaceProp, surfaceModelKey } from "./surface-props.js";
-import { createExitProp, exitPropModelKey, isExitProp, loadExitTexture, resolveExitFinish } from "./exit-props.js";
-import { withBase } from "./base-path.js";
+import { createTextProp, isTextProp } from "../text-props.js";
+import { createSignProp, createWhiteboardProp, isSurfaceProp, surfaceModelKey } from "../surface-props.js";
+import { createExitProp, exitPropModelKey, isExitProp, loadExitTexture, resolveExitFinish } from "../exit-props.js";
+import { withBase } from "../base-path.js";
 
 export const FLOOR_WIDTH = 12.05;
 export const FLOOR_HEIGHT = 10.05;

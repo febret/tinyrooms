@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { boardPositionToSquare, gridConfig, squareToBoardPosition } from "../../client/app/js/board-games/grid-geometry.js";
-import { boardCoordinate } from "../../client/app/js/board-games/paintball.js";
+import { boardPositionToSquare, gridConfig, squareToBoardPosition } from "../../client/app/js/board/board-games/grid-geometry.js";
+import { boardCoordinate } from "../../client/app/js/board/board-games/paintball.js";
 
 const CONFIG = {
   columns: 8,

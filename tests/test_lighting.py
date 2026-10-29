@@ -108,13 +108,13 @@ class LightingResolutionTests(unittest.TestCase):
         )
 
     def test_client_cycle_fallback_matches_server(self) -> None:
-        source = (REPO_ROOT / "client" / "app" / "js" / "board-diorama-daylight.js").read_text()
+        source = (REPO_ROOT / "client" / "app" / "js" / "board" / "board-diorama-daylight.js").read_text()
         match = re.search(r"DIORAMA_CYCLE_SECONDS\s*=\s*([\d.]+)", source)
         self.assertIsNotNone(match, "client cycle fallback")
         self.assertAlmostEqual(float(match.group(1)), float(DAY_NIGHT_CYCLE_SECONDS))
 
     def test_client_preset_names_match_server(self) -> None:
-        source = (REPO_ROOT / "client" / "app" / "js" / "board-lighting.js").read_text()
+        source = (REPO_ROOT / "client" / "app" / "js" / "board" / "board-lighting.js").read_text()
         for name in LIGHTING_ENVIRONMENTS:
             self.assertIsNotNone(
                 re.search(rf"{name}:\s*\{{", source), f"client preset '{name}'"

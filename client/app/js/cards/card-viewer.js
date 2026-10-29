@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { cardFaceCanvas, cardSurfaceCanvas, paperBumpCanvas } from "./card-face-texture.js";
 import { cardTheme } from "./card-style.js";
-import { createViewerStage } from "./viewer-stage.js";
+import { createViewerStage } from "../viewer-stage.js";
 
 const CARD_WIDTH = 0.62;
 const CARD_HEIGHT = 0.88;

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "../../vendor/three/examples/jsm/loaders/GLTFLoader.js";
-import { disposeBoardTree } from "../board-helpers.js";
+import { disposeBoardTree } from "../board/board-helpers.js";
 import { withBase } from "../base-path.js";
 
 const SIZE = 128;

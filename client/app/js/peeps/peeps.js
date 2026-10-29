@@ -1,10 +1,10 @@
 import { peepDamageTier } from "./peep-damage.js";
-import { withBase } from "./base-path.js";
+import { withBase } from "../base-path.js";
 import { layoutPeeps } from "./peep-groups.js";
 import { createBubbleElement, createPeepBubbles } from "./peep-bubbles.js";
-import { escapeHtml, placeAt, updateMarkup } from "./presentation.js";
-import { decalDataUrl, stinkDataUrl } from "./decals.js";
-import { powerGlowStyle } from "./power-glow.js";
+import { escapeHtml, placeAt, updateMarkup } from "../presentation.js";
+import { decalDataUrl, stinkDataUrl } from "../decals.js";
+import { powerGlowStyle } from "../power-glow.js";
 
 const MOVE_BUBBLE_LIFETIME = 5000;
 const MOVE_RECORD_TTL = 10000;

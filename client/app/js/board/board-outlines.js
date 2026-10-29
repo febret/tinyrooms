@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { hasActivePropActions } from "./prop-actions.js";
+import { hasActivePropActions } from "../props/prop-actions.js";
 
 const MASK_VERTEX = `
   #include <common>

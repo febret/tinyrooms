@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "../vendor/three/examples/jsm/loaders/GLTFLoader.js";
+import { OrbitControls } from "../../vendor/three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "../../vendor/three/examples/jsm/loaders/GLTFLoader.js";
 import {
   applyFloorImageStyle, floorKey, loadSharedTexture, makeFloor,
   setDarkened, setGhosted, setPropLightGlow, sharedTexture, shareModelTextures, unavailableMarker,
@@ -18,14 +18,14 @@ import {
   propModelKey,
   syncRecords,
 } from "./board-helpers.js";
-import { isTextProp } from "./text-props.js";
-import { isSurfaceProp } from "./surface-props.js";
-import { isExitProp } from "./exit-props.js";
-import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "./editing/gizmo.js";
-import { createEditModifier } from "./editing/edit-modifier.js";
-import { snapPositionValue } from "./editing/edit-reducer.js";
-import { cardDropElevation, stackMetrics, supportElevation } from "./editing/prop-stacking.js";
-import { createPropEffects } from "./prop-effects.js";
+import { isTextProp } from "../text-props.js";
+import { isSurfaceProp } from "../surface-props.js";
+import { isExitProp } from "../exit-props.js";
+import { createGizmo, elevationDeltaForDrag, footprintRadius, rotationDeltaForDrag } from "../editing/gizmo.js";
+import { createEditModifier } from "../editing/edit-modifier.js";
+import { snapPositionValue } from "../editing/edit-reducer.js";
+import { cardDropElevation, stackMetrics, supportElevation } from "../editing/prop-stacking.js";
+import { createPropEffects } from "../props/prop-effects.js";
 import { createBoardLights, resetBoardLights, scaredShake, selfIsScared, settleShake } from "./board-effects.js";
 import {
   DARK_SPRITE_LIGHTING,

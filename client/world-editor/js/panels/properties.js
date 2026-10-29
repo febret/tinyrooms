@@ -1,5 +1,5 @@
 import { escapeHtml, selectOptions, actionsToText } from "../util.js";
-import { ROOM_TRANSITION_OPTIONS } from "../../../app/js/board-transitions.js";
+import { ROOM_TRANSITION_OPTIONS } from "../../../app/js/board/board-transitions.js";
 import { renderDialogNodeEditor } from "./dialog.js";
 
 function field(label, input) {

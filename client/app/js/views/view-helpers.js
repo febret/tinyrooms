@@ -1,6 +1,6 @@
 import { withBase } from "../base-path.js";
-import { cardFaceSvg } from "../card-face.js";
-import { cardBackground, cardRarityKey } from "../card-style.js";
+import { cardFaceSvg } from "../cards/card-face.js";
+import { cardBackground, cardRarityKey } from "../cards/card-style.js";
 import { escapeHtml } from "../presentation.js";
 
 export function rarityLabel(definition) {

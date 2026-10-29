@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/three/examples/jsm/controls/OrbitControls.js";
-import { disposeBoardTree } from "./board-helpers.js";
+import { disposeBoardTree } from "./board/board-helpers.js";
 
 const AUTO_ROTATION_SPEED = 0.6;
 

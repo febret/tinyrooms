@@ -1,4 +1,4 @@
-import { placeAt } from "./presentation.js";
+import { placeAt } from "../presentation.js";
 
 function bubbleKey(peep) {
   const bubble = peep?.bubble;

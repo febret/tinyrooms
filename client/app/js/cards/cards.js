@@ -6,19 +6,19 @@ import {
   buildUnequipCommand,
   buildTeachCommand,
   buildUseCommand,
-} from "./commands.js";
-import { findContainerCard, findInventoryCard, findRoomCard, findSelectedEntity, findTask, isTargetableStack } from "./state.js";
-import { escapeHtml } from "./presentation.js";
-import { handIconMarkup, rarityLabel } from "./views/view-helpers.js";
-import { idCardView } from "./views/id-card-view.js";
-import { inventoryView } from "./views/inventory-view.js";
-import { emoteMenuMarkup } from "./views/emote-menu.js";
-import { propDetailsView } from "./views/prop-details-view.js";
-import { journalView } from "./views/journal-view.js";
-import { phoneView } from "./views/phone-view.js";
-import { createEditorDock } from "./editing/editor-dock.js";
-import { animateToolbarButtons, captureToolbarButtons } from "./toolbar-animation.js";
-import { uiIconMarkup } from "./ui-icons.js";
+} from "../commands.js";
+import { findContainerCard, findInventoryCard, findRoomCard, findSelectedEntity, findTask, isTargetableStack } from "../state.js";
+import { escapeHtml } from "../presentation.js";
+import { handIconMarkup, rarityLabel } from "../views/view-helpers.js";
+import { idCardView } from "../views/id-card-view.js";
+import { inventoryView } from "../views/inventory-view.js";
+import { emoteMenuMarkup } from "../views/emote-menu.js";
+import { propDetailsView } from "../views/prop-details-view.js";
+import { journalView } from "../views/journal-view.js";
+import { phoneView } from "../views/phone-view.js";
+import { createEditorDock } from "../editing/editor-dock.js";
+import { animateToolbarButtons, captureToolbarButtons } from "../toolbar-animation.js";
+import { uiIconMarkup } from "../ui-icons.js";
 
 function coreMarkup(definition, selected) {
   return `

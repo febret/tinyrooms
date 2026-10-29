@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createPropActionButton } from "../../client/app/js/prop-action-button.js";
+import { createPropActionButton } from "../../client/app/js/props/prop-action-button.js";
 
 test("default prop action appears beside a click, stays in bounds, and executes once", () => {
   const button = {

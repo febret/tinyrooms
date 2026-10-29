@@ -279,7 +279,7 @@ filtering, reporting, blocking, and moderator contact.
 | UGC and chat moderation requirement | High | [§6.2](#62-ugc-safeguards) is store-blocking; do it in P0 |
 | Account deletion spanning two SQLite databases | Medium | Explicit purge order plus cascade tests ([§6.1](#61-account-deletion-and-privacy)) |
 | WebRTC voice needs TURN off-LAN | Medium | Add TURN to `TRSERVER_STUN_URLS`; otherwise voice is LAN-only |
-| WebGL context loss kills the board (`client/app/js/board.js` handles `webglcontextlost` but not `webglcontextrestored`) | Medium | Optional upstream client fix; otherwise offer a reload prompt |
+| WebGL context loss kills the board (`client/app/js/board/board.js` handles `webglcontextlost` but not `webglcontextrestored`) | Medium | Optional upstream client fix; otherwise offer a reload prompt |
 | No-Mac iOS iteration is slow | Medium | CI artifacts plus TestFlight; simulator tests in CI |
 | Self-signed certificates on local dev | Low | Debug-only bypass, never in release |
 | `/home` origin allowlist | Low | Confirm `TRSERVER_PUBLIC_ORIGIN` includes `https://tinyrooms.febret.com` on the production instance |

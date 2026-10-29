@@ -1,4 +1,4 @@
-import { placeAt } from "./presentation.js";
+import { placeAt } from "../presentation.js";
 import { defaultPropAction } from "./prop-actions.js";
 
 export function createPropActionButton({ button, getState, onAction }) {

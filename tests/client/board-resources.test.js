@@ -7,7 +7,7 @@ import {
   loadSharedTexture,
   setPropLightGlow,
   sharedCardGeometry,
-} from "../../client/app/js/board-resources.js";
+} from "../../client/app/js/board/board-resources.js";
 
 test("room card geometry merges the four edge groups", () => {
   const geometry = sharedCardGeometry();

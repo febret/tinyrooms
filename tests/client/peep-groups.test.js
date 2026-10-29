@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { layoutPeeps } from "../../client/app/js/peep-groups.js";
+import { layoutPeeps } from "../../client/app/js/peeps/peep-groups.js";
 
 test("the dialoging peep stays visible when overflow peeps are grouped", () => {
   const peeps = Array.from({ length: 7 }, (_, index) => ({ id: `peep-${index}` }));

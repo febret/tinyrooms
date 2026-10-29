@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { shareModelTextures } from "../board-resources.js";
-import { createPropEffects } from "../prop-effects.js";
+import { createPropEffects } from "../../props/prop-effects.js";
 import { boardPositionToSquare, gridConfig, squareToBoardPosition } from "./grid-geometry.js";
 
 const TOP = 0.045;

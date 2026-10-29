@@ -1,6 +1,6 @@
 import { BUILTIN_FRAMES, DEFAULT_FRAME } from "./frames.js";
 import { assetSource, placeholderBox, spriteForAsset } from "./placeholders.js";
-import { cardFaceSvg } from "../card-face.js";
+import { cardFaceSvg } from "../cards/card-face.js";
 
 const frames = new Map(Object.entries(BUILTIN_FRAMES));
 let session = null;

@@ -1,7 +1,7 @@
 /** Room, card, actor, and game-state normalization helpers. */
 
 import { withBase } from "./base-path.js";
-import { normalizeRoomTransition } from "./board-transitions.js";
+import { normalizeRoomTransition } from "./board/board-transitions.js";
 
 export function clone(value) {
   return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value));
