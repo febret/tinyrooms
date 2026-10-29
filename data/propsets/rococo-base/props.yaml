@@ -16,6 +16,7 @@ crimson-chaise:
   model: crimson-chaise.glb
   decorative: true
   scale: 1.5
+  resizable: true
   tags:
   - sofa
   - seating
@@ -173,6 +174,7 @@ marble-bust:
   model: marble-bust.glb
   decorative: true
   scale: 1.1
+  resizable: true
   tags:
   - statue
   - art
@@ -254,6 +256,7 @@ marble-goddess:
   model: marble-goddess.glb
   decorative: true
   scale: 1.6
+  resizable: true
   tags:
   - statue
   - art
@@ -281,6 +284,7 @@ marble-lion:
   model: marble-lion.glb
   decorative: true
   scale: 1.4
+  resizable: true
   tags:
   - statue
   - art
@@ -290,6 +294,7 @@ marble-discobolus:
   model: marble-discobolus.glb
   decorative: true
   scale: 1.6
+  resizable: true
   tags:
   - statue
   - art
@@ -436,6 +441,7 @@ gilt-floor-candlestick:
   model: gilt-floor-candlestick.glb
   decorative: true
   scale: 1.5
+  resizable: true
   tags:
   - lighting
   - ornament

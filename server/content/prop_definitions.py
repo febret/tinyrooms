@@ -135,6 +135,7 @@ class PropInstanceDefinition:
     label: str | None = None
     exit_to: str | None = None
     exit_style: dict[str, str] | None = None
+    read_only_surface: bool = False
 
 
 def instance_scale_for(definition: PropDefinition, raw_value: object = 1.0) -> float:

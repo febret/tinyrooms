@@ -369,10 +369,82 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         payload["user"] = _user_payload(context)
         return CommandOutcome(payload=payload, toast=False, log=False)
 
-    if action == "artstore":
-        return await _open_activity(
-            context, "tiny-mag", room_id=None, replace_existing=True, initial_page="gallery"
+    if action in {"gallery", "artstore"}:
+        service.gallery.ensure()
+        source_room_id = require_room_id(context)
+        destination_room_id = service.gallery.entry_room_id
+        if source_room_id == destination_room_id:
+            return CommandOutcome(
+                message="You are already in the gallery.",
+                payload={"room_id": destination_room_id, "gallery": list(service.gallery.room_ids)},
+                snapshot=await context.rooms.build_snapshot(context.account, destination_room_id),
+                toast=False,
+                log=False,
+            )
+        navigation = await context.rooms.enter_room(
+            context.account,
+            source_room_id,
+            destination_room_id,
+            direction="the gallery doors",
         )
+        outcome = CommandOutcome(
+            message="You step into the TinyTown Art Gallery.",
+            payload={"room_id": navigation.destination_room_id, "gallery": list(service.gallery.room_ids)},
+            snapshot=navigation.destination_snapshot,
+            toast=False,
+        )
+        outcome.room_broadcasts.append(
+            PendingRoomBroadcast(room_id=navigation.source_room_id, event=navigation.source_event)
+        )
+        outcome.room_broadcasts.append(
+            PendingRoomBroadcast(room_id=navigation.destination_room_id, event=navigation.destination_event)
+        )
+        if navigation.closed_activity is not None:
+            outcome.private_events.append(
+                {
+                    "type": "activity.closed",
+                    "activity": navigation.closed_activity,
+                    "reason": "room_changed",
+                }
+            )
+        for behavior in navigation.behavior_results:
+            merge_behavior_result(context, outcome, behavior)
+        return outcome
+
+    if action == "collect":
+        if len(command.args) < 3:
+            raise CommandError("Use '.tinytown collect <art|listing> <id> [house_id]'.")
+        kind = command.args[1].lower()
+        if kind not in {"art", "listing"}:
+            raise CommandError("Collect either a catalog 'art' piece or a resident 'listing'.")
+        house_id = command.args[3] if len(command.args) > 3 else None
+        purchase = service.gallery.collect(context.account, kind, command.args[2], house_id)
+        outcome = CommandOutcome(
+            message=purchase.message,
+            payload={
+                "user": _user_payload(context),
+                "gallery_purchase": {
+                    "kind": kind,
+                    "item_id": command.args[2],
+                    "destination_room_id": purchase.destination_room_id,
+                    "destination_label": purchase.destination_label,
+                    "bops_spent": purchase.bops_spent,
+                },
+            },
+            toast=False,
+        )
+        outcome.room_broadcasts.append(
+            PendingRoomBroadcast(room_id=purchase.destination_room_id, event=purchase.layout_event)
+        )
+        if purchase.surface_event is not None:
+            outcome.room_broadcasts.append(
+                PendingRoomBroadcast(room_id=purchase.destination_room_id, event=purchase.surface_event)
+            )
+        if context.connection.room_id == purchase.destination_room_id:
+            outcome.snapshot = await context.rooms.build_snapshot(
+                context.account, purchase.destination_room_id
+            )
+        return _toast(outcome, purchase.message)
 
     if action == "market":
         room_id = context.connection.room_id
@@ -470,7 +542,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
         return CommandOutcome(
             message=(
                 "Use '.tinytown list', '.tinytown buy <template>', '.tinytown enter <house>', "
-                "'.tinytown roommates', '.tinytown market', '.tinytown keyring', or '.tinytown artstore'. "
+                "'.tinytown roommates', '.tinytown market', '.tinytown keyring', or '.tinytown gallery'. "
                 f"Districts: {districts}."
             ),
             toast=False,
@@ -479,7 +551,7 @@ async def tinytown_command(context: CommandContext, command: ParsedCommand) -> C
 
     raise CommandError(
         "Unknown TinyTown command. Use list, buy, enter, visit, lock, roommates, npc, play, "
-        "market, sellart, unlistart, buyart, hangart, decor, floor, hang, keyring, or artstore."
+        "market, sellart, unlistart, buyart, hangart, decor, floor, hang, keyring, gallery, or collect."
     )
 
 
@@ -494,10 +566,10 @@ def register(api: object) -> None:
         "tinytown",
         "Open TinyTown or manage houses, households, and home decoration.",
         tinytown_command,
-        usage=".tinytown [list|buy|enter|visit|lock|roommates|npc|play|market|sellart|buyart|decor|floor|hang|keyring|artstore]",
+        usage=".tinytown [list|buy|enter|visit|lock|roommates|npc|play|market|sellart|buyart|decor|floor|hang|keyring|gallery|collect]",
         help=(
             "Open the TinyTown house browser. Buy a private multi-room home, visit other "
-            "residents, customize household peeps, and hang art from the Art Market. "
+            "residents, customize household peeps, browse the room-based Art Gallery, and hang art. "
             "Household peeps have Energy, Health, and Cleanliness and live autonomously."
         ),
         toast=False,

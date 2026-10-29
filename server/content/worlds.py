@@ -193,6 +193,10 @@ class PeepDefinition:
     actions: tuple[QuickAction, ...]
     dialog: DialogDefinition | None
     activity: str | None
+    # Optional authored [x, y] board-percent spot where the NPC sprite stands
+    # when first placed in its home room (sprite rooms only). Falls back to a
+    # random free spot when absent or blocked.
+    sprite_home: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -375,6 +379,21 @@ def _load_dialog(
 
 MIN_SPRITE_SCALE = 0.5
 MAX_SPRITE_SCALE = 3.0
+
+
+def _load_sprite_home(raw_value: Any, peep_id: str) -> tuple[float, float] | None:
+    if raw_value is None:
+        return None
+    if (
+        not isinstance(raw_value, (list, tuple))
+        or len(raw_value) != 2
+        or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in raw_value)
+    ):
+        raise ContentError(f"Peep '{peep_id}' sprite_home must be a list of two numbers [x, y].")
+    x, y = float(raw_value[0]), float(raw_value[1])
+    if not (0.0 <= x <= 100.0 and 0.0 <= y <= 100.0):
+        raise ContentError(f"Peep '{peep_id}' sprite_home must stay within 0..100 board percent.")
+    return (x, y)
 
 
 def _load_sprite_scale(raw_value: Any, room_id: str) -> float:
@@ -805,6 +824,7 @@ def load_world_definition(
             actions=_load_actions(raw_peep.get("actions")),
             dialog=_load_dialog(raw_peep.get("dialog"), peep_id, card_ids, known_sounds=known_sounds),
             activity=str(raw_peep["activity"]).strip() if raw_peep.get("activity") else None,
+            sprite_home=_load_sprite_home(raw_peep.get("sprite_home"), peep_id),
         )
 
     world_activities = load_activity_definitions(

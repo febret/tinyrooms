@@ -49,27 +49,6 @@ export const PAGES = [
     blurb: "Five portraits from the classified desk, and the delicate business of sharing a kettle.",
   },
   {
-    id: "gallery",
-    label: "The Gallery",
-    short: "The Collection",
-    group: "The Gallery",
-    blurb: "Prints, plates, and the quiet pleasure of a finished wall.",
-  },
-  {
-    id: "floors",
-    label: "Underfoot",
-    short: "Floor Finishes",
-    group: "The Gallery",
-    blurb: "Stone, timber, cork, and the ground beneath a good room.",
-  },
-  {
-    id: "community",
-    label: "Reader Gallery",
-    short: "Community",
-    group: "The Gallery",
-    blurb: "Work by the people next door, offered at neighbourly prices.",
-  },
-  {
     id: "submit",
     label: "Submission Desk",
     short: "Sell Art",
@@ -79,7 +58,7 @@ export const PAGES = [
 ];
 
 export const PAGE_IDS = new Map(PAGES.map((page, index) => [page.id, index]));
-export const ART_PAGES = new Set(["gallery", "floors", "community", "submit"]);
+export const ART_PAGES = new Set(["submit"]);
 
 export const DISTRICT_PAGES = {
   "district-downtown": "downtown",
@@ -98,7 +77,7 @@ export const COPY = {
     features: [
       ["Property", "Twenty small houses, four distinct districts, and the case for living within your means."],
       ["Roommate Classifieds", "People looking for a place to live. They are nice, we think."],
-      ["The Collection", "Paint cans are really cheap around here. Everyone is painting. Some of them are good. We found a few in the dumpster."],
+      ["The Gallery", "The collection has moved into the town itself, with new wings opening as residents hang more work."],
     ],
     sticker: "Inside: five strangers, one spare room, and a very small town",
     coverKicker: "The house-hunting, roommate-finding, art-collecting issue",
@@ -141,38 +120,6 @@ export const COPY = {
     applicantLabel: "Applicant",
     residentLabel: "Resident",
     noHouse: "The classified desk needs a front door before it can send anyone a key.",
-  },
-  gallery: {
-    eyebrow: "The collection",
-    title: ["Something", "for the wall."],
-    dek: "A print is a small argument for staying in. These are made by hand, hung in good light, and signed by the person who made them.",
-    noteInside: "Hanging in",
-    noteOutside: "Browse from anywhere. Step inside one of your homes to hang a piece.",
-    stamp: "prints collected",
-    rightKicker: "The permanent collection",
-    rightTitle: "The Gallery",
-    empty: "The gallery is opening its shutters.",
-  },
-  floors: {
-    eyebrow: "The sample room",
-    title: ["Under", "foot."],
-    dek: "A floor is the quietest piece of furniture in a house. It takes the morning light, the muddy boots, and the chair that never quite sits level.",
-    note: "Buy a finish once, then reapply it whenever the mood changes. One finish per room.",
-    stamp: "Samples available at the desk",
-    rightKicker: "The sample room",
-    rightTitle: "Floor finishes",
-    empty: "The samples are being unrolled.",
-  },
-  community: {
-    eyebrow: "Reader gallery",
-    title: ["Art by", "neighbours."],
-    dek: "Every print in this section was drawn by a resident. The artist keeps the original; you get a signed, locked copy and they get the Bops.",
-    noteInside: "Collect a print from the page. It will hang in your current room and stay locked to protect the artist's work.",
-    noteOutside: "You can browse the reader gallery from anywhere. Step inside a home to collect a print.",
-    stamp: "prints for sale",
-    rightKicker: "Reader gallery",
-    rightTitle: "The wall",
-    empty: "No reader prints yet. The first one could be yours.",
   },
   submit: {
     eyebrow: "The submission desk",

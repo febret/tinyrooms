@@ -163,6 +163,21 @@ class TinyTownArtMarket:
             for listing in self._rows()
         ]
 
+    def gallery_listings(self) -> list[dict[str, object]]:
+        """Return active listings for the world gallery, independent of viewer."""
+
+        return [self.listing_payload(listing, "") for listing in self._rows()]
+
+    def get_listing(self, listing_id: str) -> ArtListing | None:
+        """Return one listing by id, including inactive records."""
+
+        return self._listing(listing_id)
+
+    def owns_listing(self, account_id: str, listing_id: str) -> bool:
+        """Return whether *account_id* has already bought *listing_id*."""
+
+        return listing_id in self._owned_listing_ids(account_id)
+
     def my_listings(self, account: object) -> list[dict[str, object]]:
         return [
             self.listing_payload(listing, account.id)

@@ -213,8 +213,24 @@ class SpriteService:
         return None if stored is None else (stored[0], stored[1])
 
     def ensure_npc(self, peep_id: str, room_id: str) -> tuple[float, float] | None:
-        """Return an NPC's sprite position, assigning one on first entry."""
+        """Return an NPC's sprite position, assigning one on first entry.
 
+        A peep with an authored ``sprite_home`` starts there when it is in its
+        home room and the spot is free; otherwise placement is random.
+        """
+
+        stored = self._npc_positions.get(peep_id)
+        if self.enabled(room_id) and (stored is None or stored[0] != room_id):
+            peep = self._world.peeps.get(peep_id)
+            home = getattr(peep, "sprite_home", None)
+            if peep is not None and home is not None and peep.room_id == room_id:
+                try:
+                    position = self._validate_position(room_id, home[0], home[1])
+                except ValueError:
+                    position = None
+                if position is not None:
+                    self._npc_positions[peep_id] = (room_id, position)
+                    return position
         return self._ensure(self._npc_positions, peep_id, room_id)
 
     def ensure_user(self, account_id: str, room_id: str) -> tuple[float, float] | None:

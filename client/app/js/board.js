@@ -14,6 +14,7 @@ import {
   loadPropModel,
   positionKey,
   propEffectKey,
+  propRotationRadians,
   propModelKey,
   syncRecords,
 } from "./board-helpers.js";
@@ -686,7 +687,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
     invalidate();
     const group = new THREE.Group();
     register(entry, group, "prop", prop.id, prop.position);
-    group.rotation.set(...(prop.rotation || [0, 0, 0]));
+    group.rotation.set(...propRotationRadians(prop.rotation));
     group.scale.setScalar(Number.isFinite(prop.scale) ? prop.scale : 1);
     const record = {
       id: prop.id, group, prop, modelKey: propModelKey(prop), positionKey: positionKey(prop.position),
@@ -780,7 +781,7 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   function updateProp(entry, record, prop) {
     let moved = false;
     record.prop = prop;
-    const rotation = prop.rotation || [0, 0, 0];
+    const rotation = propRotationRadians(prop.rotation);
     if (record.group.rotation.x !== rotation[0] || record.group.rotation.y !== rotation[1] || record.group.rotation.z !== rotation[2]) {
       record.group.rotation.set(...rotation);
       moved = true;

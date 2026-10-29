@@ -6,6 +6,7 @@ italian-settee:
   model: italian-settee.glb
   decorative: true
   scale: 1.4
+  resizable: true
   tags:
   - seating
   - sofa
@@ -165,6 +166,7 @@ italian-lemon-pot:
   model: italian-lemon-pot.glb
   decorative: true
   scale: 1.0
+  resizable: true
   tags:
   - plant
   - decoration
@@ -174,6 +176,7 @@ italian-amphora:
   model: italian-amphora.glb
   decorative: true
   scale: 0.8
+  resizable: true
   tags:
   - decoration
 italian-fresco-screen:

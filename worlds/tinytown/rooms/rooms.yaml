@@ -164,8 +164,8 @@ home-living:
       - 0
       scale: 1
       actions:
-      - - Visit the Art Market
-        - .tinytown artstore
+      - - Visit the Art Gallery
+        - .tinytown gallery
         - true
     living-window:
       prop: bay-window
@@ -430,8 +430,8 @@ home-studio:
       - 0
       scale: 1.1
       actions:
-      - - Visit the Art Market
-        - .tinytown artstore
+      - - Visit the Art Gallery
+        - .tinytown gallery
         - true
     studio-shelf:
       prop: metsa-bookshelf
@@ -1000,8 +1000,8 @@ home-gallery:
       - 0
       scale: 1.15
       actions:
-      - - Visit the Art Market
-        - .tinytown artstore
+      - - Visit the Art Gallery
+        - .tinytown gallery
         - true
     gallery-easel-two:
       prop: tinytown-art-easel
@@ -1011,8 +1011,8 @@ home-gallery:
       - 0
       scale: 1.15
       actions:
-      - - Visit the Art Market
-        - .tinytown artstore
+      - - Visit the Art Gallery
+        - .tinytown gallery
         - true
     gallery-bust:
       prop: marble-bust
@@ -1042,4 +1042,52 @@ home-gallery:
       - 5
       - 0
       scale: 0.9
+  exits: {}
+gallery-atrium-base:
+  label: Gallery Atrium
+  description: A marble-floored atrium with a warm skylight and room for a crowd.
+  board_type: basic
+  board_image: floor-marble.png
+  board_image_style: stretch
+  palette:
+  - '#f0e8da'
+  - '#b99a62'
+  - '#53685f'
+  - '#8e5a4e'
+  sprites_enabled: true
+  environment: day
+  template: true
+  props: {}
+  exits: {}
+gallery-hall-base:
+  label: Gallery Hall
+  description: A long, quiet hall with a warm oak floor and excellent echo.
+  board_type: basic
+  board_image: floor-oak.png
+  board_image_style: stretch
+  palette:
+  - '#eadcc4'
+  - '#8e6d4f'
+  - '#4d6b70'
+  - '#c9a45c'
+  sprites_enabled: true
+  environment: day
+  template: true
+  props: {}
+  exits: {}
+gallery-cabinet-base:
+  label: Cabinet Room
+  description: A small, dark-walled cabinet for small, bright treasures.
+  board_type: basic
+  board_image: floor-herringbone.png
+  board_image_style: stretch
+  palette:
+  - '#ded8cb'
+  - '#5b5550'
+  - '#9b7b54'
+  - '#4d6d70'
+  sprites_enabled: true
+  environment: day
+  template: true
+  props: {}
   exits: {}

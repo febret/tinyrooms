@@ -250,6 +250,7 @@ class RoomLayoutService:
                     if isinstance(entry.get("exit_style"), dict)
                     else (dict(source.exit_style) if source and source.exit_style else None)
                 ),
+                read_only_surface=source.read_only_surface if source else False,
             )
         return list(merged.values())
 
@@ -371,10 +372,9 @@ class RoomLayoutService:
         if dark:
             return []
         definition = self._world.props[instance.prop_id]
-        actions: tuple[QuickAction, ...] = (
-            merged_prop_actions(room, instance, definition)
-            + surface_actions(instance, definition)
-        )
+        actions: tuple[QuickAction, ...] = merged_prop_actions(room, instance, definition)
+        if not instance.read_only_surface:
+            actions = actions + surface_actions(instance, definition)
         if is_toggleable(definition):
             actions = actions + (
                 QuickAction(label="Toggle light", command=f".toggle @prop:{instance.id}"),

@@ -866,10 +866,11 @@ class RoomService:
         if dark or disable_actions:
             quick_actions: list[dict[str, object]] = []
         else:
-            actions: tuple[QuickAction, ...] = (
-                self._merged_prop_actions(room, prop, prop_definition)
-                + surface_actions(prop, prop_definition)
+            actions: tuple[QuickAction, ...] = self._merged_prop_actions(
+                room, prop, prop_definition
             )
+            if not prop.read_only_surface:
+                actions = actions + surface_actions(prop, prop_definition)
             if is_toggleable(prop_definition):
                 actions = actions + (
                     QuickAction(label="Toggle light", command=f".toggle @prop:{prop.id}"),

@@ -55,20 +55,9 @@ test("flip through Tiny Mag, buy a home, and meet roommates", async ({ page, run
   await expect(frame.locator(".resident-profile")).toHaveCount(1);
 
   await frame.locator("#next").click();
-  await expect(frame.getByRole("heading", { name: "The Gallery" })).toBeVisible();
-  await expect(frame.locator(".art-card")).toHaveCount(14);
-  const painted = await frame.locator(".art-card canvas").first().evaluate(canvas => {
-    const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
-    let coloured = 0;
-    for (let index = 0; index < data.length; index += 4) {
-      if (data[index] < 240 || data[index + 1] < 240 || data[index + 2] < 240) {
-        coloured += 1;
-        if (coloured > 250) return true;
-      }
-    }
-    return false;
-  });
-  expect(painted).toBe(true);
+  await expect(frame.getByRole("heading", { name: /Send it/ })).toBeVisible();
+  await expect(frame.locator("#page-left").getByText("The submission desk", { exact: false })).toBeVisible();
+  await expect(frame.locator(".art-card")).toHaveCount(0);
 
   await page.setViewportSize({ width: 520, height: 900 });
   await expect(frame.locator("#page-left")).toBeVisible();

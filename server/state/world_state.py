@@ -316,6 +316,38 @@ class WorldStateRepository:
             self._seed_room_layout(connection, room_id, room, world)
         self.invalidate_room_environment(room_id)
 
+    def sync_generated_room(self, room_id: str, room, world: WorldDefinition) -> None:
+        """Replace a generated room's seeded state with its current definition."""
+
+        with self._hub.transaction() as connection:
+            connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
+            connection.execute("DELETE FROM world.prop_surfaces WHERE room_id = ?", (room_id,))
+            self.delete_room_container_cards(connection, room_id)
+            row = connection.execute(
+                "SELECT layout_revision FROM world.room_states WHERE room_id = ?",
+                (room_id,),
+            ).fetchone()
+            revision = (int(row["layout_revision"]) if row is not None else 0) + 1
+            connection.execute(
+                """
+                INSERT INTO world.room_states (
+                    room_id, initialized, owner_account_id, props_json, door_json,
+                    environment_json, layout_revision
+                ) VALUES (?, 1, NULL, '{}', '{}', '{}', ?)
+                ON CONFLICT(room_id) DO UPDATE SET
+                    initialized = 1,
+                    owner_account_id = NULL,
+                    props_json = '{}',
+                    door_json = '{}',
+                    environment_json = '{}',
+                    layout_revision = excluded.layout_revision
+                """,
+                (room_id, revision),
+            )
+            self._insert_seed_cards(connection, room_id, room.initial_cards)
+            self._seed_room_layout(connection, room_id, room, world)
+        self.invalidate_room_environment(room_id)
+
     @staticmethod
     def _seed_room_layout(
         connection: sqlite3.Connection,

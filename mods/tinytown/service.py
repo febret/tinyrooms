@@ -18,6 +18,7 @@ from mods.tinytown.catalog import (
 )
 from mods.tinytown.content import FloorTexture, HouseRecord, HouseTemplate, load_floor_textures, load_house_templates
 from mods.tinytown.day_night import DayNightCycle
+from mods.tinytown.gallery import TinytownGallery
 from mods.tinytown.npcs import NpcHouse
 from server.content.surface_props import MAX_WHITEBOARD_PROPS, WHITEBOARD_PROP_ID
 from server.content.worlds import ExitDefinition, RoomDefinition
@@ -765,6 +766,45 @@ class TinytownHousing:
             raise ValueError("That front door is locked.")
         return record
 
+    def art_room_for_house(self, account: object, house_id: str) -> str | None:
+        """Return the preferred room in one owned house that can take a print."""
+
+        record = next(
+            (entry for entry in self.records_for_owner(account.id) if entry.house_id == house_id),
+            None,
+        )
+        if record is None:
+            return None
+        template = self.template_for(record)
+        preferred = {"gallery": 0, "studio": 1, "living": 2, "entry": 3}
+        rooms = sorted(
+            enumerate(template.rooms),
+            key=lambda pair: (preferred.get(pair[1].role, 4), pair[0]),
+        )
+        for _index, room_template in rooms:
+            room_id = record.room_ids.get(room_template.key)
+            if not room_id or room_id not in self._world.rooms:
+                continue
+            view = self._layout.view(account, room_id)
+            whiteboards = sum(
+                1
+                for prop in view.get("props", [])
+                if str(prop.get("prop_id")) == WHITEBOARD_PROP_ID
+            )
+            if whiteboards < MAX_LAYOUT_WHITEBOARDS:
+                return room_id
+        return None
+
+    def art_destinations(self, account: object) -> list[tuple[HouseRecord, str]]:
+        """Return every owned house with its first room that can take a print."""
+
+        results: list[tuple[HouseRecord, str]] = []
+        for record in self.records_for_owner(account.id):
+            room_id = self.art_room_for_house(account, record.house_id)
+            if room_id is not None:
+                results.append((record, room_id))
+        return results
+
     def current_house(self, room_id: str) -> HouseRecord | None:
         return self.record_for_room(room_id)
 
@@ -1010,6 +1050,7 @@ class TinytownService:
     def __init__(self, runtime: object) -> None:
         self.runtime = runtime
         self.housing = TinytownHousing(runtime)
+        self.gallery = TinytownGallery(self.housing)
         self.npcs = self.housing.npcs
         self.roommates = self.housing.roommates
         self.market = self.housing.market
@@ -1021,6 +1062,8 @@ class TinytownService:
 
     def prepare(self) -> None:
         self.housing.prepare()
+        if self.available:
+            self.gallery.prepare()
         self._wire_dialog_settlement()
 
     def start(self) -> None:
@@ -1081,7 +1124,10 @@ class TinytownService:
         if room.id == ENTRY_ROOM_ID:
             from server.content.worlds import QuickAction
 
-            return (QuickAction(label="Find your TinyTown home", command=".play tiny-mag"),)
+            return (
+                QuickAction(label="Find your TinyTown home", command=".play tiny-mag"),
+                QuickAction(label="Visit the Art Gallery", command=".tinytown gallery"),
+            )
         return ()
 
     def diorama_payload(self, account: object, room: RoomDefinition) -> dict[str, object] | None:
@@ -1096,5 +1142,10 @@ class TinytownService:
             return None
 
     def personal_actions(self, account: object, prop: object) -> tuple[object, ...]:
-        del account, prop
-        return ()
+        if not self.available:
+            return ()
+        try:
+            return self.gallery.personal_actions(account, prop)
+        except Exception:  # noqa: BLE001 - prop actions must never break room snapshots
+            LOGGER.exception("tinytown.gallery_personal_actions_failed")
+            return ()

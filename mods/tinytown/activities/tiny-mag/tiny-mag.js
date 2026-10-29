@@ -182,144 +182,6 @@ function roommateContext() {
   return { escape, image };
 }
 
-function galleryLeft() {
-  const copy = COPY.gallery;
-  const market = state.market;
-  return `
-    <p class="eyebrow">${copy.eyebrow}</p>
-    <h2 class="page-title">${copy.title.join("<br>")}</h2>
-    <p class="dek dropcap">${copy.dek}</p>
-    ${market?.can_hang
-      ? `<div class="note">${copy.noteInside} <strong>${escape(market.room?.house || "your home")} · ${escape(market.room?.label || "")}</strong>. ${market.whiteboards} of ${market.max_whiteboards} wall spaces used.</div>`
-      : `<div class="note">${copy.noteOutside}</div>`}
-    <span class="section-stamp">${market?.unlocked_art?.length || 0} ${copy.stamp}</span>
-  `;
-}
-
-function artCard(piece, index) {
-  const labels = COPY.labels;
-  const owned = (state.market?.unlocked_art || []).includes(piece.id);
-  const canHang = Boolean(state.market?.can_hang);
-  const full = Number(state.market?.whiteboards || 0) >= Number(state.market?.max_whiteboards || 4);
-  return `
-    <article class="art-card">
-      <div class="art-frame">${canvas(piece.surface)}</div>
-      <div class="art-meta">
-        <p class="eyebrow">Plate ${String(index + 1).padStart(2, "0")} · ${escape((piece.tags || []).slice(0, 2).join(" · "))}</p>
-        <h3>${escape(piece.label)}</h3>
-        <p>${escape(piece.description)}</p>
-        <div class="price-line">
-          <span class="price">${owned ? labels.collected : `${money(piece.price)} Bops`}</span>
-          ${full ? `<span class="badge">Walls full</span>` : ""}
-        </div>
-        <div class="actions">
-          <button type="button" class="mag-btn" data-action="hang-art" data-id="${escape(piece.id)}" ${(!canHang || full) ? "disabled" : ""}>
-            ${!canHang ? labels.stepInside : full ? labels.makeSpace : owned ? labels.hangAnother : labels.buyHang}
-          </button>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function galleryRight() {
-  const copy = COPY.gallery;
-  const market = state.market;
-  if (!market) return `<p class="empty">${copy.empty}</p>`;
-  return `
-    <p class="kicker">${copy.rightKicker}</p>
-    <h2 class="page-title">${copy.rightTitle}</h2>
-    <div class="art-grid">
-      ${(market.art || []).map((piece, index) => artCard(piece, index)).join("")}
-    </div>
-  `;
-}
-
-function floorLeft() {
-  const copy = COPY.floors;
-  return `
-    <p class="eyebrow">${copy.eyebrow}</p>
-    <h2 class="page-title">${copy.title.join("<br>")}</h2>
-    <p class="dek dropcap">${copy.dek}</p>
-    <div class="note">${copy.note}</div>
-    <span class="section-stamp">${copy.stamp}</span>
-  `;
-}
-
-function floorRight() {
-  const copy = COPY.floors;
-  const market = state.market;
-  if (!market) return `<p class="empty">${copy.empty}</p>`;
-  return `
-    <p class="kicker">${copy.rightKicker}</p>
-    <h2 class="page-title">${copy.rightTitle}</h2>
-    <div class="floor-grid">
-      ${(market.floors || []).map(floor => `
-        <button type="button" class="floor-chip" data-action="floor" data-id="${escape(floor.id)}" ${(!market.can_hang || floor.current) ? "disabled" : ""}>
-          <img src="${image(floor.image_url)}" alt="" loading="lazy">
-          <b>${escape(floor.label)}</b>
-          <small>${floor.current ? COPY.labels.currentlyFitted : floor.unlocked ? COPY.labels.ownedApply : `${money(floor.price)} Bops`}</small>
-        </button>
-      `).join("")}
-    </div>
-    ${market.can_hang ? "" : `<p class="note">${copy.note}</p>`}
-  `;
-}
-
-function communityLeft() {
-  const copy = COPY.community;
-  const market = state.market;
-  return `
-    <p class="eyebrow">${copy.eyebrow}</p>
-    <h2 class="page-title">${copy.title.join("<br>")}</h2>
-    <p class="dek dropcap">${copy.dek}</p>
-    <div class="note">${market?.can_hang ? copy.noteInside : copy.noteOutside}</div>
-    <span class="section-stamp">${market?.listings?.length || 0} ${copy.stamp}</span>
-  `;
-}
-
-function listingCard(listing) {
-  const labels = COPY.labels;
-  const canHang = Boolean(state.market?.can_hang);
-  const full = Number(state.market?.whiteboards || 0) >= Number(state.market?.max_whiteboards || 4);
-  return `
-    <article class="listing-card">
-      <div class="art-frame">${canvas(listing.surface)}</div>
-      <div class="listing-copy">
-        <p class="byline">Submitted by ${escape(listing.seller_username)}</p>
-        <h3>${escape(listing.title)}</h3>
-        <p>${escape(listing.description || "An original from a TinyTown neighbour.")}</p>
-        <div class="price-line">
-          <span class="price">${listing.owned ? labels.collected : `${money(listing.price)} Bops`}</span>
-          ${listing.is_seller ? `<span class="badge dark">Your advert</span>` : ""}
-        </div>
-        <div class="actions">
-          ${listing.is_seller
-            ? `<button type="button" class="mag-btn danger" data-action="withdraw-listing" data-id="${escape(listing.id)}">${labels.withdraw}</button>`
-            : listing.owned
-              ? `<button type="button" class="mag-btn" data-action="hang-listing" data-id="${escape(listing.id)}" ${(!canHang || full) ? "disabled" : ""}>${!canHang ? labels.stepInside : full ? labels.makeSpace : labels.hangAnother}</button>`
-              : `<button type="button" class="mag-btn" data-action="buy-listing" data-id="${escape(listing.id)}" ${(!canHang || full) ? "disabled" : ""}>${!canHang ? labels.stepInside : full ? labels.makeSpace : labels.collect}</button>`}
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function communityRight() {
-  const copy = COPY.community;
-  const market = state.market;
-  if (!market) return `<p class="empty">${copy.empty}</p>`;
-  return `
-    <p class="kicker">${copy.rightKicker}</p>
-    <h2 class="page-title">${copy.rightTitle}</h2>
-    <div class="list-grid">
-      ${(market.listings || []).length
-        ? market.listings.map(listingCard).join("")
-        : `<div class="empty">${copy.empty}</div>`}
-    </div>
-  `;
-}
-
 function sellLeft() {
   const copy = COPY.submit;
   return `
@@ -423,9 +285,6 @@ function pageContent(pageId) {
       left: renderRoommateLeft(state.roommates, ctx),
       right: renderRoommateRight(state.roommates, ctx),
     };
-    case "gallery": return { left: galleryLeft(), right: galleryRight() };
-    case "floors": return { left: floorLeft(), right: floorRight() };
-    case "community": return { left: communityLeft(), right: communityRight() };
     case "submit": return { left: sellLeft(), right: submitRight() };
     default: return { left: "", right: "" };
   }
@@ -733,10 +592,6 @@ document.addEventListener("click", event => {
     case "assign-home": assignHome(id); break;
     case "close-home": closeHomeDialog(); break;
     case "remove-npc": void runCommand(`.tinytown npc remove ${id}`, "roommates"); break;
-    case "hang-art": void runCommand(`.tinytown hang ${id}`, "market"); break;
-    case "floor": void runCommand(`.tinytown floor ${id}`, "market"); break;
-    case "buy-listing": void runCommand(`.tinytown buyart ${id}`, "market"); break;
-    case "hang-listing": void runCommand(`.tinytown hangart ${id}`, "market"); break;
     case "withdraw-listing": void runCommand(`.tinytown unlistart ${id}`, "market"); break;
     default: break;
   }

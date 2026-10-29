@@ -38,6 +38,18 @@ export function boardPosition([x = 50, y = 50, z = 0] = []) {
   return [(x - 50) * 0.105, z * ELEVATION_PER_UNIT, (y - 50) * 0.085];
 }
 
+/**
+ * Convert an authored prop rotation (degrees, as stored by the server, room
+ * YAML, and the room editor) into the radians Three.js expects.
+ */
+export function propRotationRadians(rotation) {
+  const source = Array.isArray(rotation) ? rotation : [0, 0, 0];
+  return [0, 1, 2].map(index => {
+    const degrees = Number(source[index]);
+    return Number.isFinite(degrees) ? (degrees * Math.PI) / 180 : 0;
+  });
+}
+
 /** Unlink a subtree from its parent without touching GPU resources. */
 export function detachBoardTree(roots) {
   for (const root of Array.isArray(roots) ? roots : [roots]) {

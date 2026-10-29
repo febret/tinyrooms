@@ -111,14 +111,21 @@ server is started with `--legacy-features svg-boards`.
 Mods may expose `start()`/`stop()` lifecycle hooks for background work. TinyTown
 uses this for autonomous household NPCs while its private multi-room houses,
 house purchases, visits, roommate classifieds, and community art sales live in
-the `tinytown` mod. Its player-facing home is the unbound
-[Tiny Mag activity](../mods/tinytown/activities/tiny-mag/), with `tinytown` and
-`art-store` launch aliases, plus the separate
+the `tinytown` mod. The unbound
+[Tiny Mag activity](../mods/tinytown/activities/tiny-mag/) remains the property
+and roommate magazine plus the submission desk. `.tinytown gallery` opens a
+generated art wing built by
+[gallery.py](../mods/tinytown/gallery.py) from the catalog plus active resident
+listings: rooms are cloned from authored gallery shells, connected with doors,
+and sized to hold four to eight works. Gallery surfaces are locked system-owned
+whiteboards; their personal actions buy or rehang a work into a selected owned
+home. The separate
 [Keyring activity](../mods/tinytown/activities/keyring/) (`keyring`, `keys`
-aliases) for owned-home switching, lock management, and household review. Each owned home persists five roommate candidates;
-adopting one adds the peep to a chosen owned home and replenishes the classified batch. Community art
-is listed from an editable home whiteboard, paid at full price to the seller,
-and installed as a locked whiteboard for the buyer. Only the source board stays
+aliases) handles owned-home switching, lock management, and household review.
+Each owned home persists five roommate candidates; adopting one adds the peep to
+a chosen owned home and replenishes the classified batch. Community art is
+listed from an editable home whiteboard, paid at full price to the seller, and
+installed as a locked whiteboard for the buyer. Only the source board stays
 editable, and an owned print can be rehung for free.
 
 Rooms may set `sprites_enabled: true` to draw every present peep as a
