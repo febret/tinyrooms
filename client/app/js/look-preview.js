@@ -18,7 +18,7 @@ export function lookDialogBubble(state, description) {
 export function lookPreview(state, description) {
   const selection = state.selection || {};
   if (selection.kind === "peep" && description.imageUrl) {
-    const previewMarkup = `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">`;
+    const previewMarkup = `<img class="look-preview look-preview-peep" src="${escapeHtml(description.imageUrl)}" alt="">`;
     return { markup: `${previewMarkup}${lookDialogBubble(state, description)}`, action: null };
   }
   if (selection.kind === "house" && description.imageUrl) {
