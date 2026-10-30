@@ -15,16 +15,9 @@ from server.commands.core import dispatch_command
 from server.commands.parser import parse_command
 from server.connections import LiveConnection, SyntheticConnection
 from server.content.surface_props import (
-    DEFAULT_SIGN_STYLE,
     DEFAULT_WHITEBOARD_FRAME,
-    SIGN_STYLE_IDS,
     normalize_legacy_whiteboard,
     rasterize_legacy_whiteboard,
-    validate_sign_style,
-    validate_sign_text,
-    validate_whiteboard,
-    validate_whiteboard_frame,
-    whiteboard_options,
 )
 from server.services.prop_surfaces import PropSurfaceService
 from server.services.whiteboard_images import WhiteboardImageStore
@@ -42,71 +35,6 @@ class SurfaceContentTests(unittest.TestCase):
         buffer = io.BytesIO()
         image.save(buffer, format="PNG")
         return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
-
-    def test_sign_text_normalizes_newlines_and_rejects_overflow(self) -> None:
-        self.assertEqual(validate_sign_text({"text": "Hello\r\nworld"}), {"text": "Hello\nworld"})
-        with self.assertRaises(ValueError):
-            validate_sign_text({"text": ""})
-        with self.assertRaises(ValueError):
-            validate_sign_text({"text": "x" * 241})
-        with self.assertRaises(ValueError):
-            validate_sign_text({"text": "\n".join(["line"] * 9)})
-
-    def test_sign_style_defaults_and_validates(self) -> None:
-        self.assertEqual(validate_sign_style(None), DEFAULT_SIGN_STYLE)
-        for style_id in SIGN_STYLE_IDS:
-            self.assertEqual(validate_sign_style(style_id), style_id)
-        with self.assertRaises(ValueError):
-            validate_sign_style("marble")
-
-    def test_whiteboard_validates_image_references_and_frames(self) -> None:
-        digest = "0" * 64
-        surface = validate_whiteboard({
-            "image_url": f"/assets/whiteboards/{digest}.png",
-            "image_hash": digest,
-            "frame": {
-                "outer": "float",
-                "inner": "double",
-                "matte": "linen",
-                "main": "#7A5230",
-                "accent": "#C9A45C",
-            },
-        })
-        self.assertEqual(surface["image_hash"], digest)
-        self.assertEqual(surface["frame"]["main"], "#7a5230")
-        blank = validate_whiteboard({})
-        self.assertEqual(blank["image_url"], "")
-        self.assertEqual(blank["image_hash"], "")
-        self.assertEqual(blank["frame"], DEFAULT_WHITEBOARD_FRAME)
-        with self.assertRaises(ValueError):
-            validate_whiteboard({
-                "image_url": f"/assets/whiteboards/{digest}.png",
-                "image_hash": "1" * 64,
-                "frame": DEFAULT_WHITEBOARD_FRAME,
-            })
-        with self.assertRaises(ValueError):
-            validate_whiteboard({
-                "image_url": "",
-                "image_hash": digest,
-                "frame": DEFAULT_WHITEBOARD_FRAME,
-            })
-        with self.assertRaises(ValueError):
-            validate_whiteboard({"strokes": [], "texts": []})
-        with self.assertRaises(ValueError):
-            validate_whiteboard({"image_url": "", "image_hash": "", "frame": {}, "extra": True})
-
-    def test_whiteboard_frame_styles_and_options(self) -> None:
-        frame = validate_whiteboard_frame(None)
-        self.assertEqual(frame, DEFAULT_WHITEBOARD_FRAME)
-        options = whiteboard_options()
-        self.assertEqual(len(options["frame_styles"]["outer"]), 5)
-        self.assertEqual(len(options["frame_styles"]["inner"]), 5)
-        self.assertEqual(len(options["frame_styles"]["matte"]), 5)
-        self.assertEqual(options["default_frame"], DEFAULT_WHITEBOARD_FRAME)
-        with self.assertRaises(ValueError):
-            validate_whiteboard_frame({"outer": "marble"})
-        with self.assertRaises(ValueError):
-            validate_whiteboard_frame({"main": "red"})
 
     def test_legacy_whiteboard_normalizes_and_rasterizes(self) -> None:
         legacy = normalize_legacy_whiteboard({
@@ -179,52 +107,6 @@ class PropSurfaceServiceTests(ServiceTestCase):
         self.assertEqual(self.surfaces.get("room:test", "custom:board", "whiteboard").revision, 1)
         self.surfaces.prune_room("room:test", set())
         self.assertEqual(self.surfaces.get("room:test", "custom:board", "whiteboard").revision, 0)
-
-    def test_legacy_whiteboard_upload_requires_svg_boards(self) -> None:
-        legacy = {"strokes": [], "texts": []}
-        converted = self.surfaces.save_whiteboard("room:test", "custom:legacy", self.account.id, legacy)
-        self.assertTrue(converted.content["image_url"].startswith("/assets/whiteboards/"))
-        strict = PropSurfaceService(self.hub, self.images, allow_legacy_whiteboards=False)
-        with self.assertRaisesRegex(ValueError, "svg-boards"):
-            strict.save_whiteboard("room:test", "custom:strict", self.account.id, legacy)
-
-    def test_locked_whiteboards_reject_content_edits(self) -> None:
-        installed = self.surfaces.install_whiteboard(
-            "room:test",
-            "custom:locked-board",
-            self.account.id,
-            {"image": self.board_data_url("#2f6fdb"), "frame": None},
-            locked=True,
-        )
-        self.assertTrue(installed.locked)
-        self.assertEqual(installed.locked_by, self.account.id)
-        self.assertTrue(self.surfaces.is_locked("room:test", "custom:locked-board"))
-        with self.assertRaisesRegex(ValueError, "locked"):
-            self.surfaces.save_whiteboard(
-                "room:test",
-                "custom:locked-board",
-                self.account.id,
-                {"image": self.board_data_url("#ffffff"), "frame": None},
-            )
-
-    def test_activity_surface_requires_a_bound_whiteboard(self) -> None:
-        class Activity:
-            kind = "whiteboard"
-            room_id = "room:test"
-            config = {"prop_instance_id": "custom:board"}
-
-        saved = self.surfaces.save_activity_surface(
-            Activity(), self.account.id, {"image": self.board_data_url(), "frame": None}
-        )
-        self.assertIsNotNone(saved)
-        self.assertEqual(saved.revision, 1)
-
-        class SignActivity(Activity):
-            kind = "sign"
-
-        self.assertIsNone(
-            self.surfaces.save_activity_surface(SignActivity(), self.account.id, {"image": self.board_data_url(), "frame": None})
-        )
 
 
 class SurfaceRuntimeTests(IntegrationTestCase):

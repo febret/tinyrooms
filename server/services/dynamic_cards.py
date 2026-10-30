@@ -164,9 +164,12 @@ def require_definition(
 ) -> CardDefinition:
     """Return the authored or dynamic definition for *card_id*."""
 
-    definition = catalog.cards.get(card_id)
-    if definition is not None:
-        return definition
+    from server.services import cards as card_store
+
+    try:
+        return card_store.require_definition(catalog, card_id)
+    except ValueError:
+        pass
     dynamic = get_dynamic_definition(catalog, profiles, card_id)
     if dynamic is None:
         raise ValueError(f"Unknown card '{card_id}'.")

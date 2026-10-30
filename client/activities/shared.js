@@ -69,9 +69,8 @@
   const soundFailed = new Set();
 
   function context() {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return null;
-    audio ||= new AudioContext();
+    if (!window.AudioContext) return null;
+    audio ||= new window.AudioContext();
     return audio;
   }
 

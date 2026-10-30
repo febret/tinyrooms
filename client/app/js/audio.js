@@ -49,14 +49,13 @@ export function soundUrl(nameOrAlias) {
 }
 
 function audioContext() {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) {
+  if (!window.AudioContext) {
     if (!warned) console.warn("This browser does not support Tinyrooms interaction audio.");
     warned = true;
     return null;
   }
   try {
-    context ||= new AudioContext();
+    context ||= new window.AudioContext();
     return context;
   } catch (error) {
     if (!warned) console.warn("Unable to start Tinyrooms interaction audio.", error);

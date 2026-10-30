@@ -10,6 +10,7 @@ import {
   startBake,
 } from "./api.js";
 import { createModelPreview, renderModelThumb } from "./model-preview.js";
+import { escapeHtml } from "../../app/js/presentation.js";
 import {
   normalizeTaskForSave,
   previewKind,
@@ -17,15 +18,6 @@ import {
   tasksSnapshot,
   validateTaskDraft,
 } from "./validate.js";
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 function clone(value) {
   return typeof structuredClone === "function"

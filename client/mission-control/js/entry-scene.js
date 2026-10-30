@@ -2,19 +2,11 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { GRID_SIZE, GRID_SPACING, planShowcase, selectShowcaseProps } from "./entry-showcase-layout.js";
+import { withBase } from "../../app/js/base-path.js";
 
-const BASE_PATH = typeof window !== "undefined" && typeof window.__TR_BASE__ === "string"
-  ? window.__TR_BASE__
-  : "";
 const TILE_HEIGHT = 0.2;
 const TILE_RADIUS = 0.34;
 const MAX_CONCURRENT_LOADS = 3;
-
-function withBase(path) {
-  if (!BASE_PATH || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) return path;
-  if (path === BASE_PATH || path.startsWith(`${BASE_PATH}/`)) return path;
-  return `${BASE_PATH}${path}`;
-}
 
 function roundedTileGeometry(width, depth, height, radius) {
   const shape = new THREE.Shape();

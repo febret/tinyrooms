@@ -28,6 +28,35 @@ def require_mapping(payload: Any, path: Path) -> dict[str, Any]:
     return payload
 
 
+def require_str(payload: Any, field: str, label: str) -> str:
+    value = payload.get(field) if isinstance(payload, dict) else None
+    if not isinstance(value, str) or not value.strip():
+        raise ContentError(f"{label} must be a non-empty string.")
+    return value.strip()
+
+
+def require_enum(value: Any, allowed: frozenset[str] | set[str], label: str) -> str:
+    if not isinstance(value, str) or value.strip() not in allowed:
+        raise ContentError(f"{label} must be one of {sorted(allowed)}.")
+    return value.strip()
+
+
+def require_int(value: Any, label: str, minimum: int | None = None, maximum: int | None = None) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ContentError(f"{label} must be an integer.")
+    if minimum is not None and value < minimum:
+        raise ContentError(f"{label} must be >= {minimum}.")
+    if maximum is not None and value > maximum:
+        raise ContentError(f"{label} must be <= {maximum}.")
+    return value
+
+
+def require_duplicate(seen: set[str], key: str, kind: str, path: Path) -> None:
+    if key in seen:
+        raise ContentError(f"Duplicate {kind} id '{key}' in {path}.")
+    seen.add(key)
+
+
 def warn_unknown_card(reference: str, card_id: object) -> None:
     """Warn that content references a card id absent from the catalog."""
 

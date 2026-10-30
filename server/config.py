@@ -75,6 +75,17 @@ def parse_bool(raw_value: str) -> bool:
     return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def parse_csv_set(raw_value: str) -> list[str]:
+    """Split comma-separated input, dropping blanks, preserving order."""
+
+    items: list[str] = []
+    for item in raw_value.split(","):
+        text = item.strip()
+        if text and text not in items:
+            items.append(text)
+    return items
+
+
 def normalize_base_path(raw_value: str) -> str:
     """Validate and normalize a URL base path, returning empty for the root."""
 
@@ -93,13 +104,13 @@ def parse_origins(raw_value: str) -> tuple[str, ...]:
     """Parse a comma-separated list of additional allowed browser origins."""
 
     origins: list[str] = []
-    for item in raw_value.split(","):
-        text = item.strip().rstrip("/")
+    for item in parse_csv_set(raw_value):
+        text = item.rstrip("/")
         if not text:
             continue
         parsed = urlparse(text)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ConfigError(f"Invalid public origin '{item.strip()}'.")
+            raise ConfigError(f"Invalid public origin '{item}'.")
         if text not in origins:
             origins.append(text)
     return tuple(origins)
@@ -296,19 +307,17 @@ class AppConfig:
 def parse_features(raw_value: str) -> frozenset[str]:
     """Parse case-sensitive known flags; planned dynamic_peeps is not accepted.
 
-    Both dev_sample_activity and dev-sample-activity enable sample activities.
+    ``dev_sample_activity`` is normalized to ``dev-sample-activity``.
     """
 
     features: set[str] = set()
-    for item in raw_value.split(","):
-        feature = item.strip()
-        if not feature:
-            continue
+    for feature in parse_csv_set(raw_value):
         if not _FEATURE_PATTERN.match(feature):
             raise ConfigError(f"Invalid feature flag '{feature}'.")
-        if feature not in KNOWN_FEATURES:
+        canonical = "dev-sample-activity" if feature == "dev_sample_activity" else feature
+        if canonical not in KNOWN_FEATURES:
             raise ConfigError(f"Unsupported feature flag '{feature}'.")
-        features.add(feature)
+        features.add(canonical)
     return frozenset(features)
 
 
@@ -316,10 +325,7 @@ def parse_legacy_features(raw_value: str) -> frozenset[str]:
     """Parse comma-separated legacy compatibility flags such as svg-boards."""
 
     legacy: set[str] = set()
-    for item in raw_value.split(","):
-        feature = item.strip()
-        if not feature:
-            continue
+    for feature in parse_csv_set(raw_value):
         if not _FEATURE_PATTERN.match(feature):
             raise ConfigError(f"Invalid legacy feature flag '{feature}'.")
         if feature not in KNOWN_LEGACY_FEATURES:
@@ -332,10 +338,7 @@ def parse_mods(raw_value: str) -> frozenset[str]:
     """Parse a comma-separated mod list; ``*`` selects every installed mod."""
 
     mods: set[str] = set()
-    for item in raw_value.split(","):
-        mod = item.strip()
-        if not mod:
-            continue
+    for mod in parse_csv_set(raw_value):
         if mod == "*":
             mods.add("*")
             continue

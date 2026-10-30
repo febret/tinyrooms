@@ -178,12 +178,18 @@ def _json_error(status_code: int, code: str, message: str) -> JSONResponse:
 
 
 def _require_token(request: Request) -> None:
+    from server.routes.common import require_mc_token
+
     runtime = _runtime(request)
-    presented = request.headers.get("x-mc-token")
-    if not presented or not hmac.compare_digest(runtime.config.token, presented):
-        LOGGER.warning(json.dumps({"event": "mc.token_rejected", "path": request.url.path}))
+    try:
+        require_mc_token(
+            presented=request.headers.get("x-mc-token"),
+            expected=runtime.config.token,
+            path=request.url.path,
+        )
+    except Exception:
         runtime.audit.record("unknown", "mc.token_rejected", result="denied", detail={"path": request.url.path})
-        raise HTTPException(status_code=403, detail="Invalid mission-control token.")
+        raise
 
 
 def _require_operator(request: Request) -> McSession:

@@ -1106,7 +1106,6 @@ const board = createBoard({
   stackProps: true,
   dragHandles: true,
 });
-globalThis.__tinyroomsBoard = board;
 targeting = createTargetingController({
   board, boardFrame: $(".board-frame"), getState: () => store.getState(), store, sendCommand,
   onToast: toast, onError: showError,

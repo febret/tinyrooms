@@ -1,16 +1,4 @@
-const BASE_PATH = typeof window !== "undefined" && typeof window.__TR_BASE__ === "string"
-  ? window.__TR_BASE__
-  : "";
-
-function withBase(path) {
-  if (!BASE_PATH || typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) {
-    return path;
-  }
-  if (path === BASE_PATH || path.startsWith(`${BASE_PATH}/`)) {
-    return path;
-  }
-  return `${BASE_PATH}${path}`;
-}
+import { withBase } from "../../app/js/base-path.js";
 
 function csrfToken() {
   const match = document.cookie.split("; ").find((entry) => entry.startsWith("tr_mc_csrf="));

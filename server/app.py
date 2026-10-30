@@ -412,19 +412,15 @@ def _session_from_request(runtime: RuntimeState, request: Request) -> SessionRec
 
 
 def _require_session(runtime: RuntimeState, request: Request) -> SessionRecord:
-    session = _session_from_request(runtime, request)
-    if session is None:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-    return session
+    from server.routes.common import require_session as _shared_require_session
+
+    return _shared_require_session(runtime, request)
 
 
 def _enforce_authenticated_post(runtime: RuntimeState, request: Request, session: SessionRecord) -> None:
-    validate_origin(request.headers.get("origin"), runtime.config)
-    csrf_cookie = request.cookies.get(CSRF_COOKIE)
-    if csrf_cookie is None:
-        raise HTTPException(status_code=403, detail="Missing CSRF cookie.")
-    require_matching_csrf(session.csrf_token, request.headers.get("x-csrf-token"))
-    require_matching_csrf(session.csrf_token, csrf_cookie)
+    from server.routes.common import enforce_authenticated_post as _shared_enforce_post
+
+    _shared_enforce_post(runtime, request, session)
 
 
 async def _handle_replaced_connection(

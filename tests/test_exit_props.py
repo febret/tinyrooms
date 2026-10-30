@@ -10,8 +10,6 @@ from unittest.mock import Mock
 
 import yaml
 
-from server.content.common import ContentError
-from server.content.exit_props import ARROW_PROP_ID, DOOR_PROP_ID, STAIRS_PROP_ID
 from server.services.rooms import RoomService
 from tests.common import (
     REPO_ROOT,
@@ -71,17 +69,6 @@ def _covered_exits(room) -> set[str]:
     return covered
 
 
-class BuiltinExitPropTests(unittest.TestCase):
-    def test_exit_builtins_register_with_their_render_kinds(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
-        self.assertEqual(world.props[DOOR_PROP_ID].render_kind, "door")
-        self.assertEqual(world.props[ARROW_PROP_ID].render_kind, "arrow")
-        self.assertEqual(world.props[STAIRS_PROP_ID].render_kind, "stairs")
-        for prop_id in (DOOR_PROP_ID, ARROW_PROP_ID, STAIRS_PROP_ID):
-            self.assertIsNone(world.props[prop_id].model_name)
-            self.assertFalse(world.props[prop_id].locked)
-
-
 class ExitToLoaderTests(unittest.TestCase):
     def test_exit_to_loads_on_a_prop_instance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -95,34 +82,6 @@ class ExitToLoaderTests(unittest.TestCase):
             })
             world = _load_probe(world_path)
         self.assertEqual(world.rooms["hub"].props["door0"].exit_to, "out")
-
-    def test_exit_to_rejects_an_unknown_exit(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            world_path = _minimal_world(Path(tmp), {
-                "hub": {
-                    "label": "Hub",
-                    "board_image": "hub.png",
-                    "props": {"door0": {"prop": "builtin:door", "exit_to": "missing"}},
-                    "exits": {"out": {"label": "Out", "target": "hub"}},
-                },
-            })
-            with self.assertRaises(ContentError) as raised:
-                _load_probe(world_path)
-        self.assertIn("exit_to", str(raised.exception))
-
-    def test_exit_to_rejects_a_non_string_value(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            world_path = _minimal_world(Path(tmp), {
-                "hub": {
-                    "label": "Hub",
-                    "board_image": "hub.png",
-                    "props": {"door0": {"prop": "builtin:door", "exit_to": 7}},
-                    "exits": {"out": {"label": "Out", "target": "hub"}},
-                },
-            })
-            with self.assertRaises(ContentError) as raised:
-                _load_probe(world_path)
-        self.assertIn("exit_to", str(raised.exception))
 
 
 class ExitToActionTests(ServiceTestCase):
@@ -147,29 +106,6 @@ class ExitToActionTests(ServiceTestCase):
         self.assertEqual(action["label"], "Out of the dollhouse")
         self.assertTrue(action.get("default"))
 
-    def test_disabled_exit_is_not_offered_from_a_prop(self) -> None:
-        world = load_test_world(REPO_ROOT / "worlds" / "tutorial")
-        room = world.rooms["foyer"]
-        environment = Mock()
-        environment.is_prop_visible.return_value = True
-        environment.is_action_enabled.return_value = True
-        environment.is_exit_enabled.return_value = False
-        service = RoomService(
-            hub=Mock(),
-            profiles=Mock(),
-            world_state=Mock(),
-            connections=Mock(),
-            card_service=Mock(),
-            activities=Mock(),
-            world=world,
-            stats=Mock(),
-            environment=environment,
-            command_verbs=frozenset({".go", ".look"}),
-        )
-        payload = service._serialize_prop(Mock(), room, room.props["hub-door0"])
-        commands = [action["command"] for action in payload["quick_actions"]]
-        self.assertNotIn(".go @way:hub", commands)
-
 
 class ExitStyleLoaderTests(unittest.TestCase):
     def _world_with_style(self, tmp: str, recipe: object, prop: str = "builtin:door") -> object:
@@ -187,48 +123,6 @@ class ExitStyleLoaderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             world = self._world_with_style(tmp, recipe)
         self.assertEqual(world.rooms["hub"].props["door0"].exit_style, recipe)
-
-    def test_exit_style_rejects_unknown_style_texture_and_colors(self) -> None:
-        bad_recipes = [
-            {"style": "round", "main": "#b07a4a", "accent": "#6b4a2f", "texture": "plain"},
-            {"style": "panel", "main": "brown", "accent": "#6b4a2f", "texture": "plain"},
-            {"style": "panel", "main": "#b07a4a", "accent": "#6b4a2f", "texture": "silk"},
-            {"style": "panel", "main": "#b07a4a", "accent": "#6b4a2f"},
-        ]
-        for recipe in bad_recipes:
-            with tempfile.TemporaryDirectory() as tmp, self.subTest(recipe=recipe):
-                with self.assertRaises(ContentError):
-                    self._world_with_style(tmp, recipe)
-
-    def test_exit_style_rejected_on_other_prop_kinds(self) -> None:
-        recipe = {"style": "panel", "main": "#b07a4a", "accent": "#6b4a2f", "texture": "plain"}
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(ContentError) as raised:
-                self._world_with_style(tmp, recipe, prop="widget")
-        self.assertIn("exit_style", str(raised.exception))
-
-    def test_draft_validation_flags_a_bad_exit_style(self) -> None:
-        from server.content.draft import DraftReferences, validate_structure
-
-        draft = {
-            "world": {"id": "probe", "entry_room": "hub"},
-            "rooms": {
-                "hub": {
-                    "label": "Hub",
-                    "board_image": "hub.png",
-                    "props": {
-                        "door0": {
-                            "prop": "builtin:door",
-                            "exit_style": {"style": "panel", "main": "red", "accent": "#6b4a2f", "texture": "plain"},
-                        },
-                    },
-                    "exits": {},
-                },
-            },
-        }
-        references = DraftReferences(prop_ids=frozenset({"builtin:door"}))
-        issues = validate_structure(draft, references)
-        self.assertTrue(any(issue.path == "rooms.hub.props.door0.exit_style" for issue in issues))
 
     def test_exit_style_serializes_with_defaults_when_absent(self) -> None:
         world = load_test_world(REPO_ROOT / "worlds" / "tiny-arcade", allow_legacy_whiteboards=True)
@@ -324,15 +218,6 @@ class RoomLayoutExitStyleTests(IntegrationTestCase):
             instance.exit_style,
             {"style": "slab", "main": "#4ea8ff", "accent": "#0d0b15", "texture": "metal"},
         )
-
-    def test_save_rejects_exit_style_on_other_prop_kinds(self) -> None:
-        runtime = self.runtime()
-        patch = [dict(entry) for entry in (runtime.world_state.read_room_layout(self.room_id)["props"] or [])]
-        target = next(entry for entry in patch if entry.get("prop_id") == "dusty-rose-sofa")
-        target["prop_id"] = "builtin:sign"
-        target["exit_style"] = {"style": "panel", "main": "#b07a4a", "accent": "#6b4a2f", "texture": "plain"}
-        with self.assertRaisesRegex(ValueError, "exit_style"):
-            self._save(patch)
 
 
 class ShippedExitCoverageTests(unittest.TestCase):

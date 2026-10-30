@@ -1,11 +1,6 @@
-export function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+import { escapeHtml } from "../../app/js/presentation.js";
+
+export { escapeHtml };
 
 export function parseLines(value) {
   return String(value || "")

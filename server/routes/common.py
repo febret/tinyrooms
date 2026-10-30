@@ -92,7 +92,6 @@ def require_power_access(
         raise HTTPException(status_code=403, detail="You do not have permission.")
     return account
 
-
 def require_admin_access(runtime, request: Request, *, feature: str, audit_action: str | None = None):
     """Gate an admin-only route by feature flag, session, and admin power."""
 
@@ -103,6 +102,17 @@ def require_admin_access(runtime, request: Request, *, feature: str, audit_actio
         powers=frozenset({"admin"}),
         audit_action=audit_action or "prop_editor.access_denied",
     )
+
+
+def require_mc_token(*, presented: str | None, expected: str | None, path: str) -> None:
+    """Validate a mission-control token, raising 403 on mismatch."""
+
+    import hmac
+    import logging
+
+    if not expected or not presented or not hmac.compare_digest(expected, presented):
+        logging.getLogger("tinyrooms.mc").warning("mc.token_rejected path=%s", path)
+        raise HTTPException(status_code=403, detail="Invalid mission-control token.")
 
 
 def serve_page(runtime, root: Path, requested_path: str) -> Response:

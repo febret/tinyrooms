@@ -6,7 +6,6 @@ shared ``X-MC-Token``; these routes are never reachable by game clients.
 
 from __future__ import annotations
 
-import hmac
 import json
 import logging
 import os
@@ -52,13 +51,18 @@ def _runtime(request: Request):
 
 
 def _require_token(request: Request) -> None:
+    from server.routes.common import require_mc_token
+
     runtime = _runtime(request)
-    expected = runtime.config.mc_token
-    presented = request.headers.get("x-mc-token")
-    if not expected or not presented or not hmac.compare_digest(expected, presented):
-        LOGGER.warning(json.dumps({"event": "mc.token_rejected", "path": request.url.path}))
+    try:
+        require_mc_token(
+            presented=request.headers.get("x-mc-token"),
+            expected=runtime.config.mc_token,
+            path=request.url.path,
+        )
+    except Exception:
         runtime.audit.safe_record("mission-control", "mc.token_rejected", None, "denied", {"path": request.url.path})
-        raise HTTPException(status_code=403, detail="Invalid mission-control token.")
+        raise
 
 
 def _log_ring(request: Request):

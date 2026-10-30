@@ -8,30 +8,13 @@ room, falls back to the authored default.
 
 from __future__ import annotations
 
+from server.services.transient_maps import TransientRoomMap
 
-class PropStateService:
+
+class PropStateService(TransientRoomMap[str]):
     """Track the active mesh state chosen for each prop instance."""
-
-    def __init__(self) -> None:
-        self._overrides: dict[tuple[str, str], str] = {}
-
-    def set(self, room_id: str, prop_instance_id: str, state_name: str) -> None:
-        """Record a runtime state choice for one prop instance."""
-
-        self._overrides[(room_id, prop_instance_id)] = state_name
 
     def state_for(self, room_id: str, prop_instance_id: str, default: str | None) -> str | None:
         """Return the runtime override, or the authored default when none."""
 
-        return self._overrides.get((room_id, prop_instance_id), default)
-
-    def clear_room(self, room_id: str) -> None:
-        """Drop every override for a room (e.g. when its rooms are re-seeded)."""
-
-        for key in [key for key in self._overrides if key[0] == room_id]:
-            del self._overrides[key]
-
-    def clear(self) -> None:
-        """Drop every override (e.g. on a full world reload)."""
-
-        self._overrides.clear()
+        return self.get(room_id, prop_instance_id, default)

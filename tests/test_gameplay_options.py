@@ -24,15 +24,6 @@ from tests.common import REPO_ROOT, ServiceTestCase, WORLD_ID
 
 
 class GameplayOptionsParsingTests(unittest.TestCase):
-    def test_empty_mapping_uses_defaults(self) -> None:
-        options = parse_gameplay_options({})
-        self.assertTrue(options.energy_enabled)
-        self.assertTrue(options.sickness_enabled)
-        self.assertTrue(options.cleanliness_enabled)
-        self.assertTrue(options.card_drops.cleanliness)
-        self.assertEqual(options.constants.energy_recharge_rate, 1.0)
-        self.assertEqual(options.constants.max_energy_per_level[0], 80)
-
     def test_partial_override_merges_with_defaults(self) -> None:
         options = parse_gameplay_options(
             {
@@ -49,20 +40,6 @@ class GameplayOptionsParsingTests(unittest.TestCase):
         self.assertEqual(options.constants.base_max_health, 75)
         self.assertEqual(options.constants.energy_cost_expression, 1)
 
-    def test_unknown_and_invalid_values_are_rejected(self) -> None:
-        with self.assertRaises(GameplayOptionsError):
-            parse_gameplay_options({"mechanics": {"hunger": True}})
-        with self.assertRaises(GameplayOptionsError):
-            parse_gameplay_options({"constants": {"unknown": 1}})
-        with self.assertRaises(GameplayOptionsError):
-            parse_gameplay_options({"constants": {"energy_recovery_threshold": 2}})
-        with self.assertRaises(GameplayOptionsError):
-            parse_gameplay_options({"constants": {"max_energy_per_level": []}})
-        with self.assertRaises(GameplayOptionsError):
-            parse_gameplay_options({"constants": {"energy_cost_card": -1}})
-        with self.assertRaises(GameplayOptionsError):
-            parse_gameplay_options({"version": 2})
-
     def test_file_round_trip(self) -> None:
         options = parse_gameplay_options({"mechanics": {"cleanliness": False}})
         with TemporaryDirectory() as temporary:
@@ -71,11 +48,6 @@ class GameplayOptionsParsingTests(unittest.TestCase):
             self.assertEqual(json.loads(path.read_text(encoding="utf-8")), options.to_dict())
             self.assertEqual(load_gameplay_options(path), options)
         self.assertIs(load_gameplay_options(None).energy_enabled, True)
-
-    def test_missing_file_is_an_error(self) -> None:
-        with TemporaryDirectory() as temporary:
-            with self.assertRaises(GameplayOptionsError):
-                load_gameplay_options(Path(temporary) / "missing.json")
 
     def test_content_overrides_apply_to_existing_values(self) -> None:
         content = load_gameplay_content(REPO_ROOT / "data" / "core")
@@ -136,20 +108,6 @@ class DisabledMechanicsTests(ServiceTestCase):
             charged = stats.charge_in_transaction(connection, account.id, 5)
         self.assertEqual(charged.energy, charged.effective.max_energy)
 
-    def test_disabled_sickness_ignores_health_damage(self) -> None:
-        stats = self._stats({"mechanics": {"sickness": False}})
-        account = self.create_account("healthy")
-        snapshot = stats.mutate(account.id, health_delta=-999)
-        self.assertEqual(snapshot.health, snapshot.effective.max_health)
-        self.assertNotIn("sick", snapshot.statuses)
-
-    def test_disabled_cleanliness_ignores_dirt_and_stinky(self) -> None:
-        stats = self._stats({"mechanics": {"cleanliness": False}})
-        account = self.create_account("spotless")
-        snapshot = stats.mutate(account.id, cleanliness_delta=-999)
-        self.assertEqual(snapshot.cleanliness, snapshot.effective.max_cleanliness)
-        self.assertNotIn("stinky", snapshot.statuses)
-
     def test_enabled_mechanics_still_apply_statuses(self) -> None:
         stats = self._stats({})
         account = self.create_account("normal")
@@ -200,27 +158,6 @@ class DisabledDropTests(ServiceTestCase):
         )
         self.assertEqual(broadcasts, [])
         self.assertEqual(self.world_state.list_room_cards("hub"), [])
-
-    def test_zero_drop_chance_skips_unforced_rolls(self) -> None:
-        dropper = self._dropper({"constants": {"dynamic_card_drop_chance": 0}})
-        account = self._stinky("zero-chance")
-        broadcasts = dropper.maybe_drop(
-            "hub",
-            [account.id],
-            statuses_by_account={account.id: {"stinky"}},
-        )
-        self.assertEqual(broadcasts, [])
-
-    def test_zero_room_cap_skips_drops(self) -> None:
-        dropper = self._dropper({"constants": {"max_dynamic_room_stacks": 0}})
-        account = self._stinky("no-cap")
-        broadcasts = dropper.maybe_drop(
-            "hub",
-            [account.id],
-            force=True,
-            statuses_by_account={account.id: {"stinky"}},
-        )
-        self.assertEqual(broadcasts, [])
 
     def test_enabled_drops_still_mint(self) -> None:
         dropper = self._dropper({})

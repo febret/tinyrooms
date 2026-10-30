@@ -241,7 +241,7 @@ if (installButton && !standalone) {
     installPrompt = null;
     installButton.hidden = true;
   });
-  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+  if (window.matchMedia("(display-mode: browser)").matches) {
     installButton.hidden = false;
     installButton.textContent = "Add to Home Screen";
   }

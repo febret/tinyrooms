@@ -384,8 +384,6 @@ async def login(request: Request, payload: Credentials) -> Response:
     validate_origin(request.headers.get("origin"), runtime.config)
     try:
         runtime.player_auth.validate(payload, _client_key(request))
-    except RateLimitError:
-        raise
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     account = runtime.profiles.get_account_by_username(payload.username)
