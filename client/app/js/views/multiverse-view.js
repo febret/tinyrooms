@@ -522,7 +522,6 @@ export function createMultiverseView({
     if (id && (id !== hoverId || now - hoverAt > 220)) {
       hoverId = id;
       hoverAt = now;
-      play("multiverseHover");
     }
     const world = worldById(id);
     if (world && previewId !== id) {

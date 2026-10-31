@@ -13,8 +13,8 @@ DIRECTION_VECTORS: dict[str, tuple[int, int, int]] = {
     "south": (0, 1, 0),
     "east": (-1, 0, 0),
     "west": (1, 0, 0),
-    "up": (0, 0, -1),
-    "down": (0, 0, 1),
+    "up": (0, 0, 1),
+    "down": (0, 0, -1),
 }
 DIRECTION_TRANSITIONS = {name: f"swipe-{name}" for name in DIRECTION_VECTORS}
 INT32_MIN = -(2**31)

@@ -251,7 +251,7 @@ function closePhoneAnimated() {
   return phoneClosePromise;
 }
 
-const MULTIVERSE_SOUNDS = ["multiverseOpen", "multiverseClose", "multiverseHover", "multiverseSelect", "multiverseTravel"];
+const MULTIVERSE_SOUNDS = ["multiverseOpen", "multiverseClose", "multiverseSelect", "multiverseTravel"];
 
 async function refreshMultiverse() {
   const state = store.getState();
@@ -537,8 +537,15 @@ function renderLook(state) {
     look.querySelector(".look-description").onclick = () => dialogs.description(description.title, description.description, description.imageUrl || "");
   }
   const inspect = look.querySelector("[data-look-inspect]");
-  if (inspect) inspect.onclick = () => handleAction(preview.action, { silentSound: true });
+  if (inspect) inspect.onclick = () => {
+    if (preview.action?.type === "describe-peep") {
+      dialogs.description(description.title, description.description, description.imageUrl || "");
+      return;
+    }
+    handleAction(preview.action, { silentSound: true });
+  };
   look.querySelectorAll("[data-mini-command]").forEach(button => {
+    if (!button.dataset.miniCommand || button.disabled) return;
     button.onclick = () => handleAction({ command: button.dataset.miniCommand });
   });
 }
@@ -1067,7 +1074,7 @@ const statusButton = createStatusButton({
 });
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
-  needsPeepAnchors: () => peeps.hasBubbles(),
+  needsPeepAnchors: () => false,
   onGameAction(action) {
     const state = store.getState();
     const controller = state.room?.board?.game?.controller;

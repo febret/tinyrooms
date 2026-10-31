@@ -104,8 +104,8 @@ test("core toolbar, room picker, settings peeps, and Journal spreads render", as
   await expect(page.locator("#look-bar")).toContainText(propLabel);
   await travel(page);
   await expect(page.locator(".look-minimap")).toBeVisible();
-  await expect(page.locator(".mini-exit-east")).toBeEnabled();
-  await page.locator(".mini-exit-east").click();
+  await expect(page.locator(".mini-exit-west")).toBeEnabled();
+  await page.locator(".mini-exit-west").click();
   await expect(page.locator("#look-bar")).toContainText("The Kitchen");
   await expect(page.locator("#board-canvas")).toHaveAttribute("data-board-ready", "true", { timeout: 20_000 });
   await pickerToggle.click();

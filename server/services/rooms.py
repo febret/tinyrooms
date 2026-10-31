@@ -9,6 +9,8 @@ import sqlite3
 from server.behaviors.events import BehaviorEvent, PeepRef
 from server.connections import ConnectionRegistry
 from server.content.exit_props import EXIT_STYLES_BY_KIND, default_exit_finish
+from server.content.lighting import preset_for, serialize_preset
+from server.content.room_grid import direction_between
 from server.content.sounds import sounds_payload
 from server.content.surface_props import DEFAULT_SIGN_STYLE, validate_sign_style
 from server.content.worlds import ExitDefinition, PeepDefinition, PropDefinition, PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, prop_model_url
@@ -788,18 +790,79 @@ class RoomService:
             "position": list(position),
         }
 
-    def _serialize_exit(self, exit_definition: ExitDefinition) -> dict[str, object]:
+    def _exit_direction(self, room: RoomDefinition, exit_definition: ExitDefinition) -> str | None:
+        """Return the grid direction for an in-world exit, when it is adjacent."""
+
+        if exit_definition.target_world_id is not None or not exit_definition.target_room_id:
+            return None
+        target = self._world.rooms.get(exit_definition.target_room_id)
+        if target is None:
+            return None
+        return direction_between(room.grid, target.grid)
+
+    def _serialize_exit(self, room: RoomDefinition, exit_definition: ExitDefinition) -> dict[str, object]:
         return {
             "id": exit_definition.id,
             "label": exit_definition.label,
             "target_room_id": exit_definition.target_room_id,
             "target_world_id": exit_definition.target_world_id,
+            "direction": self._exit_direction(room, exit_definition),
             "locked": exit_definition.locked,
             "requires_card_id": exit_definition.requires_card_id,
             "npc_barrier": exit_definition.npc_barrier,
             "transition": exit_definition.transition,
             "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
         }
+
+    def _minimap_board(self, room: RoomDefinition) -> tuple[str, str, list[str]]:
+        """Return the effective floor image, style, and palette for a minimap tile."""
+
+        if self._layout is not None:
+            try:
+                effective = self._layout.effective_board(room.id)
+                return (
+                    str(effective.get("board_image") or room.board_image_name),
+                    str(effective.get("board_image_style") or room.board_image_style),
+                    list(effective.get("palette") or room.palette),
+                )
+            except Exception:  # noqa: BLE001 - minimap must fall back to authored floors
+                LOGGER.exception("room.minimap_board_failed")
+        return room.board_image_name, room.board_image_style, list(room.palette)
+
+    def _minimap_payload(self, room: RoomDefinition) -> dict[str, object] | None:
+        """Describe nearby rooms on the current vertical slice for the client map."""
+
+        if room.grid is None:
+            return None
+        radius = 2
+        current_x, current_y, current_z = room.grid
+        tiles: list[dict[str, object]] = []
+        for candidate in self._world.rooms.values():
+            if candidate.template or candidate.grid is None:
+                continue
+            x, y, z = candidate.grid
+            if z != current_z or abs(x - current_x) > radius or abs(y - current_y) > radius:
+                continue
+            board_image, board_style, palette = self._minimap_board(candidate)
+            environment_name = (
+                "darkness"
+                if candidate.dark
+                else candidate.environment or self._world.global_environment
+            )
+            tiles.append(
+                {
+                    "id": candidate.id,
+                    "label": candidate.label,
+                    "position": [x, y, z],
+                    "image_url": f"/assets/world/{self._world.id}/rooms/{board_image}",
+                    "image_style": board_style,
+                    "palette": palette,
+                    "dark": candidate.dark,
+                    "lighting": serialize_preset(preset_for(environment_name)),
+                }
+            )
+        tiles.sort(key=lambda tile: (tile["position"][1], tile["position"][0]))
+        return {"position": list(room.grid), "radius": radius, "rooms": tiles}
 
     def _read_game_state(
         self,
@@ -1011,7 +1074,7 @@ class RoomService:
                 }
             )
         visible_definitions = self._visible_exits(room)
-        visible_exits = [self._serialize_exit(exit_definition) for exit_definition in visible_definitions]
+        visible_exits = [self._serialize_exit(room, exit_definition) for exit_definition in visible_definitions]
         environment: dict[str, object] = {}
         environment_revision = 0
         if self._environment is not None:
@@ -1098,6 +1161,9 @@ class RoomService:
         }
         if transition is not None:
             snapshot["transition"] = transition
+        if room.grid is not None:
+            snapshot["grid"] = list(room.grid)
+            snapshot["minimap"] = self._minimap_payload(room)
         if layout_unchanged:
             snapshot["props_unchanged"] = True
             snapshot["exits_unchanged"] = True

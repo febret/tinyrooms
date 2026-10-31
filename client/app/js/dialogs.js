@@ -111,11 +111,13 @@ export function createDialogs(layer) {
       });
     },
     description(title, text, imageUrl = "") {
-      const image = imageUrl
-        ? `<img class="global-dialog-thumb" src="${escapeHtml(imageUrl)}" alt="">`
+      const preview = imageUrl
+        ? `<img class="entity-preview-image" src="${escapeHtml(imageUrl)}" alt="">`
         : "";
-      open(`<section class="global-dialog" role="dialog" aria-modal="true" aria-labelledby="description-title">
-        <h2 id="description-title">${escapeHtml(title)}</h2>${image}<p>${escapeHtml(text)}</p>
+      open(`<section class="global-dialog entity-details-dialog" role="dialog" aria-modal="true" aria-labelledby="description-title">
+        <h2 id="description-title">${escapeHtml(title)}</h2>
+        <p class="entity-details-description">${escapeHtml(text)}</p>
+        ${preview}
         <div class="dialog-actions"><button type="button" class="close">Close</button></div></section>`,
       (shade, close) => { shade.querySelector("button").onclick = close; shade.querySelector("button").focus(); });
     },

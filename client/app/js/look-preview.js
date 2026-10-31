@@ -23,8 +23,8 @@ export function lookPreview(state, description) {
     if (markup) return { markup, action: null };
   }
   if (selection.kind === "peep" && description.imageUrl) {
-    const previewMarkup = `<img class="look-preview look-preview-peep" src="${escapeHtml(description.imageUrl)}" alt="">`;
-    return { markup: `${previewMarkup}${lookDialogBubble(state, description)}`, action: null };
+    const previewMarkup = `<button type="button" class="look-preview look-preview-button look-preview-peep" data-look-inspect="peep" data-sound="open" data-focus-key="look-inspect" aria-label="Read full description of ${escapeHtml(description.title)}" title="Read full description"><img src="${escapeHtml(description.imageUrl)}" alt=""></button>`;
+    return { markup: `${previewMarkup}${lookDialogBubble(state, description)}`, action: { type: "describe-peep" } };
   }
   if (selection.kind === "house" && description.imageUrl) {
     return { markup: `<img class="look-preview" src="${escapeHtml(description.imageUrl)}" alt="">`, action: null };

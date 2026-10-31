@@ -73,7 +73,6 @@ class MultiverseCoreAssetsTests(RuntimeTestCase):
             "/app/assets/textures/multiverse-world-placeholder.png",
             "/assets/sounds/multiverse-open.wav",
             "/assets/sounds/multiverse-close.wav",
-            "/assets/sounds/multiverse-hover.wav",
             "/assets/sounds/multiverse-select.wav",
             "/assets/sounds/multiverse-travel.wav",
         ):

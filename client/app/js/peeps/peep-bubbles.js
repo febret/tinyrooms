@@ -21,17 +21,16 @@ export function createBubbleElement(bubbleLayer, {
   return bubble;
 }
 
-/** Own chat bubble state, placement, and lifecycle. */
+/** Own chat bubble state, placement, and lifecycle. Bubbles always anchor to the peep sidebar. */
 export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   let latest = null;
   let latestShown = [];
-  let spriteAnchors = new Map();
   const chatBubbles = new Map();
   const dismissing = new Set();
   const bubbleSizes = new Map();
 
-  function isSpritePeep(peep) {
-    return Boolean(latest?.room?.board?.spritesEnabled && Array.isArray(peep?.spritePosition));
+  function isSpritePeep() {
+    return false;
   }
 
   function roomPeep(peepId) {
@@ -78,12 +77,7 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   }
 
   function measureTarget(target, context) {
-    const { spriteMode, markers, boardSprites, bounds } = context;
-    if (spriteMode) {
-      const anchor = boardSprites?.get(target.peepId);
-      if (!anchor) return { ...target, visible: false };
-      return { ...target, visible: true, anchor, size: measureBubble(target.bubble), sprite: true };
-    }
+    const { markers, bounds } = context;
     const rect = markers.get(target.peepId)?.getBoundingClientRect();
     if (!rect || rect.bottom <= bounds.top || rect.top >= bounds.bottom) {
       return { ...target, visible: false };
@@ -92,22 +86,18 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   }
 
   function position() {
-    const spriteMode = Boolean(latest?.room?.board?.spritesEnabled);
     const markers = new Map();
-    if (!spriteMode) {
-      for (const node of panel.querySelectorAll("[data-peep-id]")) {
-        markers.set(node.dataset.peepId, node);
-      }
+    for (const node of panel.querySelectorAll("[data-peep-id]")) {
+      markers.set(node.dataset.peepId, node);
     }
-    const boardSprites = spriteMode ? spriteAnchors : null;
     const targets = [...chatBubbles].map(([peepId, bubble]) => ({ bubble, peepId }));
     if (!targets.length) return;
-    if (!markers.size && !boardSprites?.size) {
+    if (!markers.size) {
       for (const target of targets) hideBubble(target.bubble);
       return;
     }
     const bounds = panel.getBoundingClientRect();
-    const context = { spriteMode, markers, boardSprites, bounds };
+    const context = { markers, bounds };
     const measurements = targets.map(target => measureTarget(target, context));
     for (const item of measurements) {
       if (!item.visible) {
@@ -115,11 +105,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
         continue;
       }
       if (item.bubble.hidden) item.bubble.hidden = false;
-      if (item.sprite) {
-        item.bubble.style.setProperty("--bubble-scale", item.anchor.scale.toFixed(3));
-        placeAt(item.bubble, `${item.anchor.x}px`, `${item.anchor.y}px`);
-        continue;
-      }
       item.bubble.style.removeProperty("--bubble-scale");
       placeChatBubble(item, bounds);
     }
@@ -215,9 +200,8 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     position();
   }
 
-  function setSpriteAnchors(anchors) {
-    spriteAnchors = anchors instanceof Map ? anchors : new Map();
-    position();
+  function setSpriteAnchors() {
+    return;
   }
 
   const panelObserver = new ResizeObserver(position);

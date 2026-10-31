@@ -663,9 +663,8 @@ export function normalizeGameState(boardState) {
 
 export function normalizeGridPosition(value) {
   if (!Array.isArray(value) || value.length !== 3) return null;
-  const position = value.map(Number);
-  if (position.some(number => !Number.isInteger(number))) return null;
-  return position;
+  if (value.some(entry => typeof entry !== "number" || !Number.isInteger(entry))) return null;
+  return [...value];
 }
 
 export function normalizeMinimapTile(tile) {

@@ -20,7 +20,7 @@ function tileCoordinates(tile, center, radius) {
   const dx = tile.position[0] - center[0];
   const dy = tile.position[1] - center[1];
   if (tile.position[2] !== center[2] || Math.abs(dx) > radius || Math.abs(dy) > radius) return null;
-  return { column: dx + radius, row: radius - dy, dx, dy };
+  return { column: radius - dx, row: radius + dy, dx, dy };
 }
 
 /** Reduce a room snapshot to the tiles, links, and exits needed by the minimap. */
@@ -71,7 +71,7 @@ function tileMarkup(tile) {
 function directionMarkup(direction, exit) {
   const classes = `mini-exit mini-exit-${direction.id}${exit ? "" : " is-disabled"}${exit?.locked ? " is-locked" : ""}`;
   const label = exit ? `${direction.label}: ${exit.label || exit.id}` : `${direction.label} exit unavailable`;
-  const command = exit?.quickAction?.command || (exit ? `.go ${exit.id}` : "");
+  const command = exit?.quickAction?.command || (exit ? `.go @way:${exit.id}` : "");
   return `<button type="button" class="${classes}" data-mini-command="${escapeHtml(command)}" data-focus-key="mini-${direction.id}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"${exit ? "" : " disabled"}><span aria-hidden="true">${direction.glyph}</span></button>`;
 }
 
@@ -92,10 +92,9 @@ export function minimapMarkup(room) {
     const points = [from, to].map(tile => `${((tile.column + 0.5) * scale).toFixed(2)},${((tile.row + 0.5) * scale).toFixed(2)}`).join(" ");
     return `<polyline points="${points}" />`;
   }).join("");
-  const planar = MINIMAP_DIRECTIONS.slice(0, 4).map(direction => directionMarkup(direction, model.exits.get(direction.id))).join("");
-  const vertical = MINIMAP_DIRECTIONS.slice(4).map(direction => directionMarkup(direction, model.exits.get(direction.id))).join("");
+  const ring = MINIMAP_DIRECTIONS.map(direction => directionMarkup(direction, model.exits.get(direction.id))).join("");
   return `<div class="look-minimap" role="group" aria-label="Nearby rooms">`
-    + `<div class="mini-layout">${planar}`
-    + `<div class="mini-grid" style="--mini-extent:${model.radius * 2 + 1};"><svg class="mini-links" viewBox="0 0 100 100" aria-hidden="true">${links}</svg>${cells.join("")}</div>`
-    + `<div class="mini-vertical">${vertical}</div></div></div>`;
+    + `<div class="mini-layout mini-compass">${ring}`
+    + `<div class="mini-dial"><div class="mini-grid" style="--mini-extent:${model.radius * 2 + 1};"><svg class="mini-links" viewBox="0 0 100 100" aria-hidden="true">${links}</svg>${cells.join("")}</div></div>`
+    + `</div></div>`;
 }

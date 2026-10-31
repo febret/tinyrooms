@@ -10,6 +10,7 @@ from server.content.common import ContentError
 from server.content.room_grid import (
     allocate_grid_block,
     direction_between,
+    extend_grid_cluster,
     parse_room_grid,
 )
 from server.content.worlds import ExitDefinition, RoomDefinition, apply_room_grid
@@ -90,8 +91,8 @@ class RoomGridValidationTests(unittest.TestCase):
         self.assertEqual(rooms["one"].exits, {})
 
     def test_direction_between_uses_only_orthogonal_neighbors(self) -> None:
-        self.assertEqual(direction_between((0, 0, 0), (0, 1, 0)), "north")
-        self.assertEqual(direction_between((0, 0, 0), (0, 0, -1)), "down")
+        self.assertEqual(direction_between((0, 0, 0), (0, 1, 0)), "south")
+        self.assertEqual(direction_between((0, 0, 0), (0, 0, -1)), "up")
         self.assertIsNone(direction_between((0, 0, 0), (1, 1, 0)))
         self.assertIsNone(direction_between((0, 0, 0), None))
 
@@ -99,28 +100,28 @@ class RoomGridValidationTests(unittest.TestCase):
 class GridExitLinkingTests(unittest.TestCase):
     def test_missing_neighbors_get_open_bidirectional_exits(self) -> None:
         rooms = {
-            "west": _room("west", (0, 0, 0)),
-            "east": _room("east", (1, 0, 0)),
-            "up": _room("up", (0, 0, 1)),
+            "here": _room("here", (0, 0, 0)),
+            "side": _room("side", (1, 0, 0)),
+            "below": _room("below", (0, 0, 1)),
         }
         apply_room_grid(rooms)
-        self.assertEqual(rooms["west"].exits["east"].target_room_id, "east")
-        self.assertEqual(rooms["west"].exits["east"].label, "East")
-        self.assertEqual(rooms["west"].exits["east"].transition, "swipe-east")
-        self.assertEqual(rooms["east"].exits["west"].target_room_id, "west")
-        self.assertEqual(rooms["up"].exits["down"].target_room_id, "west")
-        self.assertNotIn("north", rooms["west"].exits)
+        self.assertEqual(rooms["here"].exits["west"].target_room_id, "side")
+        self.assertEqual(rooms["here"].exits["west"].label, "West")
+        self.assertEqual(rooms["here"].exits["west"].transition, "swipe-west")
+        self.assertEqual(rooms["side"].exits["east"].target_room_id, "here")
+        self.assertEqual(rooms["below"].exits["up"].target_room_id, "here")
+        self.assertNotIn("north", rooms["here"].exits)
 
     def test_an_existing_link_to_a_neighbor_prevents_a_duplicate(self) -> None:
         rooms = {
-            "west": _room("west", (0, 0, 0), {"door": _exit("door", "east", label="Oak door")}),
-            "east": _room("east", (1, 0, 0)),
+            "here": _room("here", (0, 0, 0), {"door": _exit("door", "side", label="Oak door")}),
+            "side": _room("side", (1, 0, 0)),
         }
         apply_room_grid(rooms)
-        self.assertEqual(set(rooms["west"].exits), {"door"})
-        self.assertEqual(rooms["west"].exits["door"].transition, "swipe-east")
-        self.assertEqual(rooms["east"].exits["west"].target_room_id, "west")
-        self.assertEqual(rooms["east"].exits["west"].label, "West")
+        self.assertEqual(set(rooms["here"].exits), {"door"})
+        self.assertEqual(rooms["here"].exits["door"].transition, "swipe-west")
+        self.assertEqual(rooms["side"].exits["east"].target_room_id, "here")
+        self.assertEqual(rooms["side"].exits["east"].label, "East")
 
     def test_explicit_transitions_are_preserved(self) -> None:
         rooms = {
@@ -136,33 +137,33 @@ class GridExitLinkingTests(unittest.TestCase):
 
     def test_directional_details_use_the_adjacent_target(self) -> None:
         rooms = {
-            "west": _room(
-                "west",
+            "here": _room(
+                "here",
                 (0, 0, 0),
                 {
-                    "east": _exit(
-                        "east",
+                    "west": _exit(
+                        "west",
                         "",
                         label="Garden gate",
                         locked=True,
-                        transition="swipe-east",
+                        transition="swipe-west",
                     )
                 },
             ),
-            "east": _room("east", (1, 0, 0)),
+            "side": _room("side", (1, 0, 0)),
         }
-        apply_room_grid(rooms, pending_directional_targets={"west": ["east"]})
-        resolved = rooms["west"].exits["east"]
-        self.assertEqual(resolved.target_room_id, "east")
+        apply_room_grid(rooms, pending_directional_targets={"here": ["west"]})
+        resolved = rooms["here"].exits["west"]
+        self.assertEqual(resolved.target_room_id, "side")
         self.assertEqual(resolved.label, "Garden gate")
         self.assertTrue(resolved.locked)
-        self.assertEqual(resolved.transition, "swipe-east")
-        self.assertEqual(rooms["east"].exits["west"].target_room_id, "west")
+        self.assertEqual(resolved.transition, "swipe-west")
+        self.assertEqual(rooms["side"].exits["east"].target_room_id, "here")
 
     def test_mismatched_directional_targets_are_rejected(self) -> None:
         rooms = {
-            "west": _room("west", (0, 0, 0), {"east": _exit("east", "far")}),
-            "east": _room("east", (1, 0, 0)),
+            "here": _room("here", (0, 0, 0), {"west": _exit("west", "far")}),
+            "side": _room("side", (1, 0, 0)),
             "far": _room("far", (9, 9, 9)),
         }
         with self.assertRaises(ContentError):
@@ -183,11 +184,29 @@ class GridAllocationTests(unittest.TestCase):
         rooms.update({f"old-{index}": _room(f"old-{index}", point) for index, point in enumerate(first)})
         second = allocate_grid_block(rooms, 2, origin=(64, 64, 0), columns=2)
         closest = min(
-            max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+            max(abs(a[0] - b[0]), abs(a[1] - b[1]), abs(a[2] - b[2]))
             for a in first
             for b in second
         )
         self.assertGreater(closest, 1)
+
+    def test_extension_grows_the_existing_cluster(self) -> None:
+        rooms = {
+            "one": _room("one", (0, 0, 0)),
+            "two": _room("two", (1, 0, 0)),
+            "far": _room("far", (10, 10, 0)),
+        }
+        grown = extend_grid_cluster(rooms, [(0, 0, 0), (1, 0, 0)], 2)
+        self.assertEqual(len(grown), 2)
+        for point in grown:
+            self.assertNotIn(point, {(0, 0, 0), (1, 0, 0), (10, 10, 0)})
+            touched = [
+                seed
+                for seed in ((0, 0, 0), (1, 0, 0))
+                if max(abs(point[index] - seed[index]) for index in range(3)) == 1
+                and sum(point[index] != seed[index] for index in range(3)) == 1
+            ]
+            self.assertTrue(touched, f"{point} is not adjacent to the cluster")
 
 
 class TutorialGridSnapshotTests(IntegrationTestCase):
@@ -208,7 +227,7 @@ class TutorialGridSnapshotTests(IntegrationTestCase):
         }
         self.assertEqual(
             directions,
-            {"east": "kitchen", "south": "bedroom", "west": "garden", "down": "hub"},
+            {"west": "kitchen", "north": "bedroom", "east": "garden", "up": "hub"},
         )
         transitions = {
             exit_definition["direction"]: exit_definition["transition"]
@@ -218,10 +237,10 @@ class TutorialGridSnapshotTests(IntegrationTestCase):
         self.assertEqual(
             transitions,
             {
-                "east": "swipe-east",
-                "south": "swipe-south",
                 "west": "swipe-west",
-                "down": "swipe-down",
+                "north": "swipe-north",
+                "east": "swipe-east",
+                "up": "swipe-up",
             },
         )
 

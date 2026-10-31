@@ -20,7 +20,7 @@ from mods.tinytown.content import FloorTexture, HouseRecord, HouseTemplate, load
 from mods.tinytown.day_night import DayNightCycle
 from mods.tinytown.gallery import TinytownGallery
 from mods.tinytown.npcs import NpcHouse
-from server.content.room_grid import allocate_grid_block, room_grid_enabled
+from server.content.room_grid import allocate_grid_block, extend_grid_cluster, room_grid_enabled
 from server.content.surface_props import MAX_WHITEBOARD_PROPS, WHITEBOARD_PROP_ID
 from server.content.worlds import ExitDefinition, RoomDefinition, apply_room_grid
 from server.security import utc_now
@@ -375,7 +375,7 @@ class TinytownHousing:
     def _house_grid_positions(
         self, record: HouseRecord, template: HouseTemplate
     ) -> dict[str, tuple[int, int, int]]:
-        """Reuse existing coordinates and allocate free space only for new rooms."""
+        """Reuse existing coordinates and grow the cluster for new rooms."""
 
         positions: dict[str, tuple[int, int, int]] = {}
         for room in template.rooms:
@@ -384,13 +384,19 @@ class TinytownHousing:
                 positions[room.key] = existing.grid
         missing = [room.key for room in template.rooms if room.key not in positions]
         if missing:
-            block = allocate_grid_block(
-                self._world.rooms,
-                len(missing),
-                origin=HOUSE_GRID_ORIGIN,
-                columns=HOUSE_GRID_COLUMNS,
+            grown = extend_grid_cluster(
+                self._world.rooms, list(positions.values()), len(missing)
             )
-            positions.update(zip(missing, block))
+            positions.update(zip(missing, grown))
+            still_missing = [key for key in missing if key not in positions]
+            if still_missing:
+                block = allocate_grid_block(
+                    self._world.rooms,
+                    len(still_missing),
+                    origin=HOUSE_GRID_ORIGIN,
+                    columns=HOUSE_GRID_COLUMNS,
+                )
+                positions.update(zip(still_missing, block))
         return positions
 
     def _build_room(
@@ -426,6 +432,7 @@ class TinytownHousing:
                 f"{template.description}"
             ),
             exits=exits,
+            props=dict(blueprint.props),
             grid=grid,
             palette=template.palette,
             template=False,
