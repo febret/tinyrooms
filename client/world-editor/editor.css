@@ -132,6 +132,37 @@ button.cancel, button.quiet { background: transparent; color: var(--muted); }
 .modal-rooms code { border: 1px solid var(--line); border-radius: 6px; padding: .05rem .35rem; }
 .empty-state, .note { color: var(--muted); font-size: .75rem; }
 .ok { color: #9fe3c4; }
+.we-grid-map { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #030b0e; }
+.we-grid-map:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.grid-map-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; padding: .4rem .5rem; border-bottom: 1px solid var(--line); background: var(--panel); }
+.grid-map-title { display: flex; align-items: baseline; gap: .5rem; font-size: .78rem; }
+.grid-map-title span { color: var(--muted); font-size: .7rem; }
+.grid-map-controls { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.grid-map-floors { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; color: var(--muted); }
+.grid-map-notice { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem .5rem; border-bottom: 1px solid #c89a4a66; background: #6b4b1533; color: #f0cf8d; font-size: .72rem; }
+.grid-map-viewport { position: relative; flex: 1 1 auto; min-height: 200px; overflow: hidden; touch-action: none; cursor: grab; background: radial-gradient(#ffffff14 1px, transparent 1px) 0 0 / 18px 18px; }
+.grid-map-viewport:active { cursor: grabbing; }
+.grid-map-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.grid-map-links { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.grid-map-link { stroke: #6faea4aa; stroke-width: 3; stroke-linecap: round; fill: none; }
+.grid-map-portal { stroke: #efbb88aa; stroke-width: 2; stroke-dasharray: 6 5; stroke-linecap: round; fill: none; }
+.grid-map-target { position: absolute; width: 132px; height: 92px; border: 2px dashed var(--accent); border-radius: 10px; background: #6faea422; pointer-events: none; }
+.grid-map-target.is-invalid { border-color: var(--danger); background: #dd755e22; }
+.grid-map-room { position: absolute; width: 132px; height: 92px; display: flex; flex-direction: column; justify-content: center; gap: .15rem; padding: .4rem .5rem; overflow: hidden; text-align: left; background: var(--panel-solid); border: 1px solid var(--line); border-left: 3px solid var(--grid-accent, var(--accent)); border-radius: 10px; color: var(--ink); font-size: .72rem; box-shadow: 0 4px 10px #0008; cursor: grab; }
+.grid-map-room.is-active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.grid-map-room.is-dragging { z-index: 3; cursor: grabbing; }
+.grid-map-room > :not(.grid-map-image) { position: relative; }
+.grid-map-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .28; pointer-events: none; }
+.grid-map-tile-top { display: flex; align-items: center; justify-content: space-between; gap: .3rem; color: var(--muted); font-size: .64rem; }
+.grid-map-badges { display: inline-flex; gap: .2rem; color: var(--gold); }
+.grid-map-room strong, .grid-map-id { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.grid-map-id { color: var(--muted); font-size: .64rem; }
+.grid-map-empty-floor { position: absolute; left: 1rem; top: 1rem; margin: 0; color: var(--muted); font-size: .75rem; }
+.grid-map-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem .6rem; padding: .3rem .5rem; border-top: 1px solid var(--line); background: var(--panel); font-size: .7rem; }
+.grid-map-hint { color: var(--muted); }
+.grid-map-selection { display: inline-flex; align-items: center; gap: .35rem; color: var(--ink); }
+.grid-map-empty, .grid-map-setup { margin: 0; padding: .8rem; color: var(--muted); font-size: .78rem; }
+.grid-map-setup { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
 @media (max-width: 900px) {
   .we-shell { height: auto; min-height: 100vh; overflow: visible; }
   .we-body { grid-template-columns: 1fr; }

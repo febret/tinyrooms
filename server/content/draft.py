@@ -18,6 +18,7 @@ from server.content.exit_props import (
 )
 from server.content.lighting import LIGHTING_ENVIRONMENTS
 from server.content.prop_definitions import PROP_RENDER_KINDS
+from server.content.room_grid import parse_room_grid
 from server.content.surface_props import validate_sign_style
 from server.content.text_props import validate_text
 from server.content.worlds import EXIT_TRANSITION_TYPES, PROPS_CONFIG_KEY
@@ -153,6 +154,22 @@ def _prop_one_per_room(draft_props: Any) -> frozenset[str]:
     )
 
 
+def _check_room_grid(
+    issues: list[DraftIssue],
+    room_id: str,
+    room: dict[str, Any],
+    base: str,
+) -> tuple[int, int, int] | None:
+    raw = room.get("grid")
+    if raw is None:
+        return None
+    try:
+        return parse_room_grid(raw, room_id)
+    except ContentError as exc:
+        _issue(issues, f"{base}.grid", str(exc))
+        return None
+
+
 def _check_rooms(
     issues: list[DraftIssue],
     rooms: Any,
@@ -164,6 +181,8 @@ def _check_rooms(
         _issue(issues, "rooms", "At least one room is required.")
         return
     room_ids = frozenset(rooms)
+    position_rooms: dict[tuple[int, int, int], list[str]] = {}
+    unpositioned: list[str] = []
     for room_id, room in rooms.items():
         base = f"rooms.{room_id}"
         if not isinstance(room_id, str) or not room_id:
@@ -175,6 +194,15 @@ def _check_rooms(
             if not isinstance(room.get(field_name), str) or not room.get(field_name):
                 _issue(issues, f"{base}.{field_name}", f"Room {field_name} is required.")
         _check_lighting_name(issues, room.get("environment"), f"{base}.environment")
+        template = bool(room.get("template", False))
+        point = _check_room_grid(issues, room_id if isinstance(room_id, str) else "", room, base)
+        if point is not None:
+            if template:
+                _issue(issues, f"{base}.grid", "Template rooms must not define a grid position.")
+            else:
+                position_rooms.setdefault(point, []).append(room_id)
+        elif not template and room.get("grid") is None:
+            unpositioned.append(room_id)
         editor = room.get("editor")
         if editor is not None:
             if not isinstance(editor, dict):
@@ -292,6 +320,21 @@ def _check_rooms(
                         _issue(issues, f"{card_path}.card", "Card reference is required.")
                     elif references.card_ids and card_id not in references.card_ids:
                         _issue(issues, f"{card_path}.card", f"Unknown card '{card_id}'.")
+    if position_rooms:
+        for point in sorted(position_rooms):
+            room_names = sorted(position_rooms[point], key=str)
+            if len(room_names) > 1:
+                _issue(
+                    issues,
+                    "rooms",
+                    f"Rooms {room_names} share grid position [{point[0]}, {point[1]}, {point[2]}].",
+                )
+        for room_id in sorted(unpositioned, key=str):
+            _issue(
+                issues,
+                f"rooms.{room_id}.grid",
+                "This room needs a grid position because this world uses a room grid.",
+            )
 
 
 def _check_world(issues: list[DraftIssue], world: Any, room_ids: frozenset[str]) -> None:

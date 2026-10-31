@@ -11,14 +11,10 @@ import { createBoardView } from "./board-view.js";
 import { createStore } from "./store.js";
 import { escapeHtml, parseCsv, parseJson, numberOr, textToActions, uniqueId } from "./util.js";
 import { roomQualityReport } from "./quality.js";
-import {
-  applyDialogGraphChanges,
-  applyRoomGraphChanges,
-  dialogGraph,
-  removeRoom,
-  roomGraph,
-} from "./graph-model.js";
+import { applyDialogGraphChanges, dialogGraph, removeRoom } from "./graph-model.js";
 import { createGraphView } from "./graph-view.js";
+import { createGridMapView } from "./grid-map-view.js";
+import { ensureGridLayout, gridRooms, moveRoom, nextFreeCell } from "./grid-map-model.js";
 import { bindPanelSplitters } from "./panel-splitter.js";
 import { renderRoomList } from "./panels/rooms.js";
 import { renderProperties } from "./panels/properties.js";
@@ -61,7 +57,7 @@ const elements = {
   tabs: document.getElementById("we-tabs"),
   boardPane: document.getElementById("we-board-pane"),
   lower: document.getElementById("we-lower"),
-  mapGraph: document.getElementById("we-map-graph"),
+  gridMap: document.getElementById("we-grid-map"),
   systemsPane: document.getElementById("we-systems-pane"),
   systemsContent: document.getElementById("we-systems-content"),
   dialogPanel: document.getElementById("we-dialog-panel"),
@@ -74,23 +70,51 @@ const elements = {
   editorDock: document.getElementById("we-editor-dock"),
 };
 
-const mapView = createGraphView({
-  container: elements.mapGraph,
-  onSelectNode: id => store.select({ kind: "room", id }),
-  onSelectLink: (id, sub) => store.select({ kind: "exit", id, sub }),
-  onChange: changes => commitGraph(draft => applyRoomGraphChanges(draft, changes)),
-  onMoveNode: (roomId, point) => {
-    const x = Math.round(point.x * 100) / 100;
-    const y = Math.round(point.y * 100) / 100;
-    const room = store.state.draft?.rooms?.[roomId];
-    if (!room || (room.editor?.map?.x === x && room.editor?.map?.y === y)) return;
-    store.update(draft => {
-      const target = draft.rooms?.[roomId];
-      if (!target) return;
-      if (!target.editor || typeof target.editor !== "object") target.editor = {};
-      target.editor.map = { x, y };
-    });
-  },
+const gridMigratedWorlds = new Set();
+
+function moveGridRoom(roomId, point) {
+  const probe = structuredClone(store.state.draft);
+  const report = moveRoom(probe, roomId, point);
+  if (!report.ok) {
+    if (report.reason === "occupied") {
+      store.status(`Cell ${point[0]}, ${point[1]}, ${point[2]} is occupied by '${report.occupant}'.`);
+    } else if (report.reason === "template") {
+      store.status("", "Template rooms do not use grid positions.");
+    } else {
+      store.status("", "That grid position is not available.");
+    }
+    render();
+    return;
+  }
+  store.update(draft => {
+    moveRoom(draft, roomId, point);
+  });
+  const repaired = report.retargeted.length + report.removed.length;
+  store.status(repaired
+    ? `Moved '${roomId}' to ${point[0]}, ${point[1]}, ${point[2]} and updated ${repaired} grid exit${repaired === 1 ? "" : "s"}.`
+    : `Moved '${roomId}' to ${point[0]}, ${point[1]}, ${point[2]}.`);
+}
+
+function applyGridMigration({ force = false } = {}) {
+  const draft = store.state.draft;
+  if (!draft) return;
+  const worldKey = store.state.worldKey || store.state.catalog?.world_id || "world";
+  if (!force && gridMigratedWorlds.has(worldKey)) return;
+  gridMigratedWorlds.add(worldKey);
+  let created = 0;
+  store.update(next => {
+    created = ensureGridLayout(next).created;
+  });
+  if (created) {
+    store.status(`Created grid positions for ${created} room${created === 1 ? "" : "s"}. Drag rooms to adjust their connections.`);
+  }
+}
+
+const mapView = createGridMapView({
+  container: elements.gridMap,
+  onSelect: id => store.select({ kind: "room", id }),
+  onMove: moveGridRoom,
+  onCreateGrid: () => applyGridMigration({ force: true }),
 });
 
 const selectDialogNode = sub => store.select({ kind: "peep", id: store.state.selection.id, sub });
@@ -216,7 +240,7 @@ function render() {
   elements.lower.hidden = previewing;
   elements.boardPane.classList.toggle("is-previewing", previewing);
   elements.editorDock.hidden = lowerTab !== "props";
-  elements.mapGraph.hidden = lowerTab !== "map";
+  elements.gridMap.hidden = lowerTab !== "map";
   for (const button of elements.lower.querySelectorAll("[data-lower-tab]")) {
     button.classList.toggle("is-active", button.dataset.lowerTab === lowerTab);
   }
@@ -232,7 +256,11 @@ function render() {
     editor,
   });
   if (state.activeTab === "board" && !previewing && lowerTab === "map") {
-    mapView.render({ graph: roomGraph(state.draft), activeId: roomId });
+    mapView.render({
+      draft: state.draft,
+      activeId: roomId,
+      worldId: state.catalog?.world_id || state.worldKey,
+    });
   }
   elements.systemsContent.innerHTML = renderSystems(state);
   renderDialogPanel(state);
@@ -611,6 +639,7 @@ function handleClick(target) {
   if (dataset.activityDelete !== undefined) return deleteSystemItem("activities", dataset.activityDelete);
   if (dataset.lowerTab !== undefined) {
     lowerTab = dataset.lowerTab;
+    if (lowerTab === "map") applyGridMigration();
     return render();
   }
   if (dataset.graphFit !== undefined) return (dataset.graphFit === "map" ? mapView : dialogView).fit();
@@ -630,6 +659,9 @@ function firstRoomId() {
 function addRoom() {
   const id = uniqueId(Object.keys(store.state.draft.rooms || {}), "room");
   store.update(draft => {
+    const position = gridRooms(draft).length
+      ? nextFreeCell(draft, { anchorId: currentRoomId() })
+      : null;
     draft.rooms[id] = {
       label: "New Room",
       description: "",
@@ -637,6 +669,7 @@ function addRoom() {
       board_image: store.state.catalog?.board_images?.[0] || "",
       board_image_style: "stretch",
       palette: [],
+      ...(position ? { grid: [...position] } : {}),
       editor: { environment: ["palette", "board_image_style"] },
       props: {},
       exits: {},
@@ -909,6 +942,7 @@ async function refresh() {
   });
   const roomId = firstRoomId();
   if (roomId) store.select({ kind: "room", id: roomId });
+  if (lowerTab === "map") applyGridMigration();
 }
 
 document.addEventListener("change", event => {
@@ -942,7 +976,7 @@ document.addEventListener("keydown", event => {
   const modifier = event.ctrlKey || event.metaKey;
   if (event.defaultPrevented || event.target.closest("input,textarea,select,[contenteditable=true]")) return;
   if (!modifier) {
-    if (previewing || store.state.activeTab !== "board" || event.target.closest(".we-graph")) return;
+    if (previewing || store.state.activeTab !== "board" || event.target.closest(".we-graph,.we-grid-map")) return;
     const editor = worldRoomEditor(store.state, currentRoomId());
     const action = editorKeyAction(event, editor);
     if (action) { event.preventDefault(); roomEditor.dispatch(action); }

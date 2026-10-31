@@ -1,5 +1,3 @@
-import { uniqueId } from "./util.js";
-
 export const GRAPH_METRICS = { columnWidth: 240, rowGap: 24, headHeight: 44, portHeight: 22, margin: 24 };
 
 function entries(value) {
@@ -9,33 +7,6 @@ function entries(value) {
 function preview(text, length = 60) {
   const value = String(text || "").replace(/\s+/g, " ").trim();
   return value.length > length ? `${value.slice(0, length - 1)}…` : value;
-}
-
-function roomPosition(room) {
-  const point = room?.editor?.map;
-  if (!point || typeof point !== "object") return null;
-  const x = Number(point.x);
-  const y = Number(point.y);
-  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
-}
-
-export function roomGraph(draft) {
-  return {
-    rootId: draft?.world?.entry_room || null,
-    addLabel: "exit",
-    portInputs: true,
-    nodes: entries(draft?.rooms).map(([roomId, room]) => ({
-      id: roomId,
-      title: room?.label || roomId,
-      subtitle: roomId,
-      position: roomPosition(room),
-      ports: entries(room?.exits).map(([exitId, exit]) => ({
-        id: exitId,
-        label: exit?.label || exitId,
-        target: exit?.target || null,
-      })),
-    })),
-  };
 }
 
 export function dialogGraph(dialog) {
@@ -113,35 +84,6 @@ export function removeRoom(draft, roomId) {
   }
   if (draft.world?.entry_room === roomId) draft.world.entry_room = Object.keys(draft.rooms)[0] || "";
   return true;
-}
-
-export function applyRoomGraphChanges(draft, changes) {
-  let changed = false;
-  for (const change of changes) {
-    const room = draft.rooms?.[change.from];
-    if (change.type === "remove") {
-      changed = removeRoom(draft, change.node) || changed;
-    } else if (change.type === "link" && room && draft.rooms[change.to]) {
-      if (!room.exits || typeof room.exits !== "object") room.exits = {};
-      const exit = change.port === null ? null : room.exits[change.port];
-      if (exit) exit.target = change.to;
-      else room.exits[uniqueId(Object.keys(room.exits), "exit")] = { label: draft.rooms[change.to].label || change.to, target: change.to };
-      const reverse = change.toPort == null ? null : draft.rooms[change.to].exits?.[change.toPort];
-      if (reverse) reverse.target = change.from;
-      changed = true;
-    } else if (change.type === "unlink") {
-      const reverse = change.toPort == null ? null : draft.rooms?.[change.to]?.exits?.[change.toPort];
-      if (reverse?.target === change.from) {
-        delete draft.rooms[change.to].exits[change.toPort];
-        changed = true;
-      }
-      if (room?.exits?.[change.port]?.target === change.to) {
-        delete room.exits[change.port];
-        changed = true;
-      }
-    }
-  }
-  return changed;
 }
 
 function endChoice(choice) {

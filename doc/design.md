@@ -1125,7 +1125,8 @@ currently loaded world. Through the World Editor they can:
 - create and delete rooms
 - edit all room aspects including the board picture, props, initial room cards, etc.
 - give any placed prop its own description, overriding the prop definition's stock text
-- edit room connections through exits
+- arrange rooms on the room grid map; grid adjacency supplies room connections
+- edit custom room connections through exits
 - place, edit and delete NPCs
 
 Prop arrangement uses the same compact dock, prop filters, transform handles,
