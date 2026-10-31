@@ -135,6 +135,7 @@ export function normalizeExit(exit) {
     id: String(exit?.id || ""),
     label: String(exit?.label || ""),
     targetRoomId: String(exit?.target_room_id || ""),
+    direction: typeof exit?.direction === "string" ? exit.direction : "",
     locked: Boolean(exit?.locked),
     requiresCardId: exit?.requires_card_id ? String(exit.requires_card_id) : "",
     transition: normalizeRoomTransition(exit?.transition),
@@ -660,6 +661,45 @@ export function normalizeGameState(boardState) {
   return boardState && typeof boardState === "object" ? clone(boardState) : null;
 }
 
+export function normalizeGridPosition(value) {
+  if (!Array.isArray(value) || value.length !== 3) return null;
+  const position = value.map(Number);
+  if (position.some(number => !Number.isInteger(number))) return null;
+  return position;
+}
+
+export function normalizeMinimapTile(tile) {
+  if (!tile || typeof tile !== "object") return null;
+  const position = normalizeGridPosition(tile.position);
+  if (!position) return null;
+  return {
+    id: String(tile.id || ""),
+    label: String(tile.label || tile.id || "Room"),
+    position,
+    imageUrl: assetOrEmpty(tile.image_url),
+    palette: Array.isArray(tile.palette) ? tile.palette.map(String) : [],
+    dark: Boolean(tile.dark),
+    lighting: tile.lighting && typeof tile.lighting === "object"
+      ? {
+        name: String(tile.lighting.name || ""),
+        color: String(tile.lighting.color || "#ffffff"),
+        level: Number(tile.lighting.level || 0),
+      }
+      : null,
+  };
+}
+
+export function normalizeMinimap(minimap) {
+  if (!minimap || typeof minimap !== "object") return null;
+  const position = normalizeGridPosition(minimap.position);
+  const radius = Number(minimap.radius);
+  if (!position || !(radius > 0)) return null;
+  const rooms = Array.isArray(minimap.rooms)
+    ? minimap.rooms.map(normalizeMinimapTile).filter(Boolean)
+    : [];
+  return { position, radius, rooms };
+}
+
 export function normalizeRoom(room, previousRoom = null) {
   if (!room) return null;
   // Revision-gated snapshots omit layout sections when the client is already
@@ -689,6 +729,8 @@ export function normalizeRoom(room, previousRoom = null) {
     environment: normalizeEnvironment(room.environment),
     environmentRevision: Number(room.environment_revision || 0),
     transition: normalizeRoomTransition(room.transition),
+    grid: normalizeGridPosition(room.grid),
+    minimap: normalizeMinimap(room.minimap),
     exits: keepExits ? previousRoom.exits : (Array.isArray(room.exits) ? room.exits.map(normalizeExit) : []),
     props: keepProps ? previousRoom.props : (Array.isArray(room.props) ? room.props.map(normalizeProp) : []),
     occupants: Array.isArray(room.occupants) ? room.occupants.map(normalizeOccupant) : [],

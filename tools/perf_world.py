@@ -103,7 +103,11 @@ def build_scaled_world(
         clone = yaml.safe_load(yaml.safe_dump(template))
         clone["label"] = f"Synthetic Room {index}"
         clone["description"] = "Generated room used by the performance suite."
-        clone["exits"] = {"back": {"label": "Back", "target": ENTRY_ROOM}}
+        clone["exits"] = {
+            **(clone.get("exits") or {}),
+            "back": {"label": "Back", "target": ENTRY_ROOM},
+        }
+        clone["grid"] = [512 + index, 0, 0]
         rooms_payload[f"{room_prefix}-{index}"] = clone
 
     for index in range(peeps_per_room):

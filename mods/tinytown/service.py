@@ -20,8 +20,9 @@ from mods.tinytown.content import FloorTexture, HouseRecord, HouseTemplate, load
 from mods.tinytown.day_night import DayNightCycle
 from mods.tinytown.gallery import TinytownGallery
 from mods.tinytown.npcs import NpcHouse
+from server.content.room_grid import allocate_grid_block, room_grid_enabled
 from server.content.surface_props import MAX_WHITEBOARD_PROPS, WHITEBOARD_PROP_ID
-from server.content.worlds import ExitDefinition, RoomDefinition
+from server.content.worlds import ExitDefinition, RoomDefinition, apply_room_grid
 from server.security import utc_now
 from server.state.world_state import LayoutRevisionConflict
 
@@ -30,6 +31,8 @@ LOGGER = logging.getLogger("tinyrooms.mod.tinytown")
 
 HOUSE_ROOM_PREFIX = "home:"
 ENTRY_ROOM_ID = "town"
+HOUSE_GRID_ORIGIN = (64, 64, 0)
+HOUSE_GRID_COLUMNS = 3
 MAX_LAYOUT_WHITEBOARDS = MAX_WHITEBOARD_PROPS
 
 PROPSET_LABELS = {
@@ -369,12 +372,34 @@ class TinytownHousing:
     def _room_id(house_id: str, key: str) -> str:
         return f"{HOUSE_ROOM_PREFIX}{house_id}:{key}"
 
+    def _house_grid_positions(
+        self, record: HouseRecord, template: HouseTemplate
+    ) -> dict[str, tuple[int, int, int]]:
+        """Reuse existing coordinates and allocate free space only for new rooms."""
+
+        positions: dict[str, tuple[int, int, int]] = {}
+        for room in template.rooms:
+            existing = self._world.rooms.get(record.room_ids.get(room.key, ""))
+            if existing is not None and existing.grid is not None and not existing.template:
+                positions[room.key] = existing.grid
+        missing = [room.key for room in template.rooms if room.key not in positions]
+        if missing:
+            block = allocate_grid_block(
+                self._world.rooms,
+                len(missing),
+                origin=HOUSE_GRID_ORIGIN,
+                columns=HOUSE_GRID_COLUMNS,
+            )
+            positions.update(zip(missing, block))
+        return positions
+
     def _build_room(
         self,
         record: HouseRecord,
         key: str,
         template: HouseTemplate,
         room_ids: dict[str, str],
+        grid_positions: dict[str, tuple[int, int, int]] | None = None,
     ) -> RoomDefinition:
         room_template = template.room_for_key(key)
         if room_template is None:
@@ -389,24 +414,7 @@ class TinytownHousing:
                 locked=False,
                 requires_card_id=None,
             )
-            for other in template.rooms:
-                if other.key == key:
-                    continue
-                exits[f"to-{other.key}"] = ExitDefinition(
-                    id=f"to-{other.key}",
-                    label=f"Go to {other.label}",
-                    target_room_id=room_ids[other.key],
-                    locked=False,
-                    requires_card_id=None,
-                )
-        else:
-            exits["to-entry"] = ExitDefinition(
-                id="to-entry",
-                label=f"Back to {template.rooms[0].label}",
-                target_room_id=room_ids[template.entry_key],
-                locked=False,
-                requires_card_id=None,
-            )
+        grid = (grid_positions or {}).get(key)
         owner = self._profiles.get_account_by_id(record.owner_account_id)
         owner_name = owner.username_display if owner is not None else "Someone"
         return replace(
@@ -418,6 +426,7 @@ class TinytownHousing:
                 f"{template.description}"
             ),
             exits=exits,
+            grid=grid,
             palette=template.palette,
             template=False,
             sprites_enabled=True,
@@ -428,11 +437,19 @@ class TinytownHousing:
         for key in template.rooms:
             if key.key not in record.room_ids:
                 record.room_ids[key.key] = self._room_id(record.house_id, key.key)
+        grid_positions = (
+            self._house_grid_positions(record, template)
+            if room_grid_enabled(self._world.rooms)
+            else {}
+        )
         built: dict[str, RoomDefinition] = {}
         for room_template in template.rooms:
-            room = self._build_room(record, room_template.key, template, record.room_ids)
+            room = self._build_room(
+                record, room_template.key, template, record.room_ids, grid_positions
+            )
             self._world.rooms[room.id] = room
             built[room_template.key] = room
+        apply_room_grid(self._world.rooms)
         return built
 
     def _seed_rooms(self, record: HouseRecord, built: dict[str, RoomDefinition]) -> None:

@@ -10,6 +10,7 @@ town:
   - '#5f8f7d'
   - '#d7795c'
   - '#46697a'
+  grid: [0, 0, 0]
   props: {}
   exits: {}
 home-entry:

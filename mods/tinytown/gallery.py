@@ -13,14 +13,16 @@ import math
 
 from mods.tinytown.art import ART_BY_ID
 from server.content.prop_definitions import PropInstanceDefinition, QuickAction
+from server.content.room_grid import allocate_grid_block, extend_grid_cluster, room_grid_enabled
 from server.content.surface_props import DEFAULT_WHITEBOARD_FRAME, WHITEBOARD_PROP_ID
-from server.content.worlds import ExitDefinition, RoomDefinition
+from server.content.worlds import ExitDefinition, RoomDefinition, apply_room_grid
 
 
 LOGGER = logging.getLogger("tinyrooms.mod.tinytown.gallery")
 
 GALLERY_ROOM_PREFIX = "gallery:"
 TOWN_ROOM_ID = "town"
+GALLERY_GRID_ORIGIN = (64, -64, 0)
 ART_INSTANCE_PREFIX = "gallery-art:"
 LISTING_INSTANCE_PREFIX = "gallery-listing:"
 MAX_ART_PER_ROOM = 8
@@ -247,15 +249,48 @@ class TinytownGallery:
         base, extra = divmod(total, count)
         return [base + (1 if index < extra else 0) for index in range(count)]
 
+    def _gallery_grid_positions(self, count: int) -> list[tuple[int, int, int] | None]:
+        """Reuse existing gallery coordinates and allocate free space for new rooms."""
+
+        positions: list[tuple[int, int, int] | None] = [None] * count
+        for index in range(count):
+            existing = self.world.rooms.get(f"{GALLERY_ROOM_PREFIX}{index + 1}")
+            if existing is not None and existing.grid is not None and not existing.template:
+                positions[index] = existing.grid
+        missing = [index for index, position in enumerate(positions) if position is None]
+        if missing and room_grid_enabled(self.world.rooms):
+            grown = extend_grid_cluster(
+                self.world.rooms,
+                [position for position in positions if position is not None],
+                len(missing),
+            )
+            for index, position in zip(missing, grown):
+                positions[index] = position
+            still_missing = [
+                index for index, position in enumerate(positions) if position is None
+            ]
+            if still_missing:
+                block = allocate_grid_block(
+                    self.world.rooms,
+                    len(still_missing),
+                    origin=GALLERY_GRID_ORIGIN,
+                    columns=max(1, len(still_missing)),
+                )
+                for index, position in zip(still_missing, block):
+                    positions[index] = position
+        return positions
+
     def _build(self, arts: list[GalleryArt]) -> None:
         count = self._room_count(len(arts))
         sizes = self._room_sizes(len(arts), count)
+        grid_enabled = room_grid_enabled(self.world.rooms)
+        positions = self._gallery_grid_positions(count) if grid_enabled else [None] * count
         new_rooms: list[RoomDefinition] = []
         cursor = 0
         for index, size in enumerate(sizes):
             chunk = arts[cursor:cursor + size]
             cursor += size
-            new_rooms.append(self._build_room(index, count, chunk))
+            new_rooms.append(self._build_room(index, count, chunk, positions[index]))
 
         old_ids = set(self._room_ids)
         self._room_ids = [room.id for room in new_rooms]
@@ -263,13 +298,21 @@ class TinytownGallery:
             self.world.rooms[room.id] = room
             self.world_state.sync_generated_room(room.id, room, self.world)
             self._install_surfaces(room)
+        if grid_enabled:
+            apply_room_grid(self.world.rooms)
         for room_id in old_ids - set(self._room_ids):
             with self.hub.transaction() as connection:
                 connection.execute("DELETE FROM world.room_cards WHERE room_id = ?", (room_id,))
                 self.world_state.delete_room_state(connection, room_id)
             self.world.rooms.pop(room_id, None)
 
-    def _build_room(self, index: int, total_rooms: int, arts: list[GalleryArt]) -> RoomDefinition:
+    def _build_room(
+        self,
+        index: int,
+        total_rooms: int,
+        arts: list[GalleryArt],
+        grid: tuple[int, int, int] | None,
+    ) -> RoomDefinition:
         base = self.world.rooms[BASE_ROOMS[index % len(BASE_ROOMS)]]
         room_id = f"{GALLERY_ROOM_PREFIX}{index + 1}"
         name = ROOM_NAMES[index] if index < len(ROOM_NAMES) else f"Gallery {index + 1}"
@@ -290,6 +333,7 @@ class TinytownGallery:
             description=description,
             props=props,
             exits=exits,
+            grid=grid,
             template=False,
             sprites_enabled=True,
         )

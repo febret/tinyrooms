@@ -87,7 +87,7 @@ class SnapshotGatingTests(IntegrationTestCase):
         self.assertTrue(gated.get("props_unchanged"))
         self.assertTrue(gated.get("exits_unchanged"))
         # Dynamic sections are always present.
-        for key in ("occupants", "npcs", "room_cards", "chat_history", "board"):
+        for key in ("occupants", "npcs", "room_cards", "chat_history", "board", "grid", "minimap"):
             self.assertIn(key, gated)
         self.assertEqual(
             json.dumps(gated["board"], sort_keys=True, default=str),

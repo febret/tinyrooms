@@ -1,10 +1,10 @@
 const SWIPE_OFFSETS = new Map([
-  ["swipe-east", [1, 0, 0]],
-  ["swipe-west", [-1, 0, 0]],
-  ["swipe-north", [0, 0, -1]],
-  ["swipe-south", [0, 0, 1]],
-  ["swipe-up", [0, 1, 0]],
-  ["swipe-down", [0, -1, 0]],
+  ["swipe-east", [-1, 0, 0]],
+  ["swipe-west", [1, 0, 0]],
+  ["swipe-north", [0, 0, 1]],
+  ["swipe-south", [0, 0, -1]],
+  ["swipe-up", [0, -1, 0]],
+  ["swipe-down", [0, 1, 0]],
 ]);
 
 export const ROOM_TRANSITION_MS = 480;

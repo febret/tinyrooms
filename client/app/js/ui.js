@@ -538,6 +538,9 @@ function renderLook(state) {
   }
   const inspect = look.querySelector("[data-look-inspect]");
   if (inspect) inspect.onclick = () => handleAction(preview.action, { silentSound: true });
+  look.querySelectorAll("[data-mini-command]").forEach(button => {
+    button.onclick = () => handleAction({ command: button.dataset.miniCommand });
+  });
 }
 
 async function handleAction(action, { silentSound = false } = {}) {

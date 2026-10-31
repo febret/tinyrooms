@@ -9,6 +9,7 @@ hub:
   - '#ebcfaa'
   - '#b97262'
   - '#6faea4'
+  grid: [0, 0, -1]
   editor:
     environment:
     - palette
@@ -44,6 +45,7 @@ foyer:
   - '#efdbaf'
   - '#81aa94'
   - '#ce7958'
+  grid: [0, 0, 0]
   editor:
     environment:
     - palette
@@ -143,6 +145,7 @@ kitchen:
   - '#eee6c9'
   - '#efb65d'
   - '#789f96'
+  grid: [1, 0, 0]
   editor:
     environment:
     - palette
@@ -250,6 +253,7 @@ bathroom:
   - '#c9e0d1'
   - '#f6edcf'
   - '#cf8a91'
+  grid: [0, -2, 0]
   editor:
     environment:
     - palette
@@ -399,6 +403,7 @@ bedroom:
   - '#b7c8cd'
   - '#edc6a0'
   - '#c48a9b'
+  grid: [0, -1, 0]
   editor:
     environment:
     - palette
@@ -493,6 +498,7 @@ utility:
   - '#e1cfac'
   - '#88a59e'
   - '#d49062'
+  grid: [1, 1, 0]
   editor:
     environment:
     - palette
@@ -616,6 +622,7 @@ basement:
   - '#627681'
   - '#d5b57f'
   - '#708e87'
+  grid: [1, 1, -1]
   editor:
     environment:
     - palette
@@ -747,6 +754,7 @@ garden:
   - '#9eb783'
   - '#eed19c'
   - '#d78584'
+  grid: [-1, 0, 0]
   editor:
     environment:
     - palette

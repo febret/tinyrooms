@@ -53,6 +53,13 @@ from server.content.prop_definitions import (
 )
 from server.content.recipes import RecipeDefinition, load_recipes
 from server.content.room_environment import load_editor_environment
+from server.content.room_grid import (
+    DIRECTION_TRANSITIONS,
+    DIRECTION_VECTORS,
+    add_coordinates,
+    direction_between,
+    parse_room_grid,
+)
 from server.content.sounds import PROP_SOUND_KEYS, parse_sound, parse_sounds
 from server.content.exit_props import load_exit_style
 from server.content.surface_props import (
@@ -98,6 +105,7 @@ class ExitDefinition:
     npc_barrier: bool = False
     target_world_id: str | None = None
     transition: str = DEFAULT_EXIT_TRANSITION
+    transition_explicit: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,6 +134,7 @@ class RoomDefinition:
     props: dict[str, PropInstanceDefinition]
     exits: dict[str, ExitDefinition]
     initial_cards: tuple[InitialRoomCard, ...]
+    grid: tuple[int, int, int] | None = None
     editor_environment: tuple[str, ...] = ()
     template: bool = False
     sprites_enabled: bool = False
@@ -228,6 +237,101 @@ class WorldDefinition:
     stylesheet_name: str = ""
     stylesheet_path: Path | None = None
     global_environment: str = "day"
+
+
+def apply_room_grid(
+    rooms: dict[str, RoomDefinition],
+    *,
+    pending_directional_targets: Mapping[str, Sequence[str]] | None = None,
+) -> None:
+    """Resolve grid adjacency exits in place for a mutable room mapping.
+
+    Existing explicit links to a neighboring room satisfy adjacency, while any
+    missing orthogonal neighbor receives an open bidirectional exit named for
+    the direction. Legacy rooms without grid coordinates are left untouched.
+    """
+
+    positioned = [
+        room for room in rooms.values() if room.grid is not None and not room.template
+    ]
+    if not positioned:
+        return
+    unpositioned = sorted(
+        room.id for room in rooms.values() if room.grid is None and not room.template
+    )
+    if unpositioned:
+        raise ContentError(
+            f"Rooms {unpositioned} need grid positions because this world uses a room grid."
+        )
+    occupancy: dict[tuple[int, int, int], RoomDefinition] = {}
+    for room in positioned:
+        assert room.grid is not None
+        if room.grid in occupancy:
+            raise ContentError(
+                f"Rooms '{occupancy[room.grid].id}' and '{room.id}' share grid position {room.grid}."
+            )
+        occupancy[room.grid] = room
+    pending = pending_directional_targets or {}
+    for room_id, exit_ids in pending.items():
+        room = rooms.get(room_id)
+        if room is None or room.grid is None or room.template:
+            continue
+        assert room.grid is not None
+        for exit_id in exit_ids:
+            definition = room.exits.get(exit_id)
+            if definition is None or definition.target_room_id:
+                continue
+            neighbor = occupancy.get(add_coordinates(room.grid, DIRECTION_VECTORS[exit_id]))
+            if neighbor is None:
+                raise ContentError(
+                    f"Directional exit '{room_id}.{exit_id}' has no adjacent room and must define a target."
+                )
+            room.exits[exit_id] = replace(
+                definition,
+                target_room_id=neighbor.id,
+                label=definition.label or exit_id.title(),
+            )
+    for room in positioned:
+        assert room.grid is not None
+        for definition in list(room.exits.values()):
+            if definition.target_world_id is not None or not definition.target_room_id:
+                continue
+            neighbor = rooms.get(definition.target_room_id)
+            if neighbor is None or neighbor.grid is None:
+                continue
+            direction = direction_between(room.grid, neighbor.grid)
+            if definition.id in DIRECTION_VECTORS and direction != definition.id:
+                raise ContentError(
+                    f"Directional exit '{room.id}.{definition.id}' must target the adjacent room."
+                )
+            if direction is not None and not definition.transition_explicit:
+                room.exits[definition.id] = replace(
+                    definition,
+                    transition=DIRECTION_TRANSITIONS[direction],
+                )
+    for room in positioned:
+        assert room.grid is not None
+        for direction, vector in DIRECTION_VECTORS.items():
+            neighbor = occupancy.get(add_coordinates(room.grid, vector))
+            if neighbor is None:
+                continue
+            linked = any(
+                candidate.target_world_id is None and candidate.target_room_id == neighbor.id
+                for candidate in room.exits.values()
+            )
+            if linked:
+                continue
+            room.exits[direction] = ExitDefinition(
+                id=direction,
+                label=direction.title(),
+                target_room_id=neighbor.id,
+                locked=False,
+                requires_card_id=None,
+                npc_barrier=False,
+                target_world_id=None,
+                transition=DIRECTION_TRANSITIONS[direction],
+                transition_explicit=True,
+            )
 
 
 def _load_world_powers(raw_value: Any, world_file: Path) -> dict[str, tuple[str, ...]]:
@@ -589,9 +693,14 @@ def load_world_definition(
     props = _validate_prop_references(props, recipes, card_ids)
 
     rooms: dict[str, RoomDefinition] = {}
+    pending_directional_targets: dict[str, list[str]] = {}
     for room_id, raw_room in rooms_payload.items():
         if not isinstance(room_id, str) or not isinstance(raw_room, dict):
             raise ContentError(f"{rooms_file} contains an invalid room entry.")
+        template = bool(raw_room.get("template", False))
+        room_grid = parse_room_grid(raw_room.get("grid"), room_id)
+        if template and room_grid is not None:
+            raise ContentError(f"Template room '{room_id}' must not define a grid position.")
         board_image_name = str(raw_room.get("board_image", "")).strip()
         if not board_image_name:
             raise ContentError(f"Room '{room_id}' is missing board_image.")
@@ -706,17 +815,32 @@ def load_world_definition(
         for exit_id, raw_exit in raw_exits.items():
             if not isinstance(raw_exit, dict):
                 raise ContentError(f"Room '{room_id}' has an invalid exit '{exit_id}'.")
+            if not isinstance(exit_id, str) or not exit_id:
+                raise ContentError(f"Room '{room_id}' has an invalid exit entry.")
+            directional = exit_id in DIRECTION_VECTORS
             requires_card_id = str(raw_exit["requires"]) if "requires" in raw_exit else None
             if requires_card_id is not None and requires_card_id not in card_ids:
                 warn_unknown_card(f"Exit '{room_id}.{exit_id}' requires", requires_card_id)
                 requires_card_id = None
             target_world_id = str(raw_exit["target_world"]).strip() if raw_exit.get("target_world") else None
             target_room_id = str(raw_exit.get("target", "")).strip()
+            if directional and target_world_id is not None:
+                raise ContentError(
+                    f"Directional exit '{room_id}.{exit_id}' must target an adjacent room, not another world."
+                )
             if target_world_id is None and not target_room_id:
-                raise ContentError(f"Exit '{room_id}.{exit_id}' must define a target room or target world.")
+                if not directional:
+                    raise ContentError(
+                        f"Exit '{room_id}.{exit_id}' must define a target room or target world."
+                    )
+                pending_directional_targets.setdefault(room_id, []).append(exit_id)
             raw_transition = raw_exit.get("transition")
             if raw_transition is None:
-                transition = DEFAULT_EXIT_TRANSITION
+                transition = (
+                    DIRECTION_TRANSITIONS[exit_id]
+                    if directional and not target_room_id
+                    else DEFAULT_EXIT_TRANSITION
+                )
             elif not isinstance(raw_transition, str) or raw_transition not in EXIT_TRANSITION_TYPES:
                 allowed = ", ".join(sorted(EXIT_TRANSITION_TYPES))
                 raise ContentError(
@@ -733,6 +857,7 @@ def load_world_definition(
                 npc_barrier=bool(raw_exit.get("npc_barrier", False)),
                 target_world_id=target_world_id,
                 transition=transition,
+                transition_explicit=raw_transition is not None,
             )
         for instance in room_props.values():
             if instance.exit_to is not None and instance.exit_to not in room_exits:
@@ -780,6 +905,7 @@ def load_world_definition(
             props=room_props,
             exits=room_exits,
             initial_cards=tuple(room_cards),
+            grid=room_grid,
             editor_environment=load_editor_environment(raw_room.get("editor"), room_id),
             template=bool(raw_room.get("template", False)),
             sprites_enabled=bool(raw_room.get("sprites_enabled", False)),
@@ -790,6 +916,7 @@ def load_world_definition(
             ),
         )
 
+    apply_room_grid(rooms, pending_directional_targets=pending_directional_targets)
     if entry_room_id not in rooms:
         raise ContentError(f"World entry room '{entry_room_id}' does not exist.")
     for room in rooms.values():

@@ -198,6 +198,9 @@ shortcuts, but it must not infer action authority from presentation.
 
 - **Travel:** [rooms.py](../server/services/rooms.py) validates exits/locks/cards,
   persists the destination, updates presence, and closes the current activity.
+  Grid worlds link orthogonally adjacent rooms automatically; snapshots carry
+  grid positions, adjacent directions, and nearby minimap tiles through
+  [room_grid.py](../server/content/room_grid.py) and [minimap.js](../client/app/js/minimap.js).
   NPC travel uses [npc_movement.py](../server/services/npc_movement.py).
 - **Card transfers:** [cards.py](../server/services/cards.py) performs atomic
   room/inventory transfers; concurrent claims cannot duplicate a stack. Pinned
@@ -212,7 +215,8 @@ shortcuts, but it must not infer action authority from presentation.
 - **Classrooms:** [classrooms](../mods/classrooms/) owns purchase,
   customization, grade floors, materialization, and access checks. Entry shares
   the normal room-change path; persisted rooms are prepared before
-  initialization/seeding.
+  initialization/seeding. TinyTown houses, gallery rooms, and classrooms receive
+  free grid positions when their world uses a room grid.
 - **Vibes:** [vibes.py](../server/services/vibes.py) owns directed -100..100
   scores between peeps. Player-sourced rows live in the profile DB and
   NPC-sourced rows in the world DB. Occupied rooms apply the minute-based

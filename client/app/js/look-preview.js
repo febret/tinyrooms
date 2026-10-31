@@ -1,4 +1,5 @@
 import { isExitProp } from "./exit-props.js";
+import { minimapMarkup } from "./minimap.js";
 import { escapeHtml } from "./presentation.js";
 import { findContainerCard, findInventoryCard, findRoomCard } from "./state.js";
 
@@ -17,6 +18,10 @@ export function lookDialogBubble(state, description) {
 /** Describe the selected entity's preview above the look bar and the inspect action it opens. */
 export function lookPreview(state, description) {
   const selection = state.selection || {};
+  if (selection.kind === "room" && state.room?.grid && state.room?.minimap) {
+    const markup = minimapMarkup(state.room);
+    if (markup) return { markup, action: null };
+  }
   if (selection.kind === "peep" && description.imageUrl) {
     const previewMarkup = `<img class="look-preview look-preview-peep" src="${escapeHtml(description.imageUrl)}" alt="">`;
     return { markup: `${previewMarkup}${lookDialogBubble(state, description)}`, action: null };

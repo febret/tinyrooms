@@ -27,7 +27,8 @@ from server.commands.outcomes import (
 )
 from server.commands.parser import ParsedCommand
 from server.content.common import ContentError, load_yaml_file, require_mapping
-from server.content.worlds import PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition
+from server.content.room_grid import allocate_grid_block, room_grid_enabled
+from server.content.worlds import PropInstanceDefinition, QuickAction, RoomDefinition, WorldDefinition, apply_room_grid
 from mods.classrooms.cafeteria import CafeteriaService
 from mods.classrooms.lesson import LessonService, teach_command
 from mods.classrooms.lessons import SUBJECT_LABELS
@@ -41,6 +42,7 @@ MOD_ID = "classrooms"
 DOORS_FILENAME = "content/doors.yaml"
 DEFAULT_TEMPLATE_ROOM_ID = "player-classroom"
 ROOM_ID_PREFIX = PLAYER_ROOM_PREFIX
+CLASSROOM_GRID_ORIGIN = (-64, 64, 0)
 
 MIN_GRADE = 1
 MAX_GRADE = 8
@@ -327,6 +329,15 @@ class ClassroomService:
             raise ValueError("The player-classroom template is not loaded.")
         return template
 
+    def _allocate_grid(self) -> tuple[int, int, int] | None:
+        """Assign a free isolated grid cell when the world uses a room grid."""
+
+        if not room_grid_enabled(self._world.rooms):
+            return None
+        return allocate_grid_block(
+            self._world.rooms, 1, origin=CLASSROOM_GRID_ORIGIN, columns=1
+        )[0]
+
     def _clone(self, room_id: str, label: str) -> RoomDefinition:
         template = self._template()
         return replace(
@@ -334,6 +345,9 @@ class ClassroomService:
             id=room_id,
             label=label,
             description="A bright classroom of your very own.",
+            exits=dict(template.exits),
+            props=dict(template.props),
+            grid=self._allocate_grid(),
             template=False,
         )
 
@@ -361,21 +375,33 @@ class ClassroomService:
 
     def _materialize(self, record: PlayerRoomRecord) -> RoomDefinition:
         template = self._template()
+        existing = self._world.rooms.get(record.room_id)
+        grid = (
+            existing.grid
+            if existing is not None and not existing.template
+            else self._allocate_grid()
+        )
         return replace(
             template,
             id=record.room_id,
             label=self._label_for(record.owner_account_id),
             description="A bright classroom of your very own.",
+            exits=dict(template.exits),
+            props=dict(template.props),
+            grid=grid,
             template=False,
         )
 
     def _register(self, record: PlayerRoomRecord) -> None:
         self._world.rooms[record.room_id] = self._materialize(record)
+        apply_room_grid(self._world.rooms)
 
     def prepare(self) -> None:
         """Materialize every persisted player room before the world is seeded."""
 
-        for record in self._world_state.list_player_rooms():
+        for record in sorted(
+            self._world_state.list_player_rooms(), key=lambda entry: entry.room_id
+        ):
             self._register(record)
         if self._lessons is not None:
             self._lessons.prepare()

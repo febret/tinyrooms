@@ -250,6 +250,13 @@ The Look Bar is also used to display minor action feedback (e.g., selecting
 'Use' on a health potion when at full health may replace the description with
 `You don't need this`).
 
+When the current room itself is selected, a grid world shows a minimap above
+the Look Bar instead of an entity preview. The map displays nearby rooms on the
+current vertical level, centered on the current room, with floor artwork and
+lighting/darkness cues. Direction icons around the map travel through the
+available north, south, east, west, up, and down exits. Legacy worlds without
+room-grid positions do not show a minimap.
+
 
 #### The Quick Actions Bar
 The Quick Actions Bar is the selected entity's context menu; available actions
@@ -936,6 +943,26 @@ can be placed on the Board by the room owner / world designer. Props can just
 be used for aesthetic reasons (e.g., to add natural elements or buildings to the flat
 board), or they can be active game elements with interactive behavior.
 
+
+### Room grid
+Grid worlds assign each live room an integer `grid: [x, y, z]` position. Grid
+axes run east/west on `-X`/`+X`, north/south on `-Y`/`+Y`, and up/down on
+`-Z`/`+Z`. Rooms
+that touch orthogonally in any of the six directions are linked automatically:
+an unspecified adjacency becomes an open bidirectional exit named for its
+direction on each side, with a matching directional room transition. An
+explicitly authored transition is preserved. Details
+for one side can be supplied under the conventional exit names `north`,
+`south`, `east`, `west`, `up`, and `down`. Existing explicit links to an
+adjacent room also satisfy adjacency, while other explicit exits remain
+available as custom connections. Worlds without grid positions keep their
+legacy exits and have no minimap. Dynamically allocated rooms, such as newly
+purchased TinyTown houses, are placed in a free connected block of grid space.
+TinyTown house interiors navigate through these grid-adjacency exits rather
+than the old direct room-to-room exits; the front-door exit back to town is
+unchanged. The minimap intentionally shows nearby room positions even when
+their exits are locked, so it is a local layout map rather than a fog-of-war
+discovery map.
 
 ### Exits
 Rooms are connected to each other through exits. Available exits are shown as
