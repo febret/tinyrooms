@@ -4,8 +4,6 @@ import { escapeHtml } from "../presentation.js";
 export const MULTIVERSE_OPEN_MS = 980;
 export const MULTIVERSE_CLOSE_MS = 720;
 export const MULTIVERSE_TRAVEL_MS = 1050;
-const MAX_PLANET_FRIEND_STICKERS = 4;
-const MAX_DETAIL_FRIEND_STICKERS = 8;
 
 function absoluteUrl(value) {
   const text = String(value || "").trim();
@@ -27,13 +25,6 @@ function absoluteUrl(value) {
 /** Resolve a world or friend image without letting malformed input break the layout. */
 export function multiverseImageUrl(raw) {
   return absoluteUrl(raw);
-}
-
-function initials(username) {
-  const text = String(username || "").trim();
-  if (!text) return "•";
-  const parts = text.split(/\s+/).filter(Boolean).slice(0, 2);
-  return parts.map(part => part.slice(0, 1).toUpperCase()).join("") || "•";
 }
 
 /** Deterministic accent hue so every world keeps its own orbital signature. */
@@ -67,15 +58,6 @@ export function planetAngle(index, count) {
   return -90 + (index * 360) / count;
 }
 
-function friendStickerMarkup(friend) {
-  const username = String(friend.username || "Friend");
-  const source = absoluteUrl(friend.stickerUrl);
-  if (!source) {
-    return `<span class="mv-friend fallback" title="${escapeHtml(`${username} is online here`)}" aria-label="${escapeHtml(`${username} is online here`)}">${escapeHtml(initials(username))}</span>`;
-  }
-  return `<span class="mv-friend" title="${escapeHtml(`${username} is online here`)}" aria-label="${escapeHtml(`${username} is online here`)}"><img src="${escapeHtml(source)}" alt="" loading="lazy" draggable="false"></span>`;
-}
-
 export function multiversePlanetMarkup(world, { selected = false, traveling = false, index = 0, count = 1 } = {}) {
   const id = String(world.id || "");
   const label = String(world.label || id || "A world");
@@ -88,7 +70,7 @@ export function multiversePlanetMarkup(world, { selected = false, traveling = fa
   const description = [
     label,
     online,
-    world.current ? "You are here." : "Select to inspect this world.",
+    world.current ? "You are here." : "Select to aim the hub at this world.",
     friendCount ? `${friendCount} ${friendCount === 1 ? "friend" : "friends"} online.` : "",
   ].filter(Boolean).join(" ");
   return `
@@ -125,18 +107,11 @@ function statusCopy(multiverse) {
   return `${total} ${total === 1 ? "world is" : "worlds are"} within reach.`;
 }
 
-export function multiverseDetailMarkup(selected, multiverse = {}) {
+/** Central travel action for the selected world, rendered at the hub of the ring. */
+export function multiverseTravelMarkup(selected, multiverse = {}) {
   if (!selected) {
-    return `
-      <div class="mv-detail-empty">
-        <p>No world selected.</p>
-        <span>Choose a planet on the rim.</span>
-      </div>
-    `;
+    return `<p class="mv-center-empty">No world selected.</p>`;
   }
-  const image = multiverseImageUrl(selected.imageUrl);
-  const friends = Array.isArray(selected.friends) ? selected.friends : [];
-  const shownFriends = friends.slice(0, MAX_DETAIL_FRIEND_STICKERS);
   const traveling = Boolean(multiverse.travelingId && multiverse.travelingId === selected.id);
   const travelDisabled = Boolean(selected.current || traveling || multiverse.status !== "ready");
   const travelLabel = traveling
@@ -145,24 +120,8 @@ export function multiverseDetailMarkup(selected, multiverse = {}) {
       ? "You are here"
       : `Travel to ${selected.label}`;
   return `
-    <div class="mv-detail-media">
-      ${image
-        ? `<img class="mv-detail-image" src="${escapeHtml(image)}" alt="" loading="lazy" draggable="false">`
-        : `<span class="mv-detail-fallback" aria-hidden="true">✦</span>`}
-      <span class="mv-detail-veil" aria-hidden="true"></span>
-      ${selected.current ? '<span class="mv-detail-home">You are here</span>' : ""}
-    </div>
-    <h3 class="mv-detail-name">${escapeHtml(selected.label)}</h3>
-    <p class="mv-detail-description">${escapeHtml(selected.description || "A shimmering world waits on the other side.")}</p>
-    <dl class="mv-detail-meta">
-      <div><dt>Peeps</dt><dd>${escapeHtml(multiverseCountLabel(selected.usersOnline))}</dd></div>
-      <div><dt>World</dt><dd>${escapeHtml(String(selected.id || ""))}</dd></div>
-    </dl>
-    ${friends.length
-      ? `<div class="mv-detail-friends" aria-label="${escapeHtml(`${friends.length} ${friends.length === 1 ? "friend" : "friends"} online here`)}">${shownFriends.map(friendStickerMarkup).join("")}${friends.length > MAX_DETAIL_FRIEND_STICKERS ? `<span class="mv-friend fallback" aria-hidden="true">+${friends.length - MAX_DETAIL_FRIEND_STICKERS}</span>` : ""}</div>`
-      : `<p class="mv-detail-friends-empty">No friends here right now.</p>`}
     <button type="button" class="mv-travel primary" data-multiverse-travel="${escapeHtml(String(selected.id || ""))}" data-sound="multiverseTravel" ${travelDisabled ? "disabled" : ""}>${escapeHtml(travelLabel)}</button>
-    ${traveling ? '<p class="mv-detail-note" role="status">Holding the portal open…</p>' : ""}
+    ${traveling ? '<p class="mv-center-note" role="status">Holding the portal open…</p>' : ""}
   `;
 }
 
@@ -207,9 +166,9 @@ export function multiverseShellMarkup(multiverse) {
         ${multiverse?.status === "error" && !ordered.length
           ? `<button type="button" class="primary mv-retry" data-multiverse-refresh>Try again</button>`
           : ""}
-        <aside class="mv-panel" aria-label="Selected world" aria-live="polite" data-multiverse-detail>
-          ${multiverseDetailMarkup(selected, multiverse || {})}
-        </aside>
+        <div class="mv-center" data-multiverse-center aria-live="polite">
+          ${multiverseTravelMarkup(selected, multiverse || {})}
+        </div>
       </div>
       <footer class="mv-foot">
         <span data-multiverse-count>${escapeHtml(totalOnline ? `${totalOnline} peeps across the Multiverse` : "")}</span>
@@ -231,9 +190,7 @@ export function createMultiverseView({
   let open = false;
   let worldsKey = "";
   let selectedKey = "";
-  let previewId = "";
-  let hoverAt = 0;
-  let hoverId = "";
+  let centerKey = "";
   let closeTimer = 0;
   let travelTimer = 0;
 
@@ -258,8 +215,8 @@ export function createMultiverseView({
     return layer.querySelector("[data-multiverse-ring]");
   }
 
-  function detail() {
-    return layer.querySelector("[data-multiverse-detail]");
+  function center() {
+    return layer.querySelector("[data-multiverse-center]");
   }
 
   function statusNode() {
@@ -275,7 +232,7 @@ export function createMultiverseView({
     layer.innerHTML = multiverseShellMarkup(multiverse);
     worldsKey = "";
     selectedKey = "";
-    previewId = "";
+    centerKey = "";
   }
 
   function setBackground() {
@@ -287,11 +244,10 @@ export function createMultiverseView({
   function slotGeometry(slot, index, count, rect) {
     const compact = rect.width < 760 || rect.height < 620;
     const base = Math.min(rect.width, rect.height);
-    const panelOffset = rect.width >= 1080 ? Math.min(rect.width * 0.11, 150) : 0;
-    const radiusX = Math.max(104, Math.min(rect.width * (compact ? 0.34 : 0.30) - panelOffset * 0.35, compact ? 190 : 320));
-    const radiusY = Math.max(84, Math.min(rect.height * (compact ? 0.21 : 0.28), compact ? 132 : 216));
+    const radiusX = Math.max(132, Math.min(rect.width * (compact ? 0.34 : 0.32), compact ? 200 : 340));
+    const radiusY = Math.max(104, Math.min(rect.height * (compact ? 0.22 : 0.29), compact ? 142 : 226));
     const angle = (planetAngle(index, count) * Math.PI) / 180;
-    const x = Math.cos(angle) * radiusX - panelOffset;
+    const x = Math.cos(angle) * radiusX;
     const y = Math.sin(angle) * radiusY * (base < 520 ? 0.92 : 1);
     slot.style.setProperty("--mv-x", `${Math.round(x)}px`);
     slot.style.setProperty("--mv-y", `${Math.round(y)}px`);
@@ -318,7 +274,7 @@ export function createMultiverseView({
         const slot = image.closest("[data-multiverse-slot]");
         if (slot) slot.classList.add("is-imageless");
         const fallback = document.createElement("span");
-        fallback.className = image.classList.contains("mv-detail-image") ? "mv-detail-fallback" : "mv-planet-fallback";
+        fallback.className = "mv-planet-fallback";
         fallback.textContent = "✦";
         fallback.setAttribute("aria-hidden", "true");
         image.replaceWith(fallback);
@@ -326,17 +282,14 @@ export function createMultiverseView({
     });
   }
 
-  function showDetail(world, multiverse, { announce = false } = {}) {
-    const detailNode = detail();
-    if (!detailNode) return;
-    const markup = multiverseDetailMarkup(world, multiverse);
-    if (detailNode.dataset.world === String(world?.id || "") && detailNode.dataset.travel === String(multiverse.travelingId || "")) return;
-    detailNode.dataset.world = String(world?.id || "");
-    detailNode.dataset.travel = String(multiverse.travelingId || "");
-    detailNode.innerHTML = markup;
-    if (announce) detailNode.setAttribute("aria-live", "assertive");
-    else detailNode.setAttribute("aria-live", "polite");
-    refreshImages(detailNode);
+  /** Keep the central travel action in step with the selected world. */
+  function syncCenter(world, multiverse) {
+    const centerNode = center();
+    if (!centerNode) return;
+    const key = JSON.stringify([world?.id || "", multiverse.travelingId || "", multiverse.status || ""]);
+    if (centerKey === key) return;
+    centerKey = key;
+    centerNode.innerHTML = multiverseTravelMarkup(world, multiverse);
   }
 
   function syncWorlds(force = false) {
@@ -386,7 +339,7 @@ export function createMultiverseView({
     if (statusNode() && (force || worldsKey === key) && !ordered.length && multiverse.status !== "loading") {
       statusNode().textContent = statusCopy(multiverse);
     }
-    if (!previewId) showDetail(selected, multiverse);
+    syncCenter(selected, multiverse);
     layoutPlanets();
   }
 
@@ -402,7 +355,6 @@ export function createMultiverseView({
     const reduced = Boolean(getState()?.ui?.reducedMotion);
     const multiverse = stateMultiverse();
     open = true;
-    previewId = "";
     setBackground();
     ensureShell(multiverse);
     layer.hidden = false;
@@ -427,9 +379,9 @@ export function createMultiverseView({
 
   function hide() {
     open = false;
-    previewId = "";
     worldsKey = "";
     selectedKey = "";
+    centerKey = "";
     layer.dataset.state = "idle";
     layer.hidden = true;
     layer.innerHTML = "";
@@ -439,7 +391,6 @@ export function createMultiverseView({
     if (!open) return Promise.resolve();
     const reduced = Boolean(getState()?.ui?.reducedMotion);
     layer.dataset.state = "closing";
-    previewId = "";
     return new Promise(resolve => {
       if (reduced) {
         resolve();
@@ -472,7 +423,6 @@ export function createMultiverseView({
   function selectWorld(id, { focus = false } = {}) {
     const world = worldById(id);
     if (!world) return;
-    previewId = "";
     onSelect?.(world.id);
     if (focus) {
       ring()?.querySelector(`[data-world-id="${CSS.escape(world.id)}"]`)?.focus({ preventScroll: true });
@@ -494,7 +444,6 @@ export function createMultiverseView({
     if (layer.hidden) return;
     const refresh = event.target.closest("[data-multiverse-refresh]");
     if (refresh) {
-      previewId = "";
       onRefresh?.();
       return;
     }
@@ -511,34 +460,6 @@ export function createMultiverseView({
     const planet = event.target.closest("[data-world-id]");
     if (planet) selectWorld(planet.dataset.worldId);
   });
-
-  layer.addEventListener("pointerover", event => {
-    if (layer.hidden || layer.dataset.state !== "open") return;
-    if (event.pointerType === "touch") return;
-    const planet = event.target.closest?.("[data-world-id]");
-    if (!planet) return;
-    const id = String(planet.dataset.worldId || "");
-    const now = Date.now();
-    if (id && (id !== hoverId || now - hoverAt > 220)) {
-      hoverId = id;
-      hoverAt = now;
-    }
-    const world = worldById(id);
-    if (world && previewId !== id) {
-      previewId = id;
-      showDetail(world, stateMultiverse());
-      ring()?.querySelectorAll("[data-world-id]").forEach(button => {
-        button.classList.toggle("is-preview", button.dataset.worldId === id);
-      });
-    }
-  });
-
-  layer.addEventListener("pointerleave", () => {
-    if (!previewId) return;
-    previewId = "";
-    ring()?.querySelectorAll("[data-world-id]").forEach(button => button.classList.remove("is-preview"));
-    showDetail(selectedWorld(stateMultiverse()), stateMultiverse());
-  }, true);
 
   layer.addEventListener("focusin", event => {
     const planet = event.target.closest?.("[data-world-id]");
