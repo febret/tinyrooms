@@ -1,7 +1,6 @@
 /** Generic persistent decal overlays for board sprites and sidebar peep chips. */
 
 export const PAINT_DECAL_KIND = "paint";
-export const STINK_DECAL_KIND = "stink";
 export const DECAL_COLORS = Object.freeze(["#ff4d6d", "#4ea8ff", "#5cf29a", "#ffe066", "#c77dff"]);
 export const STINK_COLORS = Object.freeze(["#63c74d", "#3f9142", "#8be07a"]);
 
@@ -30,17 +29,6 @@ export function normalizeDecals(raw) {
       data: entry.data && typeof entry.data === "object" ? { ...entry.data } : {},
     }))
     .filter(entry => entry.id && entry.kind);
-}
-
-/** Return whether a decal list contains a given kind. */
-export function hasDecalKind(raw, kind) {
-  return normalizeDecals(raw).some(entry => entry.kind === kind);
-}
-
-/** Return the number of paint splats represented by a decal list. */
-export function paintDecalCount(raw) {
-  const paint = normalizeDecals(raw).find(entry => entry.kind === PAINT_DECAL_KIND);
-  return paint ? Math.min(3, Math.max(1, paint.count)) : 0;
 }
 
 function drawSplat(painter, centerX, centerY, radius, color, seed) {

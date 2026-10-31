@@ -279,15 +279,6 @@ h3 { font-size: 18px; }
 .bubble-image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .bubble.emote-animation { width: auto; height: auto; }
 .bubble.emote-animation .bubble-image { width: auto; height: auto; max-width: min(160px, calc(100vw - var(--sidebar-width) - 40px)); max-height: min(160px, 40dvh); object-fit: contain; }
-.bubble.sprite-bubble { max-width: min(180px, 46vw); padding: 8px 10px; border-radius: 12px; font-size: 14px; transform: translate(-50%, -100%) scale(var(--bubble-scale, .65)); transform-origin: 50% 100%; }
-.bubble.sprite-bubble::before { left: 50%; top: 100%; margin-left: -7px; border-width: 9px 7px 0; border-color: var(--bubble-fill) transparent transparent; }
-.bubble.sprite-bubble.thought { min-height: 74px; padding: 18px 22px; }
-.bubble.sprite-bubble.thought::before { left: 50%; top: calc(100% - 2px); margin-left: -5px; width: 9px; height: 9px; box-shadow: -9px 3px 0 -2px var(--bubble-fill); }
-.bubble.sprite-bubble.spiky { padding: 14px 17px; }
-.bubble.sprite-bubble.emote { width: 76px; height: 76px; padding: 0; }
-.bubble.sprite-bubble.emote .bubble-image { object-fit: contain; }
-.bubble.sprite-bubble.emote-animation { width: auto; height: auto; max-width: min(180px, 46vw); max-height: min(180px, 40dvh); overflow: visible; }
-.bubble.sprite-bubble.emote-animation .bubble-image { width: auto; height: auto; max-width: min(180px, 46vw); max-height: min(180px, 40dvh); object-fit: contain; }
 .bubble.dialog-bubble { --bubble-fill: #d9e2e8; cursor: default; pointer-events: none; }
 .bubble.dialog-bubble::before { left: var(--bubble-arrow-left, 50%); top: 100%; margin-left: -8px; border-width: 9px 8px 0; border-color: var(--bubble-fill) transparent transparent; }
 .bubble.dismissing { animation: bubble-out .18s ease-in forwards; pointer-events: none; }

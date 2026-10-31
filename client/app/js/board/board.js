@@ -80,7 +80,7 @@ function boardPositionFromWorld(point) {
 }
 
 /** Create the physical room board. render(state) updates it; dispose() releases its resources. */
-export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoint, onPeepAnchors, onGameAction, needsPeepAnchors, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
+export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoint, onGameAction, onEditSelect, onEditBegin, onEditTransform, onEditRotate, onEditScale, onEditElevate, stackProps = false, dragHandles = false }) {
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   canvas.dataset.boardReady = "false";
@@ -239,9 +239,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
   let needsRender = true;
   let shadowPasses = 0;
   let shadowInvalidations = 0;
-  let anchorsDirty = true;
-  let lastAnchorUpdate = 0;
-  const ANCHOR_INTERVAL_MS = 66;
   const recovery = createBoardRecovery({
     canvas,
     overlay,
@@ -1416,14 +1413,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       renderer.render(scene, camera);
       if (shadowWillRender) shadowPasses += 1;
       outlines.render();
-      if (current?.sprites?.size && (!needsPeepAnchors || needsPeepAnchors())) {
-        const now = performance.now();
-        if (anchorsDirty || now - lastAnchorUpdate >= ANCHOR_INTERVAL_MS) {
-          anchorsDirty = false;
-          lastAnchorUpdate = now;
-          onPeepAnchors?.(spriteLayer.anchors(current, camera, canvas));
-        }
-      }
     }
     return needsRender || animating;
   }
@@ -1544,10 +1533,6 @@ export function createBoard({ canvas, overlay, onSelect, onMoveSprite, onDropPoi
       if (applySpriteLighting(current, spriteLighting)) invalidate();
       for (const record of current?.props?.values() || []) setDarkened(record, roomDark);
       updateSelection();
-      if (current?.sprites?.size && (!needsPeepAnchors || needsPeepAnchors())) {
-        anchorsDirty = true;
-        invalidate();
-      }
     },
     /** Map a screen point to the authoritative floor position and projected screen point. */
     screenToBoardPosition,

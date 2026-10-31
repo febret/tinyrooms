@@ -1074,7 +1074,6 @@ const statusButton = createStatusButton({
 });
 const board = createBoard({
   canvas: $("#board-canvas"), overlay: $("#board-overlay"),
-  needsPeepAnchors: () => false,
   onGameAction(action) {
     const state = store.getState();
     const controller = state.room?.board?.game?.controller;
@@ -1106,7 +1105,6 @@ const board = createBoard({
     const clamp = value => Math.min(94, Math.max(6, value));
     void sendCommand(`.sprite move ${clamp(x)} ${clamp(y)}`).catch(showError);
   },
-  onPeepAnchors(anchors) { peeps.setSpriteAnchors(anchors); },
   onEditSelect(id) { store.dispatch({ type: "editor-select", id }); },
   onEditBegin() { store.dispatch({ type: "editor-begin" }); },
   onEditTransform({ id, position }) { store.dispatch({ type: "editor-transform", id, position }); },

@@ -9,12 +9,6 @@ const TOP = 0.045;
 const SPRITE_HEIGHT = 1.8;
 const SPRITE_MOVE_SMOOTHING = 5;
 const FALLBACK_ASPECT = 0.78;
-const BUBBLE_REFERENCE_PX = 100;
-
-/** Keep a bubble at a fixed size ratio to the peep sprite it belongs to. */
-export function spriteBubbleScale(pixelHeight) {
-  return Math.max(0.01, (Number(pixelHeight) || 0) / BUBBLE_REFERENCE_PX);
-}
 
 /**
  * Build billboarded 2D peep sprites for sprite-mode rooms.
@@ -346,40 +340,5 @@ export function createBoardSprites({ textureLoader, invalidate }) {
     for (const id of [...entry.sprites.keys()]) remove(entry, id);
   }
 
-  /** Project each visible sprite's head into canvas client coordinates. */
-  function anchors(entry, camera, canvas) {
-    const result = new Map();
-    if (!entry?.sprites?.size || !canvas) return result;
-    const bounds = canvas.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) return result;
-    camera.updateMatrixWorld();
-    const world = new THREE.Vector3();
-    const view = new THREE.Vector3();
-    const projected = new THREE.Vector3();
-    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    for (const record of entry.sprites.values()) {
-      const sprite = record.sprite;
-      if (!sprite?.visible || record.failed) continue;
-      sprite.getWorldPosition(world);
-      // A Sprite is camera-facing, so its screen height follows view depth, not
-      // the world-space vertical axis. Projecting a world-space top point made
-      // bubbles shrink toward nothing as the board rotated to top-down.
-      view.copy(world).applyMatrix4(camera.matrixWorldInverse);
-      const depth = -view.z;
-      if (depth <= 0.05) continue;
-      const pixelHeight = sprite.scale.y * bounds.height * (camera.zoom || 1) / (2 * depth * tanHalfFov);
-      projected.copy(world).project(camera);
-      if (![projected.x, projected.y, projected.z].every(Number.isFinite) || projected.z > 1) continue;
-      const x = (projected.x + 1) / 2 * bounds.width + bounds.left;
-      const feet = (1 - projected.y) / 2 * bounds.height + bounds.top;
-      result.set(record.id, {
-        x,
-        y: feet - pixelHeight,
-        scale: spriteBubbleScale(pixelHeight),
-      });
-    }
-    return result;
-  }
-
-  return { sync, advance, isAnimating, clear, anchors, react, applyLighting };
+  return { sync, advance, isAnimating, clear, react, applyLighting };
 }

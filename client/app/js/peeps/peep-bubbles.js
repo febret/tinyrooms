@@ -29,10 +29,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   const dismissing = new Set();
   const bubbleSizes = new Map();
 
-  function isSpritePeep() {
-    return false;
-  }
-
   function roomPeep(peepId) {
     return [...(latest?.room?.occupants || []), ...(latest?.room?.npcs || [])]
       .find(peep => peep.id === peepId) || null;
@@ -105,7 +101,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
         continue;
       }
       if (item.bubble.hidden) item.bubble.hidden = false;
-      item.bubble.style.removeProperty("--bubble-scale");
       placeChatBubble(item, bounds);
     }
   }
@@ -149,7 +144,7 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     bubble.dataset.bubbleKey = nextKey;
     const styleKey = style === "thought" || style === "spiky" ? style : "speech";
     const emoteClass = hasImage ? ` emote emote-${styleKey}` : "";
-    const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${isSpritePeep(peep) ? "sprite-bubble" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
+    const className = `bubble ${style}${emoteClass} ${peep.bubble.text.length > 75 ? "long" : ""} ${dismissing.has(peep.id) ? "dismissing" : ""}`;
     setBubbleClass(bubble, className);
     setBubbleText(bubble, hasImage ? "" : peep.bubble.text);
     if (image && image.getAttribute("src") !== peep.bubble.imageUrl) image.src = peep.bubble.imageUrl;
@@ -200,10 +195,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
     position();
   }
 
-  function setSpriteAnchors() {
-    return;
-  }
-
   const panelObserver = new ResizeObserver(position);
   panel.addEventListener("scroll", position, { passive: true });
   panelObserver.observe(panel);
@@ -224,8 +215,6 @@ export function createPeepBubbles({ panel, bubbleLayer, onDismiss }) {
   return {
     render,
     position,
-    setSpriteAnchors,
     destroy,
-    hasBubbles: () => chatBubbles.size > 0,
   };
 }

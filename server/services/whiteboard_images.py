@@ -34,18 +34,6 @@ def image_url_for(digest: str) -> str:
     return f"{WHITEBOARD_IMAGE_ASSET_PREFIX}/{digest}.png"
 
 
-def digest_from_image_url(image_url: object) -> str:
-    """Return the digest encoded in a whiteboard image URL."""
-
-    if not isinstance(image_url, str):
-        raise ValueError("A whiteboard image must be a URL.")
-    prefix = f"{WHITEBOARD_IMAGE_ASSET_PREFIX}/"
-    if not image_url.startswith(prefix) or not image_url.endswith(".png"):
-        raise ValueError("A whiteboard image must use a whiteboard asset URL.")
-    digest = image_url[len(prefix):-len(".png")]
-    if not _IMAGE_HASH_PATTERN.match(digest):
-        raise ValueError("A whiteboard image URL is invalid.")
-    return digest
 
 
 def decode_whiteboard_image(image: object) -> bytes:

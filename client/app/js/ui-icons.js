@@ -38,11 +38,6 @@ export function uiIconUrl(key) {
   return withBase(`/assets/ui/${name}.svg`);
 }
 
-/** Throwing lookup for tests and build-time validation. */
-export function assertUiIcon(key) {
-  return uiIconUrl(key);
-}
-
 /** Fallback URL used in render paths so one typo never breaks the toolbar. */
 export function uiIconUrlOrFallback(key, fallback = "commands") {
   try {

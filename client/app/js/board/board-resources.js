@@ -102,16 +102,6 @@ export function sharedCardGeometry() {
   return geometry;
 }
 
-/** One material per colour, for the repeated faces of a room card. */
-export function sharedCardMaterial(color) {
-  let shared = resources.materials.get(color);
-  if (!shared) {
-    shared = material(color);
-    resources.materials.set(color, shared);
-  }
-  return shared;
-}
-
 /** A texture per URL, so every copy of a card back costs one upload. */
 export function sharedTexture(url) {
   return resources.textures.get(url) || null;

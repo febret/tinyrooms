@@ -45,18 +45,6 @@ export function tagsOf(entries, source = "") {
   return [...tags].sort();
 }
 
-export function setLibraryQuery(query) {
-  libraryFilter.setQuery(query);
-}
-
-export function setLibrarySource(source) {
-  libraryFilter.setSource(source);
-}
-
-export function toggleLibraryTag(tag) {
-  libraryFilter.toggleTag(tag);
-}
-
 export function resetLibraryFilter() {
   libraryFilter.reset();
 }
@@ -70,11 +58,6 @@ export function resetLibraryFilter() {
  */
 export function bindEditorLibrary(root, library) {
   libraryFilter.bind(root, library);
-}
-
-/** Apply the compatibility controller's criteria to already-rendered markup. */
-export function syncEditorLibrary(root, library) {
-  libraryFilter.sync(root, library);
 }
 
 /** Independent criteria and DOM bindings for an editor or shared library dock. */

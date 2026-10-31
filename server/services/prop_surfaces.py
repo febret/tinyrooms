@@ -73,20 +73,6 @@ def _blank_whiteboard_content() -> dict[str, object]:
     }
 
 
-def default_surface(
-    instance_id: str,
-    kind: str,
-    content: dict[str, object] | None = None,
-) -> SurfaceRecord:
-    fallback = DEFAULT_SIGN_SURFACE if kind == "sign" else DEFAULT_WHITEBOARD_SURFACE
-    return SurfaceRecord(
-        instance_id=instance_id,
-        kind=kind,
-        content=_copy_surface_content(content if content is not None else fallback),
-        revision=0,
-    )
-
-
 class PropSurfaceService:
     """Read and write per-instance surface content with last-write-wins revisions."""
 

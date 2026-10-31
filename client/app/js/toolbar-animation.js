@@ -21,13 +21,6 @@ export function toolbarButtonKey(element, index = -1) {
   return `button:${classes}:${index >= 0 ? index : ""}`;
 }
 
-/** Render updated markup with toolbar enter/leave animation. */
-export function updateWithToolbarAnimation(root, markup) {
-  const previous = captureToolbarButtons(root);
-  root.innerHTML = markup;
-  return animateToolbarButtons(root, previous);
-}
-
 function toolbarButtons(root) {
   if (!root?.children) return [];
   return [...root.children].filter(element => element?.tagName === "BUTTON");

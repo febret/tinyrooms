@@ -278,10 +278,6 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
     peepBubbles.render(state, shown);
   }
 
-  function setSpriteAnchors(anchors) {
-    peepBubbles.setSpriteAnchors(anchors);
-  }
-
   function destroy() {
     peepBubbles.destroy();
     for (const bubble of moveBubbles) { clearTimeout(bubble._moveTimer); bubble.remove(); }
@@ -293,8 +289,6 @@ export function createPeepsView({ panel, bubbleLayer, onSelect, onDismiss, onMov
   return {
     render,
     noteMove,
-    setSpriteAnchors,
     destroy,
-    hasBubbles: () => peepBubbles.hasBubbles(),
   };
 }

@@ -1,5 +1,4 @@
 export const BAKE_TOOLS = ["image", "asset", "sound", "TEMPLATE"];
-export const SIMPLIFY_STRATEGIES = ["auto", "decimate", "retopo"];
 
 export function previewKind(output) {
   const suffix = String(output || "").toLowerCase().split(".").pop() || "";

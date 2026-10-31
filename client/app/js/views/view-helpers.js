@@ -96,17 +96,7 @@ export function modalShell({ extraClass = "", ariaLabel, title = "", titleHtml =
   `;
 }
 
-export function statusIconMarkup(statuses, definitions) {
-  return statuses.map(id => {
-    const definition = definitions?.[id];
-    return `<span class="status-icon" title="${escapeHtml(definition?.label || id)}">${escapeHtml(definition?.icon || "•")}</span>`;
-  }).join("");
-}
 
-export function statusIconsMarkup(statuses, definitions) {
-  if (!statuses?.length) return "";
-  return `<span class="status-icons">${statusIconMarkup(statuses, definitions)}</span>`;
-}
 
 export function journalSpreadMarkup({ left, right, leftLabel, rightLabel }) {
   return `<div class="journal-book"><div class="journal-pages">

@@ -244,6 +244,17 @@ class TutorialGridSnapshotTests(IntegrationTestCase):
             },
         )
 
+    def test_room_quick_actions_exclude_exit_commands(self) -> None:
+        credentials = self.create_ready_account("grid-walker")
+        account = self.runtime().profiles.get_account_by_id(self.account_id(credentials))
+        snapshot = asyncio.run(self.runtime().rooms.build_snapshot(account, "foyer"))
+        self.assertTrue(snapshot["exits"], "exits stay serialized for the minimap")
+        for action in snapshot["quick_actions"]:
+            self.assertFalse(
+                action["command"].startswith(".go "),
+                f"room quick actions must not duplicate exits: {action['command']}",
+            )
+
 
 class TinytownGridPlacementTests(IntegrationTestCase):
     world_path = REPO_ROOT / "worlds" / "tinytown"

@@ -91,12 +91,6 @@ WHITEBOARD_INNER_IDS = frozenset(style_id for style_id, _ in WHITEBOARD_FRAME_IN
 WHITEBOARD_MATTE_IDS = frozenset(style_id for style_id, _ in WHITEBOARD_FRAME_MATTES)
 
 
-def default_activity(render_kind: str) -> str | None:
-    """Return the activity a procedural surface launches by default."""
-
-    return "whiteboard" if render_kind == "whiteboard" else None
-
-
 def sign_options() -> dict[str, object]:
     """Return client-facing sign styles and authoritative editing limits."""
 

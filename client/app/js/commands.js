@@ -78,10 +78,6 @@ export function buildPhoneMessagesCommand(action, threadKey, body) {
   return `.phone_msg send ${threadKey} ${quote(body)}`;
 }
 
-export function buildPinCommand(peepId, mode) {
-  return `.pin_peep @peep:${peepId}${mode ? ` ${mode}` : ""}`;
-}
-
 export function buildUseCommand(stackId) {
   return `.use @card:${stackId}`;
 }
@@ -116,10 +112,6 @@ export function buildMergeCommand(sourceId, destinationId) {
 
 export function buildSellCommand(stackId, quantity = 1) {
   return `.sell @card:${stackId} ${Math.max(1, Number(quantity || 1))}`;
-}
-
-export function buildMergeAllCommand() {
-  return ".merge_all";
 }
 
 /** Build a drop-into-container command for one inventory stack. */

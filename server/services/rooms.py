@@ -447,10 +447,6 @@ class RoomService:
             if self.peep_room(peep) == room_id
         ]
 
-    @staticmethod
-    def _exit_command(exit_id: str) -> str:
-        return make_exit_command(exit_id)
-
     def _normalize_quick_action(
         self,
         room: RoomDefinition,
@@ -811,7 +807,7 @@ class RoomService:
             "requires_card_id": exit_definition.requires_card_id,
             "npc_barrier": exit_definition.npc_barrier,
             "transition": exit_definition.transition,
-            "quick_action": {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)},
+            "quick_action": {"label": exit_definition.label, "command": make_exit_command(exit_definition.id)},
         }
 
     def _minimap_board(self, room: RoomDefinition) -> tuple[str, str, list[str]]:
@@ -1122,11 +1118,9 @@ class RoomService:
             dynamic_description = game_state.get("room_description")
             if isinstance(dynamic_description, str) and dynamic_description.strip():
                 description = dynamic_description
+        # Room-level exits stay reachable via the minimap, door props, and
+        # direct `.go` commands, so they are not duplicated as room actions.
         quick_actions = [
-            *[
-                {"label": exit_definition.label, "command": self._exit_command(exit_definition.id)}
-                for exit_definition in visible_definitions
-            ],
             *self._mod_room_actions(account, room),
         ]
         if game is not None and game.get("capabilities", {}).get("reset"):
